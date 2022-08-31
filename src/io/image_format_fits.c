@@ -1754,7 +1754,7 @@ void clearfits(fits *fit) {
 			free_stats(fit->stats[i]);
 		free(fit->stats);
 	}
-	free_wcs(fit);
+	free_wcs(fit, FALSE);
 	memset(fit, 0, sizeof(fits));
 }
 

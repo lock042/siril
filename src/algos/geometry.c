@@ -28,6 +28,7 @@
 #include "algos/siril_wcs.h"
 #include "core/undo.h"
 #include "core/processing.h"
+#include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -210,6 +211,8 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	int retvalue;
 	const char *str_inter;
 	struct timeval t_start, t_end;
+	float factor_X = (float)image->rx / (float)toX;
+	float factor_Y = (float)image->ry / (float)toY;
 
 	switch (interpolation) {
 	case OPENCV_NEAREST:
@@ -236,7 +239,10 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	gettimeofday(&t_start, NULL);
 
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation);
-	free_wcs(image);
+	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
+	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
+	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve
+	load_WCS_from_memory(image);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -633,6 +639,7 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 		
 		redraw(REMAP_ALL);
 		redraw_previews();
+		update_MenuItem();
 		set_cursor_waiting(FALSE);
 	}
 }

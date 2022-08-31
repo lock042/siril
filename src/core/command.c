@@ -1611,6 +1611,7 @@ int process_resample(int nb) {
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
+	if (!com.script) update_MenuItem();
 	return CMD_OK;
 }
 
