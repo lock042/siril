@@ -23,8 +23,8 @@
 #include "core/proto.h"
 #include "algos/statistics.h"
 
-double GHT(double in, double B, double D, double LP, double SP, double HP, double BP, int stretchtype, ght_compute_params c) {
-	double out;
+float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, ght_compute_params *c) {
+	float out;
 	if (stretchtype != STRETCH_LINEAR) {
 		BP = 0.0;
 	}
@@ -35,85 +35,85 @@ double GHT(double in, double B, double D, double LP, double SP, double HP, doubl
 		} else if (stretchtype == STRETCH_PAYNE_NORMAL) {
 			if (B == -1.0) {
 				if (in < LP) {
-					out = c.b1 * in;
+					out = c->b1 * in;
 				} else if (in < SP) {
-					out = c.a2 + c.b2 * log(c.c2 + c.d2 * in);
+					out = c->a2 + c->b2 * log(c->c2 + c->d2 * in);
 				} else if (in < HP) {
-					out = c.a3 + c.b3 * log(c.c3 + c.d3 * in);
+					out = c->a3 + c->b3 * log(c->c3 + c->d3 * in);
 				} else {
-					out = c.a4 + c.b4 * in;
+					out = c->a4 + c->b4 * in;
 				}
 			} else if (B < 0) {
 				if (in < LP) {
-					out = c.b1 * in;
+					out = c->b1 * in;
 				} else if (in < SP) {
-					out = c.a2 + c.b2 * pow((c.c2 + c.d2 * in), c.e2);
+					out = c->a2 + c->b2 * pow((c->c2 + c->d2 * in), c->e2);
 				} else if (in < HP) {
-					out = c.a3 + c.b3 * pow((c.c3 + c.d3 * in), c.e3);
+					out = c->a3 + c->b3 * pow((c->c3 + c->d3 * in), c->e3);
 				} else {
-					out = c.a4 + c.b4 * in;
+					out = c->a4 + c->b4 * in;
 				}
 			} else if (B == 0) {
 				if (in < LP) {
-					out = c.a1 + c.b1 * in;
+					out = c->a1 + c->b1 * in;
 				} else if (in < SP) {
-					out = c.a2 + c.b2 * exp(c.c2 + c.d2 * in);
+					out = c->a2 + c->b2 * exp(c->c2 + c->d2 * in);
 				} else if (in < HP) {
-					out = c.a3 + c.b3 * exp(c.c3 + c.d3 * in);
+					out = c->a3 + c->b3 * exp(c->c3 + c->d3 * in);
 				} else {
-					out = c.a4 + c.b4 * in;
+					out = c->a4 + c->b4 * in;
 				}
 			} else /*if (B > 0)*/ {
 				if (in < LP) {
-					out = c.b1 * in;
+					out = c->b1 * in;
 				} else if (in < SP) {
-					out = c.a2 + c.b2 * pow((c.c2 + c.d2 * in), c.e2);
+					out = c->a2 + c->b2 * pow((c->c2 + c->d2 * in), c->e2);
 				} else if (in < HP) {
-					out = c.a3 + c.b3 * pow((c.c3 + c.d3 * in), c.e3);
+					out = c->a3 + c->b3 * pow((c->c3 + c->d3 * in), c->e3);
 				} else {
-					out = c.a4 + c.b4 * in;
+					out = c->a4 + c->b4 * in;
 				}
 			}
 		} else /*if (stretchtype == STRETCH_PAYNE_INVERSE)*/ {
 			if (B == -1.0) {
-				if (in < c.LPT) {
-					out = c.b1 * in;
-				} else if (in < c.SPT) {
-					out = c.a2 + c.b2 * exp(c.c2 + c.d2 * in);
-				} else if (in < c.HPT) {
-					out = c.a3 + c.b3 * exp(c.c3 + c.d3 * in);
+				if (in < c->LPT) {
+					out = c->b1 * in;
+				} else if (in < c->SPT) {
+					out = c->a2 + c->b2 * exp(c->c2 + c->d2 * in);
+				} else if (in < c->HPT) {
+					out = c->a3 + c->b3 * exp(c->c3 + c->d3 * in);
 				} else {
-					out = c.a4 + c.b4 * in;
+					out = c->a4 + c->b4 * in;
 				}
 			} else if (B < 0) {
-				if (in < c.LPT) {
-					out = c.b1 * in;
-				} else if (in < c.SPT) {
-					out = c.a2 + c.b2 * pow((c.c2 + c.d2 * in), c.e2);
-				} else if (in < c.HPT) {
-					out = c.a3 + c.b3 * pow((c.c3 + c.d3 * in), c.e3);
+				if (in < c->LPT) {
+					out = c->b1 * in;
+				} else if (in < c->SPT) {
+					out = c->a2 + c->b2 * pow((c->c2 + c->d2 * in), c->e2);
+				} else if (in < c->HPT) {
+					out = c->a3 + c->b3 * pow((c->c3 + c->d3 * in), c->e3);
 				} else {
-					out = c.a4 + c.b4 * in;
+					out = c->a4 + c->b4 * in;
 				}
 			} else if (B == 0) {
-				if (in < c.LPT) {
-					out = c.a1 + c.b1 * in;
-				} else if (in < c.SPT) {
-					out = c.a2 + c.b2 * log(c.c2 + c.d2 * in);
-				} else if (in < c.HPT) {
-					out = c.a3 + c.b3 * log(c.c3 + c.d3 * in);
+				if (in < c->LPT) {
+					out = c->a1 + c->b1 * in;
+				} else if (in < c->SPT) {
+					out = c->a2 + c->b2 * log(c->c2 + c->d2 * in);
+				} else if (in < c->HPT) {
+					out = c->a3 + c->b3 * log(c->c3 + c->d3 * in);
 				} else {
-					out = c.a4 + c.b4 * in;
+					out = c->a4 + c->b4 * in;
 				}
 			} else /* if (B > 0) */{
-				if (in < c.LPT) {
-					out = c.b1 * in;
-				} else if (in < c.SPT) {
-					out = c.a2 + c.b2 * pow((c.c2 + c.d2 * in), c.e2);
-				} else if (in < c.HPT) {
-					out = c.a3 + c.b3 * pow((c.c3 + c.d3 * in), c.e3);
+				if (in < c->LPT) {
+					out = c->b1 * in;
+				} else if (in < c->SPT) {
+					out = c->a2 + c->b2 * pow((c->c2 + c->d2 * in), c->e2);
+				} else if (in < c->HPT) {
+					out = c->a3 + c->b3 * pow((c->c3 + c->d3 * in), c->e3);
 				} else {
-					out = c.a4 + c.b4 * in;
+					out = c->a4 + c->b4 * in;
 				}
 			}
 		}
@@ -124,37 +124,37 @@ double GHT(double in, double B, double D, double LP, double SP, double HP, doubl
 		if (D == 0.0) {
 			out = in;
 		} else if (in < LP) {
-			out = c.a1 + c.b1 * in;
+			out = c->a1 + c->b1 * in;
 		} else if (in < SP) {
-			out = c.a2 + c.b2 * log(c.c2 * (in - c.e2) + sqrt(c.d2 * (in - c.e2) * (in - c.e2) + 1));
+			out = c->a2 + c->b2 * log(c->c2 * (in - c->e2) + sqrt(c->d2 * (in - c->e2) * (in - c->e2) + 1));
 		} else if (in < HP) {
-			out = c.a3 + c.b3 * log(c.c3 * (in - c.e3) + sqrt(c.d3 * (in - c.e3) * (in - c.e3) + 1));
+			out = c->a3 + c->b3 * log(c->c3 * (in - c->e3) + sqrt(c->d3 * (in - c->e3) * (in - c->e3) + 1));
 		} else {
-			out = c.a4 + c.b4 * in;
+			out = c->a4 + c->b4 * in;
 		}
 	} else /* if (stretchtype == STRETCH_INVASINH)*/ {
 		if (D == 0.0) {
 			out = in;
-		} else if (in < c.LPT) {
-			out = (in - c.a1) / c.b1;
-		} else if (in < c.SPT) {
-			double ex = exp((c.a2 - in) / c.b2);
-			out = c.e2 - (ex - (1 / ex)) / (2 * c.c2);
-		} else if (in < c.HPT) {
-			double ex = exp((c.a3 - in) / c.b3);
-			out = c.e3 - (ex - (1 / ex)) / (2 * c.c3);
+		} else if (in < c->LPT) {
+			out = (in - c->a1) / c->b1;
+		} else if (in < c->SPT) {
+			float ex = exp((c->a2 - in) / c->b2);
+			out = c->e2 - (ex - (1 / ex)) / (2 * c->c2);
+		} else if (in < c->HPT) {
+			float ex = exp((c->a3 - in) / c->b3);
+			out = c->e3 - (ex - (1 / ex)) / (2 * c->c3);
 		} else {
-			out = (in - c.a4) / c.b4;
+			out = (in - c->a4) / c->b4;
 		}
 	}
 	return out;
 }
 
-double GHTp(double in, ght_params params, ght_compute_params compute_params) {
-	return GHT(in, params.B, params.D, params.LP, params.SP, params.HP, params.BP, params.stretchtype, compute_params);
+float GHTp(float in, ght_params *params, ght_compute_params *compute_params) {
+	return GHT(in, params->B, params->D, params->LP, params->SP, params->HP, params->BP, params->stretchtype, compute_params);
 }
 
-int GHTsetup(ght_compute_params *c, double B, double D, double LP, double SP, double HP, int stretchtype) {
+int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float HP, int stretchtype) {
 	if (D == 0.0 || stretchtype == STRETCH_LINEAR) {
 		c->qlp = c->q0 = c->qwp = c->q1 = c->q = c->b1 = c->a2 = c->b2 = c->c2 = c->d2 = c->a3 = c->b3 = c->c3 = c->d3 = c->a4 = c->b4 = 0.0;
 		return 0;
@@ -382,9 +382,9 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);
-	double factor_red = 0.2126;
-	double factor_green = 0.7152;
-	double factor_blue = 0.0722;
+	float factor_red = 0.2126;
+	float factor_green = 0.7152;
+	float factor_blue = 0.0722;
 	// If only working with selected channels, colour mode is forced to independent
 	if (!(do_channel[0] && do_channel[1] && do_channel[2]))
 		if (params.payne_colourstretchmodel == COL_HUMANLUM)
@@ -397,18 +397,18 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 	// Do calcs that can be done prior to the loop
 	GHTsetup(&compute_params, params.B, params.D, params.LP, params.SP, params.HP, params.stretchtype);
 	if (from->type == DATA_USHORT) {
-		double norm = get_normalized_value(from);
-		double invnorm = 1.0f / norm;
+		float norm = get_normalized_value(from);
+		float invnorm = 1.0f / norm;
 		if (from->naxes[2] == 3 && params.payne_colourstretchmodel != COL_INDEP) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0 ; i < layersize ; i++) {
-				double L[3] = {0.0, 0.0, 0.0};
+				float L[3] = {0.0, 0.0, 0.0};
 				for (size_t chan = 0; chan < 3 ; chan++)
-					L[chan] = (double) from->pdata[chan][i] * invnorm;
-				double x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
-				double z = GHTp(x, params, compute_params);
+					L[chan] = (float) from->pdata[chan][i] * invnorm;
+				float x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
+				float z = GHTp(x, &params, &compute_params);
 				for (size_t chan = 0; chan < 3 ; chan++) {
 					if (do_channel[chan])
 						to->pdata[chan][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, L[chan] * (z / x))));
@@ -425,8 +425,8 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 					for (size_t i = 0; i < layersize; i++) {
-						double x = (double)from->pdata[chan][i] * invnorm;
-						to->pdata[chan][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, GHTp(x, params, compute_params))));
+						float x = (float)from->pdata[chan][i] * invnorm;
+						to->pdata[chan][i] = (x == 0.0) ? 0 : round_to_WORD(norm * min(1.0, max(0.0, GHTp(x, &params, &compute_params))));
 					}
 				} else
 					memcpy(to->pdata[chan], from->pdata[chan], layersize * sizeof(WORD));
@@ -438,11 +438,11 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0 ; i < layersize ; i++) {
-				double L[3] = {0.0, 0.0, 0.0};
+				float L[3] = {0.0, 0.0, 0.0};
 				for (size_t chan = 0; chan < 3 ; chan++)
-					L[chan] = (double)from->fpdata[chan][i];
-				double x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
-				double z = GHTp(x, params, compute_params);
+					L[chan] = (float)from->fpdata[chan][i];
+				float x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
+				float z = GHTp(x, &params, &compute_params);
 				for (size_t chan = 0; chan < 3 ; chan++)
 					if (do_channel[chan])
 						to->fpdata[chan][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, L[chan] * (z / x)));
@@ -459,8 +459,8 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 					for (size_t i = 0; i < layersize; i++) {
-						double x = (double)from->fpdata[chan][i];
-						to->fpdata[chan][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, GHTp(x, params, compute_params)));
+						float x = (float)from->fpdata[chan][i];
+						to->fpdata[chan][i] = (x == 0.0) ? 0.0 : (float)min(1.0, max(0.0, GHTp(x, &params, &compute_params)));
 					}
 				} else
 					memcpy(to->fpdata[chan], from->fpdata[chan], layersize * sizeof(float));

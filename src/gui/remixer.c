@@ -109,11 +109,11 @@ static void apply_remix_histo(gsl_histogram *histo, float norm,
 #endif
 #endif
 	for (size_t i = 0; i < int_norm + 1; i++) {
-		double ght;
+		float ght;
 		float binval = gsl_histogram_get(histo, i);
 		float pxl = ((float)i / norm);
 
-		ght = round_to_WORD(GHT((double)pxl, params->B, params->D, params->LP, params->SP, params->HP, params->BP, params->stretchtype, *cp) * norm);
+		ght = GHT(pxl, params->B, params->D, params->LP, params->SP, params->HP, params->BP, params->stretchtype, cp) * norm;
 		gsl_histogram_accumulate(mtf_histo, (double) ght, (double) binval);
 	}
 #ifndef __APPLE__
@@ -134,7 +134,7 @@ static void draw_remix_curve(cairo_t *cr, int width, int height, ght_params *par
 	GHTsetup(cp, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
 	for (k = 0; k < width + 1; k++) {
 		float x = k / (float) width;
-		float y = (float) GHT((double) x, params->B, params->D, params->LP, params->SP, params->HP, 0.0, params->stretchtype, *cp);
+		float y = (float) GHT((double) x, params->B, params->D, params->LP, params->SP, params->HP, 0.0, params->stretchtype, cp);
 		cairo_line_to(cr, k, height * (1 - y));
 	}
 	cairo_stroke(cr);
@@ -1026,7 +1026,11 @@ void on_eyedropper_SP_left_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_remix_HP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_left"));
 	int chan, channels = fit_left.naxes[2];
 	imstats* stats[3];
-	double ref = 0;
+	double ref = 0.0;
+	double norm = 1.0;
+	if (get_preview_gfit_backup()->type == DATA_USHORT)
+		norm = USHRT_MAX_DOUBLE;
+
 	if (!com.selection.w || !com.selection.h) {
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the point or area to set SP"));
@@ -1042,6 +1046,7 @@ void on_eyedropper_SP_left_clicked(GtkButton *button, gpointer user_data) {
 		free_stats(stats[chan]);
 	}
 	ref /= channels;
+	ref /= norm;
 	leftSP = ref;
 	if (leftSP < leftLP) {
 		gtk_spin_button_set_value(spin_remix_LP_left, leftSP);
@@ -1066,7 +1071,10 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_remix_HP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_right"));
 	int chan, channels = fit_right.naxes[2];
 	imstats* stats[3];
-	double ref = 0;
+	double ref = 0.0;
+	double norm = 1.0;
+	if (get_preview_gfit_backup()->type == DATA_USHORT)
+		norm = USHRT_MAX_DOUBLE;
 	if (!com.selection.w || !com.selection.h) {
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the point or area to set SP"));
@@ -1082,6 +1090,7 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 		free_stats(stats[chan]);
 	}
 	ref /= channels;
+	ref /= norm;
 	rightSP = ref;
 	if (rightSP < rightLP) {
 		gtk_spin_button_set_value(spin_remix_LP_right, rightSP);

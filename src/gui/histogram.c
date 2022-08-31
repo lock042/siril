@@ -54,7 +54,7 @@
 static int invocation = NO_STRETCH_SET_YET;
 
 // Parameters for use in calculations
-static double _B = 0.5, _D = 0.0, _BP = 0.0, _LP = 0.0, _SP = 0.0, _HP = 1.0;
+static float _B = 0.5, _D = 0.0, _BP = 0.0, _LP = 0.0, _SP = 0.0, _HP = 1.0;
 static gboolean do_channel[3];
 static int _stretchtype = STRETCH_PAYNE_NORMAL;
 static int _payne_colourstretchmodel = COL_INDEP;
@@ -137,7 +137,7 @@ static void histo_recompute() {
 		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params, TRUE);
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
-		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (double) _LP, .SP = (double) _SP, .HP = (double) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
+		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
 		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, compute_params, TRUE);
 	}
@@ -384,7 +384,7 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 		for (k = 0; k < width + 1; k++) {
 			float x = k / (float) width;
-			float y = (float) GHT((double) x, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, compute_params);
+			float y = (float) GHT((float) x, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, &compute_params);
 			cairo_line_to(cr, k, height * (1 - y));
 		}
 	}
@@ -624,7 +624,7 @@ static void apply_ght_to_histo(gsl_histogram *histo, float norm,
 #endif
 #endif
 	for (size_t i = 0; i < int_norm + 1; i++) {
-		double ght;
+		float ght;
 		float binval = gsl_histogram_get(histo, i);
 		float pxl = ((float)i / norm);
 		guint64 clip[2] = { 0, 0 };
@@ -636,7 +636,7 @@ static void apply_ght_to_histo(gsl_histogram *histo, float norm,
 			pxl = hi;
 			clip[1] += binval;
 		}
-		ght = round_to_WORD(GHT((double)pxl, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, compute_params) * norm);
+		ght = round_to_WORD(GHT((float)pxl, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, &compute_params) * norm);
 		gsl_histogram_accumulate(mtf_histo, (double) ght, (double) binval);
 #ifndef __APPLE__
 #ifdef _OPENMP
@@ -1233,22 +1233,22 @@ gboolean on_drawingarea_histograms_button_press_event(GtkWidget *widget,
 				break;
 			case STRETCH_PAYNE_NORMAL:
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_PAYNE_INVERSE);
-				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_PAYNE_INVERSE, compute_params);
+				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_PAYNE_INVERSE, &compute_params);
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_PAYNE_NORMAL);
 				break;
 			case STRETCH_PAYNE_INVERSE:
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_PAYNE_NORMAL);
-				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_PAYNE_NORMAL, compute_params);
+				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_PAYNE_NORMAL, &compute_params);
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_PAYNE_INVERSE);
 				break;
 			case STRETCH_ASINH:
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_INVASINH);
-				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_INVASINH, compute_params);
+				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_INVASINH, &compute_params);
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_ASINH);
 				break;
 			case STRETCH_INVASINH:
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_ASINH);
-				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_ASINH, compute_params);
+				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_ASINH, &compute_params);
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_INVASINH);
 				break;
 		}
@@ -1344,7 +1344,11 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
 	int chan;
 	imstats* stats[3];
-	double ref = 0;
+	double ref = 0.0;
+	double norm = 1.0;
+	if (get_preview_gfit_backup()->type == DATA_USHORT)
+		norm = USHRT_MAX_DOUBLE;
+
 	if (!com.selection.w || !com.selection.h) {
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the point or area to set SP"));
@@ -1358,13 +1362,15 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 				siril_log_message(_("Error: statistics computation failed.\n"));
 				return;
 			}
+			fprintf(stdout,"channel mean: %f\n", stats[chan]->mean);
 			ref += stats[chan]->mean;
 			free_stats(stats[chan]);
 			active_channels++;
 		}
 	}
 	ref /= active_channels;
-	_SP = ref;
+	ref /= norm;
+	_SP = (float) ref;
 	if (_SP < _LP) {
 		gtk_spin_button_set_value(spin_LP, _SP);
 	}
