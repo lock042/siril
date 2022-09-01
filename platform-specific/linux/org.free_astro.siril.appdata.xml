@@ -90,6 +90,16 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+      <release version="1.0.4" type="stable" date="2022-09-02">
+      <url type="details">https://www.siril.org/download/1.0.4</url>
+      <description>
+        <p>
+          Siril 1.0.4 is mainly a bug fix release. In addition,
+          it comes with a small improvement in the Generalised
+          Hyperbolic Transformation
+        </p>
+      </description>
+    </release>
       <release version="1.0.3" type="stable" date="2022-06-28">
       <url type="details">https://www.siril.org/download/1.0.3</url>
       <description>

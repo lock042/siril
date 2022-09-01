@@ -657,6 +657,9 @@ int process_wrecons(int nb) {
 	return CMD_OK;
 }
 int process_linstretch(int nb) {
+	gboolean do_red = TRUE;
+	gboolean do_green = TRUE;
+	gboolean do_blue = TRUE;
 	if (nb <= 0)
 	return CMD_ARG_ERROR;
 
@@ -665,8 +668,31 @@ int process_linstretch(int nb) {
 	if ((BP < 0.0) || (BP > 1.0)) {
 		siril_log_message(_("Black Point BP must be between 0 and 1\n"));
 	}
+	if (word[2]) {
+		if (!strcmp(word[2], "R")) {
+			do_green = FALSE;
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[2], "G")) {
+			do_red = FALSE;
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[2], "B")) {
+			do_green = FALSE;
+			do_red = FALSE;
+		}
+		if (!strcmp(word[2], "RG")) {
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[2], "RB")) {
+			do_green = FALSE;
+		}
+		if (!strcmp(word[2], "GB")) {
+			do_red = FALSE;
+		}
+	}
 	set_cursor_waiting(TRUE);
-	ght_params params = {0.0, 0.0, 0.0, 0.0, 0.0, BP, STRETCH_LINEAR, COL_INDEP};
+	ght_params params = {0.0, 0.0, 0.0, 0.0, 0.0, BP, STRETCH_LINEAR, COL_INDEP, do_red, do_green, do_blue};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, 0.0, 0.0, 0.0, 0.0, 0.0, STRETCH_LINEAR);
 	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
@@ -678,6 +704,9 @@ int process_linstretch(int nb) {
 int process_ght(int nb) {
 	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
+	gboolean do_red = TRUE;
+	gboolean do_green = TRUE;
+	gboolean do_blue = TRUE;
 	if (!strcmp(word[1], "-human")) {
 		stretch_colourmodel = COL_HUMANLUM;
 		arg_offset = 1;
@@ -723,8 +752,31 @@ int process_ght(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
+	if (word[6 + arg_offset]) {
+		if (!strcmp(word[6 + arg_offset], "R")) {
+			do_green = FALSE;
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[6 + arg_offset], "G")) {
+			do_red = FALSE;
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[6 + arg_offset], "B")) {
+			do_green = FALSE;
+			do_red = FALSE;
+		}
+		if (!strcmp(word[6 + arg_offset], "RG")) {
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[6 + arg_offset], "RB")) {
+			do_green = FALSE;
+		}
+		if (!strcmp(word[6 + arg_offset], "GB")) {
+			do_red = FALSE;
+		}
+	}
 	set_cursor_waiting(TRUE);
-	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_NORMAL, stretch_colourmodel};
+	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_NORMAL, stretch_colourmodel, do_red, do_green, do_blue};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_NORMAL);
 	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
@@ -734,6 +786,9 @@ int process_ght(int nb) {
 }
 
 int process_invght(int nb) {
+	gboolean do_red = TRUE;
+	gboolean do_green = TRUE;
+	gboolean do_blue = TRUE;
 	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
@@ -781,9 +836,32 @@ int process_invght(int nb) {
 		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
+	if (word[6 + arg_offset]) {
+		if (!strcmp(word[6 + arg_offset], "R")) {
+			do_green = FALSE;
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[6 + arg_offset], "G")) {
+			do_red = FALSE;
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[6 + arg_offset], "B")) {
+			do_green = FALSE;
+			do_red = FALSE;
+		}
+		if (!strcmp(word[6 + arg_offset], "RG")) {
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[6 + arg_offset], "RB")) {
+			do_green = FALSE;
+		}
+		if (!strcmp(word[6 + arg_offset], "GB")) {
+			do_red = FALSE;
+		}
+	}
 
 	set_cursor_waiting(TRUE);
-	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE, stretch_colourmodel};
+	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE, stretch_colourmodel, do_red, do_green, do_blue};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_INVERSE);
 	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
@@ -793,6 +871,9 @@ int process_invght(int nb) {
 }
 
 int process_modasinh(int nb) {
+	gboolean do_red = TRUE;
+	gboolean do_green = TRUE;
+	gboolean do_blue = TRUE;
 	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
@@ -833,9 +914,32 @@ int process_modasinh(int nb) {
 		siril_log_message(_("HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
+	if (word[5 + arg_offset]) {
+		if (!strcmp(word[5 + arg_offset], "R")) {
+			do_green = FALSE;
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[5 + arg_offset], "G")) {
+			do_red = FALSE;
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[5 + arg_offset], "B")) {
+			do_green = FALSE;
+			do_red = FALSE;
+		}
+		if (!strcmp(word[5 + arg_offset], "RG")) {
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[5 + arg_offset], "RB")) {
+			do_green = FALSE;
+		}
+		if (!strcmp(word[5 + arg_offset], "GB")) {
+			do_red = FALSE;
+		}
+	}
 
 	set_cursor_waiting(TRUE);
-	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_ASINH, stretch_colourmodel};
+	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_ASINH, stretch_colourmodel, do_red, do_green, do_blue};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_ASINH);
 	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
@@ -845,6 +949,9 @@ int process_modasinh(int nb) {
 }
 
 int process_invmodasinh(int nb) {
+	gboolean do_red = TRUE;
+	gboolean do_green = TRUE;
+	gboolean do_blue = TRUE;
 	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
@@ -885,9 +992,32 @@ int process_invmodasinh(int nb) {
 		siril_log_message(_("HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
+	if (word[5 + arg_offset]) {
+		if (!strcmp(word[5 + arg_offset], "R")) {
+			do_green = FALSE;
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[5 + arg_offset], "G")) {
+			do_red = FALSE;
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[5 + arg_offset], "B")) {
+			do_green = FALSE;
+			do_red = FALSE;
+		}
+		if (!strcmp(word[5 + arg_offset], "RG")) {
+			do_blue = FALSE;
+		}
+		if (!strcmp(word[5 + arg_offset], "RB")) {
+			do_green = FALSE;
+		}
+		if (!strcmp(word[5 + arg_offset], "GB")) {
+			do_red = FALSE;
+		}
+	}
 
 	set_cursor_waiting(TRUE);
-	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_INVASINH, stretch_colourmodel};
+	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_INVASINH, stretch_colourmodel, do_red, do_green, do_blue};
 	ght_compute_params compute_params;
 	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_INVASINH);
 	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
@@ -1383,11 +1513,37 @@ int process_mtf(int nb) {
 	params.shadows = g_ascii_strtod(word[1], &end1);
 	params.midtones = g_ascii_strtod(word[2], &end2);
 	params.highlights = g_ascii_strtod(word[3], &end3);
+	params.do_red = TRUE;
+	params.do_green = TRUE;
+	params.do_blue = TRUE;
 	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
 			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
 			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
 		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
 		return CMD_ARG_ERROR;
+	}
+	if (word[4]) {
+		if (!strcmp(word[4], "R")) {
+			params.do_green = FALSE;
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "G")) {
+			params.do_red = FALSE;
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "B")) {
+			params.do_green = FALSE;
+			params.do_red = FALSE;
+		}
+		if (!strcmp(word[4], "RG")) {
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "RB")) {
+			params.do_green = FALSE;
+		}
+		if (!strcmp(word[4], "GB")) {
+			params.do_red = FALSE;
+		}
 	}
 
 	apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
@@ -1455,6 +1611,7 @@ int process_resample(int nb) {
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
+	if (!com.script) update_MenuItem();
 	return CMD_OK;
 }
 
@@ -2622,12 +2779,7 @@ int process_new(int nb){
 	memset(gfit.fdata, 0, width * height * layers * sizeof(float));
 
 	com.seq.current = UNRELATED_IMAGE;
-	com.uniq = calloc(1, sizeof(single));
-	com.uniq->filename = strdup(_("new empty image"));
-	com.uniq->fileexist = FALSE;
-	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->fit = &gfit;
-
+	create_uniq_from_gfit(strdup(_("new empty image")), FALSE);
 	open_single_image_from_gfit();
 	return CMD_OK;
 }
@@ -3536,6 +3688,9 @@ int process_seq_mtf(int nb) {
 	args->params.shadows = g_ascii_strtod(word[2], &end1);
 	args->params.midtones = g_ascii_strtod(word[3], &end2);
 	args->params.highlights = g_ascii_strtod(word[4], &end3);
+	args->params.do_red = TRUE;
+	args->params.do_green = TRUE;
+	args->params.do_blue = TRUE;
 	if (end1 == word[2] || end2 == word[3] || end3 == word[4] ||
 			args->params.shadows < 0.0 || args->params.midtones <= 0.0 || args->params.highlights <= 0.0 ||
 			args->params.shadows >= 1.0 || args->params.midtones >= 1.0 || args->params.highlights > 1.0) {
@@ -3548,6 +3703,27 @@ int process_seq_mtf(int nb) {
 	if (nb > startoptargs) {
 		for (int i = startoptargs; i < nb; i++) {
 			if (word[i]) {
+				if (!strcmp(word[i], "R")) {
+					args->params.do_green = FALSE;
+					args->params.do_blue = FALSE;
+				}
+				if (!strcmp(word[i], "G")) {
+					args->params.do_red = FALSE;
+					args->params.do_blue = FALSE;
+				}
+				if (!strcmp(word[i], "B")) {
+					args->params.do_green = FALSE;
+					args->params.do_red = FALSE;
+				}
+				if (!strcmp(word[i], "RG")) {
+					args->params.do_blue = FALSE;
+				}
+				if (!strcmp(word[i], "RB")) {
+					args->params.do_green = FALSE;
+				}
+				if (!strcmp(word[i], "GB")) {
+					args->params.do_red = FALSE;
+				}
 				if (g_str_has_prefix(word[i], "-prefix=")) {
 					char *current = word[i], *value;
 					value = current + 8;

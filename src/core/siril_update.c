@@ -635,7 +635,7 @@ static gchar *get_changelog(gchar *str) {
 	GFile *file = g_file_new_for_uri(changelog_url);
 
 	if (!g_file_load_contents(file, NULL, &result, NULL, NULL, &error)) {
-		siril_log_message(_("Error loading url: %s: %s\n"), changelog_url, error->message);
+		siril_log_message(_("Error loading url: [%s] - %s\n"), changelog_url, error->message);
 		g_clear_error(&error);
 	}
 

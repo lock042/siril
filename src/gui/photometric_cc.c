@@ -574,6 +574,9 @@ gpointer photometric_cc_standalone(gpointer p) {
 	}
 
 	if (!retval) {
+		if (!com.script) {
+			undo_save_state(args->fit, _("Photometric CC"));
+		}
 		args->stars = stars;
 		args->nb_stars = nb_stars;
 		retval = photometric_cc(args);	// args is freed from here

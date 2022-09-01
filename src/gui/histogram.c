@@ -55,6 +55,7 @@ static int invocation = NO_STRETCH_SET_YET;
 
 // Parameters for use in calculations
 static double _B = 0.5, _D = 0.0, _BP = 0.0, _LP = 0.0, _SP = 0.0, _HP = 1.0;
+static gboolean do_channel[3];
 static int _stretchtype = STRETCH_PAYNE_NORMAL;
 static int _payne_colourstretchmodel = COL_INDEP;
 static ght_compute_params compute_params;
@@ -99,6 +100,9 @@ static void clear_hist_backup() {
 }
 
 static void histo_startup() {
+	do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
+	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
+	do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
 	copy_gfit_to_backup();
 	// also get the backup histogram
 	compute_histo_for_gfit();
@@ -129,11 +133,11 @@ static void histo_recompute() {
 	copy_backup_to_gfit();
 
 	if (invocation == HISTO_STRETCH) {
-		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
+		struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params, TRUE);
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
-		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (double) _LP, .SP = (double) _SP, .HP = (double) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel};
+		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (double) _LP, .SP = (double) _SP, .HP = (double) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
 		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, compute_params, TRUE);
 	}
@@ -200,6 +204,9 @@ static void init_toggles() {
 		toggles[0] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolRed"));
 		toggles[1] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGreen"));
 		toggles[2] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolBlue"));
+		do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
+		do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
+		do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
 		toggles[3] = NULL;
 		toggleGrid = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGrid"));
 		toggleCurve = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolCurve"));
@@ -215,7 +222,7 @@ static void set_histo_toggles_names() {
 	init_toggles();
 
 	if (gfit.naxis == 2) {
-		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Gray channel"));
+		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Toggles whether to apply the stretch to the monochrome channel"));
 		GtkWidget *w;
 		if (com.pref.gui.combo_theme == 0) {
 			image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "monochrome_dark.svg", NULL);
@@ -357,8 +364,15 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 	// draw curve
 	int k;
 	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_set_line_width(cr, 1.0);
 	cairo_set_source_rgb(cr, 0.98, 0.5, 0.45);
+
+	// Draw x=y
+	cairo_set_line_width(cr,0.25);
+	cairo_move_to(cr,0,height);
+	cairo_line_to(cr, width, 0);
+	cairo_stroke(cr);
+
+	cairo_set_line_width(cr, 1.0);
 
 	if (invocation == HISTO_STRETCH) {
 		for (k = 0; k < width + 1; k++) {
@@ -678,10 +692,12 @@ static void update_histo_mtf() {
 	_init_clipped_pixels();
 	for (long i = 0; i < gfit.naxes[2]; i++) {
 		gsl_histogram_memcpy(com.layers_hist[i], hist_backup[i]);
-		if (invocation == HISTO_STRETCH) {
-			apply_mtf_to_histo(com.layers_hist[i], norm, _midtones, _shadows, _highlights);
-		} else if (invocation == GHT_STRETCH) {
-			apply_ght_to_histo(com.layers_hist[i], norm, (float) _SP, (float) _BP, 1.0);
+		if (do_channel[i]) {
+			if (invocation == HISTO_STRETCH) {
+				apply_mtf_to_histo(com.layers_hist[i], norm, _midtones, _shadows, _highlights);
+			} else if (invocation == GHT_STRETCH) {
+				apply_ght_to_histo(com.layers_hist[i], norm, (float) _SP, (float) _BP, 1.0);
+			}
 		}
 	}
 	size_t data = gfit.naxes[0] * gfit.naxes[1] * gfit.naxes[2];
@@ -809,12 +825,13 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	erase_histo_display(cr, width, height - GRADIENT_HEIGHT);
 
 	for (i = 0; i < MAXVPORT; i++) {
-		if (com.layers_hist[i]
-				&& (!toggles[i] || gtk_toggle_tool_button_get_active(toggles[i]))) {
+		if (com.layers_hist[i]) {
 			if (gtk_toggle_tool_button_get_active(toggleOrig)) {
 				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE);
 			}
-			display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
+			if (!toggles[i] || gtk_toggle_tool_button_get_active(toggles[i])) {
+				display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
+			}
 		}
 	}
 	display_scale(cr, width, height);
@@ -822,7 +839,22 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	queue_window_redraw();
+	do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
+	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
+	do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
+	if (gfit.naxes[2] == 3 && !(do_channel[0] && do_channel[1] && do_channel[2])) {
+		if (_payne_colourstretchmodel == COL_HUMANLUM) {
+			siril_log_message(_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model.\n"));
+			_payne_colourstretchmodel = COL_EVENLUM;
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_EVENLUM);
+		}
+	}
+
+	update_histo_mtf();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	notify_update((gpointer) param);
 }
 
 void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
@@ -873,7 +905,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		/* Apply to the whole sequence */
 		if (invocation == HISTO_STRETCH) {
 			struct mtf_data *args = malloc(sizeof(struct mtf_data));
-			struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
+			struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
+			fprintf(stdout, "%d %d %d\n", params.do_red, params.do_green, params.do_blue);
 			args->params = params;
 			args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
 			if (args->seqEntry && args->seqEntry[0] == '\0')
@@ -891,7 +924,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			apply_mtf_to_sequence(args);
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_data *args = malloc(sizeof(struct ght_data));
-			struct ght_params params = { .B = _B, .D = _D, .LP = _LP, .SP = _SP, .HP = _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel };
+			struct ght_params params = { .B = _B, .D = _D, .LP = _LP, .SP = _SP, .HP = _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 			args->params_ght = params;
 			args->compute_params = compute_params;
 			args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
@@ -959,7 +992,7 @@ void on_histoSpinZoom_value_changed(GtkRange *range, gpointer user_data) {
 void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	/* we always apply this function on original data */
-	struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights };
+	struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = TRUE, .do_green = TRUE, .do_blue = TRUE };
 	if (!find_linked_midtones_balance_default(get_preview_gfit_backup(), &params)) {
 		_shadows = params.shadows;
 		_midtones = params.midtones;
@@ -973,7 +1006,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 }
 
 void setup_histo_dialog() {
-			gtk_window_set_title(GTK_WINDOW(lookup_widget("histogram_dialog")),"Histogram Transformation");
+			gtk_window_set_title(GTK_WINDOW(lookup_widget("histogram_dialog")),_("Histogram Transformation"));
 
 			// Hide UI elements not required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), FALSE);
@@ -989,7 +1022,7 @@ void setup_histo_dialog() {
 }
 
 void setup_ght_dialog() {
-			gtk_window_set_title(GTK_WINDOW(lookup_widget("histogram_dialog")),"Generalised Hyperbolic Transformations");
+			gtk_window_set_title(GTK_WINDOW(lookup_widget("histogram_dialog")),_("Generalised Hyperbolic Stretch Transformations"));
 			// Hide the histogram controls
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("grid32")), FALSE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), FALSE);
@@ -1068,7 +1101,11 @@ void updateGHTcontrols() {
 }
 
 void toggle_histogram_window_visibility(int _invocation) {
-		invocation = _invocation;
+	invocation = _invocation;
+	for (int i=0;i<3;i++) {
+		do_channel[i] = TRUE;
+	}
+
 	if (gtk_widget_get_visible(lookup_widget("histogram_dialog"))) {
 		set_cursor_waiting(TRUE);
 		reset_cursors_and_values();
@@ -1305,7 +1342,7 @@ void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
 void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP"));
 	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
-	int chan, channels = get_preview_gfit_backup()->naxes[2];
+	int chan;
 	imstats* stats[3];
 	double ref = 0;
 	if (!com.selection.w || !com.selection.h) {
@@ -1313,16 +1350,20 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 				_("Make a selection of the point or area to set SP"));
 		return;
 	}
+	int active_channels = 0;
 	for (chan = 0; chan < get_preview_gfit_backup()->naxes[2]; chan++) {
-		stats[chan] = statistics(NULL, -1, get_preview_gfit_backup(), chan, &com.selection, STATS_BASIC, MULTI_THREADED);
-		if (!stats[chan]) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			return;
+		if (do_channel[chan]) {
+			stats[chan] = statistics(NULL, -1, get_preview_gfit_backup(), chan, &com.selection, STATS_BASIC, MULTI_THREADED);
+			if (!stats[chan]) {
+				siril_log_message(_("Error: statistics computation failed.\n"));
+				return;
+			}
+			ref += stats[chan]->mean;
+			free_stats(stats[chan]);
+			active_channels++;
 		}
-		ref += stats[chan]->mean;
-		free_stats(stats[chan]);
 	}
-	ref /= channels;
+	ref /= active_channels;
 	_SP = ref;
 	if (_SP < _LP) {
 		gtk_spin_button_set_value(spin_LP, _SP);
@@ -1381,6 +1422,13 @@ void on_payneType_changed(GtkComboBox *combo, gpointer user_data) {
 
 void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_data) {
 	_payne_colourstretchmodel = gtk_combo_box_get_active(combo);
+	if (!(do_channel[0] && do_channel[1] && do_channel[2])) {
+		if (_payne_colourstretchmodel == COL_HUMANLUM) {
+			siril_log_message(_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model.\n"));
+		gtk_combo_box_set_active(combo, COL_EVENLUM);
+		_payne_colourstretchmodel = COL_EVENLUM;
+		}
+	}
 	set_cursor_waiting(TRUE);
 	histo_update_preview();
 	set_cursor_waiting(FALSE);

@@ -4367,10 +4367,12 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="show-tabs">False</property>
                 <property name="show-border">False</property>
                 <child>
-                  <!-- n-columns=2 n-rows=1 -->
+                  <!-- n-columns=2 n-rows=2 -->
                   <object class="GtkGrid" id="grid6">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="row-spacing">6</property>
+                    <property name="column-spacing">6</property>
                     <child>
                       <object class="GtkBox" id="box34">
                         <property name="visible">True</property>
@@ -4576,7 +4578,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">0</property>
+                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                     <child>
@@ -4608,7 +4610,6 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                                       <object class="GtkTextView" id="Description_txt">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="wrap-mode">word</property>
                                         <property name="accepts-tab">False</property>
                                         <property name="monospace">True</property>
                                         <style>
@@ -4688,7 +4689,24 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combo_type_of_tiff">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="active">0</property>
+                        <items>
+                          <item translatable="yes">ASTRO-TIFF</item>
+                          <item translatable="yes">Standard TIFF</item>
+                        </items>
+                        <signal name="changed" handler="on_combo_type_of_tiff_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
                         <property name="top-attach">0</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                   </object>
@@ -7139,7 +7157,8 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                           <object class="GtkComboBoxText" id="remix_colour_right">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.</property>
+                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.
+Note that luminance based models are not generally invertible.</property>
                             <property name="hexpand">True</property>
                             <property name="active">0</property>
                             <items>
@@ -7742,7 +7761,8 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                           <object class="GtkComboBoxText" id="remix_colour_left">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.</property>
+                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.
+Note that luminance based models are not generally invertible.</property>
                             <property name="hexpand">True</property>
                             <property name="active">0</property>
                             <items>
@@ -12190,13 +12210,19 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
             <property name="spacing">5</property>
+            <property name="baseline-position">top</property>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
                 <property name="spacing">5</property>
+                <property name="baseline-position">top</property>
                 <child>
                   <object class="GtkToolbar" id="histoToolbar1">
                     <property name="visible">True</property>
@@ -12279,18 +12305,27 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     <property name="height-request">300</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="valign">end</property>
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
                     <property name="hscrollbar-policy">always</property>
                     <property name="overlay-scrolling">False</property>
                     <child>
                       <object class="GtkViewport" id="viewport1">
+                        <property name="width-request">-1</property>
+                        <property name="height-request">-1</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
                         <child>
                           <object class="GtkDrawingArea" id="drawingarea_histograms">
+                            <property name="width-request">-1</property>
+                            <property name="height-request">-1</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">True</property>
                             <signal name="button-press-event" handler="on_drawingarea_histograms_button_press_event" swapped="no"/>
                             <signal name="button-release-event" handler="on_drawingarea_histograms_button_release_event" swapped="no"/>
                             <signal name="draw" handler="redraw_histo" swapped="no"/>
@@ -12302,7 +12337,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                     </child>
                   </object>
                   <packing>
-                    <property name="expand">False</property>
+                    <property name="expand">True</property>
                     <property name="fill">True</property>
                     <property name="position">1</property>
                   </packing>
@@ -12319,7 +12354,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="name">histoToolRed</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Red channel</property>
+                        <property name="tooltip-text" translatable="yes">Toggles whether the stretch applies to the red channel</property>
                         <property name="halign">center</property>
                         <property name="valign">center</property>
                         <property name="use-underline">True</property>
@@ -12337,7 +12372,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="name">histoToolGreen</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Green channel</property>
+                        <property name="tooltip-text" translatable="yes">Toggles whether the stretch applies to the green channel</property>
                         <property name="halign">center</property>
                         <property name="valign">center</property>
                         <property name="use-underline">True</property>
@@ -12355,7 +12390,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="name">histoToolBlue</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Blue channel</property>
+                        <property name="tooltip-text" translatable="yes">Toggles whether the stretch applies to the blue channel</property>
                         <property name="halign">center</property>
                         <property name="valign">center</property>
                         <property name="use-underline">True</property>
@@ -12399,7 +12434,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                       <object class="GtkToggleToolButton" id="histoToolCurve">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Show MTF curve</property>
+                        <property name="tooltip-text" translatable="yes">Show transfer curve plus the line y=x</property>
                         <property name="halign">center</property>
                         <property name="valign">center</property>
                         <property name="use-underline">True</property>
@@ -12421,6 +12456,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="valign">center</property>
                         <property name="use-underline">True</property>
                         <property name="icon-widget">histo-orig</property>
+                        <property name="active">True</property>
                         <signal name="toggled" handler="on_histo_toggled" swapped="no"/>
                       </object>
                       <packing>
@@ -12700,7 +12736,9 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
               <object class="GtkBox" id="box_ghtcontrols">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="halign">end</property>
                 <property name="valign">start</property>
+                <property name="hexpand">False</property>
                 <property name="orientation">vertical</property>
                 <property name="spacing">5</property>
                 <child>
@@ -12708,6 +12746,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="halign">end</property>
                     <property name="row-spacing">5</property>
                     <property name="column-spacing">5</property>
                     <child>
@@ -12786,7 +12825,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                           <object class="GtkComboBoxText" id="combo_payne_colour_stretch_model">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel.</property>
+                            <property name="tooltip-text" translatable="yes">Set the stretch model for colour stretches. The options are: evenly weighted luminance, which calculates the stretch based on a luminance value weighting the R, G and B channels equally; human weighted luminance, which strecthes based on a luminance value weighting the R, G and B channels according to the relative sensitivity of the human eye; and independent channel values, which applies the stretch independently to each channel of the pixel. Note: human-weighted luminance is not allowed if less than 3 colour channels are selected as it doesn't make sense.</property>
                             <property name="hexpand">True</property>
                             <property name="active">0</property>
                             <items>
@@ -12811,7 +12850,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">1</property>
                   </packing>
                 </child>
@@ -12828,7 +12867,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">2</property>
                   </packing>
                 </child>
@@ -12896,7 +12935,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">4</property>
                   </packing>
                 </child>
@@ -12964,7 +13003,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">6</property>
                   </packing>
                 </child>
@@ -13015,6 +13054,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">This dropper allows you to set the background stretch symmetry point  based on the average value of  the current selection. This helps in picking out faint detail above the dark background.</property>
                             <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
                             <child>
                               <object class="GtkImage" id="eyedropper">
@@ -13053,7 +13093,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">8</property>
                   </packing>
                 </child>
@@ -13121,7 +13161,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">10</property>
                   </packing>
                 </child>
@@ -13190,7 +13230,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">12</property>
                   </packing>
                 </child>
@@ -13259,14 +13299,15 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">True</property>
+                    <property name="fill">False</property>
                     <property name="position">14</property>
                   </packing>
                 </child>
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="fill">True</property>
+                <property name="fill">False</property>
+                <property name="pack-type">end</property>
                 <property name="position">1</property>
               </packing>
             </child>

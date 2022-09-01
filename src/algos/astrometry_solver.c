@@ -347,7 +347,7 @@ static gchar *fetch_url(const gchar *url) {
 	siril_debug_print("fetch_url(): %s\n", url);
 
 	if (!g_file_load_contents(file, NULL, &content, NULL, NULL, &error)) {
-		siril_log_message(_("Error loading url: %s: %s\n"), url, error->message);
+		siril_log_message(_("Error loading url: [%s] - %s\n"), url, error->message);
 		g_clear_error(&error);
 	}
 	g_object_unref(file);
@@ -1125,7 +1125,8 @@ gpointer match_catalog(gpointer p) {
 	} else {
 		stars = com.stars;
 		if (com.stars)
-			while (com.stars[n_fit++]);
+			while (com.stars[n_fit])
+				n_fit++;
 	}
 	CHECK_FOR_CANCELLATION;
 

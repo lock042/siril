@@ -83,7 +83,7 @@ static command commands[] = {
 
 	{"gauss", 1, "gauss sigma", process_gauss, STR_GAUSS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"get", 1, "get { -a | -A | variable }", process_set, STR_GET, TRUE, REQ_CMD_NONE},
-	{"ght", 5, "ght [-human | -even | -independent] D B LP SP HP", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"ght", 5, "ght [-human | -even | -independent] D B LP SP HP [channels]", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"help", 0, "help [command]", process_help, STR_HELP, TRUE, REQ_CMD_NONE},
@@ -93,8 +93,8 @@ static command commands[] = {
 	{"iadd", 1, "iadd filename", process_imoper, STR_IADD, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"idiv", 1, "idiv filename", process_imoper, STR_IDIV, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"inspector", 0, "inspector", process_inspector, STR_INSPECTOR, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	{"invght", 5, "invght [-human | -even | -independent] D B LP SP HP", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"invmodasinh", 4, "invmodasinh [-human | -even | -independent] D LP SP HP", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"invght", 5, "invght [-human | -even | -independent] D B LP SP HP [channels]", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"invmodasinh", 4, "invmodasinh [-human | -even | -independent] D LP SP HP [channels]", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"isub", 1, "isub filename", process_imoper, STR_ISUB, TRUE, REQ_CMD_SINGLE_IMAGE},
 
@@ -102,7 +102,7 @@ static command commands[] = {
 	{"light_curve", 3, "light_curve sequencename channel { -ninastars=file | { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...}", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* logarifies current image */
 	{"link", 1, "link basename [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
-	{"linstretch", 1, "linstretch BP", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"linstretch", 1, "linstretch BP [channels]", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"load", 1, "load filename[.ext]", process_load, STR_LOAD, TRUE, REQ_CMD_NONE},
 	// specific loads are not required, but could be used to force the
 	// extension to a higher priority in case two files with same basename
@@ -115,8 +115,8 @@ static command commands[] = {
 	{"merge", 3, "merge sequence1 sequence2 [sequence3 ...] output_sequence", process_merge, STR_MERGE, TRUE, REQ_CMD_NONE},
 	{"mirrorx", 0, "mirrorx", process_mirrorx, STR_MIRRORX, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mirrory", 0, "mirrory", process_mirrory, STR_MIRRORY, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"modasinh", 4, "modasinh [-human | -even | -independent] D LP SP HP", process_modasinh, STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"mtf", 3, "mtf low mid high", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"modasinh", 4, "modasinh [-human | -even | -independent] D LP SP H [channels]P", process_modasinh, STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"mtf", 3, "mtf low mid high [channels]", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"neg", 0, "neg", process_neg, STR_NEG, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"new", 3, "new width height nb_channel", process_new, STR_NEW, FALSE, REQ_CMD_NONE},
@@ -170,7 +170,7 @@ static command commands[] = {
 	{"seqfind_cosme", 3, "seqfind_cosme sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME, TRUE, REQ_CMD_NONE},
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME_CFA, TRUE, REQ_CMD_NONE},
 	{"seqfindstar", 1, "seqfindstar sequencename [-layer=] [-maxstars=]", process_seq_findstar, STR_FINDSTAR, TRUE, REQ_CMD_NONE},
-	{"seqmtf", 4, "seqmtf sequencename low mid high [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE, REQ_CMD_NONE},
+	{"seqmtf", 4, "seqmtf sequencename low mid high [channels] [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE, REQ_CMD_NONE},
 	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqstat", 2, "seqstat sequencename output [option]", process_seq_stat, STR_SEQSTAT, TRUE, REQ_CMD_NO_THREAD},

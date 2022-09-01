@@ -17,6 +17,7 @@
 typedef struct ght_params {
 	double B, D, LP, SP, HP, BP;
 	int stretchtype, payne_colourstretchmodel;
+	gboolean do_red, do_green, do_blue;
 } ght_params;
 
 typedef struct ght_compute_params {

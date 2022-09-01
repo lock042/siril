@@ -90,6 +90,7 @@ src_files = [
   'filters/starnet.c',
   'filters/wavelets.c',
 
+  'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
   'io/avi_pipp/pipp_avi_write.h',
   'io/avi_pipp/pipp_avi_write_dib.cpp',

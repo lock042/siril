@@ -38,6 +38,8 @@ xx/xx/22
 * Added argument to executable to pass pipes path, allowing several instances to run simultaneously
 * Added more reporting on online object search, avoiding duplicates in catalogues
 * Replaced generalized hyperbolic transform stretch method by more general algorithms
+* Added improved graphical interface to hyperbolic stretches
+* Altered behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels (this is useful in NB workflows etc.)
 * Replaced Libraw with RT debayering
 * Fixed comet registration when registration was accumulated over existing data
 * Fixed star detection for images with very large stars
@@ -48,13 +50,20 @@ xx/xx/22
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 
 siril 1.0.4
-XX/XX/22
+09/02/22
+
 * Fixed selected area for flat autonormalisation calc
 * Fixed wrong initialization in polynomial background extraction
 * Fixed cold pixels rejection in GESDT stacking
+* Fixed x and y position in PSF and star detection
+* Fixed RGB pixel display where Green and Blue were swapped
+* Fixed random crash in Pixel Math
+* Improved wcs import when formalism used is deprecated (CROTA + CDELT)
+* Added dropper icon to set SP easily in GHT tool
 
 siril 1.0.3
 06/28/22
+
 * Fixed memory leak in PixelMath
 * Fixed memory leak in SER preview
 * Fixed error in seqsubsky

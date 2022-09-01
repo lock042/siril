@@ -218,8 +218,10 @@ siril_common_SOURCES = \
 	gui/utils.h \
 	io/catalogues.c \
 	io/catalogues.h \
+	io/Astro-TIFF.c \
+	io/Astro-TIFF.h \
 	io/kstars/binfile.h \
-      	io/kstars/byteorder.h \
+	io/kstars/byteorder.h \
 	io/conversion.c \
 	io/conversion.h \
 	io/films.c \

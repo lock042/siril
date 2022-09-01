@@ -251,7 +251,7 @@ gboolean redraw_remix_histo_right(GtkWidget *widget, cairo_t *cr, gpointer data)
 static void update_remix_histo_left() {
 	if (!remix_histlayers_left[0]) return;
 	float norm = (float)gsl_histogram_bins(remix_histlayers_left[0]) - 1;
-	params_histo_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left };
+	params_histo_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left, TRUE, TRUE, TRUE };
 
 	GHTsetup(&cp_histo_left, params_histo_left.B, params_histo_left.D, params_histo_left.LP, params_histo_left.SP, params_histo_left.HP, params_histo_left.stretchtype);
 	for (size_t i = 0; i < fit_left.naxes[2]; i++) {
@@ -270,7 +270,7 @@ static void update_remix_histo_left() {
 static void update_remix_histo_right() {
 	if (!remix_histlayers_right[0]) return;
 	float norm = (float)gsl_histogram_bins(remix_histlayers_right[0]) - 1;
-	params_histo_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right };
+	params_histo_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right, TRUE, TRUE, TRUE };
 
 	int nlayers = fit_right.naxes[2];
 	GHTsetup(&cp_histo_right, params_histo_right.B, params_histo_right.D, params_histo_right.LP, params_histo_right.SP, params_histo_right.HP, params_histo_right.stretchtype);
@@ -331,8 +331,8 @@ static void remix_histo_startup_right() {
 }
 
 void close_histograms() {
-	params_histo_left = (ght_params) { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0, 0 };
-	params_histo_right = (ght_params) { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0, 0 };
+	params_histo_left = (ght_params) { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0, 0, TRUE, TRUE, TRUE };
+	params_histo_right = (ght_params) { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0, 0, TRUE, TRUE, TRUE };
 
 	if (remix_histlayers_left[0]) {
 		for (int i = 0; i < gfit.naxes[2]; i++) {
@@ -371,12 +371,8 @@ static void remixer_startup() {
 void initialise_image() {
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	com.uniq = calloc(1, sizeof(single));
-	com.uniq->comment = strdup(_("Star recomposition"));
-	com.uniq->filename = strdup(_("Unsaved star recomposition result"));
-	com.uniq->fileexist = FALSE;
-	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->fit = &gfit;
+	if (!create_uniq_from_gfit(strdup(_("Unsaved star recomposition result")), FALSE))
+		com.uniq->comment = strdup(_("Star recomposition"));
 
 	initialize_display_mode();
 	update_zoom_label();
@@ -462,8 +458,8 @@ int remixer() {
 	if(!permit_calculation)
 		return 1;
 
-	params_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left };
-	params_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right };
+	params_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left, TRUE, TRUE, TRUE };
+	params_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right, TRUE, TRUE, TRUE };
 	ght_compute_params cp_left = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 	ght_compute_params cp_right = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
@@ -512,7 +508,7 @@ int remixer() {
 
 	if (finalstretch != 0.0) {
 		ght_compute_params cp_final = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-		ght_params params_final = { (finalstretch - 5.0), 4.0, 0.0, 0.0, 1.0, 0.0, STRETCH_PAYNE_NORMAL, COL_HUMANLUM };
+		ght_params params_final = { (finalstretch - 5.0), 4.0, 0.0, 0.0, 1.0, 0.0, STRETCH_PAYNE_NORMAL, COL_HUMANLUM, TRUE, TRUE, TRUE };
 		apply_linked_ght_to_fits(&gfit, &gfit, params_final, cp_final, TRUE);
 	}
 	// If 16bit preference is set, check the images are 16bit

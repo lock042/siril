@@ -465,12 +465,8 @@ static void check_gfit_is_ours() {
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	com.uniq = calloc(1, sizeof(single));
-	com.uniq->comment = strdup(_("Compositing result image"));
-	com.uniq->filename = strdup(_("Unsaved compositing result"));
-	com.uniq->fileexist = FALSE;
-	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->fit = &gfit;
+	if (!create_uniq_from_gfit(strdup(_("Unsaved compositing result")), FALSE))
+		com.uniq->comment = strdup(_("Compositing result image"));
 
 	initialize_display_mode();
 	update_zoom_label();
