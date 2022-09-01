@@ -271,7 +271,6 @@ else
   siril_cpp_flag += '-DHAVE_LIBRTPROCESS'
 endif
 
-
 ## Optional dependencies
 
 openmp_dep = []
@@ -491,7 +490,7 @@ endif
 
 if wcslib_dep.found()
   conf_data.set('HAVE_WCSLIB', true, description : 'Using wcslib.')
-  if wcslib_dep.version() < '7.7'
+  if wcslib_dep.version().version_compare('< 7.7')
   wcslib_warning = '''
         wcslib lower than version 7.7 is known to crash when
         updating wcsdata in files. Please update

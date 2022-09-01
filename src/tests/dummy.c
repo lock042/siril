@@ -134,7 +134,7 @@ gboolean load_WCS_from_memory(fits* fit) {
 	return FALSE;
 }
 
-void free_wcs(fits *fit) {
+void free_wcs(fits *fit, gboolean keep_RADEC) {
         fprintf(stderr, "ERROR: calling undefined function free_wcs\n");
 }
 

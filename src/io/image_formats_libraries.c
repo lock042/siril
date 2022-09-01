@@ -56,6 +56,7 @@
 #include "algos/demosaicing.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "io/Astro-TIFF.h"
 #include "single_image.h"
 #include "image_format_fits.h"
 
@@ -601,32 +602,33 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	return retval;
 }
 
-void get_tif_data_from_ui(gchar **description, gchar **copyright, gboolean *embeded_icc) {
+void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc) {
 	if (!com.script && !com.headless) {
 		/*******************************************************************
 		 * If the user saves a tif from the graphical menu, he can set
 		 * the Description and the Copyright of the Image
 		 ******************************************************************/
-		GtkToggleButton *icc_toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_icc_profile"));
-		GtkTextView *description_txt_view = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
-		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(lookup_widget("Copyright_txt"));
-		GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
-		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
+
 		GtkTextIter itDebut;
 		GtkTextIter itFin;
 
-		gtk_text_buffer_get_start_iter(desbuf, &itDebut);
-		gtk_text_buffer_get_end_iter(desbuf, &itFin);
-		*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
-		gtk_text_buffer_get_bounds(desbuf, &itDebut, &itFin);
-		gtk_text_buffer_delete(desbuf, &itDebut, &itFin);
+		if (gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_type_of_tiff"))) == 0) {
+			*description = AstroTiff_build_header(fit);
+		} else {
+			GtkTextView *description_txt_view = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
+			GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
+			gtk_text_buffer_get_start_iter(desbuf, &itDebut);
+			gtk_text_buffer_get_end_iter(desbuf, &itFin);
+			*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
+		}
 
+		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(lookup_widget("Copyright_txt"));
+		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
 		gtk_text_buffer_get_start_iter(copybuf, &itDebut);
 		gtk_text_buffer_get_end_iter(copybuf, &itFin);
 		*copyright = gtk_text_buffer_get_text(copybuf, &itDebut, &itFin, TRUE);
-		gtk_text_buffer_get_bounds(copybuf, &itDebut, &itFin);
-		gtk_text_buffer_delete(copybuf, &itDebut, &itFin);
 
+		GtkToggleButton *icc_toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_icc_profile"));
 		*embeded_icc = gtk_toggle_button_get_active(icc_toggle);
 	}
 }

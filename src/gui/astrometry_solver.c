@@ -21,6 +21,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include "algos/astrometry_solver.h"
+#include "algos/siril_wcs.h"
 #include "core/processing.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
@@ -584,7 +585,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 gboolean confirm_delete_wcs_keywords(fits *fit) {
 	gboolean erase = TRUE;
 
-	if (fit->wcsdata.equinox > 0.0) {
+	if (has_wcsdata(fit)) {
 		erase = siril_confirm_dialog(_("Astrometric solution detected"),
 				_("The astrometric solution contained in "
 				"the image will be erased by the geometric transformation and no undo "

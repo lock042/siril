@@ -37,6 +37,8 @@ v1.2.0 mmm dd, 2022
 * Added argument to executable to pass pipes path, allowing several instances to run simultaneously
 * Added more reporting on online object search, avoiding duplicates in catalogues
 * Replaced generalized hyperbolic transform stretch method by more general algorithms
+* Added improved graphical interface to hyperbolic stretches
+* Altered behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels (this is useful in NB workflows etc.)
 * Replaced Libraw with RT debayering
 * Fixed comet registration when registration was accumulated over existing data
 * Fixed star detection for images with very large stars
@@ -53,6 +55,7 @@ v1.0.4 September 02, 2022
 * Fixed cold pixels rejection in GESDT stacking
 * Fixed x and y position in PSF and star detection
 * Fixed RGB pixel display where Green and Blue were swapped
+* Improved wcs import when formalism used is deprecated (CROTA + CDELT)
 * Added dropper icon to set SP easily in GHT tool
 
 v1.0.3 June 28, 2022

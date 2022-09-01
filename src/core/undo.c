@@ -173,7 +173,7 @@ static int undo_get_data_ushort(fits *fit, historic hist) {
 	memcpy(&fit->wcsdata, &hist.wcsdata, sizeof(wcs_info));
 	fit->focal_length = hist.focal_length;
 	if (!has_wcsdata(fit)) {
-		free_wcs(fit);
+		free_wcs(fit, FALSE);
 	} else {
 		load_WCS_from_memory(fit);
 	}
@@ -226,7 +226,7 @@ static int undo_get_data_float(fits *fit, historic hist) {
 	memcpy(&fit->wcsdata, &hist.wcsdata, sizeof(wcs_info));
 	fit->focal_length = hist.focal_length;
 	if (!has_wcsdata(fit)) {
-		free_wcs(fit);
+		free_wcs(fit, FALSE);
 	} else {
 		load_WCS_from_memory(fit);
 	}
