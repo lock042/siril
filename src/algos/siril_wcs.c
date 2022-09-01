@@ -57,7 +57,7 @@ gboolean has_wcsdata(fits *fit) {
 }
 
 
-void free_wcs(fits *fit) {
+void free_wcs(fits *fit, gboolean keep_RADEC) {
 #ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
 		if (!wcsfree(fit->wcslib))
@@ -65,7 +65,16 @@ void free_wcs(fits *fit) {
 		fit->wcslib = NULL;
 	}
 #endif
-	memset(&fit->wcsdata, 0, sizeof(fit->wcsdata));
+	if (keep_RADEC) {
+		memset(&fit->wcsdata.cdelt, 0, sizeof(fit->wcsdata.cdelt));
+		memset(&fit->wcsdata.crpix, 0, sizeof(fit->wcsdata.crpix));
+		memset(&fit->wcsdata.crval, 0, sizeof(fit->wcsdata.crval));
+		memset(&fit->wcsdata.pc, 0, sizeof(fit->wcsdata.pc));
+		memset(&fit->wcsdata.pltsolvd, 0, sizeof(fit->wcsdata.pltsolvd));
+		memset(&fit->wcsdata.pltsolvd_comment, 0, sizeof(fit->wcsdata.pltsolvd_comment));
+	} else {
+		memset(&fit->wcsdata, 0, sizeof(fit->wcsdata));
+	}
 }
 
 gboolean load_WCS_from_memory(fits *fit) {
@@ -148,7 +157,7 @@ gboolean load_WCS_from_file(fits* fit) {
 	}
 
 	if (fit->wcslib) {
-		free_wcs(fit);
+		free_wcs(fit, FALSE);
 	}
 
 	ffhdr2str(fit->fptr, 1, NULL, 0, &header, &nkeyrec, &status);
