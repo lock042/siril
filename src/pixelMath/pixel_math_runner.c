@@ -409,8 +409,9 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			vars[i].context = NULL;
 			vars[i].type = 0;
 		}
+		te_expr *n1 = NULL, *n2 = NULL, *n3 = NULL;
 		int err = 0;
-		te_expr *n1 = te_compile(args->expression1, vars, nb_rows, &err);
+		n1 = te_compile(args->expression1, vars, nb_rows, &err);
 		if (!n1) {
 #ifdef _OPENMP
 			if (omp_get_thread_num() == 0)
@@ -420,7 +421,6 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			goto failure;
 		}
 
-		te_expr *n2 = NULL, *n3 = NULL;
 		if (!args->single_rgb) {
 			n2 = te_compile(args->expression2, vars, nb_rows, &err);
 			if (!n2) {
