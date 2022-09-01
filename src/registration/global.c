@@ -691,7 +691,7 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 	int nb_aligned = 0;
 	int nbfail = *failed;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) shared(nbfail)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) shared(nbfail, nb_aligned)
 #endif
 	for (int i = 0; i < regargs->seq->number; i++) {
 		if (!included[i])
@@ -699,12 +699,14 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 		Homography H = { 0 };
 		if (i == regargs->seq->reference_image) {
 			cvGetEye(&H);
-			nb_aligned++;
 		} else {
 			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
 			int not_matched = star_match_and_checks(sf_args->stars[regargs->seq->reference_image], sf_args->stars[i],
 					sf_args->nb_stars[i], regargs, filenum, &H);
 			if (not_matched) {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
 				nbfail++;
 				included[i] = FALSE;
 				continue;
@@ -713,9 +715,12 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 #pragma omp critical
 #endif
 			if (verbose) print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
-			nb_aligned++;
-		}
 
+		}
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+		nb_aligned++;
 		current_regdata[i].roundness = roundness[i];
 		current_regdata[i].fwhm = fwhm[i];
 		current_regdata[i].weighted_fwhm = 2 * fwhm[i]
@@ -954,13 +959,15 @@ int register_multi_step_global(struct registration_args *regargs) {
 			regargs->seq->reference_image = best_index;
 			reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
 			trials++;
-			best_indexes[trials] = best_index;
-			if (trials < MAX_TRIALS_2PASS)
+			if (trials < MAX_TRIALS_2PASS) {
 				siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), trials + 1, reffilenum);
+				best_indexes[trials] = best_index;
+			}
 		} else { // not necessary but a simple to have print_alignment_results
 			tmp_failed = failed;
 			for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
 			compute_transform(regargs, sf_args, tmp_included, &tmp_failed, fwhm, roundness, B, TRUE);
+			break;
 		}
 	}
 
