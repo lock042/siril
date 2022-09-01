@@ -551,7 +551,7 @@ endif
 if not glib_networking_works
   error('Test for glib-networking failed. This is required.')
 else
-  message('glib-networking ins detected.')
+  message('glib-networking is detected.')
 endif
 
 ## Git configuration
