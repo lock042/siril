@@ -268,16 +268,18 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		invalidate_gfit_histogram();
 
 		memcpy(&gfit, args->fit, sizeof(fits));
-		free(args->fit);
 
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		open_single_image_from_gfit();
 	}
+	else clearfits(args->fit);
+
 	set_cursor_waiting(FALSE);
 	if (args->from_ui)
 		output_status_bar(args->ret);
 
+	free(args->fit);
 	free(args);
 	return FALSE;
 }
@@ -491,11 +493,12 @@ failure: // failure before the eval loop
 		if (!failed) {
 			clearfits(&gfit);
 			memcpy(&gfit, args->fit, sizeof(fits));
-			free(args->fit);
 
 			com.seq.current = UNRELATED_IMAGE;
 			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		}
+		else clearfits(args->fit);
+		free(args->fit);
 		free(args);
 	}
 	else if (com.script)
