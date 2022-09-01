@@ -5,6 +5,7 @@ siril 1.0.4
 * Fixed cold pixels rejection in GESDT stacking
 * Fixed x and y position in PSF and star detection
 * Fixed RGB pixel display where Green and Blue were swapped
+* Fixed random crash in Pixel Math
 * Improved wcs import when formalism used is deprecated (CROTA + CDELT)
 * Added dropper icon to set SP easily in GHT tool
 
