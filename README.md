@@ -22,29 +22,29 @@ Main development is done with most recent versions of libraries.
 Requirements
 ------------
 For compilation, these tools are needed in addition to the base development packages:
- * **meson**
- * **ninja**
- * **cmake**
+* **meson**
+* **ninja**
+* **cmake**
 
 Then, mandatory build dependencies:
- * **glib-2.0** (>= 2.56.0) Glib Convenience Library
- * **glib-networking** for SSL/TLS protocole access
- * **GTK+ 3** (>= 3.20) as GUI toolkit
- * **cfitsio** for FITS image read and write
- * **fftw3** for Fourier transforms
- * **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
- * **A C++ compiler** for opencv code and avi exporter
- * **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possbile without some shift-only registration)
- * **exiv2** to manage image metadata
+* **glib-2.0** (>= 2.56.0) Glib Convenience Library
+* **glib-networking** for Web requests or **libcurl**, depending on the platform
+    * both are required on Windows as there is a problem with both in some cases,
+      only curl is used for Mac as glib-networking does not work there,
+      and for linux both work and if curl is enabled during the build, glib-networking will not be used
+* **GTK+ 3** (>= 3.20) as GUI toolkit
+* **cfitsio** for FITS image read and write
+* **fftw3** for Fourier transforms
+* **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
+* **A C++ compiler** for opencv code and avi exporter
+* **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possbile without some shift-only registration)
+* **exiv2** to manage image metadata
  
- 
- * **libcurl** for web interaction. Useless on GNU-Linux but MUST be installed on macOS and Windows platform as GIO is broken
-
 SIRIL works internally with FITS files, but other file formats can be used as
 input and converted using the conversion tab of the control window. Some file
 formats are handled internally, like BMP, PPM and SER, some require external
-libraries or programs listed below. Libraries need to be present at compilation
-time, or their support won't be included.
+libraries listed below. Libraries need to be present at compilation time, or
+their support won't be included.
 
  * **json-glib-1.0**, (>= 1.2.6) for Siril update check
  * **libraw** for DSLR RAW files import
@@ -55,12 +55,12 @@ time, or their support won't be included.
  * **libpng** (>= 1.6) for PNG format support
  * **libavformat**, **libavutil** (>= 55.20), **libavcodec**, **libswscale** and **libswresample** for avi export (usually provided by ffmpeg)
  * **wcslib** for some astrometry utilities
- * **gnuplot** for photometry graphs output
+ * **gnuplot** for photometry graphs output, runtime executable dependency
  * **libconfig** (>= 1.4) to read old configuration files (not used since 1.1)
  * **criterion** for unit testing (development)
 
 All these libraries and programs are available in most Linux distributions and
-free systems, maybe with the exception of ffms2 that is not as popular as
+free systems, maybe with the exception of ffms2 that is not as popular as the
 others and may need to be compiled.
 
 Scripting
@@ -109,6 +109,9 @@ To update Siril, run the following commands
     git pull --recurse-submodules
     ninja -C _build install
 
+Using meson to build siril requires all optional dependencies to be available or explicitly
+disabled on the meson command line adding `-Djson_glib=false` for example. The autotools way
+still only enables dependencies that are found and is available using autogen.sh.
 
 Note that a binary package for stable version of SIRIL is maintained for Debian. 
 PPA repositories for Ubuntu and Linux Mint maintained by SIRIL's authors are
