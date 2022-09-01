@@ -262,7 +262,6 @@ static gboolean end_pixel_math_operation(gpointer p) {
 
 	if (!args->ret) {
 		/* write to gfit in the graphical thread */
-		/* Create new image */
 		clearfits(&gfit);
 		if (sequence_is_loaded())
 			close_sequence(FALSE);
@@ -414,7 +413,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 #ifdef _OPENMP
 			if (omp_get_thread_num() == 0)
 #endif
-				siril_log_color_message(_("Error in pixel math expression '%s' at characted %d\n"), "red", args->expression1, err);
+				siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression1, err);
 			failed = TRUE;
 			goto failure;
 		}
@@ -426,17 +425,17 @@ gpointer apply_pixel_math_operation(gpointer p) {
 #ifdef _OPENMP
 				if (omp_get_thread_num() == 0)
 #endif
-					siril_log_color_message(_("Error in pixel math expression '%s' at characted %d\n"), "red", args->expression2, err);
+					siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression2, err);
 				failed = TRUE;
 				goto failure;
 			}
 
 			n3 = te_compile(args->expression3, vars, nb_rows, &err);
-			if (!n2) {
+			if (!n3) {
 #ifdef _OPENMP
 				if (omp_get_thread_num() == 0)
 #endif
-					siril_log_color_message(_("Error in pixel math expression '%s' at characted %d\n"), "red", args->expression3, err);
+					siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression3, err);
 				failed = TRUE;
 				goto failure;
 			}
