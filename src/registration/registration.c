@@ -839,7 +839,7 @@ gboolean layer_has_usable_registration(sequence *seq, int layer) {
 /****************************************************************/
 
 #define MAX_FILTERS 5
-static struct filtering_tuple regfilters[MAX_FILTERS] = { NULL };
+static struct filtering_tuple regfilters[MAX_FILTERS] = { 0 };
 
 static void update_filters_registration();
 
