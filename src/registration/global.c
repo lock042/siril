@@ -684,13 +684,14 @@ static void print_alignment_results(Homography H, int filenum, float fwhm, float
 	siril_log_message(_("roundness:%*.2f\n"), 8, roundness);
 }
 
-static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, float *fwhm, float *roundness, float *B) {
+static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, float *fwhm, float *roundness, float *B, gboolean verbose) {
 	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata) return -1;
 	int nb_ref_stars = sf_args->nb_stars[regargs->seq->reference_image];
 	int nb_aligned = 0;
+	int nbfail = *failed;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) shared(nbfail)
 #endif
 	for (int i = 0; i < regargs->seq->number; i++) {
 		if (!included[i])
@@ -704,14 +705,14 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 			int not_matched = star_match_and_checks(sf_args->stars[regargs->seq->reference_image], sf_args->stars[i],
 					sf_args->nb_stars[i], regargs, filenum, &H);
 			if (not_matched) {
-				*failed = *failed + 1;
+				nbfail++;
 				included[i] = FALSE;
 				continue;
 			}
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-			print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
+			if (verbose) print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
 			nb_aligned++;
 		}
 
@@ -724,11 +725,12 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 		current_regdata[i].number_of_stars = sf_args->nb_stars[i];
 		current_regdata[i].H = H;
 	}
+	*failed = nbfail;
 	return nb_aligned;
 }
 
 static void compute_dist(struct registration_args *regargs, float *dist, gboolean *included) {
-	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
+	Homography Href = regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H;
 	Homography Hshift = {0};
 	Homography Htransf = {0};
 	cvGetEye(&Hshift);
@@ -940,8 +942,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	while (trials < MAX_TRIALS_2PASS) {
 		tmp_failed = failed;
 		for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
-		nb_aligned[trials] = compute_transform(regargs, sf_args, tmp_included, &tmp_failed, fwhm, roundness, B);
-		if(nb_aligned[trials] <= 1) goto free_all;
+		nb_aligned[trials] = compute_transform(regargs, sf_args, tmp_included, &tmp_failed, fwhm, roundness, B, FALSE);
 		// if number of aligned frames is less than half the number of meaningful frames (those with enough stars)
 		// we have chosen a reference which is not framed well enough to align the sequence (the computed cog is probably meaningless as well)
 		// we set its score to FLT_MAX and start again with the next best frame
@@ -951,12 +952,15 @@ int register_multi_step_global(struct registration_args *regargs) {
 			siril_log_message(_("Trial #%d: After sequence alignement, image #%d could not align more than half of the frames, recomputing\n"), trials + 1, reffilenum);
 			best_index = minidx(scores, included, regargs->seq->number, NULL);
 			regargs->seq->reference_image = best_index;
-			int reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
-			siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), trials + 1, reffilenum);
+			reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
 			trials++;
 			best_indexes[trials] = best_index;
-		} else {
-			break;
+			if (trials < MAX_TRIALS_2PASS)
+				siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), trials + 1, reffilenum);
+		} else { // not necessary but a simple to have print_alignment_results
+			tmp_failed = failed;
+			for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
+			compute_transform(regargs, sf_args, tmp_included, &tmp_failed, fwhm, roundness, B, TRUE);
 		}
 	}
 
@@ -965,19 +969,22 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// even though it cannot align more than half of the good images
 		int best_try = -1;
 		int maxreg = 0;
+		siril_log_message(_("After %d trials, no reference image could align more than half of the frames, selecting best candidate\n"), MAX_TRIALS_2PASS);
 		for (int i = 0; i < MAX_TRIALS_2PASS; i++) {
+			siril_log_message(_("Trial #%d: Reference image: #%d - Frames aligned: %d\n"), i + 1, regargs->seq->imgparam[best_indexes[i]].filenum, nb_aligned[i]);
 			if (nb_aligned[i] > maxreg) {
 				best_try = i;
 				maxreg = nb_aligned[i];
 			}
 		}
+		if (maxreg <= 1) goto free_all;
 		best_index = best_indexes[best_try];
 		regargs->seq->reference_image = best_index;
-		int reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
-		siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), trials + 1, reffilenum);
-		int tmp_failed = failed;
+		reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
+		siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
+		tmp_failed = failed;
 		for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
-		if(compute_transform(regargs, sf_args, tmp_included, &tmp_failed, fwhm, roundness, B) < 1) goto free_all;
+		compute_transform(regargs, sf_args, tmp_included, &tmp_failed, fwhm, roundness, B, TRUE);
 	}
 	// and we copy back to the initial arrays
 	for (int i = 0; i < regargs->seq->number; i++) included[i] = tmp_included[i];
@@ -1000,10 +1007,10 @@ int register_multi_step_global(struct registration_args *regargs) {
 		new_best_index = minidx(scores, included, regargs->seq->number, NULL);
 		if (new_best_index != best_index && new_best_index > -1) { // do not recompute if none or same is found (same should not happen)
 			regargs->seq->reference_image = new_best_index;
-			int reffilenum = regargs->seq->imgparam[new_best_index].filenum;	// for display purposes
+			reffilenum = regargs->seq->imgparam[new_best_index].filenum;	// for display purposes
 			siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
 			// back to 3. compute the transforms and store them in regparams
-			compute_transform(regargs, sf_args, included, &failed, fwhm, roundness, B);
+			compute_transform(regargs, sf_args, included, &failed, fwhm, roundness, B, TRUE);
 		} else {
 			siril_log_message(_("Could not find a better frame, keeping image %d as the reference for the sequence\n"), reffilenum);
 		}
