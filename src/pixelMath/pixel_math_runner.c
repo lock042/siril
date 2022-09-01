@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/dialog_preview.h"
@@ -260,33 +261,25 @@ static gboolean end_pixel_math_operation(gpointer p) {
 	stop_processing_thread();// can it be done here in case there is no thread?
 
 	if (!args->ret) {
+		/* write to gfit in the graphical thread */
+		clearfits(&gfit);
 		if (sequence_is_loaded())
 			close_sequence(FALSE);
-
-		//	/* Create new image */
-		com.seq.current = UNRELATED_IMAGE;
-		com.uniq = calloc(1, sizeof(single));
-		com.uniq->filename = strdup(_("new empty image"));
-		com.uniq->fileexist = FALSE;
-		com.uniq->nb_layers = args->fit->naxes[2];
-		com.uniq->fit = args->fit;
-		clearfits(&gfit);
-		copyfits(args->fit, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		invalidate_gfit_histogram();
+
+		memcpy(&gfit, args->fit, sizeof(fits));
+
+		com.seq.current = UNRELATED_IMAGE;
+		create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		open_single_image_from_gfit();
 	}
+	else clearfits(args->fit);
+
 	set_cursor_waiting(FALSE);
-	g_free(args->expression1);
-	if (args->single_rgb) {
-		g_free(args->expression2);
-		g_free(args->expression3);
-	}
-	output_status_bar(args->ret);
-	for (int i = 0; i < args->nb_rows; i++) {
-		clearfits(&var_fit[i]);
-	}
-	clearfits(args->fit);
-	free(args->varname);
+	if (args->from_ui)
+		output_status_bar(args->ret);
+
+	free(args->fit);
 	free(args);
 	return FALSE;
 }
@@ -378,77 +371,127 @@ static gboolean is_pm_use_rgb_button_checked() {
 	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pm_use_rgb_button")));
 }
 
-static gpointer apply_pixel_math_operation(gpointer p) {
+gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
 	fits *fit = args->fit;
 	int nb_rows = args->nb_rows;
-	const gchar *expression1 = args->expression1;
-	const gchar *expression2 = args->expression2;
-	const gchar *expression3 = args->expression3;
-
-	int err;
 	gboolean failed = FALSE;
+	args->ret = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread)
 #endif
 	{
+		// we build the expressions in parallel because tr_eval() is not thread-safe
 		te_variable *vars = malloc(nb_rows * sizeof(te_variable));
 		double *x = malloc(nb_rows * sizeof(double));
-
+		if (!vars || !x) {
+			failed = TRUE;
+			goto failure;
+		}
 		for (int i = 0; i < nb_rows; i++) {
 			vars[i].name = args->varname[i];
 			vars[i].address = &x[i];
 			vars[i].context = NULL;
 			vars[i].type = 0;
 		}
-		te_expr *n1 = NULL, *n2 = NULL, *n3 = NULL;
-		n1 = te_compile(expression1, vars, nb_rows, &err);
-		if (!args->single_rgb) {
-			n2 = te_compile(expression2, vars, nb_rows, &err);
-			n3 = te_compile(expression3, vars, nb_rows, &err);
-		}
-		if (!n1 || (!args->single_rgb && (!n2 || !n3))) {
-			failed = TRUE;
-		} else {
-			size_t px;
+		int err = 0;
+		te_expr *n1 = te_compile(args->expression1, vars, nb_rows, &err);
+		if (!n1) {
 #ifdef _OPENMP
-#pragma omp for private(px) schedule(static)
+			if (omp_get_thread_num() == 0)
 #endif
-			for (px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
-				/* The variables can be changed here, and eval can be called as many
-				 * times as you like. This is fairly efficient because the parsing has
-				 * already been done. */
-				for (int i = 0; i < nb_rows; i++) {
-					x[i] = var_fit[i].fdata[px];
-				}
+				siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression1, err);
+			failed = TRUE;
+			goto failure;
+		}
 
-				if (args->single_rgb) {
-					fit->fdata[px] = (float) te_eval(n1);
-				} else {
-					fit->fpdata[RLAYER][px] = (float) te_eval(n1);
-					fit->fpdata[GLAYER][px] = (float) te_eval(n2);
-					fit->fpdata[BLAYER][px] = (float) te_eval(n3);
-				}
+		te_expr *n2 = NULL, *n3 = NULL;
+		if (!args->single_rgb) {
+			n2 = te_compile(args->expression2, vars, nb_rows, &err);
+			if (!n2) {
+#ifdef _OPENMP
+				if (omp_get_thread_num() == 0)
+#endif
+					siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression2, err);
+				failed = TRUE;
+				goto failure;
 			}
 
-			te_free(n1);
-			if (!args->single_rgb) {
-				te_free(n2);
-				te_free(n3);
+			n3 = te_compile(args->expression3, vars, nb_rows, &err);
+			if (!n3) {
+#ifdef _OPENMP
+				if (omp_get_thread_num() == 0)
+#endif
+					siril_log_color_message(_("Error in pixel math expression '%s' at character %d\n"), "red", args->expression3, err);
+				failed = TRUE;
+				goto failure;
 			}
-			args->ret = 0;
+		}
+#ifdef _OPENMP
+#pragma omp for schedule(static)
+#endif
+		for (size_t px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
+			/* The variables can be changed here, and eval can be called as many
+			 * times as you like. This is fairly efficient because the parsing has
+			 * already been done. */
+			for (int i = 0; i < nb_rows; i++) {
+				x[i] = var_fit[i].fdata[px];
+			}
+
+			if (args->single_rgb) {
+				fit->fdata[px] = (float) te_eval(n1);
+			} else {
+				fit->fpdata[RLAYER][px] = (float) te_eval(n1);
+				fit->fpdata[GLAYER][px] = (float) te_eval(n2);
+				fit->fpdata[BLAYER][px] = (float) te_eval(n3);
+			}
+		}
+
+failure: // failure before the eval loop
+		te_free(n1);
+		if (!args->single_rgb) {
+			te_free(n2);
+			te_free(n3);
 		}
 		free(vars);
 		free(x);
-	}
-	if (failed) {
-		args->ret = err;
-	}
+	} // end of parallel block
 
-	siril_add_idle(end_pixel_math_operation, args);
-	return GINT_TO_POINTER(args->ret);
+	if (failed)
+		args->ret = 1;
+
+	/* free memory */
+	g_free(args->expression1);
+	if (args->single_rgb) {
+		g_free(args->expression2);
+		g_free(args->expression3);
+	}
+	for (int i = 0; i < args->nb_rows; i++)
+		g_free(args->varname[i]);
+	free(args->varname);
+	free_pm_var(args->nb_rows);
+
+	/* manage result and display */
+	if (com.headless) {
+		// no display or threading needed
+		if (!failed) {
+			clearfits(&gfit);
+			memcpy(&gfit, args->fit, sizeof(fits));
+
+			com.seq.current = UNRELATED_IMAGE;
+			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
+		}
+		else clearfits(args->fit);
+		free(args->fit);
+		free(args);
+	}
+	else if (com.script)
+		execute_idle_and_wait_for_it(end_pixel_math_operation, args);
+	else
+		siril_add_idle(end_pixel_math_operation, args);
+	return GINT_TO_POINTER((gint)failed);
 }
 
 static gboolean is_op_or_null(const gchar c) {
@@ -555,6 +598,27 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 	return 0;
 }
 
+int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
+	if (index > MAX_IMAGES) {
+		siril_log_message(_("A maximum of %d images can be used in a single expression.\n"), MAX_IMAGES);
+		return 1;
+	}
+	if (readfits(var, &var_fit[index], NULL, TRUE)) {
+		*w = *h = *c = -1;
+		return 1;
+	}
+	*w = var_fit[index].rx;
+	*h = var_fit[index].ry;
+	*c = var_fit[index].naxes[2];
+	return 0;
+}
+
+void free_pm_var(int nb) {
+	for (int i = 0; i < nb; i++) {
+		clearfits(&var_fit[i]);
+	}
+}
+
 static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *expression3) {
 	int nb_rows = 0;
 
@@ -607,10 +671,11 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	args->fit = fit;
 	args->nb_rows = nb_rows;
 	args->ret = 0;
-	
+	args->from_ui = TRUE;
+
 	args->varname = malloc(nb_rows * sizeof(gchar *));
 	for (int i = 0; i < nb_rows; i++) {
-		args->varname[i] = get_pixel_math_var_name(i);
+		args->varname[i] = g_strdup(get_pixel_math_var_name(i));
 	}
 
 	start_in_new_thread(apply_pixel_math_operation, args);
@@ -750,11 +815,11 @@ static void select_image(int nb) {
 					if (width != 0 && (channel != f.naxes[2] ||
 							width != f.naxes[0] ||
 							height != f.naxes[1])) {
-						gchar *f = g_path_get_basename(filename);
+						gchar *name = g_path_get_basename(filename);
 						gchar *str = g_strdup_printf("%s will not be added in the pixel math tool because its size is different from the other loaded images"
-								" (width, height or number of channels).", f);
+								" (width, height or number of channels).", name);
 						siril_message_dialog(GTK_MESSAGE_ERROR, _("Image must have same dimension"), str);
-						g_free(f);
+						g_free(name);
 						g_free(str);
 
 					} else {
@@ -1076,3 +1141,4 @@ void on_pixel_math_selection_changed(GtkTreeSelection *selection, gpointer user_
 	g_list_free_full(list, (GDestroyNotify) gtk_tree_path_free);
 	output_status_bar2(width, height, channel);
 }
+
