@@ -371,12 +371,8 @@ static void remixer_startup() {
 void initialise_image() {
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	com.uniq = calloc(1, sizeof(single));
-	com.uniq->comment = strdup(_("Star recomposition"));
-	com.uniq->filename = strdup(_("Unsaved star recomposition result"));
-	com.uniq->fileexist = FALSE;
-	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->fit = &gfit;
+	if (!create_uniq_from_gfit(strdup(_("Unsaved star recomposition result")), FALSE))
+		com.uniq->comment = strdup(_("Star recomposition"));
 
 	initialize_display_mode();
 	update_zoom_label();

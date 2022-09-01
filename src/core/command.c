@@ -2779,12 +2779,7 @@ int process_new(int nb){
 	memset(gfit.fdata, 0, width * height * layers * sizeof(float));
 
 	com.seq.current = UNRELATED_IMAGE;
-	com.uniq = calloc(1, sizeof(single));
-	com.uniq->filename = strdup(_("new empty image"));
-	com.uniq->fileexist = FALSE;
-	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->fit = &gfit;
-
+	create_uniq_from_gfit(strdup(_("new empty image")), FALSE);
 	open_single_image_from_gfit();
 	return CMD_OK;
 }
