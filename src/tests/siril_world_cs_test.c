@@ -59,6 +59,10 @@ int test_parsing() {
 	CHECK(fabs(siril_world_cs_get_delta(ecs) - 4.01) < 0.00001, "bad delta parse\n");
 	siril_world_cs_unref(ecs);
 
+	ecs = siril_world_cs_new_from_a_d(274.2499, 0);
+	gchar *ra = siril_world_cs_alpha_format(ecs, "%02d %02d %.3lf");
+	CHECK(!g_strcmp0(ra, "18 16 59.976"), "RA conversion is not good: %s", ra);
+
 	return 0;
 }
 
