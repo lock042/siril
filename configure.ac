@@ -131,6 +131,7 @@ siril_save_CFLAGS="$CFLAGS"
 siirl_save_LIBS="$LIBS"
 CFLAGS="$CFLAGS $GIO_CFLAGS"
 LIBS="$LIBS $GIO_LIBS"
+AC_LANG([C])
 AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <gio/gio.h>],
                                [return !g_tls_backend_supports_tls (g_tls_backend_get_default ());])],
               [have_glib_networking="yes"],
@@ -139,6 +140,7 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <gio/gio.h>],
 CFLAGS="$siril_save_CFLAGS"
 LIBS="$siril_save_LIBS"
 AC_MSG_RESULT($have_glib_networking)
+AC_LANG([C++])
 
 if test "x$have_glib_networking" = "xno"; then
   AC_MSG_NOTICE(([glib-networking not found]),
