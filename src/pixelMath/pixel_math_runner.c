@@ -256,19 +256,6 @@ static gboolean check_files_dimensions(guint *width, guint* height, guint *chann
 	return TRUE;
 }
 
-static void update_metadata() {
-	fits **f = malloc((MAX_IMAGES + 1) * sizeof(fits *));
-	int j = 0;
-	for (int i = 0; i < MAX_IMAGES ; i++)
-		if (var_fit[i].rx > 0)
-			f[j++] = &var_fit[i];
-	f[j] = NULL;
-
-	merge_fits_headers_to_result2(&gfit, f);
-	load_WCS_from_memory(&gfit);
-	free(f);
-}
-
 static gboolean end_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 	stop_processing_thread();// can it be done here in case there is no thread?
@@ -281,8 +268,8 @@ static gboolean end_pixel_math_operation(gpointer p) {
 			close_sequence(FALSE);
 		invalidate_gfit_histogram();
 
-		memcpy(&gfit, &args->fit, sizeof(fits));
-		update_metadata(); // copy headers from input in gfit
+		memcpy(&gfit, args->fit, sizeof(fits));
+		free(args->fit);
 
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
@@ -383,6 +370,19 @@ static gboolean is_pm_use_rgb_button_checked() {
 	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pm_use_rgb_button")));
 }
 
+static void update_metadata(fits *fit) {
+	fits **f = malloc((MAX_IMAGES + 1) * sizeof(fits *));
+	int j = 0;
+	for (int i = 0; i < MAX_IMAGES ; i++)
+		if (var_fit[i].rx > 0)
+			f[j++] = &var_fit[i];
+	f[j] = NULL;
+
+	merge_fits_headers_to_result2(fit, f);
+	load_WCS_from_memory(fit);
+	free(f);
+}
+
 gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
@@ -473,6 +473,7 @@ failure: // failure before the eval loop
 
 	if (failed)
 		args->ret = 1;
+	else update_metadata(args->fit);
 
 	/* free memory */
 	g_free(args->expression1);
@@ -490,15 +491,15 @@ failure: // failure before the eval loop
 		// no display or threading needed
 		if (!failed) {
 			clearfits(&gfit);
-			memcpy(&gfit, &args->fit, sizeof(fits));
-			update_metadata();
+			memcpy(&gfit, args->fit, sizeof(fits));
+			free(args->fit);
 
 			com.seq.current = UNRELATED_IMAGE;
 			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		}
 		free(args);
 	}
-	else if (com.script && !com.headless)
+	else if (com.script)
 		execute_idle_and_wait_for_it(end_pixel_math_operation, args);
 	else
 		siril_add_idle(end_pixel_math_operation, args);

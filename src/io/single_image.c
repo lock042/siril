@@ -275,7 +275,7 @@ int open_single_image(const char* filename) {
 
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
-		create_uniq_from_gfit(realname, get_type_from_filename(com.uniq->filename) == TYPEFITS);
+		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
 		if (!com.headless) {
 			/* we don't need to use siril_add_idle here, because this idle
 			 * function needs to be called for load to work properly and
