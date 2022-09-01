@@ -233,6 +233,20 @@ static gboolean end_open_single_image(gpointer arg) {
 	return FALSE;
 }
 
+/* filename will be freed when the unique file is closed */
+int create_uniq_from_gfit(char *filename, gboolean exists) {
+	com.uniq = calloc(1, sizeof(single));
+	if (!com.uniq) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
+	com.uniq->filename = filename;
+	com.uniq->fileexist = exists;
+	com.uniq->nb_layers = gfit.naxes[2];
+	com.uniq->fit = &gfit;
+	return 0;
+}
+
 /* This function is used to load a single image, meaning outside a sequence,
  * whether a sequence is loaded or not, whether an image was already loaded or
  * not. The opened file is available in the usual global variable for current
@@ -261,11 +275,7 @@ int open_single_image(const char* filename) {
 
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
-		com.uniq = calloc(1, sizeof(single));
-		com.uniq->filename = realname;
-		com.uniq->fileexist = get_type_from_filename(com.uniq->filename) == TYPEFITS;
-		com.uniq->nb_layers = gfit.naxes[2];
-		com.uniq->fit = &gfit;
+		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
 		if (!com.headless) {
 			/* we don't need to use siril_add_idle here, because this idle
 			 * function needs to be called for load to work properly and
@@ -281,8 +291,7 @@ int open_single_image(const char* filename) {
 	return retval;
 }
 
-/* creates a single_image structure and displays a single image, found in gfit.
- */
+/* updates the GUI to reflect the opening of a single image, found in gfit and com.uniq */
 void open_single_image_from_gfit() {
 	siril_debug_print("open_single_image_from_gfit()\n");
 	/* now initializing everything
