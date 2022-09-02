@@ -327,6 +327,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 	gsl_multifit_fdfsolver *s = NULL;
 	gsl_multifit_function_fdf f;
 	const gsl_multifit_fdfsolver_type *T;
+	int max_iter;
 
 	if (error) *error = PSF_NO_ERR;
 	// computing the mask to discard clipped values
@@ -348,6 +349,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 		if (error) *error = PSF_ERR_WINDOW_TOO_SMALL;
 		goto free_and_exit;
 	}
+	max_iter = MAX_ITER_NO_ANGLE * ((k < NbRows * NbCols) ? 3 : 1);
 
 	MaxV = psf_init_data(z, background);
 	if (!MaxV) {
@@ -402,13 +404,10 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 		if (status)
 			break;
 		status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
-	} while (status == GSL_CONTINUE && iter < MAX_ITER_NO_ANGLE);
+	} while (status == GSL_CONTINUE && iter < max_iter);
 
 	if (status != GSL_SUCCESS) {
 		if (error) *error = PSF_ERR_DIVERGED;
-		if (psf) free_psf(psf);
-		psf = NULL;
-		goto free_and_exit;
 	}
 
 #if HAVE_GSL_1
@@ -554,9 +553,6 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double sat, psf_star *psf, gbo
 
 	if (status != GSL_SUCCESS) {
 		if (error) *error = PSF_ERR_DIVERGED;
-		free_psf(psf_angle);
-		psf_angle = NULL;
-		goto free_and_exit;
 	}
 
 #if HAVE_GSL_1

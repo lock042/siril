@@ -644,10 +644,10 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 					}
 				}
 			}
-
-			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, FALSE, FALSE, NULL, FALSE, NULL);
+			psf_error error;
+			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, FALSE, FALSE, NULL, FALSE, &error);
 			gsl_matrix_free(z);
-			if (cur_star) {
+			if (cur_star && error == PSF_NO_ERR) {
 				gchar errmsg[SF_ERRMSG_LEN] = "";
 				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], norm, (DEBUG_STAR_DETECTION) ? errmsg : NULL);
 				if (star_invalidated <= accepted_level) {
