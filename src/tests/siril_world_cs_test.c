@@ -62,6 +62,14 @@ int test_parsing() {
 	ecs = siril_world_cs_new_from_a_d(274.2499, 0);
 	gchar *ra = siril_world_cs_alpha_format(ecs, "%02d %02d %.3lf");
 	CHECK(!g_strcmp0(ra, "18 16 59.976"), "RA conversion is not good: %s", ra);
+	siril_world_cs_unref(ecs);
+	g_free(ra);
+
+	ecs = siril_world_cs_new_from_a_d(274.2499, 0);
+	ra = siril_world_cs_alpha_format(ecs, "%02d %02d %02d");
+	CHECK(!g_strcmp0(ra, "18 17 00"), "RA conversion is not good: %s", ra);
+	siril_world_cs_unref(ecs);
+	g_free(ra);
 
 	return 0;
 }
