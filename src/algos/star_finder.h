@@ -28,8 +28,8 @@ struct starfinder_data {
 struct star_candidate_struct {
 	int x, y;
 	float mag_est;
-	float bg;
-	float B, sx, sy;
+	float sat;
+	float sx, sy;
 	int R;
 };
 typedef struct star_candidate_struct starc;
