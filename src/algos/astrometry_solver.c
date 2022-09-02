@@ -481,16 +481,25 @@ GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_cent
 
 	if (!output_stream) {
 		if (error) {
-			/* if file exist and user uses cache */
+			/* if file already exists */
 			if (error->code == G_IO_ERROR_EXISTS) {
-				siril_log_message(_("Using already downloaded star catalogue\n"));
+				GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_TIME_MODIFIED "," G_FILE_ATTRIBUTE_STANDARD_SIZE, 0, NULL, NULL);
+				/* test if size is not 0 */
+				if ((g_file_info_get_size(info)) == 0) {
+					if (g_file_delete(file, NULL, &error)) {
+						output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
+						if (!output_stream) {
+							goto download_error;
+						}
+					} else {
+						goto download_error;
+					}
+				} else {
+					siril_log_message(_("Using already downloaded star catalogue\n"));
+				}
 				g_clear_error(&error);
 			} else {
-				g_warning("%s\n", error->message);
-				siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), error->message);
-				g_clear_error(&error);
-				g_object_unref(file);
-				return NULL;
+				goto download_error;
 			}
 		} else {
 			siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), "unknown error");
@@ -518,8 +527,14 @@ GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_cent
 			g_free(buffer);
 		}
 	}
-
 	return file;
+
+download_error:
+	g_warning("%s\n", error->message);
+	siril_log_color_message(_("Cannot create catalogue file %s for plate solving (%s)\n"), "red", g_file_peek_path(file), error->message);
+	g_clear_error(&error);
+	g_object_unref(file);
+	return NULL;
 }
 
 static gchar *project_catalog(GFile *catalogue_name, SirilWorldCS *catalog_center) {
