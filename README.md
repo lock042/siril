@@ -32,6 +32,7 @@ Then, mandatory build dependencies:
     * both are required on Windows as there is a problem with both in some cases,
       only curl is used for Mac as glib-networking does not work there,
       and for linux both work and if curl is enabled during the build, glib-networking will not be used
+    * glib-networking requires the **gvfs-backends** dependency on some systems
 * **GTK+ 3** (>= 3.20) as GUI toolkit
 * **cfitsio** for FITS image read and write
 * **fftw3** for Fourier transforms
