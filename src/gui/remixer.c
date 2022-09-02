@@ -64,8 +64,8 @@ static fits fit_left_calc;
 static fits fit_right_calc;
 
 static ght_params params_left, params_right, params_histo_left, params_histo_right;
-static ght_compute_params cp_histo_left = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-static ght_compute_params cp_histo_right = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+static ght_compute_params cp_histo_left = { 0.0 };
+static ght_compute_params cp_histo_right = { 0.0 };
 
 static gboolean left_changed = FALSE, right_changed = FALSE;
 static gboolean leftBP_changed = FALSE, rightBP_changed = FALSE;
@@ -134,7 +134,7 @@ static void draw_remix_curve(cairo_t *cr, int width, int height, ght_params *par
 	GHTsetup(cp, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
 	for (k = 0; k < width + 1; k++) {
 		float x = k / (float) width;
-		float y = (float) GHT((double) x, params->B, params->D, params->LP, params->SP, params->HP, 0.0, params->stretchtype, cp);
+		float y = GHT(x, params->B, params->D, params->LP, params->SP, params->HP, 0.0, params->stretchtype, cp);
 		cairo_line_to(cr, k, height * (1 - y));
 	}
 	cairo_stroke(cr);
@@ -469,8 +469,8 @@ int remixer() {
 
 	params_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left, TRUE, TRUE, TRUE };
 	params_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right, TRUE, TRUE, TRUE };
-	ght_compute_params cp_left = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-	ght_compute_params cp_right = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+	ght_compute_params cp_left = { 0.0 };
+	ght_compute_params cp_right = { 0.0 };
 
 	// Process left image
 	if (left_loaded && (left_changed || leftBP_changed)) {
@@ -516,7 +516,7 @@ int remixer() {
 	}
 
 	if (finalstretch != 0.0) {
-		ght_compute_params cp_final = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		ght_compute_params cp_final = { 0.0 };
 		ght_params params_final = { (finalstretch - 5.0), 4.0, 0.0, 0.0, 1.0, 0.0, STRETCH_PAYNE_NORMAL, COL_HUMANLUM, TRUE, TRUE, TRUE };
 		apply_linked_ght_to_fits(&gfit, &gfit, params_final, cp_final, TRUE);
 	}
@@ -584,8 +584,8 @@ void reset_controls_and_values() {
 	gtk_spin_button_set_value(spin_remix_finalstretch, finalstretch);
 	gtk_spin_button_set_value(spin_remix_mastermixer, mastermixer);
 	// Set left_type, right_type, left_colour, right_colour;
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_left")), 0);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), 0);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_left")), STRETCH_PAYNE_NORMAL);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_PAYNE_NORMAL);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_INDEP);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_right")), COL_INDEP);
 	set_notify_block(FALSE);
@@ -898,6 +898,7 @@ void on_spin_finalstretch_value_changed(GtkSpinButton *button, gpointer user_dat
 void on_remix_colour_left_changed(GtkComboBox *combo, gpointer user_data) {
 	left_changed = TRUE;
 	colour_left = gtk_combo_box_get_active(combo);
+	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
@@ -907,6 +908,7 @@ void on_remix_colour_left_changed(GtkComboBox *combo, gpointer user_data) {
 void on_remix_colour_right_changed(GtkComboBox *combo, gpointer user_data) {
 	right_changed = TRUE;
 	colour_right = gtk_combo_box_get_active(combo);
+	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
@@ -916,6 +918,7 @@ void on_remix_colour_right_changed(GtkComboBox *combo, gpointer user_data) {
 void on_remix_type_left_changed(GtkComboBox *combo, gpointer user_data) {
 	left_changed = TRUE;
 	type_left = gtk_combo_box_get_active(combo);
+	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
@@ -925,6 +928,7 @@ void on_remix_type_left_changed(GtkComboBox *combo, gpointer user_data) {
 void on_remix_type_right_changed(GtkComboBox *combo, gpointer user_data) {
 	right_changed = TRUE;
 	type_right = gtk_combo_box_get_active(combo);
+	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
@@ -1066,8 +1070,7 @@ void on_eyedropper_SP_left_clicked(GtkButton *button, gpointer user_data) {
 	}
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_left")),leftSP);
 	left_changed = TRUE;
-//	if (remix_histos_visible())
-		update_remix_histo_left();
+	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE; // no need of preview button. This is always in preview
