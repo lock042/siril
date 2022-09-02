@@ -59,17 +59,28 @@ int test_parsing() {
 	CHECK(fabs(siril_world_cs_get_delta(ecs) - 4.01) < 0.00001, "bad delta parse\n");
 	siril_world_cs_unref(ecs);
 
-	ecs = siril_world_cs_new_from_a_d(274.2499, 0);
+
+	/** test for RA/DEC conversion */
+	ecs = siril_world_cs_new_from_a_d(274.2499, 42.9601);
+
 	gchar *ra = siril_world_cs_alpha_format(ecs, "%02d %02d %.3lf");
 	CHECK(!g_strcmp0(ra, "18 16 59.976"), "RA conversion is not good: %s", ra);
-	siril_world_cs_unref(ecs);
 	g_free(ra);
 
-	ecs = siril_world_cs_new_from_a_d(274.2499, 0);
 	ra = siril_world_cs_alpha_format(ecs, "%02d %02d %02d");
 	CHECK(!g_strcmp0(ra, "18 17 00"), "RA conversion is not good: %s", ra);
-	siril_world_cs_unref(ecs);
 	g_free(ra);
+
+	gchar *dec = siril_world_cs_delta_format(ecs, "%c%02d %02d %.3lf");
+	CHECK(!g_strcmp0(dec, "+42 57 36.360"), "DEC conversion is not good: %s", dec);
+	g_free(dec);
+
+	dec = siril_world_cs_delta_format(ecs, "%c%02d %02d %02d");
+	CHECK(!g_strcmp0(dec, "+42 57 36"), "DEC conversion is not good: %s", dec);
+	g_free(dec);
+
+	siril_world_cs_unref(ecs);
+
 
 	return 0;
 }
