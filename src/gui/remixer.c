@@ -57,7 +57,7 @@ static gdouble leftBP = 0.0, rightBP = 0.0;
 static gdouble mastermixer = 0.5;
 static double finalstretch = 0.0;
 static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_PAYNE_NORMAL;
-static int colour_left = COL_EVENLUM, colour_right = COL_EVENLUM;
+static int colour_left = COL_INDEP, colour_right = COL_INDEP;
 static fits fit_left;
 static fits fit_right;
 static fits fit_left_calc;
@@ -535,7 +535,7 @@ void reset_values() {
 	rightD = rightB = rightLP = rightSP = rightBP = 0.0;
 	rightHP = 1.0;
 	type_left = type_right = STRETCH_PAYNE_NORMAL;
-	colour_left = colour_right = COL_EVENLUM;
+	colour_left = colour_right = COL_INDEP;
 	mastermixer = 0.5;
 	finalstretch = 0.0;
 }
