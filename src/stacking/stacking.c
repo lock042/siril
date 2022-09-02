@@ -50,7 +50,7 @@
 static struct stacking_args stackparam = {	// parameters passed to stacking
 	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, FALSE, { 0, 0 }, -1,
 	{ 0, 0 }, NULL, NO_REJEC, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1,
-	FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
+	FALSE, FALSE, FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
 };
 
 #define MAX_FILTERS 5
@@ -182,9 +182,9 @@ gpointer stack_function_handler(gpointer p) {
  * function is not reentrant but can be called again after it has returned and the thread is running */
 static void start_stacking() {
 	gchar *error = NULL;
-	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL;
+	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL, *weighing_combo;
 	static GtkEntry *output_file = NULL;
-	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *weight_button = NULL, *fast_norm = NULL;
+	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *fast_norm = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
 
@@ -196,11 +196,11 @@ static void start_stacking() {
 		sigSpin[1] = GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button"));
 		rejec_combo = GTK_COMBO_BOX(lookup_widget("comborejection"));
 		norm_combo = GTK_COMBO_BOX(lookup_widget("combonormalize"));
+		weighing_combo = GTK_COMBO_BOX(lookup_widget("comboweighing"));
 		force_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkforcenorm"));
 		fast_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkfastnorm"));
 		norm_to_max = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
-		weight_button = GTK_TOGGLE_BUTTON(lookup_widget("stack_weight_button"));
 	}
 
 	if (get_thread_run()) {
@@ -218,7 +218,10 @@ static void start_stacking() {
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
 	stackparam.method =	stacking_methods[gtk_combo_box_get_active(method_combo)];
-	stackparam.apply_noise_weights = gtk_toggle_button_get_active(weight_button) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.apply_noise_weights = (gtk_combo_box_get_active(weighing_combo) == NOISE_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.apply_nbstars_weights = (gtk_combo_box_get_active(weighing_combo) == NBSTARS_WEIGHT);
+	stackparam.apply_wfwhm_weights = (gtk_combo_box_get_active(weighing_combo) == WFWHM_WEIGHT);
+	stackparam.apply_nbstack_weights = (gtk_combo_box_get_active(weighing_combo) == NBSTACK_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
 
@@ -478,11 +481,9 @@ void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
 void on_combonormalize_changed (GtkComboBox *box, gpointer user_data) {
 	GtkWidget *widgetnormalize = lookup_widget("combonormalize");
 	GtkWidget *force_norm = lookup_widget("checkforcenorm");
-	GtkWidget *use_weight = lookup_widget("stack_weight_button");
 	GtkWidget *fast_norm = lookup_widget("checkfastnorm");
 	gtk_widget_set_sensitive(force_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 	gtk_widget_set_sensitive(fast_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
-	gtk_widget_set_sensitive(use_weight, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 }
 
 void on_stack_siglow_button_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -824,10 +825,8 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 }
 
 static void update_filter_label() {
-	static GtkComboBox *filter_combo[] = {NULL, NULL, NULL};
-	static GtkLabel *filter_label[] = {NULL, NULL, NULL};
-	gchar *filter_str;
-
+	static GtkComboBox *filter_combo[3] = { NULL };
+	static GtkLabel *filter_label[3] = { NULL };
 	if (!filter_combo[0]) {
 		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter1"));
 		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter2"));
@@ -844,6 +843,7 @@ static void update_filter_label() {
 
 		int type = gtk_combo_box_get_active(filter_combo[filter]);
 		double param = stackfilters[filter].param;
+		gchar *filter_str;
 		if (param == DBL_MIN || param == DBL_MAX || param == 0.0) {
 			if (type == ALL_IMAGES || type == SELECTED_IMAGES)
 				filter_str = g_strdup("");
@@ -940,7 +940,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 			&stackparam.filtering_criterion, &stackparam.filtering_parameter);
 
 	if (stackparam.description)
-		free(stackparam.description);
+		g_free(stackparam.description);
 	stackparam.description = describe_filter(stackparam.seq,
 			stackparam.filtering_criterion, stackparam.filtering_parameter);
 
@@ -966,7 +966,7 @@ static void stacking_args_deep_copy(struct stacking_args *from, struct stacking_
 	// sequence is not duplicated
 	to->image_indices = malloc(from->nb_images_to_stack * sizeof(int));
 	memcpy(to->image_indices, from->image_indices, from->nb_images_to_stack * sizeof(int));
-	to->description = strdup(from->description);
+	to->description = g_strdup(from->description);
 	// output_filename is not duplicated, can be changed until the last minute
 }
 

@@ -86,8 +86,8 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 	/* if there are less images in the sequence than threads, we still
 	 * distribute them */
-	if (args->max_parallel_images > nb_frames - 1)
-		args->max_parallel_images = nb_frames - 1;
+	if (args->max_parallel_images > nb_frames)
+		args->max_parallel_images = nb_frames;
 
 	siril_log_message(_("%s: with the current memory and thread limits, up to %d thread(s) can be used\n"),
 			args->description, args->max_parallel_images);

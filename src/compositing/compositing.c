@@ -629,7 +629,7 @@ void create_the_internal_sequence() {
 /* start aligning the layers: create an 'internal' sequence and run the selected method on it */
 void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	int i = 0;
-	struct registration_args regargs;
+	struct registration_args regargs = { 0 };
 	struct registration_method *method;
 	char *msg;
 	GtkComboBox *regcombo;
@@ -641,7 +641,6 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	method = reg_methods[gtk_combo_box_get_active(regcombo)];
 
 	regargs.seq = seq;
-	regargs.process_all_frames = TRUE;
 	get_the_registration_area(&regargs, method);
 	regargs.layer = 0;	// TODO: fix with dynamic layers list
 	regargs.run_in_thread = FALSE;

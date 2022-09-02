@@ -29,7 +29,14 @@ seq_image_filter create_filter_prefixed_nonexisting_output(const char *prefix);
 seq_image_filter create_multiple_filter(seq_image_filter filter1, double fparam1, ...);
 seq_image_filter create_multiple_filter_from_list(struct filtering_tuple *filters);
 
-int convert_stack_data_to_filter(struct stacking_configuration *arg, struct stacking_args *stackargs);
+/* parsing filter data and building the actual filter */
+
+struct seq_filter_config {
+	float f_fwhm, f_fwhm_p, f_wfwhm, f_wfwhm_p, f_round, f_round_p, f_quality, f_quality_p, f_bkg, f_bkg_p, f_nbstars, f_nbstars_p; // on if >0
+	gboolean filter_included;
+};
+
+int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq, seq_image_filter *criterion, double *param);
 int setup_filtered_data(struct stacking_args *args);
 
 int stack_fill_list_of_unfiltered_images(struct stacking_args *args);
@@ -41,6 +48,7 @@ double compute_highest_accepted_background(sequence *seq, int layer, double perc
 double compute_lowest_accepted_nbstars(sequence *seq, int layer, double percent);
 
 
-char *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter);
+gchar *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter);
+
 
 #endif

@@ -267,7 +267,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 		}
 	}
 
-	if (!regargs->process_all_frames) {
+	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	} else {
@@ -424,7 +424,7 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 
 static int _3stars_alignment(struct registration_args *regargs, regdata *current_regdata) {
 	struct generic_seq_args *args = create_default_seqargs(&com.seq);
-	if (!regargs->process_all_frames) {
+	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
@@ -510,7 +510,7 @@ int register_3stars(struct registration_args *regargs) {
 
 	/* set regparams for current sequence before closing it */
 	for (int i = 0; i < regargs->seq->number; i++) {
-		if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
+		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included) continue;
 		processed++;
 		double sumx = 0.0, sumy = 0.0, sumb = 0.0;
 		int nb_stars = 0;
