@@ -188,7 +188,7 @@ gchar* siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) 
 		degree += 1;
 	}
 	if (degree >= 360) degree = 0;
-	return g_strdup_printf(format, sig, degree, min, (int) round(sec));
+	return g_strdup_printf(format, sig, degree, min, new_sec);
 }
 
 gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) {
