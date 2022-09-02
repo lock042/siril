@@ -301,6 +301,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, psf_erro
 	size_t NbCols = z->size2;
 	const size_t p = 6;			// Number of parameters fitted
 	const size_t n = NbRows * NbCols;
+	if (error) *error = PSF_NO_ERR;
 	gsl_vector *MaxV = psf_init_data(z, background);
 	if (!MaxV) {
 		if (error) *error = PSF_ERR_ALLOC;
@@ -314,8 +315,10 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, psf_erro
 	psf_star *psf = new_psf_star();
 	if (!y || !sigma || !psf) {
 		PRINT_ALLOC_ERR;
-		if (y) free(y);
-		if (sigma) free(sigma);
+		free(y);
+		free(sigma);
+		if (covar) gsl_matrix_free(covar);
+		gsl_vector_free(MaxV);
 		if (psf) free_psf(psf);
 		if (error) *error = PSF_ERR_ALLOC;
 		return NULL;
@@ -344,6 +347,9 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, psf_erro
 		free_psf(psf);
 		free(y);
 		free(sigma);
+		gsl_matrix_free(covar);
+		gsl_vector_free(MaxV);
+		gsl_rng_free(r);
 		if (error) *error = PSF_ERR_WINDOW_TOO_SMALL;
 		return NULL;
 	}
@@ -368,10 +374,16 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, psf_erro
 			break;
 		status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
 	} while (status == GSL_CONTINUE && iter < MAX_ITER_NO_ANGLE);
-	if (error) {
-		if (status != GSL_SUCCESS)
-			*error = PSF_ERR_DIVERGED;
-		else *error = PSF_NO_ERR;
+	if (status != GSL_SUCCESS) {
+		if (error) *error = PSF_ERR_DIVERGED;
+		free_psf(psf);
+		free(y);
+		free(sigma);
+		gsl_multifit_fdfsolver_free(s);
+		gsl_matrix_free(covar);
+		gsl_vector_free(MaxV);
+		gsl_rng_free(r);
+		return NULL;
 	}
 
 #if HAVE_GSL_1
