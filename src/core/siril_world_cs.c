@@ -161,6 +161,16 @@ gchar* siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) 
 	if (ptr) { // floating point for second
 		return g_strdup_printf(format, sig, degree, min, sec);
 	}
+	int new_sec = (int) round(sec);
+	if (new_sec >= 60) {
+		new_sec -= 60;
+		min += 1;
+	}
+	if (min >= 60) {
+		min -= 60;
+		degree += 1;
+	}
+	if (degree >= 360) degree = 0;
 	return g_strdup_printf(format, sig, degree, min, (int) round(sec));
 }
 
@@ -190,7 +200,17 @@ gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) 
 	if (ptr) { // floating point for second
 		return g_strdup_printf(format, hour, min, sec);
 	}
-	return g_strdup_printf(format, hour, min, (int) round(sec));
+	int new_sec = (int) round(sec);
+	if (new_sec >= 60) {
+		new_sec -= 60;
+		min += 1;
+	}
+	if (min >= 60) {
+		min -= 60;
+		hour += 1;
+	}
+	if (hour >= 24) hour = 0;
+	return g_strdup_printf(format, hour, min,  new_sec);
 }
 
 void siril_world_cs_get_ra_hour_min_sec(SirilWorldCS *world_cs, int *hour, int *min, double *sec) {
