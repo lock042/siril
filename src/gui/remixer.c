@@ -330,32 +330,36 @@ static void remix_histo_startup_right() {
 	}
 }
 
-void close_histograms() {
+void close_histograms(gboolean clear_left, gboolean clear_right) {
 	params_histo_left = (ght_params) { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0, 0, TRUE, TRUE, TRUE };
 	params_histo_right = (ght_params) { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0, 0, TRUE, TRUE, TRUE };
 
-	if (remix_histlayers_left[0]) {
-		for (int i = 0; i < gfit.naxes[2]; i++) {
-			gsl_histogram_free(remix_histlayers_left[i]);
-			remix_histlayers_left[i] = NULL;
+	if (clear_left) {
+		if (remix_histlayers_left[0]) {
+			for (int i = 0; i < gfit.naxes[2]; i++) {
+				gsl_histogram_free(remix_histlayers_left[i]);
+				remix_histlayers_left[i] = NULL;
+			}
+		}
+		if (remix_histlayers_backup_left[0]) {
+			for (int i = 0; i < gfit.naxes[2]; i++) {
+				gsl_histogram_free(remix_histlayers_backup_left[i]);
+				remix_histlayers_backup_left[i] = NULL;
+			}
 		}
 	}
-	if (remix_histlayers_right[0]) {
-		for (int i = 0; i < gfit.naxes[2]; i++) {
-			gsl_histogram_free(remix_histlayers_right[i]);
-			remix_histlayers_right[i] = NULL;
+	if (clear_right) {
+		if (remix_histlayers_right[0]) {
+			for (int i = 0; i < gfit.naxes[2]; i++) {
+				gsl_histogram_free(remix_histlayers_right[i]);
+				remix_histlayers_right[i] = NULL;
+			}
 		}
-	}
-	if (remix_histlayers_backup_left[0]) {
-		for (int i = 0; i < gfit.naxes[2]; i++) {
-			gsl_histogram_free(remix_histlayers_backup_left[i]);
-			remix_histlayers_backup_left[i] = NULL;
-		}
-	}
-	if (remix_histlayers_backup_right[0]) {
-		for (int i = 0; i < gfit.naxes[2]; i++) {
-			gsl_histogram_free(remix_histlayers_backup_right[i]);
-			remix_histlayers_backup_right[i] = NULL;
+		if (remix_histlayers_backup_right[0]) {
+			for (int i = 0; i < gfit.naxes[2]; i++) {
+				gsl_histogram_free(remix_histlayers_backup_right[i]);
+				remix_histlayers_backup_right[i] = NULL;
+			}
 		}
 	}
 }
@@ -397,6 +401,7 @@ gboolean check_images_match(fits *fit1, fits *fit2) {
 	if (fit1->rx != fit2->rx) return FALSE;
 	if (fit1->ry != fit2->ry) return FALSE;
 	if (fit1->type != fit2->type) return FALSE;
+	if (fit1->naxes[2] != fit2->naxes[2]) return FALSE;
 	return TRUE;
 }
 
@@ -587,7 +592,7 @@ void reset_controls_and_values() {
 }
 
 static void remixer_close() {
-	close_histograms();
+	close_histograms(TRUE, TRUE);
 	invalidate_stats_from_fit(&gfit);
 	clearfits(&fit_left);
 	clearfits(&fit_right);
@@ -638,6 +643,7 @@ int toggle_remixer_window_visibility(int _invocation, const fits* _fit_left, con
 		right_loaded = FALSE;
 		if (invocation == CALL_FROM_STARNET) {
 			fit_left = *_fit_left;
+			close_histograms(TRUE, TRUE);
 			remix_histo_startup_left();
 			copyfits(&fit_left, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 			close_single_image();
@@ -714,7 +720,7 @@ void on_remix_reset_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_remix_apply_clicked(GtkButton *button, gpointer user_data) {
-	close_histograms();
+	close_histograms(TRUE, TRUE);
 	remixer_close();
 	set_cursor_waiting(FALSE);
 }
@@ -926,6 +932,7 @@ void on_remix_type_right_changed(GtkComboBox *combo, gpointer user_data) {
 }
 
 void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer user_data) {
+	close_histograms(TRUE, FALSE);
 	filename_left = g_strdup(gtk_file_chooser_get_filename(filechooser));
 	if (readfits(filename_left, &fit_left, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
@@ -934,7 +941,6 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		right_loaded = FALSE;
 		return;
 	}
-	remix_histo_startup_left();
 	if(fit_left.type == DATA_FLOAT && com.pref.force_16bit) {
 		const size_t ndata = fit_left.naxes[0] * fit_left.naxes[1] * fit_left.naxes[2];
 		fit_replace_buffer(&fit_left, float_buffer_to_ushort(fit_left.fdata, ndata), DATA_USHORT);
@@ -942,7 +948,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 	if (right_loaded) {
 		if(!check_images_match(&fit_left, &fit_right)) {
 			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: images do not match"),
-				_("Image width, height and bit depth must match"));
+				_("Image width, height, bit depth and number of channels must match"));
 			clearfits(&fit_left);
 			gtk_file_chooser_unselect_all(filechooser);
 			left_loaded = FALSE;
@@ -960,6 +966,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		clearfits(&fit_right_calc);
 		copyfits(&fit_left, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 	}
+	remix_histo_startup_left();
 	if (left_loaded || right_loaded)
 		permit_calculation = TRUE;
 	else
@@ -974,6 +981,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 }
 
 void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer user_data) {
+	close_histograms(FALSE, TRUE);
 	filename_right = g_strdup(gtk_file_chooser_get_filename(filechooser));
 	if (readfits(filename_right, &fit_right, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
@@ -982,7 +990,6 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		right_loaded = FALSE;
 		return;
 	}
-	remix_histo_startup_right();
 	if(fit_right.type == DATA_FLOAT && com.pref.force_16bit) {
 		const size_t ndata = fit_right.naxes[0] * fit_right.naxes[1] * fit_right.naxes[2];
 		fit_replace_buffer(&fit_right, float_buffer_to_ushort(fit_right.fdata, ndata), DATA_USHORT);
@@ -990,7 +997,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 	if (left_loaded) {
 		if(!check_images_match(&fit_left, &fit_right)) {
 			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: images do not match"),
-				_("Image width, height and bit depth must match"));
+				_("Image width, height, bit depth and number of channels must match"));
 			clearfits(&fit_right);
 			gtk_file_chooser_unselect_all(filechooser);
 			right_loaded = FALSE;
@@ -1008,6 +1015,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		clearfits(&fit_left_calc);
 		copyfits(&fit_right, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 	}
+	remix_histo_startup_right();
 	if (left_loaded || right_loaded)
 		permit_calculation = TRUE;
 	else
