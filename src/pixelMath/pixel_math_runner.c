@@ -920,6 +920,11 @@ void on_pixel_math_remove_var_button_clicked(GtkButton *button, gpointer user_da
 }
 
 static void apply_pixel_math() {
+	if (get_thread_run()) {
+		PRINT_ANOTHER_THREAD_RUNNING;
+		return;
+	}
+
 	gchar *expression1 = get_pixel_math_expression1();
 	remove_spaces_from_str(expression1);
 
