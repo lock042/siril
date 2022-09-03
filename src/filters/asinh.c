@@ -34,7 +34,7 @@
 #include "asinh.h"
 
 static gboolean asinh_rgb_space = FALSE;
-static float asinh_stretch_value = 0.0, asinh_black_value = 0.0;
+static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
 static gboolean asinh_show_preview;
 
 static void asinh_startup() {
@@ -67,9 +67,9 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 	float norm = get_normalized_value(fit);
 	float invnorm = 1.0 / norm;
 	float asinh_beta = asinh(beta);
-	float factor_red = human_luminance ? 0.2126 : 0.3333;
-	float factor_green = human_luminance ? 0.7152 : 0.3333;
-	float factor_blue = human_luminance ? 0.0722 : 0.3333;
+	float factor_red = human_luminance ? 0.2126f : 0.3333f;
+	float factor_green = human_luminance ? 0.7152f : 0.3333f;
+	float factor_blue = human_luminance ? 0.0722f : 0.3333f;
 
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	if (fit->naxes[2] > 1) {
@@ -80,17 +80,17 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 			float r = buf[RLAYER][i] * invnorm;
 			float g = buf[GLAYER][i] * invnorm;
 			float b = buf[BLAYER][i] * invnorm;
-			float rprime = max(0, (r - offset) / (1.0 - offset));
-			float gprime = max(0, (g - offset) / (1.0 - offset));
-			float bprime = max(0, (b - offset) / (1.0 - offset));
+			float rprime = max(0, (r - offset) / (1.0f - offset));
+			float gprime = max(0, (g - offset) / (1.0f - offset));
+			float bprime = max(0, (b - offset) / (1.0f - offset));
 
 			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
 
-			float k = (x == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * x) / (x * asinh_beta);
+			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinh(beta * x) / (x * asinh_beta);
 
-			buf[RLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(rprime) * k)));
-			buf[GLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(gprime) * k)));
-			buf[BLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(bprime) * k)));
+			buf[RLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(rprime) * k)));
+			buf[GLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(gprime) * k)));
+			buf[BLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(bprime) * k)));
 		}
 	} else {
 #ifdef _OPENMP
@@ -98,9 +98,9 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 #endif
 		for (i = 0; i < n; i++) {
 			float x = buf[RLAYER][i] * invnorm;
-			float xprime = max(0, (x - offset) / (1.0 - offset));
-			float k = (xprime == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * xprime) / (xprime * asinh_beta);
-			buf[RLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(xprime) * k)));
+			float xprime = max(0, (x - offset) / (1.0f - offset));
+			float k = (xprime == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinh(beta * xprime) / (xprime * asinh_beta);
+			buf[RLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(xprime) * k)));
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -111,9 +111,9 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 	float *buf[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
 	float asinh_beta = asinh(beta);
-	float factor_red = human_luminance ? 0.2126 : 0.3333;
-	float factor_green = human_luminance ? 0.7152 : 0.3333;
-	float factor_blue = human_luminance ? 0.0722 : 0.3333;
+	float factor_red = human_luminance ? 0.2126f : 0.3333f;
+	float factor_green = human_luminance ? 0.7152f : 0.3333f;
+	float factor_blue = human_luminance ? 0.0722f : 0.3333f;
 
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	if (fit->naxes[2] > 1) {
@@ -124,17 +124,17 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 			float r = buf[RLAYER][i];
 			float g = buf[GLAYER][i];
 			float b = buf[BLAYER][i];
-			float rprime = max(0, (r - offset) / (1.0 - offset));
-			float gprime = max(0, (g - offset) / (1.0 - offset));
-			float bprime = max(0, (b - offset) / (1.0 - offset));
+			float rprime = max(0.0f, (r - offset) / (1.0f - offset));
+			float gprime = max(0.0f, (g - offset) / (1.0f - offset));
+			float bprime = max(0.0f, (b - offset) / (1.0f - offset));
 
 			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
 
-			float k = (x == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * x) / (x * asinh_beta);
+			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinh(beta * x) / (x * asinh_beta);
 
-			buf[RLAYER][i] = min(1.0, max(0.0, (rprime * k)));
-			buf[GLAYER][i] = min(1.0, max(0.0, (gprime * k)));
-			buf[BLAYER][i] = min(1.0, max(0.0, (bprime * k)));
+			buf[RLAYER][i] = min(1.0f, max(0.0f, (rprime * k)));
+			buf[GLAYER][i] = min(1.0f, max(0.0f, (gprime * k)));
+			buf[BLAYER][i] = min(1.0f, max(0.0f, (bprime * k)));
 		}
 	} else {
 #ifdef _OPENMP
@@ -143,9 +143,9 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 		for (i = 0; i < n; i++) {
 			float x, k;
 			x = buf[RLAYER][i];
-			float xprime = max(0, (x - offset) / (1.0 - offset));
-			k = (xprime == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * xprime) / (xprime * asinh_beta);
-			buf[RLAYER][i] = min(1.0, max(0.0,(x * k)));
+			float xprime = max(0.0f, (x - offset) / (1.0f - offset));
+			k = (xprime == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinh(beta * xprime) / (xprime * asinh_beta);
+			buf[RLAYER][i] = min(1.0f, max(0.0f,(x * k)));
 		}
 	}
 	invalidate_stats_from_fit(fit);
@@ -162,7 +162,7 @@ int asinhlut(fits *fit, float beta, float offset, gboolean human_luminance) {
 
 
 static void apply_asinh_changes() {
-	gboolean status = (asinh_stretch_value != 1.0) || (asinh_black_value != 0.0) || !asinh_rgb_space;
+	gboolean status = (asinh_stretch_value != 1.0f) || (asinh_black_value != 0.0f) || !asinh_rgb_space;
 	asinh_close(!status);
 }
 
@@ -179,8 +179,8 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
 
 	asinh_startup();
-	asinh_stretch_value = 0.0;
-	asinh_black_value = 0.0;
+	asinh_stretch_value = 0.0f;
+	asinh_black_value = 0.0f;
 	asinh_rgb_space = TRUE;
 
 	set_notify_block(TRUE);

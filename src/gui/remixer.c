@@ -48,14 +48,14 @@
 // 2 if called from Siril menu
 static int invocation = 0;
 
-static gdouble leftD = 0.0, rightD = 0.0;
-static gdouble leftB = 0.0, rightB = 0.0;
-static gdouble leftLP = 0.0, rightLP = 0.0;
-static gdouble leftSP = 0.0, rightSP = 0.0;
-static gdouble leftHP = 1.0, rightHP = 1.0;
-static gdouble leftBP = 0.0, rightBP = 0.0;
-static gdouble mastermixer = 0.5;
-static double finalstretch = 0.0;
+static float leftD = 0.0f, rightD = 0.0f;
+static float leftB = 0.0f, rightB = 0.0f;
+static float leftLP = 0.0f, rightLP = 0.0f;
+static float leftSP = 0.0f, rightSP = 0.0f;
+static float leftHP = 1.0f, rightHP = 1.0f;
+static float leftBP = 0.0f, rightBP = 0.0f;
+static float mastermixer = 0.5f;
+static float finalstretch = 0.0f;
 static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_PAYNE_NORMAL;
 static int colour_left = COL_INDEP, colour_right = COL_INDEP;
 static fits fit_left;
@@ -64,8 +64,8 @@ static fits fit_left_calc;
 static fits fit_right_calc;
 
 static ght_params params_left, params_right, params_histo_left, params_histo_right;
-static ght_compute_params cp_histo_left = { 0.0 };
-static ght_compute_params cp_histo_right = { 0.0 };
+static ght_compute_params cp_histo_left = { 0.0f };
+static ght_compute_params cp_histo_right = { 0.0f };
 
 static gboolean left_changed = FALSE, right_changed = FALSE;
 static gboolean leftBP_changed = FALSE, rightBP_changed = FALSE;
@@ -331,8 +331,8 @@ static void remix_histo_startup_right() {
 }
 
 void close_histograms(gboolean clear_left, gboolean clear_right) {
-	params_histo_left = (ght_params) { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0, 0, TRUE, TRUE, TRUE };
-	params_histo_right = (ght_params) { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0, 0, TRUE, TRUE, TRUE };
+	params_histo_left = (ght_params) { 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE };
+	params_histo_right = (ght_params) { 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE };
 
 	if (clear_left) {
 		if (remix_histlayers_left[0]) {
@@ -469,8 +469,8 @@ int remixer() {
 
 	params_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left, TRUE, TRUE, TRUE };
 	params_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right, TRUE, TRUE, TRUE };
-	ght_compute_params cp_left = { 0.0 };
-	ght_compute_params cp_right = { 0.0 };
+	ght_compute_params cp_left = { 0.0f };
+	ght_compute_params cp_right = { 0.0f };
 
 	// Process left image
 	if (left_loaded && (left_changed || leftBP_changed)) {
@@ -478,7 +478,7 @@ int remixer() {
 	}
 		// Now do the linear BP shift, if needed. The only parameter that matters is BP so
 		// we just need to change the stretch type, no need to recompute params.
-	if (left_loaded && (leftBP_changed || (left_changed && leftBP != 0.0))) {
+	if (left_loaded && (leftBP_changed || (left_changed && leftBP != 0.0f))) {
 		params_left.stretchtype = STRETCH_LINEAR;
 		apply_linked_ght_to_fits(&fit_left_calc, &fit_left_calc, params_left, cp_left, TRUE);
 		leftBP_changed = FALSE;
@@ -490,7 +490,7 @@ int remixer() {
 		apply_linked_ght_to_fits(&fit_right, &fit_right_calc, params_right, cp_right, TRUE);
 	}
 		// As above, BP shift if required.
-	if (right_loaded && (rightBP_changed || (right_changed && rightBP != 0.0))) {
+	if (right_loaded && (rightBP_changed || (right_changed && rightBP != 0.0f))) {
 		params_right.stretchtype = STRETCH_LINEAR;
 		apply_linked_ght_to_fits(&fit_right_calc, &fit_right_calc, params_right, cp_right, TRUE);
 		rightBP_changed = FALSE;
@@ -508,16 +508,16 @@ int remixer() {
 
 	// Scale left and right images according to master mixer slider
 	// imoper_scaled ( a, b, oper, factor ) = a oper factor * b
-	if (left_loaded && (mastermixer != 1.0)) {
+	if (left_loaded && (mastermixer != 1.0f)) {
 		imoper_scaled(&gfit, &fit_left_calc, OPER_ADD, (1.0 - mastermixer));
 	}
-	if (right_loaded && (mastermixer != 0.0)) {
+	if (right_loaded && (mastermixer != 0.0f)) {
 		imoper_scaled(&gfit, &fit_right_calc, OPER_ADD, mastermixer);
 	}
 
-	if (finalstretch != 0.0) {
-		ght_compute_params cp_final = { 0.0 };
-		ght_params params_final = { (finalstretch - 5.0), 4.0, 0.0, 0.0, 1.0, 0.0, STRETCH_PAYNE_NORMAL, COL_HUMANLUM, TRUE, TRUE, TRUE };
+	if (finalstretch != 0.0f) {
+		ght_compute_params cp_final = { 0.0f };
+		ght_params params_final = { (finalstretch - 5.0f), 4.0f, 0.0f, 0.0f, 1.0f, 0.0f, STRETCH_PAYNE_NORMAL, COL_HUMANLUM, TRUE, TRUE, TRUE };
 		apply_linked_ght_to_fits(&gfit, &gfit, params_final, cp_final, TRUE);
 	}
 	// If 16bit preference is set, check the images are 16bit
@@ -535,14 +535,14 @@ static int remixer_update_preview() {
 }
 
 void reset_values() {
-	leftD = leftB = leftLP = leftSP = leftBP = 0.0;
-	leftHP = 1.0;
-	rightD = rightB = rightLP = rightSP = rightBP = 0.0;
-	rightHP = 1.0;
+	leftD = leftB = leftLP = leftSP = leftBP = 0.0f;
+	leftHP = 1.0f;
+	rightD = rightB = rightLP = rightSP = rightBP = 0.0f;
+	rightHP = 1.0f;
 	type_left = type_right = STRETCH_PAYNE_NORMAL;
 	colour_left = colour_right = COL_INDEP;
-	mastermixer = 0.5;
-	finalstretch = 0.0;
+	mastermixer = 0.5f;
+	finalstretch = 0.0f;
 }
 
 void reset_filechoosers() {
@@ -583,7 +583,6 @@ void reset_controls_and_values() {
 	gtk_spin_button_set_value(spin_remix_BP_right, rightBP);
 	gtk_spin_button_set_value(spin_remix_finalstretch, finalstretch);
 	gtk_spin_button_set_value(spin_remix_mastermixer, mastermixer);
-	// Set left_type, right_type, left_colour, right_colour;
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_left")), STRETCH_PAYNE_NORMAL);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_PAYNE_NORMAL);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_INDEP);
@@ -699,7 +698,6 @@ int toggle_remixer_window_visibility(int _invocation, const fits* _fit_left, con
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols1")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols1")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols1")), FALSE);
-//		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_SP_right")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), FALSE);
 
 		siril_open_dialog("dialog_star_remix");
@@ -728,7 +726,7 @@ void on_remix_apply_clicked(GtkButton *button, gpointer user_data) {
 /*** adjusters **/
 void on_spin_remix_D_left_value_changed(GtkSpinButton *button, gpointer user_data) {
 	left_changed = TRUE;
-	leftD = expm1(gtk_spin_button_get_value(button));
+	leftD = expm1f((float)gtk_spin_button_get_value(button));
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -738,7 +736,7 @@ void on_spin_remix_D_left_value_changed(GtkSpinButton *button, gpointer user_dat
 
 void on_spin_remix_D_right_value_changed(GtkSpinButton *button, gpointer user_data) {
 	right_changed = TRUE;
-	rightD = expm1(gtk_spin_button_get_value(button));
+	rightD = expm1f((float)gtk_spin_button_get_value(button));
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -748,7 +746,7 @@ void on_spin_remix_D_right_value_changed(GtkSpinButton *button, gpointer user_da
 
 void on_spin_remix_B_left_value_changed(GtkSpinButton *button, gpointer user_data) {
 	left_changed = TRUE;
-	leftB = gtk_spin_button_get_value(button);
+	leftB = (float) gtk_spin_button_get_value(button);
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -757,7 +755,7 @@ void on_spin_remix_B_left_value_changed(GtkSpinButton *button, gpointer user_dat
 }
 void on_spin_remix_B_right_value_changed(GtkSpinButton *button, gpointer user_data) {
 	right_changed = TRUE;
-	rightB = gtk_spin_button_get_value(button);
+	rightB = (float) gtk_spin_button_get_value(button);
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -767,10 +765,10 @@ void on_spin_remix_B_right_value_changed(GtkSpinButton *button, gpointer user_da
 
 void on_spin_remix_LP_left_value_changed(GtkSpinButton *button, gpointer user_data) {
 	left_changed = TRUE;
-	leftLP = gtk_spin_button_get_value(button);
+	leftLP = (float) gtk_spin_button_get_value(button);
 	if (leftLP > leftSP) {
 		leftLP = leftSP;
-		gtk_spin_button_set_value(button, leftLP);
+		gtk_spin_button_set_value(button, (double) leftLP);
 	}
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
@@ -781,10 +779,10 @@ void on_spin_remix_LP_left_value_changed(GtkSpinButton *button, gpointer user_da
 
 void on_spin_remix_LP_right_value_changed(GtkSpinButton *button, gpointer user_data) {
 	right_changed = TRUE;
-	rightLP = gtk_spin_button_get_value(button);
+	rightLP = (float) gtk_spin_button_get_value(button);
 	if (rightLP > rightSP) {
 		rightLP = rightSP;
-		gtk_spin_button_set_value(button, rightLP);
+		gtk_spin_button_set_value(button, (float) rightLP);
 	}
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
@@ -797,14 +795,14 @@ void on_spin_remix_SP_left_value_changed(GtkSpinButton *button, gpointer user_da
 	GtkSpinButton *spin_remix_LP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_LP_left"));
 	GtkSpinButton *spin_remix_HP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_left"));
 	left_changed = TRUE;
-	leftSP = gtk_spin_button_get_value(button);
+	leftSP = (float) gtk_spin_button_get_value(button);
 	if (leftSP < leftLP) {
-		gtk_spin_button_set_value(spin_remix_LP_left, leftSP);
+		gtk_spin_button_set_value(spin_remix_LP_left, (double) leftSP);
 		leftLP = leftSP;
 	}
 	if (leftSP > leftHP) {
 		leftHP = leftSP;
-		gtk_spin_button_set_value(spin_remix_HP_left, leftSP);
+		gtk_spin_button_set_value(spin_remix_HP_left, (double) leftSP);
 	}
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
@@ -816,14 +814,14 @@ void on_spin_remix_SP_right_value_changed(GtkSpinButton *button, gpointer user_d
 	GtkSpinButton *spin_remix_LP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_LP_right"));
 	GtkSpinButton *spin_remix_HP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_right"));
 	right_changed = TRUE;
-	rightSP = gtk_spin_button_get_value(button);
+	rightSP = (float) gtk_spin_button_get_value(button);
 	if (rightSP < rightLP) {
 		rightLP = rightSP;
-		gtk_spin_button_set_value(spin_remix_LP_right, rightSP);
+		gtk_spin_button_set_value(spin_remix_LP_right, (double) rightSP);
 	}
 	if (rightSP > rightHP) {
 		rightHP = rightSP;
-		gtk_spin_button_set_value(spin_remix_HP_right, rightSP);
+		gtk_spin_button_set_value(spin_remix_HP_right, (double) rightSP);
 	}
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
@@ -834,10 +832,10 @@ void on_spin_remix_SP_right_value_changed(GtkSpinButton *button, gpointer user_d
 
 void on_spin_remix_HP_left_value_changed(GtkSpinButton *button, gpointer user_data) {
 	left_changed = TRUE;
-	leftHP = gtk_spin_button_get_value(button);
+	leftHP = (float) gtk_spin_button_get_value(button);
 	if (leftHP < leftSP) {
 		leftHP = leftSP;
-		gtk_spin_button_set_value(button, leftHP);
+		gtk_spin_button_set_value(button, (double) leftHP);
 	}
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
@@ -847,10 +845,10 @@ void on_spin_remix_HP_left_value_changed(GtkSpinButton *button, gpointer user_da
 }
 void on_spin_remix_HP_right_value_changed(GtkSpinButton *button, gpointer user_data) {
 	right_changed = TRUE;
-	rightHP = gtk_spin_button_get_value(button);
+	rightHP = (float) gtk_spin_button_get_value(button);
 	if (rightHP < rightSP) {
 		rightHP = rightSP;
-		gtk_spin_button_set_value(button, rightHP);
+		gtk_spin_button_set_value(button, (double) rightHP);
 	}
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
@@ -861,7 +859,7 @@ void on_spin_remix_HP_right_value_changed(GtkSpinButton *button, gpointer user_d
 
 void on_spin_remix_BP_left_value_changed(GtkSpinButton *button, gpointer user_data) {
 	leftBP_changed = TRUE;
-	leftBP = gtk_spin_button_get_value(button);
+	leftBP = (float) gtk_spin_button_get_value(button);
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -871,7 +869,7 @@ void on_spin_remix_BP_left_value_changed(GtkSpinButton *button, gpointer user_da
 
 void on_spin_remix_BP_right_value_changed(GtkSpinButton *button, gpointer user_data) {
 	rightBP_changed = TRUE;
-	rightBP = gtk_spin_button_get_value(button);
+	rightBP = (float) gtk_spin_button_get_value(button);
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -880,7 +878,7 @@ void on_spin_remix_BP_right_value_changed(GtkSpinButton *button, gpointer user_d
 }
 
 void on_spin_mastermixer_value_changed(GtkSpinButton *button, gpointer user_data) {
-	mastermixer = gtk_spin_button_get_value(button);
+	mastermixer = (float) gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
@@ -888,7 +886,7 @@ void on_spin_mastermixer_value_changed(GtkSpinButton *button, gpointer user_data
 }
 
 void on_spin_finalstretch_value_changed(GtkSpinButton *button, gpointer user_data) {
-	finalstretch = gtk_spin_button_get_value(button);
+	finalstretch = (float) gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
@@ -1059,13 +1057,13 @@ void on_eyedropper_SP_left_clicked(GtkButton *button, gpointer user_data) {
 	}
 	ref /= channels;
 	ref /= norm;
-	leftSP = ref;
+	leftSP = (float) ref;
 	if (leftSP < leftLP) {
-		gtk_spin_button_set_value(spin_remix_LP_left, leftSP);
+		gtk_spin_button_set_value(spin_remix_LP_left, (double) leftSP);
 		rightLP = rightSP;
 	}
 	if (leftSP > leftHP) {
-		gtk_spin_button_set_value(spin_remix_HP_left, leftSP);
+		gtk_spin_button_set_value(spin_remix_HP_left, (double) leftSP);
 		rightHP = rightSP;
 	}
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_left")),leftSP);
@@ -1102,13 +1100,13 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 	}
 	ref /= channels;
 	ref /= norm;
-	rightSP = ref;
+	rightSP = (float) ref;
 	if (rightSP < rightLP) {
-		gtk_spin_button_set_value(spin_remix_LP_right, rightSP);
+		gtk_spin_button_set_value(spin_remix_LP_right, (double) rightSP);
 		rightLP = rightSP;
 	}
 	if (rightSP > rightHP) {
-		gtk_spin_button_set_value(spin_remix_HP_right, rightSP);
+		gtk_spin_button_set_value(spin_remix_HP_right, (double) rightSP);
 		rightHP = rightSP;
 	}
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_right")),leftSP);
@@ -1132,7 +1130,6 @@ void on_remix_advanced_clicked(GtkButton *button, gpointer user_data) {
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols1")), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols1")), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols1")), TRUE);
-//		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_SP_right")), TRUE);
 
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), TRUE);
 		gtk_button_set_label(GTK_BUTTON(lookup_widget("remix_advanced")), _("Simple"));
@@ -1149,7 +1146,6 @@ void on_remix_advanced_clicked(GtkButton *button, gpointer user_data) {
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols1")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols1")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols1")), FALSE);
-//		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_SP_right")), FALSE);
 
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), FALSE);
 		gtk_button_set_label(GTK_BUTTON(lookup_widget("remix_advanced")), _("Advanced"));
