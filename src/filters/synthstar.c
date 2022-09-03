@@ -46,8 +46,8 @@
 #include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 
-float calculate_mean_box_f(float* buf, double minfwhm, double xpos, double ypos, int dimx, int dimy) {
-	double tot = 0.0;
+float calculate_mean_box_f(float* buf, float minfwhm, float xpos, float ypos, int dimx, int dimy) {
+	float tot = 0.0f;
 	int dim = (int) ((minfwhm+1) / 2);
 	int num = 0;
 	int rsq = dim * dim;
@@ -64,8 +64,8 @@ float calculate_mean_box_f(float* buf, double minfwhm, double xpos, double ypos,
 	return sqrt(tot / num);
 }
 
-double calculate_mean_box_W(WORD* buf, double minfwhm, double xpos, double ypos, int dimx, int dimy, double invnorm) {
-	double tot = 0.0;
+float calculate_mean_box_W(WORD* buf, float minfwhm, float xpos, float ypos, int dimx, int dimy, float invnorm) {
+	float tot = 0.0f;
 	int dim = (int) ((minfwhm+1) / 2);
 	int num = 0;
 	int rsq = dim * dim;
@@ -73,7 +73,7 @@ double calculate_mean_box_W(WORD* buf, double minfwhm, double xpos, double ypos,
 		for (int y=ypos-dim; y<ypos+dim; y++) {
 			if (x > 0 && x < dimx && y > 0 && y < dimy) {
 				if (((y-ypos)*(y-ypos)) + ((x-xpos)*(x-xpos)) < rsq) {
-					tot += (double) buf[x + ((dimy-y) * dimx)]/invnorm * (double) buf[x+((dimy-y)*dimx)]/invnorm;
+					tot += (float) buf[x + ((dimy-y) * dimx)]/invnorm * (float) buf[x+((dimy-y)*dimx)]/invnorm;
 					num++;
 				}
 			}
@@ -82,41 +82,43 @@ double calculate_mean_box_W(WORD* buf, double minfwhm, double xpos, double ypos,
 	return sqrt(tot / num);
 }
 
-void makemoffat(double* psf, int size, double fwhm, double lum, double xoff, double yoff, int type) {
-	double beta = 2.2;
-	double alpha = 0.6667 * fwhm;
-	int halfpsfdim = (size - 1) / 2;
+void makemoffat(float* psf, int size, float fwhm, float lum, float xoff, float yoff, int type) {
+#define BETA 2.2f
+	const float alpha = 0.6667f * fwhm;
+	const int halfpsfdim = (size - 1) / 2;
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static,1) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#pragma omp parallel for simd schedule(static,8) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
 #endif
 	for (int x=-halfpsfdim; x<=halfpsfdim; x++) {
 		for (int y=-halfpsfdim; y<=halfpsfdim; y++) {
-			double xf = x-xoff;
-			double yf = y-yoff;
-			psf[(x+halfpsfdim)+((y+halfpsfdim)*size)] = lum * pow(1 + ((xf*xf + yf*yf)/(alpha*alpha)),-beta);
+			float xf = x-xoff;
+			float yf = y-yoff;
+			psf[(x+halfpsfdim)+((y+halfpsfdim)*size)] = lum * pow(1.0f + ((xf*xf + yf*yf)/(alpha*alpha)),-BETA);
 		}
 	}
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
 	return;
+#undef BETA
 }
 
-void add_star_to_rgb_buffer(double psfH, double psfS, double *psfL, int size, double *Hsynth, double *Ssynth, double *Lsynth, int x, int y, int dimx, int dimy) {
+
+void add_star_to_rgb_buffer(float psfH, float psfS, float *psfL, int size, float *Hsynth, float *Ssynth, float *Lsynth, int x, int y, int dimx, int dimy) {
 	int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 #define EPSILON 1e-30
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static,1) collapse(2) num_threads(com.max_thread) private(xx, yy) if(com.max_thread > 1)
+#pragma omp parallel for simd schedule(static,8) collapse(2) num_threads(com.max_thread) private(xx, yy) if(com.max_thread > 1)
 #endif
 	for (int psfx=0; psfx<size; psfx++) {
 		for (int psfy=0; psfy<size; psfy++) {
 			xx=x+psfx-halfpsfdim;
 			yy=y+psfy-halfpsfdim;
 			if (xx > 0 && xx < dimx && yy > 0 && yy < dimy) {
-				double factor = psfL[psfx+(psfy*size)] / (max(EPSILON,(Lsynth[xx+((dimy-yy)*dimx)] + psfL[psfx+(psfy*size)])));
-				Hsynth[xx+((dimy-yy)*dimx)] = ((1 - factor) * Hsynth[xx+((dimy-yy)*dimx)]) + (factor * psfH);
-				Ssynth[xx+((dimy-yy)*dimx)] = ((1 - factor) * Ssynth[xx+((dimy-yy)*dimx)]) + (factor * psfS);
+				float factor = psfL[psfx+(psfy*size)] / (max(EPSILON,(Lsynth[xx+((dimy-yy)*dimx)] + psfL[psfx+(psfy*size)])));
+				Hsynth[xx+((dimy-yy)*dimx)] = ((1.0f - factor) * Hsynth[xx+((dimy-yy)*dimx)]) + (factor * psfH);
+				Ssynth[xx+((dimy-yy)*dimx)] = ((1.0f - factor) * Ssynth[xx+((dimy-yy)*dimx)]) + (factor * psfS);
 				Lsynth[xx+((dimy-yy)*dimx)] += psfL[psfx+(psfy*size)];
 			}
 		}
@@ -127,11 +129,11 @@ void add_star_to_rgb_buffer(double psfH, double psfS, double *psfL, int size, do
 	return;
 }
 
-void add_star_to_mono_buffer(double *psfL, int size, double *Lsynth, int x, int y, int dimx, int dimy) {
-	int halfpsfdim = (size - 1) / 2;
+void add_star_to_mono_buffer(float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy) {
+	const int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static,1) collapse(2) num_threads(com.max_thread) private(xx, yy) if(com.max_thread > 1)
+#pragma omp parallel for simd schedule(static,8) collapse(2) num_threads(com.max_thread) private(xx, yy) if(com.max_thread > 1)
 #endif
 	for (int psfx=0; psfx<size; psfx++) {
 		for (int psfy=0; psfy<size; psfy++) {
@@ -149,15 +151,37 @@ void add_star_to_mono_buffer(double *psfL, int size, double *Lsynth, int x, int 
 	return;
 }
 
-int generate_synthstars(fits *fit, fits *starless) {
-	siril_log_message(_("Star intensive care: processing...\n"));
+int starcount(psf_star **stars) {
+	int i=0;
+	if (!(stars)) {
+		return 0;
+	} else {
+		while (stars[i]) {
+			i++;
+		}
+	}
+	return i;
+}
+
+
+int generate_synthstars(fits *fit) {
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
+	siril_log_color_message(_("Star intensive care: processing...\n"), "green");
 	gboolean is_RGB = TRUE;
 	gboolean is_32bit = TRUE;
-	double norm, invnorm;
+	float norm, invnorm;
+	int nb_stars = starcount(com.stars);
+	if (nb_stars < 1) {
+		siril_log_color_message(_("No stars found. Use the Dynamic PSF tool to detect stars in the image.\n"), "red");
+		return -1;
+	} else {
+		siril_log_message(_("Resynthesizing %d stars...\n"), nb_stars);
+	}
 	if (fit->type == DATA_USHORT) {
 		is_32bit = FALSE;
 		norm = get_normalized_value(fit);
-		invnorm = 1.0 / norm;
+		invnorm = 1.0f / norm;
 	}
 	if (fit->naxes[2] != 3)
 		is_RGB = FALSE;
@@ -165,91 +189,106 @@ int generate_synthstars(fits *fit, fits *starless) {
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
 	int count = dimx * dimy;
-	// Detect and replace as many stars as possible
-	int orig_starfind_sigma = com.pref.starfinder_conf.sigma;
-	com.pref.starfinder_conf.sigma = 0.05;
-	double *H, *S, *Hsynth, *Ssynth, *Lsynth, junk;
-	Lsynth = (double *) calloc(count, sizeof(double));
+	float *H, *S, *Hsynth, *Ssynth, *Lsynth, junk;
+	Lsynth = (float *) calloc(count, sizeof(float));
 
 	// For RGB images, convert pixel colour data from fit into H and S arrays. L is irrelevant as we will synthesize L.
 	if (is_RGB) {
-		H = (double *) calloc(count, sizeof(double));
-		S = (double *) calloc(count, sizeof(double));
-		Hsynth = (double *) calloc(count, sizeof(double));
-		Ssynth = (double *) calloc(count, sizeof(double));
+		H = (float *) calloc(count, sizeof(float));
+		S = (float *) calloc(count, sizeof(float));
+		Hsynth = (float *) calloc(count, sizeof(float));
+		Ssynth = (float *) calloc(count, sizeof(float));
 		for (int n = 0; n < count; n++) {
 			if (is_32bit)
-				rgb_to_hsl(fit->fpdata[0][n], fit->fpdata[1][n], fit->fpdata[2][n], &H[n], &S[n], &junk);
+				rgb_to_hsl_float_sat(fit->fpdata[0][n], fit->fpdata[1][n], fit->fpdata[2][n], 0.f, &H[n], &S[n], &junk);
 			else
-				rgb_to_hsl(fit->pdata[0][n] * invnorm, fit->pdata[1][n] * invnorm, fit->pdata[2][n] * invnorm, &H[n], &S[n], &junk);
+				rgb_to_hsl_float_sat(fit->pdata[0][n] * invnorm, fit->pdata[1][n] * invnorm, fit->pdata[2][n] * invnorm, 0.f, &H[n], &S[n], &junk);
 		}
 	}
 
-	// Detect stars in the original image to replace with synthesized ones
-	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
-	int nb_stars = 0;
-	psf_star **s = peaker(&im, 0, &com.pref.starfinder_conf, &nb_stars, NULL, TRUE, FALSE, MAX_STARS, com.max_thread);
-
 	// Synthesize a PSF for each star in the star array s, based on its measured parameters
-	siril_log_message(_("Resynthesizing %d stars...\n"), nb_stars);
 	for (int n = 0; n < nb_stars; n++) {
-		double lum = s[n]->A;
-		if (lum < 0.0)
-			lum = 0.0;
+		float lum = com.stars[n]->A;
+		if (lum < 0.0f)
+			lum = 0.0f;
 		if (!is_32bit)
 			lum *= invnorm;
-		assert(lum > 0.0);
-		double xoff = s[n]->xpos - (int) s[n]->xpos;
-		double yoff = s[n]->ypos - (int) s[n]->ypos;
-		int size=14 * max(s[n]->sx, s[n]->sy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
+		assert(lum > 0.0f);
+		float xoff = com.stars[n]->xpos - (int) com.stars[n]->xpos;
+		float yoff = com.stars[n]->ypos - (int) com.stars[n]->ypos;
+		int size=20 * max(com.stars[n]->sx, com.stars[n]->sy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
 		if (!(size %2))
 			size++;
-		double minfwhm = min(s[n]->fwhmx, s[n]->fwhmy);
-		double psfH, psfS;
+		float minfwhm = min(com.stars[n]->fwhmx, com.stars[n]->fwhmy);
+		float psfH, psfS;
 
 		// For RGB images, obtain colour information to ensure that synthesized star profiles are the same average hue as the stars they replace.
 		if (is_RGB) {
-			double psfR, psfG, psfB;
+			float psfR, psfG, psfB;
 			if (is_32bit) {
-				psfR = (double) calculate_mean_box_f(fit->fpdata[0], minfwhm, s[n]->xpos, s[n]->ypos, dimx, dimy);
-				psfG = (double) calculate_mean_box_f(fit->fpdata[1], minfwhm, s[n]->xpos, s[n]->ypos, dimx, dimy);
-				psfB = (double) calculate_mean_box_f(fit->fpdata[2], minfwhm, s[n]->xpos, s[n]->ypos, dimx, dimy);
+				psfR = (float) calculate_mean_box_f(fit->fpdata[0], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
+				psfG = (float) calculate_mean_box_f(fit->fpdata[1], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
+				psfB = (float) calculate_mean_box_f(fit->fpdata[2], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
 			} else {
-				psfR = calculate_mean_box_W(fit->pdata[0], minfwhm, s[n]->xpos, s[n]->ypos, dimx, dimy, invnorm);
-				psfG = calculate_mean_box_W(fit->pdata[1], minfwhm, s[n]->xpos, s[n]->ypos, dimx, dimy, invnorm);
-				psfB = calculate_mean_box_W(fit->pdata[2], minfwhm, s[n]->xpos, s[n]->ypos, dimx, dimy, invnorm);
+				psfR = calculate_mean_box_W(fit->pdata[0], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy, invnorm);
+				psfG = calculate_mean_box_W(fit->pdata[1], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy, invnorm);
+				psfB = calculate_mean_box_W(fit->pdata[2], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy, invnorm);
 			}
-			rgb_to_hsl(psfR, psfG, psfB, &psfH, &psfS, &junk);
+			rgb_to_hsl_float_sat(psfR, psfG, psfB, 0.f, &psfH, &psfS, &junk);
 		}
 
 		// Synthesize the Moffat luminance profile and add to the star mask in HSL colourspace
-		double *psfL = (double *) calloc(size * size, sizeof(double));
+		float *psfL = (float *) calloc(size * size, sizeof(float));
 		makemoffat(psfL, size, minfwhm, lum, xoff, yoff, SYNTHESIZE_MOFFAT);
 		if (is_RGB)
-			add_star_to_rgb_buffer(psfH, psfS, psfL, size, Hsynth, Ssynth, Lsynth, s[n]->xpos, s[n]->ypos, dimx, dimy);
+			add_star_to_rgb_buffer(psfH, psfS, psfL, size, Hsynth, Ssynth, Lsynth, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
 		else
-			add_star_to_mono_buffer(psfL, size, Lsynth, s[n]->xpos, s[n]->ypos, dimx, dimy);
+			add_star_to_mono_buffer(psfL, size, Lsynth, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
 		free(psfL);
 	}
 
 	// Construct the RGB from synthetic L (and for RGB images, also the H and S values from the orginal image thus giving our synthesized stars the correct colour)
 	if (is_RGB) {
-		double *R, *G, *B;
-		R = (double *) calloc(count, sizeof(double));
-		G = (double *) calloc(count, sizeof(double));
-		B = (double *) calloc(count, sizeof(double));
+		float *R, *G, *B;
+		R = (float *) calloc(count, sizeof(float));
+		G = (float *) calloc(count, sizeof(float));
+		B = (float *) calloc(count, sizeof(float));
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+#ifdef _OPENMP
+#pragma omp for simd schedule(static,8)
+#endif
 		for (int n = 0; n < count; n++) {
-			hsl_to_rgb(Hsynth[n], Ssynth[n], Lsynth[n], &R[n], &G[n], &B[n]);
-			if (is_32bit) {
-				fit->fpdata[0][n] = (float) R[n];
-				fit->fpdata[1][n] = (float) G[n];
-				fit->fpdata[2][n] = (float) B[n];
-			} else {
-				fit->pdata[0][n] = roundf_to_WORD((float) R[n] * norm);
-				fit->pdata[1][n] = roundf_to_WORD((float) G[n] * norm);
-				fit->pdata[2][n] = roundf_to_WORD((float) B[n] * norm);
+			hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n], &G[n], &B[n]);
+		}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+		if (is_32bit) {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static,8)
+#endif
+			for (int n = 0; n < count ; n++) {
+				fit->fpdata[0][n] = R[n];
+				fit->fpdata[1][n] = G[n];
+				fit->fpdata[2][n] = B[n];
+			}
+		} else {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static,16)
+#endif
+			for (int n = 0; n < count ; n++) {
+				fit->pdata[0][n] = roundf_to_WORD(R[n] * norm);
+				fit->pdata[1][n] = roundf_to_WORD(G[n] * norm);
+				fit->pdata[2][n] = roundf_to_WORD(B[n] * norm);
 			}
 		}
+#ifdef _OPENMP
+}
+#endif
+
 		// Free memory
 		free(R);
 		free(G);
@@ -259,23 +298,51 @@ int generate_synthstars(fits *fit, fits *starless) {
 		free(Hsynth);
 		free(Ssynth);
 	} else {
-		for (int n = 0; n < count; n++) {
-			if (is_32bit) {
+		// Mono image. Populate the L values into the fits WORD or float data array
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+		if (is_32bit) {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static,8)
+#endif
+			for (int n = 0; n < count; n++) {
 				fit->fdata[n] = (float) Lsynth[n];
-				if (com.pref.force_16bit) {
-					const size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-					fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
-				}
 			}
-			else
-				fit->data[n] = roundf_to_WORD((float) Lsynth[n] * norm);
+			if (com.pref.force_16bit) {
+				const size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+				fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
+			}
+		} else {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static,8)
+#endif
+			for (int n = 0; n < count; n++) {
+				fit->data[n] = roundf_to_WORD(Lsynth[n] * norm);
+			}
 		}
 	}
+#ifdef _OPENMP
+}
+#endif
 	free(Lsynth);
-	com.pref.starfinder_conf.sigma = orig_starfind_sigma;
+	if (fit == &gfit)
+		notify_gfit_modified();
+	gettimeofday(&t_end, NULL);
+	show_time_msg(t_start, t_end, "Execution time");
 	return 0;
 }
 
+void on_synthstar_cancel_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("synthstar_dialog");
+}
 
+void on_synthstar_dynpsf_clicked(GtkButton *button, gpointer user_data) {
+	siril_open_dialog("stars_list_window");
+}
 
+void on_synthstar_apply_clicked(GtkButton *button, gpointer user_data) {
+	generate_synthstars(&gfit);
+}
 

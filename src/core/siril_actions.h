@@ -115,5 +115,6 @@ void star_remix_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void synthstar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */

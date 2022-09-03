@@ -1,7 +1,7 @@
 #ifndef SRC_SYNTHSTAR_H_
 #define SRC_SYNTHSTAR_H_
 
-int generate_synthstars(fits *fit, fits *starless);
+int generate_synthstars(fits *fit);
 #define SYNTHESIZE_GAUSSIAN 0
 #define SYNTHESIZE_MOFFAT 1
 

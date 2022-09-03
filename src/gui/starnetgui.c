@@ -46,7 +46,6 @@ static gboolean sgui_starmask;
 static gboolean sgui_upscale;
 static gboolean sgui_linear;
 static gboolean sgui_follow_on;
-static gboolean sgui_synthstar;
 static double sgui_starnet_stride;
 
 static void starnet_startup() {
@@ -56,7 +55,6 @@ static void starnet_startup() {
 	sgui_starmask = TRUE;
 	sgui_follow_on = FALSE;
 	sgui_starnet_stride = 256.0;
-	sgui_synthstar = FALSE;
 }
 
 /*** callbacks **/
@@ -67,7 +65,6 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkToggleButton *toggle_starnet_followon = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_postremix"));
 	GtkToggleButton *toggle_starnet_upsample = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_upsample"));
 	GtkToggleButton *toggle_starnet_starmask = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask"));
-	GtkToggleButton *toggle_starnet_synthstar = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_synthstar"));
 	GtkToggleButton *toggle_starnet_customstride = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_customstride"));
 	GtkLabel *label_starnetinfo = GTK_LABEL(lookup_widget("label_starnetinfo"));
 
@@ -99,7 +96,6 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_toggle_button_set_active(toggle_starnet_upsample, sgui_upscale);
 	gtk_toggle_button_set_active(toggle_starnet_starmask, sgui_starmask);
 	gtk_toggle_button_set_active(toggle_starnet_customstride, sgui_customstride);
-	gtk_toggle_button_set_active(toggle_starnet_synthstar, sgui_synthstar);
 	gtk_spin_button_set_value(spin_starnet_stride, sgui_starnet_stride);
 	set_notify_block(FALSE);
 }
@@ -117,12 +113,10 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
 	GtkToggleButton *toggle_starnet_upsample = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_upsample"));
 	GtkToggleButton *toggle_starnet_starmask = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask"));
-	GtkToggleButton *toggle_starnet_synthstar = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_synthstar"));
 	GtkToggleButton *toggle_starnet_customstride = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_customstride"));
 
 	sgui_customstride = gtk_toggle_button_get_active(toggle_starnet_customstride);
 	sgui_starmask = gtk_toggle_button_get_active(toggle_starnet_starmask);
-	sgui_synthstar = gtk_toggle_button_get_active(toggle_starnet_synthstar);
 	sgui_upscale = gtk_toggle_button_get_active(toggle_starnet_upsample);
 	sgui_linear = gtk_toggle_button_get_active(toggle_starnet_stretch);
 	sgui_starnet_stride = gtk_spin_button_get_value(spin_starnet_stride);
@@ -139,7 +133,6 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	starnet_args->upscale = sgui_upscale;
 	starnet_args->linear = sgui_linear;
 	starnet_args->starmask = sgui_starmask;
-	starnet_args->synthstar = sgui_synthstar;
 	sprintf(starnet_args->stride, "%d", (int) sgui_starnet_stride);
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -172,19 +165,6 @@ void on_toggle_starnet_stretch_toggled(GtkToggleButton *button, gpointer user_da
 	sgui_linear = gtk_toggle_button_get_active(button);
 }
 
-void on_toggle_starnet_synthstar_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkLabel *label_starnetinfo = GTK_LABEL(lookup_widget("label_starnetinfo"));
-	sgui_synthstar = gtk_toggle_button_get_active(button);
-	if (sgui_synthstar)
-		gtk_label_set_text(label_starnetinfo, _("Note: intensive care should be considered a last resort for stars that can't be fixed any other way. It may not replace all stars and is quite likely to produce bad results on images with densely packed stars such as globular clusters. It will not replace star spikes. It will work better on linear images than stretched ones. Ideally the cause of bad stars should be rectified and the data re-collected, but for images where re-shooting is not an option intensive care may help to salavage a usable image. Good luck!"));
-	else
-		gtk_label_set_text(label_starnetinfo, "");
-	if (sgui_synthstar && !sgui_starmask) {
-		sgui_starmask = TRUE;
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask")), sgui_starmask);
-	}
-}
-
 void on_toggle_starnet_postremix_toggled(GtkToggleButton *button, gpointer user_data) {
 	sgui_follow_on = gtk_toggle_button_get_active(button);
 	if (sgui_follow_on && !sgui_starmask) {
@@ -202,9 +182,5 @@ void on_toggle_starnet_starmask_toggled(GtkToggleButton *button, gpointer user_d
 	if (sgui_follow_on && !sgui_starmask) {
 		sgui_follow_on = FALSE;
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_postremix")), sgui_follow_on);
-	}
-		if (sgui_synthstar && !sgui_starmask) {
-		sgui_synthstar = FALSE;
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_synthstar")), sgui_synthstar);
 	}
 }
