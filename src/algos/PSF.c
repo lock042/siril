@@ -312,7 +312,7 @@ static int psf_Gaussian_fdf_an(const gsl_vector * x, void *PSF_data,
 /* The function returns the fitted parameters without angle. However it
  * returns NULL if the number of parameters is => to the pixel number.
  */
-static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double sat, psf_error *error) {
+static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double sat, int convergence, psf_error *error) {
 	size_t i, j, k = 0;
 	size_t NbRows = z->size1; //characteristics of the selection : height and width
 	size_t NbCols = z->size2;
@@ -349,7 +349,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 		if (error) *error = PSF_ERR_WINDOW_TOO_SMALL;
 		goto free_and_exit;
 	}
-	max_iter = MAX_ITER_NO_ANGLE * ((k < NbRows * NbCols) ? 3 : 1);
+	max_iter = MAX_ITER_NO_ANGLE * ((k < NbRows * NbCols) ? 3 : 1) * convergence;
 
 	MaxV = psf_init_data(z, background);
 	if (!MaxV) {
@@ -708,7 +708,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean f
 		return NULL;
 	}
 
-	result = psf_global_minimisation(z, bg, sat, fit_angle, for_photometry, phot_set, verbose, error);
+	result = psf_global_minimisation(z, bg, sat, com.pref.starfinder_conf.convergence, fit_angle, for_photometry, phot_set, verbose, error);
 	if (result) {
 		fwhm_to_arcsec_if_needed(fit, result);
 		result->layer = layer;
@@ -730,7 +730,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean f
  * Error can be reported if error is provided, giving a reason for the failure
  * of the minimisation.
  */
-psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, gboolean fit_angle,
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, gboolean fit_angle,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		psf_error *error) {
 	psf_star *psf;
@@ -738,7 +738,7 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, gboolean
 	gboolean photometry_computed = FALSE;
 
 	// To compute good starting values, we first compute with no angle
-	if ((psf = psf_minimiz_no_angle(z, bg, sat, error))) {
+	if ((psf = psf_minimiz_no_angle(z, bg, sat, convergence, error))) {
 		if (fit_angle && fabs(psf->sx - psf->sy) > EPSILON) {
 			/* The  check above is to avoid possible angle divergence
 			 * when sx and sy are too close (star is quite round).

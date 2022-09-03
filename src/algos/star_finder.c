@@ -1,5 +1,5 @@
-/*
- * This file is part of Siril, an astronomy image processor.
+/* This file is part of Siril, an astronomy image processor.
+ *
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
@@ -176,15 +176,20 @@ void on_spin_sf_roundness_changed(GtkSpinButton *spinbutton, gpointer user_data)
 	com.pref.starfinder_conf.roundness = gtk_spin_button_get_value(spinbutton);
 }
 
+void on_spin_sf_convergence_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	com.pref.starfinder_conf.convergence = (int)gtk_spin_button_get_value(spinbutton);
+}
+
 void update_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
-			*spin_roundness = NULL;
+			*spin_roundness = NULL, *spin_convergence = NULL;
 	static GtkToggleButton *toggle_adjust = NULL, *toggle_checks = NULL;
 
 	if (spin_radius == NULL) {
 		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
 		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
+		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
 		toggle_adjust = GTK_TOGGLE_BUTTON(lookup_widget("toggle_radius_adjust"));
 		toggle_checks = GTK_TOGGLE_BUTTON(lookup_widget("toggle_relax_checks"));
 	}
@@ -192,21 +197,24 @@ void update_peaker_GUI() {
 	gtk_toggle_button_set_active(toggle_adjust, com.pref.starfinder_conf.adjust);
 	gtk_spin_button_set_value(spin_sigma, com.pref.starfinder_conf.sigma);
 	gtk_spin_button_set_value(spin_roundness, com.pref.starfinder_conf.roundness);
+	gtk_spin_button_set_value(spin_convergence, com.pref.starfinder_conf.convergence);
 	gtk_toggle_button_set_active(toggle_checks, com.pref.starfinder_conf.relax_checks);
 }
 
 void confirm_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
-			*spin_roundness = NULL;
+			*spin_roundness = NULL, *spin_convergence = NULL;
 
 	if (spin_radius == NULL) {
 		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
 		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
+		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
 	}
 	gtk_spin_button_update(spin_radius);
 	gtk_spin_button_update(spin_sigma);
 	gtk_spin_button_update(spin_roundness);
+	gtk_spin_button_update(spin_convergence);
 }
 
 
@@ -370,7 +378,6 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				}
 				meanhigh /= 8;
 
-
 				// first derivatives. r c is for row and column. l, r, u, d for left, right, up and down
 				int xx = x - r, yy = y;
 				int xr = 0, xl = 0, yu = 0, yd = 0;
@@ -378,6 +385,10 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				float d1rl, d1rr, d1cu, d1cd, r0, c0;
 				int i = 0, j = 0;
 				gboolean has_saturated = FALSE;
+
+				// detect if we've come too close to the edges
+				if (xx - 2 < areaX0 + 1 || xx + 2 > areaX1 - 1 || yy - 2 < areaY0 + 1 || yy + 2 > areaY1 - 1) continue;
+
 				if (meanhigh - bg < minsatlevel || pixel - minhigh > satrange) {
 					d1rl = pixel - smooth_image[yy][xx - 1];
 					d1rr = smooth_image[yy][xx + 1] - pixel;
@@ -582,6 +593,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	sf_errors accepted_level = (com.pref.starfinder_conf.relax_checks) ? SF_RMSE_TOO_LARGE : SF_OK;
 	double bg = background(image, layer, NULL, SINGLE_THREADED);
 	double norm;
+	int psf_failure = 0;
 
 	if (image->type == DATA_USHORT) {
 		image_ushort = malloc(ny * sizeof(WORD *));
@@ -619,7 +631,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			upper_limit = nb_candidates;
 		//siril_debug_print("round %d from %d to %d candidates\n", round, lower_limit_for_this_round, upper_limit);
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static) num_threads(threads) if(threads > 1)
+#pragma omp parallel for schedule(static) num_threads(threads) if(threads > 1) shared(psf_failure)
 #endif
 		for (int candidate = lower_limit_for_this_round; candidate < upper_limit; candidate++) {
 			if (limit_nbstars && nbstars >= maxstars)
@@ -645,9 +657,9 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				}
 			}
 			psf_error error;
-			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, FALSE, FALSE, NULL, FALSE, &error);
+			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, com.pref.starfinder_conf.convergence, FALSE, FALSE, NULL, FALSE, &error);
 			gsl_matrix_free(z);
-			if (cur_star && error == PSF_NO_ERR) {
+			if (cur_star && (error == PSF_NO_ERR)) {
 				gchar errmsg[SF_ERRMSG_LEN] = "";
 				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], norm, (DEBUG_STAR_DETECTION) ? errmsg : NULL);
 				if (star_invalidated <= accepted_level) {
@@ -659,22 +671,29 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 					cur_star->R = candidates[candidate].R;
 #if DEBUG_STAR_DETECTION
 					if (star_invalidated > SF_OK)
-						siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed (but star kept)\n%s", candidate, x, y, star_invalidated, errmsg);
+						siril_debug_print("Candidate #%5d: X: %5d, Y: %5d - criterion #%2d failed (but star kept)\n%s", candidate, x, y, star_invalidated, errmsg);
 #endif
 					if (threads > 1)
 						results[candidate] = cur_star;
 					else results[nbstars++] = cur_star;
 				} else {
 #if DEBUG_STAR_DETECTION
-					siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed\n%s", candidate, x, y, star_invalidated, errmsg);
+					siril_debug_print("Candidate #%5d: X: %5d, Y: %5d - criterion #%2d failed\n%s", candidate, x, y, star_invalidated, errmsg);
 #endif
 					free_psf(cur_star);
 					if (threads > 1)
 						results[candidate] = NULL;
 				}
+			} else {
+				if (threads > 1) results[candidate] = NULL;
+#if DEBUG_STAR_DETECTION
+				siril_debug_print("Candidate #%5d: X: %5d, Y: %5d - PSF fit failed with error %d\n", candidate, x, y, error);
+#endif
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				psf_failure++;
 			}
-			else if (threads > 1)
-				results[candidate] = NULL;
 		}
 		if (threads > 1) {
 			// we kept the candidates at the same indices to keep the list ordered, now we compact it
@@ -692,7 +711,9 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 		//siril_debug_print("after round %d, found %d stars\n", round, nbstars);
 		round++;
 	} while (limit_nbstars && nbstars < maxstars && upper_limit < nb_candidates);
-
+	float psf_failure_rate = (float)psf_failure / (float)upper_limit;
+	if (psf_failure_rate > 0.5)
+		siril_log_color_message(_("More than half of PSF fits have failed - try increasing the convergence criterion\n"), "red");
 	if (retval)
 		*retval = results;
 	if (image_ushort) free(image_ushort);

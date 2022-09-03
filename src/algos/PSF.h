@@ -58,7 +58,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean f
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		psf_error *error);
 
-psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, gboolean fit_angle,
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, gboolean fit_angle,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		psf_error *error);
 
