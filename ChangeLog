@@ -1,3 +1,7 @@
+siril 1.0.5
+10/--/22
+* Fixed bug in eyedropper feature with 16bits images
+
 siril 1.0.4
 09/02/22
 * Fixed selected area for flat autonormalisation calc
