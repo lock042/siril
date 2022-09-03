@@ -638,6 +638,9 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 		free_stats(stats[chan]);
 	}
 	ref /= channels;
+	if (gfit.type == DATA_USHORT) {
+		ref /= USHRT_MAX_DOUBLE;
+	}
 	payne_SP = ref;
 	if (payne_SP < payne_LP) {
 		gtk_spin_button_set_value(spin_LP, payne_SP);
