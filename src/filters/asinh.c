@@ -34,7 +34,7 @@
 #include "asinh.h"
 
 static gboolean asinh_rgb_space = FALSE;
-static double asinh_stretch_value = 0.0, asinh_black_value = 0.0;
+static float asinh_stretch_value = 0.0, asinh_black_value = 0.0;
 static gboolean asinh_show_preview;
 
 static void asinh_startup() {
@@ -61,15 +61,15 @@ static int asinh_update_preview() {
 	return 0;
 }
 
-int asinhlut_ushort(fits *fit, double beta, double offset, gboolean human_luminance) {
+int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminance) {
 	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 
-	double norm = get_normalized_value(fit);
-	double invnorm = 1.0 / norm;
-	double asinh_beta = asinh(beta);
-	double factor_red = human_luminance ? 0.2126 : 0.3333;
-	double factor_green = human_luminance ? 0.7152 : 0.3333;
-	double factor_blue = human_luminance ? 0.0722 : 0.3333;
+	float norm = get_normalized_value(fit);
+	float invnorm = 1.0 / norm;
+	float asinh_beta = asinh(beta);
+	float factor_red = human_luminance ? 0.2126 : 0.3333;
+	float factor_green = human_luminance ? 0.7152 : 0.3333;
+	float factor_blue = human_luminance ? 0.0722 : 0.3333;
 
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	if (fit->naxes[2] > 1) {
@@ -77,16 +77,16 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean human_lumina
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double r = buf[RLAYER][i] * invnorm;
-			double g = buf[GLAYER][i] * invnorm;
-			double b = buf[BLAYER][i] * invnorm;
-			double rprime = max(0, (r - offset) / (1.0 - offset));
-			double gprime = max(0, (g - offset) / (1.0 - offset));
-			double bprime = max(0, (b - offset) / (1.0 - offset));
+			float r = buf[RLAYER][i] * invnorm;
+			float g = buf[GLAYER][i] * invnorm;
+			float b = buf[BLAYER][i] * invnorm;
+			float rprime = max(0, (r - offset) / (1.0 - offset));
+			float gprime = max(0, (g - offset) / (1.0 - offset));
+			float bprime = max(0, (b - offset) / (1.0 - offset));
 
-			double x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
+			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
 
-			double k = (x == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * x) / (x * asinh_beta);
+			float k = (x == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * x) / (x * asinh_beta);
 
 			buf[RLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(rprime) * k)));
 			buf[GLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(gprime) * k)));
@@ -97,9 +97,9 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean human_lumina
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x = buf[RLAYER][i] * invnorm;
-			double xprime = max(0, (x - offset) / (1.0 - offset));
-			double k = (xprime == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * xprime) / (xprime * asinh_beta);
+			float x = buf[RLAYER][i] * invnorm;
+			float xprime = max(0, (x - offset) / (1.0 - offset));
+			float k = (xprime == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * xprime) / (xprime * asinh_beta);
 			buf[RLAYER][i] = round_to_WORD(norm * min(1.0, max(0.0,(xprime) * k)));
 		}
 	}
@@ -107,13 +107,13 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean human_lumina
 	return 0;
 }
 
-static int asinhlut_float(fits *fit, double beta, double offset, gboolean human_luminance) {
+static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_luminance) {
 	float *buf[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
-	double asinh_beta = asinh(beta);
-	double factor_red = human_luminance ? 0.2126 : 0.3333;
-	double factor_green = human_luminance ? 0.7152 : 0.3333;
-	double factor_blue = human_luminance ? 0.0722 : 0.3333;
+	float asinh_beta = asinh(beta);
+	float factor_red = human_luminance ? 0.2126 : 0.3333;
+	float factor_green = human_luminance ? 0.7152 : 0.3333;
+	float factor_blue = human_luminance ? 0.0722 : 0.3333;
 
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	if (fit->naxes[2] > 1) {
@@ -121,16 +121,16 @@ static int asinhlut_float(fits *fit, double beta, double offset, gboolean human_
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->ry * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double r = buf[RLAYER][i];
-			double g = buf[GLAYER][i];
-			double b = buf[BLAYER][i];
-			double rprime = max(0, (r - offset) / (1.0 - offset));
-			double gprime = max(0, (g - offset) / (1.0 - offset));
-			double bprime = max(0, (b - offset) / (1.0 - offset));
+			float r = buf[RLAYER][i];
+			float g = buf[GLAYER][i];
+			float b = buf[BLAYER][i];
+			float rprime = max(0, (r - offset) / (1.0 - offset));
+			float gprime = max(0, (g - offset) / (1.0 - offset));
+			float bprime = max(0, (b - offset) / (1.0 - offset));
 
-			double x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
+			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
 
-			double k = (x == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * x) / (x * asinh_beta);
+			float k = (x == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * x) / (x * asinh_beta);
 
 			buf[RLAYER][i] = min(1.0, max(0.0, (rprime * k)));
 			buf[GLAYER][i] = min(1.0, max(0.0, (gprime * k)));
@@ -141,9 +141,9 @@ static int asinhlut_float(fits *fit, double beta, double offset, gboolean human_
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->ry * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x, k;
+			float x, k;
 			x = buf[RLAYER][i];
-			double xprime = max(0, (x - offset) / (1.0 - offset));
+			float xprime = max(0, (x - offset) / (1.0 - offset));
 			k = (xprime == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * xprime) / (xprime * asinh_beta);
 			buf[RLAYER][i] = min(1.0, max(0.0,(x * k)));
 		}
@@ -152,7 +152,7 @@ static int asinhlut_float(fits *fit, double beta, double offset, gboolean human_
 	return 0;
 }
 
-int asinhlut(fits *fit, double beta, double offset, gboolean human_luminance) {
+int asinhlut(fits *fit, float beta, float offset, gboolean human_luminance) {
 	if (fit->type == DATA_USHORT)
 		return asinhlut_ushort(fit, beta, offset, human_luminance);
 	if (fit->type == DATA_FLOAT)
