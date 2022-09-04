@@ -45,16 +45,18 @@
 #include "gui/dialogs.h"
 #include "gui/siril_preview.h"
 #include "opencv/opencv.h"
-
+/*
 float calculate_mean_box_f(float* buf, float minfwhm, float xpos, float ypos, int dimx, int dimy) {
 	float tot = 0.0f;
-	int dim = (int) ((minfwhm+1) / 2);
+	float dim = (float) minfwhm + 1;
 	int num = 0;
 	int rsq = dim * dim;
+	float insq = (float) (minfwhm + 1) / 2.7;
 	for (int x=xpos-dim; x<xpos+dim; x++) {
 		for (int y=ypos-dim; y<ypos+dim; y++) {
 			if (x > 0 && x < dimx && y > 0 && y < dimy) {
-				if (((y-ypos)*(y-ypos)) + ((x-xpos)*(x-xpos)) < rsq) {
+				int distsq = ((y-ypos)*(y-ypos)) + ((x-xpos)*(x-xpos));
+				if (distsq >= insq && distsq <= rsq) {
 					tot += buf[x + ((dimy-y) * dimx)] * buf[x+((dimy-y)*dimx)];
 					num++;
 				}
@@ -81,7 +83,7 @@ float calculate_mean_box_W(WORD* buf, float minfwhm, float xpos, float ypos, int
 	}
 	return sqrt(tot / num);
 }
-
+*/
 void makemoffat(float* psf, int size, float fwhm, float lum, float xoff, float yoff, int type) {
 #define BETA 2.2f
 	const float alpha = 0.6667f * fwhm;
@@ -103,8 +105,7 @@ void makemoffat(float* psf, int size, float fwhm, float lum, float xoff, float y
 #undef BETA
 }
 
-
-void add_star_to_rgb_buffer(float psfH, float psfS, float *psfL, int size, float *Hsynth, float *Ssynth, float *Lsynth, int x, int y, int dimx, int dimy) {
+void add_star_to_rgb_buffer(float *H, float *S, float *psfL, int size, float *Hsynth, float *Ssynth, float *Lsynth, int x, int y, int dimx, int dimy) {
 	int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 #define EPSILON 1e-30
@@ -116,9 +117,11 @@ void add_star_to_rgb_buffer(float psfH, float psfS, float *psfL, int size, float
 			xx=x+psfx-halfpsfdim;
 			yy=y+psfy-halfpsfdim;
 			if (xx > 0 && xx < dimx && yy > 0 && yy < dimy) {
-				float factor = psfL[psfx+(psfy*size)] / (max(EPSILON,(Lsynth[xx+((dimy-yy)*dimx)] + psfL[psfx+(psfy*size)])));
-				Hsynth[xx+((dimy-yy)*dimx)] = ((1.0f - factor) * Hsynth[xx+((dimy-yy)*dimx)]) + (factor * psfH);
-				Ssynth[xx+((dimy-yy)*dimx)] = ((1.0f - factor) * Ssynth[xx+((dimy-yy)*dimx)]) + (factor * psfS);
+//				float factor = psfL[psfx+(psfy*size)] / (max(EPSILON,(Lsynth[xx+((dimy-yy)*dimx)] + psfL[psfx+(psfy*size)])));
+//				Hsynth[xx+((dimy-yy)*dimx)] = ((1.0f - factor) * Hsynth[xx+((dimy-yy)*dimx)]) + (factor * H[xx+((dimy-yy)*dimx)]);
+//				Ssynth[xx+((dimy-yy)*dimx)] = ((1.0f - factor) * Ssynth[xx+((dimy-yy)*dimx)]) + (factor * S[xx+((dimy-yy)*dimx)]);
+				Hsynth[xx+((dimy-yy)*dimx)] = H[xx+((dimy-yy)*dimx)];
+				Ssynth[xx+((dimy-yy)*dimx)] = S[xx+((dimy-yy)*dimx)];
 				Lsynth[xx+((dimy-yy)*dimx)] += psfL[psfx+(psfy*size)];
 			}
 		}
@@ -224,28 +227,19 @@ int generate_synthstars(fits *fit) {
 		if (!(size %2))
 			size++;
 		float minfwhm = min(com.stars[n]->fwhmx, com.stars[n]->fwhmy);
-		float psfH, psfS;
+//		float psfH, psfS;
 
 		// For RGB images, obtain colour information to ensure that synthesized star profiles are the same average hue as the stars they replace.
-		if (is_RGB) {
-			float psfR, psfG, psfB;
-			if (is_32bit) {
-				psfR = (float) calculate_mean_box_f(fit->fpdata[0], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
-				psfG = (float) calculate_mean_box_f(fit->fpdata[1], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
-				psfB = (float) calculate_mean_box_f(fit->fpdata[2], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
-			} else {
-				psfR = calculate_mean_box_W(fit->pdata[0], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy, invnorm);
-				psfG = calculate_mean_box_W(fit->pdata[1], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy, invnorm);
-				psfB = calculate_mean_box_W(fit->pdata[2], minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy, invnorm);
-			}
-			rgb_to_hsl_float_sat(psfR, psfG, psfB, 0.f, &psfH, &psfS, &junk);
-		}
+//		if (is_RGB) {
+//			psfH = calculate_mean_box_f(H, minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
+//			psfS = calculate_mean_box_f(S, minfwhm, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
+//		}
 
 		// Synthesize the Moffat luminance profile and add to the star mask in HSL colourspace
 		float *psfL = (float *) calloc(size * size, sizeof(float));
 		makemoffat(psfL, size, minfwhm, lum, xoff, yoff, SYNTHESIZE_MOFFAT);
 		if (is_RGB)
-			add_star_to_rgb_buffer(psfH, psfS, psfL, size, Hsynth, Ssynth, Lsynth, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
+			add_star_to_rgb_buffer(H, S, psfL, size, Hsynth, Ssynth, Lsynth, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
 		else
 			add_star_to_mono_buffer(psfL, size, Lsynth, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
 		free(psfL);
@@ -262,17 +256,36 @@ int generate_synthstars(fits *fit) {
 {
 #endif
 #ifdef _OPENMP
-#pragma omp for simd schedule(static,8)
+#pragma omp for schedule(static)
 #endif
 		for (int n = 0; n < count; n++) {
 			hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n], &G[n], &B[n]);
+			// Trap NaNs and infinities
+			if (isnan(R[n]))
+				R[n] = 0.f;
+			if (isinf(R[n]))
+				R[n] = 0.f;
+			if (R[n] < 0.f)
+				R[n] = 0.f;
+			if (isnan(G[n]))
+				G[n] = 0.f;
+			if (isinf(G[n]))
+				G[n] = 0.f;
+			if (G[n] < 0.f)
+				G[n] = 0.f;
+			if (isnan(B[n]))
+				B[n] = 0.f;
+			if (isinf(B[n]))
+				B[n] = 0.f;
+			if (B[n] < 0.f)
+				B[n] = 0.f;
 		}
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
 		if (is_32bit) {
 #ifdef _OPENMP
-#pragma omp for simd schedule(static,8)
+#pragma omp for schedule(static)
 #endif
 			for (int n = 0; n < count ; n++) {
 				fit->fpdata[0][n] = R[n];
@@ -281,7 +294,7 @@ int generate_synthstars(fits *fit) {
 			}
 		} else {
 #ifdef _OPENMP
-#pragma omp for simd schedule(static,16)
+#pragma omp for schedule(static)
 #endif
 			for (int n = 0; n < count ; n++) {
 				fit->pdata[0][n] = roundf_to_WORD(R[n] * norm);
