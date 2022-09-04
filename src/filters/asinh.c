@@ -65,7 +65,7 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 
 	float norm = get_normalized_value(fit);
-	float invnorm = 1.0 / norm;
+	float invnorm = 1.0f / norm;
 	float asinh_beta = asinh(beta);
 	float factor_red = human_luminance ? 0.2126f : 0.3333f;
 	float factor_green = human_luminance ? 0.7152f : 0.3333f;
@@ -86,7 +86,7 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 
 			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
 
-			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinh(beta * x) / (x * asinh_beta);
+			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
 
 			buf[RLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(rprime) * k)));
 			buf[GLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(gprime) * k)));
@@ -99,7 +99,7 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 		for (i = 0; i < n; i++) {
 			float x = buf[RLAYER][i] * invnorm;
 			float xprime = max(0, (x - offset) / (1.0f - offset));
-			float k = (xprime == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinh(beta * xprime) / (xprime * asinh_beta);
+			float k = (xprime == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * xprime) / (xprime * asinh_beta);
 			buf[RLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(xprime) * k)));
 		}
 	}
@@ -110,7 +110,7 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_luminance) {
 	float *buf[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
-	float asinh_beta = asinh(beta);
+	float asinh_beta = asinhf(beta);
 	float factor_red = human_luminance ? 0.2126f : 0.3333f;
 	float factor_green = human_luminance ? 0.7152f : 0.3333f;
 	float factor_blue = human_luminance ? 0.0722f : 0.3333f;
@@ -130,7 +130,7 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 
 			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
 
-			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinh(beta * x) / (x * asinh_beta);
+			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
 
 			buf[RLAYER][i] = min(1.0f, max(0.0f, (rprime * k)));
 			buf[GLAYER][i] = min(1.0f, max(0.0f, (gprime * k)));
@@ -144,7 +144,7 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 			float x, k;
 			x = buf[RLAYER][i];
 			float xprime = max(0.0f, (x - offset) / (1.0f - offset));
-			k = (xprime == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinh(beta * xprime) / (xprime * asinh_beta);
+			k = (xprime == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * xprime) / (xprime * asinh_beta);
 			buf[RLAYER][i] = min(1.0f, max(0.0f,(x * k)));
 		}
 	}

@@ -37,9 +37,9 @@ float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, in
 				if (in < LP) {
 					out = c->b1 * in;
 				} else if (in < SP) {
-					out = c->a2 + c->b2 * log(c->c2 + c->d2 * in);
+					out = c->a2 + c->b2 * logf(c->c2 + c->d2 * in);
 				} else if (in < HP) {
-					out = c->a3 + c->b3 * log(c->c3 + c->d3 * in);
+					out = c->a3 + c->b3 * logf(c->c3 + c->d3 * in);
 				} else {
 					out = c->a4 + c->b4 * in;
 				}
@@ -99,9 +99,9 @@ float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, in
 				if (in < c->LPT) {
 					out = c->a1 + c->b1 * in;
 				} else if (in < c->SPT) {
-					out = c->a2 + c->b2 * log(c->c2 + c->d2 * in);
+					out = c->a2 + c->b2 * logf(c->c2 + c->d2 * in);
 				} else if (in < c->HPT) {
-					out = c->a3 + c->b3 * log(c->c3 + c->d3 * in);
+					out = c->a3 + c->b3 * logf(c->c3 + c->d3 * in);
 				} else {
 					out = c->a4 + c->b4 * in;
 				}
@@ -126,9 +126,9 @@ float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, in
 		} else if (in < LP) {
 			out = c->a1 + c->b1 * in;
 		} else if (in < SP) {
-			out = c->a2 + c->b2 * log(c->c2 * (in - c->e2) + sqrt(c->d2 * (in - c->e2) * (in - c->e2) + 1.0f));
+			out = c->a2 + c->b2 * logf(c->c2 * (in - c->e2) + sqrt(c->d2 * (in - c->e2) * (in - c->e2) + 1.0f));
 		} else if (in < HP) {
-			out = c->a3 + c->b3 * log(c->c3 * (in - c->e3) + sqrt(c->d3 * (in - c->e3) * (in - c->e3) + 1.0f));
+			out = c->a3 + c->b3 * logf(c->c3 * (in - c->e3) + sqrt(c->d3 * (in - c->e3) * (in - c->e3) + 1.0f));
 		} else {
 			out = c->a4 + c->b4 * in;
 		}
@@ -162,9 +162,9 @@ int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float 
 	else if (stretchtype == STRETCH_PAYNE_NORMAL) {
 		if (B == -1.0f) {
 			//B = -B;
-			c->qlp = -1.0f*log1p(D*(SP - LP));
+			c->qlp = -1.0f*log1pf(D*(SP - LP));
 			c->q0 = c->qlp - D * LP / (1.0f + D * (SP - LP));
-			c->qwp = log1p(D * (HP - SP));
+			c->qwp = log1pf(D * (HP - SP));
 			c->q1 = c->qwp + D * (1.0f - HP) / (1.0f + D * (HP - SP));
 			c->q = 1.0f / (c->q1 - c->q0);
 			c->b1 = (1.0f + D * (SP - LP)) / (D * c->q);
@@ -239,9 +239,9 @@ int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float 
 	} else if (stretchtype == STRETCH_PAYNE_INVERSE) {
 		if (B == -1.0f) {
 			//B = -B;
-			c->qlp = -1.0f * log1p(D * (SP - LP));
+			c->qlp = -1.0f * log1pf(D * (SP - LP));
 			c->q0 = c->qlp - D * LP / (1.0f + D * (SP - LP));
-			c->qwp = log1p(D * (HP - SP));
+			c->qwp = log1pf(D * (HP - SP));
 			c->q1 = c->qwp + D * (1.0f - HP) / (1.0f + D * (HP - SP));
 			c->q = 1.0f / (c->q1 - c->q0);
 			c->LPT = (c->qlp-c->q0)*c->q;
@@ -326,9 +326,9 @@ int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float 
 			c->b4 = 1.0f/((D * pow((1.0f + D * B * (HP - SP)), -(B + 1.0f) / B)) * c->q);
 		}
 	} else if (stretchtype == STRETCH_ASINH) {
-		c->qlp = -log(D * (SP - LP) + pow((D * D * (SP - LP) * (SP - LP) + 1.0f), 0.5f));
+		c->qlp = -logf(D * (SP - LP) + pow((D * D * (SP - LP) * (SP - LP) + 1.0f), 0.5f));
 		c->q0 = c->qlp - LP * D * pow((D * D * (SP - LP) * (SP - LP) + 1.0f), -0.5f);
-		c->qwp = log(D * (HP - SP) + pow((D * D * (HP - SP) * (HP - SP) + 1.0f), 0.5f));
+		c->qwp = logf(D * (HP - SP) + pow((D * D * (HP - SP) * (HP - SP) + 1.0f), 0.5f));
 		c->q1 = c->qwp + (1.0f - HP) * D * pow((D * D * (HP - SP) * (HP - SP) +1.0f), -0.5f);
 		c->q = 1.0f / (c->q1 - c->q0);
 		c->a1 = 0.0f;
@@ -347,9 +347,9 @@ int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float 
 		c->b4 = D * pow((D * D * (HP - SP) * (HP - SP) + 1.0f), -0.5f) * c->q;
 	}
 	else if (stretchtype == STRETCH_INVASINH) {
-		c->qlp = -log(D * (SP - LP) + pow((D * D * (SP - LP) * (SP - LP) + 1.0f), 0.5f));
+		c->qlp = -logf(D * (SP - LP) + pow((D * D * (SP - LP) * (SP - LP) + 1.0f), 0.5f));
 		c->q0 = c->qlp - LP * D * pow((D * D * (SP - LP) * (SP - LP) + 1.0f), -0.5f);
-		c->qwp = log(D * (HP - SP) + pow((D * D * (HP - SP) * (HP - SP) + 1.0f), 0.5f));
+		c->qwp = logf(D * (HP - SP) + pow((D * D * (HP - SP) * (HP - SP) + 1.0f), 0.5f));
 		c->q1 = c->qwp + (1.0f - HP) * D * pow((D * D * (HP - SP) * (HP - SP) +1.0f), -0.5f);
 		c->q = 1.0f / (c->q1 - c->q0);
 		c->a1 = 0.0f;
@@ -367,7 +367,7 @@ int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float 
 		c->a4 = (c->qwp - HP * D * pow((D * D * (HP - SP) * (HP - SP) + 1.0f), -0.5f) - c->q0) * c->q;
 		c->b4 = D * pow((D * D * (HP - SP) * (HP - SP) + 1.0f), -0.5f) * c->q;
 		c->LPT = c->a1 + c->b1 * LP;
-		c->SPT = c->a2 + c->b2 * log(c->c2 * (SP - c->e2) + sqrt(c->d2 * (SP - c->e2) * (SP - c->e2) + 1.0f));
+		c->SPT = c->a2 + c->b2 * logf(c->c2 * (SP - c->e2) + sqrt(c->d2 * (SP - c->e2) * (SP - c->e2) + 1.0f));
 		c->HPT = c->a4 + c->b4 * HP;
 	}
 	return 0;

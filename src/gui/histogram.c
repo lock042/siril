@@ -1337,8 +1337,8 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
 	int chan;
 	imstats* stats[3];
-	float ref = 0.0;
-	float norm = 1.0;
+	float ref = 0.0f;
+	float norm = 1.0f;
 	if (get_preview_gfit_backup()->type == DATA_USHORT)
 		norm = USHRT_MAX_DOUBLE;
 

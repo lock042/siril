@@ -509,7 +509,7 @@ int remixer() {
 	// Scale left and right images according to master mixer slider
 	// imoper_scaled ( a, b, oper, factor ) = a oper factor * b
 	if (left_loaded && (mastermixer != 1.0f)) {
-		imoper_scaled(&gfit, &fit_left_calc, OPER_ADD, (1.0 - mastermixer));
+		imoper_scaled(&gfit, &fit_left_calc, OPER_ADD, (1.0f - mastermixer));
 	}
 	if (right_loaded && (mastermixer != 0.0f)) {
 		imoper_scaled(&gfit, &fit_right_calc, OPER_ADD, mastermixer);
