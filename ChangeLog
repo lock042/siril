@@ -14,6 +14,7 @@ xx/xx/22
 * Added bad pixel map option for preprocess, both in GUI and command
 * Added and reviewed commands for offline and automatic post-processing
 * Added background level and star count as new sequence filters
+* Added weighing based on number of stars or wFWHM for stacking
 * Added a new threading mechanism for per-image improved performance
 * Added star selection from coordinates to seqpsf and star tracking with homography
 * Added headless light curve creation from a list of star equatorial coordinates
@@ -23,7 +24,7 @@ xx/xx/22
 * Added a way to clean sequence file in the sequence tab (see also command seqclean)
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
-* Refactored registration and added Apply Existing Registration method
+* Refactored global registration and added 2pass and Apply Existing methods
 * Refactored 3-star registration to run the 3 stars analysis successively
 * Refactored PCC, using WCS information to identify stars instead of registration match
 * Refactored settings, preferences and configuration file, adding get and set commands
