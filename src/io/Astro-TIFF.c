@@ -333,18 +333,18 @@ gchar *AstroTiff_build_header(fits *fit) {
 	if (fit->dft.ord[0] !='\0') {
 		char comment[FLEN_COMMENT] = { 0 };
 		if (fit->dft.ord[0] == 'C')
-			strncpy(comment, "Low spatial freq. are located at image center", FLEN_COMMENT);
+			g_strlcpy(comment, "Low spatial freq. are located at image center", FLEN_COMMENT);
 		else if (fit->dft.ord[0] == 'R')
-			strncpy(comment, "High spatial freq. are located at image center", FLEN_COMMENT);
+			g_strlcpy(comment, "High spatial freq. are located at image center", FLEN_COMMENT);
 		siril_string_append_str(str, fit->dft.ord, "DFTORD", comment);
 	}
 	if (fit->dft.type[0] !='\0') {
 		char comment[FLEN_COMMENT] = { 0 };
 
 		if (fit->dft.type[0] == 'S')
-			strncpy(comment, "Module of a Discrete Fourier Transform", FLEN_COMMENT);
+			g_strlcpy(comment, "Module of a Discrete Fourier Transform", FLEN_COMMENT);
 		else if (fit->dft.type[0] == 'P')
-			strncpy(comment, "Phase of a Discrete Fourier Transform", FLEN_COMMENT);
+			g_strlcpy(comment, "Phase of a Discrete Fourier Transform", FLEN_COMMENT);
 		siril_string_append_str(str, fit->dft.type, "DFTTYPE", comment);
 	}
 
@@ -354,7 +354,7 @@ gchar *AstroTiff_build_header(fits *fit) {
 		GSList *list;
 		for (list = fit->history; list; list = list->next) {
 			char history[FLEN_COMMENT] = { 0 };
-			strncpy(history, (char *)list->data, FLEN_COMMENT);
+			g_strlcpy(history, (char *)list->data, FLEN_COMMENT);
 			g_string_append_printf(str, "HISTORY %s\n", history);
 		}
 	}
@@ -364,7 +364,7 @@ gchar *AstroTiff_build_header(fits *fit) {
 		for (int i = 0; i < com.hist_display; i++) {
 			if (com.history[i].history[0] != '\0') {
 				char history[FLEN_COMMENT] = { 0 };
-				strncpy(history, com.history[i].history, FLEN_COMMENT);
+				g_strlcpy(history, com.history[i].history, FLEN_COMMENT);
 				g_string_append_printf(str, "HISTORY %s\n", history);
 			}
 		}

@@ -2,6 +2,7 @@
 #define STACKING_H_
 
 #include "core/processing.h"
+#include "core/sequence_filtering.h"
 
 //#define STACK_DEBUG
 
@@ -39,6 +40,14 @@ typedef enum {
 	BEST_QUALITY_IMAGES
 } stackType;
 
+typedef enum {
+	NO_WEIGHT,
+	NBSTARS_WEIGHT,
+	WFWHM_WEIGHT,
+	NOISE_WEIGHT,
+	NBSTACK_WEIGHT
+} weighingType;
+
 struct normalization_coeff {
 	double *offset;
 	double *mul;
@@ -73,6 +82,9 @@ struct stacking_args {
 
 	gboolean apply_noise_weights;	/* enable weights */
 	gboolean apply_nbstack_weights;	/* enable weights */
+	gboolean apply_wfwhm_weights; /* enable weights */
+	gboolean apply_nbstars_weights; /* enable weights */
+
 	double *weights; 		/* computed weights for each (layer, image)*/
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
 	gboolean lite_norm;		/* enable lightweight (med,mad) normalization */
@@ -96,10 +108,11 @@ struct stacking_configuration {
 	gboolean lite_norm;
 	normalization norm;
 	int number_of_loaded_sequences;
-	float f_fwhm, f_fwhm_p, f_wfwhm, f_wfwhm_p, f_round, f_round_p, f_quality, f_quality_p, f_bkg, f_bkg_p, f_nbstars, f_nbstars_p; // on if >0
-	gboolean filter_included;
+	struct seq_filter_config filters;
 	gboolean apply_noise_weights;
 	gboolean apply_nbstack_weights;
+	gboolean apply_wfwhm_weights;
+	gboolean apply_nbstars_weights;
 };
 
 typedef struct {

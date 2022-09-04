@@ -548,7 +548,9 @@ int writeinitfile() {
 		siril_log_color_message(_("Could not save the settings in %s: %s\n"), "salmon", com.initfile, error->message);
 		g_free(com.initfile);
 		com.initfile = NULL;
+		g_key_file_free(kf);
 		return 1;
 	}
+	g_key_file_free(kf);
 	return 0;
 }

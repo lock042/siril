@@ -89,7 +89,8 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			ymin = DBL_MAX;
 			ymax = -DBL_MAX;
 			for (int i = 0; i < regargs->seq->number; i++) {
-				if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
+				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+					continue;
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
@@ -117,7 +118,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			ymin = -DBL_MAX;
 			ymax = DBL_MAX;
 			for (int i = 0; i < regargs->seq->number; i++) {
-				if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
+				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
@@ -149,7 +150,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			cogy = 0;
 			n = 0;
 			for (int i = 0; i < regargs->seq->number; i++) {
-				if (!regargs->seq->imgparam[i].incl && !regargs->process_all_frames) continue;
+				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
@@ -407,16 +408,14 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 int register_apply_reg(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
 
-	// need to do the checks before prepare_hook as they may alter regargs->process_all_frames
 	if (!check_before_applyreg(regargs)) {
 		free(args);
 		return -1;
 	}
 
-	if (!regargs->process_all_frames) {
-		args->filtering_criterion = seq_filter_included;
-		args->nb_filtered_images = regargs->seq->selnum;
-	}
+	args->filtering_criterion = regargs->filtering_criterion;
+	args->filtering_parameter = regargs->filtering_parameter;
+	args->nb_filtered_images = regargs->new_total;
 	args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
 	args->prepare_hook = apply_reg_prepare_hook;
 	args->image_hook = apply_reg_image_hook;
@@ -551,7 +550,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	// force -selected if some matrices were null
 	if (min == -2) {
 		siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
-		regargs->process_all_frames = FALSE;
+		regargs->filters.filter_included = TRUE;
 	}
 
 	// cog frmaing method requires all images to be of same size
@@ -559,6 +558,21 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		siril_log_color_message(_("Framing method \"cog\" requires all images to be of same size, aborting\n"), "red");
 		return FALSE;
 	}
+
+	/* compute_framing uses the filtered list of images, so we compute the filter here */
+	if (!regargs->filtering_criterion &&
+			convert_parsed_filter_to_filter(&regargs->filters,
+				regargs->seq, &regargs->filtering_criterion,
+				&regargs->filtering_parameter)) {
+		return FALSE;
+	}
+	int nb_frames = compute_nb_filtered_images(regargs->seq,
+			regargs->filtering_criterion, regargs->filtering_parameter);
+	regargs->new_total = nb_frames;	// to avoid recomputing it later
+	gchar *str = describe_filter(regargs->seq, regargs->filtering_criterion,
+			regargs->filtering_parameter);
+	siril_log_message(str);
+	g_free(str);
 
 	// determines the reference homography (including framing shift) and output size
 	if (!compute_framing(regargs)) {
@@ -571,7 +585,6 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
 	// rx_out/ry_out already account for 2x upscale if any
-	int nb_frames = regargs->process_all_frames ? regargs->seq->number : regargs->seq->selnum;
 	int64_t size = rx_out * ry_out * regargs->seq->nb_layers;
 	if (regargs->seq->type == SEQ_SER) {
 		size *= regargs->seq->ser_file->byte_pixel_depth;

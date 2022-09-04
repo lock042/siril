@@ -643,15 +643,24 @@ static void convert_img_to_fits(double *image, fits *fit, int channel) {
 	}
 }
 
-static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, threading_type threads) {
+static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, const char **error, threading_type threads) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	GSList *list = NULL;
 
 	float *image = convert_fits_to_luminance(fit, threads);	// upside down
-	if (!image) return NULL;
+	if (!image) {
+		if (error)
+			*error = "out of memory";
+		return NULL;
+	}
 	float median = (float)histogram_median_float(image, n, threads);
+	if (median <= 0.0f) {
+		if (error)
+			*error = "removing the gradient on negative images is not supported";
+		return NULL;
+	}
 
 	int boxes_width = nb_per_line * size + 2;	// leave a margin of 1 px on the sides
 	float spacing = (nx - boxes_width) / (float)(nb_per_line-1);
@@ -662,7 +671,8 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 		nb_per_column++;
 	nb_per_column--;
 	if (nb_per_column == 0) {
-		siril_debug_print("image is smaller than the sample size");
+		if (error)
+			*error = "image is smaller than the sample size of the background extraction";
 		return NULL;
 	}
 
@@ -703,6 +713,8 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 
 	list = g_slist_reverse(list);
 	free(image);
+	if (!list && error)
+		*error = "none of the samples matched the thresholds";
 	return list;
 }
 
@@ -863,7 +875,13 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 /* generates samples and stores them in com.grad_samples */
 void generate_background_samples(int nb_of_samples, double tolerance) {
 	free_background_sample_list(com.grad_samples);
-	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE, MULTI_THREADED);
+	const char *err;
+	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE, &err, MULTI_THREADED);
+	if (!com.grad_samples) {
+		siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		return;
+	}
 
 	if (com.grad_samples && gfit.naxes[2] > 1) {
 		/* If RGB we need to update all local median, not only the first one */
@@ -961,17 +979,17 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 		rectangle *_, int threads) {
 	struct background_data *b_args = (struct background_data*) args->user;
 
-	gchar *error;
 	double *background = (double*)malloc(fit->naxes[0] * fit->naxes[1] * sizeof(double));
 	if (!background) {
 		PRINT_ALLOC_ERR;
-		error = _("Out of memory - aborting");
-		siril_log_message(error);
+		siril_log_message(_("Out of memory - aborting"));
 		return 1;
 	}
 
-	GSList *samples = generate_samples(fit, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, (threading_type)threads);
+	const char *err;
+	GSList *samples = generate_samples(fit, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, &err, (threading_type)threads);
 	if (!samples) {
+		siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));
 		free(background);
 		return 1;
 	}
@@ -994,6 +1012,7 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		/* compute background */
 		gboolean interpolation_worked = TRUE;
+		gchar *error = NULL;
 		if (b_args->interpolation_method == BACKGROUND_INTER_POLY){
 			interpolation_worked = computeBackground_Polynom(samples, background, channel, fit->rx, fit->ry, b_args->degree, &error);
 		} else {

@@ -230,6 +230,117 @@ static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
 	return status;
 }
 
+static void new_wcs_from_old(fits *fit, double *crota) {
+	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
+		double cd[2][2];
+		int sign;
+
+		cd[0][0] = fit->wcsdata.cdelt[0] * cos(crota[1] * M_PI / 180.0);
+		if (fit->wcsdata.cdelt[0] >= 0)
+			sign = +1;
+		else
+			sign = -1;
+		cd[0][1] = fabs(fit->wcsdata.cdelt[1]) * sign * sin(crota[1] * M_PI / 180.0);
+		if (fit->wcsdata.cdelt[1] >= 0)
+			sign = +1;
+		else
+			sign = -1;
+		cd[1][0] = -fabs(fit->wcsdata.cdelt[0]) * sign * sin(crota[1] * M_PI / 180.0);
+		cd[1][1] = fit->wcsdata.cdelt[1] * cos(crota[1] * M_PI / 180.0);
+
+		wcs_cd_to_pc(cd, fit->wcsdata.pc, fit->wcsdata.cdelt);
+	}
+}
+
+static void load_wcs_keywords(fits *fit) {
+	int status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcsdata.equinox), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcsdata.objctra), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "RA", &(fit->wcsdata.ra), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcsdata.objctdec), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "DEC", &(fit->wcsdata.dec), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcsdata.crpix[0]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcsdata.crpix[1]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcsdata.crval[0]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcsdata.crval[1]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcsdata.cdelt[0]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcsdata.cdelt[1]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "PC1_1", &(fit->wcsdata.pc[0][0]), NULL, &status);
+
+	/* IF PC does not exist, check for CD */
+	if (status == KEY_NO_EXIST) {
+		double cd[2][2];
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "CD1_1", &cd[0][0], NULL, &status);
+
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "CD1_2", &cd[0][1], NULL, &status);
+
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "CD2_1", &cd[1][0], NULL, &status);
+
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "CD2_2", &cd[1][1], NULL, &status);
+
+		if (status == 0) {
+			/* we compute PC and cdelt, but before check that CD is not singular */
+			if ((cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]) != 0.0) {
+				wcs_cd_to_pc(cd, fit->wcsdata.pc, fit->wcsdata.cdelt);
+			}
+		}
+	} else {
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "PC1_2", &(fit->wcsdata.pc[0][1]), NULL, &status);
+
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "PC2_1", &(fit->wcsdata.pc[1][0]), NULL, &status);
+
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "PC2_2", &(fit->wcsdata.pc[1][1]), NULL, &status);
+	}
+
+	double crota[2] = { 0 };
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CROTA1", &crota[0], NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CROTA2", &crota[1], NULL, &status);
+
+	/* Test for pc matrix: in some cases (ekos?) data are written in old (deprecated) wcs formalism
+	 * So we need to test if the pc matrix is singular or not. If yes we compute cd from cdelt and crota
+	 * then we compute pc */
+	if (crota[0] != 0.0 && crota[1] != 0.0 &&
+			(fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
+
+		new_wcs_from_old(fit, crota);
+	}
+
+	status = 0;
+	fits_read_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->wcsdata.pltsolvd), fit->wcsdata.pltsolvd_comment, &status);
+}
+
 
 /* reading the FITS header to get useful information
  * stored in the fit, requires an opened file descriptor */
@@ -393,81 +504,13 @@ void read_fits_header(fits *fit) {
 
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TUSHORT, OFFSETLEVEL, &fit->key_offset, &status); // Offset setting from camera
-	/*******************************************************************
-	 * ******************* PLATE SOLVING KEYWORDS **********************
-	 * ****************************************************************/
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcsdata.equinox), NULL, &status);
 
-	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcsdata.objctra), NULL, &status);
 
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "RA", &(fit->wcsdata.ra), NULL, &status);
+	/* first fill wcsdata FITS structure */
+	load_wcs_keywords(fit);
 
-	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcsdata.objctdec), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "DEC", &(fit->wcsdata.dec), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcsdata.crpix[0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcsdata.crpix[1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcsdata.crval[0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcsdata.crval[1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcsdata.cdelt[0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcsdata.cdelt[1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "PC1_1", &(fit->wcsdata.pc[0][0]), NULL, &status);
-
-	/* IF PC does not exist, check for CD */
-	if (status == KEY_NO_EXIST) {
-		double cd[2][2];
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "CD1_1", &cd[0][0], NULL, &status);
-
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "CD1_2", &cd[0][1], NULL, &status);
-
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "CD2_1", &cd[1][0], NULL, &status);
-
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "CD2_2", &cd[1][1], NULL, &status);
-
-		if (status == 0) {
-			/* we compute PC and cdelt, but before check that CD is not singular */
-			if ((cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]) != 0.0) {
-				wcs_cd_to_pc(cd, fit->wcsdata.pc, fit->wcsdata.cdelt);
-			}
-		}
-	} else {
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "PC1_2", &(fit->wcsdata.pc[0][1]), NULL, &status);
-
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "PC2_1", &(fit->wcsdata.pc[1][0]), NULL, &status);
-
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "PC2_2", &(fit->wcsdata.pc[1][1]), NULL, &status);
-	}
-
-	status = 0;
-	fits_read_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->wcsdata.pltsolvd), fit->wcsdata.pltsolvd_comment, &status);
-
-	/* so now, fill the wcslib structure */
+	/* so now, fill the wcslib structure.
+	 * Not the same because wcslib is not mandatory */
 	load_WCS_from_file(fit);
 
 	/**
@@ -1711,7 +1754,7 @@ void clearfits(fits *fit) {
 			free_stats(fit->stats[i]);
 		free(fit->stats);
 	}
-	free_wcs(fit);
+	free_wcs(fit, FALSE);
 	memset(fit, 0, sizeof(fits));
 }
 
