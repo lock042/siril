@@ -163,6 +163,10 @@ int starcount(psf_star **stars) {
 	return i;
 }
 
+gpointer do_synthstar() {
+	generate_synthstars(&gfit);
+	return GINT_TO_POINTER(0);
+}
 
 int generate_synthstars(fits *fit) {
 	struct timeval t_start, t_end;

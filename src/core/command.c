@@ -77,6 +77,7 @@
 #include "filters/saturation.h"
 #include "filters/scnr.h"
 #include "filters/starnet.h"
+#include "filters/synthstar.h"
 #include "filters/wavelets.h"
 #include "algos/PSF.h"
 #include "algos/astrometry_solver.h"
@@ -243,6 +244,13 @@ int process_savebmp(int nb){
 	savebmp(filename, &gfit);
 	set_cursor_waiting(FALSE);
 	g_free(filename);
+	return CMD_OK;
+}
+int process_synthstar(int nb){
+
+	set_cursor_waiting(TRUE);
+	start_in_new_thread(do_synthstar, NULL);
+	set_cursor_waiting(FALSE);
 	return CMD_OK;
 }
 

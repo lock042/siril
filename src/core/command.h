@@ -145,6 +145,7 @@ int	process_split_cfa(int nb);
 int	process_stat(int nb);
 int	process_stackall(int nb);
 int	process_stackone(int nb);
+int process_synthstar(int nb);
 
 int	process_thresh(int nb);
 int	process_threshlo(int nb);

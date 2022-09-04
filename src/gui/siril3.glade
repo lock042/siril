@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.38.2
 
 Copyright (C) The free-astro development team, 2019
 
@@ -23005,7 +23005,6 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
     </child>
   </object>
   <object class="GtkDialog" id="synthstar_dialog">
-    <property name="name">synthstar_dialog</property>
     <property name="width-request">450</property>
     <property name="height-request">-1</property>
     <property name="can-focus">False</property>
