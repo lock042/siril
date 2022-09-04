@@ -180,6 +180,13 @@ void on_spin_sf_convergence_changed(GtkSpinButton *spinbutton, gpointer user_dat
 	com.pref.starfinder_conf.convergence = (int)gtk_spin_button_get_value(spinbutton);
 }
 
+void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {
+	//TODO: do we want to keep foal and pixel_size as they are not exposed?
+	com.pref.starfinder_conf = (star_finder_params){.radius = 10, .adjust = TRUE, .sigma = 1., 
+			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE};
+	update_peaker_GUI();
+}
+
 void update_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
 			*spin_roundness = NULL, *spin_convergence = NULL;

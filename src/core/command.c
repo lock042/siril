@@ -2055,6 +2055,16 @@ int process_set_findstar(int nb) {
 						siril_log_message(_("Wrong parameter values. Convergence must be between 1 and 3, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
+				} else if (!g_ascii_strcasecmp(word[i], "reset")) {
+					siril_log_message(_("Resetting findstar parameters to default values.\n"));
+					sigma = 1.;
+					roundness = 0.5;
+					radius = 10;
+					adjust = TRUE;
+					focal_length = 0.;
+					pixel_size_x = 0.;
+					relax_checks = FALSE;
+					convergence = 1;
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;

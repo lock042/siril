@@ -10629,7 +10629,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
               <object class="GtkAlignment" id="alignment39">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
+                <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                 <property name="left-padding">12</property>
                 <child>
                   <!-- n-columns=3 n-rows=5 -->
@@ -10679,7 +10679,7 @@ The default value for threshold is 1.00. Increasing this value will detect less 
                       <object class="GtkLabel" id="label148">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Radius: </property>
                       </object>
@@ -10692,7 +10692,7 @@ The default value for threshold is 1.00. Increasing this value will detect less 
                       <object class="GtkLabel" id="label149">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Threshold: </property>
                       </object>
@@ -10705,7 +10705,7 @@ The default value for threshold is 1.00. Increasing this value will detect less 
                       <object class="GtkLabel" id="label49">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Roundness threshold:</property>
                       </object>
@@ -10771,7 +10771,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                       <object class="GtkLabel" id="label8">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Convergence:</property>
                       </object>
@@ -10801,7 +10801,24 @@ This should normally be the case only for stacked images. Increasing this value 
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkButton" id="reset_findstar_button">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Resets all parameters to defaults.</property>
+                        <signal name="clicked" handler="on_reset_findstar_button_clicked" swapped="no"/>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="icon-name">view-refresh</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">3</property>
+                      </packing>
                     </child>
                     <child>
                       <placeholder/>
