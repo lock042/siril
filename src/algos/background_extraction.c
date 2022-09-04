@@ -1148,12 +1148,16 @@ static void copy_gfit_to_bkg_backup() {
 	}
 }
 
-static void copy_bkg_backup_to_gfit() {
-	if (!background_computed) return;
-	if (copyfits(&background_backup, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+static int copy_bkg_backup_to_gfit() {
+	if (!background_computed) return 0;
+	int retval = 0;
+	if (!gfit.data && !gfit.fdata)
+		retval = 1;
+	else if (copyfits(&background_backup, &gfit, CP_COPYA, -1)) {
 		siril_log_message(_("Image copy error in previews\n"));
-		return;
+		retval = 1;
 	}
+	return retval;
 }
 
 /************* CALLBACKS *************/
