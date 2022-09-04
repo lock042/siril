@@ -37,7 +37,7 @@ v1.2.0 mmm dd, 2022
 * Added option "full" to export all possible stats in seqstat command
 * Added argument to executable to pass pipes path, allowing several instances to run simultaneously
 * Added more reporting on online object search, avoiding duplicates in catalogues
-* Replaced generalized hyperbolic transform stretch method by more general algorithms
+* Replaced generalized hyperbolic transform stretch method by more general algorithms nd optimised for speed
 * Added improved graphical interface to hyperbolic stretches
 * Altered behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels (this is useful in NB workflows etc.)
 * Replaced Libraw with RT debayering
@@ -48,6 +48,7 @@ v1.2.0 mmm dd, 2022
 * Fixed dates keywords in sum and min/max algorithms
 * Fixed FITS header preservation on RGB composition
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
+* Optimised asinh code for speed
 
 v1.0.5 October --, 2022
 * Fixed bug in eyedropper feature with 16bits images
