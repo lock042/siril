@@ -52,6 +52,7 @@
 
 static gboolean background_computed = FALSE;
 
+
 static void background_startup() {
 	copy_gfit_to_backup();
 }
@@ -903,6 +904,7 @@ static gboolean end_background(gpointer p) {
 
 		notify_gfit_modified();
 		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
+		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
 		free(args);
 	}
 	return FALSE;
@@ -1136,6 +1138,28 @@ point background_sample_get_position(background_sample *sample) {
 	return sample->position;
 }
 
+static fits background_backup;
+
+static void copy_gfit_to_bkg_backup() {
+	if (!background_computed) return;
+	if (copyfits(&gfit, &background_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
+		siril_log_message(_("Image copy error in previews\n"));
+		return;
+	}
+}
+
+static int copy_bkg_backup_to_gfit() {
+	if (!background_computed) return 0;
+	int retval = 0;
+	if (!gfit.data && !gfit.fdata)
+		retval = 1;
+	else if (copyfits(&background_backup, &gfit, CP_COPYA, -1)) {
+		siril_log_message(_("Image copy error in previews\n"));
+		retval = 1;
+	}
+	return retval;
+}
+
 /************* CALLBACKS *************/
 
 void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
@@ -1266,6 +1290,7 @@ void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data)
 		clear_backup();
 	}
 	gtk_widget_set_sensitive(lookup_widget("background_ok_button"), FALSE);
+	gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), FALSE);
 }
 
 void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {
@@ -1278,3 +1303,31 @@ void on_background_extraction_combo_changed(GtkComboBox *combo, gpointer user_da
 	gtk_notebook_set_current_page(notebook, gtk_combo_box_get_active(combo));
 }
 
+void on_bkg_show_original_button_press_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	GtkStateFlags new_state;
+	new_state = gtk_widget_get_state_flags(widget)
+			& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
+
+	new_state |= GTK_STATE_FLAG_PRELIGHT;
+    new_state |= GTK_STATE_FLAG_ACTIVE;
+
+	gtk_widget_set_state_flags(widget, new_state, TRUE);
+
+	copy_gfit_to_bkg_backup();
+	copy_backup_to_gfit();
+	notify_gfit_modified();
+}
+
+void on_bkg_show_original_button_release_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	GtkStateFlags new_state;
+	new_state = gtk_widget_get_state_flags(widget)
+			& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
+
+	new_state |= GTK_STATE_FLAG_PRELIGHT;
+
+	gtk_widget_set_state_flags(widget, new_state, TRUE);
+
+	copy_bkg_backup_to_gfit();
+	clearfits(&background_backup);
+	notify_gfit_modified();
+}
