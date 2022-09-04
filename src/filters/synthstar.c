@@ -347,6 +347,7 @@ void on_synthstar_dynpsf_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_synthstar_apply_clicked(GtkButton *button, gpointer user_data) {
-	generate_synthstars(&gfit);
+	start_in_new_thread(do_synthstar, NULL);
+	siril_close_dialog("synthstar_dialog");
 }
 
