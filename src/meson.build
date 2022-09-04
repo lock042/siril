@@ -88,6 +88,7 @@ src_files = [
   'filters/saturation.c',
   'filters/scnr.c',
   'filters/starnet.c',
+  'filters/synthstar.c',
   'filters/wavelets.c',
 
   'io/Astro-TIFF.c',
