@@ -26,7 +26,7 @@
 
 #include <glib.h>
 
-gboolean test_if_symlink_is_ok();
+gboolean test_if_symlink_is_ok(gboolean verbose);
 gpointer symlink_thread_worker(gpointer p);
 int symlink_uniq_file(gchar *src_filename, gchar *dest_filename, gboolean allow_symlink);
 

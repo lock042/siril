@@ -227,7 +227,7 @@ int start_livestacking(gboolean with_filewatcher) {
 		livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, REGISTRATION_TYPE);
 	}
 
-	do_links = test_if_symlink_is_ok();
+	do_links = test_if_symlink_is_ok(TRUE);
 
 	new_files_queue = g_async_queue_new();
 	if (with_filewatcher) {
