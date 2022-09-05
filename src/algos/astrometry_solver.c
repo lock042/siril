@@ -644,7 +644,7 @@ static void print_platesolving_results(solve_results *image, gboolean downsample
 	g_free(delta);
 }
 
-static int read_NOMAD_catalog(GInputStream *stream, psf_star **cstars) {
+static int read_NOMAD_catalog(GInputStream *stream, psf_star **cstars, int type) {
 	gchar *line;
 	psf_star *star;
 
@@ -674,7 +674,8 @@ static int read_NOMAD_catalog(GInputStream *stream, psf_star **cstars) {
 	}
 	g_object_unref(data_input);
 	sort_stars_by_mag(cstars, i);
-	siril_log_message(_("Catalog NOMAD size: %d objects\n"), i);
+	if (type == NOMAD)
+		siril_log_message(_("Catalog NOMAD size: %d objects\n"), i);
 	return i;
 }
 
@@ -886,11 +887,12 @@ static int read_APASS_catalog(GInputStream *stream, psf_star **cstars) {
 
 static int read_catalog(GInputStream *stream, psf_star **cstars, int type) {
 	switch (type) {
-	default:
 	case TYCHO2:
 		return read_TYCHO2_catalog(stream, cstars);
+	default:
+	case LOCAL:
 	case NOMAD:
-		return read_NOMAD_catalog(stream, cstars);
+		return read_NOMAD_catalog(stream, cstars, type);
 	case GAIA:
 		return read_GAIA_catalog(stream, cstars, "DR2");
 	case GAIAEDR3:

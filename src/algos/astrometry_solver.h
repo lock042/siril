@@ -22,7 +22,8 @@ typedef enum {
 	GAIAEDR3,
 	PPMXL,
 	BRIGHT_STARS,
-	APASS
+	APASS,
+	LOCAL = 99
 } online_catalog;
 
 typedef enum {
