@@ -1303,6 +1303,8 @@ void on_background_extraction_combo_changed(GtkComboBox *combo, gpointer user_da
 	gtk_notebook_set_current_page(notebook, gtk_combo_box_get_active(combo));
 }
 
+static gboolean pressed = FALSE;
+
 void on_bkg_show_original_button_press_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	GtkStateFlags new_state;
 	new_state = gtk_widget_get_state_flags(widget)
@@ -1312,6 +1314,7 @@ void on_bkg_show_original_button_press_event(GtkWidget *widget, GdkEvent *event,
     new_state |= GTK_STATE_FLAG_ACTIVE;
 
 	gtk_widget_set_state_flags(widget, new_state, TRUE);
+	pressed = TRUE;
 
 	copy_gfit_to_bkg_backup();
 	copy_backup_to_gfit();
@@ -1326,8 +1329,23 @@ void on_bkg_show_original_button_release_event(GtkWidget *widget, GdkEvent *even
 	new_state |= GTK_STATE_FLAG_PRELIGHT;
 
 	gtk_widget_set_state_flags(widget, new_state, TRUE);
+	pressed = FALSE;
 
 	copy_bkg_backup_to_gfit();
 	clearfits(&background_backup);
 	notify_gfit_modified();
+}
+
+gboolean on_bkg_show_original_enter_notify_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	GtkStateFlags new_state;
+	new_state = gtk_widget_get_state_flags(widget)
+			& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
+
+	new_state |= GTK_STATE_FLAG_PRELIGHT;
+	if (pressed) {
+		new_state |= GTK_STATE_FLAG_ACTIVE;
+
+	}
+	gtk_widget_set_state_flags(widget, new_state, TRUE);
+	return TRUE;
 }

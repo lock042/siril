@@ -4014,6 +4014,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
             <property name="tooltip-text" translatable="yes">Keep pressing this button to see the original image.</property>
             <signal name="button-press-event" handler="on_bkg_show_original_button_press_event" swapped="no"/>
             <signal name="button-release-event" handler="on_bkg_show_original_button_release_event" swapped="no"/>
+            <signal name="enter-notify-event" handler="on_bkg_show_original_enter_notify_event" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
