@@ -126,27 +126,17 @@ static void init_num_procs() {
 	int num_proc = (int) g_get_num_processors();
 	int omp_num_proc = omp_get_num_procs();
 	if (num_proc != omp_num_proc) {
-		siril_log_message(_("Questionable parallel processing efficiency - openmp reports %d %s. "
-					"Possibly broken opencv/openblas installation.\n"),	omp_num_proc,
-				ngettext("processor", "processors", omp_num_proc));
+		siril_log_message(_("Questionable parallel processing detection - openmp reports %d %s, glib %d.\n"),
+					omp_num_proc, ngettext("processor", "processors", omp_num_proc), num_proc);
+		// in case of cgroup limitation of the cpuset, openmp already detects the correct count
 	}
-	int cgroups_num_proc;
-	if (!get_available_cpucount_cgroups(&cgroups_num_proc)) {
-		if (cgroups_num_proc > 0 && cgroups_num_proc < omp_num_proc) {
-			com.max_thread = cgroups_num_proc;
-			siril_log_message("cgroups limits us to run on %d processors on %d available\n", cgroups_num_proc, omp_num_proc);
-		} else {
-			siril_debug_print("cgroups did not put a limit on the amount of used processors\n");
-			com.max_thread = num_proc;
-		}
-	}
-	else com.max_thread = num_proc;
+	com.max_thread = num_proc < omp_num_proc ? num_proc : omp_num_proc;;
 	omp_set_nested(1);
 	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
 	siril_log_message(
 			_("Parallel processing enabled: using %d logical %s%s.\n"),
-			num_proc,
-			ngettext("processor", "processors", num_proc),
+			com.max_thread,
+			ngettext("processor", "processors", com.max_thread),
 			supports_nesting ? "" : _(", nesting not supported"));
 #else
 	com.max_thread = 1;

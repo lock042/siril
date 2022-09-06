@@ -264,40 +264,6 @@ int test_available_space(gint64 req_size) {
 	return 0;
 }
 
-int get_available_cpucount_cgroups(int *nb_cpu) {
-#if defined(__linux__) || defined(__CYGWIN__)
-	/* /sys/fs/cgroup/cpuset.cpus.effective
-	 */
-	FILE *fd = g_fopen("/sys/fs/cgroup/cpuset.cpus.effective", "r");
-	if (!fd)
-		return 1;
-	char buf[256];
-	if (!fgets(buf, 256, fd)) {
-		fclose(fd);
-		return 1;
-	}
-
-	gchar **tokens = g_strsplit(buf, ",", -1);
-	guint n = g_strv_length(tokens);
-	int count = 0;
-	for (int i = 0; i < n; i++) {
-		char *next;
-		if ((next = strchr(tokens[i], '-'))) {
-			int from = atoi(tokens[i]);
-			int to = atoi(next+1);
-			count += to - from + 1;
-		}
-		else count++;
-	}
-	g_strfreev(tokens);
-	*nb_cpu = count;
-	siril_debug_print("cgroups allows us to run on %d processors\n", count);
-	return count == 0;
-#else
-	return 1;
-#endif
-}
-
 #if defined(__linux__) || defined(__CYGWIN__)
 /* read a value from a file that contains only an integer, like many procfs or sysfs files */
 static int read_from_file(const char *filename, guint64 *value) {
