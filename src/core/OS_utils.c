@@ -127,7 +127,7 @@ static gint64 find_space(const gchar *name) {
  * Compute the used RAM and returns the value in bytes.
  * @return
  */
-static guint64 update_used_RAM_memory() {
+static guint64 get_used_RAM_memory() {
 #if defined(__linux__) || defined(__CYGWIN__)
 	static gboolean initialized = FALSE;
 	static long page_size;
@@ -203,7 +203,7 @@ static guint64 update_used_RAM_memory() {
  * @return always return TRUE
  */
 gboolean update_displayed_memory() {
-	set_GUI_MEM(update_used_RAM_memory(), "labelmem");
+	set_GUI_MEM(get_used_RAM_memory(), "labelmem");
 	set_GUI_DiskSpace(find_space(com.wd), "labelFreeSpace");
 	set_GUI_DiskSpace(find_space(com.pref.swap_dir), "free_mem_swap");
 	return TRUE;
@@ -286,23 +286,58 @@ static int read_from_file(const char *filename, guint64 *value) {
 }
 
 static int get_available_mem_cgroups(guint64 *amount) {
-	/* useful files:
-	 * memory.usage_in_bytes	# show current usage for memory
-	 * memory.memsw.usage_in_bytes	# show current usage for memory+Swap
+	/* useful files, cgroups v1:
+	 * memory.usage_in_bytes	# show current usage for memory	(for the system?)
+	 * memory.memsw.usage_in_bytes	# show current usage for memory+Swap (system?)
 	 * memory.limit_in_bytes	# set/show limit of memory usage
 	 * memory.soft_limit_in_bytes	# set/show soft limit of memory usage
+	 *
+	 * useful files, cgroups v2:
+	 * memory.low			# soft limit, default is '0'
+	 * memory.high			# hard limit, default is 'max'
+	 * memory.max			# kill limit, default is 'max'
 	 */
+	static int source_file = -1;
+	const char *limits_paths[] = {	// in order of files to try
+		"/sys/fs/cgroup/memory/memory.soft_limit_in_bytes",
+		"/sys/fs/cgroup/memory/memory.limit_in_bytes",
+		"/sys/fs/cgroup/memory/memory.low",
+		"/sys/fs/cgroup/memory/memory.high",
+		"/sys/fs/cgroup/memory/memory.max",
+	};
+
+	if (source_file < -1)	// already tried
+		return 1;
+	// first, get the limit
 	guint64 limit;
-	if (read_from_file("/sys/fs/cgroup/memory/memory.soft_limit_in_bytes", &limit)) {
-		if (read_from_file("/sys/fs/cgroup/memory/memory.limit_in_bytes", &limit))
+	if (source_file == -1) {
+		int nb_paths = sizeof limits_paths / sizeof(const char *);
+		for (source_file = 0; source_file < nb_paths; source_file++) {
+			if (!read_from_file(limits_paths[source_file], &limit) && limit > (guint64)0) {
+				siril_log_message(_("Found a cgroups memory limit: %d MB from %s\n"),
+						(int)(limit / BYTES_IN_A_MB), limits_paths[source_file]);
+				break;
+			}
+		}
+		if (source_file == nb_paths) {
+			// not using cgroups
+			source_file = -2;
 			return 1;
+		}
+	}
+	else {
+		if (read_from_file(limits_paths[source_file], &limit) || limit == (guint64)0) {
+			siril_log_message(_("Error reading from %s, disabling cgroups memory limits\n"),
+					limits_paths[source_file]);
+			source_file = -2;
+		}
 	}
 
-	guint64 current;
-	if (read_from_file("/sys/fs/cgroup/memory/memory.usage_in_bytes", &current))
-		return 1;
+	// then, get the current amount
+	guint64 current = get_used_RAM_memory();
 
-	siril_debug_print("cgroup current memory: %d, limit: %d MB\n", (int)(current / BYTES_IN_A_MB), (int)(limit / BYTES_IN_A_MB));
+	siril_debug_print("current memory: %d, cgroup limit: %d MB\n",
+			(int)(current / BYTES_IN_A_MB), (int)(limit / BYTES_IN_A_MB));
 	if (limit < current)
 		*amount = (guint64)1;	// 0 mean error in the caller
 	else *amount = limit - current;
@@ -694,7 +729,7 @@ char* siril_real_path(const char *source) {
 
 // for debug purposes
 void log_used_mem(gchar *when) {
-	int used = update_used_RAM_memory();
+	guint64 used = get_used_RAM_memory();
 	gchar *mem = g_format_size_full(used, G_FORMAT_SIZE_IEC_UNITS);
 	siril_debug_print("Used memory %s: %s\n", when, mem);
 	g_free(mem);
