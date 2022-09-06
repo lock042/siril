@@ -1152,7 +1152,7 @@ gpointer match_catalog(gpointer p) {
 				"At least %d stars are needed."), AT_MATCH_STARTN_LINEAR);
 		goto clearup;
 	}
-	siril_debug_print("using %d detected stars from image\n", n_fit);
+	siril_log_message(_("Using %d detected stars from image.\n"), n_fit);
 	if (args->uncentered)
 		max_trials = 20; //retry to converge if solve is done at an offset from the center
 
