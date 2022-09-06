@@ -663,11 +663,20 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
 				cairo_set_line_width(cr, 1.5 / dd->zoom);
 			}
+			if (com.stars[i]->has_saturated) {
+				cairo_set_source_rgba(cr, 0.75, 0.22, 1.0, 0.9);
+				cairo_set_line_width(cr, 3.0 / dd->zoom);
+			}
 			cairo_arc(cr, com.stars[i]->xpos, com.stars[i]->ypos, size, 0., 2. * M_PI);
 			cairo_stroke(cr);
 			// if (com.stars[i]->R > 0)
 			// 	cairo_rectangle(cr, com.stars[i]->xpos - (double)com.stars[i]->R, com.stars[i]->ypos - (double)com.stars[i]->R, (double)com.stars[i]->R * 2 + 1, (double)com.stars[i]->R * 2 + 1);
 			// cairo_stroke(cr);
+			if (com.stars[i]->has_saturated) {
+				cairo_set_source_rgba(cr, 1.0, 0.4, 0.0, 0.9);
+				cairo_set_line_width(cr, 1.5 / dd->zoom);
+			}
+
 			i++;
 		}
 	}

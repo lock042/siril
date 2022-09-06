@@ -31,6 +31,7 @@ struct star_candidate_struct {
 	float sat;
 	float sx, sy;
 	int R;
+	gboolean has_saturated;
 };
 typedef struct star_candidate_struct starc;
 

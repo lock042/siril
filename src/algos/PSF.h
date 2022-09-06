@@ -19,6 +19,7 @@ struct fwhm_struct {
 	double rmse; /* RMSE of the minimization */
 	double sat; /* Level above which pixels have satured (defined by peaker) */
 	int R; /* Optimized box sixe to enclose sufficient pixels in the background */
+	gboolean has_saturated;
 
 	double xpos, ypos; /* position of the star in the image, not set by Minimization */
 
