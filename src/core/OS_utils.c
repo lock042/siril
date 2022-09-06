@@ -43,6 +43,8 @@
 #else
 #include <sys/resource.h>
 #include <gio/gunixinputstream.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #endif
 #if defined(__unix__) || defined(OS_OSX)
 #include <sys/param.h>		// define or not BSD macro
@@ -262,62 +264,112 @@ int test_available_space(gint64 req_size) {
 	return 0;
 }
 
+#if defined(__linux__) || defined(__CYGWIN__)
+/* read a value from a file that contains only an integer, like many procfs or sysfs files */
+static int read_from_file(const char *filename, guint64 *value) {
+	int fd = open(filename, O_RDONLY);
+	if (fd == -1)
+		return 1;
+	char buf[30];
+	int retval = read(fd, buf, 30);
+	if (retval <= 0) {
+		close(fd);
+		return 1;
+	}
+	char *end;
+	*value = strtoull(buf, &end, 10);
+	if (end == buf)
+		retval = 1;
+	else retval = 0;
+	close(fd);
+	return retval;
+}
+
+static int get_available_mem_cgroups(guint64 *amount) {
+	/* useful files:
+	 * memory.usage_in_bytes	# show current usage for memory
+	 * memory.memsw.usage_in_bytes	# show current usage for memory+Swap
+	 * memory.limit_in_bytes	# set/show limit of memory usage
+	 * memory.soft_limit_in_bytes	# set/show soft limit of memory usage
+	 */
+	guint64 limit;
+	if (read_from_file("/sys/fs/cgroup/memory/memory.soft_limit_in_bytes", &limit)) {
+		if (read_from_file("/sys/fs/cgroup/memory/memory.limit_in_bytes", &limit))
+			return 1;
+	}
+
+	guint64 current;
+	if (read_from_file("/sys/fs/cgroup/memory/memory.usage_in_bytes", &current))
+		return 1;
+
+	siril_debug_print("cgroup current memory: %d, limit: %d MB\n", (int)(current / BYTES_IN_A_MB), (int)(limit / BYTES_IN_A_MB));
+	if (limit < current)
+		*amount = (guint64)1;	// 0 mean error in the caller
+	else *amount = limit - current;
+	return 0;
+}
+#endif
+
 /**
- * Gets available memory for stacking process
+ * Gets available memory in bytes.
  * @return available memory in Bytes, 0 if it fails.
  */
 guint64 get_available_memory() {
 #if defined(__linux__) || defined(__CYGWIN__)
-	static gboolean initialized = FALSE;
+	static super_bool initialized_cgroups = BOOL_NOT_SET;
+	static gboolean initialized_meminfo = FALSE;
+
+	/* first, we should check for cgroups limits */
+	if (BOOL_FALSE != initialized_cgroups) {
+		guint64 amount;
+		if (!get_available_mem_cgroups(&amount)) {
+			initialized_cgroups = BOOL_TRUE;
+			return amount;
+		}
+		initialized_cgroups = BOOL_FALSE;
+	}
+
+	/* the code below gets the available memory on the OS in /proc/meminfo. */
 	static gint64 last_check_time = 0;
 	static gint fd;
 	static guint64 available;
 	static gboolean has_available = FALSE;
 	gint64 time;
 
-	if (!initialized) {
+	if (!initialized_meminfo) {
 		fd = g_open("/proc/meminfo", O_RDONLY);
-
-		initialized = TRUE;
+		initialized_meminfo = TRUE;
+	}
+	if (fd < 0) {
+		siril_debug_print("/proc/meminfo is unavailable\n");
+		return (guint64) 0;
 	}
 
-	if (fd < 0)
-		return (guint64) 0;
-
-	/* we don't have a config option for limiting the swap size, so we simply
-	 * return the free space available on the filesystem containing the swap
-	 */
-
 	time = g_get_monotonic_time();
-
 	if (time - last_check_time >= G_TIME_SPAN_SECOND) {
-		gchar buffer[512];
-		gint size;
-		gchar *str;
-
 		last_check_time = time;
-
 		has_available = FALSE;
 
 		if (lseek(fd, 0, SEEK_SET))
 			return (guint64) 0;
 
-		size = read(fd, buffer, sizeof(buffer) - 1);
-
+		gchar buffer[512];
+		ssize_t size = read(fd, buffer, sizeof(buffer) - 1);
 		if (size <= 0)
 			return (guint64) 0;
 
 		buffer[size] = '\0';
 
-		str = strstr(buffer, "MemAvailable:");
-
+		char *str = strstr(buffer, "MemAvailable:");
 		if (!str)
 			return (guint64) 0;
 
-		available = strtoull(str + 13, &str, 0);
-
-		if (!str)
+		char *end;
+		str += 13;
+		available = strtoull(str, &end, 0);
+		if (end == str)
 			return (guint64) 0;
+		str = end;
 
 		for (; *str; str++) {
 			if (*str == 'k') {
@@ -328,8 +380,7 @@ guint64 get_available_memory() {
 				break;
 			}
 		}
-
-		if (!*str)
+		if (*str == '\0')
 			return (guint64) 0;
 
 		has_available = TRUE;
@@ -360,22 +411,27 @@ guint64 get_available_memory() {
 	}
 	return mem;
 #elif defined(BSD) /* BSD (DragonFly BSD, FreeBSD, OpenBSD, NetBSD). ----------- */
-	guint64 mem = (guint64) 0; /* this is the default value if we can't retrieve any values */
-	FILE* fp = fopen("/var/run/dmesg.boot", "r");
-	if (fp != NULL) {
-		size_t bufsize = 1024 * sizeof(char);
-		gchar *buf = g_new(gchar, bufsize);
-		long value = -1L;
-		while (getline(&buf, &bufsize, fp) >= 0) {
-			if (strncmp(buf, "avail memory", 12) != 0)
-				continue;
-			sscanf(buf, "%*s%*s%*s%ld", &value);
-			break;
+	/* FIXME: this is incorrect, this returns the available amount of memory at boot, not at runtime */
+	static gboolean initialized = FALSE;
+	static guint64 mem = (guint64) 0; /* this is the default value if we can't retrieve any values */
+	if (!initialized) {
+		FILE* fp = fopen("/var/run/dmesg.boot", "r");
+		if (fp != NULL) {
+			size_t bufsize = 1024 * sizeof(char);
+			gchar *buf = g_new(gchar, bufsize);
+			long value = -1L;
+			while (getline(&buf, &bufsize, fp) >= 0) {
+				if (strncmp(buf, "avail memory", 12) != 0)
+					continue;
+				sscanf(buf, "%*s%*s%*s%ld", &value);
+				break;
+			}
+			fclose(fp);
+			g_free(buf);
+			if (value != -1L)
+				mem = (guint64) (value * 1024UL);
 		}
-		fclose(fp);
-		g_free(buf);
-		if (value != -1L)
-			mem = (guint64) (value * 1024UL);
+		initialized = TRUE;
 	}
 	return mem;
 #elif defined(_WIN32) /* Windows */
