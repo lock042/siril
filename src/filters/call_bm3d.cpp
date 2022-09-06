@@ -113,12 +113,12 @@ const char *pick_option(int *c, char **v, const char *o, const char *d) {
   }
 */
 
-float* cutchunk (float *img, size_t x0, size_t y0, size_t xlen, size_t ylen, size_t width, size_t nchans) {
+float* cutchunk (float *img, unsigned x0, unsigned y0, unsigned xlen, unsigned ylen, unsigned width, unsigned nchans) {
 	// img stored as bgrbgrbgr
 	float *chunk = (float*) calloc(xlen * ylen * nchans, sizeof(float));
-	for (size_t i = y0, ii = 0; i < (y0 + ylen); i++, ii++) {
-		for (size_t j = x0, jj = 0; j < (x0 + xlen; j++, jj++) {
-			for (size_t chan=0; chan < nchans ; chan++) {
+	for (unsigned i = y0, ii = 0; i < (y0 + ylen); i++, ii++) {
+		for (unsigned j = x0, jj = 0; j < (x0 + xlen); j++, jj++) {
+			for (unsigned chan=0; chan < nchans ; chan++) {
 				chunk[chan + (jj + ii * xlen) * nchans] = img[chan + (j + i * width) * nchans];
 			}
 		}
@@ -126,23 +126,26 @@ float* cutchunk (float *img, size_t x0, size_t y0, size_t xlen, size_t ylen, siz
 	return chunk;
 }
 
-void pastechunk (float *img, float *chunk, x0, y0, xlen, ylen, pad, width, nchans) {
+void pastechunk (float *img, float *chunk, unsigned x0, unsigned y0, unsigned xlen, unsigned ylen, unsigned pad, unsigned width, unsigned nchans) {
 	// pad is the half-window size
-	for (size_t i = y0, ii = pad; i < (y0 + ylen); i++, ii++) {
-		for (size_t j = x0, jj = pad; j < (x0 + xlen); j++, jj++) {
-			for (size_t chan=0; chan < nchans; chan++) {
+	for (unsigned i = y0, ii = pad; i < (y0 + ylen); i++, ii++) {
+		for (unsigned j = x0, jj = pad; j < (x0 + xlen); j++, jj++) {
+			for (unsigned chan=0; chan < nchans; chan++) {
 				img[chan + (j + i * width) * nchans] = chunk[chan + (jj + ii * xlen) * nchans];
 			}
 		}
 	}
 }
 
-size_t round_up(size_t num, size_t factor) {
+unsigned round_up(unsigned num, unsigned factor) {
 	return (num - 1 - (num - 1) % factor + factor);
 }
 
 int do_bm3d(fits *fit) {
     // Parameters
+    const unsigned width = fit->naxes[0];
+    const unsigned height = fit->naxes[1];
+    const unsigned nchans = fit->naxes[2];
 	float fSigma = 2; // Replace this with getting the noise level from statistics
 
 	// The algorithm parameters set below are the optimal parameters discussed in
@@ -156,33 +159,34 @@ int do_bm3d(fits *fit) {
     const int nb_threads = 0;
     const bool verbose = FALSE;
 
-    size_t chunklen = 512;
-	size_t chunkdim = 512 + (2 * pad);
-	size_t padwidth = width + (2 * pad);
-	size_t padheight = height + (2 * pad);
+    unsigned pad = 16; // Half the search window dimension
+    unsigned chunklen = 512;
+	unsigned chunkdim = 512 + (2 * pad);
+	unsigned padwidth = width + (2 * pad);
+	unsigned padheight = height + (2 * pad);
 
-	size_t expandwidth = round_up(padwidth, chunkdim);
-	size_t expandheight = round_up(padheight, chunkdim);
+	unsigned expandwidth = round_up(padwidth, chunkdim);
+	unsigned expandheight = round_up(padheight, chunkdim);
 
-	size_t chunksx = expandwidth / chunkdim;
-	size_t chunksy = expandheight / chunkdim;
+	unsigned chunksx = expandwidth / chunkdim;
+	unsigned chunksy = expandheight / chunkdim;
 
     float *bgr_f = fits_to_bgrbgr_float(fit);
 
 	vector<float> chunk_basic, chunk_denoised;
 
-    float *padded = calloc(expandwidth * expandheight * nchans, sizeof(float));
-	symmetrize(img, padded, width, height, pad); // Still need to write
-	float *output = calloc(width * height * nchans, sizeof(float));
-	for (i = 0; i < chunksx ; i++) {
-		for (j = 0; j < chunksy; j++) {
-			float *currentchunk = cutchunk(padded, (i * chunklen), (j * chunklen), chunkdim, chunkdim, nchans);
+    float *padded = (float*) calloc(expandwidth * expandheight * nchans, sizeof(float));
+	symmetrize(bgr_f, padded, width, height, pad); // Still need to write
+	float *output = (float*) calloc(width * height * nchans, sizeof(float));
+	for (unsigned i = 0; i < chunksx ; i++) {
+		for (unsigned j = 0; j < chunksy; j++) {
+			float *currentchunk = cutchunk(padded, (i * chunklen), (j * chunklen), chunkdim, chunkdim, width, nchans);
             vector<float> chunk_noisy {currentchunk , currentchunk + (chunkdim * chunkdim * nchans)};
-            if (run_bm3d(fSigma, currentchunk, chunk_basic, chunk_denoised,
-                width, strip_height, chnls, useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, color_space, patch_size, nb_threads, verbose) != EXIT_SUCCESS)
+            if (run_bm3d(fSigma, chunk_noisy, chunk_basic, chunk_denoised,
+                chunkdim, chunkdim, nchans, useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, color_space, patch_size, nb_threads, verbose) != EXIT_SUCCESS)
             return EXIT_FAILURE;
             float *outputchunk = chunk_denoised.data();
-			pastechunk(output, outputchunk, (i * chunkdim), (j * chunkdim), chunklen, chunklen, pad, nchans);
+			pastechunk(output, outputchunk, (i * chunkdim), (j * chunkdim), chunklen, chunklen, pad, width, nchans);
             free(currentchunk);
             free(outputchunk);
 		}
