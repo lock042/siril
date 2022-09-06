@@ -18,8 +18,7 @@
 typedef enum {
 	TYCHO2,
 	NOMAD,
-	GAIA,
-	GAIAEDR3,
+	GAIADR3,
 	PPMXL,
 	BRIGHT_STARS,
 	APASS,

@@ -174,19 +174,8 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, "&VTmag=<");
 		url = g_string_append(url, mag);
 		break;
-	case GAIA:
-		url = g_string_append(url, "I/345/gaia2&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
-		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Gmag%20BPmag");
-		url = g_string_append(url, "&-out.max=200000");
-		url = g_string_append(url, "&-c=");
-		url = g_string_append(url, coordinates);
-		url = g_string_append(url, "&-c.rm=");
-		url = g_string_append(url, fov);
-		url = g_string_append(url, "&Gmag=<");
-		url = g_string_append(url, mag);
-		break;
-	case GAIAEDR3:
-		url = g_string_append(url, "I/350/gaiaedr3&-out.meta=-h-u-D&-out.add=_r");
+	case GAIADR3:
+		url = g_string_append(url, "I/355/gaiadr3&-out.meta=-h-u-D&-out.add=_r");
 		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Gmag%20BPmag");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
@@ -893,10 +882,8 @@ static int read_catalog(GInputStream *stream, psf_star **cstars, int type) {
 	case LOCAL:
 	case NOMAD:
 		return read_NOMAD_catalog(stream, cstars, type);
-	case GAIA:
-		return read_GAIA_catalog(stream, cstars, "DR2");
-	case GAIAEDR3:
-		return read_GAIA_catalog(stream, cstars, "EDR3");
+	case GAIADR3:
+		return read_GAIA_catalog(stream, cstars, "DR3");
 	case PPMXL:
 		return read_PPMXL_catalog(stream, cstars);
 	case BRIGHT_STARS:

@@ -126,7 +126,7 @@ static online_catalog get_online_catalog(double fov, double mag) {
 		} else if (fov > 180.0) {
 			ret = NOMAD;
 		} else if (fov < 30.0){
-			ret = GAIAEDR3;
+			ret = GAIADR3;
 		} else {
 			ret = PPMXL;
 		}
