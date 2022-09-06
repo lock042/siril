@@ -22,6 +22,8 @@ xx/xx/22
 * Added relaxed mode for star detection for particularly bad images
 * Added crop to selection to the rotation geometric transform
 * Added a way to clean sequence file in the sequence tab (see also command seqclean)
+* Added a warning when images are negative on calibration
+* Added calibration details in the FITS history
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored global registration and added 2pass and Apply Existing methods

@@ -50,6 +50,7 @@
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/catalogues.h"
+#include "io/FITS_symlink.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
@@ -104,6 +105,7 @@
 #include "algos/annotate.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
+#include "git-version.h"
 
 #include "command.h"
 #include "command_def.h"
@@ -5609,7 +5611,7 @@ int process_set_mem(int nb){
 	return CMD_OK;
 }
 
-int process_help(int nb){
+int process_help(int nb) {
 	command *current = commands;
 	if (nb == 1)
 		siril_log_message(_("********* LIST OF AVAILABLE COMMANDS *********\n"));
@@ -5634,7 +5636,63 @@ int process_help(int nb){
 	return CMD_OK;
 }
 
-int process_exit(int nb){
+int process_capabilities(int nb) {
+	// don't translate these strings, they must be easy to parse
+#ifdef SIRIL_UNSTABLE
+	siril_log_message("unreleased %s %s-%s for %s\n", PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
+			SIRIL_BUILD_PLATFORM_FAMILY);
+#else
+	siril_log_message("%s %s for %s\n", PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY);
+#endif
+#ifdef _OPENMP
+	siril_log_message("OpenMP available (%d %s)\n", com.max_thread,
+			ngettext("processor", "processors", com.max_thread));
+#else
+	siril_log_message("OpenMP unavailable\n");
+#endif
+	siril_log_message("Can%s create symbolic links\n", test_if_symlink_is_ok(FALSE) ? "" : "not");
+#ifndef HAVE_CV44
+	siril_log_message("OpenCV 4.2 used, shift-only registration transformation unavailable\n");
+#endif
+#ifdef HAVE_LIBCURL
+	siril_log_message("Built with libcurl\n");
+#endif
+//#ifdef HAVE_GLIB_NETWORKING
+#ifdef HAVE_WCSLIB
+	siril_log_message("Built with WCSLIB\n");
+#endif
+
+	siril_log_message("Can read and write FITS files\n");
+	siril_log_message("Can read and write SER files\n");
+	siril_log_message("Can read and write BMP files\n");
+	siril_log_message("Can read and write NetPBM files\n");
+#ifdef HAVE_LIBRAW
+	siril_log_message("Can read DSLR RAW files\n");
+#endif
+#ifdef HAVE_LIBJPEG
+	siril_log_message("Can read and write JPEG files\n");
+#endif
+#ifdef HAVE_LIBPNG
+	siril_log_message("Can read and write PNG files\n");
+#endif
+#ifdef HAVE_LIBTIFF
+	siril_log_message("Can read and write TIFF and Astro-TIFF files\n");
+#endif
+#ifdef HAVE_LIBHEIF
+	siril_log_message("Can read HEIF files\n");
+#endif
+	siril_log_message("Can read IRIS PIC files\n");
+#ifdef HAVE_FFMS2
+	siril_log_message("Can read films\n");
+#endif
+#ifdef HAVE_FFMPEG
+	siril_log_message("Can export films\n");
+#endif
+	siril_log_message("Can export uncompressed AVI\n");
+	return CMD_OK;
+}
+
+int process_exit(int nb) {
 	gtk_main_quit();
 	return CMD_OK;
 }

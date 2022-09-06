@@ -174,6 +174,11 @@ void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
         fprintf(stderr, "ERROR: calling undefined function wcs_pc_to_cd\n");
 }
 
+gboolean has_wcsdata(fits *fit) {
+        fprintf(stderr, "ERROR: calling undefined function has_wcsdata\n");
+	return FALSE;
+}
+
 int check_threading(const threading_type *t) {
 	if (*t != SINGLE_THREADED)
 		return 2;
