@@ -9,6 +9,7 @@
 
 #define STR_BG N_("Returns the background level of the image loaded in memory")
 #define STR_BGNOISE N_("Returns the background noise level of the image loaded in memory")
+#define STR_BM3D N_("Denoises the image using a block matching and 3D filtering (BM3D) as described by Marc Lebrun at https://doi.org/10.5201/ipol.2012.l-bm3d")
 #define STR_BOXSELECT N_("Make a selection area in the currently loaded image with the arguments <b>x</b>, <b>y</b>, <b>width</b> and <b>height</b>, with <b>x</b> and <b>y</b> being the coordinates of the top left corner starting at (0, 0), and <b>width</b> and <b>height</b>, the size of the selection. The <b>-clear</b> argument deletes any selection area. If no argument is passed, the current selection is printed")
 
 #define STR_CAPABILITIES N_("Lists Siril capabilities, based on compilation and runtime")

@@ -112,7 +112,7 @@ const char *pick_option(int *c, char **v, const char *o, const char *d) {
     return EXIT_FAILURE;
   }
 */
-
+/*
 float* cutchunk (float *img, unsigned x0, unsigned y0, unsigned xlen, unsigned ylen, unsigned width, unsigned nchans) {
 	// img stored as bgrbgrbgr
 	float *chunk = (float*) calloc(xlen * ylen * nchans, sizeof(float));
@@ -140,6 +140,16 @@ void pastechunk (float *img, float *chunk, unsigned x0, unsigned y0, unsigned xl
 unsigned round_up(unsigned num, unsigned factor) {
 	return (num - 1 - (num - 1) % factor + factor);
 }
+*/
+
+void bgrbgr_float_to_fits(fits *image, float *bgrbgr) {
+	size_t ndata = image->rx * image->ry * 3;
+	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
+		image->fpdata[BLAYER][j] = bgrbgr[i + 0];
+		image->fpdata[GLAYER][j] = bgrbgr[i + 1];
+		image->fpdata[RLAYER][j] = bgrbgr[i + 2];
+	}
+}
 
 int do_bm3d(fits *fit) {
     // Parameters
@@ -159,44 +169,31 @@ int do_bm3d(fits *fit) {
     const int nb_threads = 0;
     const bool verbose = FALSE;
 
-    unsigned pad = 16; // Half the search window dimension
-    unsigned chunklen = 512;
-	unsigned chunkdim = 512 + (2 * pad);
-	unsigned padwidth = width + (2 * pad);
-	unsigned padheight = height + (2 * pad);
-
-	unsigned expandwidth = round_up(padwidth, chunkdim);
-	unsigned expandheight = round_up(padheight, chunkdim);
-
-	unsigned chunksx = expandwidth / chunkdim;
-	unsigned chunksy = expandheight / chunkdim;
-
     float *bgr_f = fits_to_bgrbgr_float(fit);
+    vector<float> bgr_v { bgr_f, bgr_f + width * height * nchans * sizeof(float) };
 
-	vector<float> chunk_basic, chunk_denoised;
+    // Cut into manageable chunks to avoid OOM
+	unsigned numchunks = 16; // Be smarter about this considering available memory and size of image
+    vector<vector<float> > chunk(numchunks);
+    vector<vector<float> > chunk_basic(numchunks);
+    vector<vector<float> > chunk_denoised(numchunks);
+    vector<unsigned> w_table(numchunks);
+    vector<unsigned> h_table(numchunks);
+    sub_divide(bgr_v, chunk, w_table, h_table, width, height, nchans, 32, FALSE); // 32 is nWien * 2;
 
-    float *padded = (float*) calloc(expandwidth * expandheight * nchans, sizeof(float));
-	symmetrize(bgr_f, padded, width, height, pad); // Still need to write
-	float *output = (float*) calloc(width * height * nchans, sizeof(float));
-	for (unsigned i = 0; i < chunksx ; i++) {
-		for (unsigned j = 0; j < chunksy; j++) {
-			float *currentchunk = cutchunk(padded, (i * chunklen), (j * chunklen), chunkdim, chunkdim, width, nchans);
-            vector<float> chunk_noisy {currentchunk , currentchunk + (chunkdim * chunkdim * nchans)};
-            if (run_bm3d(fSigma, chunk_noisy, chunk_basic, chunk_denoised,
-                chunkdim, chunkdim, nchans, useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, color_space, patch_size, nb_threads, verbose) != EXIT_SUCCESS)
-            return EXIT_FAILURE;
-            float *outputchunk = chunk_denoised.data();
-			pastechunk(output, outputchunk, (i * chunkdim), (j * chunkdim), chunklen, chunklen, pad, width, nchans);
-            free(currentchunk);
-            free(outputchunk);
-		}
+	for (unsigned i = 0; i < numchunks ; i++) {
+      if (run_bm3d(fSigma, chunk[i], chunk_basic[i], chunk_denoised[i],
+         w_table[i], h_table[i], nchans, useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, color_space, patch_size, nb_threads, verbose) != EXIT_SUCCESS)
+      return EXIT_FAILURE;
 	}
+
+	// Reassemble chunks
+    sub_divide(bgr_v, chunk_denoised, w_table, h_table, width, height, nchans, 32, TRUE);
+    bgr_f = bgr_v.data();
+
 	// Convert output from bgrbgr back to planar rgb and put back into fit
+    bgrbgr_float_to_fits(fit, bgr_f);
 
-
-
-	// Cleanup and return
-	free(output);
 	return EXIT_SUCCESS;
 }
 

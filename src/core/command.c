@@ -68,6 +68,7 @@
 #include "gui/preferences.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
+#include "filters/call_bm3d.h"
 #include "filters/clahe.h"
 #include "filters/cosmetic_correction.h"
 #include "filters/deconv.h"
@@ -245,6 +246,17 @@ int process_savebmp(int nb){
 	savebmp(filename, &gfit);
 	set_cursor_waiting(FALSE);
 	g_free(filename);
+	return CMD_OK;
+}
+
+gpointer run_bm3d_on_gfit() {
+	int retval = do_bm3d(&gfit);
+	return GINT_TO_POINTER(retval);
+}
+
+int process_bm3d(int nb){
+	set_cursor_waiting(TRUE);
+	start_in_new_thread(run_bm3d_on_gfit, NULL);
 	return CMD_OK;
 }
 

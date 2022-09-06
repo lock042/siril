@@ -41,8 +41,8 @@
  * In order to reproduce the original BM3D the DC coefficients are
  * thresholded (DCTHRESH uncommented) and are filtered using Wiener
  * (DCWIENER uncommented), MTRICK activates undocumented tricks from
- * Marc Lebrun's implementation of BM3D available in IPOL
- * http://www.ipol.im/pub/art/2012/l-bm3d/, not in the original paper.
+ * Marc Lebrun's implementation of BM3D available in IPOL , not in
+ * the original paper.
  */
 
 #define DCTHRESH
