@@ -5562,6 +5562,11 @@ int process_set_cpu(int nb){
 
 	proc_in = g_ascii_strtoull(word[1], NULL, 10);
 	proc_max = omp_get_num_procs();
+	int cgroups_num_proc;
+	if (!get_available_cpucount_cgroups(&cgroups_num_proc) &&
+			cgroups_num_proc > 0 && cgroups_num_proc < proc_max)
+		proc_max = cgroups_num_proc;
+
 	if (proc_in > proc_max || proc_in < 1) {
 		siril_log_message(_("Number of logical processors MUST be greater "
 				"than 0 and lower or equal to %d.\n"), proc_max);

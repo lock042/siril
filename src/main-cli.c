@@ -130,7 +130,17 @@ static void init_num_procs() {
 					"Possibly broken opencv/openblas installation.\n"),	omp_num_proc,
 				ngettext("processor", "processors", omp_num_proc));
 	}
-	com.max_thread = num_proc;
+	int cgroups_num_proc;
+	if (!get_available_cpucount_cgroups(&cgroups_num_proc)) {
+		if (cgroups_num_proc > 0 && cgroups_num_proc < omp_num_proc) {
+			com.max_thread = cgroups_num_proc;
+			siril_log_message("cgroups limits us to run on %d processors on %d available\n", cgroups_num_proc, omp_num_proc);
+		} else {
+			siril_debug_print("cgroups did not put a limit on the amount of used processors\n");
+			com.max_thread = num_proc;
+		}
+	}
+	else com.max_thread = num_proc;
 	omp_set_nested(1);
 	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
 	siril_log_message(
