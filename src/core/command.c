@@ -257,6 +257,7 @@ gpointer run_bm3d_on_gfit() {
 int process_bm3d(int nb){
 	set_cursor_waiting(TRUE);
 	start_in_new_thread(run_bm3d_on_gfit, NULL);
+	siril_add_idle(end_generic, NULL);
 	return CMD_OK;
 }
 

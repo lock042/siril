@@ -8,7 +8,9 @@
 
 #include "bm3d.h"
 #include "bm3d_utilities.h"
+#include "core/proto.h"
 #include "io/image_format_fits.h"
+#include "io/single_image.h"
 #include "opencv/opencv.h"
 
 #define YUV       0
@@ -61,12 +63,36 @@ void bgrbgr_float_to_fits(fits *image, float *bgrbgr) {
 	}
 }
 
+void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr) {
+	size_t ndata = image->rx * image->ry * 3;
+	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
+		image->pdata[BLAYER][j] = round_to_WORD(bgrbgr[i + 0] * USHRT_MAX);
+		image->pdata[GLAYER][j] = round_to_WORD(bgrbgr[i + 1] * USHRT_MAX);
+		image->pdata[RLAYER][j] = round_to_WORD(bgrbgr[i + 2] * USHRT_MAX);
+	}
+}
+
+float *fits_to_bgrbgr_wordtofloat(fits *image) {
+	size_t ndata = image->rx * image->ry * 3;
+    float invnorm = 1 / USHRT_MAX_SINGLE;
+	float *bgrbgr = (float *)malloc(ndata * sizeof(float));
+	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
+	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
+		bgrbgr[i + 0] = (float) image->pdata[BLAYER][j] * invnorm;
+		bgrbgr[i + 1] = (float) image->pdata[GLAYER][j] * invnorm;
+		bgrbgr[i + 2] = (float) image->pdata[RLAYER][j] * invnorm;
+	}
+	return bgrbgr;
+}
+
 extern "C" int do_bm3d(fits *fit) {
     // Parameters
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
     const unsigned nchans = fit->naxes[2];
-	float fSigma = 2; // Replace this with getting the noise level from statistics
+    const unsigned npixels = width * height;
+    float invnorm = 1 / USHRT_MAX_SINGLE;
+	float fSigma = 0.02; // Replace this with getting the noise level from statistics
 
 	// The algorithm parameters set below are the optimal parameters discussed in
 	// (Lebrun, 2012): http://www.ipol.im/pub/art/2012/l-bm3d/
@@ -79,21 +105,43 @@ extern "C" int do_bm3d(fits *fit) {
     const int nb_threads = 0;
     const bool verbose = FALSE;
 
-    float *bgr_f = fits_to_bgrbgr_float(fit);
-    fprintf(stdout, "checkpoint 2\n");
+    float *bgr_f;
+
+    if (fit->type == DATA_FLOAT) {
+      if (nchans == 3) {
+        bgr_f = fits_to_bgrbgr_float(fit);
+      } else {
+        bgr_f = (float*) calloc(npixels, sizeof(float));
+        for (unsigned i=0; i<npixels; i++) {
+          bgr_f[i] = fit->fdata[i];
+        }
+      }
+    } else {
+      if (nchans == 3) {
+        bgr_f = fits_to_bgrbgr_wordtofloat(fit);
+      } else {
+        bgr_f = (float*) calloc(npixels, sizeof(float));
+        for (unsigned i=0; i<npixels; i++) {
+          bgr_f[i] = (float) fit->data[i] * invnorm;
+        }
+      }
+    }
+
+//    fprintf(stdout, "checkpoint 2\n");
     vector<float> bgr_v { bgr_f, bgr_f + width * height * nchans };
-    fprintf(stdout, "checkpoint 3\n");
+  //  fprintf(stdout, "checkpoint 3\n");
 
     // Cut into manageable chunks to avoid OOM
-	unsigned numchunks = 2; // Be smarter about this considering available memory and size of image
+	unsigned numchunks = 1; // Be smarter about this considering available memory and size of image
     vector<vector<float> > chunk_noisy(numchunks);
     vector<vector<float> > chunk_basic(numchunks);
     vector<vector<float> > chunk_denoised(numchunks);
     vector<unsigned> w_table(numchunks);
     vector<unsigned> h_table(numchunks);
-    fprintf(stdout, "checkpoint 1\n");
+//    fprintf(stdout, "checkpoint 1\n");
     sub_divide(bgr_v, chunk_noisy, w_table, h_table, width, height, nchans, 32, TRUE); // 32 is nWien * 2;
-    fprintf(stdout, "checkpoint 4\n");
+
+//    fprintf(stdout, "checkpoint 4\n");
 
     // Run bm3d on each chunk in turn.
     for (unsigned i = 0; i < numchunks ; i++) {
@@ -107,8 +155,25 @@ extern "C" int do_bm3d(fits *fit) {
     bgr_f = bgr_v.data();
 
 	// Convert output from bgrbgr back to planar rgb and put back into fit
-    bgrbgr_float_to_fits(fit, bgr_f);
-
+    if (fit->type == DATA_FLOAT) {
+      if (nchans == 3) {
+        bgrbgr_float_to_fits(fit, bgr_f);
+      } else {
+        for (unsigned i=0; i<npixels; i++) {
+          fit->fdata[i] = bgr_f[i];
+//          free(bgr_f);
+        }
+      }
+    } else {
+      if (nchans == 3) {
+        bgrbgr_float_to_word_fits(fit, bgr_f);
+      } else {
+         for (unsigned i=0; i<npixels; i++) {
+          fit->data[i] = round_to_WORD(bgr_f[i] * USHRT_MAX);
+//          free(bgr_f);
+        }
+      }
+    }
 	return EXIT_SUCCESS;
 }
 

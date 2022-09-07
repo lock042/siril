@@ -309,7 +309,7 @@ int run_bm3d(
                                                 width, height, chnls, 2 * nHard, false);
 
         sub_divide(img_basic, sub_basic, w_table, h_table, width, height, chnls,
-                                                                        2 * nHard, true);
+                                                                        2 * nWien, true);
 
         //! Allocating Plan for FFTW process
         if (tau_2D_wien == DCT)
