@@ -91,6 +91,7 @@ src_files = [
   'filters/wavelets.c',
 
   'filters/call_bm3d.cpp',
+  'filters/call_bm3d.h',
   'filters/bm3d.cpp',
   'filters/bm3d_lib_transforms.cpp',
   'filters/bm3d_utilities.cpp',

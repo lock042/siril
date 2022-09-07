@@ -22,96 +22,6 @@
 
 using namespace std;
 
-// c: pointer to original argc
-// v: pointer to original argv
-// o: option name after hyphen
-// d: default value (if NULL, the option takes no argument)
-const char *pick_option(int *c, char **v, const char *o, const char *d) {
-  int id = d ? 1 : 0;
-  for (int i = 0; i < *c - id; i++) {
-    if (v[i][0] == '-' && 0 == strcmp(v[i] + 1, o)) {
-      char *r = v[i + id] + 1 - id;
-      for (int j = i; j < *c - id; j++)
-        v[j] = v[j + id + 1];
-      *c -= id + 1;
-      return r;
-    }
-  }
-  return d;
-}
-
-/**
- * @file   main.cpp
- * @brief  Main executable file. Do not use lib_fftw to
- *         process DCT.
- *
- * @author MARC LEBRUN  <marc.lebrun@cmla.ens-cachan.fr>
- */
-/*int main(int argc, char **argv)
-{
-  //! Variables initialization
-  const char *_tau_2D_hard = pick_option(&argc, argv, "tau_2d_hard", "bior");
-  const char *_tau_2D_wien = pick_option(&argc, argv, "tau_2d_wien", "dct");
-  const char *_color_space = pick_option(&argc, argv, "color_space", "opp");
-  const char *_patch_size = pick_option(&argc, argv, "patch_size", "0"); // >0: overrides default
-  const char *_nb_threads = pick_option(&argc, argv, "nb_threads", "0");
-  const bool useSD_1 = pick_option(&argc, argv, "useSD_hard", NULL) != NULL;
-  const bool useSD_2 = pick_option(&argc, argv, "useSD_wien", NULL) != NULL;
-  const bool verbose = pick_option(&argc, argv, "verbose", NULL) != NULL;
-
-	//! Check parameters
-	const unsigned tau_2D_hard  = (strcmp(_tau_2D_hard, "dct" ) == 0 ? DCT :
-                                 (strcmp(_tau_2D_hard, "bior") == 0 ? BIOR : NONE));
-    if (tau_2D_hard == NONE) {
-        cout << "tau_2d_hard is not known." << endl;
-        argc = 0; //abort
-    }
-	const unsigned tau_2D_wien  = (strcmp(_tau_2D_wien, "dct" ) == 0 ? DCT :
-                                 (strcmp(_tau_2D_wien, "bior") == 0 ? BIOR : NONE));
-    if (tau_2D_wien == NONE) {
-        cout << "tau_2d_wien is not known." << endl;
-        argc = 0; //abort
-    };
-	const unsigned color_space  = (strcmp(_color_space, "rgb"  ) == 0 ? RGB   :
-                                 (strcmp(_color_space, "yuv"  ) == 0 ? YUV   :
-                                 (strcmp(_color_space, "ycbcr") == 0 ? YCBCR :
-                                 (strcmp(_color_space, "opp"  ) == 0 ? OPP   : NONE))));
-    if (color_space == NONE) {
-        cout << "color_space is not known." << endl;
-        argc = 0; //abort
-    };
-
-  const int patch_size = atoi(_patch_size);
-    if (patch_size < 0)
-    {
-      cout << "The patch_size parameter must not be negative." << endl;
-      return EXIT_FAILURE;
-    } else {
-      const unsigned patch_size = (unsigned) patch_size;
-    }
-  const int nb_threads = atoi(_nb_threads);
-    if (nb_threads < 0)
-    {
-      cout << "The nb_threads parameter must not be negative." << endl;
-      return EXIT_FAILURE;
-    } else {
-      const unsigned nb_threads = (unsigned) nb_threads;
-    }
-
-  //! Check if there is the right call for the algorithm
-  if (argc < 4) {
-    cerr << "usage: " << argv[0] << " input sigma output [basic]\n\
-             [-tau_2d_hard {dct,bior} (default: bior)]\n\
-             [-useSD_hard]\n\
-             [-tau_2d_wien {dct,bior} (default: dct)]\n\
-             [-useSD_wien]\n\
-             [-color_space {rgb,yuv,opp,ycbcr} (default: opp)]\n\
-             [-patch_size {0,8,...} (default: 0, auto size, 8 or 12 depending on sigma)]\n\
-             [-nb_threads (default: 0, auto number)]\n\
-             [-verbose]" << endl;
-    return EXIT_FAILURE;
-  }
-*/
 /*
 float* cutchunk (float *img, unsigned x0, unsigned y0, unsigned xlen, unsigned ylen, unsigned width, unsigned nchans) {
 	// img stored as bgrbgrbgr
@@ -151,7 +61,7 @@ void bgrbgr_float_to_fits(fits *image, float *bgrbgr) {
 	}
 }
 
-int do_bm3d(fits *fit) {
+extern "C" int do_bm3d(fits *fit) {
     // Parameters
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
@@ -170,25 +80,30 @@ int do_bm3d(fits *fit) {
     const bool verbose = FALSE;
 
     float *bgr_f = fits_to_bgrbgr_float(fit);
-    vector<float> bgr_v { bgr_f, bgr_f + width * height * nchans * sizeof(float) };
+    fprintf(stdout, "checkpoint 2\n");
+    vector<float> bgr_v { bgr_f, bgr_f + width * height * nchans };
+    fprintf(stdout, "checkpoint 3\n");
 
     // Cut into manageable chunks to avoid OOM
-	unsigned numchunks = 16; // Be smarter about this considering available memory and size of image
-    vector<vector<float> > chunk(numchunks);
+	unsigned numchunks = 2; // Be smarter about this considering available memory and size of image
+    vector<vector<float> > chunk_noisy(numchunks);
     vector<vector<float> > chunk_basic(numchunks);
     vector<vector<float> > chunk_denoised(numchunks);
     vector<unsigned> w_table(numchunks);
     vector<unsigned> h_table(numchunks);
-    sub_divide(bgr_v, chunk, w_table, h_table, width, height, nchans, 32, FALSE); // 32 is nWien * 2;
+    fprintf(stdout, "checkpoint 1\n");
+    sub_divide(bgr_v, chunk_noisy, w_table, h_table, width, height, nchans, 32, TRUE); // 32 is nWien * 2;
+    fprintf(stdout, "checkpoint 4\n");
 
-	for (unsigned i = 0; i < numchunks ; i++) {
-      if (run_bm3d(fSigma, chunk[i], chunk_basic[i], chunk_denoised[i],
+    // Run bm3d on each chunk in turn.
+    for (unsigned i = 0; i < numchunks ; i++) {
+      if (run_bm3d(fSigma, chunk_noisy[i], chunk_basic[i], chunk_denoised[i],
          w_table[i], h_table[i], nchans, useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, color_space, patch_size, nb_threads, verbose) != EXIT_SUCCESS)
       return EXIT_FAILURE;
 	}
 
 	// Reassemble chunks
-    sub_divide(bgr_v, chunk_denoised, w_table, h_table, width, height, nchans, 32, TRUE);
+    sub_divide(bgr_v, chunk_denoised, w_table, h_table, width, height, nchans, 32, FALSE);
     bgr_f = bgr_v.data();
 
 	// Convert output from bgrbgr back to planar rgb and put back into fit

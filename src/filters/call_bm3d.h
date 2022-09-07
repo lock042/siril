@@ -1,6 +1,17 @@
 #ifndef SRC_CALL_BM3D_H_
 #define SRC_CALL_BM3D_H_
 
-extern "C" int do_bm3d(fits *fit);
+#ifdef __cplusplus
+#define EXTERNC extern "C" {
+#else
+#define EXTERNC
+#endif
+
+EXTERNC
+int do_bm3d(fits *fit);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_CALL_BM3D_H_ */
