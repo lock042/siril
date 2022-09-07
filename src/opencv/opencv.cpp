@@ -374,15 +374,15 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	case HOMOGRAPHY_TRANSFORMATION:
 	case AFFINE_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
-			ref.push_back(Point2f(star_array_ref[i].x, star_array_ref[i].y));
-			img.push_back(Point2f(star_array_img[i].x, star_array_img[i].y));
+			ref.push_back(Point2f(star_array_ref[i].x - 0.5, star_array_ref[i].y - 0.5));
+			img.push_back(Point2f(star_array_img[i].x - 0.5, star_array_img[i].y - 0.5));
 		}
 	break;
 #ifdef HAVE_CV44
 	case SHIFT_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
-			ref3.push_back(Point3f(star_array_ref[i].x, star_array_ref[i].y, 0.));
-			img3.push_back(Point3f(star_array_img[i].x, star_array_img[i].y, 0.));
+			ref3.push_back(Point3f(star_array_ref[i].x - 0.5, star_array_ref[i].y - 0.5, 0.));
+			img3.push_back(Point3f(star_array_img[i].x - 0.5, star_array_img[i].y - 0.5, 0.));
 		}
 	break;
 #endif
