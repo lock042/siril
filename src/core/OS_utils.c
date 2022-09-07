@@ -304,6 +304,9 @@ static int get_available_mem_cgroups(guint64 *amount) {
 		"/sys/fs/cgroup/memory/memory.low",
 		"/sys/fs/cgroup/memory/memory.high",
 		"/sys/fs/cgroup/memory/memory.max",
+		"/sys/fs/cgroup/memory.low",
+		"/sys/fs/cgroup/memory.high",
+		"/sys/fs/cgroup/memory.max",
 	};
 
 	if (source_file < -1)	// already tried
