@@ -250,14 +250,21 @@ int process_savebmp(int nb){
 }
 
 gpointer run_bm3d_on_gfit() {
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
 	int retval = do_bm3d(&gfit);
+	notify_gfit_modified();
+	gettimeofday(&t_end, NULL);
+	show_time_msg(t_start, t_end, "BM3D execution time");
+	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
 int process_bm3d(int nb){
 	set_cursor_waiting(TRUE);
+	copy_gfit_to_backup();
 	start_in_new_thread(run_bm3d_on_gfit, NULL);
-	siril_add_idle(end_generic, NULL);
+	undo_save_state(get_preview_gfit_backup(), _("BM3D Denoise"));
 	return CMD_OK;
 }
 

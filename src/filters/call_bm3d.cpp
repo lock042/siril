@@ -8,10 +8,14 @@
 
 #include "bm3d.h"
 #include "bm3d_utilities.h"
+#include "opencv/opencv.h"
+
+extern "C" {
 #include "core/proto.h"
 #include "io/image_format_fits.h"
-#include "io/single_image.h"
-#include "opencv/opencv.h"
+#include "gui/progress_and_log.h"
+#include "algos/statistics.h"
+}
 
 #define YUV       0
 #define YCBCR     1
@@ -91,16 +95,28 @@ extern "C" int do_bm3d(fits *fit) {
     const unsigned height = fit->naxes[1];
     const unsigned nchans = fit->naxes[2];
     const unsigned npixels = width * height;
-    float invnorm = 1 / USHRT_MAX_SINGLE;
-	float fSigma = 0.02; // Replace this with getting the noise level from statistics
+    float norm = 1.f;
+    if (fit->type == DATA_USHORT)
+      norm = USHRT_MAX_SINGLE;
+    float invnorm = 1 / norm;
+
+// Measure background noise
+    float fSigma = 0.f;
+    for (size_t chan = 0 ; chan < nchans ; chan++) {
+      imstats* stat = statistics(NULL, -1, fit, chan, NULL, STATS_SIGMEAN, MULTI_THREADED);
+      fSigma += stat->bgnoise / norm;
+      free_stats(stat);
+    }
+    siril_log_message(_("Auto parametrisation: measured background noise level is %f\n"),fSigma);
+    fSigma *= 1.0f; // Replace 1.0f with a user-specified parameter, though I should find a good default
 
 	// The algorithm parameters set below are the optimal parameters discussed in
 	// (Lebrun, 2012): http://www.ipol.im/pub/art/2012/l-bm3d/
 	const bool useSD_1 = FALSE;
     const bool useSD_2 = FALSE;
-    const unsigned tau_2D_hard = BIOR;
+    const unsigned tau_2D_hard = DCT;
     const unsigned tau_2D_wien = DCT;
-    const unsigned color_space = OPP;
+    const unsigned color_space = OPP; //OPP; // YUV, OPP or YCBCR
     const int patch_size = 0;
     const int nb_threads = 0;
     const bool verbose = FALSE;
@@ -127,28 +143,25 @@ extern "C" int do_bm3d(fits *fit) {
       }
     }
 
-//    fprintf(stdout, "checkpoint 2\n");
     vector<float> bgr_v { bgr_f, bgr_f + width * height * nchans };
-  //  fprintf(stdout, "checkpoint 3\n");
 
     // Cut into manageable chunks to avoid OOM
-	unsigned numchunks = 1; // Be smarter about this considering available memory and size of image
+	unsigned numchunks = 4; // Be smarter about this considering available memory and size of image
     vector<vector<float> > chunk_noisy(numchunks);
     vector<vector<float> > chunk_basic(numchunks);
     vector<vector<float> > chunk_denoised(numchunks);
     vector<unsigned> w_table(numchunks);
     vector<unsigned> h_table(numchunks);
-//    fprintf(stdout, "checkpoint 1\n");
     sub_divide(bgr_v, chunk_noisy, w_table, h_table, width, height, nchans, 32, TRUE); // 32 is nWien * 2;
-
-//    fprintf(stdout, "checkpoint 4\n");
 
     // Run bm3d on each chunk in turn.
     for (unsigned i = 0; i < numchunks ; i++) {
       if (run_bm3d(fSigma, chunk_noisy[i], chunk_basic[i], chunk_denoised[i],
          w_table[i], h_table[i], nchans, useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, color_space, patch_size, nb_threads, verbose) != EXIT_SUCCESS)
       return EXIT_FAILURE;
-	}
+
+      set_progress_bar_data("BM3D denoising...", (i / numchunks) * 100);
+    }
 
 	// Reassemble chunks
     sub_divide(bgr_v, chunk_denoised, w_table, h_table, width, height, nchans, 32, FALSE);
@@ -161,7 +174,6 @@ extern "C" int do_bm3d(fits *fit) {
       } else {
         for (unsigned i=0; i<npixels; i++) {
           fit->fdata[i] = bgr_f[i];
-//          free(bgr_f);
         }
       }
     } else {
@@ -170,12 +182,12 @@ extern "C" int do_bm3d(fits *fit) {
       } else {
          for (unsigned i=0; i<npixels; i++) {
           fit->data[i] = round_to_WORD(bgr_f[i] * USHRT_MAX);
-//          free(bgr_f);
         }
       }
     }
 	return EXIT_SUCCESS;
 }
+
 
 /*
 int fits_apply_bm3d(fits *fit) {
