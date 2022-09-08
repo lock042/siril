@@ -154,7 +154,7 @@ siril_common_SOURCES = \
 	filters/wavelets.c \
 	filters/wavelets.h \
 	filters/call_bm3d.cpp \
-	filters/call_bm3d.h \
+	filters/bm3d/call_bm3d.h \
 	filters/bm3d/bm3d.cpp \
 	filters/bm3d/bm3d.h \
 	filters/bm3d/bm3d_lib_transforms.cpp \
