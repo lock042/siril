@@ -13,6 +13,7 @@ int	process_bg(int nb);
 int	process_bgnoise(int nb);
 int	process_boxselect(int nb);
 
+int	process_capabilities(int nb);
 int	process_cd(int nb);
 int	process_cdg(int nb);
 int	process_crop(int nb);

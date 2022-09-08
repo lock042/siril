@@ -673,16 +673,14 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			/* FILL z */
 			if (image->type == DATA_USHORT) {
 				for (jj = 0, j = y - R; j <= y + R; j++, jj++) {
-					for (ii = 0, i = x - R; i <= x + R;
-							i++, ii++) {
-						gsl_matrix_set(z, ii, jj, (double)image_ushort[j][i]);
+					for (ii = 0, i = x - R; i <= x + R; i++, ii++) {
+						gsl_matrix_set(z, jj, ii, (double)image_ushort[j][i]);
 					}
 				}
 			} else {
 				for (jj = 0, j = y - R; j <= y + R; j++, jj++) {
-					for (ii = 0, i = x - R; i <= x + R;
-							i++, ii++) {
-						gsl_matrix_set(z, ii, jj, (double)image_float[j][i]);
+					for (ii = 0, i = x - R; i <= x + R; i++, ii++) {
+						gsl_matrix_set(z, jj, ii, (double)image_float[j][i]);
 					}
 				}
 			}

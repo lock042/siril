@@ -11,6 +11,7 @@
 #define STR_BGNOISE N_("Returns the background noise level of the image loaded in memory")
 #define STR_BOXSELECT N_("Make a selection area in the currently loaded image with the arguments <b>x</b>, <b>y</b>, <b>width</b> and <b>height</b>, with <b>x</b> and <b>y</b> being the coordinates of the top left corner starting at (0, 0), and <b>width</b> and <b>height</b>, the size of the selection. The <b>-clear</b> argument deletes any selection area. If no argument is passed, the current selection is printed")
 
+#define STR_CAPABILITIES N_("Lists Siril capabilities, based on compilation and runtime")
 #define STR_CD N_("Sets the new current working directory.\n\nThe argument <b>directory</b> can contain the ~ token, expanded as the home directory, directories with spaces in the name can be protected using single or double quotes")
 #define STR_CDG N_("Returns the coordinates of the center of gravity of the image")
 #define STR_CLAHE N_("Equalizes the histogram of an image using Contrast Limited Adaptive Histogram Equalization.\n\n<b>cliplimit</b> sets the threshold for contrast limiting.\n<b>tilesize</b> sets the size of grid for histogram equalization. Input image will be divided into equally sized rectangular tiles")

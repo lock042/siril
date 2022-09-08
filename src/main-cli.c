@@ -117,7 +117,6 @@ static void global_initialization() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 
-
 	initialize_default_settings();	// com.pref
 }
 
@@ -131,11 +130,12 @@ static void init_num_procs() {
 					"Possibly broken opencv/openblas installation.\n"),	omp_num_proc,
 				ngettext("processor", "processors", omp_num_proc));
 	}
+	com.max_thread = num_proc;
 	omp_set_nested(1);
 	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
 	siril_log_message(
-			_("Parallel processing %s: using %d logical %s%s.\n"),
-			_("enabled"), com.max_thread = num_proc,
+			_("Parallel processing enabled: using %d logical %s%s.\n"),
+			num_proc,
 			ngettext("processor", "processors", num_proc),
 			supports_nesting ? "" : _(", nesting not supported"));
 #else

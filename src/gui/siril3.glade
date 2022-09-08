@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -4012,6 +4012,24 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
           </packing>
         </child>
         <child>
+          <object class="GtkButton" id="bkg_show_original">
+            <property name="label" translatable="yes">Show original image</property>
+            <property name="visible">True</property>
+            <property name="sensitive">False</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Keep pressing this button to see the original image.</property>
+            <signal name="button-press-event" handler="on_bkg_show_original_button_press_event" swapped="no"/>
+            <signal name="button-release-event" handler="on_bkg_show_original_button_release_event" swapped="no"/>
+            <signal name="enter-notify-event" handler="on_bkg_show_original_enter_notify_event" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -4062,7 +4080,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>
