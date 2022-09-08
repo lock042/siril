@@ -941,7 +941,7 @@ float filtered_FWHM_average(psf_star **stars, int nb) {
 	}
 	for (int i = 0; i < nb; i++)
 		fwhms[i] = stars[i]->fwhmx;
-
+	quicksort_f(fwhms, nb);
 	float retval = siril_stats_trmean_from_sorted_data(0.15, fwhms, 1, nb);
 	free(fwhms);
 	return retval;
