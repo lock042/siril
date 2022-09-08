@@ -572,16 +572,14 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			/* FILL z */
 			if (image->type == DATA_USHORT) {
 				for (jj = 0, j = y - R; j <= y + R; j++, jj++) {
-					for (ii = 0, i = x - R; i <= x + R;
-							i++, ii++) {
-						gsl_matrix_set(z, ii, jj, (double)image_ushort[j][i]);
+					for (ii = 0, i = x - R; i <= x + R; i++, ii++) {
+						gsl_matrix_set(z, jj, ii, (double)image_ushort[j][i]);
 					}
 				}
 			} else {
 				for (jj = 0, j = y - R; j <= y + R; j++, jj++) {
-					for (ii = 0, i = x - R; i <= x + R;
-							i++, ii++) {
-						gsl_matrix_set(z, ii, jj, (double)image_float[j][i]);
+					for (ii = 0, i = x - R; i <= x + R; i++, ii++) {
+						gsl_matrix_set(z, jj, ii, (double)image_float[j][i]);
 					}
 				}
 			}
@@ -596,6 +594,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 					cur_star->layer = layer;
 					cur_star->xpos = (x - R) + cur_star->x0 - 0.5;
 					cur_star->ypos = (y - R) + cur_star->y0 - 0.5; // this is not +0.5 because the image is already flipped
+
 #if DEBUG_STAR_DETECTION
 					if (star_invalidated > SF_OK)
 						siril_debug_print("Candidate #%5d: X: %4d, Y: %4d - criterion #%2d failed (but star kept)\n%s", candidate, x, y, star_invalidated, errmsg);

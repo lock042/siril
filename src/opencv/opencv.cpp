@@ -296,48 +296,6 @@ void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointo
 	refpointout->y = refptout.at<double>(0, 1);
 }
 
-
-
-int cvAffineTransformation(fits *image, pointf *refpoints, pointf *curpoints, int nb_points, gboolean upscale2x, int interpolation, Homography *Hom) {
-	// see https://docs.opencv.org/3.4/d4/d61/tutorial_warp_affine.html
-	std::vector<Point2f> ref;
-	std::vector<Point2f> cur;
-
-	/* build vectors with lists of 3 stars. */
-	for (int i = 0; i < nb_points; i++) {
-		ref.push_back(Point2f(refpoints[i].x, image->ry - refpoints[i].y - 1));
-		cur.push_back(Point2f(curpoints[i].x, image->ry - curpoints[i].y - 1));
-	}
-
-	Mat m = estimateAffinePartial2D(cur, ref);
-	// std::cout << m << std::endl;
-
-	/* test that m is not a zero matrix */
-	if (countNonZero(m) < 1) {
-		siril_log_color_message(_("Singular Matrix. Cannot compute Affine Transformation.\n"), "red");
-		return -1;
-	}
-	Mat H = Mat::eye(3, 3, CV_64FC1);
-	m.copyTo(H(cv::Rect_<int>(0,0,3,2))); //slicing is (x, y, w, h)
-	convert_MatH_to_H(H, Hom);
-
-	Mat in, out;
-	void *bgr = NULL;
-	int target_rx = image->rx, target_ry = image->ry;
-	if (upscale2x) {
-		target_rx *= 2;
-		target_ry *= 2;
-		m *= 2;
-	}
-
-	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
-		return 1;
-
-	warpAffine(in, out, m, out.size(), interpolation, BORDER_TRANSPARENT);
-
-	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
-}
-
 static void convert_H_to_MatH(Homography *from, Mat &to) {
 	to.at<double>(0, 0) = from->h00;
 	to.at<double>(0, 1) = from->h01;
@@ -416,15 +374,15 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	case HOMOGRAPHY_TRANSFORMATION:
 	case AFFINE_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
-			ref.push_back(Point2f(star_array_ref[i].x, star_array_ref[i].y));
-			img.push_back(Point2f(star_array_img[i].x, star_array_img[i].y));
+			ref.push_back(Point2f(star_array_ref[i].x - 0.5, star_array_ref[i].y - 0.5));
+			img.push_back(Point2f(star_array_img[i].x - 0.5, star_array_img[i].y - 0.5));
 		}
 	break;
 #ifdef HAVE_CV44
 	case SHIFT_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
-			ref3.push_back(Point3f(star_array_ref[i].x, star_array_ref[i].y, 0.));
-			img3.push_back(Point3f(star_array_img[i].x, star_array_img[i].y, 0.));
+			ref3.push_back(Point3f(star_array_ref[i].x - 0.5, star_array_ref[i].y - 0.5, 0.));
+			img3.push_back(Point3f(star_array_img[i].x - 0.5, star_array_img[i].y - 0.5, 0.));
 		}
 	break;
 #endif
