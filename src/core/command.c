@@ -4758,6 +4758,10 @@ int process_seq_applyreg(int nb) {
 			value = current + 7;
 			gchar *end;
 			int layer2 = g_ascii_strtoull(value, &end, 10);
+			if (end == value) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), value);
+				continue;
+			}
 			if (!(seq->regparam[layer2])) {
 				siril_log_color_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), "red", layer2, layer);
 				continue;
