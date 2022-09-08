@@ -52,9 +52,10 @@ v1.2.0 mmm dd, 2022
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
 
-v1.0.5 October --, 2022
+v1.0.5 October 09, 2022
 * Fixed bug in eyedropper feature with 16bits images
 * Added button to see original image in background extraction
+* Fixed bug introduced in 1.0.4 with one pixel shift when registering meridian flipped images
 
 v1.0.4 September 02, 2022
 

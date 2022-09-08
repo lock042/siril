@@ -54,9 +54,10 @@ xx/xx/22
 * Optimised asinh code for speed
 
 siril 1.0.5
-10/--/22
+09/09/22
 * Fixed bug in eyedropper feature with 16bits images
 * Added button to see original image in background extraction
+* Fixed bug introduced in 1.0.4 with one pixel shift when registering meridian flipped images
 
 siril 1.0.4
 09/02/22
