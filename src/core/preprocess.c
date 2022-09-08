@@ -570,7 +570,7 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 		if (!g_str_equal(mulsignpos,"$OFFSET")) goto free_on_error;
 	}
 	if (!multiplier) goto free_on_error; // multiplier not parsed
-	if (!(end[0] == '\0')) goto free_on_error; // some characters were found after the multiplier
+	if (end[0] != '\0') goto free_on_error; // some characters were found after the multiplier
 	offsetlevel = (int)(multiplier * fit->key_offset);
 	if (expressioncpy) g_free(expressioncpy);
 	return offsetlevel;
