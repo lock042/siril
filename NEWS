@@ -51,6 +51,7 @@ v1.2.0 mmm dd, 2022
 * Fixed FITS header preservation on RGB composition
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
+* Added BM3D denoising
 
 v1.0.5 October --, 2022
 * Fixed bug in eyedropper feature with 16bits images

@@ -52,6 +52,7 @@ xx/xx/22
 * Fixed FITS header preservation on RGB composition
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
+* Added BM3D denoising
 
 siril 1.0.5
 10/--/22
