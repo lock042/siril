@@ -21,6 +21,8 @@ v1.2.0 mmm dd, 2022
 * Added relaxed mode for star detection for particularly bad images
 * Added crop to selection to the rotation geometric transform
 * Added a way to clean sequence file in the sequence tab (see also command seqclean)
+* Added a warning when images are negative on calibration
+* Added calibration details in the FITS history
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored global registration and added 2pass and Apply Existing methods
@@ -37,7 +39,7 @@ v1.2.0 mmm dd, 2022
 * Added option "full" to export all possible stats in seqstat command
 * Added argument to executable to pass pipes path, allowing several instances to run simultaneously
 * Added more reporting on online object search, avoiding duplicates in catalogues
-* Replaced generalized hyperbolic transform stretch method by more general algorithms nd optimised for speed
+* Replaced generalized hyperbolic transform stretch method by more general algorithms and optimised for speed
 * Added improved graphical interface to hyperbolic stretches
 * Altered behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels (this is useful in NB workflows etc.)
 * Replaced Libraw with RT debayering

@@ -570,7 +570,7 @@ gpointer convert_thread_worker(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
 	args->nb_converted_files = 0;
 	args->retval = 0;
-	gboolean allow_symlink = args->output_type == SEQ_REGULAR && test_if_symlink_is_ok();
+	gboolean allow_symlink = args->output_type == SEQ_REGULAR && test_if_symlink_is_ok(TRUE);
 	args->make_link &= allow_symlink;
 	if (args->make_link && com.pref.comp.fits_enabled) {
 		/* of course if input files are already compressed with the same
