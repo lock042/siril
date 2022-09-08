@@ -619,7 +619,7 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 	ser_file->writer = malloc(sizeof(struct seqwriter_data));
 	ser_file->writer->write_image_hook = ser_write_image_for_writer;
 	ser_file->writer->sequence = ser_file;
-	
+
 	siril_log_message(_("Created SER file %s\n"), filename);
 	start_writer(ser_file->writer, ser_file->frame_count);
 	return 0;
@@ -648,6 +648,10 @@ int ser_open_file(const char *filename, struct ser_struct *ser_file) {
 		perror("SER file open");
 		return -1;
 	}
+#ifdef _OPENMP
+	omp_init_lock(&ser_file->fd_lock);
+	omp_init_lock(&ser_file->ts_lock);
+#endif
 	if (ser_read_header(ser_file)) {
 		fprintf(stderr, "SER: reading header failed, closing file %s\n",
 				filename);
@@ -655,11 +659,6 @@ int ser_open_file(const char *filename, struct ser_struct *ser_file) {
 		return -1;
 	}
 	ser_file->filename = strdup(filename);
-
-#ifdef _OPENMP
-	omp_init_lock(&ser_file->fd_lock);
-	omp_init_lock(&ser_file->ts_lock);
-#endif
 	return 0;
 }
 
