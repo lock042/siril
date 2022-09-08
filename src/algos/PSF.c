@@ -277,7 +277,7 @@ static int psf_Gaussian_df_an(const gsl_vector * x, void *PSF_data,
 			if (mask[NbCols * i + j]) { 
 				tmpx = cos(alpha) * (j + 1 - x0) - sin(alpha) * (i + 1 - y0) + x0;
 				tmpy = sin(alpha) * (j + 1 - x0) + cos(alpha) * (i + 1 - y0) + y0;
-				s = sigma[NbCols * i + j];
+				s = sigma[k];
 				tmpc = exp(-(SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY));
 				gsl_matrix_set(J, k, 0, 1. / s);
 				gsl_matrix_set(J, k, 1, tmpc / s);
