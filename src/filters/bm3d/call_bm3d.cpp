@@ -78,9 +78,6 @@ void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr) {
 }
 
 float *fits_to_bgrbgr_wordtofloat(fits *image) {
-    float ratio = 1.f; // This will become a user parameter
-    if (nchans == 1)
-      ratio *= 0.75f;
     size_t ndata = image->rx * image->ry * 3;
     float invnorm = 1 / USHRT_MAX_SINGLE;
 	float *bgrbgr = (float *)malloc(ndata * sizeof(float));
@@ -95,7 +92,7 @@ float *fits_to_bgrbgr_wordtofloat(fits *image) {
 
 extern "C" int do_bm3d(fits *fit) {
     // Parameters
-    const unsigned width = fit->naxes[0];
+  const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
     const unsigned nchans = fit->naxes[2];
     const unsigned npixels = width * height;
@@ -103,6 +100,11 @@ extern "C" int do_bm3d(fits *fit) {
     if (fit->type == DATA_USHORT)
       norm = USHRT_MAX_SINGLE;
     float invnorm = 1 / norm;
+
+    float ratio = 1.f; // This will become a user parameter
+    if (nchans == 1)
+      ratio *= 0.75f;
+
 
 // Measure background noise
     float fSigma = 0.f;

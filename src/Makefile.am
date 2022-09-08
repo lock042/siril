@@ -155,12 +155,12 @@ siril_common_SOURCES = \
 	filters/wavelets.h \
 	filters/call_bm3d.cpp \
 	filters/call_bm3d.h \
-	filters/bm3d.cpp \
-	filters/bm3d.h \
-	filters/bm3d_lib_transforms.cpp \
-	filters/bm3d_lib_transforms.h \
-	filters/bm3d_utilities.cpp \
-	filters/bm3d_utilities.h \
+	filters/bm3d/bm3d.cpp \
+	filters/bm3d/bm3d.h \
+	filters/bm3d/bm3d_lib_transforms.cpp \
+	filters/bm3d/bm3d_lib_transforms.h \
+	filters/bm3d/bm3d_utilities.cpp \
+	filters/bm3d/bm3d_utilities.h \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
 	gui/annotations_pref.c \

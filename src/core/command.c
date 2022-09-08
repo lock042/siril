@@ -68,7 +68,7 @@
 #include "gui/preferences.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
-#include "filters/call_bm3d.h"
+#include "filters/bm3d/call_bm3d.h"
 #include "filters/clahe.h"
 #include "filters/cosmetic_correction.h"
 #include "filters/deconv.h"

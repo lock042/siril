@@ -90,11 +90,11 @@ src_files = [
   'filters/starnet.c',
   'filters/wavelets.c',
 
-  'filters/call_bm3d.cpp',
-  'filters/call_bm3d.h',
-  'filters/bm3d.cpp',
-  'filters/bm3d_lib_transforms.cpp',
-  'filters/bm3d_utilities.cpp',
+  'filters/bm3d/call_bm3d.cpp',
+  'filters/bm3d/call_bm3d.h',
+  'filters/bm3d/bm3d.cpp',
+  'filters/bm3d/bm3d_lib_transforms.cpp',
+  'filters/bm3d/bm3d_utilities.cpp',
 
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
