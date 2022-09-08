@@ -78,7 +78,10 @@ void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr) {
 }
 
 float *fits_to_bgrbgr_wordtofloat(fits *image) {
-	size_t ndata = image->rx * image->ry * 3;
+    float ratio = 1.f; // This will become a user parameter
+    if (nchans == 1)
+      ratio *= 0.75f;
+    size_t ndata = image->rx * image->ry * 3;
     float invnorm = 1 / USHRT_MAX_SINGLE;
 	float *bgrbgr = (float *)malloc(ndata * sizeof(float));
 	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
@@ -110,13 +113,14 @@ extern "C" int do_bm3d(fits *fit) {
     }
     fSigma /= nchans;
     siril_log_message(_("Auto parametrisation: measured background noise level is %f\n"),fSigma);
-    fSigma *= 1.0f; // Replace 1.0f with a user-specified parameter, though I should find a good default
+    fSigma *= ratio; // Replace 1.0f with a user-specified parameter. Reasonable default seems to be
+                     // 1.f for colour images and 0.75f for mono.
 
 	// The algorithm parameters set below are the optimal parameters discussed in
 	// (Lebrun, 2012): http://www.ipol.im/pub/art/2012/l-bm3d/
 	const bool useSD_1 = FALSE;
     const bool useSD_2 = FALSE;
-    const unsigned tau_2D_hard = DCT;
+    const unsigned tau_2D_hard = BIOR;
     const unsigned tau_2D_wien = DCT;
     const unsigned color_space = OPP; //OPP; // YUV, OPP or YCBCR
     const int patch_size = 0;
