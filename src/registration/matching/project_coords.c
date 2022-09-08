@@ -223,7 +223,7 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 
 		line = g_strstrip(line);
 
-		gchar **token = g_strsplit_set(line, " \t", -1);
+		gchar **token = g_strsplit_set(line, "\t", -1);
 		i = 0;
 		while (token[i] && strcmp(token[i], "\n")) {
 			if (i == racol) {
