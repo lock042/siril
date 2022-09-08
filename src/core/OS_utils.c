@@ -285,6 +285,69 @@ static int read_from_file(const char *filename, guint64 *value) {
 	return retval;
 }
 
+static int read_2_from_file(const char *filename, guint64 *value1, guint64 *value2) {
+	int fd = open(filename, O_RDONLY);
+	if (fd == -1)
+		return 1;
+	char buf[50];
+	int retval = read(fd, buf, 50);
+	if (retval <= 0) {
+		close(fd);
+		return 1;
+	}
+	char *end;
+	*value1 = strtoull(buf, &end, 10);
+	if (end == buf)
+		return 1;
+
+	char *start = end;
+	*value2 = strtoull(start, &end, 10);
+	retval = (end == start);
+	close(fd);
+	return retval;
+}
+
+/* returns the directory in the cgroups filesystem that applies for the current
+ * process for the requested module */
+static gchar *find_cgroups_path(const char *module) {
+	FILE *fd = g_fopen("/proc/self/cgroup", "r");
+	if (!fd)
+		return g_strdup("");
+	char buf[2000];
+	char *cgpath = NULL;
+	while (!cgpath && fgets(buf, 2000, fd)) {
+		remove_trailing_eol(buf);
+		gchar **tokens = g_strsplit(buf, ":", -1);
+		guint n = g_strv_length(tokens);
+		if (n < 3) {
+			siril_debug_print("malformed line in /proc/self/cgroup: %s\n", buf);
+			continue;
+		}
+		if (atoi(tokens[0]) == 0 && tokens[1][0] == '\0') {
+			// cgroups v2, only one entry
+			siril_debug_print("cgroups v2 path: %s\n", tokens[2]);
+			cgpath = g_strdup(tokens[2]);
+		} else {
+			gchar **controllers = g_strsplit(tokens[1], ",", -1);
+			guint ncont = g_strv_length(controllers);
+			for (int i = 0; i < ncont; i++) {
+				if (!strcmp(controllers[i], module)) {
+					siril_debug_print("cgroups v1 path: %s\n", tokens[2]);
+					cgpath = g_strdup(tokens[2]);
+					break;
+				}
+			}
+			g_strfreev(controllers);
+		}
+		g_strfreev(tokens);
+	}
+
+	fclose(fd);
+	if (!cgpath)
+		cgpath = g_strdup("");
+	return cgpath;
+}
+
 static int get_available_mem_cgroups(guint64 *amount) {
 	/* useful files, cgroups v1:
 	 * memory.usage_in_bytes	# show current usage for memory	(for the system?)
@@ -297,42 +360,53 @@ static int get_available_mem_cgroups(guint64 *amount) {
 	 * memory.high			# hard limit, default is 'max'
 	 * memory.max			# kill limit, default is 'max'
 	 */
-	static int source_file = -1;
+	static gchar *limits_filepath = NULL;
+	static gboolean initialized = FALSE;
+	// assuming cgroups fs is mounted on /sys/fs/cgroup, we could also
+	// check the mount points but that's fairly common
 	const char *limits_paths[] = {	// in order of files to try
-		"/sys/fs/cgroup/memory/memory.soft_limit_in_bytes",
-		"/sys/fs/cgroup/memory/memory.limit_in_bytes",
-		"/sys/fs/cgroup/memory/memory.low",
-		"/sys/fs/cgroup/memory/memory.high",
-		"/sys/fs/cgroup/memory/memory.max",
-		"/sys/fs/cgroup/memory.low",
-		"/sys/fs/cgroup/memory.high",
-		"/sys/fs/cgroup/memory.max",
+		// v1
+		"/sys/fs/cgroup%s/memory.soft_limit_in_bytes",
+		"/sys/fs/cgroup%s/memory.limit_in_bytes",
+		// v2
+		"/sys/fs/cgroup%s/memory.low",
+		"/sys/fs/cgroup%s/memory.high",
+		"/sys/fs/cgroup%s/memory.max"
 	};
 
-	if (source_file < -1)	// already tried
+	if (initialized && !limits_filepath)
 		return 1;
-	// first, get the limit
+	// first, get the limit, currently it can be dynamic but it's slower to read the file every time
 	guint64 limit;
-	if (source_file == -1) {
+	if (!initialized) {
+		gchar *cgroup_path = find_cgroups_path("memory");
 		int nb_paths = sizeof limits_paths / sizeof(const char *);
+		int source_file;
 		for (source_file = 0; source_file < nb_paths; source_file++) {
-			if (!read_from_file(limits_paths[source_file], &limit) && limit > (guint64)0) {
-				siril_log_message(_("Found a cgroups memory limit: %d MB from %s\n"),
-						(int)(limit / BYTES_IN_A_MB), limits_paths[source_file]);
+			gchar *path = g_strdup_printf(limits_paths[source_file], cgroup_path);
+			if (!read_from_file(path, &limit) && limit > (guint64)0) {
+				siril_debug_print("Found memory cgroups limit in %s\n", path);
+				siril_log_message(_("Using cgroups limit on memory: %d MB\n"),
+						(int)(limit / BYTES_IN_A_MB));
+				limits_filepath = path;
 				break;
 			}
+			g_free(path);
 		}
+		initialized = 1;
+		g_free(cgroup_path);
 		if (source_file == nb_paths) {
+			siril_debug_print("no memory cgroup controller detected\n");
 			// not using cgroups
-			source_file = -2;
 			return 1;
 		}
 	}
 	else {
-		if (read_from_file(limits_paths[source_file], &limit) || limit == (guint64)0) {
+		if (read_from_file(limits_filepath, &limit) || limit == (guint64)0) {
 			siril_log_message(_("Error reading from %s, disabling cgroups memory limits\n"),
-					limits_paths[source_file]);
-			source_file = -2;
+					limits_filepath);
+			g_free(limits_filepath);
+			limits_filepath = NULL;
 		}
 	}
 
@@ -344,6 +418,43 @@ static int get_available_mem_cgroups(guint64 *amount) {
 	if (limit < current)
 		*amount = (guint64)1;	// 0 mean error in the caller
 	else *amount = limit - current;
+	return 0;
+}
+
+int get_available_cpu_cgroups() {
+	/* computing a number of processors based on the cgroups throttles (cpu bandwidth)
+	 * Using files from the cgroups filesystem mounted in /sys/fs/cgroup
+	 * cgroups v1 (see https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/resource_management_guide/sec-cpu ):
+	 * 	cpu/cpu.cfs_period_us	the period for which CPU resources should be reallocated
+	 * 	cpu/cpu.cfs_quota_us	time for which all tasks in a cgroup can run during one period
+	 *
+	 * cgroups v2 (see https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/managing_monitoring_and_updating_the_kernel/using-cgroups-v2-to-control-distribution-of-cpu-time-for-applications_managing-monitoring-and-updating-the-kernel ):
+	 *	cpu.max			containing 2 numbers, quota and period, space-separated
+	 */
+	guint64 period = 0, quota;
+	gchar *cgroup_path = find_cgroups_path("cpu");
+	gchar *v1periodpath = g_strdup_printf("/sys/fs/cgroup%s/cpu/cpu.cfs_period_us", cgroup_path);
+	gchar *v1quotapath = g_strdup_printf("/sys/fs/cgroup%s/cpu/cpu.cfs_quota_us", cgroup_path);
+	if (!read_from_file(v1periodpath, &period) &&
+			!read_from_file(v1quotapath, &quota)) {
+		siril_debug_print("found cgroups v1 cpu quota %lu and period %lu in cgroup %s\n", quota, period, cgroup_path);
+	} else {
+		gchar *v2path = g_strdup_printf("/sys/fs/cgroup%s/cpu.max", cgroup_path);
+		if (!read_2_from_file(v2path, &quota, &period)) {
+			siril_debug_print("found cgroups v2 cpu quota %lu and period %lu in %s\n", quota, period, v2path);
+		}
+		else siril_debug_print("no cgroups cpu bandwidth limitations found\n");
+		g_free(v2path);
+	}
+	g_free(v1periodpath);
+	g_free(v1quotapath);
+	g_free(cgroup_path);
+	if (period != 0)
+		return round_to_int((double)quota / period);
+	return 0;
+}
+#else
+int get_available_cpu_cgroups() {
 	return 0;
 }
 #endif

@@ -31,6 +31,8 @@ guint64 get_available_memory();
 int get_max_memory_in_MB();
 void log_used_mem(gchar *when);
 
+int get_available_cpu_cgroups();
+
 GInputStream *siril_input_stream_from_stdin();
 
 #ifdef _WIN32

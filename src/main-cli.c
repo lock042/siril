@@ -131,6 +131,11 @@ static void init_num_procs() {
 		// in case of cgroup limitation of the cpuset, openmp already detects the correct count
 	}
 	com.max_thread = num_proc < omp_num_proc ? num_proc : omp_num_proc;;
+	int cgroups_num_proc = get_available_cpu_cgroups();
+	if (cgroups_num_proc > 0 && cgroups_num_proc < com.max_thread) {
+		siril_log_message(_("Using cgroups limit on the number of processors: %d\n"), cgroups_num_proc);
+		com.max_thread = cgroups_num_proc;
+	}
 	omp_set_nested(1);
 	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
 	siril_log_message(
