@@ -1,4 +1,9 @@
+v1.0.6 xx xx, 2022
+
+* Fixed crash on opening a malformed SER
+
 v1.0.5 October 09, 2022
+
 * Fixed bug in eyedropper feature with 16bits images
 * Added button to see original image in background extraction
 * Fixed bug introduced in 1.0.4 with one pixel shift when registering meridian flipped images
