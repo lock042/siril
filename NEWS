@@ -2,6 +2,7 @@ v1.0.5 October 09, 2022
 * Fixed bug in eyedropper feature with 16bits images
 * Added button to see original image in background extraction
 * Fixed bug introduced in 1.0.4 with one pixel shift when registering meridian flipped images
+* Fixed GAIA catalog parser
 
 v1.0.4 September 02, 2022
 
