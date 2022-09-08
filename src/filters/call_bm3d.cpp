@@ -12,6 +12,7 @@
 
 extern "C" {
 #include "core/proto.h"
+#include "core/OS_utils.h"
 #include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
 #include "algos/statistics.h"
@@ -107,6 +108,7 @@ extern "C" int do_bm3d(fits *fit) {
       fSigma += stat->bgnoise / norm;
       free_stats(stat);
     }
+    fSigma /= nchans;
     siril_log_message(_("Auto parametrisation: measured background noise level is %f\n"),fSigma);
     fSigma *= 1.0f; // Replace 1.0f with a user-specified parameter, though I should find a good default
 
@@ -145,8 +147,15 @@ extern "C" int do_bm3d(fits *fit) {
 
     vector<float> bgr_v { bgr_f, bgr_f + width * height * nchans };
 
-    // Cut into manageable chunks to avoid OOM
-	unsigned numchunks = 4; // Be smarter about this considering available memory and size of image
+    // Work out chunks required to avoid OOM
+
+    unsigned memGB = (unsigned) (get_available_memory() / 1000000000);
+    unsigned imgmemMpix = npixels / 1000000;
+    unsigned numchunks = imgmemMpix / (memGB / 5); // Be smarter about this considering available memory and size of image
+    if (numchunks < 1)
+      numchunks = 1;
+    fprintf(stdout, "memory: %u GB, imgsize: %u Mpix, numchunks: %u\n", memGB, imgmemMpix, numchunks);
+ 	// Cut into manageable chunks to avoid OOM
     vector<vector<float> > chunk_noisy(numchunks);
     vector<vector<float> > chunk_basic(numchunks);
     vector<vector<float> > chunk_denoised(numchunks);

@@ -263,6 +263,13 @@ gpointer run_bm3d_on_gfit() {
 int process_bm3d(int nb){
 	set_cursor_waiting(TRUE);
 	copy_gfit_to_backup();
+	unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
+	unsigned memGB = (unsigned) (get_available_memory() / 1000000000);
+    unsigned imgmemMpix = npixels / 1000000;
+    unsigned numchunks = imgmemMpix / (memGB / 5); // Be smarter about this considering available memory and size of image
+    if (numchunks < 1)
+      numchunks = 1;
+    siril_log_message(_("Available memory: %u GB, processing in %u chunks.\n"), memGB, numchunks);
 	start_in_new_thread(run_bm3d_on_gfit, NULL);
 	undo_save_state(get_preview_gfit_backup(), _("BM3D Denoise"));
 	return CMD_OK;
