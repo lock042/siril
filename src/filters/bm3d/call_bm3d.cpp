@@ -117,10 +117,9 @@ extern "C" int do_bm3d(fits *fit) {
     vector<float> bgr_v { bgr_f, bgr_f + width * height * nchans };
 
     // Work out chunks required to avoid OOM
-
     float memGB = (float) (get_available_memory() / 1000000000);
     float imgmemMpix = npixels / 1000000;
-    unsigned numchunks = (unsigned) imgmemMpix / (memGB / 5.0); // Be smarter about this considering available memory and size of image
+    unsigned numchunks = (unsigned) imgmemMpix / (memGB / 5.0);
     if (numchunks < 1)
       numchunks = 1;
 
