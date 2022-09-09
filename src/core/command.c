@@ -5481,7 +5481,6 @@ int process_preprocess(int nb) {
 		return CMD_ARG_ERROR;
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
-	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
 	args->allow_32bit_output = (args->output_seqtype == SEQ_REGULAR
@@ -5500,7 +5499,6 @@ int process_preprocess_single(int nb) {
 		return CMD_ARG_ERROR;
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
-	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
 	args->allow_32bit_output = !com.pref.force_16bit;

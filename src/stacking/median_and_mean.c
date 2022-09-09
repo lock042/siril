@@ -871,7 +871,7 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 	double fwhmmin = DBL_MAX;
 	double fwhmmax = -DBL_MAX;
 	double invdenom, invfwhmax2;
-	
+
 	if((!args->seq->regparam) && (!args->seq->regparam[args->reglayer]))
 		return ST_GENERIC_ERROR;
 
