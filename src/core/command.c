@@ -252,7 +252,7 @@ int process_savebmp(int nb){
 gpointer run_bm3d_on_gfit() {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	set_progress_bar_data("Starting BM3D denoising...", PROGRESS_PULSATE);
+	set_progress_bar_data("Starting BM3D denoising...", 0.0);
 	int retval = do_bm3d(&gfit);
 	notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
