@@ -59,34 +59,22 @@ unsigned round_up(unsigned num, unsigned factor) {
 }
 */
 
-void bgrbgr_bm3d_float_to_fits(fits *image, float *bgrbgr, float img_mean) {
+void bgrbgr_float_to_fits(fits *image, float *bgrbgr) {
 	size_t ndata = image->rx * image->ry * 3;
 	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		image->fpdata[BLAYER][j] = bgrbgr[i + 0] * (img_mean / 128.f);
-		image->fpdata[GLAYER][j] = bgrbgr[i + 1] * (img_mean / 128.f);
-		image->fpdata[RLAYER][j] = bgrbgr[i + 2] * (img_mean / 128.f);
+		image->fpdata[BLAYER][j] = bgrbgr[i + 0];
+		image->fpdata[GLAYER][j] = bgrbgr[i + 1];
+		image->fpdata[RLAYER][j] = bgrbgr[i + 2];
 	}
 }
 
-void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr, float img_mean) {
+void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr) {
 	size_t ndata = image->rx * image->ry * 3;
 	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		image->pdata[BLAYER][j] = round_to_WORD(bgrbgr[i + 0] * USHRT_MAX * (img_mean / 128.f));
-		image->pdata[GLAYER][j] = round_to_WORD(bgrbgr[i + 1] * USHRT_MAX * (img_mean / 128.f));
-		image->pdata[RLAYER][j] = round_to_WORD(bgrbgr[i + 2] * USHRT_MAX * (img_mean / 128.f));
+		image->pdata[BLAYER][j] = round_to_WORD(bgrbgr[i + 0] * USHRT_MAX);
+		image->pdata[GLAYER][j] = round_to_WORD(bgrbgr[i + 1] * USHRT_MAX);
+		image->pdata[RLAYER][j] = round_to_WORD(bgrbgr[i + 2] * USHRT_MAX);
 	}
-}
-
-float *fits_to_bgrbgr_bm3d_float(fits *image, float img_mean) {
-    size_t ndata = image->rx * image->ry * 3;
-	float *bgrbgr = (float *)malloc(ndata * sizeof(float));
-	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
-	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		bgrbgr[i + 0] = image->fpdata[BLAYER][j] * (128.f / img_mean);
-		bgrbgr[i + 1] = image->fpdata[GLAYER][j] * (128.f / img_mean);
-		bgrbgr[i + 2] = image->fpdata[RLAYER][j] * (128.f / img_mean);
-	}
-	return bgrbgr;
 }
 
 float *fits_to_bgrbgr_wordtofloat(fits *image) {
@@ -112,9 +100,8 @@ extern "C" int do_bm3d(fits *fit) {
     if (fit->type == DATA_USHORT)
       norm = USHRT_MAX_SINGLE;
     float invnorm = 1 / norm;
-    float img_mean;
 
-    float ratio = 1.f; // This will become a user parameter
+    float ratio = 0.5f; // This will become a user parameter
     if (nchans == 1)
       ratio *= 0.75f;
 
@@ -124,13 +111,10 @@ extern "C" int do_bm3d(fits *fit) {
     for (size_t chan = 0 ; chan < nchans ; chan++) {
       imstats* stat = statistics(NULL, -1, fit, chan, NULL, STATS_SIGMEAN, MULTI_THREADED);
       fSigma += stat->bgnoise / norm;
-      img_mean += stat->mean;
       free_stats(stat);
     }
     fSigma /= nchans;
     siril_log_message(_("Auto parametrisation: measured background noise level is %f\n"),fSigma);
-    img_mean /= nchans;
-    fSigma *= (128.f / img_mean);
     fSigma *= ratio; // Replace 1.0f with a user-specified parameter. Reasonable default seems to be
                      // 1.f for colour images and 0.75f for mono.
 
@@ -142,18 +126,18 @@ extern "C" int do_bm3d(fits *fit) {
     const unsigned tau_2D_wien = DCT;
     const unsigned color_space = OPP; //OPP; // YUV, OPP or YCBCR
     const int patch_size = 0;
-    const int nb_threads = 1;
-    const bool verbose = TRUE;
+    const int nb_threads = 0;
+    const bool verbose = FALSE;
 
     float *bgr_f;
 
     if (fit->type == DATA_FLOAT) {
       if (nchans == 3) {
-        bgr_f = fits_to_bgrbgr_bm3d_float(fit, img_mean);
+        bgr_f = fits_to_bgrbgr_float(fit);
       } else {
         bgr_f = (float*) calloc(npixels, sizeof(float));
         for (unsigned i=0; i<npixels; i++) {
-          bgr_f[i] = fit->fdata[i] * (128.f / img_mean);
+          bgr_f[i] = fit->fdata[i];
         }
       }
     } else {
@@ -162,7 +146,7 @@ extern "C" int do_bm3d(fits *fit) {
       } else {
         bgr_f = (float*) calloc(npixels, sizeof(float));
         for (unsigned i=0; i<npixels; i++) {
-          bgr_f[i] = (float) fit->data[i] * invnorm * (128.f / img_mean);
+          bgr_f[i] = (float) fit->data[i] * invnorm;
         }
       }
     }
@@ -173,10 +157,10 @@ extern "C" int do_bm3d(fits *fit) {
 
     float memGB = (float) (get_available_memory() / 1000000000);
     float imgmemMpix = npixels / 1000000;
-    float numchunks = imgmemMpix / (memGB / 5); // Be smarter about this considering available memory and size of image
+    unsigned numchunks = (unsigned) imgmemMpix / (memGB / 5.0); // Be smarter about this considering available memory and size of image
     if (numchunks < 1)
       numchunks = 1;
-    fprintf(stdout, "memory: %u GB, imgsize: %f Mpix, numchunks: %u\n", (unsigned) memGB, imgmemMpix, (unsigned) numchunks);
+    fprintf(stdout, "memory: %f GB, imgsize: %f Mpix, numchunks: %u\n", memGB, imgmemMpix, numchunks);
  	// Cut into manageable chunks to avoid OOM
     vector<vector<float> > chunk_noisy(numchunks);
     vector<vector<float> > chunk_basic(numchunks);
@@ -201,18 +185,18 @@ extern "C" int do_bm3d(fits *fit) {
 	// Convert output from bgrbgr back to planar rgb and put back into fit
     if (fit->type == DATA_FLOAT) {
       if (nchans == 3) {
-        bgrbgr_bm3d_float_to_fits(fit, bgr_f, img_mean);
+        bgrbgr_float_to_fits(fit, bgr_f);
       } else {
         for (unsigned i=0; i<npixels; i++) {
-          fit->fdata[i] = bgr_f[i] * (img_mean / 128.f);
+          fit->fdata[i] = bgr_f[i];
         }
       }
     } else {
       if (nchans == 3) {
-        bgrbgr_float_to_word_fits(fit, bgr_f, img_mean);
+        bgrbgr_float_to_word_fits(fit, bgr_f);
       } else {
          for (unsigned i=0; i<npixels; i++) {
-          fit->data[i] = round_to_WORD(bgr_f[i] * USHRT_MAX * (img_mean / 128.f));
+          fit->data[i] = round_to_WORD(bgr_f[i] * USHRT_MAX);
         }
       }
     }
