@@ -132,7 +132,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 
 	sadata->current_regdata = star_align_get_current_regdata(regargs);
 	if (!sadata->current_regdata) return -2;
-	
+
 	/* first we're looking for stars in reference image */
 	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
 		siril_log_message(_("Could not load reference image\n"));
