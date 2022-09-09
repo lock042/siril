@@ -190,6 +190,7 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 			if (hist)
 				hist = g_slist_append(hist, g_strdup_printf("Calibrated with an optimized master dark (factor: %.3f)", k0));
 		}
+		else siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
 	}
 	clearfits(&dark_tmp);
 	return ret;
