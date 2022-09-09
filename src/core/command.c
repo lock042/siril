@@ -4766,6 +4766,10 @@ int process_seq_applyreg(int nb) {
 			value = current + 7;
 			gchar *end;
 			int layer2 = g_ascii_strtoull(value, &end, 10);
+			if (end == value) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), value);
+				continue;
+			}
 			if (!(seq->regparam[layer2])) {
 				siril_log_color_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), "red", layer2, layer);
 				continue;
@@ -5464,7 +5468,6 @@ int process_preprocess(int nb) {
 		return CMD_ARG_ERROR;
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
-	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
 	args->allow_32bit_output = (args->output_seqtype == SEQ_REGULAR
@@ -5483,7 +5486,6 @@ int process_preprocess_single(int nb) {
 		return CMD_ARG_ERROR;
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
-	gettimeofday(&args->t_start, NULL);
 	args->autolevel = TRUE;
 	args->normalisation = 1.0f;	// will be updated anyway
 	args->allow_32bit_output = !com.pref.force_16bit;
