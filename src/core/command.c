@@ -259,19 +259,14 @@ gpointer run_bm3d_on_fit(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "BM3D execution time");
 	set_progress_bar_data("Ready.", 0.0);
-
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
 int process_bm3d(int nb){
 	set_cursor_waiting(TRUE);
-	copy_gfit_to_backup(); // For testing only, remove this from the console command before release
+//	copy_gfit_to_backup(); // For testing only, remove this from the console command before release
 	bm3d_args *args = calloc(1, sizeof(bm3d_args));
-	unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
-	float memGB = (float) (get_available_memory() / 1000000000);
-    float imgmemMpix = (float) npixels / 1000000.f;
-    unsigned numchunks = (unsigned) (imgmemMpix / (memGB / 5));
 	args->fit = &gfit;
 	if (!(word[1]))
 		args->modulation = 1.f;
@@ -286,11 +281,15 @@ int process_bm3d(int nb){
 			return CMD_OK;
 		}
 	}
+	unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
+	float memGB = (float) (get_available_memory() / 1000000000);
+    float imgmemMpix = (float) npixels / 1000000.f;
+    unsigned numchunks = (unsigned) (imgmemMpix / (memGB / 5));
     siril_log_message(_("Available memory: %f GB, processing in %u chunks.\n"), memGB, numchunks);
 	siril_log_message(_("Modulation: %f\n"),args->modulation);
 
 	start_in_new_thread(run_bm3d_on_fit, args);
-	undo_save_state(get_preview_gfit_backup(), _("BM3D Denoise")); // Testing, remove before release
+//	undo_save_state(get_preview_gfit_backup(), _("BM3D Denoise")); // Testing, remove before release
 	return CMD_OK;
 }
 

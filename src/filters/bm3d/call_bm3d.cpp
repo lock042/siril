@@ -133,6 +133,11 @@ extern "C" int do_bm3d(fits *fit, float modulation) {
 
     // Run bm3d on each chunk in turn.
     for (unsigned i = 0; i < numchunks ; i++) {
+
+      if(!get_thread_run()) {
+        return EXIT_FAILURE;
+      }
+
       if (run_bm3d(fSigma, chunk_noisy[i], chunk_basic[i], chunk_denoised[i],
           w_table[i], h_table[i], nchans, useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, color_space, patch_size, nb_threads, verbose) != EXIT_SUCCESS)
         return EXIT_FAILURE;
