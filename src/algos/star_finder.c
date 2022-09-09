@@ -46,14 +46,14 @@
 #include "core/OS_utils.h"
 
 #define _SQRT_EXP1 1.6487212707
-#define KERNEL_SIZE 3.
-#define DENSITY_THRESHOLD 0.001
-#define SAT_THRESHOLD 0.7
-#define SAT_DETECTION_RANGE 0.1
-#define MAX_BOX_RADIUS 100
+#define KERNEL_SIZE 3.  // sigma of the gaussian smoothing kernel
+#define DENSITY_THRESHOLD 0.001 // energy density threshold at which the PSF theoretical radius is cut. Value of 0.001 means we set the box radius to enclose 99.9% of the volume below the psf
+#define SAT_THRESHOLD 0.7 // fraction of the dynamic range (frame max - bg) above which pixels are expected to saturate or be close to saturation
+#define SAT_DETECTION_RANGE 0.1 // fraction of the dynamic range (frame max - bg) below local max value above which the 8 adjacent pixels must remain to consider we have a saturation plateau
+#define MAX_BOX_RADIUS 100 // max allowable value for R (the radius of the box that is passed to PSF fitting)
 
 // Use this flag to print canditates rejection output (0 or 1, only works if SIRIL_OUTPUT_DEBUG is on)
-#define DEBUG_STAR_DETECTION 1
+#define DEBUG_STAR_DETECTION 0
 
 static double guess_resolution(fits *fit) {
 	double focal = fit->focal_length;
@@ -138,7 +138,7 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		return SF_FWHM_TOO_LARGE; //crit 2
 	}
 	if (((result->rmse * sf->sigma / result->A) > 0.1) && (!se->has_saturated)) {
-	//  do not apply for saturated stars tokeep them for alignement purposes
+	//  do not apply for saturated stars to keep them for alignement purposes
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE; //crit 3
 	}
