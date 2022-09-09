@@ -267,9 +267,9 @@ int process_bm3d(int nb){
 	set_cursor_waiting(TRUE);
 	copy_gfit_to_backup();
 	unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
-	unsigned memGB = (unsigned) (get_available_memory() / 1000000000);
-    unsigned imgmemMpix = npixels / 1000000;
-    unsigned numchunks = imgmemMpix / (memGB / 5); // Be smarter about this considering available memory and size of image
+	float memGB = (float) (get_available_memory() / 1000000000);
+    float imgmemMpix = npixels / 1000000;
+    unsigned numchunks = (unsigned) (imgmemMpix / (memGB / 5));
     if (numchunks < 1)
       numchunks = 1;
     siril_log_message(_("Available memory: %u GB, processing in %u chunks.\n"), memGB, numchunks);
