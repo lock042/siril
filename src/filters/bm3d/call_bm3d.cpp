@@ -29,21 +29,21 @@ extern "C" {
 
 using namespace std;
 
-void bgrbgr_float_to_fits(fits *image, float *bgrbgr) {
+void bgrbgr_float_to_fits(fits *image, float *bgrbgr, float modulation) {
 	size_t ndata = image->rx * image->ry * 3;
 	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		image->fpdata[BLAYER][j] = bgrbgr[i + 0];
-		image->fpdata[GLAYER][j] = bgrbgr[i + 1];
-		image->fpdata[RLAYER][j] = bgrbgr[i + 2];
+		image->fpdata[BLAYER][j] = (1.f-modulation) * image->fpdata[BLAYER][j] + modulation * bgrbgr[i + 0];
+		image->fpdata[GLAYER][j] = (1.f-modulation) * image->fpdata[GLAYER][j] + modulation * bgrbgr[i + 1];
+		image->fpdata[RLAYER][j] = (1.f-modulation) * image->fpdata[RLAYER][j] + modulation * bgrbgr[i + 2];
 	}
 }
 
-void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr) {
+void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr, float modulation) {
 	size_t ndata = image->rx * image->ry * 3;
 	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		image->pdata[BLAYER][j] = round_to_WORD(bgrbgr[i + 0] * USHRT_MAX);
-		image->pdata[GLAYER][j] = round_to_WORD(bgrbgr[i + 1] * USHRT_MAX);
-		image->pdata[RLAYER][j] = round_to_WORD(bgrbgr[i + 2] * USHRT_MAX);
+		image->pdata[BLAYER][j] = round_to_WORD(((modulation * bgrbgr[i + 0]) + (1.f - modulation) * image->pdata[BLAYER][j] / USHRT_MAX_SINGLE) * USHRT_MAX);
+		image->pdata[GLAYER][j] = round_to_WORD(((modulation * bgrbgr[i + 1]) + (1.f - modulation) * image->pdata[GLAYER][j] / USHRT_MAX_SINGLE) * USHRT_MAX);
+		image->pdata[RLAYER][j] = round_to_WORD(((modulation * bgrbgr[i + 2]) + (1.f - modulation) * image->pdata[RLAYER][j] / USHRT_MAX_SINGLE) * USHRT_MAX);
 	}
 }
 
@@ -60,9 +60,9 @@ float *fits_to_bgrbgr_wordtofloat(fits *image) {
 	return bgrbgr;
 }
 
-extern "C" int do_bm3d(fits *fit) {
+extern "C" int do_bm3d(fits *fit, float modulation) {
     // Parameters
-  const unsigned width = fit->naxes[0];
+    const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
     const unsigned nchans = fit->naxes[2];
     const unsigned npixels = width * height;
@@ -119,7 +119,7 @@ extern "C" int do_bm3d(fits *fit) {
     // Work out chunks required to avoid OOM
     float memGB = (float) (get_available_memory() / 1000000000);
     float imgmemMpix = npixels / 1000000;
-    unsigned numchunks = (unsigned) imgmemMpix / (memGB / 5.0);
+    unsigned numchunks = (unsigned) imgmemMpix / (memGB / 6.f);
     if (numchunks < 1)
       numchunks = 1;
 
@@ -147,18 +147,18 @@ extern "C" int do_bm3d(fits *fit) {
       // Convert output from bgrbgr back to planar rgb and put back into fit
     if (fit->type == DATA_FLOAT) {
       if (nchans == 3) {
-        bgrbgr_float_to_fits(fit, bgr_f);
+        bgrbgr_float_to_fits(fit, bgr_f, modulation);
       } else {
         for (unsigned i=0; i<npixels; i++) {
-          fit->fdata[i] = bgr_f[i];
+          fit->fdata[i] = (1.f-modulation) * fit->fdata[i] + modulation * bgr_f[i];
         }
       }
     } else {
       if (nchans == 3) {
-        bgrbgr_float_to_word_fits(fit, bgr_f);
+        bgrbgr_float_to_word_fits(fit, bgr_f, modulation);
       } else {
          for (unsigned i=0; i<npixels; i++) {
-          fit->data[i] = round_to_WORD(bgr_f[i] * USHRT_MAX);
+          fit->data[i] = round_to_WORD(USHRT_MAX * ((1.f-modulation) * (fit->data[i] * invnorm) + modulation * bgr_f[i]));
         }
       }
     }

@@ -7,8 +7,13 @@
 #define EXTERNC
 #endif
 
+typedef struct bm3d_args {
+	fits *fit;
+	float modulation;
+} bm3d_args;
+
 EXTERNC
-int do_bm3d(fits *fit);
+int do_bm3d(fits *fit, float modulation);
 
 #ifdef __cplusplus
 }

@@ -249,11 +249,12 @@ int process_savebmp(int nb){
 	return CMD_OK;
 }
 
-gpointer run_bm3d_on_gfit() {
+gpointer run_bm3d_on_fit(gpointer p) {
+	bm3d_args *args = (bm3d_args *) p;
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data("Starting BM3D denoising...", 0.0);
-	int retval = do_bm3d(&gfit);
+	int retval = do_bm3d(args->fit, args->modulation);
 	notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "BM3D execution time");
@@ -265,16 +266,31 @@ gpointer run_bm3d_on_gfit() {
 
 int process_bm3d(int nb){
 	set_cursor_waiting(TRUE);
-	copy_gfit_to_backup();
+	copy_gfit_to_backup(); // For testing only, remove this from the console command before release
+	bm3d_args *args = calloc(1, sizeof(bm3d_args));
 	unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
 	float memGB = (float) (get_available_memory() / 1000000000);
     float imgmemMpix = (float) npixels / 1000000.f;
     unsigned numchunks = (unsigned) (imgmemMpix / (memGB / 5));
-    if (numchunks < 1)
-      numchunks = 1;
+	args->fit = &gfit;
+	if (!(word[1]))
+		args->modulation = 1.f;
+	else {
+		args->modulation = g_ascii_strtod(word[1], NULL);
+		if ((args->modulation < 0.f) || (args->modulation > 1.f)) {
+			siril_log_message(_("Modulation must be between 0 and 1\n"));
+			return CMD_ARG_ERROR;
+		}
+		if (args->modulation == 0.f) {
+			siril_log_message(_("Modulation is zero: doing nothing.\n"));
+			return CMD_OK;
+		}
+	}
     siril_log_message(_("Available memory: %f GB, processing in %u chunks.\n"), memGB, numchunks);
-	start_in_new_thread(run_bm3d_on_gfit, NULL);
-	undo_save_state(get_preview_gfit_backup(), _("BM3D Denoise"));
+	siril_log_message(_("Modulation: %f\n"),args->modulation);
+
+	start_in_new_thread(run_bm3d_on_fit, args);
+	undo_save_state(get_preview_gfit_backup(), _("BM3D Denoise")); // Testing, remove before release
 	return CMD_OK;
 }
 
