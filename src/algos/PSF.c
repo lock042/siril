@@ -408,6 +408,9 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 
 	if (status != GSL_SUCCESS) {
 		if (error) *error = PSF_ERR_DIVERGED;
+		free_psf(psf);
+		psf = NULL;
+		goto free_and_exit;
 	}
 
 #if HAVE_GSL_1
