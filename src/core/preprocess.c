@@ -440,6 +440,7 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 	 */
 	full_stats_invalidation_from_fit(fit);
 	fit->history = g_slist_concat(fit->history, history);
+	fit->lo = 0;
 	return 0;
 }
 
