@@ -548,8 +548,23 @@ void bm3d_1st_step(
     } //! End of loop on i_r
 
     //! Final reconstruction
-    for (unsigned k = 0; k < width * height * chnls; k++)
+    for (unsigned k = 0; k < width * height * chnls; k++) {
         img_basic[k] = numerator[k] / denominator[k];
+        if (isnan(img_basic[k])) {
+            unsigned count = 0;
+            img_basic[k] = 0.f;
+            if (k > chnls-1) {
+                img_basic[k] += (isnan(img_basic[k-chnls]) ? 0 : img_basic[k-chnls]);
+                count = count + (isnan(img_basic[k-chnls]) ? 0 : 1);
+            }
+            if (k < count-chnls) {
+                img_basic[k] += (isnan(img_basic[k+chnls]) ? 0 : img_basic[k+chnls]);
+                count = count + (isnan(img_basic[k+chnls]) ? 0 : 1);
+            }
+            if (count != 0)
+                img_basic[k] /= count;
+        }
+    }
 }
 
 /**
@@ -747,8 +762,23 @@ void bm3d_2nd_step(
     } //! End of loop on i_r
 
     //! Final reconstruction
-    for (unsigned k = 0; k < width * height * chnls; k++)
+    for (unsigned k = 0; k < width * height * chnls; k++) {
         img_denoised[k] = numerator[k] / denominator[k];
+            if (isnan(img_denoised[k])) {
+            unsigned count = 0;
+            img_denoised[k] = 0.f;
+            if (k > chnls-1) {
+                img_denoised[k] += (isnan(img_denoised[k-chnls]) ? 0 : img_denoised[k-chnls]);
+                count = count + (isnan(img_denoised[k-chnls]) ? 0 : 1);
+            }
+            if (k < count-chnls) {
+                img_denoised[k] += (isnan(img_denoised[k+chnls]) ? 0 : img_denoised[k+chnls]);
+                count = count + (isnan(img_denoised[k+chnls]) ? 0 : 1);
+            }
+            if (count != 0)
+                img_denoised[k] /= count;
+        }
+    }
 }
 
 /**
