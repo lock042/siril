@@ -269,11 +269,9 @@ int run_bm3d(
         vector<vector<float> > sub_denoised(_nb_threads);
         vector<unsigned> h_table(_nb_threads);
         vector<unsigned> w_table(_nb_threads);
-        cout << "checkpoint 1";
         sub_divide(img_noisy, sub_noisy, w_table, h_table, width, height, chnls,
                                                                         2 * nWien, true);
 
-        cout << "checkpoint 1";
         //! Allocating Plan for FFTW process
         if (tau_2D_hard == DCT)
             for (unsigned n = 0; n < _nb_threads; n++)
