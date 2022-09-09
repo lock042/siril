@@ -101,9 +101,9 @@ extern "C" int do_bm3d(fits *fit) {
       norm = USHRT_MAX_SINGLE;
     float invnorm = 1 / norm;
 
-    float ratio = 0.5f; // This will become a user parameter
-    if (nchans == 1)
-      ratio *= 0.75f;
+//    float ratio = 0.5f; // This will become a user parameter
+//    if (nchans == 1)
+//      ratio *= 0.75f;
 
 
 // Measure background noise
@@ -115,7 +115,7 @@ extern "C" int do_bm3d(fits *fit) {
     }
     fSigma /= nchans;
     siril_log_message(_("Auto parametrisation: measured background noise level is %f\n"),fSigma);
-    fSigma *= ratio; // Replace 1.0f with a user-specified parameter. Reasonable default seems to be
+//    fSigma *= ratio; // Replace 1.0f with a user-specified parameter. Reasonable default seems to be
                      // 1.f for colour images and 0.75f for mono.
 
 	// The algorithm parameters set below are the optimal parameters discussed in
@@ -175,7 +175,7 @@ extern "C" int do_bm3d(fits *fit) {
          w_table[i], h_table[i], nchans, useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, color_space, patch_size, nb_threads, verbose) != EXIT_SUCCESS)
       return EXIT_FAILURE;
 
-      set_progress_bar_data("BM3D denoising...", (i / numchunks));
+      set_progress_bar_data("BM3D denoising...", ((double) i / (double) numchunks));
     }
 
 	// Reassemble chunks
