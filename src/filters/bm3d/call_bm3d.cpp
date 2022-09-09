@@ -123,7 +123,6 @@ extern "C" int do_bm3d(fits *fit) {
     unsigned numchunks = (unsigned) imgmemMpix / (memGB / 5.0); // Be smarter about this considering available memory and size of image
     if (numchunks < 1)
       numchunks = 1;
-    fprintf(stdout, "memory: %f GB, imgsize: %f Mpix, numchunks: %u\n", memGB, imgmemMpix, numchunks);
 
     // Cut into manageable chunks to avoid OOM
     vector<vector<float> > chunk_noisy(numchunks);

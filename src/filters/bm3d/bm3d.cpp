@@ -270,7 +270,7 @@ int run_bm3d(
         vector<unsigned> h_table(_nb_threads);
         vector<unsigned> w_table(_nb_threads);
         sub_divide(img_noisy, sub_noisy, w_table, h_table, width, height, chnls,
-                                                                        2 * nWien, true);
+                                                                        2 * nHard, true);
 
         //! Allocating Plan for FFTW process
         if (tau_2D_hard == DCT)
