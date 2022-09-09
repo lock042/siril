@@ -161,36 +161,29 @@ extern "C" int do_bm3d(fits *fit) {
     if (numchunks < 1)
       numchunks = 1;
     fprintf(stdout, "memory: %f GB, imgsize: %f Mpix, numchunks: %u\n", memGB, imgmemMpix, numchunks);
-    if (numchunks > 1) {
-      // Cut into manageable chunks to avoid OOM
-      vector<vector<float> > chunk_noisy(numchunks);
-      vector<vector<float> > chunk_basic(numchunks);
-      vector<vector<float> > chunk_denoised(numchunks);
-      vector<unsigned> w_table(numchunks);
-      vector<unsigned> h_table(numchunks);
-      sub_divide(bgr_v, chunk_noisy, w_table, h_table, width, height, nchans, 32, TRUE); // 32 is nWien * 2;
 
-      // Run bm3d on each chunk in turn.
-      for (unsigned i = 0; i < numchunks ; i++) {
-        if (run_bm3d(fSigma, chunk_noisy[i], chunk_basic[i], chunk_denoised[i],
+    // Cut into manageable chunks to avoid OOM
+    vector<vector<float> > chunk_noisy(numchunks);
+    vector<vector<float> > chunk_basic(numchunks);
+    vector<vector<float> > chunk_denoised(numchunks);
+    vector<unsigned> w_table(numchunks);
+    vector<unsigned> h_table(numchunks);
+    sub_divide(bgr_v, chunk_noisy, w_table, h_table, width, height, nchans, 32, TRUE); // 32 is nWien * 2;
+
+    // Run bm3d on each chunk in turn.
+    for (unsigned i = 0; i < numchunks ; i++) {
+      if (run_bm3d(fSigma, chunk_noisy[i], chunk_basic[i], chunk_denoised[i],
           w_table[i], h_table[i], nchans, useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, color_space, patch_size, nb_threads, verbose) != EXIT_SUCCESS)
-          return EXIT_FAILURE;
+        return EXIT_FAILURE;
 
-        set_progress_bar_data("BM3D denoising...", ((double) i / (double) numchunks));
-      }
-
-      // Reassemble chunks
-      sub_divide(bgr_v, chunk_denoised, w_table, h_table, width, height, nchans, 32, FALSE);
-      bgr_f = bgr_v.data();
-    } else {
-      vector<float> bgr_basic, bgr_denoised;
-      if (run_bm3d(fSigma, bgr_v, bgr_basic, bgr_denoised,
-         width, height, nchans, useSD_1, useSD_2, tau_2D_hard, tau_2D_wien, color_space, patch_size, nb_threads, verbose) != EXIT_SUCCESS)
-         return EXIT_FAILURE;
-      bgr_f = bgr_denoised.data();
+      set_progress_bar_data("BM3D denoising...", ((double) i / (double) numchunks));
     }
 
-	// Convert output from bgrbgr back to planar rgb and put back into fit
+    // Reassemble chunks
+    sub_divide(bgr_v, chunk_denoised, w_table, h_table, width, height, nchans, 32, FALSE);
+    bgr_f = bgr_v.data();
+
+      // Convert output from bgrbgr back to planar rgb and put back into fit
     if (fit->type == DATA_FLOAT) {
       if (nchans == 3) {
         bgrbgr_float_to_fits(fit, bgr_f);
