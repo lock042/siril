@@ -12,8 +12,9 @@ typedef struct bm3d_args {
 	float modulation;
 } bm3d_args;
 
-EXTERNC
-int do_bm3d(fits *fit, float modulation);
+EXTERNC int do_bm3d(fits *fit, float modulation);
+
+EXTERNC gpointer run_bm3d_on_fit(gpointer p);
 
 #ifdef __cplusplus
 }

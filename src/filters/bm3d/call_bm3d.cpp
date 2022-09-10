@@ -16,6 +16,7 @@ extern "C" {
 #include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
 #include "algos/statistics.h"
+#include "filters/median.h"
 }
 
 #define YUV       0
@@ -60,7 +61,7 @@ float *fits_to_bgrbgr_wordtofloat(fits *image) {
 	return bgrbgr;
 }
 
-extern "C" int do_bm3d(fits *fit, float modulation) {
+extern "C" int do_bm3d(fits *fit, float modulation, bool median) {
     // Parameters
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
@@ -169,3 +170,4 @@ extern "C" int do_bm3d(fits *fit, float modulation) {
     }
 	return EXIT_SUCCESS;
 }
+

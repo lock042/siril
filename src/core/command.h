@@ -12,6 +12,8 @@ int	process_asinh(int nb);
 int	process_bg(int nb);
 int	process_bgnoise(int nb);
 int	process_bm3d(int nb);
+gpointer run_bm3d_on_fit(gpointer p);
+
 int	process_boxselect(int nb);
 
 int	process_capabilities(int nb);
