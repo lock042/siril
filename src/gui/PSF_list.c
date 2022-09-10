@@ -556,8 +556,8 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 	else
 		str = _("relative");
 
-	double x = result->x0 + area->x - 0.5;
-	double y = area->y + area->h - result->y0 + 0.5;
+	double x = result->x0 + area->x;
+	double y = area->y + area->h - result->y0;
 	if (has_wcs(&gfit)) {
 		double world_x, world_y;
 		SirilWorldCS *world_cs;

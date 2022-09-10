@@ -160,8 +160,8 @@ static int psf_Gaussian_f(const gsl_vector * x, void *PSF_data, gsl_vector * f) 
 	for (i = 0; i < NbRows; i++) {
 		for (j = 0; j < NbCols; j++) {
 			if (mask[NbCols * i + j]) {
-				tmpx = j + 1;
-				tmpy = i + 1;
+				tmpx = j + 0.5;
+				tmpy = i + 0.5;
 				tmpc = exp(-(SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY));
 				gsl_vector_set(f, k,
 						(B + A * tmpc - y[k]) / sigma[k]);
@@ -191,8 +191,8 @@ static int psf_Gaussian_df(const gsl_vector * x, void *PSF_data, gsl_matrix * J)
 	for (i = 0; i < NbRows; i++) {
 		for (j = 0; j < NbCols; j++) {
 			if (mask[NbCols * i + j]) {
-				tmpx = j + 1;
-				tmpy = i + 1;
+				tmpx = j + 0.5;
+				tmpy = i + 0.5;
 				double s = sigma[k];
 				tmpc = exp(-(SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY));
 				gsl_matrix_set(J, k, 0, 1. / s);
@@ -241,8 +241,8 @@ static int psf_Gaussian_f_an(const gsl_vector * x, void *PSF_data,
 	for (i = 0; i < NbRows; i++) {
 		for (j = 0; j < NbCols; j++) {
 			if (mask[NbCols * i + j]) { 
-				tmpx = cos(alpha) * (j + 1 - x0) - sin(alpha) * (i + 1 - y0) + x0;
-				tmpy = sin(alpha) * (j + 1 - x0) + cos(alpha) * (i + 1 - y0) + y0;
+				tmpx = cos(alpha) * (j + 0.5 - x0) - sin(alpha) * (i + 0.5 - y0) + x0;
+				tmpy = sin(alpha) * (j + 0.5 - x0) + cos(alpha) * (i + 0.5 - y0) + y0;
 				tmpc = exp(-(SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY));
 				gsl_vector_set(f, k,
 						(B + A * tmpc - y[k]) / sigma[k]);
@@ -275,8 +275,8 @@ static int psf_Gaussian_df_an(const gsl_vector * x, void *PSF_data,
 	for (i = 0; i < NbRows; i++) {
 		for (j = 0; j < NbCols; j++) {
 			if (mask[NbCols * i + j]) { 
-				tmpx = cos(alpha) * (j + 1 - x0) - sin(alpha) * (i + 1 - y0) + x0;
-				tmpy = sin(alpha) * (j + 1 - x0) + cos(alpha) * (i + 1 - y0) + y0;
+				tmpx = cos(alpha) * (j + 0.5 - x0) - sin(alpha) * (i + 0.5 - y0) + x0;
+				tmpy = sin(alpha) * (j + 0.5 - x0) + cos(alpha) * (i + 0.5 - y0) + y0;
 				s = sigma[k];
 				tmpc = exp(-(SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY));
 				gsl_matrix_set(J, k, 0, 1. / s);
@@ -289,8 +289,8 @@ static int psf_Gaussian_df_an(const gsl_vector * x, void *PSF_data,
 				gsl_matrix_set(J, k, 4, tmpd / s);
 				tmpd = A * tmpc * SQR(tmpy - y0) / SQR(SY);
 				gsl_matrix_set(J, k, 5, tmpd / s);
-				tmpderxr = -sin(alpha) * (j + 1 - x0) - cos(alpha) * (i + 1 - y0);
-				tmpderyr = cos(alpha) * (j + 1 - x0) - sin(alpha) * (i + 1 - y0);
+				tmpderxr = -sin(alpha) * (j + 0.5 - x0) - cos(alpha) * (i + 0.5 - y0);
+				tmpderyr = cos(alpha) * (j + 0.5 - x0) - sin(alpha) * (i + 0.5 - y0);
 				tmpd = -A * tmpc
 						* (2 * (tmpx - x0) / SX * tmpderxr
 								+ 2 * (tmpy - y0) / SY * tmpderyr);
@@ -806,8 +806,8 @@ void psf_display_result(psf_star *result, rectangle *area) {
 	else
 		str = _("relative");
 
-	double x = result->x0 + area->x - 0.5;
-	double y = area->y + area->h - result->y0 + 0.5;
+	double x = result->x0 + area->x;
+	double y = area->y + area->h - result->y0;
 
 	if (has_wcs(&gfit)) {
 		double world_x, world_y;

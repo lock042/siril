@@ -693,8 +693,8 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				if (star_invalidated <= accepted_level) {
 					//fwhm_to_arcsec_if_needed(image, cur_star);	// should we do this here?
 					cur_star->layer = layer;
-					cur_star->xpos = (x - R) + cur_star->x0 - 0.5;
-					cur_star->ypos = (y - R) + cur_star->y0 - 0.5; // this is not +0.5 because the image is already flipped
+					cur_star->xpos = (x - R) + cur_star->x0;
+					cur_star->ypos = (y - R) + cur_star->y0; // this is not +0.5 because the image is already flipped
 					cur_star->sat = candidates[candidate].sat;
 					cur_star->R = candidates[candidate].R;
 					cur_star->has_saturated = candidates[candidate].has_saturated;
@@ -799,8 +799,8 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 		siril_message_dialog( GTK_MESSAGE_INFO, _("Peaker"), msg);
 	} else {
 		if (i < MAX_STARS) {
-			result->xpos = result->x0 + com.selection.x - 0.5;
-			result->ypos = com.selection.y + com.selection.h - result->y0 + 0.5;
+			result->xpos = result->x0 + com.selection.x;
+			result->ypos = com.selection.y + com.selection.h - result->y0;
 			psf_star **newstars = realloc(com.stars, (i + 2) * sizeof(psf_star *));
 			if (!newstars)
 				PRINT_ALLOC_ERR;
