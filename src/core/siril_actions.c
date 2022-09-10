@@ -594,3 +594,7 @@ void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("nina_light_curve");
 }
+
+void bm3d_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("bm3d_dialog");
+}
