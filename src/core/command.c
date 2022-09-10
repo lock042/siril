@@ -249,6 +249,18 @@ int process_savebmp(int nb){
 	return CMD_OK;
 }
 
+static gboolean end_bm3d(gpointer p) {
+	struct bm3d_args *args = (struct bm3d_args *) p;
+	stop_processing_thread();// can it be done here in case there is no thread?
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
+
+	free(args);
+	return FALSE;
+}
+
 gpointer run_bm3d_on_fit(gpointer p) {
 	bm3d_args *args = (bm3d_args *) p;
 	struct timeval t_start, t_end;
@@ -259,13 +271,12 @@ gpointer run_bm3d_on_fit(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "BM3D execution time");
 	set_progress_bar_data("Ready.", 0.0);
-	siril_add_idle(end_generic, NULL);
+	siril_add_idle(end_bm3d, args);
 	return GINT_TO_POINTER(retval);
 }
 
 int process_bm3d(int nb){
 	set_cursor_waiting(TRUE);
-//	copy_gfit_to_backup(); // For testing only, remove this from the console command before release
 	bm3d_args *args = calloc(1, sizeof(bm3d_args));
 	args->fit = &gfit;
 	if (!(word[1]))
@@ -289,7 +300,6 @@ int process_bm3d(int nb){
 	siril_log_message(_("Modulation: %f\n"),args->modulation);
 
 	start_in_new_thread(run_bm3d_on_fit, args);
-//	undo_save_state(get_preview_gfit_backup(), _("BM3D Denoise")); // Testing, remove before release
 	return CMD_OK;
 }
 

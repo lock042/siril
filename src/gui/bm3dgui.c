@@ -6,6 +6,7 @@
 #include "filters/median.h"
 #include "filters/bm3d/call_bm3d.h"
 #include "gui/utils.h"
+#include "gui/siril_preview.h"
 #include "gui/dialogs.h"
 #include "core/processing.h"
 #include "core/command.h"
@@ -30,14 +31,22 @@ void on_spin_bm3d_modulation_value_changed(GtkSpinButton *button, gpointer user_
 }
 
 void on_bm3d_apply_clicked(GtkButton *button, gpointer user_data) {
-  bm3d_args *args;
-  args = calloc(1, sizeof(bm3d_args));
-  args->fit = &gfit;
-  args->modulation = bm3d_modulation;
-  if (get_thread_run()) {
-    PRINT_ANOTHER_THREAD_RUNNING;
-    return;
-  }
-  start_in_new_thread(run_bm3d_on_fit, args);
-  siril_add_idle(end_generic, NULL);
+	copy_gfit_to_backup(); // For testing only, remove this from the console command before release
+	bm3d_args *args = calloc(1, sizeof(bm3d_args));
+	args->fit = &gfit;
+	args->modulation = bm3d_modulation;
+	if (args->modulation == 0.f) {
+		siril_log_message(_("Modulation is zero: doing nothing.\n"));
+		return;
+	}
+	unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
+	float memGB = (float) (get_available_memory() / 1000000000);
+	float imgmemMpix = (float) npixels / 1000000.f;
+	unsigned numchunks = (unsigned) (imgmemMpix / (memGB / 5));
+	if (numchunks < 1)
+		numchunks = 1;
+	siril_log_message(_("Available memory: %f GB, processing in %u chunks.\n"), memGB, numchunks);
+	siril_log_message(_("Modulation: %f\n"),args->modulation);
+	start_in_new_thread(run_bm3d_on_fit, args);
+	siril_close_dialog("bm3d_dialog");
 }
