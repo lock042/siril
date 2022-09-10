@@ -557,19 +557,13 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 
 	process_plate_solver_input(args);
 
-	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() :
-		get_online_catalog(args->used_fov, args->limit_mag);
-	gboolean local_catalogues = local_catalogues_available();
-
-	if (local_catalogues && (args->onlineCatalog == NOMAD || args->onlineCatalog == TYCHO2 || args->onlineCatalog == BRIGHT_STARS)) {
+	if (local_catalogues_available()) {
 		siril_debug_print("using local star catalogues\n");
 		args->use_local_cat = TRUE;
 		args->catalog_file = NULL;
-		args->onlineCatalog = LOCAL;
+		args->onlineCatalog = NOMAD;
 	} else {
-		if (local_catalogues) {
-			siril_log_color_message(_("The specified catalogue is not available locally. Using online catalogue instead.\n"), "salmon");
-		}
+		args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() : get_online_catalog(args->used_fov, args->limit_mag);
 		/* currently the GUI version downloads the catalog here, because
 		 * siril_message_dialog() doesn't use idle function, we could change that */
 		GFile *catalog_file = download_catalog(args->onlineCatalog, catalog_center, args->used_fov * 0.5, args->limit_mag);
