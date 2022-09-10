@@ -31,7 +31,9 @@ void on_spin_bm3d_modulation_value_changed(GtkSpinButton *button, gpointer user_
 }
 
 void on_bm3d_apply_clicked(GtkButton *button, gpointer user_data) {
-	copy_gfit_to_backup(); // For testing only, remove this from the console command before release
+	GtkSpinButton *spin_bm3d_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_bm3d_modulation"));
+	bm3d_modulation = (float) gtk_spin_button_get_value(spin_bm3d_modulation);
+//	copy_gfit_to_backup();
 	bm3d_args *args = calloc(1, sizeof(bm3d_args));
 	args->fit = &gfit;
 	args->modulation = bm3d_modulation;

@@ -256,7 +256,6 @@ static gboolean end_bm3d(gpointer p) {
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
-
 	free(args);
 	return FALSE;
 }
@@ -264,6 +263,8 @@ static gboolean end_bm3d(gpointer p) {
 gpointer run_bm3d_on_fit(gpointer p) {
 	bm3d_args *args = (bm3d_args *) p;
 	struct timeval t_start, t_end;
+	undo_save_state(&gfit, _("BM3D denoise (modulation=%f)"),
+			args->modulation);
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data("Starting BM3D denoising...", 0.0);
 	int retval = do_bm3d(args->fit, args->modulation);
