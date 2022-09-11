@@ -154,8 +154,11 @@ extern "C" int do_bm3d(fits *fit, float modulation, int da3d) {
     float *bgr_fout = bgr_v.data();
 
     if (da3d != 0) {
+      size_t ndata = height * width * nchans;
+      float *bgr_da3dout = (float*) calloc(ndata, sizeof(float));
       siril_log_message(_("DA3D final-stage denoising...\n"));
-      call_da3d(bgr_fout, bgr_f, bgr_fout, width, height, nchans, fSigma);
+      bgr_da3dout = call_da3d(bgr_f, bgr_fout, width, height, nchans, fSigma);
+      bgr_fout = bgr_da3dout;
     }
 
     // Convert output from bgrbgr back to planar rgb and put back into fit
@@ -176,6 +179,6 @@ extern "C" int do_bm3d(fits *fit, float modulation, int da3d) {
         }
       }
     }
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
