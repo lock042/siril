@@ -161,8 +161,6 @@ siril_common_SOURCES = \
 	filters/bm3d/bm3d_lib_transforms.h \
 	filters/bm3d/bm3d_utilities.cpp \
 	filters/bm3d/bm3d_utilities.h \
-	filters/da3d/call_da3d.cpp \
-	filters/da3d/call_da3d.h \
 	filters/da3d/DA3D.cpp \
 	filters/da3d/DA3D.hpp \
 	filters/da3d/DftPatch.hpp \

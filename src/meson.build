@@ -94,7 +94,6 @@ src_files = [
   'filters/bm3d/bm3d.cpp',
   'filters/bm3d/bm3d_lib_transforms.cpp',
   'filters/bm3d/bm3d_utilities.cpp',
-  'filters/da3d/call_da3d.cpp',
   'filters/da3d/DA3D.cpp',
   'filters/da3d/Utils.cpp',
   'filters/da3d/WeightMap.cpp',

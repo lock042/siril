@@ -5,11 +5,19 @@
 #include <vector>
 #include <math.h>
 #include <string.h>
+#include <iterator>
+#include <sstream>
+#include <tuple>
+#include <algorithm>
+#include <utility>
+#include "filters/da3d/Image.hpp"
+#include "filters/da3d/Utils.hpp"
+#include "filters/da3d/DA3D.hpp"
 
 #include "bm3d.h"
 #include "bm3d_utilities.h"
 #include "opencv/opencv.h"
-#include "filters/da3d/call_da3d.h"
+//#include "filters/da3d/call_da3d.h"
 
 extern "C" {
 #include "core/proto.h"
@@ -30,14 +38,23 @@ extern "C" {
 #define NONE      7
 
 using namespace std;
+using std::cerr;
+using std::endl;
+
+using utils::isMonochrome;
+using utils::makeMonochrome;
+
+using da3d::Image;
+using da3d::DA3D;
 
 void bgrbgr_float_to_fits(fits *image, float *bgrbgr, float modulation) {
-	size_t ndata = image->rx * image->ry * 3;
-	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		image->fpdata[BLAYER][j] = (1.f-modulation) * image->fpdata[BLAYER][j] + modulation * bgrbgr[i + 0];
-		image->fpdata[GLAYER][j] = (1.f-modulation) * image->fpdata[GLAYER][j] + modulation * bgrbgr[i + 1];
-		image->fpdata[RLAYER][j] = (1.f-modulation) * image->fpdata[RLAYER][j] + modulation * bgrbgr[i + 2];
-	}
+  unsigned npixels = image->naxes[0] * image->naxes[1];
+
+  for (unsigned i = 0; i < npixels; i++) {
+    image->fpdata[BLAYER][i] = (1.f-modulation) * image->fpdata[BLAYER][i] + modulation * bgrbgr[i*3];
+	image->fpdata[GLAYER][i] = (1.f-modulation) * image->fpdata[GLAYER][i] + modulation * bgrbgr[i*3+1];
+	image->fpdata[RLAYER][i] = (1.f-modulation) * image->fpdata[RLAYER][i] + modulation * bgrbgr[i*3+2];
+  }
 }
 
 void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr, float modulation) {
@@ -64,7 +81,6 @@ float *fits_to_bgrbgr_wordtofloat(fits *image) {
 
 extern "C" int do_bm3d(fits *fit, float modulation, int da3d) {
     // Parameters
-    fprintf(stdout, "da3d %d\n",da3d);
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
     const unsigned nchans = fit->naxes[2];
@@ -95,7 +111,7 @@ extern "C" int do_bm3d(fits *fit, float modulation, int da3d) {
     const int nb_threads = 0;
     const bool verbose = FALSE;
 
-    float *bgr_f;
+    float *bgr_f, *bgr_fout;
 
     if (fit->type == DATA_FLOAT) {
       if (nchans == 3) {
@@ -151,14 +167,24 @@ extern "C" int do_bm3d(fits *fit, float modulation, int da3d) {
     // Reassemble chunks
     sub_divide(bgr_v, chunk_denoised, w_table, h_table, width, height, nchans, 32, FALSE);
 
-    float *bgr_fout = bgr_v.data();
+    bgr_fout = bgr_v.data();
 
+    // Carry out final-stage DA3D denoising if required
     if (da3d != 0) {
-      size_t ndata = height * width * nchans;
-      float *bgr_da3dout = (float*) calloc(ndata, sizeof(float));
       siril_log_message(_("DA3D final-stage denoising...\n"));
-      bgr_da3dout = call_da3d(bgr_f, bgr_fout, width, height, nchans, fSigma);
-      bgr_fout = bgr_da3dout;
+#ifndef _OPENMP
+      siril_log_message(_("OpenMP not available. The DA3D algorithm will run in a single thread.\n"));
+#endif
+      Image input(bgr_f, height, width, nchans);
+      Image guide(bgr_fout, height, width, nchans);
+      // DA3D doesn't work if a color image has monochromatic noise
+      if (input.channels()>1 && isMonochrome(input)) {
+        siril_log_color_message(_("Warning: input color image has monochromatic noise! Converting to monochrome."), "red");
+        input = makeMonochrome(input);
+        guide = makeMonochrome(guide);
+      }
+      Image output = DA3D(input, guide, fSigma);
+      bgr_fout = output.data();
     }
 
     // Convert output from bgrbgr back to planar rgb and put back into fit
