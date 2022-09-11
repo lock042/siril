@@ -14,7 +14,6 @@
 #include <utility>
 #include "Image.hpp"
 #include "Utils.hpp"
-#include "DemoUtils.hpp"
 #include "DA3D.hpp"
 extern "C" {
 #include "core/proto.h"
@@ -23,9 +22,6 @@ extern "C" {
 using std::cerr;
 using std::endl;
 
-using utils::pick_option;
-using utils::read_image;
-using utils::save_image;
 using utils::isMonochrome;
 using utils::makeMonochrome;
 

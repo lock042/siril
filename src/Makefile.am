@@ -165,8 +165,6 @@ siril_common_SOURCES = \
 	filters/da3d/call_da3d.h \
 	filters/da3d/DA3D.cpp \
 	filters/da3d/DA3D.hpp \
-	filters/da3d/DemoUtils.cpp \
-	filters/da3d/DemoUtils.hpp \
 	filters/da3d/DftPatch.hpp \
 	filters/da3d/Image.hpp \
 	filters/da3d/Utils.cpp \
