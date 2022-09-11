@@ -7,27 +7,33 @@
 
 /* preprocessing data from GUI */
 struct preprocessing_data {
-	struct timeval t_start;
 	gboolean use_bias, use_dark, use_flat;
 	fits *bias, *dark, *flat;
-	float bias_level;
+	float bias_level;	// the synthetic bias level [0, 1]
+	gboolean use_dark_optim;
+	gboolean autolevel;	// auto-evaluate flat normalization
+	float normalisation;	// the flat normalization level
+	gboolean equalize_cfa;	// convert the master flat to gray
 	gboolean fix_xtrans;
-	gboolean use_dark_optim, use_cosmetic_correction, cc_from_dark;
-	GFile *bad_pixel_map_file;
+
+	/* input and output file or sequence */
 	gboolean is_sequence;
 	sequence *seq;
 	sequence_type output_seqtype;
-	gboolean autolevel;
-	double sigma[2];
-	long icold, ihot;
-	deviant_pixel *dev;
-	gboolean is_cfa;
-	gboolean debayer;
-	gboolean equalize_cfa;
 	gboolean allow_32bit_output;
-	float normalisation;
+	const char *ppprefix;	// prefix for output files
+	gboolean debayer;	// debayer at the end
+	GSList *history;	// generic history to add to the FITS output
+
+	/* cosmetic correction */
+	gboolean use_cosmetic_correction, cc_from_dark;
+	GFile *bad_pixel_map_file;	// if !cc_from_dark
+	double sigma[2];
+	long icold, ihot;	// number of cold and hot pixels to correct
+	deviant_pixel *dev;	// the runtime list of deviant pixels (icold + ihot long)
+	gboolean is_cfa;	// when replacing pixels, don't use direct neighbours
+
 	int retval;
-	const char *ppprefix;	 // prefix for output files
 };
 
 int preprocess_single_image(struct preprocessing_data *args);

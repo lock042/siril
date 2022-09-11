@@ -235,7 +235,7 @@ deviant_pixel* find_deviant_pixels(fits *fit, const double sig[2], long *icold,
 
 	if (eval_only) return NULL;
 
-	/** Second we store deviant pixels in p */
+	/** Second we store deviant pixels in dev */
 	int n = (*icold) + (*ihot);
 	if (n <= 0)
 		return NULL;

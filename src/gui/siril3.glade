@@ -3186,8 +3186,8 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_radius">
-    <property name="lower">1</property>
-    <property name="upper">60</property>
+    <property name="lower">3</property>
+    <property name="upper">50</property>
     <property name="value">10</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -3204,6 +3204,13 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="value">1</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.5</property>
+  </object>
+  <object class="GtkAdjustment" id="adjstarfinder_convergence">
+    <property name="lower">1</property>
+    <property name="upper">3</property>
+    <property name="value">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment-finalstretch">
     <property name="upper">4</property>
@@ -10790,10 +10797,10 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
               <object class="GtkAlignment" id="alignment39">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
+                <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                 <property name="left-padding">12</property>
                 <child>
-                  <!-- n-columns=3 n-rows=4 -->
+                  <!-- n-columns=3 n-rows=5 -->
                   <object class="GtkGrid" id="grid35">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -10840,7 +10847,7 @@ The default value for threshold is 1.00. Increasing this value will detect less 
                       <object class="GtkLabel" id="label148">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Radius: </property>
                       </object>
@@ -10853,7 +10860,7 @@ The default value for threshold is 1.00. Increasing this value will detect less 
                       <object class="GtkLabel" id="label149">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Threshold: </property>
                       </object>
@@ -10866,7 +10873,7 @@ The default value for threshold is 1.00. Increasing this value will detect less 
                       <object class="GtkLabel" id="label49">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Changes of these three values should be tested on one representative image before using them for registration.</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Roundness threshold:</property>
                       </object>
@@ -10925,6 +10932,59 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label8">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Convergence:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_convergence">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Convergence criterion for PSF fitting.
+Default value of 1 should work on most cases. However for images with strong coma, it may be necessary to increase this value to allow for more iteration steps.
+This should normally be the case only for stacked images. Increasing this value may signicantly impact star finding computation time.</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="adjustment">adjstarfinder_convergence</property>
+                        <property name="digits">0</property>
+                        <property name="numeric">True</property>
+                        <property name="value">1</property>
+                        <signal name="value-changed" handler="on_spin_sf_convergence_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="reset_findstar_button">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Resets all parameters to defaults.</property>
+                        <signal name="clicked" handler="on_reset_findstar_button_clicked" swapped="no"/>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="icon-name">view-refresh</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
                         <property name="top-attach">3</property>
                       </packing>
                     </child>
