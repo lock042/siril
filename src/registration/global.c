@@ -329,6 +329,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			siril_log_message(
 					_("Not enough stars. Image %d skipped\n"), filenum);
 			if (stars) free_fitted_stars(stars);
+			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 			return 1;
 		}
 
@@ -346,8 +347,10 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		if (!not_matched)
 			FWHM_stats(stars, nbpoints, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 		free_fitted_stars(stars);
-		if (not_matched)
+		if (not_matched) {
+			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 			return 1;
+		}
 #ifdef _OPENMP
 #pragma omp critical
 #endif
@@ -365,10 +368,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
 				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
 			} else {
 				if (shift_fit_from_reg(fit, regargs, H)) {
+					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
 			}
@@ -378,8 +383,10 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->no_output) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST)) {
+				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
+			}
 		}
 	}
 

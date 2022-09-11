@@ -1421,7 +1421,7 @@ gpointer register_thread_func(gpointer p) {
 		// also done in generated sequence in global.c
 		args->seq->reference_image = sequence_find_refimage(args->seq);
 	}
-	writeseqfile(args->seq);
+	if (!args->retval) writeseqfile(args->seq);
 	retval = args->retval;
 	if (!siril_add_idle(end_register_idle, args)) {
 		free_sequence(args->seq, TRUE);

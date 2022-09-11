@@ -208,21 +208,27 @@ static void display_PSF(psf_star **result) {
 		double FWHMx = 0.0, FWHMy = 0.0, B = 0.0, A = 0.0, r = 0.0, angle = 0.0,
 				rmse = 0.0;
 		gboolean unit_is_arcsec;
-		int n = 0;
-		double normvalue = (gfit.bitpix == FLOAT_IMG) ? 1.0 : (gfit.bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE :  USHRT_MAX_DOUBLE;
+		int n = 0, layer;
 
 		while (result[i]) {
 			double fwhmx, fwhmy;
 			char *unit;
 			gboolean is_as = get_fwhm_as_arcsec_if_possible(result[i], &fwhmx, &fwhmy, &unit);
-			if (i == 0)
+			if (i == 0) {
 				unit_is_arcsec = is_as;
+				layer = result[i]->layer;
+			}
 			else if (is_as != unit_is_arcsec) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
 						_("Stars FWHM must have the same units."));
 				return;
 			}
-			if (result[i]->B + result[i]->A < normvalue) {
+			else if (layer != result[i]->layer ) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
+						_("Stars properties must all be computed on the same layer"));
+				return;
+			}
+			if (!result[i]->has_saturated) {
 				B += result[i]->B;
 				A += result[i]->A;
 				FWHMx += fwhmx;
@@ -556,8 +562,8 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 	else
 		str = _("relative");
 
-	double x = result->x0 + area->x - 0.5;
-	double y = area->y + area->h - result->y0 + 0.5;
+	double x = result->x0 + area->x;
+	double y = area->y + area->h - result->y0;
 	if (has_wcs(&gfit)) {
 		double world_x, world_y;
 		SirilWorldCS *world_cs;
