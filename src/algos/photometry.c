@@ -117,8 +117,8 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
 		return NULL;
 	}
 
-	double xc = psf->x0 - 1;
-	double yc = psf->y0 - 1;
+	double xc = psf->x0;
+	double yc = psf->y0;
 
 	if (xc <= 0.0 || yc <= 0.0 || xc >= width || yc >= height) {
 		if (error) *error = PSF_ERR_OUT_OF_WINDOW;

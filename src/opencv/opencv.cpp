@@ -369,6 +369,8 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	unsigned char *ret = NULL;
 
 	/* build vectors with lists of stars. */
+	/* the -0.5 term comes from the difference in convention between how we compute PSF
+	/ and opencv (zero coordinate at edge of pixel vs at center) */
 	switch (type) {
 	case SIMILARITY_TRANSFORMATION:
 	case HOMOGRAPHY_TRANSFORMATION:
@@ -734,15 +736,17 @@ double cvCalculRigidTransform(s_star *star_array_in,
 	Mat shift = Mat(2, 1, CV_64FC1);
 
 	double outCx = 0., outCy = 0., inCx = 0., inCy = 0.;
+	/* the -0.5 term comes from the difference in convention between how we compute PSF
+	/ and opencv (zero coordinate at edge of pixel vs at center) */
 	for (int i = 0; i < n; i++) {
-		outCx += star_array_out[i].x;
-		outCy += star_array_out[i].y;
-		inCx += star_array_in[i].x;
-		inCy += star_array_in[i].y;
-		out.at<double>(0,i) = star_array_out[i].x;
-		out.at<double>(1,i) = star_array_out[i].y;
-		in.at<double>(0,i) = star_array_in[i].x;
-		in.at<double>(1,i) = star_array_in[i].y;
+		outCx += star_array_out[i].x - 0.5;
+		outCy += star_array_out[i].y - 0.5;
+		inCx += star_array_in[i].x - 0.5;
+		inCy += star_array_in[i].y - 0.5;
+		out.at<double>(0,i) = star_array_out[i].x - 0.5;
+		out.at<double>(1,i) = star_array_out[i].y - 0.5;
+		in.at<double>(0,i) = star_array_in[i].x - 0.5;
+		in.at<double>(1,i) = star_array_in[i].y - 0.5;
 	}
 	outCx /= n;
 	outCy /= n;
@@ -820,7 +824,7 @@ double cvCalculRigidTransform(s_star *star_array_in,
 	// computing the maximum error
 	double err = 0., norm2;
 	for (int i = 0; i < n; i++) {
-		res = H * (Mat_<double>(3,1) << star_array_out[i].x, star_array_out[i].y, 1) - (Mat_<double>(3,1) << star_array_in[i].x, star_array_in[i].y, 1);
+		res = H * (Mat_<double>(3,1) << star_array_out[i].x - 0.5, star_array_out[i].y - 0.5, 1) - (Mat_<double>(3,1) << star_array_in[i].x - 0.5, star_array_in[i].y - 0.5, 1);
 		norm2 = cv::norm(res);
 		if (norm2 > err) err = norm2;
 	}

@@ -438,6 +438,7 @@ struct ffit {
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
 	double mini, maxi;	// min and max of the stats->max[3]
+	float neg_ratio;	// ratio of pixels with a negative value on total number of pixels
 
 	fitsfile *fptr;		// file descriptor. Only used for file read and write.
 

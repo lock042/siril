@@ -180,7 +180,7 @@ static void read_history_in_hdu(fitsfile *fptr, GSList **list) {
 	}
 }
 
-/* copy the header into a list of strings
+/* copy the history into a list of strings
  * header is read from current HDU and the following HDU as long as they don't contain an image.
  * Original active HDU is restored */
 static void fits_read_history(fitsfile *fptr, GSList **history) {
@@ -210,7 +210,7 @@ static void fits_read_history(fitsfile *fptr, GSList **history) {
 	}
 
 	if (*history)
-		g_slist_free_full(*history, free);
+		g_slist_free_full(*history, g_free);
 	list = g_slist_reverse(list);
 	*history = list;
 }
@@ -1744,7 +1744,7 @@ void clearfits(fits *fit) {
 	if (fit->header)
 		free(fit->header);
 	if (fit->history)
-		g_slist_free_full(fit->history, free);
+		g_slist_free_full(fit->history, g_free);
 	if (fit->date_obs)
 		g_date_time_unref(fit->date_obs);
 	if (fit->date)
