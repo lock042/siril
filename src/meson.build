@@ -91,10 +91,14 @@ src_files = [
   'filters/wavelets.c',
 
   'filters/bm3d/call_bm3d.cpp',
-  'filters/bm3d/call_bm3d.h',
   'filters/bm3d/bm3d.cpp',
   'filters/bm3d/bm3d_lib_transforms.cpp',
   'filters/bm3d/bm3d_utilities.cpp',
+  'filters/da3d/call_da3d.cpp',
+  'filters/da3d/DA3D.cpp',
+  'filters/da3d/DemoUtils.cpp',
+  'filters/da3d/Utils.cpp',
+  'filters/da3d/WeightMap.cpp',
 
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',

@@ -5640,6 +5640,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Apply BM3D denoising.</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
@@ -5652,6 +5653,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Cancel</property>
                 <signal name="clicked" handler="on_bm3d_cancel_clicked" swapped="no"/>
               </object>
               <packing>
@@ -5666,6 +5668,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Apply</property>
                 <signal name="clicked" handler="on_bm3d_apply_clicked" swapped="no"/>
               </object>
               <packing>
@@ -5685,44 +5688,61 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="orientation">vertical</property>
+            <property name="spacing">16</property>
             <child>
-              <object class="GtkBox">
+              <placeholder/>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_bm3d_modulation">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Sets modulation. The pixel value is calculated as m * b + (1-m) * orig, where m is the modulation, b is the BM3D-filtered value and orig is the original pixel value. Modulation reduces the denoising performance, but a little modulation can be useful to add back microtexture to flat regions of the image.</property>
+                <property name="hexpand">True</property>
+                <property name="adjustment">bm3d-modulation-adjustment</property>
+                <property name="digits">2</property>
+                <signal name="value-changed" handler="on_spin_bm3d_modulation_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="spacing">16</property>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <object class="GtkSpinButton" id="spin_bm3d_modulation">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="hexpand">True</property>
-                    <property name="adjustment">bm3d-modulation-adjustment</property>
-                    <property name="digits">2</property>
-                    <signal name="value-changed" handler="on_spin_bm3d_modulation_value_changed" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="pack-type">end</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="halign">start</property>
-                    <property name="label" translatable="yes">Modulation</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Modulation</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkScale" id="slide_bm3d_modulation">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Sets modulation. The pixel value is calculated as m * b + (1-m) * orig, where m is the modulation, b is the BM3D-filtered value and orig is the original pixel value. Modulation reduces the denoising performance, but a little modulation can be useful to add back microtexture to flat regions of the image.</property>
+                <property name="adjustment">bm3d-modulation-adjustment</property>
+                <property name="round-digits">1</property>
+                <property name="digits">2</property>
+                <property name="draw-value">False</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -5731,12 +5751,14 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
               </packing>
             </child>
             <child>
-              <object class="GtkScale" id="slide_bm3d_modulation">
+              <object class="GtkCheckButton" id="toggle_bm3d_da3d">
+                <property name="label" translatable="yes">Use Data-Adaptive Dual Domain Denoising</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="adjustment">bm3d-modulation-adjustment</property>
-                <property name="round-digits">1</property>
-                <property name="digits">2</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Use Data-Adaptive Dual Domain Denoising (DA3D) as a last-step denoising algorithm with the output of BM3D as a guide image. This improves detail and reduces staircasing artefacts in the output, at the cost of a small amount of extra execution time.</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_toggle_bm3d_da3d_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>

@@ -267,7 +267,7 @@ gpointer run_bm3d_on_fit(gpointer p) {
 			args->modulation);
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data("Starting BM3D denoising...", 0.0);
-	int retval = do_bm3d(args->fit, args->modulation);
+	int retval = do_bm3d(args->fit, args->modulation, args->da3d);
 	notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "BM3D execution time");
@@ -277,16 +277,30 @@ gpointer run_bm3d_on_fit(gpointer p) {
 }
 
 int process_bm3d(int nb){
+	gboolean error = FALSE;
 	set_cursor_waiting(TRUE);
 	bm3d_args *args = calloc(1, sizeof(bm3d_args));
+	args->modulation = 1.f;
+	args->da3d = 0;
 	args->fit = &gfit;
-	if (!(word[1]))
-		args->modulation = 1.f;
-	else {
-		args->modulation = g_ascii_strtod(word[1], NULL);
-		if ((args->modulation < 0.f) || (args->modulation > 1.f)) {
-			siril_log_message(_("Modulation must be between 0 and 1\n"));
-			return CMD_ARG_ERROR;
+	for (int i = 1; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(arg, "-da3d")) {
+			args->da3d = 1;
+		}
+		else if (g_str_has_prefix(arg, "-mod=")) {
+			arg += 5;
+			float mod = g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((mod < 0.f) || (mod > 1.f)) {
+				siril_log_message(_("Error in mod parameter: must be between 0 and 1, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				args->modulation = mod;
+			}
 		}
 		if (args->modulation == 0.f) {
 			siril_log_message(_("Modulation is zero: doing nothing.\n"));
@@ -299,6 +313,8 @@ int process_bm3d(int nb){
     unsigned numchunks = (unsigned) (imgmemMpix / (memGB / 5));
     siril_log_message(_("Available memory: %f GB, processing in %u chunks.\n"), memGB, numchunks);
 	siril_log_message(_("Modulation: %f\n"),args->modulation);
+	if (args->da3d)
+		siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
 
 	start_in_new_thread(run_bm3d_on_fit, args);
 	return CMD_OK;

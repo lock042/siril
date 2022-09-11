@@ -9,6 +9,7 @@
 #include "bm3d.h"
 #include "bm3d_utilities.h"
 #include "opencv/opencv.h"
+#include "filters/da3d/call_da3d.h"
 
 extern "C" {
 #include "core/proto.h"
@@ -61,7 +62,7 @@ float *fits_to_bgrbgr_wordtofloat(fits *image) {
 	return bgrbgr;
 }
 
-extern "C" int do_bm3d(fits *fit, float modulation, bool median) {
+extern "C" int do_bm3d(fits *fit, float modulation, bool median, int da3d_selected) {
     // Parameters
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
@@ -148,23 +149,29 @@ extern "C" int do_bm3d(fits *fit, float modulation, bool median) {
 
     // Reassemble chunks
     sub_divide(bgr_v, chunk_denoised, w_table, h_table, width, height, nchans, 32, FALSE);
-    bgr_f = bgr_v.data();
 
-      // Convert output from bgrbgr back to planar rgb and put back into fit
+    float *bgr_fout = bgr_v.data();
+
+    if (da3d_selected != 0) {
+      siril_log_message(_("DA3D final-stage denoising...\n"));
+      call_da3d(bgr_fout, bgr_f, bgr_fout, width, height, nchans, fSigma);
+    }
+
+    // Convert output from bgrbgr back to planar rgb and put back into fit
     if (fit->type == DATA_FLOAT) {
       if (nchans == 3) {
-        bgrbgr_float_to_fits(fit, bgr_f, modulation);
+        bgrbgr_float_to_fits(fit, bgr_fout, modulation);
       } else {
         for (unsigned i=0; i<npixels; i++) {
-          fit->fdata[i] = (1.f-modulation) * fit->fdata[i] + modulation * bgr_f[i];
+          fit->fdata[i] = (1.f-modulation) * fit->fdata[i] + modulation * bgr_fout[i];
         }
       }
     } else {
       if (nchans == 3) {
-        bgrbgr_float_to_word_fits(fit, bgr_f, modulation);
+        bgrbgr_float_to_word_fits(fit, bgr_fout, modulation);
       } else {
          for (unsigned i=0; i<npixels; i++) {
-          fit->data[i] = round_to_WORD(USHRT_MAX * ((1.f-modulation) * (fit->data[i] * invnorm) + modulation * bgr_f[i]));
+          fit->data[i] = round_to_WORD(USHRT_MAX * ((1.f-modulation) * (fit->data[i] * invnorm) + modulation * bgr_fout[i]));
         }
       }
     }
