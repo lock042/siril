@@ -5756,7 +5756,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Use Data-Adaptive Dual Domain Denoising (DA3D) as a last-step denoising algorithm with the output of BM3D as a guide image. This improves detail and reduces staircasing artefacts in the output, at the cost of a small amount of extra execution time.</property>
+                <property name="tooltip-text" translatable="yes">Use Data-Adaptive Dual Domain Denoising (DA3D) as a last-step denoising algorithm with the output of BM3D as a guide image. This improves detail and reduces staircasing artefacts in the output, at the cost of  extra processing time.</property>
                 <property name="draw-indicator">True</property>
                 <signal name="toggled" handler="on_toggle_bm3d_da3d_toggled" swapped="no"/>
               </object>
