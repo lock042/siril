@@ -437,11 +437,11 @@ int get_available_cpu_cgroups() {
 	gchar *v1quotapath = g_strdup_printf("/sys/fs/cgroup%s/cpu/cpu.cfs_quota_us", cgroup_path);
 	if (!read_from_file(v1periodpath, &period) &&
 			!read_from_file(v1quotapath, &quota)) {
-		siril_debug_print("found cgroups v1 cpu quota %lu and period %lu in cgroup %s\n", quota, period, cgroup_path);
+		siril_debug_print("found cgroups v1 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in cgroup %s\n", quota, period, cgroup_path);
 	} else {
 		gchar *v2path = g_strdup_printf("/sys/fs/cgroup%s/cpu.max", cgroup_path);
 		if (!read_2_from_file(v2path, &quota, &period)) {
-			siril_debug_print("found cgroups v2 cpu quota %lu and period %lu in %s\n", quota, period, v2path);
+			siril_debug_print("found cgroups v2 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in %s\n", quota, period, v2path);
 		}
 		else siril_debug_print("no cgroups cpu bandwidth limitations found\n");
 		g_free(v2path);
