@@ -17,6 +17,9 @@ struct fwhm_struct {
 	double fwhmx_arcsec, fwhmy_arcsec; /* FWHM in x and y axis in arc second */
 	double angle; /* angle of the axis x,y with respect to the image's */
 	double rmse; /* RMSE of the minimization */
+	double sat; /* Level above which pixels have satured (defined by peaker) */
+	int R; /* Optimized box sixe to enclose sufficient pixels in the background */
+	gboolean has_saturated;
 
 	double xpos, ypos; /* position of the star in the image, not set by Minimization */
 
@@ -47,6 +50,7 @@ struct PSF_data {
 	size_t NbRows;
 	size_t NbCols;
 	double rmse;
+	gboolean *mask;
 };
 
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness);
@@ -55,7 +59,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean f
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		psf_error *error);
 
-psf_star *psf_global_minimisation(gsl_matrix* z, double bg, gboolean fit_angle,
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, gboolean fit_angle,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		psf_error *error);
 
