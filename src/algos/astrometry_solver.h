@@ -21,8 +21,7 @@ typedef enum {
 	GAIADR3,
 	PPMXL,
 	BRIGHT_STARS,
-	APASS,
-	LOCAL = 99
+	APASS
 } online_catalog;
 
 typedef enum {
@@ -61,6 +60,7 @@ struct astrometry_data {
 	double scale;		// scale (resolution) in arcsec per pixel
 	double used_fov;	// field of view for the solved image region (arcmin)
 	gboolean use_local_cat;	// use local catalogues if installed
+	gboolean force_online_cat; // force online catalogue if local cat exist
 	GFile *catalog_file;	// downloaded file containing raw catalog data
 	gchar *catalogStars;	// file name of the projected catalog
 	rectangle solvearea;	// area in case of manual selection or autocrop

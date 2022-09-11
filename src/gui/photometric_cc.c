@@ -105,6 +105,7 @@ static void start_photometric_cc() {
 	set_cursor_waiting(TRUE);
 
 	if (plate_solve) {
+		args->force_online_cat = FALSE;
 		if (!fill_plate_solver_structure_from_GUI(args)) {
 			start_in_new_thread(match_catalog, args);
 		}
