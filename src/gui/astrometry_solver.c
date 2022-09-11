@@ -283,7 +283,7 @@ gboolean end_plate_solver(gpointer p) {
 	set_cursor_waiting(FALSE);
 
 	if (args->ret) {
-		/* we try with online catalogue if local failes */
+		/* we try with online catalogue if local fails */
 		if (args->use_local_cat) {
 			args->force_online_cat = TRUE;
 			siril_log_color_message(_("Plate Solving failed with local catalogues. Trying with online one.\n"), "salmon");
