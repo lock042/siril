@@ -168,6 +168,7 @@ extern "C" int do_bm3d(fits *fit, float modulation, int da3d) {
     sub_divide(bgr_v, chunk_denoised, w_table, h_table, width, height, nchans, 32, FALSE);
 
     bgr_fout = bgr_v.data();
+    float *bgr_da3dout;
 
     // Carry out final-stage DA3D denoising if required
     if (da3d != 0) {
@@ -184,7 +185,8 @@ extern "C" int do_bm3d(fits *fit, float modulation, int da3d) {
         guide = makeMonochrome(guide);
       }
       Image output = DA3D(input, guide, fSigma);
-      bgr_fout = output.data();
+      bgr_da3dout = output.data();
+      memcpy(bgr_fout, bgr_da3dout, height * width * nchans * sizeof(float));
     }
 
     // Convert output from bgrbgr back to planar rgb and put back into fit
