@@ -263,11 +263,15 @@ static gboolean end_bm3d(gpointer p) {
 gpointer run_bm3d_on_fit(gpointer p) {
 	bm3d_args *args = (bm3d_args *) p;
 	struct timeval t_start, t_end;
-	undo_save_state(&gfit, _("BM3D denoise (modulation=%f)"),
-			args->modulation);
+	if (args->da3d)
+		undo_save_state(&gfit, _("BM3D denoise (modulation=%f, DA3D enabled)"), args->modulation);
+	else
+		undo_save_state(&gfit, _("BM3D denoise (modulation=%f, DA3D disabled)"), args->modulation);
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data("Starting BM3D denoising...", 0.0);
+
 	int retval = do_bm3d(args->fit, args->modulation, args->da3d);
+
 	notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "BM3D execution time");
@@ -311,10 +315,14 @@ int process_bm3d(int nb){
 	float memGB = (float) (get_available_memory() / 1000000000);
     float imgmemMpix = (float) npixels / 1000000.f;
     unsigned numchunks = (unsigned) (imgmemMpix / (memGB / 5));
+	if (numchunks < 1)
+		numchunks = 1;
     siril_log_message(_("Available memory: %f GB, processing in %u chunks.\n"), memGB, numchunks);
 	siril_log_message(_("Modulation: %f\n"),args->modulation);
 	if (args->da3d)
 		siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
+	else
+		siril_log_message(_("Final stage DA3D denoising disabled.\n"));
 
 	start_in_new_thread(run_bm3d_on_fit, args);
 	return CMD_OK;

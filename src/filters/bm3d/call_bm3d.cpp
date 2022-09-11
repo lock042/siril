@@ -62,8 +62,9 @@ float *fits_to_bgrbgr_wordtofloat(fits *image) {
 	return bgrbgr;
 }
 
-extern "C" int do_bm3d(fits *fit, float modulation, bool median, int da3d_selected) {
+extern "C" int do_bm3d(fits *fit, float modulation, int da3d) {
     // Parameters
+    fprintf(stdout, "da3d %d\n",da3d);
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
     const unsigned nchans = fit->naxes[2];
@@ -152,7 +153,7 @@ extern "C" int do_bm3d(fits *fit, float modulation, bool median, int da3d_select
 
     float *bgr_fout = bgr_v.data();
 
-    if (da3d_selected != 0) {
+    if (da3d != 0) {
       siril_log_message(_("DA3D final-stage denoising...\n"));
       call_da3d(bgr_fout, bgr_f, bgr_fout, width, height, nchans, fSigma);
     }

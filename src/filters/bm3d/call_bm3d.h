@@ -13,7 +13,7 @@ typedef struct bm3d_args {
 	int da3d;
 } bm3d_args;
 
-EXTERNC int do_bm3d(fits *fit, float modulation, int da3d_selected);
+EXTERNC int do_bm3d(fits *fit, float modulation, int da3d);
 
 EXTERNC gpointer run_bm3d_on_fit(gpointer p);
 
