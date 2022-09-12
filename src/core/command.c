@@ -368,6 +368,7 @@ int process_denoise(int nb){
 			else
 				siril_log_message(_("Final stage DA3D denoising disabled.\n"));
 			start_in_new_thread(run_nlbayes_on_fit, args);
+			break;
 		default:
 			return CMD_ARG_ERROR; // Should never reach this code
 	}
