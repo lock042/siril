@@ -120,13 +120,11 @@ static online_catalog get_astrometry_catalog(double fov, double mag, gboolean au
 
 	if (auto_cat) {
 		if (mag <= 6.5) {
-			ret = BRIGHT_STARS;
+		  ret = BRIGHT_STARS;
 		} else if (fov > 180.0) {
-			ret = NOMAD;
-		} else if (fov < 30.0){
-			ret = GAIADR3;
+		  ret = NOMAD;
 		} else {
-			ret = PPMXL;
+		  ret = GAIADR3;
 		}
 		return ret;
 	} else {
