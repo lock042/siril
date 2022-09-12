@@ -1145,38 +1145,7 @@ gpointer match_catalog(gpointer p) {
 		}
 	}
 	CHECK_FOR_CANCELLATION;
-
-	if (args->downsample) {
-		copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
-	}
-
-	if (!args->manual) {
-		com.pref.starfinder_conf.pixel_size_x = com.pref.pitch;
-		com.pref.starfinder_conf.focal_length = com.pref.focal;
-
-		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
-
-		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE, MAX_STARS_FITTED, com.max_thread); // TODO: use good layer
-		com.pref.starfinder_conf.pixel_size_x = 0.;
-		com.pref.starfinder_conf.focal_length = 0.;
-	} else {
-		stars = com.stars;
-		if (com.stars)
-			while (com.stars[n_fit])
-				n_fit++;
-	}
-	CHECK_FOR_CANCELLATION;
-
-	if (!stars || n_fit < AT_MATCH_STARTN_LINEAR) {
-		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
-				"At least %d stars are needed."), AT_MATCH_STARTN_LINEAR);
-		goto clearup;
-	}
-	siril_log_message(_("Using %d detected stars from image.\n"), n_fit);
-	if (args->uncentered)
-		max_trials = 20; //retry to converge if solve is done at an offset from the center
-
+	
 	cstars = new_fitted_stars(MAX_STARS);
 	if (!cstars) {
 		PRINT_ALLOC_ERR;
@@ -1208,6 +1177,38 @@ gpointer match_catalog(gpointer p) {
 
 	n_cat = read_catalog(input_stream, cstars, args->onlineCatalog);
 	CHECK_FOR_CANCELLATION;
+
+	if (args->downsample) {
+		copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
+	}
+
+	if (!args->manual) {
+		com.pref.starfinder_conf.pixel_size_x = com.pref.pitch;
+		com.pref.starfinder_conf.focal_length = com.pref.focal;
+
+		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
+		int max_stars = (args->for_photometry_cc) ? n_cat : min(n_cat, BRIGHTEST_STARS); // capping the detection to max usable number of stars
+
+		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE, TRUE, max_stars, com.max_thread); // TODO: use good layer
+		com.pref.starfinder_conf.pixel_size_x = 0.;
+		com.pref.starfinder_conf.focal_length = 0.;
+	} else {
+		stars = com.stars;
+		if (com.stars)
+			while (com.stars[n_fit])
+				n_fit++;
+	}
+	CHECK_FOR_CANCELLATION;
+
+	if (!stars || n_fit < AT_MATCH_STARTN_LINEAR) {
+		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
+				"At least %d stars are needed."), AT_MATCH_STARTN_LINEAR);
+		goto clearup;
+	}
+	siril_log_message(_("Using %d detected stars from image.\n"), n_fit);
+	if (args->uncentered)
+		max_trials = 20; //retry to converge if solve is done at an offset from the center
 
 	/* make sure that arrays are not too small
 	 * make sure that the max of stars is BRIGHTEST_STARS */
