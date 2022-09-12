@@ -3185,6 +3185,13 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">100</property>
   </object>
+  <object class="GtkAdjustment" id="adjstarfinder_convergence">
+    <property name="lower">1</property>
+    <property name="upper">3</property>
+    <property name="value">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adjstarfinder_radius">
     <property name="lower">3</property>
     <property name="upper">50</property>
@@ -3204,13 +3211,6 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="value">1</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.5</property>
-  </object>
-  <object class="GtkAdjustment" id="adjstarfinder_convergence">
-    <property name="lower">1</property>
-    <property name="upper">3</property>
-    <property name="value">1</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment-finalstretch">
     <property name="upper">4</property>
@@ -10807,7 +10807,6 @@ This should normally be the case only for stacked images. Increasing this value 
                         <property name="width-chars">5</property>
                         <property name="input-purpose">number</property>
                         <property name="adjustment">adjstarfinder_convergence</property>
-                        <property name="digits">0</property>
                         <property name="numeric">True</property>
                         <property name="value">1</property>
                         <signal name="value-changed" handler="on_spin_sf_convergence_changed" swapped="no"/>
@@ -24825,7 +24824,9 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.</property>
+                                    <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
+
+&lt;b&gt;namedstars.dat&lt;/b&gt;: the brightest stars, all of them have names.</property>
                                     <property name="halign">start</property>
                                     <property name="label">namedstars.dat: </property>
                                     <property name="single-line-mode">True</property>
@@ -24839,7 +24840,9 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.</property>
+                                    <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
+
+&lt;b&gt;unnamedstars.dat&lt;/b&gt;: also bright stars, but down to magnitude 8</property>
                                     <property name="halign">start</property>
                                     <property name="label">unnamedstars.dat: </property>
                                     <property name="single-line-mode">True</property>
@@ -24892,7 +24895,9 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.</property>
+                                    <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
+
+&lt;b&gt;deepstars.dat&lt;/b&gt;: fainter stars extracted from The Tycho-2 Catalogue of the 2.5 Million Brightest Stars, down to magnitude 12.5</property>
                                     <property name="halign">start</property>
                                     <property name="label">deepstars.dat: </property>
                                     <property name="single-line-mode">True</property>
@@ -24919,7 +24924,9 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.</property>
+                                    <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
+
+&lt;b&gt;USNO-NOMAD-1e8.dat&lt;/b&gt;: an extract of the huge NOMAD catalogue limited to B-V photometric information and star proper motion in a compact binary form, down to magnitude 18.</property>
                                     <property name="halign">start</property>
                                     <property name="label">USNO-NOMAD-1e8.dat: </property>
                                   </object>
