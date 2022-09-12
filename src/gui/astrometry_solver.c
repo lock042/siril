@@ -283,15 +283,6 @@ gboolean end_plate_solver(gpointer p) {
 	set_cursor_waiting(FALSE);
 
 	if (args->ret) {
-		/* we try with online catalogue if local fails */
-		if (args->use_local_cat) {
-			args->force_online_cat = TRUE;
-			siril_log_color_message(_("Plate Solving failed with local catalogues. Trying with online one.\n"), "salmon");
-			if (!fill_plate_solver_structure_from_GUI(args)) {
-				start_in_new_thread(match_catalog, args);
-				return FALSE;
-			}
-		}
 		char *title = siril_log_color_message(_("Plate Solving failed. "
 				"The image could not be aligned with the reference stars.\n"), "red");
 		if (!args->message) {
@@ -328,8 +319,8 @@ static void start_image_plate_solve() {
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 
 	args->for_photometry_cc = FALSE;
-	args->force_online_cat = FALSE;
 	if (!fill_plate_solver_structure_from_GUI(args)) {
+		set_cursor_waiting(TRUE);
 		start_in_new_thread(match_catalog, args);
 	}
 }
@@ -566,13 +557,12 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 
 	process_plate_solver_input(args);
 
-	if (local_catalogues_available() && !args->force_online_cat) {
+	if (local_catalogues_available()) {
 		siril_debug_print("using local star catalogues\n");
 		args->use_local_cat = TRUE;
 		args->catalog_file = NULL;
 		args->onlineCatalog = NOMAD;
 	} else {
-		args->use_local_cat = FALSE;
 		args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() : get_online_catalog(args->used_fov, args->limit_mag);
 		/* currently the GUI version downloads the catalog here, because
 		 * siril_message_dialog() doesn't use idle function, we could change that */
