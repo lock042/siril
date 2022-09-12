@@ -174,19 +174,8 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, "&VTmag=<");
 		url = g_string_append(url, mag);
 		break;
-	case GAIA:
-		url = g_string_append(url, "I/345/gaia2&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
-		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Gmag%20BPmag");
-		url = g_string_append(url, "&-out.max=200000");
-		url = g_string_append(url, "&-c=");
-		url = g_string_append(url, coordinates);
-		url = g_string_append(url, "&-c.rm=");
-		url = g_string_append(url, fov);
-		url = g_string_append(url, "&Gmag=<");
-		url = g_string_append(url, mag);
-		break;
-	case GAIAEDR3:
-		url = g_string_append(url, "I/350/gaiaedr3&-out.meta=-h-u-D&-out.add=_r");
+	case GAIADR3:
+		url = g_string_append(url, "I/355/gaiadr3&-out.meta=-h-u-D&-out.add=_r");
 		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Gmag%20BPmag");
 		url = g_string_append(url, "&-out.max=200000");
 		url = g_string_append(url, "&-c=");
@@ -678,6 +667,40 @@ static int read_NOMAD_catalog(GInputStream *stream, psf_star **cstars) {
 	return i;
 }
 
+static int read_LOCAL_catalog(GInputStream *stream, psf_star **cstars) {
+	gchar *line;
+	psf_star *star;
+
+	int i = 0;
+
+	GDataInputStream *data_input = g_data_input_stream_new(stream);
+	while (i < MAX_STARS &&
+			(line = g_data_input_stream_read_line_utf8(data_input, NULL, NULL, NULL))) {
+
+		if (line[0] == COMMENT_CHAR || is_blank(line) || g_str_has_prefix(line, "---")) {
+			g_free(line);
+			continue;
+		}
+		double r = 0.0, x = 0.0, y = 0.0, Vmag = 0.0, Bmag = 0.0;
+		int n = sscanf(line, "%lf %lf %lf %lf %lf", &r, &x, &y, &Vmag, &Bmag);
+		g_free(line);
+		if (Vmag >= 30.0)
+			continue;
+		star = new_psf_star();
+		star->xpos = x;
+		star->ypos = y;
+		star->mag = Vmag;
+		star->BV = n < 5 || Bmag >= 30.0 ? -99.9 : Bmag - Vmag;
+		star->phot = NULL;
+		cstars[i++] = star;
+		cstars[i] = NULL;
+	}
+	g_object_unref(data_input);
+	sort_stars_by_mag(cstars, i);
+	siril_log_message(_("Local catalogs size: %d objects\n"), i);
+	return i;
+}
+
 static int read_TYCHO2_catalog(GInputStream *stream, psf_star **cstars) {
 	gchar *line;
 	psf_star *star;
@@ -716,7 +739,7 @@ static int read_TYCHO2_catalog(GInputStream *stream, psf_star **cstars) {
 	return i;
 }
 
-static int read_GAIA_catalog(GInputStream *stream, psf_star **cstars, const gchar *version) {
+static int read_GAIA_catalog(GInputStream *stream, psf_star **cstars) {
 	gchar *line;
 	psf_star *star;
 
@@ -754,7 +777,7 @@ static int read_GAIA_catalog(GInputStream *stream, psf_star **cstars, const gcha
 	}
 	g_object_unref(data_input);
 	sort_stars_by_mag(cstars, i);
-	siril_log_message(_("Catalog Gaia %s size: %d objects\n"), version, i);
+	siril_log_message(_("Catalog Gaia DR3 size: %d objects\n"), i);
 	return i;
 }
 
@@ -886,15 +909,15 @@ static int read_APASS_catalog(GInputStream *stream, psf_star **cstars) {
 
 static int read_catalog(GInputStream *stream, psf_star **cstars, int type) {
 	switch (type) {
-	default:
 	case TYCHO2:
 		return read_TYCHO2_catalog(stream, cstars);
+	default:
+	case LOCAL:
+		return read_LOCAL_catalog(stream, cstars);
 	case NOMAD:
 		return read_NOMAD_catalog(stream, cstars);
-	case GAIA:
-		return read_GAIA_catalog(stream, cstars, "DR2");
-	case GAIAEDR3:
-		return read_GAIA_catalog(stream, cstars, "EDR3");
+	case GAIADR3:
+		return read_GAIA_catalog(stream, cstars);
 	case PPMXL:
 		return read_PPMXL_catalog(stream, cstars);
 	case BRIGHT_STARS:
@@ -1122,38 +1145,7 @@ gpointer match_catalog(gpointer p) {
 		}
 	}
 	CHECK_FOR_CANCELLATION;
-
-	if (args->downsample) {
-		copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
-	}
-
-	if (!args->manual) {
-		com.pref.starfinder_conf.pixel_size_x = com.pref.pitch;
-		com.pref.starfinder_conf.focal_length = com.pref.focal;
-
-		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
-
-		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE, FALSE, MAX_STARS_FITTED, com.max_thread); // TODO: use good layer
-		com.pref.starfinder_conf.pixel_size_x = 0.;
-		com.pref.starfinder_conf.focal_length = 0.;
-	} else {
-		stars = com.stars;
-		if (com.stars)
-			while (com.stars[n_fit])
-				n_fit++;
-	}
-	CHECK_FOR_CANCELLATION;
-
-	if (!stars || n_fit < AT_MATCH_STARTN_LINEAR) {
-		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
-				"At least %d stars are needed."), AT_MATCH_STARTN_LINEAR);
-		goto clearup;
-	}
-	siril_debug_print("using %d detected stars from image\n", n_fit);
-	if (args->uncentered)
-		max_trials = 20; //retry to converge if solve is done at an offset from the center
-
+	
 	cstars = new_fitted_stars(MAX_STARS);
 	if (!cstars) {
 		PRINT_ALLOC_ERR;
@@ -1185,6 +1177,38 @@ gpointer match_catalog(gpointer p) {
 
 	n_cat = read_catalog(input_stream, cstars, args->onlineCatalog);
 	CHECK_FOR_CANCELLATION;
+
+	if (args->downsample) {
+		copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
+	}
+
+	if (!args->manual) {
+		com.pref.starfinder_conf.pixel_size_x = com.pref.pitch;
+		com.pref.starfinder_conf.focal_length = com.pref.focal;
+
+		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
+		int max_stars = (args->for_photometry_cc) ? n_cat : min(n_cat, BRIGHTEST_STARS); // capping the detection to max usable number of stars
+
+		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE, TRUE, max_stars, com.max_thread); // TODO: use good layer
+		com.pref.starfinder_conf.pixel_size_x = 0.;
+		com.pref.starfinder_conf.focal_length = 0.;
+	} else {
+		stars = com.stars;
+		if (com.stars)
+			while (com.stars[n_fit])
+				n_fit++;
+	}
+	CHECK_FOR_CANCELLATION;
+
+	if (!stars || n_fit < AT_MATCH_STARTN_LINEAR) {
+		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
+				"At least %d stars are needed."), AT_MATCH_STARTN_LINEAR);
+		goto clearup;
+	}
+	siril_log_message(_("Using %d detected stars from image.\n"), n_fit);
+	if (args->uncentered)
+		max_trials = 20; //retry to converge if solve is done at an offset from the center
 
 	/* make sure that arrays are not too small
 	 * make sure that the max of stars is BRIGHTEST_STARS */
