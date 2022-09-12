@@ -488,14 +488,14 @@ int set_seq(const char *name){
 #endif
 	int retval = seq_check_basic_data(seq, TRUE);
 	if (retval == -1) {
-		free(seq);
+		free_sequence(seq, TRUE);
 		return 1;
 	}
 	if (retval == 0) {
 		int image_to_load = sequence_find_refimage(seq);
 		if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
 			fprintf(stderr, "could not load first image from sequence\n");
-			free(seq);
+			free_sequence(seq, TRUE);
 			return 1;
 		}
 		seq->current = image_to_load;
@@ -549,7 +549,7 @@ int set_seq(const char *name){
 		redraw(REMAP_ALL);
 		drawPlot();
 	}
-
+	free(seq);
 	return 0;
 }
 
