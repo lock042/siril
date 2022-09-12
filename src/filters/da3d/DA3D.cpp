@@ -15,6 +15,9 @@
 #include "WeightMap.hpp"
 #include "Utils.hpp"
 #include "DftPatch.hpp"
+extern "C" {
+#include "core/processing.h"
+}
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -217,7 +220,7 @@ void ModifyPatch(const Image &patch, const Image &k, DftPatch *modified,
   }
 }
 
-pair<Image, Image> DA3D_block(const Image &noisy, const Image &guide,
+pair<Image, Image> DA3D_block(int &retval, const Image &noisy, const Image &guide,
                               float sigma, int r, float sigma_s,
                               float gamma_r, float threshold) {
   // useful values
@@ -247,6 +250,10 @@ pair<Image, Image> DA3D_block(const Image &noisy, const Image &guide,
 
   // main loop
   while (agg_weights.Minimum() < threshold) {  // line 4
+    if (!get_thread_run()) {
+      retval++;
+      break;
+    }
     tie(pr, pc) = agg_weights.FindMinimum();  // line 5
     ExtractPatch(noisy, pr, pc, &y);  // line 6
     ExtractPatch(guide, pr, pc, &g);  // line 7
@@ -312,13 +319,12 @@ pair<Image, Image> DA3D_block(const Image &noisy, const Image &guide,
     }
     agg_weights.IncreaseWeights(k, pr - r, pc - r);  // line 29
   }
-
   return {move(output), move(weights)};
 }
 
 }  // namespace
 
-Image DA3D(const Image &noisy, const Image &guide, float sigma,
+Image DA3D(int &retval, const Image &noisy, const Image &guide, float sigma,
            int nthreads, int r, float sigma_s, float gamma_r,
            float threshold) {
   // padding and color transformation
@@ -337,12 +343,10 @@ Image DA3D(const Image &noisy, const Image &guide, float sigma,
   vector<Image> guide_tiles = SplitTiles(ColorTransform(guide.copy()), r,
                                          s - r - 1, tiling);
   vector<pair<Image, Image>> result_tiles(nthreads);
-
 #pragma omp parallel for num_threads(nthreads)
-  for (int i = 0; i < nthreads; ++i) {
-    result_tiles[i] = DA3D_block(noisy_tiles[i], guide_tiles[i], sigma,
+  for (int i = 0; i < nthreads; ++i)
+    result_tiles[i] = DA3D_block(retval, noisy_tiles[i], guide_tiles[i], sigma,
                                  r, sigma_s, gamma_r, threshold);
-  }
   return ColorTransformInverse(MergeTiles(result_tiles, guide.shape(), r,
                                           s - r - 1, tiling));
 }

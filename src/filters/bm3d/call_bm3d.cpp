@@ -184,7 +184,10 @@ extern "C" int do_bm3d(fits *fit, float modulation, int da3d) {
         input = makeMonochrome(input);
         guide = makeMonochrome(guide);
       }
-      Image output = DA3D(input, guide, fSigma);
+      int retval =0;
+      Image output = DA3D(retval, input, guide, fSigma);
+      if (retval != 0)
+        return EXIT_FAILURE;
       bgr_da3dout = output.data();
       memcpy(bgr_fout, bgr_da3dout, height * width * nchans * sizeof(float));
     }
