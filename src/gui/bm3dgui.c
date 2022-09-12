@@ -42,7 +42,7 @@ void on_bm3d_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_bm3d_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_bm3d_modulation"));
 	bm3d_modulation = (float) gtk_spin_button_get_value(spin_bm3d_modulation);
 //	copy_gfit_to_backup();
-	bm3d_args *args = calloc(1, sizeof(bm3d_args));
+	denoise_args *args = calloc(1, sizeof(denoise_args));
 	args->fit = &gfit;
 	args->da3d = da3d;
 	args->modulation = bm3d_modulation;

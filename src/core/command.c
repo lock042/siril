@@ -69,6 +69,7 @@
 #include "filters/asinh.h"
 #include "filters/banding.h"
 #include "filters/bm3d/call_bm3d.h"
+#include "filters/nlbayes/call_nlbayes.h"
 #include "filters/clahe.h"
 #include "filters/cosmetic_correction.h"
 #include "filters/deconv.h"
@@ -249,8 +250,8 @@ int process_savebmp(int nb){
 	return CMD_OK;
 }
 
-static gboolean end_bm3d(gpointer p) {
-	struct bm3d_args *args = (struct bm3d_args *) p;
+static gboolean end_denoise(gpointer p) {
+	struct denoise_args *args = (struct denoise_args *) p;
 	stop_processing_thread();// can it be done here in case there is no thread?
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
@@ -260,8 +261,28 @@ static gboolean end_bm3d(gpointer p) {
 	return FALSE;
 }
 
+gpointer run_nlbayes_on_fit(gpointer p) {
+	denoise_args *args = (denoise_args *) p;
+	struct timeval t_start, t_end;
+	if (args->da3d)
+		undo_save_state(&gfit, _("NL-Bayes denoise (modulation=%f, DA3D enabled)"), args->modulation);
+	else
+		undo_save_state(&gfit, _("NL-Bayes denoise (modulation=%f, DA3D disabled)"), args->modulation);
+	gettimeofday(&t_start, NULL);
+	set_progress_bar_data("Starting BNL-Bayes denoising...", 0.0);
+
+	int retval = do_nlbayes(args->fit, args->modulation, args->da3d);
+
+	notify_gfit_modified();
+	gettimeofday(&t_end, NULL);
+	show_time_msg(t_start, t_end, "NL-Bayes execution time");
+	set_progress_bar_data("Ready.", 0.0);
+	siril_add_idle(end_denoise, args);
+	return GINT_TO_POINTER(retval);
+}
+
 gpointer run_bm3d_on_fit(gpointer p) {
-	bm3d_args *args = (bm3d_args *) p;
+	denoise_args *args = (denoise_args *) p;
 	struct timeval t_start, t_end;
 	if (args->da3d)
 		undo_save_state(&gfit, _("BM3D denoise (modulation=%f, DA3D enabled)"), args->modulation);
@@ -276,14 +297,15 @@ gpointer run_bm3d_on_fit(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "BM3D execution time");
 	set_progress_bar_data("Ready.", 0.0);
-	siril_add_idle(end_bm3d, args);
+	siril_add_idle(end_denoise, args);
 	return GINT_TO_POINTER(retval);
 }
 
-int process_bm3d(int nb){
+int process_denoise(int nb){
 	gboolean error = FALSE;
 	set_cursor_waiting(TRUE);
-	bm3d_args *args = calloc(1, sizeof(bm3d_args));
+	denoise_args *args = calloc(1, sizeof(denoise_args));
+	int algo = -1;
 	args->modulation = 1.f;
 	args->da3d = 0;
 	args->fit = &gfit;
@@ -291,8 +313,14 @@ int process_bm3d(int nb){
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(arg, "-da3d")) {
+		if (g_str_has_prefix(arg, "+da3d")) {
 			args->da3d = 1;
+		}
+		else if (g_str_has_prefix(arg, "bm3d")) {
+			algo = 0;
+		}
+		else if (g_str_has_prefix(arg, "nlbayes")) {
+			algo = 1;
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			arg += 5;
@@ -311,20 +339,37 @@ int process_bm3d(int nb){
 			return CMD_OK;
 		}
 	}
-	unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
-	float memGB = (float) (get_available_memory() / 1000000000);
-    float imgmemMpix = (float) npixels / 1000000.f;
-    unsigned numchunks = (unsigned) (imgmemMpix / (memGB / 5));
-	if (numchunks < 1)
-		numchunks = 1;
-    siril_log_message(_("Available memory: %f GB, processing in %u chunks.\n"), memGB, numchunks);
-	siril_log_message(_("Modulation: %f\n"),args->modulation);
-	if (args->da3d)
-		siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
-	else
-		siril_log_message(_("Final stage DA3D denoising disabled.\n"));
-
-	start_in_new_thread(run_bm3d_on_fit, args);
+	switch (algo) {
+		case -1:
+			siril_log_message(_("No algorithm set: doing nothing. One of the arguments [bm3d] or [nlbayes] must be provided.\n"));
+			return CMD_ARG_ERROR;
+		case 0:
+			unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
+			float memGB = (float) (get_available_memory() / 1000000000);
+			float imgmemMpix = (float) npixels / 1000000.f;
+			unsigned numchunks = (unsigned) (imgmemMpix / (memGB / 5));
+			if (numchunks < 1)
+				numchunks = 1;
+			siril_log_message(_("Available memory: %f GB, processing in %u chunks.\n"), memGB, numchunks);
+			siril_log_message(_("Modulation: %f\n"),args->modulation);
+			siril_log_message(_("Primary denoising algorithm: BM3D.\n"));
+			if (args->da3d)
+				siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
+			else
+				siril_log_message(_("Final stage DA3D denoising disabled.\n"));
+			start_in_new_thread(run_bm3d_on_fit, args);
+			break;
+		case 1:
+			siril_log_message(_("Modulation: %f\n"),args->modulation);
+			siril_log_message(_("Primary denoising algorithm: NL-Bayes.\n"));
+			if (args->da3d)
+				siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
+			else
+				siril_log_message(_("Final stage DA3D denoising disabled.\n"));
+			start_in_new_thread(run_nlbayes_on_fit, args);
+		default:
+			return CMD_ARG_ERROR; // Should never reach this code
+	}
 	return CMD_OK;
 }
 

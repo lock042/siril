@@ -169,6 +169,15 @@ siril_common_SOURCES = \
 	filters/da3d/Utils.hpp \
 	filters/da3d/WeightMap.cpp \
 	filters/da3d/WeightMap.hpp \
+	filters/nlbayes/call_nlbayes.cpp \
+	filters/nlbayes/call_nlbayes.h \
+	filters/nlbayes/LibImages.cpp \
+	filters/nlbayes/LibImages.h \
+	filters/nlbayes/LibMatrix.cpp \
+	filters/nlbayes/NlBayes.cpp \
+	filters/nlbayes/NlBayes.h \
+	filters/nlbayes/Utilities.cpp \
+	filters/nlbayes/Utilities.h \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
 	gui/annotations_pref.c \

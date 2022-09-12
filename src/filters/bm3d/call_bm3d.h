@@ -7,16 +7,17 @@
 #define EXTERNC
 #endif
 
-typedef struct bm3d_args {
+typedef struct denoise_args {
 	fits *fit;
 	float modulation;
 	int da3d;
-} bm3d_args;
+} denoise_args;
+
+void bgrbgr_float_to_fits(fits *image, float *bgrbgr, float modulation);
+void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr, float modulation);
+float *fits_to_bgrbgr_wordtofloat(fits *image);
 
 EXTERNC int do_bm3d(fits *fit, float modulation, int da3d);
-
-EXTERNC gpointer run_bm3d_on_fit(gpointer p);
-
 #ifdef __cplusplus
 }
 #endif

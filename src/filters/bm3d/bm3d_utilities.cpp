@@ -34,7 +34,7 @@
 #define OPP       2
 #define RGB       3
 
- using namespace std;
+using namespace std;
 
  /**
   * @brief Load image, check the number of channels
@@ -124,7 +124,7 @@
 
     return EXIT_SUCCESS;
 }
-
+*/
 /**
  * @brief Check if a number is a power of 2
  **/

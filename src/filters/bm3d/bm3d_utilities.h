@@ -5,7 +5,7 @@
 #include <fftw3.h>
 
 //! Read image and check number of channels
-int load_image(
+/*int load_image(
     char* name
 ,   std::vector<float> &img
 ,   unsigned * width
@@ -21,7 +21,7 @@ int save_image(
 ,   const unsigned height
 ,   const unsigned chnls
 );
-
+*/
 //! Check if a number is a power of 2
 bool power_of_2(
     const unsigned n
@@ -129,6 +129,5 @@ unsigned ind_log2(
 unsigned ind_pow2(
     const unsigned N
 );
-
 
 #endif // UTILITIES_H_INCLUDED
