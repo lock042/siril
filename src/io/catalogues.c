@@ -781,7 +781,7 @@ gchar *get_and_project_local_catalog(SirilWorldCS *catalog_center, double radius
 	free(stars);
 	foutput = g_file_get_path(fproj);
 	g_object_unref(fproj);
-	siril_log_message(_("Got %u stars from local catalogues.\n"), nb_stars);
+	siril_debug_print("Got %u stars from local catalogues.\n", nb_stars);
 
 	return foutput;
 }

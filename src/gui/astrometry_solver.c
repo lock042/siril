@@ -567,7 +567,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 			siril_debug_print("using local star catalogues\n");
 			args->use_local_cat = TRUE;
 			args->catalog_file = NULL;
-			args->onlineCatalog = NOMAD; // not only NOMAD in fact but this is a flag for local catalogs too
+			args->onlineCatalog = LOCAL;
 			use_local = TRUE;
 		}
 	} else {
@@ -575,7 +575,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 			siril_debug_print("using local star catalogues\n");
 			args->use_local_cat = TRUE;
 			args->catalog_file = NULL;
-			args->onlineCatalog = NOMAD; // not only NOMAD in fact but this is a flag for local catalogs too
+			args->onlineCatalog = LOCAL;
 			use_local = TRUE;
 		}
 	}

@@ -633,7 +633,7 @@ static void print_platesolving_results(solve_results *image, gboolean downsample
 	g_free(delta);
 }
 
-static int read_NOMAD_catalog(GInputStream *stream, psf_star **cstars, int type) {
+static int read_NOMAD_catalog(GInputStream *stream, psf_star **cstars) {
 	gchar *line;
 	psf_star *star;
 
@@ -663,8 +663,41 @@ static int read_NOMAD_catalog(GInputStream *stream, psf_star **cstars, int type)
 	}
 	g_object_unref(data_input);
 	sort_stars_by_mag(cstars, i);
-	if (type == NOMAD)
-		siril_log_message(_("Catalog NOMAD size: %d objects\n"), i);
+	siril_log_message(_("Catalog NOMAD size: %d objects\n"), i);
+	return i;
+}
+
+static int read_LOCAL_catalog(GInputStream *stream, psf_star **cstars) {
+	gchar *line;
+	psf_star *star;
+
+	int i = 0;
+
+	GDataInputStream *data_input = g_data_input_stream_new(stream);
+	while (i < MAX_STARS &&
+			(line = g_data_input_stream_read_line_utf8(data_input, NULL, NULL, NULL))) {
+
+		if (line[0] == COMMENT_CHAR || is_blank(line) || g_str_has_prefix(line, "---")) {
+			g_free(line);
+			continue;
+		}
+		double r = 0.0, x = 0.0, y = 0.0, Vmag = 0.0, Bmag = 0.0;
+		int n = sscanf(line, "%lf %lf %lf %lf %lf", &r, &x, &y, &Vmag, &Bmag);
+		g_free(line);
+		if (Vmag >= 30.0)
+			continue;
+		star = new_psf_star();
+		star->xpos = x;
+		star->ypos = y;
+		star->mag = Vmag;
+		star->BV = n < 5 || Bmag >= 30.0 ? -99.9 : Bmag - Vmag;
+		star->phot = NULL;
+		cstars[i++] = star;
+		cstars[i] = NULL;
+	}
+	g_object_unref(data_input);
+	sort_stars_by_mag(cstars, i);
+	siril_log_message(_("Local catalogs size: %d objects\n"), i);
 	return i;
 }
 
@@ -706,7 +739,7 @@ static int read_TYCHO2_catalog(GInputStream *stream, psf_star **cstars) {
 	return i;
 }
 
-static int read_GAIA_catalog(GInputStream *stream, psf_star **cstars, const gchar *version) {
+static int read_GAIA_catalog(GInputStream *stream, psf_star **cstars) {
 	gchar *line;
 	psf_star *star;
 
@@ -744,7 +777,7 @@ static int read_GAIA_catalog(GInputStream *stream, psf_star **cstars, const gcha
 	}
 	g_object_unref(data_input);
 	sort_stars_by_mag(cstars, i);
-	siril_log_message(_("Catalog Gaia %s size: %d objects\n"), version, i);
+	siril_log_message(_("Catalog Gaia DR3 size: %d objects\n"), i);
 	return i;
 }
 
@@ -880,10 +913,11 @@ static int read_catalog(GInputStream *stream, psf_star **cstars, int type) {
 		return read_TYCHO2_catalog(stream, cstars);
 	default:
 	case LOCAL:
+		return read_LOCAL_catalog(stream, cstars);
 	case NOMAD:
-		return read_NOMAD_catalog(stream, cstars, type);
+		return read_NOMAD_catalog(stream, cstars);
 	case GAIADR3:
-		return read_GAIA_catalog(stream, cstars, "DR3");
+		return read_GAIA_catalog(stream, cstars);
 	case PPMXL:
 		return read_PPMXL_catalog(stream, cstars);
 	case BRIGHT_STARS:
