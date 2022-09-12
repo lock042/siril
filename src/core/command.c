@@ -343,7 +343,8 @@ int process_denoise(int nb){
 		case -1:
 			siril_log_message(_("No algorithm set: doing nothing. One of the arguments [bm3d] or [nlbayes] must be provided.\n"));
 			return CMD_ARG_ERROR;
-		case 0:
+			break;
+		case 0:; // Semicolon required to avoid "a label can only be part of a statement..." error
 			unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
 			float memGB = (float) (get_available_memory() / 1000000000);
 			float imgmemMpix = (float) npixels / 1000000.f;
