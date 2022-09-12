@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@
 
 static float SubSample(float *ptr, int img_wid, int x_size, int y_size);
 static void _smooth_image_float(float *buf, int width, int height);
-static double Gradient(float *buf, int width, int height);
+static double Gradient(const float *buf, int width, int height);
 
 // -------------------------------------------------------
 // Method to estimate quality.
@@ -45,10 +45,9 @@ double QualityEstimate_float(fits *fit, int layer) {
 	int height = fit->ry;
 	int x1, y1;
 	int subsample, region_w, region_h;
-	int i, j, n, x, y, x_inc;
 	int x_samples, y_samples, y_last;
 	float *buffer, *buf, maxp[MAXP];
-	double q, dval = 0.0;
+	double dval = 0.0;
 
 	buffer = fit->fpdata[layer];
 
@@ -77,24 +76,24 @@ double QualityEstimate_float(fits *fit, int layer) {
 		}
 
 		y_last = y1 + (y_samples - 1) * subsample; // second last row of subsampled output
-		x_inc = subsample;
+		int x_inc = subsample;
 
-		for (i = 0; i < MAXP; ++i) {
+		for (int i = 0; i < MAXP; ++i) {
 			maxp[i] = 0;
 		}
 
 		// First row - ignore histo-stretch
-		y = y1;
-		n = 0;
+		int y = y1;
+		int n = 0;
 		ptr = buffer + (y * width + x1);
-		for (x = 0; x < x_samples; ++x, ptr += x_inc) {
+		for (int x = 0; x < x_samples; ++x, ptr += x_inc) {
 			buf[n++] = SubSample(ptr, width, subsample, subsample);
 		}
 
 		// Rows 1 .. y_last-1 additional histo-stretch code
 		for (y += subsample; y < y_last; y += subsample) {
 			ptr = buffer + (y * width + x1);
-			for (x = 0; x < x_samples; ++x, ptr += x_inc) {
+			for (int x = 0; x < x_samples; ++x, ptr += x_inc) {
 				float v = SubSample(ptr, width, subsample, subsample);
 
 				if (v > maxp[2] && v < 0.99f) {
@@ -107,6 +106,7 @@ double QualityEstimate_float(fits *fit, int layer) {
 						slot = 2;
 					}
 
+					int j;
 					for (j = MAXP - 1; j > slot; --j)
 						maxp[j] = maxp[j - 1];
 					maxp[j] = v;
@@ -118,14 +118,14 @@ double QualityEstimate_float(fits *fit, int layer) {
 
 		// Last row, ignore histo-stretch
 		ptr = buffer + (y * width + x1);
-		for (x = 0; x < x_samples; ++x, ptr += x_inc) {
+		for (int x = 0; x < x_samples; ++x, ptr += x_inc) {
 			buf[n++] = SubSample(ptr, width, subsample, subsample);
 		}
 
 		// 3x3 smoothing
 		_smooth_image_float(buf, x_samples, y_samples);
 
-		q = Gradient(buf, x_samples, y_samples);
+		double q = Gradient(buf, x_samples, y_samples);
 
 		dval += (q * ((QSUBSAMPLE_MIN * QSUBSAMPLE_MIN)
 					/ (subsample * subsample)));
@@ -165,7 +165,7 @@ static float SubSample(float *ptr, int img_wid, int x_size, int y_size) {
 	return val / (float)(x_size * y_size);
 }
 
-static double Gradient(float *buf, int width, int height) {
+static double Gradient(const float *buf, int width, int height) {
 	int pixels;
 	int x, y;
 	int yborder = (int) ((double) height * QMARGIN) + 1;

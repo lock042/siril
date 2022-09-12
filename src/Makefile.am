@@ -27,8 +27,12 @@ siril_common_SOURCES = \
 	core/proto.h \
 	algos/annotate.c \
 	algos/annotate.h \
+	algos/astrometry_solver.c \
+	algos/astrometry_solver.h \
 	algos/background_extraction.c \
 	algos/background_extraction.h \
+	algos/ccd-inspector.c \
+	algos/ccd-inspector.h \
 	algos/colors.c \
 	algos/colors.h \
 	algos/Def_Math.h \
@@ -49,8 +53,6 @@ siril_common_SOURCES = \
 	algos/pave.c \
 	algos/photometry.c \
 	algos/photometry.h \
-	algos/plateSolver.c \
-	algos/plateSolver.h \
 	algos/PSF.c \
 	algos/PSF.h \
 	algos/quality.c \
@@ -67,7 +69,7 @@ siril_common_SOURCES = \
 	algos/statistics_float.c \
 	algos/statistics_float.h \
 	algos/transform.c \
-  algos/search_objects.c \
+	algos/search_objects.c \
 	algos/siril_wcs.h \
 	algos/siril_wcs.c \
 	compositing/align_rgb.c \
@@ -99,6 +101,8 @@ siril_common_SOURCES = \
 	core/processing.c \
 	core/sequence_filtering.c \
 	core/sequence_filtering.h \
+	core/settings.c \
+	core/settings.h \
 	core/signals.c \
 	core/signals.h \
 	core/siril.c \
@@ -135,16 +139,24 @@ siril_common_SOURCES = \
 	filters/fft.h \
 	filters/median.c \
 	filters/median.h \
+	filters/mtf.c \
+	filters/mtf.h \
+	filters/ght.c \
+	filters/ght.h \
 	filters/rgradient.c \
 	filters/rgradient.h \
 	filters/saturation.c \
 	filters/saturation.h \
 	filters/scnr.c \
 	filters/scnr.h \
+	filters/starnet.c \
+	filters/starnet.h \
 	filters/wavelets.c \
 	filters/wavelets.h \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
+	gui/annotations_pref.c \
+	gui/astrometry_solver.c \
 	gui/callbacks.c \
 	gui/callbacks.h \
 	gui/conversion.c \
@@ -155,8 +167,6 @@ siril_common_SOURCES = \
 	gui/dialogs.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
-	gui/gnuplot_i/gnuplot_i.c \
-	gui/gnuplot_i/gnuplot_i.h \
 	gui/histogram.c \
 	gui/histogram.h \
 	gui/image_display.c \
@@ -168,6 +178,8 @@ siril_common_SOURCES = \
 	gui/menu_gray_psf.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
+	gui/nina_light_curve.c \
+	gui/nina_light_curve.h \
 	gui/open_dialog.c \
 	gui/open_dialog.h \
 	gui/photometric_cc.c \
@@ -181,6 +193,8 @@ siril_common_SOURCES = \
 	gui/PSF_list.h \
 	gui/PSF_list.c \
 	gui/registration_preview.c \
+	gui/remixer.c \
+	gui/remixer.h \
 	gui/save_dialog.c \
 	gui/save_dialog.h \
 	gui/script_menu.c \
@@ -197,9 +211,17 @@ siril_common_SOURCES = \
 	gui/siril_preview.h \
 	gui/siril-window.c \
 	gui/siril-window.h \
+	gui/starnetgui.c \
+	gui/starnetgui.h \
 	gui/statistics_list.c \
 	gui/utils.c \
 	gui/utils.h \
+	io/catalogues.c \
+	io/catalogues.h \
+	io/Astro-TIFF.c \
+	io/Astro-TIFF.h \
+	io/kstars/binfile.h \
+	io/kstars/byteorder.h \
 	io/conversion.c \
 	io/conversion.h \
 	io/films.c \
@@ -208,6 +230,8 @@ siril_common_SOURCES = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
+	io/gnuplot_i.c \
+	io/gnuplot_i.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
@@ -224,6 +248,15 @@ siril_common_SOURCES = \
 	io/ser.h \
 	io/single_image.c \
 	io/single_image.h \
+	livestacking/livestacking.c \
+	livestacking/livestacking.h \
+	livestacking/gui.c \
+	livestacking/gui.h \
+	pixelMath/pixel_math_runner.c \
+	pixelMath/pixel_math_runner.h \
+	pixelMath/tinyexpr.c \
+	pixelMath/tinyexpr.h \
+	registration/applyreg.c \
 	registration/3stars.c \
 	registration/comet.c \
 	registration/global.c \
@@ -265,6 +298,9 @@ AM_CPPFLAGS += -I$(top_srcdir)/subprojects/librtprocess/src/include
 librtprocesslibs = $(top_builddir)/subprojects/librtprocess/build/src/librtprocess.a
 endif
 
+AM_CPPFLAGS += -I$(top_srcdir)/subprojects/htmesh
+libhtmeshlibs = $(top_builddir)/subprojects/htmesh/build/libhtmesh.a
+
 siril_common_LDADD = \
 	$(top_builddir)/subprojects/kplot/libkplot.a \
 	$(FFMPEG_LIBS) \
@@ -301,19 +337,16 @@ siril_common_SOURCES += \
 	io/avi_pipp/avi_writer.h \
 	opencv/opencv.cpp \
 	opencv/opencv.h \
-	opencv/ecc/ecc.cpp \
-	opencv/ecc/ecc.h \
-	opencv/findHomography/fundam.cpp \
-	opencv/findHomography/calibration.cpp \
-	opencv/findHomography/modelest.cpp \
-	opencv/findHomography/_modelest.h \
-	opencv/findHomography/calib3d.hpp \
-	opencv/findHomography/precomp.hpp \
+	opencv/kombat/kombat.cpp \
+	opencv/kombat/kombat.h \
 	core/exif.cpp \
-	core/exif.h
+	core/exif.h \
+	io/kstars/htmesh_wrapper.cpp \
+	io/kstars/htmesh_wrapper.h
 
 siril_common_LDADD += $(OPENCV_LIBS) \
-		      $(EXIV2_LIBS)
+		      $(EXIV2_LIBS) \
+		      $(libhtmeshlibs)
 
 siril_SOURCES = $(siril_common_SOURCES) main.c
 siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c
@@ -330,12 +363,6 @@ AM_LDFLAGS += -Wl,--export-all-symbols
 if !SIRIL_DEBUG
 AM_LDFLAGS += -mwindows
 endif #!SIRIL_DEBUG
-if HAVE_WINDRES
-$(top_builddir)/platform-specific/windows/siril.res.o: $(top_srcdir)/platform-specific/windows/siril.rc
-	mkdir -p $(top_builddir)/platform-specific/windows/
-	$(WINDRES) $< $@
-siril_LDADD += $(top_builddir)/platform-specific/windows/siril.res.o
-endif #HAVE_WINDRES
 else
 if !PLATFORM_OSX
 AM_LDFLAGS += -rdynamic

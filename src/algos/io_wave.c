@@ -83,7 +83,7 @@
  **
  ** Nl, Nc = original image size
  ** Nbr_Plan = number of scales = number of planes
- ** Type_Wave_Transform = choosen wavelet transform algorithm
+ ** Type_Wave_Transform = chosen wavelet transform algorithm
  **
  *******************************************************************************
  **
@@ -97,7 +97,7 @@
  **
  ** Nl, Nc = original image size
  ** Nbr_Plan = number of scales = number of planes
- ** Type_Wave_Transform = choosen wavelet transform algorithm
+ ** Type_Wave_Transform = chosen wavelet transform algorithm
  **
  ******************************************************************************/
 
@@ -151,7 +151,7 @@ int wave_io_read(char *File_Name_In, wave_transf_des *Wave_Trans) {
 	FILE *File_Des;
 	int Nbr, Nl, Nc, Nbr_Plan, Size;
 	char *Ptr;
-	string File_Name;
+	string File_Name = { 0 };
 
 	/* find the exact file name which must finish by .wave */
 	wave_io_name(File_Name_In, File_Name);
@@ -207,7 +207,7 @@ int wave_io_write(char *File_Name_In, wave_transf_des *Wave_Trans) {
 	FILE *File_Des;
 	int Nbr, Nl, Nc, Nbr_Plan, Size;
 	char *Ptr;
-	string File_Name;
+	string File_Name = { 0 };
 
 	/* find the exact file name */
 	wave_io_name(File_Name_In, File_Name);

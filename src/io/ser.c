@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -54,14 +54,14 @@ static int display_date(guint64 timestamp, char *txt) {
 	GDateTime *date = ser_timestamp_to_date_time(timestamp);
 	if (date) {
 		gchar *str = date_time_to_FITS_date(date);
-		fprintf(stdout, "%s%s\n", txt, str);
+		siril_log_message("%s%s\n", txt, str);
 		free(str);
 		g_date_time_unref(date);
 	}
 	return 0;
 }
 
-static char *convert_color_id_to_char(ser_color color_id) {
+static const char *convert_color_id_to_char(ser_color color_id) {
 	switch (color_id) {
 	case SER_MONO:
 		return "MONO";
@@ -92,7 +92,6 @@ static char *convert_color_id_to_char(ser_color color_id) {
 
 /* reads timestamps from the trailer of the file and stores them in ser_file->ts */
 static int ser_read_timestamp(struct ser_struct *ser_file) {
-	int i;
 	gboolean timestamps_in_order = TRUE;
 	guint64 previous_ts = 0L;
 	gint64 frame_size;
@@ -118,7 +117,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 		ser_file->ts_alloc = ser_file->frame_count;
 
 		// Seek to start of timestamps
-		for (i = 0; i < ser_file->frame_count; i++) {
+		for (int i = 0; i < ser_file->frame_count; i++) {
 			if ((gint64) -1 == fseek64(ser_file->file, offset + (i * 8), SEEK_SET))
 				return -1;
 
@@ -133,7 +132,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 		guint64 min_ts = *ts_ptr;
 		guint64 max_ts = *ts_ptr;
 
-		for (i = 0; i < ser_file->frame_count; i++) {
+		for (int i = 0; i < ser_file->frame_count; i++) {
 			if (*ts_ptr < previous_ts) {
 				// Timestamps are not in order
 				timestamps_in_order = FALSE;
@@ -150,16 +149,9 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 			ts_ptr++;
 		}
 
-		if (timestamps_in_order) {
-			if (min_ts == max_ts)
-				fprintf(stdout, _("Warning: timestamps in the SER sequence are all identical.\n"));
-			else fprintf(stdout, _("Timestamps in the SER sequence are correctly ordered.\n"));
-		} else {
-			fprintf(stdout, _("Warning: timestamps in the SER sequence are not in the correct order.\n"));
-		}
-
 		ser_file->ts_min = min_ts;
 		ser_file->ts_max = max_ts;
+		ser_file->timestamps_in_order = timestamps_in_order;
 		double diff_ts = (ser_file->ts_max - ser_file->ts_min) / 1000.0;
 		// diff_ts now in units of 100 us or ten thousandths of a second
 		if (diff_ts > 0.0) {
@@ -240,6 +232,9 @@ static int ser_read_header(struct ser_struct *ser_file) {
 	memcpy(ser_file->observer, header + 42, 40);
 	memcpy(ser_file->instrument, header + 82, 40);
 	memcpy(ser_file->telescope, header + 122, 40);
+	ser_file->observer[39] = '\0';
+	ser_file->instrument[39] = '\0';
+	ser_file->telescope[39] = '\0';
 
 	/* internal representations of header data */
 	if (ser_file->bit_pixel_depth <= 8)
@@ -270,7 +265,6 @@ static int ser_read_header(struct ser_struct *ser_file) {
 }
 
 static int ser_write_timestamps(struct ser_struct *ser_file) {
-	int i;
 	gint64 frame_size;
 
 	if (!ser_file->frame_count || ser_file->image_width <= 0 ||
@@ -285,7 +279,7 @@ static int ser_write_timestamps(struct ser_struct *ser_file) {
 		gint64 offset = SER_HEADER_LEN + frame_size *
 			(gint64)ser_file->byte_pixel_depth * (gint64)ser_file->frame_count;
 
-		for (i = 0; i < ser_file->frame_count; i++) {
+		for (int i = 0; i < ser_file->frame_count; i++) {
 			guint64 ts;
 
 			if (i >= ser_file->ts_alloc)
@@ -464,7 +458,7 @@ gboolean ser_is_cfa(struct ser_struct *ser_file) {
 	return ser_file && (ser_file->color_id == SER_BAYER_RGGB || 
 			ser_file->color_id == SER_BAYER_GRBG || 
 			ser_file->color_id == SER_BAYER_GBRG || 
-			ser_file->color_id == SER_BAYER_BGGR); 
+			ser_file->color_id == SER_BAYER_BGGR);
 	// SER_BAYER_CYYM SER_BAYER_YCMY SER_BAYER_YMCY SER_BAYER_MYYC are not
 	// supported yet so returning false for them here is good
 }
@@ -491,23 +485,41 @@ void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp) {
 }
 
 void ser_display_info(struct ser_struct *ser_file) {
-	char *color = convert_color_id_to_char(ser_file->color_id);
+	const char *color = convert_color_id_to_char(ser_file->color_id);
 
-	fprintf(stdout, "=========== SER file info ==============\n");
-	fprintf(stdout, "file id: %s\n", ser_file->file_id);
-	fprintf(stdout, "lu id: %d\n", ser_file->lu_id);
-	fprintf(stdout, "little endian: %d\n", ser_file->little_endian);
-	fprintf(stdout, "sensor type: %s\n", color);
-	fprintf(stdout, "image size: %d x %d (%d bits)\n", ser_file->image_width,
+	siril_log_message("=========== SER file info ==============\n");
+	if (ser_file->filename)
+		siril_log_message("for file '%s'\n", ser_file->filename);
+	if (ser_file->file_id && strcmp(ser_file->file_id, "LUCAM-RECORDER"))
+		siril_log_message("file id: %s\n", ser_file->file_id);
+	if (ser_file->lu_id != 0)
+		siril_log_message("lu id: %d\n", ser_file->lu_id);
+	siril_log_message("image size: %d x %d (%d bits)\n", ser_file->image_width,
 			ser_file->image_height, ser_file->bit_pixel_depth);
-	fprintf(stdout, "frame count: %u\n", ser_file->frame_count);
-	fprintf(stdout, "observer: %.40s\n", ser_file->observer);
-	fprintf(stdout, "instrument: %.40s\n", ser_file->instrument);
-	fprintf(stdout, "telescope: %.40s\n", ser_file->telescope);
+	siril_log_message("sensor type: %s\n", color);
+	siril_log_message("frame count: %u\n", ser_file->frame_count);
+	if (ser_file->observer[0] != '\0')
+		siril_log_message("observer: %.40s\n", ser_file->observer);
+	if (ser_file->instrument[0] != '\0')
+		siril_log_message("instrument: %.40s\n", ser_file->instrument);
+	if (ser_file->telescope[0] != '\0')
+		siril_log_message("telescope: %.40s\n", ser_file->telescope);
 	display_date(ser_file->date, "local time: ");
 	display_date(ser_file->date_utc, "UTC time: ");
-	fprintf(stdout, "fps: %.3lf\n", ser_file->fps);
-	fprintf(stdout, "========================================\n");
+	if (ser_file->fps > 0.0)
+		siril_log_message("fps: %.3lf\n", ser_file->fps);
+	if (ser_file->timestamps_in_order) {
+		if (ser_file->ts_min == ser_file->ts_max) {
+			if (ser_file->ts_min == 0) {
+				siril_log_color_message(_("Warning: no timestamps stored in the SER file.\n"), "salmon");
+			} else {
+				siril_log_color_message(_("Warning: timestamps in the SER file are all identical.\n"), "salmon");
+			}
+		} else siril_log_message(_("Timestamps in the SER file are correctly ordered.\n"));
+	} else {
+		siril_log_color_message(_("Warning: timestamps in the SER file are not in the correct order.\n"), "salmon");
+	}
+	siril_log_message("========================================\n");
 }
 
 static int ser_end_write(struct ser_struct *ser_file, gboolean abort) {
@@ -586,7 +598,8 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 		/* we write the header now, but it should be written again
 		 * before closing in case the number of the image in the new
 		 * SER changes from the copied SER */
-		ser_write_header(ser_file);
+		if (ser_write_header(ser_file))
+			return 1;
 	} else {	// new SER
 		ser_file->file_id = strdup("LUCAM-RECORDER");
 		ser_file->lu_id = 0;
@@ -606,10 +619,17 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 	ser_file->writer = malloc(sizeof(struct seqwriter_data));
 	ser_file->writer->write_image_hook = ser_write_image_for_writer;
 	ser_file->writer->sequence = ser_file;
-	
+
 	siril_log_message(_("Created SER file %s\n"), filename);
 	start_writer(ser_file->writer, ser_file->frame_count);
 	return 0;
+}
+
+int ser_reset_to_monochrome(struct ser_struct *ser_file) {
+	ser_file->color_id = SER_MONO;
+	if (ser_file->number_of_planes > 0)
+		ser_file->number_of_planes = 1;
+	return ser_write_header(ser_file);
 }
 
 static int ser_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index) {
@@ -628,6 +648,10 @@ int ser_open_file(const char *filename, struct ser_struct *ser_file) {
 		perror("SER file open");
 		return -1;
 	}
+#ifdef _OPENMP
+	omp_init_lock(&ser_file->fd_lock);
+	omp_init_lock(&ser_file->ts_lock);
+#endif
 	if (ser_read_header(ser_file)) {
 		fprintf(stderr, "SER: reading header failed, closing file %s\n",
 				filename);
@@ -635,16 +659,12 @@ int ser_open_file(const char *filename, struct ser_struct *ser_file) {
 		return -1;
 	}
 	ser_file->filename = strdup(filename);
-
-#ifdef _OPENMP
-	omp_init_lock(&ser_file->fd_lock);
-	omp_init_lock(&ser_file->ts_lock);
-#endif
 	return 0;
 }
 
 int ser_close_file(struct ser_struct *ser_file) {
 	int retval = 0;
+	user_warned = FALSE;
 	if (!ser_file)
 		return -1;
 	if (ser_file->file) {
@@ -750,9 +770,10 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	fit->binning_x = fit->binning_y = 1;
 
 	/* If opening images debayered is not activated, read the image as CFA monochrome */
+	const gchar *pattern = NULL;
+
 	ser_color type_ser = ser_file->color_id;
 	if (!open_debayer && type_ser != SER_RGB && type_ser != SER_BGR) {
-		const gchar *pattern = NULL;
 		type_ser = SER_MONO;
 
 		if (com.pref.debayer.use_bayer_header) {
@@ -766,10 +787,20 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 				pattern = "GRBG";
 		} else {
 			pattern = filter_pattern[com.pref.debayer.bayer_pattern];
+			if (!user_warned) {
+				if (ser_file->color_id == SER_MONO)
+					siril_log_color_message(_("Forcing SER frame as CFA instead of monochrome, because Bayer information from file has been overridden in preferences\n"), "salmon");
+				else siril_log_color_message(_("Forcing SER Bayer pattern to %s as configured in the preferences\n"), "salmon", pattern);
+				user_warned = TRUE;
+			}
 		}
-		if (pattern)
-			strcpy(fit->bayer_pattern, pattern);
-		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
+	} else if (open_debayer && type_ser == SER_MONO && !com.pref.debayer.use_bayer_header) {
+		pattern = filter_pattern[com.pref.debayer.bayer_pattern];
+		type_ser = retrieveBayerPatternFromChar(pattern) + 8;
+	}
+	if (pattern) {
+		strcpy(fit->bayer_pattern, pattern);
+		strncpy(fit->row_order, "BOTTOM-UP", FLEN_VALUE - 1);
 	}
 
 	switch (type_ser) {
@@ -1129,8 +1160,8 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	int pixel, plane, dest;
 	int ret, retval = 0;
 	gint64 offset, frame_size;
-	BYTE *data8 = NULL;			// for 8-bit files
-	WORD *data16 = NULL;		// for 16-bit files
+	BYTE *data8 = NULL;	// for 8-bit files
+	WORD *data16 = NULL;	// for 16-bit files
 
 	if (!ser_file || ser_file->file == NULL || !fit)
 		return -1;
@@ -1171,7 +1202,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		for (pixel = 0; pixel < ser_file->image_width * ser_file->image_height;
 				pixel++) {
 			if (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8)
-				data8[dest] = round_to_BYTE(fit->pdata[plane][pixel]);
+				data8[dest] = truncate_to_BYTE(fit->pdata[plane][pixel]);
 			else {
 				if (ser_file->little_endian == SER_BIG_ENDIAN)
 					data16[dest] = (fit->pdata[plane][pixel] >> 8 | fit->pdata[plane][pixel] << 8);
@@ -1244,9 +1275,11 @@ gint64 ser_compute_file_size(struct ser_struct *ser_file, int nb_frames) {
 }
 
 int import_metadata_from_serfile(struct ser_struct *ser_file, fits *to) {
-	strncpy(to->instrume, ser_file->instrument, FLEN_VALUE);
-	strncpy(to->observer, ser_file->observer, FLEN_VALUE);
-	strncpy(to->telescop, ser_file->telescope, FLEN_VALUE);
+	strncpy(to->instrume, ser_file->instrument, FLEN_VALUE - 1);
+	strncpy(to->observer, ser_file->observer, FLEN_VALUE - 1);
+	strncpy(to->telescop, ser_file->telescope, FLEN_VALUE - 1);
+	if (ser_file->fps > 0.0)
+		to->exposure = 1.0 / ser_file->fps;
 	return 0;
 }
 
@@ -1263,7 +1296,7 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
  */
 GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 	GdkPixbuf *pixbuf = NULL;
-	int MAX_SIZE = com.pref.thumbnail_size;
+	int MAX_SIZE = com.pref.gui.thumbnail_size;
 	gchar *description = NULL;
 	int i, j, k, l, N, M;
 	int w, h, pixScale, Ws, Hs, n_channels, n_frames, bit;
@@ -1276,8 +1309,8 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 		return NULL;
 	}
 	float *pix = malloc(MAX_SIZE * sizeof(float));
-	float *ima_data = NULL, *ptr, byte, n, m, max, min, wd, avr;
-	guchar *pixbuf_data = NULL, *pptr;
+	float *ima_data = NULL, *ptr, byte, n, max, min, wd, avr;
+	guchar *pixbuf_data = NULL;
 
 	w = ser.image_width;
 	h = ser.image_height;
@@ -1292,6 +1325,7 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 	for (i = 0; i < sz; i++) {
 		ima_data[i + 0] = (float)fit.pdata[RLAYER][i];
 	}
+	clearfits(&fit);
 
 	i = (int) ceil((float) w / MAX_SIZE);
 	j = (int) ceil((float) h / MAX_SIZE);
@@ -1321,7 +1355,7 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 		//pptr = &pixbuf_data[i * Ws * 3];
 		for (j = 0; j < MAX_SIZE; j++)
 			pix[j] = 0;
-		m = 0.f; // amount of strings read in block
+		float m = 0.f; // amount of strings read in block
 		for (l = 0; l < pixScale; l++, m++) { // cycle through a block lines
 			ptr = &ima_data[M * w];
 			N = 0; // number of column
@@ -1363,11 +1397,11 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 		wd /= avr;
 	ptr = ima_data;
 	for (i = Hs - 1; i > -1; i--) {	// fill pixbuf mirroring image by vertical
-		pptr = &pixbuf_data[Ws * i * 3];
+		guchar *pptr = &pixbuf_data[Ws * i * 3];
 		for (j = 0; j < Ws; j++) {
-			*pptr++ = (guchar) round_to_BYTE(255.f * (*ptr - min) / wd);
-			*pptr++ = (guchar) round_to_BYTE(255.f * (*ptr - min) / wd);
-			*pptr++ = (guchar) round_to_BYTE(255.f * (*ptr - min) / wd);
+			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
+			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
+			*pptr++ = (guchar) roundf_to_BYTE(255.f * (*ptr - min) / wd);
 			ptr++;
 		}
 	}

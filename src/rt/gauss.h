@@ -20,4 +20,15 @@
 
 enum eGaussType {GAUSS_STANDARD, GAUSS_MULT, GAUSS_DIV};
 
-void gaussianBlur(float** src, float** dst, const int W, const int H, const double sigma, bool useBoxBlur = false, eGaussType gausstype = GAUSS_STANDARD, float** buffer2 = nullptr);
+#ifdef __cplusplus
+void gaussianBlur(float** src, float** dst, const int W, const int H, const double sigma, int max_threads, bool useBoxBlur = false, eGaussType gausstype = GAUSS_STANDARD, float** buffer2 = nullptr);
+
+extern "C" {
+void gaussianBlurC(float** src, float** dst, const int W, const int H, const double sigma, int threads);
+}
+
+#else
+
+void gaussianBlurC(float** src, float** dst, const int W, const int H, const double sigma, int threads);
+
+#endif

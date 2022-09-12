@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -36,11 +36,14 @@
 #include "gui/message_dialog.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
+#include "gui/registration_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
+#include "algos/extraction.h"
 
+static gchar *add_filter_str[] = { "R", "G", "B"};
 /*
  * A Fast HSL-to-RGB Transform
  * by Ken Fishkin
@@ -418,49 +421,39 @@ double BV_to_T(double BV) {
 	return T;
 }
 
-int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, int config) {
-	unsigned int row, col;
-	float tmp1, tmp2;
+int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, const char *cfa_string) {
+	unsigned int row, col, pat_cell;
+	/* compute width of the (square) CFA pattern */
+	/* added 0.1 in case the result of sqrt is something like 5.999999 and it gets casted to int as 5 */
+	unsigned int pat_width = (unsigned int) (sqrt(strlen(cfa_string)) + 0.1);
 	if (fit->type == DATA_USHORT) {
 		WORD *data = fit->data;
-		for (row = 0; row < fit->ry - 1; row += 2) {
-			for (col = 0; col < fit->rx - 1; col += 2) {
-				if (config == 0) {
-					tmp1 = (float)data[1 + col + row * fit->rx] / coeff1;
-					data[1 + col + row * fit->rx] = round_to_WORD(tmp1);
-
-					tmp2 = (float)data[col + (1 + row) * fit->rx] / coeff2;
-					data[col + (1 + row) * fit->rx] = round_to_WORD(tmp2);
-
-				} else {
-					tmp1 = (float)data[col + row * fit->rx] / coeff1;
-					data[col + row * fit->rx] = round_to_WORD(tmp1);
-
-					tmp2 = (float)data[1 + col + (1 + row) * fit->rx] / coeff2;
-					data[1 + col + (1 + row) * fit->rx] = round_to_WORD(tmp2);
-
+		for (row = 0; row < fit->ry; row ++) {
+			for (col = 0; col < fit->rx; col++) {
+				pat_cell = (row % pat_width) * pat_width + col % pat_width;
+				switch (cfa_string[pat_cell]) {
+					case 'R':
+						data[col + row * fit->rx] = round_to_WORD(data[col + row * fit->rx] / coeff1);
+						break;
+					case 'B':
+						data[col + row * fit->rx] = round_to_WORD(data[col + row * fit->rx] / coeff2);
+						break;
 				}
 			}
 		}
 	}
 	else if (fit->type == DATA_FLOAT) {
 		float *data = fit->fdata;
-		for (row = 0; row < fit->ry - 1; row += 2) {
-			for (col = 0; col < fit->rx - 1; col += 2) {
-				if (config == 0) {
-					tmp1 = data[1 + col + row * fit->rx] / coeff1;
-					data[1 + col + row * fit->rx] = tmp1;
-
-					tmp2 = data[col + (1 + row) * fit->rx] / coeff2;
-					data[col + (1 + row) * fit->rx] = tmp2;
-
-				} else {
-					tmp1 = data[col + row * fit->rx] / coeff1;
-					data[col + row * fit->rx] = tmp1;
-
-					tmp2 = data[1 + col + (1 + row) * fit->rx] / coeff2;
-					data[1 + col + (1 + row) * fit->rx] = tmp2;
-
+		for (row = 0; row < fit->ry; row ++) {
+			for (col = 0; col < fit->rx; col++) {
+				pat_cell = (row % pat_width) * pat_width + col % pat_width;
+				switch (cfa_string[pat_cell]) {
+					case 'R':
+						data[col + row * fit->rx] /= coeff1;
+						break;
+					case 'B':
+						data[col + row * fit->rx] /= coeff2;
+						break;
 				}
 			}
 		}
@@ -495,7 +488,6 @@ static gpointer extract_channels_ushort(gpointer p) {
 				_("Siril cannot extract layers. Make sure your image is in RGB mode.\n"));
 		args->process = FALSE;
 		clearfits(args->fit);
-		siril_add_idle(end_extract_channels, args);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -559,12 +551,16 @@ static gpointer extract_channels_ushort(gpointer p) {
 		}
 
 	}
-	for (int i = 0; i < 3; i++)
+	gchar *fitfilter = g_strdup(args->fit->filter);
+	for (int i = 0; i < 3; i++) {
+		update_filter_information(args->fit, add_filter_str[i], TRUE);
 		save1fits16(args->channel[i], args->fit, i);
+		update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+	}
 	clearfits(args->fit);
+	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_add_idle(end_extract_channels, args);
 
 	return GINT_TO_POINTER(0);
 }
@@ -582,7 +578,6 @@ static gpointer extract_channels_float(gpointer p) {
 				_("Siril cannot extract layers. Make sure your image is in RGB mode.\n"));
 		args->process = FALSE;
 		clearfits(args->fit);
-		siril_add_idle(end_extract_channels, args);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -644,24 +639,30 @@ static gpointer extract_channels_float(gpointer p) {
 		}
 
 	}
-	for (int i = 0; i < 3; i++)
+	gchar *fitfilter = g_strdup(args->fit->filter);
+	for (int i = 0; i < 3; i++) {
+		update_filter_information(args->fit, add_filter_str[i], TRUE);
 		save1fits32(args->channel[i], args->fit, i);
+		update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+	}
 	clearfits(args->fit);
+	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_add_idle(end_extract_channels, args);
 
 	return GINT_TO_POINTER(0);
 }
 
 gpointer extract_channels(gpointer p) {
 	struct extract_channels_data *args = (struct extract_channels_data *)p;
+	gpointer retval = GINT_TO_POINTER(1);
+
 	if (args->fit->type == DATA_USHORT)
-		return extract_channels_ushort(p);
-	if (args->fit->type == DATA_FLOAT)
-		return extract_channels_float(p);
+		retval = extract_channels_ushort(p);
+	else if (args->fit->type == DATA_FLOAT)
+		retval = extract_channels_float(p);
 	siril_add_idle(end_extract_channels, args);
-	return GINT_TO_POINTER(1);
+	return retval;
 }
 
 /****************** Color calibration ************************/
@@ -676,13 +677,13 @@ void on_button_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 
 	if (!selection_black_value[0]) {
 		selection_black_value[0] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_x"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_x"));
 		selection_black_value[1] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_y"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_y"));
 		selection_black_value[2] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_w"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_w"));
 		selection_black_value[3] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_h"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_h"));
 	}
 
 	gtk_spin_button_set_value(selection_black_value[0], com.selection.x);
@@ -699,23 +700,23 @@ void initialize_calibration_interface() {
 
 	if (!selection_black_adjustment[0]) {
 		selection_black_adjustment[0] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_bkg_x"));
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_x"));
 		selection_black_adjustment[1] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_bkg_y"));
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_y"));
 		selection_black_adjustment[2] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_bkg_w"));
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_w"));
 		selection_black_adjustment[3] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_bkg_h"));
+				gtk_builder_get_object(gui.builder, "adjustment_bkg_h"));
 	}
 	if (!selection_white_adjustment[0]) {
 		selection_white_adjustment[0] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_white_x"));
+				gtk_builder_get_object(gui.builder, "adjustment_white_x"));
 		selection_white_adjustment[1] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_white_y"));
+				gtk_builder_get_object(gui.builder, "adjustment_white_y"));
 		selection_white_adjustment[2] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_white_w"));
+				gtk_builder_get_object(gui.builder, "adjustment_white_w"));
 		selection_white_adjustment[3] = GTK_ADJUSTMENT(
-				gtk_builder_get_object(builder, "adjustment_white_h"));
+				gtk_builder_get_object(gui.builder, "adjustment_white_h"));
 	}
 	gtk_adjustment_set_upper(selection_black_adjustment[0], gfit.rx);
 	gtk_adjustment_set_upper(selection_black_adjustment[1], gfit.ry);
@@ -746,7 +747,7 @@ static void background_neutralize(fits* fit, rectangle black_selection) {
 	assert(fit->naxes[2] == 3);
 
 	for (chan = 0; chan < 3; chan++) {
-		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC, TRUE);
+		stats[chan] = statistics(NULL, -1, fit, chan, &black_selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return;
@@ -777,6 +778,7 @@ static void background_neutralize(fits* fit, rectangle black_selection) {
 	}
 
 	invalidate_stats_from_fit(fit);
+	invalidate_gfit_histogram();
 }
 
 void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data) {
@@ -786,13 +788,13 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 
 	if (!selection_black_value[0]) {
 		selection_black_value[0] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_x"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_x"));
 		selection_black_value[1] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_y"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_y"));
 		selection_black_value[2] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_w"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_w"));
 		selection_black_value[3] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_bkg_h"));
+				gtk_builder_get_object(gui.builder, "spin_bkg_h"));
 	}
 	width = (int) gtk_spin_button_get_value(selection_black_value[2]);
 	height = (int) gtk_spin_button_get_value(selection_black_value[3]);
@@ -813,9 +815,9 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 	background_neutralize(&gfit, black_selection);
 	delete_selected_area();
 
-	redraw(com.cvport, REMAP_ALL);
-	redraw_previews();
 	update_gfit_histogram_if_needed();
+	redraw(REMAP_ALL);
+	redraw_previews();
 	set_cursor_waiting(FALSE);
 }
 
@@ -824,13 +826,13 @@ void on_button_white_selection_clicked(GtkButton *button, gpointer user_data) {
 
 	if (!selection_white_value[0]) {
 		selection_white_value[0] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_x"));
+				gtk_builder_get_object(gui.builder, "spin_white_x"));
 		selection_white_value[1] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_y"));
+				gtk_builder_get_object(gui.builder, "spin_white_y"));
 		selection_white_value[2] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_w"));
+				gtk_builder_get_object(gui.builder, "spin_white_w"));
 		selection_white_value[3] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(builder, "spin_white_h"));
+				gtk_builder_get_object(gui.builder, "spin_white_h"));
 	}
 
 	if ((!com.selection.h) || (!com.selection.w)) {
@@ -902,7 +904,7 @@ static void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
 
 	siril_log_message(_("Background reference:\n"));
 	for (chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, &black, STATS_BASIC, TRUE);
+		imstats *stat = statistics(NULL, -1, fit, chan, &black, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return;
@@ -994,6 +996,7 @@ static void white_balance(fits *fit, gboolean is_manual, rectangle white_selecti
 	}
 
 	invalidate_stats_from_fit(fit);
+	invalidate_gfit_histogram();
 }
 
 void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) {
@@ -1054,7 +1057,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 
 	delete_selected_area();
 
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	update_gfit_histogram_if_needed();
 	set_cursor_waiting(FALSE);
@@ -1111,7 +1114,7 @@ void negative_processing() {
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
 	update_gfit_histogram_if_needed();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 }

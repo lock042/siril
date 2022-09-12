@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -42,17 +42,23 @@ static gchar *get_buffer_from_css_file(gchar *css) {
  * Loads the css sheet
  */
 void load_css_style_sheet () {
-	gchar *CSSFile;
-
-	CSSFile = g_build_filename(siril_get_system_data_dir(), CSS_FILENAME, NULL);
+	gchar *CSSFile = g_build_filename(siril_get_system_data_dir(), CSS_FILENAME, NULL);
 	if (!g_file_test (CSSFile, G_FILE_TEST_EXISTS)) {
 		g_error (_("Unable to load CSS style sheet file: %s. Please reinstall Siril\n"), CSSFile);
 	}
 	else {
 		gchar *css_buffer = get_buffer_from_css_file(CSSFile);
 		if (css_buffer) {
-			/* update font scale */
-			gchar *updated_css = g_strdup_printf(css_buffer, 1.0 + (com.pref.font_scale - 100.0) / 1000.0, com.pref.icon_symbolic ? "symbolic" : "regular");
+			/* make sure that scale is ok */
+			if (com.pref.gui.font_scale < 70.0) com.pref.gui.font_scale = 100;
+
+			GString *string = g_string_new(css_buffer);
+
+			gchar *first_line = g_strdup_printf("* { font-size: %lfem; -gtk-icon-style: %s; }",
+					1.0 + (com.pref.gui.font_scale - 100.0) / 1000.0, com.pref.gui.icon_symbolic ? "symbolic" : "regular");
+
+			g_string_replace(string, "* { font-size: 1.0em; -gtk-icon-style: regular; }", first_line, 1);
+			gchar *updated_css = g_string_free(string, FALSE);
 
 			GtkCssProvider *css_provider = gtk_css_provider_new();
 			GdkDisplay *display = gdk_display_get_default();
@@ -60,10 +66,11 @@ void load_css_style_sheet () {
 			gtk_style_context_add_provider_for_screen(screen,
 					GTK_STYLE_PROVIDER(css_provider),
 					GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-			gtk_css_provider_load_from_data(css_provider, updated_css, -1,
-					NULL);
+
+			gtk_css_provider_load_from_data(css_provider, updated_css, -1, NULL);
 
 			g_fprintf(stdout, _("Successfully loaded '%s'\n"), CSSFile);
+			g_free(first_line);
 			g_free(css_buffer);
 			g_free(updated_css);
 			g_object_unref(css_provider);

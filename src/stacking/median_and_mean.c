@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,7 +26,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
-#include "core/siril_date.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -35,40 +34,12 @@
 #include "algos/statistics.h"
 #include "stacking/stacking.h"
 #include "stacking/siril_fit_linear.h"
-
-typedef struct {
-	GDateTime *date_obs;
-	gdouble exposure;
-} DateEvent;
-
-static void free_list_date(gpointer data) {
-	DateEvent *item = data;
-
-	g_date_time_unref(item->date_obs);
-	g_slice_free(DateEvent, item);
-}
-
-static DateEvent* new_item(GDateTime *dt, gdouble exposure) {
-	DateEvent *item;
-
-	item = g_slice_new(DateEvent);
-	item->exposure = exposure;
-	item->date_obs = dt;
-
-	return item;
-}
-
-static gint list_date_compare(gconstpointer *a, gconstpointer *b) {
-	const DateEvent *dt1 = (const DateEvent *) a;
-	const DateEvent *dt2 = (const DateEvent *) b;
-
-	return g_date_time_compare(dt1->date_obs, dt2->date_obs);
-}
+#include "registration/registration.h"
 
 static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean);
 
 /*************************** MEDIAN AND MEAN STACKING **************************
- * Median and mean stacking requires all images to be in memory, so we don't
+ * Median and mean stacking require all images to be in memory, so we don't
  * use the generic readfits() but directly the cfitsio routines to open them
  * and seq_opened_read_region() to read data randomly from them.
  * Since all data of all images cannot fit in memory, a divide and conqueer
@@ -85,81 +56,87 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean);
  * remaining ones is used.
  * ****************************************************************************/
 
-int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, long *naxes, GList **list_date, fits *fit) {
-	char msg[256], filename[256];
-	int status, oldbitpix = 0, oldnaxis = -1, nb_frames = args->nb_images_to_stack;
-	long oldnaxes[3] = { 0 };
+int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, long *naxes,
+		GList **list_date, fits *fit) {
+	int nb_frames = args->nb_images_to_stack;
+	guint stackcnt = 0;
+	double livetime = 0.0;
+	*bitpix = 0;
+	*naxis = 0;
+	*naxes = 0;
+	set_progress_bar_data(_("Opening images for stacking"), PROGRESS_NONE);
 
-	if (args->seq->type == SEQ_REGULAR) {
+	if (args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) {
+		if (args->apply_nbstack_weights) {
+			int nb_layers = args->seq->nb_layers;
+			args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+		}
+		if (args->seq->type == SEQ_FITSEQ) {
+			g_assert(args->seq->fitseq_file);
+			/* we assume that all images have the same dimensions and bitpix */
+			memcpy(naxes, args->seq->fitseq_file->naxes, sizeof args->seq->fitseq_file->naxes);
+			*naxis = naxes[2] == 3 ? 3 : 2;
+			*bitpix = args->seq->fitseq_file->bitpix;
+		}
+
 		for (int i = 0; i < nb_frames; ++i) {
-			int image_index = args->image_indices[i];	// image index in sequence
-			if (!get_thread_run()) {
+			int image_index = args->image_indices[i]; // image index in sequence
+			if (!get_thread_run())
 				return ST_GENERIC_ERROR;
-			}
-			if (!fit_sequence_get_image_filename(args->seq, image_index, filename, TRUE))
-				continue;
+			if (i % 20 == 0)
+				set_progress_bar_data(NULL, PROGRESS_PULSATE);
 
-			snprintf(msg, 255, _("Opening image %s for stacking"), filename);
-			msg[255] = '\0';
-			set_progress_bar_data(msg, PROGRESS_NONE);
+			fitsfile *fptr;
+			if (args->seq->type == SEQ_REGULAR) {
+				if (seq_open_image(args->seq, image_index)) {
+					siril_log_message(_("Opening image %d failed\n"), image_index);
+					return ST_SEQUENCE_ERROR;
+				}
 
-			/* open input images */
-			if (seq_open_image(args->seq, image_index)) {
-				return ST_SEQUENCE_ERROR;
-			}
-
-			/* here we use the internal data of sequences, it's quite ugly, we should
-			 * consider moving these tests in seq_open_image() or wrapping them in a
-			 * sequence function */
-			status = 0;
-			fits_get_img_param(args->seq->fptr[image_index], 3, bitpix, naxis, naxes, &status);
-			if (status) {
-				fits_report_error(stderr, status); /* print error message */
-				return ST_SEQUENCE_ERROR;
-			}
-			if (*naxis > 3) {
-				siril_log_message(_("Stacking error: images with > 3 dimensions "
-						"are not supported\n"));
-				return ST_SEQUENCE_ERROR;
-			}
-
-			if (oldnaxis > 0) {
-				if (*naxis != oldnaxis ||
-						oldnaxes[0] != naxes[0] ||
-						oldnaxes[1] != naxes[1] ||
-						oldnaxes[2] != naxes[2]) {
-					siril_log_message(_("Stacking error: input images have "
-							"different sizes\n"));
+				fptr = args->seq->fptr[image_index];
+				if (check_fits_params(fptr, bitpix, naxis, naxes)) {
+					siril_log_message(_("Opening image %d failed\n"), image_index);
 					return ST_SEQUENCE_ERROR;
 				}
 			} else {
-				oldnaxis = *naxis;
-				oldnaxes[0] = naxes[0];
-				oldnaxes[1] = naxes[1];
-				oldnaxes[2] = naxes[2];
-			}
-
-			if (oldbitpix > 0) {
-				if (*bitpix != oldbitpix) {
-					siril_log_message(_("Stacking error: input images have "
-							"different precision\n"));
+				if (fitseq_set_current_frame(args->seq->fitseq_file, image_index)) {
+					siril_log_color_message(_("There was an error opening frame %d for stacking\n"), "red", image_index);
 					return ST_SEQUENCE_ERROR;
 				}
-			} else {
-				oldbitpix = *bitpix;
+				fptr = args->seq->fitseq_file->fptr;
 			}
 
-			gdouble current_exp;
+			/* we get some metadata at the same time: date, exposure ... */
+			gdouble current_exp, current_livetime;
+			unsigned int stack_count;
 			GDateTime *dt = NULL;
 
-			get_date_data_from_fitsfile(args->seq->fptr[image_index], &dt, &current_exp);
+			get_date_data_from_fitsfile(fptr, &dt, &current_exp, &current_livetime, &stack_count);
 			if (dt)
-				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp));
+				*list_date = g_list_prepend(*list_date, new_date_item(dt, current_exp));
+			livetime += current_livetime;
+			stackcnt += stack_count;
 
 			/* We copy metadata from reference to the final fit */
 			if (image_index == args->ref_image)
-				import_metadata_from_fitsfile(args->seq->fptr[image_index], fit);
+				import_metadata_from_fitsfile(fptr, fit);
+
+			if (args->apply_nbstack_weights) {
+				int nb_layers = args->seq->nb_layers;
+				double weight = (double)stack_count;
+				siril_debug_print("weight for image %d: %d\n", i, stack_count);
+				args->weights[i] = weight;
+				if (nb_layers > 1) {
+					args->weights[nb_frames + i] = weight;
+					args->weights[nb_frames * 2 + i] = weight;
+				}
+			}
 		}
+		if (stackcnt <= 0)
+			stackcnt = nb_frames;
+		fit->stackcnt = stackcnt;
+		fit->livetime = livetime;
+		// keeping exposure of the reference frame
 
 		if (naxes[2] == 0)
 			naxes[2] = 1;
@@ -182,39 +159,22 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		}
 
 		import_metadata_from_serfile(args->seq->ser_file, fit);
-		for (int frame = 0; frame < args->seq->number; frame++) {
-			GDateTime *dt = ser_read_frame_date(args->seq->ser_file, frame);
+		for (int i = 0; i < nb_frames; ++i) {
+			int image_index = args->image_indices[i]; // image index in sequence
+			GDateTime *dt = ser_read_frame_date(args->seq->ser_file, image_index);
 			if (dt)
-				*list_date = g_list_prepend(*list_date,	new_item(dt, 0.0));
+				*list_date = g_list_prepend(*list_date,	new_date_item(dt, 0.0));
 		}
-	}
-	else if (args->seq->type == SEQ_FITSEQ) {
-		g_assert(args->seq->fitseq_file);
-		memcpy(naxes, args->seq->fitseq_file->naxes, sizeof args->seq->fitseq_file->naxes);
-		*naxis = naxes[2] == 3 ? 3 : 2;
-		*bitpix = args->seq->fitseq_file->bitpix;
-
-		for (int frame = 0; frame < args->seq->number; frame++) {
-			if (fitseq_set_current_frame(args->seq->fitseq_file, frame)) {
-				siril_log_color_message(_("There was an error opening frame %d for stacking\n"), "red", frame);
-				return ST_SEQUENCE_ERROR;
-			}
-			gdouble current_exp;
-			GDateTime *dt = NULL;
-
-			get_date_data_from_fitsfile(args->seq->fitseq_file->fptr, &dt, &current_exp);
-			if (dt)
-				*list_date = g_list_prepend(*list_date, new_item(dt, current_exp));
-
-			/* We copy metadata from reference to the final fit */
-			if (frame == args->ref_image)
-				import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, fit);
-		}
+		fit->stackcnt = nb_frames;
+		fit->livetime = fit->exposure * nb_frames;
+		// keeping the fallacious exposure based on fps from the header
 	} else {
 		siril_log_message(_("Rejection stacking is only supported for FITS images/sequences and SER sequences.\nUse \"Sum Stacking\" instead.\n"));
 		return ST_SEQUENCE_ERROR;
 	}
 
+	set_progress_bar_data(NULL, PROGRESS_DONE);
+	siril_debug_print("stack count: %u, livetime: %f\n", fit->stackcnt, fit->livetime);
 	return ST_OK;
 }
 
@@ -259,8 +219,10 @@ static int refine_blocks_candidate(int nb_threads, int nb_channels, int minimum_
  * threads to work but as big as possible for the available memory.
  */
 int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
-		long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks) {
+		const long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks) {
 	int candidate = nb_threads;	// candidate number of blocks
+	if (nb_threads < 1 || max_number_of_rows < 1)
+		return ST_GENERIC_ERROR;
 	while ((max_number_of_rows * candidate) / nb_threads < naxes[1] * naxes[2])
 		candidate++;
 	candidate = refine_blocks_candidate(nb_threads, (naxes[2] == 3L) ? 3 : 1, candidate);
@@ -272,7 +234,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 			*nb_blocks, height_of_blocks, remainder);
 
 	*largest_block_height = 0;
-	long channel = 0, row = 0, end, j = 0;
+	long channel = 0, row = 0, j = 0;
 	*blocksptr = malloc(*nb_blocks * sizeof(struct _image_block));
 	if (!*blocksptr) {
 		PRINT_ALLOC_ERR;
@@ -288,7 +250,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 
 		blocks[j].channel = channel;
 		blocks[j].start_row = row;
-		end = row + height_of_blocks - 1;
+		long end = row + height_of_blocks - 1;
 		if (remainder > 0) {
 			// just add one pixel from the remainder to the first blocks to
 			// avoid having all of them in the last block
@@ -319,7 +281,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 	return ST_OK;
 }
 
-static void stack_read_block_data(struct stacking_args *args, int use_regdata,
+static int stack_read_block_data(struct stacking_args *args, int use_regdata,
 		struct _image_block *my_block, struct _data_block *data,
 		long *naxes, data_type itype, int thread_id) {
 
@@ -333,9 +295,9 @@ static void stack_read_block_data(struct stacking_args *args, int use_regdata,
 		/* area in C coordinates, starting with 0, not cfitsio coordinates. */
 		rectangle area = {0, my_block->start_row, naxes[0], my_block->height};
 
-		if (!get_thread_run()) {
-			return;
-		}
+		if (!get_thread_run())
+			return ST_CANCEL;
+
 		if (use_regdata && args->reglayer >= 0) {
 			/* Load registration data for current image and modify area.
 			 * Here, only the y shift is managed. If possible, the remaining part
@@ -343,9 +305,10 @@ static void stack_read_block_data(struct stacking_args *args, int use_regdata,
 			 * shift is managed in the main loop after the read. */
 			regdata *layerparam = args->seq->regparam[args->reglayer];
 			if (layerparam) {
-				int shifty = round_to_int(
-						layerparam[args->image_indices[frame]].shifty *
-						args->seq->upscale_at_stacking);
+				double scale = args->seq->upscale_at_stacking;
+				double dx, dy;
+				translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+				int shifty = round_to_int(dy * scale);
 #ifdef STACK_DEBUG
 				fprintf(stdout, "shifty for image %d: %d\n", args->image_indices[frame], shifty);
 #endif
@@ -393,10 +356,11 @@ static void stack_read_block_data(struct stacking_args *args, int use_regdata,
 				if (tid == 0)
 #endif
 					siril_log_color_message(_("Error reading one of the image areas\n"), "red");
-				break;
+				return ST_SEQUENCE_ERROR;
 			}
 		}
 	}
+	return ST_OK;
 }
 
 static void normalize_to16bit(int bitpix, double *mean) {
@@ -410,8 +374,8 @@ static void normalize_to16bit(int bitpix, double *mean) {
 }
 
 static void norm_to_0_1_range(fits *fit) {
-	float mini = fit->fdata[0];
-	float maxi = fit->fdata[0];
+	float mini = FLT_MAX;
+	float maxi = -1.f * FLT_MAX;
 	long n = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 
 	/* search for min / max */
@@ -440,7 +404,7 @@ static void norm_to_0_1_range(fits *fit) {
  * does a different operation to keep the final pixel values.
  *********************************************************************************/
 
-static int percentile_clipping(WORD pixel, float sig[], float median, guint64 rej[]) {
+static int percentile_clipping(WORD pixel, const float sig[], float median, guint64 rej[]) {
 	float plow = sig[0];
 	float phigh = sig[1];
 
@@ -458,7 +422,7 @@ static int percentile_clipping(WORD pixel, float sig[], float median, guint64 re
 /* Rejection of pixels, following sigma_(high/low) * sigma.
  * The function returns 0 if no rejections are required, 1 if it's a high
  * rejection and -1 for a low-rejection */
-static int sigma_clipping(WORD pixel, float sig[], float sigma, float median, guint64 rej[]) {
+static int sigma_clipping(WORD pixel, const float sig[], float sigma, float median, guint64 rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
@@ -480,7 +444,7 @@ static void Winsorize(WORD *pixel, WORD m0, WORD m1, int N) {
 	}
 }
 
-static int line_clipping(WORD pixel, float sig[], float sigma, int i, float a, float b, guint64 rej[]) {
+static int line_clipping(WORD pixel, const float sig[], float sigma, int i, float a, float b, guint64 rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
@@ -539,7 +503,7 @@ void confirm_outliers(struct outliers *out, int N, double median, int *rejected,
 		guint64 rej[2]) {
 	int i = N - 1;
 
-	while (!out[i].out && i >= 0) {
+	while (i > 1 && !out[i].out) {
 		i--;
 	}
 	for (int j = i; j >= 0; j--) {
@@ -589,6 +553,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 	switch (args->type_of_rejection) {
 		case PERCENTILE:
 		case SIGMA:
+		case MAD:
 		case SIGMEDIAN:
 		case WINSORIZED:
 			median = quickmedian(stack, N);
@@ -616,8 +581,14 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 			N = output;
 			break;
 		case SIGMA:
+		case MAD:
 			do {
-				const float sigma = args->sd_calculator(stack, N);
+				float var;
+				if (args->type_of_rejection == SIGMA)
+					var = args->sd_calculator(stack, N);
+				else
+					var = args->mad_calculator(stack, N, median, SINGLE_THREADED);
+
 				if (!firstloop) {
 					median = quickmedian(stack, N);
 				} else {
@@ -625,10 +596,10 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				}
 				for (int frame = 0; frame < N; frame++) {
 					if (N - r <= 4) {
-					// no more rejections
+						// no more rejections
 						rejected[frame] = 0;
 					} else {
-						rejected[frame] = sigma_clipping(stack[frame], args->sig, sigma, median, crej);
+						rejected[frame] = sigma_clipping(stack[frame], args->sig, var, median, crej);
 						if (rejected[frame]) {
 							r++;
 						}
@@ -672,7 +643,8 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				else firstloop = 0;
 				memcpy(w_stack, stack, N * sizeof(WORD));
 				do {
-					Winsorize(w_stack, roundf_to_WORD(median - 1.5f * sigma), roundf_to_WORD(median + 1.5f * sigma), N);
+					Winsorize(w_stack, roundf_to_WORD(median - 1.5f * sigma),
+							roundf_to_WORD(median + 1.5f * sigma), N);
 					sigma0 = sigma;
 					sigma = 1.134f * args->sd_calculator(w_stack, N);
 				} while (fabs(sigma - sigma0) > sigma0 * 0.0005f);
@@ -681,7 +653,8 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 						// no more rejections
 						rejected[frame] = 0;
 					} else {
-						rejected[frame] = sigma_clipping(stack[frame], args->sig, sigma, median, crej);
+						rejected[frame] = sigma_clipping(stack[frame],
+								args->sig, sigma, median, crej);
 						if (rejected[frame] != 0)
 							r++;
 					}
@@ -755,7 +728,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 
 			memcpy(w_stack, stack, N * sizeof(WORD));
 			memset(rejected, 0, N * sizeof(int));
-
+			int cold = 0;
 			for (int iter = 0, size = N; iter < max_outliers; iter++, size--) {
 				float Gstat;
 				int max_index = 0;
@@ -763,7 +736,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				grubbs_stat(w_stack, size, &Gstat, &max_index);
 				out[iter].out = check_G_values(Gstat, args->critical_value[iter + removed]);
 				out[iter].x = w_stack[max_index];
-				out[iter].i = max_index;
+				out[iter].i = (max_index == 0) ? cold++ : max_index;
 				remove_element(w_stack, max_index, size);
 			}
 			confirm_outliers(out, max_outliers, median, rejected, crej);
@@ -796,7 +769,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian(data->stack, stack_size);
 		else {
-			if (args->apply_weight) {
+			if (args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights) {
 				double *pweights = args->weights + layer * stack_size;
 				WORD pmin = 65535, pmax = 0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -828,7 +801,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian_float(data->stack, stack_size);
 		else {
-			if (args->apply_weight) {
+			if (args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights) {
 				double *pweights = args->weights + layer * stack_size;
 				float pmin = 10000.0, pmax = -10000.0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -837,9 +810,9 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				}
 				double sum = 0.0;
 				double norm = 0.0;
-				float val;
+
 				for (int frame = 0; frame < stack_size; ++frame) {
-					val = ((float*)data->o_stack)[frame];
+					float val = ((float*)data->o_stack)[frame];
 					if (val >= pmin && val <= pmax && val != 0.f) {
 						sum += val * pweights[frame];
 						norm += pweights[frame];
@@ -866,10 +839,9 @@ int stack_median(struct stacking_args *args) {
 	return stack_mean_or_median(args, FALSE);
 }
 
-static int compute_weights(struct stacking_args *args) {
+static int compute_noise_weights(struct stacking_args *args) {
 	int nb_frames = args->nb_images_to_stack;
 	int nb_layers = args->seq->nb_layers;
-	int idx = 0;
 
 	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
 	double *pweights[3];
@@ -878,7 +850,7 @@ static int compute_weights(struct stacking_args *args) {
 		double norm = 0.0;
 		pweights[layer] = args->weights + layer * nb_frames;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
-			idx = args->image_indices[i];
+			int idx = args->image_indices[i];
 			pweights[layer][i] = 1.f /
 				(args->coeff.pscale[layer][i] * args->coeff.pscale[layer][i] *
 				 args->seq->stats[layer][idx]->bgnoise * args->seq->stats[layer][idx]->bgnoise);
@@ -893,53 +865,96 @@ static int compute_weights(struct stacking_args *args) {
 	return ST_OK;
 }
 
-static void compute_date_time_keywords(GList *list_date, fits *fit) {
-	if (list_date) {
-		gdouble exposure = 0.0;
-		GDateTime *date_obs;
-		gdouble start, end;
-		GList *list;
-		/* First we want to sort the list */
-		list_date = g_list_sort(list_date, (GCompareFunc) list_date_compare);
-		/* Then we compute the sum of exposure */
-		for (list = list_date; list; list = list->next) {
-			exposure += ((DateEvent *)list->data)->exposure;
-		}
+static int compute_wfwhm_weights(struct stacking_args *args) {
+	int nb_frames = args->nb_images_to_stack;
+	int nb_layers = args->seq->nb_layers;
+	double fwhmmin = DBL_MAX;
+	double fwhmmax = -DBL_MAX;
+	double invdenom, invfwhmax2;
 
-		/* go to the first stacked image and get needed values */
-		list_date = g_list_first(list_date);
-		date_obs = g_date_time_ref(((DateEvent *)list_date->data)->date_obs);
-		start = date_time_to_Julian(((DateEvent *)list_date->data)->date_obs);
+	if((!args->seq->regparam) && (!args->seq->regparam[args->reglayer]))
+		return ST_GENERIC_ERROR;
 
-		/* go to the last stacked image and get needed values
-		 * This time we need to add the exposure to the date_obs
-		 * to exactly retrieve the end of the exposure
-		 */
-		list_date = g_list_last(list_date);
-		gdouble last_exp = ((DateEvent *)list_date->data)->exposure;
-		GDateTime *last_date = ((DateEvent *)list_date->data)->date_obs;
-		GDateTime *corrected_last_date = g_date_time_add_seconds(last_date, (gdouble) last_exp);
+	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+	double *pweights[3];
 
-		end = date_time_to_Julian(corrected_last_date);
-
-		g_date_time_unref(corrected_last_date);
-
-		/* we address the computed values to the keywords */
-		fit->exposure = exposure;
-		fit->date_obs = date_obs;
-		fit->expstart = start;
-		fit->expend = end;
+	for (int i = 0; i < args->nb_images_to_stack; ++i) {
+		int idx = args->image_indices[i];
+		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm < fwhmmin) fwhmmin = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
+		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm > fwhmmax) fwhmmax = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
 	}
+	invdenom = 1. / (1. / (fwhmmin * fwhmmin) - 1. / (fwhmmax * fwhmmax));
+	invfwhmax2 = 1. / (fwhmmax * fwhmmax);
+
+
+	for (int layer = 0; layer < nb_layers; ++layer) {
+		double norm = 0.0;
+		pweights[layer] = args->weights + layer * nb_frames;
+		for (int i = 0; i < args->nb_images_to_stack; ++i) {
+			int idx = args->image_indices[i];
+			pweights[layer][i] = (1. / (args->seq->regparam[args->reglayer][idx].weighted_fwhm * args->seq->regparam[args->reglayer][idx].weighted_fwhm) - invfwhmax2) * invdenom;
+			norm += pweights[layer][i];
+		}
+		norm /= (double) nb_frames;
+
+		for (int i = 0; i < args->nb_images_to_stack; i++) {
+			pweights[layer][i] /= norm;
+			siril_debug_print("Image #%d - Layer %d - wFWHM: %3.2f - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->reglayer][args->image_indices[i]].weighted_fwhm, pweights[layer][i]);
+		}
+	}
+	return ST_OK;
 }
 
+static int compute_nbstars_weights(struct stacking_args *args) {
+	int nb_frames = args->nb_images_to_stack;
+	int nb_layers = args->seq->nb_layers;
+	int starmin = INT_MAX;
+	int starmax = 0;
+	double invdenom;
+	
+	if((!args->seq->regparam) && (!args->seq->regparam[args->reglayer]))
+		return ST_GENERIC_ERROR;
+
+	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+	double *pweights[3];
+
+	for (int i = 0; i < args->nb_images_to_stack; ++i) {
+		int idx = args->image_indices[i];
+		if (args->seq->regparam[args->reglayer][idx].number_of_stars < starmin) starmin = args->seq->regparam[args->reglayer][idx].number_of_stars;
+		if (args->seq->regparam[args->reglayer][idx].number_of_stars > starmax) starmax = args->seq->regparam[args->reglayer][idx].number_of_stars;
+	}
+	invdenom = 1. / (double)(starmax - starmin);
+
+	for (int layer = 0; layer < nb_layers; ++layer) {
+		double norm = 0.0;
+		pweights[layer] = args->weights + layer * nb_frames;
+		for (int i = 0; i < args->nb_images_to_stack; ++i) {
+			int idx = args->image_indices[i];
+			pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) * (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) * invdenom * invdenom;
+			norm += pweights[layer][i];
+		}
+		norm /= (double) nb_frames;
+
+		for (int i = 0; i < args->nb_images_to_stack; i++) {
+			pweights[layer][i] /= norm;
+			siril_debug_print("Image #%d - Layer %d - nbstars: %d - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->reglayer][args->image_indices[i]].number_of_stars, pweights[layer][i]);
+		}
+	}
+	return ST_OK;
+}
 /* How many rows fit in memory, based on image size, number and available memory.
  * It returns at most the total number of rows of the image (naxes[1] * naxes[2]) */
 static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack) {
 	int max_memory = get_max_memory_in_MB();
 	long total_nb_rows = naxes[1] * naxes[2];
+	int elem_size = type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+
+	guint64 size_of_result = naxes[0] * naxes[1] * naxes[2] * elem_size;
+	max_memory -= size_of_result / BYTES_IN_A_MB;
+	if (max_memory < 0)
+		max_memory = 0;
 
 	siril_log_message(_("Using %d MB memory maximum for stacking\n"), max_memory);
-	int elem_size = type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	guint64 number_of_rows = (guint64)max_memory * BYTES_IN_A_MB /
 		((guint64)naxes[0] * nb_images_to_stack * elem_size);
 	// this is how many rows we can load in parallel from all images of the
@@ -955,12 +970,11 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	struct _data_block *data_pool = NULL;
 	struct _image_block *blocks = NULL;
 	fits fit = { 0 }; // output result
-	fits ref = { 0 }; // reference image, used to get metadata back
+	fits ref = { 0 }; // reference image, used to propagate metadata
 	// data for mean/rej only
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
 	gboolean use_regdata = is_mean;
-
 
 	int nb_frames = args->nb_images_to_stack; // number of frames actually used
 	naxes[0] = naxes[1] = 0; naxes[2] = 1;
@@ -1131,7 +1145,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					const float dx = j - data_pool[i].m_x;
 					data_pool[i].xf[j] = 1.f / (j + 1);
 					data_pool[i].m_dx2 += (dx * dx - data_pool[i].m_dx2)
-							* data_pool[i].xf[j];
+						* data_pool[i].xf[j];
 				}
 				data_pool[i].m_dx2 = 1.f / data_pool[i].m_dx2;
 			}
@@ -1144,16 +1158,37 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		}
 	}
 
-	if (itype == DATA_USHORT)
+	if (itype == DATA_USHORT) {
 		args->sd_calculator = nb_frames < 65536 ? siril_stats_ushort_sd_32 : siril_stats_ushort_sd_64;
+		args->mad_calculator = siril_stats_ushort_mad;
+	}
 
-	if (args->apply_weight) {
-		siril_log_message(_("Computing weights...\n"));
-		retval = compute_weights(args);
+	if (args->apply_noise_weights) {
+		siril_log_message(_("Computing weights based on noise...\n"));
+		retval = compute_noise_weights(args);
 		if(retval) {
 			retval = ST_GENERIC_ERROR;
 			goto free_and_close;
 		}
+	}
+	if (args->apply_wfwhm_weights) {
+		siril_log_message(_("Computing weights based on wFWHM...\n"));
+		retval = compute_wfwhm_weights(args);
+		if(retval) {
+			retval = ST_GENERIC_ERROR;
+			goto free_and_close;
+		}
+	}
+	if (args->apply_nbstars_weights) {
+		siril_log_message(_("Computing weights based on number of stars...\n"));
+		retval = compute_nbstars_weights(args);
+		if(retval) {
+			retval = ST_GENERIC_ERROR;
+			goto free_and_close;
+		}
+	}
+	if (args->apply_nbstack_weights) {
+		siril_log_message(_("Computing weights based on number of stacked images...\n"));
 	}
 
 	siril_log_message(_("Starting stacking...\n"));
@@ -1173,7 +1208,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		int data_idx = 0;
 		long x, y;
 
-		if (!get_thread_run()) retval = ST_GENERIC_ERROR;
+		if (!get_thread_run()) retval = ST_CANCEL;
 		if (retval) continue;
 #ifdef _OPENMP
 		data_idx = omp_get_thread_num();
@@ -1186,7 +1221,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		data = &data_pool[data_idx];
 
 		/**** Step 2: load image data for the corresponding image block ****/
-		stack_read_block_data(args, use_regdata, my_block, data, naxes, itype, data_idx);
+		retval = stack_read_block_data(args, use_regdata, my_block, data, naxes, itype, data_idx);
+		if (retval) continue;
 
 #if defined _OPENMP && defined STACK_DEBUG
 		{
@@ -1219,7 +1255,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			cur_nb++;
 
 			if (!get_thread_run()) {
-				retval = ST_GENERIC_ERROR;
+				retval = ST_CANCEL;
 				break;
 			}
 			if (!(cur_nb % 16))	// every 16 iterations
@@ -1233,9 +1269,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					if (use_regdata) {
 						int shiftx = 0;
 						if (layerparam) {
-							shiftx = round_to_int(
-									layerparam[args->image_indices[frame]].shiftx *
-									args->seq->upscale_at_stacking);
+							double scale = args->seq->upscale_at_stacking;
+							double dx, dy;
+							translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+							shiftx = round_to_int(dx * scale);
 						}
 
 						if (shiftx && (x - shiftx >= naxes[0] || x - shiftx < 0)) {
@@ -1313,7 +1350,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				if (args->use_32bit_output) {
 					if (itype == DATA_USHORT)
 						fit.fpdata[my_block->channel][pdata_idx] = min(double_ushort_to_float_range(result), 1.f);
-					else	fit.fpdata[my_block->channel][pdata_idx] = min((float)result, 1.f);
+					else	fit.fpdata[my_block->channel][pdata_idx] = (args->output_norm) ? (float)result : min((float)result, 1.f); // no clipping if 32b output with output_norm activated
 				} else {
 					/* in case of 8bit data we may want to normalize to 16bits */
 					if (args->output_norm) {
@@ -1360,26 +1397,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					(double) irej[channel][1] / nb_tot * 100.0);
 		}
 	}
-
-	/* copy result to gfit if success */
-	clearfits(&gfit);
-	copyfits(&fit, &gfit, CP_FORMAT, -1);
-
-	if (args->use_32bit_output) {
-		gfit.fdata = fit.fdata;
-		for (i = 0; i < fit.naxes[2]; i++)
-			gfit.fpdata[i] = fit.fpdata[i];
-
-		if (args->output_norm) {
-			norm_to_0_1_range(&gfit);
-		}
-	} else {
-		gfit.data = fit.data;
-		for (i = 0; i < fit.naxes[2]; i++)
-			gfit.pdata[i] = fit.pdata[i];
-	}
-
-	compute_date_time_keywords(list_date, &gfit);
+	if (args->use_32bit_output && args->output_norm)
+		norm_to_0_1_range(&fit);
+	compute_date_time_keywords(list_date, &fit);
+	memcpy(&args->result, &fit, sizeof(fits));
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);
@@ -1410,7 +1431,9 @@ free_and_close:
 		if (is_mean)
 			set_progress_bar_data(_("Rejection stacking failed. Check the log."), PROGRESS_RESET);
 		else	set_progress_bar_data(_("Median stacking failed. Check the log."), PROGRESS_RESET);
-		siril_log_message(_("Stacking failed.\n"));
+		if (retval == ST_CANCEL)
+			siril_log_message(_("Stacking operation was cancelled.\n"));
+		else siril_log_message(_("Stacking failed.\n"));
 	} else {
 		if (is_mean) {
 			set_progress_bar_data(_("Rejection stacking complete."), PROGRESS_DONE);

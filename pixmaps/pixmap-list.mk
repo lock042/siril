@@ -7,9 +7,18 @@ pixmaps = \
 	curve.svg \
 	export.svg \
 	export_dark.svg \
+	eyedropper.svg \
+	eyedropper_dark.svg \
+	frame.svg \
+	frame_dark.svg \
+	framing-cog.svg \
+	framing-default.svg \
+	framing-max.svg \
+	framing-min.svg \
 	g.svg \
 	grid.svg \
 	histo.svg \
+	histo-orig.svg \
 	list.svg \
 	mirrorx_dark.svg \
 	mirrorx.svg \
@@ -20,6 +29,8 @@ pixmaps = \
 	mtf.svg \
 	mtf_dark.svg \
 	neg.svg \
+	photometry.svg \
+	photometry_dark.svg \
 	r.svg \
 	rotate-acw_dark.svg \
 	rotate-acw.svg \
@@ -29,4 +40,8 @@ pixmaps = \
 	starfinder.svg \
 	starfinder_dark.svg \
 	sum.svg \
-	sum_dark.svg
+	sum_dark.svg \
+	tilt.svg \
+	tilt_dark.svg \
+	wcs-grid.svg \
+	wcs-grid_dark.svg

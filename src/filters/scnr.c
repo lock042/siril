@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,32 +28,21 @@
 #include "io/single_image.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
 
 #include "scnr.h"
 
-// idle function executed at the end of the scnr processing
-static gboolean end_scnr(gpointer p) {
-	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
-	redraw_previews();
-	update_gfit_histogram_if_needed();
-	set_cursor_waiting(FALSE);
-	
-	return FALSE;
-}
 
-/* Subtractive Chromatic Noise Reduction.
- * No unprotected GTK+ calls can go there. */
+/* Subtractive Chromatic Noise Reduction */
 gpointer scnr(gpointer p) {
 	struct scnr_data *args = (struct scnr_data *) p;
-	double m;
 	size_t i, nbdata = args->fit->naxes[0] * args->fit->naxes[1];
 	struct timeval t_start, t_end;
 	double norm = get_normalized_value(args->fit);
+	double invnorm = 1.0 / norm;
 
 	siril_log_color_message(_("SCNR: processing...\n"), "green");
 	gettimeofday(&t_start, NULL);
@@ -64,21 +53,22 @@ gpointer scnr(gpointer p) {
 	for (i = 0; i < nbdata; i++) {
 		double red, green, blue;
 		if (args->fit->type == DATA_USHORT) {
-			red = (double)args->fit->pdata[RLAYER][i] / norm;
-			green = (double)args->fit->pdata[GLAYER][i] / norm;
-			blue = (double)args->fit->pdata[BLAYER][i] / norm;
+			red = args->fit->pdata[RLAYER][i] * invnorm;
+			green = args->fit->pdata[GLAYER][i] * invnorm;
+			blue = args->fit->pdata[BLAYER][i] * invnorm;
 		}
 		else if (args->fit->type == DATA_FLOAT) {
 			red = (double)args->fit->fpdata[RLAYER][i];
 			green = (double)args->fit->fpdata[GLAYER][i];
 			blue = (double)args->fit->fpdata[BLAYER][i];
 		}
-		double x, y, z, L, a, b;
 
+		double x, y, z, L, a, b, m;
 		if (args->preserve) {
 			rgb_to_xyz(red, green, blue, &x, &y, &z);
 			xyz_to_LAB(x, y, z, &L, &a, &b);
 		}
+
 		switch (args->type) {
 			case 0:
 				m = 0.5 * (red + blue);
@@ -96,6 +86,7 @@ gpointer scnr(gpointer p) {
 				m = min(1.0, red + blue);
 				green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
 		}
+
 		if (args->preserve) {
 			double tmp;
 			rgb_to_xyz(red, green, blue, &x, &y, &z);
@@ -103,10 +94,17 @@ gpointer scnr(gpointer p) {
 			LAB_to_xyz(L, a, b, &x, &y, &z);
 			xyz_to_rgb(x, y, z, &red, &green, &blue);
 		}
+
 		if (args->fit->type == DATA_USHORT) {
-			args->fit->pdata[RLAYER][i] = round_to_WORD(red * (double)norm);
-			args->fit->pdata[GLAYER][i] = round_to_WORD(green * (double)norm);
-			args->fit->pdata[BLAYER][i] = round_to_WORD(blue * (double)norm);
+			if (args->fit->orig_bitpix == BYTE_IMG) {
+				args->fit->pdata[RLAYER][i] = round_to_BYTE(red * norm);
+				args->fit->pdata[GLAYER][i] = round_to_BYTE(green * norm);
+				args->fit->pdata[BLAYER][i] = round_to_BYTE(blue * norm);
+			} else {
+				args->fit->pdata[RLAYER][i] = round_to_WORD(red * norm);
+				args->fit->pdata[GLAYER][i] = round_to_WORD(green * norm);
+				args->fit->pdata[BLAYER][i] = round_to_WORD(blue * norm);
+			}
 		}
 		else if (args->fit->type == DATA_FLOAT) {
 			args->fit->fpdata[RLAYER][i] = (float)red;
@@ -115,17 +113,16 @@ gpointer scnr(gpointer p) {
 		}
 	}
 
-	invalidate_stats_from_fit(args->fit);
 	free(args);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	siril_add_idle(end_scnr, NULL);
+	notify_gfit_modified();
 	return GINT_TO_POINTER(0);
 }
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkComboBox *comboscnr = GTK_COMBO_BOX(
-			gtk_builder_get_object(builder, "combo_scnr"));
+			gtk_builder_get_object(gui.builder, "combo_scnr"));
 	int type = gtk_combo_box_get_active(comboscnr);
 
 	if (type == -1)
@@ -137,12 +134,12 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	 * Type 1: Maximum Neutral protection
 	 */
 	int type = gtk_combo_box_get_active(
-			GTK_COMBO_BOX(gtk_builder_get_object(builder, "combo_scnr")));
+			GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_scnr")));
 	GtkToggleButton *light_button = GTK_TOGGLE_BUTTON(
-			gtk_builder_get_object(builder, "preserve_light"));
+			gtk_builder_get_object(gui.builder, "preserve_light"));
 	gboolean preserve = gtk_toggle_button_get_active(light_button);
 	double amount = gtk_range_get_value(
-			GTK_RANGE(gtk_builder_get_object(builder, "scale_scnr")));
+			GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_scnr")));
 
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -166,8 +163,7 @@ void on_SCNR_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {
-	int type = gtk_combo_box_get_active(
-			GTK_COMBO_BOX(gtk_builder_get_object(builder, "combo_scnr")));
+	int type = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_scnr")));
 	GtkScale *scale = GTK_SCALE(lookup_widget("scale_scnr"));
 	GtkLabel *label = GTK_LABEL(lookup_widget("label56"));
 	GtkSpinButton *spinButton = GTK_SPIN_BUTTON(lookup_widget("spin_scnr"));
@@ -176,4 +172,5 @@ void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {
 	gtk_widget_set_sensitive(GTK_WIDGET(label), type > 1);
 	gtk_widget_set_sensitive(GTK_WIDGET(spinButton), type > 1);
 }
+
 

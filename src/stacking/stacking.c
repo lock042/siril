@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -27,12 +27,14 @@
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
+#include "core/siril_date.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"
 #include "gui/sequence_list.h"
+#include "gui/registration_preview.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -47,7 +49,8 @@
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
 	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, FALSE, { 0, 0 }, -1,
-	{ 0, 0 }, NULL, NO_REJEC, NO_NORM, { NULL, NULL, NULL}, FALSE, -1
+	{ 0, 0 }, NULL, NO_REJEC, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1,
+	FALSE, FALSE, FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
 };
 
 #define MAX_FILTERS 5
@@ -87,6 +90,7 @@ void initialize_stacking_methods() {
 		gtk_spin_button_set_value(high, com.pref.stack.linear_high);
 		break;
 	case SIGMA:
+	case MAD:
 	case SIGMEDIAN:
 	case WINSORIZED:
 		gtk_spin_button_set_value(low, com.pref.stack.sigma_low);
@@ -102,10 +106,10 @@ void initialize_stacking_methods() {
 
 }
 
-gboolean evaluate_stacking_should_output_32bits(stack_method method,
+gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 		sequence *seq, int nb_img_to_stack, gchar **err) {
 	gchar *error = NULL;
-	if (com.pref.force_to_16bit) {
+	if (com.pref.force_16bit) {
 		if (seq->bitpix == FLOAT_IMG) {
 			error = _("Input sequence is in 32-bit format but preferences are set to 16-bit output format. "
 					"Please, change your preference settings and retry.\n");
@@ -178,23 +182,25 @@ gpointer stack_function_handler(gpointer p) {
  * function is not reentrant but can be called again after it has returned and the thread is running */
 static void start_stacking() {
 	gchar *error = NULL;
-	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL;
+	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL, *weighing_combo;
 	static GtkEntry *output_file = NULL;
-	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *weight_button = NULL;
+	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *fast_norm = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
-	static GtkWidget *norm_to_max = NULL;
+	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
 
 	if (method_combo == NULL) {
-		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(builder, "comboboxstack_methods"));
-		output_file = GTK_ENTRY(gtk_builder_get_object(builder, "entryresultfile"));
-		overwrite = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "checkbutoverwrite"));
+		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
+		output_file = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entryresultfile"));
+		overwrite = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutoverwrite"));
 		sigSpin[0] = GTK_SPIN_BUTTON(lookup_widget("stack_siglow_button"));
 		sigSpin[1] = GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button"));
 		rejec_combo = GTK_COMBO_BOX(lookup_widget("comborejection"));
 		norm_combo = GTK_COMBO_BOX(lookup_widget("combonormalize"));
+		weighing_combo = GTK_COMBO_BOX(lookup_widget("comboweighing"));
 		force_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkforcenorm"));
+		fast_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkfastnorm"));
 		norm_to_max = lookup_widget("check_normalise_to_max");
-		weight_button = GTK_TOGGLE_BUTTON(lookup_widget("stack_weight_button"));
+		RGB_equal = lookup_widget("check_RGBequal");
 	}
 
 	if (get_thread_run()) {
@@ -212,7 +218,12 @@ static void start_stacking() {
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
 	stackparam.method =	stacking_methods[gtk_combo_box_get_active(method_combo)];
-	stackparam.apply_weight = gtk_toggle_button_get_active(weight_button) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.apply_noise_weights = (gtk_combo_box_get_active(weighing_combo) == NOISE_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.apply_nbstars_weights = (gtk_combo_box_get_active(weighing_combo) == NBSTARS_WEIGHT);
+	stackparam.apply_wfwhm_weights = (gtk_combo_box_get_active(weighing_combo) == WFWHM_WEIGHT);
+	stackparam.apply_nbstack_weights = (gtk_combo_box_get_active(weighing_combo) == NBSTACK_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
 
 	stackparam.use_32bit_output = evaluate_stacking_should_output_32bits(stackparam.method,
 			&com.seq, stackparam.nb_images_to_stack, &error);
@@ -246,7 +257,7 @@ static void start_stacking() {
 }
 
 static void _show_summary(struct stacking_args *args) {
-	const char *norm_str, *rej_str;
+	const char *norm_str;
 
 	siril_log_message(_("Integration of %d images:\n"), args->nb_images_to_stack);
 
@@ -298,6 +309,7 @@ static void _show_summary(struct stacking_args *args) {
 		siril_log_message(_("Rejection parameters ...... none\n"));
 	}
 	else {
+		const char *rej_str;
 
 		switch (args->type_of_rejection) {
 		default:
@@ -309,6 +321,9 @@ static void _show_summary(struct stacking_args *args) {
 			break;
 		case SIGMA:
 			rej_str = _("Sigma Clipping");
+			break;
+		case MAD:
+			rej_str = _("MAD Clipping");
 			break;
 		case SIGMEDIAN:
 			rej_str = _("Median sigma Clipping");
@@ -331,22 +346,6 @@ static void _show_summary(struct stacking_args *args) {
 	}
 }
 
-static void _show_bgnoise(gpointer p) {
-	if (get_thread_run()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
-	}
-	set_cursor_waiting(TRUE);
-
-	struct noise_data *args = malloc(sizeof(struct noise_data));
-	args->fit = com.uniq->fit;
-	args->verbose = FALSE;
-	args->use_idle = TRUE;
-	memset(args->bgnoise, 0.0, sizeof(double[3]));
-
-	start_in_new_thread(noise, args);
-}
-
 void clean_end_stacking(struct stacking_args *args) {
 	if (!args->retval)
 		_show_summary(args);
@@ -359,11 +358,15 @@ void clean_end_stacking(struct stacking_args *args) {
 static gboolean end_stacking(gpointer p) {
 	struct timeval t_end;
 	struct stacking_args *args = (struct stacking_args *)p;
-	fprintf(stdout, "Ending stacking idle function, retval=%d\n", args->retval);
-	stop_processing_thread();	// can it be done here in case there is no thread?
+	siril_debug_print("Ending stacking idle function, retval=%d\n", args->retval);
+	stop_processing_thread();
 
 	if (args->retval == ST_OK) {
-		clear_stars_list();
+		/* copy result to gfit if success */
+		clearfits(&gfit);
+		memcpy(&gfit, &args->result, sizeof(fits));
+
+		clear_stars_list(TRUE);
 		/* check in com.seq, because args->seq may have been replaced */
 		if (com.seq.upscale_at_stacking > 1.05)
 			com.seq.current = SCALED_IMAGE;
@@ -374,18 +377,17 @@ static gboolean end_stacking(gpointer p) {
 		com.uniq = calloc(1, sizeof(single));
 		com.uniq->comment = strdup(_("Stacking result image"));
 		com.uniq->nb_layers = gfit.naxes[2];
-		com.uniq->layers = calloc(com.uniq->nb_layers, sizeof(layer_info));
 		com.uniq->fit = &gfit;
 		/* Giving summary if average rejection stacking */
 		_show_summary(args);
 		/* Giving noise estimation (new thread) */
-		_show_bgnoise(com.uniq->fit);
+		bgnoise_async(&gfit, TRUE);
 
 		/* save stacking result */
 		if (args->output_filename != NULL && args->output_filename[0] != '\0') {
-			GStatBuf st;
-			if (!g_stat(args->output_filename, &st)) {
-				int failed = !args->output_overwrite;
+			int failed = 0;
+			if (g_file_test(args->output_filename, G_FILE_TEST_EXISTS)) {
+				failed = !args->output_overwrite;
 				if (!failed) {
 					if (g_unlink(args->output_filename) == -1)
 						failed = 1;
@@ -396,19 +398,24 @@ static gboolean end_stacking(gpointer p) {
 						com.uniq->fileexist = TRUE;
 					}
 				}
-				if (failed) {
-					com.uniq->filename = strdup(_("Unsaved stacking result"));
-					com.uniq->fileexist = FALSE;
-				}
 			}
 			else {
+				gchar *dirname = g_path_get_dirname(args->output_filename);
+				if (g_mkdir_with_parents(dirname, 0755) < 0) {
+					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+					failed = 1;
+				}
+				g_free(dirname);
 				if (!savefits(args->output_filename, &gfit)) {
 					com.uniq->filename = strdup(args->output_filename);
 					com.uniq->fileexist = TRUE;
 				} else {
-					com.uniq->filename = strdup(_("Unsaved stacking result"));
-					com.uniq->fileexist = FALSE;
+					failed = 1;
 				}
+			}
+			if (failed) {
+				com.uniq->filename = strdup(_("Unsaved stacking result"));
+				com.uniq->fileexist = FALSE;
 			}
 			display_filename();
 			set_precision_switch(); // set precision on screen
@@ -416,10 +423,9 @@ static gboolean end_stacking(gpointer p) {
 		/* remove tmp files if exist (Drizzle) */
 		remove_tmp_drizzle_files(args);
 
-		waiting_for_thread();		// bgnoise
 		initialize_display_mode();
 
-		sliders_mode_set_state(com.sliders);
+		sliders_mode_set_state(gui.sliders);
 		set_cutoff_sliders_max_values();
 		set_sliders_value_to_gfit();
 		adjust_cutoff_from_updated_gfit();	// computes min and max
@@ -429,17 +435,20 @@ static gboolean end_stacking(gpointer p) {
 		/* update menus */
 		update_MenuItem();
 
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		redraw_previews();
 		sequence_list_change_current();
 		update_stack_interface(TRUE);
+		bgnoise_await();
 	} else {
+		clearfits(&args->result);
 		siril_log_color_message(_("Stacking failed, please check the log to fix your issue.\n"), "red");
 		if (args->retval == ST_ALLOC_ERROR) {
 			siril_log_message(_("It looks like there is a memory allocation error, change memory settings and try to fix it.\n"));
 		}
 	}
 
+	memset(&args->result, 0, sizeof(fits));
 	set_cursor_waiting(FALSE);
 	/* Do not display time for stack_summing_generic
 	 * cause it uses the generic function that already
@@ -461,7 +470,7 @@ void on_seqstack_button_clicked (GtkButton *button, gpointer user_data){
 void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
 	static GtkNotebook* notebook = NULL;
 	if (!notebook)
-		notebook = GTK_NOTEBOOK(gtk_builder_get_object(builder, "notebook4"));
+		notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook4"));
 	com.pref.stack.method = gtk_combo_box_get_active(box);
 
 	gtk_notebook_set_current_page(notebook, com.pref.stack.method);
@@ -472,9 +481,9 @@ void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
 void on_combonormalize_changed (GtkComboBox *box, gpointer user_data) {
 	GtkWidget *widgetnormalize = lookup_widget("combonormalize");
 	GtkWidget *force_norm = lookup_widget("checkforcenorm");
-	GtkWidget *use_weight = lookup_widget("stack_weight_button");
+	GtkWidget *fast_norm = lookup_widget("checkfastnorm");
 	gtk_widget_set_sensitive(force_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
-	gtk_widget_set_sensitive(use_weight, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
+	gtk_widget_set_sensitive(fast_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 }
 
 void on_stack_siglow_button_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -488,12 +497,12 @@ void on_stack_siglow_button_value_changed(GtkSpinButton *button, gpointer user_d
 		com.pref.stack.linear_low = gtk_spin_button_get_value(button);
 		break;
 	case SIGMA:
+	case MAD:
 	case SIGMEDIAN:
 	case WINSORIZED:
 		com.pref.stack.sigma_low = gtk_spin_button_get_value(button);
 		break;
 	case GESDT:
-		com.pref.stack.esdt_outliers = gtk_spin_button_get_value(button);
 		break;
 	default:
 		return;
@@ -512,12 +521,12 @@ void on_stack_sighigh_button_value_changed(GtkSpinButton *button, gpointer user_
 		com.pref.stack.linear_high = gtk_spin_button_get_value(button);
 		break;
 	case SIGMA:
+	case MAD:
 	case SIGMEDIAN:
 	case WINSORIZED:
 		com.pref.stack.sigma_high = gtk_spin_button_get_value(button);
 		break;
 	case GESDT:
-		com.pref.stack.esdt_significance = gtk_spin_button_get_value(button);
 		break;
 	default:
 		return;
@@ -577,6 +586,7 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 			break;
 		default:
 		case SIGMA:
+		case MAD:
 		case SIGMEDIAN:
 		case WINSORIZED:
 			gtk_widget_set_visible(siglow, TRUE);
@@ -615,13 +625,68 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	writeinitfile();
 }
 
-int find_refimage_in_indices(int *indices, int nb, int ref) {
+int find_refimage_in_indices(const int *indices, int nb, int ref) {
 	int i;
 	for (i = 0; i < nb; i++) {
 		if (indices[i] == ref)
 			return i;
 	}
 	return -1;
+}
+
+void free_list_date(gpointer data) {
+	DateEvent *item = (DateEvent *)data;
+	g_date_time_unref(item->date_obs);
+	g_slice_free(DateEvent, item);
+}
+
+DateEvent* new_date_item(GDateTime *dt, gdouble exposure) {
+	DateEvent *item = g_slice_new(DateEvent);
+	item->exposure = exposure;
+	item->date_obs = dt;
+	return item;
+}
+
+static gint list_date_compare(gconstpointer *a, gconstpointer *b) {
+	const DateEvent *dt1 = (const DateEvent *) a;
+	const DateEvent *dt2 = (const DateEvent *) b;
+
+	return g_date_time_compare(dt1->date_obs, dt2->date_obs);
+}
+
+/* computes the observation date (beginning) and the start of exposure (same
+ * but in julian date) and end of exposure (start of last shot + exposure time)
+ */
+void compute_date_time_keywords(GList *list_date, fits *fit) {
+	if (!list_date)
+		return;
+	GDateTime *date_obs;
+	gdouble start, end;
+	/* First we want to sort the list */
+	list_date = g_list_sort(list_date, (GCompareFunc) list_date_compare);
+
+	/* go to the first stacked image and get needed values */
+	list_date = g_list_first(list_date);
+	date_obs = g_date_time_ref(((DateEvent *)list_date->data)->date_obs);
+	start = date_time_to_Julian(((DateEvent *)list_date->data)->date_obs);
+
+	/* go to the last stacked image and get needed values
+	 * This time we need to add the exposure to the date_obs
+	 * to exactly retrieve the end of the exposure
+	 */
+	list_date = g_list_last(list_date);
+	gdouble last_exp = ((DateEvent *)list_date->data)->exposure;
+	GDateTime *last_date = ((DateEvent *)list_date->data)->date_obs;
+	GDateTime *corrected_last_date = g_date_time_add_seconds(last_date, (gdouble) last_exp);
+
+	end = date_time_to_Julian(corrected_last_date);
+
+	g_date_time_unref(corrected_last_date);
+
+	/* we address the computed values to the keywords */
+	fit->date_obs = date_obs;
+	fit->expstart = start;
+	fit->expend = end;
 }
 
 /****************************************************************/
@@ -727,6 +792,18 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 						stackparam.seq, channel, percent);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				break;
+			case BEST_BKG_IMAGES:
+				stackfilters[filter].filter = seq_filter_background;
+				stackfilters[filter].param = compute_highest_accepted_background(
+						stackparam.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
+			case BEST_NBSTARS_IMAGES:
+				stackfilters[filter].filter = seq_filter_nbstars;
+				stackfilters[filter].param = compute_lowest_accepted_nbstars(
+						stackparam.seq, channel, percent);
+				gtk_widget_set_visible(spin[guifilter], TRUE);
+				break;
 			case BEST_QUALITY_IMAGES:
 				stackfilters[filter].filter = seq_filter_quality;
 				stackfilters[filter].param = compute_lowest_accepted_quality(
@@ -748,12 +825,8 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 }
 
 static void update_filter_label() {
-	static GtkComboBox *filter_combo[] = {NULL, NULL, NULL};
-	static GtkLabel *filter_label[] = {NULL, NULL, NULL};
-	gchar *filter_str;
-	double param;
-	int filter, type;
-
+	static GtkComboBox *filter_combo[3] = { NULL };
+	static GtkLabel *filter_label[3] = { NULL };
 	if (!filter_combo[0]) {
 		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter1"));
 		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter2"));
@@ -763,13 +836,14 @@ static void update_filter_label() {
 		filter_label[2] = GTK_LABEL(lookup_widget("labelfilter3"));
 	}
 
-	for (filter = 0; filter < 3; filter++) {
+	for (int filter = 0; filter < 3; filter++) {
 		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[filter]))) {
 			break;
 		}
 
-		type = gtk_combo_box_get_active(filter_combo[filter]);
-		param = stackfilters[filter].param;
+		int type = gtk_combo_box_get_active(filter_combo[filter]);
+		double param = stackfilters[filter].param;
+		gchar *filter_str;
 		if (param == DBL_MIN || param == DBL_MAX || param == 0.0) {
 			if (type == ALL_IMAGES || type == SELECTED_IMAGES)
 				filter_str = g_strdup("");
@@ -785,9 +859,15 @@ static void update_filter_label() {
 			case BEST_WPSF_IMAGES:
 				filter_str = g_strdup_printf("< %.2lf", param);
 				break;
+			case BEST_BKG_IMAGES :
+				filter_str = (param < 1.) ? g_strdup_printf("< %.5lf", param) : g_strdup_printf("< %d", (int)param);
+				break;
 			case BEST_ROUND_IMAGES:
 			case BEST_QUALITY_IMAGES:
 				filter_str = g_strdup_printf("> %.3lf", param);
+				break;
+			case BEST_NBSTARS_IMAGES:
+				filter_str = g_strdup_printf("> %d", (int)param);
 				break;
 			}
 		}
@@ -802,7 +882,7 @@ static void update_filter_label() {
  */
 void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
-			NULL, *output_norm = NULL;
+			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL;
 	static GtkComboBox *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	gchar *labelbuffer;
@@ -813,8 +893,10 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		method_combo = GTK_COMBO_BOX(lookup_widget("comboboxstack_methods"));
 		widgetnormalize = lookup_widget("combonormalize");
 		force_norm = lookup_widget("checkforcenorm");
+		fast_norm = lookup_widget("checkfastnorm");
 		result_label = GTK_LABEL(lookup_widget("stackfilter_label"));
 		output_norm = lookup_widget("check_normalise_to_max");
+		RGB_equal = lookup_widget("check_RGBequal");
 	}
 	if (!sequence_is_loaded()) {
 		gtk_widget_set_sensitive(go_stack, FALSE);
@@ -835,14 +917,19 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	case STACK_MIN:
 		gtk_widget_set_sensitive(widgetnormalize, FALSE);
 		gtk_widget_set_sensitive(force_norm, FALSE);
+		gtk_widget_set_sensitive(fast_norm, FALSE);
 		gtk_widget_set_visible(output_norm, FALSE);
+		gtk_widget_set_visible(RGB_equal, FALSE);
 		break;
 	case STACK_MEAN:
 	case STACK_MEDIAN:
 		gtk_widget_set_sensitive(widgetnormalize, TRUE);
 		gtk_widget_set_sensitive(force_norm,
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
+		gtk_widget_set_sensitive(fast_norm,
+				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
+		gtk_widget_set_visible(RGB_equal, TRUE);
 	}
 
 	if (com.seq.reference_image == -1)
@@ -853,7 +940,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 			&stackparam.filtering_criterion, &stackparam.filtering_parameter);
 
 	if (stackparam.description)
-		free(stackparam.description);
+		g_free(stackparam.description);
 	stackparam.description = describe_filter(stackparam.seq,
 			stackparam.filtering_criterion, stackparam.filtering_parameter);
 
@@ -879,7 +966,7 @@ static void stacking_args_deep_copy(struct stacking_args *from, struct stacking_
 	// sequence is not duplicated
 	to->image_indices = malloc(from->nb_images_to_stack * sizeof(int));
 	memcpy(to->image_indices, from->image_indices, from->nb_images_to_stack * sizeof(int));
-	to->description = strdup(from->description);
+	to->description = g_strdup(from->description);
 	// output_filename is not duplicated, can be changed until the last minute
 }
 
@@ -889,3 +976,4 @@ static void stacking_args_deep_free(struct stacking_args *args) {
 	free(args->critical_value);
 	free(args);
 }
+

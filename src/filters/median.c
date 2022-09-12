@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -30,6 +30,7 @@
 #include "algos/sorting.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "io/single_image.h"
@@ -44,10 +45,10 @@ void on_Median_cancel_clicked(GtkButton *button, gpointer user_data) {
 void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
 	int combo_size = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(
-				gtk_builder_get_object(builder, "combo_ksize_median")));
+				gtk_builder_get_object(gui.builder, "combo_ksize_median")));
 	double amount = gtk_range_get_value(
-			GTK_RANGE(gtk_builder_get_object(builder, "scale_median")));
-	int iterations = round_to_int(gtk_spin_button_get_value(GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "median_button_iterations"))));
+			GTK_RANGE(gtk_builder_get_object(gui.builder, "scale_median")));
+	int iterations = round_to_int(gtk_spin_button_get_value(GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "median_button_iterations"))));
 
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -99,7 +100,7 @@ void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
  * include_self is TRUE. radius is 1 for a 3x3, 2 for a 5x5 and so on.
  * w and h are the size of the image passed in buf.
  */
-double get_median_ushort(WORD *buf, const int xx, const int yy, const int w,
+double get_median_ushort(const WORD *buf, const int xx, const int yy, const int w,
 		const int h, int radius, gboolean is_cfa, gboolean include_self) {
 	int n = 0, step = 1, x, y, ksize;
 	WORD *values;
@@ -128,7 +129,7 @@ double get_median_ushort(WORD *buf, const int xx, const int yy, const int w,
 	return median;
 }
 
-double get_median_float(float *buf, const int xx, const int yy, const int w,
+double get_median_float(const float *buf, const int xx, const int yy, const int w,
 		const int h, int radius, gboolean is_cfa, gboolean include_self) {
 	int n = 0, step = 1, x, y, ksize;
 	float *values;
@@ -157,7 +158,7 @@ double get_median_float(float *buf, const int xx, const int yy, const int w,
 	return median;
 }
 
-float get_median_float_fast(float *buf, const int xx, const int yy, const int w,
+static float get_median_float_fast(const float *buf, const int xx, const int yy, const int w,
 		const int h, int radius) {
 
 	int ksize = radius * 2 + 1;
@@ -177,7 +178,7 @@ float get_median_float_fast(float *buf, const int xx, const int yy, const int w,
 	return quickmedian_float(values, n);
 }
 
-float get_median_ushort_fast(WORD *buf, const int xx, const int yy, const int w,
+static float get_median_ushort_fast(const WORD *buf, const int xx, const int yy, const int w,
 		const int h, int radius) {
 
 	int ksize = radius * 2 + 1;
@@ -234,7 +235,7 @@ static gboolean end_median_filter(gpointer p) {
 	struct median_filter_data *args = (struct median_filter_data *) p;
 	stop_processing_thread();// can it be done here in case there is no thread?
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,14 +32,17 @@ typedef enum {
 
 
 GtkWidget* lookup_widget (const gchar *widget_name);
-void set_label_text_from_main_thread(const char *label_name, const char *text);
 void control_window_switch_to_tab(main_tabs tab);
 GtkWidget* popover_new(GtkWidget *widget, const gchar *text);
 GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf);
+GList *get_row_references_of_selected_rows(GtkTreeSelection *selection, GtkTreeModel *model);
 void set_GUI_MEM(guint64 used, const gchar *label);
 void set_GUI_DiskSpace(gint64 mem, const gchar *label);
-
 void set_suggested(GtkWidget *widget);
 void unset_suggested(GtkWidget *widget);
+
+void widget_set_class(GtkWidget *entry, const char *class_to_add, const char *class_to_remove);
+
+void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg);
 
 #endif /* SRC_GUI_UTILS_H_ */

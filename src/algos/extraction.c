@@ -11,11 +11,26 @@
 #include "gui/progress_and_log.h"
 #include "extraction.h"
 
+static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer);
+
 static void update_sampling_information(fits *fit) {
 	clear_Bayer_information(fit);
 
 	fit->pixel_size_x *= 2;
 	fit->pixel_size_y *= 2;
+}
+
+void update_filter_information(fits *fit, char *filter, gboolean append) {
+	gchar *filtername = NULL;
+	if (append) {
+		gchar *currfilter = g_strstrip(fit->filter);
+		if (g_strcmp0(currfilter, filter) && !(currfilter[0] == '\0')) { // to deal with case of Ha filter (avoids Ha_Ha) or empty filter name
+			filtername = g_strconcat(currfilter, "_", filter, NULL);
+		} else filtername = g_strdup(filter);
+	} else {
+		filtername = g_strdup(filter);
+	}
+	strncpy(fit->filter, filtername, FLEN_VALUE - 1);
 }
 
 int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
@@ -40,16 +55,16 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 
 			switch(pattern) {
 			case BAYER_FILTER_RGGB:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c0) : c0;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
 				break;
 			case BAYER_FILTER_BGGR:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c3) : c3;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c3) : c3;
 				break;
 			case BAYER_FILTER_GRBG:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c1) : c1;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
 				break;
 			case BAYER_FILTER_GBRG:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c2) : c2;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
 				break;
 			default:
 				printf("Should not happen.\n");
@@ -62,6 +77,7 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
+	update_filter_information(Ha, "Ha", TRUE);
 
 	return 0;
 }
@@ -110,6 +126,7 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
+	update_filter_information(Ha, "Ha", TRUE);
 
 	return 0;
 }
@@ -147,7 +164,7 @@ sensor_pattern get_bayer_pattern(fits *fit) {
 	return tmp_pattern;
 }
 
-int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	fits f_Ha = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
@@ -164,12 +181,21 @@ int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	return ret;
 }
 
+static int extract_prepare_hook(struct generic_seq_args *args) {
+	int retval = seq_prepare_hook(args);
+	if (!retval && args->new_ser) {
+		retval = ser_reset_to_monochrome(args->new_ser);
+	}
+	return retval;
+}
+
 void apply_extractHa_to_sequence(struct split_cfa_data *split_cfa_args) {
 	struct generic_seq_args *args = create_default_seqargs(split_cfa_args->seq);
 	args->seq = split_cfa_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
-	args->prepare_hook = seq_prepare_hook;
+	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
+	args->prepare_hook = extract_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = extractHa_image_hook;
 	args->description = _("Extract Ha");
@@ -223,6 +249,7 @@ int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, green);
 	update_sampling_information(green);
+	update_filter_information(green, "G", TRUE);
 
 	return 0;
 }
@@ -266,11 +293,12 @@ int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 	/* We update FITS keywords */
 	copy_fits_metadata(in, green);
 	update_sampling_information(green);
+	update_filter_information(green, "G", TRUE);
 
 	return 0;
 }
 
-int extractGreen_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+int extractGreen_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	fits f_Ha = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
@@ -292,7 +320,8 @@ void apply_extractGreen_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->seq = split_cfa_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
-	args->prepare_hook = seq_prepare_hook;
+	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
+	args->prepare_hook = extract_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = extractGreen_image_hook;
 	args->description = _("Extract Green");
@@ -330,19 +359,19 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern)
 
 			switch(pattern) {
 			case BAYER_FILTER_RGGB:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c0) : c0;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
 				OIII->data[j] = (c1 + c2 + c3) / 3;
 				break;
 			case BAYER_FILTER_BGGR:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c3) : c3;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c3) : c3;
 				OIII->data[j] = (c1 + c2 + c0) / 3;
 				break;
 			case BAYER_FILTER_GRBG:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c1) : c1;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
 				OIII->data[j] = (c0 + c2 + c3) / 3;
 				break;
 			case BAYER_FILTER_GBRG:
-				Ha->data[j] = (in->bitpix == 8) ? round_to_BYTE(c2) : c2;
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
 				OIII->data[j] = (c1 + c0 + c3) / 3;
 				break;
 			default:
@@ -356,9 +385,11 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern)
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
+	update_filter_information(Ha, "Ha", TRUE);
 
 	copy_fits_metadata(in, OIII);
 	update_sampling_information(OIII);
+	update_filter_information(OIII, "OIII", TRUE);
 
 	return 0;
 }
@@ -412,9 +443,11 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern) 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha);
+	update_filter_information(Ha, "Ha", TRUE);
 
 	copy_fits_metadata(in, OIII);
 	update_sampling_information(OIII);
+	update_filter_information(OIII, "OIII", TRUE);
 
 	return 0;
 }
@@ -425,7 +458,7 @@ struct _double_split {
 	fits *oiii;
 };
 
-int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 
@@ -465,14 +498,14 @@ static int dual_prepare(struct generic_seq_args *args) {
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 	// we call the generic prepare twice with different prefixes
 	args->new_seq_prefix = "Ha_";
-	if (seq_prepare_hook(args))
+	if (extract_prepare_hook(args))
 		return 1;
 	// but we copy the result between each call
 	cfa_args->new_ser_ha = args->new_ser;
 	cfa_args->new_fitseq_ha = args->new_fitseq;
 
 	args->new_seq_prefix = "OIII_";
-	if (seq_prepare_hook(args))
+	if (extract_prepare_hook(args))
 		return 1;
 	cfa_args->new_ser_oiii = args->new_ser;
 	cfa_args->new_fitseq_oiii = args->new_fitseq;
@@ -576,6 +609,7 @@ void apply_extractHaOIII_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->seq = split_cfa_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
+	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->prepare_hook = dual_prepare;
 	args->finalize_hook = dual_finalize;
 	args->save_hook = dual_save;
@@ -616,10 +650,10 @@ int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 			WORD c0 = in->data[col + (1 + row) * in->rx];
 			WORD c2 = in->data[1 + col + (1 + row) * in->rx];
 
-			cfa0->data[j] = (in->bitpix == 8) ? round_to_BYTE(c0) : c0;
-			cfa1->data[j] = (in->bitpix == 8) ? round_to_BYTE(c1) : c1;
-			cfa2->data[j] = (in->bitpix == 8) ? round_to_BYTE(c2) : c2;
-			cfa3->data[j] = (in->bitpix == 8) ? round_to_BYTE(c3) : c3;
+			cfa0->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
+			cfa1->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
+			cfa2->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
+			cfa3->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c3) : c3;
 			j++;
 		}
 	}
@@ -684,7 +718,7 @@ int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	return 0;
 }
 
-int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 
@@ -719,10 +753,57 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	return ret;
 }
 
+static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+
+	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook)
+		required = 5 * MB_per_image / 4;
+	else if (args->image_hook == extractHaOIII_image_hook)
+		required = 3 * MB_per_image / 2;
+	else if (args->image_hook == split_cfa_image_hook)
+		required = 2 * MB_per_image;
+	else {
+		required = MB_per_image;
+		siril_log_color_message("unknown extraction type\n", "red");
+	}
+
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+		limit = thread_limit;
+
+		/* should not happen */
+		if (for_writer)
+			return 1;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+#endif
+	}
+	return limit;
+}
+
 void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 	struct generic_seq_args *args = create_default_seqargs(split_cfa_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
+	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->image_hook = split_cfa_image_hook;
 	args->description = _("Split CFA");
 	args->new_seq_prefix = split_cfa_args->seqEntry;

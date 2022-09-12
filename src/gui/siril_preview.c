@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,6 +26,7 @@
 #include "core/undo.h"
 #include "gui/progress_and_log.h"
 #include "gui/image_display.h"
+#include "gui/registration_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 
@@ -40,7 +41,7 @@ static fits preview_gfit_backup;
 static gboolean update_preview(gpointer user_data) {
 	update_image *im = (update_image*) user_data;
 
-	if (notify_is_blocked == TRUE) return FALSE;
+	if (notify_is_blocked) return FALSE;
 
 	if (im->show_preview) {
 		siril_debug_print("update preview\n");
@@ -51,10 +52,7 @@ static gboolean update_preview(gpointer user_data) {
 	waiting_for_thread(); // in case function is run in another thread
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	if (im->show_preview) {
-		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
+		notify_gfit_modified();
 	}
 	return FALSE;
 }
@@ -74,13 +72,19 @@ void copy_gfit_to_backup() {
 	preview_is_active = TRUE;
 }
 
-void copy_backup_to_gfit() {
-	if (copyfits(&preview_gfit_backup, &gfit, CP_COPYA, -1))
+int copy_backup_to_gfit() {
+	int retval = 0;
+	if (!gfit.data && !gfit.fdata)
+		retval = 1;
+	else if (copyfits(&preview_gfit_backup, &gfit, CP_COPYA, -1)) {
 		siril_log_message(_("Image copy error in previews\n"));
+		retval = 1;
+	}
+	return retval;
 }
 
 fits *get_preview_gfit_backup() {
-	return &preview_gfit_backup;
+	return (is_preview_active()) ? &preview_gfit_backup : &gfit;
 }
 
 gboolean is_preview_active() {
@@ -99,9 +103,7 @@ void set_notify_block(gboolean value) {
 void siril_preview_hide() {
 	copy_backup_to_gfit();
 	clear_backup();
-	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 }
 
 void notify_update(gpointer user_data) {

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@
 static double QualityEstimate_ushort(fits *fit, int layer);
 static int32_t SubSample(WORD *ptr, int img_wid, int x_size, int y_size);
 static void _smooth_image_16(unsigned short *buf, int width, int height);
-static double Gradient(WORD *buf, int width, int height);
+static double Gradient(const WORD *buf, int width, int height);
 
 double QualityEstimate(fits *fit, int layer) {
 	if (fit->type == DATA_USHORT)
@@ -209,7 +209,7 @@ static int32_t SubSample(WORD *ptr, int img_wid, int x_size, int y_size) {
 	return round_to_WORD((double)val / (double)(x_size * y_size));
 }
 
-static double Gradient(WORD *buf, int width, int height) {
+static double Gradient(const WORD *buf, int width, int height) {
 	int pixels;
 	int x, y;
 	int yborder = (int) ((double) height * QMARGIN) + 1;
@@ -304,7 +304,6 @@ static void _smooth_image_16(unsigned short *buf, int width,
 // Also, a horizontal gap of 3 or more pixels will cause the last counted pixel to be un-counted.
 //
 
-int BlankImageCount = 0;
 int MinPixels = 50;
 
 static int _FindCentre_Barycentre_ushort(fits *fit, int x1, int y1, int x2, int y2,
@@ -314,7 +313,7 @@ static int _FindCentre_Barycentre_ushort(fits *fit, int x1, int y1, int x2, int 
 	int x, y;
 	int count = 0;	// count of significant pixels
 	float x_total = 0.f, y_total = 0.F;
-	float RealThreshHold;
+	WORD RealThreshHold;
 
 	// must prevent scanning near the edge due to the extended tests below that look
 	// +/- 1 pixel above and below
@@ -345,24 +344,14 @@ static int _FindCentre_Barycentre_ushort(fits *fit, int x1, int y1, int x2, int 
 		}
 	}
 
-	if (count == 0) {
-		printf("[no image] ");
-		if (BlankImageCount >= 0)
-			++BlankImageCount;
-		return 1;
-	}
-
 	if (count < MinPixels) {
-		printf("[Not enough pixels. Found %d, require %d] ", count, MinPixels);
-		if (BlankImageCount >= 0)
-			++BlankImageCount;
+		siril_log_message(_("Not enough bright pixels detected for center of gravity computation (%d found for %d minimum).\n"), count, MinPixels);
 		return 1;
 	}
 
 	if (count > 0) {
 		*x_avg = (x_total / (float) count + 0.5f);
 		*y_avg = (y_total / (float) count + 0.5f);
-		BlankImageCount = 0;
 	}
 
 	*y_avg = img_height - *y_avg;
@@ -406,24 +395,14 @@ static int _FindCentre_Barycentre_float(fits *fit, int x1, int y1, int x2, int y
 		}
 	}
 
-	if (count == 0) {
-		printf("[no image] ");
-		if (BlankImageCount >= 0)
-			++BlankImageCount;
-		return 1;
-	}
-
 	if (count < MinPixels) {
-		printf("[Not enough pixels. Found %d, require %d] ", count, MinPixels);
-		if (BlankImageCount >= 0)
-			++BlankImageCount;
+		siril_log_message(_("Not enough bright pixels detected for center of gravity computation (%d found for %d minimum).\n"), count, MinPixels);
 		return 1;
 	}
 
 	if (count > 0) {
 		*x_avg = (x_total / (float) count + 0.5f);
 		*y_avg = (y_total / (float) count + 0.5f);
-		BlankImageCount = 0;
 	}
 
 	*y_avg = img_height - *y_avg;

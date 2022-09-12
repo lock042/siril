@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,22 +28,22 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
+#include "opencv/opencv.h"
 #include "registration.h"
 
 static pointf velocity = { 0.f, 0.f };
 static GDateTime *t_of_image_1 = NULL;
 static GDateTime *t_of_image_2 = NULL;
-static pointf pos_of_image1 = { 0 };
-static pointf pos_of_image2 = { 0 };
+static point pos_of_image1 = { 0 };
+static point pos_of_image2 = { 0 };
 
-static pointf compute_velocity(GDateTime *t1, GDateTime *t2, pointf d1, pointf d2) {
-	float delta_t;
+static pointf compute_velocity(GDateTime *t1, GDateTime *t2, point d1, point d2) {
 	pointf delta_d, px_per_hour = { 0.f, 0.f };
 
 	if (t1 && t2) {
-		delta_t = g_date_time_difference(t2, t1);
-		delta_d.x = d2.x - d1.x;
-		delta_d.y = d2.y - d1.y;
+		float delta_t = g_date_time_difference(t2, t1);
+		delta_d.x = (float)(d2.x - d1.x);
+		delta_d.y = (float)(d2.y - d1.y);
 
 		px_per_hour.x = delta_d.x / delta_t * 3600000000.f;
 		px_per_hour.y = delta_d.y / delta_t * 3600000000.f;
@@ -53,10 +53,8 @@ static pointf compute_velocity(GDateTime *t1, GDateTime *t2, pointf d1, pointf d
 }
 
 static int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *reg) {
-	float delta_t;
-
 	if (img && ref) {
-		delta_t = (float) g_date_time_difference(img, ref);
+		float delta_t = (float) g_date_time_difference(img, ref);
 		delta_t /= 3600000000.f;
 		reg->x = delta_t * px_per_hour.x;
 		reg->y = delta_t * px_per_hour.y;
@@ -75,7 +73,7 @@ static void update_velocity() {
 	g_free(v_txt);
 }
 
-static void update_entry1(pointf pt) {
+static void update_entry1(point pt) {
 	GtkEntry *entry_x = GTK_ENTRY(lookup_widget("entry1_x_comet"));
 	GtkEntry *entry_y = GTK_ENTRY(lookup_widget("entry1_y_comet"));
 	gchar *txt_x, *txt_y;
@@ -90,7 +88,7 @@ static void update_entry1(pointf pt) {
 	g_free(txt_y);
 }
 
-static void update_entry2(pointf pt) {
+static void update_entry2(point pt) {
 	GtkEntry *entry_x = GTK_ENTRY(lookup_widget("entry2_x_comet"));
 	GtkEntry *entry_y = GTK_ENTRY(lookup_widget("entry2_y_comet"));
 	gchar *txt_x, *txt_y;
@@ -112,16 +110,21 @@ static int get_reglayer() {
 }
 
 void on_button1_comet_clicked(GtkButton *button, gpointer p) {
-	fitted_PSF *result = NULL;
+	psf_star *result = NULL;
 	int layer = get_reglayer();
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE);
+		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, NULL);
 		if (result) {
 			pos_of_image1.x = result->x0 + com.selection.x;
 			pos_of_image1.y = com.selection.y + com.selection.h - result->y0;
-			free(result);
+			if (layer_has_registration(&com.seq, layer) &&
+					(guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > -2) &&
+					(guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > -2)) {
+				cvTransfPoint(&pos_of_image1.x, &pos_of_image1.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H);
+			}
+			free_psf(result);
 			if (!gfit.date_obs) {
 				siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("There is no timestamp stored in the file"),
@@ -144,16 +147,21 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 }
 
 void on_button2_comet_clicked(GtkButton *button, gpointer p) {
-	fitted_PSF *result = NULL;
+	psf_star *result = NULL;
 	int layer = get_reglayer();
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, TRUE);
+		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, NULL);
 		if (result) {
 			pos_of_image2.x = result->x0 + com.selection.x;
 			pos_of_image2.y = com.selection.y + com.selection.h - result->y0;
-			free(result);
+			if (layer_has_registration(&com.seq, layer) &&
+					(guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > -2) &&
+					(guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > -2)) {
+				cvTransfPoint(&pos_of_image2.x, &pos_of_image2.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H);
+			}
+			free_psf(result);
 			if (!gfit.date_obs) {
 				siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("There is no timestamp stored in the file"),
@@ -167,6 +175,11 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 					siril_message_dialog(GTK_MESSAGE_ERROR,
 							_("Unable to convert DATE-OBS to a valid date"),
 							_("Siril cannot convert the DATE-OBS keyword into a valid date needed in the alignment."));
+				}
+				if (g_date_time_difference(t_of_image_2, t_of_image_1) == 0) {
+					siril_message_dialog(GTK_MESSAGE_ERROR,
+							_("Dates of the two images are identical"),
+							_("Siril cannot compute the velocity needed for the alignment."));
 				}
 				update_entry2(pos_of_image2);
 			}
@@ -237,20 +250,20 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 	return 0;
 }
 
-static int comet_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_) {
+static int comet_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct comet_align_data *cadata = args->user;
 	struct registration_args *regargs = cadata->regargs;
 	pointf reg = { 0.f, 0.f };
 
 	if (!regargs->cumul) {
 		/* data initialization */
-		set_shifts(args->seq, in_index, regargs->layer, reg.x, reg.y, FALSE);
+		set_shifts(args->seq, in_index, regargs->layer, 0., 0., FALSE);
 	}
 
 	get_comet_shift(cadata->reference_date, fit->date_obs, velocity, &reg);
 
 	/* get_comet_shift does not car about orientation of image */
-	set_shifts(args->seq, in_index, regargs->layer, -reg.x, reg.y, FALSE);
+	cum_shifts(args->seq, in_index, regargs->layer, -reg.x, reg.y, FALSE);
 	return 0;
 }
 
@@ -281,7 +294,7 @@ int register_comet(struct registration_args *regargs) {
 	args->layer_for_partial = 0;
 	args->get_photometry_data_for_partial = TRUE;
 
-	if (!regargs->process_all_frames) {
+	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}

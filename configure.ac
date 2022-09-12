@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
-m4_define([siril_major_version], [0])
-m4_define([siril_minor_version], [99])
-m4_define([siril_micro_version], [11])
-m4_define([siril_prerelease_version], [1])
+m4_define([siril_major_version], [1])
+m4_define([siril_minor_version], [1])
+m4_define([siril_micro_version], [0])
+m4_define([siril_prerelease_version], [alpha1])
 m4_define([siril_version],
           [siril_major_version.siril_minor_version.siril_micro_version])
 m4_define([siril_version_full],
@@ -37,7 +37,6 @@ AC_SUBST(SIRIL_UNSTABLE)
 remember_set_CFLAGS="$CFLAGS"
 
 AC_PROG_CC
-AC_HEADER_STDC
 
 m4_include(m4/openmp.m4)
 AC_OPENMP
@@ -112,7 +111,7 @@ case "$host_os" in
 esac
 AC_MSG_RESULT([$platform_win32])
 
-dnl ================ MANDATORY DEPENDECIES ================
+dnl ================ MANDATORY DEPENDENCIES ================
 dnl check math lib
 AC_CHECK_LIB(m, log, LIBS="$LIBS -lm")
 
@@ -126,9 +125,6 @@ case "$host_os" in
     PKG_CHECK_MODULES([GIO],[gio-2.0 >= 2.56.0 gio-unix-2.0 >= 2.56.0])
     ;;
 esac
-
-dnl Check for json-glib
-PKG_CHECK_MODULES(JSON_GLIB, json-glib-1.0 >= 1.2.6)
 
 dnl check libexiv2
 PKG_CHECK_MODULES(EXIV2, exiv2 >= 0.25)
@@ -152,10 +148,6 @@ PKG_CHECK_MODULES(GSL, [gsl < 2],
 dnl check cfitsio
 PKG_CHECK_MODULES(CFITSIO, [cfitsio])
 
-dnl check libconfig
-PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],,
-	AC_MSG_ERROR([libconfig 1.4 or newer not found.]))
-
 dnl check opencv
 AC_PROG_CXX
 if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
@@ -167,21 +159,16 @@ if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
 	m4_include([m4/ax_cxx_compile_stdcxx.m4])
 	AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
 
-	dnl AC_MSG_WARN(CXX is "$CXX")
-	dnl http://nerdland.net/2009/07/detecting-c-libraries-with-autotools/ solution 2
-	dnl we handle 2 opencv versions because of a debian bug with opencv2 and GTK3
-	PKG_CHECK_MODULES([OPENCV], [opencv >= 3.0],
-			[OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
-			[PKG_CHECK_MODULES([OPENCV], [opencv >= 2.0],
-					[OPENCV_LIBS="-lopencv_core -lopencv_imgproc"],
-					[PKG_CHECK_MODULES([OPENCV], [opencv4],
-								[OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
-								AC_MSG_ERROR([opencv not found.]))]
-					)]
-			)
+	PKG_CHECK_MODULES([OPENCV], [opencv4 >= 4.4.0],
+			  [AC_DEFINE([HAVE_CV44], [1], [Using OpenCV4.4])]
+			  [OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
+			  [PKG_CHECK_MODULES([OPENCV], [opencv4 >= 4.2.0],
+					     [AC_MSG_WARN([OpenCV 4.2 found, translation-only registration will be disabled - requires 4.4])]
+					     [OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
+					     AC_MSG_ERROR([opencv not found.]))])
 else
 	AC_MSG_ERROR([no C++ compiler found])
-fi
+	fi
 
 PKG_CHECK_MODULES(LIBRTPROCESS, [rtprocess], have_rtprocess="yes", have_rtprocess="no")
 if test "x$have_rtprocess" = "xno"; then
@@ -208,63 +195,93 @@ if test "x$have_rtprocess" = "xno"; then
 fi
 AM_CONDITIONAL(HAVE_LIBRTPROCESS, test "x$have_rtprocess" = "xyes")
 
-dnl ================ OPTIONAL DEPENDECIES ================
+if test "$cross_compiling" != "yes"; then
+	dnl check CMake used for htmesh
+	AC_PATH_PROG(CMAKE, cmake, no)
+	if test "x$CMAKE" = xno; then
+		AC_MSG_ERROR([CMAKE not found (needed to built internal htmesh)])
+	fi
+
+	CMAKE_GENERATOR=
+	if test "$platform_win32" = "yes"; then
+		CMAKE_GENERATOR="-G \"MSYS Makefiles\""
+	fi
+	AC_SUBST([CMAKE_GENERATOR])
+
+	AC_MSG_NOTICE([htmesh will be built statically])
+else
+	# When cross-compiling, you should build rtprocess yourself and
+	# install it yourself.
+	AC_MSG_ERROR([htmesh cannot be built])
+fi
+AM_CONDITIONAL(HAVE_HTMESH, test "x$have_htmesh" = "xyes")
+
+dnl ================ OPTIONAL DEPENDENCIES ================
 
 dnl check raw lib
 PKG_CHECK_MODULES(LIBRAW, [libraw >= 0.17],
-		[AC_DEFINE([HAVE_LIBRAW], [1], [Using RAW images])],
-		AC_MSG_WARN([libraw not found. Not using RAW importer.]))
+		  [AC_DEFINE([HAVE_LIBRAW], [1], [Using RAW images])],
+		  AC_MSG_WARN([libraw not found. Not using RAW importer.]))
 
 dnl check tiff lib
 PKG_CHECK_MODULES(LIBTIFF, [libtiff-4],
-		[AC_DEFINE([HAVE_LIBTIFF], [1], [Using TIFF images])],
-		AC_MSG_WARN([libtiff not found. Not using TIFF importer and exporter.]))
+		  [AC_DEFINE([HAVE_LIBTIFF], [1], [Using TIFF images])],
+		  AC_MSG_WARN([libtiff not found. Not using TIFF importer and exporter.]))
 
 dnl check jpeg lib
 dnl PKG_CHECK_MODULES(JPEG, [libjpeg])
 AC_CHECK_LIB(jpeg, jpeg_mem_src, [],
-	AC_MSG_WARN([libjpeg not found. Not using JPEG importer and exporter.]))
+	     AC_MSG_WARN([libjpeg not found. Not using JPEG importer and exporter.]))
 
 dnl check png lib
 PKG_CHECK_MODULES(LIBPNG, [libpng >= 1.6],
-		[AC_DEFINE([HAVE_LIBPNG], [1], [Using PNG images])],
-		AC_MSG_WARN([libpng not found. Not using PNG importer and exporter.]))
-		
+		  [AC_DEFINE([HAVE_LIBPNG], [1], [Using PNG images])],
+		  AC_MSG_WARN([libpng not found. Not using PNG importer and exporter.]))
+
 dnl check heif lib
 PKG_CHECK_MODULES(LIBHEIF, [libheif],
-		[AC_DEFINE([HAVE_LIBHEIF], [1], [Using HEIF images])],
-		AC_MSG_WARN([libheif not found. Not using HEIF importer and exporter.]))
+		  [AC_DEFINE([HAVE_LIBHEIF], [1], [Using HEIF images])],
+		  AC_MSG_WARN([libheif not found. Not using HEIF importer and exporter.]))
 
 dnl check ffms2
 PKG_CHECK_MODULES(FFMS2, [ffms2],
 		  [AC_DEFINE([HAVE_FFMS2], [1], [Using FFMS2])],
 		  AC_MSG_WARN([libffms2 not found. Not using AVI importer.]))
 
-
 dnl checking several ffmpeg libraries
 PKG_CHECK_MODULES(FFMPEG, [libavformat libavutil >= 55.20 libavcodec libswscale libswresample],
-		[AC_DEFINE([HAVE_FFMPEG], [1], [film export supported])],
-		AC_MSG_WARN([ffmpeg libav libraries not found or too old. Not using film export formats.]))
+		  [AC_DEFINE([HAVE_FFMPEG], [1], [film export supported])],
+		  AC_MSG_WARN([ffmpeg libav libraries not found or too old. Not using film export formats.]))
 
 dnl checking libcurl
 m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
-        [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl ])],
-        AC_MSG_WARN([libcurl not found. Not using web interaction.]))
-        
+		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])],
+		     AC_MSG_WARN([libcurl not found. Not using web interaction.]))
+
 dnl check wcslib
 PKG_CHECK_MODULES(WCSLIB, [wcslib],
 		  [AC_DEFINE([HAVE_WCSLIB], [1], [Using WCSLIB])],
 		  AC_MSG_WARN([wcslib not found. Not using WCS API.]))
 
+dnl Check for json-glib
+PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
+		  [AC_DEFINE([HAVE_JSON_GLIB], [1], [Using automatic update])],
+		  AC_MSG_WARN([json-glib not found. not using automatic update.]))
+
+dnl check libconfig
+PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],
+		  [AC_DEFINE([HAVE_LIBCONFIG], [1], [Using libconfig])],
+		  AC_MSG_WARN([libconfig not found. Old configuration file will not be read.]))
+
 dnl ================================================================
 dnl Collect some arguments.
 dnl ================================================================
 AC_ARG_ENABLE(debug,
-		[AC_HELP_STRING([--enable-debug],
-		[enable debug build [default=no]])],,
-		[enable_debug="no"])
-		
+	      [AS_HELP_STRING([--enable-debug],
+			      [enable debug build [default=no]])],,
+			      [enable_debug="no"])
+
 AM_CONDITIONAL([SIRIL_DEBUG],[test "x$enable_debug" = "xyes"])
 
 if test "x$enable_debug" = "xyes"; then
@@ -315,8 +332,8 @@ AM_CONDITIONAL([PLATFORM_WIN32], [test "$platform" = "windows"])
 AM_CONDITIONAL([PLATFORM_OSX], [test "$platform" = "osx"])
 
 AC_DEFINE_UNQUOTED(SIRIL_BUILD_PLATFORM_FAMILY, "$platform_family",
-                   [The OS family this was built for])
-                   
+		   [The OS family this was built for])
+
 AC_SUBST(WIN32_LARGE_ADDRESS_AWARE)
 AC_SUBST(PATHSEP)
 

@@ -1,22 +1,22 @@
 #ifndef SIRIL_H
 #define SIRIL_H
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#include <config.h>
 #endif
 
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib/gprintf.h>
 #include <gtk/gtk.h>
-#include <fitsio.h>	// fitsfile
 #include <gsl/gsl_histogram.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 #include <libintl.h>
 
+#include <fitsio.h>	// fitsfile
 
-#include "gui/preferences.h"
+#include "core/settings.h"
 #include "core/atomic.h"
 
 #define _(String) gettext (String)
@@ -33,7 +33,7 @@
 
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
 #define siril_debug_print(fmt, ...) \
-   do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
+	do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
 #define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
 #define PRINT_ANOTHER_THREAD_RUNNING siril_log_message(_("Another task is already in progress, ignoring new request.\n"))
@@ -51,7 +51,7 @@
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
-#define SWAP(a,b)  { double temp = (a); (a) = (b); (b) = temp; }
+#define SWAPD(a,b) { double temp = (a); (a) = (b); (b) = temp; }
 
 #define SQR(x) ((x)*(x))
 #endif
@@ -65,22 +65,26 @@
 #define UCHAR_MAX_SINGLE ((float)UCHAR_MAX)
 #define INV_USHRT_MAX_SINGLE .000015259022f	 // 1/65535
 #define INV_UCHAR_MAX_SINGLE .0039215686f	 // 1/255
+#define INV_USHRT_MAX_DOUBLE .000015259022	 // 1/65535
+#define INV_UCHAR_MAX_DOUBLE .0039215686	 // 1/255
 
-#define BYTES_IN_A_MB 1048576	// 1024
+#define BYTES_IN_A_MB 1048576	// 1024*1024
 
 #define SEQUENCE_DEFAULT_INCLUDE TRUE	// select images by default
 
 typedef unsigned char BYTE;	// default type for image display data
 typedef unsigned short WORD;	// default type for internal image data
 
-#define MAX_SEQPSF 7	// max number of stars for which seqpsf can be run
+#define MAX_REF_STARS 20	// uchar
+#define MAX_SEQPSF MAX_REF_STARS// max number of stars for which seqpsf can be run
+				// if we use seqpsf for the light curve, we must allow as many as MAX_REF_STARS
 
 #define CMD_HISTORY_SIZE 50	// size of the command line history
 
 #define ZOOM_MAX	128
 #define ZOOM_MIN	0.03125
 #define ZOOM_IN		1.5
-#define ZOOM_OUT    1.0 / ZOOM_IN
+#define ZOOM_OUT	1.0 / ZOOM_IN
 #define ZOOM_NONE	1.0
 #define ZOOM_FIT	-1.0	// or any value < 0
 #define ZOOM_DEFAULT	ZOOM_FIT
@@ -104,15 +108,6 @@ typedef GtkWidget SirilWidget;
 #else
 #define SIRIL_EOL "\n"
 #endif
-
-/* when requesting an image redraw, it can be asked to remap its data before redrawing it.
- * REMAP_NONE	doesn't remaps the data,
- * REMAP_ONLY	remaps only the current viewport (color channel) and the mixed (RGB) image
- * REMAP_ALL	remaps all view ports, useful when all the colors come from the same file.
- */
-#define REMAP_NONE	0
-#define REMAP_ONLY	1
-#define REMAP_ALL	2
 
 typedef enum {
 	TYPEUNDEF = (1 << 1),
@@ -165,48 +160,52 @@ typedef enum {
 				// the loaded sequence
 
 #define MAX_STARS 200000		// maximum length of com.stars
+#define MAX_STARS_FITTED 2000	// maximum number of stars fitted for registration
+#define MIN_STARS_FITTED 100	// minimum number of stars fitted for registration
 
-#define INDEX_MAX 100000		// maximum index for images
+#define INDEX_MAX 65535		// maximum index for images
 
-typedef struct imdata imgdata;
-typedef struct registration_data regdata;
-typedef struct layer_info_struct layer_info;
 typedef struct sequ sequence;
-typedef struct single_image single;
-typedef struct wcs_struct wcs_info;
-typedef struct dft_struct dft_info;
 typedef struct ffit fits;
-typedef struct libraw_config libraw;
-typedef struct phot_config phot;
-typedef struct stack_config stackconf;
-typedef struct comp_config compconf;
+typedef struct guiinf guiinfo;
 typedef struct cominf cominfo;
-typedef struct image_stats imstats;
-typedef struct rectangle_struct rectangle;
-typedef struct point_struct point;
-typedef struct pointf_struct pointf;
-typedef struct pointi_struct pointi;
 typedef struct historic_struct historic;
-typedef struct fwhm_struct fitted_PSF;
-typedef struct star_finder_struct star_finder_params;
-typedef struct pref_struct preferences;
-typedef struct save_config_struct save_config;
+typedef struct fwhm_struct psf_star;
+typedef struct tilt_struct sensor_tilt;
 
 /* global structures */
 
 typedef enum {
-	LINEAR_DISPLAY,	
+	BOOL_NOT_SET = -1,
+	BOOL_FALSE = 0,
+	BOOL_TRUE = 1,
+} super_bool;
+
+/* same order as in the combo box 'comboExport' */
+typedef enum {
+	EXPORT_FITS,
+	EXPORT_FITSEQ,
+	EXPORT_TIFF,
+	EXPORT_SER,
+	EXPORT_AVI,
+	EXPORT_MP4,
+	EXPORT_MP4_H265,
+	EXPORT_WEBM_VP9
+} export_format;
+
+typedef enum {
+	LINEAR_DISPLAY,
 	LOG_DISPLAY,
 	SQRT_DISPLAY,
 	SQUARED_DISPLAY,
 	ASINH_DISPLAY,
 	STF_DISPLAY,
 	HISTEQ_DISPLAY
-} display_mode;			// used in the layer_info_struct below
+} display_mode;
 #define DISPLAY_MODE_MAX HISTEQ_DISPLAY
 
 typedef enum {
-	NORMAL_COLOR,	
+	NORMAL_COLOR,
 	RAINBOW_COLOR
 } color_map;
 
@@ -223,71 +222,73 @@ typedef enum {
 } open_image_status;
 
 typedef enum {
-	BAYER_BILINEAR,
-	BAYER_VNG,
-	BAYER_AHD,
-	BAYER_AMAZE,
-	BAYER_DCB,
-	BAYER_HPHD,
-	BAYER_IGV,
-	BAYER_LMMSE,
-	BAYER_RCD,
-	BAYER_SUPER_PIXEL,
-	XTRANS
-} interpolation_method;
-
-typedef enum {
 	OPENCV_NEAREST = 0,
 	OPENCV_LINEAR = 1,
 	OPENCV_CUBIC = 2,
 	OPENCV_AREA = 3,
 	OPENCV_LANCZOS4 = 4,
-	OPENCV_INTER_MAX = 7
+	OPENCV_NONE = 5 // this one will use the pixel-wise shift transform w/o opencv
 } opencv_interpolation;
 
 typedef enum {
-	BAYER_FILTER_RGGB,
-	BAYER_FILTER_BGGR,
-	BAYER_FILTER_GBRG,
-	BAYER_FILTER_GRBG,
-	XTRANS_FILTER,
-	BAYER_FILTER_NONE = -1		//case where pattern is undefined or untested
-} sensor_pattern;
-#define BAYER_FILTER_MIN BAYER_FILTER_RGGB
-#define BAYER_FILTER_MAX BAYER_FILTER_GRBG
-
-struct layer_info_struct {
-	char *name;			// name of the layer (a filter name)
-	double wavelength;		// the wavelength of the filter, in nanometres
-	WORD lo, hi;			// the values of the cutoff sliders
-	//WORD min, max;		// the min and max values of the sliders
-	gboolean cut_over, cut_under;	// display values over hi or under lo as negative
-	display_mode rendering_mode;	// defaults to LINEAR_DISPLAY
-};
-
-typedef enum { SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
+	SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
 #ifdef HAVE_FFMS2
 	SEQ_AVI,
 #endif
 	SEQ_INTERNAL
 } sequence_type;
 
+typedef enum {
+	MULTI_THREADED = 0,	// equivalent to com.max_threads
+	SINGLE_THREADED = 1
+	/* and higher values are the number of threads */
+} threading_type;
+
+typedef enum {
+	RICE_COMP,
+	GZIP1_COMP,
+	GZIP2_COMP,
+	HCOMPRESS_COMP
+} compression_mode;
+
 /* image data, exists once for each image */
-struct imdata {
+typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
-	GDateTime *date_obs;/* date of the observation, processed and copied from the header */
-};
+	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
+	int rx, ry;
+} imgdata;
+
+/* this structure is used to characterize the statistics of the image */
+typedef struct {
+	long total,	// number of pixels
+	     ngoodpix;	// number of non-zero pixels
+	double mean, median, sigma, avgDev, mad, sqrtbwmv,
+	       location, scale, min, max, normValue, bgnoise;
+
+	atomic_int* _nb_refs;	// reference counting for data management
+} imstats;
+
+typedef struct {
+	double h00, h01, h02;
+	double h10, h11, h12;
+	double h20, h21, h22;
+	int pair_matched;
+	int Inliers;
+} Homography;
 
 /* registration data, exists once for each image and each layer */
-struct registration_data {
-	float shiftx, shifty;	// we could have a subpixel precision, but is it needed? saved
-	fitted_PSF *fwhm_data;	// used in PSF/FWHM registration, not saved
+typedef struct {
+	psf_star *fwhm_data;	// used in PSF/FWHM registration, not saved
 	float fwhm;		// copy of fwhm->fwhmx, used as quality indicator, saved data
-	float weighted_fwhm; // used to exclude spurious images.
+	float weighted_fwhm;	// used to exclude spurious images.
 	float roundness;	// fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
 	double quality;
-};
+	float background_lvl;
+	int number_of_stars;
+
+	Homography H;
+} regdata;
 
 /* see explanation about sequence and single image management in io/sequence.c */
 
@@ -297,10 +298,10 @@ struct sequ {
 	int selnum;		// number of selected images in the sequence
 	int fixed;		// fixed length of image index in filename (like %3d)
 	int nb_layers;		// number of layers embedded in each image file, -1 if unknown
-	unsigned int rx;	// first image width
-	unsigned int ry;	// first image height
+	unsigned int rx;	// first image width (or ref if set)
+	unsigned int ry;	// first image height (or ref if set)
+	gboolean is_variable;	// sequence has images of different sizes (imgparam->r[xy])
 	int bitpix;		// image pixel format, from fits
-	layer_info *layers;	// info about layers, may be null if nb_layers is unknown
 	int reference_image;	// reference image for registration
 	imgdata *imgparam;	// a structure for each image of the sequence
 	regdata **regparam;	// *regparam[nb_layers], may be null if nb_layers is unknown
@@ -336,41 +337,44 @@ struct sequ {
 	int previewW[PREVIEW_NB], previewH[PREVIEW_NB];	// 0 is uninitialized value
 
 	double upscale_at_stacking;// up-scale factor during stacking (see #215)
-	
-	gboolean needs_saving;	// a dirty flag for the sequence, avoid saving it too often
 
-	fitted_PSF **photometry[MAX_SEQPSF];// psf for multiple stars for all images
+	gboolean needs_saving;	// a dirty flag for the sequence, avoid saving it too often
+	gboolean reg_invalidated; // a flag to detect if regframe can be plotted
+
+	psf_star **photometry[MAX_SEQPSF+1];// psf for multiple stars for all images
 	int reference_star;	// reference star for apparent magnitude (index of photometry)
 	double reference_mag;	// reference magnitude for the reference star
 	double photometry_colors[MAX_SEQPSF][3]; // colors for each photometry curve
 };
 
 /* this struct is used to manage data associated with a single image loaded, outside a sequence */
-struct single_image {
+typedef struct {
 	char *filename;		// the name of the file
 	gboolean fileexist;// flag of existing file
 	char *comment;		// comment on how the file got there (user load, result...)
 	int nb_layers;		// number of layers embedded in each image file
-	layer_info *layers;	// info about layers
 	fits *fit;		// the fits is still gfit, but a reference doesn't hurt
-};
+} single;
 
-struct wcs_struct {
+typedef struct {
 	double equinox;
 	double crpix[2];
 	double crval[2];
 	double cdelt[2];
-	double cd[2][2];
-	double crota[2];
+	double pc[2][2];
 	char objctra[FLEN_VALUE];
 	char objctdec[FLEN_VALUE];
-};
+	double ra;
+	double dec;
+	gboolean pltsolvd;
+	char pltsolvd_comment[FLEN_COMMENT];
+} wcs_info;
 
-struct dft_struct {
+typedef struct {
 	double norm[3];			// Normalization value
 	char type[FLEN_VALUE];		// spectrum, phase
 	char ord[FLEN_VALUE];		// regular, centered
-};
+} dft_info;
 
 typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 
@@ -381,7 +385,7 @@ struct ffit {
 	int orig_bitpix;	// original bitpix of the file
 	/* bitpix can take the following values:
 	 * BYTE_IMG	(8-bit byte pixels, 0 - 255)
-	 * SHORT_IMG	(16 bit signed integer pixels)	
+	 * SHORT_IMG	(16 bit signed integer pixels)
 	 * USHORT_IMG	(16 bit unsigned integer pixels)	(used by Siril, a bit unusual)
 	 * LONG_IMG	(32-bit integer pixels)
 	 * FLOAT_IMG	(32-bit floating point pixels)
@@ -396,38 +400,45 @@ struct ffit {
 	 * */
 
 	/* data obtained from the FITS file */
-	char *header;	// entire header of the FITS file. NULL for non-FITS file.
-	WORD lo;	// MIPS-LO key in FITS file, which is "Lower visualization cutoff"
-	WORD hi;	// MIPS-HI key in FITS file, which is "Upper visualization cutoff"
-	double data_max; // used to check if 32b float is in the [0, 1] range
+	char *header;		// entire header of the FITS file. NULL for non-FITS file.
+	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
+	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
+	double data_max;	// used to check if 32b float is in the [0, 1] range
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
-	unsigned int binning_x, binning_y;		// XBINNING and YBINNING keys
+	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
 	gboolean unbinned;
 	char row_order[FLEN_VALUE];
 	GDateTime *date, *date_obs;
 	double expstart, expend;
+	char filter[FLEN_VALUE];		// FILTER key
+	char image_type[FLEN_VALUE];		// IMAGETYP key
+	char object[FLEN_VALUE];		// OBJECT key
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
 	char observer[FLEN_VALUE];		// OBSERVER key
-	char bayer_pattern[FLEN_VALUE];	// BAYERPAT key Bayer Pattern if available
+	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
+	double airmass;                   // relative optical path length through atmosphere.
 	/* data obtained from FITS or RAW files */
 	double focal_length, iso_speed, exposure, aperture, ccd_temp;
-	double cvf; // Conversion factor (e-/adu)
-	int key_gain, key_offset; // Gain, Offset values read in camera headers.
+	double livetime;		// total exposure
+	guint stackcnt;			// number of stacked frame
+	double cvf;			// Conversion factor (e-/adu)
+	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
 
 	/* Plate Solving data */
-	wcs_info wcsdata;	// data from the header
+	wcs_info wcsdata;		// data from the header
 #ifdef HAVE_WCSLIB
-	struct wcsprm *wcslib;	// struct of the lib
+	struct wcsprm *wcslib;		// struct of the lib
 #endif
 
 	/* data used in the Fourier space */
 	dft_info dft;
-	
+
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
 	double mini, maxi;	// min and max of the stats->max[3]
+	float neg_ratio;	// ratio of pixels with a negative value on total number of pixels
 
 	fitsfile *fptr;		// file descriptor. Only used for file read and write.
 
@@ -442,207 +453,94 @@ struct ffit {
 	GSList *history;	// Former HISTORY comments of FITS file
 };
 
-/* This structure is used for all the elements in the box libraw_settings.
- * Don't forget to update conversion.c:initialize_libraw_settings() data when
- * modifying the glade settings */
-struct libraw_config {
-	double mul[3], bright;					// Color  & brightness adjustement mul[0] = red, mul[1] = green = 1, mul[2] = blue
-	int auto_mul, use_camera_wb, use_auto_wb;		// White Balance parameters
-	int user_qual;						// Index of the Matrix interpolation set in dcraw, 0: bilinear, 1: VNG, 2: PPG, 3: AHD
-	int user_black;						// black point correction
-	double gamm[3];						// Gamma correction
-};
-
-/* This structure is used for storing all parameters used in photometry module */
-struct phot_config {
-	double gain;	// A/D converter gain in electrons per ADU
-	double inner;	// Inner radius of the annulus used to measure local background.
-	double outer;	// Outer radius of the annulus used to measure local background.
-	int minval, maxval;
-};
-
-struct debayer_config {
-	gboolean open_debayer;			// debayer images being opened
-	gboolean use_bayer_header;		// use the pattern given in the file header
-	sensor_pattern bayer_pattern;		// user-defined Bayer pattern
-	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
-	gboolean top_down;				// debayer top-down orientation
-	int xbayeroff, ybayeroff;			// x and y Bayer offsets
-};
-
-struct stack_config {
-	int method;				// 0=sum, 1=median, 2=average, 3=pixel max, 4=pixel min - Use to save preferences in the init file
-	int normalisation_method;
-	int rej_method;
-	double sigma_low, sigma_high;
-	double linear_low, linear_high;
-	double percentile_low, percentile_high;
-	double esdt_outliers, esdt_significance;
-	enum { RATIO, AMOUNT } mem_mode; // mode of memory management
-	double memory_ratio;			// ratio of available memory to use for stacking (and others)
-	double memory_amount;			// amount of memory in GB to use for stacking (and others)
-};
-
-struct comp_config {
-	gboolean fits_enabled;		// true enabled
-	int fits_method;		// 0=Rice, 1=GZIP1, 2=GZIP2, 3=Hcompress
-	double fits_quantization;	// quantization factor for floating point compression
-	double fits_hcompress_scale;		// scale factor for Hcompress compression
-};
-
-struct rectangle_struct {
-	int x, y, w, h;
-};
-
-struct point_struct {
+typedef struct {
 	double x, y;
-};
+} point;
 
-struct pointf_struct {
+typedef struct {
 	float x, y;
-};
+} pointf;
 
-struct pointi_struct {
+typedef struct {
 	int x, y;
-};
+} pointi;
 
 struct historic_struct {
 	char *filename;
 	char history[FLEN_VALUE];
 	int rx, ry;
 	data_type type;
+	wcs_info wcsdata;
+	double focal_length;
 };
 
-struct star_finder_struct {
-	int radius;
-	double sigma;
-	double roundness;
-};
-
-struct save_config_struct {
-	gboolean quit;
-	gboolean warn_script;
-};
-
-/**
- * This is the preference structure.
- * WARNING!!
- * If you update something in this structure you absolutely need to
- * update pref_init in preferences.c
+/* The rendering of the main image is cached. As it can be much larger than the
+ * widget in which it's displayed, it can take a lot of time to transform it
+ * for rendering. Unfortunately, rendering is requested on each update of a
+ * label, so every time the pointer moves above the image.
+ * With the caching, the rendering is done once in a cache surface
+ * (disp_surface) and this surface is just displayed on subsequent calls if the
+ * image, the transform or the widget size has not changed.
  */
-struct pref_struct {
-	gboolean first_start; // use to display information at first use
-	/* state of window */
-	gboolean remember_windows;
-	rectangle main_w_pos;
-	gboolean is_maximized;
+struct image_view {
+	GtkWidget *drawarea;
 
-	gboolean prepro_cfa;	// Use to save type of sensor for cosmetic correction in preprocessing
-	gboolean prepro_equalize_cfa;  // Use to save if flat will be equalized in preprocessing
-	gboolean fix_xtrans; // Use to fix xtrans darks and biases with the AF square
-	rectangle xtrans_af; // if no xtrans model found, use these values
-	rectangle xtrans_sample; // if no xtrans model found, use these values
-	gchar *prepro_bias_lib;
-	gboolean use_bias_lib;
-	gchar *prepro_bias_synth;
-	gboolean use_bias_synth;
-	gchar *prepro_dark_lib;
-	gboolean use_dark_lib;
-	gchar *prepro_flat_lib;
-	gboolean use_flat_lib;
+	guchar *buf;	// display buffer (image mapped to 3 times 8-bit)
+	int full_surface_stride;
+	int full_surface_height;
+	int view_width;	// drawing area size
+	int view_height;
 
-	save_config save;
-	gboolean show_thumbnails; // show or don't show thumbnails in open dialog box
-	gint thumbnail_size;
-	gboolean check_update; // check update at startup
-	gboolean script_check_requires; // check the requires command in scripts
-
-	gint combo_theme;           // value of the combobox theme
-	gdouble font_scale;           // font scale
-	gboolean icon_symbolic;		// icon style
-	gchar *combo_lang;           // string value of the combobox lang
-
-	gchar *ext;		// FITS extension used in SIRIL
-
-	gchar *swap_dir;		// swap directory
-	GSList *script_path;	// script path directories
-
-	gdouble focal;			// focal length saved in config file
-	gdouble pitch;			// pixel pitch saved in config file
-
-	libraw raw_set;			// the libraw settings
-	struct debayer_config debayer;	// debayer settings
-	phot phot_set;          // photometry settings
-	gboolean catalog[6]; // Yet 6 catalogs
-
-	stackconf stack; // stacking option
-	compconf comp; // compression option
-	gboolean rgb_aladin; // Add CTYPE3='RGB' in the FITS header
-
-	gboolean force_to_16bit;
-
-	gint selection_guides;	// number of elements of the grid guides (2 for a simple cross, 3 for the 3 thirds rule, etc.)
-
-	gchar *copyright;		// User copyright when saving image as TIFF
+	cairo_surface_t *full_surface;
+	cairo_surface_t *disp_surface;	// the cache
 };
-/**
- * End of preference structure. Read above.
- */
 
-/* The global data structure of siril, the only with gfit and the gtk builder,
- * declared in main.c */
-struct cominf {
-	/* current version of GTK, through GdkPixmap, doesn't handle gray images, so
-	 * graybufs are the same size than the rgbbuf with 3 times the same value */
-	guchar *graybuf[MAXGRAYVPORT];	// one B/W display buffer per viewport (R,G,B)
-	guchar *rgbbuf;			// one rgb display buffer
-	/* cairo image surface related data */
-	int surface_stride[MAXVPORT];	// allocated stride
-	int surface_height[MAXVPORT];	// allocated height
-	cairo_surface_t *surface[MAXVPORT];
-	gboolean buf_is_dirty[MAXVPORT];// dirtyness of each buffer (= need to redraw)
 
-	/* Color map */
-	color_map color;
+/* The global data structure of siril gui */
+struct guiinf {
+	GtkBuilder *builder;		// the builder of the glade interface
 
-	GtkWidget *vport[MAXVPORT];	// one drawingarea per layer, one rgb drawingarea
+	/*********** rendering of gfit, the currently loaded image ***********/
+	struct image_view view[MAXVPORT];
 	int cvport;			// current viewport, index in the list vport above
-	GtkAdjustment *hadj[MAXVPORT];	// adjustments of vport scrollbars
-	GtkAdjustment *vadj[MAXVPORT];	// adjustments of vport scrollbars
-	sliders_mode sliders;		// 0: min/max, 1: MIPS-LO/HI, 2: user
+
+	cairo_matrix_t display_matrix;	// matrix used for image rendering (convert image to display coordinates)
+	cairo_matrix_t image_matrix;	// inverse of display_matrix (convert display to image coordinates)
+	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
+	point display_offset;		// image display offset
+
+	gboolean translating;		// the image is being translated
+
 	gboolean show_excluded;		// show excluded images in sequences
 
-	cairo_matrix_t display_matrix; // matrix used for image rendering (convert image to display coordinates)
-	cairo_matrix_t image_matrix; // inverse of display_matrix (convert display to image coordinates)
-	double zoom_value;		// 1.0 is normal zoom, use get_zoom_val() to access it
-	point display_offset; // image display offset
-	gboolean translating;		// true we are in display transating mode
+	int selected_star;		// current selected star in the GtkListStore
 
-	preferences pref; // saved variable in preferences
+	gboolean show_wcs_grid;		// show the equatorial grid over the image
 
-	/* selection rectangle for registration, FWHM, PSF */
-	gboolean drawing;			// true if the rectangle is being set (clicked motion)
-	pointi start;				// where the mouse was originally clicked to
-	pointi origin;				// where the selection was originally located
-	gboolean freezeX, freezeY;	// locked axis during modification of a selection 
-	rectangle selection;		// coordinates of the selection rectangle
-	double ratio;				// enforced ratio of the selection (default is 0: none)
+	psf_star *qphot;		// quick photometry result, highlight a star
+
+	/*********** Color mapping **********/
+	WORD lo, hi;			// the values of the cutoff sliders
+	gboolean cut_over;		// display values over hi as negative
+	sliders_mode sliders;		// lo/hi, minmax, user
+	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY
+	gboolean unlink_channels;	// only for autostretch
+
+	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
+	gboolean drawing;		// true if the rectangle is being set (clicked motion)
+	pointi start;			// where the mouse was originally clicked to
+	pointi origin;			// where the selection was originally located
+	gboolean freezeX, freezeY;	// locked axis during modification of a selection
+	double ratio;			// enforced ratio of the selection (default is 0: none)
+	double rotation;		// selection rotation for dynamic crop
 
 	/* alignment preview data */
-	//guchar *preview_buf[PREVIEW_NB];
 	cairo_surface_t *preview_surface[PREVIEW_NB];
 	GtkWidget *preview_area[PREVIEW_NB];
 	guchar *refimage_regbuffer;	// the graybuf[registration_layer] of the reference image
 	cairo_surface_t *refimage_surface;
 
-	gchar *wd;			// working directory, where images and sequences are
-	gchar *initfile;	// the path of the init file
-	
-	int reg_settings;		// Use to save registration method in the init file
-
-	gboolean cache_upscaled;	// keep up-scaled files for 'drizzle' (only used by developers)
-	
-	int filter;			// file extension filter for open/save dialogs
+	int file_ext_filter;		// file extension filter for open/save dialogs
 
 	/* history of the command line. This is a circular buffer (cmd_history)
 	 * of size cmd_hist_size, position to be written is cmd_hist_current and
@@ -652,79 +550,62 @@ struct cominf {
 	int cmd_hist_size;		// allocated size
 	int cmd_hist_current;		// current command index
 	int cmd_hist_display;		// displayed command index
+};
 
-	/* history of operations */
-	historic *history;			// the history of all operations
+/* The global data structure of siril core */
+struct cominf {
+	gchar *wd;			// current working directory, where images and sequences are
+
+	preferences pref;		// some variables are stored in settings
+	gchar *initfile;		// the path of the init file (stores settings)
+
+	sequence seq;			// currently loaded sequence
+	single *uniq;			// currently loaded image, if outside sequence
+
+	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
+					      // TODO: move in ffit?
+
+	gboolean headless;		// pure console, no GUI
+	gboolean script;		// script being executed, always TRUE when headless is
+	GThread *thread;		// the thread for processing
+	GMutex mutex;			// a mutex we use for this thread
+	gboolean run_thread;		// the main thread loop condition
+	gboolean stop_script;		// abort script execution, not just a command
+	GThread *script_thread;		// reads a script and executes its commands
+	gboolean script_thread_exited;	// boolean set by the script thread when it exits
+
+	int max_images;			// max number of image threads used for parallel execution
+	int max_thread;			// max total number of threads used for parallel execution
+
+	rectangle selection;		// coordinates of the selection rectangle
+
+	psf_star **stars;		// list of stars detected in the current image
+	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
+	double magOffset;		// offset to reduce the real magnitude, single image
+
+	/* history of operations, for the FITS header and the undo feature */
+	historic *history;		// the history of all operations on the current image
 	int hist_size;			// allocated size
 	int hist_current;		// current index
 	int hist_display;		// displayed index
 
-	sequence seq;			// currently loaded sequence	TODO: *seq
-	single *uniq;			// currently loaded image, if outside sequence
+	/* all fields below are used by some specific features as a temporary storage */
+	GSList *grad_samples;		// list of samples for the background extraction
 
-	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
+	GSList *found_object;		// list of objects found in the image from catalogues
 
-	star_finder_params starfinder_conf;	// star finder settings, from GUI or init file
-	fitted_PSF **stars;		// list of stars detected in the current image
-	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
-	int selected_star;		// current selected star in the GtkListStore
-	double magOffset;		// offset to reduce the real magnitude, single image
-	
-	GSList *grad_samples;
-	GSList *found_object;
+	sensor_tilt *tilt;		// computed tilt information
 
-	int max_thread;			// maximum of thread used for parallel execution
-
-	GThread *thread;		// the thread for processing
-	GMutex mutex;			// a mutex we use for this thread
-	gboolean run_thread;		// the main thread loop condition
-
-	gboolean headless;		// pure console, no GUI
-	gboolean script;		// scripts execution
-	gboolean stop_script;		// abort script execution
-	GThread *script_thread;		// reads a script and executes its commands
-};
-
-/* this structure is used to characterize the statistics of the image */
-struct image_stats {
-	long total,	// number of pixels
-	     ngoodpix;	// number of non-zero pixels
-	double mean, median, sigma, avgDev, mad, sqrtbwmv,
-	       location, scale, min, max, normValue, bgnoise;
-
-	atomic_int* _nb_refs;	// reference counting for data management
-};
-
-typedef struct Homo {
-	double h00, h01, h02;
-	double h10, h11, h12;
-	double h20, h21, h22;
-	int pair_matched;
-	int Inliers;
-} Homography;
-
-#if 0
-/* TODO: this structure aims to allow the composition of several 1-channel images and make
- * more easy the management of RGB compositing */
-typedef struct image_layer_struct image_layer;
-struct image_layer_struct {
-	char		*layer_name;		/* the name of the layer (the color or band name) */
-	fits		*fit;			/* fits data of the layer */
-	int		naxis;			/* this image is naxis in fits */
-	guchar		*graybuf;		/* mapped image for display purposes */
-	int		stride;			/* Cairo data width */
-	cairo_surface_t	*surface;		/* Cairo image surface */
-	GtkWidget	*vport;			/* the viewport */
-	double		wavelength;		/* the wavelength associated with the channel */
-	guchar		rmap, gmap, bmap;	/* mapping to rgb colors, initialized function of the wavelength */
-	unsigned int	hi, lo;			/* same as fits_data->{hi,lo} but for display/compositing purposes */
-	char		*filename;		/* the filename of the fits_data file */
-	int		naxis;			/* axis number of the fits file filename, may not be 0 if it's an RGB fits for example */
-};
+	gboolean child_is_running;	// boolean to check if there is a child process running
+#ifdef _WIN32
+void* childhandle;			// For Windows, handle of a child process
+#else
+pid_t childpid;				// For other OSes, PID of a child process
 #endif
+};
 
 #ifndef MAIN
-extern GtkBuilder *builder;	// get widget references anywhere
+extern guiinfo gui;
 extern cominfo com;		// the main data struct
 extern fits gfit;		// currently loaded image
 #endif

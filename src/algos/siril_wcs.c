@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,6 +25,7 @@
 #include <math.h>
 
 #include "core/siril.h"
+#include "algos/astrometry_solver.h"
 #include "io/image_format_fits.h"
 
 #ifdef HAVE_WCSLIB
@@ -48,7 +49,15 @@ gboolean has_wcs(fits *fit) {
 	return FALSE;
 }
 
-void free_wcs(fits *fit) {
+// deal with cases where wcsdata is not NULL but members are set to 0
+gboolean has_wcsdata(fits *fit) {
+	if ((fit->wcsdata.crval[0] == 0.0 && fit->wcsdata.crval[1] == 0.0))
+		return FALSE;
+	return TRUE;
+}
+
+
+void free_wcs(fits *fit, gboolean keep_RADEC) {
 #ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
 		if (!wcsfree(fit->wcslib))
@@ -56,6 +65,16 @@ void free_wcs(fits *fit) {
 		fit->wcslib = NULL;
 	}
 #endif
+	if (keep_RADEC) {
+		memset(&fit->wcsdata.cdelt, 0, sizeof(fit->wcsdata.cdelt));
+		memset(&fit->wcsdata.crpix, 0, sizeof(fit->wcsdata.crpix));
+		memset(&fit->wcsdata.crval, 0, sizeof(fit->wcsdata.crval));
+		memset(&fit->wcsdata.pc, 0, sizeof(fit->wcsdata.pc));
+		memset(&fit->wcsdata.pltsolvd, 0, sizeof(fit->wcsdata.pltsolvd));
+		memset(&fit->wcsdata.pltsolvd_comment, 0, sizeof(fit->wcsdata.pltsolvd_comment));
+	} else {
+		memset(&fit->wcsdata, 0, sizeof(fit->wcsdata));
+	}
 }
 
 gboolean load_WCS_from_memory(fits *fit) {
@@ -67,14 +86,17 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 	wcsinit(1, NAXIS, fit->wcslib, 0, 0, 0);
 
-	const char CTYPE[2][9] = {"RA---TAN", "DEC--TAN"};
+	const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
+	const char CUNIT[2][9] = { "deg", "deg" };
 
-	double *cdij = fit->wcslib->cd;
+	for (int i = 0; i < NAXIS; i++) {
+		strcpy(fit->wcslib->cunit[i], &CUNIT[i][0]);
+	}
+
 	double *pcij = fit->wcslib->pc;
 	for (int i = 0; i < NAXIS; i++) {
 		for (int j = 0; j < NAXIS; j++) {
-			*(cdij++) = fit->wcsdata.cd[i][j];
-			*(pcij++) = fit->wcsdata.cd[i][j];
+			*(pcij++) = fit->wcsdata.pc[i][j];
 		}
 	}
 
@@ -83,15 +105,11 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 
 	for (int i = 0; i < NAXIS; i++) {
-		fit->wcslib->crota[i] = fit->wcsdata.crota[i];
-	}
-
-	for (int i = 0; i < NAXIS; i++) {
 		fit->wcslib->crpix[i] = fit->wcsdata.crpix[i];
 	}
 
 	for (int i = 0; i < NAXIS; i++) {
-		fit->wcslib->cdelt[i] = 1;
+		fit->wcslib->cdelt[i] = fit->wcsdata.cdelt[i];
 	}
 
 	for (int i = 0; i < NAXIS; i++) {
@@ -103,7 +121,13 @@ gboolean load_WCS_from_memory(fits *fit) {
 	fit->wcslib->latpole = fit->wcsdata.crval[1];
 
 	if ((status = wcsset(fit->wcslib)) != 0) {
-		free_wcs(fit);
+		/* here we do not want to use free_wcs because
+		 * we want to keep original header, just in case */
+		if (fit->wcslib) {
+			if (!wcsfree(fit->wcslib))
+				free(fit->wcslib);
+			fit->wcslib = NULL;
+		}
 		siril_debug_print("wcsset error %d: %s.\n", status, wcs_errmsg[status]);
 		return FALSE;
 	}
@@ -125,9 +149,15 @@ gboolean load_WCS_from_file(fits* fit) {
 	if ((fit->wcsdata.crpix[0] == 0) && (fit->wcsdata.crpix[1] == 0)) {
 		return FALSE;
 	}
+	/* another sanity check, because at this stage we must have a valid pc matrix
+	 * hence this function must be called in load_wcs_keywords
+	 */
+	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
+		return FALSE;
+	}
 
 	if (fit->wcslib) {
-		free_wcs(fit);
+		free_wcs(fit, FALSE);
 	}
 
 	ffhdr2str(fit->fptr, 1, NULL, 0, &header, &nkeyrec, &status);
@@ -136,7 +166,9 @@ gboolean load_WCS_from_file(fits* fit) {
 		return FALSE;
 	}
 
-	/** It looks like wcspih is not really thread safe. We need to lock it */
+	/** There is a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
+	 * We need to lock it.
+	 * TODO: check wcslib version ?*/
 	g_mutex_lock(&wcs_mutex);
 	wcs_status = wcspih(header, nkeyrec, 0, 0, &nreject, &nwcs, &data);
 
@@ -204,53 +236,84 @@ void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
 #endif
 }
 
-void wcs2pix(fits *fit, double r, double d, double *x, double *y) {
-	*x = -1.0;
-	*y = -1.0;
+// ra in degrees
+int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
+	if (x) *x = -1.0;
+	if (y) *y = -1.0;
+#ifndef HAVE_WCSLIB
+	return 1;
+#else
+	int status, stat[NWCSFIX];
+	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
+	world[0] = ra;
+	world[1] = dec;
+
+	status = wcss2p(fit->wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
+
+	if (!status) {
+		double xx = pixcrd[0];
+		double yy = pixcrd[1];
+		// return values even if outside
+		// required for celestial grid display
+		if (x) *x = xx;
+		if (y) *y = yy;
+		if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry)
+			//siril_debug_print("outside image but valid return\n");
+			status = 10;
+	}
+	return status;
+#endif
+}
+
+/* get image center celestial coordinates */
+void center2wcs(fits *fit, double *r, double *d) {
+	*r = -1.0;
+	*d = -1.0;
 #ifdef HAVE_WCSLIB
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
-	world[0] = r;
-	world[1] = d;
+	pixcrd[0] = (double)(fit->rx + 1) / 2.;
+	pixcrd[1] = (double)(fit->ry + 1) / 2.;
 
-	status = wcss2p(fit->wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
+	status = wcsp2s(fit->wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
 	if (status != 0)
 		return;
 
-	*x = pixcrd[0];
-	*y = pixcrd[1];
+	*r = world[0];
+	*d = world[1];
 #endif
 }
 
-/* get resolution in arcsec/pixel */
+/* get resolution in degree/pixel */
 double get_wcs_image_resolution(fits *fit) {
 	double resolution = -1.0;
 #ifdef HAVE_WCSLIB
 	if (fit->wcslib) {
-		double res_x = sqrt(fit->wcslib->cd[0] * fit->wcslib->cd[0] + fit->wcslib->cd[2] * fit->wcslib->cd[2]);
-		double res_y = sqrt(fit->wcslib->cd[1] * fit->wcslib->cd[1] + fit->wcslib->cd[3] * fit->wcslib->cd[3]);
+		double cd[NAXIS][NAXIS], pc[NAXIS][NAXIS];
+		double cdelt[NAXIS];
+
+		double *pcij = fit->wcslib->pc;
+		for (int i = 0; i < NAXIS; i++) {
+			for (int j = 0; j < NAXIS; j++) {
+				pc[i][j] = *(pcij++);
+			}
+		}
+
+		for (int i = 0; i < NAXIS; i++) {
+			cdelt[i] = fit->wcslib->cdelt[i];
+		}
+
+		wcs_pc_to_cd(pc, cdelt, cd);
+
+		double res_x = sqrt(cd[0][0] * cd[0][0] + cd[1][0] * cd[1][0]);
+		double res_y = sqrt(cd[0][1] * cd[0][1] + cd[1][1] * cd[1][1]);
 		resolution = (res_x + res_y) * 0.5;
 	}
 #endif
 	if (resolution <= 0.0) {
-		if (gfit.focal_length >= 0.0 && gfit.pixel_size_x >= 0.0 && gfit.pixel_size_y == gfit.pixel_size_x)
-			resolution = (RADCONV / gfit.focal_length * gfit.pixel_size_x) / 3600;
+		if (fit->focal_length >= 0.0 && fit->pixel_size_x >= 0.0 && fit->pixel_size_y == fit->pixel_size_x)
+			resolution = (RADCONV / fit->focal_length * fit->pixel_size_x) / 3600;
 	}
 	return resolution;
 }
-
-double *get_wcs_crval(fits *fit) {
-#ifdef HAVE_WCSLIB
-	static double ret[NWCSFIX] = { 0 };
-	if (fit->wcslib) {
-		for (int i = 0; i < NAXIS; i++) {
-			ret[i] = fit->wcslib->crval[i];
-		}
-	}
-	return ret;
-#else
-	return NULL;
-#endif
-}
-

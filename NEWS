@@ -1,3 +1,171 @@
+v1.2.0 mmm dd, 2022
+
+* Added livestacking mode with darks/CC/flats support, registration and stacking
+* Added unlinking channels in autostretch preview
+* Added RGB equalization and lightweight (faster) normalisation in stacking options
+* Added LRGB composition command and PixelMath command for new offline compositions
+* Added Starnet++ integration in GUI and command and mask creation
+* Added Star Recomposition tool to mix and stretch starless and starmask images
+* Added pcc command for headless PCC and plate solving
+* Added local KStars star catalogue support for plate solving and PCC (NOMAD)
+* Added a new framing assistant with several modes and image framing preview
+* Added specifying max number of stars for registration
+* Added bad pixel map option for preprocess, both in GUI and command
+* Added and reviewed commands for offline and automatic post-processing
+* Added background level and star count as new sequence filters
+* Added weighing based on number of stars or wFWHM for stacking
+* Added a new threading mechanism for per-image improved performance
+* Added star selection from coordinates to seqpsf and star tracking with homography
+* Added headless light curve creation from a list of star equatorial coordinates
+* Added star list importing from the NINA exoplanet plugin for light curve creation
+* Added relaxed mode for star detection for particularly bad images
+* Added crop to selection to the rotation geometric transform
+* Added a way to clean sequence file in the sequence tab (see also command seqclean)
+* Added a warning when images are negative on calibration
+* Added calibration details in the FITS history
+* Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
+* Updated seq file version to v4. Registration block keeps homography information
+* Refactored global registration and added 2pass and Apply Existing methods
+* Refactored 3-star registration to run the 3 stars analysis successively
+* Refactored PCC, using WCS information to identify stars instead of registration match
+* Refactored settings, preferences and configuration file, adding get and set commands
+* Refactored commands error handling
+* Refactored light curve creation, filtering the reference stars to valid only
+* Added background level and number of stars to stored registation data and plots
+* Added commands: [update with https://free-astro.org/index.php?title=Siril:Commands#Commands_history ]
+* Added KOMBAT alogrithm for registration and removed deprecated ECC
+* Added choosing server to query object in astrometry
+* Added shortcuts for astrometry (regular and photometric correction)
+* Added option "full" to export all possible stats in seqstat command
+* Added argument to executable to pass pipes path, allowing several instances to run simultaneously
+* Added more reporting on online object search, avoiding duplicates in catalogues
+* Replaced generalized hyperbolic transform stretch method by more general algorithms and optimised for speed
+* Added improved graphical interface to hyperbolic stretches
+* Altered behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels (this is useful in NB workflows etc.)
+* Replaced Libraw with RT debayering
+* Fixed comet registration when registration was accumulated over existing data
+* Fixed star detection for images with very large stars
+* Fixed cancellation of seqpsf or seqcrop
+* Fixed photometry analysis of stars with negative pixels around them
+* Fixed dates keywords in sum and min/max algorithms
+* Fixed FITS header preservation on RGB composition
+* Added 9-panel dialog tool showing corners and center of the image for a closer inspection
+* Optimised asinh code for speed
+
+v1.0.5 October 09, 2022
+
+* Fixed bug in eyedropper feature with 16bits images
+* Added button to see original image in background extraction
+* Fixed bug introduced in 1.0.4 with one pixel shift when registering meridian flipped images
+* Fixed GAIA catalog parser
+
+v1.0.4 September 02, 2022
+
+* Fixed selected area for flat autonormalisation calc
+* Fixed wrong initialization in polynomial background extraction
+* Fixed cold pixels rejection in GESDT stacking
+* Fixed x and y position in PSF and star detection
+* Fixed RGB pixel display where Green and Blue were swapped
+* Fixed random crash in Pixel Math
+* Improved wcs import when formalism used is deprecated (CROTA + CDELT)
+* Added dropper icon to set SP easily in GHT tool
+
+v1.0.3 June 28, 2022
+
+* Fixed memory leak in PixelMath
+* Fixed memory leak in SER preview
+* Fixed error in seqsubsky
+* Fixed the start of two scripts from @ in succession
+* Fixed homogeneous image bitpix detection on stacking
+* Fixed dates in median and mean stack results
+* Fixed bug in stack of some float images
+* Fixed black point and clipping in asinh stretch function
+* Added new thread for background extraction that does not freeze UI, with a progressbar for RBF
+* Added generalised hyperbolic transform stretch method in Image Processing menu, based on algorithms proposed by David Payne in the astrobin forums
+
+v1.0.2 May 16, 2022
+
+* Added new RBF interpolation method in the background extraction tool
+* Removed file name length limit in conversion
+* Fixed crash in preprocess command if a quote was not closed in -bias= option
+* Fixed crash when star detection box was expanded past a border
+* Fixed crash in plot when X axis data contained negative values
+* Fixed numerous bugs in the background extraction tool
+* Fixed bug in PixelMath where only one char parameter where allowed
+* Fixed bug in FITS partial reader
+
+v1.0.1 April 6, 2022
+
+* Added min,max, iif and logical operators in pixelmath
+* Added support for 3 channels for direct preview of resulting composition in pixelmath
+* Added parameters field in PixelMath
+* Added reporting channel name in FILTER header key during split operation
+* Added using FILTER keyword value for Pixel Math tool variable name
+* Fixed using shift transform for global registration
+* Fixed crash when changing image with preview opened
+* Fixed crash when pressing Stop button during script execution
+* Fixed crash that could occur when moving the mouse over the image while it was being updated
+* Fixed date wrongly reported in the FITS header in SER/FITSEQ stacking when filtering out images
+* Fixed excluding null pixels of both ref and target in linear match
+
+v1.0.0 March 9, 2022
+
+* Added ASTRO-TIFF standard
+* Fixed memory consumption for all sequence operations
+* Fixed settings for sequence export as webm film with VP9 codec
+* Removed use of lo/hi cursors and fixed normalization for export
+* Fixed load and close commands for scripts in GUI
+* Fixed Bayer pattern in SER after extraction
+* Fixed registration crash for small images
+* Improved main panel separator positioning and keeping it in memory
+* Improved speed of FITSEQ detection when scanning sequences
+* Improve usability on MacOS
+* Reintroduced compatibility with OpenCV 4.2 with disabled features
+
+v1.0.0~RC2 December 08, 2021
+Second Release candidate version for 1.0.0
+
+* Fixes many crashes
+* Minor improvements in plot feature
+* Restore HD for macOS application
+
+v1.0.0~RC1 November 20, 2021
+First Release candidate version for 1.0.0
+
+* New Pixel Math tool
+* New plot tool to visualize and sort sequence based on any registration data field available
+* New tilt estimation feature (from GUI or command)
+* New SNR estimator in photometry analysis
+* New button for quick photometry
+* New commands seqcosme and seqcosme_cfa to remove deviant pixels on sequence, using file computed with find_hot
+* New command boxselect to specify a selection box with x, y, w and h
+* Improved candidates star detection speed and accuracy with a new algorithm
+* Reviewed GUI and improved responsiveness
+* Saving focal and WCS data in the swap file using undo/redo
+* WCS data is now updated after geometric transformations (mirror, rotate and crop)
+* Seqcrop command can now be used in scripts
+* Added autocropping of wide-field images, as well as using a selection for plate solving
+* Added choices of degrees of freedom (shift, similitude, affine or homography) for global registration
+* Added UI button to plot WCS grid and compass
+* Added user catalogue for astrometry annotation
+* Added GAIA EDR3 catalogue for astrometry
+* Added choice between clipboard and file for snapshot
+* Added equalize CFA for X-Trans sensor
+* Allowing debayer to be forced for SER files
+* Converted constant bitrate quality to constant quality rate settings in sequence export to film
+* Fixed memory leak in opencv that made registration of FITS files fail often
+* Fixed FWHM units and star center position in Dynamic PSF
+* Fixed global registration with various image sizes
+* Fixed bug in ECC algorithm
+
+v0.99.10.1 June 23, 2021
+Patch version to fix some issues
+
+* Fixed star detection with resolution < 1.0
+* Fixed interpolation issue in global registration
+* Fixed timestamp issue with glib < 2.66
+* New MAD clipping algorithm
+
 v0.99.10 June 11, 2021
 Continuing the 1.x branch
 

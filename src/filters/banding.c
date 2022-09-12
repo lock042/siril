@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -31,6 +31,7 @@
 #include "algos/sorting.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "io/single_image.h"
@@ -39,21 +40,76 @@
 #include "opencv/opencv.h"
 
 #include "banding.h"
+static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading);
 
 /*****************************************************************************
  *      B A N D I N G      R E D U C T I O N      M A N A G E M E N T        *
  ****************************************************************************/
 
-int banding_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+int banding_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct banding_data *banding_args = (struct banding_data *)args->user;
 	return BandingEngine(fit, banding_args->sigma, banding_args->amount,
-			banding_args->protect_highlights, banding_args->applyRotation);
+			banding_args->protect_highlights, banding_args->applyRotation, SINGLE_THREADED);
+}
+
+static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
+	/* [rotation => O(2n)]
+	 * new image -> O(2n)
+	 * + stats MAD per channel -> O(1m)
+	 * [rotation => O(2n)]
+	 */
+	unsigned int MB_per_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	unsigned int required = MB_per_image;
+	if (limit > 0) {
+		int is_color = args->seq->nb_layers == 3;
+		unsigned int MB_per_channel = is_color ? MB_per_image / 3 : MB_per_image;
+		required = 2 * MB_per_image + MB_per_channel;
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+
+		if (for_writer) {
+                        /* we allow the already allocated thread_limit images,
+                         * plus how many images can be stored in what remains
+                         * unused by the main processing */
+                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
+                } else limit = thread_limit;
+
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
 }
 
 void apply_banding_to_sequence(struct banding_data *banding_args) {
 	struct generic_seq_args *args = create_default_seqargs(&com.seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = com.seq.selnum;
+	args->compute_mem_limits_hook = banding_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = banding_image_hook;
@@ -75,7 +131,7 @@ gboolean end_BandingEngine(gpointer p) {
 	struct banding_data *args = (struct banding_data *) p;
 	stop_processing_thread();// can it be done here in case there is no thread?
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 	
@@ -122,7 +178,7 @@ gpointer BandingEngineThreaded(gpointer p) {
 	siril_log_color_message(_("Banding Reducing: processing...\n"), "green");
 	gettimeofday(&t_start, NULL);
 
-	int retval = BandingEngine(args->fit, args->sigma, args->amount, args->protect_highlights, args->applyRotation);
+	int retval = BandingEngine(args->fit, args->sigma, args->amount, args->protect_highlights, args->applyRotation, MULTI_THREADED);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -131,7 +187,7 @@ gpointer BandingEngineThreaded(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
-static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation) {
+static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threads) {
 	int chan, row, i, ret = 0;
 	WORD *line, *fixline;
 	double minimum = DBL_MAX, globalsigma = 0.0;
@@ -139,15 +195,14 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	double invsigma = 1.0 / sigma;
 
 	if (applyRotation) {
-		point center = {gfit.rx / 2.0, gfit.ry / 2.0};
-		cvRotateImage(fit, center, 90.0, -1, OPENCV_LINEAR);
+		if (cvRotateImage(&gfit, 90)) return 1;
 	}
 
 	if (new_fit_image(&fiximage, fit->rx, fit->ry, fit->naxes[2], DATA_USHORT))
 		return 1;
 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, TRUE);
+		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
@@ -206,14 +261,13 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
 	if ((!ret) && applyRotation) {
-		point center = {gfit.rx / 2.0, gfit.ry / 2.0};
-		cvRotateImage(fit, center, -90.0, -1, OPENCV_LINEAR);
+		if (cvRotateImage(&gfit, -90)) return 1;
 	}
 
 	return ret;
 }
 
-static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation) {
+static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threads) {
 	int chan, row, i, ret = 0;
 	float *line, *fixline;
 	double minimum = DBL_MAX, globalsigma = 0.0;
@@ -221,15 +275,14 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	double invsigma = 1.0 / sigma;
 
 	if (applyRotation) {
-		point center = {gfit.rx / 2.0, gfit.ry / 2.0};
-		cvRotateImage(fit, center, 90.0, -1, OPENCV_LINEAR);
+		if (cvRotateImage(&gfit, 90)) return 1;
 	}
 
 	if (new_fit_image(&fiximage, fit->rx, fit->ry, fit->naxes[2], DATA_FLOAT))
 		return 1;
 
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, TRUE);
+		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 			return 1;
@@ -287,18 +340,19 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
 	if ((!ret) && applyRotation) {
-		point center = {gfit.rx / 2.0, gfit.ry / 2.0};
-		cvRotateImage(fit, center, -90.0, -1, OPENCV_LINEAR);
+		if (cvRotateImage(&gfit, -90)) return 1;
 	}
 
 	return ret;
 }
 
-int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation) {
+static int BandingEngine(fits *fit, double sigma, double amount, gboolean protect_highlights, gboolean applyRotation, threading_type threading) {
+	int threads = check_threading(&threading);
+
 	if (fit->type == DATA_FLOAT)
-		return BandingEngine_float(fit, sigma, amount, protect_highlights, applyRotation);
+		return BandingEngine_float(fit, sigma, amount, protect_highlights, applyRotation, threads);
 	if (fit->type == DATA_USHORT)
-		return BandingEngine_ushort(fit, sigma, amount, protect_highlights, applyRotation);
+		return BandingEngine_ushort(fit, sigma, amount, protect_highlights, applyRotation, threads);
 	return -1;
 }
 
@@ -355,6 +409,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
 		if (args->seqEntry && args->seqEntry[0] == '\0')
 			args->seqEntry = "unband_";
+		gtk_toggle_button_set_active(seq, FALSE);
 		apply_banding_to_sequence(args);
 	} else {
 		start_in_new_thread(BandingEngineThreaded, args);

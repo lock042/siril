@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,12 +24,14 @@
 #include "core/undo.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
+#include "core/initfile.h"
 #include "algos/annotate.h"
+#include "algos/astrometry_solver.h"
 #include "algos/colors.h"
 #include "algos/noise.h"
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
-#include "algos/plateSolver.h"
+#include "algos/ccd-inspector.h"
 #include "compositing/compositing.h"
 #include "gui/about_dialog.h"
 #include "gui/utils.h"
@@ -46,15 +48,29 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
+#include "livestacking/livestacking.h"
+#include "gui/registration_preview.h"
+#include "registration/registration.h"
+#include "gui/remixer.h"
 
 #include "siril_actions.h"
 
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	header_open_button_clicked();
+	launch_clipboard_survey();
 }
 
 void cwd_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	cwd_btton_clicked();
+}
+
+void livestacking_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkWidget *w = lookup_widget("livestacking_player");
+
+	gtk_widget_show(w);
+	gtk_window_set_keep_above(GTK_WINDOW(w), TRUE);
+
+	on_livestacking_start();
 }
 
 void save_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -66,7 +82,11 @@ void save_as_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void snapshot_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	on_header_snapshot_button_clicked();
+	on_header_snapshot_button_clicked(FALSE);
+}
+
+void clipboard_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	on_header_snapshot_button_clicked(TRUE);
 }
 
 void undo_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -102,7 +122,9 @@ void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+#ifdef HAVE_JSON_GLIB
 	siril_check_updates(TRUE);
+#endif
 }
 
 static gboolean is_extended = FALSE;
@@ -133,6 +155,26 @@ void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer 
 		is_extended = is_control_box_visible;
 	}
 	gtk_widget_set_visible(toolbarbox, is_fullscreen);
+}
+
+void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
+	GtkImage *image = GTK_IMAGE(gtk_bin_get_child(GTK_BIN(GTK_BUTTON(lookup_widget("button_paned")))));
+	GtkWidget *widget = gtk_paned_get_child2(paned);
+
+	gboolean is_visible = gtk_widget_is_visible(widget);
+
+	gtk_widget_set_visible(widget, !is_visible);
+
+	if (!is_visible) {
+		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
+	} else {
+		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
+	}
+	if (com.pref.gui.remember_windows) {
+		com.pref.gui.is_extended = !is_visible;
+		writeinitfile();
+	}
 }
 
 void keyboard_shortcuts_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -178,12 +220,13 @@ void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 
 void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
-		com.zoom_value = ZOOM_FIT;
+		gui.zoom_value = ZOOM_FIT;
 		reset_display_offset();
-		redraw(com.cvport, REMAP_NONE);
+		redraw(REDRAW_IMAGE);
 	} else {
-		com.zoom_value = get_zoom_val();
+		gui.zoom_value = get_zoom_val();
 	}
+	update_zoom_label();
 	g_simple_action_set_state(action, state);
 }
 
@@ -207,17 +250,18 @@ void zoom_out_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 
 void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	update_zoom_fit_button();
-	com.zoom_value = ZOOM_NONE;
+	gui.zoom_value = ZOOM_NONE;
 	reset_display_offset();
-	redraw(com.cvport, REMAP_NONE);
+	update_zoom_label();
+	redraw(REDRAW_IMAGE);
 }
 
 void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	g_simple_action_set_state(action, state);
 	set_cursor_waiting(TRUE);
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
-	g_simple_action_set_state(action, state);
 }
 
 void negative_view_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -228,18 +272,43 @@ void negative_view_activate(GSimpleAction *action, GVariant *parameter, gpointer
 	g_variant_unref(state);
 }
 
-void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
-	set_cursor_waiting(TRUE);
-	redraw(com.cvport, REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
+void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	mouse_status = g_variant_get_boolean(state) ? MOUSE_ACTION_PHOTOMETRY : MOUSE_ACTION_SELECT_REG_AREA;
 	g_simple_action_set_state(action, state);
+	free(gui.qphot);
+	gui.qphot = NULL;
+	redraw(REDRAW_OVERLAY);
 }
 
-void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GVariant *state;
 
 	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
+void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	g_simple_action_set_state(action, state);
+	set_cursor_waiting(TRUE);
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
+}
+
+void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
+void chain_channels_state_change(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	g_simple_action_set_state(action, state);
+	set_unlink_channels(!g_variant_get_boolean(state));
+}
+
+void chain_channels_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state = g_action_get_state(G_ACTION(action));
 	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
 	g_variant_unref(state);
 }
@@ -256,6 +325,36 @@ void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	pick_a_star();
 }
 
+void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	psf_star *result = NULL;
+	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
+
+	if (layer == -1)
+		return;
+	if (!(com.selection.h && com.selection.w))
+		return;
+	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, ps, TRUE, NULL);
+	free(ps);
+	if (!result)
+		return;
+
+	popup_psf_result(result, &com.selection);
+	free_psf(result);
+}
+
+void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	process_seq_psf(0);
+}
+
+void crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_crop();
+}
+
+void seq_crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("crop_dialog");
+}
+
 void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (has_wcs(&gfit))
 		siril_open_dialog("search_objects");
@@ -267,16 +366,45 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 			com.found_object = find_objects(&gfit);
 		}
 	} else {
-		g_slist_free_full(com.found_object, (GDestroyNotify) free_object);
+		g_slist_free_full(com.found_object, (GDestroyNotify) free_catalogue_object);
 		com.found_object = NULL;
 	}
 	g_simple_action_set_state(action, state);
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
+}
+
+void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	gui.show_wcs_grid = g_variant_get_boolean(state);
+	g_simple_action_set_state(action, state);
+	redraw(REDRAW_OVERLAY);
 }
 
 void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GVariant *state;
 
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
+void wcs_grid_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
+void regframe_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	GtkToggleButton *drawframe;
+	drawframe = GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"));
+	gtk_toggle_button_set_active(drawframe, g_variant_get_boolean(state));
+	g_simple_action_set_state(action, state);
+	redraw(REDRAW_OVERLAY);
+}
+
+void regframe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
 	state = g_action_get_state(G_ACTION(action));
 	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
 	g_variant_unref(state);
@@ -295,7 +423,8 @@ void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 					_("Load another image"));
 		}
 		if (confirm) {
-			update_seqlist();
+			int layer = get_registration_layer(&com.seq);
+			update_seqlist(layer);
 			siril_open_dialog("seqlist_dialog");
 		}
 	}
@@ -310,6 +439,10 @@ void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	evaluate_noise_in_image();
+}
+
+void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	compute_aberration_inspector();
 }
 
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -338,6 +471,7 @@ void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 void pcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
 	initialize_photometric_cc_dialog();
 	siril_open_dialog("ImagePlateSolver_Dial");
+	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 }
 
 void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
@@ -349,7 +483,7 @@ void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	toggle_histogram_window_visibility();
+	toggle_histogram_window_visibility(1);
 }
 
 void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -368,8 +502,15 @@ void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	siril_open_dialog("asinh_dialog");
 }
 
+void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("starnet_dialog");
+}
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("deconvolution_dialog");
+}
+
+void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	toggle_histogram_window_visibility(2);
 }
 
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -377,7 +518,11 @@ void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (com.selection.w == 0 || com.selection.h == 0) {
+		com.selection = (rectangle){ 0, 0, gfit.rx, gfit.ry };
+	}
 	siril_open_dialog("rotation_dialog");
+	redraw(REDRAW_OVERLAY);
 }
 
 void rotation90_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -434,6 +579,18 @@ void rgb_compositing_activate(GSimpleAction *action, GVariant *parameter, gpoint
 	open_compositing_window();
 }
 
+void star_remix_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	toggle_remixer_window_visibility(CALL_FROM_MENU, NULL, NULL);
+}
+
+void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("pixel_math_dialog");
+}
+
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("split_cfa_dialog");
+}
+
+void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("nina_light_curve");
 }

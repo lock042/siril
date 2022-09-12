@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@
 /* Management of Siril's internal image format: unsigned 16-bit FITS */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <math.h>
 #include <ctype.h>
 #include <string.h>
@@ -39,6 +40,7 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "algos/statistics.h"
+#include "algos/astrometry_solver.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "image_format_fits.h"
@@ -53,26 +55,29 @@ const char *fit_extension[] = {
 
 static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
 static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
-static char *PixSizeX[] = { "XPIXSZ", "XPIXELSZ", "PIXSIZE1", "PIXSIZEX", NULL };
-static char *PixSizeY[] = { "YPIXSZ", "YPIXELSZ", "PIXSIZE2", "PIXSIZEY", NULL };
-static char *BinX[] = { "XBINNING", "BINX", NULL };
-static char *BinY[] = { "YBINNING", "BINY", NULL };
-static char *Focal[] = { "FOCAL", "FOCALLEN", NULL };
+static char *PIXELSIZEX[] = { "XPIXSZ", "XPIXELSZ", "PIXSIZE1", "PIXSIZEX", NULL };
+static char *PIXELSIZEY[] = { "YPIXSZ", "YPIXELSZ", "PIXSIZE2", "PIXSIZEY", NULL };
+static char *BINX[] = { "XBINNING", "BINX", NULL };
+static char *BINY[] = { "YBINNING", "BINY", NULL };
+static char *FOCAL[] = { "FOCAL", "FOCALLEN", NULL };
 static char *CCD_TEMP[] = { "CCD-TEMP", "CCD_TEMP", "CCDTEMP", "TEMPERAT", NULL };
-static char *Exposure[] = { "EXPTIME", "EXPOSURE", NULL };
-static char *Cvf[] = { "CVF", "EGAIN", NULL };
-static char *OffsetLevel[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
+static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
+static char *FILTER[] = {"FILTER", "FILT-1", NULL };
+static char *CVF[] = { "CVF", "EGAIN", NULL };
+static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
+static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
+static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
+
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
-#define __tryToFindKeywords(fptr, type, keywords, value) \
+#define __tryToFindKeywords(fptr, type, keywords, value, status) \
 { \
 	int __iter__ = 0; \
-	int __status__; \
 	do { \
-		__status__ = 0; \
-		fits_read_key(fptr, type, keywords[__iter__], value, NULL, &__status__); \
+		*status = 0; \
+		fits_read_key(fptr, type, keywords[__iter__], value, NULL, status); \
 		__iter__++; \
-	} while ((keywords[__iter__]) && (__status__ > 0)); \
+	} while ((keywords[__iter__]) && (*status > 0)); \
 }
 
 static void read_fits_date_obs_header(fits *fit) {
@@ -91,12 +96,14 @@ static void read_fits_date_obs_header(fits *fit) {
 			g_snprintf(date_obs, sizeof(date_obs), "%04d-%02d-%02dT%s", year, month, day, ut_start);
 		}
 	}
+
 	fit->date_obs = FITS_date_to_date_time(date_obs);
 }
 
 void fit_get_photometry_data(fits *fit) {
+	int status = 0;
 	read_fits_date_obs_header(fit);
-	__tryToFindKeywords(fit->fptr, TDOUBLE, Exposure, &fit->exposure);
+	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure, &status);
 }
 
 static int fit_stats(fits *fit, float *mini, float *maxi) {
@@ -173,7 +180,7 @@ static void read_history_in_hdu(fitsfile *fptr, GSList **list) {
 	}
 }
 
-/* copy the header into a list of strings
+/* copy the history into a list of strings
  * header is read from current HDU and the following HDU as long as they don't contain an image.
  * Original active HDU is restored */
 static void fits_read_history(fitsfile *fptr, GSList **history) {
@@ -203,7 +210,7 @@ static void fits_read_history(fitsfile *fptr, GSList **history) {
 	}
 
 	if (*history)
-		g_slist_free_full(*history, free);
+		g_slist_free_full(*history, g_free);
 	list = g_slist_reverse(list);
 	*history = list;
 }
@@ -223,6 +230,117 @@ static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
 	return status;
 }
 
+static void new_wcs_from_old(fits *fit, double *crota) {
+	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
+		double cd[2][2];
+		int sign;
+
+		cd[0][0] = fit->wcsdata.cdelt[0] * cos(crota[1] * M_PI / 180.0);
+		if (fit->wcsdata.cdelt[0] >= 0)
+			sign = +1;
+		else
+			sign = -1;
+		cd[0][1] = fabs(fit->wcsdata.cdelt[1]) * sign * sin(crota[1] * M_PI / 180.0);
+		if (fit->wcsdata.cdelt[1] >= 0)
+			sign = +1;
+		else
+			sign = -1;
+		cd[1][0] = -fabs(fit->wcsdata.cdelt[0]) * sign * sin(crota[1] * M_PI / 180.0);
+		cd[1][1] = fit->wcsdata.cdelt[1] * cos(crota[1] * M_PI / 180.0);
+
+		wcs_cd_to_pc(cd, fit->wcsdata.pc, fit->wcsdata.cdelt);
+	}
+}
+
+static void load_wcs_keywords(fits *fit) {
+	int status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcsdata.equinox), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcsdata.objctra), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "RA", &(fit->wcsdata.ra), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcsdata.objctdec), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "DEC", &(fit->wcsdata.dec), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcsdata.crpix[0]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcsdata.crpix[1]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcsdata.crval[0]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcsdata.crval[1]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcsdata.cdelt[0]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcsdata.cdelt[1]), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "PC1_1", &(fit->wcsdata.pc[0][0]), NULL, &status);
+
+	/* IF PC does not exist, check for CD */
+	if (status == KEY_NO_EXIST) {
+		double cd[2][2];
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "CD1_1", &cd[0][0], NULL, &status);
+
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "CD1_2", &cd[0][1], NULL, &status);
+
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "CD2_1", &cd[1][0], NULL, &status);
+
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "CD2_2", &cd[1][1], NULL, &status);
+
+		if (status == 0) {
+			/* we compute PC and cdelt, but before check that CD is not singular */
+			if ((cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]) != 0.0) {
+				wcs_cd_to_pc(cd, fit->wcsdata.pc, fit->wcsdata.cdelt);
+			}
+		}
+	} else {
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "PC1_2", &(fit->wcsdata.pc[0][1]), NULL, &status);
+
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "PC2_1", &(fit->wcsdata.pc[1][0]), NULL, &status);
+
+		status = 0;
+		fits_read_key(fit->fptr, TDOUBLE, "PC2_2", &(fit->wcsdata.pc[1][1]), NULL, &status);
+	}
+
+	double crota[2] = { 0 };
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CROTA1", &crota[0], NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "CROTA2", &crota[1], NULL, &status);
+
+	/* Test for pc matrix: in some cases (ekos?) data are written in old (deprecated) wcs formalism
+	 * So we need to test if the pc matrix is singular or not. If yes we compute cd from cdelt and crota
+	 * then we compute pc */
+	if (crota[0] != 0.0 && crota[1] != 0.0 &&
+			(fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
+
+		new_wcs_from_old(fit, crota);
+	}
+
+	status = 0;
+	fits_read_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->wcsdata.pltsolvd), fit->wcsdata.pltsolvd_comment, &status);
+}
+
 
 /* reading the FITS header to get useful information
  * stored in the fit, requires an opened file descriptor */
@@ -232,8 +350,9 @@ void read_fits_header(fits *fit) {
 	double scale, zero;
 	char str[FLEN_VALUE] = { 0 };
 
-	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSLO, &fit->lo);
-	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSHI, &fit->hi);
+	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSLO, &fit->lo, &status);
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSHI, &fit->hi, &status);
 	if (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG) {
 		try_read_float_lo_hi(fit->fptr, &fit->lo, &fit->hi);
 	}
@@ -249,7 +368,7 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
 	if (!status && 1.0 != scale) {
 		siril_log_message(_("Loaded FITS file has "
-				"a BSCALE different than 1 (%f)\n"), scale);
+					"a BSCALE different than 1 (%f)\n"), scale);
 		status = 0;
 		/* We reset the scaling factors as we don't use it */
 		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
@@ -268,11 +387,12 @@ void read_fits_header(fits *fit) {
 	 */
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "PROGRAM", &str, NULL, &status);
-	gboolean not_from_siril = g_ascii_strncasecmp(str, PACKAGE, strlen(PACKAGE));
+	gboolean not_from_siril = status || g_ascii_strncasecmp(str, PACKAGE, strlen(PACKAGE));
 
-	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || (fit->bitpix == DOUBLE_IMG)) {
-		status = 0;
-		fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &(fit->data_max), NULL, &status);
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &(fit->data_max), NULL, &status);
+
+	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
 		if (status == KEY_NO_EXIST) {
 			float mini, maxi;
 			fit_stats(fit, &mini, &maxi);
@@ -288,36 +408,41 @@ void read_fits_header(fits *fit) {
 	 * ************* CAMERA AND INSTRUMENT KEYWORDS ********************
 	 * ****************************************************************/
 
-	__tryToFindKeywords(fit->fptr, TFLOAT, PixSizeX, &fit->pixel_size_x);
-	__tryToFindKeywords(fit->fptr, TFLOAT, PixSizeY, &fit->pixel_size_y);
-	__tryToFindKeywords(fit->fptr, TUINT, BinX, &fit->binning_x);
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEX, &fit->pixel_size_x, &status);
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEY, &fit->pixel_size_y, &status);
+#ifdef _WIN32 //TODO: remove after cfitsio is fixed
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TINT, BINX, &fit->binning_x, &status);
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TINT, BINY, &fit->binning_y, &status);
+#else
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TUINT, BINX, &fit->binning_x, &status);
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TUINT, BINY, &fit->binning_y, &status);
+#endif
 	if (fit->binning_x <= 0) fit->binning_x = 1;
-	__tryToFindKeywords(fit->fptr, TUINT, BinY, &fit->binning_y);
 	if (fit->binning_y <= 0) fit->binning_y = 1;
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "INSTRUME", &(fit->instrume), NULL,
-			&status);
+	fits_read_key(fit->fptr, TSTRING, "INSTRUME", &(fit->instrume), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "TELESCOP", &(fit->telescop), NULL,
-			&status);
+	fits_read_key(fit->fptr, TSTRING, "TELESCOP", &(fit->telescop), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "OBSERVER", &(fit->observer), NULL,
-			&status);
+	fits_read_key(fit->fptr, TSTRING, "OBSERVER", &(fit->observer), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "BAYERPAT", &(fit->bayer_pattern), NULL,
-			&status);
+	fits_read_key(fit->fptr, TSTRING, "BAYERPAT", &(fit->bayer_pattern), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TINT, "XBAYROFF", &(fit->bayer_xoffset), NULL,
-			&status);
+	fits_read_key(fit->fptr, TINT, "XBAYROFF", &(fit->bayer_xoffset), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TINT, "YBAYROFF", &(fit->bayer_yoffset), NULL,
-			&status);
+	fits_read_key(fit->fptr, TINT, "YBAYROFF", &(fit->bayer_yoffset), NULL, &status);
 
 	read_fits_date_obs_header(fit);
 
@@ -326,7 +451,8 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TSTRING, "DATE", &date, NULL, &status);
 	fit->date = FITS_date_to_date_time(date);
 
-	__tryToFindKeywords(fit->fptr, TDOUBLE, Focal, &fit->focal_length);
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TDOUBLE, FOCAL, &fit->focal_length, &status);
 	if (fit->focal_length <= 0.0) {
 		/* this keyword is seen in some professional images, FLENGTH is in m. */
 		double flength;
@@ -337,8 +463,32 @@ void read_fits_header(fits *fit) {
 		}
 	}
 
-	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp);
-	__tryToFindKeywords(fit->fptr, TDOUBLE, Exposure, &fit->exposure);
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->ccd_temp, &status);
+	if (status == KEY_NO_EXIST) {
+		fit->ccd_temp = -999;
+	}
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure, &status);
+#ifdef _WIN32
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TINT, NB_STACKED, &fit->stackcnt, &status);
+#else
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TUINT, NB_STACKED, &fit->stackcnt, &status);
+#endif
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime), NULL, &status);
+
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TSTRING, FILTER, &fit->filter, &status);
+
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TSTRING, IMAGETYP, &fit->image_type, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "OBJECT", &(fit->object), NULL, &status);
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "APERTURE", &(fit->aperture), NULL, &status);
@@ -346,61 +496,29 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "ISOSPEED", &(fit->iso_speed), NULL, &status);	// Non-standard keywords used in MaxIm DL
 
-	__tryToFindKeywords(fit->fptr, TDOUBLE, Cvf, &fit->cvf); // conversion gain in e-/ADU
+	status = 0;
+	__tryToFindKeywords(fit->fptr, TDOUBLE, CVF, &fit->cvf, &status); // conversion gain in e-/ADU
 
 	status = 0;
 	fits_read_key(fit->fptr, TUSHORT, "GAIN", &(fit->key_gain), NULL, &status);  // Gain setting from camera
 
-    __tryToFindKeywords(fit->fptr, TUSHORT, OffsetLevel, &fit->key_offset); // Offset setting from camera
-	/*******************************************************************
-	 * ******************* PLATE SOLVING KEYWORDS **********************
-	 * ****************************************************************/
 	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcsdata.equinox), NULL, &status);
+	__tryToFindKeywords(fit->fptr, TUSHORT, OFFSETLEVEL, &fit->key_offset, &status); // Offset setting from camera
 
-	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcsdata.objctra), NULL, &status);
 
-	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcsdata.objctdec), NULL, &status);
+	/* first fill wcsdata FITS structure */
+	load_wcs_keywords(fit);
 
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcsdata.crpix[0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->wcsdata.crpix[1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcsdata.crval[0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcsdata.crval[1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CD1_1", &(fit->wcsdata.cd[0][0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CD1_2", &(fit->wcsdata.cd[0][1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CD2_1", &(fit->wcsdata.cd[1][0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcsdata.cd[1][1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcsdata.cdelt[0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcsdata.cdelt[1]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CROTA1", &(fit->wcsdata.crota[0]), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "CROTA2", &(fit->wcsdata.crota[1]), NULL, &status);
-
+	/* so now, fill the wcslib structure.
+	 * Not the same because wcslib is not mandatory */
 	load_WCS_from_file(fit);
+
+	/**
+	 * Others
+	 */
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "AIRMASS", &(fit->airmass), NULL, &status);
 
 	/*******************************************************************
 	 * ************************* DFT KEYWORDS **************************
@@ -418,6 +536,176 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TSTRING, "DFTTYPE", &(fit->dft.type), NULL, &status);
 
 	fits_read_history(fit->fptr, &(fit->history));
+}
+
+static gboolean siril_str_has_prefix(char *card, char **key) {
+	int iter = 0;
+	do {
+		gchar *new_key = g_strdup_printf("%-8s=", key[iter]);
+		if (g_str_has_prefix(card, new_key)) {
+			g_free(new_key);
+			return TRUE;
+		}
+		g_free(new_key);
+		iter++;
+	} while ((key[iter]));
+	return FALSE;
+}
+
+/* remove leading and trailing ' and whitespaces */
+static void copy_string_key(char *to, char *from) {
+	if (!from || from[0]=='\0') return;
+	g_strlcpy(to, from + 1, FLEN_VALUE);
+	g_strstrip(to);
+}
+
+int fits_parse_header_string(fits *fit, gchar *header) {
+	int retval = 1;
+	double cd[2][2] = { { 0.0 } };
+	gchar **token = g_strsplit(header, "\n", -1);
+	guint nargs = g_strv_length(token);
+
+	for (int i = 0; i < nargs; i++) {
+		int status = 0;
+		char card[FLEN_CARD] = { 0 };
+		char value[FLEN_VALUE] = { 0 };
+		char comment[FLEN_COMMENT] = { 0 };
+		int keytype;
+
+		char *tok = token[i];
+		/* in case of CR + LF, we remove \r */
+		if (tok[strlen(tok) - 1] == '\r') tok[strlen(tok) - 1] = '\0';
+		fits_parse_template(tok, card, &keytype, &status);
+		if (status) return status;
+		fits_parse_value(card, value, comment, &status);
+
+		if (g_str_has_prefix(card, "END")) {
+			retval = 0;
+			break;
+		} else if (siril_str_has_prefix(card, PIXELSIZEX)) {
+			fit->pixel_size_x = g_ascii_strtod(value, NULL);
+		} else if (siril_str_has_prefix(card, PIXELSIZEY)) {
+			fit->pixel_size_y = g_ascii_strtod(value, NULL);
+		} else if (siril_str_has_prefix(card, BINX)) {
+			fit->binning_x = g_ascii_strtoull(value, NULL, 10);
+		} else if (siril_str_has_prefix(card, BINY)) {
+			fit->binning_y = g_ascii_strtoull(value, NULL, 10);
+		} else if (g_str_has_prefix(card, "ROWORDER=")) {
+			copy_string_key(fit->row_order, value);
+		} else if (g_str_has_prefix(card, "INSTRUME=")) {
+			copy_string_key(fit->instrume, value);
+		} else if (g_str_has_prefix(card, "TELESCOP=")) {
+			copy_string_key(fit->telescop, value);
+		} else if (g_str_has_prefix(card, "OBSERVER=")) {
+			copy_string_key(fit->observer, value);
+		} else if (g_str_has_prefix(card, "BAYERPAT=")) {
+			copy_string_key(fit->bayer_pattern, value);
+		} else if (g_str_has_prefix(card, "XBAYROFF=")) {
+			fit->bayer_xoffset = g_ascii_strtoull(value, NULL, 10);
+		} else if (g_str_has_prefix(card, "YBAYROFF=")) {
+			fit->bayer_yoffset = g_ascii_strtoull(value, NULL, 10);
+		} else if (g_str_has_prefix(card, "DATE    =")) {
+			char tmp[FLEN_VALUE];
+			copy_string_key(tmp, value);
+			fit->date = FITS_date_to_date_time(tmp);
+		} else if (g_str_has_prefix(card, "DATE-OBS=")) {
+			char tmp[FLEN_VALUE];
+			copy_string_key(tmp, value);
+			fit->date_obs = FITS_date_to_date_time(tmp);
+		} else if (siril_str_has_prefix(card, FOCAL)) {
+			fit->focal_length = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "FLENGTH =")) {
+			fit->focal_length = g_ascii_strtod(value, NULL) * 1000.0;
+		} else if (siril_str_has_prefix(card, CCD_TEMP)) {
+			fit->ccd_temp = g_ascii_strtod(value, NULL);
+		} else if (siril_str_has_prefix(card, EXPOSURE)) {
+			fit->exposure = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "STACKCNT=")) {
+			fit->stackcnt = g_ascii_strtoull(value, NULL, 10);
+		} else if (g_str_has_prefix(card, "LIVETIME=")) {
+			fit->livetime = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "EXPSTART=")) {
+			fit->expstart = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "EXPEND  =")) {
+			fit->expend = g_ascii_strtod(value, NULL);
+		} else if (siril_str_has_prefix(card, FILTER)) {
+			copy_string_key(fit->filter, value);
+		} else if (siril_str_has_prefix(card, IMAGETYP)) {
+			copy_string_key(fit->image_type, value);
+		} else if (g_str_has_prefix(card, "OBJECT  =")) {
+			copy_string_key(fit->object, value);
+		} else if (g_str_has_prefix(card, "APERTURE=")) {
+			fit->aperture = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "ISOSPEED=")) {
+			fit->iso_speed = g_ascii_strtod(value, NULL);
+		} else if (siril_str_has_prefix(card, CVF)) {
+			fit->cvf = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "GAIN    =")) {
+			fit->key_gain = g_ascii_strtoull(value, NULL, 10);
+		} else if (siril_str_has_prefix(card, OFFSETLEVEL)) {
+			fit->key_offset = g_ascii_strtoull(value, NULL, 10);
+		} else if (g_str_has_prefix(card, "EQUINOX =")) {
+			fit->wcsdata.equinox = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "OBJCTRA =")) {
+			copy_string_key(fit->wcsdata.objctra, value);
+		} else if (g_str_has_prefix(card, "RA      =")) {
+			fit->wcsdata.ra = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "OBJCTDEC=")) {
+			copy_string_key(fit->wcsdata.objctdec, value);
+		} else if (g_str_has_prefix(card, "DEC     =")) {
+			fit->wcsdata.dec = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CRPIX1  =")) {
+			fit->wcsdata.crpix[0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CRPIX2  =")) {
+			fit->wcsdata.crpix[1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CRVAL1  =")) {
+			fit->wcsdata.crval[0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CRVAL2  =")) {
+			fit->wcsdata.crval[1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CDELT1  =")) {
+			fit->wcsdata.cdelt[0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CDELT2  =")) {
+			fit->wcsdata.cdelt[1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "PC1_1   =")) {
+			fit->wcsdata.pc[0][0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "PC1_2   =")) {
+			fit->wcsdata.pc[0][1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "PC2_1   =")) {
+			fit->wcsdata.pc[1][0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "PC2_2   =")) {
+			fit->wcsdata.pc[1][1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CD1_1   =")) {
+			cd[0][0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CD1_2   =")) {
+			cd[0][1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CD2_1   =")) {
+			cd[1][0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "CD2_2   =")) {
+			cd[1][1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "PLTSOLVD=")) {
+			fit->wcsdata.pltsolvd = !g_strcmp0(value, "T") ? TRUE : FALSE;
+			strncpy(fit->wcsdata.pltsolvd_comment, comment, FLEN_COMMENT);
+		} else if (g_str_has_prefix(card, "AIRMASS =")) {
+			fit->airmass = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "DFTNORM0=")) {
+			fit->dft.norm[0] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "DFTNORM1=")) {
+			fit->dft.norm[1] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "DFTNORM2=")) {
+			fit->dft.norm[2] = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "DFTORD  =")) {
+			copy_string_key(fit->dft.ord, value);
+		} else if (g_str_has_prefix(card, "DFTTYPE =")) {
+			copy_string_key(fit->dft.type, value);
+		}
+	}
+	/* we compute PC and cdelt, but before check that CD is not singular */
+	if ((cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]) != 0.0) {
+		wcs_cd_to_pc(cd, fit->wcsdata.pc, fit->wcsdata.cdelt);
+	}
+	load_WCS_from_memory(fit);
+
+	return retval;
 }
 
 /* copy the header for the current HDU in a heap-allocated string */
@@ -450,6 +738,18 @@ static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int
 		strcpy(*header + *strlength, "\n");
 		(*strlength)++;
 	}
+	if (*strlength + 3 + 1 >= *strsize) {
+		*strsize += 4;
+		char *newstr = realloc(*header, *strsize);
+		if (!newstr) {
+			PRINT_ALLOC_ERR;
+			free(*header);
+			return 1;
+		}
+		*header = newstr;
+	}
+	strcpy(*header + *strlength, "END");
+	(*strlength) += 3;
 	return 0;
 }
 
@@ -588,8 +888,8 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 	int16_t *data16;
 	double *pixels_double;
 	long *sdata32;	// TO BE TESTED on 32-bit arch, seems to be a cfitsio bug
-	long mini = LONG_MAX;
-	long maxi = -LONG_MAX;
+	float mini = FLT_MAX;
+	float maxi = -FLT_MAX;
 	unsigned long *data32;
 	float *data32f;
 
@@ -670,8 +970,7 @@ static void convert_floats(int bitpix, float *data, size_t nbdata) {
 }
 
 static int get_compression_type(int siril_compression_fits_method) {
-	if (siril_compression_fits_method < 0
-			|| siril_compression_fits_method > G_N_ELEMENTS(CompressionMethods)) {
+	if (siril_compression_fits_method > G_N_ELEMENTS(CompressionMethods)) {
 		return -1;
 	} else {
 		return CompressionMethods[siril_compression_fits_method];
@@ -714,7 +1013,7 @@ static int siril_fits_move_first_image(fitsfile* fp) {
 		}
 	} while (!status);
 
-	siril_debug_print("Found image HDU (changed CHDU) with naxis %d (status %d)\n", naxis, status);
+	//siril_debug_print("Found image HDU (changed CHDU) with naxis %d (status %d)\n", naxis, status);
 	return status;
 }
 
@@ -855,6 +1154,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
  * convert it to siril's format (USHORT) */
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		int bitpix, void *dest, int layer, const rectangle *area) {
+	double data_max = -1.0;
 	int datatype;
 	BYTE *data8;
 	long *pixels_long;
@@ -908,6 +1208,12 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		case FLOAT_IMG:		// 32-bit floating point pixels
 			fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, &zero, dest,
 					&zero, &status);
+			if (status) break;
+			int status2 = 0;
+			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
+			if (status2 == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
+				convert_floats(bitpix, dest, nbdata);
+			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
 		default:
@@ -932,6 +1238,10 @@ static void save_wcs_keywords(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TSTRING, "CTYPE2", "DEC--TAN", "Coordinate type for the second axis", &status);
 		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CUNIT1", "deg","Unit of coordinates", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TSTRING, "CUNIT2", "deg","Unit of coordinates", &status);
+		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "EQUINOX", &(fit->wcsdata.equinox),	"Equatorial equinox", &status);
 	}
 	status = 0;
@@ -944,9 +1254,15 @@ static void save_wcs_keywords(fits *fit) {
 
 	if (fit->wcsdata.objctra[0] != '\0') {
 		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcsdata.objctra),	"Image center R.A. (hms)", &status);
+		fits_update_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcsdata.objctra),	"Image center Right Ascension (hms)", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcsdata.objctdec), "Image center declination (dms)", &status);
+		fits_update_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcsdata.objctdec), "Image center Declination (dms)", &status);
+	}
+	if (fit->wcsdata.ra > 0) {
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "RA", &(fit->wcsdata.ra), "Image center Right Ascension (deg)", &status);
+		status = 0;
+		fits_update_key(fit->fptr, TDOUBLE, "DEC", &(fit->wcsdata.dec), "Image center Declination (deg)", &status);
 	}
 	if (fit->wcsdata.crpix[0] != '\0') {
 		status = 0;
@@ -956,23 +1272,45 @@ static void save_wcs_keywords(fits *fit) {
 	}
 	if (fit->wcsdata.crval[0] != '\0') {
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcsdata.crval[0]), "Axis1 reference value", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->wcsdata.crval[0]), "Axis1 reference value (deg)", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcsdata.crval[1]), "Axis2 reference value", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->wcsdata.crval[1]), "Axis2 reference value (deg)", &status);
 	}
-	if ((fit->wcsdata.cd[0][0] != 0.0) && (fit->wcsdata.cd[0][1] != 0.0) && (fit->wcsdata.cd[1][0] != 0.0) && (fit->wcsdata.cd[1][1] != 0.0)) {
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD1_1", &(fit->wcsdata.cd[0][0]), "Scale matrix (1, 1)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD1_2", &(fit->wcsdata.cd[0][1]), "Scale matrix (1, 2)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD2_1", &(fit->wcsdata.cd[1][0]), "Scale matrix (2, 1)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &(fit->wcsdata.cd[1][1]), "Scale matrix (2, 2)", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TINT, "IMAGEW", &(fit->rx), "Image width, in pixels.", &status);
-		status = 0;
-		fits_update_key(fit->fptr, TINT, "IMAGEH", &(fit->ry), "Image height, in pixels.", &status);
+
+	/* check if pc matrix exists */
+	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) != 0.0) {
+		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->wcsdata.cdelt[0]), "X pixel size (deg)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->wcsdata.cdelt[1]), "Y pixel size (deg)", &status);
+
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "PC1_1", &(fit->wcsdata.pc[0][0]), "Linear transformation matrix (1, 1)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "PC1_2", &(fit->wcsdata.pc[0][1]), "Linear transformation matrix (1, 2)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "PC2_1", &(fit->wcsdata.pc[1][0]), "Linear transformation matrix (2, 1)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "PC2_2", &(fit->wcsdata.pc[1][1]), "Linear transformation matrix (2, 2)", &status);
+			status = 0;
+		} else {
+			double cd[2][2];
+
+			wcs_pc_to_cd(fit->wcsdata.pc, fit->wcsdata.cdelt, cd);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CD1_1", &cd[0][0], "Scale matrix (1, 1)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CD1_2", &cd[0][1], "Scale matrix (1, 2)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CD2_1", &cd[1][0], "Scale matrix (2, 1)", &status);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, "CD2_2", &cd[1][1], "Scale matrix (2, 2)", &status);
+			status = 0;
+		}
+	}
+	if (fit->wcsdata.pltsolvd) {
+		fits_update_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->wcsdata.pltsolvd), fit->wcsdata.pltsolvd_comment, &status);
 	}
 }
 
@@ -1063,9 +1401,19 @@ void save_fits_header(fits *fit) {
 	}
 
 	status = 0;
+	if (fit->stackcnt > 0)
+		fits_update_key(fit->fptr, TUINT, "STACKCNT", &(fit->stackcnt),
+				"Stack frames", &status);
+
+	status = 0;
 	if (fit->exposure > 0.)
 		fits_update_key(fit->fptr, TDOUBLE, "EXPTIME", &(fit->exposure),
 				"Exposure time [s]", &status);
+
+	status = 0;
+	if (fit->livetime > 0.)
+		fits_update_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime),
+				"Exposure time after deadtime correction", &status);
 
 	status = 0;
 	if (fit->expstart > 0.)
@@ -1077,7 +1425,6 @@ void save_fits_header(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "EXPEND", &(fit->expend),
 				"Exposure end time (standard Julian date)", &status);
 
-	/* all keywords below are non-standard */
 	status = 0;
 	if (fit->pixel_size_x > 0.)
 		fits_update_key(fit->fptr, TFLOAT, "XPIXSZ", &(fit->pixel_size_x),
@@ -1100,9 +1447,24 @@ void save_fits_header(fits *fit) {
 				"Camera focal length", &status);
 
 	status = 0;
-	if (fit->ccd_temp)
+	if (fit->ccd_temp != -999)
 		fits_update_key(fit->fptr, TDOUBLE, "CCD-TEMP", &(fit->ccd_temp),
 				"CCD temp in C", &status);
+
+	status = 0;
+	if (fit->filter[0] != '\0')
+		fits_update_key(fit->fptr, TSTRING, "FILTER", &(fit->filter),
+				"Active filter name", &status);
+
+	status = 0;
+	if (fit->filter[0] != '\0')
+		fits_update_key(fit->fptr, TSTRING, "IMAGETYP", &(fit->image_type),
+				"Type of image", &status);
+
+	status = 0;
+	if (fit->object[0] != '\0')
+		fits_update_key(fit->fptr, TSTRING, "OBJECT", &(fit->object),
+				"Name of the object of interest", &status);
 
 	status = 0;
 	if (fit->aperture > 0.)
@@ -1126,7 +1488,6 @@ void save_fits_header(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TINT, "YBAYROFF", &(fit->bayer_yoffset),
 				"Y offset of Bayer array", &status);
-
 	}
 
 	status = 0;
@@ -1144,22 +1505,70 @@ void save_fits_header(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "CVF", &(fit->cvf),
 				"Conversion factor (e-/adu)", &status);
 
+	/**
+	 * others
+	 */
+
+	status = 0;
+	if (fit->airmass > 0.)
+		fits_update_key(fit->fptr, TDOUBLE, "AIRMASS", &(fit->airmass),
+				"Airmass", &status);
+
+	/*******************************************************************
+	 * ************************* DFT KEYWORDS **************************
+	 * ****************************************************************/
+
+	status = 0;
+	if (fit->dft.type[0] != '\0') {
+		if (fit->dft.type[0] == 'S')
+			strcpy(comment, "Module of a Discrete Fourier Transform");
+		else if (fit->dft.type[0] == 'P')
+			strcpy(comment, "Phase of a Discrete Fourier Transform");
+		else
+			status = 1;			// should not happen
+		fits_update_key(fit->fptr, TSTRING, "DFTTYPE", &(fit->dft.type), comment, &status);
+	}
+
+	status = 0;
+	if (fit->dft.ord[0] != '\0') {
+		if (fit->dft.ord[0] == 'C')
+			strcpy(comment, "Low spatial freq. are located at image center");
+		else if (fit->dft.ord[0] == 'R')
+			strcpy(comment, "High spatial freq. are located at image center");
+		else
+			status = 1;			// should not happen
+		fits_update_key(fit->fptr, TSTRING, "DFTORD", &(fit->dft.ord), comment, &status);
+	}
+
+	for (i = 0; i < fit->naxes[2]; i++) {
+		if (fit->dft.norm[i] > 0.) {
+			const char *str1 = "DFTNORM";
+			const char *str2 = "Normalisation value for channel #";
+			char key_str[FLEN_KEYWORD], comment_str[FLEN_VALUE];
+			g_sprintf(key_str, "%s%d", str1, i);
+			g_sprintf(comment_str, "%s%d", str2, i);
+			status = 0;
+			fits_update_key(fit->fptr, TDOUBLE, key_str, &(fit->dft.norm[i]),
+					comment_str, &status);
+		}
+	}
+
+	/*******************************************************************
+	 * ********************** PROGRAM KEYWORD **************************
+	 * ****************************************************************/
+
+	status = 0;
+	char programm[32];
+
+	sprintf(programm, "%c%s v%s", toupper(PACKAGE[0]), (char*) PACKAGE + 1, VERSION);
+	fits_update_key(fit->fptr, TSTRING, "PROGRAM", programm,
+			"Software that created this HDU", &status);
+
 	/*******************************************************************
 	 * ******************* PLATE SOLVING KEYWORDS **********************
 	 * ****************************************************************/
 
 	save_wcs_keywords(fit);
-
-	/*******************************************************************
-	 * ******************** PROGRAMM KEYWORDS **************************
-	 * ****************************************************************/
-
-	status = 0;
-	char programm[32];
-	sprintf(programm, "%s v%s", PACKAGE, VERSION);
-	programm[0] = toupper(programm[0]);			// convert siril to Siril
-	fits_update_key(fit->fptr, TSTRING, "PROGRAM", programm,
-			"Software that created this HDU", &status);
 
 	/*******************************************************************
 	 * ********************* HISTORY KEYWORDS **************************
@@ -1180,60 +1589,37 @@ void save_fits_header(fits *fit) {
 				fits_write_history(fit->fptr, com.history[i].history, &status);
 		}
 	}
-
-	/*******************************************************************
-	 * ************************* DFT KEYWORDS **************************
-	 * ****************************************************************/
-
-	status = 0;
-	if (fit->dft.type[0] != '\0') {
-		if (fit->dft.type[0] == 'S')
-			strcpy(comment, "Module of a Discrete Fourier Transform");
-		else if (fit->dft.type[0] == 'P')
-			strcpy(comment, "Phase of a Discrete Fourier Transform");
-		else
-			status = 1;			// should not happen
-		fits_update_key(fit->fptr, TSTRING, "DFTTYPE", &(fit->dft.type),
-				comment, &status);
-	}
-
-	status = 0;
-	if (fit->dft.ord[0] != '\0') {
-		if (fit->dft.ord[0] == 'C')
-			strcpy(comment, "Low spatial freq. are located at image center");
-		else if (fit->dft.ord[0] == 'R')
-			strcpy(comment, "High spatial freq. are located at image center");
-		else
-			status = 1;			// should not happen
-		fits_update_key(fit->fptr, TSTRING, "DFTORD", &(fit->dft.ord), comment,
-				&status);
-	}
-
-	for (i = 0; i < fit->naxes[2]; i++) {
-		if (fit->dft.norm[i] > 0.) {
-			const char *str1 = "DFTNORM";
-			const char *str2 = "Normalisation value for channel #";
-			char key_str[FLEN_KEYWORD], comment_str[FLEN_VALUE];
-			g_sprintf(key_str, "%s%d", str1, i);
-			g_sprintf(comment_str, "%s%d", str2, i);
-			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, key_str, &(fit->dft.norm[i]),
-					comment_str, &status);
-		}
-	}
 }
 
 /********************** public functions ************************************/
 
-void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure) {
-	char date_obs[FLEN_VALUE];
-
-	__tryToFindKeywords(fptr, TDOUBLE, Exposure, exposure);
+/* gets specific data from the header (for stacking).
+ * if exposure is not found, it defaults to 0
+ * if livetime is not found, exposure is assigned to it
+ * if stack_count is not found, it defaults to 1
+ */
+void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure, double *livetime, unsigned int *stack_count) {
+	*exposure = 0.0;
+	*stack_count = 1;
+	*dt = NULL;
 	int status = 0;
-	fits_read_key(fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status);
-	if (!status) {
+
+	__tryToFindKeywords(fptr, TDOUBLE, EXPOSURE, exposure, &status);
+#ifdef _WIN32 //TODO: remove after cfitsio is fixed
+	status = 0;
+	__tryToFindKeywords(fptr, TINT, NB_STACKED, stack_count, &status);
+#else
+	status = 0;
+	__tryToFindKeywords(fptr, TUINT, NB_STACKED, stack_count, &status);
+#endif
+	status = 0;
+	if (fits_read_key(fptr, TDOUBLE, "LIVETIME", livetime, NULL, &status))
+		*livetime = *exposure;
+
+	char date_obs[FLEN_VALUE];
+	status = 0;
+	if (!fits_read_key(fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status))
 		*dt = FITS_date_to_date_time(date_obs);
-	}
 }
 
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
@@ -1241,6 +1627,7 @@ int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
 	from.fptr = fptr;
 	read_fits_header(&from);
 	copy_fits_metadata(&from, to);
+	clearfits(&from);
 	return 0;
 }
 
@@ -1357,7 +1744,7 @@ void clearfits(fits *fit) {
 	if (fit->header)
 		free(fit->header);
 	if (fit->history)
-		g_slist_free_full(fit->history, free);
+		g_slist_free_full(fit->history, g_free);
 	if (fit->date_obs)
 		g_date_time_unref(fit->date_obs);
 	if (fit->date)
@@ -1367,8 +1754,7 @@ void clearfits(fits *fit) {
 			free_stats(fit->stats[i]);
 		free(fit->stats);
 	}
-	free_wcs(fit);
-
+	free_wcs(fit, FALSE);
 	memset(fit, 0, sizeof(fits));
 }
 
@@ -1451,13 +1837,20 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		status = internal_read_partial_fits(fit->fptr, fit->naxes[1],
 				fit->bitpix, fit->data, layer, area);
 	} else {
-		if (fit->bitpix == FLOAT_IMG) {
+		if (fit->bitpix == FLOAT_IMG || fit->bitpix == DOUBLE_IMG) {
+			char str[FLEN_VALUE] = { 0 };
+			status = 0;
+			fits_read_key(fit->fptr, TSTRING, "PROGRAM", &str, NULL, &status);
+			gboolean not_from_siril = status || g_ascii_strncasecmp(str, PACKAGE, strlen(PACKAGE));
+
 			status = 0;
 			fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
-			if (status == KEY_NO_EXIST) {
-				float mini, maxi;
-				fit_stats(fit, &mini, &maxi);
-				fit->data_max = (double) maxi;
+			if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
+				if (status == KEY_NO_EXIST) {
+					float mini, maxi;
+					fit_stats(fit, &mini, &maxi);
+					fit->data_max = (double) maxi;
+				}
 			}
 		}
 
@@ -1490,7 +1883,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	fit->naxes[1] = area->h;
 	fit->rx = fit->naxes[0];
 	fit->ry = fit->naxes[1];
-	fit->naxes[2] = 1;	
+	fit->naxes[2] = 1;
 	fit->naxis = 2;
 
 	status = 0;
@@ -1732,8 +2125,9 @@ int savefits(const char *name, fits *f) {
 	status = 0;
 	fits_close_file(f->fptr, &status);
 	if (!status) {
-		siril_log_message(_("Saving FITS: file %s, %ld layer(s), %ux%u pixels\n"),
-				filename, f->naxes[2], f->rx, f->ry);
+		siril_log_message(_("Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"),
+				filename, f->naxes[2], f->rx, f->ry,
+				f->type == DATA_USHORT ? 16 : 32);
 	}
 	return 0;
 }
@@ -1761,7 +2155,7 @@ int save_opened_fits(fits *f) {
 				if (norm == USHRT_MAX_DOUBLE)
 					data8[i] = conv_to_BYTE((double)f->data[i]);
 				else
-					data8[i] = round_to_BYTE(f->data[i]);
+					data8[i] = truncate_to_BYTE(f->data[i]);
 			}
 		}
 		if (fits_write_pix(f->fptr, TBYTE, orig, pixel_count, data8, &status)) {
@@ -2028,22 +2422,43 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	return 0;
 }
 
+void keep_only_first_channel(fits *fit) {
+	fit->naxis = 2;
+	fit->naxes[2] = 1L;
+	fit->maxi = -1.0;
+	fit->history = NULL;
+	invalidate_stats_from_fit(fit);
+	size_t nbdata = fit->naxes[0] * fit->naxes[1];
+	if (fit->type == DATA_USHORT) {
+		fit->data = realloc(fit->data, nbdata * sizeof(WORD));
+		fit->pdata[1] = fit->data;
+		fit->pdata[2] = fit->data;
+	} else if (fit->type == DATA_FLOAT) {
+		fit->fdata = realloc(fit->fdata, nbdata * sizeof(float));
+		fit->fpdata[1] = fit->fdata;
+		fit->fpdata[2] = fit->fdata;
+	}
+}
+
 /* copy non-mandatory keywords from 'from' to 'to' */
-int copy_fits_metadata(fits *from, fits *to) {
+void copy_fits_metadata(fits *from, fits *to) {
 	to->pixel_size_x = from->pixel_size_x;
 	to->pixel_size_y = from->pixel_size_y;
 	to->binning_x = from->binning_x;
 	to->binning_y = from->binning_y;
 
-	if (from->date)
-		to->date = g_date_time_ref(from->date);
-	if (from->date_obs)
+	// 'date' is the file creation date, automatically set on save
+	if (from->date_obs) {
+		if (to->date_obs)
+			g_date_time_unref(to->date_obs);
 		to->date_obs = g_date_time_ref(from->date_obs);
+	}
+	strncpy(to->filter, from->filter, FLEN_VALUE);
+	strncpy(to->image_type, from->image_type, FLEN_VALUE);
+	strncpy(to->object, from->object, FLEN_VALUE);
 	strncpy(to->instrume, from->instrume, FLEN_VALUE);
 	strncpy(to->telescop, from->telescop, FLEN_VALUE);
 	strncpy(to->observer, from->observer, FLEN_VALUE);
-	strncpy(to->dft.type, from->dft.type, FLEN_VALUE);
-	strncpy(to->dft.ord, from->dft.ord, FLEN_VALUE);
 	strncpy(to->bayer_pattern, from->bayer_pattern, FLEN_VALUE);
 	strncpy(to->row_order, from->row_order, FLEN_VALUE);
 
@@ -2052,18 +2467,23 @@ int copy_fits_metadata(fits *from, fits *to) {
 	to->focal_length = from->focal_length;
 	to->iso_speed = from->iso_speed;
 	to->exposure = from->exposure;
+	to->expstart = from->expstart;
+	to->expend = from->expend;
+	to->livetime = from->livetime;
+	to->stackcnt = from->stackcnt;
 	to->aperture = from->aperture;
 	to->ccd_temp = from->ccd_temp;
 	to->cvf = from->cvf;
 	to->key_gain = from->key_gain;
-	to->key_offset = from->key_offset;	
-	to->dft.norm[0] = from->dft.norm[0];
-	to->dft.norm[1] = from->dft.norm[1];
-	to->dft.norm[2] = from->dft.norm[2];
+	to->key_offset = from->key_offset;
+	to->airmass = from->airmass;
 
+	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
-
-	return 0;
+#ifdef HAVE_WCSLIB
+	//wcssub()?
+#endif
+	// copy from->history?
 }
 
 int copy_fits_from_file(char *source, char *destination) {
@@ -2313,7 +2733,7 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 
 	npixels = width * height;
 	data_size = type == DATA_USHORT ? sizeof(WORD) : sizeof(float);
-	
+
 	if (!data) {
 		data = malloc(npixels * nblayer * data_size);
 		if (!data) {
@@ -2373,6 +2793,7 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 	return 0;
 }
 
+/* use for type change, it doesn't free old data if it's the same type */
 void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 	fit->type = newtype;
 	invalidate_stats_from_fit(fit);
@@ -2449,9 +2870,9 @@ void fit_debayer_buffer(fits *fit, void *newbuf) {
 }
 
 static void gray2rgb(float gray, guchar *rgb) {
-	*rgb++ = (guchar) round_to_BYTE(255. * gray);
-	*rgb++ = (guchar) round_to_BYTE(255. * gray);
-	*rgb++ = (guchar) round_to_BYTE(255. * gray);
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
+	*rgb++ = (guchar) roundf_to_BYTE(255.f * gray);
 }
 
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
@@ -2483,7 +2904,7 @@ static double logviz(double arg) {
 GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	fitsfile *fp;
 	gchar *description;
-	const int MAX_SIZE = com.pref.thumbnail_size;
+	const int MAX_SIZE = com.pref.gui.thumbnail_size;
 	float nullval = 0.;
 	int naxis, dtype, stat, status, frames;
 
@@ -2581,8 +3002,10 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	/* use FITS keyword if available for a better visualization */
 	float lo = 0.f;
 	float hi = 0.f;
-	__tryToFindKeywords(fp, TFLOAT, MIPSLO, &lo);
-	__tryToFindKeywords(fp, TFLOAT, MIPSHI, &hi);
+	status = 0;
+	__tryToFindKeywords(fp, TFLOAT, MIPSLO, &lo, &status);
+	status = 0;
+	__tryToFindKeywords(fp, TFLOAT, MIPSHI, &hi, &status);
 
 	if (hi != lo && hi != 0.f && abs(dtype) <= USHORT_IMG) {
 		min = lo;
@@ -2627,5 +3050,153 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 			NULL);
 	*descr = description;
 	return pixbuf;
+}
+
+/* verify that the parameters of the image pointed by fptr are the same as some reference values */
+int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes) {
+	int status = 0;
+	long naxes[3] = { 0 };
+	int bitpix = 0, naxis = -1;
+	fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status);
+	if (status) {
+		siril_log_message(_("Opening image failed\n"));
+		fits_report_error(stderr, status); /* print error message */
+		return -1;
+	}
+	if (naxis > 3) {
+		siril_log_message(_("Stacking error: images with > 3 dimensions "
+					"are not supported\n"));
+		return -1;
+	}
+
+	if (*oldnaxis > 0) {
+		if (naxis != *oldnaxis ||
+				oldnaxes[0] != naxes[0] ||
+				oldnaxes[1] != naxes[1] ||
+				oldnaxes[2] != naxes[2]) {
+			siril_log_message(_("Stacking error: input images have "
+						"different sizes\n"));
+			return -1;
+		}
+	} else {
+		*oldnaxis = naxis;
+		oldnaxes[0] = naxes[0];
+		oldnaxes[1] = naxes[1];
+		oldnaxes[2] = naxes[2];
+	}
+
+	if (*oldbitpix != 0) {
+		if (bitpix != *oldbitpix) {
+			siril_log_message(_("Stacking error: input images have "
+						"different precision\n"));
+			return -1;
+		}
+	} else {
+		*oldbitpix = bitpix;
+	}
+
+	return 0;
+}
+
+/* NULL-terminated list of fits */
+int check_loaded_fits_params(fits *ref, ...) {
+	int retval = 0;
+	va_list args;
+	va_start(args, ref);
+
+	fits *test;
+	while (!retval && (test = va_arg(args, fits *))) {
+		if (test->bitpix != ref->bitpix ||
+				test->naxis != ref->naxis) {
+			retval = 1;
+			break;
+		}
+		for (int chan = 0; chan < ref->naxis; chan++) {
+			if (test->naxes[chan] != ref->naxes[chan]) {
+				retval = 1;
+				break;
+			}
+		}
+	}
+
+	va_end(args);
+	return retval;
+}
+
+// f is NULL-terminated and not empty
+void merge_fits_headers_to_result2(fits *result, fits **f) {
+	/* copy all from the first */
+	copy_fits_metadata(f[0], result);
+
+	/* then refine the variable fields */
+	gboolean found_WCS = has_wcsdata(f[0]);
+	GDateTime *date_obs = result->date_obs;	// already referenced
+	double expstart = f[0]->expstart;
+	double expend = f[0]->expend;
+	int image_count = 1;
+	double exposure = f[0]->exposure;
+
+	fits *current;
+	while ((current = f[image_count])) {
+		// take the first WCS information we find
+		if (!found_WCS && has_wcsdata(current)) {
+			result->wcsdata = current->wcsdata;
+			found_WCS = TRUE;
+		}
+		// set date_obs, the date of obs start, to the earliest found
+		if (g_date_time_compare(date_obs, current->date_obs) == 1) {
+			g_date_time_unref(date_obs);
+			date_obs = g_date_time_ref(current->date_obs);
+		}
+		// set exposure start to the earliest found
+		if (expstart > current->expstart)
+			expstart = current->expstart;
+		// set exposure end to the latest found
+		if (expend < current->expend)
+			expend = current->expend;
+		// do not store conflicting filter information
+		if (strcmp(result->filter, current->filter))
+			strcpy(result->filter, "mixed");
+		// add the exposure times and number of stacked images
+		result->stackcnt += current->stackcnt;
+		result->livetime += current->livetime;
+		// average exposure
+		exposure += current->exposure;
+
+		/* to add if one day we keep FITS comments: discrepencies in
+		 * various fields like exposure, instrument, observer,
+		 * telescope, ... */
+		image_count++;
+	}
+	result->exposure = exposure / image_count;
+	result->date_obs = date_obs;
+	result->expstart = expstart;
+	result->expend = expend;
+}
+
+// NULL-terminated list of fits, given with decreasing importance
+// HISTORY is not managed, neither is some conflicting information
+void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
+	if (!f1) return;
+	// converting variadic to array of args
+	va_list ap;
+	va_start(ap, f1);
+	int nb_fits = 1;
+	fits *current;
+	while ((current = va_arg(ap, fits *)))
+		nb_fits++;
+	va_end(ap);
+	fits **array = malloc((nb_fits + 1) * sizeof(fits *));
+
+	va_start(ap, f1);
+	int i = 0;
+	array[i++] = f1;
+	while ((current = va_arg(ap, fits *)))
+		array[i++] = current;
+	va_end(ap);
+	array[i] = NULL;
+
+	merge_fits_headers_to_result2(result, array);
+	free(array);
 }
 

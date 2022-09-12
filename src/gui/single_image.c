@@ -27,38 +27,16 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 
+static const char *drawing_area[] = { "drawingarear", "drawingareag", "drawingareab", "drawingareargb"};
+
 void siril_drag_single_image_set_dest() {
-	gtk_drag_dest_set(lookup_widget("viewportr"),
-			GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_DROP,
-			NULL, 0, GDK_ACTION_COPY | GDK_ACTION_ASK);
-	gtk_drag_dest_set(lookup_widget("viewportg"),
-			GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_DROP,
-			NULL, 0, GDK_ACTION_COPY | GDK_ACTION_ASK);
-	gtk_drag_dest_set(lookup_widget("viewportb"),
-			GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_DROP,
-			NULL, 0, GDK_ACTION_COPY | GDK_ACTION_ASK);
-	gtk_drag_dest_set(lookup_widget("viewport2"),
-			GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_DROP,
-			NULL, 0, GDK_ACTION_COPY | GDK_ACTION_ASK);
-	gtk_drag_dest_add_uri_targets(lookup_widget("viewportr"));
-	gtk_drag_dest_add_uri_targets(lookup_widget("viewportg"));
-	gtk_drag_dest_add_uri_targets(lookup_widget("viewportb"));
-	gtk_drag_dest_add_uri_targets(lookup_widget("viewport2"));
+	for (int i = 0; i < G_N_ELEMENTS(drawing_area); i++) {
+		gtk_drag_dest_set(lookup_widget(drawing_area[i]), GTK_DEST_DEFAULT_MOTION | GTK_DEST_DEFAULT_DROP | GTK_DEST_DEFAULT_HIGHLIGHT, NULL, 0, GDK_ACTION_COPY | GDK_ACTION_ASK);
+		gtk_drag_dest_add_uri_targets(lookup_widget(drawing_area[i]));
+	}
 }
 
-gboolean on_viewport_drag_motion(GtkWidget *widget, GdkDragContext *context,
-		gint x, gint y, guint time) {
-	gtk_drag_highlight(widget);
-
-	return TRUE;
-}
-
-void on_viewport_drag_leave(GtkWidget *widget, GdkDragContext *context, guint time,
-		gpointer user_data) {
-	gtk_drag_unhighlight(widget);
-}
-
-void on_viewport_drag_data_received(GtkWidget *widget,
+void on_drawingarea_drag_data_received(GtkWidget *widget,
 		GdkDragContext *context, gint x, gint y,
 		GtkSelectionData *selection_data, guint info, guint time,
 		gpointer user_data) {
@@ -99,10 +77,13 @@ void on_viewport_drag_data_received(GtkWidget *widget,
 					if (!strncmp(src_ext, "seq", 4)) {
 						gchar *sequence_dir = g_path_get_dirname(filename);
 						if (!siril_change_dir(sequence_dir, NULL)) {
-							if (check_seq(FALSE)) {
+							if (check_seq()) {
 								siril_log_message(_("No sequence `%s' found.\n"), filename);
 							} else {
 								set_seq(filename);
+								if (com.pref.wd)
+									g_free(com.pref.wd);
+								com.pref.wd = g_strdup(com.wd);
 								if (!com.script) {
 									populate_seqcombo(filename);
 									set_GUI_CWD();

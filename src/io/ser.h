@@ -86,7 +86,7 @@ typedef enum {
  * - the integer types of the header are little endian, which may not be the
  *   case when compiling the struct
  */
-struct ser_struct {
+struct ser_struct {			// size and offset from header
 	char *file_id;			// 14 bytes (0)
 	int lu_id;			// 4	(14)
 	ser_color color_id;		// 4	(18)
@@ -98,16 +98,17 @@ struct ser_struct {
 	char observer[40];		// 40	(42)
 	char instrument[40];		// 40	(82)
 	char telescope[40];		// 40	(122)
-	guint64 date;		// 8	(162)
-	guint64 date_utc;	// 8 (170)
+	guint64 date;			// 8	(162)
+	guint64 date_utc;		// 8	(170)
 
 	/* timestamps (not in the header, timestamps are in trailer) */
 	guint64 *ts;			// total timestamps
 	int ts_alloc;			// allocated number of elements in ts
-	guint64 ts_min, ts_max;// min and max timestamp
-	double fps;				// frame rate
+	guint64 ts_min, ts_max;		// min and max timestamp
+	gboolean timestamps_in_order;
+	double fps;			// frame rate
 
-	gint64 filesize;			// size of the file
+	gint64 filesize;		// size of the file
 
 	// internal representations of header data
 	ser_pixdepth byte_pixel_depth;	// more useful representation of the bit_pixel_depth
@@ -122,15 +123,18 @@ struct ser_struct {
 };
 
 gboolean ser_is_cfa(struct ser_struct *ser_file);
+int ser_reset_to_monochrome(struct ser_struct *ser_file);
 void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp);
 void ser_init_struct(struct ser_struct *ser_file);
 void ser_display_info(struct ser_struct *ser_file);
+
 int ser_open_file(const char *filename, struct ser_struct *ser_file);
 int ser_close_and_delete_file(struct ser_struct *ser_file);
 int ser_write_and_close(struct ser_struct *ser_file);
 int ser_create_file(const char *filename, struct ser_struct *ser_file, gboolean overwrite, struct ser_struct *copy_from);
 int ser_close_file(struct ser_struct *ser_file);
 int ser_metadata_as_fits(struct ser_struct *ser_file, fits *fit);
+
 int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolean force_float, gboolean open_debayer);
 int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		int frame_no, fits *fit, const rectangle *area);

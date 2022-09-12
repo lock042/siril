@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -47,14 +47,29 @@ static sequence_type get_activated_output_type();
 
 static void init_widgets() {
 	if (!tree_view) {
-		tree_view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "treeview_convert"));
+		tree_view = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "treeview_convert"));
 		model = gtk_tree_view_get_model(tree_view);
 		liststore_convert = GTK_LIST_STORE(
-				gtk_builder_get_object(builder, "liststore_convert"));
+				gtk_builder_get_object(gui.builder, "liststore_convert"));
 	}
 	g_assert(tree_view);
 	g_assert(model);
 	g_assert(liststore_convert);
+}
+
+static void format_index_convert(GtkEntry *entry) {
+	int idx = g_ascii_strtoull(gtk_entry_get_text(entry), NULL, 10);
+	gchar *str = NULL;
+
+	if (idx < 1) {
+		str = g_strdup_printf("00001");
+	} else if (idx < 10000) {
+		str = g_strdup_printf("%05d", idx);
+	} else if (idx > INDEX_MAX) {
+		str = g_strdup_printf("65535");
+	}
+	gtk_entry_set_text(entry, str);
+	g_free(str);
 }
 
 int count_converted_files() {
@@ -202,6 +217,7 @@ static void initialize_convert() {
 	}
 	if (output_type == SEQ_REGULAR) {
 		GtkEntry *startEntry = GTK_ENTRY(lookup_widget("startIndiceEntry"));
+		format_index_convert(startEntry);
 		const gchar *index = gtk_entry_get_text(startEntry);
 		args->start = (g_ascii_strtoll(index, NULL, 10) <= 0
 						|| g_ascii_strtoll(index, NULL, 10) >= INDEX_MAX) ?	1 : g_ascii_strtoll(index, NULL, 10);
@@ -257,21 +273,6 @@ static void add_file_to_list(GFile *file) {
 	g_date_time_unref(dt);
 	g_free(date);
 	g_free(size);
-}
-
-static GList *get_row_references_of_selected_rows(GtkTreeSelection *selection,
-		GtkTreeModel *model) {
-	GList *ref = NULL;
-	GList *sel, *s;
-
-	sel = gtk_tree_selection_get_selected_rows(selection, &model);
-
-	for (s = sel; s; s = s->next) {
-		GtkTreeRowReference *rowref = gtk_tree_row_reference_new(model,	(GtkTreePath *) s->data);
-		ref = g_list_prepend(ref, rowref);
-	}
-	g_list_free_full(sel, (GDestroyNotify) gtk_tree_path_free);
-	return ref;
 }
 
 static void remove_selected_files_from_list() {
@@ -367,18 +368,6 @@ void on_remove_convert_button_clicked(GtkToolButton *button, gpointer user_data)
 	remove_selected_files_from_list();
 	check_for_conversion_form_completeness();
 	on_input_files_change();
-}
-
-void on_treeview_convert_drag_leave(GtkWidget *widget, GdkDragContext *context, guint time,
-		gpointer user_data) {
-	gtk_drag_unhighlight(widget);
-}
-
-gboolean on_treeview_convert_drag_motion(GtkWidget *widget, GdkDragContext *context,
-		gint x, gint y, guint time) {
-	gtk_drag_highlight(widget);
-
-	return TRUE;
 }
 
 void on_treeview_convert_drag_data_received(GtkWidget *widget,
@@ -487,6 +476,7 @@ void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
 		gtk_editable_insert_text(editable, result, count, position);
 		g_signal_handlers_unblock_by_func(G_OBJECT (editable),
 				G_CALLBACK (insert_text_handler), data);
+		widget_set_class(GTK_WIDGET(entry), "", "warning");
 	}
 	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
 
@@ -521,7 +511,7 @@ void update_statusbar_convert() {
 	}
 }
 
-void on_treeview_selection5_changed(GtkTreeSelection *treeselection,
+void on_treeview_selection_convert_changed(GtkTreeSelection *treeselection,
 		gpointer user_data) {
 	update_statusbar_convert();
 }
@@ -571,7 +561,7 @@ void process_destroot(sequence_type output_type) {
 static sequence_type get_activated_output_type() {
 	static GtkComboBox *combo = NULL;
 	if (!combo)
-		combo = GTK_COMBO_BOX(gtk_builder_get_object(builder, "prepro_output_type_combo1"));
+		combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "prepro_output_type_combo1"));
 	return (sequence_type)gtk_combo_box_get_active(combo);
 }
 
@@ -605,3 +595,8 @@ void on_prepro_output_type_combo1_changed(GtkComboBox *combo, gpointer user_data
 	process_destroot(output);
 	check_for_conversion_form_completeness();
 }
+
+void on_startIndiceEntry_activate(GtkEntry *entry, gpointer user_data) {
+	format_index_convert(entry);
+}
+

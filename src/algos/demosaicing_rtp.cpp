@@ -71,6 +71,7 @@ static bool progress(double p) {
 	return true;
 }
 
+/* this is at most O(9n) in memory */
 WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 		interpolation_method interpolation, sensor_pattern pattern, unsigned int xtrans[6][6], int bit_depth) {
 
@@ -79,7 +80,7 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 		return debayer_buffer_superpixel_ushort(buf, width, height, pattern);
 
 	unsigned int cfarray[2][2];
-	float rgb_cam[3][4] = { 1.0f };	// our white balance: we don't care
+	float rgb_cam[3][4] = { { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } }; // our white balance: we don't care
 	int i, rx = *width, ry = *height;
 	long j, nbpixels = rx * ry;
 	long n = nbpixels * 3;
@@ -178,7 +179,7 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 			retval = markesteijn_demosaic(rx, ry, rawdata, red, green, blue, xtrans, rgb_cam, progress, 1, TRUE);
 			break;
 	}
-	free(rawdata[0]);
+	free(rawdata[0]);	// memory size: 2 times original freed
 	free(rawdata);
 
 	// 4. get the result in WORD (memory size: 3 times original)
@@ -220,7 +221,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 		return debayer_buffer_superpixel_float(buf, width, height, pattern);
 
 	unsigned int cfarray[2][2];
-	float rgb_cam[3][4] = { 1.0f };	// our white balance: we don't care
+	float rgb_cam[3][4] = { { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f } }; // our white balance: we don't care
 	int i, rx = *width, ry = *height;
 	long j, nbpixels = rx * ry;
 	long n = nbpixels * 3;
@@ -232,25 +233,32 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 	}
 	rawdata[0] = buf; // no duplication, input will be overwritten
 	// TODO: do the following only for interpolations that need a conversion.
-	// AMaZE is in [0, 1]
+	// AMaZE is in [0, 1] but also needs to be normalized to make sure we fit exactly in this range
 	// TODO: vectorize!
-#ifdef SIRIL_OUTPUT_DEBUG
-	float min = 100000.0f, max = 0.0f;
-#endif
-	if (interpolation != BAYER_AMAZE) {
-		for (j = 0; j < nbpixels; j++) {
-			if (buf[j] < 0.0f)
-				buf[j] = 0.0f;
-			else buf[j] *= 65535.0f;
-#ifdef SIRIL_OUTPUT_DEBUG
-			if (buf[j] > max) max = buf[j];
-			if (buf[j] < min) min = buf[j];
-#endif
-		}
-#ifdef SIRIL_OUTPUT_DEBUG
-		fprintf(stdout, "****** before debayer, data is [%f, %f] (should be [0, 65535]) ******\n", min, max);
-#endif
+
+	float min = FLT_MAX, max = -FLT_MAX, normvalue = 65535.0f, range, factor, invfactor;
+	if (interpolation == BAYER_AMAZE) normvalue = 1.f;
+
+	for (j = 0; j < nbpixels; j++) {
+		if (buf[j] > max) max = buf[j];
+		if (buf[j] < min) min = buf[j];
 	}
+	range = max - min;
+	if (range == 0.) {
+		free(rawdata);
+		siril_debug_print("Normalisation for debayering: min = max (%f)\n", min);
+		return NULL;
+	}
+	factor = normvalue / range; 
+	invfactor  = 1. / factor;
+
+	// map values from [min,max] to [0,normvalue] (no clipping, no overflow)
+	for (j = 0; j < nbpixels; j++) {
+		buf[j] = (buf[j] - min) * factor;
+	}
+#ifdef SIRIL_OUTPUT_DEBUG
+	fprintf(stdout, "****** before debayer, data is [%f, %f] (should be [0, 65535]) ******\n", 0., normvalue);
+#endif
 
 	for (i = 1; i < ry; i++)
 		rawdata[i] = rawdata[i - 1] + rx;
@@ -335,23 +343,22 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 
 	// 4. convert back to siril range if needed
 	// TODO: do the following only for interpolations that needed a conversion
-	if (interpolation != BAYER_AMAZE) {
+
 #ifdef SIRIL_OUTPUT_DEBUG
-		min = 100000.0f; max = 0.0f;
+	float min2 = FLT_MAX, max2 = -FLT_MAX;
 #endif
-		for (j = 0; j < n; j++) {
+	for (j = 0; j < n; j++) {
+		newdata[j] = newdata[j] * invfactor + min; 
 #ifdef SIRIL_OUTPUT_DEBUG
-			if (newdata[j] > max)
-				max = newdata[j];
-			if (newdata[j] < min)
-				min = newdata[j];
-#endif
-			newdata[j] = newdata[j] * 1.52590219e-5f; // 1/65535
-		}
-#ifdef SIRIL_OUTPUT_DEBUG
-		fprintf(stdout, "****** after debayer, data is [%f, %f] (should be [0, 65535]) ******\n", min, max);
+		if (newdata[j] > max2)
+			max2 = newdata[j];
+		if (newdata[j] < min2)
+			min2 = newdata[j];
 #endif
 	}
+#ifdef SIRIL_OUTPUT_DEBUG
+	fprintf(stdout, "****** after debayer, data is [%f, %f] (should be [0, 65535]) ******\n", min2 * normvalue, max2 * normvalue);
+#endif
 
 	free(blue);
 	free(green);

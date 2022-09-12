@@ -36,10 +36,28 @@ used in the tests.
 
 ###Using test script
 
-To compile the test programs, compile siril then run ./build.sh.
+To compile the test programs, compile siril with the autotools/make method,
+then run ./build.sh in src/tests.
 Since sorting makes some performance tests, siril has to be compiled with -O2
-to have real use values.
+to have realistic values.
 
 If build error occurs, check that the basic build script has all required
 package links for your OS and options for your compiler.
 If link error occurs, add the missing functions in dummy.c
+
+## Debugging scripts
+
+The script creates executables for some tests, which can be debugged like any other.
+For the meson and criterion method, there are a few useful commands:
+
+    # run the test 'ser_test' with valgrind and print logs to stdout
+    meson test --wrap=valgrind ser_test --print-errorlogs
+
+    # run the test ser_test with gdb (just run it on prompt)
+    meson test --gdb ser_test
+
+Unfortunately meson --gdb doesn't work on raspbian, it never breaks.
+The criterion debug method with gdbserver doesn't work either.
+For this reason, some tests can also be compiled as a regular executable, with
+the criterion calls replaced by a macro that displays errors.
+

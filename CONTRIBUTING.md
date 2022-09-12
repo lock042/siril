@@ -19,7 +19,12 @@ Siril is Free Software and a part of the GNU Project and you are welcome to cont
 In order to try the last development version we recommend to compile the sources (see README). Nevertheless it is possible to get nightly builds for Linux and Windows by following these direct links:
 
  * [GNU/Linux (x86_64)](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=appimage-nightly)
- * [Windows (64bits)](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-nightly)
+ * [Windows (64bits) cross-build](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-nightly)
+
+You can also get weekly native Windows builds (portable and installer versions) as well as flatpak bundle from there:
+ * [Windows (64bits) native portable](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-native-nightly)
+ * [Windows (64bits) native with installer](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-native-installer)
+ * [Flatpak](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=flatpak-nightly)
  
  **Test builds are for testing purpose only. They have not been human-tested, it relies on regularly modified development code. So please do not use it for production!**
  
@@ -42,6 +47,16 @@ We are looking for volunteer translators, for the software and for the documenta
 Once done, you can either open the *.pot file for a new translation or the *.po file of the language you want to contribute to an existing one. Then, you can open a merge request or a bug report and attach the new *.po file. We do not need *.mo that are compiled files.
 
 It is also possible to help translating the documentation. To do that, feel free to open a new ticket.
+
+### Formatting
+
+* Formatting code
+
+Code formatting follows [K&R style](https://en.wikipedia.org/wiki/Indentation_style#K&R_style).
+
+* Formatting commands help
+
+When adding commands, you will need to add a description of what it does and which arguments it takes, if any, in src/core/command_def.h. All arguments names must be put in bold and possible string values between quotes. The last sentence of the command help must not be ended by a period.
 
 ### Donate
 

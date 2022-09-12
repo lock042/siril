@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -51,7 +51,7 @@ DWORD read_registre_value(LPTSTR lpKeyName, LPTSTR lpPolicyPath) {
 	DWORD dwReturnKo = -1;
 	HKEY hKey;
 	LONG lResult;
-	DWORD dwValue;
+	DWORD dwValue = 0;
 	DWORD dwSize = sizeof(dwValue);
 
 	lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, lpPolicyPath, 0, KEY_QUERY_VALUE,
@@ -61,22 +61,22 @@ DWORD read_registre_value(LPTSTR lpKeyName, LPTSTR lpPolicyPath) {
 		return dwReturnKo;
 	}
 
-	lResult = RegQueryValueEx(hKey, lpKeyName, 0, NULL, (LPBYTE) & dwValue,
-			&dwSize);
+	lResult = RegQueryValueEx(hKey, lpKeyName, 0, NULL, (LPBYTE) &dwValue, &dwSize);
 	RegCloseKey(hKey);
 
 	return (lResult == ERROR_SUCCESS) ? dwValue : dwReturnKo;
 }
 #endif
 
-gboolean test_if_symlink_is_ok() {
+gboolean test_if_symlink_is_ok(gboolean verbose) {
 #ifdef _WIN32
 	// AllowDevelopmentWithoutDevLicense=1  and AllowAllTrustedApps = 1 if DevMode is enabled
 	// AllowDevelopmentWithoutDevLicense=0  and AllowAllTrustedApps = 0 if DevMode is disabled
 	DWORD cr = read_registre_value(CLE_APPMODEUNLOCK_ADWDL, PATH_APPMODEUNLOCK);
 	if (cr != 1 ) {
-		siril_log_color_message(_("You should enable the Developer Mode in order to create symbolic links "
-				"instead of simply copying files.\n"), "salmon");
+		if (verbose)
+			siril_log_color_message(_("You should enable the Developer Mode in order to create symbolic "
+						"links instead of simply copying files.\n"), "salmon");
 		return FALSE;
 	}
 	return TRUE;

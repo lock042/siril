@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -31,6 +31,7 @@
 #include "gui/image_display.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
 #include "gui/message_dialog.h"
@@ -63,13 +64,6 @@ static void clahe_close(gboolean revert) {
 
 static int clahe_update_preview() {
 	copy_backup_to_gfit();
-	if (CV_MAJOR_VERSION < 3) {
-		char *error = siril_log_message(_("Your version of opencv is "
-				"too old for this feature. Please upgrade your system."));
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Upgrade your system"),
-				error);
-		return 1;
-	}
 
 	struct CLAHE_data *args = malloc(sizeof(struct CLAHE_data));
 
@@ -83,13 +77,25 @@ static int clahe_update_preview() {
 	return 0;
 }
 
+static gboolean end_clahe(gpointer p) {
+	struct CLAHE_data *args = (struct CLAHE_data *) p;
+	stop_processing_thread();
+	set_cursor_waiting(FALSE);
+
+	free(args);
+
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	return FALSE;
+}
+
 gpointer clahe(gpointer p) {
 	struct CLAHE_data *args = (struct CLAHE_data*) p;
 
 	cvClahe(args->fit, args->clip, args->tileSize);
 
-	siril_add_idle(end_generic, args);
-	free(args);
+	siril_add_idle(end_clahe, args);
 	return GINT_TO_POINTER(0);
 }
 

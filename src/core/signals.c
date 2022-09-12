@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,11 +21,14 @@
 #define ANSI_COLOR_RED     "\e[1m\x1b[31m"
 #define ANSI_COLOR_RESET   "\x1b[0m\e[0m"
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <signal.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <dbghelp.h>
-#else
+#elif HAVE_EXECINFO_H
 #include <execinfo.h>
 #endif
 

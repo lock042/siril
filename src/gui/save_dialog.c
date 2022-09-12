@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,6 +34,7 @@
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
+#include "io/Astro-TIFF.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -156,8 +157,7 @@ static void set_copyright_in_TIFF() {
 	if (com.pref.copyright && (com.pref.copyright[0] != '\0')) {
 		copyright = g_strdup(com.pref.copyright);
 	} else {
-		copyright = g_strdup_printf("%s v%s", PACKAGE, VERSION);
-		copyright[0] = toupper(copyright[0]);			// convert siril to Siril
+		copyright = g_strdup_printf("%c%s v%s", toupper(PACKAGE[0]), (char *)PACKAGE + 1, VERSION);
 	}
 
 	gtk_text_buffer_get_bounds(tbuf, &itStart, &itEnd);
@@ -178,24 +178,34 @@ static void set_description_in_TIFF() {
 
 	gtk_text_buffer_get_bounds(tbuf, &itStart, &itEnd);
 	gtk_text_buffer_delete(tbuf, &itStart, &itEnd);
-	/* History already written in header */
-	if (gfit.history) {
-		GSList *list;
-		for (list = gfit.history; list; list = list->next) {
-			gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-			gtk_text_buffer_insert(tbuf, &itEnd, (gchar *)list->data, -1);
-			gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-			gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
-		}
-	}
-	/* New history */
-	if (com.history) {
-		for (int i = 0; i < com.hist_display; i++) {
-			if (com.history[i].history[0] != '\0') {
+
+	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_type_of_tiff"))) == 0) {
+		gchar *astro_tiff = AstroTiff_build_header(&gfit);
+		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+		gtk_text_buffer_insert(tbuf, &itEnd, astro_tiff, -1);
+		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+		gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
+		g_free(astro_tiff);
+	} else {
+		/* History already written in header */
+		if (gfit.history) {
+			GSList *list;
+			for (list = gfit.history; list; list = list->next) {
 				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
-				gtk_text_buffer_insert(tbuf, &itEnd, com.history[i].history, strlen(com.history[i].history));
+				gtk_text_buffer_insert(tbuf, &itEnd, (gchar *)list->data, -1);
 				gtk_text_buffer_get_end_iter(tbuf, &itEnd);
 				gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
+			}
+		}
+		/* New history */
+		if (com.history) {
+			for (int i = 0; i < com.hist_display; i++) {
+				if (com.history[i].history[0] != '\0') {
+					gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+					gtk_text_buffer_insert(tbuf, &itEnd, com.history[i].history, strlen(com.history[i].history));
+					gtk_text_buffer_get_end_iter(tbuf, &itEnd);
+					gtk_text_buffer_insert(tbuf, &itEnd, "\n", 1);
+				}
 			}
 		}
 	}
@@ -212,11 +222,8 @@ static void prepare_savepopup() {
 		savepopup = lookup_widget("savepopup");
 		savetxt = lookup_widget("filenameframe");
 	}
-	GtkWindow *parent = siril_get_active_window();
-	if (!GTK_IS_WINDOW(parent)) {
-		parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
-	}
-	gtk_window_set_transient_for(GTK_WINDOW(savepopup),	parent);
+
+	GtkWindow *parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 
 	switch (type_of_image) {
 	case TYPEBMP:
@@ -246,6 +253,8 @@ static void prepare_savepopup() {
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving FITS"));
 		tab = PAGE_FITS;
 	}
+
+	gtk_window_set_transient_for(GTK_WINDOW(savepopup), parent);
 
 	gtk_widget_set_visible(savetxt, FALSE);
 	gtk_notebook_set_current_page(notebookFormat, tab);
@@ -379,6 +388,8 @@ static int save_dialog() {
 // idle function executed at the end of the Save Data processing
 gboolean end_save(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
+	stop_processing_thread();
+
 	if (args->retval)
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("File saving failed. Check the logs for more info."));
 
@@ -386,7 +397,6 @@ gboolean end_save(gpointer p) {
 	gtk_widget_hide(lookup_widget("savepopup"));
 	display_filename(); // update filename display
 	set_precision_switch();
-	stop_processing_thread();
 	set_cursor_waiting(FALSE);
 	close_dialog();	// is this different from the hide above?
 	update_MenuItem();
@@ -420,6 +430,7 @@ static gboolean initialize_data(gpointer p) {
 	GtkToggleButton *button_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton8bits"));
 	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
 	args->bitspersamples = gtk_toggle_button_get_active(button_8) ? 8 : gtk_toggle_button_get_active(button_32) ? 32 : 16;
+	get_tif_data_from_ui(&gfit, &args->description, &args->copyright, &args->embeded_icc);
 #endif
 	args->entry = GTK_ENTRY(lookup_widget("savetxt"));
 	args->filename = gtk_entry_get_text(args->entry);
@@ -457,7 +468,7 @@ static gpointer mini_save_dialog(gpointer p) {
 #endif
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
-			args->retval = savetif(args->filename, &gfit, args->bitspersamples);
+			args->retval = savetif(args->filename, &gfit, args->bitspersamples, args->description, args->copyright, args->embeded_icc);
 			break;
 #endif
 #ifdef HAVE_LIBPNG
@@ -474,13 +485,8 @@ static gpointer mini_save_dialog(gpointer p) {
 			/* Check if MIPS-HI and MIPS-LO must be updated. If yes,
 			 * Values are taken from the layer 0 */
 			if (args->update_hilo) {
-				if (sequence_is_loaded() && !single_image_is_loaded()) {
-					gfit.hi = com.seq.layers[RLAYER].hi;
-					gfit.lo = com.seq.layers[RLAYER].lo;
-				} else {
-					gfit.hi = com.uniq->layers[RLAYER].hi;
-					gfit.lo = com.uniq->layers[RLAYER].lo;
-				}
+				gfit.hi = gui.hi;
+				gfit.lo = gui.lo;
 				if (gfit.orig_bitpix == BYTE_IMG
 						&& (gfit.hi > UCHAR_MAX || gfit.lo > UCHAR_MAX)) {
 					gfit.hi = UCHAR_MAX;
@@ -723,7 +729,11 @@ static gboolean snapshot_notification_close(gpointer user_data) {
 }
 
 static GtkWidget *snapshot_notification(GtkWidget *widget, const gchar *filename, GdkPixbuf *pixbuf) {
-	gchar *text = g_strdup_printf("Snapshot <b>%s</b> was saved into the working directory.", filename);
+	gchar *text;
+	if (filename)
+		text = g_strdup_printf(_("Snapshot <b>%s</b> was saved into the working directory."), filename);
+	else
+		text = g_strdup((_("Snapshot was saved into the clipboard.")));
 	GtkWidget *popover = popover_new_with_image(widget, text, pixbuf);
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_popover_popup(GTK_POPOVER(popover));
@@ -751,16 +761,13 @@ static void snapshot_callback(GObject *source_object, GAsyncResult *result,
 	}
 }
 
-void on_header_snapshot_button_clicked() {
+void on_header_snapshot_button_clicked(gboolean clipboard) {
 	GError *error = NULL;
 	gchar *timestamp, *filename;
-	GdkPixbuf *pixbuf;
-	GFile *file;
-	GOutputStream *stream;
 	GtkWidget *widget;
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
 
-	widget = lookup_widget(area[com.cvport]);
+	widget = lookup_widget(area[gui.cvport]);
 	timestamp = build_timestamp_filename();
 	filename = g_strdup_printf("%s.png", timestamp);
 
@@ -768,44 +775,53 @@ void on_header_snapshot_button_clicked() {
 	/* create cr from the surface */
 	int width = max(gfit.rx, gtk_widget_get_allocated_width(widget));
 	int height = max(gfit.ry, gtk_widget_get_allocated_height(widget));
-	cairo_surface_t *surface = cairo_surface_create_similar(com.surface[com.cvport], CAIRO_CONTENT_COLOR_ALPHA, width, height);
+	cairo_surface_t *surface = cairo_surface_create_similar(gui.view[gui.cvport].full_surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
 	cairo_t *cr = cairo_create(surface);
 
 	/* add image and all annotations if available */
-	add_image_and_label_to_cairo(cr, com.cvport);
+	add_image_and_label_to_cairo(cr, gui.cvport);
 
 	cairo_destroy(cr);
 
 	double z = get_zoom_val();
 
-	gint x1 = max(0, (int) com.display_offset.x);
-	gint y1 = max(0, (int) com.display_offset.y);
+	gint x1 = max(0, (int) gui.display_offset.x);
+	gint y1 = max(0, (int) gui.display_offset.y);
 
-	gint x2 = min(width * z + (int) com.display_offset.x, gtk_widget_get_allocated_width(widget));
-	gint y2 = min(height * z + (int) com.display_offset.y, gtk_widget_get_allocated_height(widget));
+	gint x2 = min(width * z + (int) gui.display_offset.x, gtk_widget_get_allocated_width(widget));
+	gint y2 = min(height * z + (int) gui.display_offset.y, gtk_widget_get_allocated_height(widget));
 
-	pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
+	GdkPixbuf *pixbuf = gdk_pixbuf_get_from_surface(surface, x1, y1, x2 - x1, y2 - y1);
 	if (pixbuf) {
-		file = g_file_new_build_filename(com.wd, filename, NULL);
+		if (clipboard) {
+			GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+			gtk_clipboard_set_image(cb, pixbuf);
+			gtk_clipboard_store(cb);
 
-		stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,	G_FILE_CREATE_NONE, NULL, &error);
-		if (stream == NULL) {
-			if (error != NULL) {
-				g_warning("%s\n", error->message);
-				g_clear_error(&error);
+			GtkWidget *w = lookup_widget("header_snapshot_button");
+			GtkWidget *popover = snapshot_notification(w, NULL, pixbuf);
+			g_timeout_add(5000, (GSourceFunc) snapshot_notification_close, (gpointer) popover);
+		} else {
+			GFile *file = g_file_new_build_filename(com.wd, filename, NULL);
+
+			GOutputStream *stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+			if (stream == NULL) {
+				if (error != NULL) {
+					g_warning("%s\n", error->message);
+					g_clear_error(&error);
+				}
+				cairo_surface_destroy(surface);
+				g_free(filename);
+				g_object_unref(pixbuf);
+				g_object_unref(file);
+				return;
 			}
-			cairo_surface_destroy(surface);
-			g_free(filename);
-			g_object_unref(pixbuf);
-			g_object_unref(file);
-			return;
-		}
-		gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL,
-				snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
+			gdk_pixbuf_save_to_stream_async(pixbuf, stream, "png", NULL, snapshot_callback, (gpointer) g_file_get_basename(file), NULL);
 
-		g_object_unref(stream);
+			g_object_unref(stream);
+			g_object_unref(file);
+		}
 		g_object_unref(pixbuf);
-		g_object_unref(file);
 	}
 	cairo_surface_destroy(surface);
 	g_free(filename);
@@ -846,4 +862,8 @@ void on_savepopup_show(GtkWidget *widget, gpointer user_data) {
 
 	gtk_scrolled_window_set_min_content_height(scrolled_window, height);
 	gtk_scrolled_window_set_min_content_width(scrolled_window, width);
+}
+
+void on_combo_type_of_tiff_changed(GtkComboBox* box, gpointer user_data) {
+	set_description_in_TIFF();
 }

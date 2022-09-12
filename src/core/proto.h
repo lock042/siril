@@ -43,7 +43,8 @@ int readpic(const char *name, fits *fit);
 /****************** image_formats_libraries.h ******************/
 #ifdef HAVE_LIBTIFF
 int readtif(const char *name, fits *fit, gboolean force_float);
-int savetif(const char *name, fits *fit, uint16_t bitspersample);
+void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc);
+int savetif(const char *name, fits *fit, uint16_t bitspersample, char *description, char *copyright, gboolean embeded_icc);
 #endif
 
 #ifdef HAVE_LIBJPEG
@@ -76,6 +77,7 @@ int round_to_ceiling_multiple(int x, int factor);
 BYTE conv_to_BYTE(double x);
 int truncate_to_int32(uint64_t x);
 WORD truncate_to_WORD(int x);
+BYTE truncate_to_BYTE(WORD x);
 int set_int_in_interval(int val, int low, int high);
 float set_float_in_interval(float val, float low, float high);
 double set_double_in_interval(double val, double low, double high);
@@ -130,23 +132,31 @@ gchar *siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf);
 gchar *siril_truncate_str(gchar *str, gint size);
 char **glist_to_array(GList *list, int *arg_count);
 gchar* url_cleanup(const gchar *uri_string);
+void remove_spaces_from_str(gchar *s);
+void remove_trailing_eol(char *str);
+gboolean string_is_a_number(const char *str);
+#if !GLIB_CHECK_VERSION(2,68,0)
+guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
+		guint limit);
+#endif
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
 		WORD nullvalue, long *ngoodpix, WORD *minvalue, WORD *maxvalue,
 		double *mean, double *sigma, double *noise1, double *noise2,
-		double *noise3, double *noise5, gboolean multithread, int *status);
+		double *noise3, double *noise5, threading_type threads, int *status);
 
 int siril_fits_img_stats_float(float *array, long nx, long ny, int nullcheck,
 		float nullvalue, long *ngoodpix, float *minvalue, float *maxvalue,
 		double *mean, double *sigma, double *noise1, double *noise2,
-		double *noise3, double *noise5, gboolean multithread, int *status);
+		double *noise3, double *noise5, threading_type threads, int *status);
 
 /****************** siril.h ******************/
 
 int threshlo(fits *fit, WORD level);
 int threshhi(fits *fit, WORD level);
 int nozero(fits *fit, WORD level);
+int gaussian_blur_RT(fits *fit, double sigma, int threads);
 int unsharp(fits*, double sigma, double mult, gboolean verbose);
 float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
 int loglut(fits *fit);
@@ -154,7 +164,7 @@ int ddp(fits *a, int lev, float coef, float sig);
 int visu(fits *fit, int low, int high);
 int fill(fits *fit, int level, rectangle *arearg);
 int off(fits *a, float level);
-double background(fits *fit, int reqlayer, rectangle *selection, gboolean multithread);
+double background(fits* fit, int reqlayer, rectangle *selection, threading_type threads);
 void show_FITS_header(fits*);
 void compute_grey_flat(fits *fit);
 
@@ -163,16 +173,6 @@ sequence* readseqfile(const char *name);
 int writeseqfile(sequence *seq);
 gboolean existseq(const char *name);
 int buildseqfile(sequence *seq, int force_recompute);
-
-/****************** registration_preview.h ******************/
-void redraw_previews();
-void set_preview_area(int preview_area, int centerX, int centerY);
-void init_mouse();
-void adjust_reginfo();
-void on_spinbut_shift_value_change(GtkSpinButton *spinbutton,
-		gpointer user_data);
-void test_and_allocate_reference_image(int vport);
-void enable_view_reference_checkbox(gboolean status);
 
 /****************** statistics_list.h ******************/
 void computeStat();

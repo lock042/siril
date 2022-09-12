@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@
 #include "asinh.h"
 
 static gboolean asinh_rgb_space = FALSE;
-static double asinh_stretch_value = 1.0, asinh_black_value = 0.0;
+static float asinh_stretch_value = 0.0f, asinh_black_value = 0.0f;
 static gboolean asinh_show_preview;
 
 static void asinh_startup() {
@@ -61,15 +61,15 @@ static int asinh_update_preview() {
 	return 0;
 }
 
-int asinhlut_ushort(fits *fit, double beta, double offset, gboolean RGBspace) {
+int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminance) {
 	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
-	double norm, asinh_beta, factor_red, factor_green, factor_blue;
 
-	norm = get_normalized_value(fit);
-	asinh_beta = asinh(beta);
-	factor_red = RGBspace ? 0.2126 : 0.3333;
-	factor_green = RGBspace ? 0.7152 : 0.3333;
-	factor_blue = RGBspace ? 0.0722 : 0.3333;
+	float norm = get_normalized_value(fit);
+	float invnorm = 1.0f / norm;
+	float asinh_beta = asinh(beta);
+	float factor_red = human_luminance ? 0.2126f : 0.3333f;
+	float factor_green = human_luminance ? 0.7152f : 0.3333f;
+	float factor_blue = human_luminance ? 0.0722f : 0.3333f;
 
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	if (fit->naxes[2] > 1) {
@@ -77,44 +77,43 @@ int asinhlut_ushort(fits *fit, double beta, double offset, gboolean RGBspace) {
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x, k;
-			double r, g, b;
+			float r = buf[RLAYER][i] * invnorm;
+			float g = buf[GLAYER][i] * invnorm;
+			float b = buf[BLAYER][i] * invnorm;
+			float rprime = max(0, (r - offset) / (1.0f - offset));
+			float gprime = max(0, (g - offset) / (1.0f - offset));
+			float bprime = max(0, (b - offset) / (1.0f - offset));
 
-			r = (double) buf[RLAYER][i] / norm;
-			g = (double) buf[GLAYER][i] / norm;
-			b = (double) buf[BLAYER][i] / norm;
+			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
 
-			x = factor_red * r + factor_green * g + factor_blue * b;
+			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
 
-			k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
-
-			buf[RLAYER][i] = round_to_WORD((r - offset) * k * norm);
-			buf[GLAYER][i] = round_to_WORD((g - offset) * k * norm);
-			buf[BLAYER][i] = round_to_WORD((b - offset) * k * norm);
+			buf[RLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(rprime) * k)));
+			buf[GLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(gprime) * k)));
+			buf[BLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(bprime) * k)));
 		}
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x, k;
-			x = buf[RLAYER][i] / norm;
-			k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
-			buf[RLAYER][i] = round_to_WORD((x - offset) * k * norm);
+			float x = buf[RLAYER][i] * invnorm;
+			float xprime = max(0, (x - offset) / (1.0f - offset));
+			float k = (xprime == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * xprime) / (xprime * asinh_beta);
+			buf[RLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(xprime) * k)));
 		}
 	}
 	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
-static int asinhlut_float(fits *fit, double beta, double offset, gboolean RGBspace) {
+static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_luminance) {
 	float *buf[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
-	double asinh_beta, factor_red, factor_green, factor_blue;
 
-	asinh_beta = asinh(beta);
-	factor_red = RGBspace ? 0.2126 : 0.3333;
-	factor_green = RGBspace ? 0.7152 : 0.3333;
-	factor_blue = RGBspace ? 0.0722 : 0.3333;
+	float asinh_beta = asinhf(beta);
+	float factor_red = human_luminance ? 0.2126f : 0.3333f;
+	float factor_green = human_luminance ? 0.7152f : 0.3333f;
+	float factor_blue = human_luminance ? 0.0722f : 0.3333f;
 
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	if (fit->naxes[2] > 1) {
@@ -122,47 +121,48 @@ static int asinhlut_float(fits *fit, double beta, double offset, gboolean RGBspa
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->ry * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x, k;
-			float r, g, b;
+			float r = buf[RLAYER][i];
+			float g = buf[GLAYER][i];
+			float b = buf[BLAYER][i];
+			float rprime = max(0.0f, (r - offset) / (1.0f - offset));
+			float gprime = max(0.0f, (g - offset) / (1.0f - offset));
+			float bprime = max(0.0f, (b - offset) / (1.0f - offset));
 
-			r = buf[RLAYER][i];
-			g = buf[GLAYER][i];
-			b = buf[BLAYER][i];
+			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
 
-			x = factor_red * r + factor_green * g + factor_blue * b;
+			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
 
-			k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
-
-			buf[RLAYER][i] = (r - offset) * k;
-			buf[GLAYER][i] = (g - offset) * k;
-			buf[BLAYER][i] = (b - offset) * k;
+			buf[RLAYER][i] = min(1.0f, max(0.0f, (rprime * k)));
+			buf[GLAYER][i] = min(1.0f, max(0.0f, (gprime * k)));
+			buf[BLAYER][i] = min(1.0f, max(0.0f, (bprime * k)));
 		}
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->ry * 16)
 #endif
 		for (i = 0; i < n; i++) {
-			double x, k;
+			float x, k;
 			x = buf[RLAYER][i];
-			k = (x == 0.0) ? 0.0 : asinh(beta * x) / (x * asinh_beta);
-			buf[RLAYER][i] = (x - offset) * k;
+			float xprime = max(0.0f, (x - offset) / (1.0f - offset));
+			k = (xprime == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * xprime) / (xprime * asinh_beta);
+			buf[RLAYER][i] = min(1.0f, max(0.0f,(x * k)));
 		}
 	}
 	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
-int asinhlut(fits *fit, double beta, double offset, gboolean RGBspace) {
+int asinhlut(fits *fit, float beta, float offset, gboolean human_luminance) {
 	if (fit->type == DATA_USHORT)
-		return asinhlut_ushort(fit, beta, offset, RGBspace);
+		return asinhlut_ushort(fit, beta, offset, human_luminance);
 	if (fit->type == DATA_FLOAT)
-		return asinhlut_float(fit, beta, offset, RGBspace);
+		return asinhlut_float(fit, beta, offset, human_luminance);
 	return 1;
 }
 
 
 static void apply_asinh_changes() {
-	gboolean status = (asinh_stretch_value != 1.0) || (asinh_black_value != 0.0) || !asinh_rgb_space;
+	gboolean status = (asinh_stretch_value != 1.0f) || (asinh_black_value != 0.0f) || !asinh_rgb_space;
 	asinh_close(!status);
 }
 
@@ -179,8 +179,8 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
 
 	asinh_startup();
-	asinh_stretch_value = 1.0;
-	asinh_black_value = 0.0;
+	asinh_stretch_value = 0.0f;
+	asinh_black_value = 0.0f;
 	asinh_rgb_space = TRUE;
 
 	set_notify_block(TRUE);
@@ -223,7 +223,7 @@ void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_stretch = GTK_SPIN_BUTTON(lookup_widget("spin_asinh"));
 	GtkSpinButton *spin_black_p = GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh"));
 	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
-	asinh_stretch_value = 1.0;
+	asinh_stretch_value = 0.0;
 	asinh_black_value = 0.0;
 	asinh_rgb_space = TRUE;
 

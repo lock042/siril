@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -31,6 +31,7 @@
 
 #include "core/proto.h"
 #include "core/siril.h"
+#include "core/processing.h"
 #include "sorting.h"
 
 /* more than this many standard deviations from the mean is an outlier */
@@ -48,10 +49,10 @@ static int FnMeanSigma_int(int *array, long npix, int nullcheck, int nullvalue,
 		long *ngoodpix, double *mean, double *sigma, int *status);
 
 static int FnNoise1_ushort(WORD *array, long nx, long ny, int nullcheck,
-		WORD nullvalue, double *noise, gboolean multithread, int *status);
+		WORD nullvalue, double *noise, threading_type threads, int *status);
 
 static int FnNoise1_float(float *array, long nx, long ny, int nullcheck,
-		float nullvalue, double *noise, gboolean multithread, int *status);
+		float nullvalue, double *noise, threading_type threads, int *status);
 
 
 static int FnNoise5_ushort(WORD *array, long nx, long ny, int nullcheck,
@@ -83,7 +84,7 @@ double *noise1, /* 1st order estimate of noise in image background level */
 double *noise2, /* 2nd order estimate of noise in image background level */
 double *noise3, /* 3rd order estimate of noise in image background level */
 double *noise5, /* 5th order estimate of noise in image background level */
-gboolean multithread,
+threading_type threads,
 int *status) /* error status */
 
 /*
@@ -109,7 +110,7 @@ int *status) /* error status */
 	}
 
 	if (noise1) {
-		FnNoise1_ushort(array, nx, ny, nullcheck, nullvalue, &xnoise, multithread, status);
+		FnNoise1_ushort(array, nx, ny, nullcheck, nullvalue, &xnoise, threads, status);
 
 		*noise1 = xnoise;
 	}
@@ -153,7 +154,7 @@ double *noise1, /* 1st order estimate of noise in image background level */
 double *noise2, /* 2nd order estimate of noise in image background level */
 double *noise3, /* 3rd order estimate of noise in image background level */
 double *noise5, /* 5th order estimate of noise in image background level */
-gboolean multithread,
+threading_type threads,
 int *status) /* error status */
 
 /*
@@ -179,7 +180,7 @@ int *status) /* error status */
 	}
 
 	if (noise1) {
-		FnNoise1_float(array, nx, ny, nullcheck, nullvalue, &xnoise, multithread, status);
+		FnNoise1_float(array, nx, ny, nullcheck, nullvalue, &xnoise, threads, status);
 
 		*noise1 = xnoise;
 	}
@@ -1210,7 +1211,7 @@ int nullcheck, /* check for null values, if true */
 WORD nullvalue, /* value of null pixels, if nullcheck is true */
 /* returned parameters */
 double *noise, /* returned R.M.S. value of all non-null pixels */
-gboolean multithread,
+threading_type threads,
 int *status) /* error status */
 /*
  Estimate the background noise in the input image using sigma of 1st order differences.
@@ -1238,16 +1239,21 @@ int *status) /* error status */
 
 	/* loop over each row of the image */
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread) if (multithread)
+	threads = limit_threading(&threads, 200000, nx*ny);
+	//if (threads > 1)
+	//	siril_debug_print("threading FnNoise1_ushort with %d threads\n", threads);
+#pragma omp parallel num_threads(threads) if (threads>1)
 #endif
 	{
+		if (threads > 1 && omp_get_num_threads() != threads)
+			siril_debug_print("actual number of threads: %d of %d requested (level %d)\n", omp_get_num_threads(), threads, omp_get_level());
 		WORD *rowpix, v1;
 		double mean, stdev;
 		int *differences;
 		differences = calloc(nx, sizeof(int)); // no check here at the moment, allocation is small, should be no problem
 
 #ifdef _OPENMP
-#pragma omp for schedule (dynamic, 16)
+#pragma omp for schedule(static)
 #endif
 			for (jj = 0; jj < ny; jj++) {
 				long ii, kk, nvals;
@@ -1347,7 +1353,7 @@ int nullcheck, /* check for null values, if true */
 float nullvalue, /* value of null pixels, if nullcheck is true */
 /* returned parameters */
 double *noise, /* returned R.M.S. value of all non-null pixels */
-gboolean multithread,
+threading_type threads,
 int *status)        /* error status */
 /*
 Estimate the background noise in the input image using sigma of 1st order differences.
@@ -1376,22 +1382,26 @@ row of the image.
 
 	diffs = calloc(ny, sizeof(double));
 	if (!diffs) {
-//		free(differences);
 		*status = MEMORY_ALLOCATION;
 		return (*status);
 	}
 
 	/* loop over each row of the image */
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread) if (multithread)
+	threads = limit_threading(&threads, 200000, nx*ny);
+	//if (threads > 1)
+		//siril_debug_print("threading FnNoise1_float with %d threads\n", threads);
+#pragma omp parallel num_threads(threads) if (threads>1)
 #endif
 	{
+		if (threads > 1 && omp_get_num_threads() != threads)
+			siril_debug_print("actual number of threads: %d of %d requested (level %d)\n", omp_get_num_threads(), threads, omp_get_level());
 		float *rowpix, v1;
 		double mean, stdev;
 		float *differences;
 		differences = calloc(nx, sizeof(float)); // no check here at the moment, allocation is small, should be no problem
 #ifdef _OPENMP
-#pragma omp for schedule (dynamic, 16)
+#pragma omp for schedule(static)
 #endif
 		for (jj = 0; jj < ny; jj++) {
 			long ii, kk, nvals;

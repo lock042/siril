@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -37,22 +37,32 @@ static int soper_ushort_to_ushort(fits *a, float scalar, image_operator oper) {
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
 	data = a->data;
+	float invnorm = (a->bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : 1.f;
 	if (oper == OPER_DIV) {
 		scalar = 1.0f / scalar;
 		oper = OPER_MUL;
 	}
+	if (oper == OPER_MUL) scalar *= invnorm;
 
 	switch (oper) {
 		case OPER_ADD:
 			for (i = 0; i < n; ++i) {
 				float pixel = ushort_to_float_bitpix(a, data[i]);
-				data[i] = float_to_ushort_range(pixel + scalar);
+				if (invnorm == 1.f) {
+					data[i] = float_to_ushort_range(pixel + scalar);
+				} else {
+					data[i] = float_to_ushort_range(invnorm * (pixel + scalar));
+				}
 			}
 			break;
 		case OPER_SUB:
 			for (i = 0; i < n; ++i) {
 				float pixel = ushort_to_float_bitpix(a, data[i]);
-				data[i] = float_to_ushort_range(pixel - scalar);
+				if (invnorm == 1.f) {
+					data[i] = float_to_ushort_range(pixel - scalar);
+				} else {
+					data[i] = float_to_ushort_range(invnorm * (pixel - scalar));
+				}
 			}
 			break;
 		case OPER_MUL:
@@ -266,6 +276,7 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 		}
 	}
 	invalidate_stats_from_fit(a);
+	a->neg_ratio = 0.0f;
 	return 0;
 }
 
@@ -290,6 +301,7 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 	}
 	else return 1;
 
+	size_t nb_negative = 0;
 	for (size_t i = 0; i < n; ++i) {
 		float aval = a->type == DATA_USHORT ? ushort_to_float_bitpix(a, a->data[i]) : a->fdata[i];
 		float bval = b->type == DATA_USHORT ? ushort_to_float_bitpix(b, b->data[i]) : b->fdata[i];
@@ -312,10 +324,15 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 			result[i] *= factor;
 		if (result[i] > 1.0f)	// should we truncate by default?
 			result[i] = 1.0f;
+		if (result[i] < -1.0f)	// Here we want to clip all garbages pixels.
+			result[i] = 0.0f;
+		if (result[i] < 0.0f)
+			nb_negative++;
 	}
-	if (a->type == DATA_USHORT) {
+	a->neg_ratio = (float)((double)nb_negative / n);
+	if (a->type == DATA_USHORT)
 		fit_replace_buffer(a, result, DATA_FLOAT);
-	} else invalidate_stats_from_fit(a);
+	else invalidate_stats_from_fit(a);
 	return 0;
 }
 
@@ -324,7 +341,7 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
  * returns 0 on success */
 static int imoper_with_factor(fits *a, fits *b, image_operator oper, float factor, gboolean allow_32bits) {
 	// ushort result can only be forced when both input images are ushort
-	if (allow_32bits && !com.pref.force_to_16bit)
+	if (allow_32bits && !com.pref.force_16bit)
 		return imoper_to_float(a, b, oper, factor);
 	else {
 		if (a->type == DATA_USHORT)

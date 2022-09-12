@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -40,12 +40,17 @@
 #include <gsl/gsl_statistics.h>
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "gui/dialogs.h"
 #include "sorting.h"
 #include "statistics.h"
 #include "gui/progress_and_log.h"
 
 #define ACTIVATE_NULLCHECK_FLOAT 1
+
+// uncomment to debug statistics
+#undef siril_debug_print
+#define siril_debug_print(fmt, ...) { }
 
 // copies the area of an image into the memory buffer data
 static void select_area_float(fits *fit, float *data, int layer, rectangle *bounds) {
@@ -83,7 +88,7 @@ float siril_stats_float_sd(const float data[], const int N, float *m) {
  * of the absolute deviations from the data's median:
  *  MAD = median (| Xi − median(X) |)
  */
-static double siril_stats_float_mad(const float *data, const size_t n, const double m, gboolean multithread, float *buffer) {
+double siril_stats_float_mad(const float *data, const size_t n, const double m, threading_type threads, float *buffer) {
 	double mad;
 	const float median = (float)m;
 	float *tmp = buffer ? buffer : malloc(n * sizeof(float));
@@ -93,13 +98,14 @@ static double siril_stats_float_mad(const float *data, const size_t n, const dou
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(multithread && n > 10000) schedule(static)
+	threads = limit_threading(&threads, 400000, n);
+#pragma omp parallel for num_threads(threads) if(threads>1) schedule(static)
 #endif
 	for (size_t i = 0; i < n; i++) {
 		tmp[i] = fabsf(data[i] - median);
 	}
 
-	mad = histogram_median_float(tmp, n, multithread);
+	mad = histogram_median_float(tmp, n, threads);
 	if (!buffer) {
 	    free(tmp);
 	}
@@ -107,15 +113,15 @@ static double siril_stats_float_mad(const float *data, const size_t n, const dou
 }
 
 static double siril_stats_float_bwmv(const float* data, const size_t n,
-		const float mad, const float median, gboolean multithread) {
-
+		const float mad, const float median, threading_type threads) {
 	double bwmv = 0.0;
 	double up = 0.0, down = 0.0;
 
 	if (mad > 0.f) {
         const float factor = 1.f / (9.f * mad);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(multithread) schedule(static) reduction(+:up,down)
+	threads = limit_threading(&threads, 150000, n);
+#pragma omp parallel for num_threads(threads) if(threads>1) schedule(static) reduction(+:up,down)
 #endif
 		for (size_t i = 0; i < n; i++) {
 			const float i_med = data[i] - median;
@@ -131,6 +137,26 @@ static double siril_stats_float_bwmv(const float* data, const size_t n,
 	}
 
 	return bwmv;
+}
+
+float siril_stats_trmean_from_sorted_data(const float trim,
+		const float sorted_data[], const size_t stride, const size_t size) {
+	if (trim >= 0.5f) {
+		return (float) gsl_stats_float_median_from_sorted_data(sorted_data, stride, size);
+	} else {
+		size_t ilow = (size_t) floorf(trim * size);
+		size_t ihigh = size - ilow - 1;
+		float mean = 0.f;
+		float k = 0.f;
+
+		/* compute mean of middle samples in [ilow,ihigh] */
+		for (size_t i = ilow; i <= ihigh; ++i) {
+			float delta = sorted_data[i * stride] - mean;
+			k += 1.f;
+			mean += delta / k;
+		}
+		return mean;
+	}
 }
 
 #if 0
@@ -183,7 +209,7 @@ int IKSS(float *data, size_t n, double *location, double *scale, gboolean multit
 }
 #endif
 
-int IKSSlite(float *data, size_t n, const float median, float mad, double *location, double *scale, gboolean multithread) {
+int IKSSlite(float *data, size_t n, const float median, float mad, double *location, double *scale, threading_type threads) {
 	size_t i, kept;
 	float xlow, xhigh;
 
@@ -203,12 +229,14 @@ int IKSSlite(float *data, size_t n, const float median, float mad, double *locat
 	if (kept == 0)
 		return 1;
 
-	*location = histogram_median_float(data, kept, multithread);
-	mad = siril_stats_float_mad(data, kept, *location, multithread, NULL);
-	if (mad == 0.0f)
+	*location = histogram_median_float(data, kept, threads);
+	mad = siril_stats_float_mad(data, kept, *location, threads, NULL);
+	if (mad == 0.0f) {
+		siril_log_color_message(_("MAD is null. Statistics cannot be computed.\n"), "red");
 		return 1;
+	}
 
-	*scale = sqrt(siril_stats_float_bwmv(data, kept, mad, *location, multithread)) *.991;
+	*scale = sqrt(siril_stats_float_bwmv(data, kept, mad, *location, threads)) *.991;
 	/* 0.991 factor is to keep consistency with IKSS scale */
 	return 0;
 }
@@ -237,14 +265,15 @@ static float* reassign_to_non_null_data_float(float *data, size_t inputlen, size
 }
 
 static void siril_stats_float_minmax(float *min_out, float *max_out,
-		const float data[], const size_t n, gboolean multithread) {
+		const float data[], const size_t n, threading_type threads) {
 	/* finds the smallest and largest members of a dataset */
 
 	if (n > 0 && data) {
 		float min = data[0];
 		float max = data[0];
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithread && n > 10000) reduction(max:max) reduction(min:min)
+	threads = limit_threading(&threads, 400000, n);
+#pragma omp parallel for num_threads(threads) schedule(static) if(threads>1) reduction(max:max) reduction(min:min)
 #endif
 		for (size_t i = 0; i < n; i++) {
 			const float xi = data[i];
@@ -260,7 +289,7 @@ static void siril_stats_float_minmax(float *min_out, float *max_out,
 
 /* this function tries to get the requested stats from the passed stats,
  * computes them and stores them in it if they have not already been */
-imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, int option, imstats *stats, int bitpix, gboolean multithread) {
+imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, int option, imstats *stats, int bitpix, threading_type threads) {
 	int nx, ny;
 	float *data = NULL;
 	int stat_is_local = 0, free_data = 0;
@@ -273,8 +302,6 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 		allocate_stats(&stat);
 		if (!stat) return NULL;
 		stat_is_local = 1;
-	} else {
-		atomic_int_incref(stat->_nb_refs);
 	}
 
 	if (fit) {
@@ -322,7 +349,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing minmax\n", stat, fit, layer);
-		siril_stats_float_minmax(&min, &max, data, stat->total, multithread);
+		siril_stats_float_minmax(&min, &max, data, stat->total, threads);
 		stat->min = (double)min * stat->normValue;
 		stat->max = (double)max * stat->normValue;
 	}
@@ -338,7 +365,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
 		siril_fits_img_stats_float(data, nx, ny, ACTIVATE_NULLCHECK_FLOAT, 0.0f, &stat->ngoodpix,
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
-				NULL, NULL, NULL, multithread, &status);
+				NULL, NULL, NULL, threads, &status);
 		if (status) {
 			if (free_data) free(data);
 			if (stat_is_local) free(stat);
@@ -375,7 +402,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
-		stat->median = histogram_median_float(data, stat->ngoodpix, multithread) * stat->normValue;
+		stat->median = histogram_median_float(data, stat->ngoodpix, threads) * stat->normValue;
 	}
 
 	/* Calculation of average absolute deviation from the median */
@@ -395,7 +422,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing mad\n", stat, fit, layer);
-		stat->mad = siril_stats_float_mad(data, stat->ngoodpix, stat->median / stat->normValue, multithread, NULL) * stat->normValue;
+		stat->mad = siril_stats_float_mad(data, stat->ngoodpix, stat->median / stat->normValue, threads, NULL) * stat->normValue;
 	}
 
 	/* Calculation of Bidweight Midvariance */
@@ -405,7 +432,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing bimid\n", stat, fit, layer);
-		double bwmv = siril_stats_float_bwmv(data, stat->ngoodpix, stat->mad / stat->normValue, stat->median / stat->normValue, multithread);
+		double bwmv = siril_stats_float_bwmv(data, stat->ngoodpix, stat->mad / stat->normValue, stat->median / stat->normValue, threads);
 		stat->sqrtbwmv = sqrt(bwmv) * stat->normValue;
 	}
 
@@ -416,7 +443,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing ikss\n", stat, fit, layer);
-		if (IKSSlite(data, stat->ngoodpix, stat->median / stat->normValue, stat->mad / stat->normValue, &stat->location, &stat->scale, multithread)) {
+		if (IKSSlite(data, stat->ngoodpix, stat->median / stat->normValue, stat->mad / stat->normValue, &stat->location, &stat->scale, threads)) {
 			if (stat_is_local) free(stat);
 			if (free_data) free(data);
 			return
@@ -430,13 +457,12 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	return stat;
 }
 
-int compute_means_from_flat_cfa_float(fits *fit, float mean[4]) {
-	int row, col, c, i = 0;
+int compute_means_from_flat_cfa_float(fits *fit, double mean[36]) {
+	int row, col, c, i[36] = {0};
 	float *data;
 	unsigned int width, height;
 	unsigned int startx, starty;
 
-	mean[0] = mean[1] = mean[2] = mean[3] = 0.0;
 	data = fit->fdata;
 	width = fit->rx;
 	height = fit->ry;
@@ -447,26 +473,256 @@ int compute_means_from_flat_cfa_float(fits *fit, float mean[4]) {
 	startx = width / 3;
 	starty = height / 3;
 
-	/* make sure it does start at the beginning of CFA pattern */
-	startx = startx % 2 == 0 ? startx : startx + 1;
-	starty = starty % 2 == 0 ? starty : starty + 1;
-
 	siril_debug_print("Computing stat in (%d, %d, %d, %d)\n", startx, starty,
 			width - 1 - startx, height - 1 - starty);
 
-	/* Compute mean of each channel */
-	for (row = starty; row < height - 1 - starty; row += 2) {
-		for (col = startx; col < width - 1 - startx; col += 2) {
-			mean[0] += data[col + row * width];
-			mean[1] += data[1 + col + row * width];
-			mean[2] += data[col + (1 + row) * width];
-			mean[3] += data[1 + col + (1 + row) * width];
-			i++;
+	/* compute mean of each element in 6x6 blocks */
+	for (row = starty; row < height - starty; row++) {
+		for (col = startx; col < width - startx; col++) {
+			mean[(col % 6) + (row % 6) * 6] += data[col + row * width];
+			i[(col % 6) + (row % 6) * 6]++;
 		}
 	}
 
-	for (c = 0; c < 4; c++) {
-		mean[c] /= (float) i;
+	for (c = 0; c < 36; c++) {
+		mean[c] /= (double) i[c];
 	}
 	return 0;
 }
+
+/****************** ROBUST MEAN FOR PHOTOMETRY *******************/
+
+#define hampel_a   1.7
+#define hampel_b   3.4
+#define hampel_c   8.5
+#define sign(x,y)  ((y)>=0?fabs(x):-fabs(x))
+#define epsilon(x) 0.00000001
+#define maxit      50
+
+static double hampel(double x) {
+	if (x >= 0) {
+		if (x < hampel_a)
+			return x;
+		if (x < hampel_b)
+			return hampel_a;
+		if (x < hampel_c)
+			return hampel_a * (x - hampel_c) / (hampel_b - hampel_c);
+	} else {
+		if (x > -hampel_a)
+			return x;
+		if (x > -hampel_b)
+			return -hampel_a;
+		if (x > -hampel_c)
+			return hampel_a * (x + hampel_c) / (hampel_b - hampel_c);
+	}
+	return 0.0;
+}
+
+static double dhampel(double x) {
+	if (x >= 0) {
+		if (x < hampel_a)
+			return 1;
+		if (x < hampel_b)
+			return 0;
+		if (x < hampel_c)
+			return hampel_a / (hampel_b - hampel_c);
+	} else {
+		if (x > -hampel_a)
+			return 1;
+		if (x > -hampel_b)
+			return 0;
+		if (x > -hampel_c)
+			return -hampel_a / (hampel_b - hampel_c);
+	}
+	return 0.0;
+}
+
+static double qmedD(int n, double *a)
+	/* Vypocet medianu algoritmem Quick Median (Wirth) */
+{
+	double w;
+	int k = ((n & 1) ? (n / 2) : ((n / 2) - 1));
+	int l = 0;
+	int r = n - 1;
+
+	while (l < r) {
+		double x = a[k];
+		int i = l;
+		int j = r;
+		do {
+			while (a[i] < x)
+				i++;
+			while (x < a[j])
+				j--;
+			if (i <= j) {
+				w = a[i];
+				a[i] = a[j];
+				a[j] = w;
+				i++;
+				j--;
+			}
+		} while (i <= j);
+		if (j < k)
+			l = i;
+		if (k < i)
+			r = j;
+	}
+	return a[k];
+}
+
+static float Qn0(const float sorted_data[], const size_t stride, const size_t n) {
+	const size_t wsize = n * (n - 1) / 2;
+	const size_t n_2 = n / 2;
+	const size_t k = ((n_2 + 1) * n_2) / 2;
+	size_t idx = 0;
+
+	if (n < 2)
+		return (0.0);
+
+	float *work = malloc(wsize * sizeof(float));
+	if (!work) {
+		PRINT_ALLOC_ERR;
+		return -1.0f;
+	}
+
+	for (size_t i = 0; i < n; ++i) {
+		for (size_t j = i + 1; j < n; ++j)
+			work[idx++] = fabsf(sorted_data[i] - sorted_data[j]);
+	}
+
+	quicksort_f(work, idx);
+	float Qn = work[k - 1];
+
+	free(work);
+	return Qn;
+}
+
+/* a robust mean from sorted data, see also robust_mean in sorting.c */
+float siril_stats_robust_mean(const float sorted_data[],
+		const size_t stride, const size_t size, double *deviation) {
+	float mx = (float) gsl_stats_float_median_from_sorted_data(sorted_data, stride, size);
+	float qn0 = Qn0(sorted_data, 1, size);
+	if (qn0 < 0)
+		return -1.0f;
+	float sx = 2.2219f * qn0;
+	float *x, mean;
+	int i, j;
+
+	x = malloc(size * sizeof(float));
+	if (!x) {
+		PRINT_ALLOC_ERR;
+		return -1.0f;
+	}
+
+	for (i = 0, j = 0; i < size; ++i) {
+		if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
+			x[j++] = sorted_data[i];
+		}
+	}
+	siril_debug_print("keeping %d samples on %zu for the robust mean (mx: %f, sx: %f)\n", j, size, mx, sx);
+	/* not enough stars, try something anyway */
+	if (j < 5) {
+		mean = siril_stats_trmean_from_sorted_data(0.3f, sorted_data, stride, size);
+	} else {
+		mean = (float) gsl_stats_float_mean(x, stride, j);
+	}
+	free(x);
+
+	/* compute the deviation of the mean against the values */
+	if (deviation) {
+		double dev = 0.0;
+		int inliers = 0;
+		for (i = 0, j = 0; i < size; ++i) {
+			if (fabsf(sorted_data[i] - mx) <= 3.f * sx) {
+				dev += fabsf(sorted_data[i] - mean);
+				inliers++;
+			}
+		}
+		if (inliers)
+			*deviation = dev / inliers;
+		else *deviation = 1.0;
+	}
+
+	return mean;
+}
+
+/************* another robust mean ***************/
+
+int robustmean(int n, double *x, double *mean, double *stdev)
+	/* Newton's iterations */
+{
+	int i, it;
+	double a, c, dt, r, s, psir;
+	double *xx;
+
+	if (n < 1) {
+		if (mean)
+			*mean = 0.0; /* a few data */
+		if (stdev)
+			*stdev = -1.0;
+		return 1;
+	}
+	if (n == 1) { /* only one point, but correct case */
+		if (mean)
+			*mean = x[0];
+		if (stdev)
+			*stdev = 0.0;
+		return 0;
+	}
+
+	/* initial values:
+	   - median is the first approximation of location
+	   - MAD/0.6745 is the first approximation of scale */
+	xx = malloc(n * sizeof(double));
+	if (!xx) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	memcpy(xx, x, n * sizeof(double));
+	a = qmedD(n, xx);
+	for (i = 0; i < n; i++)
+		xx[i] = fabs(x[i] - a);
+	s = qmedD(n, xx) / 0.6745;
+	free(xx);
+
+	/* almost identical points on input */
+	if (fabs(s) < epsilon(s)) {
+		if (mean)
+			*mean = a;
+		if (stdev) {
+			double sum = 0.0;
+			for (i = 0; i < n; i++)
+				sum += (x[i] - a) * (x[i] - a);
+			*stdev = sqrt(sum / n);
+		}
+		return 0;
+	}
+
+	/* corrector's estimation */
+	dt = 0;
+	c = s * s * n * n / (n - 1);
+	for (it = 1; it <= maxit; it++) {
+		double sum1, sum2, sum3;
+		sum1 = sum2 = sum3 = 0.0;
+		for (i = 0; i < n; i++) {
+			r = (x[i] - a) / s;
+			psir = hampel(r);
+			sum1 += psir;
+			sum2 += dhampel(r);
+			sum3 += psir * psir;
+		}
+		if (fabs(sum2) < epsilon(sum2))
+			break;
+		double d = s * sum1 / sum2;
+		a = a + d;
+		dt = c * sum3 / (sum2 * sum2);
+		if ((it > 2) && ((d * d < 1e-4 * dt) || (fabs(d) < 10.0 * epsilon(d))))
+			break;
+	}
+	if (mean)
+		*mean = a;
+	if (stdev)
+		*stdev = (dt > 0 ? sqrt(dt) : 0);
+	return 0;
+}
+

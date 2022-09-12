@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -63,15 +63,15 @@
 #include "registration/registration.h"
 
 /* the global variables of the whole project */
-cominfo com;	// the main data struct
+cominfo com;	// the core data struct
+guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
-GtkBuilder *builder = NULL;	// get widget references anywhere
-const gchar *startup_cwd = NULL;
-gboolean forcecwd = FALSE;
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
 static gchar *main_option_initfile = NULL;
+static gchar *main_option_rpipe_path = NULL;
+static gchar *main_option_wpipe_path = NULL;
 static gboolean main_option_pipe = FALSE;
 
 static gboolean _print_version_and_exit(const gchar *option_name,
@@ -81,6 +81,13 @@ static gboolean _print_version_and_exit(const gchar *option_name,
 #else
 	g_print("%s %s\n", PACKAGE, VERSION);
 #endif
+	exit(EXIT_SUCCESS);
+	return TRUE;
+}
+
+static gboolean _print_copyright_and_exit(const gchar *option_name,
+		const gchar *value, gpointer data, GError **error) {
+	g_print("Copyright © 2012-%s team free-astro\n", SIRIL_GIT_LAST_COMMIT_YEAR);
 	exit(EXIT_SUCCESS);
 	return TRUE;
 }
@@ -97,14 +104,16 @@ static GOptionEntry main_option[] = {
 	{ "script", 's', 0, G_OPTION_ARG_FILENAME, &main_option_script, N_("run the siril commands script in console mode. If argument is equal to \"-\", then siril will read stdin input"), NULL },
 	{ "initfile", 'i', 0, G_OPTION_ARG_FILENAME, &main_option_initfile, N_("load configuration from file name instead of the default configuration file"), NULL },
 	{ "pipe", 'p', 0, G_OPTION_ARG_NONE, &main_option_pipe, N_("run in console mode with command and log stream through named pipes"), NULL },
+	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe, the one receiving commands"), NULL },
+	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputing messages"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
+	{ "copyright", 'c', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_copyright_and_exit, N_("print the copyright"), NULL},
 	{ NULL },
 };
 
 static GActionEntry app_entries[] = {
 	{ "quit", quit_action_activate },
-	{ "full-screen", full_screen_activated},
 	{ "preferences", preferences_action_activate },
 	{ "open",  open_action_activate },
 	{ "save", save_action_activate },
@@ -120,9 +129,9 @@ void load_glade_file() {
 	gladefile = g_build_filename(siril_get_system_data_dir(), GLADE_FILE, NULL);
 
 	/* try to load the glade file, from the sources defined above */
-	builder = gtk_builder_new();
+	gui.builder = gtk_builder_new();
 
-	if (!gtk_builder_add_from_file(builder, gladefile, &err)) {
+	if (!gtk_builder_add_from_file(gui.builder, gladefile, &err)) {
 		g_error(_("%s was not found or contains errors, "
 					"cannot render GUI:\n%s\n Exiting.\n"), gladefile, err->message);
 		g_clear_error(&err);
@@ -133,26 +142,28 @@ void load_glade_file() {
 }
 
 static void global_initialization() {
-	com.cvport = RED_VPORT;
-	com.show_excluded = TRUE;
-	com.selected_star = -1;
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
+	com.tilt = NULL;
 	com.uniq = NULL;
-	com.color = NORMAL_COLOR;
-	for (int i = 0; i < MAXVPORT; i++)
-		com.buf_is_dirty[i] = TRUE;
+	com.child_is_running = FALSE;
+#ifdef _WIN32
+	com.childhandle = NULL;
+#else
+	com.childpid = 0;
+#endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
-	/* initialize the com struct and zoom level */
-	com.sliders = MINMAX;
-	com.zoom_value = ZOOM_DEFAULT;
-	com.ratio = 0.0;
-	com.pref.font_scale = 100.0;
-	/* first initialization of compression settings */
-	com.pref.comp.fits_enabled = FALSE;
-	com.pref.comp.fits_method = 0;
-	com.pref.comp.fits_quantization = 16;
+
+	gui.selected_star = -1;
+	gui.qphot = NULL;
+	gui.cvport = RED_VPORT;
+	gui.show_excluded = TRUE;
+	gui.sliders = MINMAX;
+	gui.zoom_value = ZOOM_DEFAULT;
+	gui.ratio = 0.0;
+
+	initialize_default_settings();	// com.pref
 }
 
 static void init_num_procs() {
@@ -165,17 +176,28 @@ static void init_num_procs() {
 					"Possibly broken opencv/openblas installation.\n"),	omp_num_proc,
 				ngettext("processor", "processors", omp_num_proc));
 	}
+	omp_set_nested(1);
+	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
 	siril_log_message(
-			_("Parallel processing %s: Using %d logical %s.\n"),
+			_("Parallel processing %s: using %d logical %s%s.\n"),
 			_("enabled"), com.max_thread = num_proc,
-			ngettext("processor", "processors", num_proc));
+			ngettext("processor", "processors", num_proc),
+			supports_nesting ? "" : _(", nesting not supported"));
 #else
-	siril_log_message(_("Parallel processing %s: Using %d logical processor.\n"), _("disabled"), com.max_thread = 1);
+	com.max_thread = 1;
+	siril_log_message(_("Parallel processing disabled: using 1 logical processor.\n"));
 #endif
 }
 
-static void siril_app_startup (GApplication *application) {
+static void siril_app_startup(GApplication *application) {
 	signals_init();
+
+	/*
+	 * Force C locale for numbers to avoid "," being used as decimal separator.
+	 * Called here and not in main() because setlocale(LC_ALL, "") is called as
+	 * part of g_application_run().
+	 */
+	setlocale(LC_NUMERIC, "C");
 
 	g_set_application_name(PACKAGE_NAME);
 	gtk_window_set_default_icon_name("siril");
@@ -183,30 +205,17 @@ static void siril_app_startup (GApplication *application) {
 
 	g_action_map_add_action_entries(G_ACTION_MAP(application), app_entries,
 			G_N_ELEMENTS(app_entries), application);
-
 }
 
 static void siril_app_activate(GApplication *application) {
-	gchar *cwd_forced = NULL;
-
-	memset(&com, 0, sizeof(struct cominf));	// needed? doesn't hurt
-	com.initfile = NULL;
-
 	/* the first thing we need to do is to know if we are headless or not */
 	if (main_option_script || main_option_pipe) {
 		com.script = TRUE;
 		com.headless = TRUE;
-		/* need to force cwd to the current dir if no option -d */
-		if (!forcecwd) {
-			cwd_forced = g_strdup(g_get_current_dir());
-			forcecwd = TRUE;
-		}
 	}
 
 	global_initialization();
 
-	/* initialize peaker variables */
-	init_peaker_default();
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
@@ -214,7 +223,6 @@ static void siril_app_activate(GApplication *application) {
 
 	/* initialize converters (utilities used for different image types importing) */
 	gchar *supported_files = initialize_converters();
-	startup_cwd = g_get_current_dir();
 
 	if (main_option_initfile) {
 		com.initfile = g_strdup(main_option_initfile);
@@ -226,21 +234,29 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	siril_language_parser_init();
-	if (com.pref.combo_lang)
-		language_init(com.pref.combo_lang);
+	if (com.pref.lang)
+		language_init(com.pref.lang);
 
 	if (main_option_directory) {
-		if (!g_path_is_absolute(main_option_directory)) {
+		gchar *cwd_forced;
+		if (!g_path_is_absolute(main_option_directory))
 			cwd_forced = g_build_filename(g_get_current_dir(), main_option_directory, NULL);
-		} else {
-			cwd_forced = g_strdup(main_option_directory);
-		}
-		forcecwd = TRUE;
-	}
+		else cwd_forced = g_strdup(main_option_directory);
 
-	if (forcecwd && cwd_forced) {
 		siril_change_dir(cwd_forced, NULL);
+		if (com.pref.wd)
+			g_free(com.pref.wd);
+		com.pref.wd = g_strdup(cwd_forced);
+		// if provided to the command line, make it persistent
 		g_free(cwd_forced);
+	}
+	else {
+		if (com.pref.wd && com.pref.wd[0] != '\0')
+			siril_change_dir(com.pref.wd, NULL);
+		else {
+			// no other option
+			siril_change_dir(siril_get_startup_dir(), NULL);
+		}
 	}
 
 	init_num_procs();
@@ -252,7 +268,7 @@ static void siril_app_activate(GApplication *application) {
 			if (g_strcmp0(main_option_script, "-") == 0) {
 				input_stream = siril_input_stream_from_stdin();
 			} else {
-				GError *error;
+				GError *error = NULL;
 				GFile *file = g_file_new_for_path(main_option_script);
 				if (file)
 					input_stream = (GInputStream *)g_file_read(file, NULL, &error);
@@ -273,13 +289,13 @@ static void siril_app_activate(GApplication *application) {
 				exit(EXIT_FAILURE);
 			}
 		} else {
-			pipe_start();
-			read_pipe(NULL);
+			pipe_start(main_option_rpipe_path, main_option_wpipe_path);
+			read_pipe(main_option_rpipe_path);
 		}
 	}
 	if (!com.headless) {
 		/* Load preferred theme */
-		load_prefered_theme(com.pref.combo_theme);
+		load_prefered_theme(com.pref.gui.combo_theme);
 		/* Load the css sheet for general style */
 		load_css_style_sheet();
 		/* Load glade file */
@@ -288,35 +304,18 @@ static void siril_app_activate(GApplication *application) {
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
+#ifdef HAVE_JSON_GLIB
 		/* Check for update */
-		if (com.pref.check_update)
+		if (com.pref.check_update) {
 			siril_check_updates(FALSE);
-#if 0 //we need to think about it
-		/* see https://gitlab.gnome.org/GNOME/gtk/issues/2342 */
-		NSEvent *focusevent;
-		g_warning("workaround for the GTK3 #2342 bug");
-		focusevent = [NSEvent
-			otherEventWithType: NSEventTypeAppKitDefined
-			location: NSZeroPoint
-			modifierFlags: 0x40
-			timestamp: 0
-			windowNumber: 0
-			context: nil
-			subtype: NSEventSubtypeApplicationActivated
-			data1: 0
-			data2: 0];
-
-		[NSApp postEvent:focusevent atStart:YES];
+		}
+#else
+		gtk_widget_set_visible(lookup_widget("main_menu_updates"), FALSE);
 #endif
 	}
 
-	if (siril_change_dir(com.wd, NULL)) {
-		com.wd = g_strdup(siril_get_startup_dir());
-		siril_change_dir(com.wd, NULL);
-	}
-
 	if (!com.headless) {
-		gtk_builder_connect_signals (builder, NULL);
+		gtk_builder_connect_signals(gui.builder, NULL);
 		initialize_all_GUI(supported_files);
 	}
 
@@ -334,7 +333,7 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 		if (ext && !strncmp(ext, "seq", 4)) {
 			gchar *sequence_dir = g_path_get_dirname(path);
 			if (!siril_change_dir(sequence_dir, NULL)) {
-				if (check_seq(FALSE)) {
+				if (check_seq()) {
 					siril_log_message(_("No sequence `%s' found.\n"), path);
 				} else {
 					set_seq(path);
@@ -347,12 +346,10 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 			}
 		} else {
 			image_type type = get_type_from_filename(path);
-			if (!forcecwd && type != TYPEAVI && type != TYPESER && type != TYPEUNDEF) {
+			if (!main_option_directory && type != TYPEAVI && type != TYPESER && type != TYPEUNDEF) {
 				gchar *image_dir = g_path_get_dirname(path);
 				siril_change_dir(image_dir, NULL);
 				g_free(image_dir);
-			} else if (startup_cwd) {
-				siril_change_dir(startup_cwd, NULL);
 			}
 			if (!com.script)
 				set_GUI_CWD();
@@ -463,8 +460,6 @@ int main(int argc, char *argv[]) {
 	bindtextdomain(PACKAGE, dir);
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
 	textdomain(PACKAGE);
-
-	g_setenv("LC_NUMERIC", "C", TRUE); // avoid possible bugs using french separator ","
 
 	app = gtk_application_new("org.free_astro.siril", G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
 

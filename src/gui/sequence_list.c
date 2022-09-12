@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,14 +20,17 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_app_dirs.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "gui/plot.h"
 #include "io/sequence.h"
+#include "io/image_format_fits.h"
 #include "algos/PSF.h"
 #include "registration/registration.h"	// for update_reg_interface
 #include "stacking/stacking.h"	// for update_stack_interface
@@ -38,6 +41,12 @@ static gboolean fill_sequence_list_idle(gpointer p);
 
 static const char *bg_colour[] = { "WhiteSmoke", "#1B1B1B" };
 static const char *ref_bg_colour[] = { "Beige", "#4A4A39" };
+static gchar *qualfmt = "%.3f";
+
+static  GtkWidget *combo = NULL, *arcsec = NULL, *sourceCombo = NULL;
+static int selected_source = -1;
+static gboolean is_arcsec = FALSE;
+static gboolean use_photometry = FALSE;
 
 struct _seq_list {
 	GtkTreeView *tview;
@@ -63,6 +72,7 @@ enum {					//different context_id of the GtkStatusBar
 	COUNT_STATE
 };
 
+void on_ref_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 
 /******* Static functions **************/
 static void fwhm_quality_cell_data_function(GtkTreeViewColumn *col,
@@ -71,29 +81,59 @@ static void fwhm_quality_cell_data_function(GtkTreeViewColumn *col,
 	gdouble quality;
 	gchar buf[20];
 	gtk_tree_model_get(model, iter, COLUMN_FWHM, &quality, -1);
-	if (quality >= 0.0)
-		g_snprintf(buf, sizeof(buf), "%.3f", quality);
+	if (quality > -DBL_MAX)
+		g_snprintf(buf, sizeof(buf), qualfmt, quality);
 	else
 		g_strlcpy(buf, "N/A", sizeof(buf));
 	g_object_set(renderer, "text", buf, NULL);
 }
 
-static void update_seqlist_dialog_combo() {
+static void set_sensitive_layers(GtkCellLayout *cell_layout,
+		GtkCellRenderer *cell, GtkTreeModel *tree_model, GtkTreeIter *iter,
+		gpointer data) {
+	gboolean sensitive = TRUE;
+
+	if (sequence_is_loaded() && !use_photometry) {
+		GtkTreePath *path = gtk_tree_model_get_path(tree_model, iter);
+		if (!path) return;
+		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
+		if (!(com.seq.regparam))
+			return;
+		if (com.seq.regparam[*index] == NULL)
+			sensitive = FALSE;
+		gtk_tree_path_free(path);
+	}
+	g_object_set(cell, "sensitive", sensitive, NULL);
+}
+
+static void update_seqlist_dialog_combo(int layer) {
 	if (!sequence_is_loaded()) return;
+	int activelayer;
 
 	GtkComboBoxText *seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("seqlist_dialog_combo"));
 	g_signal_handlers_block_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
 	gtk_combo_box_text_remove_all(seqcombo);
-	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
 
 	if (com.seq.nb_layers == 1) {
 		gtk_combo_box_text_append_text(seqcombo, _("B&W channel"));
+		activelayer = 0;
+		gtk_widget_set_sensitive(GTK_WIDGET(seqcombo), FALSE);
 	} else {
 		gtk_combo_box_text_append_text(seqcombo, _("Red channel"));
 		gtk_combo_box_text_append_text(seqcombo, _("Green channel"));
 		gtk_combo_box_text_append_text(seqcombo, _("Blue channel"));
+		activelayer = layer >= 0 ? layer : 0;
+		gtk_widget_set_sensitive(GTK_WIDGET(seqcombo), (use_photometry) ? FALSE : TRUE);
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(seqcombo), com.cvport == RGB_VPORT ? 1 : com.cvport);
+	//setting sensitvity of the different layers in the layer combo
+	gtk_cell_layout_clear(GTK_CELL_LAYOUT(seqcombo));
+	GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(seqcombo), renderer, TRUE);
+	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(seqcombo), renderer, "text", 0, NULL);
+	gtk_cell_layout_set_cell_data_func(GTK_CELL_LAYOUT(seqcombo), renderer, set_sensitive_layers, NULL, NULL);
+	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(seqcombo), on_seqlist_dialog_combo_changed, NULL);
+
+	gtk_combo_box_set_active(GTK_COMBO_BOX(seqcombo), activelayer);
 }
 
 static void initialize_title() {
@@ -115,7 +155,7 @@ static void initialize_title() {
 }
 
 static void initialize_search_entry() {
-	GtkTreeView *tree_view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "treeview1"));
+	GtkTreeView *tree_view = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "treeview1"));
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("seqlistsearch"));
 
 	gtk_entry_set_text (entry, "");
@@ -124,49 +164,106 @@ static void initialize_search_entry() {
 
 static void get_list_store() {
 	if (list_store == NULL) {
-		list_store = GTK_LIST_STORE(gtk_builder_get_object(builder, "liststore1"));
+		list_store = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "liststore1"));
 
-		GtkTreeViewColumn *col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5"));
-		GtkCellRenderer *cell = GTK_CELL_RENDERER(gtk_builder_get_object(builder, "cellrenderertext5"));
+		GtkTreeViewColumn *col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5"));
+		GtkCellRenderer *cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cellrenderertext5"));
 		gtk_tree_view_column_set_cell_data_func(col, cell, fwhm_quality_cell_data_function, NULL, NULL);
 	}
 }
 
 /* Add an image to the list. If seq is NULL, the list is cleared. */
 static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
-	GtkTreeSelection *selection;
 	GtkTreeIter iter;
 	char imname[256];
 	char *basename;
 	int shiftx = -1, shifty = -1;
-	double fwhm = -1.0;
+	double fwhm = -DBL_MAX;
 	int color;
+	double bin;
 
-	get_list_store();
-
-	if (seq == NULL) {
-		gtk_list_store_clear(list_store);
-		return;		// just clear the list
-	}
-	if (seq->regparam && seq->regparam[layer]) {
-		shiftx = roundf_to_int(seq->regparam[layer][index].shiftx);
-		shifty = roundf_to_int(seq->regparam[layer][index].shifty);
-
-		if (seq->regparam[layer][index].fwhm > 0.0f) {
-			fwhm = seq->regparam[layer][index].fwhm;
-			gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("FWHM"));
-		} else if (seq->regparam[layer][index].quality >= 0.0) {
-			fwhm = seq->regparam[layer][index].quality;
-			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Quality"));
+	if (!use_photometry) { // reporting registration data
+		if (seq->regparam && seq->regparam[layer]) {
+			double dx, dy;
+			translation_from_H(seq->regparam[layer][index].H, &dx, &dy);
+			shiftx = round_to_int(dx);
+			shifty = round_to_int(dy);
+			switch (selected_source) {
+				case r_FWHM:
+					if (is_arcsec) {
+						bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
+					} else {
+						fwhm = seq->regparam[layer][index].fwhm;
+					}
+					break;
+				case r_WFWHM:
+					if (is_arcsec) {
+						bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
+					} else {
+						fwhm = seq->regparam[layer][index].weighted_fwhm;
+					}
+					break;
+				case r_ROUNDNESS:
+					fwhm = seq->regparam[layer][index].roundness;
+					break;
+				case r_QUALITY:
+					fwhm = seq->regparam[layer][index].quality;
+					break;
+				case r_BACKGROUND:
+					fwhm = seq->regparam[layer][index].background_lvl;
+					break;
+				case r_NBSTARS:
+					fwhm = seq->regparam[layer][index].number_of_stars;
+					break;
+				default: 
+					break;
+			}
 		}
-	} else {
-		gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(builder, "treeviewcolumn5")), _("Quality"));
+	} else { //reporting photometry data for the reference star
+		psf_star **psfs = seq->photometry[0];
+		if (psfs && psfs[index]) {
+			shiftx = roundf_to_int(psfs[index]->xpos);
+			shifty = roundf_to_int(psfs[index]->ypos);
+			switch (selected_source) {
+				case ROUNDNESS:
+					fwhm = psfs[index]->fwhmy / psfs[index]->fwhmx;
+					break;
+				case FWHM:
+					if (is_arcsec) {
+						fwhm_to_arcsec_if_needed(&gfit, psfs[index]);
+						fwhm = psfs[index]->fwhmx_arcsec < 0 ? psfs[index]->fwhmx : psfs[index]->fwhmx_arcsec;
+					} else {
+						fwhm_to_pixels(psfs[index]);
+						fwhm = psfs[index]->fwhmx;
+					}
+					break;
+				case AMPLITUDE:
+					fwhm = psfs[index]->A;
+					break;
+				case MAGNITUDE:
+					fwhm = psfs[index]->mag;
+					break;
+				case BACKGROUND:
+					fwhm = psfs[index]->B;
+					break;
+				case X_POSITION:
+					fwhm = psfs[index]->xpos;
+					break;
+				case Y_POSITION:
+					fwhm = psfs[index]->ypos;
+					break;
+				case SNR:
+					fwhm = psfs[index]->SNR;
+					break;
+				default:
+					break;
+			}
+		}
 	}
 
-	color = (com.pref.combo_theme == 0) ? 1 : 0;
-
-	selection = GTK_TREE_SELECTION(gtk_builder_get_object(builder, "treeview-selection1"));
-
+	color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 	basename = g_path_get_basename(seq_get_image_filename(seq, index, imname));
 	gtk_list_store_append (list_store, &iter);
 	gtk_list_store_set (list_store, &iter,
@@ -183,10 +280,6 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			COLUMN_INDEX, (index + 1),
 			-1);
 	/* see example at http://developer.gnome.org/gtk3/3.5/GtkListStore.html */
-	if (index == seq->current) {
-		if (selection)
-			gtk_tree_selection_select_iter(selection, &iter);
-	}
 	g_free(basename);
 }
 
@@ -195,21 +288,6 @@ static void sequence_list_change_selection(gchar *path, gboolean new_value) {
 	get_list_store();
 	gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(list_store), &iter, path);
 	gtk_list_store_set(list_store, &iter, COLUMN_SELECTED, new_value, -1);
-}
-
-static GList *get_row_references_of_selected_rows(GtkTreeSelection *selection,
-		GtkTreeModel *model) {
-	GList *ref = NULL;
-	GList *sel, *s;
-
-	sel = gtk_tree_selection_get_selected_rows(selection, &model);
-
-	for (s = sel; s; s = s->next) {
-		GtkTreeRowReference *rowref = gtk_tree_row_reference_new(model,	(GtkTreePath *) s->data);
-		ref = g_list_prepend(ref, rowref);
-	}
-	g_list_free_full(sel, (GDestroyNotify) gtk_tree_path_free);
-	return ref;
 }
 
 static int get_image_index_from_path(GtkTreePath *path) {
@@ -224,7 +302,7 @@ static int get_image_index_from_path(GtkTreePath *path) {
 	return index;
 }
 
-static gint get_real_index_from_index_in_list(GtkTreeModel *model, GtkTreeIter *iter, int index_in_list) {
+static gint get_real_index_from_index_in_list(GtkTreeModel *model, GtkTreeIter *iter) {
 	gint real_index;
 	gtk_tree_model_get(model, iter, COLUMN_INDEX, &real_index, -1);
 	return real_index - 1;
@@ -234,25 +312,41 @@ static void unselect_select_frame_from_list(GtkTreeView *tree_view) {
 	GtkTreeSelection *selection;
 	GtkTreeModel *model;
 	GList *references, *list;
+	gboolean isfirst = TRUE;
+	gboolean initvalue;
 
 	get_list_store();
 
 	model = gtk_tree_view_get_model(tree_view);
 	selection = gtk_tree_view_get_selection(tree_view);
 	references = get_row_references_of_selected_rows(selection, model);
+	references = g_list_reverse(references); // for some reason, refs are returned in the reverse order of selection
+
 	for (list = references; list; list = list->next) {
 		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
 		if (path) {
 			gint *new_index = gtk_tree_path_get_indices(path);
 			GtkTreeIter iter;
-
 			gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, path);
-			gint real_index = get_real_index_from_index_in_list(model, &iter, new_index[0]);
-			toggle_image_selection(new_index[0], real_index);
+			gint real_index = get_real_index_from_index_in_list(model, &iter);
+			if (isfirst) { // replicate behavior of first selected row for the subsequent rows
+				initvalue = com.seq.imgparam[real_index].incl;
+				isfirst = FALSE;
+			}
+			toggle_image_selection(new_index[0], real_index, initvalue);
 			gtk_tree_path_free(path);
 		}
 	}
 	g_list_free(references);
+	update_reg_interface(FALSE);
+	update_stack_interface(FALSE);
+	adjust_sellabel();
+	sequence_list_change_reference();
+	writeseqfile(&com.seq);
+	if (!com.script) {
+		redraw(REDRAW_OVERLAY);
+		drawPlot();
+	}
 }
 
 static void display_status() {
@@ -297,10 +391,10 @@ static void sequence_setselect_all(gboolean include_all) {
 		sequence_list_change_reference();
 		adjust_refimage(com.seq.current);
 	}
-	update_reg_interface(FALSE);
+	update_reg_interface(TRUE);
 	update_stack_interface(TRUE);
 	writeseqfile(&com.seq);
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 	drawPlot();
 	adjust_sellabel();
 }
@@ -332,20 +426,30 @@ void on_treeview1_cursor_changed(GtkTreeView *tree_view, gpointer user_data) {
 	}
 	g_list_free_full(list, (GDestroyNotify) gtk_tree_path_free);
 	display_status();
+	update_reg_interface(TRUE);
 }
 
 void on_seqlist_dialog_combo_changed(GtkComboBoxText *widget, gpointer user_data) {
 	int active = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
 	if (active >= 0) {
 		fill_sequence_list(&com.seq, active, FALSE);
+		g_signal_handlers_block_by_func(GTK_COMBO_BOX(widget), on_seqlist_dialog_combo_changed, NULL);
+		drawPlot();
+		g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(widget), on_seqlist_dialog_combo_changed, NULL);
 	}
 }
 
-void update_seqlist() {
+void on_column_clicked(GtkComboBoxText *widget, gpointer user_data) {
+	int active = com.seq.current;
+	sequence_list_select_row_from_index(active, FALSE);
+}
+
+void update_seqlist(int layer) {
 	initialize_title();
-	update_seqlist_dialog_combo();
+	update_seqlist_dialog_combo(layer);
 	initialize_search_entry();
 	display_status();
+	if (sequence_is_loaded()) sequence_list_select_row_from_index(com.seq.current, FALSE);
 }
 
 /* called on sequence loading (set_seq), on layer tab change and on registration data update.
@@ -369,12 +473,95 @@ void fill_sequence_list(sequence *seq, int layer, gboolean as_idle) {
 static gboolean fill_sequence_list_idle(gpointer p) {
 	int i;
 	struct _seq_list *args = (struct _seq_list *)p;
-	add_image_to_sequence_list(NULL, 0, 0);	// clear
+
+	if (combo == NULL) combo = lookup_widget("plotCombo");
+	if (sourceCombo == NULL) sourceCombo = lookup_widget("plotSourceCombo");
+	if (arcsec == NULL) arcsec = lookup_widget("arcsecPhotometry");
+	selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+	is_arcsec = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(arcsec));
+	use_photometry = (gboolean)gtk_combo_box_get_active(GTK_COMBO_BOX(sourceCombo));
+	qualfmt = (args->seq && ((use_photometry && (selected_source == BACKGROUND)) || (!use_photometry && (selected_source == r_BACKGROUND))) && (get_data_type(args->seq->bitpix) == DATA_FLOAT)) ? ("%.5f") : ("%.3f");
+
+	if (list_store) gtk_list_store_clear(list_store);
+	get_list_store();
+	if (!use_photometry) { // reporting registration data
+		if (args->seq->regparam && args->seq->regparam[args->layer]) {
+			switch (selected_source) {
+				case r_FWHM:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
+					break;
+				case r_WFWHM:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("wFWHM"));
+					break;
+				case r_ROUNDNESS:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
+					break;
+				case r_QUALITY:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Quality"));
+					break;
+				case r_BACKGROUND:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
+					break;
+				case r_NBSTARS:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("#Stars"));
+					break;
+				default: 
+					break;
+			}
+		} else {
+			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
+		}
+	} else { //reporting photometry data for the reference star
+		psf_star **psfs = args->seq->photometry[0];
+		if (psfs && psfs[0]) {
+			switch (selected_source) {
+				case ROUNDNESS:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
+					break;
+				case FWHM:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
+					break;
+				case AMPLITUDE:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Amplitude"));
+					break;
+				case MAGNITUDE:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Magnitude"));
+					break;
+				case BACKGROUND:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
+					break;
+				case X_POSITION:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("X Position"));
+					break;
+				case Y_POSITION:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Y Position"));
+					break;
+				case SNR:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("SNR"));
+					break;
+				default:
+					break;
+			}
+		} else {
+			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
+		}
+	}
+	gint sort_column_id;
+	GtkSortType order;
+	// store sorted state of list_store, disable sorting, disconnect from the view, fill, reconnect and re-apply sort
+	gtk_tree_sortable_get_sort_column_id(GTK_TREE_SORTABLE(list_store), &sort_column_id, &order);
+	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, GTK_SORT_ASCENDING);
+	gtk_tree_view_set_model(args->tview, NULL);
 	if (args->seq->number > 0) {
 		for (i = 0; i < args->seq->number; i++) {
 			add_image_to_sequence_list(args->seq, i, args->layer);
 		}
 	}
+	gtk_tree_view_set_model(args->tview, GTK_TREE_MODEL(list_store));
+	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
+
+	//select and scroll to image already loaded as gfit
+	sequence_list_select_row_from_index(args->seq->current, FALSE);
 	g_signal_handlers_unblock_by_func(args->tview, on_treeview1_cursor_changed, NULL);
 
 	free(args);
@@ -386,13 +573,22 @@ void exclude_single_frame(int index) {
 			com.seq.imgparam[index].incl ? _("Excluding") : _("Including"),
 			index + 1, com.seq.seqname);
 
+
 	com.seq.imgparam[index].incl = !com.seq.imgparam[index].incl;
 	if (com.seq.imgparam[index].incl)
 		com.seq.selnum++;
-	else 	com.seq.selnum--;
+	else {
+		com.seq.selnum--;
+		if (com.seq.reference_image == index) {
+			com.seq.reference_image = -1;
+			com.seq.reference_image = sequence_find_refimage(&com.seq);
+			adjust_refimage(index);
+			sequence_list_change_reference();
+		}
+	}
 	update_reg_interface(FALSE);
 	update_stack_interface(FALSE);
-	redraw(com.cvport, REMAP_NONE);
+	redraw(REDRAW_OVERLAY);
 	drawPlot();
 	adjust_sellabel();
 	writeseqfile(&com.seq);
@@ -410,33 +606,36 @@ void on_seqlist_image_selection_toggled(GtkCellRendererToggle *cell_renderer,
 	exclude_single_frame(index);
 }
 
-void toggle_image_selection(int index_in_list, int real_index) {
-	gchar *msg;
-	if (com.seq.imgparam[real_index].incl) {
+void toggle_image_selection(int index_in_list, int real_index, gboolean initvalue) {
+	gchar *msg = NULL;
+	gboolean before_change = com.seq.imgparam[real_index].incl;
+	if (initvalue) {
 		com.seq.imgparam[real_index].incl = FALSE;
-		--com.seq.selnum;
-		msg = g_strdup_printf(_("Image %d has been unselected from sequence\n"), real_index + 1);
-		if (real_index == com.seq.reference_image) {
-			com.seq.reference_image = -1;
-			sequence_list_change_reference();
-			adjust_refimage(real_index);
+		if (before_change != com.seq.imgparam[real_index].incl) { // decrement only on value change
+			--com.seq.selnum; 
+			msg = g_strdup_printf(_("Image %d has been unselected from sequence\n"), real_index + 1);
+			if (com.seq.reference_image == real_index) {
+				com.seq.reference_image = -1;  // invalidate to trigger new reference search if ref frame is deselected
+				GtkToggleButton *refframebutton = GTK_TOGGLE_BUTTON(lookup_widget("refframe2")); // invalidate toggle button, only effective if the frame is the first one in the selection
+				g_signal_handlers_block_by_func(refframebutton, on_ref_frame_toggled, NULL);
+				gtk_toggle_button_set_active(refframebutton, FALSE);
+				g_signal_handlers_unblock_by_func(refframebutton, on_ref_frame_toggled, NULL);
+			}
 		}
 	} else {
 		com.seq.imgparam[real_index].incl = TRUE;
-		++com.seq.selnum;
-		msg = g_strdup_printf(_("Image %d has been selected from sequence\n"), real_index + 1);
+		if (before_change != com.seq.imgparam[real_index].incl) { // increment only on value change
+			++com.seq.selnum;
+			msg = g_strdup_printf(_("Image %d has been selected from sequence\n"), real_index + 1);
+		}
 	}
-	siril_log_message(msg);
-	g_free(msg);
-	sequence_find_refimage(&com.seq);
+	if (msg){
+		siril_log_message(msg);
+		g_free(msg);
+	}
+	com.seq.reference_image = sequence_find_refimage(&com.seq);
 	if (!com.script) {
 		sequence_list_change_selection_index(index_in_list, real_index);
-		update_reg_interface(FALSE);
-		update_stack_interface(TRUE);
-		redraw(com.cvport, REMAP_NONE);
-		drawPlot();
-		adjust_sellabel();
-		writeseqfile(&com.seq);
 	}
 }
 
@@ -476,20 +675,23 @@ void on_ref_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)references->data);
 	if (path) {
 		if (!gtk_toggle_button_get_active(togglebutton)) {
-			if (com.seq.reference_image == com.seq.current)
+			if (com.seq.reference_image == com.seq.current) {
 				com.seq.reference_image = -1;
+				com.seq.reference_image = sequence_find_refimage(&com.seq);
+			}
 		} else {
 			com.seq.reference_image = com.seq.current;
 			test_and_allocate_reference_image(-1);
 			// a reference image should not be excluded to avoid confusion
 			if (!com.seq.imgparam[com.seq.current].incl) {
-				toggle_image_selection(com.seq.current, com.seq.current);
+				toggle_image_selection(com.seq.current, com.seq.current, FALSE);
 			}
 		}
 		gtk_tree_path_free(path);
 	}
 
 	g_list_free(references);
+	redraw(REDRAW_OVERLAY);
 	sequence_list_change_reference();
 	update_stack_interface(FALSE);// get stacking info and enable the Go button
 	adjust_sellabel();	// reference image is named in the label
@@ -497,12 +699,20 @@ void on_ref_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	drawPlot();		// update plots
 }
 
+void on_draw_frame_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	if (!sequence_is_loaded())
+		return;
+	redraw(REDRAW_OVERLAY);
+}
+
 /****************** modification of the list store (tree model) ******************/
 
 void sequence_list_change_selection_index(int index_in_list, int real_index) {
 	GtkTreePath *path = gtk_tree_path_new_from_indices(index_in_list, -1);
-	sequence_list_change_selection(gtk_tree_path_to_string(path), com.seq.imgparam[real_index].incl);
-	gtk_tree_path_free(path);
+	if (path) {
+		sequence_list_change_selection(gtk_tree_path_to_string(path), com.seq.imgparam[real_index].incl);
+		gtk_tree_path_free(path);
+	}
 }
 
 void sequence_list_change_current() {
@@ -522,6 +732,7 @@ void sequence_list_change_current() {
 				(index == com.seq.current) ? 800 : 400, -1);
 		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(list_store), &iter);
 	}
+	drawPlot();
 }
 
 void sequence_list_change_reference() {
@@ -529,7 +740,7 @@ void sequence_list_change_reference() {
 	gboolean valid;
 	int color;
 
-	color = (com.pref.combo_theme == 0) ? 1 : 0;
+	color = (com.pref.gui.combo_theme == 0) ? 1 : 0;
 
 	get_list_store();
 	valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(list_store), &iter);
@@ -565,4 +776,54 @@ void adjust_refimage(int n) {
 	g_signal_handlers_block_by_func(ref_butt2, on_ref_frame_toggled, treeview1);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ref_butt2), com.seq.reference_image == n);
 	g_signal_handlers_unblock_by_func(ref_butt2, on_ref_frame_toggled, treeview1);
+}
+
+void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
+	GtkWidget *tree_view = NULL;
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+	gboolean valid, found = FALSE;
+	
+	tree_view = lookup_widget("treeview1");
+	get_list_store();
+	valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(list_store), &iter);
+	while (valid && !found)
+	{
+		gint int_data;
+		gtk_tree_model_get(GTK_TREE_MODEL(list_store), &iter, COLUMN_INDEX, &int_data, -1);
+		if (int_data - 1 == index) {
+			found = TRUE;
+		} else {
+			valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(list_store), &iter);
+		}
+	}
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view));
+	if (!model) return;
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view)); //clear current selection
+	gtk_tree_selection_unselect_all(selection);
+	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+	if (!path) return;
+	gtk_tree_selection_select_path(selection, path);
+	gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW(tree_view), path, NULL, FALSE, FALSE, FALSE);
+	gtk_tree_path_free(path);
+
+	if (do_load_image) {
+		seq_load_image(&com.seq, index, TRUE);
+		update_reg_interface(FALSE);
+		redraw(REDRAW_OVERLAY);
+	}
+}
+
+void update_icons_sequence_list(gboolean is_dark) {
+	gchar *image;
+	GtkWidget *w;
+	if (is_dark) {
+		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame_dark.svg", NULL);
+		w = gtk_image_new_from_file(image);
+	} else {
+		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame.svg", NULL);
+		w = gtk_image_new_from_file(image);
+	}
+	gtk_button_set_image(GTK_BUTTON(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"))), w);
+	gtk_widget_show(w);
 }

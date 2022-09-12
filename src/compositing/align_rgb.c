@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -59,7 +59,7 @@ static void free_internal_sequence(sequence *seq) {
 			clearfits(internal_sequence_get(seq, i));
 		free_sequence(seq, TRUE);
 	}
-	clear_stars_list();
+	clear_stars_list(TRUE);
 }
 
 static int initialize_internal_rgb_sequence() {
@@ -88,10 +88,12 @@ static void align_and_compose() {
 			for (int channel = 0; channel < 3; channel++) {
 				fits *fit = internal_sequence_get(seq, channel);
 				if (seq && seq->regparam) {
+					double dx, dy;
+					translation_from_H(seq->regparam[REGLAYER][channel].H, &dx, &dy);
+					int realX = x - round_to_int(dx);
+					int realY = y - round_to_int(dy);
 					if (fit->type == DATA_USHORT) {
 						WORD pixel;
-						int realX = x - roundf_to_int(seq->regparam[REGLAYER][channel].shiftx);
-						int realY = y - roundf_to_int(seq->regparam[REGLAYER][channel].shifty);
 						if (realX < 0 || realX >= gfit.rx)
 							pixel = 0;
 						else if (realY < 0 || realY >= gfit.ry)
@@ -101,17 +103,15 @@ static void align_and_compose() {
 						}
 						gfit.pdata[channel][i] = pixel;
 					} else {
-							float pixel;
-							int realX = x - roundf_to_int(seq->regparam[REGLAYER][channel].shiftx);
-							int realY = y - roundf_to_int(seq->regparam[REGLAYER][channel].shifty);
-							if (realX < 0 || realX >= gfit.rx)
-								pixel = 0.f;
-							else if (realY < 0 || realY >= gfit.ry)
-								pixel = 0.f;
-							else {
-								pixel = fit->fpdata[0][realX + gfit.rx * realY];
-							}
-							gfit.fpdata[channel][i] = pixel;
+						float pixel;
+						if (realX < 0 || realX >= gfit.rx)
+							pixel = 0.f;
+						else if (realY < 0 || realY >= gfit.ry)
+							pixel = 0.f;
+						else {
+							pixel = fit->fpdata[0][realX + gfit.rx * realY];
+						}
+						gfit.fpdata[channel][i] = pixel;
 					}
 				}
 			}
@@ -121,7 +121,7 @@ static void align_and_compose() {
 }
 
 int rgb_align(int m) {
-	struct registration_args regargs;
+	struct registration_args regargs = { 0 };
 	struct registration_method *method;
 	int retval;
 
@@ -135,12 +135,12 @@ int rgb_align(int m) {
 
 	regargs.seq = seq;
 	regargs.seq->nb_layers = 1;
-	regargs.process_all_frames = TRUE;
 	get_the_registration_area(&regargs, method);
 	regargs.layer = REGLAYER;
 	regargs.follow_star = FALSE;
 	regargs.x2upscale = FALSE;
 	regargs.run_in_thread = FALSE;
+	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	com.run_thread = TRUE;	// fix for the canceling check in processing
 
 	retval = method->method_ptr(&regargs);
@@ -153,7 +153,7 @@ int rgb_align(int m) {
 		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 		align_and_compose();
 		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 	}
 	set_cursor_waiting(FALSE);
 	free_internal_sequence(seq);

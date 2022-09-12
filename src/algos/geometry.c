@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,16 +24,18 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
-#include "algos/plateSolver.h"
 #include "algos/statistics.h"
+#include "algos/siril_wcs.h"
 #include "core/undo.h"
 #include "core/processing.h"
+#include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/PSF_list.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
+#include "gui/registration_preview.h"
 #include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 #include "io/single_image.h"
@@ -41,6 +43,7 @@
 #include "io/image_format_fits.h"
 
 #include "geometry.h"
+#include "astrometry_solver.h"
 
 /* this method rotates the image 180 degrees, useful after german mount flip.
  * fit->rx, fit->ry, fit->naxes[2] and fit->pdata[*] are required to be assigned correctly */
@@ -142,55 +145,63 @@ static void fits_rotate_pi(fits *fit) {
 	} else if (fit->type == DATA_FLOAT) {
 		fits_rotate_pi_float(fit);
 	}
-	invalidate_WCS_keywords(fit);
 }
 
 void mirrorx_gui(fits *fit) {
-	if (confirm_delete_wcs_keywords(fit)) {
-		set_cursor_waiting(TRUE);
-		undo_save_state(fit, _("Mirror X"));
-		mirrorx(fit, TRUE);
-		redraw(com.cvport, REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
-	}
+	set_cursor_waiting(TRUE);
+	undo_save_state(fit, _("Mirror X"));
+	mirrorx(fit, TRUE);
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
 }
 
 void mirrory_gui(fits *fit) {
-	if (confirm_delete_wcs_keywords(fit)) {
-		set_cursor_waiting(TRUE);
-		undo_save_state(fit, _("Mirror Y"));
-		mirrory(fit, TRUE);
-		redraw(com.cvport, REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
-	}
+	set_cursor_waiting(TRUE);
+	undo_save_state(fit, _("Mirror Y"));
+	mirrory(fit, TRUE);
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
 }
 
 static void rotate_gui(fits *fit) {
-	if (confirm_delete_wcs_keywords(fit)) {
-		static GtkToggleButton *crop_rotation = NULL;
-		double angle = gtk_spin_button_get_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")));
-		int interpolation = gtk_combo_box_get_active(
-				GTK_COMBO_BOX(lookup_widget("combo_interpolation_rotation")));
-		int cropped;
+	if (com.selection.w == 0 || com.selection.h == 0) return;
+	static GtkToggleButton *crop_rotation = NULL;
+	double angle = gtk_spin_button_get_value(
+			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")));
+	int interpolation = gtk_combo_box_get_active(
+			GTK_COMBO_BOX(lookup_widget("combo_interpolation_rotation")));
+	int cropped;
 
-		if (crop_rotation == NULL) {
-			crop_rotation = GTK_TOGGLE_BUTTON(
-					lookup_widget("checkbutton_rotation_crop"));
-		}
-		cropped = gtk_toggle_button_get_active(crop_rotation);
-
-		set_cursor_waiting(TRUE);
-		undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s)"), angle,
-				cropped ? "TRUE" : "FALSE");
-		verbose_rotate_image(fit, angle, interpolation, cropped);
-		
-		redraw(com.cvport, REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
+	if (crop_rotation == NULL) {
+		crop_rotation = GTK_TOGGLE_BUTTON(
+				lookup_widget("checkbutton_rotation_crop"));
 	}
+	cropped = gtk_toggle_button_get_active(crop_rotation);
+	if ((!cropped) & (com.selection.w < gfit.rx || com.selection.h < gfit.ry)) {
+		cropped = siril_confirm_dialog(_("Crop confirmation"), ("A selection is active and its size is smaller than the original image. Do you want to crop to current selection?"), _("Crop"));
+		if (cropped)
+			gtk_toggle_button_set_active(crop_rotation, TRUE);
+	}
+
+	set_cursor_waiting(TRUE);
+	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s)"), angle,
+			cropped ? "TRUE" : "FALSE");
+	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped);
+	
+	// the UI is still opened, need to reset selection
+	// to current image size and reset rotation
+	rectangle area = {0, 0, fit->rx, fit->ry};
+	memcpy(&com.selection, &area, sizeof(rectangle));
+	gtk_spin_button_set_value(
+			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")), 0.);
+	new_selection_zone();
+
+	update_zoom_label();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
 }
 
 /* These functions do not more than resize_gaussian and rotate_image
@@ -200,6 +211,8 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	int retvalue;
 	const char *str_inter;
 	struct timeval t_start, t_end;
+	float factor_X = (float)image->rx / (float)toX;
+	float factor_Y = (float)image->ry / (float)toY;
 
 	switch (interpolation) {
 	case OPENCV_NEAREST:
@@ -226,7 +239,10 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	gettimeofday(&t_start, NULL);
 
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation);
-	invalidate_WCS_keywords(image);
+	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
+	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
+	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve
+	load_WCS_from_memory(image);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -234,7 +250,53 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	return retvalue;
 }
 
-int verbose_rotate_image(fits *image, double angle, int interpolation,
+// computes H matrix for rotation and crop
+static void GetMatrixReframe(fits *image, rectangle area, double angle, int cropped, int *target_rx, int *target_ry, Homography *H) {
+	*target_rx = area.w;
+	*target_ry = area.h;
+	double orig_x = (double)area.x;
+	double orig_y = (double)area.y;
+	if (!cropped) {
+		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_rx * 0.5 };
+		cvGetBoundingRectSize(image, center, angle, target_rx, target_ry);
+		orig_x = (double)((int)image->rx - *target_rx) * 0.5;
+		orig_y = (double)((int)image->ry - *target_ry) * 0.5;
+	}
+	cvGetMatrixReframe(orig_x, orig_y, *target_rx, *target_ry, angle, H);
+}
+
+// wraps cvRotateImage to update WCS data as well
+int verbose_rotate_fast(fits *image, int angle) {
+	if (angle % 90 != 0) return 1;
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
+	siril_log_color_message(
+			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
+			_("No"), (double)angle);
+
+#ifdef HAVE_WCSLIB // needs to be done prior to modifying the image
+	int orig_ry = image->ry; // required to compute flips afterwards
+	int target_rx, target_ry;
+	Homography H = { 0 };
+	rectangle area = {0, 0, image->rx, image->ry};
+	GetMatrixReframe(image, area, (double)angle, 0, &target_rx, &target_ry, &H);
+#endif
+
+	if (cvRotateImage(image, angle)) return 1;
+
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+#ifdef HAVE_WCSLIB
+	if (has_wcs(image)) {
+		cvApplyFlips(&H, orig_ry, target_ry);
+		reframe_astrometry_data(image, H);
+		load_WCS_from_memory(image);
+	}
+#endif
+	return 0;
+}
+
+int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
 		int cropped) {
 	const char *str_inter;
 	struct timeval t_start, t_end;
@@ -266,14 +328,24 @@ int verbose_rotate_image(fits *image, double angle, int interpolation,
 			str_inter, angle);
 	gettimeofday(&t_start, NULL);
 
-	point center = {image->rx / 2.0, image->ry / 2.0};
-	cvRotateImage(image, center, angle, interpolation, cropped);
+#ifdef HAVE_WCSLIB
+	int orig_ry = image->ry; // required to compute flips afterwards
+#endif
+	int target_rx, target_ry;
+	Homography H = { 0 };
+	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
+	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
-	invalidate_WCS_keywords(image);
-
+#ifdef HAVE_WCSLIB
+	if (has_wcs(image)) {
+		cvApplyFlips(&H, orig_ry, target_ry);
+		reframe_astrometry_data(image, H);
+		load_WCS_from_memory(image);
+	}
+#endif
 	return 0;
 }
 
@@ -309,7 +381,6 @@ static void mirrorx_ushort(fits *fit, gboolean verbose) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
-	invalidate_WCS_keywords(fit);
 }
 
 static void mirrorx_float(fits *fit, gboolean verbose) {
@@ -344,7 +415,6 @@ static void mirrorx_float(fits *fit, gboolean verbose) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
-	invalidate_WCS_keywords(fit);
 }
 
 void mirrorx(fits *fit, gboolean verbose) {
@@ -353,6 +423,16 @@ void mirrorx(fits *fit, gboolean verbose) {
 	} else if (fit->type == DATA_FLOAT) {
 		mirrorx_float(fit, verbose);
 	}
+#ifdef HAVE_WCSLIB
+	if (has_wcs(fit)) {
+		Homography H = { 0 };
+		cvGetEye(&H);
+		H.h11 = -1.;
+		H.h12 = (double)fit->ry - 1.;
+		reframe_astrometry_data(fit, H);
+		load_WCS_from_memory(fit);
+	}
+#endif
 }
 
 void mirrory(fits *fit, gboolean verbose) {
@@ -370,7 +450,17 @@ void mirrory(fits *fit, gboolean verbose) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
-	invalidate_WCS_keywords(fit);
+
+#ifdef HAVE_WCSLIB
+	if (has_wcs(fit)) {
+		Homography H = { 0 };
+		cvGetEye(&H);
+		H.h00 = -1.;
+		H.h02 = (double)fit->rx - 1.;
+		reframe_astrometry_data(fit, H);
+		load_WCS_from_memory(fit);
+	}
+#endif
 }
 
 /* inplace cropping of the image in fit
@@ -407,12 +497,11 @@ static void crop_ushort(fits *fit, rectangle *bounds) {
 	fit->ry = fit->naxes[1] = bounds->h;
 
 	if (fit == &gfit) {
-		clear_stars_list();
+		clear_stars_list(TRUE);
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
 	invalidate_stats_from_fit(fit);
-	invalidate_WCS_keywords(fit);
 }
 
 static void crop_float(fits *fit, rectangle *bounds) {
@@ -444,15 +533,21 @@ static void crop_float(fits *fit, rectangle *bounds) {
 	fit->ry = fit->naxes[1] = bounds->h;
 
 	if (fit == &gfit) {
-		clear_stars_list();
+		clear_stars_list(TRUE);
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
 	invalidate_stats_from_fit(fit);
-	invalidate_WCS_keywords(fit);
 }
 
 int crop(fits *fit, rectangle *bounds) {
+#ifdef HAVE_WCSLIB
+	int orig_ry = fit->ry; // required to compute flips afterwards
+	int target_rx, target_ry;
+	Homography H = { 0 };
+	GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
+#endif
+
 	if (fit->type == DATA_USHORT) {
 		crop_ushort(fit, bounds);
 	} else if (fit->type == DATA_FLOAT) {
@@ -460,6 +555,13 @@ int crop(fits *fit, rectangle *bounds) {
 	} else {
 		return -1;
 	}
+#ifdef HAVE_WCSLIB
+	if (has_wcs(fit)) {
+		cvApplyFlips(&H, orig_ry, target_ry);
+		reframe_astrometry_data(fit, H);
+		load_WCS_from_memory(fit);
+	}
+#endif
 	return 0;
 }
 
@@ -469,33 +571,47 @@ int crop(fits *fit, rectangle *bounds) {
  *  ROTATION
  */
 void siril_rotate90() {
-	if (confirm_delete_wcs_keywords(&gfit)) {
 		set_cursor_waiting(TRUE);
 		undo_save_state(&gfit, _("Rotation (90.0deg)"));
-		verbose_rotate_image(&gfit, 90.0, -1, 0);	// fast rotation, no interpolation, no crop
-		redraw(com.cvport, REMAP_ALL);
+		verbose_rotate_fast(&gfit, 90);	// fast rotation, no interpolation, no crop
+		update_zoom_label();
+		redraw(REMAP_ALL);
 		redraw_previews();
 		set_cursor_waiting(FALSE);
-	}
 }
 
 void siril_rotate270() {
-	if (confirm_delete_wcs_keywords(&gfit)) {
 		set_cursor_waiting(TRUE);
 		undo_save_state(&gfit, _("Rotation (-90.0deg)"));
-		verbose_rotate_image(&gfit, 270.0, -1, 0);// fast rotation, no interpolation, no crop
-		redraw(com.cvport, REMAP_ALL);
+		verbose_rotate_fast(&gfit, -90);// fast rotation, no interpolation, no crop
+		update_zoom_label();
+		redraw(REMAP_ALL);
 		redraw_previews();
 		set_cursor_waiting(FALSE);
-	}
 }
 
 void on_button_rotation_close_clicked(GtkButton *button, gpointer user_data) {
+	delete_selected_area();
 	siril_close_dialog("rotation_dialog");
 }
 
 void on_button_rotation_ok_clicked(GtkButton *button, gpointer user_data) {
 	rotate_gui(&gfit);
+}
+
+void on_spin_rotation_value_changed(GtkSpinButton *button, gpointer user_data) {
+	if (com.selection.w != 0 && com.selection.h != 0) {
+		gui.rotation = gtk_spin_button_get_value(button);
+		redraw(REDRAW_OVERLAY);
+	}
+}
+
+void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (!gtk_toggle_button_get_active(button)) {
+		rectangle area = {0, 0, gfit.rx, gfit.ry};
+		memcpy(&com.selection, &area, sizeof(rectangle));
+		new_selection_zone();
+	}
 }
 
 /*************
@@ -521,8 +637,9 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 				sample[1] / 100.0);
 		verbose_resize_gaussian(&gfit, toX, toY, interpolation);
 		
-		redraw(com.cvport, REMAP_ALL);
+		redraw(REMAP_ALL);
 		redraw_previews();
+		update_MenuItem();
 		set_cursor_waiting(FALSE);
 	}
 }
@@ -570,29 +687,23 @@ void on_button_sample_ratio_toggled(GtkToggleButton *button, gpointer user_data)
 /**************
  * CROP
  */
-void on_menu_gray_crop_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	// if astrometry exists
-	if (confirm_delete_wcs_keywords(&gfit)) {
-		undo_save_state(&gfit, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
-				com.selection.x, com.selection.y, com.selection.w,
-				com.selection.h);
-		if (is_preview_active()) {
-			siril_message_dialog(GTK_MESSAGE_INFO, _("A live preview session is active"),
-					_("It is impossible to crop the image when a filter with preview session is active. "
-							"Please consider to close the filter dialog first."));
-			return;
-		}
-		crop(&gfit, &com.selection);
-		delete_selected_area();
-		reset_display_offset();
-		adjust_cutoff_from_updated_gfit();
-		redraw(com.cvport, REMAP_ALL);
-		redraw_previews();
+void siril_crop() {
+	undo_save_state(&gfit, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
+			com.selection.x, com.selection.y, com.selection.w,
+			com.selection.h);
+	if (is_preview_active()) {
+		siril_message_dialog(GTK_MESSAGE_INFO, _("A live preview session is active"),
+				_("It is impossible to crop the image when a filter with preview session is active. "
+						"Please consider to close the filter dialog first."));
+		return;
 	}
-}
-
-void on_menu_gray_crop_seq_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	siril_open_dialog("crop_dialog");
+	crop(&gfit, &com.selection);
+	delete_selected_area();
+	reset_display_offset();
+	update_zoom_label();
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
 }
 
 gint64 crop_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
@@ -603,7 +714,7 @@ gint64 crop_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
 }
 
 int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct crop_sequence_data *c_args = (struct crop_sequence_data*) args->user;
 
 	return crop(fit, &(c_args->area));

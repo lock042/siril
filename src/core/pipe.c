@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,8 +22,8 @@
 
 #define PIPE_NAME_R "siril_command.in"
 #define PIPE_NAME_W "siril_command.out"
-#define PIPE_PATH_R "/tmp/" PIPE_NAME_R  // TODO: use g_get_tmp_dir()
-#define PIPE_PATH_W "/tmp/" PIPE_NAME_W  // TODO: use g_get_tmp_dir()
+#define PIPE_PATH_R "/tmp/" PIPE_NAME_R
+#define PIPE_PATH_W "/tmp/" PIPE_NAME_W
 #define PIPE_MSG_SZ 512	// max input command length
 
 #include <stdio.h>
@@ -79,7 +79,7 @@ static GList *command_list, *pending_writes;
 static void sigpipe_handler(int signum) { }	// do nothing
 #endif
 
-int pipe_create() {
+int pipe_create(char *r_path_option, char *w_path_option) {
 #ifdef _WIN32
 	if (hPipe_w != INVALID_HANDLE_VALUE || hPipe_r != INVALID_HANDLE_VALUE)
 		return 0;
@@ -130,28 +130,34 @@ int pipe_create() {
 		return -1;
 	}
 
+	char *r_path = PIPE_PATH_R;
+	if (r_path_option && r_path_option[0] != '\0')
+		r_path = r_path_option;
 	struct stat st;
-	if (stat(PIPE_PATH_R, &st)) {
-		if (mkfifo(PIPE_PATH_R, 0666)) {
-			siril_log_message(_("Could not create the named pipe "PIPE_PATH_R"\n"));
+	if (stat(r_path, &st)) {
+		if (mkfifo(r_path, 0666)) {
+			siril_log_message(_("Could not create the named pipe %s\n"), r_path);
 			perror("mkfifo");
 			return -1;
 		}
 	}
 	else if (!S_ISFIFO(st.st_mode)) {
-		siril_log_message(_("The named pipe file " PIPE_PATH_R " already exists but is not a fifo, cannot create or open\n"));
+		siril_log_message(_("The named pipe file %s already exists but is not a fifo, cannot create or open\n"), r_path);
 		return -1;
 	}
 
-	if (stat(PIPE_PATH_W, &st)) {
-		if (mkfifo(PIPE_PATH_W, 0666)) {
-			siril_log_message(_("Could not create the named pipe "PIPE_PATH_W"\n"));
+	char *w_path = PIPE_PATH_W;
+	if (w_path_option && w_path_option[0] != '\0')
+		w_path = w_path_option;
+	if (stat(w_path, &st)) {
+		if (mkfifo(w_path, 0666)) {
+			siril_log_message(_("Could not create the named pipe %s\n"), w_path);
 			perror("mkfifo");
 			return -1;
 		}
 	}
 	else if (!S_ISFIFO(st.st_mode)) {
-		siril_log_message(_("The named pipe file " PIPE_PATH_W " already exists but is not a fifo, cannot create or open\n"));
+		siril_log_message(_("The named pipe file %s already exists but is not a fifo, cannot create or open\n"), w_path);
 		return -1;
 	}
 #endif
@@ -220,6 +226,9 @@ int pipe_send_message(pipe_message msgtype, pipe_verb verb, const char *arg) {
 				case PIPE_EXIT:
 					sprintf(msg, "status: exit\n");
 					break;
+				case PIPE_BUSY:
+					sprintf(msg, "status: busy\n");
+					break;
 				case PIPE_NA:
 					free(msg);
 					return -1;
@@ -227,6 +236,9 @@ int pipe_send_message(pipe_message msgtype, pipe_verb verb, const char *arg) {
 			break;
 		case PIPE_PROGRESS:
 			msg = strdup(arg);
+			break;
+		case PIPE_READY:
+			msg = strdup("ready\n");
 			break;
 	}
 
@@ -241,8 +253,22 @@ int pipe_send_message(pipe_message msgtype, pipe_verb verb, const char *arg) {
 }
 
 int enqueue_command(char *command) {
+	remove_trailing_cr(command);
+	g_strstrip(command);
+
+	/* commands specific to pipes: cancel and ping */
 	if (!strncmp(command, "cancel", 6))
 		return 1;
+	if (!strcmp(command, "ping")) {
+		if (get_thread_run())
+			pipe_send_message(PIPE_STATUS, PIPE_BUSY, NULL);
+		else {
+			gchar *str = g_strdup_printf("%s\n", command);
+			pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, str);
+			g_free(str);
+		}
+		return 0;
+	}
 	if ((command[0] >= 'a' && command[0] <= 'z') ||
 			(command[0] >= 'A' && command[0] <= 'Z')) {
 		g_mutex_lock(&read_mutex);
@@ -271,8 +297,8 @@ void *read_pipe(void *p) {
 			siril_log_message(_("Could not open the named pipe\n"));
 			break;
 		}
-
 		fprintf(stdout, "opened read pipe\n");
+
 		/* now, try to read from it */
 		int bufstart = 0;
 		DWORD len;
@@ -342,8 +368,11 @@ void *read_pipe(void *p) {
 #else
 	do {
 		// open will block until the other end is opened
-		fprintf(stdout, "read pipe waiting to be opened...\n");
-		if ((pipe_fd_r = open(PIPE_PATH_R, O_RDONLY)) == -1) {
+		char *r_path = PIPE_PATH_R;
+		if (p && ((char *)p)[0] != '\0')
+			r_path = (char *)p;
+		fprintf(stdout, "read pipe %s waiting to be opened...\n", r_path);
+		if ((pipe_fd_r = open(r_path, O_RDONLY)) == -1) {
 			siril_log_message(_("Could not open the named pipe\n"));
 			perror("open");
 			break;
@@ -360,7 +389,6 @@ void *read_pipe(void *p) {
 
 			retval = select(pipe_fd_r+1, &rfds, NULL, NULL, NULL);
 			if (retval == 1) {
-				char *command;
 				int len = read(pipe_fd_r, buf+bufstart, PIPE_MSG_SZ-1-bufstart);
 				if (len == -1 || len == 0)
 					retval = -1;
@@ -382,6 +410,8 @@ void *read_pipe(void *p) {
 						 * cut them, enqueue them and prepare next buffer for
 						 * incomplete commands */
 						char backup_char;
+						char *command;
+
 						for (i = 0; i < len && buf[i] != '\0'; i++) {
 							if (buf[i] == '\n') {
 								backup_char = buf[i + 1];
@@ -422,6 +452,7 @@ void *read_pipe(void *p) {
 }
 
 void *process_commands(void *p) {
+	gboolean checked_requires = FALSE;
 	while (pipe_active) {
 		char *command;
 		g_mutex_lock(&read_mutex);
@@ -435,41 +466,65 @@ void *process_commands(void *p) {
 		}
 
 		command = (char*)command_list->data;
+
 		command_list = g_list_next(command_list);
 		g_mutex_unlock(&read_mutex);
 
-		pipe_send_message(PIPE_STATUS, PIPE_STARTING, command);
-		int retval = processcommand(command);
-		if (waiting_for_thread()) {
+		int wordnb;
+		parse_line(command, strlen(command), &wordnb);
+		gchar *command_name = g_strdup_printf("%s\n", command);
+
+		if (check_requires(&checked_requires, com.pref.pipe_check_requires)) {
+			pipe_send_message(PIPE_STATUS, PIPE_ERROR, command_name);
+			empty_command_queue();
+			free(command);
+			g_free(command_name);
+			continue;
+		}
+
+		pipe_send_message(PIPE_STATUS, PIPE_STARTING, command_name);
+
+		int retval = execute_command(wordnb);
+
+		if (retval != CMD_NO_WAIT && waiting_for_thread()) {
 			empty_command_queue();
 			retval = 1;
 		}
+
 		if (retval)
-			pipe_send_message(PIPE_STATUS, PIPE_ERROR, command);
-		else pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, command);
+			pipe_send_message(PIPE_STATUS, PIPE_ERROR, command_name);
+		else pipe_send_message(PIPE_STATUS, PIPE_SUCCESS, command_name);
 		free(command);
+		g_free(command_name);
 	}
+
+	siril_log_message("exiting pipe input thread\n");
 	return NULL;
 }
 
 static void *write_pipe(void *p) {
 	do {
-		fprintf(stdout, "write pipe waiting to be opened...\n");
 #ifdef _WIN32
+		fprintf(stdout, "write pipe waiting to be opened...\n");
 		// will block until the other end is opened
 		if (!ConnectNamedPipe(hPipe_w, NULL) && GetLastError() != ERROR_PIPE_CONNECTED) {
 			siril_log_message(_("Could not open the named pipe\n"));
 			break;
 		}
 #else
+		char *w_path = PIPE_PATH_W;
+		if (p && ((char *)p)[0] != '\0')
+			w_path = (char *)p;
+		fprintf(stdout, "write pipe %s waiting to be opened...\n", w_path);
 		// open will block until the other end is opened
-		if ((pipe_fd_w = open(PIPE_PATH_W, O_WRONLY)) == -1) {
+		if ((pipe_fd_w = open(w_path, O_WRONLY)) == -1) {
 			siril_log_message(_("Could not open the named pipe\n"));
 			perror("open");
 			break;
 		}
 #endif
 		fprintf(stdout, "opened write pipe\n");
+		pipe_send_message(PIPE_READY, PIPE_STARTING, NULL);
 
 		do {
 			char *msg;
@@ -501,19 +556,20 @@ static void *write_pipe(void *p) {
 			free(msg);
 		} while (1);
 	} while (pipe_active);
+	siril_log_message("exiting pipe output thread\n");
 	return GINT_TO_POINTER(-1);
 }
 
 /* not reentrant */
-int pipe_start() {
+int pipe_start(char *r_path, char *w_path) {
 	if (pipe_active)
 		return 0;
-	if (pipe_create())
+	if (pipe_create(r_path, w_path))
 		return -1;
 
 	pipe_active = 1;
-	worker_thread = g_thread_new("worker", process_commands, NULL);
-	pipe_thread_w = g_thread_new("pipe writer", write_pipe, NULL);
+	worker_thread = g_thread_new("worker", process_commands, r_path);
+	pipe_thread_w = g_thread_new("pipe writer", write_pipe, w_path);
 	return 0;
 }
 

@@ -1,9 +1,9 @@
 ###################################################
 # Script pour Siril 1.0
-# Mars 2021
+# Avril 2022
 # (C) Cyril Richard
 # Adapté, modifié et traduit par Colmic
-# Couleur_Extraction v1.1
+# Couleur_Extraction v1.2
 #
 ###################################################
 #
@@ -18,7 +18,7 @@
 #
 ###################################################
 
-requires 0.99.4
+requires 1.1.0
 
 #Création du master-offset (ou dark de flat)
 cd offsets
@@ -48,7 +48,7 @@ cd ..
 cd brutes
 convert brute -out=../process
 cd ../process
-preprocess brute -dark=dark_stacked -flat=pp_flat_stacked -cfa -equalize_cfa
+preprocess brute -dark=dark_stacked -flat=pp_flat_stacked -cc=dark -cfa -equalize_cfa
 
 #extraction Ha
 seqextract_Ha pp_brute

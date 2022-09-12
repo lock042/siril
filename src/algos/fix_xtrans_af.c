@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -51,11 +51,11 @@ static int get_model(const char *model) {
 	return -1;
 }
 
-static void set_af_matrix(gchar *pattern, af_pixel_matrix af_matrix) {
+static void set_af_matrix(const gchar *pattern, af_pixel_matrix af_matrix) {
 	// If we don't find a match, we will not populate af_matrix.
 	// af_pixel_matrix is [12][6].
 	// Numbers are candidate green AF patterns.  G's are green.  Hyphens are red or blue.
-	char matrix_str[72]="G0-G0-G3-G3---G--GG1-G1-G0-G0---G--GG2-G2-G1-G1---G--GG3-G3-G2-G2---G--G";
+	const char matrix_str[72]="G0-G0-G3-G3---G--GG1-G1-G0-G0---G--GG2-G2-G1-G1---G--GG3-G3-G2-G2---G--G";
 
 	// Swap with this to try the inverse.  We haven't found a sensor that works with this yet.
 	//char matrix_str[72]="0G-0G-3G-3G---G--G1G-1G-0G-0G---G--G2G-2G-1G-1G---G--G3G-3G-2G-2G---G--G";
@@ -184,18 +184,18 @@ int fix_xtrans_ac(fits *fit) {
 	int model = get_model(fit->instrume);
 	if (model < 0) {
 		siril_log_color_message(_("Fix X-Trans: Unknown camera %s, trying to read information from preferences.\n"), "red", fit->instrume);
-		if (com.pref.xtrans_af.w != 0 && com.pref.xtrans_af.h != 0) {
-			if (com.pref.xtrans_sample.w > fit->rx || com.pref.xtrans_sample.h > fit->ry) {
+		if (com.pref.prepro.xtrans_af.w != 0 && com.pref.prepro.xtrans_af.h != 0) {
+			if (com.pref.prepro.xtrans_sample.w > fit->rx || com.pref.prepro.xtrans_sample.h > fit->ry) {
 				siril_log_color_message(_("Sample box cannot be bigger than the image.\n"), "red");
 				return 1;
 			}
-			if (com.pref.xtrans_af.w > fit->rx || com.pref.xtrans_af.h > fit->ry) {
+			if (com.pref.prepro.xtrans_af.w > fit->rx || com.pref.prepro.xtrans_af.h > fit->ry) {
 				siril_log_color_message(_("AF box cannot be bigger than the image.\n"), "red");
 				return 1;
 			}
-			af = com.pref.xtrans_af;
-			if (com.pref.xtrans_sample.w != 0 && com.pref.xtrans_sample.h != 0) {
-				sam = com.pref.xtrans_sample;
+			af = com.pref.prepro.xtrans_af;
+			if (com.pref.prepro.xtrans_sample.w != 0 && com.pref.prepro.xtrans_sample.h != 0) {
+				sam = com.pref.prepro.xtrans_sample;
 			} else {
 				sam.x = 0;
 				sam.y = 0;

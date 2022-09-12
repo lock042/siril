@@ -1,0 +1,68 @@
+These four catalogues come from the KStars free software
+https://edu.kde.org/kstars/
+
+The file format has been developed by the KStars team and is licensed as GPLv2
+or above. The four files data and binary format are documented here:
+https://api.kde.org/kstars/html/Stars.html
+
+For more information about these files andd how to use them in Siril, see
+https://free-astro.org/index.php?title=Siril:Star_Catalogues
+
+The data in the catalogues comes from various sources: Hipparcos, Tycho-2 and
+NOMAD.
+
+Hipparcos catalogues
+====================
+
+There doesn't seem to be any license associated with this data, many software
+use them and it seems to be public domain. The following notice should anyway
+appear:
+
+This application makes use of the Hipparcos and Tycho catalogues (ESA, 1997)
+(http://sci.esa.int/hipparcos)
+
+
+Tycho-2 Catalogue
+===============
+
+The Tycho-2 Catalogue is by Erik Høg et al. The copy of Tycho-2 used in
+KStars was downloaded from the Astronomical Data Center, which was
+hosted on http://adc.astro.umd.edu
+
+The service is currently inaccessible, but at the time of download,
+the content was licensed in the public domain:
+http://adc.astro.umd.edu/adc/questions_feedback.html#policies1%22
+said:
+
+"All ADC data are public domain unless otherwise stated in the
+"ReadMe" file. The data are for scientific use only and have no
+commercial value."
+
+The internet archive "WayBackMachine" still has the old page archived
+and here is a link to the archived page on WayBackMachine showing the
+public domain policy:
+http://web.archive.org/web/20060908091808/http://adc.astro.umd.edu/adc/questions_feedback.html#policies1%22
+
+See also the debian package copyright:
+https://sources.debian.org/src/kstars-data-extra-tycho2/1.1r1-9.1/debian/copyright/
+
+USNO NOMAD Catalogue
+==================
+
+The USNO NOMAD catalogue was compiled by the US Naval Observatory, and
+access to the catalogue is (as of April 1, 2012) available through the
+USNO website -- http://www.nofs.navy.mil/nomad/
+
+The "Privacy and Security Notice" on USNO's website
+(http://ad.usno.navy.mil/privacy.shtml) reads:
+
+"All information presented on these pages is considered public domain
+and may be distributed or copied unless otherwise specified. Use of
+appropriate byline/photo/image credits is requested."
+
+There is no explicit indication to the contrary on the NOMAD page.
+
+NOMAD was obtained for use in KStars by Jason Harris, by contacting
+Norbert Zacharias, who is designated as a contact point for questions
+about the NOMAD catalogue on the USNO website.
+

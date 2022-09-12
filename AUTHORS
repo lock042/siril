@@ -5,8 +5,9 @@ Siril (up to version 0.8, 2006) was originally written by:
 
 The current maintainers (from version 0.9 alpha, 2012-) are:
 
-- Vincent Hourdin (vh at free-astro.vinvin dot tf)
+- Vincent Hourdin (vh at free-astro dot org)
 - Cyril Richard (cyril at free-astro dot org)
+- Cecile Melis (cissou8 at gmail dot com)
 
 The following people have contributed code to Siril:
 
@@ -20,18 +21,24 @@ The following people have contributed code to Siril:
 - Ingo Weyrich (heckflosse67 at gmx dot de)
 	Various speed optimization
 - Fabrice Faure (fab4space at gmail fot com)
-	FITS compression 
-- Cecile Melis (cissou8 at gmail dot com)
+	FITS compression
 - Florian Benedetti (f-benedetti at live dot com)
 	CI refactoring and Windows package build
 - Sébastien Rombauts (sebastien dot rombauts at gmail dot com)
 - Pascal Burlot (pebe92 at gmail dot com)
 - Guillaume Roguez (yomgui1 at gmail dot com)
+- Frédéric Trouche (fred at linuxtribe dot org)
+- Steffen Hirtle (steffen.hirtle at web dot de)
+	RBF interpolation for background extraction
+- Adrian Knagg-Baugh (aje dot baugh plus astro at gmail dot com)
+	Generalised hyperbolic transforms based on David Payne's algorithms
+	Starnet++ integration
 
 A great mention to Chris Garry, author of PIPP and SER Player,
 for the use of his code to create AVI files and for planetary quality algorithm.
 
-Many thanks to Michel (Colmic) for the multiple beta testing that helped us for debugging.
+Many thanks to Michel (Colmic) for the multiple beta testing that helped us for
+debugging and his hugely popular tutorial
 
 Main logo drawn by:
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -44,10 +44,15 @@
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
 #include "sorting.h"
 #include "statistics.h"
 #include "statistics_float.h"
 #include "core/OS_utils.h"
+
+// uncomment to debug statistics
+#undef siril_debug_print
+#define siril_debug_print(fmt, ...) { }
 
 /* Activating nullcheck will treat pixels with 0 value as null and remove them
  * from stats computation. This can be useful when a large area is black, but
@@ -111,10 +116,9 @@ float siril_stats_ushort_sd_32(const WORD data[], const int N) {
  * of the absolute deviations from the data's median:
  *  MAD = median (| Xi − median(X) |)
  */
-static double siril_stats_ushort_mad(WORD* data, const size_t n, const double m,
-		gboolean multithread) {
-	size_t i;
-	double mad;
+float siril_stats_ushort_mad(const WORD* data, const size_t n, const double m,
+		threading_type threads) {
+	float mad;
 	int median = round_to_int(m);	// we use it on integer data anyway
 	WORD *tmp = malloc(n * sizeof(WORD));
 	if (!tmp) {
@@ -123,29 +127,30 @@ static double siril_stats_ushort_mad(WORD* data, const size_t n, const double m,
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(n > 10000) private(i) schedule(static)
+	threads = limit_threading(&threads, 400000, n);
+#pragma omp parallel for num_threads(threads) if(threads > 1) schedule(static)
 #endif
-	for (i = 0; i < n; i++) {
+	for (size_t i = 0; i < n; i++) {
 		tmp[i] = (WORD)abs(data[i] - median);
 	}
 
-	mad = histogram_median(tmp, n, multithread);
+	mad = (float) histogram_median(tmp, n, threads);
 	free(tmp);
 	return mad;
 }
 
 static double siril_stats_ushort_bwmv(const WORD* data, const size_t n,
-		const double mad, const double median) {
+		const double mad, const double median, threading_type threads) {
 
 	double bwmv = 0.0;
 	double up = 0.0, down = 0.0;
-	size_t i;
 
 	if (mad > 0.0) {
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static) reduction(+:up,down)
+	threads = limit_threading(&threads, 150000, n);
+#pragma omp parallel for num_threads(threads) schedule(static) reduction(+:up,down) if(threads>1)
 #endif
-		for (i = 0; i < n; i++) {
+		for (size_t i = 0; i < n; i++) {
 			double yi, ai, yi2;
 
 			yi = ((double) data[i] - median) / (9 * mad);
@@ -186,18 +191,18 @@ static WORD* reassign_to_non_null_data_ushort(WORD *data, size_t inputlen, size_
 }
 
 static void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
-		const WORD data[], const size_t n, gboolean multithread) {
+		const WORD data[], const size_t n, threading_type threads) {
 	/* finds the smallest and largest members of a dataset */
 
 	if (n > 0 && data) {
 		WORD min = data[0];
 		WORD max = data[0];
-		size_t i;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithread && n > 10000) reduction(max:max) reduction(min:min)
+	threads = limit_threading(&threads, 400000, n);
+#pragma omp parallel for num_threads(threads) schedule(static) if(threads>1) reduction(max:max) reduction(min:min)
 #endif
-		for (i = 0; i < n; i++) {
+		for (size_t i = 0; i < n; i++) {
 			WORD xi = data[i];
 			if (xi < min)
 				min = xi;
@@ -213,7 +218,7 @@ static void siril_stats_ushort_minmax(WORD *min_out, WORD *max_out,
 /* this function tries to get the requested stats from the passed stats,
  * computes them and stores them in it if they have not already been */
 static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *selection,
-		int option, imstats *stats, int bitpix, gboolean multithread) {
+		int option, imstats *stats, int bitpix, threading_type threads) {
 	int nx, ny;
 	WORD *data = NULL;
 	int stat_is_local = 0, free_data = 0;
@@ -226,8 +231,6 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		allocate_stats(&stat);
 		if (!stat) return NULL;
 		stat_is_local = 1;
-	} else {
-		atomic_int_incref(stat->_nb_refs);
 	}
 
 	if (fit) {
@@ -266,7 +269,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing minmax\n", stat, fit, layer);
-		siril_stats_ushort_minmax(&min, &max, data, stat->total, multithread);
+		siril_stats_ushort_minmax(&min, &max, data, stat->total, threads);
 		stat->min = (double) min;
 		stat->max = (double) max;
 	}
@@ -282,7 +285,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		siril_debug_print("- stats %p fit %p (%d): computing basic\n", stat, fit, layer);
 		siril_fits_img_stats_ushort(data, nx, ny, ACTIVATE_NULLCHECK, 0, &stat->ngoodpix,
 				NULL, NULL, &stat->mean, &stat->sigma, &stat->bgnoise,
-				NULL, NULL, NULL, multithread, &status);
+				NULL, NULL, NULL, threads, &status);
 		if (status) {
 			if (free_data) free(data);
 			if (stat_is_local) free(stat);
@@ -314,7 +317,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing median\n", stat, fit, layer);
-		stat->median = histogram_median(data, stat->ngoodpix, multithread);
+		stat->median = histogram_median(data, stat->ngoodpix, threads);
 	}
 
 	/* Calculation of average absolute deviation from the median */
@@ -334,7 +337,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing mad\n", stat, fit, layer);
-		stat->mad = siril_stats_ushort_mad(data, stat->ngoodpix, stat->median, multithread);
+		stat->mad = siril_stats_ushort_mad(data, stat->ngoodpix, stat->median, threads);
 	}
 
 	/* Calculation of Bidweight Midvariance */
@@ -344,7 +347,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing bimid\n", stat, fit, layer);
-		double bwmv = siril_stats_ushort_bwmv(data, stat->ngoodpix, stat->mad, stat->median);
+		double bwmv = siril_stats_ushort_bwmv(data, stat->ngoodpix, stat->mad, stat->median, threads);
 		stat->sqrtbwmv = sqrt(bwmv);
 	}
 
@@ -356,7 +359,6 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 			return NULL;	// not in cache, don't compute
 		}
 		siril_debug_print("- stats %p fit %p (%d): computing ikss\n", stat, fit, layer);
-		size_t i;
 		float *newdata = malloc(stat->ngoodpix * sizeof(float));
 		if (!newdata) {
 			if (stat_is_local) free(stat);
@@ -368,14 +370,16 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		/* we convert in the [0, 1] range */
 		float invertNormValue = (float)(1.0 / normValue);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if (multithread) private(i) schedule(static)
+		int loopthreads = limit_threading(&threads, 400000, stat->ngoodpix);
+#pragma omp parallel for num_threads(loopthreads) if (loopthreads>1) schedule(static)
 #endif
-		for (i = 0; i < stat->ngoodpix; i++) {
+		for (size_t i = 0; i < stat->ngoodpix; i++) {
 			newdata[i] = (float) data[i] * invertNormValue;
 		}
+
 		float med = (float)(stat->median) * invertNormValue;
 		float mad = (float)(stat->mad) * invertNormValue;
-		if (IKSSlite(newdata, stat->ngoodpix, med, mad, &stat->location, &stat->scale, multithread)) {
+		if (IKSSlite(newdata, stat->ngoodpix, med, mad, &stat->location, &stat->scale, threads)) {
 			if (stat_is_local) free(stat);
 			if (free_data) free(data);
 			free(newdata);
@@ -391,16 +395,16 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	return stat;
 }
 
-static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, int option, imstats *stats, int bitpix, gboolean multithread) {
+static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, int option, imstats *stats, int bitpix, threading_type threads) {
 	if (fit) {
 		if (fit->type == DATA_USHORT)
-			return statistics_internal_ushort(fit, layer, selection, option, stats, bitpix, multithread);
+			return statistics_internal_ushort(fit, layer, selection, option, stats, bitpix, threads);
 		if (fit->type == DATA_FLOAT)
-			return statistics_internal_float(fit, layer, selection, option, stats, bitpix, multithread);
+			return statistics_internal_float(fit, layer, selection, option, stats, bitpix, threads);
 	}
 	if (bitpix == FLOAT_IMG)
-		return statistics_internal_float(fit, layer, selection, option, stats, bitpix, multithread);
-	return statistics_internal_ushort(fit, layer, selection, option, stats, bitpix, multithread);
+		return statistics_internal_float(fit, layer, selection, option, stats, bitpix, threads);
+	return statistics_internal_ushort(fit, layer, selection, option, stats, bitpix, threads);
 }
 
 /* Computes statistics on the given layer of the given opened image.
@@ -417,18 +421,19 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
  * function because of the special rule of this object that has a reference
  * counter because it can be referenced in 3 different places.
  */
-imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectangle *selection, int option, gboolean multithread) {
+imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectangle *selection, int option, threading_type threads) {
 	imstats *oldstat = NULL, *stat;
+	check_threading(&threads);
 	if (selection && selection->h > 0 && selection->w > 0) {
 		// we have a selection, don't store anything
-		return statistics_internal(fit, layer, selection, option, NULL, fit->bitpix, multithread);
+		return statistics_internal(fit, layer, selection, option, NULL, fit->bitpix, threads);
 	} else if (!seq || image_index < 0) {
 		// we have a single image, store in the fits
 		if (fit->stats && fit->stats[layer]) {
 			oldstat = fit->stats[layer];
 			atomic_int_incref(oldstat->_nb_refs);
 		}
-		stat = statistics_internal(fit, layer, NULL, option, oldstat, fit->bitpix, multithread);
+		stat = statistics_internal(fit, layer, NULL, option, oldstat, fit->bitpix, threads);
 		if (!stat) {
 			fprintf(stderr, "- stats failed for fit %p (%d)\n", fit, layer);
 			if (oldstat) {
@@ -447,7 +452,7 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectan
 			if (oldstat)	// can be NULL here
 				atomic_int_incref(oldstat->_nb_refs);
 		}
-		stat = statistics_internal(fit, layer, NULL, option, oldstat, seq->bitpix, multithread);
+		stat = statistics_internal(fit, layer, NULL, option, oldstat, seq->bitpix, threads);
 		if (!stat) {
 			if (fit)
 				fprintf(stderr, "- stats failed for %d in seq (%d)\n",
@@ -466,13 +471,12 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectan
 	}
 }
 
-int compute_means_from_flat_cfa_ushort(fits *fit, float mean[4]) {
-	int row, col, c, i = 0;
+int compute_means_from_flat_cfa_ushort(fits *fit, double mean[36]) {
+	int row, col, c, i[36] = {0};
 	WORD *data;
 	unsigned int width, height;
 	unsigned int startx, starty;
 
-	mean[0] = mean[1] = mean[2] = mean[3] = 0.0;
 	data = fit->data;
 	width = fit->rx;
 	height = fit->ry;
@@ -483,31 +487,27 @@ int compute_means_from_flat_cfa_ushort(fits *fit, float mean[4]) {
 	startx = width / 3;
 	starty = height / 3;
 
-	/* make sure it does start at the beginning of CFA pattern */
-	startx = startx % 2 == 0 ? startx : startx + 1;
-	starty = starty % 2 == 0 ? starty : starty + 1;
-
 	siril_debug_print("Computing stat in (%d, %d, %d, %d)\n", startx, starty,
 			width - 1 - startx, height - 1 - starty);
 
-	/* Compute mean of each channel */
-	for (row = starty; row < height - 1 - starty; row += 2) {
-		for (col = startx; col < width - 1 - startx; col += 2) {
-			mean[0] += (float) data[col + row * width];
-			mean[1] += (float) data[1 + col + row * width];
-			mean[2] += (float) data[col + (1 + row) * width];
-			mean[3] += (float) data[1 + col + (1 + row) * width];
-			i++;
+	/* compute mean of each element in 6x6 blocks */
+	for (row = starty; row < height - starty; row++) {
+		for (col = startx; col < width - startx; col++) {
+			mean[(col % 6) + (row % 6) * 6] += (double) data[col + row * width];
+			i[(col % 6) + (row % 6) * 6]++;
 		}
 	}
 
-	for (c = 0; c < 4; c++) {
-		mean[c] /= (float) i;
+	for (c = 0; c < 36; c++) {
+		mean[c] /= (double) i[c];
 	}
 	return 0;
 }
 
-int compute_means_from_flat_cfa(fits *fit, float mean[4]) {
+/*  the mean is computed by adding data over and over in a long loop;
+    but if the mean variable is a single-precision float, this results in
+    the accumulation of rounding errors. */
+int compute_means_from_flat_cfa(fits *fit, double mean[36]) {
 	if (fit->type == DATA_USHORT)
 		return compute_means_from_flat_cfa_ushort(fit, mean);
 	if (fit->type == DATA_FLOAT)
@@ -669,6 +669,20 @@ void clear_stats(sequence *seq, int layer) {
 	}
 }
 
+/* calls free_stats on all stats of a sequence */
+void clear_stats_bkp(sequence *seq, int layer) {
+	if (seq->stats_bkp && seq->stats_bkp[layer]) {
+		int i;
+		for (i = 0; i < seq->number; i++) {
+			if (seq->stats_bkp[layer][i]) {
+				siril_debug_print("- stats %p freed from seq %d (%d)\n", seq->stats_bkp[layer][i], i, layer);
+				free_stats(seq->stats_bkp[layer][i]);
+				seq->stats_bkp[layer][i] = NULL;
+			}
+		}
+	}
+}
+
 /** generic function for sequences */
 
 static void free_stat_list(gchar **list, int nb) {
@@ -686,74 +700,64 @@ static int stat_prepare_hook(struct generic_seq_args *args) {
 }
 
 static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
 
 	for (int layer = 0; layer < fit->naxes[2]; layer++) {
-		imstats* stat = statistics(NULL, -1, fit, layer, &com.selection, s_args->option, TRUE);
+		/* we first check for data in cache */
+		imstats* stat = statistics(args->seq, i, NULL, layer, &s_args->selection, s_args->option, SINGLE_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			return 1;
+			/* if no cache */
+			stat = statistics(args->seq, i, fit, layer, &s_args->selection, s_args->option, SINGLE_THREADED);
+			if (!stat) {
+				siril_log_message(_("Error: statistics computation failed.\n"));
+				return 1;
+			}
 		}
 
 		int new_index = i * s_args->seq->nb_layers;
-
-		if (fit->type == DATA_USHORT) {
-			if (s_args->option == (STATS_BASIC)) {
-			 	s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
-			 			i + 1,
-			 			layer,
-			 			stat->mean / USHRT_MAX_DOUBLE,
-			 			stat->median / USHRT_MAX_DOUBLE,
-			 			stat->sigma / USHRT_MAX_DOUBLE,
-			 			stat->min / USHRT_MAX_DOUBLE,
-			 			stat->max / USHRT_MAX_DOUBLE,
-			 			stat->bgnoise / USHRT_MAX_DOUBLE
-			 	);
-			} else {
-				s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
-						i + 1,
-						layer,
-						stat->mean / USHRT_MAX_DOUBLE,
-						stat->median / USHRT_MAX_DOUBLE,
-						stat->sigma / USHRT_MAX_DOUBLE,
-						stat->min / USHRT_MAX_DOUBLE,
-						stat->max / USHRT_MAX_DOUBLE,
-						stat->bgnoise / USHRT_MAX_DOUBLE,
-						stat->avgDev / USHRT_MAX_DOUBLE,
-						stat->mad / USHRT_MAX_DOUBLE,
-						stat->sqrtbwmv / USHRT_MAX_DOUBLE
-				);
-			}
+		if (s_args->option == (STATS_BASIC)) {
+			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
+					i + 1,
+					layer,
+					stat->mean,
+					stat->median,
+					stat->sigma,
+					stat->min,
+					stat->max,
+					stat->bgnoise
+			);
+		} else if (s_args->option == (STATS_MAIN)){
+			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
+					i + 1,
+					layer,
+					stat->mean,
+					stat->median,
+					stat->sigma,
+					stat->min,
+					stat->max,
+					stat->bgnoise,
+					stat->avgDev,
+					stat->mad,
+					stat->sqrtbwmv
+			);
 		} else {
-			if (s_args->option == (STATS_BASIC)) {
-			 	s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
-			 			i + 1,
-			 			layer,
-			 			stat->mean,
-			 			stat->median,
-			 			stat->sigma,
-			 			stat->min,
-			 			stat->max,
-			 			stat->bgnoise
-			 	);
-			} else {
-				s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
-						i + 1,
-						layer,
-						stat->mean,
-						stat->median,
-						stat->sigma,
-						stat->min,
-						stat->max,
-						stat->bgnoise,
-						stat->avgDev,
-						stat->mad,
-						stat->sqrtbwmv
-				);
-			}
+			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
+					i + 1,
+					layer,
+					stat->mean,
+					stat->median,
+					stat->sigma,
+					stat->min,
+					stat->max,
+					stat->bgnoise,
+					stat->avgDev,
+					stat->mad,
+					stat->sqrtbwmv,
+					stat->location,
+					stat->scale
+			);
 		}
-
 		free_stats(stat);
 	}
 	return 0;
@@ -765,8 +769,7 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 
 	int size = s_args->seq->nb_layers * args->nb_filtered_images;
 	GFile *file = g_file_new_for_path(s_args->csv_name);
-	GOutputStream* output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
-			G_FILE_CREATE_NONE, NULL, &error);
+	GOutputStream* output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
 	g_free(s_args->csv_name);
 	if (output_stream == NULL) {
 		if (error != NULL) {
@@ -782,8 +785,10 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 	const gchar *header;
 	if (s_args->option == (STATS_BASIC)) {
 		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\n";
-	} else {
+	} else if (s_args->option == (STATS_MAIN)){
 		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\tavgDev\tmad\tsqrtbwmv\n";
+	} else {
+		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\tavgDev\tmad\tsqrtbwmv\tlocation\tscale\n";
 	}
 	if (!g_output_stream_write_all(output_stream, header, strlen(header), NULL, NULL, &error)) {
 		g_warning("%s\n", error->message);
@@ -809,6 +814,7 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 	}
 
 	siril_log_message(_("Statistic file %s was successfully created.\n"), g_file_peek_path(file));
+	writeseqfile(args->seq);
 	g_object_unref(output_stream);
 	g_object_unref(file);
 	free_stat_list(s_args->list, size);
@@ -817,11 +823,51 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 	return 0;
 }
 
+static int stat_compute_mem_limit(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+
+	int is_color = args->seq->nb_layers == 3;
+	required = is_color ? MB_per_image * 4 / 3 : MB_per_image * 2;
+
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+		limit = thread_limit;
+
+		/* should not happen */
+		if (for_writer)
+			return 1;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+#endif
+	}
+	return limit;
+}
+
+
 void apply_stats_to_sequence(struct stat_data *stat_args) {
 	struct generic_seq_args *args = create_default_seqargs(stat_args->seq);
 	args->seq = stat_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = stat_args->seq->selnum;
+	args->compute_mem_limits_hook = stat_compute_mem_limit;
 	args->prepare_hook = stat_prepare_hook;
 	args->finalize_hook = stat_finalize_hook;
 	args->image_hook = stat_image_hook;
@@ -836,11 +882,188 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
-/**** callbacks *****/
+/**** callbacks ****/
 
 void on_menu_gray_stat_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	computeStat();
 	siril_open_dialog("StatWindow");
 	set_cursor_waiting(FALSE);
+}
+
+/**** threading helpers ****/
+
+/* compute statistics for all channels of an image from a sequence, only on full image, make sure the result (stats) is allocated */
+int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fits *fit, int option,
+		threading_type threading, int image_thread_id, imstats **stats) {
+	int required_computations = 0;
+	int stats_to_compute[3];
+	int nb_layers = seq->nb_layers;
+	int retval = 0;
+	fits local_fit = { 0 };
+
+	// try from the cache first to see if image loading is required
+	for (int layer = 0; layer < nb_layers; ++layer) {
+		// try with no fit passed: fails if data is needed because data is not cached
+		stats[layer] = statistics(seq, image_index, NULL, layer, NULL, option, SINGLE_THREADED);
+		if (!stats[layer])
+			stats_to_compute[required_computations++] = layer;
+	}
+	siril_debug_print("%d stats to recompute for image %d\n", required_computations, image_index);
+
+	if (required_computations) {
+		if (!fit) {
+			if (seq_read_frame(seq, image_index, &local_fit, TRUE, image_thread_id)) {
+				return -1;
+			}
+
+			if (nb_layers != (int)local_fit.naxes[2]) {
+				siril_log_color_message(_("It looks like your sequence contains a mix of monochrome and RGB images.\n"), "red");
+				clearfits(&local_fit);
+				return -1;
+			}
+			fit = &local_fit;
+		}
+
+#ifdef _OPENMP
+		/* we have 'threading' threads and 'required_computations' channels to
+		 * compute stats on. The most efficient approach is to process the
+		 * channels statistics in parallel, because the statistics of each channel
+		 * can be a small operation that would suffer from the threading overhead.
+		 * Consequently, if we have enough threads available, we parallelize first
+		 * the channels and if there are more than enough, we parallelize the
+		 * stats computation. The stats computation then decides if it will use
+		 * all the threads it was given or not, depending on data size.
+		 */
+		int threads = check_threading(&threading);
+		int channels_per_thread = required_computations;
+		int *threads_per_thread = NULL;
+		if (threads > 1) {
+			if (threads >= required_computations) {
+				channels_per_thread = 1;
+				threads_per_thread = compute_thread_distribution(required_computations, threading);
+				omp_set_nested(1);	// to be done at each level
+				if ((!omp_get_nested() || omp_get_max_active_levels() < 2) && threads_per_thread[0] > 1)
+					siril_log_message(_("Threading statistics computation per channel, but enabling threading in channels too is not supported.\n"));
+				else siril_debug_print("threading statistics computation per channel (at most %d threads each)\n", threads_per_thread[0]);
+			}
+			else {
+				threads_per_thread = compute_thread_distribution(1, threading);
+				siril_debug_print("threading statistics computation of channels (%d threads)\n", threads_per_thread[0]);
+			}
+		}
+
+#pragma omp parallel for num_threads(required_computations) schedule(static) if(required_computations > 1 && channels_per_thread == 1)
+#endif
+		for (int layer_index = 0; layer_index < required_computations; ++layer_index) {
+			threading_type subthreads = SINGLE_THREADED;
+			int layer = stats_to_compute[layer_index];
+#ifdef _OPENMP
+			//siril_debug_print("actual number of threads in channel thread: %d (level %d)\n", omp_get_num_threads(), omp_get_level());
+			if (threads_per_thread) {
+				int thread_id = omp_get_thread_num();
+				subthreads = threads_per_thread[thread_id];
+			}
+			siril_debug_print("requesting stats for normalization of channel %d with %d threads\n", layer, subthreads);
+#endif
+			stats[layer] = statistics(seq, image_index, fit, layer, NULL, option, subthreads);
+			if (!stats[layer]) {
+				retval = -1;
+				continue;
+			}
+		}
+
+#ifdef _OPENMP
+		free(threads_per_thread);
+#endif
+
+		if (seq->type != SEQ_INTERNAL && fit == &local_fit)
+			clearfits(&local_fit);
+	}
+	return retval;
+}
+
+/* compute statistics for all channels of a single image, only on full image, make sure the result (stats) is allocated */
+int compute_all_channels_statistics_single_image(fits *fit, int option,
+		threading_type threading, imstats **stats) {
+	int required_computations = (int)fit->naxes[2];
+	int retval = 0;
+
+#ifdef _OPENMP
+	/* we have 'threading' threads and 'required_computations' channels to
+	 * compute stats on. The most efficient approach is to process the
+	 * channels statistics in parallel, because the statistics of each channel
+	 * can be a small operation that would suffer from the threading overhead.
+	 * Consequently, if we have enough threads available, we parallelize first
+	 * the channels and if there are more than enough, we parallelize the
+	 * stats computation. The stats computation then decides if it will use
+	 * all the threads it was given or not, depending on data size.
+	 */
+	int threads = check_threading(&threading);
+	int channels_per_thread = required_computations;
+	int *threads_per_thread = NULL;
+	if (threads > 1) {
+		if (threads >= required_computations) {
+			channels_per_thread = 1;
+			threads_per_thread = compute_thread_distribution(required_computations, threading);
+			omp_set_nested(1);	// to be done at each level
+			if ((!omp_get_nested() || omp_get_max_active_levels() < 2) && threads_per_thread[0] > 1)
+				siril_log_message(_("Threading statistics computation per channel, but enabling threading in channels too is not supported.\n"));
+			else siril_debug_print("threading statistics computation per channel (at most %d threads each)\n", threads_per_thread[0]);
+		}
+		else {
+			threads_per_thread = compute_thread_distribution(1, threading);
+			siril_debug_print("threading statistics computation of channels (%d threads)\n", threads_per_thread[0]);
+		}
+	}
+
+#pragma omp parallel for num_threads(required_computations) schedule(static) if(required_computations > 1 && channels_per_thread == 1)
+#endif
+	for (int layer = 0; layer < required_computations; ++layer) {
+		threading_type subthreads = SINGLE_THREADED;
+#ifdef _OPENMP
+		//siril_debug_print("actual number of threads in channel thread: %d (level %d)\n", omp_get_num_threads(), omp_get_level());
+		if (threads_per_thread) {
+			int thread_id = omp_get_thread_num();
+			subthreads = threads_per_thread[thread_id];
+		}
+		siril_debug_print("requesting stats for normalization of channel %d with %d threads\n", layer, subthreads);
+#endif
+		stats[layer] = statistics(NULL, -1, fit, layer, NULL, option, subthreads);
+		if (!stats[layer])
+			retval = -1;
+	}
+
+#ifdef _OPENMP
+	free(threads_per_thread);
+#endif
+
+	return retval;
+}
+
+/* get a reference to stats of an image, only if already computed
+ * make sure channels is allocated to the number of channels
+ * use free_stats() to release the returned stats
+ */
+int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels) {
+	if (!seq->stats)
+		return 1;
+	int all_copied = 1;
+	for (int i = 0; i < seq->nb_layers; i++) {
+		if (all_copied && seq->stats[i] && seq->stats[i][image]) {
+			imstats *stats = seq->stats[i][image];
+			atomic_int_incref(stats->_nb_refs);
+			channels[i] = stats;
+		} else {
+			all_copied = 0;
+		}
+	}
+	if (!all_copied) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (channels[i])
+				free_stats(channels[i]);
+			channels[i] = NULL;
+		}
+	}
+	return !all_copied;
 }

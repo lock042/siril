@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@ typedef struct update_preview_struct {
 } update_image;
 
 void copy_gfit_to_backup();
-void copy_backup_to_gfit();
+int copy_backup_to_gfit();
 fits *get_preview_gfit_backup();
 gboolean is_preview_active();
 void clear_backup();

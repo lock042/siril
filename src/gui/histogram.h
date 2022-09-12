@@ -1,12 +1,25 @@
 #ifndef _HIST_H_
 #define _HIST_H_
 
+#include "filters/mtf.h"
+#include "filters/ght.h"
+
+#define NO_STRETCH_SET_YET 0
+#define HISTO_STRETCH 1
+#define GHT_STRETCH 2
+
 struct mtf_data {
 	fits *fit;
 	sequence *seq;
-	float lo;
-	float mid;
-	float hi;
+	struct mtf_params params;
+	const gchar *seqEntry;
+};
+
+struct ght_data {
+	fits *fit;
+	sequence *seq;
+	struct ght_params params_ght;
+	struct ght_compute_params compute_params;
 	const gchar *seqEntry;
 };
 
@@ -21,17 +34,18 @@ gsl_histogram* computeHisto_Selection(fits*, int, rectangle *);
 void compute_histo_for_gfit();
 void invalidate_gfit_histogram();
 void update_gfit_histogram_if_needed();
-void clear_histograms();
-float MTF(float x, float m, float lo, float hi);
-float findMidtonesBalance(fits *fit, float *shadows, float *highlights);
 void apply_histo_cancel();
 void toggle_histogram_window_visibility();
 
 void on_histoMidEntry_changed(GtkEditable *editable, gpointer user_data);
 void on_histoShadEntry_changed(GtkEditable *editable, gpointer user_data);
 void on_histoHighEntry_changed(GtkEditable *editable, gpointer user_data);
-void mtf_with_parameters(fits *fit, float lo, float mid, float hi);
 
 void apply_mtf_to_sequence(struct mtf_data *mtf_args);
+void apply_ght_to_sequence(struct ght_data *ght_args);
 
+void erase_histo_display(cairo_t *cr, int width, int height);
+void draw_grid(cairo_t *cr, int width, int height);
+void display_scale(cairo_t *cr, int width, int height);
+void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width, int height, double zoomH, double zoomV, gboolean isOrig);
 #endif

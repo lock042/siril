@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -62,15 +62,19 @@ static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 		gtk_file_chooser_set_filter(file_chooser, f);
 }
 
+static void set_single_filter_dialog(GtkFileChooser *chooser, const gchar *name, const gchar *filter) {
+	gtk_filter_add(chooser, name, filter, TRUE);
+}
+
 static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 	GString *all_filter = NULL;
-	gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fits.fz";
+	gchar *fits_filter = FITS_EXTENSIONS;
 	gchar *netpbm_filter = "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM";
 	gchar *pic_filter = "*.pic;*.PIC";
 	gchar *ser_filter = "*.ser;*.SER";
 	if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts, *.fits.fz)"),
-				fits_filter, com.filter == TYPEFITS);
+				fits_filter, gui.file_ext_filter == TYPEFITS);
 	} else {
 		all_filter = g_string_new(fits_filter);
 	}
@@ -98,7 +102,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		raw[strlen(raw) - 1] = '\0';
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 			gtk_filter_add(chooser, _("RAW DSLR Camera Files"), raw,
-				com.filter == TYPERAW);
+				gui.file_ext_filter == TYPERAW);
 		} else {
 			all_filter = g_string_append(all_filter, ";");
 			all_filter = g_string_append(all_filter, raw);
@@ -138,18 +142,18 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		graphics_filter = g_string_free(s_pattern, FALSE);
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 			gtk_filter_add(chooser, graphics_supported, graphics_filter,
-					com.filter == TYPEBMP || com.filter == TYPEJPG
-							|| com.filter == TYPEPNG || com.filter == TYPETIFF);
+					gui.file_ext_filter == TYPEBMP || gui.file_ext_filter == TYPEJPG ||
+					gui.file_ext_filter == TYPEPNG || gui.file_ext_filter == TYPETIFF);
 
 			/* NETPBM FILES */
 			gtk_filter_add(chooser, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"),
-					netpbm_filter, com.filter == TYPEPNM);
+					netpbm_filter, gui.file_ext_filter == TYPEPNM);
 			/* IRIS FILES */
 			gtk_filter_add(chooser, _("IRIS PIC Files (*.pic)"), pic_filter,
-					com.filter == TYPEPIC);
+					gui.file_ext_filter == TYPEPIC);
 			/* SER FILES */
 			gtk_filter_add(chooser, _("SER files (*.ser)"), ser_filter,
-					com.filter == TYPESER);
+					gui.file_ext_filter == TYPESER);
 		} else {
 			all_filter = g_string_append(all_filter, ";");
 			all_filter = g_string_append(all_filter, graphics_filter);
@@ -186,7 +190,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 		gtk_filter_add(chooser, _("Film Files (*.avi, *.mpg, ...)"), film_filter,
-				com.filter == TYPEAVI);
+				gui.file_ext_filter == TYPEAVI);
 		} else {
 			all_filter = g_string_append(all_filter, ";");
 			all_filter = g_string_append(all_filter, film_filter);
@@ -265,6 +269,13 @@ static void opendial(int whichdial) {
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
 		gtk_file_chooser_set_select_multiple(dialog, TRUE);
 		set_filters_dialog(dialog, whichdial);
+		break;
+	case OD_BADPIXEL:
+		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
+		dialog = GTK_FILE_CHOOSER(widgetdialog);
+		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_select_multiple(dialog, FALSE);
+		set_single_filter_dialog(dialog, _("Cosmetic correction file (*.lst)"), "*.lst;*.LST");
 	}
 
 	if (!dialog)
@@ -278,7 +289,7 @@ static void opendial(int whichdial) {
 		gchar *filename, *err;
 		gboolean anything_loaded;
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-		GtkEntry *flat_entry, *dark_entry, *bias_entry;
+		GtkEntry *flat_entry, *dark_entry, *bias_entry, *bad_pixel_entry;
 		GtkToggleButton *flat_button, *dark_button, *bias_button;
 		GtkWidget *pbutton;
 
@@ -297,6 +308,7 @@ static void opendial(int whichdial) {
 		flat_entry = GTK_ENTRY(lookup_widget("flatname_entry"));
 		dark_entry = GTK_ENTRY(lookup_widget("darkname_entry"));
 		bias_entry = GTK_ENTRY(lookup_widget("offsetname_entry"));
+		bad_pixel_entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
 
 		flat_button = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
 		dark_button = GTK_TOGGLE_BUTTON(lookup_widget("usedark_button"));
@@ -325,6 +337,9 @@ static void opendial(int whichdial) {
 
 		case OD_CWD:
 			if (!siril_change_dir(filename, &err)) {
+				if (com.pref.wd)
+					g_free(com.pref.wd);
+				com.pref.wd = g_strdup(com.wd);
 				writeinitfile();
 				set_GUI_CWD();
 			} else {
@@ -345,6 +360,11 @@ static void opendial(int whichdial) {
 			fill_convert_list(list);
 			g_slist_free(list);
 			break;
+
+		case OD_BADPIXEL:
+			gtk_entry_set_text(bad_pixel_entry, filename);
+			break;
+
 		}
 		g_free(filename);
 	}
@@ -374,6 +394,10 @@ void header_open_button_clicked() {
 
 void on_select_convert_button_clicked(GtkToolButton *button, gpointer user_data) {
 	opendial(OD_CONVERT);
+}
+
+void on_pixelmap_button_clicked(GtkToggleButton *button, gpointer user_data) {
+	opendial(OD_BADPIXEL);
 }
 
 /** callback function for recent document opened

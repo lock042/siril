@@ -121,10 +121,11 @@ static int prepare_to_recalc(int num_matched_A,
 		struct s_star *matched_list_B, struct s_star *star_list_A_copy,
 		TRANS *trans);
 
-int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
-		double s_min, double s_max,
-		Homography *H, gboolean print_output) {
-	int ret;
+int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
+		double min_scale, double max_scale, Homography *H,
+		gboolean save_photometric_data,
+		pcc_star **photometric_data, int *nb_photometric_stars,
+		transformation_type type, s_star **out_list_A, s_star **out_list_B) {
 	int numA, numB;
 	int num_matched_A, num_matched_B;
 	int numA_copy;
@@ -132,68 +133,41 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 	int trans_order = AT_TRANS_LINEAR; /* Good enough to start */
 	double triangle_radius = AT_TRIANGLE_RADIUS; /* in triangle-space coords */
 	double match_radius = AT_MATCH_RADIUS; /* in units of list B */
-	double scale = -1.0;
-	double min_scale = s_min;
-	double max_scale = s_max;
 	double rot_angle = AT_MATCH_NOANGLE; /* by default, any angle is okay */
 	double rot_tol = AT_MATCH_NOANGLE;
 	double halt_sigma = AT_MATCH_HALTSIGMA;
 	int nobj = AT_MATCH_NBRIGHT;
 	int num_matches = 0; /* number of matching pairs */
-	struct s_star *star_list_A, *star_list_B;
-	struct s_star *star_list_A_copy;
-	struct s_star *matched_list_A, *matched_list_B;
+	struct s_star *star_list_A = NULL, *star_list_B = NULL;
+	struct s_star *star_list_A_copy = NULL;
+	struct s_star *matched_list_A = NULL, *matched_list_B = NULL;
 	TRANS *trans;
 	Homography *Hom;
 
-	/*
-	 * Check to make sure that the user did exactly one of the following:
-	 *    a. did not specify "scale" or "min_scale" or "max_scale"
-	 *    b. did specify "scale" only
-	 *    c. did specify "min_scale" and "max_scale", but not "scale"
-	 *
-	 * If choice b., then translate the single "scale" value into
-	 * a pair of "min_scale" and "max_scale" limits.  We'll always
-	 * pass these limits to the matching procedures.
-	 */
-	if ((scale == -1) && (min_scale == -1) && (max_scale == -1)) {
-		/* okay */
-		;
-	} else if ((scale != -1) && (min_scale == -1) && (max_scale == -1)) {
-		/* okay */
-		min_scale = scale - (0.01 * AT_MATCH_PERCENT * scale);
-		max_scale = scale + (0.01 * AT_MATCH_PERCENT * scale);
-	} else if ((scale == -1) && (min_scale != -1) && (max_scale != -1)) {
-		/* okay */
-		if (min_scale > max_scale) {
-			fprintf(stderr,"min_scale must be smaller than max_scale\n");
-			return (SH_GENERIC_ERROR);
-		}
-	} else {
-		/* not okay */
-		fprintf(stderr,"invalid combination of 'scale', 'min_scale', 'max_scale'\n");
+	if (min_scale != -1.0 && max_scale != -1.0 && min_scale > max_scale) {
+		fprintf(stderr,"min_scale must be smaller than max_scale\n");
 		return (SH_GENERIC_ERROR);
 	}
 #ifdef DEBUG
-	if ((scale == -1) && (min_scale == -1) && (max_scale == -1)) {
-		printf("No limits set on relative scales for matching. \n");
+	if (min_scale == -1.0 && max_scale == -1.0) {
+		printf("No limits set on relative scales for matching.\n");
 	} else {
-		printf("using min_scale %f  max_scale %f \n", min_scale, max_scale);
+		printf("using min_scale %f, max_scale %f\n", min_scale, max_scale);
 	}
 #endif
-	if (nobj_override > 0) nobj = nobj_override;
+	if (nobj_override > 0)
+		nobj = min(n, nobj_override);
 
-	/*
-	 * Check to make sure that the user specified
+	/* Check to make sure that the user specified
 	 *
 	 *       a)   neither "rotangle" nor "rottol"
 	 *   or
 	 *       b)   both "rotangle" and "rottol"
 	 */
-	if ((rot_angle == AT_MATCH_NOANGLE) && (rot_tol == AT_MATCH_NOANGLE)) {
+	if (rot_angle == AT_MATCH_NOANGLE && rot_tol == AT_MATCH_NOANGLE) {
 		/* this is okay */
-	} else if ((rot_angle != AT_MATCH_NOANGLE)
-			&& (rot_tol != AT_MATCH_NOANGLE)) {
+	} else if (rot_angle != AT_MATCH_NOANGLE
+			&& rot_tol != AT_MATCH_NOANGLE) {
 		/* this is okay */
 	} else {
 		/* this is NOT okay */
@@ -217,19 +191,17 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 		return (SH_GENERIC_ERROR);
 	}
 
-	/*
-	 * We always (whether given initial TRANS or not) will
-	 *   make a second calculation of the TRANS, using only objects in
-	 *   the set of matched pairs.
-	 *   As input to this second calculation, we will need items
-	 *   from list A with their original coordinates.
-	 *   Therefore, we now create a copy of the stars in set A,
-	 *   so that we can restore the output matched coords
-	 *   (which have been converted to those in set B) with the original coords.
+	/* We always (whether given initial TRANS or not) will make a second
+	 * calculation of the TRANS, using only objects in the set of matched pairs.
+	 * As input to this second calculation, we will need items from list A with
+	 * their original coordinates.
+	 * Therefore, we now create a copy of the stars in set A, so that we can
+	 * restore the output matched coords (which have been converted to those in
+	 * set B) with the original coords.
 	 */
 	if (get_stars(s1, n, &numA_copy, &star_list_A_copy)) {
 		atTransDel(trans);
-		free_stars(star_list_A);
+		free_stars(&star_list_A);
 		fprintf(stderr,"can't read data\n");
 		return (SH_GENERIC_ERROR);
 	}
@@ -237,8 +209,7 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 	/* sanity check */
 	g_assert(numA_copy == numA);
 
-	/*
-	 * reset the 'id' field values in the star_list_A_copy so that they
+	/* reset the 'id' field values in the star_list_A_copy so that they
 	 * match the 'id' field values in their counterparts in star_list_A
 	 */
 	reset_copy_ids(numA, star_list_A, star_list_A_copy);
@@ -246,26 +217,25 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 	/* read information from the second list */
 	if (get_stars(s2, n, &numB, &star_list_B)) {
 		atTransDel(trans);
-		free_stars(star_list_A);
-		free_stars(star_list_A_copy);
+		free_stars(&star_list_A);
+		free_stars(&star_list_A_copy);
 		printf("can't read data\n");
 		return (SH_GENERIC_ERROR);
 	}
 
-	/*
-	 * Now, as the has not given us an initial TRANS structure, we need
+	/* Now, as the has not given us an initial TRANS structure, we need
 	 * to find one ourselves.
 	 */
-	ret = atFindTrans(numA, star_list_A, numB, star_list_B, triangle_radius,
+	int ret = atFindTrans(numA, star_list_A, numB, star_list_B, triangle_radius,
 			nobj, min_scale, max_scale, rot_angle, rot_tol, max_iter,
 			halt_sigma, trans);
 	if (ret != SH_SUCCESS) {
-		fprintf(stderr,"initial call to atFindTrans fails\n");
+		fprintf(stderr, "initial call to atFindTrans failed\n");
 		/** */
 		atTransDel(trans);
-		free_stars(star_list_A);
-		free_stars(star_list_A_copy);
-		free_stars(star_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_A_copy);
+		free_stars(&star_list_B);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -276,15 +246,13 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 	print_trans(trans);
 #endif
 
-	/*
-	 * having found (or been given) the TRANS that takes A -> B, let us apply
+	/* having found (or been given) the TRANS that takes A -> B, let us apply
 	 * it to all the elements in A; thus, we'll have two sets of
 	 * of stars, each in the same coordinate system
 	 */
 	atApplyTrans(numA, star_list_A, trans);
 
-	/*
-	 * now match up the two sets of items, and find four subsets:
+	/* now match up the two sets of items, and find four subsets:
 	 *
 	 *     those from list A that do     have matches in list B
 	 *     those from list B that do     have matches in list A
@@ -299,11 +267,9 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 	trans->nm = num_matches;
 	num_matched_B = num_matched_A = num_matches;
 
-	/*
-	 * The user didn't give us any information about an initial
-	 * TRANS, so we called 'atFindTrans()' to find one.
-	 *  We have applied this TRANS to input list A, and
-	 *  looked for matched pairs.
+	/* The user didn't give us any information about an initial TRANS, so we
+	 * called 'atFindTrans()' to find one.
+	 * We have applied this TRANS to input list A, and looked for matched pairs.
 	 *
 	 * Now, we want to improve the initial TRANS, whether it was supplied
 	 * by user or determined by 'atFindTrans()'.  We do so by applying
@@ -319,11 +285,11 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 		fprintf(stderr,"prepare_to_recalc fails\n");
 		/** */
 		atTransDel(trans);
-		free_stars(matched_list_A);
-		free_stars(matched_list_B);
-		free_stars(star_list_A);
-		free_stars(star_list_B);
-		free_stars(star_list_A_copy);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -333,11 +299,11 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
 		/** */
 		atTransDel(trans);
-		free_stars(matched_list_A);
-		free_stars(matched_list_B);
-		free_stars(star_list_A);
-		free_stars(star_list_B);
-		free_stars(star_list_A_copy);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -346,8 +312,7 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 	print_trans(trans);
 #endif
 
-	/*
-	 * At this point, we have a TRANS which is based solely on those items
+	/* At this point, we have a TRANS which is based solely on those items
 	 * which matched.  If the user wishes, we can improve the TRANS
 	 * even more by applying the current transformation to ALL items
 	 * in list A, making a second round of matching pairs, and then
@@ -355,22 +320,19 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 	 *
 	 * The point is that we'll probably end up with more matched pairs
 	 * if we start with the current TRANS, instead of the initial TRANS.
-    */
+	 */
 
 	/* re-set coords of all items in star A */
 	if (reset_A_coords(numA, star_list_A, star_list_A_copy) != 0) {
 		shFatal("reset_A_coords returns with error before recalc");
 	}
 
-	/*
-	 * apply the current TRANS (which is probably much better than
+	/* apply the current TRANS (which is probably much better than
 	 * the initial TRANS) to all items in list A
 	 */
 	atApplyTrans(numA, star_list_A, trans);
 
-	/*
-	 * Match items in list A to those in list B
-	 */
+	/* Match items in list A to those in list B */
 	atMatchLists(numA, star_list_A, numB, star_list_B, match_radius, &num_matches, &matched_list_A, &matched_list_B);
 	trans->nm = num_matches;
 	num_matched_B = num_matched_A = num_matches;
@@ -386,11 +348,11 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 		fprintf(stderr,"prepare_to_recalc fails\n");
 		/** */
 		atTransDel(trans);
-		free_stars(matched_list_A);
-		free_stars(matched_list_B);
-		free_stars(star_list_A);
-		free_stars(star_list_B);
-		free_stars(star_list_A_copy);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -401,11 +363,11 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
 		/** */
 		atTransDel(trans);
-		free_stars(matched_list_A);
-		free_stars(matched_list_B);
-		free_stars(star_list_A);
-		free_stars(star_list_B);
-		free_stars(star_list_A_copy);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -418,17 +380,24 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 	Hom = atHNew();
 	Hom->pair_matched = num_matches;
 
+	pcc_star *stars = NULL;
+	if (save_photometric_data) {
+		*photometric_data = calloc(num_matched_B, sizeof(pcc_star));
+		stars = *photometric_data;
+	}
+
 	if (atPrepareHomography(num_matched_A, matched_list_A, num_matched_B,
-			matched_list_B, Hom, print_output)) {
-		fprintf(stderr,"atPrepareHomography fails on computing H\n");
+			matched_list_B, Hom,
+			save_photometric_data, stars, nb_photometric_stars, type)) {
+		fprintf(stderr, "atPrepareHomography failed to compute H\n");
 		/** */
 		atTransDel(trans);
 		atHDel(Hom);
-		free_stars(matched_list_A);
-		free_stars(matched_list_B);
-		free_stars(star_list_A);
-		free_stars(star_list_B);
-		free_stars(star_list_A_copy);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
 		/** */
 		return (SH_GENERIC_ERROR);
 	}
@@ -436,16 +405,21 @@ int new_star_match(fitted_PSF **s1, fitted_PSF **s2, int n, int nobj_override,
 	print_H(Hom);
 	*H = *Hom;
 
+	if (out_list_A)
+		*out_list_A = matched_list_A;
+	else free_stars(&matched_list_A);
+	if (out_list_B)
+		*out_list_B = matched_list_B;
+	else free_stars(&matched_list_B);
+
 	/* clean up memory */
 	atTransDel(trans);
 	atHDel(Hom);
-	free_stars(matched_list_A);
-	free_stars(matched_list_B);
-	free_stars(star_list_A);
-	free_stars(star_list_B);
-	free_stars(star_list_A_copy);
+	free_stars(&star_list_A);
+	free_stars(&star_list_B);
+	free_stars(&star_list_A_copy);
 
-	return (0);
+	return 0;
 }
 
 /***********************************************************************
@@ -505,7 +479,6 @@ struct s_star *post_list_A, /* I/O: stars in A, after they have */
 struct s_star *pre_list_A /* I: stars in A, with original coords */
 ) {
 	int post_index;
-	int found_it;
 	struct s_star *pre_star, *post_star;
 
 	/* if handed empty list, do nothing. */
@@ -523,7 +496,7 @@ struct s_star *pre_list_A /* I: stars in A, with original coords */
 
 		g_assert(post_star != NULL);
 
-		found_it = 0;
+		int found_it = 0;
 		pre_star = pre_list_A;
 		while (pre_star != NULL) {
 

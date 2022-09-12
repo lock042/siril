@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,15 +28,21 @@
 #include "core/OS_utils.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
-#include "gui/utils.h"
+#include "gui/registration_preview.h"
+#include "gui/image_interactions.h"
+#include "gui/image_display.h"
 #include "gui/callbacks.h"
+#include "gui/preferences.h"
 #include "core/processing.h"
 #include "core/command_list.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
+#include "io/ser.h"
+#include "livestacking/livestacking.h"
 
 #include "command_line_processor.h"
 
-static void parse_line(char *myline, int len, int *nb) {
+void parse_line(char *myline, int len, int *nb) {
 	int i = 0, wordnb = 0;
 	char string_starter = '\0';	// quotes don't split words on spaces
 	word[0] = NULL;
@@ -65,36 +71,72 @@ static void parse_line(char *myline, int len, int *nb) {
 	*nb = wordnb;
 }
 
-static void remove_trailing_cr(char *str) {
-	if (str == NULL)
+void remove_trailing_cr(char *str) {
+	if (str == NULL || str[0] == '\0')
 		return;
 	int length = strlen(str);
 	if (str[length - 1] == '\r')
 		str[length - 1] = '\0';
 }
 
-static int execute_command(int wordnb) {
+int execute_command(int wordnb) {
 	// search for the command in the list
 	if (word[0] == NULL) return 1;
 	int i = G_N_ELEMENTS(commands);
 	while (g_ascii_strcasecmp(commands[--i].name, word[0])) {
 		if (i == 0) {
 			siril_log_message(_("Unknown command: '%s' or not implemented yet\n"), word[0]);
-			return 1 ;
+			return CMD_NOT_FOUND;
 		}
 	}
 
 	// verify argument count
 	if (wordnb - 1 < commands[i].nbarg) {
 		siril_log_message(_("Usage: %s\n"), commands[i].usage);
-		return 1;
+		return CMD_WRONG_N_ARG;
 	}
 
 	// verify if command is scriptable
 	if (com.script) {
 		if (!commands[i].scriptable) {
 			siril_log_message(_("This command cannot be used in a script: %s\n"), commands[i].name);
-			return 1;
+			return CMD_NOT_SCRIPTABLE;
+		}
+	}
+
+	/* verify prerequires */
+	/* we check that (REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE) is inside the bitmask */
+	if ((commands[i].prerequires & (REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE)) == (REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE)) {
+		if (!single_image_is_loaded() && !sequence_is_loaded()) {
+			return CMD_LOAD_IMAGE_FIRST;
+		}
+	} else if ((commands[i].prerequires & REQ_CMD_SINGLE_IMAGE) == REQ_CMD_SINGLE_IMAGE) {
+		if (!single_image_is_loaded()) {
+			return CMD_ONLY_SINGLE_IMAGE;
+		}
+	} else if ((commands[i].prerequires & REQ_CMD_SEQUENCE) == REQ_CMD_SEQUENCE) {
+		if (!sequence_is_loaded()) {
+			return CMD_NOT_FOR_SINGLE;
+		}
+	}
+
+	if ((commands[i].prerequires & (REQ_CMD_FOR_MONO | REQ_CMD_FOR_CFA)) == (REQ_CMD_FOR_MONO | REQ_CMD_FOR_CFA)) {
+		if (isrgb(&gfit)) {
+			return CMD_FOR_CFA_IMAGE;
+		}
+	} else if ((commands[i].prerequires & REQ_CMD_FOR_MONO) != 0) {
+		if (isrgb(&gfit)) {
+			return CMD_NOT_FOR_RGB;
+		}
+	} else if ((commands[i].prerequires & REQ_CMD_FOR_RGB) != 0) {
+		if (!isrgb(&gfit)) {
+			return CMD_NOT_FOR_MONO;
+		}
+	}
+
+	if ((commands[i].prerequires & REQ_CMD_NO_THREAD) != 0) {
+		if (get_thread_run()) {
+			return CMD_THREAD_RUNNING;
 		}
 	}
 
@@ -150,24 +192,59 @@ static void display_command_on_status_bar(int line, char *myline) {
 }
 
 static void clear_status_bar() {
-	if (!com.headless) {
-		GtkStatusbar *bar = GTK_STATUSBAR(lookup_widget("statusbar_script"));
-		gtk_statusbar_remove_all(bar, 0);
-		update_log_icon(FALSE);
-	}
+	GtkStatusbar *bar = GTK_STATUSBAR(lookup_widget("statusbar_script"));
+	gtk_statusbar_remove_all(bar, 0);
+	update_log_icon(FALSE);
 }
 
 static gboolean end_script(gpointer p) {
+	/* GTK+ code is ignored during scripts, this is a good place to redraw everything */
 	clear_status_bar();
 	set_GUI_CWD();
-	
+	update_MenuItem();
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	update_zoom_label();
+	update_display_fwhm();
+	display_filename();
+	new_selection_zone();
+	update_spinCPU(0);
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
 
+int check_requires(gboolean *checked_requires, gboolean is_required) {
+	int retval = CMD_OK;
+	/* check for requires command */
+	if (!g_ascii_strcasecmp(word[0], "requires")) {
+		*checked_requires = TRUE;
+	} else if (is_required && !*checked_requires) {
+		siril_log_color_message(_("The \"requires\" command is missing at the top of the script file."
+					" This command is needed to check script compatibility.\n"), "red");
+		retval = CMD_GENERIC_ERROR;
+	}
+	return retval;
+}
+
+int check_command_mode() {
+	/* until we have a proper implementation of modes, we just forbid other
+	 * commands to be run during live stacking */
+	int retval = 0;
+	if (livestacking_is_started()) {
+		retval = g_ascii_strcasecmp(word[0], "livestack") &&
+			g_ascii_strcasecmp(word[0], "stop_ls") &&
+			g_ascii_strcasecmp(word[0], "exit");
+		if (retval)
+			siril_log_message(_("This command cannot be run while live stacking is active, ignoring.\n"));
+
+	}
+	return retval;
+}
+
 gpointer execute_script(gpointer p) {
 	GInputStream *input_stream = (GInputStream*) p;
-	gboolean check_required = FALSE;
+	gboolean checked_requires = FALSE;
 	gchar *buffer;
 	int line = 0, retval = 0;
 	int wordnb;
@@ -176,6 +253,7 @@ gpointer execute_script(gpointer p) {
 
 	com.script = TRUE;
 	com.stop_script = FALSE;
+	com.script_thread_exited = FALSE;
 
 	gettimeofday(&t_start, NULL);
 
@@ -203,34 +281,33 @@ gpointer execute_script(gpointer p) {
 
 		/* in Windows case, remove trailing CR */
 		remove_trailing_cr(buffer);
+		g_strstrip(buffer);
 
 		if (buffer[0] == '\0') {
 			g_free (buffer);
 			continue;
 		}
 
-
 		display_command_on_status_bar(line, buffer);
 		parse_line(buffer, length, &wordnb);
-		/* check for requires command */
-		if (!g_ascii_strcasecmp(word[0], "requires")) {
-			check_required = TRUE;
-		} else {
-			if (com.pref.script_check_requires && !check_required) {
-				siril_log_color_message(_("The \"requires\" command is missing at the top of the script file."
-						" This command is needed to check script compatibility.\n"), "red");
-				retval = 1;
-				g_free (buffer);
-				break;
-			}
+		if (check_requires(&checked_requires, com.pref.script_check_requires)) {
+			g_free (buffer);
+			break;
 		}
-		if ((retval = execute_command(wordnb))) {
+		if (check_command_mode()) {
+			g_free (buffer);
+			continue;
+		};
+
+		retval = execute_command(wordnb);
+
+		if (retval && retval != CMD_NO_WAIT) {
 			siril_log_message(_("Error in line %d: '%s'.\n"), line, buffer);
 			siril_log_message(_("Exiting batch processing.\n"));
 			g_free (buffer);
 			break;
 		}
-		if (waiting_for_thread()) {
+		if (retval != CMD_NO_WAIT && waiting_for_thread()) {
 			retval = 1;
 			g_free (buffer);
 			break;	// abort script on command failure
@@ -243,11 +320,15 @@ gpointer execute_script(gpointer p) {
 	}
 	g_object_unref(data_input);
 	g_object_unref(input_stream);
-	com.script = FALSE;
+
+	if (!com.headless) {
+		com.script = FALSE;
+		siril_add_idle(end_script, NULL);
+	}
+
 	/* Now we want to restore the saved cwd */
 	siril_change_dir(saved_cwd, NULL);
 	writeinitfile();
-	siril_add_idle(end_script, NULL);
 	if (!retval) {
 		siril_log_message(_("Script execution finished successfully.\n"));
 		gettimeofday(&t_end, NULL);
@@ -258,7 +339,11 @@ gpointer execute_script(gpointer p) {
 		set_progress_bar_data(msg, PROGRESS_DONE);
 	}
 	g_free(saved_cwd);
-	fprintf(stdout, "Script thread exiting\n");
+
+	if (com.script_thread) {
+		siril_debug_print("Script thread exiting\n");
+		com.script_thread_exited = TRUE;
+	}
 	return GINT_TO_POINTER(retval);
 }
 
@@ -277,7 +362,7 @@ static void show_command_help_popup(GtkEntry *entry) {
 
 				token = g_strsplit_set(current->usage, " ", -1);
 				GString *str = g_string_new(token[0]);
-				str = g_string_prepend(str, "<span foreground=\"red\"><b>");
+				str = g_string_prepend(str, "<span foreground=\"red\" size=\"larger\"><b>");
 				str = g_string_append(str, "</b>");
 				if (token[1] != NULL) {
 					str = g_string_append(str,
@@ -287,10 +372,12 @@ static void show_command_help_popup(GtkEntry *entry) {
 				str = g_string_append(str, _(current->definition));
 				str = g_string_append(str, "\n\n<b>");
 				str = g_string_append(str, _("Can be used in a script: "));
-				str = g_string_append(str, "<span foreground=\"red\">");
+
 				if (current->scriptable) {
+					str = g_string_append(str, "<span foreground=\"green\">");
 					str = g_string_append(str, _("YES"));
 				} else {
+					str = g_string_append(str, "<span foreground=\"red\">");
 					str = g_string_append(str, _("NO"));
 				}
 				str = g_string_append(str, "</span></b>");
@@ -315,20 +402,122 @@ static void show_command_help_popup(GtkEntry *entry) {
 	g_free(helper);
 }
 
+/* handler for the single-line console */
+#if GTK_CHECK_VERSION(3, 24, 24)
+static gboolean on_command_key_press_event(GtkEventController *controller,
+		guint keyval, guint keycode, GdkModifierType modifiers,
+		GtkWidget *widget) {
+#else
+static gboolean on_command_key_press_event(GtkWidget *widget, GdkEventKey *event,
+		gpointer user_data) {
+	guint keyval = event->keyval;
+#endif
+	int handled = 0;
+	static GtkEntry *entry = NULL;
+	if (!entry)
+		entry = GTK_ENTRY(widget);
+	GtkEditable *editable = GTK_EDITABLE(entry);
+	int entrylength = 0;
+
+	switch (keyval) {
+	case GDK_KEY_Up:
+		handled = 1;
+		if (!gui.cmd_history)
+			break;
+		if (gui.cmd_hist_display > 0) {
+			if (gui.cmd_history[gui.cmd_hist_display - 1])
+				--gui.cmd_hist_display;
+			// display previous entry
+			gtk_entry_set_text(entry, gui.cmd_history[gui.cmd_hist_display]);
+		} else if (gui.cmd_history[gui.cmd_hist_size - 1]) {
+			// ring back, display previous
+			gui.cmd_hist_display = gui.cmd_hist_size - 1;
+			gtk_entry_set_text(entry, gui.cmd_history[gui.cmd_hist_display]);
+		}
+		entrylength = gtk_entry_get_text_length(entry);
+		gtk_editable_set_position(editable, entrylength);
+		break;
+	case GDK_KEY_Down:
+		handled = 1;
+		if (!gui.cmd_history)
+			break;
+		if (gui.cmd_hist_display == gui.cmd_hist_current)
+			break;
+		if (gui.cmd_hist_display == gui.cmd_hist_size - 1) {
+			if (gui.cmd_hist_current == 0) {
+				// ring forward, end
+				gtk_entry_set_text(entry, "");
+				gui.cmd_hist_display++;
+			} else if (gui.cmd_history[0]) {
+				// ring forward, display next
+				gui.cmd_hist_display = 0;
+				gtk_entry_set_text(entry, gui.cmd_history[0]);
+			}
+		} else {
+			if (gui.cmd_hist_display == gui.cmd_hist_current - 1) {
+				// end
+				gtk_entry_set_text(entry, "");
+				gui.cmd_hist_display++;
+			} else if (gui.cmd_history[gui.cmd_hist_display + 1]) {
+				// display next
+				gtk_entry_set_text(entry,
+						gui.cmd_history[++gui.cmd_hist_display]);
+			}
+		}
+		entrylength = gtk_entry_get_text_length(entry);
+		gtk_editable_set_position(editable, entrylength);
+		break;
+	case GDK_KEY_Page_Up:
+	case GDK_KEY_Page_Down:
+		handled = 1;
+		// go to first and last in history
+		break;
+	}
+	return (handled == 1);
+}
+
+static const char *cmd_error_to_string(cmd_errors err) {
+	switch (err) {
+	case CMD_LOAD_IMAGE_FIRST:
+		return "Load an image or a sequence first.\n";
+		break;
+	case CMD_ONLY_SINGLE_IMAGE:
+		return "Single image must be loaded, and this command cannot be applied on a sequence.\n";
+		break;
+	case CMD_NOT_FOR_SINGLE:
+		return "This command can only be used when a sequence is loaded.\n";
+		break;
+	case CMD_NOT_FOR_MONO:
+		return "This command cannot be applied on monochrome images.\n";
+		break;
+	case CMD_NOT_FOR_RGB:
+		return "This command cannot be applied on rgb images.\n";
+		break;
+	case CMD_FOR_CFA_IMAGE:
+		return "Make sure your image is in CFA mode.\n";
+		break;
+	case CMD_WRONG_N_ARG:
+		return "Incorrect number of arguments\n";
+	case CMD_THREAD_RUNNING:
+		return PRINT_ANOTHER_THREAD_RUNNING;
+	default:
+		return NULL;
+	}
+}
+
 int processcommand(const char *line) {
 	int wordnb = 0;
-	gchar *myline;
 	GError *error = NULL;
 
 	if (line[0] == '\0' || line[0] == '\n')
 		return 0;
 	if (line[0] == '@') { // case of files
-		if (get_thread_run()) {
+		if (get_thread_run() || (get_script_thread_run() && !com.script_thread_exited)) {
 			PRINT_ANOTHER_THREAD_RUNNING;
 			return 1;
 		}
-		if (com.script_thread)
-			g_thread_join(com.script_thread);
+		if (get_script_thread_run())
+			wait_for_script_thread();
 
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -359,12 +548,16 @@ int processcommand(const char *line) {
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
-		myline = strdup(line);
+		gchar *myline = strdup(line);
 		int len = strlen(line);
 		parse_line(myline, len, &wordnb);
-		if (execute_command(wordnb)) {
-			siril_log_color_message(_("Command execution failed.\n"), "red");
-			if (!com.script && !com.headless) {
+		int ret = execute_command(wordnb);
+		if (ret) {
+			siril_log_color_message(_("Command execution failed with error code: %d.\n"), "red", ret);
+			const char *msg = cmd_error_to_string(ret);
+			if (msg)
+				siril_log_color_message(msg, "red");
+			if (!com.script && !com.headless && (ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
 				show_command_help_popup(GTK_ENTRY(lookup_widget("command")));
 			}
 			free(myline);
@@ -372,7 +565,6 @@ int processcommand(const char *line) {
 		}
 		free(myline);
 	}
-	set_cursor_waiting(FALSE);
 	return 0;
 }
 
@@ -387,8 +579,8 @@ sequence *load_sequence(const char *name, char **get_filename) {
 	}
 
 	if (!is_readable_file(file) && (!altfile || !is_readable_file(altfile))) {
-		if (check_seq(FALSE)) {
-			siril_log_message(_("No sequence `%s' found.\n"), name);
+		if (check_seq()) {
+			siril_log_color_message(_("No sequence `%s' found.\n"), "red", name);
 			g_free(file);
 			g_free(altfile);
 			return NULL;
@@ -409,12 +601,14 @@ sequence *load_sequence(const char *name, char **get_filename) {
 		}
 	}
 	if (!seq)
-		siril_log_message(_("Loading sequence `%s' failed.\n"), name);
+		siril_log_color_message(_("Loading sequence `%s' failed.\n"), "red", name);
 	else {
 		if (seq_check_basic_data(seq, FALSE) == -1) {
 			free(seq);
 			seq = NULL;
 		}
+		else if (seq->type == SEQ_SER)
+			ser_display_info(seq->ser_file);
 	}
 	g_free(file);
 	g_free(altfile);
@@ -483,7 +677,7 @@ static gboolean completion_match_func(GtkEntryCompletion *completion,
 	return res;
 }
 
-void init_completion_command() {
+static void init_completion_command() {
 	GtkEntryCompletion *completion = gtk_entry_completion_new();
 	GtkListStore *model = gtk_list_store_new(1, G_TYPE_STRING);
 	GtkTreeIter iter;
@@ -502,12 +696,28 @@ void init_completion_command() {
 	/* Populate the completion database. */
 	command *current = commands;
 
-	while (current->process){
+	while (current->process) {
 		gtk_list_store_append(model, &iter);
 		gtk_list_store_set(model, &iter, COMPLETION_COLUMN, current->name, -1);
 		current++;
 	}
 	g_object_unref(model);
+}
+
+static void init_controller_command() {
+	GtkWidget *widget = lookup_widget("command");
+
+#if GTK_CHECK_VERSION(3, 24, 24)
+	GtkEventController *controller = gtk_event_controller_key_new(widget);
+	g_signal_connect(controller, "key-pressed", G_CALLBACK(on_command_key_press_event), widget);
+#else
+	g_signal_connect(widget, "key-press-event", G_CALLBACK(on_command_key_press_event), NULL);
+#endif
+}
+
+void init_command() {
+	init_completion_command();
+	init_controller_command();
 }
 
 void on_GtkCommandHelper_clicked(GtkButton *button, gpointer user_data) {
@@ -521,22 +731,22 @@ void on_GtkCommandHelper_clicked(GtkButton *button, gpointer user_data) {
  */
 
 static void history_add_line(char *line) {
-	if (!com.cmd_history) {
-		com.cmd_hist_size = CMD_HISTORY_SIZE;
-		com.cmd_history = calloc(com.cmd_hist_size, sizeof(const char*));
-		com.cmd_hist_current = 0;
-		com.cmd_hist_display = 0;
+	if (!gui.cmd_history) {
+		gui.cmd_hist_size = CMD_HISTORY_SIZE;
+		gui.cmd_history = calloc(gui.cmd_hist_size, sizeof(const char*));
+		gui.cmd_hist_current = 0;
+		gui.cmd_hist_display = 0;
 	}
-	com.cmd_history[com.cmd_hist_current] = line;
-	com.cmd_hist_current++;
+	gui.cmd_history[gui.cmd_hist_current] = line;
+	gui.cmd_hist_current++;
 	// circle at the end
-	if (com.cmd_hist_current == com.cmd_hist_size)
-		com.cmd_hist_current = 0;
-	if (com.cmd_history[com.cmd_hist_current]) {
-		free(com.cmd_history[com.cmd_hist_current]);
-		com.cmd_history[com.cmd_hist_current] = NULL;
+	if (gui.cmd_hist_current == gui.cmd_hist_size)
+		gui.cmd_hist_current = 0;
+	if (gui.cmd_history[gui.cmd_hist_current]) {
+		free(gui.cmd_history[gui.cmd_hist_current]);
+		gui.cmd_history[gui.cmd_hist_current] = NULL;
 	}
-	com.cmd_hist_display = com.cmd_hist_current;
+	gui.cmd_hist_display = gui.cmd_hist_current;
 }
 
 void on_command_activate(GtkEntry *entry, gpointer user_data) {
@@ -548,95 +758,15 @@ void on_command_activate(GtkEntry *entry, gpointer user_data) {
 	}
 }
 
-/* handler for the single-line console */
-gboolean on_command_key_press_event(GtkWidget *widget, GdkEventKey *event,
-		gpointer user_data) {
-	int handled = 0;
-	static GtkEntry *entry = NULL;
-	if (!entry)
-		entry = GTK_ENTRY(widget);
-	GtkEditable *editable = GTK_EDITABLE(entry);
-	int entrylength = 0;
-
-	switch (event->keyval) {
-	case GDK_KEY_Up:
-		handled = 1;
-		if (!com.cmd_history)
+void log_several_lines(char *text) {
+	char *line = text;
+	do {
+		char *eol = strchr(line, '\n');
+		if (eol)
+			*eol = '\0';
+		siril_log_message("%s\n", line);
+		if (!eol)
 			break;
-		if (com.cmd_hist_display > 0) {
-			if (com.cmd_history[com.cmd_hist_display - 1])
-				--com.cmd_hist_display;
-			// display previous entry
-			gtk_entry_set_text(entry, com.cmd_history[com.cmd_hist_display]);
-		} else if (com.cmd_history[com.cmd_hist_size - 1]) {
-			// ring back, display previous
-			com.cmd_hist_display = com.cmd_hist_size - 1;
-			gtk_entry_set_text(entry, com.cmd_history[com.cmd_hist_display]);
-		}
-		entrylength = gtk_entry_get_text_length(entry);
-		gtk_editable_set_position(editable, entrylength);
-		break;
-	case GDK_KEY_Down:
-		handled = 1;
-		if (!com.cmd_history)
-			break;
-		if (com.cmd_hist_display == com.cmd_hist_current)
-			break;
-		if (com.cmd_hist_display == com.cmd_hist_size - 1) {
-			if (com.cmd_hist_current == 0) {
-				// ring forward, end
-				gtk_entry_set_text(entry, "");
-				com.cmd_hist_display++;
-			} else if (com.cmd_history[0]) {
-				// ring forward, display next
-				com.cmd_hist_display = 0;
-				gtk_entry_set_text(entry, com.cmd_history[0]);
-			}
-		} else {
-			if (com.cmd_hist_display == com.cmd_hist_current - 1) {
-				// end
-				gtk_entry_set_text(entry, "");
-				com.cmd_hist_display++;
-			} else if (com.cmd_history[com.cmd_hist_display + 1]) {
-				// display next
-				gtk_entry_set_text(entry,
-						com.cmd_history[++com.cmd_hist_display]);
-			}
-		}
-		entrylength = gtk_entry_get_text_length(entry);
-		gtk_editable_set_position(editable, entrylength);
-		break;
-	case GDK_KEY_Page_Up:
-	case GDK_KEY_Page_Down:
-		handled = 1;
-		// go to first and last in history
-		break;
-	}
-	return (handled == 1);
-}
-
-gboolean on_command_focus_in_event(GtkWidget *widget, GdkEvent *event,
-		gpointer user_data) {
-
-	static const gchar * const accelmap[] = {
-		"win.astrometry", NULL, NULL,
-
-		NULL /* Terminating NULL */
-	};
-	set_accel_map(accelmap);
-
-	return GDK_EVENT_PROPAGATE;
-}
-
-gboolean on_command_focus_out_event(GtkWidget *widget, GdkEvent *event,
-		gpointer user_data) {
-
-	static const gchar * const accelmap[] = {
-		"win.astrometry", "<Primary>a", NULL,
-
-		NULL /* Terminating NULL */
-	};
-	set_accel_map(accelmap);
-
-	return GDK_EVENT_PROPAGATE;
+		line = eol+1;
+	} while (line[0] != '\0');
 }

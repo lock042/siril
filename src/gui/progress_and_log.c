@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -37,7 +37,7 @@ static void progress_bar_set_text(const char *text) {
 	static GtkProgressBar *pbar = NULL;
 	if (pbar == NULL)
 		pbar = GTK_PROGRESS_BAR(
-				gtk_builder_get_object(builder, "progressbar1"));
+				gtk_builder_get_object(gui.builder, "progressbar1"));
 	/* It will not happen that text is NULL here, because it's
 	 * catched by set_progress_bar_data() */
 	if (!text || text[0] == '\0')
@@ -50,7 +50,7 @@ static void progress_bar_set_percent(double percent) {
 	static GtkProgressBar *pbar = NULL;
 	if (pbar == NULL)
 		pbar = GTK_PROGRESS_BAR(
-				gtk_builder_get_object(builder, "progressbar1"));
+				gtk_builder_get_object(gui.builder, "progressbar1"));
 	if (percent == PROGRESS_PULSATE) {
 		gtk_progress_bar_pulse(pbar);
 	}
@@ -113,6 +113,19 @@ struct log_message {
 	const char* color;
 };
 
+static gboolean scroll_to_end(gpointer data) {
+	GtkTextIter iter;
+	GtkTextView *text = (GtkTextView *) data;
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
+
+	gtk_text_buffer_get_end_iter(tbuf, &iter);
+	GtkTextMark *insert_mark = gtk_text_buffer_get_insert(tbuf);
+	gtk_text_buffer_place_cursor(tbuf, &iter);
+	gtk_text_view_scroll_to_mark(text, insert_mark, 0.0, TRUE, 0.0, 1.0);
+
+	return FALSE;
+}
+
 // The main thread internal function that does the printing.
 static gboolean idle_messaging(gpointer p) {
 	static GtkTextBuffer *tbuf = NULL;
@@ -121,13 +134,15 @@ static gboolean idle_messaging(gpointer p) {
 	struct log_message *log = (struct log_message *) p;
 
 	if (!tbuf) {
-		text = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "output"));
+		text = GTK_TEXT_VIEW(gtk_builder_get_object(gui.builder, "output"));
 		tbuf = gtk_text_view_get_buffer(text);
 	}
 
 	if (log->message[0] == '\n' && log->message[1] == '\0') {
 		gtk_text_buffer_get_start_iter(tbuf, &iter);
 		gtk_text_buffer_insert(tbuf, &iter, log->message, strlen(log->message));
+		free(log->timestamp);
+		free(log->message);
 		free(log);
 		return FALSE;
 	}
@@ -136,18 +151,17 @@ static gboolean idle_messaging(gpointer p) {
 	gtk_text_buffer_insert_with_tags_by_name(tbuf, &iter, log->timestamp,
 			strlen(log->timestamp), "bold", NULL);
 
-	if (log->color == NULL)
+	if (!log->color)
 		gtk_text_buffer_insert_with_tags_by_name(tbuf, &iter, log->message,
 				strlen(log->message), "normal", NULL);
 	else
 		gtk_text_buffer_insert_with_tags_by_name(tbuf, &iter, log->message,
 				strlen(log->message), log->color, NULL);
 
-	/* scroll to end */
-	gtk_text_buffer_get_end_iter(tbuf, &iter);
-	GtkTextMark *insert_mark = gtk_text_buffer_get_insert(tbuf);
-	gtk_text_buffer_place_cursor(tbuf, &iter);
-	gtk_text_view_scroll_to_mark(text, insert_mark, 0.0, TRUE, 0.0, 1.0);
+	/* scroll to the end with a timeout
+	 * just to be sure that everything is displayed
+	 */
+	g_timeout_add(50, scroll_to_end, (gpointer) text);
 
 	free(log->timestamp);
 	free(log->message);
@@ -239,30 +253,47 @@ struct _cursor_data {
 
 /* thread-safe cursor change */
 static gboolean idle_set_cursor(gpointer garg) {
-	struct _cursor_data *arg = (struct _cursor_data *)garg;
-	GdkCursor *cursor;
-	GdkCursor *new;
-	GdkDisplay *display;
-	GdkScreen *screen;
-	GList *list, *l;
+	struct _cursor_data *arg = (struct _cursor_data*) garg;
+	GdkCursor *cursor = NULL;
+	static const gchar *current_name = NULL;
 
-	display = gdk_display_get_default ();
-	new = gdk_cursor_new_from_name (display, arg->cursor_name);
-	screen = gdk_screen_get_default();
-	list = gdk_screen_get_toplevel_windows(screen);
+	GdkDisplay *display = gdk_display_get_default();
+	GdkScreen *screen = gdk_screen_get_default();
 
 	if (arg->change) {
-		cursor = new;
+		if (!current_name ||
+				(arg->cursor_name && g_strcmp0(current_name, arg->cursor_name))) {
+			cursor = gdk_cursor_new_from_name(display, arg->cursor_name);
+			current_name = arg->cursor_name;
+		}
+		else {
+			// it's the current cursor
+			free(arg);
+			return FALSE;
+		}
 	} else {
-		cursor = NULL;
+		if (!current_name) {
+			// it's the current default
+			free(arg);
+			return FALSE;
+		}
+		current_name = NULL;
 	}
-	for (l = list; l; l = l->next) {
+
+	GList *list = gdk_screen_get_toplevel_windows(screen);
+	for (GList *l = list; l; l = l->next) {
 		GdkWindow *window = GDK_WINDOW(l->data);
+		/* Passing NULL for the cursor argument to gdk_window_set_cursor()
+		 * means that window will use the cursor of its parent window. Most
+		 * windows should use this default.
+		 */
 		gdk_window_set_cursor(window, cursor);
 		gdk_display_sync(gdk_window_get_display(window));
-		gdk_display_flush(display);
 	}
+
+	gdk_display_flush(display);
 	g_list_free(list);
+
 	free(arg);
 	return FALSE;
 }

@@ -5,10 +5,37 @@
 #include "io/fits_sequence.h"
 
 /**
- *
  * \file processing.h
- * \brief
+ * \brief Manages background computation and parallel image processing.
  *
+ * Siril executes with several threads:
+ * - the 'main thread', as called by GTK+, is managed by the GApplication, and
+ *   only managed in our code with callbacks: siril_app_startup,
+ *   siril_app_activate and all widgets callbacks like button clicks.
+ *   All GTK+ calls that write data, like setting a label, must be done in this
+ *   thread. Other threads can request an update in this thread by using the
+ *   'idle functions', called when the main thread is idle, with the function
+ *   gdk_threads_add_idle().
+ * - the processing thread, as we call it, is defined in the global structure
+ *   com.thread, and executes long operations, to avoid blocking the main thread.
+ *   It is managed in processing.c which provides functions to start something
+ *   in it, wait for the end of its execution, and so on.
+ * - the script thread, defined in com.script_thread. It's the thread that
+ *   reads a script and starts the execution of its commands. The commands can
+ *   in turn use the processing thread.
+ * - other working threads that decompose what the processing thread is doing,
+ *   to accelerate the computation. In general, as done in the generic sequence
+ *   processing (see below), images of a sequence are processed in parallel by
+ *   these threads. Since version 1.1, there can also be parallel channel
+ *   processing and parallel subchannel (region) processing.
+ *
+ * The generic sequence processing is a way to run algorithms on a sequence
+ * while not having to deal with image filtering from the sequence, image
+ * reading and writing, progress reporting, memory and threading management,
+ * and others. It is generic, meaning that it can be used in most cases by
+ * filling the generic_seq_args sequence, consisting of settings and functions,
+ * the hooks, that are called on particular occasions such as initialization or
+ * image processing.
  */
 
 /** Main structure of the generic function */
@@ -45,7 +72,7 @@ struct generic_seq_args {
 	int (*prepare_hook)(struct generic_seq_args *);
 	/** function called for each image with image index in sequence, number
 	 *  of image currently processed and the image, area if partial */
-	int (*image_hook)(struct generic_seq_args *, int, int, fits *, rectangle *);
+	int (*image_hook)(struct generic_seq_args *, int, int, fits *, rectangle *, int);
 	/** saving the processed image, the one passed to the image_hook, so
 	 * in-place editing, if the image_hook succeeded. Only used if
 	 * has_output, set to NULL to get default behaviour */
@@ -97,7 +124,7 @@ struct generic_seq_args {
 	/** activate parallel execution */
 	gboolean parallel;
 	/** number of threads to run in parallel - defaults to com.max_thread */
-	int max_thread;
+	int max_parallel_images;
 #ifdef _OPENMP
 	/** for in-hook synchronization (internal init, public use) */
 	omp_lock_t lock;
@@ -117,16 +144,34 @@ int generic_save(struct generic_seq_args *, int, int, fits *);
 void start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
 gpointer waiting_for_thread();
 void stop_processing_thread();
-void set_thread_run(gboolean b);
 gboolean get_thread_run();
 
 void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p);
 gboolean reserve_thread();
 void unreserve_thread();
 
+gboolean get_script_thread_run();
+void wait_for_script_thread();
+
 gboolean end_generic(gpointer arg);
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);
 
 struct generic_seq_args *create_default_seqargs();
+
+int check_threading(threading_type *threads);
+int limit_threading(threading_type *threads, int min_iterations_per_thread, size_t total_iterations);
+int *compute_thread_distribution(int nb_workers, int max);
+
+struct generic_seq_metadata_args {
+	/** sequence that will be processed */
+	sequence *seq;
+	/** key to read */
+	gchar *key;
+
+	/** function called for each image with image index in sequence */
+	int (*image_hook)(struct generic_seq_metadata_args *, fitsfile *, int);
+};
+
+gpointer generic_sequence_metadata_worker(gpointer args);
 
 #endif

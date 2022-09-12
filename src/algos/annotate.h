@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,7 +32,6 @@ gdouble get_catalogue_object_ra(CatalogObjects *object);
 gdouble get_catalogue_object_dec(CatalogObjects *object);
 gdouble get_catalogue_object_radius(CatalogObjects *object);
 void force_to_refresh_catalogue_list();
-void free_object(CatalogObjects *object);
-void initialize_wcs_toggle_button();
+void free_catalogue_object(CatalogObjects *object);
 
 #endif /* SRC_ALGOS_ANNOTATE_H_ */

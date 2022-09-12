@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -66,7 +66,7 @@ const char *filter_pattern[] = {
 	"BGBRGR"
 	"GRGGBG"
 	"GBGGRG"
-	"RGTBGB"
+	"RGRBGB"
 	"GBGGRG",
 
 	"GBGGRG"
@@ -76,6 +76,7 @@ const char *filter_pattern[] = {
 	"BGBRGR"
 	"GRGGBG"
 };
+const size_t num_filter_patterns = G_N_ELEMENTS(filter_pattern);
 
 /** Calculate the bayer pattern color from the row and column **/
 static inline int FC(const size_t row, const size_t col, const uint32_t filters) {
@@ -169,11 +170,11 @@ static void super_pixel_float(const float *buf, float *newbuf, int width, int he
 }
 
 /***************************************************
- * 
+ *
  * Written by Damien Douxchamps and Frederic Devernay
  * The original VNG and AHD Bayer decoding are from Dave Coffin's DCRAW.
  * https://code.google.com/p/gst-plugins-elphel/
- * 
+ *
  * *************************************************/
 
 static void ClearBorders(WORD *rgb, int sx, int sy, int w) {
@@ -466,7 +467,7 @@ static const float xyz_rgb[3][3] = { /* XYZ from RGB */
 static const float d65_white[3] = { 0.950456f, 1.0f, 1.088754f };
 /* TODO: store the precomputation of xyz_rgb * d65 instead of running a silly init */
 
-static void cam_to_cielab(uint16_t cam[3], float lab[3]) /* [SA] */
+static void cam_to_cielab(const uint16_t cam[3], float lab[3]) /* [SA] */
 {
 	float xyz[3];
 	static float cbrt[0x10000], xyz_cam[3][4];
@@ -1067,7 +1068,7 @@ void clear_Bayer_information(fits *fit) {
 }
 
 static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_pattern pattern) {
-	size_t i, j, npixels = fit->naxes[0] * fit->naxes[1];
+	size_t npixels = fit->naxes[0] * fit->naxes[1];
 	int width = fit->rx;
 	int height = fit->ry;
 	WORD *buf = fit->data;
@@ -1102,16 +1103,13 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		fit->ry = height;
 		fit->bitpix = fit->orig_bitpix;
 		// color RGBRGB format to fits RRGGBB format
-		for (i = 0, j = 0; j < npixels; i += 3, j++) {
-			double r = (double) newbuf[i + RLAYER];
-			double g = (double) newbuf[i + GLAYER];
-			double b = (double) newbuf[i + BLAYER];
-			fit->pdata[RLAYER][j] =
-					(fit->bitpix == 8) ? round_to_BYTE(r) : round_to_WORD(r);
-			fit->pdata[GLAYER][j] =
-					(fit->bitpix == 8) ? round_to_BYTE(g) : round_to_WORD(g);
-			fit->pdata[BLAYER][j] =
-					(fit->bitpix == 8) ? round_to_BYTE(b) : round_to_WORD(b);
+		for (size_t i = 0, j = 0; j < npixels; i += 3, j++) {
+			WORD r = newbuf[i + RLAYER];
+			WORD g = newbuf[i + GLAYER];
+			WORD b = newbuf[i + BLAYER];
+			fit->pdata[RLAYER][j] = (fit->bitpix == 8) ? truncate_to_BYTE(r) : r;
+			fit->pdata[GLAYER][j] = (fit->bitpix == 8) ? truncate_to_BYTE(g) : g;
+			fit->pdata[BLAYER][j] = (fit->bitpix == 8) ? truncate_to_BYTE(b) : b;
 		}
 	} else {
 		// use librtprocess debayer
@@ -1172,7 +1170,7 @@ int debayer(fits *fit, interpolation_method interpolation, sensor_pattern patter
 	else return -1;
 }
 
-int retrieveBayerPatternFromChar(char *bayer) {
+int retrieveBayerPatternFromChar(const char *bayer) {
 	for (int i = 0; i < G_N_ELEMENTS(filter_pattern); i++) {
 		if (g_ascii_strcasecmp(bayer, filter_pattern[i]) == 0) {
 			return i;
@@ -1184,11 +1182,11 @@ int retrieveBayerPatternFromChar(char *bayer) {
 // debayers the image if it's a FITS image and if debayer is activated globally
 // or if the force argument is passed
 int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
-	if (imagetype != TYPEFITS || (!com.pref.debayer.open_debayer && !force_debayer))
+	if ((imagetype != TYPEFITS && imagetype != TYPETIFF)|| (!com.pref.debayer.open_debayer && !force_debayer))
 		return 0;
 
 	/* Siril's FITS are stored bottom-up, debayering will give wrong results.
-	 * So before demosacaing we need to flip the image with fits_flip_top_to_bottom().
+	 * So before demosaicing we need to flip the image with fits_flip_top_to_bottom().
 	 * But sometimes FITS are created by acquisition software top-down, in that case
 	 * the user can indicate it ('compatibility') and we don't flip for debayer.
 	 */

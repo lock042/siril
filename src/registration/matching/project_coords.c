@@ -43,10 +43,10 @@ enum COORD_COL {
 #undef DEBUG           /* get some of diagnostic output */
 
 static int
-proc_star_file(const char *file, int racol, int deccol, double ra, double dec,
+proc_star_file(GFile *file, int racol, int deccol, double ra, double dec,
 		GFile *out_fp, int doASEC);
 
-int convert_catalog_coords(const char *fileA, SirilWorldCS *world_cs, GFile *out) {
+int convert_catalog_coords(GFile *fileA, SirilWorldCS *world_cs, GFile *out) {
 	int doASEC = 1;
 	double ra = siril_world_cs_get_alpha(world_cs);
 	double dec = siril_world_cs_get_delta(world_cs);
@@ -82,7 +82,7 @@ int convert_catalog_coords(const char *fileA, SirilWorldCS *world_cs, GFile *out
  *   SH_GENERIC_ERROR      if not
  */
 
-static int proc_star_file(const char *file, /* I: name of input file with star list */
+static int proc_star_file(GFile *file_in, /* I: name of input file with star list */
 int racol, /* I: position of column with RA positions */
 int deccol, /* I: position of column with Dec positions */
 double central_ra, /* I: central RA of tangent plane (degrees) */
@@ -102,17 +102,13 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 	double delta_ra;
 	double xx, yy, xi, eta;
 
-	GFile *file_in = g_file_new_for_path(file);
-
 	input_stream = (GInputStream*) g_file_read(file_in, NULL, &error);
-
-	if (input_stream == NULL) {
-		if (error != NULL) {
-			shError("proc_star_file: can't open file %s for input", file);
+	if (!input_stream) {
+		if (error) {
+			shError("proc_star_file: can't open file %s for input", g_file_peek_path(file_in));
 			g_clear_error(&error);
 		}
 
-		g_object_unref(file_in);
 		return SH_GENERIC_ERROR;
 	}
 
@@ -123,10 +119,9 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 	GOutputStream *output_stream = (GOutputStream *)g_file_append_to(file_out, G_FILE_CREATE_NONE, NULL, &error);
 	if (!output_stream) {
 		if (error != NULL) {
-			siril_debug_print("proc_star_file: can't open file %s for input. [%s]", file, error->message);
+			siril_debug_print("proc_star_file: can't open file %s for output. [%s]", g_file_peek_path(file_out), error->message);
 			g_clear_error(&error);
 			g_object_unref(input_stream);
-			g_object_unref(file_in);
 			return SH_GENERIC_ERROR;
 		}
 	}
@@ -227,7 +222,7 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 
 		line = g_strstrip(line);
 
-		gchar **token = g_strsplit_set(line, " \t", -1);
+		gchar **token = g_strsplit_set(line, "\t", -1);
 		i = 0;
 		while (token[i] && strcmp(token[i], "\n")) {
 			if (i == racol) {
@@ -263,6 +258,5 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 	g_object_unref(data_input);
 	g_object_unref(input_stream);
 	g_object_unref(output_stream);
-	g_object_unref(file_in);
 	return (SH_SUCCESS);
 }

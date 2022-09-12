@@ -20,15 +20,19 @@
 #ifndef SRC_CORE_SIRIL_UPDATE_H_
 #define SRC_CORE_SIRIL_UPDATE_H_
 
+#ifdef HAVE_JSON_GLIB
 
 typedef struct {
 	guint major_version;
 	guint minor_version;
 	guint micro_version;
 	guint patched_version;
+	gboolean rc_version;
 } version_number;
 
 //void siril_check_updates(gboolean verbose);
 void siril_check_updates(gboolean verbose);
+
+#endif
 
 #endif /* SRC_CORE_SIRIL_UPDATE_H_ */

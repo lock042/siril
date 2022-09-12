@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -131,27 +131,6 @@ void list_format_available() {
 #endif
 }
 
-/* This function sets all default values of libraw settings in the com.raw_set
- * struct, as defined in the glade file.
- * When the ini file is read, the values of com.raw_set are overwritten, but if the
- * file is missing, like the first time Siril is launched, we don't want to have the
- * GUI states reset to zero by set_GUI_LIBRAW() because the data in com.raw_set had
- * not been initialized with the default GUI values (= initialized to 0).
- */
-static void initialize_libraw_settings() {
-	com.pref.raw_set.bright = 1.0;		// brightness
-	com.pref.raw_set.mul[0] = 1.0;		// multipliers: red
-	com.pref.raw_set.mul[1] = 1.0;		// multipliers: green, not used because always equal to 1
-	com.pref.raw_set.mul[2] = 1.0;		// multipliers: blue
-	com.pref.raw_set.auto_mul = 1;		// multipliers are Either read from file, or calculated on the basis of file data, or taken from hardcoded constants
-	com.pref.raw_set.user_black = 0;		// black point correction
-	com.pref.raw_set.use_camera_wb = 0;	// if possible, use the white balance from the camera.
-	com.pref.raw_set.use_auto_wb = 0;		// use automatic white balance obtained after averaging over the entire image
-	com.pref.raw_set.user_qual = 2;		// type of interpolation. VNG by default
-	com.pref.raw_set.gamm[0] = 1.0;		// gamma curve: linear by default
-	com.pref.raw_set.gamm[1] = 1.0;
-}
-
 static void initialize_ser_debayer_settings() {
 	com.pref.debayer.open_debayer = FALSE;
 	com.pref.debayer.use_bayer_header = TRUE;
@@ -197,7 +176,6 @@ gchar *initialize_converters() {
 	supported_filetypes |= TYPERAW;
 	string = g_string_append(string, ", ");
 	string = g_string_append(string, _("RAW images"));
-	initialize_libraw_settings();	// below in the file
 
 	nb_raw = get_nb_raw_supported();
 	for (i = 0; i < nb_raw; i++) {
@@ -490,7 +468,7 @@ struct writer_data {
 	gboolean have_seqwriter;
 
 	/* or write to a FITS files sequence */
-	char *filename;
+	gchar *filename;
 
 	gint *converted_files; // points to convert_status->converted_files
 };
@@ -541,11 +519,15 @@ static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_
 static seqread_status get_next_read_details(convert_status *conv, struct reader_data *reader);
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
 		struct writer_data *writer, gboolean end_of_input_seq, gboolean last_file_and_image);
-static void create_sequence_filename(sequence_type output_type, const char *destroot, int index, char *output, int outsize);
+static gchar *create_sequence_filename(sequence_type output_type, const char *destroot, int index);
 static seqwrite_status write_image(fits *fit, struct writer_data *writer);
 static int compute_nb_images_fit_mem(fits *fit);
 static void print_reader(struct reader_data *reader);
 static void print_writer(struct writer_data *writer);
+
+static void init_report(struct _convert_data *args);
+static void report_file_conversion(struct _convert_data *args, struct readwrite_data *rwarg);
+static void write_conversion_report(struct _convert_data *args);
 
 static gboolean end_convert_idle(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
@@ -567,7 +549,7 @@ static gboolean end_convert_idle(gpointer p) {
 				sprintf(converted_seqname, "%s.seq", args->destroot);
 			}
 		}
-		check_seq(0);
+		check_seq();
 		if (converted_seqname) {
 			update_sequences_list(converted_seqname);
 			free(converted_seqname);
@@ -588,8 +570,15 @@ gpointer convert_thread_worker(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
 	args->nb_converted_files = 0;
 	args->retval = 0;
-	gboolean allow_symlink = args->output_type == SEQ_REGULAR && test_if_symlink_is_ok();
+	gboolean allow_symlink = args->output_type == SEQ_REGULAR && test_if_symlink_is_ok(TRUE);
 	args->make_link &= allow_symlink;
+	if (args->make_link && com.pref.comp.fits_enabled) {
+		/* of course if input files are already compressed with the same
+		 * algorithm, that's a problem, but it's not very likely to happen */
+		siril_log_message(_("Not using symbolic links because FITS compression is enabled\n"));
+		args->make_link = FALSE;
+	}
+
 	if (args->multiple_output && args->output_type != SEQ_SER && args->output_type != SEQ_FITSEQ) {
 		siril_log_message(_("disabling incompatible multiple output option in conversion\n"));
 		args->multiple_output = FALSE;
@@ -600,6 +589,7 @@ gpointer convert_thread_worker(gpointer p) {
 		seqwriter_set_max_active_blocks(initial_wqueue_limit);
 	}
 	set_progress_bar_data(_("Converting files"), PROGRESS_RESET);
+	init_report(args);
 
 	/* remove the target .seq to avoid errors */
 	gchar *seqname = replace_ext(args->destroot, ".seq");
@@ -612,7 +602,7 @@ gpointer convert_thread_worker(gpointer p) {
 	convert.number_of_threads = com.max_thread;
 	convert.threads = calloc(com.max_thread, sizeof(void *));
 	convert.allow_link = args->make_link;
-	convert.allow_32bits = args->output_type != SEQ_SER && !com.pref.force_to_16bit;
+	convert.allow_32bits = args->output_type != SEQ_SER && !com.pref.force_16bit;
 	GThreadPool *pool = g_thread_pool_new(pool_worker, &convert, args->input_has_a_film ? 1 : com.max_thread, FALSE, NULL);
 	open_next_input_seq(&convert);
 	open_next_output_seq(args, &convert);
@@ -641,6 +631,7 @@ gpointer convert_thread_worker(gpointer p) {
 		struct readwrite_data *rwarg = malloc(sizeof(struct readwrite_data));
 		rwarg->reader = reader;
 		rwarg->writer = writer;
+		report_file_conversion(args, rwarg);
 		if (!g_thread_pool_push(pool, rwarg, NULL)) {
 			siril_log_message(_("Failed to queue image conversion task, aborting"));
 			break;
@@ -668,6 +659,7 @@ gpointer convert_thread_worker(gpointer p) {
 		if (convert.nb_input_images == convert.converted_images)
 			siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 		else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+		write_conversion_report(args);
 	}
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
@@ -1011,7 +1003,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 			if (!conv->output_ser) {
 				conv->output_ser = malloc(sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
-				char *dest = g_str_has_suffix(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
+				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
@@ -1047,8 +1039,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		}
 		else {
 			g_assert(args->output_type == SEQ_REGULAR);
-			writer->filename = malloc(128);
-			create_sequence_filename(SEQ_REGULAR, args->destroot, conv->output_file_number++, writer->filename, 128);
+			writer->filename = create_sequence_filename(SEQ_REGULAR, args->destroot, conv->output_file_number++);
 			return GOT_OK_WRITE;
 		}
 	} else {
@@ -1078,27 +1069,29 @@ static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_
 	if (args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
 			if (conv->next_file != conv->args->total) {
-				char dest_filename[128];
-				create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++, dest_filename, 128);
+				gchar *dest_filename = create_sequence_filename(SEQ_SER, args->destroot, conv->output_file_number++);
 				conv->output_ser = malloc(sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
 				if (ser_create_file(dest_filename, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), dest_filename);
+					g_free(dest_filename);
 					return GOT_WRITE_ERROR;
 				}
+				g_free(dest_filename);
 				conv->next_image_in_output = 0;
 				conv->writeseq_count = get_new_write_counter();
 			}
 		}
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (conv->next_file != conv->args->total) {
-				char dest_filename[128];
-				create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++, dest_filename, 128);
+				gchar *dest_filename = create_sequence_filename(SEQ_FITSEQ, args->destroot, conv->output_file_number++);
 				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
 				if (fitseq_create_file(dest_filename, conv->output_fitseq, -1)) {
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), dest_filename);
+					g_free(dest_filename);
 					return GOT_WRITE_ERROR;
 				}
+				g_free(dest_filename);
 				conv->next_image_in_output = 0;
 				conv->writeseq_count = get_new_write_counter();
 			}
@@ -1188,23 +1181,25 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 	return OPEN_NOT_A_SEQ;
 }
 
-static void create_sequence_filename(sequence_type output_type, const char *destroot, int index, char *output, int outsize) {
+static gchar *create_sequence_filename(sequence_type output_type, const char *destroot, int index) {
 	char *destroot_noext = remove_ext_from_filename(destroot);
 	char dest_end = destroot_noext[strlen(destroot_noext)-1];
+	gchar *output = NULL;
 	gboolean append_underscore = dest_end != '_' && dest_end != '-' && (dest_end < '0' || dest_end > '9');
 	switch (output_type) {
 		case SEQ_REGULAR:
-			snprintf(output, outsize, "%s%s%05d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
+			output = g_strdup_printf("%s%s%05d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
 			break;
 		case SEQ_SER:
-			snprintf(output, outsize, "%s%s%03d.ser", destroot_noext, append_underscore ? "_" : "", index);
+			output = g_strdup_printf("%s%s%03d.ser", destroot_noext, append_underscore ? "_" : "", index);
 			break;
 		case SEQ_FITSEQ:
-			snprintf(output, outsize, "%s%s%03d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
+			output = g_strdup_printf("%s%s%03d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
 			break;
 		default:
 			siril_log_color_message(_("output sequence type unknown, aborting\n"), "red");
 	}
+	return output;
 }
 
 
@@ -1238,7 +1233,7 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 		}
 		clearfits(fit);
 		free(fit);
-		free(writer->filename);
+		g_free(writer->filename);
 	}
 	else {
 		siril_log_color_message(_("Error while converting, unknown output\n"), "red");
@@ -1297,3 +1292,48 @@ static void print_writer(struct writer_data *writer) {
 				writer->seq_count->close_sequence_after_write ? " (close after write)" : "");
 	else siril_debug_print("O> writer: %s\n", writer->filename);
 }
+
+static void init_report(struct _convert_data *args) {
+	args->report = malloc(args->total * sizeof(char *));
+	args->report_length = 0;
+}
+
+static void report_file_conversion(struct _convert_data *args, struct readwrite_data *rwarg) {
+	gchar *str = NULL;
+	if (rwarg->reader->filename) {
+		if (rwarg->writer->filename) {
+			str = g_strdup_printf("'%s' -> '%s'%s", rwarg->reader->filename, rwarg->writer->filename, SIRIL_EOL);
+		}
+		else if (rwarg->writer->fitseq) {
+			str = g_strdup_printf("'%s' -> '%s' image %d%s", rwarg->reader->filename, rwarg->writer->fitseq->filename, rwarg->writer->index, SIRIL_EOL);
+		}
+		else if (rwarg->writer->ser) {
+			str = g_strdup_printf("'%s' -> '%s' image %d%s", rwarg->reader->filename, rwarg->writer->ser->filename, rwarg->writer->index, SIRIL_EOL);
+		}
+	}
+	if (str) {
+		args->report[args->report_length++] = str;
+	}
+}
+
+static void write_conversion_report(struct _convert_data *args) {
+	if (args->report_length <= 0)
+		return;
+	gchar *filename;
+	if (g_str_has_suffix(args->destroot, "_"))
+		filename = g_strdup_printf("%sconversion.txt", args->destroot);
+	else filename = g_strdup_printf("%s_conversion.txt", args->destroot);
+	FILE *fd = g_fopen(filename, "w+");
+	g_free(filename);
+	if (!fd)
+		return;
+
+	for (int i = 0; i < args->report_length; i++)
+		if (fputs(args->report[i], fd) == EOF)
+			break;
+
+	for (int i = 0; i < args->report_length; i++)
+		g_free(args->report[i]);
+	fclose(fd);
+}
+

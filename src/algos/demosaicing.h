@@ -2,7 +2,8 @@
 #define _DEMOSAICING_H
 
 extern const char *filter_pattern[];
-int retrieveBayerPatternFromChar(char *bayer);
+extern const size_t num_filter_patterns;
+int retrieveBayerPatternFromChar(const char *bayer);
 
 WORD *debayer_buffer(WORD *buf, int *width, int *height,
 		interpolation_method interpolation, sensor_pattern pattern, int bit_depth);
@@ -14,6 +15,7 @@ extern "C" {
 int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern);
 WORD *debayer_buffer_superpixel_ushort(WORD *buf, int *width, int *height, sensor_pattern pattern);
 float *debayer_buffer_superpixel_float(float *buf, int *width, int *height, sensor_pattern pattern);
+int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer);
 #ifdef __cplusplus
 }
 #endif

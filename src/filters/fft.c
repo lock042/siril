@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
+#include "gui/registration_preview.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "io/single_image.h"
@@ -59,7 +60,7 @@ static void fft_to_spectra(fftwf_complex *frequency_repr, float *as, float *ps,
 	}
 }
 
-static void fft_to_freq(fftwf_complex *frequency_repr, float *as, float *ps,
+static void fft_to_freq(fftwf_complex *frequency_repr, const float *as, const float *ps,
 		size_t nbdata) {
 	for (size_t i = 0; i < nbdata; i++) {
 		frequency_repr[i] = as[i] * (cosf(ps[i]) + I * sinf(ps[i]));
@@ -138,7 +139,7 @@ static void centered_float(float *buf, unsigned int width, unsigned int height,
 	free(temp);
 }
 
-static void normalisation_spectra_ushort(unsigned int w, unsigned int h, float *modul, float *phase,
+static void normalisation_spectra_ushort(unsigned int w, unsigned int h, const float *modul, const float *phase,
 		WORD *abuf, WORD *pbuf, float maxi) {
 	for (size_t i = 0; i < h * w; i++) {
 		pbuf[i] = roundf_to_WORD(((phase[i] + (float)M_PI) * USHRT_MAX_SINGLE / (2.f * (float)M_PI)));
@@ -146,7 +147,7 @@ static void normalisation_spectra_ushort(unsigned int w, unsigned int h, float *
 	}
 }
 
-static void normalisation_spectra_float(unsigned int w, unsigned int h, float *modul, float *phase,
+static void normalisation_spectra_float(unsigned int w, unsigned int h, const float *modul, const float *phase,
 		float *abuf, float *pbuf, float maxi) {
 	for (size_t i = 0; i < h * w; i++) {
 		pbuf[i] = (phase[i] + (float)M_PI) / (2.f * (float)M_PI);
@@ -419,7 +420,7 @@ static gboolean end_fourier_transform(gpointer p) {
 	struct fft_data *args = (struct fft_data *)p;
 	stop_processing_thread();
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	free(args->type);
 	free(args);
@@ -490,6 +491,11 @@ gpointer fourier_transform(gpointer p) {
 			args->retval = 1;
 			goto end;
 		}
+		if ((tmp->rx != tmp1->rx) || (tmp->ry != tmp1->ry) || (tmp->naxes[2] != tmp1->naxes[2]) || (tmp->bitpix != tmp1->bitpix)) {
+			args->retval = 1;
+			siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+			goto end;
+		}
 		if (tmp->dft.ord[0] == 'C')		// CENTERED
 			args->type_order = TYPE_CENTERED;
 		else if (tmp->dft.ord[0] == 'R')	// REGULAR
@@ -538,9 +544,9 @@ void on_button_fft_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	if (notebookFFT == NULL) {
 		notebookFFT = GTK_NOTEBOOK(
-				gtk_builder_get_object(builder, "notebook_fft"));
+				gtk_builder_get_object(gui.builder, "notebook_fft"));
 		order = GTK_TOGGLE_BUTTON(
-				gtk_builder_get_object(builder, "fft_centered"));
+				gtk_builder_get_object(gui.builder, "fft_centered"));
 	}
 
 	page = gtk_notebook_get_current_page(notebookFFT);

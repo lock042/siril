@@ -12,6 +12,7 @@ stages:
   - dependencies
   - siril
   - packaging
+  - distribution
   - analysis
 
 variables:
@@ -21,17 +22,14 @@ variables:
   INSTALL_PREFIX: "${CI_PROJECT_DIR}/${INSTALL_DIR}"
   CROSSROAD_OUT: "crossroad-out"
   APT_CACHE: "$CI_PROJECT_DIR/apt-cache"
+  W64_OUT: "/c/msys64/mingw64"
 
 ################################################################################
 # Prepare Dockers images
 
 # Image for GNU/Linux build
 build-image:
-  except:
-    - schedules
   stage: prepare
-  variables:
-    GIT_STRATEGY: none
   cache: {}
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -39,26 +37,11 @@ build-image:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - echo "FROM debian:testing" > Dockerfile
-    - echo "RUN apt-get update" >> Dockerfile
-    - echo "RUN apt-get install -y --no-install-recommends \\" >> Dockerfile
-    - echo "at-spi2-core build-essential desktop-file-utils cmake hicolor-icon-theme git intltool libexiv2-dev libgtk-3-dev libcfitsio-dev libfftw3-dev libgsl-dev libconfig-dev libopencv-dev librsvg2-dev libraw-dev libffms2-dev libtiff-dev libjpeg-dev libheif-dev libpng-dev libavformat-dev libavutil-dev libavcodec-dev libswscale-dev libswresample-dev libcurl4-gnutls-dev wcslib-dev python3 ninja-build meson libjson-glib-dev" >> Dockerfile
-    - echo "RUN git clone --recurse-submodules --depth=1 -b bleeding https://github.com/Snaipe/Criterion.git \\" >> Dockerfile
-    - echo " && cd Criterion \\" >> Dockerfile
-    - echo " && meson build --prefix /usr \\" >> Dockerfile
-    - echo " && ninja -C build install \\" >> Dockerfile
-    - echo " && cd .. \\" >> Dockerfile
-    - echo " && rm -rf Criterion" >> Dockerfile
-
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:build-debian-latest --cache=true --cache-ttl=120h
+    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-latest --destination $CI_REGISTRY_IMAGE:build-debian-latest --cache=true --cache-ttl=120h
     
 # Image for GNU/Linux build
-build-image-stable:
-  except:
-    - schedules
+build-image-oldstable:
   stage: prepare
-  variables:
-    GIT_STRATEGY: none
   cache: {}
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -66,29 +49,11 @@ build-image-stable:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - echo "FROM debian:stable" > Dockerfile
-    - echo "RUN apt-get update" >> Dockerfile
-    - echo "RUN apt-get install -y --no-install-recommends \\" >> Dockerfile
-    - echo "at-spi2-core build-essential desktop-file-utils cmake hicolor-icon-theme git intltool libexiv2-dev libgtk-3-dev libcfitsio-dev libfftw3-dev libgsl-dev libconfig-dev libopencv-dev librsvg2-dev libffms2-dev libtiff-dev libjpeg-dev libheif-dev libpng-dev libavformat-dev libavutil-dev libavcodec-dev libswscale-dev libswresample-dev liblcms2-dev wget libtool libcurl4-gnutls-dev wcslib-dev python3 python3-pip libjson-glib-dev" >> Dockerfile
-    - echo "RUN wget https://www.libraw.org/data/LibRaw-0.20.0.tar.gz \\" >> Dockerfile
-    - echo " && tar xfv LibRaw-0.20.0.tar.gz \\" >> Dockerfile
-    - echo " && cd LibRaw-0.20.0 \\" >> Dockerfile
-    - echo " && autoreconf -fi \\" >> Dockerfile
-    - echo " && ./configure --prefix /usr \\" >> Dockerfile
-    - echo " && make install \\" >> Dockerfile
-    - echo " && cd .. \\" >> Dockerfile
-    - echo " && rm -rf LibRaw-0.20.0 \\" >> Dockerfile
-    - echo " && python3 -m pip install meson \\" >> Dockerfile
-    - echo " && python3 -m pip install ninja" >> Dockerfile
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:build-debian-stable --cache=true --cache-ttl=120h
+    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-oldstable --destination $CI_REGISTRY_IMAGE:build-debian-oldstable --cache=true --cache-ttl=120h
 
 # Image for Windows64 build
 build-image-win64:
-  except:
-    - schedules
   stage: prepare
-  variables:
-    GIT_STRATEGY: none
   cache: {}
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -96,44 +61,68 @@ build-image-win64:
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - echo "FROM debian:testing" > Dockerfile
-    - echo "RUN apt-get update" >> Dockerfile
-    - echo "RUN apt-get install -y --no-install-recommends \\" >> Dockerfile
-    - echo "build-essential cmake cpio g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 git intltool libglib2.0-bin meson pkg-config python3 python3-distutils python3-docutils python3-pip rpm xsltproc wget" >> Dockerfile
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:build-win64-latest --cache=true --cache-ttl=120h
+    - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.win64-latest  --destination $CI_REGISTRY_IMAGE:build-win64-latest --cache=true --cache-ttl=120h
+
+# Try building/packaging with msys2 in one step
+# (otherwise win VM gets wiped)
+win64-native-nightly:
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/ || $CI_PIPELINE_SOURCE == "schedule"
+  stage: prepare
+  cache: {}
+  variables:
+    CHERE_INVOKING: "yes"
+    MSYSTEM: "MINGW64"
+  tags:
+    - windows
+  artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    when: always
+    expire_in: 1 week
+    paths:
+    - ${INSTALL_DIR}
+  script:
+    - choco install msys2 --params "/InstallDir:C:\msys64" -y
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh"
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
+    - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
 
 ################################################################################
 # GNU/Linux 64-bit CIs
 
 # Currently Siril does not need dependency compilation, so we can skip that.
-# deps-debian/testing:
-#   stage: dependencies
-#   image: $CI_REGISTRY_IMAGE:build-debian-latest
-#   cache:
-#     paths:
-#     - apt-cache
-#   artifacts:
-#     expire_in: 2 hours
-#     when: always
-#     paths:
-#     - "${INSTALL_DIR}"
-#   before_script:
-#     - export PKG_CONFIG_PATH="${INSTALL_PREFIX}/lib/pkgconfig"
-#     - export PKG_CONFIG_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`/pkgconfig/:$PKG_CONFIG_PATH"
-#     - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH}"
-#     - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`:$LD_LIBRARY_PATH"
-#     - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
-#   script:
-#     - echo ""
-#   needs: ["build-image"]
+deps-debian:
+  stage: dependencies
+  image: $CI_REGISTRY_IMAGE:build-debian-latest
+  cache:
+    paths:
+    - apt-cache
+  artifacts:
+    expire_in: 2 hours
+    when: always
+    paths:
+    - "${INSTALL_DIR}"
+    - _Criterion/_build
+  before_script:
+    - git clone --recurse-submodules --depth=1 -b bleeding https://github.com/Snaipe/Criterion.git _Criterion
+    - export PKG_CONFIG_PATH="${INSTALL_PREFIX}/lib/pkgconfig"
+    - export PKG_CONFIG_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`/pkgconfig/:$PKG_CONFIG_PATH"
+    - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH}"
+    - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`:$LD_LIBRARY_PATH"
+    - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
+  script:
+    - cd _Criterion
+    - patch --binary -p1 < ../build/windows/criterion.patch
+    - meson _build --prefix ${INSTALL_PREFIX}
+    - ninja -C _build install
+  needs: ["build-image"]
 
 .siril-debian/testing-base:
-  except:
-    - schedules
   stage: siril
   image: $CI_REGISTRY_IMAGE:build-debian-latest
   dependencies:
-    - build-image
+    - deps-debian
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   cache:
@@ -154,9 +143,9 @@ build-image-win64:
     - export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib/`gcc -print-multiarch`:$LD_LIBRARY_PATH"
     - export XDG_DATA_DIRS="${INSTALL_PREFIX}/share:/usr/local/share:/usr/share"
     - export PATH="${INSTALL_PREFIX}/bin:$PATH"
-  needs: ["build-image"]
+  needs: ["deps-debian"]
 
-siril-debian/testing-autotools:
+siril-deb-autotools:
   extends: .siril-debian/testing-base
   script:
     - NOCONFIGURE=1 ./autogen.sh
@@ -164,24 +153,30 @@ siril-debian/testing-autotools:
     - ../configure --prefix=${INSTALL_PREFIX}
     - make -j "$(nproc)" all install
 
-siril-debian/testing-meson:
+siril-deb-meson:
   extends: .siril-debian/testing-base
   script:
-    - meson --prefix="${INSTALL_PREFIX}" ${BUILD_DIR}
+    - meson --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Denable-libcurl=yes -Dlibconfig=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
-    - meson test -C ${BUILD_DIR} -v --no-suite perfs --test-args="--xml=tests_results.xml"
+    - meson test -C ${BUILD_DIR} -v --no-suite perfs
+    - cd ${BUILD_DIR}
+    - gcovr --xml-pretty --exclude-unreachable-branches --exclude-directories subprojects --exclude-directories  src/tests  --root ../ -o coverage.xml --print-summary
+    - cd ..
   artifacts:
     paths:
-      - ${BUILD_DIR}/tests_results.xml
+      - ${BUILD_DIR}/meson-logs/testlog.junit.xml
+      - ${BUILD_DIR}/coverage.xml    
     reports:
-      junit: ${BUILD_DIR}/tests_results.xml
+      junit: ${BUILD_DIR}/meson-logs/testlog.junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: ${BUILD_DIR}/coverage.xml
+
 
 ################################################################################
 # WINDOWS 64-bit CI
 
 deps-win64:
-  except:
-    - schedules
   stage: dependencies
   image: $CI_REGISTRY_IMAGE:build-win64-latest
   variables:
@@ -200,7 +195,6 @@ deps-win64:
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
     - crossroad w64 siril --run="build/windows/crossbuild-gitlab-ci/build-deps.sh"
-    
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -210,9 +204,7 @@ deps-win64:
       - _deps/
   needs: ["build-image-win64"]
 
-siril-win64/testing-meson:
-  except:
-    - schedules
+siril-win64:
   stage: siril
   image: $CI_REGISTRY_IMAGE:build-win64-latest
   dependencies:
@@ -229,11 +221,8 @@ siril-win64/testing-meson:
     - update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
     - update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - export PATH="`pwd`/.local/bin:$PATH"
-    - mkdir subprojects/librtprocess/_build && cd subprojects/librtprocess/_build
-    - echo 'crossroad cmake .. && make && make install' | crossroad w64 siril --run="-"
-    - cd ../../..
     - mkdir _build && cd _build
-    - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
+    - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" -Denable-libcurl=yes -Dlibconfig=true .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
   needs: ["deps-win64"]
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
@@ -248,12 +237,10 @@ siril-win64/testing-meson:
 # Packaging
 
 win64-nightly:
-  except:
-    - schedules
   stage: packaging
   image: $CI_REGISTRY_IMAGE:build-win64-latest
   dependencies:
-    - siril-win64/testing-meson
+    - siril-win64
   script:
     # Package shared ressources
     - cp -fr ${CROSSROAD_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
@@ -271,7 +258,7 @@ win64-nightly:
     - cp build/windows/crossbuild-gitlab-ci/siril-wrapper.cmd ${INSTALL_PREFIX}/bin/
 
     # Package lib
-    - mkdir ${INSTALL_PREFIX}/lib/
+#    - mkdir ${INSTALL_PREFIX}/lib/
     - cp -fr ${CROSSROAD_OUT}/lib/gdk-pixbuf-2.0 ${INSTALL_PREFIX}/lib/
     - cp build/windows/loaders.cache ${INSTALL_PREFIX}/lib/gdk-pixbuf-2.0/2.10.0/
     - glib-compile-schemas --targetdir=${INSTALL_PREFIX}/share/glib-2.0/schemas ${CROSSROAD_OUT}/share/glib-2.0/schemas
@@ -287,7 +274,7 @@ win64-nightly:
     - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/glib-compile-schemas.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
     - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.dll ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
 
-  needs: ["siril-win64/testing-meson"]
+  needs: ["siril-win64"]
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -297,37 +284,20 @@ win64-nightly:
 
 flatpak-nightly:
   # Update the image URL whenever the runtime version in the flatpak manifest is changed
-  only: 
-   - schedules
-  image: "registry.gitlab.gnome.org/gnome/gnome-runtime-images/gnome:3.38"
-  stage: "packaging"
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /CI-flatpak/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /flatpak/ || $CI_PIPELINE_SOURCE == "schedule"
+  image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-master'
+  stage: packaging
   variables:
     MANIFEST_PATH: "build/flatpak/org.free_astro.siril.json"
     FLATPAK_MODULE: "siril"
     APP_ID: "org.free_astro.siril"
-    RUNTIME_REPO: "https://flathub.org/repo/flathub.flatpakrepo"
+    RUNTIME_REPO: "https://nightly.gnome.org/gnome-nightly.flatpakrepo"
     BUNDLE: "org.free_astro.siril.flatpak"
     GIT_SUBMODULE_STRATEGY: recursive
   script:
-    - flatpak-builder --stop-at=${FLATPAK_MODULE} flatpak_app ${MANIFEST_PATH} 1>/dev/null
-    # Make sure to keep this in sync with the Flatpak manifest, all arguments
-    # are passed except the config-args because we build it ourselves
-    - flatpak build flatpak_app ./autogen.sh --prefix=/app
-    - flatpak build flatpak_app make
-    - flatpak build flatpak_app make install
-    - flatpak-builder --finish-only --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH}
-    # TODO: Run automatic tests inside the Flatpak env
-    # - >
-    #   xvfb-run -a -s "-screen 0 1024x768x24"
-    #   flatpak build
-    #   --env=LANG=C.UTF-8
-    #   --env=NO_AT_BRIDGE=1
-    #   ${TEST_BUILD_ARGS}
-    #   flatpak_app
-    #   dbus-run-session
-    #   meson test -C _build --no-stdsplit --print-errorlogs ${TEST_RUN_ARGS}
-
-    # Generate a Flatpak bundle
+    - flatpak-builder --verbose --disable-rofiles-fuse --ccache --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH} 1>/dev/null
     - flatpak build-bundle repo ${BUNDLE} --runtime-repo=${RUNTIME_REPO} ${APP_ID} ${BRANCH}
   artifacts:
     name: "Flatpak artifacts"
@@ -342,14 +312,15 @@ flatpak-nightly:
     paths:
       - ".flatpak-builder/downloads"
       - ".flatpak-builder/git"
+      - ".flatpak-builder/cache"
+      - ".flatpak-builder/ccache"
   needs: []
-
+  allow_failure: true
+  
 
 appimage-nightly:
-  except:
-    - schedules
-  stage: "packaging"
-  image: $CI_REGISTRY_IMAGE:build-debian-stable
+  stage: packaging
+  image: $CI_REGISTRY_IMAGE:build-debian-oldstable
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   cache:
@@ -363,21 +334,19 @@ appimage-nightly:
     expire_in: 1 week
     paths:
       - build/appimage/Siril*.AppImage*
-  needs: ["build-image-stable"]
+  needs: ["build-image-oldstable"]
 
 ################################################################################
 # Analysis
 
 cppcheck:
-  except:
-    - schedules
-  stage: "analysis"
+  stage: analysis
   before_script:
     - apt-get update
     - apt-get install -y cppcheck
   script:
     - cppcheck -q -j8 --enable=all --force --output-file=cppcheck.xml --xml --xml-version=2
-        -i _build -i _deps -i ${INSTALL_PREFIX} -i .local -i .cache .
+        -i _build -i _deps -i ${INSTALL_PREFIX} -i subprojects  -i src/rt -i src/io/avi_pipp -i .local -i .cache .
     - mkdir report
     - cppcheck-htmlreport --source-dir=. --title=siril --file=cppcheck.xml --report-dir=report
   artifacts:
@@ -387,5 +356,28 @@ cppcheck:
     paths:
       - report
   needs: []
-  except:
-    - schedules
+
+################################################################################
+# Distribution
+win64-native-installer:
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /w64i/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/ || $CI_PIPELINE_SOURCE == "schedule"
+  variables:
+    CHERE_INVOKING: "yes"
+  tags:
+    - windows
+  stage: distribution
+  dependencies:
+    - win64-native-nightly
+  artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    when: always
+    expire_in: 1 week
+    paths:
+    - WinInstaller
+    - installer.log
+  script:
+    - choco install innosetup -y
+    - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
+  needs: ["win64-native-nightly"]

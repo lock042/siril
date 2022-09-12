@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -29,15 +29,18 @@
 #include "io/image_format_fits.h"
 #include "stacking.h"
 #include "gui/progress_and_log.h"
+#include "registration/registration.h"
 
 struct sum_stacking_data {
 	guint64 *sum[3];	// the new image's channels
 	double *fsum[3];	// the new image's channels, for float input image
-	double exposure;	// sum of the exposures
+	GList *list_date; // list of dates of every FITS file
+	double livetime;	// sum of the exposures
 	int reglayer;		// layer used for registration data
 	int ref_image;		// reference image index in the stacked sequence
 	gboolean input_32bits;	// input is a sequence of 32-bit float images
 	gboolean output_32bits;	// output a 32-bit float image instead of the default ushort
+	fits result;
 };
 
 static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
@@ -74,26 +77,33 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 		ssdata->fsum[0] = NULL;
 	}
 
-	ssdata->exposure = 0.0;
+	ssdata->livetime = 0.0;
+	ssdata->list_date = NULL;
 	return ST_OK;
 }
 
-static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct sum_stacking_data *ssdata = args->user;
-	int shiftx, shifty, nx, ny, x, y, layer;
+	int shiftx = 0, shifty = 0, nx, ny, x, y, layer;
 	size_t ii, pixel = 0;	// index in sum[0]
+	/* we get some metadata at the same time: date, exposure ... */
 
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-	ssdata->exposure += fit->exposure;
+	ssdata->livetime += fit->exposure;
 	
+	if (fit->date_obs) {
+		GDateTime *date = g_date_time_ref(fit->date_obs);
+		ssdata->list_date = g_list_prepend(ssdata->list_date, new_date_item(date, fit->exposure));
+	}
+
 	if (ssdata->reglayer != -1 && args->seq->regparam[ssdata->reglayer]) {
-		shiftx = round_to_int(args->seq->regparam[ssdata->reglayer][i].shiftx * (float)args->seq->upscale_at_stacking);
-		shifty = round_to_int(args->seq->regparam[ssdata->reglayer][i].shifty * (float)args->seq->upscale_at_stacking);
-	} else {
-		shiftx = 0;
-		shifty = 0;
+		double scale = args->seq->upscale_at_stacking;
+		double dx, dy;
+		translation_from_H(args->seq->regparam[ssdata->reglayer][i].H, &dx, &dy);
+		shiftx = round_to_int(dx * scale);
+		shifty = round_to_int(dy * scale);
 	}
 
 	for (y = 0; y < fit->ry; ++y) {
@@ -125,13 +135,20 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	return ST_OK;
 }
 
-// convert the result and store it into gfit
+// convert the result and store it
 static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	struct sum_stacking_data *ssdata = args->user;
 	guint64 max = 0L;	// max value of the image's channels
 	double fmax = 0.0;
 	size_t i, nbdata;
 	int layer;
+
+	if (args->retval) {
+		if (ssdata->sum[0]) free(ssdata->sum[0]);
+		if (ssdata->fsum[0]) free(ssdata->fsum[0]);
+		args->user = NULL;
+		return args->retval;
+	}
 
 	nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
 	// find the max first
@@ -152,8 +169,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 				max = ssdata->sum[0][i];
 	}
 
-	clearfits(&gfit);
-	fits *fit = &gfit;
+	fits *fit = &ssdata->result;
 	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers, ssdata->output_32bits ? DATA_FLOAT : DATA_USHORT))
 		return ST_GENERIC_ERROR;
 
@@ -161,25 +177,28 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	int ref = ssdata->ref_image;
 	if (args->seq->type == SEQ_REGULAR) {
 		if (!seq_open_image(args->seq, ref)) {
-			import_metadata_from_fitsfile(args->seq->fptr[ref], &gfit);
+			import_metadata_from_fitsfile(args->seq->fptr[ref], fit);
 			seq_close_image(args->seq, ref);
 		}
 	} else if (args->seq->type == SEQ_FITSEQ) {
 		if (!fitseq_set_current_frame(args->seq->fitseq_file, ref))
-			import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, &gfit);
+			import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, fit);
 	} else if (args->seq->type == SEQ_SER) {
-		import_metadata_from_serfile(args->seq->ser_file, &gfit);
+		import_metadata_from_serfile(args->seq->ser_file, fit);
 	}
 
-	gfit.exposure = ssdata->exposure;
+	fit->livetime = ssdata->livetime;
+	fit->stackcnt = args->nb_filtered_images;
 	nbdata = args->seq->ry * args->seq->rx;
+	compute_date_time_keywords(ssdata->list_date, fit);
+	g_list_free_full(ssdata->list_date, (GDestroyNotify) free_list_date);
 
 	if (ssdata->output_32bits) {
 		if (ssdata->input_32bits) {
 			double ratio = 1.0 / fmax;
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
 				double *from = ssdata->fsum[layer];
-				float *to = gfit.fpdata[layer];
+				float *to = fit->fpdata[layer];
 				for (i=0; i < nbdata; ++i) {
 					*to++ = (float)((double)(*from++) * ratio);
 				}
@@ -188,7 +207,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 			double ratio = 1.0 / (double)max;
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
 				guint64 *from = ssdata->sum[layer];
-				float *to = gfit.fpdata[layer];
+				float *to = fit->fpdata[layer];
 				for (i=0; i < nbdata; ++i) {
 					*to++ = (float)((double)(*from++) * ratio);
 				}
@@ -203,7 +222,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 
 		for (layer=0; layer<args->seq->nb_layers; ++layer){
 			guint64 *from = ssdata->sum[layer];
-			WORD *to = gfit.pdata[layer];
+			WORD *to = fit->pdata[layer];
 			for (i=0; i < nbdata; ++i) {
 				if (ratio == 1.0)
 					*to++ = round_to_WORD(*from++);
@@ -214,7 +233,6 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 
 	if (ssdata->sum[0]) free(ssdata->sum[0]);
 	if (ssdata->fsum[0]) free(ssdata->fsum[0]);
-	free(ssdata);
 	args->user = NULL;
 
 	return ST_OK;
@@ -231,7 +249,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	args->description = _("Sum stacking");
 	args->already_in_a_thread = TRUE;
 
-	struct sum_stacking_data *ssdata = malloc(sizeof(struct sum_stacking_data));
+	struct sum_stacking_data *ssdata = calloc(1, sizeof(struct sum_stacking_data));
 	ssdata->reglayer = stackargs->reglayer;
 	ssdata->ref_image = stackargs->ref_image;
 	assert(ssdata->ref_image >= 0 && ssdata->ref_image < args->seq->number);
@@ -242,6 +260,8 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	args->user = ssdata;
 
 	generic_sequence_worker(args);
+	memcpy(&stackargs->result, &ssdata->result, sizeof(fits));
+	free(ssdata);
 	return args->retval;
 }
 

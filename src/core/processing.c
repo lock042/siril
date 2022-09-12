@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -17,6 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include <assert.h>
 #include <string.h>
@@ -35,6 +39,7 @@
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/statistics.h"
+#include "registration/registration.h"
 
 // called in start_in_new_thread only
 // works in parallel if the arg->parallel is TRUE for FITS or SER sequences
@@ -69,18 +74,26 @@ gpointer generic_sequence_worker(gpointer p) {
 	args->retval = 0;
 
 #ifdef _OPENMP
-	if (args->max_thread < 1) {
+	// max_parallel_images can be computed by another function too, hence the check
+	if (args->max_parallel_images < 1) {
 		if (args->compute_mem_limits_hook)
-			args->max_thread = args->compute_mem_limits_hook(args, FALSE);
-		else args->max_thread = seq_compute_mem_limits(args, FALSE);
+			args->max_parallel_images = args->compute_mem_limits_hook(args, FALSE);
+		else args->max_parallel_images = seq_compute_mem_limits(args, FALSE);
 	}
-	if (args->max_thread < 1) {
+	if (args->max_parallel_images < 1) {
 		args->retval = 1;
 		goto the_end;
 	}
-	if (args->compute_mem_limits_hook)
-		siril_log_message(_("%s: with the current memory and thread limits, up to %d thread(s) can be used\n"),
-				args->description, args->max_thread);
+	/* if there are less images in the sequence than threads, we still
+	 * distribute them */
+	if (args->max_parallel_images > nb_frames)
+		args->max_parallel_images = nb_frames;
+
+	siril_log_message(_("%s: with the current memory and thread limits, up to %d thread(s) can be used\n"),
+			args->description, args->max_parallel_images);
+
+	// remaining threads distribution per image thread
+	int *threads_per_image = compute_thread_distribution(args->max_parallel_images, com.max_thread);
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
@@ -123,6 +136,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			size = args->compute_size_hook(args, nb_frames);
 		else size = seq_compute_size(args->seq, nb_frames, args->output_type);
 		if (test_available_space(size)) {
+			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			args->retval = 1;
 			goto the_end;
 		}
@@ -145,11 +159,11 @@ gpointer generic_sequence_worker(gpointer p) {
 	else omp_set_schedule(omp_sched_guided, 0);
 #ifdef HAVE_FFMS2
 	// we don't want to enable parallel processing for films, as ffms2 is not thread-safe
-#pragma omp parallel for num_threads(args->max_thread) private(input_idx) schedule(runtime) \
-	if(args->seq->type != SEQ_AVI && args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
+#pragma omp parallel for num_threads(args->max_parallel_images) private(input_idx) schedule(runtime) \
+	if(args->max_parallel_images > 1 && args->seq->type != SEQ_AVI && args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
 #else
-#pragma omp parallel for num_threads(args->max_thread) private(input_idx) schedule(runtime) \
-	if(args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
+#pragma omp parallel for num_threads(args->max_parallel_images) private(input_idx) schedule(runtime) \
+	if(args->max_parallel_images > 1 && args->parallel && (args->seq->type == SEQ_SER || fits_is_reentrant()))
 #endif // HAVE_FFMS2
 #endif // _OPENMP
 	for (frame = 0; frame < nb_frames; frame++) {
@@ -174,6 +188,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 
 		int thread_id = -1;
+		int nb_subthreads = 1;
 #ifdef _OPENMP
 		thread_id = omp_get_thread_num();
 		if (have_seqwriter) {
@@ -183,44 +198,55 @@ gpointer generic_sequence_worker(gpointer p) {
 				continue;
 			}
 		}
+		nb_subthreads = threads_per_image[thread_id];
 #endif
 
 		if (args->partial_image) {
-			// if we run in parallel, it will not be the same for all
-			// and we don't want to overwrite the original anyway
-			if (args->regdata_for_partial) {
-				int shiftx = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shiftx);
-				int shifty = roundf_to_int(args->seq->regparam[args->layer_for_partial][input_idx].shifty);
-				area.x -= shiftx;
-				area.y += shifty;
+			if (args->regdata_for_partial && (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][input_idx].H) > -2)
+			&& (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H) > -2)) { // do not try to transform area if img matrix is null
+				selection_H_transform(&area,
+						args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H,
+						args->seq->regparam[args->layer_for_partial][input_idx].H);
 			}
-
 			// args->area may be modified in hooks
-			enforce_area_in_image(&area, args->seq);
-			if (seq_read_frame_part(args->seq,
-						args->layer_for_partial,
+
+			/* We need to detect if the box has crossed the borders to invalidate
+			 * the current frame in case the box position was computed from reg data.
+			 */
+			gboolean has_crossed = enforce_area_in_image(&area, args->seq, input_idx) && args->regdata_for_partial;
+
+			if (has_crossed || seq_read_frame_part(args->seq, args->layer_for_partial,
 						input_idx, fit, &area,
 						args->get_photometry_data_for_partial, thread_id))
 			{
-				abort = 1;
+				if (args->stop_on_error)
+					abort = 1;
+				else {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+					excluded_frames++;
+				}
 				clearfits(fit);
 				free(fit);
+				// TODO: for seqwriter, we need to notify the failed frame
 				continue;
 			}
 			/*char tmpfn[100];	// this is for debug purposes
 			  sprintf(tmpfn, "/tmp/partial_%d.fit", input_idx);
 			  savefits(tmpfn, fit);*/
 		} else {
-			// image is obtained bottom to top here, while it's in natural order for partial images!
+			// image is read bottom-up here, while it's top-down for partial images
 			if (seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
 				abort = 1;
 				clearfits(fit);
 				free(fit);
 				continue;
 			}
+			// TODO: for seqwriter, we need to notify the failed frame
 		}
 
-		if (args->image_hook(args, frame, input_idx, fit, &area)) {
+		if (args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
 			if (args->stop_on_error)
 				abort = 1;
 			else {
@@ -282,15 +308,17 @@ gpointer generic_sequence_worker(gpointer p) {
 		siril_log_message(_("Finalizing sequence processing failed.\n"));
 		abort = 1;
 	}
-	if (abort) {
+	if (abort || excluded_frames == nb_frames) {
 		set_progress_bar_data(_("Sequence processing failed. Check the log."), PROGRESS_RESET);
 		siril_log_color_message(_("Sequence processing failed.\n"), "red");
+		if (!abort)
+			abort = 1;
 		args->retval = abort;
 	}
 	else {
 		if (excluded_frames) {
 			set_progress_bar_data(_("Sequence processing partially succeeded. Check the log."), PROGRESS_RESET);
-			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed and that were temporarily excluded from the sequence.\n"), "salmon", excluded_frames);
+			siril_log_color_message(_("Sequence processing partially succeeded, with %d images that failed.\n"), "salmon", excluded_frames);
 		} else {
 			set_progress_bar_data(_("Sequence processing succeeded."), PROGRESS_RESET);
 			siril_log_color_message(_("Sequence processing succeeded.\n"), "green");
@@ -309,6 +337,7 @@ the_end:
 		args->retval = 1;
 	}
 
+	int retval = args->retval;	// so we can free args if needed in the idle
 	if (args->already_in_a_thread) {
 		if (args->idle_function)
 			args->idle_function(args);
@@ -317,10 +346,10 @@ the_end:
 			siril_add_idle(args->idle_function, args);
 		else siril_add_idle(end_generic_sequence, args);
 	}
-	return GINT_TO_POINTER(args->retval);
+	return GINT_TO_POINTER(retval);
 }
 
-// defaut idle function (in GTK main thread) to run at the end of the generic sequence processing
+// default idle function (in GTK main thread) to run at the end of the generic sequence processing
 gboolean end_generic_sequence(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *) p;
 
@@ -328,12 +357,12 @@ gboolean end_generic_sequence(gpointer p) {
 			args->new_seq_prefix && !args->retval) {
 		gchar *basename = g_path_get_basename(args->seq->seqname);
 		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
-		check_seq(0);
+		check_seq();
 		update_sequences_list(seqname);
 		free(seqname);
 		g_free(basename);
 	}
-	
+
 	free(p);
 	return end_generic(NULL);
 }
@@ -346,7 +375,8 @@ gboolean end_generic_sequence(gpointer p) {
  */
 int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_image, MB_avail;
-	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float, NULL, &MB_per_image, &MB_avail);
+	int thread_limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float, NULL, &MB_per_image, &MB_avail);
+	int limit = thread_limit;
 	if (limit == 0) {
 		gchar *mem_per_image = g_format_size_full(MB_per_image * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
@@ -358,18 +388,26 @@ int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 		g_free(mem_available);
 	} else {
 #ifdef _OPENMP
-		if (for_writer) {
-			int max_queue_size = com.max_thread * 3;
-			if (limit > max_queue_size)
-				limit = max_queue_size;
-		}
-		else if (limit > com.max_thread)
+		/* number of threads for the main computation */
+		if (limit > com.max_thread)
 			limit = com.max_thread;
+		if (for_writer) {
+			/* we take the remainder for the writer */
+			int max_queue_size = com.max_thread * 3;
+			if (thread_limit - limit > max_queue_size)
+				limit = max_queue_size;
+			else limit = thread_limit - limit;
+			if (limit < 1)
+				limit = 1;	// bug #777
+		}
 #else
 		if (!for_writer)
 			limit = 1;
-		else if (limit > 3)
-			limit = 3;
+		else {
+			limit = max(1, limit-1);
+			if (limit > 3)
+				limit = 3;
+		}
 #endif
 	}
 	return limit;
@@ -453,7 +491,7 @@ int seq_finalize_hook(struct generic_seq_args *args) {
 }
 
 /* In SER, all images must be in a contiguous sequence, so we use the out_index.
- * In FITS sequences, to keep track of image accross processings, we keep the
+ * In FITS sequences, to keep track of image across processings, we keep the
  * input file number all along (in_index is the index in the sequence, not the name).
  * The 2nd condition ensures that any force condition prevails over opposite
  * input-type condition
@@ -477,6 +515,8 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
  *      P R O C E S S I N G      T H R E A D      M A N A G E M E N T        *
  ****************************************************************************/
 
+static void set_thread_run(gboolean b);
+
 static gboolean thread_being_waited = FALSE;
 
 // This function is reentrant. The pointer will be freed in the idle function,
@@ -492,6 +532,7 @@ void start_in_new_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	com.run_thread = TRUE;
 	g_mutex_unlock(&com.mutex);
+	set_cursor_waiting(TRUE);
 	com.thread = g_thread_new("processing", f, p);
 }
 
@@ -506,6 +547,7 @@ void start_in_reserved_thread(gpointer (*f)(gpointer), gpointer p) {
 
 	com.run_thread = TRUE;
 	g_mutex_unlock(&com.mutex);
+	set_cursor_waiting(TRUE);
 	com.thread = g_thread_new("processing", f, p);
 }
 
@@ -532,7 +574,8 @@ void stop_processing_thread() {
 		waiting_for_thread();
 }
 
-void set_thread_run(gboolean b) {
+static void set_thread_run(gboolean b) {
+	siril_debug_print("setting run %d to the processing thread\n", b);
 	g_mutex_lock(&com.mutex);
 	com.run_thread = b;
 	g_mutex_unlock(&com.mutex);
@@ -566,7 +609,7 @@ void unreserve_thread() {
  */
 gboolean end_generic(gpointer arg) {
 	stop_processing_thread();
-	
+
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
@@ -579,15 +622,37 @@ guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	return 0;
 }
 
+gboolean get_script_thread_run() {
+	/* we don't need mutex for this one because it's only checked by user
+	 * input, which is much slower than the function execution */
+	return com.script_thread != NULL;
+}
+
 void wait_for_script_thread() {
-	if (com.script_thread)
+	if (com.script_thread) {
 		g_thread_join(com.script_thread);
-	com.script_thread = NULL;
+		com.script_thread = NULL;
+	}
+}
+
+void kill_child_process() {
+	if (com.child_is_running) {
+#ifdef _WIN32
+		TerminateProcess(com.childhandle, 1);
+		CloseHandle(com.childhandle);
+		com.childhandle = NULL;
+#else
+		kill(com.childpid, SIGINT);
+		com.childpid = 0;
+#endif
+		com.child_is_running = FALSE;
+	}
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	if (com.thread != NULL)
 		siril_log_color_message(_("Process aborted by user\n"), "red");
+	kill_child_process();
 	com.stop_script = TRUE;
 	stop_processing_thread();
 	wait_for_script_thread();
@@ -602,4 +667,80 @@ struct generic_seq_args *create_default_seqargs(sequence *seq) {
 	args->upscale_ratio = 1.0;
 	args->parallel = TRUE;
 	return args;
+}
+
+gpointer generic_sequence_metadata_worker(gpointer arg) {
+	struct generic_seq_metadata_args *args = (struct generic_seq_metadata_args *)arg;
+	struct timeval t_start, t_end;
+	set_progress_bar_data(NULL, PROGRESS_RESET);
+	gettimeofday(&t_start, NULL);
+	for (int frame = 0; frame < args->seq->number; frame++) {
+		fits fit = { 0 };
+		//if (seq_read_frame_metadata(args->seq, i, &fit))
+		//	return 1;
+		if (seq_open_image(args->seq, frame))
+			return GINT_TO_POINTER(1);
+		if (args->seq->type == SEQ_REGULAR)
+			args->image_hook(args, args->seq->fptr[frame], frame);
+		else args->image_hook(args, args->seq->fitseq_file->fptr, frame);
+		seq_close_image(args->seq, frame);
+		clearfits(&fit);
+	}
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+	free_sequence(args->seq, TRUE);
+	g_free(args->key);
+	free(args);
+	siril_add_idle(end_generic, NULL);
+	return 0;
+}
+
+/********** per-image threading **********/
+/* convention: call the variable threading if it can be MULTI_THREADED, call it
+ * threads if it contains the other values, so the number of threads.
+ * public functions should use threading, and use this function, private
+ * functions can use threads if their caller has done the job.
+ */
+int check_threading(threading_type *threads) {
+	if (*threads == MULTI_THREADED)
+		*threads = com.max_thread;
+	return *threads;
+}
+
+/* same as check_threading but also returns a number of threads adapted to a
+ * set size */
+int limit_threading(threading_type *threads, int min_iterations_per_thread, size_t total_iterations) {
+	if (*threads == MULTI_THREADED)
+		*threads = com.max_thread;
+	int max_chunks = total_iterations / min_iterations_per_thread;
+	if (max_chunks < 1)
+		max_chunks = 1;
+	if (max_chunks < *threads) {
+		siril_debug_print("limiting operation to %d threads (%d allowed)\n", max_chunks, *threads);
+		return max_chunks;
+	}
+	return *threads;
+}
+
+/* we could use several threads on a single image if there are less workers
+ * than available threads on the system, due to memory constraints.
+ * This computes the number of threads each worker can use, distributing
+ * max threads to all workers.
+ */
+int *compute_thread_distribution(int nb_workers, int max) {
+	int *threads = malloc(nb_workers * sizeof(int));
+	int base = max / nb_workers;
+	int rem = max % nb_workers;
+	siril_debug_print("distributing %d threads to %d workers\n", max, nb_workers);
+	for (int i = 0; i < nb_workers; i++) {
+		threads[i] = base;
+		if (rem > 0) {
+			threads[i]++;
+			rem--;
+		}
+		if (threads[i] == 0)
+			threads[i] = 1;
+		siril_debug_print("thread %d has %d subthreads\n", i, threads[i]);
+	}
+	return threads;
 }

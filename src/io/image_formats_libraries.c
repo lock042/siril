@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -52,8 +52,11 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "algos/geometry.h"
+#include "algos/siril_wcs.h"
+#include "algos/demosaicing.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "io/Astro-TIFF.h"
 #include "single_image.h"
 #include "image_format_fits.h"
 
@@ -61,7 +64,7 @@
 
 #ifdef HAVE_LIBTIFF
 
-static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, WORD **data) {
+static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, uint16_t color, WORD **data) {
 	uint32_t rowsperstrip;
 	uint16_t config;
 	int retval = nsamples;
@@ -100,10 +103,20 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 				break;
 			}
 			for (size_t i = 0; i < width * nrow; i++) {
-				*gbuf[RLAYER]++ = buf[i * nsamples + 0];
+				if (color == PHOTOMETRIC_MINISWHITE) {
+					*gbuf[RLAYER]++ = USHRT_MAX - buf[i * nsamples + 0];
+				} else {
+					*gbuf[RLAYER]++ = buf[i * nsamples + 0];
+				}
+
 				if ((nsamples == 3) || (nsamples == 4)) {
-					*gbuf[GLAYER]++ = buf[i * nsamples + 1];
-					*gbuf[BLAYER]++ = buf[i * nsamples + 2];
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[GLAYER]++ = USHRT_MAX - buf[i * nsamples + 1];
+						*gbuf[BLAYER]++ = USHRT_MAX - buf[i * nsamples + 2];
+					} else {
+						*gbuf[GLAYER]++ = buf[i * nsamples + 1];
+						*gbuf[BLAYER]++ = buf[i * nsamples + 2];
+					}
 				}
 			}
 			break;
@@ -116,8 +129,13 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
-				for (size_t i = 0; i < width * nrow; i++)
-					*gbuf[j]++ = buf[i];
+				for (size_t i = 0; i < width * nrow; i++) {
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[j]++ = USHRT_MAX - buf[i];
+					} else {
+						*gbuf[j]++ = buf[i];
+					}
+				}
 			}
 			break;
 		default:
@@ -129,7 +147,7 @@ static int readtifstrip(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	return retval;
 }
 
-static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, float **data) {
+static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, uint16_t color, float **data) {
 	uint32_t rowsperstrip;
 	uint16_t config;
 	int retval = nsamples;
@@ -168,10 +186,19 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 				break;
 			}
 			for (size_t i = 0; i < width * nrow; i++) {
-				*gbuf[RLAYER]++ = buf[i * nsamples + 0];
+				if (color == PHOTOMETRIC_MINISWHITE) {
+					*gbuf[RLAYER]++ = USHRT_MAX_SINGLE - buf[i * nsamples + 0];
+				} else {
+					*gbuf[RLAYER]++ = buf[i * nsamples + 0];
+				}
 				if ((nsamples == 3) || (nsamples == 4)) {
-					*gbuf[GLAYER]++ = buf[i * nsamples + 1];
-					*gbuf[BLAYER]++ = buf[i * nsamples + 2];
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[GLAYER]++ = USHRT_MAX_SINGLE - buf[i * nsamples + 1];
+						*gbuf[BLAYER]++ = USHRT_MAX_SINGLE - buf[i * nsamples + 2];
+					} else {
+						*gbuf[GLAYER]++ = buf[i * nsamples + 1];
+						*gbuf[BLAYER]++ = buf[i * nsamples + 2];
+					}
 				}
 			}
 			break;
@@ -185,8 +212,13 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
-				for (size_t i = 0; i < width * nrow; i++)
-					*gbuf[j]++ = buf[i];
+				for (size_t i = 0; i < width * nrow; i++) {
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[j]++ = USHRT_MAX_SINGLE - buf[i];
+					} else {
+						*gbuf[j]++ = buf[i];
+					}
+				}
 			}
 			break;
 		default:
@@ -198,7 +230,7 @@ static int readtifstrip32(TIFF* tif, uint32_t width, uint32_t height, uint16_t n
 	return retval;
 }
 
-static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, float **data) {
+static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, uint16_t color, float **data) {
 	uint32_t rowsperstrip;
 	uint16_t config;
 	int retval = nsamples;
@@ -237,10 +269,19 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 				break;
 			}
 			for (size_t i = 0; i < width * nrow; i++) {
-				*gbuf[RLAYER]++ = buf[i * nsamples + 0] / (float) UINT32_MAX;
+				if (color == PHOTOMETRIC_MINISWHITE) {
+					*gbuf[RLAYER]++ = USHRT_MAX_SINGLE - (buf[i * nsamples + 0] / (float) UINT32_MAX);
+				} else {
+					*gbuf[RLAYER]++ = buf[i * nsamples + 0] / (float) UINT32_MAX;
+				}
 				if ((nsamples == 3) || (nsamples == 4)) {
-					*gbuf[GLAYER]++ = buf[i * nsamples + 1] / (float) UINT32_MAX;
-					*gbuf[BLAYER]++ = buf[i * nsamples + 2] / (float) UINT32_MAX;
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[GLAYER]++ = USHRT_MAX_SINGLE - (buf[i * nsamples + 1] / (float) UINT32_MAX);
+						*gbuf[BLAYER]++ = USHRT_MAX_SINGLE - (buf[i * nsamples + 2] / (float) UINT32_MAX);
+					} else {
+						*gbuf[GLAYER]++ = buf[i * nsamples + 1] / (float) UINT32_MAX;
+						*gbuf[BLAYER]++ = buf[i * nsamples + 2] / (float) UINT32_MAX;
+					}
 				}
 			}
 			break;
@@ -254,8 +295,13 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 					retval = OPEN_IMAGE_ERROR;
 					break;
 				}
-				for (size_t i = 0; i < width * nrow; i++)
-					*gbuf[j]++ = buf[i] / (float) UINT32_MAX;
+				for (size_t i = 0; i < width * nrow; i++) {
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[j]++ = USHRT_MAX_SINGLE - (buf[i] / (float) UINT32_MAX);
+					} else {
+						*gbuf[j]++ = buf[i] / (float) UINT32_MAX;
+					}
+				}
 			}
 			break;
 		default:
@@ -267,7 +313,7 @@ static int readtifstrip32uint(TIFF* tif, uint32_t width, uint32_t height, uint16
 	return retval;
 }
 
-static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, WORD **data) {
+static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsamples, uint16_t color, WORD **data) {
 	int retval = nsamples;
 
 	size_t npixels = width * height;
@@ -292,10 +338,19 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 			for (int j = 0; j < height; j++) {
 				int istart = j * width;
 				for (int i = 0; i < width; i++) {
-					*gbuf[RLAYER]++ = (WORD)TIFFGetR(raster[istart + i]);
+					if (color == PHOTOMETRIC_MINISWHITE) {
+						*gbuf[RLAYER]++ = UCHAR_MAX - (WORD)TIFFGetR(raster[istart + i]);
+					} else {
+						*gbuf[RLAYER]++ = (WORD)TIFFGetR(raster[istart + i]);
+					}
 					if ((nsamples == 3) || (nsamples == 4)) {
-						*gbuf[GLAYER]++ = (WORD)TIFFGetG(raster[istart + i]);
-						*gbuf[BLAYER]++ = (WORD)TIFFGetB(raster[istart + i]);
+						if (color == PHOTOMETRIC_MINISWHITE) {
+							*gbuf[GLAYER]++ = UCHAR_MAX - (WORD)TIFFGetG(raster[istart + i]);
+							*gbuf[BLAYER]++ = UCHAR_MAX - (WORD)TIFFGetB(raster[istart + i]);
+						} else {
+							*gbuf[GLAYER]++ = (WORD)TIFFGetG(raster[istart + i]);
+							*gbuf[BLAYER]++ = (WORD)TIFFGetB(raster[istart + i]);
+						}
 					}
 				}
 			}
@@ -342,10 +397,15 @@ static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
 int readtif(const char *name, fits *fit, gboolean force_float) {
 	int retval = 0;
 	uint32_t height, width;
-	uint16_t nbits, nsamples, color;
+	uint16_t nbits, nsamples, color, orientation;
 	WORD *data = NULL;
 	float *fdata = NULL;
 	uint16_t sampleformat = 0;
+	/* EXIFS */
+	gchar *description = NULL;
+	double exposure = 0.0;
+	double aperture = 0.0;
+	double focal_length = 0.0;
 
 	TIFF* tif = Siril_TIFFOpen(name, "r");
 	if (!tif) {
@@ -359,6 +419,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLEFORMAT, &sampleformat);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &nbits);
 	TIFFGetFieldDefaulted(tif, TIFFTAG_PHOTOMETRIC, &color);
+	TIFFGetFieldDefaulted(tif, TIFFTAG_ORIENTATION, &orientation);
 
 	// Retrieve the Date/Time as in the TIFF TAG
 	gchar *date_time = NULL;
@@ -368,23 +429,44 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 		sscanf(date_time, "%04d:%02d:%02d %02d:%02d:%02d", &year, &month, &day, &h, &m, &s);
 	}
 
+	// Try to read EXIF data
+	toff_t ExifID;
+
+	if (TIFFGetField(tif, TIFFTAG_EXIFIFD, &ExifID)) {
+		uint16_t currentIFD = TIFFCurrentDirectory(tif);
+
+		if (TIFFReadEXIFDirectory(tif, ExifID)) {
+			TIFFGetField(tif, EXIFTAG_EXPOSURETIME, &exposure);
+			TIFFGetField(tif, EXIFTAG_FNUMBER, &aperture);
+			TIFFGetField(tif, EXIFTAG_FOCALLENGTH, &focal_length);
+		}
+		// Revert IFD to status quo ante TIFFReadEXIFDirectory
+		TIFFSetDirectory(tif, currentIFD);
+	}
+
+	// Retrieve Description field
+	char *desc = NULL;
+	if (TIFFGetField(tif, TIFFTAG_IMAGEDESCRIPTION, &desc)) {
+		description = strdup(desc);
+	}
+
 	size_t npixels = width * height;
 
 	switch(nbits){
 		case 8:
 			/* High level functions in readtif8bits: should read every 8-bit TIFF file */
-			retval = readtif8bits(tif, width, height, nsamples, &data);
+			retval = readtif8bits(tif, width, height, nsamples, color, &data);
 			break;
 
 		case 16:
-			retval = readtifstrip(tif, width, height, nsamples, &data);
+			retval = readtifstrip(tif, width, height, nsamples, color, &data);
 			break;
 
 		case 32:
 			if (sampleformat == SAMPLEFORMAT_IEEEFP) {
-				retval = readtifstrip32(tif, width, height, nsamples, &fdata);
+				retval = readtifstrip32(tif, width, height, nsamples, color, &fdata);
 			} else if (sampleformat == SAMPLEFORMAT_UINT) {
-				retval = readtifstrip32uint(tif, width, height, nsamples, &fdata);
+				retval = readtifstrip32uint(tif, width, height, nsamples, color, &fdata);
 			} else {
 				siril_log_color_message(_("Siril cannot read this TIFF format.\n"), "red");
 				retval = OPEN_IMAGE_ERROR;
@@ -401,6 +483,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 		free(fdata);
 		return OPEN_IMAGE_ERROR;
 	}
+	/* We clear fits. Everything written above is erased */
 	clearfits(fit);
 	if (date_time) {
 		GTimeZone *tz = g_time_zone_new_utc();
@@ -455,15 +538,59 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
 		}
-		mirrorx(fit, FALSE);
+
+		if (orientation == ORIENTATION_TOPLEFT) {
+			mirrorx(fit, FALSE);
+		} else if (orientation == ORIENTATION_TOPRIGHT) {
+			mirrorx(fit, FALSE);
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTRIGHT) {
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTLEFT) {
+			; // do nothing
+		} else {
+			siril_debug_print(_("TIFFTAG Orientation not handled.\n"));
+		}
 		break;
 	case 32:
 		fit->bitpix = FLOAT_IMG;
 		fit->type = DATA_FLOAT;
-		mirrorx(fit, FALSE);
+		if (orientation == ORIENTATION_TOPLEFT) {
+			mirrorx(fit, FALSE);
+		} else if (orientation == ORIENTATION_TOPRIGHT) {
+			mirrorx(fit, FALSE);
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTRIGHT) {
+			mirrory(fit, FALSE);
+		} else if (orientation == ORIENTATION_BOTLEFT) {
+			; // do nothing
+		} else {
+			siril_debug_print(_("TIFFTAG Orientation not handled.\n"));
+		}
 	}
 	fit->orig_bitpix = fit->bitpix;
 	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+
+	/* fill exifs is exist */
+	if (exposure > 0.0)
+		fit->exposure = exposure;
+	if (aperture > 0.0)
+		fit->aperture = aperture;
+	if (focal_length > 0.0)
+		fit->focal_length = focal_length;
+	if (description) {
+		if (g_str_has_prefix(description, "SIMPLE  =")) {
+			// It is FITS header, copy it
+			siril_debug_print("ASTRO-TIFF detected.\n");
+			fit->header = description;
+			int ret = fits_parse_header_string(fit, description);
+			if (ret) {
+				siril_debug_print("ASTRO-TIFF is not well formed.\n");
+			}
+		} else {
+			free(description);
+		}
+	}
 
 	retval = nsamples;
 
@@ -475,47 +602,46 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	return retval;
 }
 
-static void get_tif_data_from_ui(gchar **description, gchar **copyright, gboolean *embeded_icc) {
+void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc) {
 	if (!com.script && !com.headless) {
 		/*******************************************************************
 		 * If the user saves a tif from the graphical menu, he can set
 		 * the Description and the Copyright of the Image
 		 ******************************************************************/
-		GtkToggleButton *icc_toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_icc_profile"));
-		GtkTextView *description_txt_view = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
-		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(lookup_widget("Copyright_txt"));
-		GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
-		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
+
 		GtkTextIter itDebut;
 		GtkTextIter itFin;
 
-		gtk_text_buffer_get_start_iter(desbuf, &itDebut);
-		gtk_text_buffer_get_end_iter(desbuf, &itFin);
-		*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
-		gtk_text_buffer_get_bounds(desbuf, &itDebut, &itFin);
-		gtk_text_buffer_delete(desbuf, &itDebut, &itFin);
+		if (gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_type_of_tiff"))) == 0) {
+			*description = AstroTiff_build_header(fit);
+		} else {
+			GtkTextView *description_txt_view = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
+			GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
+			gtk_text_buffer_get_start_iter(desbuf, &itDebut);
+			gtk_text_buffer_get_end_iter(desbuf, &itFin);
+			*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
+		}
 
+		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(lookup_widget("Copyright_txt"));
+		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
 		gtk_text_buffer_get_start_iter(copybuf, &itDebut);
 		gtk_text_buffer_get_end_iter(copybuf, &itFin);
 		*copyright = gtk_text_buffer_get_text(copybuf, &itDebut, &itFin, TRUE);
-		gtk_text_buffer_get_bounds(copybuf, &itDebut, &itFin);
-		gtk_text_buffer_delete(copybuf, &itDebut, &itFin);
 
+		GtkToggleButton *icc_toggle = GTK_TOGGLE_BUTTON(lookup_widget("check_button_icc_profile"));
 		*embeded_icc = gtk_toggle_button_get_active(icc_toggle);
 	}
 }
 
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
 
-int savetif(const char *name, fits *fit, uint16_t bitspersample){
+int savetif(const char *name, fits *fit, uint16_t bitspersample, char *description, char *copyright, gboolean embeded_icc){
 	int retval = 0;
 	float norm;
-	gchar *description = NULL, *copyright = NULL;
 	gchar *filename = g_strdup(name);
 	uint32_t profile_len = 0;
 	const unsigned char *profile;
 	gboolean write_ok = TRUE;
-	gboolean embeded_icc = TRUE;
 
 	if (!g_str_has_suffix(filename, ".tif") && (!g_str_has_suffix(filename, ".tiff"))) {
 		filename = str_append(&filename, ".tif");
@@ -531,7 +657,6 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample){
 	const uint32_t width = (uint32_t) fit->rx;
 	const uint32_t height = (uint32_t) fit->ry;
 	
-	get_tif_data_from_ui(&description, &copyright, &embeded_icc);
 
 	/*******************************************************************/
 
@@ -1239,8 +1364,8 @@ static float estimate_pixel_pitch(libraw_data_t *raw) {
 }
 
 static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
-/* libraw_open_wfile is not defined for all windows compilers */
-#if defined(_WIN32) && !defined(__MINGW32__) && defined(_MSC_VER) && (_MSC_VER > 1310)
+/* libraw_open_wfile is not defined for all windows compilers in previous LibRaw versions */
+#if (defined(_WIN32) && !defined(__MINGW32__) && defined(_MSC_VER) && (_MSC_VER > 1310)) || (defined(_WIN32) && LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0))
 	wchar_t *wname;
 
 	wname = g_utf8_to_utf16(name, -1, NULL, NULL, NULL);
@@ -1259,178 +1384,6 @@ static int siril_libraw_open_file(libraw_data_t* rawdata, const char *name) {
 #else
 	return(libraw_open_file(rawdata, name));
 #endif
-}
-
-static int readraw(const char *name, fits *fit) {
-	libraw_data_t *raw = libraw_init(0);
-
-	int ret = siril_libraw_open_file(raw, name);
-	if (ret) {
-		siril_log_color_message(_("Error in libraw %s.\n"), "red", libraw_strerror(ret));
-		libraw_recycle(raw);
-		libraw_close(raw);
-		return OPEN_IMAGE_ERROR;
-	}
-	
-	if (raw->other.shutter > 1.0)
-		siril_log_message(_("Decoding %s %s file (ISO=%g, Exposure=%gs)\n"),
-				raw->idata.make, raw->idata.model, raw->other.iso_speed, raw->other.shutter);
-	else
-		siril_log_message(_("Decoding %s %s file (ISO=%g, Exposure=1/%gs)\n"),
-				raw->idata.make, raw->idata.model, raw->other.iso_speed, 1/raw->other.shutter);
-		
-	raw->params.output_bps = 16;						/* 16-bits files                           */
-	raw->params.four_color_rgb = 0;						/* If == 1, interpolate RGB as four colors.*/
-	raw->params.no_auto_bright = 1;						/* no auto_bright                          */
-	raw->params.gamm[0] = 1.0 / com.pref.raw_set.gamm[0];    /* Gamma curve set by the user             */
-	raw->params.gamm[1] = com.pref.raw_set.gamm[1];
-	raw->params.bright = com.pref.raw_set.bright;			/* Brightness                              */
-	raw->params.user_flip = 0;							/* no flip                                 */
-	raw->params.use_camera_wb = com.pref.raw_set.use_camera_wb;
-	raw->params.use_auto_wb = com.pref.raw_set.use_auto_wb;
-	if (com.pref.raw_set.user_black == 1)
-		raw->params.user_black = 0;						/* user black level equivalent to dcraw -k 0 */
-	raw->params.output_color = 0;						/* output colorspace, 0=raw, 1=sRGB, 2=Adobe, 3=Wide, 4=ProPhoto, 5=XYZ*/
-		
-	if (!(com.pref.raw_set.auto_mul)) { /* 4 multipliers (r,g,b,g) of the user's white balance.    */
-		raw->params.user_mul[0] = (float) com.pref.raw_set.mul[0];
-		raw->params.user_mul[1] = raw->params.user_mul[3] = 1.0f;
-		raw->params.user_mul[2] = (float) com.pref.raw_set.mul[2];
-		siril_log_message(_("Daylight multipliers: %f, %f, %f\n"),
-				raw->params.user_mul[0], raw->params.user_mul[1],
-				raw->params.user_mul[2]);
-	} else {
-		float mul[4]; /* 3 multipliers (r,g,b) from the camera white balance.  */
-		mul[0] = raw->color.pre_mul[0] / raw->color.pre_mul[1];
-		mul[1] = 1.0; /* raw->color.pre_mul[1]/raw->color.pre_mul[1]; */
-		mul[2] = raw->color.pre_mul[2] / raw->color.pre_mul[1];
-		mul[3] = raw->color.pre_mul[3] / raw->color.pre_mul[1];
-		siril_log_message(_("Daylight multipliers: %f, %f, %f\n"), mul[0],
-				mul[1], mul[2]);
-	}
-
-	if (raw->idata.filters == 9) {
-		siril_log_color_message(_("XTRANS Sensor detected.\n"), "salmon");
-	}
-
-	switch (com.pref.raw_set.user_qual) { /* Set interpolation                                        */
-	case 0: /* bilinear interpolaton */
-		raw->params.user_qual = 0;
-		siril_log_message(_("Bilinear interpolation...\n"));
-		break;
-	case 2: /* VNG interpolaton */
-		raw->params.user_qual = 1;
-		siril_log_message(_("VNG interpolation...\n"));
-		break;
-	case 3: /* PPG interpolaton */
-		raw->params.user_qual = 2;
-		siril_log_message(_("PPG interpolation...\n"));
-		break;
-	default:
-	case 1: /* AHD interpolaton */
-		raw->params.user_qual = 3;
-		siril_log_message(_("AHD interpolation...\n"));
-		break;
-	}
-	
-	const ushort width = raw->sizes.iwidth;
-	const ushort height = raw->sizes.iheight;
-	const float pitch = estimate_pixel_pitch(raw);
-	size_t npixels = width * height;
-
-	WORD *data = malloc(npixels * sizeof(WORD) * 3);
-	if (!data) {
-		PRINT_ALLOC_ERR;
-		return OPEN_IMAGE_ERROR;
-	}
-	WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
-	ret = libraw_unpack(raw);
-	if (ret) {
-		printf("Error in libraw %s\n", libraw_strerror(ret));
-		free(data);
-		libraw_recycle(raw);
-		libraw_close(raw);
-		return OPEN_IMAGE_ERROR;
-	}
-
-	ret = libraw_dcraw_process(raw);
-	if (ret) {
-		printf("Error in libraw %s\n", libraw_strerror(ret));
-		free(data);
-		libraw_recycle(raw);
-		libraw_close(raw);
-		return OPEN_IMAGE_ERROR;
-	}
-
-	libraw_processed_image_t *image = libraw_dcraw_make_mem_image(raw, &ret);
-	if (ret) {
-		printf("Error in libraw %s\n", libraw_strerror(ret));
-		free(data);
-		libraw_dcraw_clear_mem(image);
-		libraw_recycle(raw);
-		libraw_close(raw);
-		return OPEN_IMAGE_ERROR;
-	}
-
-	int nbplanes = image->colors;
-	if (nbplanes != 3) {
-		free(data);
-		libraw_dcraw_clear_mem(image);
-		libraw_recycle(raw);
-		libraw_close(raw);
-		return OPEN_IMAGE_ERROR;
-	}
-	// only for 16-bits because of endianness. Are there 8-bits RAW ???
-
-	for (unsigned int i = 0; i < image->data_size; i += 6) {
-		*buf[RLAYER]++ = (image->data[i + 0]) + (image->data[i + 1] << 8);
-		*buf[GLAYER]++ = (image->data[i + 2]) + (image->data[i + 3] << 8);
-		*buf[BLAYER]++ = (image->data[i + 4]) + (image->data[i + 5] << 8);
-	}
-
-	/*  Here we compute the correct size of the output image (imgdata.sizes.iwidth and imgdata.sizes.iheight) for the following cases:
-    	- Files from Fuji cameras (with a 45-degree rotation)
-    	- Files from cameras with non-square pixels
-    	- Images shot by a rotated camera.
-	 */
-	libraw_adjust_sizes_info_only(raw);
-	
-	if (data != NULL) {
-		clearfits(fit);
-		fit->bitpix = fit->orig_bitpix = USHORT_IMG;
-		fit->type = DATA_USHORT;
-		fit->rx = (unsigned int) width;
-		fit->ry = (unsigned int) height;
-		fit->naxes[0] = (long) width;
-		fit->naxes[1] = (long) height;
-		fit->naxes[2] = nbplanes;
-		fit->naxis = 3;
-		fit->data = data;
-		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data + npixels;
-		fit->pdata[BLAYER] = fit->data + npixels * 2;
-		fit->binning_x = fit->binning_y = 1;
-		if (pitch > 0.f)
-			fit->pixel_size_x = fit->pixel_size_y = pitch;
-		if (raw->other.focal_len > 0.f)
-			fit->focal_length = raw->other.focal_len;
-		if (raw->other.iso_speed > 0.f)
-			fit->iso_speed = raw->other.iso_speed;
-		if (raw->other.shutter > 0.f)
-			fit->exposure = raw->other.shutter;
-		if (raw->other.aperture > 0.f)
-			fit->aperture = raw->other.aperture;
-		g_snprintf(fit->instrume, FLEN_VALUE, "%s %s", raw->idata.make,
-				raw->idata.model);
-		fit->date_obs = g_date_time_new_from_unix_utc(raw->other.timestamp);
-		mirrorx(fit, FALSE);
-	}
-
-	libraw_dcraw_clear_mem(image);
-	libraw_recycle(raw);
-	libraw_close(raw);
-
-	return nbplanes;
 }
 
 #define FC(filters, row, col) \
@@ -1483,8 +1436,8 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	 * the case for DNG built from lightroom for example */
 	if (raw->rawdata.raw_image == NULL
 			&& (raw->rawdata.color3_image || raw->rawdata.color4_image)) {
-		siril_log_color_message(_("Siril cannot open this file in CFA mode (no data available). "
-				"Try to switch into RGB.\n"), "red");
+		siril_log_color_message(_("Siril cannot open this file in CFA mode: "
+				"no RAW data available.\n"), "red");
 		return OPEN_IMAGE_ERROR;
 	}
 
@@ -1598,11 +1551,13 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 }
 
 int open_raw_files(const char *name, fits *fit, gboolean debayer) {
-	int retval = 1;
-	if (debayer)
-		retval = readraw(name, fit);
-	else retval = readraw_in_cfa(name, fit);
+	int retval = readraw_in_cfa(name, fit);
+
 	if (retval >= 0) {
+		if (debayer) {
+			debayer_if_needed(TYPEFITS, fit, TRUE);
+		}
+
 		gchar *basename = g_path_get_basename(name);
 		siril_log_message(_("Reading RAW: file %s, %ld layer(s), %ux%u pixels\n"),
 				basename, fit->naxes[2], fit->rx, fit->ry);
@@ -1613,7 +1568,7 @@ int open_raw_files(const char *name, fits *fit, gboolean debayer) {
 #endif
 
 #ifdef HAVE_LIBHEIF
-#define MAX_THUMBNAIL_SIZE com.pref.thumbnail_size
+#define MAX_THUMBNAIL_SIZE com.pref.gui.thumbnail_size
 
 struct HeifImage {
 	uint32_t ID;

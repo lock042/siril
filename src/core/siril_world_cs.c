@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -103,25 +103,42 @@ SirilWorldCS* siril_world_cs_new_from_ra_dec(gdouble ra_h, gdouble ra_m, gdouble
 	return world_cs;
 }
 
+/* parses RA and DEC as strings to create a new world_cs object
+ * Format of the strings can be decimal values in degrees or
+ * 'hours minutes seconds' for RA and 'degrees minutes seconds' for DEC or 
+ * 'hours:minutes:seconds' for RA and 'degrees:minutes:seconds' for DEC
+ */
 SirilWorldCS* siril_world_cs_new_from_objct_ra_dec(gchar *objctra, gchar *objctdec) {
-	SirilWorldCS *world_cs;
 	int ra_h, ra_m, dec_deg, dec_m;
 	gdouble ra_s, dec_s;
 	gboolean south;
 
-	sscanf(objctra, "%d %d %lf", &ra_h, &ra_m, &ra_s);
-	sscanf(objctdec, "%d %d %lf", &dec_deg, &dec_m, &dec_s);
-	south = objctdec[0] == '-';
-
-	world_cs = siril_world_cs_alloc();
-
-	world_cs->alpha = ra_h * 15.0 + ra_m * 15.0 / 60.0 + ra_s * 15.0 / 3600.0;
-	if ((dec_deg == 0 && !south) || dec_deg > 0) {
-		world_cs->delta = ((dec_s / 3600.0) + (dec_m / 60.0) + dec_deg);
-	} else {
-		world_cs->delta = (-(dec_s / 3600.0) - (dec_m / 60.0) + dec_deg);
+	if (!objctra || objctra[0] == '\0' || !objctdec || objctdec[0] == '\0')
+		return NULL;
+	gchar *end;
+	double ra = g_ascii_strtod(objctra, &end);
+	if (end - objctra != strlen(objctra)) {
+		ra = NAN;
+		if (sscanf(objctra, "%d %d %lf", &ra_h, &ra_m, &ra_s) == 3 ||
+				sscanf(objctra, "%d:%d:%lf", &ra_h, &ra_m, &ra_s) == 3)
+			ra = ra_h * 15.0 + ra_m * 15.0 / 60.0 + ra_s * 15.0 / 3600.0;
 	}
-	return world_cs;
+
+	south = objctdec[0] == '-';
+	double dec = g_ascii_strtod(objctdec, &end);
+	if (end - objctdec != strlen(objctdec)) {
+		dec = NAN;
+		if (sscanf(objctdec, "%d %d %lf", &dec_deg, &dec_m, &dec_s) == 3 ||
+				sscanf(objctdec, "%d:%d:%lf", &dec_deg, &dec_m, &dec_s) == 3) {
+			if ((dec_deg == 0 && !south) || dec_deg > 0)
+				dec = ((dec_s / 3600.0) + (dec_m / 60.0) + dec_deg);
+			else dec = (-(dec_s / 3600.0) - (dec_m / 60.0) + dec_deg);
+		}
+	}
+
+	if (isnan(ra) || isnan(dec))
+		return NULL;
+	return siril_world_cs_new_from_a_d(ra, dec);
 }
 
 gdouble siril_world_cs_get_alpha(SirilWorldCS *world_cs) {
@@ -132,27 +149,72 @@ gdouble siril_world_cs_get_delta(SirilWorldCS *world_cs) {
 	return world_cs->delta;
 }
 
+// RA in degrees to H:M:S
+static void ra2hms(double ra, int *h, int *m, double *s) {
+	double rem;
+	ra = fmod(ra, 360.0);
+	if (ra < 0.0)
+		ra += 360.0;
+	rem = ra / 15.0;
+	*h = floor(rem);
+	// remaining (fractional) hours
+	rem -= *h;
+	// -> minutes
+	rem *= 60.0;
+	*m = floor(rem);
+	// remaining (fractional) minutes
+	rem -= *m;
+	// -> seconds
+	rem *= 60.0;
+	*s = rem;
+}
+
+// Dec in degrees to D:M:S
+static void dec2dms(double dec, int *sign, int *d, int *m, double *s) {
+	double rem;
+	double flr;
+	*sign = (dec >= 0.0) ? 1 : -1;
+	dec *= (*sign);
+	flr = floor(dec);
+	*d = flr;
+	// remaining degrees:
+	rem = dec - flr;
+	// -> minutes
+	rem *= 60.0;
+	*m = floor(rem);
+	// remaining (fractional) minutes
+	rem -= *m;
+	// -> seconds
+	rem *= 60.0;
+	*s = rem;
+}
+
 gchar* siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) {
 	g_return_val_if_fail(world_cs != NULL, NULL);
 	g_return_val_if_fail(format != NULL, NULL);
 	g_return_val_if_fail(g_utf8_validate (format, -1, NULL), NULL);
 
-	gchar sig = '+';
 	gdouble dec = world_cs->delta;
 
-	if (dec < 0) sig = '-';
-
-	dec = fabs(dec);
-
-	int degree = (int) dec;
-	int min = abs((int) ((dec - degree) * 60.0));
-	double sec = (fabs((dec - degree) * 60.0) - min) * 60.0;
+    int degree, min, sign;
+    double sec;
+    dec2dms(dec, &sign, &degree, &min, &sec);
 
 	gchar *ptr = g_strrstr(format, "lf");
 	if (ptr) { // floating point for second
-		return g_strdup_printf(format, sig, degree, min, sec);
+		return g_strdup_printf(format, (sign==1 ? '+':'-'), degree, min, sec);
 	}
-	return g_strdup_printf(format, sig, degree, min, (int) round(sec));
+	int new_sec = (int) round(sec);
+	if (new_sec >= 60) {
+		new_sec -= 60;
+		min += 1;
+	}
+	if (min >= 60) {
+		min -= 60;
+		degree += 1;
+	}
+	if (degree >= 360) degree = 0;
+	return g_strdup_printf(format, (sign==1 ? '+':'-'), degree, min, new_sec);
 }
 
 gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) {
@@ -162,17 +224,25 @@ gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) 
 
 	gdouble ra = world_cs->alpha;
 
-	ra = fabs(ra);
-
-	int hour = (int)(ra / 15.0);
-	int min = (int)(((ra / 15.0) - hour) * 60.0);
-	double sec = ((((ra / 15.0) - hour) * 60.0) - min) * 60.0;
+    int hour, min;
+    double sec;
+    ra2hms(ra, &hour, &min, &sec);
 
 	gchar *ptr = g_strrstr(format, "lf");
 	if (ptr) { // floating point for second
 		return g_strdup_printf(format, hour, min, sec);
 	}
-	return g_strdup_printf(format, hour, min, (int) round(sec));
+	int new_sec = (int) round(sec);
+	if (new_sec >= 60) {
+		new_sec -= 60;
+		min += 1;
+	}
+	if (min >= 60) {
+		min -= 60;
+		hour += 1;
+	}
+	if (hour >= 24) hour = 0;
+	return g_strdup_printf(format, hour, min,  new_sec);
 }
 
 void siril_world_cs_get_ra_hour_min_sec(SirilWorldCS *world_cs, int *hour, int *min, double *sec) {

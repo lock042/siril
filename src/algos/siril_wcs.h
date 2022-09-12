@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,12 +22,13 @@
 #define SRC_ALGOS_SIRIL_WCS_H_
 
 gboolean has_wcs(fits *fit);
-void free_wcs(fits *fit);
+gboolean has_wcsdata(fits *fit);
+void free_wcs(fits *fit, gboolean keep_RADEC);
 gboolean load_WCS_from_file(fits* fit);
 gboolean load_WCS_from_memory(fits *fit);
 void pix2wcs(fits *fit, double pixel_x, double pixel_y, double *world_x, double *world_y);
-void wcs2pix(fits *fit, double world_x, double world_y, double *pixel_x, double *pixel_y);
+int wcs2pix(fits *fit, double world_x, double world_y, double *pixel_x, double *pixel_y);
+void center2wcs(fits *fit, double *r, double *d);
 double get_wcs_image_resolution(fits *fit);
-double *get_wcs_crval(fits *fit);
 
 #endif /* SRC_ALGOS_SIRIL_WCS_H_ */

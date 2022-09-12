@@ -1,6 +1,6 @@
 # This file is part of Siril, an astronomy image processor.
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+# Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
 # Reference site is https://free-astro.org/index.php/Siril
 #
 # Siril is free software: you can redistribute it and/or modify
@@ -27,9 +27,9 @@
 
 project('siril',
   ['c','cpp'],
-  version : '0.99.11',
+  version : '1.1.0',
   license : ['GPL3'],
-  meson_version: '>=0.53.0',
+  meson_version: '>=0.56.0',
   default_options : [
     'c_std=gnu11',
     'cpp_std=c++11',
@@ -37,7 +37,23 @@ project('siril',
   ],
 )
 
-enable_openmp = get_option('openmp')
+rootInclude = include_directories('.')
+srcInclude  = include_directories('src')
+
+warnings = []
+
+enable_openmp    = get_option('openmp')
+enable_json_glib = get_option('json_glib')
+enable_libraw    = get_option('libraw')
+enable_libtiff   = get_option('libtiff')
+enable_libjpeg   = get_option('libjpeg')
+enable_libpng    = get_option('libpng')
+enable_libheif   = get_option('libheif')
+enable_ffms2     = get_option('ffms2')
+enable_ffmpeg    = get_option('ffmpeg')
+enable_libconfig = get_option('libconfig')
+enable_criterion = get_option('criterion')
+enable_wcslib    = get_option('wcslib')
 
 # General version
 siril_version = meson.project_version()
@@ -45,7 +61,7 @@ siril_version = meson.project_version()
 version_array = siril_version.split('.')
 siril_version_major = version_array[0].to_int()
 siril_version_minor = version_array[1].to_int()
-siril_version_micro = version_array[2].to_int()
+siril_version_micro = version_array[2]
 
 stable = (siril_version_minor % 2 == 0)
 
@@ -57,7 +73,7 @@ if not git.found()
   git_version = 'Unknown'
   git_last_commit_year = 'Unknown'
 else
-  r = run_command('git', 'show', '-s', '--format="%ci %h"','-n1')
+  r = run_command('git', 'show', '-s', '--format="%ci %h"','-n1', check: false)
   if r.returncode() == 0
     git_info = r.stdout().strip().split('"')[1]
     git_info_array = git_info.split(' ')
@@ -66,7 +82,7 @@ else
     message('Siril version:' + git_version)
     errortxt = r.stderr().strip()
   else
-    message('Cannot retrive git version')
+    message('Cannot retrieve git version')
     message(r.stderr().strip())
     git_version = 'Unknown'
     git_last_commit_year = 'Unknown'
@@ -138,9 +154,6 @@ elif platform_windows
   siril_link_arg += '-Wl,--export-all-symbols'
   siril_link_arg += '-lpsapi'
   siril_link_arg += '-ldbghelp'
-  if stable
-    siril_link_arg += '-mwindows'
-  endif
   siril_c_flag += ['-D_WIN32_WINNT=0x0600', '-DWINVER=0x0600']
   siril_cpp_flag += ['-D_WIN32_WINNT=0x0600', '-DWINVER=0x0600']
 elif platform_osx
@@ -221,41 +234,44 @@ else
 endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
-libconfig_dep = dependency('libconfig', required : true)
-m_dep = cc.find_library('m', required : true)
+m_dep = cc.find_library('m', required : false)
 exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
 fftw3f_dep = dependency('fftw3f', required : true)
 cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
-json_glib = dependency('json-glib-1.0', version: '>=1.2.6')
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
-
-
-# TODO: Prefered OpenCV version???
-opencv4_dep = dependency('opencv4', required : false)
-opencv3_dep = dependency('opencv', required : false)
-if not opencv4_dep.found()
-  if opencv3_dep.found()
-    message('Use OpenCV3')
-    opencv_dep = opencv3_dep
-  else
-    error('OpenCV not found!')
-  endif
-else
-  message('Use OpenCV4')
-  opencv_dep = opencv4_dep
-endif
+opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
 
 rtprocess_dep = dependency('rtprocess', required : false)
 if not rtprocess_dep.found()
-  sub_proj = cmake.subproject('librtprocess', cmake_options: '-DBUILD_SHARED_LIBS=OFF')
+  opt_var = cmake.subproject_options()
+
+  # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
+  opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+  sub_proj = cmake.subproject('librtprocess', options: opt_var)
+  
   rtprocess_dep = sub_proj.dependency('rtprocess')
   rtprocess_inc = sub_proj.include_directories('rtprocess')
 else
   siril_cpp_flag += '-DHAVE_LIBRTPROCESS'
 endif
 
-## Optionnal dependencies
+htmesh_dep = dependency('htmesh', required : false)
+if not htmesh_dep.found()
+  opt_var = cmake.subproject_options()
+
+  # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
+  opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
+  #opt_var.append_compile_args(
+  sub_proj = cmake.subproject('htmesh', options: opt_var)
+  
+  htmesh_dep = sub_proj.dependency('htmesh')
+  htmesh_inc = sub_proj.include_directories('htmesh')
+else
+  siril_cpp_flag += '-DHAVE_LIBRTPROCESS'
+endif
+
+## Optional dependencies
 
 openmp_dep = []
 if enable_openmp
@@ -265,32 +281,77 @@ if enable_openmp
     siril_cpp_flag += ['-Xpreprocessor', '-fopenmp']
     siril_c_flag += ['-Xpreprocessor', '-fopenmp']
   else
-  openmp_dep = dependency('openmp', required : false)
+  openmp_dep = dependency('openmp', required : true)
   endif
 else
   message('OpenMP disabled')
 endif
 
-libraw_dep = dependency('libraw', required : false)
-libtiff_dep = dependency('libtiff-4', required : false)
-libjpeg_dep = dependency('libjpeg', required : false)
-libpng_dep = dependency('libpng', required : false, version: '>= 1.6.0')
-libheif_dep = dependency('libheif', required : false)
-ffms2_dep = dependency('ffms2', required : false)
-ffmpeg = [
-  dependency('libavformat', required : false),
-  dependency('libavcodec', required : false),
-  dependency('libavutil', version : '>= 55.20', required : false),
-  dependency('libswscale', required : false),
-  dependency('libswresample', required : false)
-]
+json_glib_dep = no_dep
+if enable_json_glib
+  json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
+endif
+
+libraw_dep = no_dep
+if enable_libraw
+  libraw_dep = dependency('libraw', required : true)
+endif
+
+libtiff_dep = no_dep
+if enable_libtiff
+  libtiff_dep = dependency('libtiff-4', required : true)
+endif
+
+libjpeg_dep = no_dep
+if enable_libjpeg
+  libjpeg_dep = dependency('libjpeg', required : true)
+endif
+
+libpng_dep = no_dep
+if enable_libpng
+  libpng_dep = dependency('libpng', required : true, version: '>= 1.6.0')
+endif
+
+libheif_dep = no_dep
+if enable_libheif
+  libheif_dep = dependency('libheif', required : true)
+endif
+
+ffms2_dep = no_dep
+if enable_ffms2
+  ffms2_dep = dependency('ffms2', required : true)
+endif
+
+ffmpeg = []
+if enable_ffmpeg
+  ffmpeg = [
+    dependency('libavformat', required : true),
+    dependency('libavcodec', required : true),
+    dependency('libavutil', version : '>= 55.20', required : true),
+    dependency('libswscale', required : true),
+    dependency('libswresample', required : true)
+  ]
+endif
+
 libcurl_dep = no_dep
 if enable_libcurl
-  libcurl_dep = dependency('libcurl', required : false)
+  libcurl_dep = dependency('libcurl', required : true)
 endif
-criterion_dep = dependency('criterion', required : false)
 
-wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : false)
+libconfig_dep = no_dep
+if enable_libconfig
+  libconfig_dep = dependency('libconfig', required : true)
+endif
+
+criterion_dep = no_dep
+if enable_criterion
+  criterion_dep = dependency('criterion', required : true)
+endif
+
+wcslib_dep = no_dep
+if enable_wcslib
+  wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true)
+endif
 
 ################################################################################
 # Configuration
@@ -302,6 +363,11 @@ conf_data.set('SIRIL_UNSTABLE', stable ? false : 1)
 conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') ? 1 : false)
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
 conf_data.set('OS_OSX', platform_osx ? 1 : false)
+
+conf_data.set('SIRIL_MAJOR_VERSION', siril_version_major)
+conf_data.set('SIRIL_MINOR_VERSION', siril_version_minor)
+pre_release_arr = siril_version_micro.split('-')
+conf_data.set('SIRIL_MICRO_VERSION', pre_release_arr[0])
 
 conf_data.set_quoted('PACKAGE', meson.project_name(), description : 'Name of package.')
 conf_data.set_quoted('PACKAGE_NAME', meson.project_name(), description : 'Define to the full name of this package.')
@@ -338,6 +404,18 @@ foreach header : [
 endforeach
 
 ## Dependencies configuration
+if opencv4_dep.version().version_compare('>=4.4.0')
+  conf_data.set('HAVE_CV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
+else
+  warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
+endif
+
+if libconfig_dep.found()
+  conf_data.set('HAVE_LIBCONFIG', true, description : 'Using libconfig.')
+else
+  conf_data.set('HAVE_LIBCONFIG', false, description : 'Using libconfig.')
+endif
+
 if gsl_dep.found()
   if gsl_dep.version().version_compare('>=2.0')
     conf_data.set('HAVE_GSL_1', 0, description : 'Use GSL 1.')
@@ -351,46 +429,46 @@ else
   conf_data.set('HAVE_GSL_2', 0, description : 'Use GSL 2.')
 endif
 
+if json_glib_dep.found()
+  conf_data.set('HAVE_JSON_GLIB', true, description : 'Using json glib')
+else
+  conf_data.set('HAVE_JSON_GLIB', false, description : 'Using json glib')
+endif
+
 if libraw_dep.found()
   conf_data.set('HAVE_LIBRAW', true, description : 'Using RAW images.')
 else 
   conf_data.set('HAVE_LIBRAW', false, description : 'Using RAW images.')
-  warning('libraw not found. Not using RAW importer.')
 endif
 
 if libtiff_dep.found()
   conf_data.set('HAVE_LIBTIFF', true, description : 'Using TIFF images.')
 else 
   conf_data.set('HAVE_LIBTIFF', false, description : 'Using TIFF images.')
-  warning('libtiff-4 not found. Not using TIFF importer.')
 endif
 
 if libjpeg_dep.found()
   conf_data.set('HAVE_LIBJPEG', true, description : 'Using JPEG images.')
 else 
   conf_data.set('HAVE_LIBJPEG', false, description : 'Using JPEG images.')
-  warning('libjpeg not found. Not using JPEG importer.')
 endif
 
 if libpng_dep.found()
   conf_data.set('HAVE_LIBPNG', true, description : 'Using PNG images.')
 else 
   conf_data.set('HAVE_LIBPNG', false, description : 'Using PNG images.')
-  warning('libpng not found. Not using PNG importer.')
 endif
 
 if libheif_dep.found()
   conf_data.set('HAVE_LIBHEIF', true, description : 'Using HEIF.')
 else 
   conf_data.set('HAVE_LIBHEIF', false, description : 'Using HEIF.')
-  warning('libheif not found. Not using HEIF importer.')
 endif
 
 ffmpeg_found = false
 foreach dep : ffmpeg
   if not dep.found()
     ffmpeg_found = false
-    warning('An FFmpeg library (' + dep.name() + ') not found or too old. Not using film export formats.')
     break
   else
     ffmpeg_found = true
@@ -402,7 +480,6 @@ if ffms2_dep.found()
   conf_data.set('HAVE_FFMS2', true, description : 'Using FFMS.')
 else 
   conf_data.set('HAVE_FFMS2', false, description : 'Using FFMS.')
-  warning('ffms2 not found. Not using FFMS.')
 endif
 
 if libcurl_dep.found()
@@ -413,9 +490,15 @@ endif
 
 if wcslib_dep.found()
   conf_data.set('HAVE_WCSLIB', true, description : 'Using wcslib.')
+  if wcslib_dep.version().version_compare('< 7.7')
+  wcslib_warning = '''
+        wcslib lower than version 7.7 is known to crash when
+        updating wcsdata in files. Please update
+  '''
+  warnings += wcslib_warning
+endif
 else 
   conf_data.set('HAVE_WCSLIB', false, description : 'Using wcslib.')
-  warning('wcslib not found. Not using WCS API.')
 endif
 
 conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is C++11 compliant.')
@@ -433,19 +516,20 @@ externals_dep = declare_dependency(
     dbghelp,
     m_dep,
     glib_dep,
-    json_glib,
     gio_dep,
     gio_platform_dep,
     gtk_dep,
     libcurl_dep,
     gsl_dep,
-    opencv_dep,
+    opencv4_dep,
     rtprocess_dep,
+    htmesh_dep,
     exiv_dep,
     wcslib_dep,
     libconfig_dep,
     fftw3f_dep,
     cfitsio_dep,
+    json_glib_dep,
     libraw_dep,
     libtiff_dep,
     libjpeg_dep,
@@ -520,6 +604,7 @@ summary(
 
 summary(
   {
+    'json glib' : json_glib_dep.found(),
     'libraw'    : libraw_dep.found(),
     'TIFF'      : libtiff_dep.found(),
     'JPEG'      : libjpeg_dep.found(),
@@ -529,6 +614,14 @@ summary(
     'FFMPEG'    : ffmpeg_found,
     'libcurl'   : libcurl_dep.found(),
     'wcslib'    : wcslib_dep.found(),
+    'libconfig' : libconfig_dep.found(),
     'criterion' : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )
+
+if warnings.length() > 0
+  warning('Warnings occurred during configuration')
+  foreach warning : warnings
+    warning(warning)
+  endforeach
+endif

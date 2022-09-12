@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -25,25 +25,26 @@
 #include "core/siril_world_cs.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "algos/siril_wcs.h"
 #include "gui/image_display.h"
 
 #include "annotate.h"
 
-static GSList *siril_catalogue_list = NULL;
-static gboolean show_catalog(const gchar *catalog);
+#define USER_CATALOGUE "user-catalogue.txt"
+#define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec
 
-/* set a tolerance for "same object" test, in degree */
-#define TOLERANCE 20.0 / 3600.0;
+static GSList *siril_catalogue_list = NULL; // loaded data from all annotation catalogues
+static gboolean show_catalog(int catalog);
 
 static const gchar *cat[] = {
-		"messier.txt",
-		"ngc.txt",
-		"ic.txt",
-		"ldn.txt",
-		"sh2.txt",
-		"stars.txt"
+	"messier.txt",
+	"ngc.txt",
+	"ic.txt",
+	"ldn.txt",
+	"sh2.txt",
+	"stars.txt"
 };
 
 struct _CatalogObjects {
@@ -52,61 +53,86 @@ struct _CatalogObjects {
 	gdouble dec;
 	gdouble radius;
 	gchar *name;
-	const gchar *catalogue;
+	gchar *alias;
+	gint catalogue;
 };
 
-static CatalogObjects *new_catalog_object(gchar *code, gdouble ra, gdouble dec, gdouble radius, gchar *name, const gchar *catalogue) {
+static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
+		gdouble dec, gdouble radius, const gchar *name, const gchar *alias,
+		gint catalogue) {
 	CatalogObjects *object = g_new(CatalogObjects, 1);
+
 	object->code = g_strdup(code);
 	object->ra = ra;
 	object->dec = dec;
 	object->radius = radius;
 	object->name = g_strdup(name);
+	object->alias = g_strdup(alias);
 	object->catalogue = catalogue;
 	return object;
 }
 
-gboolean is_inside(double circle_x, double circle_y, double rad, double x, double y) {
-	// Compare radius of circle with distance
-	// of its center from given point
-	if ((x - circle_x) * (x - circle_x) + (y - circle_y) * (y - circle_y)
-			<= rad * rad)
-		return TRUE;
-	else
-		return FALSE;
+static const char *cat_index_to_name(int index) {
+	switch (index) {
+		case 0:
+			return "Messier";
+		case 1:
+			return "NGC";
+		case 2:
+			return "IC";
+		case 3:
+			return "LDN";
+		case 4:
+			return "Sh2";
+		case 5:
+			return "stars";
+		case 6:
+			return "user";
+		default:
+			return "(undefined)";
+	}
 }
 
-static gboolean already_exist(GSList *list, CatalogObjects *obj) {
-	/* we exclude from the check the star catalogue */
-	if (!g_strcmp0(obj->catalogue, "stars.txt") || (obj->catalogue == NULL)) {
-		return FALSE;
-	}
-	for (GSList *l = list; l; l = l->next) {
-		gdouble cur_dec = ((CatalogObjects*) l->data)->dec;
-		gdouble cur_ra = ((CatalogObjects*) l->data)->ra;
+static gboolean is_inside(fits *fit, double ra, double dec) {
+	return wcs2pix(fit, ra, dec, NULL, NULL) == 0;
+}
 
-		double minDec = cur_dec - TOLERANCE;
-		double maxDec = cur_dec + TOLERANCE;
+static gint object_compare(gconstpointer *a, gconstpointer *b) {
+	const CatalogObjects *s1 = (const CatalogObjects *) a;
+	const CatalogObjects *s2 = (const CatalogObjects *) b;
 
-		double minRa = cur_ra - TOLERANCE;
-		double maxRa = cur_ra + TOLERANCE;
+	if (!s1->alias) return 1;
 
-		/* compare */
-		if (obj->dec > minDec && obj->dec < maxDec && obj->ra > minRa
-				&& obj->ra < maxRa) {
-			return TRUE;
+	if (!strchr(s1->alias, '/'))
+		return g_strcmp0(s1->alias, s2->code);
+
+	gchar **token = g_strsplit(s1->alias, "/", -1);
+	guint i = 0;
+	while (token[i]) {
+		if (!g_strcmp0(token[i], s2->code)) {
+			g_strfreev(token);
+			return 0;
 		}
+		i++;
 	}
-	return FALSE;
+	g_strfreev(token);
+	return 1;
 }
 
-static GSList *load_catalog(const gchar *catalogue) {
+/**
+ * Catalogue must be formatted as follow:
+ * This is a "; separated value" file
+ * code ; ra ; dec sign ; dec ; radius ; name ; alias
+ *
+ */
+
+static GSList *load_catalog(const gchar *filename, gint cat_index) {
 	GFile *file;
 	gchar *line;
 	GSList *list = NULL;
 	GError *error = NULL;
 
-	file = g_file_new_build_filename(siril_get_system_data_dir(), "catalogue", catalogue, NULL);
+	file = g_file_new_for_path(filename);
 	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, &error);
 
 	if (input_stream == NULL) {
@@ -125,15 +151,27 @@ static GSList *load_catalog(const gchar *catalogue) {
 			g_free(line);
 			continue;
 		}
-		gchar **token = g_strsplit(line, "\t", -1);
+		gchar **token = g_strsplit(line, ";", -1);
+		guint nargs = g_strv_length(token);
 
-		CatalogObjects *object = new_catalog_object(
-				g_strdup(token[0]),
-				g_ascii_strtod(token[1], NULL) * 15.0,
-				g_strcmp0(token[2], "-") ? g_ascii_strtod(token[3], NULL) :	g_ascii_strtod(token[3], NULL) * -1.0,
-				g_ascii_strtod(token[4], NULL) * 0.5,
-				g_strdup(token[6]),
-				catalogue);
+		const gchar *code = NULL, *name = NULL, *alias = NULL;
+		gdouble ra, dec, radius;
+
+		/* mandatory tokens */
+		code = token[0];
+		ra = g_ascii_strtod(token[1], NULL) * 15.0;
+		dec = g_strcmp0(token[2], "-") ? g_ascii_strtod(token[3], NULL) : g_ascii_strtod(token[3], NULL) * -1.0;
+		radius = g_ascii_strtod(token[4], NULL) * 0.5;
+
+		/* optional tokens */
+		if (nargs > 5) {
+			name = token[6];
+			if (nargs > 6) {
+				alias = token[7];
+			}
+		}
+
+		CatalogObjects *object = new_catalog_object(code, ra, dec, radius, name, alias, cat_index);
 
 		list = g_slist_prepend(list, (gpointer) object);
 
@@ -149,9 +187,26 @@ static GSList *load_catalog(const gchar *catalogue) {
 }
 
 static void load_all_catalogues() {
-	for (int i = 0; i < G_N_ELEMENTS(cat); i++) {
-		siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(cat[i]));
+	int cat_size = G_N_ELEMENTS(cat);
+
+	if (siril_catalogue_list) {
+		g_slist_free_full(siril_catalogue_list, (GDestroyNotify)free_catalogue_object);
+		siril_catalogue_list = NULL;
 	}
+
+	for (int i = 0; i < cat_size; i++) {
+		gchar *filename = g_build_filename(siril_get_system_data_dir(), "catalogue", cat[i], NULL);
+		siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(filename, i));
+
+		g_free(filename);
+	}
+	/* load user catalogue */
+	gchar *filename = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", USER_CATALOGUE, NULL);
+	if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+		siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(filename, cat_size));
+	}
+
+	g_free(filename);
 }
 
 static GSList *get_siril_catalogue_list() {
@@ -162,27 +217,117 @@ static gboolean is_catalogue_loaded() {
 	return siril_catalogue_list != NULL;
 }
 
+typedef struct {
+	const char *greek;		// Greek letter of stars
+	const char *latin;		// Greek letter written in Latin
+} GreekLetters;
+
+static GreekLetters convert_to_greek[] = {
+	{ "\u03b1", "alf" },
+	{ "\u03b2", "bet" },
+	{ "\u03b3", "gam" },
+	{ "\u03b4", "del" },
+	{ "\u03b5", "eps" },
+	{ "\u03b6", "zet" },
+	{ "\u03b7", "eta" },
+	{ "\u03b8", "tet" },
+	{ "\u03b9", "iot" },
+	{ "\u03ba", "kap" },
+	{ "\u03bb", "lam" },
+	{ "\u03bc", "mu." },
+	{ "\u03bd", "nu." },
+	{ "\u03be", "ksi" },
+	{ "\u03bf", "omi" },
+	{ "\u03c0", "pi." },
+	{ "\u03c1", "rho" },
+	{ "\u03c3", "sig" },
+	{ "\u03c4", "tau" },
+	{ "\u03c5", "ups" },
+	{ "\u03c6", "phi" },
+	{ "\u03c7", "chi" },
+	{ "\u03c8", "psi" },
+	{ "\u03c9", "ome" },
+	{ NULL, NULL }
+};
+
+static gchar* replace_str(const gchar *s, const gchar *old, const gchar *new) {
+	gchar *result;
+	int i, cnt = 0;
+	int newlen = strlen(new);
+	int oldlen = strlen(old);
+
+	// Counting the number of times old word
+	// occur in the string
+	for (i = 0; s[i] != '\0'; i++) {
+		if (g_strstr_len(&s[i], -1, old) == &s[i]) {
+			cnt++;
+
+			// Jumping to index after the old word.
+			i += oldlen - 1;
+		}
+	}
+
+	// Making new string of enough length
+	result = malloc(i + cnt * (newlen - oldlen) + 1);
+
+	i = 0;
+	while (*s) {
+		// compare the substring with the result
+		if (g_strstr_len(s, -1, old) == s) {
+			strcpy(&result[i], new);
+			i += newlen;
+			s += oldlen;
+		} else
+			result[i++] = *s++;
+	}
+
+	result[i] = '\0';
+	return result;
+}
+
+static void write_in_user_catalogue(CatalogObjects *object) {
+	GError *error = NULL;
+	GFile *file;
+	GOutputStream *output_stream;
+	gchar *root;
+
+	/* First we test if root directory already exists */
+	root = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", NULL);
+
+	if (!g_file_test(root, G_FILE_TEST_EXISTS)) {
+		if (g_mkdir_with_parents(root, 0755) < 0) {
+			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", root);
+			g_free(root);
+			return;
+		}
+	}
+
+	/* we write in the catalogue */
+	file = g_file_new_build_filename(root, USER_CATALOGUE, NULL);
+	g_free(root);
+
+	output_stream = (GOutputStream *)g_file_append_to(file, G_FILE_CREATE_NONE, NULL, &error);
+	if (output_stream == NULL) {
+		if (error != NULL) {
+			g_warning("%s\n", error->message);
+			g_clear_error(&error);
+		}
+		g_object_unref(file);
+		return;
+	}
+	gchar sign = object->dec < 0 ? '-' : '+';
+	gchar *output_line = g_strdup_printf("%s;%lf;%c;%lf;;;;\n", object->code, object->ra / 15.0, sign, fabs(object->dec));
+
+	g_output_stream_write_all(output_stream, output_line, strlen(output_line), NULL, NULL, NULL);
+
+	g_free(output_line);
+	g_object_unref(output_stream);
+	g_object_unref(file);
+}
+
 GSList *find_objects(fits *fit) {
 	if (!has_wcs(fit)) return NULL;
 	GSList *targets = NULL;
-	gdouble x1, y1, x2, y2;
-	double *crval;
-	double resolution;
-
-	crval = get_wcs_crval(fit);
-	resolution = get_wcs_image_resolution(fit);
-
-	if (crval == NULL) return NULL;
-	if (crval[0] == 0.0 && crval[1] == 0.0) return NULL;
-	if (resolution <= 0.0) return NULL;
-
-	/* get center of the image */
-	x1 = crval[0];
-	y1 = crval[1];
-
-	/* get radius of the fov */
-	x2 = x1 + fit->rx * resolution;
-	y2 = y1 + fit->ry * resolution;
 
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
@@ -190,13 +335,12 @@ GSList *find_objects(fits *fit) {
 
 	for (GSList *l = list; l; l = l->next) {
 		CatalogObjects *cur = (CatalogObjects *)l->data;
-		if (cur->catalogue && !show_catalog(cur->catalogue)) continue;
+		if (!show_catalog(cur->catalogue)) continue;
 
-		/* Search for objects in the circle of radius defined by the image */
-		if (is_inside(x1, y1, sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2)),
-				cur->ra, cur->dec)) {
-			if (!already_exist(targets, cur)) {
-				CatalogObjects *new_object = new_catalog_object(cur->code, cur->ra, cur->dec, cur->radius, cur->name, cur->catalogue);
+		/* Search for objects in the image */
+		if (is_inside(fit, cur->ra, cur->dec)) {
+			if (!g_slist_find_custom(targets, cur, (GCompareFunc) object_compare)) {
+				CatalogObjects *new_object = new_catalog_object(cur->code, cur->ra, cur->dec, cur->radius, cur->name, cur->alias, cur->catalogue);
 				targets = g_slist_prepend(targets, new_object);
 			}
 		}
@@ -209,17 +353,52 @@ GSList *find_objects(fits *fit) {
 }
 
 void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs) {
+	int cat_size = G_N_ELEMENTS(cat);
+
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
 
+	/* check for the object first to avoid duplicates */
+	GSList *cur = siril_catalogue_list;
+	double ra = siril_world_cs_get_alpha(wcs);
+	double dec = siril_world_cs_get_delta(wcs);
+	while (cur) {
+		CatalogObjects *obj = cur->data;
+		if (fabs(obj->ra - ra) < CATALOG_DIST_EPSILON &&
+				fabs(obj->dec - dec) < CATALOG_DIST_EPSILON) {
+			siril_log_message(_("The object was already found in the %s catalog under the name %s, not adding it again\n"), cat_index_to_name(obj->catalogue), obj->code);
+			return;
+		}
+
+		cur = cur->next;
+	}
+
 	CatalogObjects *new_object = new_catalog_object(code,
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
-			NULL, NULL);
-	/* We need to add it at the end of the list, if not double rejection could reject it */
+			NULL, NULL, cat_size);
+
 	siril_catalogue_list = g_slist_append(siril_catalogue_list, new_object);
+	write_in_user_catalogue(new_object);
 }
 
 gchar *get_catalogue_object_code(CatalogObjects *object) {
+	gboolean found = FALSE;
+	int i = 0;
+
+	/* in case of stars we want to convert to Greek letter */
+	while (convert_to_greek[i].latin) {
+		gchar *latin_code = g_strstr_len(object->code, -1, convert_to_greek[i].latin);
+		if (latin_code) {
+			found = TRUE;
+			break;
+		}
+		i++;
+	}
+	if (found) {
+		gchar *code = g_strdup(replace_str(object->code, convert_to_greek[i].latin, convert_to_greek[i].greek));
+		g_free(object->code);
+		object->code = code;
+	}
 	return object->code;
 }
 
@@ -239,7 +418,7 @@ gdouble get_catalogue_object_radius(CatalogObjects *object) {
 	return object->radius;
 }
 
-void free_object(CatalogObjects *object) {
+void free_catalogue_object(CatalogObjects *object) {
 	g_free(object->code);
 	g_free(object->name);
 	g_free(object);
@@ -248,25 +427,32 @@ void free_object(CatalogObjects *object) {
 void force_to_refresh_catalogue_list() {
 	if (has_wcs(&gfit)) {
 		if (com.found_object) {
-			g_slist_free_full(com.found_object, (GDestroyNotify) free_object);
+			g_slist_free_full(com.found_object, (GDestroyNotify) free_catalogue_object);
 		}
 		com.found_object = find_objects(&gfit);
 	}
 }
 
-/*** UI callbacks **/
-
-static gboolean show_catalog(const gchar *catalog) {
-	gchar *name = remove_ext_from_filename(catalog);
-	gchar *widget = g_strdup_printf("check_button_%s", name);
-	gboolean show = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget(widget)));
-
-	g_free(name);
-	g_free(widget);
-
-	return show;
+static gboolean show_catalog(int catalog) {
+	return com.pref.gui.catalog[catalog];
 }
 
-void initialize_wcs_toggle_button() {
-	gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button")), FALSE);
+void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
+	int confirm = siril_confirm_dialog(_("Catalogue deletion"),
+			_("You are about to purge user catalogue. This means the file containing the manually added objects will be deleted. "
+				"This operation cannot be undone."), _("Purge Catalogue"));
+	if (!confirm) {
+		return;
+	}
+
+	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", USER_CATALOGUE, NULL);
+
+	g_autoptr(GError) local_error = NULL;
+	if (!g_file_delete(file, NULL, &local_error)) {
+		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
+	} else {
+		load_all_catalogues();
+	}
+
+	g_object_unref(file);
 }

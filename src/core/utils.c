@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -70,8 +70,8 @@ int round_to_int(double x) {
  * @return an integer
  */
 int roundf_to_int(float x) {
-	if (x <= INT_MIN + 0.5f) return INT_MIN;
-	if (x >= INT_MAX - 0.5f) return INT_MAX;
+	if (x <= (float)INT_MIN + 0.5f) return INT_MIN;
+	if (x >= (float)INT_MAX - 0.5f) return INT_MAX;
 	if (x >= 0.0f)
 		return (int)(x + 0.5f);
 	return (int)(x - 0.5f);
@@ -168,6 +168,12 @@ WORD truncate_to_WORD(int x) {
 	if (x > USHRT_MAX)
 		return USHRT_MAX;
 	return (WORD)x;
+}
+
+BYTE truncate_to_BYTE(WORD x) {
+	if (x > UCHAR_MAX)
+		return UCHAR_MAX;
+	return (BYTE)x;
 }
 
 /**
@@ -475,9 +481,9 @@ uint64_t change_endianness64(uint64_t x) {
  */
 uint64_t cpu_to_le64(uint64_t x) {
 #ifdef __BIG_ENDIAN__
-    return change_endianness64(x);
+	return change_endianness64(x);
 #else
-    return x;
+	return x;
 #endif
 }
 
@@ -488,9 +494,9 @@ uint64_t cpu_to_le64(uint64_t x) {
  */
 uint64_t cpu_to_be64(uint64_t x) {
 #ifdef __BIG_ENDIAN__
-    return x;
+	return x;
 #else
-    return change_endianness64(x);
+	return change_endianness64(x);
 #endif
 }
 
@@ -500,7 +506,7 @@ uint64_t cpu_to_be64(uint64_t x) {
  * @return value
  */
 uint64_t le64_to_cpu(uint64_t x) {
-    return cpu_to_le64(x);
+	return cpu_to_le64(x);
 }
 
 /**
@@ -509,7 +515,7 @@ uint64_t le64_to_cpu(uint64_t x) {
  * @return value
  */
 uint64_t be64_to_cpu(uint64_t x) {
-    return cpu_to_be64(x);
+	return cpu_to_be64(x);
 }
 
 /**
@@ -670,9 +676,9 @@ gboolean file_name_has_invalid_chars(const char *name) {
  *  extensions are tested for the file name until one is found.
  * @param[in] filename the filename to test for.
  * @param[in] type is set according to the result of the test.
- * @param[out] realname (optionnal) is set according to the found file name: it
+ * @param[out] realname (optional) is set according to the found file name: it
  *  must be freed with when no longer needed.
- * @return 0 if sucess, 1 if error
+ * @return 0 if success, 1 if error
  */
 int stat_file(const char *filename, image_type *type, char **realname) {
 	int k;
@@ -1162,14 +1168,8 @@ char *format_basename(char *root, gboolean can_free) {
  * @return the computed slope
  */
 float compute_slope(WORD *lo, WORD *hi) {
-	if (sequence_is_loaded() && !single_image_is_loaded()) {
-		*hi = com.seq.layers[RLAYER].hi;
-		*lo = com.seq.layers[RLAYER].lo;
-	}
-	else {
-		*hi = com.uniq->layers[RLAYER].hi;
-		*lo = com.uniq->layers[RLAYER].lo;
-	}
+	*lo = gui.lo;
+	*hi = gui.hi;
 	return UCHAR_MAX_SINGLE / (float) (*hi - *lo);
 }
 
@@ -1177,7 +1177,7 @@ float compute_slope(WORD *lo, WORD *hi) {
  * Try to get file info, i.e width and height
  * @param filename name of the file
  * @param pixbuf
- * @return a newly allocated and formated string containing dimension information or NULL
+ * @return a newly allocated and formatted string containing dimension information or NULL
  */
 gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
 	int width, height;
@@ -1282,3 +1282,111 @@ gchar* url_cleanup(const gchar *uri_string) {
 
 	return g_string_free(copy, FALSE);
 }
+
+/**
+ * Deblanks a string
+ * @param s string to be deblanked
+ */
+void remove_spaces_from_str(gchar *s) {
+	gchar *d = s;
+	do {
+		while (g_ascii_isspace(*d)) {
+			++d;
+		}
+	} while((*s++ = *d++));
+}
+
+/**
+ * Removing trailing carriage return and newline characters in-place
+ * @param the string that will be modified, allocation unchanged
+ */
+void remove_trailing_eol(char *str) {
+	int i = strlen(str) - 1;
+	while (i >= 0 && (str[i] == '\r' || str[i] == '\n'))
+		str[i--] = '\0';
+}
+
+gboolean string_is_a_number(const char *str) {
+	if (str[0] != '-' && str[0] != '.' && (str[0] < '0' || str[0] > '9'))
+		return FALSE;
+	int i = 0;
+	gboolean had_a_dot = FALSE;
+	while (str[i] != '\0') {
+		if (str[i] == '.') {
+			if (had_a_dot)
+				return FALSE;
+			had_a_dot = TRUE;
+			i++;
+		}
+		else if (str[i] >= '0' && str[i] <= '9')
+			i++;
+		else return FALSE;
+	}
+	return TRUE;
+}
+
+#if !GLIB_CHECK_VERSION(2,68,0)
+/**
+ * g_string_replace:
+ * @string: a #GString
+ * @find: the string to find in @string
+ * @replace: the string to insert in place of @find
+ * @limit: the maximum instances of @find to replace with @replace, or `0` for
+ * no limit
+ *
+ * Replaces the string @find with the string @replace in a #GString up to
+ * @limit times. If the number of instances of @find in the #GString is
+ * less than @limit, all instances are replaced. If the number of
+ * instances is `0`, all instances of @find are replaced.
+ *
+ * If @find is the empty string, since versions 2.69.1 and 2.68.4 the
+ * replacement will be inserted no more than once per possible position
+ * (beginning of string, end of string and between characters). This did
+ * not work correctly in earlier versions.
+ *
+ * Returns: the number of find and replace operations performed.
+ *
+ * Since: 2.68
+ */
+guint
+g_string_replace (GString     *string,
+                  const gchar *find,
+                  const gchar *replace,
+                  guint        limit)
+{
+  gsize f_len, r_len, pos;
+  gchar *cur, *next;
+  gint n = 0;
+
+  g_return_val_if_fail (string != NULL, 0);
+  g_return_val_if_fail (find != NULL, 0);
+  g_return_val_if_fail (replace != NULL, 0);
+
+  f_len = strlen (find);
+  r_len = strlen (replace);
+  cur = string->str;
+
+  while ((next = strstr (cur, find)) != NULL)
+    {
+      pos = next - string->str;
+      g_string_erase (string, pos, f_len);
+      g_string_insert (string, pos, replace);
+      cur = string->str + pos + r_len;
+      n++;
+      /* Only match the empty string once at any given position, to
+       * avoid infinite loops */
+      if (f_len == 0)
+        {
+          if (cur[0] == '\0')
+            break;
+          else
+            cur++;
+        }
+      if (n == limit)
+        break;
+    }
+
+  return n;
+}
+#endif
+

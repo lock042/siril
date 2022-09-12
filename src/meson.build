@@ -16,9 +16,11 @@ configure_file(output : 'config.h',
 ################################################################################
 # Generate Siril static library with all sources
 
-src_files = [ 
+src_files = [
   'algos/annotate.c',
+  'algos/astrometry_solver.c',
   'algos/background_extraction.c',
+  'algos/ccd-inspector.c',
   'algos/colors.c',
   'algos/demosaicing.c',
   'algos/demosaicing_rtp.cpp',
@@ -30,24 +32,23 @@ src_files = [
   'algos/noise.c',
   'algos/pave.c',
   'algos/photometry.c',
-  'algos/plateSolver.c',
   'algos/PSF.c',
   'algos/quality.c',
   'algos/quality_float.c',
   'algos/quantize.c',
   'algos/reconstr.c',
+  'algos/siril_wcs.c',
   'algos/sorting.c',
   'algos/star_finder.c',
   'algos/statistics.c',
   'algos/statistics_float.c',
   'algos/transform.c',
   'algos/search_objects.c',
-  'algos/siril_wcs.c',
-  
+
   'compositing/align_rgb.c',
   'compositing/compositing.c',
   'compositing/filters.c',
-  
+
   'core/arithm.c',
   'core/atomic.cpp',
   'core/command.c',
@@ -60,6 +61,7 @@ src_files = [
   'core/preprocess.c',
   'core/processing.c',
   'core/sequence_filtering.c',
+  'core/settings.c',
   'core/signals.c',
   'core/siril.c',
   'core/siril_actions.c',
@@ -72,19 +74,23 @@ src_files = [
   'core/siril_world_cs.c',
   'core/undo.c',
   'core/utils.c',
-  
+
   'filters/asinh.c',
   'filters/banding.c',
   'filters/clahe.c',
   'filters/cosmetic_correction.c',
   'filters/deconv.c',
   'filters/fft.c',
+  'filters/ght.c',
   'filters/median.c',
+  'filters/mtf.c',
   'filters/rgradient.c',
   'filters/saturation.c',
   'filters/scnr.c',
+  'filters/starnet.c',
   'filters/wavelets.c',
-  
+
+  'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
   'io/avi_pipp/pipp_avi_write.h',
   'io/avi_pipp/pipp_avi_write_dib.cpp',
@@ -95,10 +101,13 @@ src_files = [
   'io/avi_pipp/pipp_video_write.h',
   'io/avi_pipp/avi_writer.cpp',
   'io/avi_pipp/avi_writer.h',
+  'io/kstars/htmesh_wrapper.cpp',
+  'io/catalogues.c',
   'io/conversion.c',
   'io/films.c',
   'io/fits_sequence.c',
   'io/FITS_symlink.c',
+  'io/gnuplot_i.c',
   'io/image_format_fits.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',
@@ -107,34 +116,32 @@ src_files = [
   'io/sequence.c',
   'io/sequence_export.c',
   'io/seqwriter.c',
-
   'io/ser.c',
   'io/single_image.c',
-  
+
+  'livestacking/gui.c',
+  'livestacking/livestacking.c',
+
   'opencv/opencv.cpp',
   'opencv/opencv.h',
-  'opencv/ecc/ecc.cpp',
-  'opencv/ecc/ecc.h',
-  'opencv/findHomography/fundam.cpp',
-  'opencv/findHomography/calibration.cpp',
-  'opencv/findHomography/modelest.cpp',
-  'opencv/findHomography/_modelest.h',
-  'opencv/findHomography/calib3d.hpp',
-  'opencv/findHomography/precomp.hpp',
-  
+  'opencv/kombat/kombat.cpp',
+  'opencv/kombat/kombat.h',
+
   'gui/about_dialog.c',
+  'gui/annotations_pref.c',
+  'gui/astrometry_solver.c',
   'gui/callbacks.c',
   'gui/conversion.c',
   'gui/dialog_preview.c',
   'gui/dialogs.c',
   'gui/fix_xtrans_af.c',
-  'gui/gnuplot_i/gnuplot_i.c',
   'gui/histogram.c',
   'gui/image_display.c',
   'gui/image_interactions.c',
   'gui/linear_match.c',
-  'gui/message_dialog.c',
   'gui/menu_gray_psf.c',
+  'gui/message_dialog.c',
+  'gui/nina_light_curve.c',
   'gui/open_dialog.c',
   'gui/photometric_cc.c',
   'gui/plot.c',
@@ -142,6 +149,7 @@ src_files = [
   'gui/progress_and_log.c',
   'gui/PSF_list.c',
   'gui/registration_preview.c',
+  'gui/remixer.c',
   'gui/save_dialog.c',
   'gui/script_menu.c',
   'gui/sequence_list.c',
@@ -150,9 +158,13 @@ src_files = [
   'gui/siril_intro.c',
   'gui/siril_preview.c',
   'gui/siril-window.c',
+  'gui/starnetgui.c',
   'gui/statistics_list.c',
   'gui/utils.c',
-  
+
+  'pixelMath/pixel_math_runner.c',
+  'pixelMath/tinyexpr.c',
+
   'registration/3stars.c',
   'registration/comet.c',
   'registration/global.c',
@@ -162,16 +174,17 @@ src_files = [
   'registration/matching/project_coords.c',
   'registration/matching/apply_match.c',
   'registration/registration.c',
-  
+  'registration/applyreg.c',
+
   'stacking/median_and_mean.c',
-  'stacking/rejection_float.c',
   'stacking/normalization.c',
+  'stacking/rejection_float.c',
   'stacking/siril_fit_linear.c',
   'stacking/stacking.c',
   'stacking/stackminmax.c',
   'stacking/sum.c',
   'stacking/upscaling.c',
-  
+
   'rt/boxblur.cc',
   'rt/deconvolution.cc',
   'rt/gauss.cc',
@@ -200,6 +213,7 @@ siril_gui = executable('siril', 'main.c', win_res,
                        c_args : siril_c_flag,
                        cpp_args : siril_cpp_flag,
                        install : true,
+                       win_subsystem : stable ? 'windows' : 'console',
                       )
 
 ################################################################################

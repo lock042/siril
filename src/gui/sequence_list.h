@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,10 +28,12 @@ void sequence_list_change_current();
 void sequence_list_change_reference();
 void fill_sequence_list(sequence *seq, int layer, gboolean as_idle);
 void clear_sequence_list();
-void update_seqlist();
+void update_seqlist(int layer);
 void exclude_single_frame(int index);
-void toggle_image_selection(int index_in_list, int real_index);
+void toggle_image_selection(int index_in_list, int real_index, gboolean initvalue);
 void adjust_refimage(int n);
+void sequence_list_select_row_from_index(int index, gboolean do_load_image);
+void update_icons_sequence_list(gboolean is_dark);
 
 
 #endif /* SRC_GUI_SEQUENCE_LIST_H_ */

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -31,6 +31,7 @@
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_preview.h"
+#include "gui/registration_preview.h"
 
 #include "deconv.h"
 
@@ -98,7 +99,7 @@ gpointer RTdeconv(gpointer p) {
 	siril_add_idle(end_generic, args);
 	free(args);
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	return 0;
 }

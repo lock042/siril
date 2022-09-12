@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -23,30 +23,45 @@
 
 #include "core/siril.h"
 
+void clear_all_photometry_and_plot();
 void reset_plot();
 void drawPlot();
 void notify_new_photometry();
-void free_photometry_set(sequence *seq, int set);
+void init_plot_colors();
 
+/* for one curve */
 typedef struct plot_data_struct {
 	double *julian, *frame;
 	struct kpair *data, *err;
-	int nb;
+	int nb;		// number of points in the plot (= number of images)
+
 	struct plot_data_struct *next;
 } pldata;
 
 
 /* has to be the same as in the glade file */
-enum photmetry_source {
-	ROUNDNESS,
+enum photometry_source {
 	FWHM,
+	ROUNDNESS,
 	AMPLITUDE,
 	MAGNITUDE,
 	BACKGROUND,
 	X_POSITION,
-	Y_POSITION
+	Y_POSITION,
+	SNR
 };
 
-gchar *siril_win_get_gnuplot_path();
+/* has to be the same as in the glade file */
+enum registration_source {
+	r_FWHM,
+	r_ROUNDNESS,
+	r_WFWHM,
+	r_BACKGROUND,
+	r_NBSTARS,
+	r_X_POSITION,
+	r_Y_POSITION,
+	r_QUALITY,
+	r_FRAME
+};
 
 #endif /* SRC_GUI_PLOT_H_ */

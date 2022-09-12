@@ -1,11 +1,11 @@
 #if !defined(APPLY_MATCH_H)
 #define APPLY_MATCH_H
 
+#include <math.h>
 
    /* multiply by this to convert degrees to radians */
-#ifndef PI
-#define PI 3.14159265359
-#endif
-#define DEGTORAD  (PI/180.0)
+#define DEGTORAD  (M_PI / 180.0)
+   /* multiply by this to convert radians to degrees */
+#define RADTODEG  (180.0 / M_PI)
 
 #endif   /* APPLY_MATCH_H */

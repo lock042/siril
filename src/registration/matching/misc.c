@@ -386,12 +386,13 @@ get_value
 /**********************************************************************
  * ROUTINE: get_stars
  *
+ * Converts an array of psf_stars to a s_star list.
  *
  * Return 0 if all goes well.
  * Return 1 if there is an error.
  */
 
-int get_stars(fitted_PSF **s, int n, int *num_stars, struct s_star **list) {
+int get_stars(psf_star **s, int n, int *num_stars, struct s_star **list) {
 	int i = 0;
 	struct s_star *head, *last, *new;
 
@@ -418,12 +419,14 @@ int get_stars(fitted_PSF **s, int n, int *num_stars, struct s_star **list) {
 	return (SH_SUCCESS);
 }
 
-void free_stars(struct s_star *head) {
+void free_stars(struct s_star **list) {
+	struct s_star *head = *list;
 	while (head != NULL) {
 		struct s_star* tmp = head;
 		head = head->next;
 		shFree(tmp);
 	}
+	*list = NULL;
 }
 
 void print_H(Homography *H) {
@@ -457,22 +460,22 @@ print_trans
    switch (trans->order) {
 
    case 1:  /* linear transformation */
-      printf("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e",
+      siril_debug_print("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e",
             trans->a, trans->b, trans->c, trans->d, trans->e, trans->f);
       break;
 
    case 2:  /* quadratic terms */
-      printf("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e ",
+      siril_debug_print("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e ",
           trans->a, trans->b, trans->c, trans->d, trans->e, trans->f);
-      printf("       g=%-15.9e h=%-15.9e i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e",
+      siril_debug_print("       g=%-15.9e h=%-15.9e i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e",
           trans->g, trans->h, trans->i, trans->j, trans->k, trans->l);
       break;
 
    case 3:  /* cubic terms */
-      printf("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e g=%-15.9e h=%-15.9e",
+      siril_debug_print("TRANS: a=%-15.9e b=%-15.9e c=%-15.9e d=%-15.9e e=%-15.9e f=%-15.9e g=%-15.9e h=%-15.9e",
          trans->a, trans->b, trans->c, trans->d, trans->e, trans->f,
          trans->g, trans->h);
-      printf("       i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e m=%-15.9e n=%-15.9e o=%-15.9e p=%-15.9e",
+      siril_debug_print("       i=%-15.9e j=%-15.9e k=%-15.9e l=%-15.9e m=%-15.9e n=%-15.9e o=%-15.9e p=%-15.9e",
          trans->i, trans->j, trans->k, trans->l, trans->m, trans->n,
          trans->o, trans->p);
       break;

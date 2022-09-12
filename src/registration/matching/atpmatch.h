@@ -2,6 +2,7 @@
 #define ATPMATCH_H
 
 #include "core/siril.h"
+#include "registration/registration.h"
 #include "misc.h"
 
 /*
@@ -169,8 +170,9 @@
 	 *    specifies a cubic transformation (which needs 10 pairs
 	 *    to define it), he must be sure to specify that the
 	 *    minimum number of pairs is at least 10.
+	 *    AT_TRANS_LINEAR needs at least 3 stars
 	 */
-#define AT_MATCH_MINPAIRS    10
+#define AT_MATCH_MINPAIRS    3
 
 
    /*
@@ -184,7 +186,7 @@ typedef struct s_star {
 	double mag;             /* some measure of star's brightness */
 	double BV;              /* only used for BV calibration */
 	int match_id;           /* ID of star in other list which matches */
-struct s_star *next;    /* we use linked lists internally */
+	struct s_star *next;    /* we use linked lists internally */
 } s_star;
 
 
@@ -235,7 +237,9 @@ atRecalcTrans(int numA, struct s_star *listA,
               int max_iter, double halt_sigma, TRANS *trans);
 
 int atPrepareHomography(int numA, struct s_star *listA, int numB,
-		struct s_star *listB, Homography *H, gboolean print_output);
+		struct s_star *listB, Homography *H, gboolean save_photometric_data,
+		pcc_star *photometric_data, int *nb_photometric_stars,
+		transformation_type type);
 
 int
 atCalcRMS(int num_A, struct s_star *mlistA,

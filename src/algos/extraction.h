@@ -21,6 +21,8 @@ struct split_cfa_data {
 	GList *processed_images;
 };
 
+void update_filter_information(fits *fit, char *filter, gboolean append);
+
 int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern);
 int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern);
 void apply_extractHa_to_sequence(struct split_cfa_data *split_cfa_args);

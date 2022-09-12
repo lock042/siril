@@ -9,6 +9,7 @@ _build
 .cproject
 .settings/
 .vs/
+.vscode/
 INSTALL
 *Makefile
 *Makefile.in
@@ -30,6 +31,8 @@ depcomp
 subprojects/kplot/compat.h
 subprojects/kplot/libkplot.a
 subprojects/kplot/test-reallocarray
+subprojects/htmesh/config-htmesh.h
+subprojects/htmesh/build/
 install-sh
 m4/intltool.m4
 m4/nls.m4

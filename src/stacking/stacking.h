@@ -2,6 +2,7 @@
 #define STACKING_H_
 
 #include "core/processing.h"
+#include "core/sequence_filtering.h"
 
 //#define STACK_DEBUG
 
@@ -13,6 +14,7 @@ typedef struct normalization_coeff norm_coeff;
 
 enum {
 	ST_ALLOC_ERROR = -10,
+	ST_CANCEL = -9,
 	ST_SEQUENCE_ERROR = -2,
 	ST_GENERIC_ERROR = -1,
 	ST_OK = 0
@@ -26,26 +28,6 @@ typedef enum {
 	STACK_MIN,
 } stackMethod;
 
-/* TYPE OF SIGMA CLIPPING */
-typedef enum {
-	NO_REJEC,
-	PERCENTILE,
-	SIGMA,
-	SIGMEDIAN,
-	WINSORIZED,
-	LINEARFIT,
-	GESDT
-} rejection;
-
-/* TYPE OF NORMALIZATION */
-typedef enum {
-	NO_NORM,
-	ADDITIVE,
-	MULTIPLICATIVE,
-	ADDITIVE_SCALING,
-	MULTIPLICATIVE_SCALING,
-} normalization;
-
 /* identical to the combo box items */
 typedef enum {
 	ALL_IMAGES,
@@ -53,8 +35,18 @@ typedef enum {
 	BEST_PSF_IMAGES,
 	BEST_WPSF_IMAGES,
 	BEST_ROUND_IMAGES,
+	BEST_BKG_IMAGES,
+	BEST_NBSTARS_IMAGES,
 	BEST_QUALITY_IMAGES
 } stackType;
+
+typedef enum {
+	NO_WEIGHT,
+	NBSTARS_WEIGHT,
+	WFWHM_WEIGHT,
+	NOISE_WEIGHT,
+	NBSTACK_WEIGHT
+} weighingType;
 
 struct normalization_coeff {
 	double *offset;
@@ -65,34 +57,41 @@ struct normalization_coeff {
 	double *pscale[3];
 };
 
-
 struct stacking_args {
 	stack_method method;
 	sequence *seq;
-	int ref_image;	// takes precedences over seq->reference_image which may not be applicable
+	int ref_image; // takes precedence over seq->reference_image which may not be applicable
 	seq_image_filter filtering_criterion;
 	double filtering_parameter;
-	int nb_images_to_stack; // calculated from the above, for display purposes
-	int *image_indices;	// conversion between selected image indices and sequence image indices
-	char *description;	// description of the filtering
-	const char *output_filename;	// used in the idle function only
-	gboolean output_overwrite;	// used in the idle function only
+	int nb_images_to_stack; 	/* calculated from the above */
+	int *image_indices;		/* mapping between selected and sequence image indices */
+	char *description;		/* description of the filtering */
+	const char *output_filename;	/* used in the idle function only */
+	gboolean output_overwrite;	/* used in the idle function only */
 	struct timeval t_start;
 	int retval;
-	float sig[2];		/* low and high sigma rejection or GESTD parameters */
-	float *critical_value; /* index of critical_values for GESTD */
+	float sig[2];			/* low and high sigma rejection or GESTD parameters */
+	float *critical_value;		/* index of critical_values for GESTD */
 	rejection type_of_rejection;	/* type of rejection */
 	normalization normalize;	/* type of normalization */
 	norm_coeff coeff;		/* normalization data */
 	gboolean force_norm;		/* TRUE = force normalization */
 	gboolean output_norm;		/* normalize final image to the [0, 1] range */
 	gboolean use_32bit_output;	/* output to 32 bit float */
-	int reglayer;		/* layer used for registration data */
+	int reglayer;			/* layer used for registration data */
 
-	gboolean apply_weight;			/* enable weights */
-	double *weights; 				/* computed weights for each (layer,image)*/
+	gboolean apply_noise_weights;	/* enable weights */
+	gboolean apply_nbstack_weights;	/* enable weights */
+	gboolean apply_wfwhm_weights; /* enable weights */
+	gboolean apply_nbstars_weights; /* enable weights */
+
+	double *weights; 		/* computed weights for each (layer, image)*/
+	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
+	gboolean lite_norm;		/* enable lightweight (med,mad) normalization */
 
 	float (*sd_calculator)(const WORD *, const int); // internal, for ushort
+	float (*mad_calculator)(const WORD *, const size_t, const double, threading_type) ; // internal, for ushort
+	fits result;
 };
 
 /* configuration from the command line */
@@ -101,16 +100,25 @@ struct stacking_configuration {
 	gchar *seqfile;
 	gchar *result_file;
 	stack_method method;
-	rejection type_of_rejection;	/* type of rejection */
+	rejection type_of_rejection;
 	double sig[2];
 	gboolean force_no_norm;
 	gboolean output_norm;
+	gboolean equalizeRGB;
+	gboolean lite_norm;
 	normalization norm;
 	int number_of_loaded_sequences;
-	float f_fwhm, f_fwhm_p, f_wfwhm, f_wfwhm_p, f_round, f_round_p, f_quality, f_quality_p; // on if >0
-	gboolean filter_included;
-	gboolean apply_weight;
+	struct seq_filter_config filters;
+	gboolean apply_noise_weights;
+	gboolean apply_nbstack_weights;
+	gboolean apply_wfwhm_weights;
+	gboolean apply_nbstars_weights;
 };
+
+typedef struct {
+	GDateTime *date_obs;
+	gdouble exposure;
+} DateEvent;
 
 
 /*
@@ -125,7 +133,7 @@ struct outliers {
 
 void initialize_stacking_default();
 void initialize_stacking_methods();
-gboolean evaluate_stacking_should_output_32bits(stack_method method,
+gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 		sequence *seq, int nb_img_to_stack, gchar **err);
 
 int stack_median(struct stacking_args *args);
@@ -144,6 +152,7 @@ void update_stack_interface(gboolean dont_change_stack_type);
 	/* normalization functions, normalize.c */
 
 int do_normalization(struct stacking_args *args);
+int *compute_thread_distribution(int nb_workers, int max);
 
 
 	/* median and mean functions */
@@ -156,7 +165,7 @@ struct _image_block {
 };
 
 int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
-		long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks);
+		const long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks);
 
 /* pool of memory blocks for parallel processing */
 struct _data_block {
@@ -170,8 +179,7 @@ struct _data_block {
 	int layer;	// to identify layer for normalization
 };
 
-int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, long *naxes, GList **date_time, fits *fit);
-int find_refimage_in_indices(int *indices, int nb, int ref);
+int find_refimage_in_indices(const int *indices, int nb, int ref);
 
 	/* up-scaling functions */
 
@@ -182,5 +190,10 @@ void remove_tmp_drizzle_files(struct stacking_args *args);
 	/* rejection_float.c */
 
 int apply_rejection_float(struct _data_block *data, int nb_frames, struct stacking_args *args, guint64 crej[2]);
+
+	/* keeping metadata */
+void free_list_date(gpointer data);
+DateEvent* new_date_item(GDateTime *dt, gdouble exposure);
+void compute_date_time_keywords(GList *list_date, fits *fit);
 
 #endif

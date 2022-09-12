@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
+#include "gui/registration_preview.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -40,11 +41,14 @@
 #include "algos/sorting.h"
 #include "algos/median_fast.h"
 #include "filters/median.h"
+#include "opencv/opencv.h"
 
 #include "cosmetic_correction.h"
+static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
+		double amount, gboolean is_cfa, threading_type threads);
 
 /* see also getMedian3x3 in algos/PSF.c */
-static float getMedian5x5_float(float *buf, const int xx, const int yy, const int w,
+static float getMedian5x5_float(const float *buf, const int xx, const int yy, const int w,
 		const int h, gboolean is_cfa) {
 
 	const int step = is_cfa ? 2 : 1;
@@ -97,7 +101,7 @@ static WORD* getAverage3x3Line(WORD *buf, const int yy, const int w,
 	return cpyline;
 }
 
-static float* getAverage3x3Line_float(float *buf, const int yy, const int w,
+static float* getAverage3x3Line_float(const float *buf, const int yy, const int w,
 		const int h, gboolean is_cfa) {
 	int step, radius, x, xx, y;
 	float *cpyline;
@@ -126,7 +130,7 @@ static float* getAverage3x3Line_float(float *buf, const int yy, const int w,
 	return cpyline;
 }
 
-static float getAverage3x3_float(float *buf, const int xx, const int yy,
+static float getAverage3x3_float(const float *buf, const int xx, const int yy,
 		const int w, const int h, gboolean is_cfa) {
 
     const int step = is_cfa ? 2 : 1;
@@ -179,7 +183,7 @@ static float getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
  * returns NULL. It also returns NULL when no deviant pixel is found.
  * If cold == -1 or hot == -1, this is a flag to not compute cold or hot
  */
-deviant_pixel* find_deviant_pixels(fits *fit, double sig[2], long *icold,
+deviant_pixel* find_deviant_pixels(fits *fit, const double sig[2], long *icold,
 		long *ihot, gboolean eval_only) {
 	int x, y;
 	WORD *buf;
@@ -192,7 +196,7 @@ deviant_pixel* find_deviant_pixels(fits *fit, double sig[2], long *icold,
 	if (sig[0] == -1.0 && sig[1] == -1.0)
 		return NULL;
 
-	stat = statistics(NULL, -1, fit, RLAYER, NULL, STATS_BASIC, FALSE);
+	stat = statistics(NULL, -1, fit, RLAYER, NULL, STATS_BASIC, SINGLE_THREADED);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		return NULL;
@@ -231,7 +235,7 @@ deviant_pixel* find_deviant_pixels(fits *fit, double sig[2], long *icold,
 
 	if (eval_only) return NULL;
 
-	/** Second we store deviant pixels in p */
+	/** Second we store deviant pixels in dev */
 	int n = (*icold) + (*ihot);
 	if (n <= 0)
 		return NULL;
@@ -335,16 +339,16 @@ int cosmeticCorrection(fits *fit, deviant_pixel *dev, int size, gboolean is_cfa)
 
 /**** Autodetect *****/
 int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_) {
+		rectangle *_, int threads) {
 	struct cosmetic_data *c_args = (struct cosmetic_data*) args->user;
-	int retval, chan;
+	int chan;
 	/* Count variables, icold and ihot, need to be local in order to be parallelized */
 	long icold, ihot;
 
 	icold = ihot = 0L;
 	for (chan = 0; chan < fit->naxes[2]; chan++) {
-		retval = autoDetect(fit, chan, c_args->sigma, &icold, &ihot,
-				c_args->amount, c_args->is_cfa, c_args->multithread);
+		int retval = autoDetect(fit, chan, c_args->sigma, &icold, &ihot,
+				c_args->amount, c_args->is_cfa, c_args->threading);
 		if (retval)
 			return retval;
 	}
@@ -353,10 +357,65 @@ int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	return 0;
 }
 
+static int cosmetic_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
+	/* stats O(m)
+	 * working on image channel as float O(m as float)
+	 */
+	unsigned int MB_per_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	unsigned int required = MB_per_image;
+	if (limit > 0) {
+		int is_color = args->seq->nb_layers == 3;
+		int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+		unsigned int float_multiplier = is_float ? 1 : 2;
+		unsigned int MB_per_float_image = MB_per_image * float_multiplier;
+		unsigned int MB_per_float_channel = is_color ? MB_per_float_image / 3 : MB_per_float_image;
+		required += MB_per_float_channel;
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+                        thread_limit = com.max_thread;
+
+		if (for_writer) {
+                        /* we allow the already allocated thread_limit images,
+                         * plus how many images can be stored in what remains
+                         * unused by the main processing */
+                        limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
+                } else limit = thread_limit;
+
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
+}
+
 void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	struct generic_seq_args *args = create_default_seqargs(cosme_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = cosme_args->seq->selnum;
+	args->compute_mem_limits_hook = cosmetic_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = cosmetic_image_hook;
@@ -377,7 +436,7 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 gboolean end_autoDetect(gpointer p) {
 	stop_processing_thread();
 	adjust_cutoff_from_updated_gfit();
-	redraw(com.cvport, REMAP_ALL);
+	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 
@@ -396,7 +455,7 @@ gpointer autoDetectThreaded(gpointer p) {
 	icold = ihot = 0L;
 	for (chan = 0; chan < args->fit->naxes[2]; chan++) {
 		retval = autoDetect(args->fit, chan, args->sigma, &icold, &ihot,
-				args->amount, args->is_cfa, args->multithread);
+				args->amount, args->is_cfa, args->threading);
 		if (retval)
 			break;
 	}
@@ -412,20 +471,151 @@ gpointer autoDetectThreaded(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
+int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa) {
+	int i = 0;
+	gchar *line;
+	deviant_pixel dev;
+	int nb_tokens, retval = 0;
+	double dirty;
+	char type;
+	GError *error = NULL;
+	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, &error);
+
+	if (input_stream == NULL) {
+		if (error != NULL) {
+			g_clear_error(&error);
+			siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
+		}
+
+		g_object_unref(file);
+		return 1;
+	}
+
+	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
+	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
+				NULL, NULL))) {
+		++i;
+		switch (line[0]) {
+		case '#': // comments.
+			g_free(line);
+			continue;
+			break;
+		case 'P':
+			nb_tokens = sscanf(line + 2, "%lf %lf %c", &dev.p.x, &dev.p.y, &type);
+			if (nb_tokens != 2 && nb_tokens != 3) {
+				fprintf(stderr, "cosmetic correction: "
+						"cosme file format error at line %d: %s", i, line);
+				retval = 1;
+				g_free(line);
+				continue;
+			}
+			if (nb_tokens == 2)	{
+				type = 'H';
+			}
+			if (type == 'H')
+				dev.type = HOT_PIXEL;
+			else
+				dev.type = COLD_PIXEL;
+			dev.p.y = fit->ry - dev.p.y - 1;  /* FITS are stored bottom to top */
+			cosmeticCorrOnePoint(fit, dev, is_cfa);
+			break;
+		case 'L':
+			nb_tokens = sscanf(line + 2, "%lf %lf %c", &dev.p.y, &dirty, &type);
+			if (nb_tokens != 2 && nb_tokens != 3) {
+				fprintf(stderr, "cosmetic correction: "
+						"cosme file format error at line %d: %s\n", i, line);
+				retval = 1;
+				g_free(line);
+				continue;
+			}
+			dev.type = HOT_PIXEL; // we force it
+			dev.p.y = fit->ry - dev.p.y - 1; /* FITS are stored bottom to top */
+			cosmeticCorrOneLine(fit, dev, is_cfa);
+			break;
+		case 'C':
+			nb_tokens = sscanf(line + 2, "%lf %lf %c", &dev.p.y, &dirty, &type);
+			if (nb_tokens != 2 && nb_tokens != 3) {
+				fprintf(stderr, "cosmetic correction: "
+						"cosme file format error at line %d: %s\n", i, line);
+				retval = 1;
+				g_free(line);
+				continue;
+			}
+			dev.type = HOT_PIXEL; // we force it
+			dev.p.y = fit->rx - dev.p.y - 1; /* FITS are stored bottom to top */
+			if (cvRotateImage(&gfit, 90)) {
+				retval = 1;
+				break;
+			}
+			cosmeticCorrOneLine(fit, dev, is_cfa);
+			if (cvRotateImage(&gfit, -90)) {
+				retval = 1;
+				break;
+			}
+			break;
+		default:
+			fprintf(stderr, _("cosmetic correction: "
+					"cosme file format error at line %d: %s\n"), i, line);
+			retval = 1;
+		}
+		g_free(line);
+	}
+
+	g_object_unref(input_stream);
+
+	return retval;
+}
+
+int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_, int threads) {
+	struct cosme_data *c_args = (struct cosme_data*) args->user;
+
+	return apply_cosme_to_image(fit, c_args->file, c_args->is_cfa);
+}
+
+static int cosme_finalize_hook(struct generic_seq_args *args) {
+	int retval = seq_finalize_hook(args);
+	struct cosme_data *c_args = (struct cosme_data*) args->user;
+
+	g_object_unref(c_args->file);
+
+	free(args->user);
+	return retval;
+}
+
+void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
+	struct generic_seq_args *args = create_default_seqargs(cosme_args->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = cosme_args->seq->selnum;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = cosme_finalize_hook;
+	args->image_hook = cosme_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Cosmetic Correction");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = cosme_args->prefix;
+	args->load_new_sequence = TRUE;
+	args->user = cosme_args;
+
+	cosme_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+
 /* this is an autodetect algorithm. Cold and hot pixels
  *  are corrected in the same time */
-int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
-		double amount, gboolean is_cfa, gboolean multithread) {
+static int autoDetect(fits *fit, int layer, const double sig[2], long *icold, long *ihot,
+		double amount, gboolean is_cfa, threading_type threading) {
 
 	/* XXX: if cfa, stats are irrelevant. We should compute them taking
 	 * into account the Bayer pattern */
-	imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC | STATS_AVGDEV,
-			multithread);
-
+	imstats *stat = statistics(NULL, -1, fit, layer, NULL, STATS_BASIC | STATS_AVGDEV, threading);
 	if (!stat) {
 		siril_log_message(_("Error: statistics computation failed.\n"));
 		return 1;
 	}
+	int threads = check_threading(&threading);
 	const float bkg = stat->median;
 	const float avgDev = stat->avgDev;
 	free_stats(stat);
@@ -446,28 +636,20 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
 	const gboolean doCold = sig[0] != -1.0;
 	const float coldVal = doCold ? bkg - k : 0.0;
 	const float hotVal = doHot ? bkg + k1 : isFloat ? 1.f : 65535.f;
-	size_t n = fit->naxes[0] * fit->naxes[1] * sizeof(float); 
-	float *temp = malloc(n);
+	size_t n = fit->naxes[0] * fit->naxes[1];
+	float *temp = malloc(n * sizeof(float));
 	if (!temp) {
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
 
-#ifndef _OPENMP
-	multithread = FALSE;
-#endif
-	if (com.max_thread == 1)
-		multithread = FALSE;
-
 	if (isFloat) {
-		if (multithread) {
+		if (threads > 1) {
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(multithread)
+#pragma omp parallel for num_threads(threads)
 #endif
-			for (int y = 0; y < height; y++) {
-				for (int x = 0; x < width; x++) {
-					temp[y * width + x] = fbuf[y * width + x];
-				}
+			for (size_t i = 0; i < n; i++) {
+				temp[i] = fbuf[i];
 			}
 		} else {
 			// this should be faster in a single-threaded case
@@ -475,12 +657,10 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
 		}
 	} else {
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) if(multithread)
+#pragma omp parallel for num_threads(threads) if(threads > 1)
 #endif
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				temp[y * width + x] = (float) buf[y * width + x];
-			}
+		for (size_t i = 0; i < n; i++) {
+			temp[i] = (float)buf[i];
 		}
 	}
 	const int step = is_cfa ? 2 : 1;
@@ -489,7 +669,7 @@ int autoDetect(fits *fit, int layer, double sig[2], long *icold, long *ihot,
 	long icoldL = *icold;
 	long ihotL = *ihot;
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread) if(multithread)
+#pragma omp parallel num_threads(threads) if(threads > 1)
 #endif
 	{
 		float medianin[24];
@@ -579,7 +759,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	sigma[1] = GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeHotBox"));
 	seq = GTK_TOGGLE_BUTTON(lookup_widget("checkCosmeticSeq"));
 	cosmeticSeqEntry = GTK_ENTRY(lookup_widget("entryCosmeticSeq"));
-	adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adjCosmeAmount"));
+	adjCosmeAmount = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjCosmeAmount"));
 
 	struct cosmetic_data *args = malloc(sizeof(struct cosmetic_data));
 
@@ -606,12 +786,12 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 		if (args->seqEntry && args->seqEntry[0] == '\0')
 			args->seqEntry = "cc_";
 		args->seq = &com.seq;
-		args->multithread = FALSE;
+		args->threading = SINGLE_THREADED;
+		gtk_toggle_button_set_active(seq, FALSE);
 		apply_cosmetic_to_sequence(args);
 	} else {
-		args->multithread = TRUE;
+		args->threading = MULTI_THREADED;
 		undo_save_state(&gfit, _("Cosmetic Correction"));
 		start_in_new_thread(autoDetectThreaded, args);
 	}
 }
-

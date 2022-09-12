@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@
 #include "algos/sorting.h"
 #include "algos/statistics.h"
 
-static int percentile_clipping(float pixel, float sig[], float median,
+static int percentile_clipping(float pixel, const float sig[], float median,
 		guint64 rej[]) {
 	float plow = sig[0];
 	float phigh = sig[1];
@@ -59,7 +59,7 @@ static int sigma_clipping_float(float pixel, float sigma, float sigmalow,
 	return 0;
 }
 
-static int line_clipping(float pixel, float sig[], float sigma, int i, float a,
+static int line_clipping(float pixel, const float sig[], float sigma, int i, float a,
 		float b, guint64 rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
@@ -135,6 +135,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 	switch (args->type_of_rejection) {
 	case PERCENTILE:
 	case SIGMA:
+	case MAD:
 		median = quickmedian_float(stack, N);
 		if (median == 0.0)
 			return 0;
@@ -159,8 +160,14 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 		N = output;
 		break;
 	case SIGMA:
+	case MAD:
 		do {
-			const float sigma = siril_stats_float_sd(stack, N, NULL);
+			float var;
+			if (args->type_of_rejection == SIGMA)
+				var = siril_stats_float_sd(stack, N, NULL);
+			else
+				var = siril_stats_float_mad(stack, N, median, SINGLE_THREADED, NULL);
+
 			if (!firstloop)
 				median = quickmedian_float(stack, N);
 			else
@@ -170,7 +177,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 					// no more rejections
 					rejected[frame] = 0;
 				} else {
-					rejected[frame] = sigma_clipping_float(stack[frame], sigma,
+					rejected[frame] = sigma_clipping_float(stack[frame], var,
 							siglow, sighigh, (float) median, crej);
 					if (rejected[frame])
 						r++;
@@ -297,7 +304,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 
 		memcpy(w_stack, stack, N * sizeof(float));
 		memset(rejected, 0, N * sizeof(int));
-
+		int cold = 0;
 		for (int iter = 0, size = N; iter < max_outliers; iter++, size--) {
 			float Gstat;
 			int max_index = 0;
@@ -305,7 +312,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 			grubbs_stat(w_stack, size, &Gstat, &max_index);
 			out[iter].out = check_G_values(Gstat, args->critical_value[iter + removed]);
 			out[iter].x = w_stack[max_index];
-			out[iter].i = max_index;
+			out[iter].i = (max_index == 0) ? cold++ : max_index;
 			remove_element(w_stack, max_index, size);
 		}
 		confirm_outliers(out, max_outliers, median, rejected, crej);

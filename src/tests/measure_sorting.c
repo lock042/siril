@@ -1,15 +1,35 @@
-#include "../core/siril.h"
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
 
-#define USE_ALL_SORTING_ALGOS
+#include "../core/siril.h"
 #include "../algos/sorting.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-#define USE_MULTITHREADING TRUE
+#define THREADING_TYPE MULTI_THREADED
 
-cominfo com;	// the main data struct
+cominfo com;	// the core data struct
+guiinfo gui;	// the gui data struct
+fits gfit;	// currently loaded image
 
 double median_from_sorted_array(WORD *arr, int size)
 {
@@ -27,7 +47,7 @@ double _siril_qsort(WORD *data, size_t datasize)
 
 double _histogram_sort(WORD *data, size_t datasize)
 {
-	return histogram_median(data, datasize, USE_MULTITHREADING);
+	return histogram_median(data, datasize, THREADING_TYPE);
 }
 
 clock_t perf_test(double (*function)(WORD *data, size_t datasize),

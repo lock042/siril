@@ -55,7 +55,7 @@
  ** Computes the wavelet transform of the image with a file name File_Name_Imag
  ** and write the result in the file File_Name_Transform
  **
- ** File_Name_Imag = File name of the imput image
+ ** File_Name_Imag = File name of the input image
  ** File_Name_Transform = File name of the output wavelet transform
  ** Type_Transform = wavelet transform algorithm number
  ** Fc = cut-off frequency if the algorithm use the FFT

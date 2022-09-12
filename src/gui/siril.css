@@ -1,7 +1,5 @@
-* {
-    font-size: %lfem;
-    -gtk-icon-style: %s;
-}
+/* don't change this first line without updating siril_css.c */
+* { font-size: 1.0em; -gtk-icon-style: regular; }
 
 GtkBox {
     border-width: 0;
@@ -103,6 +101,16 @@ GtkButton {
   font-size: 14pt;
   font-weight: bold;
   text-shadow: 1px 1px 2px black;
+}
+
+@keyframes blinker {  
+  50% { opacity: 0; }
+}
+
+#livestacking-blinking label.record {
+  color: red;
+  font-weight: bold;
+  animation: blinker 1s linear infinite;
 }
 
 /* Siril Intro */

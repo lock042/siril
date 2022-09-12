@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -183,16 +183,29 @@ gchar *date_time_to_FITS_date(GDateTime *datetime) {
 	GString *outstr = NULL;
 	gchar *main_date = NULL;
 	gchar *format = "%Y-%m-%dT%H:%M:%S";
+	gint us;
 
+	us = g_date_time_get_microsecond(datetime);
+
+#if GLIB_CHECK_VERSION(2,66,0)
 	/* if datetime has sub-second non-zero values below the second precision we
 	 * should print them as well */
-	if (g_date_time_get_microsecond(datetime) % G_TIME_SPAN_SECOND != 0)
+	if (us % G_TIME_SPAN_SECOND != 0)
 		format = "%Y-%m-%dT%H:%M:%S.%f";
+#endif
 
 	/* Main date and time. */
 	main_date = g_date_time_format(datetime, format);
 	outstr = g_string_new(main_date);
 	g_free(main_date);
+
+#if !GLIB_CHECK_VERSION(2,66,0)
+	/* for old glib versions we need to do it manually because
+	 * %f does not exist
+	 */
+	if (us % G_TIME_SPAN_SECOND != 0)
+		g_string_append_printf(outstr, ".%d", us);
+#endif
 
 	return g_string_free(outstr, FALSE);
 }

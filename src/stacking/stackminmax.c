@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -47,7 +47,9 @@ int stack_addmin(struct stacking_args *args) {
 static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	WORD *final_pixel[3];
 	float *ffinal_pixel[3];
-	double exposure = 0.0;
+	double livetime = 0.0;
+	GList *list_date = NULL; // list of dates of every FITS file
+	//double exposure = 0.0;
 	gboolean is_float = TRUE; // init only for warning
 	size_t nbdata = 0;
 	char filename[256];
@@ -144,8 +146,11 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		/* load registration data for current image */
 		int shiftx, shifty;
 		if (reglayer != -1 && args->seq->regparam[reglayer]) {
-			shiftx = round_to_int(args->seq->regparam[reglayer][j].shiftx * (float) args->seq->upscale_at_stacking);
-			shifty = round_to_int(args->seq->regparam[reglayer][j].shifty * (float) args->seq->upscale_at_stacking);
+			double dx, dy;
+			double scale = args->seq->upscale_at_stacking;
+			translation_from_H(args->seq->regparam[reglayer][j].H, &dx, &dy);
+			shiftx = round_to_int(dx * scale);
+			shifty = round_to_int(dy * scale);
 		} else {
 			shiftx = 0;
 			shifty = 0;
@@ -155,7 +160,12 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 #endif
 
 		/* Summing the exposure */
-		exposure += fit.exposure;
+		livetime += fit.exposure;
+
+		if (fit.date_obs) {
+			GDateTime *date = g_date_time_ref(fit.date_obs);
+			list_date = g_list_prepend(list_date, new_date_item(date, fit.exposure));
+		}
 
 		/* stack current image */
 		size_t i = 0;	// index in final_pixel[0]
@@ -198,8 +208,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	}
 	set_progress_bar_data(_("Finalizing stacking..."), (double) nb_frames / ((double) nb_frames + 1.));
 
-	clearfits(&gfit);
-	fits *result = &gfit;
+	fits *result = &args->result;
 	if (is_float) {
 		if (new_fit_image_with_data(&result, args->seq->rx, args->seq->ry, args->seq->nb_layers, DATA_FLOAT, ffinal_pixel[0]))
 			return ST_GENERIC_ERROR;
@@ -212,15 +221,23 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	int ref = args->ref_image;
 	if (args->seq->type == SEQ_REGULAR) {
 		if (!seq_open_image(args->seq, ref)) {
-			import_metadata_from_fitsfile(args->seq->fptr[ref], &gfit);
+			import_metadata_from_fitsfile(args->seq->fptr[ref], result);
+			result->orig_bitpix = result->bitpix = args->seq->bitpix;
 			seq_close_image(args->seq, ref);
 		}
 	} else if (args->seq->type == SEQ_FITSEQ) {
-		if (!fitseq_set_current_frame(args->seq->fitseq_file, ref))
-			import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, &gfit);
+		if (!fitseq_set_current_frame(args->seq->fitseq_file, ref)) {
+			import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, result);
+			result->orig_bitpix = result->bitpix = args->seq->fitseq_file->bitpix;
+		}
 	} else if (args->seq->type == SEQ_SER) {
-		import_metadata_from_serfile(args->seq->ser_file, &gfit);
+		import_metadata_from_serfile(args->seq->ser_file, result);
+		result->orig_bitpix = result->bitpix = (args->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
 	}
+	result->stackcnt = args->nb_images_to_stack;
+	result->livetime = livetime;
+	compute_date_time_keywords(list_date, result);
+	g_list_free_full(list_date, (GDestroyNotify) free_list_date);
 
 free_and_reset_progress_bar:
 	if (retval) {
@@ -232,3 +249,4 @@ free_and_reset_progress_bar:
 
 	return retval;
 }
+

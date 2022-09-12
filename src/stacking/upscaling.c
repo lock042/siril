@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -102,7 +102,7 @@ struct upscale_args {
 	double factor;
 };
 
-static int upscale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_) {
+static int upscale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	double factor = ((struct upscale_args *)args->user)->factor;
 	/* updating pixel size if exist */
 	fit->pixel_size_x /= factor;
@@ -122,19 +122,9 @@ int upscale_sequence(struct stacking_args *stackargs) {
 
 	upargs->factor = stackargs->seq->upscale_at_stacking;
 
-	if (com.cache_upscaled) {
-		// This won't work if stackargs->filtering_criterion is already a multiple filter
-		args->filtering_criterion = create_multiple_filter(
-				stackargs->filtering_criterion, stackargs->filtering_parameter,
-				create_filter_prefixed_nonexisting_output(TMP_UPSCALED_PREFIX), 0.0,
-				NULL);
-		args->filtering_parameter = 0.0; // not used by multiple filtering
-		args->nb_filtered_images = -1;
-	} else {
-		args->filtering_criterion = stackargs->filtering_criterion;
-		args->filtering_parameter = stackargs->filtering_parameter;
-		args->nb_filtered_images = stackargs->nb_images_to_stack;
-	}
+	args->filtering_criterion = stackargs->filtering_criterion;
+	args->filtering_parameter = stackargs->filtering_parameter;
+	args->nb_filtered_images = stackargs->nb_images_to_stack;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = upscale_image_hook;
@@ -153,7 +143,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		stackargs->seq->upscale_at_stacking = 1.0;
 		return 0;
 	}
-	args->max_thread = nb_threads;
+	args->max_parallel_images = nb_threads;
 
 	remove_tmp_drizzle_files(stackargs);
 
@@ -171,7 +161,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		g_free(basename);
 
 		// replace active sequence by upscaled
-		if (check_seq(0)) {	// builds the new .seq
+		if (check_seq()) {	// builds the new .seq
 			free(seqname);
 			return 1;
 		}

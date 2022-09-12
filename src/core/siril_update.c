@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#ifdef HAVE_JSON_GLIB
 #include <json-glib/json-glib.h>
 
 #ifdef HAVE_LIBCURL
@@ -43,7 +44,7 @@
 #define SIRIL_DOWNLOAD DOMAIN"download"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
 
-static gchar *get_changelog(gint x, gint y, gint z, gint p);
+static gchar *get_changelog(gchar *str);
 
 
 // taken from gimp
@@ -187,20 +188,33 @@ static gboolean siril_update_get_highest(JsonParser *parser,
 	return (*highest_version != NULL);
 }
 
+static gboolean remove_alpha(gchar *str) {
+	unsigned long i = 0;
+	unsigned long j = 0;
+	char c;
+	gboolean alpha = FALSE;
+
+	while ((c = str[i++]) != '\0') {
+		if (g_ascii_isdigit(c)) {
+			str[j++] = c;
+			alpha = TRUE;
+		}
+	}
+	str[j] = '\0';
+	return alpha;
+}
+
 /**
  * Check if the version is a patched version.
  * patched version are named like that x.y.z.patch where patch only contains digits.
- * if patch contains alpha char it is because that's an alpha or beta version. Not a patched one.
+ * if patch contains alpha char it is because that's a RC version. Not a patched one.
+ * WARNINGS: here we just allow RC versions in patch. Indeed, all beta versions have odd numbering
+ * and are dev versions.
  * @param version version to be tested
  * @return 0 if the version is not patched. The version of the patch is returned otherwise.
  */
-static guint check_for_patch(gchar *version) {
-	guint i = 0;
-
-	while (version[i]) {
-		if (g_ascii_isalpha(version[i])) return 0;
-		i++;
-	}
+static guint check_for_patch(gchar *version, gboolean *prerelease) {
+	*prerelease = remove_alpha(version);
 	return (g_ascii_strtoull(version, NULL, 10));
 }
 
@@ -212,7 +226,12 @@ static version_number get_current_version_number() {
 	version.major_version = g_ascii_strtoull(fullVersionNumber[0], NULL, 10);
 	version.minor_version = g_ascii_strtoull(fullVersionNumber[1], NULL, 10);
 	version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
-	version.patched_version = (fullVersionNumber[3] == NULL) ? 0 : check_for_patch(fullVersionNumber[3]);
+	if (fullVersionNumber[3] == NULL) {
+		version.patched_version = 0;
+		version.rc_version = FALSE;
+	} else {
+		version.patched_version = check_for_patch(fullVersionNumber[3], &version.rc_version);
+	}
 
 	g_strfreev(fullVersionNumber);
 
@@ -231,8 +250,10 @@ static version_number get_last_version_number(gchar *version_str) {
 		version.minor_version = g_ascii_strtoull(v[1], NULL, 10);
 	if (v[0] && v[1] && v[2])
 		version.micro_version = g_ascii_strtoull(v[2], NULL, 10);
-	if (v[0] && v[1] && v[2] && v[3])
+	if (v[0] && v[1] && v[2] && v[3]) {
+		version.rc_version = remove_alpha(v[3]);
 		version.patched_version = g_ascii_strtoull(v[3], NULL, 10);
+	}
 
 	g_strfreev(v);
 	return version;
@@ -260,10 +281,18 @@ static int compare_version(version_number v1, version_number v2) {
 			else if (v1.micro_version > v2.micro_version)
 				return 1;
 			else {
-				if (v1.patched_version < v2.patched_version)
-					return -1;
-				else if (v1.patched_version > v2.patched_version)
-					return 1;
+				if ((v1.rc_version && v2.rc_version) || (!v1.rc_version && !v2.rc_version)) {
+					if (v1.patched_version < v2.patched_version)
+						return -1;
+					else if (v1.patched_version > v2.patched_version)
+						return 1;
+				} else {
+					if (v1.rc_version && !v2.rc_version) {
+						return -1;
+					} else if (!v1.rc_version && v2.rc_version) {
+						return 1;
+					}
+				}
 			}
 		}
 	}
@@ -300,7 +329,6 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 	guint x = last_version_available.major_version;
 	guint y = last_version_available.minor_version;
 	guint z = last_version_available.micro_version;
-	guint patch = last_version_available.patched_version;
 	if (x == 0 && y == 0 && z == 0) {
 		if (*verbose)
 			msg = siril_log_message(_("No update check: cannot fetch version file\n"));
@@ -309,7 +337,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 			msg = siril_log_message(_("New version is available. You can download it at "
 							"<a href=\"%s\">%s</a>\n"),
 					SIRIL_DOWNLOAD, SIRIL_DOWNLOAD);
-			changelog = get_changelog(x, y, z, patch);
+			changelog = get_changelog(version);
 			if (changelog) {
 				*data = parse_changelog(changelog);
 				/* force the verbose variable */
@@ -376,14 +404,11 @@ static void http_cleanup() {
 	curl = NULL;
 }
 
-static gchar *get_changelog(gint x, gint y, gint z, gint p) {
+static gchar *get_changelog(gchar *str) {
 	struct ucontent *changelog;
 	gchar *result = NULL;
-	gchar str[20];
 	gchar *changelog_url;
 	long code;
-
-	GString *url = g_string_new(GITLAB_URL);
 
 	changelog = g_try_malloc(sizeof(struct ucontent));
 	if (changelog == NULL) {
@@ -395,13 +420,10 @@ static gchar *get_changelog(gint x, gint y, gint z, gint p) {
 	changelog->data[0] = '\0';
 	changelog->len = 0;
 
-	if (p != 0) {
-		g_snprintf(str, sizeof(str), "/%d.%d.%d.%d/", x, y, z, p);
-	} else {
-		g_snprintf(str, sizeof(str), "/%d.%d.%d/", x, y, z);
-	}
+	GString *url = g_string_new(GITLAB_URL);
+	url = g_string_append(url, "/");
 	url = g_string_append(url, str);
-	url = g_string_append(url, "ChangeLog");
+	url = g_string_append(url, "/ChangeLog");
 
 	changelog_url = g_string_free(url, FALSE);
 	curl_easy_setopt(curl, CURLOPT_URL, changelog_url);
@@ -468,29 +490,25 @@ static gchar *check_update_version(struct _update_data *args) {
 }
 
 static gboolean end_update_idle(gpointer p) {
-	char *msg = NULL;
-	gchar *data = NULL;
-	GtkMessageType message_type = GTK_MESSAGE_ERROR;
 	struct _update_data *args = (struct _update_data *) p;
 
 	if (args->content == NULL) {
 		switch(args->code) {
 		case 0:
-			msg = siril_log_message(_("Unable to check updates! "
+			siril_log_message(_("Unable to check updates! "
 					"Please Check your network connection\n"));
 			break;
 		default:
-			msg = siril_log_message(_("Unable to check updates! Error: %ld\n"),
+			siril_log_message(_("Unable to check updates! Error: %ld\n"),
 					args->code);
 		}
 	} else {
-		msg = check_update_version(args);
-		message_type = GTK_MESSAGE_INFO;
+		check_update_version(args);
 	}
 
 	/* free data */
+	set_cursor_waiting(FALSE);
 	g_free(args->content);
-	g_free(data);
 	free(args);
 	http_cleanup();
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -604,30 +622,24 @@ void siril_check_updates(gboolean verbose) {
 
 #else
 
-static gchar *get_changelog(gint x, gint y, gint z, gint p) {
+static gchar *get_changelog(gchar *str) {
 	GError *error = NULL;
 	gchar *result = NULL;
-	gchar *str;
 
-	if (p != 0) {
-		str = g_strdup_printf("/%d.%d.%d.%d/", x, y, z, p);
-	} else {
-		str = g_strdup_printf("/%d.%d.%d/", x, y, z);
-	}
 	GString *url = g_string_new(GITLAB_URL);
+	url = g_string_append(url, "/");
 	url = g_string_append(url, str);
-	url = g_string_append(url, "ChangeLog");
+	url = g_string_append(url, "/ChangeLog");
 
 	gchar *changelog_url = g_string_free(url, FALSE);
 	GFile *file = g_file_new_for_uri(changelog_url);
 
 	if (!g_file_load_contents(file, NULL, &result, NULL, NULL, &error)) {
-		siril_log_message(_("Error loading url: %s: %s\n"), changelog_url, error->message);
+		siril_log_message(_("Error loading url: [%s] - %s\n"), changelog_url, error->message);
 		g_clear_error(&error);
 	}
 
 	g_free(changelog_url);
-	g_free(str);
 	g_object_unref(file);
 
 	return result;
@@ -703,4 +715,5 @@ void siril_check_updates(gboolean verbose) {
 	g_file_load_contents_async(siril_versions, NULL, siril_check_updates_callback, GINT_TO_POINTER(verbose));
 	g_object_unref(siril_versions);
 }
+#endif
 #endif

@@ -9,6 +9,9 @@
 #define OD_CWD 		4
 #define OD_OPEN 	5
 #define OD_CONVERT 	6
+#define OD_BADPIXEL	7
+
+#define FITS_EXTENSIONS "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fits.fz"
 
 void header_open_button_clicked();
 void cwd_btton_clicked();

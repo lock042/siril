@@ -592,58 +592,40 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 		int numB, /* I: number of stars in list B */
 		struct s_star *listB, /* I: match this set of objects with list A */
 		Homography *H,
-		gboolean print_output
+		gboolean save_photometric_data,
+		pcc_star *photometric_data,
+		int *nb_photometric_stars,
+		transformation_type type
 ) {
-	int ret = 0;
-	int num_stars_B; /* number of stars in chain B */
-
 	s_star *star_array_A;
 	s_star *star_array_B;
 	unsigned char *mask;
 
-	num_stars_B = numB;
 	star_array_A = list_to_array(numA, listA);
 	star_array_B = list_to_array(numB, listB);
 
 	g_assert(star_array_A != NULL);
 	g_assert(star_array_B != NULL);
 
-	mask = cvCalculH(star_array_A, star_array_B, num_stars_B, H);
-	ret = (mask == NULL ? 1 : 0);
+	mask = cvCalculH(star_array_A, star_array_B, numB, H, type);
+	int ret = mask == NULL;
 
-	if (print_output) {
-		GError *error = NULL;
-		int i;
-		s_star *starA, *starB;
-		GFile *BV_file = g_file_new_build_filename(g_get_tmp_dir(), "photometric_cc.dat", NULL);
-		GOutputStream *output_stream = (GOutputStream*) g_file_replace(BV_file, NULL, FALSE,
-				G_FILE_CREATE_NONE, NULL, &error);
-
-		if (output_stream == NULL) {
-			if (error != NULL) {
-				g_warning("%s\n", error->message);
-				g_clear_error(&error);
-			}
-			g_object_unref(BV_file);
-			return 1;
-		}
-
-		for (i = 0; i < numB; i++) {
-			starA = &(star_array_A[i]);
-			starB = &(star_array_B[i]);
+	if (!ret && save_photometric_data) {
+		int n = 0;
+		for (int i = 0; i < numB; i++) {
+			s_star *starA = star_array_A + i;
+			s_star *starB = star_array_B + i;
 			g_assert(starA != NULL);
 			g_assert(starB != NULL);
 			if (mask && mask[i] && starB->BV != -99.9) {
-				gchar *line = g_strdup_printf(" %4d %11.4e %11.4e %.3f\n", i, starA->x, starA->y, starB->BV);
-				if (!g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, &error)) {
-					g_warning("%s\n", error->message);
-					g_clear_error(&error);
-				}
-				g_free(line);
+				photometric_data[n].x = (float)starA->x;
+				photometric_data[n].y = (float)starA->y;
+				photometric_data[n].mag = (float)starB->mag;
+				photometric_data[n].BV = (float)starB->BV;
+				n++;
 			}
 		}
-		g_object_unref(output_stream);
-		g_object_unref(BV_file);
+		*nb_photometric_stars = n;
 	}
 
 	/*
@@ -5710,10 +5692,10 @@ int row /* I: want to pivot around this row */
 		printf("   will swap \n");
 #endif
 		for (col = row; col < num; col++) {
-			SWAP(matrix[pivot_row][col], matrix[row][col]);
+			SWAPD(matrix[pivot_row][col], matrix[row][col]);
 		}
-		SWAP(vector[pivot_row], vector[row]);
-		SWAP(biggest_val[pivot_row], biggest_val[row]);
+		SWAPD(vector[pivot_row], vector[row]);
+		SWAPD(biggest_val[pivot_row], biggest_val[row]);
 	} else {
 #ifdef DEBUG
 		printf("    no swap \n");

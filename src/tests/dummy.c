@@ -1,3 +1,22 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
 /* functions and variables defined only for linking */
 
 #include "../core/siril.h"
@@ -5,8 +24,8 @@
 
 /* the global variables of the whole project (replacing main.c) */
 cominfo com;	// the main data struct
+guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
-GtkBuilder *builder;	// get widget references anywhere
 char **supported_extensions;
 
 gboolean sequence_is_loaded() {
@@ -110,7 +129,12 @@ gboolean load_WCS_from_file(fits* fit) {
 	return FALSE;
 }
 
-void free_wcs(fits *fit) {
+gboolean load_WCS_from_memory(fits* fit) {
+        fprintf(stderr, "ERROR: calling undefined function load_WCS_from_memory\n");
+	return FALSE;
+}
+
+void free_wcs(fits *fit, gboolean keep_RADEC) {
         fprintf(stderr, "ERROR: calling undefined function free_wcs\n");
 }
 
@@ -142,10 +166,42 @@ void gui_log_message(const char* msg, const char* color) {
         fprintf(stderr, "ERROR: calling undefined function gui_log_message\n");
 }
 
+void wcs_cd_to_pc(double cd[2][2], double pc[2][2], double cdelt[2]) {
+        fprintf(stderr, "ERROR: calling undefined function wcs_cd_to_pc\n");
+}
+
+void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
+        fprintf(stderr, "ERROR: calling undefined function wcs_pc_to_cd\n");
+}
+
+gboolean has_wcsdata(fits *fit) {
+        fprintf(stderr, "ERROR: calling undefined function has_wcsdata\n");
+	return FALSE;
+}
+
+int check_threading(const threading_type *t) {
+	if (*t != SINGLE_THREADED)
+		return 2;
+	return 1;
+}
+
+int limit_threading(threading_type *t, int set, int max) {
+	return check_threading(t);
+}
+
 #ifdef DUMMY_LOG
 char* siril_log_message(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
+	printf("\t");
+	vprintf(format, args);
+	va_end(args);
+	return "";
+}
+
+char* siril_log_color_message(const char* format, const char* color, ...) {
+	va_list args;
+	va_start(args, color);
 	printf("\t");
 	vprintf(format, args);
 	va_end(args);

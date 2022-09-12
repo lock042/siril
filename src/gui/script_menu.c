@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2021 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -120,27 +120,20 @@ static GSList *search_script(const char *path) {
 }
 
 static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
-	GError *error = NULL;
-
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 
-	if (com.pref.save.warn_script) {
+	if (com.pref.gui.warn_script_run) {
 		gboolean dont_show_again;
 		gboolean confirm = siril_confirm_dialog_and_remember(
 				_("Please read me before using scripts"), CONFIRM_RUN_SCRIPTS, _("Run Script"), &dont_show_again);
-		com.pref.save.warn_script = !dont_show_again;
-		/* We do not use set_GUI_misc because some button state can be in an unsaved state if the
-		 * preference dialog is opened
-		 */
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), com.pref.save.warn_script);
-		/* update config file */
-		writeinitfile();
-		if (!confirm) {
+		if (!confirm)
 			return;
-		}
+
+		com.pref.gui.warn_script_run = !dont_show_again;
+		writeinitfile();
 	}
 
 	if (com.script_thread)
@@ -151,10 +144,8 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	gchar *script_file = g_strdup_printf("%s%s", (gchar *) user_data, SCRIPT_EXT);
 	GFile *file = g_file_new_for_path(script_file);
-
-    GFileInfo *info;
-
-	info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
+	GError *error = NULL;
+	GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
 			G_FILE_QUERY_INFO_NONE, NULL, &error);
 	if (info) {
 		GInputStream *input_stream = (GInputStream*) g_file_read(file, NULL, &error);
@@ -182,27 +173,19 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 int initialize_script_menu() {
 	static GtkWidget *menuscript = NULL;
-	GSList *list, *script, *s;
-	GtkWidget *menu;
+	GSList *list, *script_paths, *s;
 	gint nb_item = 0;
 
-	if (!menuscript) {
+	if (!menuscript)
 		menuscript = lookup_widget("header_scripts_button");
-	}
 	
-	script = set_list_to_preferences_dialog(com.pref.script_path);
+	script_paths = set_list_to_preferences_dialog(com.pref.gui.script_path);
 
-	menu = gtk_menu_new();
-	gtk_widget_hide(menuscript);
+	GtkWidget *menu = gtk_menu_new();
 
-	for (s = script; s; s = s->next) {
+	for (s = script_paths; s; s = s->next) {
 		list = search_script(s->data);
 		if (list) {
-			GSList *l;
-			if (!gtk_widget_get_visible(menuscript)) {
-				gtk_widget_show(menuscript);
-				gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
-			}
 			/* write separator but not for the first one */
 			if (nb_item != 0) {
 				GtkWidget *separator = gtk_separator_menu_item_new();
@@ -210,8 +193,9 @@ int initialize_script_menu() {
 				gtk_widget_show(separator);
 			}
 			siril_log_color_message(_("Searching scripts in: \"%s\"...\n"), "green", s->data);
-			for (l = list; l; l = l->next) {
-				nb_item ++;
+
+			for (GSList *l = list; l; l = l->next) {
+				nb_item++;
 				/* write an item per script file */
 				GtkWidget *menu_item;
 
@@ -228,8 +212,13 @@ int initialize_script_menu() {
 		}
 	}
 
-	writeinitfile();
-
+	if (!nb_item) {
+		gtk_widget_hide(menuscript);
+		return 0;
+	}
+	gtk_menu_button_set_popup(GTK_MENU_BUTTON(menuscript), menu);
+	if (!gtk_widget_get_visible(menuscript))
+		gtk_widget_show(menuscript);
 	return 0;
 }
 
@@ -241,8 +230,8 @@ int refresh_scripts(gboolean update_list, gchar **error) {
 		err = siril_log_color_message(_("Cannot refresh the scripts if the list is empty.\n"), "red");
 		retval = 1;
 	} else {
-		g_slist_free_full(com.pref.script_path, g_free);
-		com.pref.script_path = list;
+		g_slist_free_full(com.pref.gui.script_path, g_free);
+		com.pref.gui.script_path = list;
 		retval = initialize_script_menu();
 	}
 	if (error) {
@@ -301,10 +290,10 @@ void siril_get_on_script_pages() {
 	gchar *lang = NULL;
 	int i = 0;
 
-	if (!g_strcmp0(com.pref.combo_lang, "")) {
+	if (!g_strcmp0(com.pref.lang, "")) {
 		locale = setlocale(LC_MESSAGES, NULL);
 	} else {
-		locale = com.pref.combo_lang;
+		locale = com.pref.lang;
 	}
 
 	if (locale) {
