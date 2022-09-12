@@ -26,6 +26,9 @@
 #include "LibMatrix.h"
 #include "LibImages.h"
 #include "Utilities.h"
+extern "C" {
+#include "core/processing.h"
+}
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -207,16 +210,19 @@ int runNlBayes(
 		!= EXIT_SUCCESS) {
 		return EXIT_FAILURE;
 	}
-
+	int retval = 0;
 	//! Process all sub-images
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic, nbParts/nbThreads) \
-            shared(imNoisySub, imBasicSub, imFinalSub, imSizeSub) \
+            shared(imNoisySub, imBasicSub, imFinalSub, imSizeSub, retval) \
 		firstprivate (paramStep1)
 #endif
 	for (int n = 0; n < (int) nbParts; n++) {
-	    processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep1);
+	    retval += processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep1);
 	}
+
+	if (retval != 0)
+		return EXIT_FAILURE;
 
 	//! Get the basic estimate
 	if (subBuild(o_imBasic, imBasicSub, p_imSize, imSizeSub, paramStep1.boundary)
@@ -253,8 +259,11 @@ int runNlBayes(
 		firstprivate (paramStep2)
 #endif
 	for (int n = 0; n < (int) nbParts; n++) {
-		processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep2);
+		retval += processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep2);
 	}
+
+	if (retval != 0)
+		return EXIT_FAILURE;
 
 	//! Get the final result
 	if (subBuild(o_imFinal, imFinalSub, p_imSize, imSizeSub, paramStep2.boundary)
@@ -280,7 +289,7 @@ int runNlBayes(
  *
  * @return none.
  **/
-void processNlBayes(
+int processNlBayes(
 	std::vector<float> const& i_imNoisy
 ,	std::vector<float> &io_imBasic
 ,	std::vector<float> &o_imFinal
@@ -328,6 +337,8 @@ void processNlBayes(
 	}
 
 	for (unsigned ij = 0; ij < p_imSize.wh; ij += p_params.offSet) {
+		if (!get_thread_run())
+			return 1;
 		//! Only non-seen patches are processed
 		if (mask[ij]) {
 			//! Search for similar patches around the reference one
@@ -384,6 +395,7 @@ void processNlBayes(
 	if (nInverseFailed > 0 && p_params.verbose) {
 		cout << "nInverseFailed = " << nInverseFailed << endl;
 	}
+	return 0;
 }
 
 /**

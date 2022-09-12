@@ -141,7 +141,7 @@ int runNlBayes(
  *
  * @return none.
  **/
-void processNlBayes(
+int processNlBayes(
 	std::vector<float> const& i_imNoisy
 ,	std::vector<float> &io_imBasic
 ,	std::vector<float> &o_imFinal
