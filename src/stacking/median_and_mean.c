@@ -787,7 +787,9 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 						norm += pweights[frame];
 					}
 				}
-				mean = sum / norm;
+				if (norm == 0.0)
+					mean = sum / (double)kept_pixels;
+				else mean = sum / norm;
 			} else {
 				gint64 sum = 0L;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -874,15 +876,17 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 	double fwhmmax = -DBL_MAX;
 	double invdenom, invfwhmax2;
 
-	if((!args->seq->regparam) && (!args->seq->regparam[args->reglayer]))
+	if (!layer_has_registration(args->seq, args->reglayer)) {
+		siril_log_color_message(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), "red", "wFWHM");
 		return ST_GENERIC_ERROR;
+	}
 
 	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
 	double *pweights[3];
 
 	for (int i = 0; i < args->nb_images_to_stack; ++i) {
 		int idx = args->image_indices[i];
-		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm < fwhmmin) fwhmmin = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
+		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm < fwhmmin && args->seq->regparam[args->reglayer][idx].weighted_fwhm > 0) fwhmmin = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
 		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm > fwhmmax) fwhmmax = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
 	}
 	invdenom = 1. / (1. / (fwhmmin * fwhmmin) - 1. / (fwhmmax * fwhmmax));
@@ -893,8 +897,12 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 		pweights[layer] = args->weights + layer * nb_frames;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
 			int idx = args->image_indices[i];
-			pweights[layer][i] = (1. / (args->seq->regparam[args->reglayer][idx].weighted_fwhm * args->seq->regparam[args->reglayer][idx].weighted_fwhm) - invfwhmax2) * invdenom;
-			norm += pweights[layer][i];
+			if (args->seq->regparam[args->reglayer][idx].weighted_fwhm > 0) {
+				pweights[layer][i] = (1. / (args->seq->regparam[args->reglayer][idx].weighted_fwhm * args->seq->regparam[args->reglayer][idx].weighted_fwhm) - invfwhmax2) * invdenom;
+				norm += pweights[layer][i];
+			} else {
+				pweights[layer][i] = 0.;
+			}
 		}
 		norm /= (double) nb_frames;
 
@@ -913,8 +921,10 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 	int starmax = 0;
 	double invdenom;
 
-	if((!args->seq->regparam) && (!args->seq->regparam[args->reglayer]))
+	if (!layer_has_registration(args->seq, args->reglayer)) {
+		siril_log_color_message(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), "red", _("number of stars"));
 		return ST_GENERIC_ERROR;
+	}
 
 	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
 	double *pweights[3];
