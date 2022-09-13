@@ -818,7 +818,9 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 						norm += pweights[frame];
 					}
 				}
-			mean = sum / norm;
+				if (norm == 0.0)
+					mean = sum / (double)kept_pixels;
+				else mean = sum / norm;
 			} else {
 				double sum = 0.0;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -886,7 +888,6 @@ static int compute_wfwhm_weights(struct stacking_args *args) {
 	invdenom = 1. / (1. / (fwhmmin * fwhmmin) - 1. / (fwhmmax * fwhmmax));
 	invfwhmax2 = 1. / (fwhmmax * fwhmmax);
 
-
 	for (int layer = 0; layer < nb_layers; ++layer) {
 		double norm = 0.0;
 		pweights[layer] = args->weights + layer * nb_frames;
@@ -911,7 +912,7 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 	int starmin = INT_MAX;
 	int starmax = 0;
 	double invdenom;
-	
+
 	if((!args->seq->regparam) && (!args->seq->regparam[args->reglayer]))
 		return ST_GENERIC_ERROR;
 
@@ -923,14 +924,18 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 		if (args->seq->regparam[args->reglayer][idx].number_of_stars < starmin) starmin = args->seq->regparam[args->reglayer][idx].number_of_stars;
 		if (args->seq->regparam[args->reglayer][idx].number_of_stars > starmax) starmax = args->seq->regparam[args->reglayer][idx].number_of_stars;
 	}
-	invdenom = 1. / (double)(starmax - starmin);
+	if (starmax == starmin)
+		invdenom = 1.0;
+	else invdenom = 1. / (double)(starmax - starmin);
 
 	for (int layer = 0; layer < nb_layers; ++layer) {
 		double norm = 0.0;
 		pweights[layer] = args->weights + layer * nb_frames;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
 			int idx = args->image_indices[i];
-			pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) * (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) * invdenom * invdenom;
+			pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+				(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+				invdenom * invdenom;
 			norm += pweights[layer][i];
 		}
 		norm /= (double) nb_frames;
@@ -942,6 +947,7 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 	}
 	return ST_OK;
 }
+
 /* How many rows fit in memory, based on image size, number and available memory.
  * It returns at most the total number of rows of the image (naxes[1] * naxes[2]) */
 static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack) {
