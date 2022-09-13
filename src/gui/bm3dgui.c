@@ -5,6 +5,7 @@
 #include "algos/statistics.h"
 #include "filters/median.h"
 #include "filters/bm3d/call_bm3d.h"
+#include "filters/nlbayes/call_nlbayes.h"
 #include "gui/utils.h"
 #include "gui/siril_preview.h"
 #include "gui/dialogs.h"
@@ -63,6 +64,6 @@ void on_bm3d_apply_clicked(GtkButton *button, gpointer user_data) {
 	else
 		siril_log_message(_("Final stage DA3D denoising disabled.\n"));
 
-	start_in_new_thread(run_bm3d_on_fit, args);
+	start_in_new_thread(run_nlbayes_on_fit, args);
 	siril_close_dialog("bm3d_dialog");
 }

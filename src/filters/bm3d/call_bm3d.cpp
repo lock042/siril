@@ -13,6 +13,7 @@
 #include "filters/da3d/Image.hpp"
 #include "filters/da3d/Utils.hpp"
 #include "filters/da3d/DA3D.hpp"
+#include "filters/nlbayes/call_nlbayes.h"
 
 #include "bm3d.h"
 #include "bm3d_utilities.h"
@@ -46,38 +47,6 @@ using utils::makeMonochrome;
 
 using da3d::Image;
 using da3d::DA3D;
-
-void bgrbgr_float_to_fits(fits *image, float *bgrbgr, float modulation) {
-  unsigned npixels = image->naxes[0] * image->naxes[1];
-
-  for (unsigned i = 0; i < npixels; i++) {
-    image->fpdata[BLAYER][i] = (1.f-modulation) * image->fpdata[BLAYER][i] + modulation * bgrbgr[i*3];
-	image->fpdata[GLAYER][i] = (1.f-modulation) * image->fpdata[GLAYER][i] + modulation * bgrbgr[i*3+1];
-	image->fpdata[RLAYER][i] = (1.f-modulation) * image->fpdata[RLAYER][i] + modulation * bgrbgr[i*3+2];
-  }
-}
-
-void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr, float modulation) {
-	size_t ndata = image->rx * image->ry * 3;
-	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		image->pdata[BLAYER][j] = round_to_WORD(((modulation * bgrbgr[i + 0]) + (1.f - modulation) * image->pdata[BLAYER][j] / USHRT_MAX_SINGLE) * USHRT_MAX);
-		image->pdata[GLAYER][j] = round_to_WORD(((modulation * bgrbgr[i + 1]) + (1.f - modulation) * image->pdata[GLAYER][j] / USHRT_MAX_SINGLE) * USHRT_MAX);
-		image->pdata[RLAYER][j] = round_to_WORD(((modulation * bgrbgr[i + 2]) + (1.f - modulation) * image->pdata[RLAYER][j] / USHRT_MAX_SINGLE) * USHRT_MAX);
-	}
-}
-
-float *fits_to_bgrbgr_wordtofloat(fits *image) {
-    size_t ndata = image->rx * image->ry * 3;
-    float invnorm = 1 / USHRT_MAX_SINGLE;
-	float *bgrbgr = (float *)malloc(ndata * sizeof(float));
-	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
-	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		bgrbgr[i + 0] = (float) image->pdata[BLAYER][j] * invnorm;
-		bgrbgr[i + 1] = (float) image->pdata[GLAYER][j] * invnorm;
-		bgrbgr[i + 2] = (float) image->pdata[RLAYER][j] * invnorm;
-	}
-	return bgrbgr;
-}
 
 extern "C" int do_bm3d(fits *fit, float modulation, int da3d) {
     // Parameters

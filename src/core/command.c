@@ -271,7 +271,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data("Starting BNL-Bayes denoising...", 0.0);
 
-	int retval = do_nlbayes(args->fit, args->modulation, args->da3d);
+	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d);
 
 	notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
@@ -280,7 +280,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	siril_add_idle(end_denoise, args);
 	return GINT_TO_POINTER(retval);
 }
-
+/*
 gpointer run_bm3d_on_fit(gpointer p) {
 	denoise_args *args = (denoise_args *) p;
 	struct timeval t_start, t_end;
@@ -300,12 +300,13 @@ gpointer run_bm3d_on_fit(gpointer p) {
 	siril_add_idle(end_denoise, args);
 	return GINT_TO_POINTER(retval);
 }
-
+*/
 int process_denoise(int nb){
 	gboolean error = FALSE;
 	set_cursor_waiting(TRUE);
 	denoise_args *args = calloc(1, sizeof(denoise_args));
-	int algo = -1;
+	int algo = 1;
+	args->sos = 1;
 	args->modulation = 1.f;
 	args->da3d = 0;
 	args->fit = &gfit;
@@ -316,9 +317,9 @@ int process_denoise(int nb){
 		if (g_str_has_prefix(arg, "+da3d")) {
 			args->da3d = 1;
 		}
-		else if (g_str_has_prefix(arg, "bm3d")) {
+/*		else if (g_str_has_prefix(arg, "bm3d")) {
 			algo = 0;
-		}
+		}*/
 		else if (g_str_has_prefix(arg, "nlbayes")) {
 			algo = 1;
 		}
@@ -338,13 +339,26 @@ int process_denoise(int nb){
 			siril_log_message(_("Modulation is zero: doing nothing.\n"));
 			return CMD_OK;
 		}
+		else if (g_str_has_prefix(arg, "-sos=")) {
+			arg += 5;
+			unsigned sos = (int) g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if (sos < 1) {
+				siril_log_message(_("Error: SOS iterations must be >= 1. Defaulting to 1.\n"));
+				sos = 1;
+			} else if (sos > 10)
+				siril_log_message(_("Note: high number of SOS iterations. Processing time may be lengthy...\n"));
+			if (!error) {
+				args->sos = sos;
+			}
+		}
 	}
 	switch (algo) {
 		case -1:
 			siril_log_message(_("No algorithm set: doing nothing. One of the arguments [bm3d] or [nlbayes] must be provided.\n"));
 			return CMD_ARG_ERROR;
 			break;
-		case 0:; // Semicolon required to avoid "a label can only be part of a statement..." error
+/*		case 0:; // Semicolon required to avoid "a label can only be part of a statement..." error
 			unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
 			float memGB = (float) (get_available_memory() / 1000000000);
 			float imgmemMpix = (float) npixels / 1000000.f;
@@ -359,15 +373,20 @@ int process_denoise(int nb){
 			else
 				siril_log_message(_("Final stage DA3D denoising disabled.\n"));
 			start_in_new_thread(run_bm3d_on_fit, args);
-			break;
+			break; */
 		case 1:
 			siril_log_message(_("Modulation: %f\n"),args->modulation);
 			siril_log_message(_("Primary denoising algorithm: NL-Bayes.\n"));
-			if (args->da3d)
+			if (args->da3d) {
 				siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
+				if (args->sos != 1) {
+					siril_log_message(_("Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"));
+					args->sos = 1;
+				}
+			}
 			else
 				siril_log_message(_("Final stage DA3D denoising disabled.\n"));
-			start_in_new_thread(run_nlbayes_on_fit, args);
+		start_in_new_thread(run_nlbayes_on_fit, args);
 			break;
 		default:
 			return CMD_ARG_ERROR; // Should never reach this code

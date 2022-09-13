@@ -153,14 +153,6 @@ siril_common_SOURCES = \
 	filters/starnet.h \
 	filters/wavelets.c \
 	filters/wavelets.h \
-	filters/bm3d/call_bm3d.cpp \
-	filters/bm3d/call_bm3d.h \
-	filters/bm3d/bm3d.cpp \
-	filters/bm3d/bm3d.h \
-	filters/bm3d/bm3d_lib_transforms.cpp \
-	filters/bm3d/bm3d_lib_transforms.h \
-	filters/bm3d/bm3d_utilities.cpp \
-	filters/bm3d/bm3d_utilities.h \
 	filters/da3d/DA3D.cpp \
 	filters/da3d/DA3D.hpp \
 	filters/da3d/DftPatch.hpp \
