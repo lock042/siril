@@ -17,6 +17,7 @@
 #include "DftPatch.hpp"
 extern "C" {
 #include "core/processing.h"
+#include "gui/progress_and_log.h"
 }
 
 #ifdef _OPENMP
@@ -222,12 +223,17 @@ void ModifyPatch(const Image &patch, const Image &k, DftPatch *modified,
 
 pair<Image, Image> DA3D_block(int &retval, const Image &noisy, const Image &guide,
                               float sigma, int r, float sigma_s,
-                              float gamma_r, float threshold) {
+                              float gamma_r, float threshold, unsigned nThreads, unsigned thread) {
   // useful values
   const int s = utils::NextPowerOf2(2 * r + 1);
   const float sigma2 = sigma * sigma;
   const float gamma_r_sigma2 = gamma_r * sigma2;
   const float sigma_s2 = sigma_s * sigma_s;
+
+  // Work estimate for progress bar. Empirical based on a sample of images, may need tuning
+  const unsigned predicted_loops = noisy.pixels() * 5 / 1000;
+  unsigned loop = 0;
+  unsigned lastupdate = 0;
 
   // regression parameters
   const float gamma_rr_sigma2 = gamma_r_sigma2 * 10.f;
@@ -248,12 +254,26 @@ pair<Image, Image> DA3D_block(int &retval, const Image &noisy, const Image &guid
   Image output(guide.rows(), guide.columns(), guide.channels());
   Image weights(guide.rows(), guide.columns());
 
+  // Instrumentation
   // main loop
   while (agg_weights.Minimum() < threshold) {  // line 4
     if (!get_thread_run()) {
       retval++;
       break;
     }
+    if (thread == 0) {
+      loop++;
+      if (loop - lastupdate > (predicted_loops >> 3)) {
+        lastupdate = loop;
+        if ((double) loop / (nThreads * predicted_loops) < 1.0)
+          set_progress_bar_data("DA3D denoising...", (double) loop / (nThreads * predicted_loops));
+        else
+          set_progress_bar_data("DA3D denoising...", PROGRESS_PULSATE);
+      }
+
+    }
+
+
     tie(pr, pc) = agg_weights.FindMinimum();  // line 5
     ExtractPatch(noisy, pr, pc, &y);  // line 6
     ExtractPatch(guide, pr, pc, &g);  // line 7
@@ -343,10 +363,21 @@ Image DA3D(int &retval, const Image &noisy, const Image &guide, float sigma,
   vector<Image> guide_tiles = SplitTiles(ColorTransform(guide.copy()), r,
                                          s - r - 1, tiling);
   vector<pair<Image, Image>> result_tiles(nthreads);
+
+  unsigned thread;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nthreads)
-  for (int i = 0; i < nthreads; ++i)
+#endif  // _OPENMP
+  for (int i = 0; i < nthreads; ++i) {
+#ifdef _OPENMP
+    thread = omp_get_thread_num();
+#else
+    thread = 0;
+#endif
+
     result_tiles[i] = DA3D_block(retval, noisy_tiles[i], guide_tiles[i], sigma,
-                                 r, sigma_s, gamma_r, threshold);
+                                 r, sigma_s, gamma_r, threshold, nthreads, thread);
+  }
   return ColorTransformInverse(MergeTiles(result_tiles, guide.shape(), r,
                                           s - r - 1, tiling));
 }
