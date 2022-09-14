@@ -270,7 +270,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data("Starting BNL-Bayes denoising...", 0.0);
 
-	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d);
+	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho);
 
 	notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
@@ -286,6 +286,7 @@ int process_denoise(int nb){
 	denoise_args *args = calloc(1, sizeof(denoise_args));
 	int algo = 1;
 	args->sos = 1;
+	args->rho = 0.5f;
 	args->modulation = 1.f;
 	args->da3d = 0;
 	args->fit = &gfit;
@@ -296,9 +297,6 @@ int process_denoise(int nb){
 		if (g_str_has_prefix(arg, "+da3d")) {
 			args->da3d = 1;
 		}
-/*		else if (g_str_has_prefix(arg, "nlbayes")) {
-			algo = 1;
-		} // Not required for the moment, unless additional algorithms are added again */
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			arg += 5;
 			float mod = g_ascii_strtod(arg, &end);
@@ -315,7 +313,19 @@ int process_denoise(int nb){
 			siril_log_message(_("Modulation is zero: doing nothing.\n"));
 			return CMD_OK;
 		}
-		else if (g_str_has_prefix(arg, "-sos=")) {
+		else if (g_str_has_prefix(arg, "-rho=")) {
+			arg += 5;
+			float rho = g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((rho <= 0.f) || (rho >= 1.f)) {
+				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				args->rho = rho;
+			}
+		}
+		else if (g_str_has_prefix(arg, "+sos=")) {
 			arg += 5;
 			unsigned sos = (int) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;

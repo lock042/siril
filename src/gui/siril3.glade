@@ -5633,12 +5633,6 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/astrometry_dark.svg</property>
   </object>
-  <object class="GtkAdjustment" id="bm3d-modulation-adjustment">
-    <property name="upper">1</property>
-    <property name="value">1</property>
-    <property name="step-increment">0.05</property>
-    <property name="page-increment">0.10</property>
-  </object>
   <object class="GtkColorChooserDialog" id="colorchooserdialog">
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
@@ -5846,8 +5840,15 @@ enter a visible wavelength in nm</property>
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/curve.svg</property>
   </object>
+  <object class="GtkAdjustment" id="denoise-modulation-adjustment">
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkAdjustment" id="denoise-rho-adjustment">
     <property name="upper">1</property>
+    <property name="value">0.5</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
@@ -5940,6 +5941,7 @@ enter a visible wavelength in nm</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <signal name="group-changed" handler="on_radio_denoise_nosecondary_group_changed" swapped="no"/>
+                <signal name="toggled" handler="on_radio_denoise_nosecondary_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -5958,6 +5960,7 @@ enter a visible wavelength in nm</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">radio_denoise_nosecondary</property>
+                <signal name="toggled" handler="on_radio_denoise_da3d_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -5975,6 +5978,7 @@ enter a visible wavelength in nm</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">radio_denoise_nosecondary</property>
+                <signal name="toggled" handler="on_radio_denoise_sos_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -5990,8 +5994,7 @@ enter a visible wavelength in nm</property>
           </packing>
         </child>
         <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
+          <object class="GtkBox" id="sos_advanced_options">
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
             <child>
@@ -6013,6 +6016,7 @@ enter a visible wavelength in nm</property>
             <child>
               <!-- n-columns=2 n-rows=2 -->
               <object class="GtkGrid">
+                <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">end</property>
                 <property name="column-spacing">8</property>
@@ -6048,9 +6052,9 @@ enter a visible wavelength in nm</property>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">(1 - rho) sets the amount of the original noisy image at each iteration. Values close to 0 or 1 may result in a need for more iterations to achieve convergence at the maximum improvement SOS can produce.</property>
+                    <property name="tooltip-text" translatable="yes">rho sets the amount of the original noisy image at each iteration. A higher value means less noise is mixed in, and more of the intermediate result is kept. Values close to 0 or 1 may result in a need for more iterations to achieve convergence at the maximum improvement SOS can produce.</property>
                     <property name="halign">end</property>
-                    <property name="label" translatable="yes">(1 - rho)</property>
+                    <property name="label" translatable="yes">rho</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
@@ -6058,14 +6062,15 @@ enter a visible wavelength in nm</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSpinButton" id="spin_1mrho">
+                  <object class="GtkSpinButton" id="spin_rho">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">(1 - rho) sets the noisy image mixing, between 0 (no noisy image added) and 1 (output of each iteration entirely replaced by the noisy image again). Values very close to 0 or 1 result in very slow convergence and should be avoided.</property>
                     <property name="halign">end</property>
                     <property name="adjustment">denoise-rho-adjustment</property>
+                    <property name="digits">2</property>
                     <property name="value">0.5</property>
-                    <signal name="value-changed" handler="on_spin_1mrho_value_changed" swapped="no"/>
+                    <signal name="value-changed" handler="on_spin_rho_value_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -6100,7 +6105,7 @@ enter a visible wavelength in nm</property>
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">Sets modulation. The pixel value is calculated as m * b + (1-m) * orig, where m is the modulation, b is the BM3D-filtered value and orig is the original pixel value. Modulation reduces the denoising performance, but a little modulation can be useful to add back microtexture to flat regions of the image.</property>
                 <property name="hexpand">True</property>
-                <property name="adjustment">bm3d-modulation-adjustment</property>
+                <property name="adjustment">denoise-modulation-adjustment</property>
                 <property name="digits">2</property>
                 <property name="value">1</property>
                 <signal name="value-changed" handler="on_spin_denoise_modulation_value_changed" swapped="no"/>
@@ -6138,7 +6143,7 @@ enter a visible wavelength in nm</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="tooltip-text" translatable="yes">Sets modulation. The pixel value is calculated as m * b + (1-m) * orig, where m is the modulation, b is the BM3D-filtered value and orig is the original pixel value. Modulation reduces the denoising performance, but a little modulation can be useful to add back microtexture to flat regions of the image.</property>
-            <property name="adjustment">bm3d-modulation-adjustment</property>
+            <property name="adjustment">denoise-modulation-adjustment</property>
             <property name="round-digits">1</property>
             <property name="digits">2</property>
             <property name="draw-value">False</property>

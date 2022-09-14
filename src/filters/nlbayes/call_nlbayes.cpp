@@ -70,7 +70,7 @@ float *fits_to_bgrbgr_wordtofloat(fits *image) {
 	return bgrbgr;
 }
 
-extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d) {
+extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, float rho) {
     // Parameters
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
@@ -137,7 +137,6 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d) {
       return EXIT_FAILURE;
     }
 
-    float rho = 0.3; // Proportion of original noise folded back in is (1-rho)
     // SOS iteration loop
     for (unsigned i=0; i < sos; i++) {
 
