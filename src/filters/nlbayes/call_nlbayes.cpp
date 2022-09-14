@@ -80,6 +80,8 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d) {
     if (fit->type == DATA_USHORT)
       norm = USHRT_MAX_SINGLE;
     float invnorm = 1 / norm;
+    if (sos < 1)
+      sos = 1;
 
     // Measure background noise
     float fSigma = 0.f;

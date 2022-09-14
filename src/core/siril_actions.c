@@ -595,6 +595,6 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	siril_open_dialog("nina_light_curve");
 }
 
-void bm3d_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("bm3d_dialog");
+void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("denoise_dialog");
 }

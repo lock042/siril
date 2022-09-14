@@ -4,7 +4,6 @@
 #include "gui/progress_and_log.h"
 #include "algos/statistics.h"
 #include "filters/median.h"
-#include "filters/bm3d/call_bm3d.h"
 #include "filters/nlbayes/call_nlbayes.h"
 #include "gui/utils.h"
 #include "gui/siril_preview.h"
@@ -15,49 +14,69 @@
 
 
 // Callbacks
-float bm3d_modulation;
+float denoise_modulation;
 int da3d;
+int sos = 1;
+int sos_iters;
+float sos_rho;
 
-void on_bm3d_dialog_show(GtkWidget *widget, gpointer user_data) {
+void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 	da3d = 0;
-	GtkSpinButton *spin_bm3d_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_bm3d_modulation"));
-	bm3d_modulation = 1.f;
-	GtkToggleButton *toggle_bm3d_da3d = GTK_TOGGLE_BUTTON(lookup_widget("toggle_bm3d_da3d"));
-	gtk_spin_button_set_value(spin_bm3d_modulation, bm3d_modulation);
-	gtk_toggle_button_set_active(toggle_bm3d_da3d, da3d);
+	GtkSpinButton *spin_denoise_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_denoise_modulation"));
+	denoise_modulation = 1.f;
+	GtkToggleButton *toggle_bm3d_da3d = GTK_TOGGLE_BUTTON(lookup_widget("toggle_denoise_da3d"));
+	gtk_spin_button_set_value(spin_denoise_modulation, denoise_modulation);
 }
 
 void on_bm3d_cancel_clicked(GtkButton *button, gpointer user_data) {
   siril_close_dialog("bm3d_dialog");
 }
 
-void on_spin_bm3d_modulation_value_changed(GtkSpinButton *button, gpointer user_data) {
-  bm3d_modulation = (float) gtk_spin_button_get_value(button);
+void on_spin_sos_iters_value_changed(GtkSpinButton *button, gpointer user_data) {
+  sos_iters = (float) gtk_spin_button_get_value(button);
+}
+void on_spin_sos_1mrho_value_changed(GtkSpinButton *button, gpointer user_data) {
+  sos_rho = 1.f - (float) gtk_spin_button_get_value(button);
 }
 
-void on_toggle_bm3d_da3d_toggled(GtkToggleButton *button, gpointer user_data) {
-	da3d = gtk_toggle_button_get_active(button);
+void on_spin_denoise_modulation_value_changed(GtkSpinButton *button, gpointer user_data) {
+  denoise_modulation = (float) gtk_spin_button_get_value(button);
 }
 
-void on_bm3d_apply_clicked(GtkButton *button, gpointer user_data) {
-	GtkSpinButton *spin_bm3d_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_bm3d_modulation"));
-	bm3d_modulation = (float) gtk_spin_button_get_value(spin_bm3d_modulation);
+void on_radio_denoise_nosecondary_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkToggleButton *toggle_da3d = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_da3d"));
+	GtkToggleButton *toggle_sos = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_sos"));
+	da3d = (gtk_toggle_button_get_active(toggle_da3d) ? 1 : 0);
+	sos = (gtk_toggle_button_get_active(toggle_sos) ? 1 : 0);
+}
+
+void on_radio_denoise_da3d_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkToggleButton *toggle_da3d = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_da3d"));
+	GtkToggleButton *toggle_sos = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_sos"));
+	da3d = (gtk_toggle_button_get_active(toggle_da3d) ? 1 : 0);
+	sos = (gtk_toggle_button_get_active(toggle_sos) ? 1 : 0);
+}
+void on_radio_denoise_sos_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkToggleButton *toggle_da3d = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_da3d"));
+	GtkToggleButton *toggle_sos = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_sos"));
+	da3d = (gtk_toggle_button_get_active(toggle_da3d) ? 1 : 0);
+	sos = (gtk_toggle_button_get_active(toggle_sos) ? 1 : 0);
+}
+void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton *spin_denoise_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_denoise_modulation"));
+	denoise_modulation = (float) gtk_spin_button_get_value(spin_denoise_modulation);
 //	copy_gfit_to_backup();
 	denoise_args *args = calloc(1, sizeof(denoise_args));
 	args->fit = &gfit;
 	args->da3d = da3d;
-	args->modulation = bm3d_modulation;
+	args->sos = 1;
+	if (sos == 1)
+		args->sos = sos_iters;
+	args->modulation = denoise_modulation;
 	if (args->modulation == 0.f) {
 		siril_log_message(_("Modulation is zero: doing nothing.\n"));
 		return;
 	}
-	unsigned npixels = (unsigned) gfit.naxes[0] * gfit.naxes[1];
-	float memGB = (float) (get_available_memory() / 1000000000);
-	float imgmemMpix = (float) npixels / 1000000.f;
-	unsigned numchunks = (unsigned) (imgmemMpix / (memGB / 5));
-	if (numchunks < 1)
-		numchunks = 1;
-	siril_log_message(_("Available memory: %f GB, processing in %u chunks.\n"), memGB, numchunks);
 	siril_log_message(_("Modulation: %f\n"),args->modulation);
 	if (args->da3d)
 		siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
@@ -65,5 +84,5 @@ void on_bm3d_apply_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_message(_("Final stage DA3D denoising disabled.\n"));
 
 	start_in_new_thread(run_nlbayes_on_fit, args);
-	siril_close_dialog("bm3d_dialog");
+	siril_close_dialog("denoise_dialog");
 }
