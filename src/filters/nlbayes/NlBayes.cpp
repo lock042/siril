@@ -213,16 +213,24 @@ int runNlBayes(
 	}
 	int retval = 0;
 	int thread = 0;
-	float pass = 0.f;
+	int pass = 0;
+	bool passset = false;
+	unsigned threadcomplete = 0;
 	//! Process all sub-images
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic, nbParts/nbThreads) \
-            shared(imNoisySub, imBasicSub, imFinalSub, imSizeSub, retval) \
+            shared(imNoisySub, imBasicSub, imFinalSub, imSizeSub, retval, passset, threadcomplete) \
 			private(thread) firstprivate (paramStep1)
 #endif
 	for (int n = 0; n < (int) nbParts; n++) {
 #ifdef _OPENMP
+#pragma omp atomic
+		threadcomplete++;
 		thread = omp_get_thread_num();
+		if (!passset && threadcomplete > nbThreads) {
+			pass = 1;
+			passset = true;
+		}
 #endif
 		retval += processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep1, thread, pass);
 	}
@@ -258,16 +266,24 @@ int runNlBayes(
 		return EXIT_FAILURE;
 	}
 	thread = 0;
-	pass = 0.5f;
+	pass = 0;
+	passset = false;
+	threadcomplete = 0;
 	//! Process all sub-images
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic, nbParts/nbThreads) \
-            shared(imNoisySub, imBasicSub, imFinalSub) \
+            shared(imNoisySub, imBasicSub, imFinalSub, threadcomplete, passset) \
 			private(thread) firstprivate (paramStep2)
 #endif
 	for (int n = 0; n < (int) nbParts; n++) {
 #ifdef _OPENMP
+#pragma omp atomic
+		threadcomplete++;
 		thread = omp_get_thread_num();
+		if (!passset && threadcomplete > nbThreads) {
+			pass = 1;
+			passset = true;
+		}
 #endif
 		retval += processNlBayes(imNoisySub[n], imBasicSub[n], imFinalSub[n], imSizeSub, paramStep2, thread, pass);
 	}
@@ -306,7 +322,7 @@ int processNlBayes(
 ,	const ImageSize &p_imSize
 ,	nlbParams &p_params
 ,	int thread
-,	float pass
+,	int pass
 ){
 	//! Parameters initialization
 	const unsigned sW		= p_params.sizeSearchWindow;
@@ -348,6 +364,7 @@ int processNlBayes(
 		}
 	}
 	unsigned lastupdate = 0;
+	float offset = 0;
 	for (unsigned ij = 0; ij < p_imSize.wh; ij += p_params.offSet) {
 		if (!get_thread_run())
 			return 1;
@@ -402,7 +419,10 @@ int processNlBayes(
 		if (thread == 0) {
 			if (ij - lastupdate > p_imSize.wh >> 4) {
 				lastupdate = ij;
-				set_progress_bar_data("NL-Bayes denoising...", (double) pass + ((double)ij / (2.f * p_imSize.wh)));
+				float second;
+				second = (p_params.isFirstStep ? 0.f : 2.f);
+				offset = (pass + second) / 4.f;
+				set_progress_bar_data("NL-Bayes denoising...", offset + ((double)ij / (4.f * p_imSize.wh)));
 			}
 		}
 	}

@@ -148,7 +148,7 @@ int processNlBayes(
 ,	const ImageSize &p_imSize
 ,	nlbParams &p_params
 ,	int thread
-,	float pass
+,	int pass
 );
 
 /**
