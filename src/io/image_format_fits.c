@@ -951,6 +951,7 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 
 static void convert_floats(int bitpix, float *data, size_t nbdata, double max, double min) {
 	size_t i;
+	siril_log_message(_("Normalizing input data from [%f, %f] to our float range [0, 1]\n"), min, max);
 	switch (bitpix) {
 		case BYTE_IMG:
 			for (i = 0; i < nbdata; i++)
