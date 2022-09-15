@@ -115,20 +115,16 @@ static int get_server_from_combobox() {
 	return gtk_combo_box_get_active(GTK_COMBO_BOX(box));
 }
 
-static online_catalog get_online_catalog(double fov, double mag) {
-	GtkToggleButton *auto_button;
+static online_catalog get_astrometry_catalog(double fov, double mag, gboolean auto_cat) {
 	int ret;
 
-	auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
-	if (gtk_toggle_button_get_active(auto_button)) {
+	if (auto_cat) {
 		if (mag <= 6.5) {
-			ret = BRIGHT_STARS;
+		  ret = BRIGHT_STARS;
 		} else if (fov > 180.0) {
-			ret = NOMAD;
-		} else if (fov < 30.0){
-			ret = GAIAEDR3;
+		  ret = NOMAD;
 		} else {
-			ret = PPMXL;
+		  ret = GAIADR3;
 		}
 		return ret;
 	} else {
@@ -557,15 +553,31 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 
 	process_plate_solver_input(args);
 
+	GtkToggleButton *auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
+	gboolean auto_cat = gtk_toggle_button_get_active(auto_button);
 
-	if (local_catalogues_available()) {
-		siril_debug_print("using local star catalogues\n");
-		args->use_local_cat = TRUE;
-		args->catalog_file = NULL;
-		args->onlineCatalog = NOMAD;
+	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() : get_astrometry_catalog(args->used_fov, args->limit_mag, auto_cat);
+	gboolean has_local_cat = local_catalogues_available();
+	gboolean use_local = FALSE;
+
+	if (auto_cat) {
+		if (has_local_cat) {
+			siril_debug_print("using local star catalogues\n");
+			args->use_local_cat = TRUE;
+			args->catalog_file = NULL;
+			args->onlineCatalog = LOCAL;
+			use_local = TRUE;
+		}
 	} else {
-		args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() :
-			get_online_catalog(args->used_fov, args->limit_mag);
+		if (has_local_cat && (args->onlineCatalog == NOMAD || args->onlineCatalog == BRIGHT_STARS || args->onlineCatalog == TYCHO2)) {
+			siril_debug_print("using local star catalogues\n");
+			args->use_local_cat = TRUE;
+			args->catalog_file = NULL;
+			args->onlineCatalog = LOCAL;
+			use_local = TRUE;
+		}
+	}
+	if (!use_local) {
 		/* currently the GUI version downloads the catalog here, because
 		 * siril_message_dialog() doesn't use idle function, we could change that */
 		GFile *catalog_file = download_catalog(args->onlineCatalog, catalog_center, args->used_fov * 0.5, args->limit_mag);
@@ -577,7 +589,6 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		}
 		args->catalog_file = catalog_file;
 	}
-
 	set_cursor_waiting(FALSE);
 	return 0;
 }
