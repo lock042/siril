@@ -15,22 +15,19 @@
 #include "core/siril.h"
 
 typedef struct ght_params {
-	double B, D, LP, SP, HP, BP;
+	float B, D, LP, SP, HP, BP;
 	int stretchtype, payne_colourstretchmodel;
+	gboolean do_red, do_green, do_blue;
 } ght_params;
 
 typedef struct ght_compute_params {
-	double qlp, q0, qwp, q1, q, b1, a1, a2, b2, c2, d2, e2, a3, b3, c3, d3, e3, a4, b4, LPT, SPT, HPT;
+	float qlp, q0, qwp, q1, q, b1, a1, a2, b2, c2, d2, e2, a3, b3, c3, d3, e3, a4, b4, LPT, SPT, HPT;
 } ght_compute_params;
 
-/* Auto-stretch parameters */
-#define AS_DEFAULT_SHADOWS_CLIPPING -2.80f /* Shadows clipping point measured in sigma units from the main histogram peak */
-#define AS_DEFAULT_TARGET_BACKGROUND 0.25f /* final "luminance" of the image for autostretch in the [0,1] range */
+int GHTsetup(ght_compute_params* compute_params, float B, float D, float LP, float SP, float HP, int stretchtype);
 
-int GHTsetup(ght_compute_params* compute_params, double B, double D, double LP, double SP, double HP, int stretchtype);
-
-double GHT(double in, double B, double D, double LP, double SP, double HP, double BP, int stretchtype, ght_compute_params compute_params);
-double GHTp(double in, ght_params params, ght_compute_params compute_params);
+float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, ght_compute_params *compute_params);
+float GHTp(float in, ght_params *params, ght_compute_params *compute_params);
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params_ght, ght_compute_params compute_params, gboolean multithreaded);
 
 #endif

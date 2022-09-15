@@ -121,7 +121,7 @@ static void align_and_compose() {
 }
 
 int rgb_align(int m) {
-	struct registration_args regargs;
+	struct registration_args regargs = { 0 };
 	struct registration_method *method;
 	int retval;
 
@@ -135,7 +135,6 @@ int rgb_align(int m) {
 
 	regargs.seq = seq;
 	regargs.seq->nb_layers = 1;
-	regargs.process_all_frames = TRUE;
 	get_the_registration_area(&regargs, method);
 	regargs.layer = REGLAYER;
 	regargs.follow_star = FALSE;

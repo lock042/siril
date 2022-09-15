@@ -44,11 +44,9 @@
 #include "opencv/opencv.h"
 
 # define MIN_RATIO_INLIERS 30 //percentage of inliers after transformation fitting (shift, affine or homography)
-
-/* TODO:
- * check usage of openmp in functions called by these ones (to be disabled)
- * compact and clarify console output
- */
+# define AMPLITUDE_CUT 0.05 // percentile to clip the lower tail of amplitudes distribtion when filtering out stars for 2pass reg
+# define MAX_SHIFT_RATIO 0.25f // max ratio of image rx for ref image offset from sequence cog
+# define MAX_TRIALS_2PASS 5 // max number of trialsto find the best ref
 
 static void create_output_sequence_for_global_star(struct registration_args *args);
 static void print_alignment_results(Homography H, int filenum, float FWHMx, float FWHMy, char *units);
@@ -134,7 +132,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 
 	sadata->current_regdata = star_align_get_current_regdata(regargs);
 	if (!sadata->current_regdata) return -2;
-	
+
 	/* first we're looking for stars in reference image */
 	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
 		siril_log_message(_("Could not load reference image\n"));
@@ -214,7 +212,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	} else {
 		sadata->fitted_stars = nb_stars;
 	}
-	FWHM_average(sadata->refstars, sadata->fitted_stars, &FWHMx, &FWHMy, &units, &B);
+	FWHM_stats(sadata->refstars, sadata->fitted_stars, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
 	sadata->current_regdata[regargs->reference_image].roundness = FWHMy/FWHMx;
@@ -226,6 +224,62 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	return star_align_prepare_results(args);
 }
 
+static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
+	double scale_min = 0.9;
+	double scale_max = 1.1;
+	int attempt = 1;
+	int nobj = 0;
+	int failure = 1;
+	/* make a loop with different tries in order to align the two sets of data */
+	while (failure && attempt < NB_OF_MATCHING_TRY) {
+		failure = new_star_match(stars, ref_stars, nb_stars, nobj,
+				scale_min, scale_max, H, FALSE, NULL, NULL, regargs->type,
+				NULL, NULL);
+		if (attempt == 1) {
+			scale_min = -1.0;
+			scale_max = -1.0;
+		} else {
+			nobj += 50;
+		}
+		attempt++;
+	}
+	if (failure) {
+		siril_log_color_message(_("Cannot perform star matching: try #%d. Image %d skipped\n"),
+				"red", attempt, filenum);
+	}
+	else if (H->Inliers < regargs->min_pairs) {
+		siril_log_color_message(_("Not enough star pairs (%d): Image %d skipped\n"),
+				"red", H->Inliers, filenum);
+		failure = 1;
+	}
+	else if (((double)H->Inliers / (double)H->pair_matched) < ((double)MIN_RATIO_INLIERS / 100.)) {
+		switch (regargs->type) {
+			case SHIFT_TRANSFORMATION:
+				siril_log_color_message(_("Less than %d%% star pairs kept by shift model, it may be too rigid for your data: Image %d skipped\n"),
+						"red", MIN_RATIO_INLIERS, filenum);
+				failure = 1;
+				break;
+			case SIMILARITY_TRANSFORMATION:
+				siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
+						"red", MIN_RATIO_INLIERS, filenum);
+				failure = 1;
+				break;
+			case AFFINE_TRANSFORMATION:
+				siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
+						"red", MIN_RATIO_INLIERS, filenum);
+				failure = 1;
+				break;
+			case HOMOGRAPHY_TRANSFORMATION:
+				siril_log_color_message(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"),
+						"salmon", MIN_RATIO_INLIERS, filenum);
+				break;
+			default:
+				printf("Should not happen\n");
+		}
+	}
+	return failure;
+}
+
 /* reads the image, searches for stars in it, tries to match them with
  * reference stars, computes the homography matrix, applies it on the image,
  * possibly up-scales the image and stores registration data */
@@ -233,9 +287,6 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int nbpoints, nb_stars = 0;
-	int retvalue;
-	int nobj = 0;
-	int attempt = 1;
 	float FWHMx, FWHMy, B;
 	char *units;
 	Homography H = { 0 };
@@ -278,6 +329,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			siril_log_message(
 					_("Not enough stars. Image %d skipped\n"), filenum);
 			if (stars) free_fitted_stars(stars);
+			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 			return 1;
 		}
 
@@ -291,69 +343,18 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			nbpoints = nb_stars;
 		}
 
-		/* make a loop with different tries in order to align the two sets of data */
-		double scale_min = 0.9;
-		double scale_max = 1.1;
-		retvalue = 1;
-		while (retvalue && attempt < NB_OF_MATCHING_TRY) {
-			retvalue = new_star_match(stars, sadata->refstars, nbpoints, nobj,
-					scale_min, scale_max, &H, FALSE, NULL, NULL, regargs->type,
-					NULL, NULL);
-			if (attempt == 1) {
-				scale_min = -1.0;
-				scale_max = -1.0;
-			} else {
-				nobj += 50;
-			}
-			attempt++;
-		}
-		if (retvalue) {
-			siril_log_color_message(_("Cannot perform star matching: try #%d. Image %d skipped\n"),
-					"red", attempt, filenum);
-			free_fitted_stars(stars);
-			return 1;
-		}
-		if (H.Inliers < regargs->min_pairs) {
-			siril_log_color_message(_("Not enough star pairs (%d): Image %d skipped\n"),
-					"red", H.Inliers, filenum);
-			free_fitted_stars(stars);
-			return 1;
-		}
-		if (((double)H.Inliers / (double)H.pair_matched) < ((double)MIN_RATIO_INLIERS / 100.)) {
-			switch (regargs->type) {
-			case SHIFT_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by shift model, it may be too rigid for your data: Image %d skipped\n"),
-					"red", MIN_RATIO_INLIERS, filenum);
-				free_fitted_stars(stars);
-				return 1;
-			break;
-			case SIMILARITY_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by similarity model, it may be too rigid for your data: Image %d skipped\n"),
-					"red", MIN_RATIO_INLIERS, filenum);
-				free_fitted_stars(stars);
-				return 1;
-			break;
-			case AFFINE_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by affine model, it may be too rigid for your data: Image %d skipped\n"),
-					"red", MIN_RATIO_INLIERS, filenum);
-				free_fitted_stars(stars);
-				return 1;
-			case HOMOGRAPHY_TRANSFORMATION:
-				siril_log_color_message(_("Less than %d%% star pairs kept by homography model, Image %d may show important distortion\n"),
-					"salmon", MIN_RATIO_INLIERS, filenum);
-				break;
-			default:
-				printf("Should not happen\n");
-			}
-		}
-
-
-		FWHM_average(stars, nbpoints, &FWHMx, &FWHMy, &units, &B);
+		int not_matched = star_match_and_checks(sadata->refstars, stars, nbpoints, regargs, filenum, &H);
+		if (!not_matched)
+			FWHM_stats(stars, nbpoints, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 		free_fitted_stars(stars);
+		if (not_matched) {
+			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+			return 1;
+		}
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-		print_alignment_results(H, filenum, FWHMx, FWHMy, units);
+		print_alignment_results(H, filenum, FWHMx, FWHMy/FWHMx, units);
 
 		sadata->current_regdata[in_index].roundness = FWHMy/FWHMx;
 		sadata->current_regdata[in_index].fwhm = FWHMx;
@@ -367,10 +368,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
 				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
 			} else {
 				if (shift_fit_from_reg(fit, regargs, H)) {
+					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
 			}
@@ -380,8 +383,10 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->no_output) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST)) {
+				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
+			}
 		}
 	}
 
@@ -586,7 +591,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 
 int register_star_alignment(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
-	if (!regargs->process_all_frames) {
+	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
@@ -653,7 +658,7 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	free_sequence(&seq, FALSE);
 }
 
-static void print_alignment_results(Homography H, int filenum, float FWHMx, float FWHMy, char *units) {
+static void print_alignment_results(Homography H, int filenum, float fwhm, float roundness, char *units) {
 	double rotation, scale, scaleX, scaleY;
 	point shift;
 	double inliers;
@@ -675,14 +680,386 @@ static void print_alignment_results(Homography H, int filenum, float FWHMx, floa
 
 	/* Rotation */
 	rotation = atan2(H.h01, H.h00) * 180 / M_PI;
-	siril_log_message(_("rotation:%+*.3f deg\n"), 9, rotation);
+	siril_log_message(_("rotation:%+*.3f deg\n"), 10, rotation);
 
 	/* Translation */
 	shift.x = -H.h02;
 	shift.y = -H.h12;
 	siril_log_message(_("dx:%+*.2f px\n"), 15, shift.x);
 	siril_log_message(_("dy:%+*.2f px\n"), 15, shift.y);
-	siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
-	siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
+	siril_log_message(_("FWHM:%*.2f %s\n"), 13, fwhm, units);
+	siril_log_message(_("roundness:%*.2f\n"), 8, roundness);
+}
+
+static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, float *fwhm, float *roundness, float *B, gboolean verbose) {
+	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
+	if (!current_regdata) return -1;
+	int nb_ref_stars = sf_args->nb_stars[regargs->seq->reference_image];
+	int nb_aligned = 0;
+	int nbfail = *failed;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) shared(nbfail, nb_aligned)
+#endif
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!included[i])
+			continue;
+		Homography H = { 0 };
+		if (i == regargs->seq->reference_image) {
+			cvGetEye(&H);
+		} else {
+			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
+			int not_matched = star_match_and_checks(sf_args->stars[regargs->seq->reference_image], sf_args->stars[i],
+					sf_args->nb_stars[i], regargs, filenum, &H);
+			if (not_matched) {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				nbfail++;
+				included[i] = FALSE;
+				continue;
+			}
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+			if (verbose) print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
+
+		}
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+		nb_aligned++;
+		current_regdata[i].roundness = roundness[i];
+		current_regdata[i].fwhm = fwhm[i];
+		current_regdata[i].weighted_fwhm = 2 * fwhm[i]
+			* ((double)nb_ref_stars - sf_args->nb_stars[i])
+			/ (double)nb_ref_stars + fwhm[i];
+		current_regdata[i].background_lvl = B[i];
+		current_regdata[i].number_of_stars = sf_args->nb_stars[i];
+		current_regdata[i].H = H;
+	}
+	*failed = nbfail;
+	return nb_aligned;
+}
+
+static void compute_dist(struct registration_args *regargs, float *dist, gboolean *included) {
+	Homography Href = regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H;
+	Homography Hshift = {0};
+	Homography Htransf = {0};
+	cvGetEye(&Hshift);
+	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+	int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+	int x0, y0, n;
+	double cogx, cogy;
+
+	point center = { 0 };
+	center.x =  (double)rx * 0.5;
+	center.y =  (double)ry * 0.5;
+
+	cogx = 0.;
+	cogy = 0;
+	n = 0;
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!included[i]) continue;
+		point currcenter;
+		memcpy(&currcenter, &center, sizeof(point));
+		cvTransfPoint(&currcenter.x, &currcenter.y,regargs->seq->regparam[regargs->layer][i].H, Href);
+		cogx += currcenter.x;
+		cogy += currcenter.y;
+		n++;
+	}
+	cogx /= (double)n;
+	cogy /= (double)n;
+	x0 = (int)(cogx - (double)rx * 0.5);
+	y0 = (int)(cogy - (double)ry * 0.5);
+	Hshift.h02 = (double)x0;
+	Hshift.h12 = (double)y0;
+	siril_debug_print("cog at (%3.2f, %3.2f)\n", Hshift.h02, Hshift.h12);
+	cvMultH(Href, Hshift, &Htransf);
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!included[i]) continue;
+		point currcenter;
+		double dx, dy;
+		memcpy(&currcenter, &center, sizeof(point));
+		cvTransfPoint(&currcenter.x, &currcenter.y, regargs->seq->regparam[regargs->layer][i].H, Htransf);
+		dx = currcenter.x - center.x;
+		dy = currcenter.y - center.y;
+		dist[i] = (float)sqrt(dx * dx + dy * dy);
+	}
+
+}
+
+// returns the index of the minimum element of float array arr of size nb
+// if gboolean mask array is passed, it only includes elements where mask is TRUE
+// if *vval is passed, it contains the best value
+static int minidx(float *arr, gboolean *mask, int nb, float *val) {
+	if (!arr) return -1;
+	if (nb < 1) return -1;
+	int idx = -1;
+	float best = FLT_MAX;
+	gboolean check_included = TRUE;
+	if (!mask) check_included = FALSE;
+	for (int i = 0; i < nb; i++) {
+		if ((!check_included || mask[i]) && (arr[i] < best)) {
+			best = arr[i];
+			idx = i;
+		}
+	}
+	if (val) *val = best;
+	return idx;
+}
+
+/********************** the new multi-step registration ***********************/
+/* This is a modification of the global registration without output, separating
+ * the two main steps of finding stars and computing the transforms to add an
+ * extra step in the middle:
+* 1. finding stars
+* 2. searching for the best image and set it as reference
+* 3. compute the transforms and store them in regparams
+*/
+
+int register_multi_step_global(struct registration_args *regargs) {
+	// 1. finding stars
+	struct starfinder_data *sf_args = calloc(1, sizeof(struct starfinder_data));
+	sf_args->im.from_seq = regargs->seq;
+	sf_args->layer = regargs->layer;
+	sf_args->max_stars_fitted = regargs->max_stars_candidates;
+	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
+	sf_args->nb_stars = calloc(regargs->seq->number, sizeof(int));
+	sf_args->update_GUI = FALSE;
+	sf_args->already_in_thread = TRUE;
+	sf_args->process_all_images = !regargs->filters.filter_included;
+	sf_args->save_to_file = !regargs->no_starlist;
+	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL, *scores = NULL;
+	float *dist = NULL;
+	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
+	gboolean *included = NULL, *tmp_included = NULL;
+	// local flag to make checks only on frames that matter
+	gboolean *meaningful = NULL; 
+	int retval = 0;
+	struct timeval t_start, t_end;
+
+	if (!sf_args->stars || !sf_args->nb_stars) {
+		PRINT_ALLOC_ERR;
+		retval = 1;
+		goto free_all;
+	}
+	gettimeofday(&t_start, NULL);
+	if (apply_findstar_to_sequence(sf_args)) {
+		siril_debug_print("finding stars failed\n");	// aborted probably
+		retval = 1;
+		goto free_all;
+	}
+
+	// 2. searching for the best image and set it as reference
+	fwhm = calloc(regargs->seq->number, sizeof(float));
+	roundness = calloc(regargs->seq->number, sizeof(float));
+	A = calloc(regargs->seq->number, sizeof(float));
+	B = calloc(regargs->seq->number, sizeof(float));
+	Acut = calloc(regargs->seq->number, sizeof(float));
+	included = calloc(regargs->seq->number, sizeof(gboolean));
+	tmp_included = calloc(regargs->seq->number, sizeof(gboolean));
+	meaningful = calloc(regargs->seq->number, sizeof(gboolean));
+	scores = calloc(regargs->seq->number, sizeof(float));
+	dist = calloc(regargs->seq->number, sizeof(float));
+	if (!fwhm || !roundness || !B || !A || !included || !tmp_included || !meaningful || !scores || !dist) {
+		PRINT_ALLOC_ERR;
+		retval = 1;
+		goto free_all;
+	}
+	int maxstars = 0;
+	int failed = 0;		// number of images to fail registration at any step
+	int best_index = -1;
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (regargs->filters.filter_included && !regargs->seq->imgparam[i].incl)
+			continue;
+		if (!sf_args->stars[i]) {
+			// star finder failed, we exclude the frame from the sequence
+			// need this check to be after filters.filter_included otherwise, we would report false failures
+			regargs->seq->imgparam[i].incl = FALSE;
+			failed++;
+			continue;
+		}
+		included[i] = TRUE;
+		float FWHMx, FWHMy;
+		char *units;
+		FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], regargs->seq->bitpix, &FWHMx, &FWHMy, &units, B + i, Acut + i, AMPLITUDE_CUT);
+		fwhm[i] = FWHMx;
+		roundness[i] = FWHMy/FWHMx;
+		if (sf_args->nb_stars[i] > maxstars) maxstars = sf_args->nb_stars[i];
+	}
+
+
+	if (maxstars == sf_args->max_stars_fitted) {
+		siril_log_message(_("The number of stars has capped, readapting threshold and filtering\n"));
+		float Athreshold = 0.0f;
+		// Determine the updated A threshold
+		for (int i = 0; i < regargs->seq->number; i++) {
+			if (!included[i]) continue;
+			if (sf_args->nb_stars[i] == sf_args->max_stars_fitted && Acut[i] > Athreshold) Athreshold = Acut[i];
+		}
+		// Filter the whole series against new amplitude threshold
+		maxstars = maxstars * (1 - AMPLITUDE_CUT);
+
+		for (int i = 0; i < regargs->seq->number; i++) {
+			if (!included[i]) continue;
+			sf_args->stars[i] = filter_stars_by_amplitude(sf_args->stars[i], Athreshold, &sf_args->nb_stars[i]);
+			if (!sf_args->stars[i]) {
+				regargs->seq->imgparam[i].incl = FALSE;
+				included[i] = FALSE;
+				failed++;
+				continue;
+			}
+			float FWHMx, FWHMy;
+			char *units;
+			FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], regargs->seq->bitpix, &FWHMx, &FWHMy, &units, B + i, NULL, 0.);
+			// we only rank images with at least half the maximum number of stars (and we count them as meaningful)
+			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
+			if (sf_args->nb_stars[i] >= maxstars / 2) meaningful[i] = TRUE;
+			fwhm[i] = FWHMx;
+			roundness[i] = FWHMy/FWHMx;
+		}
+		best_index = minidx(scores, included, regargs->seq->number, NULL);
+	} else {
+		float FWHMx;
+		for (int i = 0; i < regargs->seq->number; i++) {
+			if (!included[i]) continue;
+			FWHMx = fwhm[i];
+			// we only rank images with at least half the maximum number of stars (and we count them as meaningful)
+			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
+			if (sf_args->nb_stars[i] >= maxstars / 2) meaningful[i] = TRUE;
+		}
+		best_index = minidx(scores, included, regargs->seq->number, NULL);
+	}
+
+	regargs->seq->reference_image = best_index;
+	int reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
+	siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), 1, reffilenum);
+
+	// 3. compute the transforms and store them in regparams
+	// we will check that we have registered enough meaningful frames to the new ref before going to distance checking (step 4.)
+
+	//intializing some useful info
+	int trials = 0;
+	int nb_valid_frames = 0, nb_meaningful = 0;
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (included[i]) nb_valid_frames++;
+		if (meaningful[i]) nb_meaningful++;
+	}
+	int best_indexes[MAX_TRIALS_2PASS];
+	int nb_aligned[MAX_TRIALS_2PASS];
+	best_indexes[trials] = best_index;
+	float allowable_dist = (float)regargs->seq->imgparam[regargs->reference_image].rx * MAX_SHIFT_RATIO;
+	int tmp_failed;
+
+	while (trials < MAX_TRIALS_2PASS) {
+		tmp_failed = failed;
+		for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
+		nb_aligned[trials] = compute_transform(regargs, sf_args, tmp_included, &tmp_failed, fwhm, roundness, B, FALSE);
+		// if number of aligned frames is less than half the number of meaningful frames (those with enough stars)
+		// we have chosen a reference which is not framed well enough to align the sequence (the computed cog is probably meaningless as well)
+		// we set its score to FLT_MAX and start again with the next best frame
+		// we do not remove it from the meaningful frames count or included ones, as it still may be worth aligning with the new ref
+		if (nb_aligned[trials] < nb_meaningful / 2) {
+			scores[best_index] = FLT_MAX;
+			siril_log_message(_("Trial #%d: After sequence alignement, image #%d could not align more than half of the frames, recomputing\n"), trials + 1, reffilenum);
+			best_index = minidx(scores, included, regargs->seq->number, NULL);
+			regargs->seq->reference_image = best_index;
+			reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
+			trials++;
+			if (trials < MAX_TRIALS_2PASS) {
+				siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), trials + 1, reffilenum);
+				best_indexes[trials] = best_index;
+			}
+		} else { // not necessary but a simple to have print_alignment_results
+			tmp_failed = failed;
+			for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
+			compute_transform(regargs, sf_args, tmp_included, &tmp_failed, fwhm, roundness, B, TRUE);
+			break;
+		}
+	}
+
+	if (trials == MAX_TRIALS_2PASS) {
+	// We have tried many times over, we need to select the "best" frame
+	// even though it cannot align more than half of the good images
+		int best_try = -1;
+		int maxreg = 0;
+		siril_log_message(_("After %d trials, no reference image could align more than half of the frames, selecting best candidate\n"), MAX_TRIALS_2PASS);
+		for (int i = 0; i < MAX_TRIALS_2PASS; i++) {
+			siril_log_message(_("Trial #%d: Reference image: #%d - Frames aligned: %d\n"), i + 1, regargs->seq->imgparam[best_indexes[i]].filenum, nb_aligned[i]);
+			if (nb_aligned[i] > maxreg) {
+				best_try = i;
+				maxreg = nb_aligned[i];
+			}
+		}
+		if (maxreg <= 1) goto free_all;
+		best_index = best_indexes[best_try];
+		regargs->seq->reference_image = best_index;
+		reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
+		siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
+		tmp_failed = failed;
+		for (int i = 0; i < regargs->seq->number; i++) tmp_included[i] = included[i];
+		compute_transform(regargs, sf_args, tmp_included, &tmp_failed, fwhm, roundness, B, TRUE);
+	}
+	// and we copy back to the initial arrays
+	for (int i = 0; i < regargs->seq->number; i++) included[i] = tmp_included[i];
+	failed = tmp_failed;
+
+	// 4. check distance to cog
+	compute_dist(regargs, dist, included);
+	//if larger than cog, we recompute a score accoutning for the distance
+	if (dist[best_index] > allowable_dist) {
+		siril_log_message(_("After sequence alignement, image %d is too far from the sequence cog, recomputing\n"), reffilenum);
+		siril_debug_print(_("Distance to cog is  %2.1fpx while threshold is set at %2.1fpx\n"), dist[best_indexes[trials]], allowable_dist);
+		float FWHMx;
+		int new_best_index = -1;
+		for (int i = 0; i < regargs->seq->number; i++) {
+			if (!included[i]) continue;
+			FWHMx = fwhm[i];
+			// images are now scored ONLY if they are within allowable distance from cog
+			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2 && dist[i] < allowable_dist) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx: FLT_MAX;
+		}
+		new_best_index = minidx(scores, included, regargs->seq->number, NULL);
+		if (new_best_index != best_index && new_best_index > -1) { // do not recompute if none or same is found (same should not happen)
+			regargs->seq->reference_image = new_best_index;
+			reffilenum = regargs->seq->imgparam[new_best_index].filenum;	// for display purposes
+			siril_log_message(_("After sequence analysis, we are choosing image %d as new reference for registration\n"), reffilenum);
+			// back to 3. compute the transforms and store them in regparams
+			compute_transform(regargs, sf_args, included, &failed, fwhm, roundness, B, TRUE);
+		} else {
+			siril_log_message(_("Could not find a better frame, keeping image %d as the reference for the sequence\n"), reffilenum);
+		}
+	} else {
+		siril_log_message(_("After sequence alignment, we find that image %d is %2.1fpx away from sequence cog, i.e. within allowable bounds\n"), reffilenum, dist[best_index]);
+	}
+
+	// we finally copy the local included flag to seq->imgparam
+	for (int i = 0; i < regargs->seq->number; i++) {
+		regargs->seq->imgparam[i].incl = included[i];
+	}
+
+	// images may have been excluded but selnum wasn't updated
+	fix_selnum(regargs->seq, FALSE);
+	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->seq->selnum);
+	clear_stars_list(FALSE);
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+
+free_all:
+	for (int i = 0; i < regargs->seq->number; i++)
+		free_fitted_stars(sf_args->stars[i]);
+	free(sf_args->stars);
+	free(sf_args->nb_stars);
+	free(sf_args);
+	free(fwhm);
+	free(roundness);
+	free(B);
+	free(A);
+	free(Acut);
+	free(included);
+	free(tmp_included);
+	free(meaningful);
+	free(scores);
+	free(dist);
+	return retval;
 }
 

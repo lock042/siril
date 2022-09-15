@@ -372,6 +372,9 @@ gpointer do_starnet(gpointer p) {
 	// shadows but generally by less than 0.001% of pixels. The result of starnet using
 	// this stretch is much better than either asinh or GHT stretches.
 	struct mtf_params params;
+	params.do_red = TRUE;
+	params.do_green = TRUE;
+	params.do_blue = TRUE;
 	find_linked_midtones_balance_default(&workingfit, &params);
 	if (args->linear) {
 		siril_log_message(_("Starnet++: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
@@ -389,7 +392,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Save current stretched image as working 16-bit TIFF (post initial stretch if the image was linear)
-	if (savetif(temptif, &workingfit, 16)) {
+	if (savetif(temptif, &workingfit, 16, NULL, com.pref.copyright, TRUE)) {
 		siril_log_color_message(_("Error: unable to save working TIFF of original image...\n"), "red");
 		goto CLEANUP;
 	}

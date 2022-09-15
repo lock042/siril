@@ -156,7 +156,6 @@ void stop_live_stacking_engine() {
 
 static int wait_for_file_to_be_written(const gchar *filename) {
 	int iter;
-	guint64 last_size = 0;
 	GFile *fd = g_file_new_for_path(filename);
 	for (iter = 1; iter < WAIT_FILE_WRITTEN_ITERS; iter++) {
 		g_usleep(WAIT_FILE_WRITTEN_US);
@@ -168,6 +167,7 @@ static int wait_for_file_to_be_written(const gchar *filename) {
 		}
 #else
 		guint64 size;
+		guint64 last_size = 0;
 		if (!g_file_measure_disk_usage(fd, G_FILE_MEASURE_NONE, NULL, NULL, NULL, &size, NULL, NULL, NULL)) {
 			g_object_unref(fd);
 			return 1;
@@ -227,7 +227,7 @@ int start_livestacking(gboolean with_filewatcher) {
 		livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, REGISTRATION_TYPE);
 	}
 
-	do_links = test_if_symlink_is_ok();
+	do_links = test_if_symlink_is_ok(TRUE);
 
 	new_files_queue = g_async_queue_new();
 	if (with_filewatcher) {
@@ -440,7 +440,6 @@ static int start_global_registration(sequence *seq) {
 	reg_args.func = &register_star_alignment; // TODO: ability to choose a method
 	reg_args.seq = seq;
 	reg_args.reference_image = 0;
-	reg_args.process_all_frames = TRUE;
 	reg_args.layer = (seq->nb_layers == 3) ? 1 : 0;
 	reg_args.run_in_thread = FALSE;
 	reg_args.follow_star = FALSE;
@@ -460,7 +459,7 @@ static int start_global_registration(sequence *seq) {
 		return 1;*/
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
-	if (!reg_args.process_all_frames) {
+	if (reg_args.filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = seq->selnum;
 	}
@@ -727,7 +726,7 @@ static gpointer live_stacker(gpointer arg) {
 		clean_end_stacking(&stackparam);
 		free_sequence(&r_seq, FALSE);
 		free(stackparam.image_indices);
-		free(stackparam.description);
+		g_free(stackparam.description);
 
 		if (retval) {
 			gchar *str = g_strdup_printf(_("Stacking failed for image %d"), index);

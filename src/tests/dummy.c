@@ -134,7 +134,7 @@ gboolean load_WCS_from_memory(fits* fit) {
 	return FALSE;
 }
 
-void free_wcs(fits *fit) {
+void free_wcs(fits *fit, gboolean keep_RADEC) {
         fprintf(stderr, "ERROR: calling undefined function free_wcs\n");
 }
 
@@ -172,6 +172,11 @@ void wcs_cd_to_pc(double cd[2][2], double pc[2][2], double cdelt[2]) {
 
 void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
         fprintf(stderr, "ERROR: calling undefined function wcs_pc_to_cd\n");
+}
+
+gboolean has_wcsdata(fits *fit) {
+        fprintf(stderr, "ERROR: calling undefined function has_wcsdata\n");
+	return FALSE;
 }
 
 int check_threading(const threading_type *t) {

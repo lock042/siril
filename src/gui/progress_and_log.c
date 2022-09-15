@@ -141,6 +141,8 @@ static gboolean idle_messaging(gpointer p) {
 	if (log->message[0] == '\n' && log->message[1] == '\0') {
 		gtk_text_buffer_get_start_iter(tbuf, &iter);
 		gtk_text_buffer_insert(tbuf, &iter, log->message, strlen(log->message));
+		free(log->timestamp);
+		free(log->message);
 		free(log);
 		return FALSE;
 	}
@@ -149,7 +151,7 @@ static gboolean idle_messaging(gpointer p) {
 	gtk_text_buffer_insert_with_tags_by_name(tbuf, &iter, log->timestamp,
 			strlen(log->timestamp), "bold", NULL);
 
-	if (log->color == NULL)
+	if (!log->color)
 		gtk_text_buffer_insert_with_tags_by_name(tbuf, &iter, log->message,
 				strlen(log->message), "normal", NULL);
 	else

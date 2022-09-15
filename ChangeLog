@@ -14,6 +14,7 @@ xx/xx/22
 * Added bad pixel map option for preprocess, both in GUI and command
 * Added and reviewed commands for offline and automatic post-processing
 * Added background level and star count as new sequence filters
+* Added weighing based on number of stars or wFWHM for stacking
 * Added a new threading mechanism for per-image improved performance
 * Added star selection from coordinates to seqpsf and star tracking with homography
 * Added headless light curve creation from a list of star equatorial coordinates
@@ -21,9 +22,11 @@ xx/xx/22
 * Added relaxed mode for star detection for particularly bad images
 * Added crop to selection to the rotation geometric transform
 * Added a way to clean sequence file in the sequence tab (see also command seqclean)
+* Added a warning when images are negative on calibration
+* Added calibration details in the FITS history
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
-* Refactored registration and added Apply Existing Registration method
+* Refactored global registration and added 2pass and Apply Existing methods
 * Refactored 3-star registration to run the 3 stars analysis successively
 * Refactored PCC, using WCS information to identify stars instead of registration match
 * Refactored settings, preferences and configuration file, adding get and set commands
@@ -37,22 +40,42 @@ xx/xx/22
 * Added option "full" to export all possible stats in seqstat command
 * Added argument to executable to pass pipes path, allowing several instances to run simultaneously
 * Added more reporting on online object search, avoiding duplicates in catalogues
-* Replaced generalized hyperbolic transform stretch method by more general algorithms
+* Replaced generalized hyperbolic transform stretch method by more general algorithms and optimised for speed
+* Added improved graphical interface to hyperbolic stretches
+* Altered behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels (this is useful in NB workflows etc.)
 * Replaced Libraw with RT debayering
 * Fixed comet registration when registration was accumulated over existing data
 * Fixed star detection for images with very large stars
 * Fixed cancellation of seqpsf or seqcrop
 * Fixed photometry analysis of stars with negative pixels around them
 * Fixed dates keywords in sum and min/max algorithms
+* Fixed FITS header preservation on RGB composition
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
+* Optimised asinh code for speed
+
+siril 1.0.5
+09/09/22
+
+* Fixed bug in eyedropper feature with 16bits images
+* Added button to see original image in background extraction
+* Fixed bug introduced in 1.0.4 with one pixel shift when registering meridian flipped images
+* Fixed GAIA catalog parser
 
 siril 1.0.4
-XX/XX/22
+09/02/22
+
 * Fixed selected area for flat autonormalisation calc
 * Fixed wrong initialization in polynomial background extraction
+* Fixed cold pixels rejection in GESDT stacking
+* Fixed x and y position in PSF and star detection
+* Fixed RGB pixel display where Green and Blue were swapped
+* Fixed random crash in Pixel Math
+* Improved wcs import when formalism used is deprecated (CROTA + CDELT)
+* Added dropper icon to set SP easily in GHT tool
 
 siril 1.0.3
 06/28/22
+
 * Fixed memory leak in PixelMath
 * Fixed memory leak in SER preview
 * Fixed error in seqsubsky

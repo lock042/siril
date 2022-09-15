@@ -30,6 +30,7 @@
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
 #include "algos/colors.h"
+#include "algos/siril_wcs.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -464,12 +465,8 @@ static void check_gfit_is_ours() {
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	com.uniq = calloc(1, sizeof(single));
-	com.uniq->comment = strdup(_("Compositing result image"));
-	com.uniq->filename = strdup(_("Unsaved compositing result"));
-	com.uniq->fileexist = FALSE;
-	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->fit = &gfit;
+	if (!create_uniq_from_gfit(strdup(_("Unsaved compositing result")), FALSE))
+		com.uniq->comment = strdup(_("Compositing result image"));
 
 	initialize_display_mode();
 	update_zoom_label();
@@ -486,6 +483,19 @@ static void check_gfit_is_ours() {
 	sequence_list_change_current();
 }
 
+static void update_metadata() {
+	int nb = number_of_images_loaded();
+	fits **f = malloc((nb + 1) * sizeof(fits *));
+	int j = 0;
+	for (int i = 0; layers[i] ; i++)
+		if (has_fit(i))
+			f[j++] = &layers[i]->the_fit;
+	f[j] = NULL;
+
+	merge_fits_headers_to_result2(&gfit, f);
+	load_WCS_from_memory(&gfit);
+	free(f);
+}
 
 /* callback for the file chooser's file selection: try to load the pointed file, allocate the
  * destination image if this is the first image, and update the result. */
@@ -521,7 +531,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 			gtk_widget_set_tooltip_text(GTK_WIDGET(layers[layer]->label), _("Only single channel images can be load"));
 			retval = 1;
 		} else {
-		/* Force first tab to be Red and not B&W if an image was already loaded */
+			/* Force first tab to be Red and not B&W if an image was already loaded */
 			GtkNotebook* Color_Layers = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook1"));
 			GtkWidget *page = gtk_notebook_get_nth_page(Color_Layers, RED_VPORT);
 			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(Color_Layers), page, _("Red"));
@@ -577,6 +587,7 @@ void on_filechooser_file_set(GtkFileChooserButton *widget, gpointer user_data) {
 	// enable the color balance finalization button
 	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
+	update_metadata();
 	update_MenuItem();
 }
 
@@ -618,7 +629,7 @@ void create_the_internal_sequence() {
 /* start aligning the layers: create an 'internal' sequence and run the selected method on it */
 void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	int i = 0;
-	struct registration_args regargs;
+	struct registration_args regargs = { 0 };
 	struct registration_method *method;
 	char *msg;
 	GtkComboBox *regcombo;
@@ -630,7 +641,6 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	method = reg_methods[gtk_combo_box_get_active(regcombo)];
 
 	regargs.seq = seq;
-	regargs.process_all_frames = TRUE;
 	get_the_registration_area(&regargs, method);
 	regargs.layer = 0;	// TODO: fix with dynamic layers list
 	regargs.run_in_thread = FALSE;

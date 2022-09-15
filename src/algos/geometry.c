@@ -28,6 +28,7 @@
 #include "algos/siril_wcs.h"
 #include "core/undo.h"
 #include "core/processing.h"
+#include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -210,6 +211,8 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	int retvalue;
 	const char *str_inter;
 	struct timeval t_start, t_end;
+	float factor_X = (float)image->rx / (float)toX;
+	float factor_Y = (float)image->ry / (float)toY;
 
 	switch (interpolation) {
 	case OPENCV_NEAREST:
@@ -236,7 +239,10 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	gettimeofday(&t_start, NULL);
 
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation);
-	free_wcs(image);
+	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
+	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
+	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve
+	load_WCS_from_memory(image);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -281,7 +287,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 #ifdef HAVE_WCSLIB
-	if (image->wcslib) {
+	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
 		load_WCS_from_memory(image);
@@ -334,7 +340,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	show_time(t_start, t_end);
 
 #ifdef HAVE_WCSLIB
-	if (image->wcslib) {
+	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
 		load_WCS_from_memory(image);
@@ -418,7 +424,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 		mirrorx_float(fit, verbose);
 	}
 #ifdef HAVE_WCSLIB
-	if (fit->wcslib) {
+	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h11 = -1.;
@@ -446,7 +452,7 @@ void mirrory(fits *fit, gboolean verbose) {
 	}
 
 #ifdef HAVE_WCSLIB
-	if (fit->wcslib) {
+	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h00 = -1.;
@@ -550,7 +556,7 @@ int crop(fits *fit, rectangle *bounds) {
 		return -1;
 	}
 #ifdef HAVE_WCSLIB
-	if (fit->wcslib) {
+	if (has_wcs(fit)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
@@ -633,6 +639,7 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 		
 		redraw(REMAP_ALL);
 		redraw_previews();
+		update_MenuItem();
 		set_cursor_waiting(FALSE);
 	}
 }

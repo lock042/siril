@@ -419,6 +419,7 @@ struct ffit {
 	char observer[FLEN_VALUE];		// OBSERVER key
 	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
+	double airmass;                   // relative optical path length through atmosphere.
 	/* data obtained from FITS or RAW files */
 	double focal_length, iso_speed, exposure, aperture, ccd_temp;
 	double livetime;		// total exposure
@@ -438,6 +439,7 @@ struct ffit {
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
 	double mini, maxi;	// min and max of the stats->max[3]
+	float neg_ratio;	// ratio of pixels with a negative value on total number of pixels
 
 	fitsfile *fptr;		// file descriptor. Only used for file read and write.
 

@@ -27,6 +27,8 @@ struct _convert_data {
 
 	int retval;
 	int nb_converted_files;
+	gchar **report;			// for file to file conversion report
+	int report_length;		// number of entries in the report
 };
 
 #define MAX_EXTENSIONS 50	// actual size of supported_extensions

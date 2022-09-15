@@ -63,6 +63,7 @@ preferences pref_init = {
 		.roundness = 0.5,
 		.focal_length = 0.,
 		.pixel_size_x = 0.,
+		.convergence = 1,
 		.relax_checks = FALSE
 	},
 	.prepro = {
