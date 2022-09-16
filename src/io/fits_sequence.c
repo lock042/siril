@@ -40,6 +40,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	int status = 0;
 	int nb_hdu, ref_naxis = -1, ref_bitpix = 0, nb_images = 0;
 	long ref_naxes[3] = { 0l };
+	gboolean homogeneous = TRUE;
 
 	fits_get_num_hdus(fptr, &nb_hdu, &status);
 	if (status || !nb_im)
@@ -80,8 +81,13 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 				siril_debug_print("found reference HDU %ldx%ldx%d (%d)\n", naxes[0], naxes[1], naxis, bitpix);
 			} else {
 				if (naxis != ref_naxis || naxes[0] != ref_naxes[0] || naxes[1] != ref_naxes[1] || bitpix != ref_bitpix) {
-					fprintf(stderr, "another image was found in the FITS file but does not has the same parameters as the first one\n");
-					break;
+					if (com.pref.allow_heterogeneous_fitseq)
+						homogeneous = FALSE;
+					else {
+						siril_log_message(_("Several images were found in the FITS file but they have different parameters, which is not allowed.\n"));
+						status = 1;
+						break;
+					}
 				}
 			}
 			if (hdus)
@@ -97,8 +103,11 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 		}
 	}
 	else {
+		if (!homogeneous)
+			siril_log_message(_("Several images were found in the FITS file but they have different parameters.\n"));
+		// this ^ is printed too often, maybe we can add a verbose flag?
 		*nb_im = nb_images;
-		siril_debug_print("found %d images with same params in the FITS sequence\n", nb_images);
+		siril_debug_print("found %d images in the FITS sequence\n", nb_images);
 		// we could realloc *hdus, but it's not much useful
 	}
 	return status;
