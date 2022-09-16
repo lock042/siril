@@ -34,6 +34,7 @@ preferences pref_init = {
 	.wd = NULL,
 	.ext = NULL,
 	.force_16bit = FALSE,
+	.allow_heterogeneous_fitseq = FALSE,
 	.mem_mode = RATIO,
 	.memory_ratio = 0.9,
 	.memory_amount = 10,

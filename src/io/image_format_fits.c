@@ -111,8 +111,8 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 	int ii;
 	long npixels = 1L;
 	long anaxes[3] = { 1L, 1L, 1L }, firstpix[3] = { 1L, 1L, 1L };
-	float *pix, sum = 0.f;
-	float meanval = 0.f, minval = 1.E33, maxval = -1.E33;
+	float *pix;
+	float minval = 1.E33, maxval = -1.E33;
 
 	/* initialize value in case where it does not work */
 	*mini = 0;
@@ -142,7 +142,6 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 				break; /* jump out of loop on error */
 
 			for (ii = 0; ii < npixels; ii++) {
-				sum += pix[ii]; /* accumulate sum */
 				if (pix[ii] < minval)
 					minval = pix[ii]; /* find min and  */
 				if (pix[ii] > maxval)
@@ -155,10 +154,6 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 	if (status) {
 		report_fits_error(status); /* print any error message */
 	} else {
-		if (npixels > 0)
-			meanval = sum / npixels;
-		siril_debug_print("  sum of pixels = %f\n", sum);
-		siril_debug_print("  mean value    = %f\n", meanval);
 		siril_debug_print("  minimum value = %f\n", minval);
 		siril_debug_print("  maximum value = %f\n", maxval);
 		*maxi = maxval;
