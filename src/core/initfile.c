@@ -157,7 +157,6 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_int(stack_setting, "mem_mode", (int*)&com.pref.mem_mode);
 		config_setting_lookup_float(stack_setting, "maxmem", &com.pref.memory_ratio);
 		config_setting_lookup_float(stack_setting, "maxmem_gb",	&com.pref.memory_amount);
-		config_setting_lookup_int(stack_setting, "hd_bitdepth_default", &com.pref.hd_bitdepth_default);
 	}
 	if (com.pref.mem_mode < 0 || com.pref.mem_mode > 2)
 		com.pref.mem_mode = RATIO;
@@ -215,6 +214,7 @@ static int readinitfile_libconfig(gchar *path) {
 		const char *swap_dir = NULL, *starnet_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
 
 		config_setting_lookup_int(misc_setting, "pan_position", &com.pref.gui.pan_position);
+		config_setting_lookup_int(misc_setting, "hd_bitdepth_default", &com.pref.hd_bitdepth_default);
 
 		if (config_setting_lookup_bool(misc_setting, "is_extended", &com.pref.gui.is_extended) == CONFIG_FALSE) {
 			com.pref.gui.is_extended = TRUE;

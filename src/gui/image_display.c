@@ -1420,7 +1420,7 @@ static void draw_regframe(const draw_data_t* dd) {
 void initialize_image_display() {
 	int i;
 	siril_debug_print("HD AutoStretch bitdepth: %d\n", com.pref.hd_bitdepth_default);
-	gui.hd_remap_max = pow(com.pref.hd_bitdepth_default, 2);
+	gui.hd_remap_max = 1 << (guint) com.pref.hd_bitdepth_default;
 	for (i = 0; i < MAXGRAYVPORT; i++) {
 		memset(gui.remap_index[i], 0, sizeof(gui.remap_index[i]));
 		last_pente = 0.f;
