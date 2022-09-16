@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -11687,6 +11687,18 @@ This should normally be the case only for stacked images. Increasing this value 
       </object>
     </child>
     <child>
+      <object class="GtkRadioMenuItem" id="autohd_item">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">HD Autostretch will use substantially more memory to store its LUT.</property>
+        <property name="label" translatable="yes">HD AutoStretch</property>
+        <property name="use-underline">True</property>
+        <property name="draw-as-radio">True</property>
+        <property name="group">linear_item</property>
+        <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkRadioMenuItem" id="histo_item">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -21998,7 +22010,7 @@ WARNING: This option should not be checked for master stacking.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-markup" translatable="yes">Display mode: this list presents all the vizual modes available in Siril.
+                            <property name="tooltip-markup" translatable="yes">Display mode: this list presents all the visual modes available in Siril.
 
 &lt;b&gt;WARNING: only Linear mode shows the real pixel values (when vizualisation sliders are at min and max positions). Other modes are only conveniant way to display your data. Stretch your histogram before to work on an external tool.&lt;/b&gt;</property>
                             <property name="popup">menu_display</property>

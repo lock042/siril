@@ -64,7 +64,7 @@
 #include "siril-window.h"
 #include "registration_preview.h"
 
-static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item"};
+static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "autohd_item", "histo_item"};
 
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	GtkWidget *scalemax = lookup_widget("scalemax");
@@ -320,10 +320,17 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	}
 
 	gui.rendering_mode = get_display_mode_from_menu();
+	siril_debug_print("Display mode %d\n", gui.rendering_mode);
+	if (gui.rendering_mode == STFHD_DISPLAY && gfit.type != DATA_FLOAT)
+		siril_log_message(_("Current image is not 32 bit. Standard 16 bit Autostretch will be used.\n"));
+	if (gui.rendering_mode == STFHD_DISPLAY)
+		allocate_hd_remap_indices();
+	else
+		hd_remap_indices_cleanup();
 	gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(checkmenuitem)));
 
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
+	siril_window_autostretch_actions(app_win, (gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == STFHD_DISPLAY) && gfit.naxes[2] == 3);
 
 	redraw(REMAP_ALL);
 	redraw_previews();

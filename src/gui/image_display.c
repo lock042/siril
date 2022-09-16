@@ -54,7 +54,6 @@
 #include "image_display.h"
 
 /* remap index data, an index for each layer */
-static BYTE remap_index[3][USHRT_MAX + 1];
 static float last_pente;
 static display_mode last_mode;
 
@@ -140,7 +139,26 @@ static void remaprgb(void) {
 	invalidate_image_render_cache(RGB_VPORT);
 }
 
+int allocate_hd_remap_indices() {
+	for (unsigned i=0; i < 3; i++)
+		if (gui.hd_remap_index[i] == NULL)
+			gui.hd_remap_index[i] = (BYTE*) calloc(gui.hd_remap_max + 1, sizeof(BYTE));
+	return 0;
+}
+
+int hd_remap_indices_cleanup() {
+	for (unsigned i=0 ; i < 3; i++) {
+		if (gui.hd_remap_index[i] != NULL) {
+			free(gui.hd_remap_index[i]);
+			gui.hd_remap_index[i] = NULL;
+		}
+	}
+	return 0;
+}
+
 static int make_index_for_current_display(int vport);
+
+static int make_hd_index_for_current_display(int vport);
 
 static int make_index_for_rainbow(BYTE index[][3]);
 
@@ -188,7 +206,7 @@ static void remap(int vport) {
 		nb_pixels = (double)(gfit.rx * gfit.ry);
 
 		// build the remap_index
-		index = remap_index[0];
+		index = gui.remap_index[0];
 		index[0] = 0;
 		hist_sum = gsl_histogram_get(histo, 0);
 		for (i = 1; i < hist_nb_bins; i++) {
@@ -202,14 +220,17 @@ static void remap(int vport) {
 		set_viewer_mode_widgets_sensitive(FALSE);
 	} else {
 		// for all other modes and ushort data, the index can be reused
-		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
+		if (gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == STFHD_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
 				find_unlinked_midtones_balance_default(&gfit, stf);
 			else find_linked_midtones_balance_default(&gfit, stf);
 			stf_computed = TRUE;
 		}
-		make_index_for_current_display(vport);
-		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
+		if (gui.rendering_mode == STFHD_DISPLAY && gfit.type == DATA_FLOAT)
+			make_hd_index_for_current_display(vport);
+		else
+			make_index_for_current_display(vport);
+		set_viewer_mode_widgets_sensitive((gui.rendering_mode != STF_DISPLAY && gui.rendering_mode != STFHD_DISPLAY));
 	}
 
 	src = gfit.pdata[vport];
@@ -223,10 +244,15 @@ static void remap(int vport) {
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
-	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
-	index = remap_index[target_index];
+	int target_index = (gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == STFHD_DISPLAY) && gui.unlink_channels ? vport : 0;
 
-	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY);
+	gboolean hd_mode = (gui.rendering_mode == STFHD_DISPLAY && gfit.type == DATA_FLOAT);
+	if (hd_mode)
+		index = gui.hd_remap_index[target_index];
+	else
+		index = gui.remap_index[target_index];
+
+	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY || (gui.rendering_mode == STFHD_DISPLAY && gfit.type != DATA_FLOAT));
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
@@ -238,7 +264,10 @@ static void remap(int vport) {
 			guint src_index = y * gfit.rx + x;
 			BYTE dst_pixel_value = 0;
 			if (gfit.type == DATA_USHORT) {
-				if (special_mode) // special case, no lo & hi
+				if (hd_mode) {
+					dst_pixel_value = index[src[src_index] * gui.hd_remap_max / USHRT_MAX]; // Works as long as hd_remap_max is power of 2
+				}
+				else if (special_mode) // special case, no lo & hi
 					dst_pixel_value = index[src[src_index]];
 				else if (gui.cut_over && src[src_index] > gui.hi)	// cut
 					dst_pixel_value = 0;
@@ -246,7 +275,10 @@ static void remap(int vport) {
 					dst_pixel_value = index[src[src_index] - gui.lo < 0 ? 0 : src[src_index] - gui.lo];
 				}
 			} else if (gfit.type == DATA_FLOAT) {
-				if (special_mode) // special case, no lo & hi
+				if (hd_mode) {
+					dst_pixel_value = index[float_to_max_range(fsrc[src_index], gui.hd_remap_max)];
+				}
+				else if (special_mode) // special case, no lo & hi
 					dst_pixel_value = index[roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE)];
 				else if (gui.cut_over && roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) > gui.hi)	// cut
 					dst_pixel_value = 0;
@@ -280,6 +312,37 @@ static void remap(int vport) {
 	test_and_allocate_reference_image(vport);
 }
 
+static int make_hd_index_for_current_display(int vport) {
+	float slope, delta = gui.hi - gui.lo;
+	int i;
+	BYTE *index;
+	float pxl;
+	/* initialization of data required to build the remap_index
+	 *
+	 * The HD remap curve is only used with STF rendering mode
+	 * as it is the only mode that results in a slope steep enough
+	 * to cause noticeable quantization of levels */
+	slope = UCHAR_MAX_SINGLE;
+	/************* Building the HD remap_index **************/
+	siril_debug_print("Rebuilding HD remap_index\n");
+	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
+	index = gui.hd_remap_index[target_index];
+
+	for (i = 0; i <= gui.hd_remap_max; i++) {
+		pxl = (float) i / gui.hd_remap_max;
+		index[i] = roundf_to_BYTE((MTFp(pxl, stf[target_index])) * slope);
+		// check for maximum overflow, given that df/di > 0. Should not happen with round_to_BYTE
+		if (index[i] == UCHAR_MAX)
+			break;
+	}
+	if (i != gui.hd_remap_max + 1) {
+		/* no more computation needed, just fill with max value */
+		for (++i; i <= gui.hd_remap_max; i++)
+			index[i] = UCHAR_MAX;
+	}
+	return 0;
+}
+
 static int make_index_for_current_display(int vport) {
 	float slope, delta = gui.hi - gui.lo;
 	int i;
@@ -303,21 +366,22 @@ static int make_index_for_current_display(int vport) {
 			slope = UCHAR_MAX_SINGLE / asinhf(delta * 0.001f);
 			break;
 		case STF_DISPLAY:
+		case STFHD_DISPLAY: // In case STFHD is selected but gfit is not 32bit
 			slope = UCHAR_MAX_SINGLE;
 			break;
 		default:
 			return 1;
 	}
-	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY) &&
+	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY && gui.rendering_mode != STFHD_DISPLAY) &&
 			slope == last_pente && gui.rendering_mode == last_mode) {
-		siril_debug_print("Re-using previous remap_index\n");
+		siril_debug_print("Re-using previous gui.remap_index\n");
 		return 0;
 	}
 
 	/************* Building the remap_index **************/
-	siril_debug_print("Rebuilding remap_index\n");
-	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
-	index = remap_index[target_index];
+	siril_debug_print("Rebuilding gui.remap_index\n");
+	int target_index = (gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == STFHD_DISPLAY) && gui.unlink_channels ? vport : 0;
+	index = gui.remap_index[target_index];
 
 	for (i = 0; i <= USHRT_MAX; i++) {
 		switch (gui.rendering_mode) {
@@ -344,6 +408,7 @@ static int make_index_for_current_display(int vport) {
 				index[i] = roundf_to_BYTE((float) i * slope);
 				break;
 			case STF_DISPLAY:
+			case STFHD_DISPLAY:
 				pxl = (gfit.orig_bitpix == BYTE_IMG ?
 						(float) i / UCHAR_MAX_SINGLE :
 						(float) i / USHRT_MAX_SINGLE);
@@ -593,7 +658,7 @@ static void draw_selection(const draw_data_t* dd) {
 			cairo_set_line_width(cr, 3. / dd->zoom);
 			cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
 			rotate_context(cr, -gui.rotation); // cairo is positive CW while opencv is positive CCW
-			
+
 			// draw a circle at top left corner to visualize rots larger than 90
 			double size = 10. / dd->zoom;
 			cairo_set_dash(cr, NULL, 0, 0);
@@ -1353,7 +1418,7 @@ static void draw_regframe(const draw_data_t* dd) {
 void initialize_image_display() {
 	int i;
 	for (i = 0; i < MAXGRAYVPORT; i++) {
-		memset(remap_index[i], 0, sizeof(remap_index[i]));
+		memset(gui.remap_index[i], 0, sizeof(gui.remap_index[i]));
 		last_pente = 0.f;
 		last_mode = HISTEQ_DISPLAY;
 		// only HISTEQ mode always computes the index, it's a good initializer here

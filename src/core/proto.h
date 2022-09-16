@@ -73,6 +73,7 @@ WORD round_to_WORD(double x);
 BYTE round_to_BYTE(double x);
 BYTE roundf_to_BYTE(float f);
 WORD roundf_to_WORD(float f);
+guint float_to_max_range(float f, guint max);
 int round_to_ceiling_multiple(int x, int factor);
 BYTE conv_to_BYTE(double x);
 int truncate_to_int32(uint64_t x);
