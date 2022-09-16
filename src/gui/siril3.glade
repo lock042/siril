@@ -26729,7 +26729,7 @@ Configuring a memory amount larger than what is available on your system may res
                       </packing>
                     </child>
                     <child>
-                      <!-- n-columns=2 n-rows=2 -->
+                      <!-- n-columns=2 n-rows=3 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -26765,18 +26765,53 @@ Configuring a memory amount larger than what is available on your system may res
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkSpinButton" id="spin_hd_bitdepth">
+                          <object class="GtkBox">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="halign">start</property>
-                            <property name="adjustment">adjustment_hdstf_bitdepth</property>
-                            <property name="numeric">True</property>
-                            <property name="value">20</property>
+                            <property name="can-focus">False</property>
+                            <property name="spacing">12</property>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_hd_bitdepth">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Sets bit depth for the HD AutoStretch display mode. Higher bit depth require exponentially more memory for the LUT, but do a much better job of smoothing quantization artefacts in displaying images with very narrow histogram peaks.</property>
+                                <property name="halign">start</property>
+                                <property name="text" translatable="yes">20</property>
+                                <property name="input-purpose">number</property>
+                                <property name="adjustment">adjustment_hdstf_bitdepth</property>
+                                <property name="numeric">True</property>
+                                <property name="value">20</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="button_apply_hd_bitdepth">
+                                <property name="label" translatable="yes">Apply bit depth</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <signal name="clicked" handler="on_button_apply_hd_bitdepth_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
                             <property name="top-attach">1</property>
                           </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
                         </child>
                         <child>
                           <placeholder/>

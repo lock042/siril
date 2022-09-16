@@ -323,10 +323,12 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	siril_debug_print("Display mode %d\n", gui.rendering_mode);
 	if (gui.rendering_mode == STFHD_DISPLAY && gfit.type != DATA_FLOAT)
 		siril_log_message(_("Current image is not 32 bit. Standard 16 bit Autostretch will be used.\n"));
-	if (gui.rendering_mode == STFHD_DISPLAY)
+	if (gui.rendering_mode == STFHD_DISPLAY) {
 		allocate_hd_remap_indices();
-	else
+		siril_log_message(_("HD AutoStretch bit applied with %d bit LUT\n"), (int) log2(gui.hd_remap_max));
+	} else {
 		hd_remap_indices_cleanup();
+	}
 	gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(checkmenuitem)));
 
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
@@ -335,6 +337,20 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 	redraw(REMAP_ALL);
 	redraw_previews();
 }
+
+void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_data) {
+	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
+	siril_debug_print("bitdepth: %d\n", bitdepth);
+	if (gui.hd_remap_max != pow(2, bitdepth)) {
+		gui.hd_remap_max = pow(2, bitdepth);
+		if (gui.rendering_mode == STFHD_DISPLAY && gfit.type == DATA_FLOAT) {
+			allocate_hd_remap_indices();
+			redraw(REMAP_ALL);
+		}
+	siril_log_color_message(_("HD AutoStretch display mode bit depth set to %d\n"), "green", bitdepth);
+	}
+}
+
 
 /* Sets the display mode combo box to the value stored in the relevant struct.
  * The operation is purely graphical. */
