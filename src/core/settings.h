@@ -194,6 +194,7 @@ struct pref_struct {
 	gchar *wd;		// saved working directory, not impacted by scripts like com.wd
 	gchar *ext;		// FITS extension used in SIRIL
 	gboolean force_16bit;	// don't use 32 bits for pixel depth
+	gboolean allow_heterogeneous_fitseq; // allow images in FITS cubes to have different sizes
 
 	enum { RATIO, AMOUNT } mem_mode; // mode of memory management
 	double memory_ratio;		// ratio of available memory to use for stacking (and others)
