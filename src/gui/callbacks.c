@@ -367,6 +367,8 @@ void set_display_mode() {
 	case STF_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[STF_DISPLAY]));
 	break;
+	case STFHD_DISPLAY:
+		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[STFHD_DISPLAY]));
 	case HISTEQ_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[HISTEQ_DISPLAY]));
 		break;
