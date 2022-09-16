@@ -315,7 +315,7 @@ static void remap(int vport) {
 }
 
 static int make_hd_index_for_current_display(int vport) {
-	float slope, delta = gui.hi - gui.lo;
+	float slope;
 	int i;
 	BYTE *index;
 	float pxl;
