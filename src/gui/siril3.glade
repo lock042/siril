@@ -24235,11 +24235,11 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                 </child>
                                 <child>
                                   <object class="GtkCheckButton" id="checkbox_heterogeneous_fitseq">
-                                    <property name="label" translatable="yes">Allow FITS cubes to have different sizes</property>
+                                    <property name="label" translatable="yes">Allow FITS cubes to have images of different sizes</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">This can be useful to open scientific FITS files that were not created by Siril and that contain multiple images of different dimensions, which would otherwise considered as invalid Siril FITSEQ files.</property>
                                     <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">This can be useful to open scientific FITS files that were not created by Siril and that contain multiple images of different dimensions, which would otherwise considered as invalid Siril FITSEQ files.</property>
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
