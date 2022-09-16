@@ -1419,13 +1419,14 @@ static void draw_regframe(const draw_data_t* dd) {
 
 void initialize_image_display() {
 	int i;
+	siril_debug_print("HD AutoStretch bitdepth: %d\n", com.pref.hd_bitdepth_default);
+	gui.hd_remap_max = pow(com.pref.hd_bitdepth_default, 2);
 	for (i = 0; i < MAXGRAYVPORT; i++) {
 		memset(gui.remap_index[i], 0, sizeof(gui.remap_index[i]));
 		last_pente = 0.f;
 		last_mode = HISTEQ_DISPLAY;
 		// only HISTEQ mode always computes the index, it's a good initializer here
 	}
-
 	cairo_matrix_init_identity(&gui.display_matrix);
 }
 

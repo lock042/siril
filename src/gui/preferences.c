@@ -203,6 +203,9 @@ static void update_performances_preferences() {
 
 	com.pref.memory_ratio = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")));
 	com.pref.memory_amount = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount")));
+
+	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
+	com.pref.hd_bitdepth_default = bitdepth;
 }
 
 static void update_misc_preferences() {
@@ -537,6 +540,8 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfixed_radio")), pref->mem_mode == AMOUNT);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")), pref->memory_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount")), pref->memory_amount);
+
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_hdstf_bitdepth")), pref->hd_bitdepth_default);
 
 	/* tab 10 */
 	initialize_path_directory(pref->swap_dir);

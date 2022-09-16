@@ -157,6 +157,7 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_int(stack_setting, "mem_mode", (int*)&com.pref.mem_mode);
 		config_setting_lookup_float(stack_setting, "maxmem", &com.pref.memory_ratio);
 		config_setting_lookup_float(stack_setting, "maxmem_gb",	&com.pref.memory_amount);
+		config_setting_lookup_int(stack_setting, "hd_bitdepth_default", &com.pref.hd_bitdepth_default);
 	}
 	if (com.pref.mem_mode < 0 || com.pref.mem_mode > 2)
 		com.pref.mem_mode = RATIO;

@@ -529,7 +529,6 @@ struct guiinf {
 	BYTE remap_index[3][USHRT_MAX];	// abstracted here so it can be used for previews and is easier to change the bit depth
 	BYTE *hd_remap_index[3]; // HD remap indexes for the high precision LUTs.
 	guint hd_remap_max;		// the maximum index value to use for the HD LUT. Default is 2^22
-	gboolean use_hd_remap;
 
 	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)

@@ -162,10 +162,9 @@ static void global_initialization() {
 	gui.sliders = MINMAX;
 	gui.zoom_value = ZOOM_DEFAULT;
 	gui.ratio = 0.0;
-	gui.hd_remap_max = USHRT_MAX << 6; // Default bit depth for HD LUT is 22bit
+	gui.hd_remap_max = USHRT_MAX << 4; // Default bit depth for HD LUT is 20bit
 	for (int i = 0; i < 3 ; i++)
 		gui.hd_remap_index[i] = NULL;
-	gui.use_hd_remap = FALSE; // Use standard remap index by default
 
 	initialize_default_settings();	// com.pref
 }

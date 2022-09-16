@@ -199,6 +199,8 @@ struct pref_struct {
 	double memory_ratio;		// ratio of available memory to use for stacking (and others)
 	double memory_amount;		// amount of memory in GB to use for stacking (and others)
 
+	int hd_bitdepth_default; // Default bit depth for HD AutoStretch
+
 	gboolean script_check_requires;	// check the requires command in scripts
 	gboolean pipe_check_requires;	// check the requires command in pipes
 
