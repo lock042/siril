@@ -140,9 +140,11 @@ static void remaprgb(void) {
 }
 
 int allocate_hd_remap_indices() {
-	for (unsigned i=0; i < 3; i++)
-		if (gui.hd_remap_index[i] == NULL)
-			gui.hd_remap_index[i] = (BYTE*) calloc(gui.hd_remap_max + 1, sizeof(BYTE));
+	for (unsigned i=0; i < 3; i++) {
+		if (gui.hd_remap_index[i] != NULL)
+			free(gui.hd_remap_index[i]);
+		gui.hd_remap_index[i] = (BYTE*) calloc(gui.hd_remap_max + 1, sizeof(BYTE));
+	}
 	return 0;
 }
 
@@ -220,7 +222,7 @@ static void remap(int vport) {
 		set_viewer_mode_widgets_sensitive(FALSE);
 	} else {
 		// for all other modes and ushort data, the index can be reused
-		if (gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == STFHD_DISPLAY && !stf_computed) {
+		if ((gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == STFHD_DISPLAY) && !stf_computed) {
 			if (gui.unlink_channels)
 				find_unlinked_midtones_balance_default(&gfit, stf);
 			else find_linked_midtones_balance_default(&gfit, stf);
@@ -325,7 +327,7 @@ static int make_hd_index_for_current_display(int vport) {
 	slope = UCHAR_MAX_SINGLE;
 	/************* Building the HD remap_index **************/
 	siril_debug_print("Rebuilding HD remap_index\n");
-	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
+	int target_index = gui.rendering_mode == STFHD_DISPLAY && gui.unlink_channels ? vport : 0;
 	index = gui.hd_remap_index[target_index];
 
 	for (i = 0; i <= gui.hd_remap_max; i++) {

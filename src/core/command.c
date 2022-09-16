@@ -6218,3 +6218,25 @@ int process_stop_ls(int nb) {
 	return CMD_OK;
 }
 
+int process_set_stfbits(int nb) {
+	if (!word[1]) {
+		siril_log_message(_("No bit depth specified.\n"));
+		return CMD_ARG_ERROR;
+	}
+	int bits = (int) g_ascii_strtod(word[1], NULL);
+	if ((bits < 17) || (bits > 24)) {
+		siril_log_message(_("Bit depth must be between 17 and 24\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (gui.hd_remap_max == pow(2,bits)) // No change
+		return CMD_OK;
+
+	gui.hd_remap_max = pow(2, bits);
+	if (gui.rendering_mode == STFHD_DISPLAY && gfit.type == DATA_FLOAT) {
+		allocate_hd_remap_indices();
+		redraw(REMAP_ALL);
+	}
+	siril_log_color_message(_("HD AutoStretch display mode bit depth set to %d\n"), "green", bits);
+
+	return CMD_OK;
+}
