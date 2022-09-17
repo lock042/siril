@@ -1230,7 +1230,6 @@ static void save_presets_list() {
 
 void on_pm_expr1_bt_clicked(GtkButton *button, gpointer user_data) {
 	gchar *str = get_pixel_math_expression1();
-	remove_spaces_from_str(str);
 
 	if (str) {
 		add_expr_to_tree(str);
@@ -1241,7 +1240,6 @@ void on_pm_expr1_bt_clicked(GtkButton *button, gpointer user_data) {
 
 void on_pm_expr2_bt_clicked(GtkButton *button, gpointer user_data) {
 	gchar *str = get_pixel_math_expression2();
-	remove_spaces_from_str(str);
 
 	if (str) {
 		add_expr_to_tree(str);
@@ -1252,7 +1250,6 @@ void on_pm_expr2_bt_clicked(GtkButton *button, gpointer user_data) {
 
 void on_pm_expr3_bt_clicked(GtkButton *button, gpointer user_data) {
 	gchar *str = get_pixel_math_expression3();
-	remove_spaces_from_str(str);
 
 	if (str) {
 		add_expr_to_tree(str);
