@@ -1230,31 +1230,37 @@ static void save_presets_list() {
 
 void on_pm_expr1_bt_clicked(GtkButton *button, gpointer user_data) {
 	gchar *str = get_pixel_math_expression1();
-
+	g_strstrip(str);
 	if (str) {
-		add_expr_to_tree(str);
+		if (str[0] != '\0') {
+			add_expr_to_tree(str);
+			save_presets_list();
+		}
 		g_free(str);
-		save_presets_list();
 	}
 }
 
 void on_pm_expr2_bt_clicked(GtkButton *button, gpointer user_data) {
 	gchar *str = get_pixel_math_expression2();
-
+	g_strstrip(str);
 	if (str) {
-		add_expr_to_tree(str);
+		if (str[0] != '\0') {
+			add_expr_to_tree(str);
+			save_presets_list();
+		}
 		g_free(str);
-		save_presets_list();
 	}
 }
 
 void on_pm_expr3_bt_clicked(GtkButton *button, gpointer user_data) {
 	gchar *str = get_pixel_math_expression3();
-
+	g_strstrip(str);
 	if (str) {
-		add_expr_to_tree(str);
+		if (str[0] != '\0') {
+			add_expr_to_tree(str);
+			save_presets_list();
+		}
 		g_free(str);
-		save_presets_list();
 	}
 }
 
