@@ -57,6 +57,7 @@ preferences pref_init = {
 	.rgb_aladin = FALSE,
 	.copyright = NULL,
 	.starnet_dir = NULL,
+	.pm_presets = NULL,
 	.starfinder_conf = { // starfinder_conf
 		.radius = 10,
 		.adjust = TRUE,
@@ -209,6 +210,7 @@ struct settings_access all_settings[] = {
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
+	{ "core", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.pm_presets },
 
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
