@@ -57,7 +57,6 @@ preferences pref_init = {
 	.rgb_aladin = FALSE,
 	.copyright = NULL,
 	.starnet_dir = NULL,
-	.pm_presets = NULL,
 	.starfinder_conf = { // starfinder_conf
 		.radius = 10,
 		.adjust = TRUE,
@@ -122,7 +121,8 @@ preferences pref_init = {
 		.catalog[6] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
-		.reg_settings = 0
+		.reg_settings = 0,
+		.pm_presets = NULL
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -210,7 +210,6 @@ struct settings_access all_settings[] = {
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
-	{ "core", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.pm_presets },
 
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
@@ -289,7 +288,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
 
-	{ "gui_astromety", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
+	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },
 	{ "gui_astrometry", "cat_ngc", STYPE_BOOL, N_("show NGC objects in annotations"), &com.pref.gui.catalog[1] },
 	{ "gui_astrometry", "cat_ic", STYPE_BOOL, N_("show IC objects in annotations"), &com.pref.gui.catalog[2] },
@@ -297,6 +296,8 @@ struct settings_access all_settings[] = {
 	{ "gui_astrometry", "cat_sh2", STYPE_BOOL, N_("show SH2 objects in annotations"), &com.pref.gui.catalog[4] },
 	{ "gui_astrometry", "cat_stars", STYPE_BOOL, N_("show stars in annotations"), &com.pref.gui.catalog[5] },
 	{ "gui_astrometry", "cat_user", STYPE_BOOL, N_("show user objects in annotations"), &com.pref.gui.catalog[6] },
+
+	{ "gui_pixelmath", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.gui.pm_presets },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };

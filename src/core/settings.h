@@ -152,6 +152,7 @@ struct gui_config {
 
 	// single registration GUI variable
 	int reg_settings;	// selected registration method
+	GSList *pm_presets; // list of pixel math presets
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
@@ -220,8 +221,6 @@ struct pref_struct {
 	gchar *copyright;	// User copyright when saving image as TIFF
 
 	gchar *starnet_dir;	// Location of starnet++ installation (requires v2.0.2 or greater)
-
-	GSList *pm_presets; // list of pixel math presets
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;

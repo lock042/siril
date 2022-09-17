@@ -1092,7 +1092,7 @@ static void add_presets_to_list() {
 
 	init_widgets();
 
-	for (GSList *l = com.pref.pm_presets; l; l = l->next) {
+	for (GSList *l = com.pref.gui.pm_presets; l; l = l->next) {
 		gtk_list_store_append(pixel_math_list_store_presets, &iter);
 		gtk_list_store_set(pixel_math_list_store_presets, &iter, 0, (gchar *)l->data, -1);
 	}
@@ -1214,17 +1214,17 @@ static gboolean foreach_func(GtkTreeModel *model, GtkTreePath *path,
 	gchar *expression;
 
 	gtk_tree_model_get(model, iter, 0, &expression, -1);
-	com.pref.pm_presets = g_slist_prepend(com.pref.pm_presets, expression);
+	com.pref.gui.pm_presets = g_slist_prepend(com.pref.gui.pm_presets, expression);
 
 	return FALSE; /* do not stop walking the store, call us with next row */
 }
 
 static void save_presets_list() {
 	/* First we free the original list */
-	g_slist_free_full(com.pref.pm_presets, g_free);
-	com.pref.pm_presets = NULL;
+	g_slist_free_full(com.pref.gui.pm_presets, g_free);
+	com.pref.gui.pm_presets = NULL;
 
-	gtk_tree_model_foreach(GTK_TREE_MODEL(pixel_math_list_store_presets), foreach_func, com.pref.pm_presets);
+	gtk_tree_model_foreach(GTK_TREE_MODEL(pixel_math_list_store_presets), foreach_func, com.pref.gui.pm_presets);
 	writeinitfile();
 }
 
