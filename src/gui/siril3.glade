@@ -26734,7 +26734,7 @@ Configuring a memory amount larger than what is available on your system may res
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="row-spacing">6</property>
-                        <property name="column-spacing">6</property>
+                        <property name="column-spacing">20</property>
                         <property name="row-homogeneous">True</property>
                         <property name="column-homogeneous">True</property>
                         <child>
@@ -26773,7 +26773,7 @@ Configuring a memory amount larger than what is available on your system may res
                               <object class="GtkSpinButton" id="spin_hd_bitdepth">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Sets bit depth for the HD AutoStretch display mode. Higher bit depth require exponentially more memory for the LUT, but do a much better job of smoothing quantization artefacts in displaying images with very narrow histogram peaks.</property>
+                                <property name="tooltip-text" translatable="yes">Sets default bit depth for the HD AutoStretch display mode. Higher bit depth require exponentially more memory for the LUT, but do a much better job of smoothing quantization artefacts in displaying images with very narrow histogram peaks. The default bit depth will apply when Siril startsand can be applied now using the button to the right.</property>
                                 <property name="halign">start</property>
                                 <property name="text" translatable="yes">20</property>
                                 <property name="input-purpose">number</property>
@@ -26793,6 +26793,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">Set the selected HD AutoStretch bit depth now</property>
                                 <signal name="clicked" handler="on_button_apply_hd_bitdepth_clicked" swapped="no"/>
                               </object>
                               <packing>
