@@ -221,6 +221,8 @@ struct pref_struct {
 
 	gchar *starnet_dir;	// Location of starnet++ installation (requires v2.0.2 or greater)
 
+	GSList *pm_presets; // list of pixel math presets
+
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;
 	struct gui_config gui;
