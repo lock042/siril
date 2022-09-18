@@ -54,6 +54,12 @@ xx/xx/22
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
 
+siril 1.0.6
+xx/xx/22
+
+* Fixed crash on opening a malformed SER
+* Fixed crash in savetif
+
 siril 1.0.5
 09/09/22
 
