@@ -1397,6 +1397,15 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE; // only TRUE for global registration. Will be updated in this case
+	
+	if (method->method_ptr == register_star_alignment) { // seqpplyreg case is dealt with in the sanity checks of the method
+		if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || com.seq.is_variable)) {
+			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
+			free(reg_args);
+			unreserve_thread();
+			return;
+		}
+	}
 
 	if (method->method_ptr != register_3stars) clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
 
@@ -1492,15 +1501,15 @@ void SetNullH(Homography *H) {
 	H->h11 = 0.0;
 	H->h22 = 0.0;
 }
-
-int shift_fit_from_reg(fits *fit, struct registration_args *regargs, Homography H) {
+// this transform only works if the source and dest fits have the same size
+int shift_fit_from_reg(fits *fit, Homography H) {
 	fits *destfit = NULL;
 	if (new_fit_image(&destfit, fit->rx, fit->ry, fit->naxes[2], fit->type)) {
 		return 1;
 	}
 	destfit->bitpix = fit->bitpix;
 	destfit->orig_bitpix = fit->orig_bitpix;
-	int nbpix = fit->naxes[0] * fit->naxes[1] * (regargs->x2upscale ? 4 : 1);
+	int nbpix = fit->naxes[0] * fit->naxes[1];
 	if (destfit->type == DATA_FLOAT) {
 		memset(destfit->fdata, 0, nbpix * fit->naxes[2] * sizeof(float));
 		if (fit->naxes[2] == 3) {
@@ -1515,15 +1524,14 @@ int shift_fit_from_reg(fits *fit, struct registration_args *regargs, Homography 
 		}
 	}
 	copy_fits_metadata(fit, destfit);
-	double scale = regargs->x2upscale ? 2. : 1.;
-	destfit->rx = destfit->naxes[0] = fit->rx * scale;
-	destfit->ry = destfit->naxes[1] = fit->ry * scale;
+	destfit->rx = destfit->naxes[0] = fit->rx;
+	destfit->ry = destfit->naxes[1] = fit->ry;
 	int shiftx, shifty;
 	/* load registration data for current image */
 	double dx, dy;
 	translation_from_H(H, &dx, &dy);
-	shiftx = round_to_int(dx * scale);
-	shifty = round_to_int(dy * scale);
+	shiftx = round_to_int(dx);
+	shifty = round_to_int(dy);
 	for (int layer = 0; layer < fit->naxes[2]; ++layer) {
 		for (int y = 0; y < destfit->ry; ++y) {
 			for (int x = 0; x < destfit->rx; ++x) {

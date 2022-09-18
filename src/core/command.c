@@ -4537,6 +4537,11 @@ int process_register(int nb) {
 #endif
 	}
 
+	if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || reg_args->seq->is_variable)) {
+		siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
+		goto terminate_register_on_error;
+	}
+
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
