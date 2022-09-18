@@ -635,7 +635,7 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gbo
 
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
 
-int savetif(const char *name, fits *fit, uint16_t bitspersample, char *description, char *copyright, gboolean embeded_icc){
+int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *description, const char *copyright, gboolean embeded_icc){
 	int retval = 0;
 	float norm;
 	gchar *filename = g_strdup(name);
@@ -672,11 +672,9 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample, char *descripti
 	TIFFSetField(tif, TIFFTAG_COMPRESSION, get_compression_mode());
 	if (description) {
 		TIFFSetField(tif, TIFFTAG_IMAGEDESCRIPTION, description);
-		g_free(description);
 	}
 	if (copyright) {
 		TIFFSetField(tif, TIFFTAG_COPYRIGHT, copyright);
-		g_free(copyright);
 	}
 	TIFFSetField(tif, TIFFTAG_MINSAMPLEVALUE, fit->mini);
 	TIFFSetField(tif, TIFFTAG_MAXSAMPLEVALUE, fit->maxi);

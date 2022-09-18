@@ -44,7 +44,7 @@ int readpic(const char *name, fits *fit);
 #ifdef HAVE_LIBTIFF
 int readtif(const char *name, fits *fit, gboolean force_float);
 void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc);
-int savetif(const char *name, fits *fit, uint16_t bitspersample, char *description, char *copyright, gboolean embeded_icc);
+int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *description, const char *copyright, gboolean embeded_icc);
 #endif
 
 #ifdef HAVE_LIBJPEG
