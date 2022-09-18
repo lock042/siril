@@ -372,7 +372,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 					return 1;
 				}
 			} else {
-				if (shift_fit_from_reg(fit, regargs, H)) {
+				if (shift_fit_from_reg(fit, H)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
