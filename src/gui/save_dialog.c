@@ -407,10 +407,10 @@ gboolean end_save(gpointer p) {
 
 static gboolean test_for_viewer_mode() {
 	gboolean confirm = TRUE;
-	if (get_display_mode_from_menu() != LINEAR_DISPLAY) {
-		confirm = siril_confirm_dialog(_("Viewer mode is not linear"),
+	if (get_display_mode_from_menu() != LINEAR_DISPLAY && !com.pref.gui.silent_linear) {
+		confirm = siril_confirm_dialog_and_remember(_("Viewer mode is not linear"),
 				_("You are saving an image that is displayed in a non linear mode. "
-						"What you see is not what you will get. Switch the viewer mode to linear to save what you see."), _("Save Anyway"));
+						"What you see is not what you will get. Switch the viewer mode to linear to save what you see."), _("Save Anyway"), &com.pref.gui.silent_linear);
 	}
 	return confirm;
 }

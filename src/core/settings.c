@@ -34,6 +34,7 @@ preferences pref_init = {
 	.wd = NULL,
 	.ext = NULL,
 	.force_16bit = FALSE,
+	.allow_heterogeneous_fitseq = FALSE,
 	.mem_mode = RATIO,
 	.memory_ratio = 0.9,
 	.memory_amount = 10,
@@ -95,6 +96,7 @@ preferences pref_init = {
 	.gui = {
 		.first_start = TRUE,
 		.silent_quit = FALSE,
+		.silent_linear = FALSE,
 		.remember_windows = TRUE,
 		.main_w_pos = {
 				.x = 0,
@@ -121,7 +123,8 @@ preferences pref_init = {
 		.catalog[6] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
-		.reg_settings = 0
+		.reg_settings = 0,
+		.pm_presets = NULL
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -192,6 +195,7 @@ struct settings_access all_settings[] = {
 	{ "core", "wd", STYPE_STRDIR, N_("current working directory"), &com.pref.wd },
 	{ "core", "extension", STYPE_STR, N_("FITS file extension"), &com.pref.ext },
 	{ "core", "force_16bit", STYPE_BOOL, N_("don't use 32 bits for pixel depth"), &com.pref.force_16bit },
+	{ "core", "allow_heterogeneous_fitseq", STYPE_BOOL, N_("allow FITS cubes to have different sizes"), &com.pref.allow_heterogeneous_fitseq },
 	{ "core", "mem_mode", STYPE_INT, N_("memory mode (0 ratio, 1 amount)"), &com.pref.mem_mode, { .range_int = { 0, 1 } } },
 	{ "core", "mem_ratio", STYPE_DOUBLE, N_("memory ratio of available"), &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } } },
 	{ "core", "mem_amount", STYPE_DOUBLE, N_("amount of memory in GB"), &com.pref.memory_amount, { .range_double = { 0.1, 1000000. } } },
@@ -270,6 +274,7 @@ struct settings_access all_settings[] = {
 
 	{ "gui", "first_start", STYPE_BOOL, N_("first start of siril"), &com.pref.gui.first_start },
 	{ "gui", "silent_quit", STYPE_BOOL, N_("don't confirm quit when exiting"), &com.pref.gui.silent_quit },
+	{ "gui", "silent_linear", STYPE_BOOL, N_("don't confirm save when non linear mode"), &com.pref.gui.silent_linear },
 	{ "gui", "remember_windows", STYPE_BOOL, N_("remember window position"), &com.pref.gui.remember_windows },
 	{ "gui", "main_win_pos_x", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.x },
 	{ "gui", "main_win_pos_y", STYPE_INT, N_("main window position"), &com.pref.gui.main_w_pos.y },
@@ -287,7 +292,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
 
-	{ "gui_astromety", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
+	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },
 	{ "gui_astrometry", "cat_ngc", STYPE_BOOL, N_("show NGC objects in annotations"), &com.pref.gui.catalog[1] },
 	{ "gui_astrometry", "cat_ic", STYPE_BOOL, N_("show IC objects in annotations"), &com.pref.gui.catalog[2] },
@@ -295,6 +300,8 @@ struct settings_access all_settings[] = {
 	{ "gui_astrometry", "cat_sh2", STYPE_BOOL, N_("show SH2 objects in annotations"), &com.pref.gui.catalog[4] },
 	{ "gui_astrometry", "cat_stars", STYPE_BOOL, N_("show stars in annotations"), &com.pref.gui.catalog[5] },
 	{ "gui_astrometry", "cat_user", STYPE_BOOL, N_("show user objects in annotations"), &com.pref.gui.catalog[6] },
+
+	{ "gui_pixelmath", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.gui.pm_presets },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };
