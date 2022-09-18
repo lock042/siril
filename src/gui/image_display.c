@@ -222,17 +222,17 @@ static void remap(int vport) {
 		set_viewer_mode_widgets_sensitive(FALSE);
 	} else {
 		// for all other modes and ushort data, the index can be reused
-		if ((gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == STFHD_DISPLAY) && !stf_computed) {
+		if (gui.rendering_mode == STF_DISPLAY && !stf_computed) {
 			if (gui.unlink_channels)
 				find_unlinked_midtones_balance_default(&gfit, stf);
 			else find_linked_midtones_balance_default(&gfit, stf);
 			stf_computed = TRUE;
 		}
-		if (gui.rendering_mode == STFHD_DISPLAY && gfit.type == DATA_FLOAT)
+		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT)
 			make_hd_index_for_current_display(vport);
 		else
 			make_index_for_current_display(vport);
-		set_viewer_mode_widgets_sensitive((gui.rendering_mode != STF_DISPLAY && gui.rendering_mode != STFHD_DISPLAY));
+		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
 	}
 
 	src = gfit.pdata[vport];
@@ -246,15 +246,15 @@ static void remap(int vport) {
 
 	if (color == RAINBOW_COLOR)
 		make_index_for_rainbow(rainbow_index);
-	int target_index = (gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == STFHD_DISPLAY) && gui.unlink_channels ? vport : 0;
+	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 
-	gboolean hd_mode = (gui.rendering_mode == STFHD_DISPLAY && gfit.type == DATA_FLOAT);
+	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT);
 	if (hd_mode)
 		index = gui.hd_remap_index[target_index];
 	else
 		index = gui.remap_index[target_index];
 
-	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || gui.rendering_mode == STF_DISPLAY || (gui.rendering_mode == STFHD_DISPLAY && gfit.type != DATA_FLOAT));
+	gboolean special_mode = (gui.rendering_mode == HISTEQ_DISPLAY || (gui.rendering_mode == STF_DISPLAY && !(gui.use_hd_remap && gfit.type == DATA_FLOAT)));
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
@@ -327,7 +327,7 @@ static int make_hd_index_for_current_display(int vport) {
 	slope = UCHAR_MAX_SINGLE;
 	/************* Building the HD remap_index **************/
 	siril_debug_print("Rebuilding HD remap_index\n");
-	int target_index = gui.rendering_mode == STFHD_DISPLAY && gui.unlink_channels ? vport : 0;
+	int target_index = gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gui.unlink_channels ? vport : 0;
 	index = gui.hd_remap_index[target_index];
 
 	for (i = 0; i <= gui.hd_remap_max; i++) {
@@ -368,13 +368,12 @@ static int make_index_for_current_display(int vport) {
 			slope = UCHAR_MAX_SINGLE / asinhf(delta * 0.001f);
 			break;
 		case STF_DISPLAY:
-		case STFHD_DISPLAY: // In case STFHD is selected but gfit is not 32bit
 			slope = UCHAR_MAX_SINGLE;
 			break;
 		default:
 			return 1;
 	}
-	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY && gui.rendering_mode != STFHD_DISPLAY) &&
+	if ((gui.rendering_mode != HISTEQ_DISPLAY && gui.rendering_mode != STF_DISPLAY) &&
 			slope == last_pente && gui.rendering_mode == last_mode) {
 		siril_debug_print("Re-using previous gui.remap_index\n");
 		return 0;
@@ -382,7 +381,7 @@ static int make_index_for_current_display(int vport) {
 
 	/************* Building the remap_index **************/
 	siril_debug_print("Rebuilding gui.remap_index\n");
-	int target_index = (gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == STFHD_DISPLAY) && gui.unlink_channels ? vport : 0;
+	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 	index = gui.remap_index[target_index];
 
 	for (i = 0; i <= USHRT_MAX; i++) {
@@ -410,7 +409,6 @@ static int make_index_for_current_display(int vport) {
 				index[i] = roundf_to_BYTE((float) i * slope);
 				break;
 			case STF_DISPLAY:
-			case STFHD_DISPLAY:
 				pxl = (gfit.orig_bitpix == BYTE_IMG ?
 						(float) i / UCHAR_MAX_SINGLE :
 						(float) i / USHRT_MAX_SINGLE);

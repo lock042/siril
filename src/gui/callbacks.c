@@ -64,7 +64,7 @@
 #include "siril-window.h"
 #include "registration_preview.h"
 
-static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "autohd_item", "histo_item"};
+static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item"};
 
 void set_viewer_mode_widgets_sensitive(gboolean sensitive) {
 	GtkWidget *scalemax = lookup_widget("scalemax");
@@ -321,21 +321,39 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 
 	gui.rendering_mode = get_display_mode_from_menu();
 	siril_debug_print("Display mode %d\n", gui.rendering_mode);
-	if (gui.rendering_mode == STFHD_DISPLAY && gfit.type != DATA_FLOAT)
-		siril_log_message(_("Current image is not 32 bit. Standard 16 bit Autostretch will be used.\n"));
-	if (gui.rendering_mode == STFHD_DISPLAY) {
+	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type != DATA_FLOAT)
+		siril_log_message(_("Current image is not 32 bit. Standard 16 bit AutoStretch will be used.\n"));
+	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap) {
 		allocate_hd_remap_indices();
-		siril_log_message(_("HD AutoStretch bit applied with %d bit LUT\n"), (int) log2(gui.hd_remap_max));
+		siril_log_message(_("The AutoStretch display mode will use a %d bit LUT\n"), (int) log2(gui.hd_remap_max));
 	} else {
 		hd_remap_indices_cleanup();
+		if (gui.rendering_mode == STF_DISPLAY)
+			siril_log_message(_("The AutoStretch display mode will use a 16 bit LUT\n"));
 	}
 	gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(checkmenuitem)));
 
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	siril_window_autostretch_actions(app_win, (gui.rendering_mode == STF_DISPLAY || gui.rendering_mode == STFHD_DISPLAY) && gfit.naxes[2] == 3);
+	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
 
 	redraw(REMAP_ALL);
 	redraw_previews();
+}
+
+void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
+	gui.use_hd_remap = gtk_check_menu_item_get_active(menuitem);
+	if (gui.rendering_mode == STF_DISPLAY) {
+		if (gui.use_hd_remap) {
+			if (gfit.type == DATA_FLOAT)
+				allocate_hd_remap_indices();
+			siril_log_message(_("The AutoStretch display mode will use a %d bit LUT\n"), (int) log2(gui.hd_remap_max));
+		} else {
+			hd_remap_indices_cleanup();
+			siril_log_message(_("The AutoStretch display mode will use a 16 bit LUT\n"));
+		}
+		redraw(REMAP_ALL);
+		redraw_previews();
+	}
 }
 
 void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_data) {
@@ -343,9 +361,10 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 	siril_debug_print("bitdepth: %d\n", bitdepth);
 	if (gui.hd_remap_max != pow(2, bitdepth)) {
 		gui.hd_remap_max = pow(2, bitdepth);
-		if (gui.rendering_mode == STFHD_DISPLAY && gfit.type == DATA_FLOAT) {
+		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT) {
 			allocate_hd_remap_indices();
 			redraw(REMAP_ALL);
+			redraw_previews();
 		}
 	siril_log_color_message(_("HD AutoStretch display mode bit depth set to %d\n"), "green", bitdepth);
 	}
@@ -383,9 +402,6 @@ void set_display_mode() {
 	case STF_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[STF_DISPLAY]));
 	break;
-	case STFHD_DISPLAY:
-		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[STFHD_DISPLAY]));
-		break;
 	case HISTEQ_DISPLAY:
 		button = GTK_CHECK_MENU_ITEM(lookup_widget(display_item_name[HISTEQ_DISPLAY]));
 		break;

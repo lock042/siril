@@ -6232,7 +6232,7 @@ int process_set_stfbits(int nb) {
 		return CMD_OK;
 
 	gui.hd_remap_max = pow(2, bits);
-	if (gui.rendering_mode == STFHD_DISPLAY && gfit.type == DATA_FLOAT) {
+	if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT) {
 		allocate_hd_remap_indices();
 		redraw(REMAP_ALL);
 	}

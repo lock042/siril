@@ -11694,15 +11694,13 @@ This should normally be the case only for stacked images. Increasing this value 
       </object>
     </child>
     <child>
-      <object class="GtkRadioMenuItem" id="autohd_item">
+      <object class="GtkCheckMenuItem" id="autohd_item">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="tooltip-text" translatable="yes">HD Autostretch will use substantially more memory to store its LUT.</property>
-        <property name="label" translatable="yes">HD AutoStretch</property>
+        <property name="margin-start">18</property>
+        <property name="label" translatable="yes">High definition</property>
         <property name="use-underline">True</property>
-        <property name="draw-as-radio">True</property>
-        <property name="group">linear_item</property>
-        <signal name="toggled" handler="on_display_item_toggled" swapped="no"/>
+        <signal name="toggled" handler="on_autohd_item_toggled" swapped="no"/>
       </object>
     </child>
     <child>
