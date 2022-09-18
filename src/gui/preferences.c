@@ -221,6 +221,7 @@ static void update_misc_preferences() {
 	com.pref.starnet_dir = gtk_file_chooser_get_filename(starnet_dir);
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
+	com.pref.gui.silent_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")));
 
 	const gchar *copy = gtk_entry_get_text(GTK_ENTRY(lookup_widget("miscCopyright")));
 	com.pref.copyright = g_strdup(copy);
@@ -548,6 +549,7 @@ void update_preferences_from_model() {
 	initialize_starnet_directory(pref->starnet_dir);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
 #ifdef HAVE_JSON_GLIB
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), pref->check_update);

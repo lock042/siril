@@ -13432,6 +13432,12 @@ This should normally be the case only for stacked images. Increasing this value 
       <column type="gint"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="pixel_math_liststore_presets">
+    <columns>
+      <!-- column-name expression -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkApplicationWindow" id="pixel_math_dialog">
     <property name="width-request">800</property>
     <property name="height-request">700</property>
@@ -14168,12 +14174,6 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore_presets">
-    <columns>
-      <!-- column-name expression -->
-      <column type="gchararray"/>
-    </columns>
   </object>
   <object class="GtkMenu" id="precision_menu">
     <property name="visible">True</property>
@@ -27025,13 +27025,41 @@ Configuring a memory amount larger than what is available on your system may res
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <object class="GtkCheckButton" id="miscAskQuit">
-                                <property name="label" translatable="yes">Don't ask before quitting</property>
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="halign">start</property>
-                                <property name="draw-indicator">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">5</property>
+                                <child>
+                                  <object class="GtkCheckButton" id="miscAskQuit">
+                                    <property name="label" translatable="yes">Don't ask before quitting</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="miscAskSave">
+                                    <property name="label" translatable="yes">Don't ask before saving when display is not linear</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
                               </object>
                             </child>
                           </object>
