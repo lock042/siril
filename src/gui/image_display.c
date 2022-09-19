@@ -147,6 +147,7 @@ void allocate_hd_remap_indices() {
 		if (gui.hd_remap_index[i] == NULL) {
 			siril_log_color_message(_("Error: memory allocaton failure when instantiating HD LUTs. Reverting to standard 16 bit LUTs.\n"), "red");
 			gui.use_hd_remap = FALSE;
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("autohd_item")), FALSE);
 			hd_remap_indices_cleanup();
 		}
 	}
