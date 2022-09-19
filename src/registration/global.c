@@ -691,7 +691,7 @@ static void print_alignment_results(Homography H, int filenum, float fwhm, float
 	siril_log_message(_("roundness:%*.2f\n"), 8, roundness);
 }
 
-static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, float *fwhm, float *roundness, float *B, gboolean verbose) {
+static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, float *fwhm, float *roundness, const float *B, gboolean verbose) {
 	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata) return -1;
 	int nb_ref_stars = sf_args->nb_stars[regargs->seq->reference_image];
@@ -741,7 +741,7 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 	return nb_aligned;
 }
 
-static void compute_dist(struct registration_args *regargs, float *dist, gboolean *included) {
+static void compute_dist(struct registration_args *regargs, float *dist, const gboolean *included) {
 	Homography Href = regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H;
 	Homography Hshift = {0};
 	Homography Htransf = {0};
@@ -791,7 +791,7 @@ static void compute_dist(struct registration_args *regargs, float *dist, gboolea
 // returns the index of the minimum element of float array arr of size nb
 // if gboolean mask array is passed, it only includes elements where mask is TRUE
 // if *vval is passed, it contains the best value
-static int minidx(float *arr, gboolean *mask, int nb, float *val) {
+static int minidx(const float *arr, const gboolean *mask, int nb, float *val) {
 	if (!arr) return -1;
 	if (nb < 1) return -1;
 	int idx = -1;

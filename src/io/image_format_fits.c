@@ -225,7 +225,7 @@ static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
 	return status;
 }
 
-static void new_wcs_from_old(fits *fit, double *crota) {
+static void new_wcs_from_old(fits *fit, const double *crota) {
 	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
 		double cd[2][2];
 		int sign;
