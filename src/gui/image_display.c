@@ -140,6 +140,7 @@ static void remaprgb(void) {
 }
 
 void allocate_hd_remap_indices() {
+	gui.hd_remap_max = 1 << (guint) com.pref.hd_bitdepth;
 	for (unsigned i=0; i < 3; i++) {
 		if (gui.hd_remap_index[i] != NULL)
 			free(gui.hd_remap_index[i]);
@@ -232,8 +233,9 @@ static void remap(int vport) {
 			else find_linked_midtones_balance_default(&gfit, stf);
 			stf_computed = TRUE;
 		}
-		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT)
+		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT) {
 			make_hd_index_for_current_display(vport);
+		}
 		else
 			make_index_for_current_display(vport);
 		set_viewer_mode_widgets_sensitive(gui.rendering_mode != STF_DISPLAY);
@@ -253,8 +255,9 @@ static void remap(int vport) {
 	int target_index = gui.rendering_mode == STF_DISPLAY && gui.unlink_channels ? vport : 0;
 
 	gboolean hd_mode = (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT);
-	if (hd_mode)
+	if (hd_mode) {
 		index = gui.hd_remap_index[target_index];
+	}
 	else
 		index = gui.remap_index[target_index];
 
@@ -281,9 +284,8 @@ static void remap(int vport) {
 					dst_pixel_value = index[src[src_index] - gui.lo < 0 ? 0 : src[src_index] - gui.lo];
 				}
 			} else if (gfit.type == DATA_FLOAT) {
-				if (hd_mode) {
+				if (hd_mode)
 					dst_pixel_value = index[float_to_max_range(fsrc[src_index], gui.hd_remap_max)];
-				}
 				else if (special_mode) // special case, no lo & hi
 					dst_pixel_value = index[roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE)];
 				else if (gui.cut_over && roundf_to_WORD(fsrc[src_index] * USHRT_MAX_SINGLE) > gui.hi)	// cut
@@ -323,6 +325,12 @@ static int make_hd_index_for_current_display(int vport) {
 	int i;
 	BYTE *index;
 	float pxl;
+	// Check if the bit depth matches the LUT size, if not we need to realloc
+	if (gui.hd_remap_max != 1 << com.pref.hd_bitdepth) {
+		gui.hd_remap_max = 1 << com.pref.hd_bitdepth;
+		allocate_hd_remap_indices();
+	}
+
 	/* initialization of data required to build the remap_index
 	 *
 	 * The HD remap curve is only used with STF rendering mode
@@ -1421,8 +1429,8 @@ static void draw_regframe(const draw_data_t* dd) {
 
 void initialize_image_display() {
 	int i;
-	siril_debug_print("HD AutoStretch bitdepth: %d\n", com.pref.hd_bitdepth_default);
-	gui.hd_remap_max = 1 << (guint) com.pref.hd_bitdepth_default;
+	siril_debug_print("HD AutoStretch bitdepth: %d\n", com.pref.hd_bitdepth);
+	gui.hd_remap_max = 1 << (guint) com.pref.hd_bitdepth;
 	for (i = 0; i < MAXGRAYVPORT; i++) {
 		memset(gui.remap_index[i], 0, sizeof(gui.remap_index[i]));
 		last_pente = 0.f;
@@ -1494,7 +1502,6 @@ void adjust_vport_size_to_image() {
 void redraw(remap_type doremap) {
 	if (com.script) return;
 	siril_debug_print("redraw %d\n", doremap);
-
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;

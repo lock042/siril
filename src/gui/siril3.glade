@@ -26961,7 +26961,7 @@ Configuring a memory amount larger than what is available on your system may res
                               <object class="GtkSpinButton" id="spin_hd_bitdepth">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Sets default bit depth for the HD AutoStretch display mode. Higher bit depth require exponentially more memory for the LUT, but do a much better job of smoothing quantization artefacts in displaying images with very narrow histogram peaks. The default bit depth will apply when Siril startsand can be applied now using the button to the right.</property>
+                                <property name="tooltip-text" translatable="yes">Sets default bit depth for the HD AutoStretch display mode. Higher bit depths require exponentially more memory for the LUT and take longer to recalculate it, but do a much better job of smoothing quantization artefacts in displaying images with very narrow histogram peaks. The default bit depth will apply from the next viewer mode change, and can be applied now using the button to the right.</property>
                                 <property name="halign">start</property>
                                 <property name="text" translatable="yes">20</property>
                                 <property name="input-purpose">number</property>
