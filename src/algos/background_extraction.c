@@ -907,6 +907,7 @@ static gboolean end_background(gpointer p) {
 		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
 		free(args);
 	}
+	set_cursor_waiting(FALSE);
 	return FALSE;
 }
 
@@ -951,9 +952,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 		if (!interpolation_worked) {
 			free(image);
 			free(background);
-			queue_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."),
-					error);
-			set_cursor_waiting(FALSE);
+			queue_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."),	error);
 			free(args);
 			siril_add_idle(end_background, NULL);
 			return NULL;
