@@ -390,33 +390,41 @@ void mirrory(fits *fit, gboolean verbose) {
  * data is correctly written to this new area, which makes this function
  * quite dangerous to use when fit is used for something else afterwards.
  */
-static void crop_ushort(fits *fit, rectangle *bounds) {
+static int crop_ushort(fits *fit, rectangle *bounds) {
 	int i, j, layer;
 	int newnbdata;
 	struct timeval t_start = { 0 }, t_end = { 0 };
+	rectangle bounds_cpy = { 0 };
+
+	if (bounds->x >= fit->rx) return -1;
+	if (bounds->y >= fit->ry) return -1;
+	bounds_cpy.x = bounds->x;
+	bounds_cpy.y = bounds->y;
+	bounds_cpy.w = (bounds->x + bounds->w > fit->rx) ? fit->rx - bounds->x : bounds->w;
+	bounds_cpy.h = (bounds->y + bounds->h > fit->ry) ? fit->ry - bounds->y : bounds->h;
 
 	if (fit == &gfit) {
 		siril_log_color_message(_("Crop: processing...\n"), "red");
 		gettimeofday(&t_start, NULL);
 	}
 
-	newnbdata = bounds->w * bounds->h;
+	newnbdata = bounds_cpy.w * bounds_cpy.h;
 	for (layer = 0; layer < fit->naxes[2]; ++layer) {
 		WORD *from = fit->pdata[layer]
-				+ (fit->ry - bounds->y - bounds->h) * fit->rx + bounds->x;
+				+ (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
 		fit->pdata[layer] = fit->data + layer * newnbdata;
 		WORD *to = fit->pdata[layer];
-		int stridefrom = fit->rx - bounds->w;
+		int stridefrom = fit->rx - bounds_cpy.w;
 
-		for (i = 0; i < bounds->h; ++i) {
-			for (j = 0; j < bounds->w; ++j) {
+		for (i = 0; i < bounds_cpy.h; ++i) {
+			for (j = 0; j < bounds_cpy.w; ++j) {
 				*to++ = *from++;
 			}
 			from += stridefrom;
 		}
 	}
-	fit->rx = fit->naxes[0] = bounds->w;
-	fit->ry = fit->naxes[1] = bounds->h;
+	fit->rx = fit->naxes[0] = bounds_cpy.w;
+	fit->ry = fit->naxes[1] = bounds_cpy.h;
 
 	if (fit == &gfit) {
 		clear_stars_list();
@@ -424,35 +432,44 @@ static void crop_ushort(fits *fit, rectangle *bounds) {
 		show_time(t_start, t_end);
 	}
 	invalidate_stats_from_fit(fit);
+	return 0;
 }
 
-static void crop_float(fits *fit, rectangle *bounds) {
+static int crop_float(fits *fit, rectangle *bounds) {
 	int i, j, layer;
 	int newnbdata;
 	struct timeval t_start = { 0 }, t_end = { 0 };
+	rectangle bounds_cpy = { 0 };
+
+	if (bounds->x >= fit->rx) return -1;
+	if (bounds->y >= fit->ry) return -1;
+	bounds_cpy.x = bounds->x;
+	bounds_cpy.y = bounds->y;
+	bounds_cpy.w = (bounds->x + bounds->w > fit->rx) ? fit->rx - bounds->x : bounds->w;
+	bounds_cpy.h = (bounds->y + bounds->h > fit->ry) ? fit->ry - bounds->y : bounds->h;
 
 	if (fit == &gfit) {
 		siril_log_color_message(_("Crop: processing...\n"), "green");
 		gettimeofday(&t_start, NULL);
 	}
 
-	newnbdata = bounds->w * bounds->h;
+	newnbdata = bounds_cpy.w * bounds_cpy.h;
 	for (layer = 0; layer < fit->naxes[2]; ++layer) {
 		float *from = fit->fpdata[layer]
-				+ (fit->ry - bounds->y - bounds->h) * fit->rx + bounds->x;
+				+ (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
 		fit->fpdata[layer] = fit->fdata + layer * newnbdata;
 		float *to = fit->fpdata[layer];
-		int stridefrom = fit->rx - bounds->w;
+		int stridefrom = fit->rx - bounds_cpy.w;
 
-		for (i = 0; i < bounds->h; ++i) {
-			for (j = 0; j < bounds->w; ++j) {
+		for (i = 0; i < bounds_cpy.h; ++i) {
+			for (j = 0; j < bounds_cpy.w; ++j) {
 				*to++ = *from++;
 			}
 			from += stridefrom;
 		}
 	}
-	fit->rx = fit->naxes[0] = bounds->w;
-	fit->ry = fit->naxes[1] = bounds->h;
+	fit->rx = fit->naxes[0] = bounds_cpy.w;
+	fit->ry = fit->naxes[1] = bounds_cpy.h;
 
 	if (fit == &gfit) {
 		clear_stars_list();
@@ -460,6 +477,7 @@ static void crop_float(fits *fit, rectangle *bounds) {
 		show_time(t_start, t_end);
 	}
 	invalidate_stats_from_fit(fit);
+	return 0;
 }
 
 int crop(fits *fit, rectangle *bounds) {
@@ -467,9 +485,13 @@ int crop(fits *fit, rectangle *bounds) {
 	shift.x = (double)(bounds->x);
 	shift.y = fit->ry - (double)(bounds->h) - (double)(bounds->y) - 1; // for top-bottom flip
 	if (fit->type == DATA_USHORT) {
-		crop_ushort(fit, bounds);
+		if (crop_ushort(fit, bounds)) {
+			return -1;
+		}
 	} else if (fit->type == DATA_FLOAT) {
-		crop_float(fit, bounds);
+		if (crop_float(fit, bounds)) {
+			return -1;
+		}
 	} else {
 		return -1;
 	}
@@ -637,6 +659,7 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->load_new_sequence = TRUE;
 	args->user = crop_sequence_data;
 
+	remove_prefixed_sequence_files(crop_sequence_data->seq, crop_sequence_data->prefix);
 	start_in_new_thread(generic_sequence_worker, args);
 
 	return 0;
