@@ -3,6 +3,7 @@ v1.0.6 xx xx, 2022
 * Fixed crash on opening a malformed SER
 * Fixed crash in savetif
 * Fixed crash in polynomial background extraction when not enough sample were set
+* Fixed bug in iif where no parameters could be used
 
 v1.0.5 October 09, 2022
 

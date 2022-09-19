@@ -4,6 +4,7 @@ xx/xx/22
 * Fixed crash on opening a malformed SER
 * Fixed crash in savetif
 * Fixed crash in polynomial background extraction when not enough sample were set
+* Fixed bug in iif where no parameters could be used
 
 siril 1.0.5
 09/09/22
