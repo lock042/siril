@@ -543,6 +543,7 @@ static gboolean is_op_or_null(const gchar c) {
 	if (c == '\0') return TRUE;
 	if (c == '(') return TRUE;
 	if (c == ')') return TRUE;
+	if (c == ',') return TRUE;
 	for (int i = 0; i < MAX_OPERATORS; i++) {
 		const gchar op = operators[i].name[0];
 		if (c == op) return TRUE;
@@ -602,7 +603,7 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 	gchar **token = g_strsplit(entry_text, ",", -1);
 	int nargs = g_strv_length(token);
 
-	/* now we pare equality */
+	/* now we parse equality */
 	for (int i = 0; i < nargs; i++) {
 		gchar **expr = g_strsplit(token[i], "=", -1);
 		int n = g_strv_length(expr);
@@ -708,6 +709,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 				_("Parameter symbols could not be parsed."));
 		return 1;
 	}
+	printf("[%s]\n", expression1);
 
 	args->expression1 = expression1;
 	args->expression2 = single_rgb ? NULL : expression2;
