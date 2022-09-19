@@ -1586,6 +1586,9 @@ int process_autostretch(int nb) {
 	if (linked) {
 		struct mtf_params params;
 		find_linked_midtones_balance(&gfit, shadows_clipping, target_bg, &params);
+		params.do_red = TRUE;
+		params.do_green = TRUE;
+		params.do_blue = TRUE;
 		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
 	} else {
 		struct mtf_params params[3];
