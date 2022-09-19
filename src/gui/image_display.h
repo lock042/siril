@@ -9,8 +9,8 @@ typedef enum {
 	REMAP_ALL       // the image data changed, remap and render all
 } remap_type;
 
-int allocate_hd_remap_indices();
-int hd_remap_indices_cleanup();
+void allocate_hd_remap_indices();
+void hd_remap_indices_cleanup();
 
 void initialize_image_display();
 

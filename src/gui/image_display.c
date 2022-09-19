@@ -139,23 +139,26 @@ static void remaprgb(void) {
 	invalidate_image_render_cache(RGB_VPORT);
 }
 
-int allocate_hd_remap_indices() {
+void allocate_hd_remap_indices() {
 	for (unsigned i=0; i < 3; i++) {
 		if (gui.hd_remap_index[i] != NULL)
 			free(gui.hd_remap_index[i]);
 		gui.hd_remap_index[i] = (BYTE*) calloc(gui.hd_remap_max + 1, sizeof(BYTE));
+		if (gui.hd_remap_index[i] == NULL) {
+			siril_log_color_message(_("Error: memory allocaton failure when instantiating HD LUTs. Reverting to standard 16 bit LUTs.\n"), "red");
+			gui.use_hd_remap = FALSE;
+			hd_remap_indices_cleanup();
+		}
 	}
-	return 0;
 }
 
-int hd_remap_indices_cleanup() {
+void hd_remap_indices_cleanup() {
 	for (unsigned i=0 ; i < 3; i++) {
 		if (gui.hd_remap_index[i] != NULL) {
 			free(gui.hd_remap_index[i]);
 			gui.hd_remap_index[i] = NULL;
 		}
 	}
-	return 0;
 }
 
 static int make_index_for_current_display(int vport);
