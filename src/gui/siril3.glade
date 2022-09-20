@@ -15638,6 +15638,9 @@ You can examine the workings of each option in detail using the histogram displa
         <property name="primary-icon-name">edit-find-symbolic</property>
         <property name="primary-icon-activatable">False</property>
         <property name="primary-icon-sensitive">False</property>
+        <property name="tooltip-text" translatable="yes">Enter the object name you want to search in online database, SIMBAD or the Minor Planet Center database.
+Solar system objects can be referred to either by their number or name, but with a prefix depending on their type, for example 'a:1' or 'a:Ceres', 'p:mars' or 'c:C/2017 T2'.
+If found, objects will be added to the User Catalogue. Solar system objects will be added with a date in their name, with no duplicate check. Purge the User Catalogue to remove previous searches.</property>
         <signal name="activate" handler="on_search_objects_entry_activate" swapped="no"/>
       </object>
     </child>
