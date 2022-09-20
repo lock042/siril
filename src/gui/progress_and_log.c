@@ -202,49 +202,6 @@ void initialize_log_tags() {
 	gtk_text_buffer_create_tag (tbuf, "plum", "foreground", "#8e4585", NULL);
 }
 
-void show_time(struct timeval t_start, struct timeval t_end) {
-	show_time_msg(t_start, t_end, _("Execution time"));
-}
-
-void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg) {
-	double start, end, diff;
-
-	start = (double) (t_start.tv_sec + t_start.tv_usec / 1.0E6);
-	end = (double) (t_end.tv_sec + t_end.tv_usec / 1.0E6);
-	diff = end - start;
-
-	if (diff >= 0.0) {
-		if (diff >= 3600.0) {
-			int hour = (int) diff / 3600;
-			int sec = (int) diff % 3600;
-			int min = sec / 60;
-			sec = sec % 60;
-			siril_log_color_message(_("%s: %d h %02d min %.2d s.\n"), "green",
-					msg, hour, min, sec);
-		} else if (diff >= 60.0) {
-			int min = (int) diff / 60;
-			int sec = (int) diff % 60;
-			siril_log_color_message(_("%s: %d min %02d s.\n"), "green", msg,
-					min, sec);
-		} else if (diff < 1.0) {
-			double ms = diff * 1.0E3;
-			siril_log_color_message(_("%s: %.2lf ms.\n"), "green", msg, ms);
-		} else {
-			siril_log_color_message(_("%s: %.2lf s.\n"), "green", msg, diff);
-		}
-	}
-}
-
-void get_min_sec_from_timevals(struct timeval t_start, struct timeval t_end,
-		int *min, int *sec) {
-	double start, end, diff;
-	start = (double)(t_start.tv_sec + t_start.tv_usec / 1.0E6);
-	end = (double)(t_end.tv_sec + t_end.tv_usec / 1.0E6);
-	diff = end - start;
-	*min = (int)diff / 60;
-	*sec = (int)diff % 60;
-}
-
 struct _cursor_data {
 	gboolean change;
 //	GdkCursorType cursor_type;
