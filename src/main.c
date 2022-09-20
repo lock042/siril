@@ -162,6 +162,9 @@ static void global_initialization() {
 	gui.sliders = MINMAX;
 	gui.zoom_value = ZOOM_DEFAULT;
 	gui.ratio = 0.0;
+	gui.use_hd_remap = FALSE;
+	for (int i = 0; i < 3 ; i++)
+		gui.hd_remap_index[i] = NULL;
 
 	initialize_default_settings();	// com.pref
 }
@@ -232,6 +235,8 @@ static void siril_app_activate(GApplication *application) {
 		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
 		exit(EXIT_FAILURE);
 	}
+
+	// After this point com.pref is populated
 
 	siril_language_parser_init();
 	if (com.pref.lang)

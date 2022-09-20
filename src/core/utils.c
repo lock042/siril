@@ -126,6 +126,20 @@ WORD roundf_to_WORD(float f) {
 }
 
 /**
+ * Scale float value to a maximum value up to 2^32-1
+ * and return as guint32
+ * @param f value to scale
+ * @param max float range [0f..1f] scales to guint32 range [0..max]
+ * @return a guint32
+ */
+guint float_to_max_range(float f, guint max) {
+	f *= max;
+	if (f < 0.5f) return 0;
+	if (f >= max - 0.5f) return max;
+	return (guint)(f + 0.5f);
+}
+
+/**
  * Compute a ceiling factor
  * @param x the number to test
  * @param factor the factor
