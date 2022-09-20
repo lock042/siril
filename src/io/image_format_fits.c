@@ -552,6 +552,7 @@ static gboolean siril_str_has_prefix(char *card, char **key) {
 static void copy_string_key(char *to, char *from) {
 	if (!from || from[0]=='\0') return;
 	g_strlcpy(to, from + 1, FLEN_VALUE);
+	to[strlen(to) - 1] = '\0'; // remove the last ' in the string
 	g_strstrip(to);
 }
 
