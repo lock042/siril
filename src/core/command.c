@@ -1702,6 +1702,9 @@ int process_autostretch(int nb) {
 	if (linked) {
 		struct mtf_params params;
 		find_linked_midtones_balance(&gfit, shadows_clipping, target_bg, &params);
+		params.do_red = TRUE;
+		params.do_green = TRUE;
+		params.do_blue = TRUE;
 		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
 	} else {
 		struct mtf_params params[3];
@@ -4653,6 +4656,11 @@ int process_register(int nb) {
 #endif
 	}
 
+	if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || reg_args->seq->is_variable)) {
+		siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
+		goto terminate_register_on_error;
+	}
+
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
@@ -6333,4 +6341,3 @@ int process_stop_ls(int nb) {
 	stop_live_stacking_engine();
 	return CMD_OK;
 }
-

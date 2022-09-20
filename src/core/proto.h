@@ -44,7 +44,7 @@ int readpic(const char *name, fits *fit);
 #ifdef HAVE_LIBTIFF
 int readtif(const char *name, fits *fit, gboolean force_float);
 void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc);
-int savetif(const char *name, fits *fit, uint16_t bitspersample, char *description, char *copyright, gboolean embeded_icc);
+int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *description, const char *copyright, gboolean embeded_icc);
 #endif
 
 #ifdef HAVE_LIBJPEG
@@ -73,6 +73,7 @@ WORD round_to_WORD(double x);
 BYTE round_to_BYTE(double x);
 BYTE roundf_to_BYTE(float f);
 WORD roundf_to_WORD(float f);
+guint float_to_max_range(float f, guint max);
 int round_to_ceiling_multiple(int x, int factor);
 BYTE conv_to_BYTE(double x);
 int truncate_to_int32(uint64_t x);

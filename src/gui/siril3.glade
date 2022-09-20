@@ -4136,6 +4136,13 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjustment_hdstf_bitdepth">
+    <property name="lower">17</property>
+    <property name="upper">24</property>
+    <property name="value">20</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_height_console">
     <property name="lower">90</property>
     <property name="upper">130</property>
@@ -12004,6 +12011,16 @@ This should normally be the case only for stacked images. Increasing this value 
       </object>
     </child>
     <child>
+      <object class="GtkCheckMenuItem" id="autohd_item">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="margin-start">18</property>
+        <property name="label" translatable="yes">High definition</property>
+        <property name="use-underline">True</property>
+        <signal name="toggled" handler="on_autohd_item_toggled" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkRadioMenuItem" id="histo_item">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -13719,42 +13736,12 @@ This should normally be the case only for stacked images. Increasing this value 
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/photometry_dark.svg</property>
   </object>
-  <object class="GtkListStore" id="pixel_math_liststore">
-    <columns>
-      <!-- column-name Pixel_math_var -->
-      <column type="gchararray"/>
-      <!-- column-name Pixel_math_path -->
-      <column type="gchararray"/>
-      <!-- column-name Pixel_math_chan -->
-      <column type="guint"/>
-      <!-- column-name Pixel_math_width -->
-      <column type="guint"/>
-      <!-- column-name Pixel_math_height -->
-      <column type="guint"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore_functions">
-    <columns>
-      <!-- column-name pixel_math_function -->
-      <column type="gchararray"/>
-      <!-- column-name pixel_math_f_index -->
-      <column type="gint"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore_operators">
-    <columns>
-      <!-- column-name pixel_math_operator -->
-      <column type="gchararray"/>
-      <!-- column-name pixel_math_o_index -->
-      <column type="gint"/>
-    </columns>
-  </object>
   <object class="GtkApplicationWindow" id="pixel_math_dialog">
     <property name="width-request">800</property>
-    <property name="height-request">550</property>
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
     <property name="title" translatable="yes">Sequence List</property>
+    <property name="resizable">False</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="show" handler="on_pixel_math_dialog_show" swapped="no"/>
@@ -13771,10 +13758,10 @@ This should normally be the case only for stacked images. Increasing this value 
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <object class="GtkAlignment">
+              <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="left-padding">12</property>
+                <property name="spacing">5</property>
                 <child>
                   <object class="GtkEntry" id="pixel_math_entry_r">
                     <property name="visible">True</property>
@@ -13782,6 +13769,32 @@ This should normally be the case only for stacked images. Increasing this value 
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_r_focus_in_event" swapped="no"/>
                   </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="pm_expr1_bt">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="tooltip-text" translatable="yes">Save expression in presets</property>
+                    <signal name="clicked" handler="on_pm_expr1_bt_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="icon-name">document-save</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
               </object>
             </child>
@@ -13809,10 +13822,10 @@ This should normally be the case only for stacked images. Increasing this value 
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <object class="GtkAlignment">
+              <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="left-padding">12</property>
+                <property name="spacing">5</property>
                 <child>
                   <object class="GtkEntry" id="pixel_math_entry_g">
                     <property name="visible">True</property>
@@ -13821,6 +13834,32 @@ This should normally be the case only for stacked images. Increasing this value 
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_g_focus_in_event" swapped="no"/>
                   </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="pm_expr2_bt">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="tooltip-text" translatable="yes">Save expression in presets</property>
+                    <signal name="clicked" handler="on_pm_expr2_bt_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="icon-name">document-save</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
               </object>
             </child>
@@ -13848,10 +13887,10 @@ This should normally be the case only for stacked images. Increasing this value 
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <object class="GtkAlignment">
+              <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="left-padding">12</property>
+                <property name="spacing">5</property>
                 <child>
                   <object class="GtkEntry" id="pixel_math_entry_b">
                     <property name="visible">True</property>
@@ -13860,6 +13899,32 @@ This should normally be the case only for stacked images. Increasing this value 
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_b_focus_in_event" swapped="no"/>
                   </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="pm_expr3_bt">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="tooltip-text" translatable="yes">Save expression in presets</property>
+                    <signal name="clicked" handler="on_pm_expr3_bt_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="icon-name">document-save</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
               </object>
             </child>
@@ -13925,228 +13990,248 @@ This should normally be the case only for stacked images. Increasing this value 
           </packing>
         </child>
         <child>
-          <object class="GtkBox">
+          <object class="GtkFrame">
+            <property name="height-request">200</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
             <child>
-              <object class="GtkScrolledWindow">
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="shadow-type">in</property>
+                <property name="can-focus">False</property>
                 <child>
-                  <object class="GtkTreeView" id="pixel_math_treeview">
+                  <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="model">pixel_math_liststore</property>
-                    <property name="headers-clickable">False</property>
-                    <property name="reorderable">True</property>
-                    <property name="search-column">0</property>
-                    <property name="enable-grid-lines">both</property>
-                    <signal name="key-release-event" handler="on_pixel_math_treeview_key_release_event" swapped="no"/>
-                    <signal name="row-activated" handler="on_pixel_math_treeview_row_activated" swapped="no"/>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection" id="pixel_math_selection">
-                        <property name="mode">multiple</property>
-                        <signal name="changed" handler="on_pixel_math_selection_changed" swapped="no"/>
-                      </object>
-                    </child>
+                    <property name="shadow-type">in</property>
                     <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn24">
-                        <property name="title" translatable="yes">Variable</property>
-                        <property name="clickable">True</property>
-                        <property name="sort-indicator">True</property>
-                        <property name="sort-column-id">0</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderer_variables">
-                            <property name="editable">True</property>
-                            <signal name="edited" handler="on_cellrenderer_variables_edited" swapped="no"/>
-                            <signal name="editing-canceled" handler="on_cellrenderer_variables_editing_canceled" swapped="no"/>
-                            <signal name="editing-started" handler="on_cellrenderer_variables_editing_started" swapped="no"/>
+                      <object class="GtkTreeView" id="pixel_math_treeview">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="model">pixel_math_liststore</property>
+                        <property name="headers-clickable">False</property>
+                        <property name="reorderable">True</property>
+                        <property name="search-column">0</property>
+                        <property name="enable-grid-lines">both</property>
+                        <signal name="key-release-event" handler="on_pixel_math_treeview_key_release_event" swapped="no"/>
+                        <signal name="row-activated" handler="on_pixel_math_treeview_row_activated" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection">
+                            <property name="mode">multiple</property>
                           </object>
-                          <attributes>
-                            <attribute name="text">0</attribute>
-                          </attributes>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="visible">False</property>
-                        <property name="title" translatable="yes">Chan.</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrender_chan"/>
-                          <attributes>
-                            <attribute name="text">2</attribute>
-                          </attributes>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn24">
+                            <property name="title" translatable="yes">Variable</property>
+                            <property name="clickable">True</property>
+                            <property name="sort-indicator">True</property>
+                            <property name="sort-column-id">0</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderer_variables">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="on_cellrenderer_variables_edited" swapped="no"/>
+                                <signal name="editing-canceled" handler="on_cellrenderer_variables_editing_canceled" swapped="no"/>
+                                <signal name="editing-started" handler="on_cellrenderer_variables_editing_started" swapped="no"/>
+                              </object>
+                              <attributes>
+                                <attribute name="text">0</attribute>
+                              </attributes>
+                            </child>
+                          </object>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn25">
-                        <property name="title" translatable="yes">Path</property>
-                        <property name="expand">True</property>
-                        <property name="clickable">True</property>
-                        <property name="sort-column-id">1</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderer_paths"/>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="visible">False</property>
-                        <property name="title" translatable="yes">Width</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderer_width">
+                          <object class="GtkTreeViewColumn">
                             <property name="visible">False</property>
+                            <property name="title" translatable="yes">Chan.</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrender_chan"/>
+                              <attributes>
+                                <attribute name="text">2</attribute>
+                              </attributes>
+                            </child>
                           </object>
-                          <attributes>
-                            <attribute name="text">3</attribute>
-                          </attributes>
                         </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn">
-                        <property name="visible">False</property>
-                        <property name="title" translatable="yes">Height</property>
                         <child>
-                          <object class="GtkCellRendererText" id="cellrenderer_height">
-                            <property name="visible">False</property>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn25">
+                            <property name="title" translatable="yes">Path</property>
+                            <property name="expand">True</property>
+                            <property name="clickable">True</property>
+                            <property name="sort-column-id">1</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderer_paths"/>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
                           </object>
-                          <attributes>
-                            <attribute name="text">4</attribute>
-                          </attributes>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="visible">False</property>
+                            <property name="title" translatable="yes">Width</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderer_width">
+                                <property name="visible">False</property>
+                              </object>
+                              <attributes>
+                                <attribute name="text">3</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="visible">False</property>
+                            <property name="title" translatable="yes">Height</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderer_height">
+                                <property name="visible">False</property>
+                              </object>
+                              <attributes>
+                                <attribute name="text">4</attribute>
+                              </attributes>
+                            </child>
+                          </object>
                         </child>
                       </object>
                     </child>
                   </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow" id="pixel_math_scrolled_functions">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="shadow-type">in</property>
+                    <child>
+                      <object class="GtkTreeView" id="pixel_math_treeview_functions">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="has-tooltip">True</property>
+                        <property name="model">pixel_math_liststore_functions</property>
+                        <property name="headers-clickable">False</property>
+                        <property name="reorderable">True</property>
+                        <property name="search-column">0</property>
+                        <property name="enable-grid-lines">both</property>
+                        <signal name="query-tooltip" handler="query_tooltip_tree_view_cb" swapped="no"/>
+                        <signal name="row-activated" handler="on_pixel_math_treeview_functions_row_activated" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection"/>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn26">
+                            <property name="title" translatable="yes">Function</property>
+                            <property name="clickable">True</property>
+                            <property name="sort-indicator">True</property>
+                            <property name="sort-column-id">0</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderer_functions"/>
+                              <attributes>
+                                <attribute name="text">0</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="f_index">
+                            <property name="visible">False</property>
+                            <property name="title" translatable="yes">index</property>
+                            <property name="clickable">True</property>
+                            <property name="sort-column-id">1</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderer_f_index">
+                                <property name="visible">False</property>
+                              </object>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow" id="pixel_math_scrolled_operators">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="shadow-type">in</property>
+                    <child>
+                      <object class="GtkTreeView" id="pixel_math_treeview_operators">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="has-tooltip">True</property>
+                        <property name="model">pixel_math_liststore_operators</property>
+                        <property name="headers-clickable">False</property>
+                        <property name="reorderable">True</property>
+                        <property name="search-column">0</property>
+                        <property name="enable-grid-lines">both</property>
+                        <signal name="query-tooltip" handler="query_tooltip_op_tree_view_cb" swapped="no"/>
+                        <signal name="row-activated" handler="on_pixel_math_treeview_operators_row_activated" swapped="no"/>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection"/>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn27">
+                            <property name="title" translatable="yes">Operator</property>
+                            <property name="clickable">True</property>
+                            <property name="sort-indicator">True</property>
+                            <property name="sort-column-id">0</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderer_operators"/>
+                              <attributes>
+                                <attribute name="text">0</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="c_index">
+                            <property name="visible">False</property>
+                            <property name="title" translatable="yes">column</property>
+                            <property name="clickable">True</property>
+                            <property name="sort-column-id">1</property>
+                            <child>
+                              <object class="GtkCellRendererText" id="cellrenderer_o_index">
+                                <property name="visible">False</property>
+                              </object>
+                              <attributes>
+                                <attribute name="text">1</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
                 </child>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
             </child>
-            <child>
-              <object class="GtkScrolledWindow" id="pixel_math_scrolled_functions">
+            <child type="label">
+              <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="shadow-type">in</property>
-                <child>
-                  <object class="GtkTreeView" id="pixel_math_treeview_functions">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="has-tooltip">True</property>
-                    <property name="model">pixel_math_liststore_functions</property>
-                    <property name="headers-clickable">False</property>
-                    <property name="reorderable">True</property>
-                    <property name="search-column">0</property>
-                    <property name="enable-grid-lines">both</property>
-                    <signal name="query-tooltip" handler="query_tooltip_tree_view_cb" swapped="no"/>
-                    <signal name="row-activated" handler="on_pixel_math_treeview_functions_row_activated" swapped="no"/>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection"/>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn26">
-                        <property name="title" translatable="yes">Function</property>
-                        <property name="clickable">True</property>
-                        <property name="sort-indicator">True</property>
-                        <property name="sort-column-id">0</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderer_functions"/>
-                          <attributes>
-                            <attribute name="text">0</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="f_index">
-                        <property name="visible">False</property>
-                        <property name="title" translatable="yes">index</property>
-                        <property name="sort-column-id">1</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderer_f_index">
-                            <property name="visible">False</property>
-                          </object>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                </child>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Images</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
               </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkScrolledWindow" id="pixel_math_scrolled_operators">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="shadow-type">in</property>
-                <child>
-                  <object class="GtkTreeView" id="pixel_math_treeview_operators">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="has-tooltip">True</property>
-                    <property name="model">pixel_math_liststore_operators</property>
-                    <property name="headers-clickable">False</property>
-                    <property name="reorderable">True</property>
-                    <property name="search-column">0</property>
-                    <property name="enable-grid-lines">both</property>
-                    <signal name="query-tooltip" handler="query_tooltip_op_tree_view_cb" swapped="no"/>
-                    <signal name="row-activated" handler="on_pixel_math_treeview_operators_row_activated" swapped="no"/>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection"/>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="treeviewcolumn27">
-                        <property name="title" translatable="yes">Operator</property>
-                        <property name="clickable">True</property>
-                        <property name="sort-indicator">True</property>
-                        <property name="sort-column-id">0</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderer_operators"/>
-                          <attributes>
-                            <attribute name="text">0</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkTreeViewColumn" id="c_index">
-                        <property name="visible">False</property>
-                        <property name="title" translatable="yes">column</property>
-                        <property name="sort-column-id">1</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="cellrenderer_o_index">
-                            <property name="visible">False</property>
-                          </object>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
             </child>
           </object>
           <packing>
@@ -14174,21 +14259,14 @@ This should normally be the case only for stacked images. Increasing this value 
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <object class="GtkAlignment">
+              <object class="GtkEntry" id="pixel_math_entry_param">
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="left-padding">12</property>
-                <child>
-                  <object class="GtkEntry" id="pixel_math_entry_param">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="tooltip-markup" translatable="yes">Comma separated value parameters. The parameter thus defined can be used in the expressions.
+                <property name="can-focus">True</property>
+                <property name="tooltip-markup" translatable="yes">Comma separated value parameters. The parameter thus defined can be used in the expressions.
 For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.2,&lt;/i&gt;, all the occurences of &lt;i&gt;factor&lt;/i&gt; and &lt;i&gt;K&lt;/i&gt; in the formula above will be replaced by 0.8 and 0.2 respectively.
 
 &lt;i&gt;Ha * factor + OIII * K&lt;/i&gt; would therefore evaluate to &lt;i&gt;Ha * 0.8 + OIII * 0.2&lt;/i&gt;</property>
-                    <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
-                  </object>
-                </child>
+                <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
               </object>
             </child>
             <child type="label">
@@ -14206,6 +14284,64 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkExpander">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <child>
+              <object class="GtkScrolledWindow">
+                <property name="height-request">100</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="shadow-type">in</property>
+                <child>
+                  <object class="GtkTreeView" id="pixel_math_treeview_presets">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Preset list. You can delete an item or the entire list by selecting what you want and pressing the delete key.</property>
+                    <property name="model">pixel_math_liststore_presets</property>
+                    <property name="headers-visible">False</property>
+                    <property name="headers-clickable">False</property>
+                    <property name="search-column">0</property>
+                    <signal name="key-release-event" handler="on_pixel_math_treeview_presets_key_release_event" swapped="no"/>
+                    <signal name="row-activated" handler="on_pixel_math_treeview_presets_row_activated" swapped="no"/>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection"/>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="title">expression</property>
+                        <property name="clickable">True</property>
+                        <property name="sort-column-id">0</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="pm_cell_text_expression"/>
+                          <attributes>
+                            <attribute name="text">0</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Presets</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">7</property>
           </packing>
         </child>
         <child>
@@ -14250,7 +14386,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">7</property>
+            <property name="position">8</property>
           </packing>
         </child>
       </object>
@@ -14317,6 +14453,42 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore">
+    <columns>
+      <!-- column-name Pixel_math_var -->
+      <column type="gchararray"/>
+      <!-- column-name Pixel_math_path -->
+      <column type="gchararray"/>
+      <!-- column-name Pixel_math_chan -->
+      <column type="guint"/>
+      <!-- column-name Pixel_math_width -->
+      <column type="guint"/>
+      <!-- column-name Pixel_math_height -->
+      <column type="guint"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_functions">
+    <columns>
+      <!-- column-name pixel_math_function -->
+      <column type="gchararray"/>
+      <!-- column-name pixel_math_f_index -->
+      <column type="gint"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_operators">
+    <columns>
+      <!-- column-name pixel_math_operator -->
+      <column type="gchararray"/>
+      <!-- column-name pixel_math_o_index -->
+      <column type="gint"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_presets">
+    <columns>
+      <!-- column-name expression -->
+      <column type="gchararray"/>
+    </columns>
   </object>
   <object class="GtkMenu" id="precision_menu">
     <property name="visible">True</property>
@@ -22329,7 +22501,7 @@ WARNING: This option should not be checked for master stacking.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-markup" translatable="yes">Display mode: this list presents all the vizual modes available in Siril.
+                            <property name="tooltip-markup" translatable="yes">Display mode: this list presents all the visual modes available in Siril.
 
 &lt;b&gt;WARNING: only Linear mode shows the real pixel values (when vizualisation sliders are at min and max positions). Other modes are only conveniant way to display your data. Stretch your histogram before to work on an external tool.&lt;/b&gt;</property>
                             <property name="popup">menu_display</property>
@@ -24496,7 +24668,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=2 n-rows=2 -->
+                              <!-- n-columns=2 n-rows=3 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -24562,6 +24734,22 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                   <packing>
                                     <property name="left-attach">0</property>
                                     <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="checkbox_heterogeneous_fitseq">
+                                    <property name="label" translatable="yes">Allow FITS cubes to have images of different sizes</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">This can be useful to open scientific FITS files that were not created by Siril and that contain multiple images of different dimensions, which would otherwise considered as invalid Siril FITSEQ files.</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                    <property name="width">2</property>
                                   </packing>
                                 </child>
                               </object>
@@ -27040,6 +27228,102 @@ Configuring a memory amount larger than what is available on your system may res
                         <property name="position">1</property>
                       </packing>
                     </child>
+                    <child>
+                      <!-- n-columns=2 n-rows=3 -->
+                      <object class="GtkGrid">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="row-spacing">6</property>
+                        <property name="column-spacing">20</property>
+                        <property name="row-homogeneous">True</property>
+                        <property name="column-homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">HD AutoStretch</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Default bit depth for HD AutoStretch</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="spacing">12</property>
+                            <child>
+                              <object class="GtkSpinButton" id="spin_hd_bitdepth">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Sets default bit depth for the HD AutoStretch display mode. Higher bit depths require exponentially more memory for the LUT and take longer to recalculate it, but do a much better job of smoothing quantization artefacts in displaying images with very narrow histogram peaks. The default bit depth will apply from the next viewer mode change, and can be applied now using the button to the right.</property>
+                                <property name="halign">start</property>
+                                <property name="text" translatable="yes">20</property>
+                                <property name="input-purpose">number</property>
+                                <property name="adjustment">adjustment_hdstf_bitdepth</property>
+                                <property name="numeric">True</property>
+                                <property name="value">20</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="button_apply_hd_bitdepth">
+                                <property name="label" translatable="yes">Apply bit depth</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">Set the selected HD AutoStretch bit depth now</property>
+                                <signal name="clicked" handler="on_button_apply_hd_bitdepth_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="name">preferences_p6</property>
@@ -27166,13 +27450,41 @@ Configuring a memory amount larger than what is available on your system may res
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <object class="GtkCheckButton" id="miscAskQuit">
-                                <property name="label" translatable="yes">Don't ask before quitting</property>
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="halign">start</property>
-                                <property name="draw-indicator">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">5</property>
+                                <child>
+                                  <object class="GtkCheckButton" id="miscAskQuit">
+                                    <property name="label" translatable="yes">Don't ask before quitting</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="miscAskSave">
+                                    <property name="label" translatable="yes">Don't ask before saving when display is not linear</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
                               </object>
                             </child>
                           </object>

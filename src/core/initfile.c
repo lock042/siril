@@ -214,6 +214,7 @@ static int readinitfile_libconfig(gchar *path) {
 		const char *swap_dir = NULL, *starnet_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
 
 		config_setting_lookup_int(misc_setting, "pan_position", &com.pref.gui.pan_position);
+		config_setting_lookup_int(misc_setting, "hd_bitdepth", &com.pref.hd_bitdepth);
 
 		if (config_setting_lookup_bool(misc_setting, "is_extended", &com.pref.gui.is_extended) == CONFIG_FALSE) {
 			com.pref.gui.is_extended = TRUE;

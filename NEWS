@@ -23,6 +23,7 @@ v1.2.0 mmm dd, 2022
 * Added a way to clean sequence file in the sequence tab (see also command seqclean)
 * Added a warning when images are negative on calibration
 * Added calibration details in the FITS history
+* Added saving formulas (presets) in Pixel Math
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored global registration and added 2pass and Apply Existing methods
@@ -52,6 +53,13 @@ v1.2.0 mmm dd, 2022
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
 * Added BM3D denoising
+
+v1.0.6 xx xx, 2022
+
+* Fixed crash on opening a malformed SER
+* Fixed crash in savetif
+* Fixed crash in polynomial background extraction when not enough sample were set
+* Fixed bug in iif where no parameters could be used
 
 v1.0.5 October 09, 2022
 

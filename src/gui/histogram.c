@@ -99,7 +99,23 @@ static void clear_hist_backup() {
 	}
 }
 
+static void init_toggles() {
+	if (!toggles[0]) {
+		toggles[0] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolRed"));
+		toggles[1] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGreen"));
+		toggles[2] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolBlue"));
+		do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
+		do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
+		do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
+		toggles[3] = NULL;
+		toggleGrid = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGrid"));
+		toggleCurve = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolCurve"));
+		toggleOrig = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolOrig"));
+	}
+}
+
 static void histo_startup() {
+	init_toggles();
 	do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
 	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
 	do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
@@ -197,21 +213,6 @@ static void _update_clipped_pixels(size_t data) {
 static int is_histogram_visible() {
 	GtkWidget *window = lookup_widget("histogram_dialog");
 	return gtk_widget_get_visible(window);
-}
-
-static void init_toggles() {
-	if (!toggles[0]) {
-		toggles[0] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolRed"));
-		toggles[1] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGreen"));
-		toggles[2] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolBlue"));
-		do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
-		do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
-		do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
-		toggles[3] = NULL;
-		toggleGrid = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGrid"));
-		toggleCurve = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolCurve"));
-		toggleOrig = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolOrig"));
-	}
 }
 
 // sets the channel names of the toggle buttons in the histogram window, based on
