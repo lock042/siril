@@ -135,6 +135,7 @@ int	process_set_cpu(int nb);
 #endif
 int	process_set_ext(int nb);
 int	process_set_findstar(int nb);
+int	process_set_stfbits(int nb);
 int	process_set_mag(int nb);
 int	process_set_mag_seq(int nb);
 int	process_set_mem(int nb);

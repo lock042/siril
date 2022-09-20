@@ -6225,4 +6225,3 @@ int process_stop_ls(int nb) {
 	stop_live_stacking_engine();
 	return CMD_OK;
 }
-
