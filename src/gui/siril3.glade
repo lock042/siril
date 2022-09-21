@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -1925,6 +1925,17 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="value">6</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_pm_high">
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_pm_low">
+    <property name="upper">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adj_rad_rgradient">
     <property name="upper">100</property>
@@ -13419,6 +13430,42 @@ This should normally be the case only for stacked images. Increasing this value 
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/photometry_dark.svg</property>
   </object>
+  <object class="GtkListStore" id="pixel_math_liststore">
+    <columns>
+      <!-- column-name Pixel_math_var -->
+      <column type="gchararray"/>
+      <!-- column-name Pixel_math_path -->
+      <column type="gchararray"/>
+      <!-- column-name Pixel_math_chan -->
+      <column type="guint"/>
+      <!-- column-name Pixel_math_width -->
+      <column type="guint"/>
+      <!-- column-name Pixel_math_height -->
+      <column type="guint"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_functions">
+    <columns>
+      <!-- column-name pixel_math_function -->
+      <column type="gchararray"/>
+      <!-- column-name pixel_math_f_index -->
+      <column type="gint"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_operators">
+    <columns>
+      <!-- column-name pixel_math_operator -->
+      <column type="gchararray"/>
+      <!-- column-name pixel_math_o_index -->
+      <column type="gint"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_presets">
+    <columns>
+      <!-- column-name expression -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkApplicationWindow" id="pixel_math_dialog">
     <property name="width-request">800</property>
     <property name="can-focus">False</property>
@@ -13449,6 +13496,7 @@ This should normally be the case only for stacked images. Increasing this value 
                   <object class="GtkEntry" id="pixel_math_entry_r">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <property name="margin-top">5</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_r_focus_in_event" swapped="no"/>
                   </object>
@@ -13514,6 +13562,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <property name="margin-top">5</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_g_focus_in_event" swapped="no"/>
                   </object>
@@ -13579,6 +13628,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <property name="margin-top">5</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_b_focus_in_event" swapped="no"/>
                   </object>
@@ -13683,6 +13733,7 @@ This should normally be the case only for stacked images. Increasing this value 
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">5</property>
                 <child>
                   <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
@@ -13949,6 +14000,7 @@ This should normally be the case only for stacked images. Increasing this value 
 For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.2,&lt;/i&gt;, all the occurences of &lt;i&gt;factor&lt;/i&gt; and &lt;i&gt;K&lt;/i&gt; in the formula above will be replaced by 0.8 and 0.2 respectively.
 
 &lt;i&gt;Ha * factor + OIII * K&lt;/i&gt; would therefore evaluate to &lt;i&gt;Ha * 0.8 + OIII * 0.2&lt;/i&gt;</property>
+                <property name="margin-top">5</property>
                 <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
               </object>
             </child>
@@ -13967,6 +14019,87 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkExpander">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-top">5</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">5</property>
+                <child>
+                  <object class="GtkCheckButton" id="rescale_pm_button">
+                    <property name="label" translatable="yes">Rescale result</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">Check this option to rescale resulting image in the  range defined in the buttons.</property>
+                    <property name="draw-indicator">True</property>
+                    <signal name="toggled" handler="on_rescale_pm_button_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_pm_low">
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="can-focus">True</property>
+                    <property name="halign">end</property>
+                    <property name="width-chars">12</property>
+                    <property name="adjustment">adj_pm_low</property>
+                    <property name="digits">8</property>
+                    <property name="numeric">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_pm_high">
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="can-focus">True</property>
+                    <property name="halign">end</property>
+                    <property name="width-chars">12</property>
+                    <property name="adjustment">adj_pm_high</property>
+                    <property name="digits">8</property>
+                    <property name="numeric">True</property>
+                    <property name="value">1</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Output</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">7</property>
           </packing>
         </child>
         <child>
@@ -14024,7 +14157,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">7</property>
+            <property name="position">8</property>
           </packing>
         </child>
         <child>
@@ -14069,7 +14202,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">8</property>
+            <property name="position">9</property>
           </packing>
         </child>
       </object>
@@ -14136,42 +14269,6 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore">
-    <columns>
-      <!-- column-name Pixel_math_var -->
-      <column type="gchararray"/>
-      <!-- column-name Pixel_math_path -->
-      <column type="gchararray"/>
-      <!-- column-name Pixel_math_chan -->
-      <column type="guint"/>
-      <!-- column-name Pixel_math_width -->
-      <column type="guint"/>
-      <!-- column-name Pixel_math_height -->
-      <column type="guint"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore_functions">
-    <columns>
-      <!-- column-name pixel_math_function -->
-      <column type="gchararray"/>
-      <!-- column-name pixel_math_f_index -->
-      <column type="gint"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore_operators">
-    <columns>
-      <!-- column-name pixel_math_operator -->
-      <column type="gchararray"/>
-      <!-- column-name pixel_math_o_index -->
-      <column type="gint"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore_presets">
-    <columns>
-      <!-- column-name expression -->
-      <column type="gchararray"/>
-    </columns>
   </object>
   <object class="GtkMenu" id="precision_menu">
     <property name="visible">True</property>
@@ -15635,12 +15732,12 @@ You can examine the workings of each option in detail using the histogram displa
       <object class="GtkSearchEntry" id="search_objects_entry">
         <property name="visible">True</property>
         <property name="can-focus">True</property>
-        <property name="primary-icon-name">edit-find-symbolic</property>
-        <property name="primary-icon-activatable">False</property>
-        <property name="primary-icon-sensitive">False</property>
         <property name="tooltip-text" translatable="yes">Enter the object name you want to search in online database, SIMBAD or the Minor Planet Center database.
 Solar system objects can be referred to either by their number or name, but with a prefix depending on their type, for example 'a:1' or 'a:Ceres', 'p:mars' or 'c:C/2017 T2'.
 If found, objects will be added to the User Catalogue. Solar system objects will be added with a date in their name, with no duplicate check. Purge the User Catalogue to remove previous searches.</property>
+        <property name="primary-icon-name">edit-find-symbolic</property>
+        <property name="primary-icon-activatable">False</property>
+        <property name="primary-icon-sensitive">False</property>
         <signal name="activate" handler="on_search_objects_entry_activate" swapped="no"/>
       </object>
     </child>

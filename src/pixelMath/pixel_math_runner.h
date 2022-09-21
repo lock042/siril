@@ -32,6 +32,8 @@ struct pixel_math_data {
 	gchar *expression2;
 	gchar *expression3;
 	gboolean single_rgb;
+	gboolean rescale;
+	float min, max;
 };
 
 int load_pm_var(const gchar *var, int index, int *w, int *h, int *c);

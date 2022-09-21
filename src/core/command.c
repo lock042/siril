@@ -2134,6 +2134,8 @@ int process_pm(int nb) {
 	gchar *expression = g_shell_unquote(word[1], NULL);
 	gchar *next, *cur;
 	int count = 0;
+	float min = -1.f;
+	float max = -1.f;
 
 	cur = expression;
 	while ((next = strchr(cur, '$')) != NULL) {
@@ -2147,6 +2149,28 @@ int process_pm(int nb) {
 	} else if (count % 2 != 0) {
 		siril_log_message(_("There is an unmatched $. Please check the expression.\n"));
 		return CMD_ARG_ERROR;
+	}
+
+	/* parse rescale option if exist */
+	if (nb > 1) {
+		if (!g_strcmp0(word[2], "-rescale")) {
+			if (nb == 5) {
+				gchar *end;
+				min = g_ascii_strtod(word[3], &end);
+				if (end == word[3] || min < 0 || min > 1) {
+					siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
+					return CMD_ARG_ERROR;
+				}
+				max = g_ascii_strtod(word[4], &end);
+				if (end == word[4] || max < 0 || max > 1) {
+					siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
+					return CMD_ARG_ERROR;
+				}
+			} else {
+				min = 0.f;
+				max = 1.f;
+			}
+		}
 	}
 
 	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
@@ -2229,6 +2253,13 @@ int process_pm(int nb) {
 	args->fit = fit;
 	args->ret = 0;
 	args->from_ui = FALSE;
+	if (min >= 0.f) {
+		args->rescale = TRUE;
+		args->min = min;
+		args->max = max;
+	} else {
+		args->rescale = FALSE;
+	}
 
 	start_in_new_thread(apply_pixel_math_operation, args);
 
