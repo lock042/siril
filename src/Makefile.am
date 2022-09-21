@@ -211,6 +211,7 @@ siril_common_SOURCES = \
 	gui/siril_preview.h \
 	gui/siril-window.c \
 	gui/siril-window.h \
+	gui/star_finder.c \
 	gui/starnetgui.c \
 	gui/starnetgui.h \
 	gui/statistics_list.c \
