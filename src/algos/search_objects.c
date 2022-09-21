@@ -30,7 +30,7 @@
 #include "astrometry_solver.h"
 
 static int parse_buffer(char *buffer) {
-	gchar **token, **fields, **part, *realname = NULL;
+	gchar **token, **part, *realname = NULL;
 	int nargs;
 	gboolean is_solar_system = FALSE;
 	SirilWorldCS *world_cs = NULL;
@@ -39,7 +39,7 @@ static int parse_buffer(char *buffer) {
 	nargs = g_strv_length(token);
 
 	if (g_str_has_prefix(buffer, "oid")) {
-		fields = g_strsplit(token[1], "\t", -1);
+		gchar **fields = g_strsplit(token[1], "\t", -1);
 		guint n = g_strv_length(fields);
 		if (n > 3) {
 			double ra, dec;
@@ -81,7 +81,7 @@ static int parse_buffer(char *buffer) {
 		g_free(formatted_date);
 
 		// Then, retrieve the coordinates
-		fields = g_strsplit(token[4], ",", -1);
+		gchar **fields = g_strsplit(token[4], ",", -1);
 		guint n = g_strv_length(fields);
 		if (n > 2) {
 			double hours = 0.0, min = 0.0, seconds = 0.0, degres = 0.0;
