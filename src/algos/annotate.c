@@ -352,25 +352,25 @@ GSList *find_objects(fits *fit) {
 	return targets;
 }
 
-void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs) {
+void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_system) {
 	int cat_size = G_N_ELEMENTS(cat);
 
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
 
-	/* check for the object first to avoid duplicates */
-	GSList *cur = siril_catalogue_list;
-	double ra = siril_world_cs_get_alpha(wcs);
-	double dec = siril_world_cs_get_delta(wcs);
-	while (cur) {
-		CatalogObjects *obj = cur->data;
-		if (fabs(obj->ra - ra) < CATALOG_DIST_EPSILON &&
-				fabs(obj->dec - dec) < CATALOG_DIST_EPSILON) {
-			siril_log_message(_("The object was already found in the %s catalog under the name %s, not adding it again\n"), cat_index_to_name(obj->catalogue), obj->code);
-			return;
+	/* check for the object first to avoid duplicates, not for solar system objects */
+	if (!is_solar_system) {
+		GSList *cur = siril_catalogue_list;
+		double ra = siril_world_cs_get_alpha(wcs);
+		double dec = siril_world_cs_get_delta(wcs);
+		while (cur) {
+			CatalogObjects *obj = cur->data;
+			if (fabs(obj->ra - ra) < CATALOG_DIST_EPSILON && fabs(obj->dec - dec) < CATALOG_DIST_EPSILON) {
+				siril_log_message(_("The object was already found in the %s catalog under the name %s, not adding it again\n"), cat_index_to_name(obj->catalogue), obj->code);
+				return;
+			}
+			cur = cur->next;
 		}
-
-		cur = cur->next;
 	}
 
 	CatalogObjects *new_object = new_catalog_object(code,

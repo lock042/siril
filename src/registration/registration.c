@@ -577,7 +577,7 @@ int register_kombat(struct registration_args *args) {
 	max_threads = omp_get_max_threads() + 1;
 #else
 		max_threads = 1;
-	#endif
+#endif
 
 	void *caches[max_threads];
 	for (int i = 0; i < max_threads; i++)

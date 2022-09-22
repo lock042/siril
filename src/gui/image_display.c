@@ -1260,7 +1260,6 @@ static void draw_annotates(const draw_data_t* dd) {
 		gchar *code = get_catalogue_object_code(object);
 		gdouble resolution = get_wcs_image_resolution(&gfit);
 		gdouble x, y;
-		gdouble size = 18 * (com.pref.gui.font_scale / 100.0);
 
 		if (resolution <= 0) return;
 
@@ -1294,11 +1293,28 @@ static void draw_annotates(const draw_data_t* dd) {
 				cairo_stroke(cr);
 			}
 			if (code) {
+				gchar *name = code, *name2;
+				name2 = strstr(code, "\\n");
+				if (name2) {
+					name = g_strndup(code, name2-code);
+					name2+=2;
+				}
+
+				gdouble size = 18 * (com.pref.gui.font_scale / 100.0);
 				cairo_select_font_face(cr, "Liberation Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 				cairo_set_font_size(cr, size / dd->zoom);
 				cairo_move_to(cr, x + offset.x, y + offset.y);
-				cairo_show_text(cr, code);
+				cairo_show_text(cr, name);
 				cairo_stroke(cr);
+				if (name2) {
+					// subtitle, draw it below
+					cairo_move_to(cr, x + offset.x + 5 / dd->zoom, y + offset.y + (size + 4) / dd->zoom);
+					size = 16 * (com.pref.gui.font_scale / 100.0);
+					cairo_set_font_size(cr, size / dd->zoom);
+					cairo_show_text(cr, name2);
+					cairo_stroke(cr);
+					g_free(name);
+				}
 			}
 		}
 	}

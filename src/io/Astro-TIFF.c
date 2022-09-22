@@ -27,7 +27,7 @@
 /*--------------------------------------------------------------------------*/
 static int ffs2c(const char *instr, /* I - null terminated input string  */
           char *outstr,      /* O - null terminated quoted output string */
-          int *status)       /* IO - error status */
+          const int *status)       /* IO - error status */
 /*
   convert an input string to a quoted string. Leading spaces
   are significant.  FITS string keyword values must be at least

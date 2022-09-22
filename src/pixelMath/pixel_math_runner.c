@@ -402,6 +402,18 @@ static gboolean is_pm_use_rgb_button_checked() {
 	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pm_use_rgb_button")));
 }
 
+static gboolean is_pm_rescale_checked() {
+	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rescale_pm_button")));
+}
+
+static float get_min_rescale_value() {
+	return (float) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_pm_low")));
+}
+
+static float get_max_rescale_value() {
+	return (float) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_pm_high")));
+}
+
 static void update_metadata(fits *fit) {
 	fits **f = malloc((MAX_IMAGES + 1) * sizeof(fits *));
 	int j = 0;
@@ -422,6 +434,17 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	int nb_rows = args->nb_rows;
 	gboolean failed = FALSE;
 	args->ret = 0;
+	float maximum = -FLT_MAX;
+	float minimum = +FLT_MAX;
+	int nthrds;
+
+#ifdef _OPENMP
+	nthrds = omp_get_max_threads();
+#else
+	nthrds = 1;
+#endif
+	float *maxres = malloc(sizeof(float) * nthrds);
+	float *minres = malloc(sizeof(float) * nthrds);
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread)
@@ -474,7 +497,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			}
 		}
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for schedule(static) private(maximum, minimum)
 #endif
 		for (size_t px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
 			/* The variables can be changed here, and eval can be called as many
@@ -484,12 +507,21 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				x[i] = var_fit[i].fdata[px];
 			}
 
+			int id = omp_get_thread_num();
+
 			if (args->single_rgb) {
 				fit->fdata[px] = (float) te_eval(n1);
+				/* may not be used but at least it is computed */
+				maxres[id] = maximum = max(maximum, fit->fdata[px]);
+				minres[id] = minimum = min(minimum, fit->fdata[px]);
 			} else {
 				fit->fpdata[RLAYER][px] = (float) te_eval(n1);
 				fit->fpdata[GLAYER][px] = (float) te_eval(n2);
 				fit->fpdata[BLAYER][px] = (float) te_eval(n3);
+
+				/* may not be used but (only if rescale) at least it is computed */
+				maxres[id] = maximum = max(maximum, max(fit->fpdata[RLAYER][px], max(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
+				minres[id] = minimum = min(minimum, min(fit->fpdata[RLAYER][px], min(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
 			}
 		}
 
@@ -502,6 +534,25 @@ failure: // failure before the eval loop
 		free(vars);
 		free(x);
 	} // end of parallel block
+
+	/* may not be used (only for rescale) but at least it is computed */
+	for (int i = 0; i < nthrds; i++) {
+		if (maxres[i] > maximum) {
+			maximum = maxres[i];
+		}
+
+		if (minres[i] < minimum) {
+			minimum = minres[i];
+		}
+	}
+	if (args->rescale) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+		for (int i = 0; i < fit->rx * fit->ry * fit->naxes[2]; i++) {
+			fit->fdata[i] = (((args->max - args->min) * (fit->fdata[i] - minimum)) / (maximum - minimum)) + args->min;
+		}
+	}
 
 	if (failed)
 		args->ret = 1;
@@ -673,6 +724,9 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	int channel = -1;
 
 	gboolean single_rgb = is_pm_use_rgb_button_checked();
+	gboolean rescale = is_pm_rescale_checked();
+	float min = get_min_rescale_value();
+	float max = get_max_rescale_value();
 
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
@@ -715,6 +769,9 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	args->expression2 = single_rgb ? NULL : expression2;
 	args->expression3 = single_rgb ? NULL : expression3;
 	args->single_rgb = single_rgb;
+	args->rescale = rescale;
+	args->min = min;
+	args->max = max;
 	args->fit = fit;
 	args->nb_rows = nb_rows;
 	args->ret = 0;
@@ -1318,4 +1375,9 @@ gboolean on_pixel_math_treeview_presets_key_release_event(GtkWidget *widget, Gdk
 		return TRUE;
 	}
 	return FALSE;
+}
+
+void on_rescale_pm_button_toggled(GtkToggleButton *button, gpointer user_data) {
+	gtk_widget_set_sensitive(lookup_widget("spin_pm_low"), gtk_toggle_button_get_active(button));
+	gtk_widget_set_sensitive(lookup_widget("spin_pm_high"), gtk_toggle_button_get_active(button));
 }

@@ -181,6 +181,7 @@ static void set_description_in_TIFF() {
 
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_type_of_tiff"))) == 0) {
 		gchar *astro_tiff = AstroTiff_build_header(&gfit);
+
 		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
 		gtk_text_buffer_insert(tbuf, &itEnd, astro_tiff, -1);
 		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
