@@ -141,13 +141,13 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 }
 
 static int star_cmp_by_mag_est(const void *a, const void *b) {
-    starc *a1 = (starc *)a;
-    starc *a2 = (starc *)b;
-    if ((*a1).mag_est > (*a2).mag_est)
-        return -1;
-    else if ((*a1).mag_est < (*a2).mag_est)
-        return 1;
-    return 0;
+	starc *a1 = (starc *)a;
+	starc *a2 = (starc *)b;
+	if ((*a1).mag_est > (*a2).mag_est)
+		return -1;
+	else if ((*a1).mag_est < (*a2).mag_est)
+		return 1;
+	return 0;
 }
 
 /*
