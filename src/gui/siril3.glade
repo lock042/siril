@@ -14038,7 +14038,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">Check this option to rescale the pixel values of the resulting image to the specified output range (see the <i>lower range</i> and <i>upper range</i> parameters below)</property>
+                    <property name="tooltip-text" translatable="yes">Check this option to rescale the pixel values of the resulting image to the specified output range (see the lower range and upper range parameters below)</property>
                     <property name="draw-indicator">True</property>
                     <signal name="toggled" handler="on_rescale_pm_button_toggled" swapped="no"/>
                   </object>
