@@ -88,6 +88,7 @@ src/gui/single_image.c
 src/gui/siril_css.c
 src/gui/siril_intro.c
 src/gui/siril_preview.c
+src/gui/split_cfa.c
 src/gui/statistics_list.c
 src/gui/star_finder.c
 src/gui/starnetgui.c
