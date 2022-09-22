@@ -131,6 +131,7 @@ src_files = [
   'gui/annotations_pref.c',
   'gui/astrometry_solver.c',
   'gui/callbacks.c',
+  'gui/colors.c',
   'gui/conversion.c',
   'gui/dialog_preview.c',
   'gui/dialogs.c',

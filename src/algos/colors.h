@@ -23,12 +23,15 @@ void xyz_to_rgb(double, double, double, double *, double *, double *);
 double BV_to_T(double BV);
 
 int pos_to_neg(fits *fit);
-void negative_processing();
 
 int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, const char *cfa_string);
 
 gpointer extract_channels(gpointer p);
 
-void initialize_calibration_interface();
+void background_neutralize(fits* fit, rectangle black_selection);
+void get_coeff_for_wb(fits *fit, rectangle white, rectangle black,
+		double kw[], double bg[], double norm, double low, double high);
+int calibrate(fits *fit, int layer, double kw, double bg, double norm);
+
 
 #endif

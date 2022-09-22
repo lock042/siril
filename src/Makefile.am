@@ -161,6 +161,8 @@ siril_common_SOURCES = \
 	gui/callbacks.h \
 	gui/conversion.c \
 	gui/conversion.h \
+	gui/colors.c \
+	gui/colors.h \
 	gui/dialog_preview.c \
 	gui/dialog_preview.h \
 	gui/dialogs.c \
