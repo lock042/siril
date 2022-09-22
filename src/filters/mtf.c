@@ -21,6 +21,7 @@
 #include <glib.h>
 #include "mtf.h"
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
 
 void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gboolean multithreaded) {

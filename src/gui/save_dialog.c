@@ -24,8 +24,8 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-//#include "core/OS_utils.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"

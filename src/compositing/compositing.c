@@ -29,6 +29,7 @@
 #include "core/proto.h"
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/siril_wcs.h"
 #include "io/sequence.h"

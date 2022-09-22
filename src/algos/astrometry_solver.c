@@ -39,6 +39,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
 #include "core/siril_world_cs.h"
+#include "core/siril_log.h"
 #include "core/undo.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"

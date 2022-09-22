@@ -180,14 +180,6 @@ int buildseqfile(sequence *seq, int force_recompute);
 /****************** statistics_list.h ******************/
 void computeStat();
 
-/****************** siril_log.h ******************/
-char* siril_log_message(const char* format, ...);
-char* siril_log_color_message(const char* format, const char* color, ...);
-void show_time(struct timeval, struct timeval);
-void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg);
-void get_min_sec_from_timevals(struct timeval t_start, struct timeval t_end,
-		int *min, int *sec);
-
 #ifdef __cplusplus
 }
 #endif

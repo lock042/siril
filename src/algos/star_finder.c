@@ -30,6 +30,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
@@ -271,7 +272,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	for (int y = r + areaY0; y < areaY1 - r; y++) {
 		for (int x = r + areaX0; x < areaX1 - r; x++) {
 			float pixel = smooth_image[y][x];
-			float pixel0;
+			float pixel0 = 0.f;
 			if (pixel > threshold) {
 				gboolean bingo = TRUE;
 				float neighbor;
@@ -306,15 +307,15 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				for (int yy = y - 1; yy <= y + 1; yy++) {
 					for (int xx = x - r - 1; xx <= x - r + 1; xx++) { // x corrected by the anticipated shift
 						if (xx == x - r && yy == y) {
-							pixel0 = (itype == DATA_USHORT) ? (float)image_ushort[yy][xx] : image_float[yy][xx]; 
+							pixel0 = (itype == DATA_USHORT) ? (float)image_ushort[yy][xx] : image_float[yy][xx];
 							continue;
 						}
-						neighbor = (itype == DATA_USHORT) ? (float)image_ushort[yy][xx] : image_float[yy][xx]; 
+						neighbor = (itype == DATA_USHORT) ? (float)image_ushort[yy][xx] : image_float[yy][xx];
 						if (neighbor <= threshold) {
 							bingo = FALSE;
 							break;
 						}
-						if (neighbor < minhigh) minhigh = neighbor; 
+						if (neighbor < minhigh) minhigh = neighbor;
 						if (!bingo) break;
 						meanhigh += neighbor;
 						count++;

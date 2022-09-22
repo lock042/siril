@@ -26,7 +26,6 @@
 #include "core/pipe.h"
 #include "gui/progress_and_log.h"
 
-
 /* This function writes a message on Siril's console/log. It is not thread safe.
  * There is a limit in number of characters that it is able to write in one call: 1023.
  * Return value is the string printed from arguments, or NULL if argument was empty or
@@ -79,10 +78,6 @@ char* siril_log_color_message(const char* format, const char* color, ...) {
 	return msg;
 }
 
-void show_time(struct timeval t_start, struct timeval t_end) {
-	show_time_msg(t_start, t_end, _("Execution time"));
-}
-
 void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg) {
 	double start, end, diff;
 
@@ -110,6 +105,10 @@ void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg
 			siril_log_color_message(_("%s: %.2lf s.\n"), "green", msg, diff);
 		}
 	}
+}
+
+void show_time(struct timeval t_start, struct timeval t_end) {
+	show_time_msg(t_start, t_end, _("Execution time"));
 }
 
 void get_min_sec_from_timevals(struct timeval t_start, struct timeval t_end,

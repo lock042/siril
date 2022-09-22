@@ -45,6 +45,7 @@
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"

@@ -39,6 +39,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/demosaicing.h"
 #include "io/films.h"
 #include "io/fits_sequence.h"

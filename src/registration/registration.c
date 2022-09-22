@@ -30,6 +30,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"

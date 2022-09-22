@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/undo.h"
+#include "core/siril_log.h"
 #include "algos/background_extraction.h"
 #include "algos/statistics.h"
 #include "io/image_format_fits.h"

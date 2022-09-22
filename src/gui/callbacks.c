@@ -31,6 +31,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "io/conversion.h"

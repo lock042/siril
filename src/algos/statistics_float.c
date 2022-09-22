@@ -41,6 +41,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "gui/dialogs.h"
 #include "sorting.h"
 #include "statistics.h"

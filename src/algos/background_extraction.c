@@ -31,6 +31,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "algos/geometry.h"
