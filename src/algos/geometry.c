@@ -22,7 +22,6 @@
 #include <math.h>
 
 #include "core/siril.h"
-//#include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/astrometry_solver.h"

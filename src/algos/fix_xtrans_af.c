@@ -21,7 +21,6 @@
 #include <math.h>
 #include "core/siril.h"
 #include "core/siril_log.h"
-//#include "core/proto.h"
 #include "algos/statistics.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"

@@ -33,7 +33,6 @@
 #endif
 
 #include "core/siril.h"
-//#include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "io/sequence.h"
