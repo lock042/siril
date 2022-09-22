@@ -62,6 +62,7 @@ src/filters/starnet.c
 src/filters/wavelets.c
 src/gui/about_dialog.c
 src/gui/astrometry_solver.c
+src/gui/background_extraction.c
 src/gui/callbacks.c
 src/gui/conversion.c
 src/gui/colors.c
