@@ -18,6 +18,7 @@ configure_file(output : 'config.h',
 
 src_files = [
   'algos/annotate.c',
+  'algos/anscombe.c',
   'algos/astrometry_solver.c',
   'algos/background_extraction.c',
   'algos/ccd-inspector.c',

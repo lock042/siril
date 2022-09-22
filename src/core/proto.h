@@ -151,7 +151,7 @@ int siril_fits_img_stats_float(float *array, long nx, long ny, int nullcheck,
 		float nullvalue, long *ngoodpix, float *minvalue, float *maxvalue,
 		double *mean, double *sigma, double *noise1, double *noise2,
 		double *noise3, double *noise5, threading_type threads, int *status);
-int sos_update_noise_float(float *array, long nx, long ny, long nchans, float *ordered, double *noise);
+int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *noise);
 
 /****************** siril.h ******************/
 

@@ -27,6 +27,7 @@
 #include "LibImages.h"
 #include "Utilities.h"
 extern "C" {
+#include "algos/anscombe.h"
 #include "core/processing.h"
 #include "gui/progress_and_log.h"
 }
@@ -168,6 +169,7 @@ int runNlBayes(
 ,	const bool p_useArea2
 ,	const float p_sigma
 ,   const bool p_verbose
+,	const bool do_anscombe
 ){
 	//! Only 1, 3 or 4-channels images can be processed.
 	const unsigned chnls = p_imSize.nChannels;
@@ -202,6 +204,13 @@ int runNlBayes(
 	//! RGB to YUV
 	vector<float> imNoisy = i_imNoisy;
 	transformColorSpace(imNoisy, p_imSize, true);
+
+	// Anscombe transform of Y channel
+	if (do_anscombe) {
+		for (size_t i=0; i < p_imSize.wh; i++) {
+			imNoisy[i] = generalized_anscombe(imNoisy[i], 0.f, p_sigma, 1.f) * 256;
+		}
+	}
 
 	//! Divide the noisy image into sub-images in order to easier parallelize the process
 	const unsigned nbParts = 2 * nbThreads;
@@ -244,6 +253,12 @@ int runNlBayes(
 		return EXIT_FAILURE;
 	}
 
+	// Inverse Anscombe transform of Y channel
+	if (do_anscombe) {
+		for (size_t i=0; i < p_imSize.wh; i++) {
+			o_imBasic[i] = inverse_generalized_anscombe(o_imBasic[i], 0.f, p_sigma, 1.f) / 256;
+		}
+	}
 	//! YUV to RGB
 	transformColorSpace(o_imBasic, p_imSize, false);
 

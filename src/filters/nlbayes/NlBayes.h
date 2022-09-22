@@ -116,7 +116,8 @@ int runNlBayes(
 ,	const bool p_useArea1
 ,	const bool p_useArea2
 ,	const float p_sigma
-,   const bool p_verbose
+,	const bool p_verbose
+,	const bool do_anscombe
 );
 
 /**

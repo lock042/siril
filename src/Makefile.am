@@ -27,6 +27,8 @@ siril_common_SOURCES = \
 	core/proto.h \
 	algos/annotate.c \
 	algos/annotate.h \
+	algos/anscombe.c \
+	algos/anscombe.h \
 	algos/astrometry_solver.c \
 	algos/astrometry_solver.h \
 	algos/background_extraction.c \

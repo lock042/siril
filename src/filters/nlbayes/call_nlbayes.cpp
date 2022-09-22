@@ -27,6 +27,7 @@ extern "C" {
 #include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
 #include "algos/statistics.h"
+#include "algos/anscombe.h"
 #include "core/processing.h"
 }
 
@@ -41,38 +42,6 @@ using utils::makeMonochrome;
 using NlBayes::runNlBayes;
 using da3d::Image;
 using da3d::DA3D;
-
-void bgrbgr_float_to_fits(fits *image, float *bgrbgr, float modulation) {
-  unsigned npixels = image->naxes[0] * image->naxes[1];
-
-  for (unsigned i = 0; i < npixels; i++) {
-    image->fpdata[BLAYER][i] = (1.f-modulation) * image->fpdata[BLAYER][i] + modulation * bgrbgr[i*3];
-	image->fpdata[GLAYER][i] = (1.f-modulation) * image->fpdata[GLAYER][i] + modulation * bgrbgr[i*3+1];
-	image->fpdata[RLAYER][i] = (1.f-modulation) * image->fpdata[RLAYER][i] + modulation * bgrbgr[i*3+2];
-  }
-}
-
-void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr, float modulation) {
-	size_t ndata = image->rx * image->ry * 3;
-	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		image->pdata[BLAYER][j] = round_to_WORD(((modulation * bgrbgr[i + 0]) + (1.f - modulation) * image->pdata[BLAYER][j] / USHRT_MAX_SINGLE) * USHRT_MAX);
-		image->pdata[GLAYER][j] = round_to_WORD(((modulation * bgrbgr[i + 1]) + (1.f - modulation) * image->pdata[GLAYER][j] / USHRT_MAX_SINGLE) * USHRT_MAX);
-		image->pdata[RLAYER][j] = round_to_WORD(((modulation * bgrbgr[i + 2]) + (1.f - modulation) * image->pdata[RLAYER][j] / USHRT_MAX_SINGLE) * USHRT_MAX);
-	}
-}
-
-float *fits_to_bgrbgr_wordtofloat(fits *image) {
-    size_t ndata = image->rx * image->ry * 3;
-    float invnorm = 1 / USHRT_MAX_SINGLE;
-	float *bgrbgr = (float *)malloc(ndata * sizeof(float));
-	if (!bgrbgr) { PRINT_ALLOC_ERR; return NULL; }
-	for (size_t i = 0, j = 0; i < ndata; i += 3, j++) {
-		bgrbgr[i + 0] = (float) image->pdata[BLAYER][j] * invnorm;
-		bgrbgr[i + 1] = (float) image->pdata[GLAYER][j] * invnorm;
-		bgrbgr[i + 2] = (float) image->pdata[RLAYER][j] * invnorm;
-	}
-	return bgrbgr;
-}
 
 extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, float rho) {
     // Parameters
@@ -96,28 +65,24 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
     const unsigned useArea2 = true;
     const bool verbose = FALSE;
 
-    float *bgr_f, *bgr_fout, *ordered;
+    float *bgr_f = (float*) calloc(npixels * nchans, sizeof(float));
+    float *bgr_fout;
 
     if (fit->type == DATA_FLOAT) {
-      if (nchans == 3) {
-        bgr_f = fits_to_bgrbgr_float(fit);
-      } else {
-        bgr_f = (float*) calloc(npixels, sizeof(float));
-        for (unsigned i=0; i<npixels; i++) {
+        for (size_t i = 0; i < npixels * nchans; i++)
           bgr_f[i] = fit->fdata[i];
-        }
-      }
     } else {
-      if (nchans == 3) {
-        bgr_f = fits_to_bgrbgr_wordtofloat(fit);
-      } else {
-        bgr_f = (float*) calloc(npixels, sizeof(float));
-        for (unsigned i=0; i<npixels; i++) {
+        for (size_t i = 0; i < npixels * nchans; i++)
           bgr_f[i] = (float) fit->data[i] * invnorm;
-        }
-      }
     }
-    ordered = (float*) calloc(npixels * nchans, sizeof(float));
+
+    const bool do_anscombe = false;
+
+    // Measure image noise using the custom wrapper to FnNoise1_float in quantize.c
+    // Initial noise measurement
+    sos_update_noise_float(bgr_f, width, height, nchans, &intermediate_bgnoise);
+    lastfSigma = (float) intermediate_bgnoise;
+
     vector<float> bgr_v_orig { bgr_f, bgr_f + width * height * nchans };
     vector<float> bgr_vout = bgr_v_orig;
     vector<float> bgr_v(width * height * nchans, 0.f);
@@ -134,8 +99,6 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
     if(!get_thread_run()) {
       return EXIT_FAILURE;
     }
-    sos_update_noise_float(bgr_v_orig.data(), width, height, nchans, ordered, &intermediate_bgnoise);
-    lastfSigma = (float) intermediate_bgnoise;
 
     // SOS iteration loop
     for (unsigned i=0; i < sos; i++) {
@@ -143,10 +106,10 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
       // Strengthen result of previous iteration bgr_v by mixing back a fraction of the original noisy image
       for (unsigned i = 0; i < bgr_v_orig.size(); i++)
         bgr_v[i] = (rho * bgr_vout[i] + (1.f - rho) * bgr_v_orig[i]);
-      // Measure image noise using the custom wrapper to FnNoise1_float in quantize.c
-      sos_update_noise_float(bgr_v.data(), width, height, nchans, ordered, &intermediate_bgnoise);
+      // Update image noise measurement
+      sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
       fSigma = (float) intermediate_bgnoise;
-      if (fSigma > lastfSigma) {
+      if (fSigma > lastfSigma * 1.01f) {
         // Note we only check this on the first iteration: if the first iteration converges then subsequent iterations appear to converge reliably, however the noise level on successive iterations does not necessarily decrease monotonically.
         siril_log_color_message(_("Error: SOS is not converging, noise level after iteration was %f. Try a smaller value of rho.\n"),"red", fSigma);
         bgr_vout = bgr_v_orig;
@@ -155,7 +118,7 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
       siril_log_message(_("NL-Bayes auto parametrisation: measured background noise level is %f\n"),fSigma);
 
       // Operate the NL-Bayes algorithm
-      if (runNlBayes(bgr_v, basic, bgr_vout, imSize, useArea1, useArea2, fSigma, verbose) != EXIT_SUCCESS)
+      if (runNlBayes(bgr_v, basic, bgr_vout, imSize, useArea1, useArea2, fSigma, verbose, do_anscombe) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
       // Subtraction step to produce input for next iteration. Not performed on the final iteration.
@@ -195,31 +158,18 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
     }
 
     // Final noise measurement
-    sos_update_noise_float(bgr_fout, width, height, nchans, ordered, &intermediate_bgnoise);
+    sos_update_noise_float(bgr_fout, width, height, nchans, &intermediate_bgnoise);
     fSigma = (float) intermediate_bgnoise;
     siril_log_message(_("NL-Bayes output: measured background noise level is %f\n"),fSigma);
 
-
     // Convert output from bgrbgr back to planar rgb and put back into fit
     if (fit->type == DATA_FLOAT) {
-      if (nchans == 3) {
-        bgrbgr_float_to_fits(fit, bgr_fout, modulation);
-      } else {
-        for (unsigned i=0; i<npixels; i++) {
+        for (unsigned i = 0; i < npixels * nchans; i++)
           fit->fdata[i] = (1.f-modulation) * fit->fdata[i] + modulation * bgr_fout[i];
-        }
-      }
     } else {
-      if (nchans == 3) {
-        bgrbgr_float_to_word_fits(fit, bgr_fout, modulation);
-      } else {
-         for (unsigned i=0; i<npixels; i++) {
+       for (unsigned i = 0; i < npixels * nchans; i++)
           fit->data[i] = round_to_WORD(USHRT_MAX * ((1.f-modulation) * (fit->data[i] * invnorm) + modulation * bgr_fout[i]));
-        }
-      }
     }
-    free(ordered);
-    ordered = NULL;
 
     return EXIT_SUCCESS;
 }
