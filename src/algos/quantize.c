@@ -1506,3 +1506,31 @@ static int FnCompare_double(const void *v1, const void *v2) {
 	else
 		return (0);
 }
+
+int sos_update_noise_float(float *array, long nx, long ny, long nchans, float *ordered, double *noise) {
+	int status, retval;
+	float* colarray[3];
+	double fSigma = 0.0;
+	if (nchans == 1) {
+		retval = FnNoise1_float(array, nx, ny, 1, 0.f, noise, MULTI_THREADED, &status);
+		return retval;
+	} else {
+		colarray[0] = ordered;
+		colarray[1] = ordered + (nx * ny) * sizeof(float);
+		colarray[2] = ordered + 2 * (nx + ny) * sizeof(float);
+		// convert bgrbgr to bbbgggrrr
+		for (unsigned i = 0; i < nx * ny ; i++) {
+			colarray[0][i] = array[i*3];
+			colarray[1][i] = array[i*3 + 1];
+			colarray[2][i] = array[i*3 + 2];
+		}
+		for (unsigned i = 0 ; i < nchans ; i++) {
+			retval += FnNoise1_float(colarray[i], nx, ny, 1, 0.f, noise, MULTI_THREADED, &status);
+			fSigma += *noise;
+		}
+
+		*noise = fSigma / nchans;
+	}
+	return retval;
+}
+

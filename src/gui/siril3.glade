@@ -5855,14 +5855,14 @@ enter a visible wavelength in nm</property>
   </object>
   <object class="GtkAdjustment" id="denoise-rho-adjustment">
     <property name="upper">1</property>
-    <property name="value">0.5</property>
+    <property name="value">0.20</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="denoise_sos_adjustment">
     <property name="lower">1</property>
     <property name="upper">100</property>
-    <property name="value">1</property>
+    <property name="value">3</property>
     <property name="step-increment">1</property>
     <property name="page-increment">5</property>
   </object>
@@ -5922,7 +5922,7 @@ enter a visible wavelength in nm</property>
           <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">Secondary Denoising Algorithm</property>
+            <property name="label" translatable="yes">Cosmetic Correction</property>
             <attributes>
               <attribute name="weight" value="bold"/>
             </attributes>
@@ -5931,6 +5931,53 @@ enter a visible wavelength in nm</property>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <!-- n-columns=3 n-rows=1 -->
+          <object class="GtkGrid">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkButton" id="button_denoise_launch_cc">
+                <property name="label" translatable="yes">Cosmetic Correction</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Launch the Cosmetic Correction dialog. This tool effectively removes "salt and pepper" outlier pixels and should be used before NL-Bayes denoising if required.</property>
+                <signal name="clicked" handler="on_button_denoise_launch_cc_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label" translatable="yes">Secondary Denoising Algorithm</property>
+            <attributes>
+              <attribute name="weight" value="bold"/>
+            </attributes>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -5945,6 +5992,7 @@ enter a visible wavelength in nm</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">No secondary denoising process will be used. The primary algorithm by itself usually performs well so this is the default.</property>
+                <property name="halign">start</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <signal name="group-changed" handler="on_radio_denoise_nosecondary_group_changed" swapped="no"/>
@@ -5964,6 +6012,7 @@ enter a visible wavelength in nm</property>
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">Use DA3D as a final denoising step. Thie algorithm uses the output of the primary denoising algorithm as a guide image to perform frequency domain shrinkage on shape and data-adaptive patches. It never produces worse output than the primary algorithm and may improve detail retention
  and reduce staircasing artefacts.</property>
+                <property name="halign">start</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">radio_denoise_nosecondary</property>
@@ -5982,6 +6031,7 @@ enter a visible wavelength in nm</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">SOS iteration works by iterating the primary denoising algorithm multiple times, each time mixing back a fraction of the noisy image. This can improve denoising performance and reduce staircasing artefacts.</property>
+                <property name="halign">start</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">radio_denoise_nosecondary</property>
@@ -5997,7 +6047,7 @@ enter a visible wavelength in nm</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -6047,7 +6097,7 @@ enter a visible wavelength in nm</property>
                     <property name="tooltip-text" translatable="yes">Sets the number of SOS iterations. 3 - 7 iterations should provide sufficient convergence unless rho is very close to 0 or 1.</property>
                     <property name="halign">end</property>
                     <property name="adjustment">denoise_sos_adjustment</property>
-                    <property name="value">5</property>
+                    <property name="value">3</property>
                     <signal name="value-changed" handler="on_spin_sos_iters_value_changed" swapped="no"/>
                   </object>
                   <packing>
@@ -6095,7 +6145,7 @@ enter a visible wavelength in nm</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">5</property>
           </packing>
         </child>
         <child>
@@ -6142,7 +6192,7 @@ enter a visible wavelength in nm</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -6158,7 +6208,7 @@ enter a visible wavelength in nm</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">7</property>
           </packing>
         </child>
       </object>
@@ -13736,6 +13786,42 @@ This should normally be the case only for stacked images. Increasing this value 
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/photometry_dark.svg</property>
   </object>
+  <object class="GtkListStore" id="pixel_math_liststore">
+    <columns>
+      <!-- column-name Pixel_math_var -->
+      <column type="gchararray"/>
+      <!-- column-name Pixel_math_path -->
+      <column type="gchararray"/>
+      <!-- column-name Pixel_math_chan -->
+      <column type="guint"/>
+      <!-- column-name Pixel_math_width -->
+      <column type="guint"/>
+      <!-- column-name Pixel_math_height -->
+      <column type="guint"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_functions">
+    <columns>
+      <!-- column-name pixel_math_function -->
+      <column type="gchararray"/>
+      <!-- column-name pixel_math_f_index -->
+      <column type="gint"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_operators">
+    <columns>
+      <!-- column-name pixel_math_operator -->
+      <column type="gchararray"/>
+      <!-- column-name pixel_math_o_index -->
+      <column type="gint"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="pixel_math_liststore_presets">
+    <columns>
+      <!-- column-name expression -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkApplicationWindow" id="pixel_math_dialog">
     <property name="width-request">800</property>
     <property name="can-focus">False</property>
@@ -14453,42 +14539,6 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore">
-    <columns>
-      <!-- column-name Pixel_math_var -->
-      <column type="gchararray"/>
-      <!-- column-name Pixel_math_path -->
-      <column type="gchararray"/>
-      <!-- column-name Pixel_math_chan -->
-      <column type="guint"/>
-      <!-- column-name Pixel_math_width -->
-      <column type="guint"/>
-      <!-- column-name Pixel_math_height -->
-      <column type="guint"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore_functions">
-    <columns>
-      <!-- column-name pixel_math_function -->
-      <column type="gchararray"/>
-      <!-- column-name pixel_math_f_index -->
-      <column type="gint"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore_operators">
-    <columns>
-      <!-- column-name pixel_math_operator -->
-      <column type="gchararray"/>
-      <!-- column-name pixel_math_o_index -->
-      <column type="gint"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="pixel_math_liststore_presets">
-    <columns>
-      <!-- column-name expression -->
-      <column type="gchararray"/>
-    </columns>
   </object>
   <object class="GtkMenu" id="precision_menu">
     <property name="visible">True</property>

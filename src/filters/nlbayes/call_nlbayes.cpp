@@ -21,12 +21,16 @@
 
 extern "C" {
 #include "core/proto.h"
+#include "core/siril.h"
+#include "core/proto.h"
 #include "core/OS_utils.h"
 #include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
 #include "algos/statistics.h"
 #include "core/processing.h"
 }
+
+#define ACTIVATE_NULLCHECK_FLOAT 1
 
 using namespace std;
 using std::cerr;
@@ -76,6 +80,10 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
     const unsigned height = fit->naxes[1];
     const unsigned nchans = fit->naxes[2];
     const unsigned npixels = width * height;
+    float fSigma = 0.f;
+    float lastfSigma = 0.f;
+    double intermediate_bgnoise;
+
     float norm = 1.f;
     if (fit->type == DATA_USHORT)
       norm = USHRT_MAX_SINGLE;
@@ -83,22 +91,12 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
     if (sos < 1)
       sos = 1;
 
-    // Measure background noise
-    float fSigma = 0.f;
-    for (size_t chan = 0 ; chan < nchans ; chan++) {
-      imstats* stat = statistics(NULL, -1, fit, chan, NULL, STATS_SIGMEAN, MULTI_THREADED);
-      fSigma += stat->bgnoise / norm;
-      free_stats(stat);
-    }
-    fSigma /= nchans;
-    siril_log_message(_("NL-Bayes auto parametrisation: measured background noise level is %f\n"),fSigma);
-
-	// The useArea bools set the paste trick in both halves of the Nl-Bayes process
+	// The useArea bools set the paste trick in both halves of the Nl-Bayes function
     const bool useArea1 = true;
     const unsigned useArea2 = true;
     const bool verbose = FALSE;
 
-    float *bgr_f, *bgr_fout;
+    float *bgr_f, *bgr_fout, *ordered;
 
     if (fit->type == DATA_FLOAT) {
       if (nchans == 3) {
@@ -119,7 +117,7 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
         }
       }
     }
-
+    ordered = (float*) calloc(npixels * nchans, sizeof(float));
     vector<float> bgr_v_orig { bgr_f, bgr_f + width * height * nchans };
     vector<float> bgr_vout = bgr_v_orig;
     vector<float> bgr_v(width * height * nchans, 0.f);
@@ -136,6 +134,8 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
     if(!get_thread_run()) {
       return EXIT_FAILURE;
     }
+    sos_update_noise_float(bgr_v_orig.data(), width, height, nchans, ordered, &intermediate_bgnoise);
+    lastfSigma = (float) intermediate_bgnoise;
 
     // SOS iteration loop
     for (unsigned i=0; i < sos; i++) {
@@ -143,6 +143,16 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
       // Strengthen result of previous iteration bgr_v by mixing back a fraction of the original noisy image
       for (unsigned i = 0; i < bgr_v_orig.size(); i++)
         bgr_v[i] = (rho * bgr_vout[i] + (1.f - rho) * bgr_v_orig[i]);
+      // Measure image noise using the custom wrapper to FnNoise1_float in quantize.c
+      sos_update_noise_float(bgr_v.data(), width, height, nchans, ordered, &intermediate_bgnoise);
+      fSigma = (float) intermediate_bgnoise;
+      if (fSigma > lastfSigma) {
+        // Note we only check this on the first iteration: if the first iteration converges then subsequent iterations appear to converge reliably, however the noise level on successive iterations does not necessarily decrease monotonically.
+        siril_log_color_message(_("Error: SOS is not converging, noise level after iteration was %f. Try a smaller value of rho.\n"),"red", fSigma);
+        bgr_vout = bgr_v_orig;
+        break;
+      }
+      siril_log_message(_("NL-Bayes auto parametrisation: measured background noise level is %f\n"),fSigma);
 
       // Operate the NL-Bayes algorithm
       if (runNlBayes(bgr_v, basic, bgr_vout, imSize, useArea1, useArea2, fSigma, verbose) != EXIT_SUCCESS)
@@ -153,18 +163,9 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
         for (unsigned i = 0; i < bgr_v.size(); i++) {
           bgr_vout[i] *= 1.f / (1.f - rho);
           bgr_vout[i] -= bgr_v[i] * (rho / (1.f - rho));
-          // Measure background noise
-          fSigma = 0.f;
-          for (size_t chan = 0 ; chan < nchans ; chan++) {
-            imstats* stat = statistics(NULL, -1, fit, chan, NULL, STATS_SIGMEAN, MULTI_THREADED);
-            fSigma += stat->bgnoise / norm;
-            free_stats(stat);
-          }
-          fSigma /= nchans;
         }
       if (sos > 1)
-        siril_log_message(_("SOS iteration %d of %d...\n"), i+1, sos);
-      siril_log_message(_("NL-Bayes auto parametrisation: measured background noise level is %f\n"),fSigma);
+        siril_log_message(_("SOS iteration %d of %d complete\n"), i+1, sos);
       }
     }
 
@@ -193,6 +194,12 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
       memcpy(bgr_fout, bgr_da3dout, height * width * nchans * sizeof(float));
     }
 
+    // Final noise measurement
+    sos_update_noise_float(bgr_fout, width, height, nchans, ordered, &intermediate_bgnoise);
+    fSigma = (float) intermediate_bgnoise;
+    siril_log_message(_("NL-Bayes output: measured background noise level is %f\n"),fSigma);
+
+
     // Convert output from bgrbgr back to planar rgb and put back into fit
     if (fit->type == DATA_FLOAT) {
       if (nchans == 3) {
@@ -211,6 +218,9 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
         }
       }
     }
+    free(ordered);
+    ordered = NULL;
+
     return EXIT_SUCCESS;
 }
 
