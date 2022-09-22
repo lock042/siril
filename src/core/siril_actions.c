@@ -48,10 +48,11 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
-#include "livestacking/livestacking.h"
+#include "gui/menu_gray_geometry.h"
 #include "gui/registration_preview.h"
-#include "registration/registration.h"
 #include "gui/remixer.h"
+#include "livestacking/livestacking.h"
+#include "registration/registration.h"
 
 #include "siril_actions.h"
 

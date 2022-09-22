@@ -69,6 +69,7 @@ src/gui/histogram.c
 src/gui/image_display.c
 src/gui/image_interactions.c
 src/gui/linear_match.c
+src/gui/menu_gray_geometry.c
 src/gui/message_dialog.c
 src/gui/nina_light_curve.c
 src/gui/open_dialog.c
@@ -87,6 +88,8 @@ src/gui/siril_css.c
 src/gui/siril_intro.c
 src/gui/siril_preview.c
 src/gui/statistics_list.c
+src/gui/star_finder.c
+src/gui/starnetgui.c
 src/gui/utils.c
 src/io/Astro-TIFF.c
 src/io/catalogues.c
