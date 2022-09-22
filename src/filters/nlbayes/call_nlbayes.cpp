@@ -118,7 +118,7 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
       siril_log_message(_("NL-Bayes auto parametrisation: measured background noise level is %f\n"),fSigma);
 
       // Operate the NL-Bayes algorithm
-      if (runNlBayes(bgr_v, basic, bgr_vout, imSize, useArea1, useArea2, fSigma, verbose, do_anscombe) != EXIT_SUCCESS)
+      if (runNlBayes(bgr_v, basic, bgr_vout, imSize, useArea1, useArea2, fSigma, verbose) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
       // Subtraction step to produce input for next iteration. Not performed on the final iteration.
