@@ -29,6 +29,7 @@
 #include "core/undo.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/extraction.h"
 #include "algos/geometry.h"

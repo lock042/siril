@@ -29,6 +29,7 @@
 #include "algos/star_finder.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "core/siril_log.h"
 #include "core/processing.h"
 #include "opencv/opencv.h"
 #include "gui/image_interactions.h"

@@ -12,19 +12,14 @@ struct crop_sequence_data {
 };
 
 int verbose_resize_gaussian(fits *, int, int, int);
-int verbose_rotate_image(fits *, rectangle, double, int, int);
 
-void siril_rotate90();
-void siril_rotate270();
+int verbose_rotate_image(fits *, rectangle, double, int, int);
 int verbose_rotate_fast(fits *image, int angle);
 
-void mirrorx_gui(fits *fit);
-void mirrory_gui(fits *fit);
 void mirrorx(fits *fit, gboolean verbose);
 void mirrory(fits *fit, gboolean verbose);
 
 int crop(fits *fit, rectangle *bounds);
-void siril_crop();
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data);
 
 #endif /* SRC_ALGOS_GEOMETRY_H_ */

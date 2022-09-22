@@ -35,6 +35,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
 #include "gui/utils.h"

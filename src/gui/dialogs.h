@@ -24,4 +24,10 @@ void siril_open_dialog(gchar *id);
 void siril_close_dialog(gchar *id);
 void siril_close_preview_dialogs();
 
+SirilWidget* siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action);
+SirilWidget* siril_file_chooser_add(GtkWindow *parent, GtkFileChooserAction action);
+SirilWidget* siril_file_chooser_save(GtkWindow *parent, GtkFileChooserAction action);
+gint siril_dialog_run(SirilWidget *widgetdialog);
+void siril_widget_destroy(SirilWidget *widgetdialog);
+
 #endif /* SRC_GUI_DIALOGS_H_ */

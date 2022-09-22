@@ -27,6 +27,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/PSF.h"

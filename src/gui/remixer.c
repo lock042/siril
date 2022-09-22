@@ -39,6 +39,7 @@
 #include "core/undo.h"
 #include "core/arithm.h"
 #include "core/siril_app_dirs.h"
+#include "core/siril_log.h"
 #include "filters/ght.h"
 
 #include "gui/histogram.h"

@@ -1,6 +1,7 @@
 #ifndef PROTO_H_
 #define PROTO_H_
 #include <stdint.h>
+#include <sys/time.h>
 #include "core/siril.h"
 #ifdef HAVE_LIBTIFF
 #define uint64 uint64_hack_
@@ -109,6 +110,7 @@ uint64_t cpu_to_be64(uint64_t x);
 uint64_t le64_to_cpu(uint64_t x);
 uint64_t be64_to_cpu(uint64_t x);
 gboolean isrgb(fits *fit);
+const char *channel_number_to_name(int channel);
 int get_extension_index(const char *filename);
 image_type get_type_from_filename(const gchar *filename);
 char* remove_ext_from_filename(const char *basename);
@@ -177,10 +179,6 @@ int buildseqfile(sequence *seq, int force_recompute);
 
 /****************** statistics_list.h ******************/
 void computeStat();
-
-/****************** siril_log.h ******************/
-char* siril_log_message(const char* format, ...);
-char* siril_log_color_message(const char* format, const char* color, ...);
 
 #ifdef __cplusplus
 }

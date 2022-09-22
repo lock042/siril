@@ -24,14 +24,17 @@
 #include <string.h>
 #include "gui/callbacks.h"
 #include "gui/utils.h"
+#include "gui/dialogs.h"
+#include "gui/message_dialog.h"
+#include "core/proto.h"
 #include "core/pipe.h"
 #include "core/siril_log.h"
+#include "core/siril_date.h"
+#include "core/command.h"
 
 #include "progress_and_log.h"
 
-/*
- * Progress bar static functions
- */
+/*************************** P R O G R E S S    B A R ***************************/
 
 static void progress_bar_set_text(const char *text) {
 	static GtkProgressBar *pbar = NULL;
@@ -103,9 +106,7 @@ void set_progress_bar_data(const char *text, double percent) {
 	}
 }
 
-/*
- * Siril log message static functions
- */
+/************************ M E S S A G E    L O G G I N G  ************************/
 
 struct log_message {
 	char *timestamp;
@@ -172,19 +173,19 @@ static gboolean idle_messaging(gpointer p) {
 // Send a log message to the console in the UI
 void gui_log_message(const char* msg, const char* color)
 {
-	if (!com.headless) {	// avoid adding things in lost memory
-		time_t now_sec = time(NULL);
-		struct tm *now = localtime(&now_sec);
-		char timestamp[30];
-		g_snprintf(timestamp, sizeof(timestamp), "%.2d:%.2d:%.2d: ", now->tm_hour,
+	if (com.headless)
+		return;
+	time_t now_sec = time(NULL);
+	struct tm *now = localtime(&now_sec);
+	char timestamp[30];
+	g_snprintf(timestamp, sizeof(timestamp), "%.2d:%.2d:%.2d: ", now->tm_hour,
 			now->tm_min, now->tm_sec);
 
-		struct log_message *new_msg = malloc(sizeof(struct log_message));
-		new_msg->timestamp = strdup(timestamp);
-		new_msg->message = strdup(msg);
-		new_msg->color = color;
-		gdk_threads_add_idle(idle_messaging, new_msg);
-	}
+	struct log_message *new_msg = malloc(sizeof(struct log_message));
+	new_msg->timestamp = strdup(timestamp);
+	new_msg->message = strdup(msg);
+	new_msg->color = color;
+	gdk_threads_add_idle(idle_messaging, new_msg);
 }
 
 void initialize_log_tags() {
@@ -202,52 +203,100 @@ void initialize_log_tags() {
 	gtk_text_buffer_create_tag (tbuf, "plum", "foreground", "#8e4585", NULL);
 }
 
-void show_time(struct timeval t_start, struct timeval t_end) {
-	show_time_msg(t_start, t_end, _("Execution time"));
+/********************** S A V I N G    T H E    L O G **********************/
+
+static void save_log_file(gchar *filename) {
+	GtkTextBuffer *log;
+	GtkTextView *tv;
+	GtkTextIter start, end;
+	gchar *str;
+	GError *error = NULL;
+
+	tv = GTK_TEXT_VIEW(lookup_widget("output"));
+	log = gtk_text_view_get_buffer(tv);
+	gtk_text_buffer_get_bounds(log, &start, &end);
+	str = gtk_text_buffer_get_text(log, &start, &end, FALSE);
+
+	GFile *file = g_file_new_for_path(filename);
+	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
+			G_FILE_CREATE_NONE, NULL, &error);
+
+	if (output_stream == NULL) {
+		if (error != NULL) {
+			g_warning("%s\n", error->message);
+			g_clear_error(&error);
+			siril_log_message(_("Cannot create logfile [%s]\n"), filename);
+		}
+		g_object_unref(file);
+		return;
+	}
+
+	gsize bytes_written = 0;
+	if (!g_output_stream_write_all(output_stream, str, strlen(str),
+				&bytes_written, NULL, &error)) {
+		g_warning("%s\n", error->message);
+		g_clear_error(&error);
+	}
+
+	g_object_unref(output_stream);
+	g_object_unref(file);
+	g_free(str);
 }
 
-void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg) {
-	double start, end, diff;
+static void set_filter(GtkFileChooser *dialog) {
+	GtkFileFilter *f = gtk_file_filter_new();
+	gtk_file_filter_set_name(f, _("Log files (*.log)"));
+	gtk_file_filter_add_pattern(f, "*.log");
+	gtk_file_chooser_add_filter(dialog, f);
+	gtk_file_chooser_set_filter(dialog, f);
+}
 
-	start = (double) (t_start.tv_sec + t_start.tv_usec / 1.0E6);
-	end = (double) (t_end.tv_sec + t_end.tv_usec / 1.0E6);
-	diff = end - start;
+static void save_log_dialog() {
+	SirilWidget *widgetdialog;
+	GtkFileChooser *dialog = NULL;
+	GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+	gint res;
+	gchar *filename;
 
-	if (diff >= 0.0) {
-		if (diff >= 3600.0) {
-			int hour = (int) diff / 3600;
-			int sec = (int) diff % 3600;
-			int min = sec / 60;
-			sec = sec % 60;
-			siril_log_color_message(_("%s: %d h %02d min %.2d s.\n"), "green",
-					msg, hour, min, sec);
-		} else if (diff >= 60.0) {
-			int min = (int) diff / 60;
-			int sec = (int) diff % 60;
-			siril_log_color_message(_("%s: %d min %02d s.\n"), "green", msg,
-					min, sec);
-		} else if (diff < 1.0) {
-			double ms = diff * 1.0E3;
-			siril_log_color_message(_("%s: %.2lf ms.\n"), "green", msg, ms);
-		} else {
-			siril_log_color_message(_("%s: %.2lf s.\n"), "green", msg, diff);
-		}
+	filename = build_timestamp_filename();
+	filename = str_append(&filename, ".log");
+
+	widgetdialog = siril_file_chooser_save(control_window, GTK_FILE_CHOOSER_ACTION_SAVE);
+	dialog = GTK_FILE_CHOOSER(widgetdialog);
+	gtk_file_chooser_set_current_folder(dialog, com.wd);
+	gtk_file_chooser_set_select_multiple(dialog, FALSE);
+	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
+	gtk_file_chooser_set_current_name(dialog, filename);
+	set_filter(dialog);
+
+	res = siril_dialog_run(widgetdialog);
+	if (res == GTK_RESPONSE_ACCEPT) {
+		gchar *file = gtk_file_chooser_get_filename(dialog);
+		save_log_file(file);
+
+		g_free(file);
+	}
+	siril_widget_destroy(widgetdialog);
+	g_free(filename);
+}
+
+void on_export_log_button_clicked(GtkButton *button, gpointer user_data) {
+	save_log_dialog();
+}
+
+void on_clear_log_button_clicked(GtkButton *button, gpointer user_data) {
+	gboolean ret = siril_confirm_dialog(_("Clear the log"),
+			_("Are you sure you want to clear the log? There is no possible undo."), _("Clear the Log"));
+	if (ret) {
+		process_clear(0);
 	}
 }
 
-void get_min_sec_from_timevals(struct timeval t_start, struct timeval t_end,
-		int *min, int *sec) {
-	double start, end, diff;
-	start = (double)(t_start.tv_sec + t_start.tv_usec / 1.0E6);
-	end = (double)(t_end.tv_sec + t_end.tv_usec / 1.0E6);
-	diff = end - start;
-	*min = (int)diff / 60;
-	*sec = (int)diff % 60;
-}
+/**************************** C U R S O R S ****************************/
 
 struct _cursor_data {
 	gboolean change;
-//	GdkCursorType cursor_type;
+	//	GdkCursorType cursor_type;
 	const gchar* cursor_name;
 };
 

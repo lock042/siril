@@ -29,6 +29,7 @@
 #include "core/proto.h"
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/siril_wcs.h"
 #include "io/sequence.h"
@@ -43,6 +44,7 @@
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
+#include "gui/colors.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"

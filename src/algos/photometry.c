@@ -25,6 +25,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
 #include "algos/statistics_float.h"
