@@ -31,8 +31,6 @@ void clear_sampling_setting_box();
 void set_GUI_CAMERA();
 
 int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb);
-const char *vport_number_to_name(int);
-const char *untranslated_vport_number_to_name(int);
 void update_display_selection();
 void update_display_fwhm();
 void display_filename();

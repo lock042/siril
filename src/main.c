@@ -51,6 +51,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/siril_update.h"
+#include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"

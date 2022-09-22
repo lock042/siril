@@ -26,6 +26,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_app_dirs.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"

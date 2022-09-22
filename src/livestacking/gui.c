@@ -9,6 +9,7 @@
 #include "core/siril_actions.h"
 #include "core/proto.h"
 #include "core/preprocess.h"
+#include "core/siril_log.h"
 
 static gchar *pause_play_button[] = {"media-playback-pause", "media-playback-start" };
 
