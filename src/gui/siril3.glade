@@ -5881,6 +5881,7 @@ enter a visible wavelength in nm</property>
     <property name="width-request">256</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Image Denoising</property>
+    <property name="resizable">False</property>
     <property name="type-hint">dialog</property>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -5930,25 +5931,11 @@ enter a visible wavelength in nm</property>
           </packing>
         </child>
         <child>
-          <object class="GtkLabel">
+          <object class="GtkFrame">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">Cosmetic Correction</property>
-            <attributes>
-              <attribute name="weight" value="bold"/>
-            </attributes>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <!-- n-columns=3 n-rows=1 -->
-          <object class="GtkGrid">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
             <child>
               <object class="GtkButton" id="button_denoise_launch_cc">
                 <property name="label" translatable="yes">Cosmetic Correction</property>
@@ -5956,18 +5943,19 @@ enter a visible wavelength in nm</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Launch the Cosmetic Correction dialog. This tool effectively removes "salt and pepper" outlier pixels and should be used before NL-Bayes denoising if required.</property>
+                <property name="margin-top">5</property>
                 <signal name="clicked" handler="on_button_denoise_launch_cc_clicked" swapped="no"/>
               </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
-              </packing>
             </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Cosmetic Correction</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
             </child>
           </object>
           <packing>
@@ -5977,117 +5965,20 @@ enter a visible wavelength in nm</property>
           </packing>
         </child>
         <child>
-          <object class="GtkLabel">
+          <object class="GtkFrame">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">Secondary Denoising Algorithm</property>
-            <attributes>
-              <attribute name="weight" value="bold"/>
-            </attributes>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="orientation">vertical</property>
-            <child>
-              <object class="GtkRadioButton" id="radio_denoise_nosecondary">
-                <property name="label" translatable="yes">No secondary denoising stage</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">No secondary denoising process will be used. The primary algorithm by itself usually performs well so this is the default.</property>
-                <property name="halign">start</property>
-                <property name="active">True</property>
-                <property name="draw-indicator">True</property>
-                <signal name="group-changed" handler="on_radio_denoise_nosecondary_group_changed" swapped="no"/>
-                <signal name="toggled" handler="on_radio_denoise_nosecondary_toggled" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkRadioButton" id="radio_denoise_da3d">
-                <property name="label" translatable="yes">Data Adaptive Dual Domain Denoising</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Use DA3D as a final denoising step. Thie algorithm uses the output of the primary denoising algorithm as a guide image to perform frequency domain shrinkage on shape and data-adaptive patches. It never produces worse output than the primary algorithm and may improve detail retention
- and reduce staircasing artefacts.</property>
-                <property name="halign">start</property>
-                <property name="active">True</property>
-                <property name="draw-indicator">True</property>
-                <property name="group">radio_denoise_nosecondary</property>
-                <signal name="toggled" handler="on_radio_denoise_da3d_toggled" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkRadioButton" id="radio_denoise_sos">
-                <property name="label" translatable="yes">Strengthen Operate Subtract iterator</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">SOS iteration works by iterating the primary denoising algorithm multiple times, each time mixing back a fraction of the noisy image. This can improve denoising performance and reduce staircasing artefacts.</property>
-                <property name="halign">start</property>
-                <property name="active">True</property>
-                <property name="draw-indicator">True</property>
-                <property name="group">radio_denoise_nosecondary</property>
-                <signal name="toggled" handler="on_radio_denoise_sos_toggled" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox" id="sos_advanced_options">
-            <property name="can-focus">False</property>
-            <property name="orientation">vertical</property>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">SOS Advanced Options</property>
-                <attributes>
-                  <attribute name="weight" value="bold"/>
-                </attributes>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
             <child>
               <!-- n-columns=2 n-rows=2 -->
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">end</property>
-                <property name="column-spacing">8</property>
+                <property name="margin-top">5</property>
+                <property name="row-spacing">5</property>
+                <property name="column-spacing">5</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
@@ -6107,6 +5998,7 @@ enter a visible wavelength in nm</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">Sets the number of SOS iterations. 3 - 7 iterations should provide sufficient convergence unless rho is very close to 0 or 1.</property>
                     <property name="halign">end</property>
+                    <property name="text" translatable="yes">3</property>
                     <property name="adjustment">denoise_sos_adjustment</property>
                     <property name="value">3</property>
                     <signal name="value-changed" handler="on_spin_sos_iters_value_changed" swapped="no"/>
@@ -6135,6 +6027,7 @@ enter a visible wavelength in nm</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">(1 - rho) sets the noisy image mixing, between 0 (no noisy image added) and 1 (output of each iteration entirely replaced by the noisy image again). Values very close to 0 or 1 result in very slow convergence and should be avoided.</property>
                     <property name="halign">end</property>
+                    <property name="text" translatable="yes">0,50</property>
                     <property name="adjustment">denoise-rho-adjustment</property>
                     <property name="digits">2</property>
                     <property name="value">0.5</property>
@@ -6146,45 +6039,117 @@ enter a visible wavelength in nm</property>
                   </packing>
                 </child>
               </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">SOS Advanced Options</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
             </child>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkFrame">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-top">5</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">5</property>
+                <child>
+                  <object class="GtkRadioButton" id="radio_denoise_nosecondary">
+                    <property name="label" translatable="yes">No secondary denoising stage</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">No secondary denoising process will be used. The primary algorithm by itself usually performs well so this is the default.</property>
+                    <property name="halign">start</property>
+                    <property name="active">True</property>
+                    <property name="draw-indicator">True</property>
+                    <signal name="group-changed" handler="on_radio_denoise_nosecondary_group_changed" swapped="no"/>
+                    <signal name="toggled" handler="on_radio_denoise_nosecondary_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkRadioButton" id="radio_denoise_da3d">
+                    <property name="label" translatable="yes">Data Adaptive Dual Domain Denoising</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">Use DA3D as a final denoising step. Thie algorithm uses the output of the primary denoising algorithm as a guide image to perform frequency domain shrinkage on shape and data-adaptive patches. It never produces worse output than the primary algorithm and may improve detail retention
+ and reduce staircasing artefacts.</property>
+                    <property name="halign">start</property>
+                    <property name="draw-indicator">True</property>
+                    <property name="group">radio_denoise_nosecondary</property>
+                    <signal name="toggled" handler="on_radio_denoise_da3d_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkRadioButton" id="radio_denoise_sos">
+                    <property name="label" translatable="yes">Strengthen Operate Subtract iterator</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">SOS iteration works by iterating the primary denoising algorithm multiple times, each time mixing back a fraction of the noisy image. This can improve denoising performance and reduce staircasing artefacts.</property>
+                    <property name="halign">start</property>
+                    <property name="draw-indicator">True</property>
+                    <property name="group">radio_denoise_nosecondary</property>
+                    <signal name="toggled" handler="on_radio_denoise_sos_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Secondary Denoising Algorithm</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="spacing">16</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spin_denoise_modulation">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">Sets modulation. The pixel value is calculated as m * b + (1-m) * orig, where m is the modulation, b is the BM3D-filtered value and orig is the original pixel value. Modulation reduces the denoising performance, but a little modulation can be useful to add back microtexture to flat regions of the image.</property>
-                <property name="hexpand">True</property>
-                <property name="adjustment">denoise-modulation-adjustment</property>
-                <property name="digits">2</property>
-                <property name="value">1</property>
-                <signal name="value-changed" handler="on_spin_denoise_modulation_value_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="pack-type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
+            <property name="spacing">5</property>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
@@ -6196,6 +6161,25 @@ enter a visible wavelength in nm</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spin_denoise_modulation">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Sets modulation. The pixel value is calculated as m * b + (1-m) * orig, where m is the modulation, b is the BM3D-filtered value and orig is the original pixel value. Modulation reduces the denoising performance, but a little modulation can be useful to add back microtexture to flat regions of the image.</property>
+                <property name="halign">end</property>
+                <property name="hexpand">True</property>
+                <property name="adjustment">denoise-modulation-adjustment</property>
+                <property name="digits">2</property>
+                <property name="value">1</property>
+                <signal name="value-changed" handler="on_spin_denoise_modulation_value_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -7492,27 +7476,11 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox" id="ghtStretchTypecontrols1">
+                      <object class="GtkFrame" id="ghtStretchTypecontrols1">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <property name="spacing">5</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Type of stretch</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
                         <child>
                           <object class="GtkComboBoxText" id="remix_type_right">
                             <property name="visible">True</property>
@@ -7528,11 +7496,17 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                             </items>
                             <signal name="changed" handler="on_remix_type_right_changed" swapped="no"/>
                           </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-bottom">5</property>
+                            <property name="label" translatable="yes">Type of stretch</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
                         </child>
                       </object>
                       <packing>
@@ -7542,27 +7516,11 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox" id="ghtColourmodelcontrols1">
+                      <object class="GtkFrame" id="ghtColourmodelcontrols1">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <property name="spacing">5</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Colour stretch model</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
                         <child>
                           <object class="GtkComboBoxText" id="remix_colour_right">
                             <property name="visible">True</property>
@@ -7578,11 +7536,17 @@ Note that luminance based models are not generally invertible.</property>
                             </items>
                             <signal name="changed" handler="on_remix_colour_right_changed" swapped="no"/>
                           </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-bottom">5</property>
+                            <property name="label" translatable="yes">Colour stretch model</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
                         </child>
                       </object>
                       <packing>
@@ -8096,27 +8060,11 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox" id="ghtStretchTypecontrols3">
+                      <object class="GtkFrame" id="ghtStretchTypecontrols3">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <property name="spacing">5</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Type of stretch</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
                         <child>
                           <object class="GtkComboBoxText" id="remix_type_left">
                             <property name="visible">True</property>
@@ -8132,11 +8080,17 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                             </items>
                             <signal name="changed" handler="on_remix_type_left_changed" swapped="no"/>
                           </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-bottom">5</property>
+                            <property name="label" translatable="yes">Type of stretch</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
                         </child>
                       </object>
                       <packing>
@@ -8146,27 +8100,11 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox" id="ghtColourmodelcontrols2">
+                      <object class="GtkFrame" id="ghtColourmodelcontrols2">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <property name="spacing">5</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Colour stretch model</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
                         <child>
                           <object class="GtkComboBoxText" id="remix_colour_left">
                             <property name="visible">True</property>
@@ -8182,11 +8120,17 @@ Note that luminance based models are not generally invertible.</property>
                             </items>
                             <signal name="changed" handler="on_remix_colour_left_changed" swapped="no"/>
                           </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-bottom">5</property>
+                            <property name="label" translatable="yes">Colour stretch model</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
                         </child>
                       </object>
                       <packing>
@@ -13221,27 +13165,11 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="row-spacing">5</property>
                     <property name="column-spacing">5</property>
                     <child>
-                      <object class="GtkBox" id="ghtStretchTypecontrols">
+                      <object class="GtkFrame" id="ghtStretchTypecontrols">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <property name="spacing">5</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Type of stretch</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
                         <child>
                           <object class="GtkComboBoxText" id="combo_payneTyp">
                             <property name="visible">True</property>
@@ -13258,11 +13186,17 @@ This should normally be the case only for stacked images. Increasing this value 
                             </items>
                             <signal name="changed" handler="on_payneType_changed" swapped="no"/>
                           </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-bottom">5</property>
+                            <property name="label" translatable="yes">Type of stretch</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
                         </child>
                       </object>
                       <packing>
@@ -13271,27 +13205,11 @@ This should normally be the case only for stacked images. Increasing this value 
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox" id="ghtColourmodelcontrols">
+                      <object class="GtkFrame" id="ghtColourmodelcontrols">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <property name="spacing">5</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Colour stretch model</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
                         <child>
                           <object class="GtkComboBoxText" id="combo_payne_colour_stretch_model">
                             <property name="visible">True</property>
@@ -13306,11 +13224,17 @@ This should normally be the case only for stacked images. Increasing this value 
                             </items>
                             <signal name="changed" handler="on_payne_colour_stretch_model_changed" swapped="no"/>
                           </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-bottom">5</property>
+                            <property name="label" translatable="yes">Colour stretch model</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
                         </child>
                       </object>
                       <packing>
@@ -13322,456 +13246,470 @@ This should normally be the case only for stacked images. Increasing this value 
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">1</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel">
+                  <object class="GtkFrame">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="halign">start</property>
-                    <property name="margin-top">12</property>
-                    <property name="label" translatable="yes">Stretch Parameters</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox" id="ghtDcontrols">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="orientation">vertical</property>
+                    <property name="label-xalign">0</property>
+                    <property name="shadow-type">none</property>
                     <child>
-                      <!-- n-columns=2 n-rows=1 -->
-                      <object class="GtkGrid">
+                      <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
                         <child>
-                          <object class="GtkLabel" id="label_payne">
+                          <object class="GtkBox" id="ghtDcontrols">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="hexpand">True</property>
-                            <property name="label" translatable="yes">Stretch factor (ln(D+1))</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="spin_ghtD">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
-                            <property name="width-chars">10</property>
-                            <property name="text">0,000</property>
-                            <property name="progress-pulse-step">0.01</property>
-                            <property name="adjustment">adjustment_payneD</property>
-                            <property name="digits">3</property>
-                            <signal name="value-changed" handler="on_spin_ghtD_value_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="scale_ghtD">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="adjustment">adjustment_payneD</property>
-                        <property name="digits">3</property>
-                        <property name="draw-value">False</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox" id="ghtBcontrols">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <child>
-                      <!-- n-columns=2 n-rows=1 -->
-                      <object class="GtkGrid">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <child>
-                          <object class="GtkLabel" id="label_payn">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="hexpand">True</property>
-                            <property name="label" translatable="yes">Local stretch intensity (b)</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="spin_ghtB">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value of b will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjustment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of b will decrease as a stretch sequence nears completion, although larger values (with small D) can still be used for precise placement of additional contrast.</property>
-                            <property name="width-chars">10</property>
-                            <property name="text">0,500</property>
-                            <property name="adjustment">adjustment_payneb</property>
-                            <property name="digits">3</property>
-                            <property name="value">0.5</property>
-                            <signal name="value-changed" handler="on_spin_ghtB_value_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="scale_ghtB">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="adjustment">adjustment_payneb</property>
-                        <property name="digits">3</property>
-                        <property name="draw-value">False</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">6</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox" id="ghtSPcontrols">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <child>
-                      <!-- n-columns=3 n-rows=1 -->
-                      <object class="GtkGrid">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <child>
-                          <object class="GtkLabel" id="label_payneS">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="hexpand">True</property>
-                            <property name="label" translatable="yes">Symmetry point (SP)</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="spin_ghtSP">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
-                            <property name="valign">center</property>
-                            <property name="width-chars">10</property>
-                            <property name="text">0,00000</property>
-                            <property name="progress-fraction">0.01</property>
-                            <property name="progress-pulse-step">0.01</property>
-                            <property name="adjustment">adjustment_payneSP</property>
-                            <property name="digits">5</property>
-                            <signal name="value-changed" handler="on_spin_ghtSP_value_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">2</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="eyedropper_button">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">This dropper allows you to set the background stretch symmetry point  based on the average value of  the current selection. This helps in picking out faint detail above the dark background.</property>
-                            <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
+                            <property name="orientation">vertical</property>
                             <child>
-                              <object class="GtkImage" id="eyedropper">
+                              <!-- n-columns=2 n-rows=1 -->
+                              <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="pixbuf">pixmaps/eyedropper.svg</property>
+                                <child>
+                                  <object class="GtkLabel" id="label_payne">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="label" translatable="yes">Stretch factor (ln(D+1))</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_ghtD">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Independently controls the contrast added (the slope of the stretch) at SP, thus adjusting the amount of stretch applied to the rest of the image. It does not change the shape of the stretch, just the amount, and should be used in tandem with b to control the distribution of contrast and brightness. When this is set to zero, the stretch will be the identity transform, but any ordered black point adjustment will still occur.</property>
+                                    <property name="width-chars">10</property>
+                                    <property name="text">0,000</property>
+                                    <property name="progress-pulse-step">0.01</property>
+                                    <property name="adjustment">adjustment_payneD</property>
+                                    <property name="digits">3</property>
+                                    <signal name="value-changed" handler="on_spin_ghtD_value_changed" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
                               </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="scale_ghtD">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="adjustment">adjustment_payneD</property>
+                                <property name="digits">3</property>
+                                <property name="draw-value">False</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
                             </child>
                           </object>
                           <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">0</property>
                           </packing>
                         </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="scale_ghtSP">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="adjustment">adjustment_payneSP</property>
-                        <property name="digits">6</property>
-                        <property name="draw-value">False</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">8</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox" id="ghtLPcontrols">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <child>
-                      <!-- n-columns=2 n-rows=1 -->
-                      <object class="GtkGrid">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
                         <child>
-                          <object class="GtkLabel" id="label_payneL">
+                          <object class="GtkBox" id="ghtBcontrols">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="hexpand">True</property>
-                            <property name="label" translatable="yes">Shadow protection point (LP)</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <!-- n-columns=2 n-rows=1 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkLabel" id="label_payn">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="label" translatable="yes">Local stretch intensity (b)</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_ghtB">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value of b will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjustment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of b will decrease as a stretch sequence nears completion, although larger values (with small D) can still be used for precise placement of additional contrast.</property>
+                                    <property name="width-chars">10</property>
+                                    <property name="text">0,500</property>
+                                    <property name="adjustment">adjustment_payneb</property>
+                                    <property name="digits">3</property>
+                                    <property name="value">0.5</property>
+                                    <signal name="value-changed" handler="on_spin_ghtB_value_changed" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="scale_ghtB">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="adjustment">adjustment_payneb</property>
+                                <property name="digits">3</property>
+                                <property name="draw-value">False</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
                           <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkSpinButton" id="spin_ghtLP">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
-                            <property name="width-chars">10</property>
-                            <property name="text">0,00000</property>
-                            <property name="progress-pulse-step">0.01</property>
-                            <property name="adjustment">adjustment_payneLP</property>
-                            <property name="digits">5</property>
-                            <signal name="value-changed" handler="on_spin_ghtLP_value_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="scale_ghtLP">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="adjustment">adjustment_payneLP</property>
-                        <property name="digits">5</property>
-                        <property name="draw-value">False</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">10</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox" id="ghtHPcontrols">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <child>
-                      <!-- n-columns=2 n-rows=1 -->
-                      <object class="GtkGrid">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <child>
-                          <object class="GtkLabel" id="label_payneH">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="hexpand">True</property>
-                            <property name="label" translatable="yes">Highlight protection point (HP)</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="spin_ghtHP">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This is done by performing a linear stretch of the data above HP by reserving contrast from the rest of the image. Moving HP towards SP inreases both the scope and the amount of this contrast reservation, the net effect is to push the overall stretch to lower brightness levels while keeping the contrast and definition in the highlights. This parameter must be less than or equal to 1 and not less than SP.</property>
-                            <property name="width-chars">10</property>
-                            <property name="text">1,00000</property>
-                            <property name="progress-pulse-step">0.01</property>
-                            <property name="adjustment">adjustment_payneHP</property>
-                            <property name="digits">5</property>
-                            <property name="value">1</property>
-                            <signal name="value-changed" handler="on_spin_ghtHP_value_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkScale" id="scale_ghtHP">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="adjustment">adjustment_payneHP</property>
-                        <property name="digits">5</property>
-                        <property name="draw-value">False</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">12</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox" id="ghtBPcontrols">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <child>
-                      <!-- n-columns=2 n-rows=1 -->
-                      <object class="GtkGrid">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <child>
-                          <object class="GtkLabel">
+                          <object class="GtkBox" id="ghtSPcontrols">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="hexpand">True</property>
-                            <property name="label" translatable="yes">Black Point (BP)</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <!-- n-columns=3 n-rows=1 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkLabel" id="label_payneS">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="label" translatable="yes">Symmetry point (SP)</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_ghtSP">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Sets the symmetry point around which the stretch is focused - contrast will be distributed symmetrically around SP. This should generally be placed within a histogram peak so that the stretch will widen and lower the peak by adding the most contrast in the stretch at that point. The stretch will move pixel values away from SP. This parameter must be greater than or equal to LP and less than or equal to HP.</property>
+                                    <property name="valign">center</property>
+                                    <property name="width-chars">10</property>
+                                    <property name="text">0,00000</property>
+                                    <property name="progress-fraction">0.01</property>
+                                    <property name="progress-pulse-step">0.01</property>
+                                    <property name="adjustment">adjustment_payneSP</property>
+                                    <property name="digits">5</property>
+                                    <signal name="value-changed" handler="on_spin_ghtSP_value_changed" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="eyedropper_button">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="tooltip-text" translatable="yes">This dropper allows you to set the background stretch symmetry point  based on the average value of  the current selection. This helps in picking out faint detail above the dark background.</property>
+                                    <signal name="clicked" handler="on_eyedropper_SP_clicked" swapped="no"/>
+                                    <child>
+                                      <object class="GtkImage" id="eyedropper">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="pixbuf">pixmaps/eyedropper.svg</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="scale_ghtSP">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="adjustment">adjustment_payneSP</property>
+                                <property name="digits">6</property>
+                                <property name="draw-value">False</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
                           <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkSpinButton" id="spin_ghtBP">
+                          <object class="GtkBox" id="ghtLPcontrols">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image. NOTE: altering BP can clip pixels in which case this transformation is non-reversible.</property>
-                            <property name="halign">end</property>
-                            <property name="width-chars">10</property>
-                            <property name="text">0,00000</property>
-                            <property name="progress-pulse-step">0.01</property>
-                            <property name="adjustment">adj_black_point_payne</property>
-                            <property name="digits">5</property>
-                            <signal name="value-changed" handler="on_spin_ghtBP_value_changed" swapped="no"/>
+                            <property name="can-focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <!-- n-columns=2 n-rows=1 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkLabel" id="label_payneL">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="label" translatable="yes">Shadow protection point (LP)</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_ghtLP">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Sets a value below which the stretch is modified to preserve contrast in the shadows. This is done by performing a linear stretch below LP by reserving contrast from the rest of the image. Moving LP towards SP changes both the scope and amount of contrast reservation, the net effect is to push the overall stretch to higher brightness levels whilekeeping the contrast and definition in the background. This parameter must be greater than or equal to 0 and not greater than SP.</property>
+                                    <property name="width-chars">10</property>
+                                    <property name="text">0,00000</property>
+                                    <property name="progress-pulse-step">0.01</property>
+                                    <property name="adjustment">adjustment_payneLP</property>
+                                    <property name="digits">5</property>
+                                    <signal name="value-changed" handler="on_spin_ghtLP_value_changed" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="scale_ghtLP">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="adjustment">adjustment_payneLP</property>
+                                <property name="digits">5</property>
+                                <property name="draw-value">False</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
                           <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="ghtHPcontrols">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <!-- n-columns=2 n-rows=1 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkLabel" id="label_payneH">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="label" translatable="yes">Highlight protection point (HP)</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_ghtHP">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Sets a value above which the stretch is modified to preserve contrast in the highlights / stars. This is done by performing a linear stretch of the data above HP by reserving contrast from the rest of the image. Moving HP towards SP inreases both the scope and the amount of this contrast reservation, the net effect is to push the overall stretch to lower brightness levels while keeping the contrast and definition in the highlights. This parameter must be less than or equal to 1 and not less than SP.</property>
+                                    <property name="width-chars">10</property>
+                                    <property name="text">1,00000</property>
+                                    <property name="progress-pulse-step">0.01</property>
+                                    <property name="adjustment">adjustment_payneHP</property>
+                                    <property name="digits">5</property>
+                                    <property name="value">1</property>
+                                    <signal name="value-changed" handler="on_spin_ghtHP_value_changed" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="scale_ghtHP">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="adjustment">adjustment_payneHP</property>
+                                <property name="digits">5</property>
+                                <property name="draw-value">False</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="ghtBPcontrols">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <!-- n-columns=2 n-rows=1 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="label" translatable="yes">Black Point (BP)</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="spin_ghtBP">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Black point adjustment. This is a constant value that is subtracted from the image. NOTE: altering BP can clip pixels in which case this transformation is non-reversible.</property>
+                                    <property name="halign">end</property>
+                                    <property name="width-chars">10</property>
+                                    <property name="text">0,00000</property>
+                                    <property name="progress-pulse-step">0.01</property>
+                                    <property name="adjustment">adj_black_point_payne</property>
+                                    <property name="digits">5</property>
+                                    <signal name="value-changed" handler="on_spin_ghtBP_value_changed" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="scale_ghtBP">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="adjustment">adj_black_point_payne</property>
+                                <property name="digits">5</property>
+                                <property name="draw-value">False</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">5</property>
                           </packing>
                         </child>
                       </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
                     </child>
-                    <child>
-                      <object class="GtkScale" id="scale_ghtBP">
+                    <child type="label">
+                      <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="adjustment">adj_black_point_payne</property>
-                        <property name="digits">5</property>
-                        <property name="draw-value">False</property>
+                        <property name="can-focus">False</property>
+                        <property name="margin-bottom">5</property>
+                        <property name="label" translatable="yes">Stretch Parameters</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
                       </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
                     </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">14</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
               </object>
@@ -13863,7 +13801,6 @@ This should normally be the case only for stacked images. Increasing this value 
                   <object class="GtkEntry" id="pixel_math_entry_r">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="margin-top">5</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_r_focus_in_event" swapped="no"/>
                   </object>
@@ -13900,6 +13837,7 @@ This should normally be the case only for stacked images. Increasing this value 
               <object class="GtkLabel" id="label_RGBK">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-bottom">5</property>
                 <property name="label" translatable="yes">RGB/K</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
@@ -13929,7 +13867,6 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
-                    <property name="margin-top">5</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_g_focus_in_event" swapped="no"/>
                   </object>
@@ -13966,6 +13903,7 @@ This should normally be the case only for stacked images. Increasing this value 
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-bottom">5</property>
                 <property name="label" translatable="yes">G</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
@@ -13995,7 +13933,6 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
-                    <property name="margin-top">5</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_b_focus_in_event" swapped="no"/>
                   </object>
@@ -14032,6 +13969,7 @@ This should normally be the case only for stacked images. Increasing this value 
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-bottom">5</property>
                 <property name="label" translatable="yes">B</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
@@ -14100,7 +14038,6 @@ This should normally be the case only for stacked images. Increasing this value 
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="margin-top">5</property>
                 <child>
                   <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
@@ -14328,6 +14265,7 @@ This should normally be the case only for stacked images. Increasing this value 
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-bottom">5</property>
                 <property name="label" translatable="yes">Images</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
@@ -14367,7 +14305,6 @@ This should normally be the case only for stacked images. Increasing this value 
 For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.2,&lt;/i&gt;, all the occurences of &lt;i&gt;factor&lt;/i&gt; and &lt;i&gt;K&lt;/i&gt; in the formula above will be replaced by 0.8 and 0.2 respectively.
 
 &lt;i&gt;Ha * factor + OIII * K&lt;/i&gt; would therefore evaluate to &lt;i&gt;Ha * 0.8 + OIII * 0.2&lt;/i&gt;</property>
-                <property name="margin-top">5</property>
                 <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
               </object>
             </child>
@@ -14375,6 +14312,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-bottom">5</property>
                 <property name="label" translatable="yes">Parameters</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
@@ -14456,6 +14394,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-bottom">5</property>
                 <property name="label" translatable="yes">Output</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
@@ -14514,6 +14453,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-bottom">5</property>
                 <property name="label" translatable="yes">Presets</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
