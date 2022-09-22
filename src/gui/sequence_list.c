@@ -18,6 +18,9 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_app_dirs.h"
@@ -35,9 +38,6 @@
 #include "algos/PSF.h"
 #include "registration/registration.h"	// for update_reg_interface
 #include "stacking/stacking.h"	// for update_stack_interface
-#ifdef _WIN32
-#include <windows.h>
-#endif
 #include <dirent.h>
 
 #include "sequence_list.h"
