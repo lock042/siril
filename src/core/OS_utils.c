@@ -25,7 +25,6 @@
 #  include <config.h>
 #endif
 
-#include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -237,19 +236,19 @@ int test_available_space(gint64 req_size) {
 				msg = siril_log_message(_("Compression enabled: There may no be enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-				queue_message_dialog(GTK_MESSAGE_WARNING, _("Compression enabled: There may not be enough free disk space to perform this operation"), msg);
+				queue_warning_message_dialog(_("Compression enabled: There may not be enough free disk space to perform this operation"), msg);
 			} else {
 				msg = siril_log_message(_("Compression enabled: It is likely that there is not enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-				queue_message_dialog(GTK_MESSAGE_WARNING, _("Compression enabled: It is likely that there is not enough free disk space to perform this operation"), msg);
+				queue_warning_message_dialog(_("Compression enabled: It is likely that there is not enough free disk space to perform this operation"), msg);
 			}
 			res = 0;
 		} else {
 			msg = siril_log_message(_("Not enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-			queue_message_dialog(GTK_MESSAGE_ERROR, _("Not enough disk space"), msg);
+			queue_error_message_dialog(_("Not enough disk space"), msg);
 			res = 1;
 		}
 		g_free(avail);
@@ -499,41 +498,6 @@ gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file) {
 	*nb_allowed_file = maxfile;
 
 	return nb_frames < maxfile;
-}
-
-SirilWidget *siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action) {
-	gchar *title;
-	SirilWidget *w;
-	if (action == GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER) {
-		title = g_strdup(_("Select Folder"));
-	} else {
-		title = g_strdup(_("Open File"));
-	}
-	w = gtk_file_chooser_dialog_new(title, parent, action, _("_Cancel"),
-			GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT,
-			NULL);
-	g_free(title);
-	return w;
-}
-
-SirilWidget *siril_file_chooser_add(GtkWindow *parent, GtkFileChooserAction action) {
-	return gtk_file_chooser_dialog_new(_("Add Files"), parent, action,
-			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Add"), GTK_RESPONSE_ACCEPT,
-			NULL);
-}
-
-SirilWidget *siril_file_chooser_save(GtkWindow *parent, GtkFileChooserAction action) {
-	return gtk_file_chooser_dialog_new(_("Save File"), parent, action,
-			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Save"), GTK_RESPONSE_ACCEPT,
-			NULL);
-}
-
-gint siril_dialog_run(SirilWidget *widgetdialog) {
-	return gtk_dialog_run(GTK_DIALOG(GTK_FILE_CHOOSER(widgetdialog)));
-}
-
-void siril_widget_destroy(SirilWidget *widgetdialog) {
-	gtk_widget_destroy(widgetdialog);
 }
 
 GInputStream *siril_input_stream_from_stdin() {

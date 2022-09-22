@@ -36,9 +36,6 @@
 #include "algos/geometry.h"
 #include "algos/sorting.h"
 #include "gui/message_dialog.h"
-#include "gui/utils.h"
-#include "gui/image_display.h"
-#include "gui/callbacks.h"
 #include "opencv/opencv.h"
 #include "background_extraction.h"
 
@@ -825,21 +822,20 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 }
 
 /* generates samples and stores them in com.grad_samples */
-void generate_background_samples(int nb_of_samples, double tolerance) {
+int generate_background_samples(int nb_of_samples, double tolerance) {
 	free_background_sample_list(com.grad_samples);
 	const char *err;
 	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE, &err, MULTI_THREADED);
 	if (!com.grad_samples) {
 		siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		return;
+		return 1;
 	}
 
 	if (com.grad_samples && gfit.naxes[2] > 1) {
 		/* If RGB we need to update all local median, not only the first one */
 		com.grad_samples = update_median_samples(com.grad_samples, &gfit);
 	}
-	redraw(REDRAW_OVERLAY);
+	return 0;
 }
 
 gboolean end_background(gpointer p);	// in gui/background_extraction.c
@@ -884,19 +880,20 @@ gpointer remove_gradient_from_image(gpointer p) {
 		if (!interpolation_worked) {
 			free(image);
 			free(background);
-			queue_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."), error);
+			queue_error_message_dialog(_("Not enough samples."), error);
 			free(args);
 			siril_add_idle(end_background, NULL);
 			return NULL;
 		}
 		/* remove background */
-		const char *c_name = vport_number_to_name(channel);
+		const char *c_name = channel_number_to_name(channel);
 		siril_log_message(_("Background extraction from %s channel.\n"), c_name);
 		convert_fits_to_img(&gfit, image, channel, args->dither);
 		remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
 		convert_img_to_fits(image, &gfit, channel);
 	}
-	siril_log_message(_("Background with %s interpolation computed.\n"), (args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
+	siril_log_message(_("Background with %s interpolation computed.\n"),
+			(args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	/* free memory */
@@ -1055,7 +1052,7 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
-/**** getter and setter ***/
+/**** getters ***/
 
 gboolean background_sample_is_valid(background_sample *sample) {
 	return sample->valid;

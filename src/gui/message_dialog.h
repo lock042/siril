@@ -12,7 +12,8 @@ struct siril_dialog_data {
 };
 
 void siril_message_dialog(GtkMessageType type, char *title, char *text);
-void queue_message_dialog(GtkMessageType type, char *title, char *text);
+void queue_error_message_dialog(const char *title, const char *text);
+void queue_warning_message_dialog(const char *title, const char *text);
 void siril_data_dialog(GtkMessageType type, char *title, char *text, gchar *data);
 gboolean siril_confirm_dialog(gchar *title, gchar *msg, gchar *button_accept);
 gboolean siril_confirm_dialog_and_remember(gchar *title, gchar *msg, gchar *button_accept, gboolean *user_data);

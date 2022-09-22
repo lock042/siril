@@ -126,7 +126,9 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 	nb_of_samples = get_nb_samples_per_line();
 	tolerance = get_tolerance_value();
 
-	generate_background_samples(nb_of_samples, tolerance);
+	if (generate_background_samples(nb_of_samples, tolerance))
+		control_window_switch_to_tab(OUTPUT_LOGS);
+	redraw(REDRAW_OVERLAY);
 	set_cursor_waiting(FALSE);
 }
 

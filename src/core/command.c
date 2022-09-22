@@ -2637,7 +2637,7 @@ int process_histo(int nb) {
 	if (!isrgb(&gfit))
 		clayer = "bw";		//if B&W
 	else
-		clayer = vport_number_to_name(nlayer);
+		clayer = channel_number_to_name(nlayer);
 	gchar *filename = g_strdup_printf("histo_%s.dat", clayer);
 
 	GFile *file = g_file_new_for_path(filename);
@@ -3390,9 +3390,8 @@ int process_subsky(int nb) {
 		args->seqEntry = NULL;
 		args->fit = &gfit;
 
-		generate_background_samples(samples, tolerance);
-
-		start_in_new_thread(remove_gradient_from_image, args);
+		if (!generate_background_samples(samples, tolerance))
+			start_in_new_thread(remove_gradient_from_image, args);
 	}
 
 	return CMD_OK;

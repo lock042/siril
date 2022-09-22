@@ -639,21 +639,7 @@ void clear_sampling_setting_box() {
 	gtk_combo_box_set_active(binning, 0);
 }
 
-const char *vport_number_to_name(int vport) {
-	switch (vport) {
-		case RED_VPORT:
-			return (_("red"));
-		case GREEN_VPORT:
-			return (_("green"));
-		case BLUE_VPORT:
-			return (_("blue"));
-		case RGB_VPORT:
-			return (_("rgb"));
-	}
-	return NULL;
-}
-
-const char *untranslated_vport_number_to_name(int vport) {
+static const char *untranslated_vport_number_to_name(int vport) {
 	switch (vport) {
 		case RED_VPORT:
 			return ("red");
