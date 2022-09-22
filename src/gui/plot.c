@@ -70,6 +70,7 @@ static gboolean is_fwhm = TRUE;
 static gnuplot_ctrl *gplot = NULL;
 static gboolean is_arcsec = FALSE;
 static gboolean force_Julian = FALSE;
+static point minp, maxp;
 
 static void update_ylabel();
 static void set_colors(struct kplotcfg *cfg);
@@ -948,6 +949,8 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		return;
 	pldata *plot = plot_data;
 	d1 = ref_d = mean_d = NULL;
+	minp = (point){ DBL_MAX, DBL_MAX};
+	maxp = (point){ -DBL_MAX, -DBL_MAX};
 
 	double color = (com.pref.gui.combo_theme == 0) ? 0.0 : 1.0;
 
@@ -982,6 +985,11 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		} else {
 			kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
 		}
+		// caching the corner values
+		minp.x = min(minp.x, plot->data[kdata_xmin(d1, NULL)].x);
+		maxp.x = max(maxp.x, plot->data[kdata_xmax(d1, NULL)].x);
+		minp.y = min(minp.y, plot->data[kdata_ymin(d1, NULL)].y);
+		maxp.y = max(maxp.y, plot->data[kdata_ymax(d1, NULL)].y);
 		plot = plot->next;
 		nb_graphs++;
 	}
@@ -1276,42 +1284,42 @@ static void free_colors(struct kplotcfg *cfg) {
 	free(cfg->clrs);
 }
 
-static gboolean get_index_of_frame(gdouble x, gdouble y, gboolean check_index_incl, double *index, double *val, double *ypos) {
+static gboolean convert_surface_to_plot_coords(gdouble x, gdouble y, double *xpos, double *ypos) {
 	if (!plot_data) return FALSE;
 	if (!com.seq.imgparam) return FALSE;
-	double miny = DBL_MAX, maxy = - DBL_MAX;
-	double minx = DBL_MAX, maxx = - DBL_MAX;
-	pldata *plot = plot_data;
-	int closestframe = -1;
-	double mindist = DBL_MAX, dist;
 
-	for (int j = 0; j < plot->nb; j++) {
-		if (plot->data[j].x < minx) minx = plot->data[j].x;
-		if (plot->data[j].x > maxx) maxx = plot->data[j].x;
-		if (plot->data[j].y < miny) miny = plot->data[j].y;
-		if (plot->data[j].y > maxy) maxy = plot->data[j].y;
-	}
-
-	point intervale = { get_dimx() / (maxx - minx), get_dimy() / (maxy - miny)};
+	point intervale = { get_dimx() / (maxp.x - minp.x), get_dimy() / (maxp.y - minp.y)};
 	point pos = { x - get_offsx(), get_dimy() - y + get_offsy() };
 
-	*index = pos.x / intervale.x + minx;
-	*val = *index;
-	*ypos = pos.y / intervale.y + miny;
+	*xpos = pos.x / intervale.x + minp.x;
+	*ypos = pos.y / intervale.y + minp.y;
+	return TRUE;
+}
 
-	double invrangex = 1./(maxx - minx);
-	double invrangey = 1./(maxy - miny);
+static gboolean get_index_of_frame(gdouble x, gdouble y, gboolean check_index_incl, double *index, double *xpos, double *ypos) {
+	int closestframe = -1;
+	double mindist = DBL_MAX, dist;
+	pldata *plot = plot_data;
+	if(!convert_surface_to_plot_coords(x, y, xpos, ypos))
+		return FALSE;
 
-	for (int j = 0; j < plot->nb; j++) {
-		dist = xpow((*index - plot->data[j].x) * invrangex, 2) + xpow((*ypos - plot->data[j].y) * invrangey, 2);
-		if (dist < mindist) {
-			mindist = dist;
-			closestframe = plot->frame[j];
+	double invrangex = 1./(maxp.x - minp.x);
+	double invrangey = 1./(maxp.y - minp.y);
+	*index = *xpos;
+
+	while (plot) {
+		for (int j = 0; j < plot->nb; j++) {
+			dist = xpow((*index - plot->data[j].x) * invrangex, 2) + xpow((*ypos - plot->data[j].y) * invrangey, 2);
+			if (dist < mindist) {
+				mindist = dist;
+				closestframe = plot->frame[j];
+			}
 		}
+		plot = plot->next;
 	}
 	*index = (mindist < 0.0004) ? closestframe : -1; // only set index if distance between cursor and a point is small enough (2% of scales)
 
-	if (check_index_incl && (*index >= 0 && *index <= maxx)) return com.seq.imgparam[(int)*index - 1].incl;
+	if (check_index_incl && (*index >= 0 && *index <= maxp.x)) return com.seq.imgparam[(int)*index - 1].incl;
 	return TRUE;
 
 }
@@ -1321,14 +1329,14 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 
 	gtk_widget_set_has_tooltip(widget, FALSE);
 
-	double index, val, ypos;
-	gboolean getvals = get_index_of_frame(event->x, event->y, FALSE, &index, &val, &ypos);
+	double index, xpos, ypos;
+	gboolean getvals = get_index_of_frame(event->x, event->y, FALSE, &index, &xpos, &ypos);
 	gchar *tooltip_text;
 	if (getvals) {
 		if (index > 0) {
-			tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f\nFrame#%d", val, ypos,(int)index);
+			tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f\nFrame#%d", xpos, ypos,(int)index);
 		} else {
-			tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f", val, ypos);
+			tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f", xpos, ypos);
 		}
 		gtk_widget_set_tooltip_text(widget, tooltip_text);
 		g_free(tooltip_text);
@@ -1365,8 +1373,8 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 		return;
 	}
 
-	double index, val, ypos;
-	gboolean getvals = get_index_of_frame(event->x, event->y, TRUE, &index, &val, &ypos);
+	double index, xpos, ypos;
+	gboolean getvals = get_index_of_frame(event->x, event->y, TRUE, &index, &xpos, &ypos);
 	if (!getvals) return;
 	if (index < 0) return;
 
