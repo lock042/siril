@@ -6003,7 +6003,8 @@ enter a visible wavelength in nm</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">The Anscombe VST is useful when denoising photon-limited images where the noise characteristics are not Gaussian but primarily Poisson or a Poisson-Gaussian mix. It cannot be used in conjunction with DA3D or SOS.</property>
+                    <property name="tooltip-text" translatable="yes">The Anscombe VST is useful when denoising photon-limited images where the noise characteristics are not Gaussian but primarily Poisson or a Poisson-Gaussian mix. It cannot be used in conjunction with DA3D or SOS. Ref: https://ieeexplore.ieee.org/document/5278406</property>
+                    <property name="halign">start</property>
                     <property name="active">True</property>
                     <property name="draw-indicator">True</property>
                     <property name="group">radio_denoise_nosecondary</property>
@@ -6021,8 +6022,7 @@ enter a visible wavelength in nm</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">Use DA3D as a final denoising step. Thie algorithm uses the output of the primary denoising algorithm as a guide image to perform frequency domain shrinkage on shape and data-adaptive patches. It never produces worse output than the primary algorithm and may improve detail retention
- and reduce staircasing artefacts.</property>
+                    <property name="tooltip-text" translatable="yes">Use DA3D as a final denoising step. This algorithm uses the output of the primary denoising algorithm as a guide image to perform frequency domain shrinkage on shape and data-adaptive patches. It never produces worse output than the primary algorithm and may improve detail retention and reduce staircasing artefacts. Ref: https://ieeexplore.ieee.org/document/7350835</property>
                     <property name="halign">start</property>
                     <property name="draw-indicator">True</property>
                     <property name="group">radio_denoise_nosecondary</property>
@@ -6040,7 +6040,7 @@ enter a visible wavelength in nm</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">SOS iteration works by iterating the primary denoising algorithm multiple times, each time mixing back a fraction of the noisy image. This can improve denoising performance and reduce staircasing artefacts.</property>
+                    <property name="tooltip-text" translatable="yes">SOS iteration works by iterating the primary denoising algorithm multiple times, each time mixing back a fraction of the noisy image. This can improve denoising performance and reduce staircasing artefacts. Ref: https://arxiv.org/abs/1502.06220</property>
                     <property name="halign">start</property>
                     <property name="draw-indicator">True</property>
                     <property name="group">radio_denoise_nosecondary</property>

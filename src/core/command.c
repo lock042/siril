@@ -270,7 +270,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data("Starting BNL-Bayes denoising...", 0.0);
 
-	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe, TRUE);
+	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe, args->do_cosme);
 
 	notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
@@ -290,6 +290,7 @@ int process_denoise(int nb){
 	args->modulation = 1.f;
 	args->da3d = 0;
 	args->do_anscombe = FALSE;
+	args->do_cosme = TRUE;
 	args->fit = &gfit;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
@@ -300,6 +301,9 @@ int process_denoise(int nb){
 		}
 		else if (g_str_has_prefix(arg, "-da3d")) {
 			args->da3d = 1;
+		}
+		else if (g_str_has_prefix(arg, "-nocosmetic")) {
+			args->do_cosme = FALSE;
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			arg += 5;
