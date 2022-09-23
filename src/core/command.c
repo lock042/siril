@@ -270,7 +270,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data("Starting BNL-Bayes denoising...", 0.0);
 
-	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho);
+	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
 
 	notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
@@ -289,12 +289,16 @@ int process_denoise(int nb){
 	args->rho = 0.5f;
 	args->modulation = 1.f;
 	args->da3d = 0;
+	args->do_anscombe = FALSE;
 	args->fit = &gfit;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(arg, "+da3d")) {
+		if (g_str_has_prefix(arg, "-vst")) {
+			args->do_anscombe = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-da3d")) {
 			args->da3d = 1;
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
@@ -325,7 +329,7 @@ int process_denoise(int nb){
 				args->rho = rho;
 			}
 		}
-		else if (g_str_has_prefix(arg, "+sos=")) {
+		else if (g_str_has_prefix(arg, "-sos=")) {
 			arg += 5;
 			unsigned sos = (int) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
@@ -340,13 +344,21 @@ int process_denoise(int nb){
 		}
 	}
 	switch (algo) {
-		case -1:
+/*
+ *		case -1:
 			siril_log_message(_("No algorithm set: doing nothing. One of the arguments [bm3d] or [nlbayes] must be provided.\n"));
 			return CMD_ARG_ERROR;
 			break;
+*/
 		case 1:
-			siril_log_message(_("Modulation: %f\n"),args->modulation);
+			if (args->do_anscombe && (args->sos != 1 || args->da3d)) {
+				siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. Aborting.\n"), "red");
+				return CMD_ARG_ERROR;
+			}
 			siril_log_message(_("Primary denoising algorithm: NL-Bayes.\n"));
+			siril_log_message(_("Modulation: %f\n"),args->modulation);
+			if (args->do_anscombe)
+				siril_log_message(_("Will apply generalised Anscombe variance stabilising transform.\n"));
 			if (args->da3d) {
 				siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
 				if (args->sos != 1) {
@@ -354,8 +366,6 @@ int process_denoise(int nb){
 					args->sos = 1;
 				}
 			}
-			else
-				siril_log_message(_("Final stage DA3D denoising disabled.\n"));
 		start_in_new_thread(run_nlbayes_on_fit, args);
 			break;
 		default:

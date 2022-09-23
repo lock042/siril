@@ -10,6 +10,7 @@
 #include <tuple>
 #include <algorithm>
 #include <utility>
+#include <functional>
 #include "opencv/opencv.h"
 
 #include "filters/da3d/Image.hpp"
@@ -36,6 +37,10 @@ extern "C" {
 using namespace std;
 using std::cerr;
 using std::endl;
+using std::transform;
+using std::bind;
+using std::multiplies;
+using std::divides;
 
 using utils::isMonochrome;
 using utils::makeMonochrome;
@@ -43,13 +48,7 @@ using NlBayes::runNlBayes;
 using da3d::Image;
 using da3d::DA3D;
 
-static void smult(float *x, float factor, float ndata) {
-  for (size_t i=0; i < ndata; i++)
-    x[i] = x[i] * factor;
-}
-
-
-extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, float rho) {
+extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d, const float rho, const gboolean do_anscombe) {
     // Parameters
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
@@ -70,7 +69,7 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
     const bool useArea1 = true;
     const unsigned useArea2 = true;
     const bool verbose = FALSE;
-    const bool do_anscombe = true;
+//    const bool do_anscombe = true;
 
     float *bgr_f = (float*) calloc(npixels * nchans, sizeof(float));
     float *bgr_fout;
@@ -128,14 +127,24 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
 
       if (do_anscombe && iter == 0) {
         if (nchans == 1) {
-          smult(bgr_v.data(), 65536.f, imSize.whc);
+          // Mono images
+          transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
+               bind(multiplies<float>(), std::placeholders::_1, 65536.f));
           sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
           fSigma = (float) intermediate_bgnoise;
           generalized_anscombe_array(bgr_v.data(), 0.f, fSigma, 1.f, imSize.whc);
           sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
           fSigma = (float) intermediate_bgnoise;
         } else {
-          // Do something for Anscombe with 3 channel data...
+          // RGB images
+          transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
+               bind(multiplies<float>(), std::placeholders::_1, 65536.f));
+          generalized_anscombe_array(bgr_v.data(), 0.f, 0.f, 1.f, imSize.whc);
+          float norm = 65536.f * 2.f * sqrtf(11.f / 8.f);
+          transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
+               bind(divides<float>(), std::placeholders::_1, norm));
+          sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
+          fSigma = (float) intermediate_bgnoise;
         }
       }
       // Operate the NL-Bayes algorithm
@@ -144,10 +153,18 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
 
       if (do_anscombe && iter == 0) {
         if (nchans == 1) {
+          // Inverse transform for mono images
           inverse_generalized_anscombe_array(bgr_vout.data(), 0.f, fSigma, 1.f, imSize.whc);
-          smult(bgr_vout.data(), 1.f / 65536.f, imSize.whc);
+          transform(bgr_vout.begin(), bgr_vout.end(), bgr_vout.begin(),
+               bind(divides<float>(), std::placeholders::_1, 65536.f));
+
         } else {
-          // Do something for Inverse Anscombe with 3 channel data...
+          float norm = 65536.f * 2.f * sqrtf(11.f / 8.f);
+          transform(bgr_vout.begin(), bgr_vout.end(), bgr_vout.begin(),
+               bind(multiplies<float>(), std::placeholders::_1, norm));
+          inverse_generalized_anscombe_array(bgr_vout.data(), 0.f, 0.f, 1.f, imSize.whc);
+          transform(bgr_vout.begin(), bgr_vout.end(), bgr_vout.begin(),
+               bind(divides<float>(), std::placeholders::_1, 65536.f));
         }
       }
 

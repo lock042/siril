@@ -13,13 +13,10 @@ typedef struct denoise_args {
 	int da3d;
 	int sos;
 	float rho;
+	gboolean do_anscombe;
 } denoise_args;
 
-void bgrbgr_float_to_fits(fits *image, float *bgrbgr, float modulation);
-void bgrbgr_float_to_word_fits(fits *image, float *bgrbgr, float modulation);
-float *fits_to_bgrbgr_wordtofloat(fits *image);
-
-EXTERNC int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, float rho);
+EXTERNC int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d, const float rho, const gboolean do_anscombe);
 #ifdef __cplusplus
 }
 #endif

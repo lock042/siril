@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -5888,7 +5888,7 @@ enter a visible wavelength in nm</property>
         <property name="can-focus">False</property>
         <property name="tooltip-text" translatable="yes">Apply BM3D denoising.</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
+        <property name="spacing">16</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
             <property name="can-focus">False</property>
@@ -5937,14 +5937,15 @@ enter a visible wavelength in nm</property>
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <object class="GtkButton" id="button_denoise_launch_cc">
-                <property name="label" translatable="yes">Cosmetic Correction</property>
+              <object class="GtkCheckButton" id="check_denoise_cosmetic">
+                <property name="label" translatable="yes">Remove salt and pepper noise</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Launch the Cosmetic Correction dialog. This tool effectively removes "salt and pepper" outlier pixels and should be used before NL-Bayes denoising if required.</property>
-                <property name="margin-top">5</property>
-                <signal name="clicked" handler="on_button_denoise_launch_cc_clicked" swapped="no"/>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">This option applies cosmetic correction to remove salt and pepper noise before the primary denoising algorithm. This is generally a good thing and the setting defaults to active.</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_check_denoise_cosmetic_toggled" swapped="no"/>
               </object>
             </child>
             <child type="label">
@@ -5962,99 +5963,6 @@ enter a visible wavelength in nm</property>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkFrame">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="label-xalign">0</property>
-            <property name="shadow-type">none</property>
-            <child>
-              <!-- n-columns=2 n-rows=2 -->
-              <object class="GtkGrid">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">end</property>
-                <property name="margin-top">5</property>
-                <property name="row-spacing">5</property>
-                <property name="column-spacing">5</property>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Sets the number of SOS iterations. 3-5 is usually a good starting point.</property>
-                    <property name="halign">end</property>
-                    <property name="label" translatable="yes">SOS iterations</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSpinButton" id="spin_sos_iters">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">Sets the number of SOS iterations. 3 - 7 iterations should provide sufficient convergence unless rho is very close to 0 or 1.</property>
-                    <property name="halign">end</property>
-                    <property name="text" translatable="yes">3</property>
-                    <property name="adjustment">denoise_sos_adjustment</property>
-                    <property name="value">3</property>
-                    <signal name="value-changed" handler="on_spin_sos_iters_value_changed" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">rho sets the amount of the original noisy image at each iteration. A higher value means less noise is mixed in, and more of the intermediate result is kept. Values close to 0 or 1 may result in a need for more iterations to achieve convergence at the maximum improvement SOS can produce.</property>
-                    <property name="halign">end</property>
-                    <property name="label" translatable="yes">rho</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSpinButton" id="spin_rho">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">(1 - rho) sets the noisy image mixing, between 0 (no noisy image added) and 1 (output of each iteration entirely replaced by the noisy image again). Values very close to 0 or 1 result in very slow convergence and should be avoided.</property>
-                    <property name="halign">end</property>
-                    <property name="text" translatable="yes">0,50</property>
-                    <property name="adjustment">denoise-rho-adjustment</property>
-                    <property name="digits">2</property>
-                    <property name="value">0.5</property>
-                    <signal name="value-changed" handler="on_spin_rho_value_changed" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
-              </object>
-            </child>
-            <child type="label">
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">SOS Advanced Options</property>
-                <attributes>
-                  <attribute name="weight" value="bold"/>
-                </attributes>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -6090,6 +5998,24 @@ enter a visible wavelength in nm</property>
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkRadioButton" id="radio_denoise_vst">
+                    <property name="label" translatable="yes">Anscombe VST with exact unbiased inverse</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">The Anscombe VST is useful when denoising photon-limited images where the noise characteristics are not Gaussian but primarily Poisson or a Poisson-Gaussian mix. It cannot be used in conjunction with DA3D or SOS.</property>
+                    <property name="active">True</property>
+                    <property name="draw-indicator">True</property>
+                    <property name="group">radio_denoise_nosecondary</property>
+                    <signal name="toggled" handler="on_radio_denoise_vst_toggled" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkRadioButton" id="radio_denoise_da3d">
                     <property name="label" translatable="yes">Data Adaptive Dual Domain Denoising</property>
                     <property name="visible">True</property>
@@ -6105,7 +6031,7 @@ enter a visible wavelength in nm</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
                 <child>
@@ -6123,7 +6049,7 @@ enter a visible wavelength in nm</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">2</property>
+                    <property name="position">3</property>
                   </packing>
                 </child>
               </object>
@@ -6146,6 +6072,99 @@ enter a visible wavelength in nm</property>
           </packing>
         </child>
         <child>
+          <object class="GtkFrame">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
+            <child>
+              <!-- n-columns=2 n-rows=2 -->
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">end</property>
+                <property name="margin-top">5</property>
+                <property name="row-spacing">5</property>
+                <property name="column-spacing">5</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Sets the number of SOS iterations. 3-5 is usually a good starting point.</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">SOS iterations</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_sos_iters">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Sets the number of SOS iterations. 3-5 iterations usually provides good convergence. Convergence can be seen by examining the updated image noise estimate shown in the log window after each iteration. (These noise values are measured after noise from the original image is mixed back in to prepare the next iteration, so the final output noise level is substantially lower than the intermediate values shown between iterations.)</property>
+                    <property name="halign">end</property>
+                    <property name="text" translatable="yes">3</property>
+                    <property name="adjustment">denoise_sos_adjustment</property>
+                    <property name="value">3</property>
+                    <signal name="value-changed" handler="on_spin_sos_iters_value_changed" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">rho sets the amount of the original noisy image at each iteration. A higher value means less noise is mixed in, and more of the intermediate result is kept. Values close to 0 or 1 may result in a need for more iterations to achieve convergence at the maximum improvement SOS can produce.</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">rho</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_rho">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Rho sets the amount of the original noisy image mixed back in between each SOS iteration. Up to a point, larger values will result in greater effectiveness but beyond a certain point the algorithm will fail to converge. The default of 0.2 is often a good starting point.</property>
+                    <property name="halign">end</property>
+                    <property name="text" translatable="yes">0,50</property>
+                    <property name="adjustment">denoise-rho-adjustment</property>
+                    <property name="digits">2</property>
+                    <property name="value">0.5</property>
+                    <signal name="value-changed" handler="on_spin_rho_value_changed" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">SOS Advanced Options</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -6157,6 +6176,9 @@ enter a visible wavelength in nm</property>
                 <property name="tooltip-text" translatable="yes">Modulation allows a fraction of the noisy image to be mixed into the denoised result. This may be useful to add microtexture if the denoised result looks artificially smooth. A value of 1 means the output will be 100% denoised, with none of the noisy image added. Modulation is performed at the end of the process, after primary and secondary denoising stages have both completed.</property>
                 <property name="halign">start</property>
                 <property name="label" translatable="yes">Modulation</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
               </object>
               <packing>
                 <property name="expand">False</property>

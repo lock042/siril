@@ -62,11 +62,11 @@ void inverse_generalized_anscombe_array(float *x, const float mu, const float si
 	float test, exact_inverse;
     for (size_t i = 0; i < ndata ; i++) {
 		test = max(x[i], 1.0);
-		exact_inverse = ( 0.25f * pow(test, 2.f) +
-						  0.25f * sqrt(1.5f)*pow(test, -1.f) -
-						  1.375f * pow(test, -2.f) +
-						  0.625f * sqrt(1.5f) * pow(test, -3.f) -
-						  0.125f - pow(sigma, 2.f) );
+		exact_inverse = ( 0.25f * powf(test, 2.f) +
+						  0.25f * sqrtf(1.5f)*powf(test, -1.f) -
+						  1.375f * powf(test, -2.f) +
+						  0.625f * sqrtf(1.5f) * powf(test, -3.f) -
+						  0.125f - powf(sigma, 2.f) );
 		// Clamp to zero
 		exact_inverse = max(0.f, exact_inverse);
 		exact_inverse *= gain;
@@ -91,9 +91,9 @@ float generalized_anscombe(const float x, const float mu, const float sigma, con
     Note, this transform will show some bias for counts less than
     about 20.
     */
-	float y = gain * x + pow(gain, 2.f) * 0.375f + sigma*sigma - gain*mu;
+	float y = gain * x + powf(gain, 2.f) * 0.375f + sigma*sigma - gain*mu;
 	// Clamp to zero before taking the square root.
-	return (2.f / gain) * sqrt(max(y, 0.f));
+	return (2.f / gain) * sqrtf(max(y, 0.f));
 }
 
 float inverse_generalized_anscombe(const float x, const float mu, const float sigma, const float gain) {
@@ -112,11 +112,11 @@ float inverse_generalized_anscombe(const float x, const float mu, const float si
     IEEE Trans. Image Process., doi:10.1109/TIP.2012.2202675
     */
     float test = max(x, 1.0);
-    float exact_inverse = ( 0.25f * pow(test, 2.f) +
-							0.25f * sqrt(1.5f)*pow(test, -1.f) -
-							1.375f * pow(test, -2.f) +
-							0.625f * sqrt(1.5f) * pow(test, -3.f) -
-							0.125f - pow(sigma, 2.f) );
+    float exact_inverse = ( 0.25f * powf(test, 2.f) +
+							0.25f * sqrtf(1.5f)*powf(test, -1.f) -
+							1.375f * powf(test, -2.f) +
+							0.625f * sqrtf(1.5f) * powf(test, -3.f) -
+							0.125f - powf(sigma, 2.f) );
     // Clamp to zero
 	exact_inverse = max(0.f, exact_inverse);
 	exact_inverse *= gain;
@@ -135,7 +135,7 @@ float anscombe(float x) {
 	binomial and negative-binomial data", Biometrika 35 (3-4): 246-254
 	*/
 
-	return 2.f * sqrt(x + 3.f / 8.f);
+	return 2.f * sqrtf(x + 3.f / 8.f);
 }
 
 float exact_unbiased_inverse_anscombe(float z) {
@@ -146,8 +146,8 @@ float exact_unbiased_inverse_anscombe(float z) {
 	Image Processing.
 	*/
 
-	return (0.25f * pow(z, 2.f) +
-            0.25f * sqrt(1.5f) * pow(z, -1.f) -
-            1.375f * pow(z, -2.f) +
-            0.625f * sqrt(1.5f) * pow(z, -3.f) - 0.125f);
+	return (0.25f * powf(z, 2.f) +
+            0.25f * sqrtf(1.5f) * powf(z, -1.f) -
+            1.375f * powf(z, -2.f) +
+            0.625f * sqrtf(1.5f) * powf(z, -3.f) - 0.125f);
 }
