@@ -37,10 +37,13 @@ void generalized_anscombe_array(float *x, const float mu, const float sigma, con
     Note, this transform will show some bias for counts less than
     about 20.
     */
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
 	for (size_t i = 0; i < ndata; i++) {
-		float y = gain * x[i] + pow(gain, 2.f) * 0.375f + sigma*sigma - gain*mu;
+		float y = gain * x[i] + powf(gain, 2.f) * 0.375f + sigma*sigma - gain*mu;
 		// Clamp to zero before taking the square root.
-		x[i] = (2.f / gain) * sqrt(max(y, 0.f));
+		x[i] = (2.f / gain) * sqrtf(max(y, 0.f));
 	}
 }
 
@@ -59,10 +62,12 @@ void inverse_generalized_anscombe_array(float *x, const float mu, const float si
     generalized Anscombe transformation for Poisson-Gaussian noise",
     IEEE Trans. Image Process., doi:10.1109/TIP.2012.2202675
     */
-	float test, exact_inverse;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
     for (size_t i = 0; i < ndata ; i++) {
-		test = max(x[i], 1.0);
-		exact_inverse = ( 0.25f * powf(test, 2.f) +
+		float test = max(x[i], 1.0);
+		float exact_inverse = ( 0.25f * powf(test, 2.f) +
 						  0.25f * sqrtf(1.5f)*powf(test, -1.f) -
 						  1.375f * powf(test, -2.f) +
 						  0.625f * sqrtf(1.5f) * powf(test, -3.f) -
