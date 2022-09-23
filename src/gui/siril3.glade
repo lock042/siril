@@ -6072,8 +6072,7 @@ enter a visible wavelength in nm</property>
           </packing>
         </child>
         <child>
-          <object class="GtkFrame">
-            <property name="visible">True</property>
+          <object class="GtkFrame" id="sos_advanced_options">
             <property name="can-focus">False</property>
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
@@ -6137,7 +6136,7 @@ enter a visible wavelength in nm</property>
                     <property name="text" translatable="yes">0,50</property>
                     <property name="adjustment">denoise-rho-adjustment</property>
                     <property name="digits">2</property>
-                    <property name="value">0.5</property>
+                    <property name="value">0.20</property>
                     <signal name="value-changed" handler="on_spin_rho_value_changed" swapped="no"/>
                   </object>
                   <packing>

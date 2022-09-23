@@ -270,7 +270,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data("Starting BNL-Bayes denoising...", 0.0);
 
-	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
+	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe, TRUE);
 
 	notify_gfit_modified();
 	gettimeofday(&t_end, NULL);

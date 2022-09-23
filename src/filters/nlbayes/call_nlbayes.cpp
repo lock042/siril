@@ -30,6 +30,7 @@ extern "C" {
 #include "algos/statistics.h"
 #include "algos/anscombe.h"
 #include "core/processing.h"
+#include "filters/cosmetic_correction.h"
 }
 
 #define ACTIVATE_NULLCHECK_FLOAT 1
@@ -48,7 +49,7 @@ using NlBayes::runNlBayes;
 using da3d::Image;
 using da3d::DA3D;
 
-extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d, const float rho, const gboolean do_anscombe) {
+extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d, const float rho, const gboolean do_anscombe, const gboolean do_cosme) {
     // Parameters
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
@@ -69,10 +70,13 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     const bool useArea1 = true;
     const unsigned useArea2 = true;
     const bool verbose = FALSE;
-//    const bool do_anscombe = true;
 
     float *bgr_f = (float*) calloc(npixels * nchans, sizeof(float));
     float *bgr_fout;
+
+    // Carry out cosmetic correction at the start, if selected
+    if (do_cosme == TRUE)
+      denoise_hook_cosmetic(fit);
 
     if (fit->type == DATA_FLOAT) {
         for (size_t i = 0; i < npixels * nchans; i++)

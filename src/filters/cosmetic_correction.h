@@ -43,4 +43,6 @@ int cosmeticCorrection(fits *fit, deviant_pixel *dev, int size, gboolean is_CFA)
 int cosmeticCorrOneLine(fits *fit, deviant_pixel dev, gboolean is_cfa);
 int cosmeticCorrOnePoint(fits *fit, deviant_pixel dev, gboolean is_cfa);
 
+int denoise_hook_cosmetic(fits *fit);
+
 #endif /* COSMETIC_CORRECTION_H_ */

@@ -19,6 +19,8 @@ int da3d = 0;
 int sos = 0;
 int sos_iters = 5;
 float sos_rho = 0.5f;
+gboolean do_anscombe = FALSE;
+gboolean do_cosme = TRUE;
 
 void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 	da3d = 0;
@@ -28,7 +30,7 @@ void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_denoise_cancel_clicked(GtkButton *button, gpointer user_data) {
-  siril_close_dialog("bm3d_dialog");
+  siril_close_dialog("denoise_dialog");
 }
 
 void on_spin_sos_iters_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -51,7 +53,7 @@ void on_spin_rho_value_changed(GtkSpinButton *button, gpointer user_data) {
 void on_spin_denoise_modulation_value_changed(GtkSpinButton *button, gpointer user_data) {
   denoise_modulation = (float) gtk_spin_button_get_value(button);
 }
-
+/*
 void on_radio_denoise_nosecondary_group_changed(GtkWidget *widget, gpointer user_data) {
 	GtkToggleButton *toggle_da3d = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_da3d"));
 	GtkToggleButton *toggle_sos = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_sos"));
@@ -62,24 +64,27 @@ void on_radio_denoise_nosecondary_group_changed(GtkWidget *widget, gpointer user
 	else
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), FALSE);
 }
-
+*/
 void on_radio_denoise_nosecondary_toggled(GtkToggleButton *button, gpointer user_data) {
 	GtkToggleButton *toggle_da3d = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_da3d"));
+	GtkToggleButton *toggle_vst = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_vst"));
 	GtkToggleButton *toggle_sos = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_sos"));
 	da3d = (gtk_toggle_button_get_active(toggle_da3d) ? 1 : 0);
+	do_anscombe = (gtk_toggle_button_get_active(toggle_vst) ? TRUE : FALSE);
 	sos = (gtk_toggle_button_get_active(toggle_sos) ? 1 : 0);
-	if (sos ==1)
+	if (sos == 1)
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), TRUE);
 	else
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), FALSE);
 }
 
 void on_radio_denoise_da3d_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkToggleButton *toggle_da3d = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_da3d"));
+	GtkToggleButton *toggle_vst = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_vst"));
 	GtkToggleButton *toggle_sos = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_sos"));
-	da3d = (gtk_toggle_button_get_active(toggle_da3d) ? 1 : 0);
+	da3d = (gtk_toggle_button_get_active(button) ? 1 : 0);
+	do_anscombe = (gtk_toggle_button_get_active(toggle_vst) ? TRUE : FALSE);
 	sos = (gtk_toggle_button_get_active(toggle_sos) ? 1 : 0);
-	if (sos ==1)
+	if (sos == 1)
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), TRUE);
 	else
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), FALSE);
@@ -87,10 +92,27 @@ void on_radio_denoise_da3d_toggled(GtkToggleButton *button, gpointer user_data) 
 
 void on_radio_denoise_sos_toggled(GtkToggleButton *button, gpointer user_data) {
 	GtkToggleButton *toggle_da3d = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_da3d"));
+	GtkToggleButton *toggle_vst = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_vst"));
+	sos = (gtk_toggle_button_get_active(button) ? 1 : 0);
+	do_anscombe = (gtk_toggle_button_get_active(toggle_vst) ? TRUE : FALSE);
+	da3d = (gtk_toggle_button_get_active(toggle_da3d) ? 1 : 0);
+	if (sos == 1)
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), TRUE);
+	else
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), FALSE);
+}
+
+void on_check_denoise_cosmetic_toggled(GtkToggleButton *button, gpointer user_data) {
+	do_cosme = (gtk_toggle_button_get_active(button) ? TRUE : FALSE);
+}
+
+void on_radio_denoise_vst_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkToggleButton *toggle_da3d = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_da3d"));
 	GtkToggleButton *toggle_sos = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_sos"));
+	do_anscombe = (gtk_toggle_button_get_active(button) ? TRUE : FALSE);
 	da3d = (gtk_toggle_button_get_active(toggle_da3d) ? 1 : 0);
 	sos = (gtk_toggle_button_get_active(toggle_sos) ? 1 : 0);
-	if (sos ==1)
+	if (sos == 1)
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), TRUE);
 	else
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), FALSE);
@@ -105,6 +127,8 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->da3d = da3d;
 	args->sos = 1;
 	args->rho = sos_rho;
+	args->do_anscombe = do_anscombe;
+	args->do_cosme = do_cosme;
 	if (sos == 1)
 		args->sos = sos_iters;
 	args->modulation = denoise_modulation;
@@ -113,10 +137,22 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 	siril_log_message(_("Modulation: %f\n"),args->modulation);
+	if (args->do_cosme)
+		siril_log_message(_("Will apply salt and pepper noise removal.\n"));
+	else
+		siril_log_message(_("Salt and pepper noise removal disabled.\n"));
+	if (args->do_anscombe)
+		siril_log_message(_("Will apply Anscombe variance stabilising transform.\n"));
+	else
+		siril_log_message(_("Anscombe variance stabilising transform disabled.\n"));
 	if (args->da3d)
-		siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
+		siril_log_message(_("Will apply final stage DA3D denoising.\n"));
 	else
 		siril_log_message(_("Final stage DA3D denoising disabled.\n"));
+	if (sos)
+		siril_log_message(_("Will apply SOS iterative denoise booster.\n"));
+	else
+		siril_log_message(_("SOS denoise booster disabled.\n"));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(run_nlbayes_on_fit, args);
 	siril_close_dialog("denoise_dialog");
