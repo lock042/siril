@@ -43,6 +43,12 @@ using NlBayes::runNlBayes;
 using da3d::Image;
 using da3d::DA3D;
 
+static void smult(float *x, float factor, float ndata) {
+  for (size_t i=0; i < ndata; i++)
+    x[i] = x[i] * factor;
+}
+
+
 extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, float rho) {
     // Parameters
     const unsigned width = fit->naxes[0];
@@ -64,6 +70,7 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
     const bool useArea1 = true;
     const unsigned useArea2 = true;
     const bool verbose = FALSE;
+    const bool do_anscombe = true;
 
     float *bgr_f = (float*) calloc(npixels * nchans, sizeof(float));
     float *bgr_fout;
@@ -75,8 +82,6 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
         for (size_t i = 0; i < npixels * nchans; i++)
           bgr_f[i] = (float) fit->data[i] * invnorm;
     }
-
-    const bool do_anscombe = false;
 
     // Measure image noise using the custom wrapper to FnNoise1_float in quantize.c
     // Initial noise measurement
@@ -99,9 +104,13 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
     if(!get_thread_run()) {
       return EXIT_FAILURE;
     }
+    if (do_anscombe) {
+      sos = 1; // SOS doesn't make sense with VST as it would be adding non-Gaussian noise back into an AWGN denoising algorithm.
+      da3d = false; // DA3D doesn't produce good results in combination with the Anscombe VST, so we disable it.
+    }
 
     // SOS iteration loop
-    for (unsigned i=0; i < sos; i++) {
+    for (unsigned iter=0; iter < sos; iter++) {
 
       // Strengthen result of previous iteration bgr_v by mixing back a fraction of the original noisy image
       for (unsigned i = 0; i < bgr_v_orig.size(); i++)
@@ -117,18 +126,39 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
       }
       siril_log_message(_("NL-Bayes auto parametrisation: measured background noise level is %f\n"),fSigma);
 
+      if (do_anscombe && iter == 0) {
+        if (nchans == 1) {
+          smult(bgr_v.data(), 65536.f, imSize.whc);
+          sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
+          fSigma = (float) intermediate_bgnoise;
+          generalized_anscombe_array(bgr_v.data(), 0.f, fSigma, 1.f, imSize.whc);
+          sos_update_noise_float(bgr_v.data(), width, height, nchans, &intermediate_bgnoise);
+          fSigma = (float) intermediate_bgnoise;
+        } else {
+          // Do something for Anscombe with 3 channel data...
+        }
+      }
       // Operate the NL-Bayes algorithm
       if (runNlBayes(bgr_v, basic, bgr_vout, imSize, useArea1, useArea2, fSigma, verbose) != EXIT_SUCCESS)
         return EXIT_FAILURE;
 
+      if (do_anscombe && iter == 0) {
+        if (nchans == 1) {
+          inverse_generalized_anscombe_array(bgr_vout.data(), 0.f, fSigma, 1.f, imSize.whc);
+          smult(bgr_vout.data(), 1.f / 65536.f, imSize.whc);
+        } else {
+          // Do something for Inverse Anscombe with 3 channel data...
+        }
+      }
+
       // Subtraction step to produce input for next iteration. Not performed on the final iteration.
-      if (i+1 < sos) {
+      if (iter+1 < sos) {
         for (unsigned i = 0; i < bgr_v.size(); i++) {
           bgr_vout[i] *= 1.f / (1.f - rho);
           bgr_vout[i] -= bgr_v[i] * (rho / (1.f - rho));
         }
       if (sos > 1)
-        siril_log_message(_("SOS iteration %d of %d complete\n"), i+1, sos);
+        siril_log_message(_("SOS iteration %d of %d complete\n"), iter+1, sos);
       }
     }
 
@@ -150,7 +180,7 @@ extern "C" int do_nlbayes(fits *fit, float modulation, unsigned sos, int da3d, f
         guide = makeMonochrome(guide);
       }
       int retval = 0;
-      Image output = DA3D(retval, input, guide, fSigma);
+      Image output = DA3D(retval, input, guide, lastfSigma);
       if (retval != 0)
         return EXIT_FAILURE;
       bgr_da3dout = output.data();
