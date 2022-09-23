@@ -800,7 +800,7 @@ int denoise_hook_cosmetic(fits *fit) {
 	long icold = 0, ihot = 0;
 	double sig[2] = { 3.0, 3.0 };
 	for (size_t layer = 0; layer < fit->naxes[2] ; layer++) {
-		autoDetect(fit, layer, sig, &icold, &ihot, 3.0, FALSE, MULTI_THREADED);
+		autoDetect(fit, layer, sig, &icold, &ihot, 1.0, FALSE, MULTI_THREADED);
 	}
 	return 0;
 }
