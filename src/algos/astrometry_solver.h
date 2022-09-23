@@ -3,6 +3,7 @@
 
 #include "core/siril.h"
 #include "core/siril_world_cs.h"
+
 #include "registration/matching/degtorad.h"
 
 #define BRIGHTEST_STARS 2500
@@ -14,6 +15,8 @@
 #define CDSSESAME "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame"
 #define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
 #define SIMBADSESAME "http://simbad.u-strasbg.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
+#define EPHEMCC "https://ssp.imcce.fr/webservices/miriade/api/ephemcc.php?"
+
 
 typedef enum {
 	TYCHO2,
@@ -37,7 +40,8 @@ typedef enum {
 typedef enum {
 	QUERY_SERVER_CDS,
 	QUERY_SERVER_VIZIER,
-	QUERY_SERVER_SIMBAD
+	QUERY_SERVER_SIMBAD,
+	QUERY_SERVER_EPHEMCC,
 } query_server;
 
 struct astrometry_data {
@@ -83,7 +87,7 @@ struct sky_object {
 };
 
 void open_astrometry_dialog();
-gchar *search_in_catalogs(const gchar *object, query_server server);
+gchar *search_in_online_catalogs(const gchar *object, query_server server);
 void process_plate_solver_input(struct astrometry_data *args);
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
 void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);

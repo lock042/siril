@@ -24,6 +24,7 @@
 #include "core/proto.h"
 #include "core/optimize_utils.h"
 #include "core/undo.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"

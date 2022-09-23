@@ -26,6 +26,7 @@
 #include <fftw3.h>
 
 #include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/utils.h"
@@ -425,7 +426,6 @@ static gboolean end_fourier_transform(gpointer p) {
 	free(args->type);
 	free(args);
 	set_cursor_waiting(FALSE);
-	
 
 	return FALSE;
 }

@@ -33,7 +33,7 @@
 #include <opencv2/calib3d.hpp>
 
 #include "core/siril.h"
-#include "core/proto.h"
+#include "core/siril_log.h"
 #include "registration/registration.h"
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"

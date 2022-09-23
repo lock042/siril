@@ -21,12 +21,12 @@
 #include <glib.h>
 #include "mtf.h"
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
-
 
 void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gboolean multithreaded) {
 
-	const gboolean do_channel[3] = {params.do_red, params.do_green, params.do_blue};
+	const gboolean do_channel[3] = { params.do_red, params.do_green, params.do_blue };
 
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
@@ -201,7 +201,6 @@ int find_linked_midtones_balance_default(fits *fit, struct mtf_params *result) {
 }
 
 void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params) {
-	const gboolean do_channel[3] = {params->do_red, params->do_green, params->do_blue};
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t ndata = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);
@@ -213,19 +212,16 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
 #endif
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
-			if (do_channel[chan]) {
-				siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
-				params[chan].shadows, params[chan].midtones, params[chan].highlights);
+			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
+					params[chan].shadows, params[chan].midtones, params[chan].highlights);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
-				for (size_t i = 0; i < ndata; i++) {
-					float pxl = (float)from->pdata[chan][i] * invnorm;
-					float mtf = MTFp(pxl, params[chan]);
-					to->pdata[chan][i] = roundf_to_WORD(mtf * norm);
-				}
-			} else
-				memcpy(to->pdata[chan], from->pdata[chan], ndata * sizeof(WORD));
+			for (size_t i = 0; i < ndata; i++) {
+				float pxl = (float)from->pdata[chan][i] * invnorm;
+				float mtf = MTFp(pxl, params[chan]);
+				to->pdata[chan][i] = roundf_to_WORD(mtf * norm);
+			}
 		}
 	}
 	else if (from->type == DATA_FLOAT) {
@@ -233,17 +229,14 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
 #endif
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
-			if (do_channel[chan]) {
-				siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
-				params[chan].shadows, params[chan].midtones, params[chan].highlights);
+			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
+					params[chan].shadows, params[chan].midtones, params[chan].highlights);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
-				for (size_t i = 0; i < ndata; i++) {
-					to->fpdata[chan][i] = MTFp(from->fpdata[chan][i], params[chan]);
-				}
-			} else
-				memcpy(to->fpdata[chan], from->fpdata[chan], ndata * sizeof(float));
+			for (size_t i = 0; i < ndata; i++) {
+				to->fpdata[chan][i] = MTFp(from->fpdata[chan][i], params[chan]);
+			}
 		}
 	}
 	else return;

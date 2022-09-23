@@ -23,6 +23,7 @@
 #include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
@@ -373,7 +374,7 @@ static void add_object_in_tree_view(const gchar *object) {
 	set_cursor_waiting(TRUE);
 
 	query_server server = get_server_from_combobox();
-	gchar *result = search_in_catalogs(object, server);
+	gchar *result = search_in_online_catalogs(object, server);
 	if (result) {
 		free_Platedobject();
 		parse_content_buffer(result, &obj);
@@ -395,7 +396,6 @@ static void add_object_in_tree_view(const gchar *object) {
 			gtk_tree_selection_select_iter(selection, &iter);
 			g_signal_emit_by_name(GTK_TREE_VIEW(GtkTreeViewIPS), "cursor-changed");
 		}
-
 	}
 	set_cursor_waiting(FALSE);
 }

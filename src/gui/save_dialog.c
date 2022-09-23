@@ -24,8 +24,8 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/OS_utils.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
@@ -34,6 +34,7 @@
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
+#include "gui/dialogs.h"
 #include "io/Astro-TIFF.h"
 #include "io/conversion.h"
 #include "io/sequence.h"
@@ -181,6 +182,7 @@ static void set_description_in_TIFF() {
 
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_type_of_tiff"))) == 0) {
 		gchar *astro_tiff = AstroTiff_build_header(&gfit);
+
 		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
 		gtk_text_buffer_insert(tbuf, &itEnd, astro_tiff, -1);
 		gtk_text_buffer_get_end_iter(tbuf, &itEnd);
@@ -407,10 +409,10 @@ gboolean end_save(gpointer p) {
 
 static gboolean test_for_viewer_mode() {
 	gboolean confirm = TRUE;
-	if (get_display_mode_from_menu() != LINEAR_DISPLAY) {
-		confirm = siril_confirm_dialog(_("Viewer mode is not linear"),
+	if (get_display_mode_from_menu() != LINEAR_DISPLAY && !com.pref.gui.silent_linear) {
+		confirm = siril_confirm_dialog_and_remember(_("Viewer mode is not linear"),
 				_("You are saving an image that is displayed in a non linear mode. "
-						"What you see is not what you will get. Switch the viewer mode to linear to save what you see."), _("Save Anyway"));
+						"What you see is not what you will get. Switch the viewer mode to linear to save what you see."), _("Save Anyway"), &com.pref.gui.silent_linear);
 	}
 	return confirm;
 }

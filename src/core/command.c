@@ -45,6 +45,7 @@
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -1594,6 +1595,9 @@ int process_autostretch(int nb) {
 	if (linked) {
 		struct mtf_params params;
 		find_linked_midtones_balance(&gfit, shadows_clipping, target_bg, &params);
+		params.do_red = TRUE;
+		params.do_green = TRUE;
+		params.do_blue = TRUE;
 		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
 	} else {
 		struct mtf_params params[3];
@@ -2139,6 +2143,8 @@ int process_pm(int nb) {
 	gchar *expression = g_shell_unquote(word[1], NULL);
 	gchar *next, *cur;
 	int count = 0;
+	float min = -1.f;
+	float max = -1.f;
 
 	cur = expression;
 	while ((next = strchr(cur, '$')) != NULL) {
@@ -2152,6 +2158,28 @@ int process_pm(int nb) {
 	} else if (count % 2 != 0) {
 		siril_log_message(_("There is an unmatched $. Please check the expression.\n"));
 		return CMD_ARG_ERROR;
+	}
+
+	/* parse rescale option if exist */
+	if (nb > 1) {
+		if (!g_strcmp0(word[2], "-rescale")) {
+			if (nb == 5) {
+				gchar *end;
+				min = g_ascii_strtod(word[3], &end);
+				if (end == word[3] || min < 0 || min > 1) {
+					siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
+					return CMD_ARG_ERROR;
+				}
+				max = g_ascii_strtod(word[4], &end);
+				if (end == word[4] || max < 0 || max > 1) {
+					siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
+					return CMD_ARG_ERROR;
+				}
+			} else {
+				min = 0.f;
+				max = 1.f;
+			}
+		}
 	}
 
 	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
@@ -2234,6 +2262,13 @@ int process_pm(int nb) {
 	args->fit = fit;
 	args->ret = 0;
 	args->from_ui = FALSE;
+	if (min >= 0.f) {
+		args->rescale = TRUE;
+		args->min = min;
+		args->max = max;
+	} else {
+		args->rescale = FALSE;
+	}
 
 	start_in_new_thread(apply_pixel_math_operation, args);
 
@@ -2642,7 +2677,7 @@ int process_histo(int nb) {
 	if (!isrgb(&gfit))
 		clayer = "bw";		//if B&W
 	else
-		clayer = vport_number_to_name(nlayer);
+		clayer = channel_number_to_name(nlayer);
 	gchar *filename = g_strdup_printf("histo_%s.dat", clayer);
 
 	GFile *file = g_file_new_for_path(filename);
@@ -3395,9 +3430,8 @@ int process_subsky(int nb) {
 		args->seqEntry = NULL;
 		args->fit = &gfit;
 
-		generate_background_samples(samples, tolerance);
-
-		start_in_new_thread(remove_gradient_from_image, args);
+		if (!generate_background_samples(samples, tolerance))
+			start_in_new_thread(remove_gradient_from_image, args);
 	}
 
 	return CMD_OK;
@@ -4543,6 +4577,11 @@ int process_register(int nb) {
 		siril_log_color_message(_("Forcing the registration transformation to shift, which is the only transformation compatible with no interpolation, is not compatible with OpenCV below 4.4. Aborting\n"), "red");
 		goto terminate_register_on_error;
 #endif
+	}
+
+	if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || reg_args->seq->is_variable)) {
+		siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
+		goto terminate_register_on_error;
 	}
 
 	get_the_registration_area(reg_args, method);	// sets selection
@@ -6225,4 +6264,3 @@ int process_stop_ls(int nb) {
 	stop_live_stacking_engine();
 	return CMD_OK;
 }
-

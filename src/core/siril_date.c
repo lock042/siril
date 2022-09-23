@@ -174,7 +174,7 @@ GDateTime *FITS_date_to_date_time(char *date) {
 
 /**
  *
- * @param datetime, a GDateTIme
+ * @param datetime, a GDateTime
  * @return a newly allocated string formatted as expected in
  * FITS header: "%Y-%m-%dT%H:%M:%S.%f" or NULL in the case that
  * there was an error  The string should be freed with g_free().
@@ -209,3 +209,14 @@ gchar *date_time_to_FITS_date(GDateTime *datetime) {
 
 	return g_string_free(outstr, FALSE);
 }
+
+/**
+ * Get the date only from a datetime object.
+ * @param datetime a GDateTime
+ * @return a newly allocated string formatted as year-month-day in numbers.
+ */
+gchar *date_time_to_date(GDateTime *datetime) {
+	gchar *format = "%Y-%m-%d";
+	return g_date_time_format(datetime, format);
+}
+

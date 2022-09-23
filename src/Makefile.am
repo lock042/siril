@@ -117,6 +117,7 @@ siril_common_SOURCES = \
 	core/siril_language.c \
 	core/siril_language.h \
 	core/siril_log.c \
+	core/siril_log.h \
 	core/siril_update.c \
 	core/siril_update.h \
 	core/siril_world_cs.c \
@@ -159,10 +160,13 @@ siril_common_SOURCES = \
 	gui/about_dialog.h \
 	gui/annotations_pref.c \
 	gui/astrometry_solver.c \
+	gui/background_extraction.c \
 	gui/callbacks.c \
 	gui/callbacks.h \
 	gui/conversion.c \
 	gui/conversion.h \
+	gui/colors.c \
+	gui/colors.h \
 	gui/dialog_preview.c \
 	gui/dialog_preview.h \
 	gui/dialogs.c \
@@ -177,6 +181,8 @@ siril_common_SOURCES = \
 	gui/image_interactions.h \
 	gui/linear_match.c \
 	gui/linear_match.h \
+	gui/menu_gray_geometry.c \
+	gui/menu_gray_geometry.h \
 	gui/menu_gray_psf.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
@@ -213,6 +219,8 @@ siril_common_SOURCES = \
 	gui/siril_preview.h \
 	gui/siril-window.c \
 	gui/siril-window.h \
+	gui/split_cfa.c \
+	gui/star_finder.c \
 	gui/starnetgui.c \
 	gui/starnetgui.h \
 	gui/statistics_list.c \

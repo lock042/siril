@@ -1,4 +1,4 @@
-/* 
+/*
  * This file is part of Siril, an astronomy image processor.
  *
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
@@ -30,12 +30,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "gui/utils.h"
-#include "gui/message_dialog.h"
-#include "gui/image_display.h"
-#include "gui/progress_and_log.h"
-#include "gui/PSF_list.h"
-#include "gui/image_interactions.h"
+#include "core/siril_log.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
@@ -43,7 +38,7 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "core/OS_utils.h"
+#include "gui/PSF_list.h"
 
 #define _SQRT_EXP1 1.6487212707
 #define KERNEL_SIZE 3.  // sigma of the gaussian smoothing kernel
@@ -146,83 +141,14 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 }
 
 static int star_cmp_by_mag_est(const void *a, const void *b) {
-    starc *a1 = (starc *)a;
-    starc *a2 = (starc *)b;
-    if ((*a1).mag_est > (*a2).mag_est)
-        return -1;
-    else if ((*a1).mag_est < (*a2).mag_est)
-        return 1;
-    return 0;
+	starc *a1 = (starc *)a;
+	starc *a2 = (starc *)b;
+	if ((*a1).mag_est > (*a2).mag_est)
+		return -1;
+	else if ((*a1).mag_est < (*a2).mag_est)
+		return 1;
+	return 0;
 }
-
-void on_toggle_radius_adjust_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	com.pref.starfinder_conf.adjust = gtk_toggle_button_get_active(togglebutton);
-}
-
-void on_toggle_relax_checks_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	com.pref.starfinder_conf.relax_checks = gtk_toggle_button_get_active(togglebutton);
-}
-
-void on_spin_sf_radius_changed(GtkSpinButton *spinbutton, gpointer user_data) {
-	com.pref.starfinder_conf.radius = (int)gtk_spin_button_get_value(spinbutton);
-}
-
-void on_spin_sf_threshold_changed(GtkSpinButton *spinbutton, gpointer user_data) {
-	com.pref.starfinder_conf.sigma = gtk_spin_button_get_value(spinbutton);
-}
-
-void on_spin_sf_roundness_changed(GtkSpinButton *spinbutton, gpointer user_data) {
-	com.pref.starfinder_conf.roundness = gtk_spin_button_get_value(spinbutton);
-}
-
-void on_spin_sf_convergence_changed(GtkSpinButton *spinbutton, gpointer user_data) {
-	com.pref.starfinder_conf.convergence = (int)gtk_spin_button_get_value(spinbutton);
-}
-
-void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {
-	//TODO: do we want to keep focal and pixel_size as they are not exposed?
-	com.pref.starfinder_conf = (star_finder_params){.radius = 10, .adjust = TRUE, .sigma = 1., 
-			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE};
-	update_peaker_GUI();
-}
-
-void update_peaker_GUI() {
-	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
-			*spin_roundness = NULL, *spin_convergence = NULL;
-	static GtkToggleButton *toggle_adjust = NULL, *toggle_checks = NULL;
-
-	if (spin_radius == NULL) {
-		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
-		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
-		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
-		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
-		toggle_adjust = GTK_TOGGLE_BUTTON(lookup_widget("toggle_radius_adjust"));
-		toggle_checks = GTK_TOGGLE_BUTTON(lookup_widget("toggle_relax_checks"));
-	}
-	gtk_spin_button_set_value(spin_radius, (double) com.pref.starfinder_conf.radius);
-	gtk_toggle_button_set_active(toggle_adjust, com.pref.starfinder_conf.adjust);
-	gtk_spin_button_set_value(spin_sigma, com.pref.starfinder_conf.sigma);
-	gtk_spin_button_set_value(spin_roundness, com.pref.starfinder_conf.roundness);
-	gtk_spin_button_set_value(spin_convergence, com.pref.starfinder_conf.convergence);
-	gtk_toggle_button_set_active(toggle_checks, com.pref.starfinder_conf.relax_checks);
-}
-
-void confirm_peaker_GUI() {
-	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
-			*spin_roundness = NULL, *spin_convergence = NULL;
-
-	if (spin_radius == NULL) {
-		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
-		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
-		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
-		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
-	}
-	gtk_spin_button_update(spin_radius);
-	gtk_spin_button_update(spin_sigma);
-	gtk_spin_button_update(spin_roundness);
-	gtk_spin_button_update(spin_convergence);
-}
-
 
 /*
  This is an implementation of a simple peak detector algorithm which
@@ -346,7 +272,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	for (int y = r + areaY0; y < areaY1 - r; y++) {
 		for (int x = r + areaX0; x < areaX1 - r; x++) {
 			float pixel = smooth_image[y][x];
-			float pixel0;
+			float pixel0 = 0.f;
 			if (pixel > threshold) {
 				gboolean bingo = TRUE;
 				float neighbor;
@@ -381,15 +307,15 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				for (int yy = y - 1; yy <= y + 1; yy++) {
 					for (int xx = x - r - 1; xx <= x - r + 1; xx++) { // x corrected by the anticipated shift
 						if (xx == x - r && yy == y) {
-							pixel0 = (itype == DATA_USHORT) ? (float)image_ushort[yy][xx] : image_float[yy][xx]; 
+							pixel0 = (itype == DATA_USHORT) ? (float)image_ushort[yy][xx] : image_float[yy][xx];
 							continue;
 						}
-						neighbor = (itype == DATA_USHORT) ? (float)image_ushort[yy][xx] : image_float[yy][xx]; 
+						neighbor = (itype == DATA_USHORT) ? (float)image_ushort[yy][xx] : image_float[yy][xx];
 						if (neighbor <= threshold) {
 							bingo = FALSE;
 							break;
 						}
-						if (neighbor < minhigh) minhigh = neighbor; 
+						if (neighbor < minhigh) minhigh = neighbor;
 						if (!bingo) break;
 						meanhigh += neighbor;
 						count++;
@@ -746,95 +672,6 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	return nbstars;
 }
 
-/* Function to add star one by one, from the selection rectangle, the
- * minimization is run and the star is detected and added to the list of stars.
- *
- * IF A STAR IS FOUND and not already present in com.stars, the return value is
- * the new star and index is set to the index of the new star in com.stars.
- * IF NO NEW STAR WAS FOUND, either because it was already in the list, or a
- * star failed to be detected in the selection, or any other error, the return
- * value is NULL and index is set to -1.
- */
-psf_star *add_star(fits *fit, int layer, int *index) {
-	int i = 0;
-	gboolean already_found = FALSE;
-
-	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, NULL, TRUE, NULL);
-	if (!result)
-		return NULL;
-	/* We do not check if it's matching with the "reject_star()" criteria.
-	 * Indeed, in this case the user can add manually stars missed by star_finder */
-
-	if (com.stars && !com.star_is_seqdata) {
-		// check if the star was already detected/peaked
-		while (com.stars[i]) {
-			if (fabs(result->x0 + com.selection.x - com.stars[i]->xpos) < 0.9
-					&& fabs(com.selection.y + com.selection.h - result->y0
-									- com.stars[i]->ypos) < 0.9)
-				already_found = TRUE;
-			i++;
-		}
-	} else {
-		if (com.star_is_seqdata) {
-			/* com.stars was allocated with a size of 2, we need to free it before reallocating */
-			clear_stars_list(TRUE);
-		}
-		com.stars = new_fitted_stars(MAX_STARS);
-		if (!com.stars) {
-			PRINT_ALLOC_ERR;
-			return NULL;
-		}
-		com.star_is_seqdata = FALSE;
-	}
-
-	if (already_found) {
-		free_psf(result);
-		result = NULL;
-		char *msg = siril_log_message(_("This star has already been picked !\n"));
-		siril_message_dialog( GTK_MESSAGE_INFO, _("Peaker"), msg);
-	} else {
-		if (i < MAX_STARS) {
-			result->xpos = result->x0 + com.selection.x;
-			result->ypos = com.selection.y + com.selection.h - result->y0;
-			psf_star **newstars = realloc(com.stars, (i + 2) * sizeof(psf_star *));
-			if (!newstars)
-				PRINT_ALLOC_ERR;
-			else {
-				com.stars = newstars;
-				com.stars[i] = result;
-				com.stars[i + 1] = NULL;
-				*index = i;
-			}
-		} else {
-			free_psf(result);
-			result = NULL;
-		}
-	}
-	return result;
-}
-
-int get_size_star_tab() {
-	int i = 0;
-	while (com.stars[i])
-		i++;
-	return i;
-}
-
-/* Remove a star from com.stars, at index index. The star is freed. */
-int remove_star(int index) {
-	if (index < 0 || !com.stars || !com.stars[index])
-		return 1;
-
-	int N = get_size_star_tab() + 1;
-
-	free_psf(com.stars[index]);
-	memmove(&com.stars[index], &com.stars[index + 1],
-			(N - index - 1) * sizeof(*com.stars));
-	redraw(REDRAW_OVERLAY);
-	return 0;
-}
-
 int compare_stars_by_mag(const void* star1, const void* star2) {
 	psf_star *s1 = *(psf_star**) star1;
 	psf_star *s2 = *(psf_star**) star2;
@@ -940,18 +777,6 @@ float filtered_FWHM_average(psf_star **stars, int nb) {
 	float retval = siril_stats_trmean_from_sorted_data(0.15, fwhms, 1, nb);
 	free(fwhms);
 	return retval;
-}
-
-static gboolean end_findstar(gpointer p) {
-	struct starfinder_data *args = (struct starfinder_data *) p;
-	stop_processing_thread();
-	if (com.stars)
-		refresh_star_list(com.stars);
-
-	set_cursor_waiting(FALSE);
-
-	free(args);
-	return FALSE;
 }
 
 /* looks for the list file, tries to load it, returns 1 on success */
@@ -1094,6 +919,8 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	return 0;
 }
 
+gboolean end_findstar(gpointer p);	// in the GUI file
+
 // for a single image
 gpointer findstar_worker(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *)p;
@@ -1111,16 +938,19 @@ gpointer findstar_worker(gpointer p) {
 
 	if (stars) {
 		int i = 0;
-		while (stars[i]) fwhm_to_arcsec_if_needed(args->im.fit, stars[i++]);
+		while (stars[i])
+			fwhm_to_arcsec_if_needed(args->im.fit, stars[i++]);
 	}
 
 	if (args->update_GUI && stars) {
-		clear_stars_list(FALSE);
+		clear_stars_list(FALSE); // with FALSE it's not a GUI call
 		com.stars = stars;
 	}
 	siril_log_message(_("Found %d stars in %s, channel #%d\n"), nbstars,
 			selection ? _("selection") : _("image"), args->layer);
-	if (args->starfile && save_list(args->starfile,args->max_stars_fitted, stars, nbstars, &com.pref.starfinder_conf, args->update_GUI)) {
+	if (args->starfile &&
+			save_list(args->starfile, args->max_stars_fitted, stars, nbstars,
+				&com.pref.starfinder_conf, args->update_GUI)) {
 		retval = 1;
 	}
 
@@ -1141,28 +971,3 @@ gpointer findstar_worker(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
-void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
-	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
-	if (!single_image_is_loaded() && !sequence_is_loaded()) {
-		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
-		return;
-	}
-	confirm_peaker_GUI(); //making sure the spin buttons values are read even without confirmation
-
-	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
-	args->im.fit = &gfit;
-	if (sequence_is_loaded() && com.seq.current >= 0) {
-		args->im.from_seq = &com.seq;
-		args->im.index_in_seq = com.seq.current;
-	} else {
-		args->im.from_seq = NULL;
-		args->im.index_in_seq = -1;
-	}
-	args->layer = layer;
-	args->max_stars_fitted = 0;
-	args->starfile = NULL;
-	args->threading = MULTI_THREADED;
-	args->update_GUI = TRUE;
-
-	start_in_new_thread(findstar_worker, args);
-}

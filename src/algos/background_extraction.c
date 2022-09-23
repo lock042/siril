@@ -30,32 +30,15 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
-#include "core/undo.h"
 #include "core/OS_utils.h"
-#include "io/single_image.h"
+#include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "algos/statistics.h"
 #include "algos/geometry.h"
 #include "algos/sorting.h"
-#include "opencv/opencv.h"
-#include "gui/utils.h"
-#include "gui/callbacks.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
-#include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
-#include "gui/dialogs.h"
-#include "gui/siril_preview.h"
-#include "registration/registration.h"	// for mouse_status
+#include "opencv/opencv.h"
 #include "background_extraction.h"
-
-static gboolean background_computed = FALSE;
-
-
-static void background_startup() {
-	copy_gfit_to_backup();
-}
 
 #define NPARAM_POLY4 15		// Number of parameters used with 4rd order
 #define NPARAM_POLY3 10		// Number of parameters used with 3rd order
@@ -122,20 +105,20 @@ static double siril_gsl_vector_sum(const gsl_vector *v) {
 
 static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, double smoothing, gchar **err, int threads, gboolean processing) {
 	/* Implementation of RBF interpolation with a thin-plate Kernel k(r) = r^2 * log(r)
-	
+
 	References:
-	----------  
-	[1] G. B. Wright. Radial Basis Function Interpolation: Numerical and 
+	----------
+	[1] G. B. Wright. Radial Basis Function Interpolation: Numerical and
 		Analytical Developments. PhD thesis, University of Colorado, 2003.
 
 	[2] SciPy version 1.1.0
 		https://github.com/scipy/scipy/blob/v1.1.0/scipy/interpolate/rbf.py
-	
-	[3] S. Rippa. An algorithm for selecting a good value for the parameter 
-		c in radial basis function interpolation. Advances in Computational 
+
+	[3] S. Rippa. An algorithm for selecting a good value for the parameter
+		c in radial basis function interpolation. Advances in Computational
 		Mathematics, 11(2-3):193–210, 1999.
-		
-	[4] J. D. Martin and T. W. Simpson. Use of Kriging Models to Approximate 
+
+	[4] J. D. Martin and T. W. Simpson. Use of Kriging Models to Approximate
 		Deterministic Computer Models. AIAA journal, 43(4):853–863, 2005.
 	*/
 
@@ -744,36 +727,6 @@ static GSList *update_median_samples(GSList *orig, fits *fit) {
 	return orig;
 }
 
-static poly_order get_poly_order() {
-	GtkComboBox *combo_box_poly_order = GTK_COMBO_BOX(lookup_widget("box_background_order"));
-	return gtk_combo_box_get_active(combo_box_poly_order);
-}
-
-static background_correction get_correction_type() {
-	GtkComboBox *combo_box_correction = GTK_COMBO_BOX(lookup_widget("box_background_correction"));
-	return gtk_combo_box_get_active(combo_box_correction);
-}
-
-static int get_nb_samples_per_line() {
-	GtkSpinButton *nb_samples = GTK_SPIN_BUTTON(lookup_widget("spin_background_nb_samples"));
-	return gtk_spin_button_get_value_as_int(nb_samples);
-}
-
-static double get_tolerance_value() {
-	GtkRange *tol = GTK_RANGE(lookup_widget("scale_background_tolerance"));
-	return gtk_range_get_value(tol);
-}
-
-static background_interpolation get_interpolation_method() {
-	GtkComboBox *combo = GTK_COMBO_BOX(lookup_widget("background_extraction_combo"));
-	return gtk_combo_box_get_active(combo);
-}
-
-static double get_smoothing_parameter() {
-	GtkSpinButton *spin = GTK_SPIN_BUTTON(lookup_widget("spin_background_smoothing"));
-	return gtk_spin_button_get_value(spin);
-}
-
 static void remove_gradient(double *img, const double *background, double background_mean, size_t ndata, background_correction type, threading_type threads) {
 	size_t i;
 	double mean;
@@ -801,10 +754,6 @@ static void remove_gradient(double *img, const double *background, double backgr
 				img[i] *= mean;
 			}
 	}
-}
-
-static gboolean is_dither_checked() {
-	return (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bkg_dither_button"))));
 }
 
 /************* PUBLIC FUNCTIONS *************/
@@ -874,49 +823,30 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 }
 
 /* generates samples and stores them in com.grad_samples */
-void generate_background_samples(int nb_of_samples, double tolerance) {
+int generate_background_samples(int nb_of_samples, double tolerance) {
 	free_background_sample_list(com.grad_samples);
 	const char *err;
 	com.grad_samples = generate_samples(&gfit, nb_of_samples, tolerance, SAMPLE_SIZE, &err, MULTI_THREADED);
 	if (!com.grad_samples) {
 		siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		return;
+		return 1;
 	}
 
 	if (com.grad_samples && gfit.naxes[2] > 1) {
 		/* If RGB we need to update all local median, not only the first one */
 		com.grad_samples = update_median_samples(com.grad_samples, &gfit);
 	}
-	redraw(REDRAW_OVERLAY);
+	return 0;
 }
 
-static gboolean end_background(gpointer p) {
-	struct background_data *args = (struct background_data *)p;
-	stop_processing_thread();
-	if (args) {
-		invalidate_stats_from_fit(args->fit);
-		background_computed = TRUE;
-		if (!args->from_ui) {
-			free_background_sample_list(com.grad_samples);
-			com.grad_samples = NULL;
-		}
-
-		notify_gfit_modified();
-		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
-		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
-		free(args);
-	}
-	return FALSE;
-}
-
+gboolean end_background(gpointer p);	// in gui/background_extraction.c
 
 /* uses samples from com.grad_samples */
 gpointer remove_gradient_from_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	gchar *error;
 	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
-	
+
 	if (!background && !com.script) {
 		PRINT_ALLOC_ERR;
 		set_cursor_waiting(FALSE);
@@ -930,7 +860,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
-	
+
 	/* Make sure to update local median. Useful if undo is pressed */
 	update_median_samples(com.grad_samples, &gfit);
 
@@ -940,32 +870,31 @@ gpointer remove_gradient_from_image(gpointer p) {
 	for (int channel = 0; channel < gfit.naxes[2]; channel++) {
 		/* compute background */
 		gboolean interpolation_worked = TRUE;
-		if (args->interpolation_method == BACKGROUND_INTER_POLY){
-			interpolation_worked = computeBackground_Polynom(com.grad_samples, background, channel, 
-									gfit.rx, gfit.ry, args->degree, &error);
+		if (args->interpolation_method == BACKGROUND_INTER_POLY) {
+			interpolation_worked = computeBackground_Polynom(com.grad_samples, background, channel,
+					gfit.rx, gfit.ry, args->degree, &error);
 		} else {
-			interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel, 
-									gfit.rx, gfit.ry, args->smoothing, &error, args->threads, TRUE);
+			interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel,
+					gfit.rx, gfit.ry, args->smoothing, &error, args->threads, TRUE);
 		}
-		
+
 		if (!interpolation_worked) {
 			free(image);
 			free(background);
-			queue_message_dialog(GTK_MESSAGE_ERROR, _("Not enough samples."),
-					error);
-			set_cursor_waiting(FALSE);
+			queue_error_message_dialog(_("Not enough samples."), error);
 			free(args);
 			siril_add_idle(end_background, NULL);
 			return NULL;
 		}
 		/* remove background */
-		const char *c_name = vport_number_to_name(channel);
+		const char *c_name = channel_number_to_name(channel);
 		siril_log_message(_("Background extraction from %s channel.\n"), c_name);
 		convert_fits_to_img(&gfit, image, channel, args->dither);
 		remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
 		convert_img_to_fits(image, &gfit, channel);
 	}
-	siril_log_message(_("Background with %s interpolation computed.\n"), (args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
+	siril_log_message(_("Background with %s interpolation computed.\n"),
+			(args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	/* free memory */
@@ -1009,7 +938,7 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 		PRINT_ALLOC_ERR;
 		return 1;
 	}
-	
+
 	double background_mean = get_background_mean(samples, fit->naxes[2]);
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		/* compute background */
@@ -1020,7 +949,7 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 		} else {
 			interpolation_worked = computeBackground_RBF(samples, background, channel, fit->rx, fit->ry, b_args->smoothing, &error, threads, FALSE);
 		}
-		
+
 		if (!interpolation_worked) {
 			if (error) {
 				siril_log_message(error);
@@ -1065,14 +994,14 @@ static int background_mem_limits_hook(struct generic_seq_args *args, gboolean fo
 		required = MB_per_image + double_channel_size_MB * 2;
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
-						thread_limit = com.max_thread;
+			thread_limit = com.max_thread;
 
 		if (for_writer) {
-						/* we allow the already allocated thread_limit images,
-						 * plus how many images can be stored in what remains
-						 * unused by the main processing */
-						limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
-				} else limit = thread_limit;
+			/* we allow the already allocated thread_limit images,
+			 * plus how many images can be stored in what remains
+			 * unused by the main processing */
+			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_image;
+		} else limit = thread_limit;
 
 	}
 	if (limit == 0) {
@@ -1124,7 +1053,7 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
-/**** getter and setter ***/
+/**** getters ***/
 
 gboolean background_sample_is_valid(background_sample *sample) {
 	return sample->valid;
@@ -1138,214 +1067,3 @@ point background_sample_get_position(background_sample *sample) {
 	return sample->position;
 }
 
-static fits background_backup;
-
-static void copy_gfit_to_bkg_backup() {
-	if (!background_computed) return;
-	if (copyfits(&gfit, &background_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-		siril_log_message(_("Image copy error in previews\n"));
-		return;
-	}
-}
-
-static int copy_bkg_backup_to_gfit() {
-	if (!background_computed) return 0;
-	int retval = 0;
-	if (!gfit.data && !gfit.fdata)
-		retval = 1;
-	else if (copyfits(&background_backup, &gfit, CP_COPYA, -1)) {
-		siril_log_message(_("Image copy error in previews\n"));
-		retval = 1;
-	}
-	return retval;
-}
-
-/************* CALLBACKS *************/
-
-void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
-	set_cursor_waiting(TRUE);
-	int nb_of_samples;
-	double tolerance;
-
-	nb_of_samples = get_nb_samples_per_line();
-	tolerance = get_tolerance_value();
-
-	generate_background_samples(nb_of_samples, tolerance);
-	set_cursor_waiting(FALSE);
-}
-
-void on_background_clear_all_clicked(GtkButton *button, gpointer user_data) {
-	free_background_sample_list(com.grad_samples);
-	com.grad_samples = NULL;
-
-	redraw(REDRAW_OVERLAY);
-	set_cursor_waiting(FALSE);
-}
-
-void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
-	if (com.grad_samples == NULL) {
-		return;
-	}
-	set_cursor_waiting(TRUE);
-	copy_backup_to_gfit();
-
-	background_correction correction = get_correction_type();
-	poly_order degree = get_poly_order();
-	gboolean use_dither = is_dither_checked();
-	double smoothing = get_smoothing_parameter();
-	background_interpolation interpolation_method = get_interpolation_method();
-
-	struct background_data *args = malloc(sizeof(struct background_data));
-	args->threads = com.max_thread;
-	args->from_ui = TRUE;
-	args->correction = correction;
-	args->interpolation_method = interpolation_method;
-	args->degree = (poly_order) degree;
-	args->smoothing = smoothing;
-	args->dither = use_dither;
-	args->fit = &gfit;
-
-	start_in_new_thread(remove_gradient_from_image, args);
-}
-
-void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
-	GtkToggleButton *seq_button = GTK_TOGGLE_BUTTON(
-			lookup_widget("checkBkgSeq"));
-	if (gtk_toggle_button_get_active(seq_button) && sequence_is_loaded()) {
-		struct background_data *args = malloc(sizeof(struct background_data));
-		args->nb_of_samples = get_nb_samples_per_line();
-		args->tolerance = get_tolerance_value();
-		args->correction = get_correction_type();
-		args->degree = get_poly_order();
-		args->smoothing = get_smoothing_parameter();
-		args->dither = is_dither_checked();
-		args->interpolation_method = get_interpolation_method();
-		
-		if (args->interpolation_method == BACKGROUND_INTER_POLY && args->degree > BACKGROUND_POLY_1) {
-			int confirm = siril_confirm_dialog(_("Polynomial order seems too high."),
-					_("You are about to process a sequence of preprocessed files with "
-							"a polynomial degree greater than 1. This is unlikely because such "
-							"gradients are often linear and a correction with a polynomial "
-							"function of degree 1 is probably enough."), _("Extract Background"));
-			if (!confirm) {
-				free(args);
-				set_cursor_waiting(FALSE);
-				return;
-			}
-		} else if (args->interpolation_method != BACKGROUND_INTER_POLY) {
-			int confirm = siril_confirm_dialog(_("Using wrong interpolation method"),
-					_("You are about to process a sequence of preprocessed files with an RBF algorithm. "
-							"This algorithm may not be very well suited for automated processing "
-							"and we advise you to use the polynomial algorithm with a "
-							"degree order of 1."), _("Extract Background"));
-			if (!confirm) {
-				free(args);
-				set_cursor_waiting(FALSE);
-				return;
-			}
-		}
-
-		set_cursor_waiting(TRUE);
-
-		args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryBkgSeq")));
-		if (args->seqEntry && args->seqEntry[0] == '\0')
-			args->seqEntry = "bkg_";
-		args->seq = &com.seq;
-		/* now we uncheck the button */
-		gtk_toggle_button_set_active(seq_button, FALSE);
-		apply_background_extraction_to_sequence(args);
-	} else {
-		if (background_computed) {
-			background_correction correction = get_correction_type();
-			undo_save_state(get_preview_gfit_backup(), _("Background extraction (Correction: %s)"),
-					correction == BACKGROUND_CORRECTION_DIVIDE ? "Division" : "Subtraction");
-			background_computed = FALSE;
-			clear_backup();
-			siril_close_dialog("background_extraction_dialog");
-		} else {
-			siril_message_dialog(GTK_MESSAGE_WARNING, _("No Background model computed"),
-					_("You must first compute the background model."));
-		}
-	}
-}
-
-void apply_background_cancel() {
-	siril_close_dialog("background_extraction_dialog");
-}
-
-void on_background_close_button_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("background_extraction_dialog");
-}
-
-void on_background_extraction_dialog_hide(GtkWidget *widget, gpointer user_data) {
-	free_background_sample_list(com.grad_samples);
-	com.grad_samples = NULL;
-	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
-	redraw(REDRAW_OVERLAY);
-
-	if (background_computed) {
-		siril_preview_hide();
-		background_computed = FALSE;
-	} else {
-		clear_backup();
-	}
-	gtk_widget_set_sensitive(lookup_widget("background_ok_button"), FALSE);
-	gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), FALSE);
-}
-
-void on_background_extraction_dialog_show(GtkWidget *widget, gpointer user_data) {
-	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
-	background_startup();
-}
-
-void on_background_extraction_combo_changed(GtkComboBox *combo, gpointer user_data) {
-	GtkNotebook *notebook = GTK_NOTEBOOK(lookup_widget("bkg_notebook_inter"));
-	gtk_notebook_set_current_page(notebook, gtk_combo_box_get_active(combo));
-}
-
-static gboolean pressed = FALSE;
-
-void on_bkg_show_original_button_press_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkStateFlags new_state;
-	new_state = gtk_widget_get_state_flags(widget)
-			& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
-
-	new_state |= GTK_STATE_FLAG_PRELIGHT;
-    new_state |= GTK_STATE_FLAG_ACTIVE;
-
-	gtk_widget_set_state_flags(widget, new_state, TRUE);
-	pressed = TRUE;
-
-	copy_gfit_to_bkg_backup();
-	copy_backup_to_gfit();
-	notify_gfit_modified();
-}
-
-void on_bkg_show_original_button_release_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkStateFlags new_state;
-	new_state = gtk_widget_get_state_flags(widget)
-			& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
-
-	new_state |= GTK_STATE_FLAG_PRELIGHT;
-
-	gtk_widget_set_state_flags(widget, new_state, TRUE);
-	pressed = FALSE;
-
-	copy_bkg_backup_to_gfit();
-	clearfits(&background_backup);
-	notify_gfit_modified();
-}
-
-gboolean on_bkg_show_original_enter_notify_event(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-	GtkStateFlags new_state;
-	new_state = gtk_widget_get_state_flags(widget)
-			& ~(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE);
-
-	new_state |= GTK_STATE_FLAG_PRELIGHT;
-	if (pressed) {
-		new_state |= GTK_STATE_FLAG_ACTIVE;
-
-	}
-	gtk_widget_set_state_flags(widget, new_state, TRUE);
-	return TRUE;
-}

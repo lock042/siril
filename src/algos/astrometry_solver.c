@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2017 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -37,7 +37,9 @@
 #include "core/sleef.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "core/siril_date.h"
 #include "core/siril_world_cs.h"
+#include "core/siril_log.h"
 #include "core/undo.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
@@ -266,7 +268,7 @@ static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 
 static char *fetch_url(const char *url) {
 	struct ucontent *content = malloc(sizeof(struct ucontent));
-	char *result = NULL, *error;
+	char *result = NULL, *error = NULL;
 	long code;
 	int retries;
 	unsigned int s;
@@ -312,8 +314,22 @@ retrieve:
 
 			break;
 		default:
-			error = siril_log_message(_("Fetch failed with code %ld for URL %s\n"), code, url);
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), error);
+			if (content->data[0] == '#') {
+				// special case of ephemcc where we need to parse the output
+				gchar **token = g_strsplit(content->data, "\n", -1);
+				int nlines = g_strv_length(token);
+				int line;
+				for (line = 0; line < nlines; line++) {
+					if (token[line][0] != '\0' && token[line][0] != '#') {
+						error = siril_log_message(_("Fetch failed with code %ld\n%s\n"), code, token[line]);
+						break;
+					}
+				}
+				g_strfreev(token);
+			}
+			if (!error)
+				error = siril_log_message(_("Fetch failed with code %ld\n%s"), code, content->data);
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Online service error"), error);
 		}
 	}
 
@@ -344,28 +360,53 @@ static gchar *fetch_url(const gchar *url) {
 }
 #endif
 
-gchar *search_in_catalogs(const gchar *object, query_server server) {
+gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	GString *string_url;
-	gchar *name = g_utf8_strup(object, -1);
+	gchar *name = g_utf8_strdown(object, -1); //strlwr is non-standard, so g_utf8_strup has been changed to g_utf8_strdown
 
 	switch(server) {
 	case 0:
 		string_url = g_string_new(CDSSESAME);
 		string_url = g_string_append(string_url, "/-oI/A?");
 		string_url = g_string_append(string_url, name);
+		siril_log_message(_("Searching %s in CDSESAME...\n"), name);
 		break;
 	case 1:
 		string_url = g_string_new(VIZIERSESAME);
 		string_url = g_string_append(string_url, "/-oI/A?");
 		string_url = g_string_append(string_url, name);
+		siril_log_message(_("Searching %s in VIZIER...\n"), name);
 		break;
 	default:
 	case 2:
 		string_url = g_string_new(SIMBADSESAME);
 		string_url = g_string_append(string_url, name);
 		string_url = g_string_append(string_url, "';");
+		siril_log_message(_("Searching %s in SIMBAD...\n"), name);
 		break;
-
+	case 3:
+		// see https://ssp.imcce.fr/webservices/miriade/api/ephemcc/
+		string_url = g_string_new(EPHEMCC);
+		string_url = g_string_append(string_url, "-name=");
+		string_url = g_string_append(string_url, name);
+		string_url = g_string_append(string_url, "&-type=");
+		string_url = g_string_append(string_url, "&-ep=");
+		gchar *formatted_date = date_time_to_FITS_date(gfit.date_obs);
+		string_url = g_string_append(string_url, formatted_date);
+		string_url = g_string_append(string_url, "&-nbd=1");
+		string_url = g_string_append(string_url, "&-tscale=UTC");
+		string_url = g_string_append(string_url, "&-observer=");
+		string_url = g_string_append(string_url, "@500"); // Geocentric coordinates as default
+		string_url = g_string_append(string_url, "&-theory=INPOP");
+		string_url = g_string_append(string_url, "&-teph=1");
+		string_url = g_string_append(string_url, "&-tcoor=5");
+		string_url = g_string_append(string_url, "&-oscelem=astorb");
+		string_url = g_string_append(string_url, "&-mime=text/csv");
+		string_url = g_string_append(string_url, "&-output=--jd");
+		string_url = g_string_append(string_url, "&-from=Siril;");
+		siril_log_message(_("Searching for solar system object %s on observation date %s\n"), name, formatted_date);
+		g_free(formatted_date);
+		break;
 	}
 
 	gchar *url = g_string_free(string_url, FALSE);
@@ -375,6 +416,7 @@ gchar *search_in_catalogs(const gchar *object, query_server server) {
 	g_free(cleaned_url);
 	g_free(url);
 	g_free(name);
+
 	return result;
 }
 
@@ -1068,7 +1110,7 @@ void flip_bottom_up_astrometry_data(fits *fit) {
 void reframe_astrometry_data(fits *fit, Homography H) {
 	double pc1_1, pc1_2, pc2_1, pc2_2;
 	point refpointout;
-	
+
 	pc1_1 = H.h00 * fit->wcsdata.pc[0][0] + H.h01 * fit->wcsdata.pc[0][1];
 	pc1_2 = H.h10 * fit->wcsdata.pc[0][0] + H.h11 * fit->wcsdata.pc[0][1];
 	pc2_1 = H.h00 * fit->wcsdata.pc[1][0] + H.h01 * fit->wcsdata.pc[1][1];
