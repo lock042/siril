@@ -351,7 +351,8 @@ Image DA3D(int &retval, const Image &noisy, const Image &guide, float sigma,
   const int s = utils::NextPowerOf2(2 * r + 1);
 
 #ifdef _OPENMP
-  if (!nthreads) nthreads = omp_get_max_threads();  // number of threads
+//  if (!nthreads) nthreads = omp_get_max_threads();  // number of threads
+  if (!nthreads) nthreads = com.max_thread;  // obey Siril max number of threads
 #else
   nthreads = 1;
 #endif  // _OPENMP

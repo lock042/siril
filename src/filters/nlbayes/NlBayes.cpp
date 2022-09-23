@@ -180,7 +180,8 @@ int runNlBayes(
 	//! Number of available cores
 	unsigned nbThreads = 1;
 #ifdef _OPENMP
-    nbThreads = omp_get_max_threads();
+//    nbThreads = omp_get_max_threads();
+    nbThreads = com.max_thread;
     if (p_verbose) {
         cout << "Open MP is used" << endl;
     }

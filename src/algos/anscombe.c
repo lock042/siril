@@ -38,7 +38,7 @@ void generalized_anscombe_array(float *x, const float mu, const float sigma, con
     about 20.
     */
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (size_t i = 0; i < ndata; i++) {
 		float y = gain * x[i] + powf(gain, 2.f) * 0.375f + sigma*sigma - gain*mu;
