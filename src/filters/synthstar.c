@@ -22,6 +22,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/arithm.h"
+#include "core/siril_log.h"
 #include "core/undo.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
@@ -95,7 +96,7 @@ void makemoffat(float* psf, int size, float fwhm, float lum, float xoff, float y
 		for (int y=-halfpsfdim; y<=halfpsfdim; y++) {
 			float xf = x-xoff;
 			float yf = y-yoff;
-			psf[(x+halfpsfdim)+((y+halfpsfdim)*size)] = lum * pow(1.0f + ((xf*xf + yf*yf)/(alpha*alpha)),-BETA);
+			psf[(x+halfpsfdim)+((y+halfpsfdim)*size)] = lum * powf(1.0f + ((xf*xf + yf*yf)/(alpha*alpha)),-BETA);
 		}
 	}
 #ifdef _OPENMP
@@ -103,6 +104,26 @@ void makemoffat(float* psf, int size, float fwhm, float lum, float xoff, float y
 #endif
 	return;
 #undef BETA
+}
+
+void makegaussian(float* psf, int size, float fwhm, float lum, float xoffset, float yoffset, int type) {
+	int halfpsfdim = (size - 1) / 2;
+	float sigma = fwhm / _2_SQRT_2_LOG2;
+	float tss = 2 * sigma * sigma;
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static,8) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#endif
+	for (int x=-halfpsfdim; x<=halfpsfdim; x++) {
+		for (int y=-halfpsfdim; y<=halfpsfdim; y++) {
+			float xf = x-xoffset;
+			float yf = y-yoffset;
+			psf[(x+halfpsfdim)+((y+halfpsfdim)*size)] = lum * expf(-(((xf*xf)/tss) + ((yf*yf)/tss)));
+		}
+	}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+	return;
 }
 
 void add_star_to_rgb_buffer(float *H, float *S, float *psfL, int size, float *Hsynth, float *Ssynth, float *Lsynth, int x, int y, int dimx, int dimy) {
@@ -220,7 +241,7 @@ int generate_synthstars(fits *fit) {
 			lum = 0.0f;
 		if (!is_32bit)
 			lum *= invnorm;
-		assert(lum > 0.0f);
+		assert(lum >= 0.0f);
 		float xoff = com.stars[n]->xpos - (int) com.stars[n]->xpos;
 		float yoff = com.stars[n]->ypos - (int) com.stars[n]->ypos;
 		int size=20 * max(com.stars[n]->sx, com.stars[n]->sy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
@@ -237,7 +258,8 @@ int generate_synthstars(fits *fit) {
 
 		// Synthesize the Moffat luminance profile and add to the star mask in HSL colourspace
 		float *psfL = (float *) calloc(size * size, sizeof(float));
-		makemoffat(psfL, size, minfwhm, lum, xoff, yoff, SYNTHESIZE_MOFFAT);
+//		makemoffat(psfL, size, minfwhm, lum, xoff, yoff, SYNTHESIZE_MOFFAT);
+		makegaussian(psfL, size, minfwhm, lum, xoff, yoff, SYNTHESIZE_GAUSSIAN);
 		if (is_RGB)
 			add_star_to_rgb_buffer(H, S, psfL, size, Hsynth, Ssynth, Lsynth, com.stars[n]->xpos, com.stars[n]->ypos, dimx, dimy);
 		else
