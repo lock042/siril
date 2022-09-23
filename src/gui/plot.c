@@ -51,6 +51,8 @@
 #include "opencv/opencv.h"
 
 #define XLABELSIZE 15
+#define PLOT_SLIDER_THICKNESS 10.
+#define PLOT_MARKER_WIDTH 4.
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
@@ -70,7 +72,17 @@ static gboolean is_fwhm = TRUE;
 static gnuplot_ctrl *gplot = NULL;
 static gboolean is_arcsec = FALSE;
 static gboolean force_Julian = FALSE;
-static point minp, maxp;
+static point datamin; // coordinates of the min (x,y) data values in data units
+static point datamax; // coordinates of the max (x,y) data values in data units
+static point pdatamin; // coordinates of the plotted min (x,y) data values in data units (accounting for the sliders)
+static point pdatamax; // coordinates of the plotted max (x,y) data values in data units (accounting for the sliders)
+static point range; // coordinates of the extent of (x,y) axes in pixel units
+static point scale; // scales on x and y in data unit/pixel
+static point offset; // coordinates of the topleft corner (x,y) axes in pixel units
+static double surf_w; // x size of the cairosurface in pixel
+static double surf_h; // y size of the cairosurface in pixel
+static double xrange[2] = {0.2, 0.8}; // pair between 0 and 1 giving the extent of plotted x values in the datamin,datamax range
+static double yrange[2] = {0.1, 0.9}; // pair between 0 and 1 giving the extent of plotted y values in the datamin,datamax range
 
 static void update_ylabel();
 static void set_colors(struct kplotcfg *cfg);
@@ -123,6 +135,61 @@ pldata *alloc_plot_data(int size) {
 	return plot;
 }
 
+static void plot_draw_all_sliders(cairo_t *cr) { // TODO: adjust colors to the theme
+	cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
+	// x-slider
+	cairo_rectangle(cr, offset.x, surf_h - PLOT_SLIDER_THICKNESS, range.x, PLOT_SLIDER_THICKNESS);
+	cairo_fill(cr);
+	// y-slider
+	cairo_rectangle(cr, surf_w - PLOT_SLIDER_THICKNESS, offset.y, PLOT_SLIDER_THICKNESS, range.y);
+	cairo_fill(cr);
+}
+
+static void plot_draw_slider_fill(cairo_t *cr, enum slider_type slider_t) {
+	cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+	switch (slider_t) {
+		default:
+		case X_SLIDER:
+			cairo_rectangle(cr, offset.x + range.x * xrange[0], surf_h - PLOT_SLIDER_THICKNESS, range.x * (xrange[1] - xrange[0]), PLOT_SLIDER_THICKNESS);
+			break;
+		case Y_SLIDER:
+			cairo_rectangle(cr, surf_w - PLOT_SLIDER_THICKNESS, offset.y + range.y * (1. - yrange[1]), PLOT_SLIDER_THICKNESS, range.y * (yrange[1] - yrange[0]));
+			break;
+	}
+	cairo_fill(cr);
+}
+
+static void plot_draw_all_sliders_fill(cairo_t *cr) {
+	plot_draw_slider_fill(cr, X_SLIDER);
+	plot_draw_slider_fill(cr, Y_SLIDER);
+}
+
+
+static void plot_draw_marker(cairo_t *cr, enum marker_type marker_t) {
+	cairo_set_source_rgb(cr, 0.8, 0., 0.);
+	switch (marker_t) {
+		default:
+		case X_MIN:
+			cairo_rectangle(cr, offset.x + range.x * xrange[0] - PLOT_MARKER_WIDTH * 0.5, surf_h - PLOT_SLIDER_THICKNESS, PLOT_MARKER_WIDTH, PLOT_SLIDER_THICKNESS);
+			break;
+		case X_MAX:
+			cairo_rectangle(cr, offset.x + range.x * xrange[1] - PLOT_MARKER_WIDTH * 0.5, surf_h - PLOT_SLIDER_THICKNESS, PLOT_MARKER_WIDTH, PLOT_SLIDER_THICKNESS);
+			break;
+		case Y_MIN:
+			cairo_rectangle(cr, surf_w - PLOT_SLIDER_THICKNESS, offset.y + range.y * (1. - yrange[0]) - PLOT_MARKER_WIDTH * 0.5, PLOT_SLIDER_THICKNESS, PLOT_MARKER_WIDTH);
+			break;
+		case Y_MAX:
+			cairo_rectangle(cr, surf_w - PLOT_SLIDER_THICKNESS, offset.y + range.y * (1. - yrange[1]) - PLOT_MARKER_WIDTH * 0.5, PLOT_SLIDER_THICKNESS, PLOT_MARKER_WIDTH);
+			break;
+	}
+	cairo_fill(cr);
+}
+
+static void plot_draw_all_markers(cairo_t *cr) { // TODO: adjust color to the theme
+	for (int i = X_MIN; i <= Y_MAX; i++) 
+		plot_draw_marker(cr, i);
+}
+
 static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 		pldata *plot) {
 	int i, j;
@@ -134,6 +201,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	cy = (seq->is_variable) ? (double)seq->imgparam[ref_image].ry * 0.5 : (double)seq->ry * 0.5;
 	Homography Href = seq->regparam[layer][ref_image].H;
 	Href_is_invalid = (guess_transform_from_H(Href) == -2) ? TRUE : FALSE;
+	datamin = (point){ DBL_MAX, DBL_MAX};
+	datamax = (point){ -DBL_MAX, -DBL_MAX};
 
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl)
@@ -244,6 +313,11 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 			curr.x = plot->data[j].x;
 			curr.y = plot->data[j].y;
 		}
+		// caching the data range
+		if (datamin.x > plot->data[j].x) datamin.x = plot->data[j].x;
+		if (datamax.x < plot->data[j].x) datamax.x = plot->data[j].x;
+		if (datamin.y > plot->data[j].y) datamin.y = plot->data[j].y;
+		if (datamax.y < plot->data[j].y) datamax.y = plot->data[j].y;
 		j++;
 	}
 	plot->nb = j;
@@ -374,6 +448,11 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 			curr.x = plot->data[j].x;
 			curr.y = plot->data[j].y;
 		}
+		// caching the data range
+		if (datamin.x > plot->data[j].x) datamin.x = plot->data[j].x;
+		if (datamax.x < plot->data[j].x) datamax.x = plot->data[j].x;
+		if (datamin.y > plot->data[j].y) datamin.y = plot->data[j].y;
+		if (datamax.y < plot->data[j].y) datamax.y = plot->data[j].y;
 		j++;
 	}
 	plot->nb = j;
@@ -825,6 +904,9 @@ void drawPlot() {
 
 		plot = alloc_plot_data(seq->number);
 		plot_data = plot;
+		// datamin/max must be init here to be common to all the stars
+		datamin = (point){ DBL_MAX, DBL_MAX};
+		datamax = (point){ -DBL_MAX, -DBL_MAX};
 		for (int i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++) {
 			if (i > 0) {
 				plot->next = alloc_plot_data(seq->number);
@@ -949,8 +1031,6 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		return;
 	pldata *plot = plot_data;
 	d1 = ref_d = mean_d = NULL;
-	minp = (point){ DBL_MAX, DBL_MAX};
-	maxp = (point){ -DBL_MAX, -DBL_MAX};
 
 	double color = (com.pref.gui.combo_theme == 0) ? 0.0 : 1.0;
 
@@ -970,6 +1050,12 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	cfgplot.yaxislabelrot = M_PI_2 * 3.0;
 	cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
 	cfgdata.point.radius = 10;
+	// binding the extrema to the sliders
+	cfgplot.extrema = 0x0F;
+	cfgplot.extrema_xmin = pdatamin.x = datamin.x + (datamax.x - datamin.x) * xrange[0];
+	cfgplot.extrema_xmax = pdatamax.x = datamin.x + (datamax.x - datamin.x) * xrange[1];
+	cfgplot.extrema_ymin = pdatamin.y = datamin.y + (datamax.y - datamin.y) * yrange[0];
+	cfgplot.extrema_ymax = pdatamax.y = datamin.y + (datamax.y - datamin.y) * yrange[1];
 
 	struct kplot *p = kplot_alloc(&cfgplot);
 
@@ -985,18 +1071,12 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		} else {
 			kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
 		}
-		// caching the corner values
-		minp.x = min(minp.x, plot->data[kdata_xmin(d1, NULL)].x);
-		maxp.x = max(maxp.x, plot->data[kdata_xmax(d1, NULL)].x);
-		minp.y = min(minp.y, plot->data[kdata_ymin(d1, NULL)].y);
-		maxp.y = max(maxp.y, plot->data[kdata_ymax(d1, NULL)].y);
 		plot = plot->next;
 		nb_graphs++;
 	}
 
 	/* mean and min/max */
 	double mean = kdata_ymean(d1);
-	//sigma = kdata_ystddev(d1);
 	int min_data = kdata_xmin(d1, NULL);
 	int max_data = kdata_xmax(d1, NULL);
 
@@ -1014,9 +1094,9 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 				qsort(sorted_data, plot_data->nb, sizeof(struct kpair),
 						(registration_selected_source == r_ROUNDNESS || registration_selected_source == r_QUALITY ||
 						 registration_selected_source == r_NBSTARS) ? comparey_desc : comparey);
-				double imin = plot_data->data[min_data].x;
-				double imax = plot_data->data[max_data].x;
-				double pace = (imax - imin) / ((double)plot_data->nb - 1.);
+				double imin = pdatamin.x;
+				double imax = pdatamax.x;
+				double pace = (imax - imin) / ((double)plot_data->nb - 1.); // TODO: re-check behavior of sorted distribution when zoomed in X
 				for (int i = 0; i < plot_data->nb; i++) {
 					sorted_data[i].x = imin + (double)i * pace;
 				}
@@ -1046,8 +1126,10 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		}
 	}
 
-	width = gtk_widget_get_allocated_width(widget);
-	height = gtk_widget_get_allocated_height(widget);
+	width =  gtk_widget_get_allocated_width(widget);
+	height = surf_h = gtk_widget_get_allocated_height(widget);
+	surf_w = (double)width;
+	surf_h = (double)height;
 	cairo_surface_t *surface = NULL;
 
 	if (for_saving) {
@@ -1070,8 +1152,16 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		cairo_surface_destroy(surface);
 		siril_log_message(_("Saved plot to image %s\n"), filename);
 		g_free(filename);
+	} else {
+		// caching more data
+		range = (point){ get_dimx(),  get_dimy()};
+		scale = (point){ (pdatamax.x - pdatamin.x) / range.x, (pdatamax.y - pdatamin.y) / range.y};
+		offset = (point){ get_offsx(),  get_offsy()};
+		//drawing the sliders and markers
+		plot_draw_all_sliders(cr);
+		plot_draw_all_sliders_fill(cr);
+		plot_draw_all_markers(cr);
 	}
-
 	free_colors(&cfgplot);
 	kplot_free(p);
 	kdata_destroy(d1);
@@ -1284,32 +1374,39 @@ static void free_colors(struct kplotcfg *cfg) {
 	free(cfg->clrs);
 }
 
-static gboolean convert_surface_to_plot_coords(gdouble x, gdouble y, double *xpos, double *ypos) {
-	if (!plot_data) return FALSE;
-	if (!com.seq.imgparam) return FALSE;
+static void convert_surface_to_plot_coords(gdouble x, gdouble y, double *xpos, double *ypos) {
+	*xpos = scale.x * (x - offset.x) + pdatamin.x;
+	*ypos = scale.y * (range.y - y + offset.y) + pdatamin.y;
+}
 
-	point intervale = { get_dimx() / (maxp.x - minp.x), get_dimy() / (maxp.y - minp.y)};
-	point pos = { x - get_offsx(), get_dimy() - y + get_offsy() };
+// static void convert_plot_to_surface_coords(double x, double y, double *xpos, double *ypos) {
+// 	*xpos = 1./ scale.x * (x - pdatamin.x) + offset.x;
+// 	*ypos = 1./ scale.y * (pdatamin.y - y) + range.y + offset.y;
+// }
 
-	*xpos = pos.x / intervale.x + minp.x;
-	*ypos = pos.y / intervale.y + minp.y;
-	return TRUE;
+static gboolean is_inside_borders(double x, double y) {
+	if (x <= offset.x + range.x && x >= offset.x && y <= offset.y + range.y && y >= offset.y) return TRUE;
+	return FALSE;
 }
 
 static gboolean get_index_of_frame(gdouble x, gdouble y, gboolean check_index_incl, double *index, double *xpos, double *ypos) {
+	if (!plot_data) return FALSE;
+	if (!com.seq.imgparam) return FALSE;
+	if (!is_inside_borders((double)x, (double)y)) return FALSE;
 	int closestframe = -1;
-	double mindist = DBL_MAX, dist;
+	double mindist = DBL_MAX;
 	pldata *plot = plot_data;
-	if(!convert_surface_to_plot_coords(x, y, xpos, ypos))
-		return FALSE;
+	convert_surface_to_plot_coords(x, y, xpos, ypos);
+	// double testx, testy;
+	// convert_plot_to_surface_coords(datamin.x, datamin.y, &testx, &testy);
 
-	double invrangex = 1./(maxp.x - minp.x);
-	double invrangey = 1./(maxp.y - minp.y);
+	double invrangex = 1./(pdatamax.x - pdatamin.x);
+	double invrangey = 1./(pdatamax.y - pdatamin.y);
 	*index = *xpos;
 
 	while (plot) {
 		for (int j = 0; j < plot->nb; j++) {
-			dist = xpow((*index - plot->data[j].x) * invrangex, 2) + xpow((*ypos - plot->data[j].y) * invrangey, 2);
+			double dist = xpow((*index - plot->data[j].x) * invrangex, 2) + xpow((*ypos - plot->data[j].y) * invrangey, 2);
 			if (dist < mindist) {
 				mindist = dist;
 				closestframe = plot->frame[j];
@@ -1319,7 +1416,7 @@ static gboolean get_index_of_frame(gdouble x, gdouble y, gboolean check_index_in
 	}
 	*index = (mindist < 0.0004) ? closestframe : -1; // only set index if distance between cursor and a point is small enough (2% of scales)
 
-	if (check_index_incl && (*index >= 0 && *index <= maxp.x)) return com.seq.imgparam[(int)*index - 1].incl;
+	if (check_index_incl && (*index >= 0 && *index <= pdatamax.x)) return com.seq.imgparam[(int)*index - 1].incl;
 	return TRUE;
 
 }
