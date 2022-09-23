@@ -29,6 +29,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "gui/utils.h"

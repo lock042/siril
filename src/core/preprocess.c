@@ -27,6 +27,7 @@
 #include "core/arithm.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "algos/fix_xtrans_af.h"
 #include "filters/cosmetic_correction.h"

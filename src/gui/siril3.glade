@@ -14364,7 +14364,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">Check this option to rescale resulting image in the  range defined in the buttons.</property>
+                    <property name="tooltip-text" translatable="yes">Check this option to rescale the pixel values of the resulting image to the specified output range (see the lower range and upper range parameters below)</property>
                     <property name="draw-indicator">True</property>
                     <signal name="toggled" handler="on_rescale_pm_button_toggled" swapped="no"/>
                   </object>
@@ -14384,6 +14384,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="adjustment">adj_pm_low</property>
                     <property name="digits">8</property>
                     <property name="numeric">True</property>
+                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the lower bound of the output rescaling range.</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -14402,6 +14403,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="digits">8</property>
                     <property name="numeric">True</property>
                     <property name="value">1</property>
+                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the upper bound of the output rescaling range.</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

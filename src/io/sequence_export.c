@@ -22,6 +22,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "sequence.h"
 #include "ser.h"
 #include "stacking/stacking.h"

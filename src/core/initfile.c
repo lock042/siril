@@ -29,6 +29,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
 #include "algos/photometry.h"
 #include "algos/star_finder.h"

@@ -36,11 +36,6 @@ int ReconnectIO(int OpenNewConsole);
 char* siril_real_path(const char *source);
 #endif
 
-SirilWidget* siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action);
-SirilWidget* siril_file_chooser_add(GtkWindow *parent, GtkFileChooserAction action);
-SirilWidget* siril_file_chooser_save(GtkWindow *parent, GtkFileChooserAction action);
-gint siril_dialog_run(SirilWidget *widgetdialog);
-void siril_widget_destroy(SirilWidget *widgetdialog);
 gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
 
 #endif /* SRC_CORE_OS_UTILS_H_ */

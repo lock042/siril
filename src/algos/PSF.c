@@ -33,6 +33,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "algos/photometry.h"
 #include "algos/sorting.h"

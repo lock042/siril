@@ -23,6 +23,7 @@
 #include "core/initfile.h"
 #include "core/siril_language.h"
 #include "core/settings.h"
+#include "core/siril_log.h"
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
 #include "algos/annotate.h"
