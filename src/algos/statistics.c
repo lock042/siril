@@ -715,7 +715,7 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 			}
 		}
 
-		int new_index = i * s_args->seq->nb_layers;
+		int new_index = o * s_args->seq->nb_layers;
 		if (s_args->option == (STATS_BASIC)) {
 			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
 					i + 1,
