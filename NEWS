@@ -4,6 +4,7 @@ v1.0.6 xx xx, 2022
 * Fixed crash in savetif
 * Fixed crash in polynomial background extraction when not enough sample were set
 * Fixed bug in iif where no parameters could be used
+* Fixed crash in seqstat when some images were deselected
 
 v1.0.5 October 09, 2022
 
