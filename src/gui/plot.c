@@ -186,18 +186,7 @@ static gboolean is_over_marker(double x, double y, enum marker_type marker_t) {
 }
 
 static int get_closest_marker(double x, double y, enum slider_type slider_t, double *valrange) {
-	double val;
-	switch (slider_t) {
-
-		// some margins are included to make sure we can grab
-		default:
-		case X_SLIDER:
-			val = (x - offset.x) / range.x;
-			break;
-		case Y_SLIDER:
-			val = (offset.y + range.y - y) / range.y;
-			break;
-	}
+	double val = (slider_t == X_SLIDER) ? (x - offset.x) / range.x : (offset.y + range.y - y) / range.y;
 	// should not be outside of [0, 1] but just in case
 	val = min(1., val);
 	val = max(0., val);
@@ -205,17 +194,7 @@ static int get_closest_marker(double x, double y, enum slider_type slider_t, dou
 }
 
 static void find_range_from_pos(double x, double y, enum slider_type slider_t, int index, double *valrange) {
-	double val;
-	switch (slider_t) {
-		case X_SLIDER:
-			val = (x - offset.x) / range.x;
-			break;
-		case Y_SLIDER:
-			val = (offset.y + range.y - y) / range.y;
-			break;
-		default:
-			return;
-	}
+	double val = (slider_t == X_SLIDER) ? (x - offset.x) / range.x : (offset.y + range.y - y) / range.y;
 	val = min(1., val);
 	val = max(0., val);
 	double otherval = (index == 0) ? valrange[1] : valrange[0];
@@ -1113,12 +1092,6 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 }
 
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
-	/* TODO: probably need to set export CSV button sensitivity
-	but this avoids a crash for now */
-	//if(!plot_data) {
-	//	fprintf(stderr, "exportCSV: Nothing to export\n");
-	//	return;
-	//}
 	set_cursor_waiting(TRUE);
 	save_dialog(".csv", exportCSV);
 	set_cursor_waiting(FALSE);
@@ -1550,6 +1523,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 			}
 		}
 	}
+	set_cursor("tcross");
 	return FALSE;
 }
 
