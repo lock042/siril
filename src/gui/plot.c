@@ -52,7 +52,6 @@
 
 #define XLABELSIZE 15
 #define PLOT_SLIDER_THICKNESS 10.
-#define PLOT_MARKER_WIDTH 4.
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
@@ -1416,7 +1415,6 @@ static void reset_slider(enum slider_type slider_t) {
 	}
 	drawPlot();
 }
-
 
 static gboolean get_index_of_frame(double x, double y, gboolean check_index_incl, double *index, double *xpos, double *ypos) {
 	int closestframe = -1;
