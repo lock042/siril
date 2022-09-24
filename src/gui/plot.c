@@ -171,16 +171,16 @@ static void plot_draw_marker(cairo_t *cr, enum marker_type marker_t) {
 	switch (marker_t) {
 		default:
 		case X_MIN:
-			cairo_rectangle(cr, offset.x + range.x * xrange[0] - PLOT_MARKER_WIDTH * 0.5, surf_h - PLOT_SLIDER_THICKNESS, PLOT_MARKER_WIDTH, PLOT_SLIDER_THICKNESS);
+			cairo_arc(cr, offset.x + range.x * xrange[0], surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
 			break;
 		case X_MAX:
-			cairo_rectangle(cr, offset.x + range.x * xrange[1] - PLOT_MARKER_WIDTH * 0.5, surf_h - PLOT_SLIDER_THICKNESS, PLOT_MARKER_WIDTH, PLOT_SLIDER_THICKNESS);
+			cairo_arc(cr, offset.x + range.x * xrange[1], surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
 			break;
 		case Y_MIN:
-			cairo_rectangle(cr, surf_w - PLOT_SLIDER_THICKNESS, offset.y + range.y * (1. - yrange[0]) - PLOT_MARKER_WIDTH * 0.5, PLOT_SLIDER_THICKNESS, PLOT_MARKER_WIDTH);
+			cairo_arc(cr, surf_w - PLOT_SLIDER_THICKNESS * 0.5, offset.y + range.y * (1. - yrange[0]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
 			break;
 		case Y_MAX:
-			cairo_rectangle(cr, surf_w - PLOT_SLIDER_THICKNESS, offset.y + range.y * (1. - yrange[1]) - PLOT_MARKER_WIDTH * 0.5, PLOT_SLIDER_THICKNESS, PLOT_MARKER_WIDTH);
+			cairo_arc(cr, surf_w - PLOT_SLIDER_THICKNESS * 0.5, offset.y + range.y * (1. - yrange[1]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
 			break;
 	}
 	cairo_fill(cr);
@@ -1390,10 +1390,35 @@ static gboolean is_inside_borders(double x, double y) {
 	return FALSE;
 }
 
-static gboolean get_index_of_frame(gdouble x, gdouble y, gboolean check_index_incl, double *index, double *xpos, double *ypos) {
-	if (!plot_data) return FALSE;
-	if (!com.seq.imgparam) return FALSE;
-	if (!is_inside_borders((double)x, (double)y)) return FALSE;
+static gboolean is_inside_slider(double x, double y, enum slider_type slider_t) {
+	switch (slider_t) {
+		case X_SLIDER:
+			return (x <= offset.x + range.x && x >= offset.x && y >= surf_h - PLOT_SLIDER_THICKNESS);
+		case Y_SLIDER:
+			return (y <= offset.y + range.y && y >= offset.y && x >= surf_w - PLOT_SLIDER_THICKNESS);
+		default:
+			return FALSE;
+	}
+}
+
+static void reset_slider(enum slider_type slider_t) {
+	switch (slider_t) {
+		case X_SLIDER:
+			xrange[0] = 0.;
+			xrange[1] = 1.;
+			break;
+		case Y_SLIDER:
+			yrange[0] = 0.;
+			yrange[1] = 1.;
+			break;
+		default:
+			break;
+	}
+	drawPlot();
+}
+
+
+static gboolean get_index_of_frame(double x, double y, gboolean check_index_incl, double *index, double *xpos, double *ypos) {
 	int closestframe = -1;
 	double mindist = DBL_MAX;
 	pldata *plot = plot_data;
@@ -1424,21 +1449,29 @@ static gboolean get_index_of_frame(gdouble x, gdouble y, gboolean check_index_in
 
 gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
+	
+	if (!plot_data) return FALSE;
+	if (!com.seq.imgparam) return FALSE;
 
 	gtk_widget_set_has_tooltip(widget, FALSE);
 
-	double index, xpos, ypos;
-	gboolean getvals = get_index_of_frame(event->x, event->y, FALSE, &index, &xpos, &ypos);
-	gchar *tooltip_text;
-	if (getvals) {
-		if (index > 0) {
-			tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f\nFrame#%d", xpos, ypos,(int)index);
-		} else {
-			tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f", xpos, ypos);
+	double x = (double)event->x;
+	double y = (double)event->y;
+
+	if (is_inside_borders(x, y)) {
+		double index, xpos, ypos;
+		gboolean getvals = get_index_of_frame(x, y, FALSE, &index, &xpos, &ypos);
+		gchar *tooltip_text;
+		if (getvals) {
+			if (index > 0) {
+				tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f\nFrame#%d", xpos, ypos,(int)index);
+			} else {
+				tooltip_text = g_strdup_printf("X pos: %0.3f\nY pos: %0.3f", xpos, ypos);
+			}
+			gtk_widget_set_tooltip_text(widget, tooltip_text);
+			g_free(tooltip_text);
+			return TRUE;
 		}
-		gtk_widget_set_tooltip_text(widget, tooltip_text);
-		g_free(tooltip_text);
-		return TRUE;
 	}
 	return FALSE;
 }
@@ -1472,7 +1505,7 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 	}
 
 	double index, xpos, ypos;
-	gboolean getvals = get_index_of_frame(event->x, event->y, TRUE, &index, &xpos, &ypos);
+	gboolean getvals = get_index_of_frame((double)event->x,(double)event->y, TRUE, &index, &xpos, &ypos);
 	if (!getvals) return;
 	if (index < 0) return;
 
@@ -1503,7 +1536,27 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 
 gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer user_data) {
-	do_popup_plotmenu(widget, event);
+	if (!plot_data) return FALSE;
+	if (!com.seq.imgparam) return FALSE;
+	double x = (double)event->x;
+	double y = (double)event->y;
+	if (is_inside_borders(x, y)) {
+		do_popup_plotmenu(widget, event);
+	}
+	if (is_inside_slider(x, y, X_SLIDER)) {
+		// double - click on slider resets both markers
+		if (event->button == GDK_BUTTON_PRIMARY
+				&& event->type == GDK_DOUBLE_BUTTON_PRESS) {
+			reset_slider(X_SLIDER);
+		}
+	}
+	if (is_inside_slider(x, y, Y_SLIDER)) {
+		// double - click on slider resets both markers
+		if (event->button == GDK_BUTTON_PRIMARY
+				&& event->type == GDK_DOUBLE_BUTTON_PRESS) {
+			reset_slider(Y_SLIDER);
+		}
+	}
 	return TRUE;
 }
 
