@@ -135,8 +135,9 @@ pldata *alloc_plot_data(int size) {
 	return plot;
 }
 
-static void plot_draw_all_sliders(cairo_t *cr) { // TODO: adjust colors to the theme
-	cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
+static void plot_draw_all_sliders(cairo_t *cr) {
+	double color = (com.pref.gui.combo_theme == 0) ? 0.8 : 0.2;
+	cairo_set_source_rgb(cr, color, color, color);
 	// x-slider
 	cairo_rectangle(cr, offset.x, surf_h - PLOT_SLIDER_THICKNESS, range.x, PLOT_SLIDER_THICKNESS);
 	cairo_fill(cr);
@@ -185,7 +186,7 @@ static void plot_draw_marker(cairo_t *cr, enum marker_type marker_t) {
 	cairo_fill(cr);
 }
 
-static void plot_draw_all_markers(cairo_t *cr) { // TODO: adjust color to the theme
+static void plot_draw_all_markers(cairo_t *cr) {
 	for (int i = X_MIN; i <= Y_MAX; i++) 
 		plot_draw_marker(cr, i);
 }
@@ -1127,7 +1128,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	}
 
 	width =  gtk_widget_get_allocated_width(widget);
-	height = surf_h = gtk_widget_get_allocated_height(widget);
+	height = gtk_widget_get_allocated_height(widget);
 	surf_w = (double)width;
 	surf_h = (double)height;
 	cairo_surface_t *surface = NULL;
