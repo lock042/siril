@@ -13497,6 +13497,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="margin-top">5</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_r_focus_in_event" swapped="no"/>
                   </object>
@@ -13563,6 +13564,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
                     <property name="margin-top">5</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_g_focus_in_event" swapped="no"/>
                   </object>
@@ -13629,6 +13631,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
                     <property name="margin-top">5</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_b_focus_in_event" swapped="no"/>
                   </object>
@@ -14053,12 +14056,12 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the lower bound of the output rescaling range.</property>
                     <property name="halign">end</property>
                     <property name="width-chars">12</property>
                     <property name="adjustment">adj_pm_low</property>
                     <property name="digits">8</property>
                     <property name="numeric">True</property>
-                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the lower bound of the output rescaling range.</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -14071,13 +14074,13 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the upper bound of the output rescaling range.</property>
                     <property name="halign">end</property>
                     <property name="width-chars">12</property>
                     <property name="adjustment">adj_pm_high</property>
                     <property name="digits">8</property>
                     <property name="numeric">True</property>
                     <property name="value">1</property>
-                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the upper bound of the output rescaling range.</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
