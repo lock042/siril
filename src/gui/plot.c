@@ -173,16 +173,35 @@ static gboolean is_inside_slider(double x, double y, enum slider_type slider_t) 
 static gboolean is_over_marker(double x, double y, enum marker_type marker_t) {
 	switch (marker_t) {
 		case X_MIN:
-			return (abs(x - (offset.x + range.x * xrange[0])) <= PLOT_SLIDER_THICKNESS * 0.5 && abs(y - (surf_h - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5);
+			return (fabs(x - (offset.x + range.x * xrange[0])) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (surf_h - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5);
 		case X_MAX:
-			return (abs(x - (offset.x + range.x * xrange[1])) <= PLOT_SLIDER_THICKNESS * 0.5 && abs(y - (surf_h - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5);
+			return (fabs(x - (offset.x + range.x * xrange[1])) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (surf_h - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5);
 		case Y_MIN:
-			return (abs(x - (surf_w - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5 && abs(y - (offset.y + range.y * (1. - yrange[0]))) <= PLOT_SLIDER_THICKNESS * 0.5);
+			return (fabs(x - (surf_w - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (offset.y + range.y * (1. - yrange[0]))) <= PLOT_SLIDER_THICKNESS * 0.5);
 		case Y_MAX:
-			return (abs(x - (surf_w - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5 && abs(y - (offset.y + range.y * (1. - yrange[1]))) <= PLOT_SLIDER_THICKNESS * 0.5);
+			return (fabs(x - (surf_w - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (offset.y + range.y * (1. - yrange[1]))) <= PLOT_SLIDER_THICKNESS * 0.5);
 		default:
 			return FALSE;
 	}
+}
+
+static int get_closest_marker(double x, double y, enum slider_type slider_t, double *valrange) {
+	double val;
+	switch (slider_t) {
+
+		// some margins are included to make sure we can grab
+		default:
+		case X_SLIDER:
+			val = (x - offset.x) / range.x;
+			break;
+		case Y_SLIDER:
+			val = (offset.y + range.y - y) / range.y;
+			break;
+	}
+	// should not be outside of [0, 1] but just in case
+	val = min(1., val);
+	val = max(0., val);
+	return (int)(fabs(val - valrange[0]) > fabs(val - valrange[1]));
 }
 
 static void find_range_from_pos(double x, double y, enum slider_type slider_t, int index, double *valrange) {
@@ -192,7 +211,7 @@ static void find_range_from_pos(double x, double y, enum slider_type slider_t, i
 			val = (x - offset.x) / range.x;
 			break;
 		case Y_SLIDER:
-			val = (offset.y + range.y -y) / range.y;
+			val = (offset.y + range.y - y) / range.y;
 			break;
 		default:
 			return;
@@ -1613,6 +1632,13 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 					return TRUE;
 				}
 			}
+			//otherwise, it's just clicked once - we find the closest marker
+			// TODO: is there a way to wait and see if this is not a double-click event?
+			double *valrange = (i == 0) ? &xrange[0] : &yrange[0];
+			int j = get_closest_marker(x, y, i, valrange);
+			find_range_from_pos(x, y, i, j, valrange);
+			update_slider(i, valrange[0], valrange[1]);
+			return TRUE;
 		}
 	}
 	return TRUE;
