@@ -321,7 +321,7 @@ static void plot_draw_marker(cairo_t *cr, enum marker_type marker_t) {
 }
 
 static void plot_draw_all_markers(cairo_t *cr) {
-	for (int i = X_MIN; i <= Y_MAX; i++) 
+	for (int i = X_MIN; i <= Y_MAX; i++)
 		plot_draw_marker(cr, i);
 }
 
@@ -1513,7 +1513,7 @@ static void free_colors(struct kplotcfg *cfg) {
 
 gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
-	
+
 	if (!plot_data) return FALSE;
 	if (!com.seq.imgparam) return FALSE;
 
@@ -1543,6 +1543,9 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 				double *valrange = (i == 0) ? &xrange[0] : &yrange[0];
 				find_range_from_pos(x, y, i, j, valrange);
 				update_slider(i, valrange[0], valrange[1]);
+				return TRUE;
+			} else if (is_over_marker(x, y, 2 * i + j)) {
+				set_cursor("grab");
 				return TRUE;
 			}
 		}
@@ -1628,7 +1631,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 			for (int j = 0; j < 2; j++) {
 				if (is_over_marker(x, y, 2 * i + j) && marker_grabbed == -1) {
 					marker_grabbed = 2 * i + j;
-					set_cursor("grab");
+					set_cursor("grabbing");
 					return TRUE;
 				}
 			}
