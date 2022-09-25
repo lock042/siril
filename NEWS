@@ -25,6 +25,7 @@ v1.2.0 mmm dd, 2022
 * Added calibration details in the FITS history
 * Added saving formulas (presets) in Pixel Math
 * Added solar system object search from online service for image annotations
+* Added zoom sliders in Plot tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored global registration and added 2pass and Apply Existing methods
@@ -60,6 +61,7 @@ v1.0.6 xx xx, 2022
 * Fixed crash in savetif
 * Fixed crash in polynomial background extraction when not enough sample were set
 * Fixed bug in iif where no parameters could be used
+* Fixed crash in seqstat when some images were deselected
 
 v1.0.5 October 09, 2022
 
