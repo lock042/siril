@@ -83,6 +83,8 @@ static double surf_h; // y size of the cairosurface in pixel
 static double xrange[2] = {0., 1.}; // pair between 0 and 1 giving the extent of plotted x values in the datamin,datamax range
 static double yrange[2] = {0., 1.}; // pair between 0 and 1 giving the extent of plotted y values in the datamin,datamax range
 static int marker_grabbed = -1;
+// static const char *regfmt32[] = { "%4.2f", "%4.2f", "%4.2f", "%6.4f", "%4.0f", "%5.1f", "%5.1f", "%5.3f", "%5.0f"};
+// static const char *regfmt16[] = { "%4.2f", "%4.2f", "%4.2f", "%5.0f", "%4.0f", "%5.1f", "%5.1f", "%5.3f", "%5.0f"};
 
 static void update_ylabel();
 static void set_colors(struct kplotcfg *cfg);
@@ -249,18 +251,20 @@ static gboolean get_index_of_frame(double x, double y, gboolean check_index_incl
 }
 
 static void plot_draw_all_sliders(cairo_t *cr) {
-	double color = (com.pref.gui.combo_theme == 0) ? 0.8 : 0.2;
+	double color = (com.pref.gui.combo_theme == 0) ? 1.0 : 0.0;
+	cairo_set_line_width(cr, 1.0);
 	cairo_set_source_rgb(cr, color, color, color);
 	// x-slider
 	cairo_rectangle(cr, offset.x, surf_h - PLOT_SLIDER_THICKNESS, range.x, PLOT_SLIDER_THICKNESS);
-	cairo_fill(cr);
+	cairo_stroke(cr);
 	// y-slider
 	cairo_rectangle(cr, surf_w - PLOT_SLIDER_THICKNESS, offset.y, PLOT_SLIDER_THICKNESS, range.y);
-	cairo_fill(cr);
+	cairo_stroke(cr);
 }
 
 static void plot_draw_slider_fill(cairo_t *cr, enum slider_type slider_t) {
-	cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+	double color = 0.5;
+	cairo_set_source_rgb(cr, color, color, color);
 	switch (slider_t) {
 		default:
 		case X_SLIDER:
@@ -1494,7 +1498,19 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 
 	double x = (double)event->x;
 	double y = (double)event->y;
-
+	for (int i = X_SLIDER; i <= Y_SLIDER; i++) {
+		for (int j = 0; j < 2; j++) {
+			if (marker_grabbed == 2 * i + j) {
+				double *valrange = (i == 0) ? &xrange[0] : &yrange[0];
+				find_range_from_pos(x, y, i, j, valrange);
+				update_slider(i, valrange[0], valrange[1]);
+				return TRUE;
+			} else if (is_over_marker(x, y, 2 * i + j)) {
+				set_cursor("grab");
+				return TRUE;
+			}
+		}
+	}
 	if (is_inside_borders(x, y)) {
 		double index, xpos, ypos;
 		gboolean getvals = get_index_of_frame(x, y, FALSE, &index, &xpos, &ypos);
@@ -1508,19 +1524,6 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 			gtk_widget_set_tooltip_text(widget, tooltip_text);
 			g_free(tooltip_text);
 			return TRUE;
-		}
-	}
-	for (int i = X_SLIDER; i <= Y_SLIDER; i++) {
-		for (int j = 0; j < 2; j++) {
-			if (marker_grabbed == 2 * i + j) {
-				double *valrange = (i == 0) ? &xrange[0] : &yrange[0];
-				find_range_from_pos(x, y, i, j, valrange);
-				update_slider(i, valrange[0], valrange[1]);
-				return TRUE;
-			} else if (is_over_marker(x, y, 2 * i + j)) {
-				set_cursor("grab");
-				return TRUE;
-			}
 		}
 	}
 	set_cursor("tcross");
@@ -1610,7 +1613,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 				}
 			}
 			//otherwise, it's just clicked once - we find the closest marker
-			// TODO: is there a way to wait and see if this is not a double-click event?
+			// In case of double-click, that's called once first... we ddecided to live with that
 			double *valrange = (i == 0) ? &xrange[0] : &yrange[0];
 			int j = get_closest_marker(x, y, i, valrange);
 			find_range_from_pos(x, y, i, j, valrange);
