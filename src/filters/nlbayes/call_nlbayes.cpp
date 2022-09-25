@@ -123,13 +123,15 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
       fSigma = (float) intermediate_bgnoise;
       if (fSigma > lastfSigma * 1.01f) {
         // Note we only check this on the first iteration: if the first iteration converges then subsequent iterations appear to converge reliably, however the noise level on successive iterations does not necessarily decrease monotonically.
-        siril_log_color_message(_("Error: SOS is not converging, noise level after iteration was %f. Try a smaller value of rho.\n"),"red", fSigma);
+        siril_log_color_message(_("Error: SOS is not converging. Try a smaller value of rho.\n"),"red");
         bgr_vout = bgr_v_orig;
         break;
       }
-      siril_log_message(_("NL-Bayes auto parametrisation: measured background noise level is %f\n"),fSigma);
+      if (iter == 0)
+        siril_log_message(_("NL-Bayes auto parametrisation: measured background noise level is %.3e\n"),fSigma);
 
       if (do_anscombe && iter == 0) {
+        siril_log_message(_("Applying Anscombe VST\n"));
         if (nchans == 1) {
           // Mono images
           transform(bgr_v.begin(), bgr_v.end(), bgr_v.begin(),
@@ -156,6 +158,7 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
         return EXIT_FAILURE;
 
       if (do_anscombe && iter == 0) {
+        siril_log_message(_("Applying exact unbiased inverse Anscombe VST\n"));
         if (nchans == 1) {
           // Inverse transform for mono images
           inverse_generalized_anscombe_array(bgr_vout.data(), 0.f, fSigma, 1.f, imSize.whc);
@@ -211,7 +214,7 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     // Final noise measurement
     sos_update_noise_float(bgr_fout, width, height, nchans, &intermediate_bgnoise);
     fSigma = (float) intermediate_bgnoise;
-    siril_log_message(_("NL-Bayes output: measured background noise level is %f\n"),fSigma);
+    siril_log_message(_("NL-Bayes output: measured background noise level is %.3e\n"),fSigma);
 
     // Convert output from bgrbgr back to planar rgb and put back into fit
     if (fit->type == DATA_FLOAT) {

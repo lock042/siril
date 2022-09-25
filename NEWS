@@ -54,7 +54,7 @@ v1.2.0 mmm dd, 2022
 * Fixed FITS header preservation on RGB composition
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
-* Added BM3D denoising
+* Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
 
 v1.0.6 xx xx, 2022
 

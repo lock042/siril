@@ -264,12 +264,51 @@ static gboolean end_denoise(gpointer p) {
 gpointer run_nlbayes_on_fit(gpointer p) {
 	denoise_args *args = (denoise_args *) p;
 	struct timeval t_start, t_end;
-	if (args->da3d)
-		undo_save_state(&gfit, _("NL-Bayes denoise (modulation=%f, DA3D enabled)"), args->modulation);
+	char *msg1, *msg2, *msg3, *log_msg;
+	int n = 0, m = 0, q = 0;
+	n = snprintf(NULL, 0,
+    "NL-Bayes denoise (mod=%.3f", args->modulation);
+	msg1 = malloc(n + 1);
+	n = snprintf(msg1, n + 1,
+    "NL-Bayes denoise (mod=%.3f", args->modulation);
+	if(args->da3d) {
+		m = snprintf(NULL, 0, ", DA3D enabled");
+		msg2 = malloc(m + 1);
+		m = snprintf(msg2, m + 1, ", DA3D enabled");
+	} else if (args->sos > 1) {
+		m = snprintf(NULL, 0, ", SOS enabled (iters=%d, rho=%.3f)", args->sos, args->rho);
+		msg2 = malloc(m + 1);
+		m = snprintf(msg2, m + 1, ", SOS enabled (iters=%d, rho=%.3f)", args->sos, args->rho);
+	} else if (args->do_anscombe) {
+		m = snprintf(NULL, 0, ", VST enabled");
+		msg2 = malloc(m + 1);
+		m = snprintf(msg2, m + 1, ", VST enabled");
+	}
+	if (args->do_cosme) {
+		q = snprintf(NULL, 0, ", CC enabled)");
+		msg3 = malloc(q + 1);
+		q = snprintf(msg3, q + 1, ", CC enabled)");
+	} else {
+		q = 1;
+		msg3 = malloc(q + 1);
+		q = snprintf(msg3, q + 1, ")");
+	}
+	log_msg = malloc(n + m + q + 1);
+	if (m == 0 && q == 0)
+		snprintf(log_msg, n + 1, "%s", msg1);
+	else if (m > 0 && q == 0)
+		snprintf(log_msg, n + m + 1, "%s%s", msg1, msg2);
+	else if(m == 0 && q > 0)
+		snprintf(log_msg, n + q + 1, "%s%s", msg1, msg3);
+	else if (m > 0 && q > 0)
+		snprintf(log_msg, n + m + q + 1, "%s%s%s", msg1, msg2, msg3);
 	else
-		undo_save_state(&gfit, _("NL-Bayes denoise (modulation=%f, DA3D disabled)"), args->modulation);
+		snprintf(log_msg, 26, "Error, this can't happen!");
+
+	undo_save_state(&gfit, "%s", log_msg);
+	siril_log_message("%s\n", log_msg); // This is the standard non-translated message to make things easy for log parsers.
 	gettimeofday(&t_start, NULL);
-	set_progress_bar_data("Starting BNL-Bayes denoising...", 0.0);
+	set_progress_bar_data("Starting NL-Bayes denoising...", 0.0);
 
 	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe, args->do_cosme);
 
@@ -285,9 +324,8 @@ int process_denoise(int nb){
 	gboolean error = FALSE;
 	set_cursor_waiting(TRUE);
 	denoise_args *args = calloc(1, sizeof(denoise_args));
-	int algo = 1;
 	args->sos = 1;
-	args->rho = 0.5f;
+	args->rho = 0.2f;
 	args->modulation = 1.f;
 	args->da3d = 0;
 	args->do_anscombe = FALSE;
@@ -348,34 +386,21 @@ int process_denoise(int nb){
 			}
 		}
 	}
-	switch (algo) {
-/*
- *		case -1:
-			siril_log_message(_("No algorithm set: doing nothing. One of the arguments [bm3d] or [nlbayes] must be provided.\n"));
-			return CMD_ARG_ERROR;
-			break;
-*/
-		case 1:
-			if (args->do_anscombe && (args->sos != 1 || args->da3d)) {
-				siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. Aborting.\n"), "red");
-				return CMD_ARG_ERROR;
-			}
-			siril_log_message(_("Primary denoising algorithm: NL-Bayes.\n"));
-			siril_log_message(_("Modulation: %f\n"),args->modulation);
-			if (args->do_anscombe)
-				siril_log_message(_("Will apply generalised Anscombe variance stabilising transform.\n"));
-			if (args->da3d) {
-				siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
-				if (args->sos != 1) {
-					siril_log_message(_("Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"));
-					args->sos = 1;
-				}
-			}
-		start_in_new_thread(run_nlbayes_on_fit, args);
-			break;
-		default:
-			return CMD_ARG_ERROR; // Should never reach this code
+	if (args->do_anscombe && (args->sos != 1 || args->da3d)) {
+		siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. aborting.\n"), "red");
+		return CMD_ARG_ERROR;
 	}
+	if (args->do_anscombe)
+		siril_log_message(_("Will apply generalised Anscombe variance stabilising transform.\n"));
+	if (args->da3d) {
+		siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
+		if (args->sos != 1) {
+			siril_log_message(_("Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"));
+			args->sos = 1;
+		}
+	}
+	start_in_new_thread(run_nlbayes_on_fit, args);
+
 	return CMD_OK;
 }
 
@@ -393,15 +418,12 @@ int process_starnet(int nb){
 		if (!word[i])
 			break;
 		if (g_str_has_prefix(arg, "-stretch")) {
-//			arg += 8;
 			starnet_args->linear = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-upscale")) {
-//			arg += 8;
 			starnet_args->upscale = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-nostarmask")) {
-//			arg += 11;
 			starnet_args->starmask = FALSE;
 		}
 		else if (g_str_has_prefix(arg, "-stride=")) {
