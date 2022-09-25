@@ -14379,12 +14379,12 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the lower bound of the output rescaling range.</property>
                     <property name="halign">end</property>
                     <property name="width-chars">12</property>
                     <property name="adjustment">adj_pm_low</property>
                     <property name="digits">8</property>
                     <property name="numeric">True</property>
-                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the lower bound of the output rescaling range.</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -14397,13 +14397,13 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the upper bound of the output rescaling range.</property>
                     <property name="halign">end</property>
                     <property name="width-chars">12</property>
                     <property name="adjustment">adj_pm_high</property>
                     <property name="digits">8</property>
                     <property name="numeric">True</property>
                     <property name="value">1</property>
-                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the upper bound of the output rescaling range.</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
