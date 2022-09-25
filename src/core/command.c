@@ -730,6 +730,7 @@ int process_ght(int nb) {
 		siril_log_message(_("Stretch factor D must be between 0 and 10\n"));
 		return CMD_ARG_ERROR;
 	}
+	D = expm1f((float) D);
 
 	double B = g_ascii_strtod(word[2 + arg_offset],NULL);
 	if ((B < -5.0) || (B > 15.0)) {
@@ -815,6 +816,7 @@ int process_invght(int nb) {
 		siril_log_message(_("Stretch factor D must be between 0 and 10\n"));
 		return CMD_ARG_ERROR;
 	}
+	D = expm1f((float) D);
 
 	double B = g_ascii_strtod(word[2 + arg_offset],NULL);
 	if ((B < -5.0) || (B > 15.0)) {
@@ -899,6 +901,7 @@ int process_modasinh(int nb) {
 		siril_log_message(_("D must be between 0 and 10\n"));
 		return CMD_ARG_ERROR;
 	}
+	D = expm1f((float) D);
 
 	double SP = g_ascii_strtod(word[arg_offset+3],NULL);
 	if ((SP < 0.0) || (SP > 1.0)) {
@@ -977,6 +980,7 @@ int process_invmodasinh(int nb) {
 		siril_log_message(_("D must be between 0 and 10\n"));
 		return CMD_ARG_ERROR;
 	}
+	D = expm1f((float)D);
 
 	double SP = g_ascii_strtod(word[arg_offset+3],NULL);
 	if ((SP < 0.0) || (SP > 1.0)) {
