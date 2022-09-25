@@ -5704,6 +5704,7 @@ int process_capabilities(int nb) {
 #else
 	siril_log_message("OpenMP unavailable\n");
 #endif
+	siril_log_message("Detected system available memory: %d MB\n", (int)(get_available_memory() / BYTES_IN_A_MB));
 	siril_log_message("Can%s create symbolic links\n", test_if_symlink_is_ok(FALSE) ? "" : "not");
 #ifndef HAVE_CV44
 	siril_log_message("OpenCV 4.2 used, shift-only registration transformation unavailable\n");
