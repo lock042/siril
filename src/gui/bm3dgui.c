@@ -17,8 +17,8 @@
 float denoise_modulation;
 int da3d = 0;
 int sos = 0;
-int sos_iters = 5;
-float sos_rho = 0.5f;
+int sos_iters = 3;
+float sos_rho = 0.2f;
 gboolean do_anscombe = FALSE;
 gboolean do_cosme = TRUE;
 
