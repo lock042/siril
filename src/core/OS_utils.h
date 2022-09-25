@@ -33,6 +33,8 @@ void log_used_mem(gchar *when);
 
 int get_available_cpu_cgroups();
 
+void init_num_procs();
+
 GInputStream *siril_input_stream_from_stdin();
 
 #ifdef _WIN32

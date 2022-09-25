@@ -264,7 +264,7 @@ int test_available_space(gint64 req_size) {
 	return 0;
 }
 
-#if defined(__linux__) || defined(__CYGWIN__)
+#if defined(__linux__)
 /* read a value from a file that contains only an integer, like many procfs or sysfs files */
 static int read_from_file(const char *filename, guint64 *value) {
 	int fd = open(filename, O_RDONLY);
@@ -473,6 +473,35 @@ int get_available_cpu_cgroups() {
 	return 0;
 }
 #endif
+
+void init_num_procs() {
+	/* Get CPU number and set the number of threads */
+#ifdef _OPENMP
+	int num_proc = (int) g_get_num_processors();
+	int omp_num_proc = omp_get_num_procs();
+	if (num_proc != omp_num_proc) {
+		siril_log_message(_("Questionable parallel processing detection - openmp reports %d %s, glib %d.\n"),
+					omp_num_proc, ngettext("processor", "processors", omp_num_proc), num_proc);
+		// in case of cgroup limitation of the cpuset, openmp already detects the correct count
+	}
+	com.max_thread = num_proc < omp_num_proc ? num_proc : omp_num_proc;;
+	int cgroups_num_proc = get_available_cpu_cgroups();
+	if (cgroups_num_proc > 0 && cgroups_num_proc < com.max_thread) {
+		siril_log_message(_("Using cgroups limit on the number of processors: %d\n"), cgroups_num_proc);
+		com.max_thread = cgroups_num_proc;
+	}
+	omp_set_nested(1);
+	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
+	siril_log_message(
+			_("Parallel processing enabled: using %d logical %s%s.\n"),
+			com.max_thread,
+			ngettext("processor", "processors", com.max_thread),
+			supports_nesting ? "" : _(", nesting not supported"));
+#else
+	com.max_thread = 1;
+	siril_log_message(_("Parallel processing disabled: using 1 logical processor.\n"));
+#endif
+}
 
 /**
  * Gets available memory in bytes.
