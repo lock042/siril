@@ -241,6 +241,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="width-chars">5</property>
                     <property name="text">3,00</property>
                     <property name="input-purpose">number</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adjSigCosmeCold</property>
                     <property name="climb-rate">0.10</property>
                     <property name="digits">2</property>
@@ -305,6 +306,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="width-chars">5</property>
                     <property name="text">3,00</property>
                     <property name="input-purpose">number</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adjSigCosmeHot</property>
                     <property name="climb-rate">0.10</property>
                     <property name="digits">2</property>
@@ -359,6 +361,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="width-chars">5</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adjCosmeAmount</property>
                     <property name="digits">2</property>
                   </object>
@@ -453,6 +456,7 @@ Uncheck if images come from a monochrome sensor.</property>
                     <property name="width-chars">10</property>
                     <property name="max-width-chars">10</property>
                     <property name="text">cc_</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -620,6 +624,7 @@ Uncheck if images come from a monochrome sensor.</property>
                 <property name="hexpand">False</property>
                 <property name="width-chars">3</property>
                 <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adj_clahe_size</property>
                 <property name="numeric">True</property>
                 <property name="value">8</property>
@@ -676,6 +681,7 @@ Uncheck if images come from a monochrome sensor.</property>
               <object class="GtkSpinButton" id="spin_clahe">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adj_clahe_clip</property>
                 <property name="digits">2</property>
                 <signal name="value-changed" handler="on_spin_clahe_value_changed" swapped="no"/>
@@ -901,6 +907,7 @@ artifacts may appear.</property>
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_deconv_threshold</property>
                     <signal name="value-changed" handler="on_spin_deconv_threshold_value_changed" swapped="no"/>
                   </object>
@@ -974,6 +981,7 @@ artifacts may appear.</property>
                   <object class="GtkSpinButton" id="spin_deconv_radius">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_deconv_radius</property>
                     <property name="digits">2</property>
                     <signal name="value-changed" handler="on_spin_deconv_radius_value_changed" swapped="no"/>
@@ -1030,6 +1038,7 @@ artifacts may appear.</property>
                   <object class="GtkSpinButton" id="spin_deconv_boost">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_deconv_corner</property>
                     <property name="digits">2</property>
                     <signal name="value-changed" handler="on_spin_deconv_boost_value_changed" swapped="no"/>
@@ -1087,6 +1096,7 @@ artifacts may appear.</property>
                   <object class="GtkSpinButton" id="spin_deconv_iterations">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_deconv_iterations</property>
                     <signal name="value-changed" handler="on_spin_deconv_iterations_value_changed" swapped="no"/>
                   </object>
@@ -1253,6 +1263,7 @@ artifacts may appear.</property>
                 <property name="max-width-chars">7</property>
                 <property name="text">2</property>
                 <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adj_extract_w</property>
                 <property name="climb-rate">1</property>
                 <property name="numeric">True</property>
@@ -1408,6 +1419,7 @@ artifacts may appear.</property>
               <object class="GtkSpinButton">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adj_fixbanding_amount</property>
                 <property name="digits">1</property>
               </object>
@@ -1480,6 +1492,7 @@ artifacts may appear.</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adj_fixbanding_invsigma</property>
                 <property name="digits">1</property>
               </object>
@@ -1572,6 +1585,7 @@ artifacts may appear.</property>
                 <property name="max-length">10</property>
                 <property name="width-chars">10</property>
                 <property name="text">unband_</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -1780,6 +1794,7 @@ This is useful when modulation parameter is different to 1 helping the whole pro
                     <property name="hexpand">False</property>
                     <property name="width-chars">3</property>
                     <property name="input-purpose">number</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_median_iterations</property>
                     <property name="numeric">True</property>
                     <property name="value">1</property>
@@ -1833,6 +1848,7 @@ This is useful when modulation parameter is different to 1 helping the whole pro
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="width-chars">4</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_median_amount</property>
                     <property name="digits">2</property>
                     <property name="value">1</property>
@@ -2027,6 +2043,7 @@ If the parameters is null, so no filter is apply at all.</property>
               <object class="GtkSpinButton">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adj_rad_rgradient</property>
                 <property name="digits">2</property>
               </object>
@@ -2083,6 +2100,7 @@ If the parameters is null, so no filter is apply at all.</property>
               <object class="GtkSpinButton">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adj_rot_rgradient</property>
                 <property name="digits">2</property>
               </object>
@@ -2164,6 +2182,7 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="width-chars">9</property>
                 <property name="text">1.00</property>
                 <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -2193,6 +2212,7 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="width-chars">9</property>
                 <property name="text">1.00</property>
                 <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -2382,6 +2402,7 @@ If the parameters is null, so no filter is apply at all.</property>
                     <property name="margin-start">8</property>
                     <property name="hexpand">True</property>
                     <property name="input-purpose">digits</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_starnet_stride</property>
                     <property name="value">256</property>
                     <signal name="value-changed" handler="on_spin_starnet_stride_value_changed" swapped="no"/>
@@ -2649,6 +2670,7 @@ If the parameters is null, so no filter is apply at all.</property>
                             <property name="max-width-chars">2</property>
                             <property name="text">6</property>
                             <property name="input-purpose">number</property>
+                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                             <property name="adjustment">adj_plans_w</property>
                             <property name="snap-to-ticks">True</property>
                             <property name="numeric">True</property>
@@ -2754,6 +2776,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="text">0,99</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adj_w0</property>
                                 <property name="digits">2</property>
                                 <property name="value">0.98999999999999999</property>
@@ -2823,6 +2846,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="text">1,00</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adj_w1</property>
                                 <property name="digits">2</property>
                                 <property name="value">1</property>
@@ -2892,6 +2916,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="text">1,00</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adj_w2</property>
                                 <property name="digits">2</property>
                                 <property name="value">1</property>
@@ -2961,6 +2986,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="text">1,00</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adj_w3</property>
                                 <property name="digits">2</property>
                                 <property name="value">1</property>
@@ -3030,6 +3056,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="text">1,00</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adj_w4</property>
                                 <property name="digits">2</property>
                                 <property name="value">1</property>
@@ -3099,6 +3126,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="text">1,00</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adj_w5</property>
                                 <property name="digits">2</property>
                                 <property name="value">1</property>
@@ -3640,6 +3668,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="width-chars">6</property>
                                 <property name="text">0,50</property>
                                 <property name="input-purpose">digits</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adj_background_smoothing</property>
                                 <property name="digits">2</property>
                                 <property name="numeric">True</property>
@@ -3775,6 +3804,7 @@ The higher the degree order is, the more complex the gradient can be removed.</p
                         <property name="hexpand">True</property>
                         <property name="text">20</property>
                         <property name="input-purpose">digits</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">adjustment_background_nb_samples</property>
                         <property name="numeric">True</property>
                         <property name="value">20</property>
@@ -3832,6 +3862,7 @@ This should be enabled for non-stretched images.</property>
                         <property name="tooltip-text" translatable="yes">Tolerance factor of global sample rejection, in mad units (median + this * mad). By decreasing this value, Siril will be more restrictive to select background samples.</property>
                         <property name="text">2,00</property>
                         <property name="input-purpose">digits</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">adj_background_tolerance</property>
                         <property name="digits">2</property>
                         <property name="numeric">True</property>
@@ -4080,6 +4111,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="max-length">10</property>
                 <property name="width-chars">10</property>
                 <property name="text">bkg_</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -4377,6 +4409,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                     <property name="margin-right">11</property>
                     <property name="invisible-char">•</property>
                     <property name="width-chars">26</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <signal name="activate" handler="on_savetxt_activate" swapped="no"/>
                     <signal name="changed" handler="on_savetxt_changed" swapped="no"/>
                   </object>
@@ -4654,6 +4687,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="accepts-tab">False</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                         <property name="monospace">True</property>
                                         <style>
                                           <class name="monospace"/>
@@ -4703,6 +4737,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                                         <property name="can-focus">True</property>
                                         <property name="wrap-mode">word</property>
                                         <property name="accepts-tab">False</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                         <property name="monospace">True</property>
                                         <style>
                                           <class name="monospace"/>
@@ -5264,6 +5299,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
               <object class="GtkSpinButton" id="spin_satu">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adjustment_satu</property>
                 <property name="digits">2</property>
                 <signal name="value-changed" handler="on_spin_satu_value_changed" swapped="no"/>
@@ -5320,6 +5356,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
               <object class="GtkSpinButton" id="spin_satu_bkg">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adj_satu_bkg</property>
                 <property name="digits">2</property>
                 <property name="numeric">True</property>
@@ -5531,6 +5568,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adjustment_scnr</property>
                 <property name="digits">2</property>
               </object>
@@ -5690,6 +5728,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">Enter a wavelength value in nanometers here, between 380 and 780, decimals are accepted.</property>
                 <property name="width-chars">8</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <signal name="changed" handler="on_wavelength_changed" swapped="no"/>
               </object>
               <packing>
@@ -5823,6 +5862,7 @@ enter a visible wavelength in nm</property>
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">10</property>
                 <property name="text">cropped_</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
@@ -5937,6 +5977,7 @@ enter a visible wavelength in nm</property>
                     <property name="tooltip-text" translatable="yes">File name for the first FITS file to save.</property>
                     <property name="hexpand">True</property>
                     <property name="invisible-char">●</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -5950,6 +5991,7 @@ enter a visible wavelength in nm</property>
                     <property name="tooltip-text" translatable="yes">File name for the second FITS file to save.</property>
                     <property name="hexpand">True</property>
                     <property name="invisible-char">●</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -5963,6 +6005,7 @@ enter a visible wavelength in nm</property>
                     <property name="tooltip-text" translatable="yes">File name for the third FITS file to save.</property>
                     <property name="hexpand">True</property>
                     <property name="invisible-char">●</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -6152,6 +6195,7 @@ enter a visible wavelength in nm</property>
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <signal name="changed" handler="on_pitchY_entry_changed" swapped="no"/>
               </object>
               <packing>
@@ -6181,6 +6225,7 @@ enter a visible wavelength in nm</property>
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <signal name="changed" handler="on_focal_entry_changed" swapped="no"/>
               </object>
               <packing>
@@ -6198,6 +6243,7 @@ enter a visible wavelength in nm</property>
                 <property name="invisible-char">●</property>
                 <property name="width-chars">10</property>
                 <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <signal name="changed" handler="on_pitchX_entry_changed" swapped="no"/>
               </object>
               <packing>
@@ -6396,6 +6442,7 @@ enter a visible wavelength in nm</property>
                 <property name="can-focus">True</property>
                 <property name="text">0</property>
                 <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adjustment_lum_x</property>
               </object>
               <packing>
@@ -6410,6 +6457,7 @@ enter a visible wavelength in nm</property>
                 <property name="can-focus">True</property>
                 <property name="text">0</property>
                 <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">adjustment_lum_y</property>
               </object>
               <packing>
@@ -6801,6 +6849,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
                     <property name="hexpand">True</property>
                     <property name="invisible-char">●</property>
                     <property name="text" translatable="yes">modulus</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -6814,6 +6863,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
                     <property name="hexpand">True</property>
                     <property name="invisible-char">●</property>
                     <property name="text" translatable="yes">phase</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -7256,6 +7306,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">0.000</property>
                                 <property name="progress-pulse-step">0.01</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneDR</property>
                                 <property name="digits">3</property>
                                 <signal name="value-changed" handler="on_spin_remix_D_right_value_changed" swapped="no"/>
@@ -7325,6 +7376,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. Increasing b will increase the intensity of stars with peak brightness above SP, but may bloat their PSF; it will reduce the intensity of stars below SP.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">0.500</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneBR</property>
                                 <property name="digits">3</property>
                                 <signal name="value-changed" handler="on_spin_remix_B_right_value_changed" swapped="no"/>
@@ -7396,6 +7448,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="text">0.00000</property>
                                 <property name="progress-fraction">0.01</property>
                                 <property name="progress-pulse-step">0.01</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneSPR</property>
                                 <property name="digits">5</property>
                                 <signal name="value-changed" handler="on_spin_remix_SP_right_value_changed" swapped="no"/>
@@ -7486,6 +7539,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">0.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneLPR</property>
                                 <property name="digits">5</property>
                                 <signal name="value-changed" handler="on_spin_remix_LP_right_value_changed" swapped="no"/>
@@ -7556,6 +7610,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">1.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneHPR</property>
                                 <property name="digits">5</property>
                                 <property name="value">1</property>
@@ -7628,6 +7683,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">0.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneBPR</property>
                                 <property name="digits">5</property>
                                 <signal name="value-changed" handler="on_spin_remix_BP_right_value_changed" swapped="no"/>
@@ -7860,6 +7916,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">0.000</property>
                                 <property name="progress-pulse-step">0.01</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneDL</property>
                                 <property name="digits">3</property>
                                 <signal name="value-changed" handler="on_spin_remix_D_left_value_changed" swapped="no"/>
@@ -7929,6 +7986,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value of b will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjustment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of b will decrease as a stretch sequence nears completion, although larger values (with small D) can still be used for precise placement of additional contrast.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">0.500</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneBL</property>
                                 <property name="digits">3</property>
                                 <signal name="value-changed" handler="on_spin_remix_B_left_value_changed" swapped="no"/>
@@ -8000,6 +8058,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="text">0.00000</property>
                                 <property name="progress-fraction">0.01</property>
                                 <property name="progress-pulse-step">0.01</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneSPL</property>
                                 <property name="digits">5</property>
                                 <signal name="value-changed" handler="on_spin_remix_SP_left_value_changed" swapped="no"/>
@@ -8090,6 +8149,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">0.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneLPL</property>
                                 <property name="digits">5</property>
                                 <signal name="value-changed" handler="on_spin_remix_LP_left_value_changed" swapped="no"/>
@@ -8160,6 +8220,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">1.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneHPL</property>
                                 <property name="digits">5</property>
                                 <property name="value">1</property>
@@ -8232,6 +8293,7 @@ Note that luminance based models are not generally invertible.</property>
                                 <property name="width-chars">10</property>
                                 <property name="text">0.00000</property>
                                 <property name="progress-pulse-step">0.01</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_payneBPL</property>
                                 <property name="digits">5</property>
                                 <signal name="value-changed" handler="on_spin_remix_BP_left_value_changed" swapped="no"/>
@@ -8311,6 +8373,7 @@ Note that luminance based models are not generally invertible.</property>
                 <child>
                   <object class="GtkSpinButton" id="spin_mastermixer">
                     <property name="can-focus">True</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adjustment_remix_master</property>
                     <signal name="value-changed" handler="on_spin_mastermixer_value_changed" swapped="no"/>
                   </object>
@@ -8322,6 +8385,7 @@ Note that luminance based models are not generally invertible.</property>
                 <child>
                   <object class="GtkSpinButton" id="spin_finalstretch">
                     <property name="can-focus">True</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adjustment-finalstretch</property>
                     <signal name="value-changed" handler="on_spin_finalstretch_value_changed" swapped="no"/>
                   </object>
@@ -8554,6 +8618,7 @@ Note that luminance based models are not generally invertible.</property>
                     <property name="tooltip-text" translatable="yes">The algorithm will ignore all reference pixels whose values are outside of the [low, high] range.</property>
                     <property name="width-chars">10</property>
                     <property name="text">0,00</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_linearmatch_low</property>
                     <property name="digits">4</property>
                   </object>
@@ -8612,6 +8677,7 @@ Note that luminance based models are not generally invertible.</property>
                     <property name="tooltip-text" translatable="yes">The algorithm will ignore all reference pixels whose values are outside of the [low, high] range.</property>
                     <property name="width-chars">10</property>
                     <property name="text">20</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_linearmatch_high</property>
                     <property name="digits">4</property>
                     <property name="value">0.92</property>
@@ -9104,6 +9170,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
             <property name="primary-icon-activatable">False</property>
             <property name="primary-icon-sensitive">False</property>
             <property name="input-purpose">digits</property>
+            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
           </object>
           <packing>
             <property name="pack-type">end</property>
@@ -9226,6 +9293,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="max-width-chars">2</property>
                         <property name="text" translatable="yes">0</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">AdjIPS_RA_h</property>
                         <property name="numeric">True</property>
                       </object>
@@ -9245,6 +9313,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="max-width-chars">2</property>
                         <property name="text" translatable="yes">0</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">AdjIPS_RA_m</property>
                         <property name="numeric">True</property>
                       </object>
@@ -9264,6 +9333,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="max-width-chars">2</property>
                         <property name="text" translatable="yes">0</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">AdjIPS_Dec_deg</property>
                         <property name="numeric">True</property>
                       </object>
@@ -9283,6 +9353,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="max-width-chars">2</property>
                         <property name="text" translatable="yes">0</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">AdjIPS_Dec_m</property>
                         <property name="numeric">True</property>
                       </object>
@@ -9301,6 +9372,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="max-width-chars">6</property>
                         <property name="text">0.0000</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                       </object>
                       <packing>
                         <property name="left-attach">3</property>
@@ -9317,6 +9389,7 @@ If not set manually, the first image of the sequence is taken as reference.</pro
                         <property name="max-width-chars">6</property>
                         <property name="text">0.0000</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                       </object>
                       <packing>
                         <property name="left-attach">3</property>
@@ -9370,6 +9443,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="primary-icon-name">edit-find</property>
                         <property name="primary-icon-activatable">False</property>
                         <property name="primary-icon-sensitive">False</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <signal name="activate" handler="on_GtkSearchIPS_activate" swapped="no"/>
                       </object>
                       <packing>
@@ -9403,6 +9477,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="width-chars">10</property>
                         <property name="text">1000.0</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <signal name="changed" handler="on_GtkEntry_IPS_focal_changed" swapped="no"/>
                         <signal name="insert-text" handler="on_GtkEntry_IPS_insert_text" swapped="no"/>
                       </object>
@@ -9420,6 +9495,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="width-chars">10</property>
                         <property name="text">5.00</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <signal name="changed" handler="on_GtkEntry_IPS_pixels_changed" swapped="no"/>
                         <signal name="insert-text" handler="on_GtkEntry_IPS_insert_text" swapped="no"/>
                       </object>
@@ -9722,6 +9798,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                         <property name="tooltip-text" translatable="yes">Maximum star magnitude used in the catalog queries. Wider is the field, lower is the value.</property>
                         <property name="halign">start</property>
                         <property name="text">12</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">AdjIPS_Mag_Limit</property>
                         <property name="value">12</property>
                       </object>
@@ -9940,6 +10017,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                                 <property name="width-chars">6</property>
                                 <property name="text" translatable="yes">0</property>
                                 <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_cc_bkg_x</property>
                                 <property name="numeric">True</property>
                               </object>
@@ -9957,6 +10035,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                                 <property name="width-chars">6</property>
                                 <property name="text" translatable="yes">0</property>
                                 <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_cc_bkg_y</property>
                                 <property name="numeric">True</property>
                               </object>
@@ -9974,6 +10053,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                                 <property name="width-chars">6</property>
                                 <property name="text" translatable="yes">0</property>
                                 <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_cc_bkg_w</property>
                                 <property name="numeric">True</property>
                               </object>
@@ -9991,6 +10071,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                                 <property name="width-chars">6</property>
                                 <property name="text" translatable="yes">0</property>
                                 <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_cc_bkg_h</property>
                                 <property name="numeric">True</property>
                               </object>
@@ -10680,6 +10761,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="tooltip-text" translatable="yes">Half-size in pixels of the search box. Only the brightest pixel will be used in this box to fit a star.</property>
                         <property name="width-chars">5</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">adjstarfinder_radius</property>
                         <property name="numeric">True</property>
                         <property name="value">10</property>
@@ -10699,6 +10781,7 @@ The median and standard deviation of the image are computed, then the threshold 
 The default value for threshold is 1.00. Increasing this value will detect less dim stars, which should be done only when images have a lot of signal or low noise (high S/N).</property>
                         <property name="width-chars">5</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">adjstarfinder_threshold</property>
                         <property name="digits">2</property>
                         <property name="numeric">True</property>
@@ -10757,6 +10840,7 @@ The default value for threshold is 1.00. Increasing this value will detect less 
 The default value is 0.5, suitable for stars twice as big in one direction as the other.</property>
                         <property name="width-chars">5</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">adjstarfinder_roundness</property>
                         <property name="climb-rate">0.10</property>
                         <property name="digits">1</property>
@@ -10824,6 +10908,7 @@ Default value of 1 should work on most cases. However for images with strong com
 This should normally be the case only for stacked images. Increasing this value may signicantly impact star finding computation time.</property>
                         <property name="width-chars">5</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <property name="adjustment">adjstarfinder_convergence</property>
                         <property name="numeric">True</property>
                         <property name="value">1</property>
@@ -12345,6 +12430,7 @@ This should normally be the case only for stacked images. Increasing this value 
                             <property name="tooltip-text" translatable="yes">Horizontal Zoom</property>
                             <property name="text">1</property>
                             <property name="input-purpose">number</property>
+                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                             <property name="adjustment">histoAdjZoomH</property>
                             <property name="numeric">True</property>
                             <property name="value">1</property>
@@ -12815,6 +12901,7 @@ This should normally be the case only for stacked images. Increasing this value 
                         <property name="max-length">10</property>
                         <property name="width-chars">10</property>
                         <property name="text">mtf_</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -13006,6 +13093,7 @@ This should normally be the case only for stacked images. Increasing this value 
                             <property name="width-chars">10</property>
                             <property name="text">0,000</property>
                             <property name="progress-pulse-step">0.01</property>
+                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                             <property name="adjustment">adjustment_payneD</property>
                             <property name="digits">3</property>
                             <signal name="value-changed" handler="on_spin_ghtD_value_changed" swapped="no"/>
@@ -13073,6 +13161,7 @@ This should normally be the case only for stacked images. Increasing this value 
                             <property name="tooltip-text" translatable="yes">Controls how tightly the stretch is focused by changing the form of the transform itself. For concentrated stretches (e.g. initial stretch on linear data) a large positive value of b will focus the stretch within a histogram peak while defocusing the stretch away from the peak (such as bright stars). For adjustment of nonlinear images lower or negative values will distribute contrast and brightness more evenly. As a general rule, the value of b will decrease as a stretch sequence nears completion, although larger values (with small D) can still be used for precise placement of additional contrast.</property>
                             <property name="width-chars">10</property>
                             <property name="text">0,500</property>
+                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                             <property name="adjustment">adjustment_payneb</property>
                             <property name="digits">3</property>
                             <property name="value">0.5</property>
@@ -13144,6 +13233,7 @@ This should normally be the case only for stacked images. Increasing this value 
                             <property name="text">0,00000</property>
                             <property name="progress-fraction">0.01</property>
                             <property name="progress-pulse-step">0.01</property>
+                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                             <property name="adjustment">adjustment_payneSP</property>
                             <property name="digits">5</property>
                             <signal name="value-changed" handler="on_spin_ghtSP_value_changed" swapped="no"/>
@@ -13232,6 +13322,7 @@ This should normally be the case only for stacked images. Increasing this value 
                             <property name="width-chars">10</property>
                             <property name="text">0,00000</property>
                             <property name="progress-pulse-step">0.01</property>
+                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                             <property name="adjustment">adjustment_payneLP</property>
                             <property name="digits">5</property>
                             <signal name="value-changed" handler="on_spin_ghtLP_value_changed" swapped="no"/>
@@ -13300,6 +13391,7 @@ This should normally be the case only for stacked images. Increasing this value 
                             <property name="width-chars">10</property>
                             <property name="text">1,00000</property>
                             <property name="progress-pulse-step">0.01</property>
+                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                             <property name="adjustment">adjustment_payneHP</property>
                             <property name="digits">5</property>
                             <property name="value">1</property>
@@ -13370,6 +13462,7 @@ This should normally be the case only for stacked images. Increasing this value 
                             <property name="width-chars">10</property>
                             <property name="text">0,00000</property>
                             <property name="progress-pulse-step">0.01</property>
+                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                             <property name="adjustment">adj_black_point_payne</property>
                             <property name="digits">5</property>
                             <signal name="value-changed" handler="on_spin_ghtBP_value_changed" swapped="no"/>
@@ -13497,6 +13590,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="margin-top">5</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_r_focus_in_event" swapped="no"/>
                   </object>
@@ -13563,6 +13657,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
                     <property name="margin-top">5</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_g_focus_in_event" swapped="no"/>
                   </object>
@@ -13629,6 +13724,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
                     <property name="margin-top">5</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
                     <signal name="focus-in-event" handler="on_pixel_math_entry_b_focus_in_event" swapped="no"/>
                   </object>
@@ -14001,6 +14097,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
 
 &lt;i&gt;Ha * factor + OIII * K&lt;/i&gt; would therefore evaluate to &lt;i&gt;Ha * 0.8 + OIII * 0.2&lt;/i&gt;</property>
                 <property name="margin-top">5</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <signal name="activate" handler="on_pixel_math_entry_activate" swapped="no"/>
               </object>
             </child>
@@ -14053,12 +14150,13 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the lower bound of the output rescaling range.</property>
                     <property name="halign">end</property>
                     <property name="width-chars">12</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_pm_low</property>
                     <property name="digits">8</property>
                     <property name="numeric">True</property>
-                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the lower bound of the output rescaling range.</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -14071,13 +14169,14 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the upper bound of the output rescaling range.</property>
                     <property name="halign">end</property>
                     <property name="width-chars">12</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">adj_pm_high</property>
                     <property name="digits">8</property>
                     <property name="numeric">True</property>
                     <property name="value">1</property>
-                    <property name="tooltip-text" translatable="yes">When the rescale option is enabled, this is the upper bound of the output rescaling range.</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -15481,6 +15580,7 @@ You can examine the workings of each option in detail using the histogram displa
                     <property name="width-chars">9</property>
                     <property name="text">100,00</property>
                     <property name="input-purpose">number</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">resample_Y</property>
                     <property name="climb-rate">0.01</property>
                     <property name="digits">2</property>
@@ -15502,6 +15602,7 @@ You can examine the workings of each option in detail using the histogram displa
                     <property name="width-chars">9</property>
                     <property name="text">100,00</property>
                     <property name="input-purpose">number</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                     <property name="adjustment">resample_X</property>
                     <property name="climb-rate">0.01</property>
                     <property name="digits">2</property>
@@ -15635,6 +15736,7 @@ You can examine the workings of each option in detail using the histogram displa
                 <property name="max-width-chars">7</property>
                 <property name="text">0,00</property>
                 <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                 <property name="adjustment">rotation_angle</property>
                 <property name="climb-rate">0.01</property>
                 <property name="digits">2</property>
@@ -15857,6 +15959,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                 <property name="width-chars">10</property>
                 <property name="max-width-chars">10</property>
                 <property name="text">CFA_</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
               </object>
               <packing>
                 <property name="left-attach">2</property>
@@ -16880,6 +16983,7 @@ SER files are directly handled as a sequence, and are not yet available for conv
                                                         <property name="max-width-chars">5</property>
                                                         <property name="text">00001</property>
                                                         <property name="input-purpose">digits</property>
+                                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                         <signal name="activate" handler="on_startIndiceEntry_activate" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -17002,6 +17106,7 @@ Colour image target also applies to the debayer result for conversion.</property
                                                         <property name="tooltip-text" translatable="yes">Enter the base name of the sequence, for example NGC_6822-L. It will create images in the form NGC_6822-L_00001.fit.</property>
                                                         <property name="valign">center</property>
                                                         <property name="hexpand">True</property>
+                                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                         <signal name="activate" handler="on_convroot_entry_activate" swapped="no"/>
                                                         <signal name="changed" handler="on_convtoroot_changed" swapped="no"/>
                                                         <signal name="insert-text" handler="insert_text_handler" swapped="no"/>
@@ -17279,6 +17384,7 @@ Colour image target also applies to the debayer result for conversion.</property
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Base name for the exported sequence</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <signal name="changed" handler="on_entryExportSeq_changed" swapped="no"/>
                                                             <signal name="insert-text" handler="insert_text_handler" swapped="no"/>
                                                           </object>
@@ -17457,6 +17563,7 @@ A first computation pass will be done on all images before exporting, it may tak
                                                             <property name="width-chars">7</property>
                                                             <property name="text">25.000</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -17515,6 +17622,7 @@ A first computation pass will be done on all images before exporting, it may tak
                                                             <property name="max-width-chars">5</property>
                                                             <property name="text">620</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <signal name="changed" handler="on_entryAviWidth_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
@@ -17548,6 +17656,7 @@ A first computation pass will be done on all images before exporting, it may tak
                                                             <property name="max-width-chars">5</property>
                                                             <property name="text">480</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <signal name="changed" handler="on_entryAviHeight_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
@@ -17684,6 +17793,7 @@ A first computation pass will be done on all images before exporting, it may tak
 All images in the sequence will be divided by the master flat image (each pixel value).</property>
                                                         <property name="hexpand">True</property>
                                                         <property name="text">master-flat.fit</property>
+                                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                       </object>
                                                       <packing>
                                                         <property name="left-attach">1</property>
@@ -17759,6 +17869,7 @@ All images in the sequence will be divided by the master flat image (each pixel 
 The dark master image will be removed from all images in the sequence.</property>
                                                         <property name="hexpand">True</property>
                                                         <property name="text">master-dark.fit</property>
+                                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                       </object>
                                                       <packing>
                                                         <property name="left-attach">1</property>
@@ -17767,7 +17878,7 @@ The dark master image will be removed from all images in the sequence.</property
                                                     </child>
                                                     <child>
                                                       <object class="GtkCheckButton" id="useoffset_button">
-                                                        <property name="label" translatable="yes" comments="Offset is the kind of the picture used here. In french I've decided to not translate the word.">Use offset</property>
+                                                        <property name="label" translatable="yes" comments="Offset is the kind of the picture used here. In french I've decided to not translate the word.">Use bias</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
@@ -17790,6 +17901,8 @@ The dark master image will be removed from all images in the sequence.</property
 The bias/offset master image will be removed from all images in the sequence.
 Instead of an image, you can also specify a uniform level to be subtracted, starting with an "=" sign, such as =256 or =64*$OFFSET</property>
                                                         <property name="hexpand">True</property>
+                                                        <property name="text" translatable="yes">master-bias.fit</property>
+                                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                       </object>
                                                       <packing>
                                                         <property name="left-attach">1</property>
@@ -17883,6 +17996,7 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                                         <property name="max-width-chars">5</property>
                                                         <property name="text">5000</property>
                                                         <property name="input-purpose">number</property>
+                                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                       </object>
                                                       <packing>
                                                         <property name="left-attach">2</property>
@@ -18029,6 +18143,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="max-width-chars">5</property>
                                                             <property name="text">3,000</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adjSigCosmeCold</property>
                                                             <property name="digits">3</property>
                                                             <property name="numeric">True</property>
@@ -18096,6 +18211,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="max-width-chars">6</property>
                                                             <property name="text">3,000</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adjSigCosmeHot</property>
                                                             <property name="digits">3</property>
                                                             <property name="numeric">True</property>
@@ -18188,6 +18304,7 @@ Uncheck if images come from a monochrome sensor.</property>
 * The line &lt;i&gt;C x 0 type&lt;/i&gt; will fix the bad column at coordinates &lt;i&gt;x&lt;/i&gt;.
 * The line &lt;i&gt;L y 0 type&lt;/i&gt; will fix the bad line at coordinates &lt;i&gt;y&lt;/i&gt;.</property>
                                                             <property name="valign">center</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">True</property>
@@ -18299,6 +18416,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                         <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the pre-processing.</property>
                                                         <property name="halign">start</property>
                                                         <property name="text">pp_</property>
+                                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                       </object>
                                                       <packing>
                                                         <property name="left-attach">1</property>
@@ -18590,6 +18708,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <property name="text">10</property>
                                                             <property name="progress-pulse-step">1</property>
                                                             <property name="input-purpose">digits</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">register_minpairs</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">10</property>
@@ -18771,6 +18890,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <property name="width-chars">7</property>
                                                             <property name="text">0.00</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
@@ -18786,6 +18906,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <property name="width-chars">7</property>
                                                             <property name="text">0.00</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <signal name="changed" handler="on_entry_comet_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
@@ -19069,6 +19190,8 @@ By default, the pattern is only searched on 25% of the total image size around t
 
 Higher values give more tolerance in alignment and smaller
 numbers lead to faster computations.</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adj_kombat_percent</property>
                                                             <property name="digits">2</property>
                                                             </object>
@@ -19374,6 +19497,7 @@ numbers lead to faster computations.</property>
                                                             <property name="max-width-chars">5</property>
                                                             <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adjustment4</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
@@ -19483,6 +19607,7 @@ numbers lead to faster computations.</property>
                                                             <property name="max-width-chars">5</property>
                                                             <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adjustment6</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
@@ -19603,6 +19728,7 @@ numbers lead to faster computations.</property>
                                                             <property name="max-width-chars">5</property>
                                                             <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adjustment7</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
@@ -19769,6 +19895,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="width-chars">10</property>
                                                             <property name="text">r_</property>
                                                             <property name="caps-lock-warning">False</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -20018,6 +20145,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="max-width-chars">3</property>
                                                             <property name="text">0</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adjustment_shiftx</property>
                                                             <property name="numeric">True</property>
                                                             <signal name="value-changed" handler="on_spinbut_shift_value_change" swapped="no"/>
@@ -20053,6 +20181,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="max-width-chars">3</property>
                                                             <property name="text">0</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adjustment_shifty</property>
                                                             <property name="numeric">True</property>
                                                             <signal name="value-changed" handler="on_spinbut_shift_value_change" swapped="no"/>
@@ -20246,8 +20375,9 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                   <object class="GtkDrawingArea" id="DrawingPlot">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
-                                                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK</property>
+                                                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK</property>
                                                     <signal name="button-press-event" handler="on_DrawingPlot_button_press_event" swapped="no"/>
+                                                    <signal name="button-release-event" handler="on_DrawingPlot_button_release_event" swapped="no"/>
                                                     <signal name="draw" handler="on_DrawingPlot_draw" swapped="no"/>
                                                     <signal name="enter-notify-event" handler="on_DrawingPlot_enter_notify_event" swapped="no"/>
                                                     <signal name="leave-notify-event" handler="on_DrawingPlot_leave_notify_event" swapped="no"/>
@@ -20832,6 +20962,7 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
                                                             <property name="width-chars">5</property>
                                                             <property name="max-width-chars">6</property>
                                                             <property name="text">4,000</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">stack_siglow_adjustment</property>
                                                             <property name="climb-rate">0.05</property>
                                                             <property name="digits">3</property>
@@ -20865,6 +20996,7 @@ However, multiplicative normalisation must be used with flat-field frames.&lt;/b
                                                             <property name="width-chars">5</property>
                                                             <property name="max-width-chars">6</property>
                                                             <property name="text">3,000</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">stack_sighigh_adjustment</property>
                                                             <property name="climb-rate">0.05</property>
                                                             <property name="digits">3</property>
@@ -21184,6 +21316,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="max-width-chars">5</property>
                                                             <property name="text">90,00</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adjustment4</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
@@ -21294,6 +21427,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="max-width-chars">5</property>
                                                             <property name="text">90,00</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adjustment6</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
@@ -21416,6 +21550,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="max-width-chars">5</property>
                                                             <property name="text">90,00</property>
                                                             <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                             <property name="adjustment">adjustment7</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
@@ -21581,6 +21716,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="hexpand">True</property>
                                                             <property name="invisible-char">●</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                                           </object>
                                                           <packing>
                                                             <property name="expand">False</property>
@@ -21859,7 +21995,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                             <property name="invisible-char">●</property>
                                             <property name="truncate-multiline">True</property>
                                             <property name="placeholder-text" translatable="yes">Type "help" for the list of supported commands</property>
-                                            <property name="input-hints">GTK_INPUT_HINT_WORD_COMPLETION | GTK_INPUT_HINT_NONE</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_WORD_COMPLETION | GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                             <signal name="activate" handler="on_command_activate" swapped="no"/>
                                           </object>
                                           <packing>
@@ -22117,6 +22253,7 @@ WARNING: This option should not be checked for master stacking.</property>
                         <property name="primary-icon-sensitive">False</property>
                         <property name="secondary-icon-sensitive">False</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <signal name="changed" handler="on_max_entry_changed" swapped="no"/>
                         <signal name="focus-out-event" handler="on_max_entry_focus_out_event" swapped="no"/>
                       </object>
@@ -22175,6 +22312,7 @@ WARNING: This option should not be checked for master stacking.</property>
                         <property name="primary-icon-sensitive">False</property>
                         <property name="secondary-icon-sensitive">False</property>
                         <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                         <signal name="changed" handler="on_min_entry_changed" swapped="no"/>
                         <signal name="focus-out-event" handler="on_min_entry_focus_out_event" swapped="no"/>
                       </object>
@@ -23061,6 +23199,7 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
             <property name="text">1</property>
             <property name="progress-pulse-step">1</property>
             <property name="input-purpose">digits</property>
+            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
             <property name="adjustment">adjCPU</property>
             <property name="numeric">True</property>
             <property name="update-policy">if-valid</property>
@@ -23581,6 +23720,7 @@ The Background Neutralization should be applied before this operation.</property
                                     <property name="editable">False</property>
                                     <property name="width-chars">6</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adjustment_bkg_x</property>
                                     <property name="climb-rate">1</property>
                                     <property name="numeric">True</property>
@@ -23598,6 +23738,7 @@ The Background Neutralization should be applied before this operation.</property
                                     <property name="editable">False</property>
                                     <property name="width-chars">6</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adjustment_bkg_y</property>
                                     <property name="numeric">True</property>
                                   </object>
@@ -23614,6 +23755,7 @@ The Background Neutralization should be applied before this operation.</property
                                     <property name="editable">False</property>
                                     <property name="width-chars">6</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adjustment_bkg_w</property>
                                     <property name="numeric">True</property>
                                   </object>
@@ -23630,6 +23772,7 @@ The Background Neutralization should be applied before this operation.</property
                                     <property name="editable">False</property>
                                     <property name="width-chars">6</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adjustment_bkg_h</property>
                                     <property name="numeric">True</property>
                                   </object>
@@ -23780,6 +23923,7 @@ This step should be run before any attempt of color calibration.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="width-chars">7</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_scale_r</property>
                                 <property name="digits">3</property>
                               </object>
@@ -23838,6 +23982,7 @@ This step should be run before any attempt of color calibration.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="width-chars">7</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_scale_g</property>
                                 <property name="digits">3</property>
                               </object>
@@ -23896,6 +24041,7 @@ This step should be run before any attempt of color calibration.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="width-chars">7</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_scale_b</property>
                                 <property name="digits">3</property>
                                 <property name="numeric">True</property>
@@ -23961,6 +24107,7 @@ This step should be run before any attempt of color calibration.</property>
                                         <property name="width-chars">6</property>
                                         <property name="text">0</property>
                                         <property name="input-purpose">number</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                         <property name="adjustment">adjustment_white_x</property>
                                         <property name="numeric">True</property>
                                       </object>
@@ -23978,6 +24125,7 @@ This step should be run before any attempt of color calibration.</property>
                                         <property name="width-chars">6</property>
                                         <property name="text">0</property>
                                         <property name="input-purpose">number</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                         <property name="adjustment">adjustment_white_y</property>
                                         <property name="numeric">True</property>
                                       </object>
@@ -23995,6 +24143,7 @@ This step should be run before any attempt of color calibration.</property>
                                         <property name="width-chars">6</property>
                                         <property name="text">0</property>
                                         <property name="input-purpose">number</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                         <property name="adjustment">adjustment_white_w</property>
                                         <property name="numeric">True</property>
                                       </object>
@@ -24012,6 +24161,7 @@ This step should be run before any attempt of color calibration.</property>
                                         <property name="width-chars">6</property>
                                         <property name="text">0</property>
                                         <property name="input-purpose">number</property>
+                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                         <property name="adjustment">adjustment_white_h</property>
                                         <property name="numeric">True</property>
                                       </object>
@@ -24485,6 +24635,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="tooltip-text" translatable="yes">X offset of Bayer array.</property>
                                     <property name="halign">start</property>
                                     <property name="text" translatable="yes">0</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">xbayeroff_adj</property>
                                   </object>
                                   <packing>
@@ -24499,6 +24650,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="tooltip-text" translatable="yes">Y offset of Bayer array.</property>
                                     <property name="halign">start</property>
                                     <property name="text" translatable="yes">0</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">ybayeroff_adj</property>
                                   </object>
                                   <packing>
@@ -24780,6 +24932,7 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                     <property name="width-chars">9</property>
                                     <property name="text">8,00</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adj_comp_fits_quantization</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
@@ -24886,6 +25039,7 @@ The technique gives very good compression for astronomical images and is relativ
                                     <property name="width-chars">9</property>
                                     <property name="text">4,00</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adj_comp_fits_hcompress_scale</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
@@ -24905,6 +25059,7 @@ The technique gives very good compression for astronomical images and is relativ
                                     <property name="width-chars">9</property>
                                     <property name="text">100,00</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adj_comp_fits_tilex</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
@@ -24924,6 +25079,7 @@ The technique gives very good compression for astronomical images and is relativ
                                     <property name="width-chars">9</property>
                                     <property name="text">100,00</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adj_comp_fits_tiley</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
@@ -25621,6 +25777,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="can-focus">True</property>
                                     <property name="tooltip-text" translatable="yes">Instead of an image, you can also specify a uniform level to be subtracted, starting with an "=" sign, such as =256 or =64*$OFFSET</property>
                                     <property name="text">=</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <signal name="insert-text" handler="bias_text_insert" swapped="no"/>
                                   </object>
                                   <packing>
@@ -25769,6 +25926,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="text">0</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">3</property>
@@ -25780,6 +25938,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="text">0</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">3</property>
@@ -25791,6 +25950,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="text">0</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
@@ -25802,6 +25962,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="text">0</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
@@ -25901,6 +26062,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="text">0</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
@@ -25912,6 +26074,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="text">0</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
@@ -25923,6 +26086,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="text">0</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">3</property>
@@ -25934,6 +26098,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="text">0</property>
+                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">3</property>
@@ -26060,6 +26225,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="max-width-chars">7</property>
                                     <property name="text">20,00</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adjInner</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
@@ -26079,6 +26245,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="max-width-chars">7</property>
                                     <property name="text">30,00</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adjOuter</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
@@ -26154,6 +26321,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="max-width-chars">7</property>
                                     <property name="text">30,00</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adjFlux</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
@@ -26260,6 +26428,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="max-width-chars">7</property>
                                     <property name="text">0</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adjminpxval</property>
                                     <property name="numeric">True</property>
                                   </object>
@@ -26277,6 +26446,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="max-width-chars">7</property>
                                     <property name="text">65535</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adjmaxpxval</property>
                                     <property name="numeric">True</property>
                                     <property name="value">65535</property>
@@ -26338,6 +26508,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="max-width-chars">7</property>
                                     <property name="text">2,3000</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adjGain</property>
                                     <property name="digits">4</property>
                                     <property name="numeric">True</property>
@@ -26441,6 +26612,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="tooltip-text" translatable="yes">Defines the size of the panel used for the mosaic. This size is expressed in pixels. The higher you set the value, the more stars you will see, but at a lower resolution.</property>
                                     <property name="halign">start</property>
                                     <property name="width-chars">6</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adj_ab_inspector_panel</property>
                                     <property name="numeric">True</property>
                                     <property name="value">256</property>
@@ -26537,6 +26709,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="tooltip-text" translatable="yes">The paths written in this text box will be checked in order to load scripts that have been put inside. Write a path per line with as many lines you want. However you have to keep in mind that more paths are checked the longer is the startup.</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="monospace">True</property>
                                   </object>
                                 </child>
@@ -26770,6 +26943,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="tooltip-text" translatable="yes">Set the scale of the fonts. 90 is the smallest scale you can have while the maximum is at 150.</property>
                                     <property name="halign">start</property>
                                     <property name="width-chars">5</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adj_fontsize</property>
                                     <property name="numeric">True</property>
                                     <property name="value">100</property>
@@ -27079,6 +27253,7 @@ Configuring a memory amount larger than what is available on your system may res
                                     <property name="width-chars">5</property>
                                     <property name="text">0,90</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adj_mem_ratio</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
@@ -27098,6 +27273,7 @@ Configuring a memory amount larger than what is available on your system may res
                                     <property name="width-chars">5</property>
                                     <property name="text">4,00</property>
                                     <property name="input-purpose">number</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                     <property name="adjustment">adj_mem_amount</property>
                                     <property name="digits">2</property>
                                     <property name="numeric">True</property>
@@ -27179,6 +27355,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="halign">start</property>
                                 <property name="text" translatable="yes">20</property>
                                 <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                                 <property name="adjustment">adjustment_hdstf_bitdepth</property>
                                 <property name="numeric">True</property>
                                 <property name="value">20</property>
@@ -27540,6 +27717,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Copyright when saving image as TIFF</property>
                                 <property name="width-chars">50</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI</property>
                               </object>
                             </child>
                           </object>
