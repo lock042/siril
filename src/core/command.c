@@ -249,10 +249,17 @@ int process_savebmp(int nb){
 	g_free(filename);
 	return CMD_OK;
 }
-int process_synthstar(int nb){
 
+int process_synthstar(int nb) {
 	set_cursor_waiting(TRUE);
 	start_in_new_thread(do_synthstar, NULL);
+	set_cursor_waiting(FALSE);
+	return CMD_OK;
+}
+
+int process_unclip(int nb) {
+	set_cursor_waiting(TRUE);
+	start_in_new_thread(fix_saturated_stars, NULL);
 	set_cursor_waiting(FALSE);
 	return CMD_OK;
 }
