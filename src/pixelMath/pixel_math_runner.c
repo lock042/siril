@@ -431,24 +431,16 @@ static void update_metadata(fits *fit) {
 gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
+	te_expr *n1 = NULL, *n2 = NULL, *n3 = NULL;
 	fits *fit = args->fit;
 	int nb_rows = args->nb_rows;
 	gboolean failed = FALSE;
 	args->ret = 0;
 	float maximum = -FLT_MAX;
 	float minimum = +FLT_MAX;
-	int nthrds;
 
 #ifdef _OPENMP
-	nthrds = omp_get_max_threads();
-#else
-	nthrds = 1;
-#endif
-	float *maxres = malloc(sizeof(float) * nthrds);
-	float *minres = malloc(sizeof(float) * nthrds);
-
-#ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread)
+#pragma omp parallel num_threads(com.max_thread) firstprivate(n1,n2,n3)
 #endif
 	{
 		// we build the expressions in parallel because tr_eval() is not thread-safe
@@ -464,7 +456,6 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			vars[i].context = NULL;
 			vars[i].type = 0;
 		}
-		te_expr *n1 = NULL, *n2 = NULL, *n3 = NULL;
 		int err = 0;
 		n1 = te_compile(args->expression1, vars, nb_rows, &err);
 		if (!n1) {
@@ -498,7 +489,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			}
 		}
 #ifdef _OPENMP
-#pragma omp for schedule(static) private(maximum, minimum)
+#pragma omp for schedule(static) reduction(max:maximum) reduction(min:minimum)
 #endif
 		for (size_t px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
 			/* The variables can be changed here, and eval can be called as many
@@ -508,21 +499,19 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				x[i] = var_fit[i].fdata[px];
 			}
 
-			int id = omp_get_thread_num();
-
 			if (args->single_rgb) {
 				fit->fdata[px] = (float) te_eval(n1);
 				/* may not be used but at least it is computed */
-				maxres[id] = maximum = max(maximum, fit->fdata[px]);
-				minres[id] = minimum = min(minimum, fit->fdata[px]);
+				maximum = max(maximum, fit->fdata[px]);
+				minimum = min(minimum, fit->fdata[px]);
 			} else {
 				fit->fpdata[RLAYER][px] = (float) te_eval(n1);
 				fit->fpdata[GLAYER][px] = (float) te_eval(n2);
 				fit->fpdata[BLAYER][px] = (float) te_eval(n3);
 
 				/* may not be used but (only if rescale) at least it is computed */
-				maxres[id] = maximum = max(maximum, max(fit->fpdata[RLAYER][px], max(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
-				minres[id] = minimum = min(minimum, min(fit->fpdata[RLAYER][px], min(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
+				maximum = max(maximum, max(fit->fpdata[RLAYER][px], max(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
+				minimum = min(minimum, min(fit->fpdata[RLAYER][px], min(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
 			}
 		}
 
@@ -536,16 +525,6 @@ failure: // failure before the eval loop
 		free(x);
 	} // end of parallel block
 
-	/* may not be used (only for rescale) but at least it is computed */
-	for (int i = 0; i < nthrds; i++) {
-		if (maxres[i] > maximum) {
-			maximum = maxres[i];
-		}
-
-		if (minres[i] < minimum) {
-			minimum = minres[i];
-		}
-	}
 	if (args->rescale) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
