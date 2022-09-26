@@ -232,13 +232,23 @@ gpointer do_synthstar() {
 int generate_synthstars(fits *fit) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	siril_log_color_message(_("Star synthesis (full luminance profile rebuild): processing...\n"), "green");
+	siril_log_color_message(_("Star synthesis (full star mask creation): processing...\n"), "green");
 	gboolean is_RGB = TRUE;
 	gboolean is_32bit = TRUE;
 	float norm = 1.0f, invnorm = 1.0f;
 	int nb_stars = starcount(com.stars, FALSE);
+	psf_star **stars = NULL;
 	if (nb_stars < 1) {
-		siril_log_color_message(_("No stars found. Use the Dynamic PSF tool to detect stars in the image.\n"), "red");
+		image *input_image = calloc(1, sizeof(image));
+		input_image->fit = fit;
+		input_image->from_seq = NULL;
+		input_image->index_in_seq = -1;
+		stars = peaker(input_image, 1, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, 200000, MULTI_THREADED);
+	} else {
+		stars = com.stars;
+	}
+	if (nb_stars < 1) {
+		siril_log_color_message(_("No stars detected in the image.\n"), "red");
 		return -1;
 	} else {
 		siril_log_message(_("Synthesizing %d stars...\n"), nb_stars);
@@ -273,27 +283,28 @@ int generate_synthstars(fits *fit) {
 
 	// Synthesize a PSF for each star in the star array s, based on its measured parameters
 	for (int n = 0; n < nb_stars; n++) {
-		float lum = (float) com.stars[n]->A;
+		float lum = (float) stars[n]->A;
 		if (lum < 0.0f)
 			lum = 0.0f;
 		if (!is_32bit)
 			lum *= invnorm;
 		assert(lum >= 0.0f);
-		float xoff = (float) com.stars[n]->xpos - (int) com.stars[n]->xpos;
-		float yoff = (float) com.stars[n]->ypos - (int) com.stars[n]->ypos;
-		int size = (int) 20 * max(com.stars[n]->sx, com.stars[n]->sy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
+		float xoff = (float) stars[n]->xpos - (int) stars[n]->xpos;
+		float yoff = (float) stars[n]->ypos - (int) stars[n]->ypos;
+//		siril_debug_print("FWHM: %f x %f // function size: %f %f\n", stars[n]->fwhmx, stars[n]->fwhmy, stars[n]->sx, stars[n]->sy);
+		int size = (int) 25 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
 		if (!(size %2))
 			size++;
-		float minfwhm = min(com.stars[n]->fwhmx, com.stars[n]->fwhmy);
+		float minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
 
 		// Synthesize the luminance profile and add to the star mask in HSL colourspace
 		float *psfL = (float *) calloc(size * size, sizeof(float));
 //		makemoffat(psfL, size, minfwhm, lum, xoff, yoff);
 		makegaussian(psfL, size, minfwhm, lum, xoff, yoff);
 		if (is_RGB)
-			add_star_to_rgb_buffer(H, S, psfL, size, Hsynth, Ssynth, Lsynth, (float) com.stars[n]->xpos, (float) com.stars[n]->ypos, dimx, dimy);
+			add_star_to_rgb_buffer(H, S, psfL, size, Hsynth, Ssynth, Lsynth, (float) stars[n]->xpos, (float) stars[n]->ypos, dimx, dimy);
 		else
-			add_star_to_mono_buffer(psfL, size, Lsynth, (float) com.stars[n]->xpos, (float) com.stars[n]->ypos, dimx, dimy);
+			add_star_to_mono_buffer(psfL, size, Lsynth, (float) stars[n]->xpos, (float) stars[n]->ypos, dimx, dimy);
 		free(psfL);
 	}
 
@@ -476,7 +487,7 @@ int reprofile_saturated_stars(fits *fit) {
 				assert(lum >= 0.0f);
 				float xoff = (float) stars[n]->xpos - (int) stars[n]->xpos;
 				float yoff = (float) stars[n]->ypos - (int) stars[n]->ypos;
-				int size = 4 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that it should cover the saturated parts of the star
+				int size = 8 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that it should cover the saturated parts of the star
 				if (!(size %2))
 					size++;
 				float avgfwhm = ((float) stars[n]->fwhmx + (float) stars[n]->fwhmy) / 2.f;
@@ -528,12 +539,14 @@ void on_synthstar_dynpsf_clicked(GtkButton *button, gpointer user_data) {
 
 void on_synthstar_desaturate_clicked(GtkButton *button, gpointer user_data) {
 	undo_save_state(&gfit, "Synthetic stars: desaturate clipped stars");
+	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(fix_saturated_stars, NULL);
 	siril_close_dialog("synthstar_dialog");
 }
 
 void on_synthstar_apply_clicked(GtkButton *button, gpointer user_data) {
 	undo_save_state(&gfit, "Synthetic stars: full replacement");
+	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(do_synthstar, NULL);
 	siril_close_dialog("synthstar_dialog");
 }
