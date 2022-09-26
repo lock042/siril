@@ -408,18 +408,18 @@ int generate_synthstars(fits *fit) {
 int reprofile_saturated_stars(fits *fit) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	siril_log_color_message(_("Star synthesis (saturated stars luminance profile rebuild): processing...\n"), "green");
+	siril_log_color_message(_("Star synthesis (desaturating clipped star profiles): processing...\n"), "green");
 	gboolean is_RGB = (fit->naxes[2] == 3) ? TRUE : FALSE;
 	gboolean is_32bit = TRUE;
 	float norm = 1.0f, invnorm = 1.0f;
-	int nb_stars = starcount(com.stars, FALSE);
+/*	int nb_stars = starcount(com.stars, FALSE);
 	int nb_sat = starcount(com.stars, TRUE);
 	if (nb_sat < 1) {
 		siril_log_color_message(_("No saturated stars found. Use the Dynamic PSF tool to detect stars in the image: saturated stars are indicated by blue circles.\n"), "red");
 		return -1;
 	} else {
 		siril_log_message(_("Desaturating %d stars...\n"), nb_sat);
-	}
+	}*/
 	if (fit->type == DATA_USHORT) {
 		is_32bit = FALSE;
 		norm = get_normalized_value(fit);
@@ -455,7 +455,7 @@ int reprofile_saturated_stars(fits *fit) {
 			for (size_t i = 0 ; i < count ; i++)
 				buf[0][i] = fit->data[i] * invnorm;
 
-	// Synthesize a PSF for each saturated star in the star array com.stars, based on its measured parameters. To fix saturated star profiles we have to do this for each color channel as we can't rely on the hue and saturation within the saturated area, whereas the profiles will be accurate.
+	// Synthesize a PSF for each saturated star in the star array, based on its measured parameters. To fix saturated star profiles we have to do this for each color channel as we can't rely on the hue and saturation within the saturated area, whereas the profiles will be accurate.
 	for (size_t chan = 0; chan < fit->naxes[2] ; chan++) {
 		image *input_image = NULL;
 		input_image = calloc(1, sizeof(image));
@@ -464,6 +464,7 @@ int reprofile_saturated_stars(fits *fit) {
 		input_image->index_in_seq = -1;
 		int nb_stars;
 		psf_star **stars = peaker(input_image, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, 200000, MULTI_THREADED);
+		siril_log_message(_("Star synthesis: desaturating channel %u...\n"), chan);
 		for (size_t n = 0; n < nb_stars; n++) {
 			if (stars[n]->has_saturated) {
 				float lum = (float) stars[n]->A;
@@ -481,7 +482,7 @@ int reprofile_saturated_stars(fits *fit) {
 				float avgfwhm = ((float) stars[n]->fwhmx + (float) stars[n]->fwhmy) / 2.f;
 
 				float *psfL = (float *) calloc(size * size, sizeof(float));
-				makegaussian(psfL, size, avgfwhm, lum, xoff, yoff);
+				makegaussian(psfL, size, avgfwhm, lum - bg, xoff, yoff);
 
 				// Replace the part of the profile above the sat threshold
 				replace_sat_star_in_buffer(psfL, size, buf[chan], (float) stars[n]->xpos, (float) stars[n]->ypos, dimx, dimy, (float) stars[n]->sat);
@@ -489,6 +490,16 @@ int reprofile_saturated_stars(fits *fit) {
 			}
 		}
 	}
+
+	// Desaturating stars will take their peak brightness over 1.f so we need to rescale the values of all pixels by a factor of (1 / maxbuf) where maxbuf is the maximum subpixel value across all channels
+	siril_log_message(_("Remapping output to floating point range 0.0 to 1.0\n"));
+	float bufmax = 0.f;
+	for (size_t chan = 0 ; chan < fit->naxes[2] ; chan++)
+		for (size_t i=0; i < count ; i++)
+			if (buf[chan][i] > bufmax) bufmax = buf[chan][i];
+	for (size_t chan = 0 ; chan < fit->naxes[2] ; chan++)
+		for (size_t i=0; i < count ; i++)
+			buf[chan][i] /= bufmax;
 
 	if (!is_32bit) {
 		for (size_t n = 0; n < count ; n++) {
@@ -513,6 +524,12 @@ void on_synthstar_cancel_clicked(GtkButton *button, gpointer user_data) {
 
 void on_synthstar_dynpsf_clicked(GtkButton *button, gpointer user_data) {
 	siril_open_dialog("stars_list_window");
+}
+
+void on_synthstar_desaturate_clicked(GtkButton *button, gpointer user_data) {
+	undo_save_state(&gfit, "Synthetic stars: desaturate clipped stars");
+	start_in_new_thread(fix_saturated_stars, NULL);
+	siril_close_dialog("synthstar_dialog");
 }
 
 void on_synthstar_apply_clicked(GtkButton *button, gpointer user_data) {
