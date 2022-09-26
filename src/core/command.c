@@ -39,7 +39,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/arithm.h"
-#include "core/undo.h"
 #include "core/initfile.h"
 #include "core/preprocess.h"
 #include "core/processing.h"
@@ -264,13 +263,11 @@ static gboolean end_denoise(gpointer p) {
 gpointer run_nlbayes_on_fit(gpointer p) {
 	denoise_args *args = (denoise_args *) p;
 	struct timeval t_start, t_end;
-	char *msg1, *msg2, *msg3, *log_msg;
+	char *msg1 = NULL, *msg2 = NULL, *msg3 = NULL, *log_msg = NULL;
 	int n = 0, m = 0, q = 0;
-	n = snprintf(NULL, 0,
-    "NL-Bayes denoise (mod=%.3f", args->modulation);
+	n = snprintf(NULL, 0, "NL-Bayes denoise (mod=%.3f", args->modulation);
 	msg1 = malloc(n + 1);
-	n = snprintf(msg1, n + 1,
-    "NL-Bayes denoise (mod=%.3f", args->modulation);
+	n = snprintf(msg1, n + 1, "NL-Bayes denoise (mod=%.3f", args->modulation);
 	if(args->da3d) {
 		m = snprintf(NULL, 0, ", DA3D enabled");
 		msg2 = malloc(m + 1);
@@ -305,8 +302,12 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	else
 		snprintf(log_msg, 26, "Error, this can't happen!");
 
-	undo_save_state(&gfit, "%s", log_msg);
+	if (msg1) free(msg1);
+	if (msg2) free(msg2);
+	if (msg3) free(msg3);
+
 	siril_log_message("%s\n", log_msg); // This is the standard non-translated message to make things easy for log parsers.
+	free(log_msg);
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data("Starting NL-Bayes denoising...", 0.0);
 

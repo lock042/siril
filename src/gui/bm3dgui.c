@@ -134,6 +134,7 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->modulation = denoise_modulation;
 	if (args->modulation == 0.f) {
 		siril_log_message(_("Modulation is zero: doing nothing.\n"));
+		free(args);
 		return;
 	}
 	siril_log_message(_("Modulation: %f\n"),args->modulation);

@@ -1508,7 +1508,7 @@ static int FnCompare_double(const void *v1, const void *v2) {
 }
 
 int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *noise) {
-	int status, retval;
+	int status, retval = 0;
 	float* colarray[3];
 	double fSigma = 0.0;
 	if (nchans == 1) {

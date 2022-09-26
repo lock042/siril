@@ -59,10 +59,10 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     float lastfSigma = 0.f;
     double intermediate_bgnoise;
 
-    float norm = 1.f;
+    float normalize = 1.f;
     if (fit->type == DATA_USHORT)
-      norm = USHRT_MAX_SINGLE;
-    float invnorm = 1 / norm;
+    	normalize = USHRT_MAX_SINGLE;
+    float invnorm = 1 / normalize;
     if (sos < 1)
       sos = 1;
 
