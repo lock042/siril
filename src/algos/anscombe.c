@@ -37,14 +37,16 @@ void generalized_anscombe_array(float *x, const float mu, const float sigma, con
     Note, this transform will show some bias for counts less than
     about 20.
     */
+    float addterm = powf(gain, 2.f) * 0.375f + sigma * sigma - gain * mu;
+    float factor = (2.f / gain);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-	for (size_t i = 0; i < ndata; i++) {
-		float y = gain * x[i] + powf(gain, 2.f) * 0.375f + sigma*sigma - gain*mu;
-		// Clamp to zero before taking the square root.
-		x[i] = (2.f / gain) * sqrtf(max(y, 0.f));
-	}
+    for (size_t i = 0; i < ndata; i++) {
+        float y = gain * x[i] + addterm;
+        // Clamp to zero before taking the square root.
+        x[i] = factor * sqrtf(max(y, 0.f));
+    }
 }
 
 void inverse_generalized_anscombe_array(float *x, const float mu, const float sigma, const float gain, const size_t ndata) {
@@ -66,20 +68,20 @@ void inverse_generalized_anscombe_array(float *x, const float mu, const float si
 #pragma omp parallel for schedule(static)
 #endif
     for (size_t i = 0; i < ndata ; i++) {
-		float test = max(x[i], 1.0);
-		float exact_inverse = ( 0.25f * powf(test, 2.f) +
-						  0.25f * sqrtf(1.5f)*powf(test, -1.f) -
-						  1.375f * powf(test, -2.f) +
-						  0.625f * sqrtf(1.5f) * powf(test, -3.f) -
-						  0.125f - powf(sigma, 2.f) );
-		// Clamp to zero
-		exact_inverse = max(0.f, exact_inverse);
-		exact_inverse *= gain;
-		exact_inverse += mu;
-		if (exact_inverse != exact_inverse) // Catch NaNs
-			exact_inverse = 0.f;
-		x[i] = exact_inverse;
-	}
+        float test = max(x[i], 1.0);
+        float exact_inverse = ( 0.25f * powf(test, 2.f) +
+                                0.25f * sqrtf(1.5f) * powf(test, -1.f) -
+                                1.375f * powf(test, -2.f) +
+                                0.625f * sqrtf(1.5f) * powf(test, -3.f) -
+                                0.125f - powf(sigma, 2.f) );
+        // Clamp to zero
+        exact_inverse = max(0.f, exact_inverse);
+        exact_inverse *= gain;
+        exact_inverse += mu;
+        if (exact_inverse != exact_inverse) // Catch NaNs
+            exact_inverse = 0.f;
+        x[i] = exact_inverse;
+    }
 }
 
 float generalized_anscombe(const float x, const float mu, const float sigma, const float gain) {
@@ -96,9 +98,9 @@ float generalized_anscombe(const float x, const float mu, const float sigma, con
     Note, this transform will show some bias for counts less than
     about 20.
     */
-	float y = gain * x + powf(gain, 2.f) * 0.375f + sigma*sigma - gain*mu;
-	// Clamp to zero before taking the square root.
-	return (2.f / gain) * sqrtf(max(y, 0.f));
+    float y = gain * x + powf(gain, 2.f) * 0.375f + sigma*sigma - gain*mu;
+    // Clamp to zero before taking the square root.
+    return (2.f / gain) * sqrtf(max(y, 0.f));
 }
 
 float inverse_generalized_anscombe(const float x, const float mu, const float sigma, const float gain) {
@@ -118,40 +120,40 @@ float inverse_generalized_anscombe(const float x, const float mu, const float si
     */
     float test = max(x, 1.0);
     float exact_inverse = ( 0.25f * powf(test, 2.f) +
-							0.25f * sqrtf(1.5f)*powf(test, -1.f) -
-							1.375f * powf(test, -2.f) +
-							0.625f * sqrtf(1.5f) * powf(test, -3.f) -
-							0.125f - powf(sigma, 2.f) );
+                            0.25f * sqrtf(1.5f)*powf(test, -1.f) -
+                            1.375f * powf(test, -2.f) +
+                            0.625f * sqrtf(1.5f) * powf(test, -3.f) -
+                            0.125f - powf(sigma, 2.f) );
     // Clamp to zero
-	exact_inverse = max(0.f, exact_inverse);
-	exact_inverse *= gain;
-	exact_inverse += mu;
-	if (exact_inverse != exact_inverse) // Catch NaNs
-		exact_inverse = 0.f;
-	return exact_inverse;
+    exact_inverse = max(0.f, exact_inverse);
+    exact_inverse *= gain;
+    exact_inverse += mu;
+    if (exact_inverse != exact_inverse) // Catch NaNs
+        exact_inverse = 0.f;
+    return exact_inverse;
 }
 
 float anscombe(float x) {
-	/*
-	Compute the anscombe variance stabilizing transform.
-	the input   x   is noisy Poisson-distributed data
-	the output  fx  has variance approximately equal to 1.
-	Reference: Anscombe, F. J. (1948), "The transformation of Poisson,
-	binomial and negative-binomial data", Biometrika 35 (3-4): 246-254
-	*/
+    /*
+    Compute the anscombe variance stabilizing transform.
+    the input   x   is noisy Poisson-distributed data
+    the output  fx  has variance approximately equal to 1.
+    Reference: Anscombe, F. J. (1948), "The transformation of Poisson,
+    binomial and negative-binomial data", Biometrika 35 (3-4): 246-254
+    */
 
-	return 2.f * sqrtf(x + 3.f / 8.f);
+    return 2.f * sqrtf(x + 3.f / 8.f);
 }
 
 float exact_unbiased_inverse_anscombe(float z) {
-	/*
-	Compute the inverse transform using an approximation of the exact unbiased inverse.
-	Reference: Makitalo, M., & Foi, A. (2011). A closed-form approximation of the exact
-	unbiased inverse of the Anscombe variance-stabilizing transformation.
-	Image Processing.
-	*/
+    /*
+    Compute the inverse transform using an approximation of the exact unbiased inverse.
+    Reference: Makitalo, M., & Foi, A. (2011). A closed-form approximation of the exact
+    unbiased inverse of the Anscombe variance-stabilizing transformation.
+    Image Processing.
+    */
 
-	return (0.25f * powf(z, 2.f) +
+    return (0.25f * powf(z, 2.f) +
             0.25f * sqrtf(1.5f) * powf(z, -1.f) -
             1.375f * powf(z, -2.f) +
             0.625f * sqrtf(1.5f) * powf(z, -3.f) - 0.125f);

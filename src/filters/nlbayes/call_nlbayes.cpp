@@ -1,3 +1,22 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -33,8 +52,6 @@ extern "C" {
 #include "filters/cosmetic_correction.h"
 }
 
-#define ACTIVATE_NULLCHECK_FLOAT 1
-
 using namespace std;
 using std::cerr;
 using std::endl;
@@ -69,13 +86,13 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
 	// The useArea bools set the paste trick in both halves of the Nl-Bayes function
     const bool useArea1 = true;
     const unsigned useArea2 = true;
-    const bool verbose = FALSE;
+    const bool verbose = false;
 
     float *bgr_f = (float*) calloc(npixels * nchans, sizeof(float));
     float *bgr_fout;
 
     // Carry out cosmetic correction at the start, if selected
-    if (do_cosme == TRUE)
+    if (do_cosme == true)
       denoise_hook_cosmetic(fit);
 
     if (fit->type == DATA_FLOAT) {
@@ -113,7 +130,7 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     }
 
     // SOS iteration loop
-    for (unsigned iter=0; iter < sos; iter++) {
+    for (unsigned iter = 0; iter < sos; iter++) {
 
       // Strengthen result of previous iteration bgr_v by mixing back a fraction of the original noisy image
       for (unsigned i = 0; i < bgr_v_orig.size(); i++)
@@ -219,10 +236,10 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     // Convert output from bgrbgr back to planar rgb and put back into fit
     if (fit->type == DATA_FLOAT) {
         for (unsigned i = 0; i < npixels * nchans; i++)
-          fit->fdata[i] = (1.f-modulation) * fit->fdata[i] + modulation * bgr_fout[i];
+          fit->fdata[i] = (1.f - modulation) * fit->fdata[i] + modulation * bgr_fout[i];
     } else {
        for (unsigned i = 0; i < npixels * nchans; i++)
-          fit->data[i] = round_to_WORD(USHRT_MAX * ((1.f-modulation) * (fit->data[i] * invnorm) + modulation * bgr_fout[i]));
+          fit->data[i] = round_to_WORD(USHRT_MAX * ((1.f - modulation) * (fit->data[i] * invnorm) + modulation * bgr_fout[i]));
     }
 
     return EXIT_SUCCESS;

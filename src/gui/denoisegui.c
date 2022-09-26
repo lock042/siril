@@ -1,3 +1,23 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "io/image_format_fits.h"
@@ -12,7 +32,6 @@
 #include "core/undo.h"
 #include "core/command.h"
 #include "io/single_image.h"
-
 
 // Callbacks
 float denoise_modulation;
@@ -31,28 +50,28 @@ void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_denoise_cancel_clicked(GtkButton *button, gpointer user_data) {
-  siril_close_dialog("denoise_dialog");
+	siril_close_dialog("denoise_dialog");
 }
 
 void on_spin_sos_iters_value_changed(GtkSpinButton *button, gpointer user_data) {
-  sos_iters = (float) gtk_spin_button_get_value(button);
+	sos_iters = (float)gtk_spin_button_get_value(button);
 }
 void on_spin_rho_value_changed(GtkSpinButton *button, gpointer user_data) {
-  sos_rho = (float) gtk_spin_button_get_value(button);
-  if (sos_rho == 1.f) {
-	siril_log_message("Warning: rho = 1 will cause SOS to do nothing. Adjusting to 0.99...\n");
-	sos_rho = 0.99f;
-	gtk_spin_button_set_value(button, 0.99);
-  }
-  if (sos_rho == 0.f) {
-	siril_log_message("Warning: rho = 0 means SOS will never converge. Adjusting to 0.01...\n");
-	sos_rho = 0.01f;
-	gtk_spin_button_set_value(button, 0.01);
-  }
+	sos_rho = (float)gtk_spin_button_get_value(button);
+	if (sos_rho == 1.f) {
+		siril_log_message("Warning: rho = 1 will cause SOS to do nothing. Adjusting to 0.99...\n");
+		sos_rho = 0.99f;
+		gtk_spin_button_set_value(button, 0.99);
+	}
+	if (sos_rho == 0.f) {
+		siril_log_message("Warning: rho = 0 means SOS will never converge. Adjusting to 0.01...\n");
+		sos_rho = 0.01f;
+		gtk_spin_button_set_value(button, 0.01);
+	}
 }
 
 void on_spin_denoise_modulation_value_changed(GtkSpinButton *button, gpointer user_data) {
-  denoise_modulation = (float) gtk_spin_button_get_value(button);
+	denoise_modulation = (float)gtk_spin_button_get_value(button);
 }
 /*
 void on_radio_denoise_nosecondary_group_changed(GtkWidget *widget, gpointer user_data) {
@@ -121,8 +140,8 @@ void on_radio_denoise_vst_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_denoise_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_denoise_modulation"));
-	denoise_modulation = (float) gtk_spin_button_get_value(spin_denoise_modulation);
-//	copy_gfit_to_backup();
+	denoise_modulation = (float)gtk_spin_button_get_value(spin_denoise_modulation);
+	//	copy_gfit_to_backup();
 	denoise_args *args = calloc(1, sizeof(denoise_args));
 	args->fit = &gfit;
 	args->da3d = da3d;
@@ -143,7 +162,7 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	n = snprintf(NULL, 0, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
 	msg1 = malloc(n + 1);
 	n = snprintf(msg1, n + 1, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
-	if(args->da3d) {
+	if (args->da3d) {
 		m = snprintf(NULL, 0, _(", DA3D enabled"));
 		msg2 = malloc(m + 1);
 		m = snprintf(msg2, m + 1, _(", DA3D enabled"));
@@ -170,7 +189,7 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 		snprintf(log_msg, n + 1, "%s", msg1);
 	else if (m > 0 && q == 0)
 		snprintf(log_msg, n + m + 1, "%s%s", msg1, msg2);
-	else if(m == 0 && q > 0)
+	else if (m == 0 && q > 0)
 		snprintf(log_msg, n + q + 1, "%s%s", msg1, msg3);
 	else if (m > 0 && q > 0)
 		snprintf(log_msg, n + m + q + 1, "%s%s%s", msg1, msg2, msg3);
