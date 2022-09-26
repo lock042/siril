@@ -86,7 +86,7 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
           bgr_f[i] = max(min(1.f, (float) fit->data[i] * invnorm), 0.f);
     }
 
-    // Measure image noise using the custom wrapper to FnNoise1_float in quantize.c
+    // Measure image noise using the custom wrapper to FnNoise1_float in statistics.c
     // Initial noise measurement
     sos_update_noise_float(bgr_f, width, height, nchans, &intermediate_bgnoise);
     lastfSigma = (float) intermediate_bgnoise;
