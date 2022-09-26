@@ -80,10 +80,10 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
 
     if (fit->type == DATA_FLOAT) {
         for (size_t i = 0; i < npixels * nchans; i++)
-          bgr_f[i] = fit->fdata[i];
+          bgr_f[i] = max(min(1.f, fit->fdata[i]), 0.f);
     } else {
         for (size_t i = 0; i < npixels * nchans; i++)
-          bgr_f[i] = (float) fit->data[i] * invnorm;
+          bgr_f[i] = max(min(1.f, (float) fit->data[i] * invnorm), 0.f);
     }
 
     // Measure image noise using the custom wrapper to FnNoise1_float in quantize.c
