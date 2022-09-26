@@ -177,8 +177,7 @@ siril_common_SOURCES = \
 	gui/about_dialog.h \
 	gui/annotations_pref.c \
 	gui/astrometry_solver.c \
-	gui/bm3dgui.c \
-	gui/bm3dgui.h \
+	gui/denoisegui.c \
 	gui/background_extraction.c \
 	gui/callbacks.c \
 	gui/callbacks.h \

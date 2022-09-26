@@ -140,7 +140,7 @@ src_files = [
   'gui/about_dialog.c',
   'gui/annotations_pref.c',
   'gui/astrometry_solver.c',
-  'gui/bm3dgui.c',
+  'gui/denoisegui.c',
   'gui/background_extraction.c',
   'gui/callbacks.c',
   'gui/colors.c',

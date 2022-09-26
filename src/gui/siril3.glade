@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.38.2
 
 Copyright (C) The free-astro development team, 2019
 
@@ -5926,7 +5926,6 @@ enter a visible wavelength in nm</property>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can-focus">False</property>
-        <property name="tooltip-text" translatable="yes">Apply BM3D denoising.</property>
         <property name="orientation">vertical</property>
         <property name="spacing">16</property>
         <child internal-child="action_area">
@@ -6228,7 +6227,7 @@ enter a visible wavelength in nm</property>
               <object class="GtkSpinButton" id="spin_denoise_modulation">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">Sets modulation. The pixel value is calculated as m * b + (1-m) * orig, where m is the modulation, b is the BM3D-filtered value and orig is the original pixel value. Modulation reduces the denoising performance, but a little modulation can be useful to add back microtexture to flat regions of the image.</property>
+                <property name="tooltip-text" translatable="yes">Sets modulation. The pixel value is calculated as m * b + (1-m) * orig, where m is the modulation, b is the denoised value and orig is the original pixel value. Modulation reduces the denoising performance, but a little modulation can be useful to add back microtexture to flat regions of the image.</property>
                 <property name="halign">end</property>
                 <property name="hexpand">True</property>
                 <property name="adjustment">denoise-modulation-adjustment</property>
@@ -6254,7 +6253,7 @@ enter a visible wavelength in nm</property>
           <object class="GtkScale" id="slide_denoise_modulation">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
-            <property name="tooltip-text" translatable="yes">Sets modulation. The pixel value is calculated as m * b + (1-m) * orig, where m is the modulation, b is the BM3D-filtered value and orig is the original pixel value. Modulation reduces the denoising performance, but a little modulation can be useful to add back microtexture to flat regions of the image.</property>
+            <property name="tooltip-text" translatable="yes">Sets modulation. The pixel value is calculated as m * b + (1-m) * orig, where m is the modulation, b is the denoised value and orig is the original pixel value. Modulation reduces the denoising performance, but a little modulation can be useful to add back microtexture to flat regions of the image.</property>
             <property name="adjustment">denoise-modulation-adjustment</property>
             <property name="round-digits">1</property>
             <property name="digits">2</property>
