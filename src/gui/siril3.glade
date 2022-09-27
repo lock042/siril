@@ -15134,7 +15134,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">25</property>
+            <property name="position">26</property>
           </packing>
         </child>
         <child>
@@ -15145,7 +15145,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">26</property>
+            <property name="position">27</property>
           </packing>
         </child>
         <child>
@@ -15159,7 +15159,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">27</property>
+            <property name="position">28</property>
           </packing>
         </child>
       </object>
