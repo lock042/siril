@@ -18,6 +18,7 @@ configure_file(output : 'config.h',
 
 src_files = [
   'algos/annotate.c',
+  'algos/anscombe.c',
   'algos/astrometry_solver.c',
   'algos/background_extraction.c',
   'algos/ccd-inspector.c',
@@ -91,6 +92,15 @@ src_files = [
   'filters/synthstar.c',
   'filters/wavelets.c',
 
+  'filters/da3d/DA3D.cpp',
+  'filters/da3d/Utils.cpp',
+  'filters/da3d/WeightMap.cpp',
+  'filters/nlbayes/call_nlbayes.cpp',
+  'filters/nlbayes/LibImages.cpp',
+  'filters/nlbayes/LibMatrix.cpp',
+  'filters/nlbayes/NlBayes.cpp',
+  'filters/nlbayes/Utilities.cpp',
+
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
   'io/avi_pipp/pipp_avi_write.h',
@@ -131,6 +141,7 @@ src_files = [
   'gui/about_dialog.c',
   'gui/annotations_pref.c',
   'gui/astrometry_solver.c',
+  'gui/denoisegui.c',
   'gui/background_extraction.c',
   'gui/callbacks.c',
   'gui/colors.c',

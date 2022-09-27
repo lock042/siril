@@ -39,7 +39,6 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/arithm.h"
-#include "core/undo.h"
 #include "core/initfile.h"
 #include "core/preprocess.h"
 #include "core/processing.h"
@@ -69,6 +68,7 @@
 #include "gui/preferences.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
+#include "filters/nlbayes/call_nlbayes.h"
 #include "filters/clahe.h"
 #include "filters/cosmetic_correction.h"
 #include "filters/deconv.h"
@@ -264,6 +264,162 @@ int process_unclip(int nb) {
 	return CMD_OK;
 }
 
+static gboolean end_denoise(gpointer p) {
+	struct denoise_args *args = (struct denoise_args *) p;
+	stop_processing_thread();// can it be done here in case there is no thread?
+	adjust_cutoff_from_updated_gfit();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
+	free(args);
+	return FALSE;
+}
+
+gpointer run_nlbayes_on_fit(gpointer p) {
+	denoise_args *args = (denoise_args *) p;
+	struct timeval t_start, t_end;
+	char *msg1 = NULL, *msg2 = NULL, *msg3 = NULL, *log_msg = NULL;
+	int n = 0, m = 0, q = 0;
+	n = snprintf(NULL, 0, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
+	msg1 = malloc(n + 1);
+	n = snprintf(msg1, n + 1, _("NL-Bayes denoise (mod=%.3f"), args->modulation);
+	if(args->da3d) {
+		m = snprintf(NULL, 0, _(", DA3D enabled"));
+		msg2 = malloc(m + 1);
+		m = snprintf(msg2, m + 1, _(", DA3D enabled"));
+	} else if (args->sos > 1) {
+		m = snprintf(NULL, 0, _(", SOS enabled (iters=%d, rho=%.3f)"), args->sos, args->rho);
+		msg2 = malloc(m + 1);
+		m = snprintf(msg2, m + 1, _(", SOS enabled (iters=%d, rho=%.3f)"), args->sos, args->rho);
+	} else if (args->do_anscombe) {
+		m = snprintf(NULL, 0, _(", VST enabled"));
+		msg2 = malloc(m + 1);
+		m = snprintf(msg2, m + 1, _(", VST enabled"));
+	}
+	if (args->do_cosme) {
+		q = snprintf(NULL, 0, _(", CC enabled)"));
+		msg3 = malloc(q + 1);
+		q = snprintf(msg3, q + 1, _(", CC enabled)"));
+	} else {
+		q = 1;
+		msg3 = malloc(q + 1);
+		q = snprintf(msg3, q + 1, _(")"));
+	}
+	log_msg = malloc(n + m + q + 1);
+	if (m == 0 && q == 0)
+		snprintf(log_msg, n + 1, "%s", msg1);
+	else if (m > 0 && q == 0)
+		snprintf(log_msg, n + m + 1, "%s%s", msg1, msg2);
+	else if(m == 0 && q > 0)
+		snprintf(log_msg, n + q + 1, "%s%s", msg1, msg3);
+	else if (m > 0 && q > 0)
+		snprintf(log_msg, n + m + q + 1, "%s%s%s", msg1, msg2, msg3);
+	else
+		snprintf(log_msg, 26, _("Error, this can't happen!"));
+
+	if (msg1) free(msg1);
+	if (msg2) free(msg2);
+	if (msg3) free(msg3);
+
+	siril_log_message("%s\n", log_msg); // This is the standard non-translated message to make things easy for log parsers.
+	free(log_msg);
+	gettimeofday(&t_start, NULL);
+	set_progress_bar_data(_("Starting NL-Bayes denoising..."), 0.0);
+
+	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe, args->do_cosme);
+
+	notify_gfit_modified();
+	gettimeofday(&t_end, NULL);
+	show_time_msg(t_start, t_end, _("NL-Bayes execution time"));
+	set_progress_bar_data(_("Ready."), 0.0);
+	siril_add_idle(end_denoise, args);
+	return GINT_TO_POINTER(retval);
+}
+
+int process_denoise(int nb){
+	gboolean error = FALSE;
+	set_cursor_waiting(TRUE);
+	denoise_args *args = calloc(1, sizeof(denoise_args));
+	args->sos = 1;
+	args->rho = 0.2f;
+	args->modulation = 1.f;
+	args->da3d = 0;
+	args->do_anscombe = FALSE;
+	args->do_cosme = TRUE;
+	args->fit = &gfit;
+	for (int i = 1; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(arg, "-vst")) {
+			args->do_anscombe = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-da3d")) {
+			args->da3d = 1;
+		}
+		else if (g_str_has_prefix(arg, "-nocosmetic")) {
+			args->do_cosme = FALSE;
+		}
+		else if (g_str_has_prefix(arg, "-mod=")) {
+			arg += 5;
+			float mod = g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((mod < 0.f) || (mod > 1.f)) {
+				siril_log_message(_("Error in mod parameter: must be between 0 and 1, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				args->modulation = mod;
+			}
+		}
+		if (args->modulation == 0.f) {
+			siril_log_message(_("Modulation is zero: doing nothing.\n"));
+			return CMD_OK;
+		}
+		else if (g_str_has_prefix(arg, "-rho=")) {
+			arg += 5;
+			float rho = g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((rho <= 0.f) || (rho >= 1.f)) {
+				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				args->rho = rho;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-sos=")) {
+			arg += 5;
+			unsigned sos = (int) g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if (sos < 1) {
+				siril_log_message(_("Error: SOS iterations must be >= 1. Defaulting to 1.\n"));
+				sos = 1;
+			} else if (sos > 10)
+				siril_log_message(_("Note: high number of SOS iterations. Processing time may be lengthy...\n"));
+			if (!error) {
+				args->sos = sos;
+			}
+		}
+	}
+	if (args->do_anscombe && (args->sos != 1 || args->da3d)) {
+		siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. aborting.\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+	if (args->do_anscombe)
+		siril_log_message(_("Will apply generalised Anscombe variance stabilising transform.\n"));
+	if (args->da3d) {
+		siril_log_message(_("Will carry out final stage DA3D denoising.\n"));
+		if (args->sos != 1) {
+			siril_log_message(_("Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"));
+			args->sos = 1;
+		}
+	}
+	start_in_new_thread(run_nlbayes_on_fit, args);
+
+	return CMD_OK;
+}
+
 int process_starnet(int nb){
 #ifdef HAVE_LIBTIFF
 	starnet_data *starnet_args = malloc(sizeof(starnet_data));
@@ -278,15 +434,12 @@ int process_starnet(int nb){
 		if (!word[i])
 			break;
 		if (g_str_has_prefix(arg, "-stretch")) {
-//			arg += 8;
 			starnet_args->linear = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-upscale")) {
-//			arg += 8;
 			starnet_args->upscale = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-nostarmask")) {
-//			arg += 11;
 			starnet_args->starmask = FALSE;
 		}
 		else if (g_str_has_prefix(arg, "-stride=")) {

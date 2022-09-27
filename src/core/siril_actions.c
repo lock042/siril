@@ -599,3 +599,7 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 void synthstar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("synthstar_dialog");
 }
+
+void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("denoise_dialog");
+}
