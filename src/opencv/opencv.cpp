@@ -31,6 +31,7 @@
 #include "opencv2/core/version.hpp"
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
+#include <math.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
@@ -717,6 +718,67 @@ int cvClahe(fits *image, double clip_limit, int size) {
 	return -1;
 }
 
+
+// compute the signed triangle area
+static int area(pointi a, pointi b, pointi c) {
+     return (b.x - a.x) * (c.y - a.y) -
+            (c.x - a.x) * (b.y - a.y);
+}
+
+static bool segments_intersect(std::vector<Vec4i> lines, size_t i, size_t j) {
+	int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
+	pointi a = { x1, y1 };
+	pointi b = { x2, y2 };
+	int x3 = lines[j][0], y3 = lines[j][1], x4 = lines[j][2], y4 = lines[j][3];
+	pointi c = { x3, y3 };
+	pointi d = { x4, y4 };
+	int areaC = area(a, b, c);
+	int areaD = area(a, b, d);
+	return (areaC <= 0 && areaD >= 0) || (areaC >= 0 && areaD <= 0);
+}
+
+#define ANGLES_EPSILON	10.0	// degrees
+
+static size_t remove_duplicate_segments(std::vector<Vec4i> lines, std::vector<double> angles, size_t nb_lines) {
+	std::vector<double> lengths(nb_lines);
+	for (size_t i = 0; i < nb_lines; i++) {
+		int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
+		lengths[i] = sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+	}
+
+	std::vector<bool> kept(nb_lines, true);
+	for (size_t i = 0; i < nb_lines; i++) {
+		for (size_t j = 0; j < nb_lines; j++) {
+			if (i == j || !kept[j]) continue;
+			if (abs(angles[i] - angles[j]) <= ANGLES_EPSILON) {
+				// check if segments intersect https://stackoverflow.com/a/3842157
+				if (segments_intersect(lines, i, j)) {
+					kept[j] = false;
+					siril_debug_print("removing %zd\n", j);
+				}
+			}
+		}
+	}
+
+	size_t j = 0;
+	for (size_t i = 0; i < nb_lines; i++) {
+		if (kept[i]) {
+			if (i != j) {
+				lines[j] = lines[i];
+				angles[j] = angles[i];
+			}
+			j++;
+		}
+	}
+	size_t new_size = j;
+	for (; j < nb_lines; j++) {
+		lines.pop_back();
+		angles.pop_back();
+	}
+	siril_debug_print("kept %zd lines\n", new_size);
+	return new_size;
+}
+
 #define PROBABILITSIC_HOUGH
 int cvHoughLines(fits *image, int layer, float threshvalue, int minlen) {
 	Mat src, gray, thresh;
@@ -757,9 +819,14 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen) {
 			}
 			// compute angle
 			angles[i] = atan2(y1 - y2, x1 - x2) / M_PI * 180.0;
-			siril_debug_print("Line detected (%d,%d)->(%d,%d), angle %f\n", x1, y1, x2, y2, angles[i]);
+		}
 
+		nb_lines = remove_duplicate_segments(lines, angles, nb_lines);	// in-place edit of lines and angles
+
+		for (size_t i = 0; i < nb_lines; i++) {
 			gsl_histogram_increment(hist, angles[i]);
+			int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
+			siril_debug_print("Line detected (%d,%d)->(%d,%d), angle %f\n", x1, y1, x2, y2, angles[i]);
 		}
 
 		for (size_t i = 0; i < gsl_histogram_bins(hist); i++) {
