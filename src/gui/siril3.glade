@@ -6142,7 +6142,7 @@ enter a visible wavelength in nm</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">Sets the number of SOS iterations. 3-5 iterations usually provides good convergence. Convergence can be seen by examining the updated image noise estimate shown in the log window after each iteration. (These noise values are measured after noise from the original image is mixed back in to prepare the next iteration, so the final output noise level is substantially lower than the intermediate values shown between iterations.)</property>
                     <property name="halign">end</property>
-                    <property name="text" translatable="yes">3</property>
+                    <property name="text">3</property>
                     <property name="adjustment">denoise_sos_adjustment</property>
                     <property name="value">3</property>
                     <signal name="value-changed" handler="on_spin_sos_iters_value_changed" swapped="no"/>
@@ -6171,7 +6171,7 @@ enter a visible wavelength in nm</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">Rho sets the amount of the original noisy image mixed back in between each SOS iteration. Up to a point, larger values will result in greater effectiveness but beyond a certain point the algorithm will fail to converge. The default of 0.2 is often a good starting point.</property>
                     <property name="halign">end</property>
-                    <property name="text" translatable="yes">0,50</property>
+                    <property name="text">0,50</property>
                     <property name="adjustment">denoise-rho-adjustment</property>
                     <property name="digits">2</property>
                     <property name="value">0.20</property>
@@ -27607,7 +27607,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Sets default bit depth for the HD AutoStretch display mode. Higher bit depths require exponentially more memory for the LUT and take longer to recalculate it, but do a much better job of smoothing quantization artefacts in displaying images with very narrow histogram peaks. The default bit depth will apply from the next viewer mode change, and can be applied now using the button to the right.</property>
                                 <property name="halign">start</property>
-                                <property name="text" translatable="yes">20</property>
+                                <property name="text">20</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adjustment_hdstf_bitdepth</property>
