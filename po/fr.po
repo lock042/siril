@@ -1097,7 +1097,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:6059
 msgid "Data Adaptive Dual Domain Denoising"
-msgstr "Débeuitage adaptatif à double domaine de données"
+msgstr "Débruitage adaptatif à double domaine de données"
 
 #: src/gui/siril3.glade:6063
 msgid ""
