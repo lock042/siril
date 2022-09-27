@@ -595,3 +595,7 @@ void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("nina_light_curve");
 }
+
+void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("denoise_dialog");
+}

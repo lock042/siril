@@ -27,6 +27,8 @@ siril_common_SOURCES = \
 	core/proto.h \
 	algos/annotate.c \
 	algos/annotate.h \
+	algos/anscombe.c \
+	algos/anscombe.h \
 	algos/astrometry_solver.c \
 	algos/astrometry_solver.h \
 	algos/background_extraction.c \
@@ -154,10 +156,28 @@ siril_common_SOURCES = \
 	filters/starnet.h \
 	filters/wavelets.c \
 	filters/wavelets.h \
+	filters/da3d/DA3D.cpp \
+	filters/da3d/DA3D.hpp \
+	filters/da3d/DftPatch.hpp \
+	filters/da3d/Image.hpp \
+	filters/da3d/Utils.cpp \
+	filters/da3d/Utils.hpp \
+	filters/da3d/WeightMap.cpp \
+	filters/da3d/WeightMap.hpp \
+	filters/nlbayes/call_nlbayes.cpp \
+	filters/nlbayes/call_nlbayes.h \
+	filters/nlbayes/LibImages.cpp \
+	filters/nlbayes/LibImages.h \
+	filters/nlbayes/LibMatrix.cpp \
+	filters/nlbayes/NlBayes.cpp \
+	filters/nlbayes/NlBayes.h \
+	filters/nlbayes/Utilities.cpp \
+	filters/nlbayes/Utilities.h \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
 	gui/annotations_pref.c \
 	gui/astrometry_solver.c \
+	gui/denoisegui.c \
 	gui/background_extraction.c \
 	gui/callbacks.c \
 	gui/callbacks.h \
