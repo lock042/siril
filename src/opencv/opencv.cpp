@@ -43,6 +43,7 @@
 extern "C" {
 #endif
 #include "algos/statistics.h"
+#include <gsl/gsl_histogram.h>
 #ifdef __cplusplus
 }
 #endif
@@ -716,12 +717,15 @@ int cvClahe(fits *image, double clip_limit, int size) {
 	return -1;
 }
 
+#define PROBABILITSIC_HOUGH
 int cvHoughLines(fits *image, int layer, float threshvalue, int minlen) {
 	Mat src, gray, thresh;
-	std::vector<Vec2f> lines; // will hold the results of the detection
 	double scale;
 
-	if (layer < 0) layer = (image->naxes[2] == 3) ? 1 : 0; // if no layer defined, select green layer if color, first layer if mono
+	if (layer < 0 || layer >= image->naxes[2]) {
+		layer = (image->naxes[2] == 3) ? 1 : 0;
+		siril_log_message(_("Using layer %d\n"), layer);
+	}
 	if (image->type == DATA_USHORT) {
 		src = Mat(image->ry, image->rx, CV_16UC1, image->pdata[layer]);
 		scale = (image->bitpix == BYTE_IMG) ? 1.0 : UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE;
@@ -734,23 +738,62 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen) {
 	threshvalue *= scale;
 
 	threshold(gray, thresh, threshvalue, UCHAR_MAX_DOUBLE, THRESH_BINARY);
+	siril_debug_print("image scaled by %f, threshold is %f, minimum length %d\n", scale, threshvalue, minlen);
+#ifdef PROBABILITSIC_HOUGH
+	std::vector<Vec4i> lines; // will hold the results of the detection
+	HoughLinesP(thresh, lines, 1.0, CV_PI / 180.0, minlen, (double)minlen, 5.0);
+	size_t nb_lines = lines.size();
+	if (nb_lines) {
+		std::vector<double> angles(nb_lines);
+		const int nb_bins = 72;		// 5 degree steps
+		gsl_histogram *hist = gsl_histogram_alloc(nb_bins);
+		gsl_histogram_set_ranges_uniform(hist, -180.0, 180.0);
+
+		for (size_t i = 0; i < nb_lines; i++) {
+			int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
+			if (!image->top_down) {
+				y1 = image->ry - y1 - 1;
+				y2 = image->ry - y2 - 1;
+			}
+			// compute angle
+			angles[i] = atan2(y1 - y2, x1 - x2) / M_PI * 180.0;
+			siril_debug_print("Line detected (%d,%d)->(%d,%d), angle %f\n", x1, y1, x2, y2, angles[i]);
+
+			gsl_histogram_increment(hist, angles[i]);
+		}
+
+		for (size_t i = 0; i < gsl_histogram_bins(hist); i++) {
+			double inbin = gsl_histogram_get(hist, i);
+			if (inbin > 0.0) {
+				double bin_size = 360.0 / nb_bins;
+				double start = -180.0 + i * bin_size;
+				siril_log_message(_("%f objects with an angle in [%f, %f]\n"), inbin, start, start + bin_size);
+			}
+		}
+
+		gsl_histogram_free(hist);
+	}
+
+#else
+	std::vector<Vec2f> lines; // will hold the results of the detection
 	HoughLines(thresh, lines, 1.0, CV_PI / 180.0, minlen);
 
 #ifdef SIRIL_OUTPUT_DEBUG
-    // Output the lines if any
-    for( size_t i = 0; i < lines.size(); i++ )
-    {
-        float rho = lines[i][0], theta = lines[i][1];
-        Point pt1, pt2;
-        double a = cos(theta), b = sin(theta);
-        double x0 = a*rho, y0 = b*rho;
-        pt1.x = cvRound(x0 + 1000*(-b));
-        pt1.y = cvRound(y0 + 1000*(a));
-        pt2.x = cvRound(x0 - 1000*(-b));
-        pt2.y = cvRound(y0 - 1000*(a));
-		siril_debug_print(_("Line detected (%d,%d)->(%d,%d)\n"), pt1.x, pt1.y, pt2.x, pt2.y);
-    }
+	for (size_t i = 0; i < lines.size(); i++) {
+		float rho = lines[i][0], theta = lines[i][1];
+		// rho is the distance to origin in pixels, theta the angle to X axis in radian
+		Point pt1, pt2;
+		double a = cos(theta), b = sin(theta);
+		double x0 = a*rho, y0 = b*rho;
+		pt1.x = cvRound(x0 + 1000*(-b));
+		pt1.y = cvRound(y0 + 1000*(a));
+		pt2.x = cvRound(x0 - 1000*(-b));
+		pt2.y = cvRound(y0 - 1000*(a));
+		siril_debug_print("Line detected (%d,%d)->(%d,%d)\n", pt1.x, pt1.y, pt2.x, pt2.y);
+	}
 #endif
+#endif
+
 	src.release();
 	gray.release();
 	thresh.release();

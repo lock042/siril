@@ -6006,15 +6006,15 @@ int process_detect_trail(int nb) {
 	}
 
 	if (minlen < defminlen) {
-		siril_log_color_message(_("Minimum length of %d pixels may detect many false positives\n"), "salmon");
+		siril_log_color_message(_("Minimum length of %d pixels may detect many false positives\n"), "salmon", minlen);
 	}
 	if (minlen < 0) {
 		siril_log_color_message(_("Minimum length cannot be negative, ignoring\n"), "salmon");
 		minlen = defminlen;
 	}
 	if (ksigma < 0) {
-		siril_log_color_message(_("ksigma cannot ne negative, ignoring\n"), "salmon");
-		ksigma = 1.f;
+		//siril_log_color_message(_("ksigma cannot be negative, ignoring\n"), "salmon");
+		//ksigma = 1.f;
 	}
 
 	if (!is_sequence) {
@@ -6029,10 +6029,13 @@ int process_detect_trail(int nb) {
 			return 1;
 		}
 
-		float threshold = stat->median + 5.0 * ksigma * stat->bgnoise; // to be consistent with dynamic PSF
+		float threshold;
+		if (ksigma >= 0)
+			threshold = stat->median + ksigma * stat->bgnoise;
+		else threshold = stat->median - ksigma;
 		// sanity checks
-		if (threshold >= stat->max) {
-			siril_log_color_message(_("Detection threshold is larger than max value.\n"), "red");
+		if (threshold > stat->max) {
+			siril_log_color_message(_("Detection threshold %f is larger than max value %f.\n"), "red", threshold, stat->max);
 			free_stats(stat);
 			return 1;
 		}
