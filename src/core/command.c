@@ -6018,6 +6018,7 @@ int process_detect_trail(int nb) {
 	}
 
 	if (!is_sequence) {
+		clear_stars_list(FALSE);
 		if (layer > gfit.naxes[2]) {
 			siril_log_color_message(_("Layer %d. does not exist.\n"), "red", layer);
 			return 1;
@@ -6043,10 +6044,28 @@ int process_detect_trail(int nb) {
 			siril_log_color_message(_("Detection threshold is lower than median value.\n"), "salmon");
 		}
 
-		nblines = cvHoughLines(&gfit, layer, threshold, minlen);
+		struct track *tracks;
+		nblines = cvHoughLines(&gfit, layer, threshold, minlen, &tracks);
 
 		if (nblines) {
-			siril_log_message(_("Found at least one trail in current frame\n"));
+			if (nblines > 2000) nblines = 2000;
+			siril_log_message(_("Found %d trail(s) in current frame, displaying start points\n"), nblines);
+			com.stars = malloc((2 * nblines + 1) * sizeof(psf_star *));
+			for (int i = 0; i < nblines; i++) {
+				com.stars[2*i] = new_psf_star();
+				com.stars[2*i]->xpos = tracks[i].start.x;
+				com.stars[2*i]->ypos = tracks[i].start.y;
+				com.stars[2*i]->fwhmx = 8.0;
+				com.stars[2*i]->has_saturated = FALSE;
+				com.stars[2*i+1] = new_psf_star();
+				com.stars[2*i+1]->xpos = tracks[i].end.x;
+				com.stars[2*i+1]->ypos = tracks[i].end.y;
+				com.stars[2*i+1]->fwhmx = 8.0;
+				com.stars[2*i+1]->has_saturated = TRUE;
+			}
+			com.stars[nblines] = NULL;
+			redraw(REDRAW_OVERLAY);
+			free(tracks);
 		} else {
 			siril_log_message(_("No trails found\n"));
 		}

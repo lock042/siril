@@ -738,23 +738,43 @@ static bool segments_intersect(std::vector<Vec4i> lines, size_t i, size_t j) {
 }
 
 #define ANGLES_EPSILON	10.0	// degrees
+#define POSITION_EPSILON 4	// pixels
 
-static size_t remove_duplicate_segments(std::vector<Vec4i> lines, std::vector<double> angles, size_t nb_lines) {
+static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<double> &angles, size_t nb_lines) {
 	std::vector<double> lengths(nb_lines);
 	for (size_t i = 0; i < nb_lines; i++) {
 		int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
 		lengths[i] = sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 	}
 
+	// O(n^2), this can be very slow
 	std::vector<bool> kept(nb_lines, true);
 	for (size_t i = 0; i < nb_lines; i++) {
+		int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
 		for (size_t j = 0; j < nb_lines; j++) {
 			if (i == j || !kept[j]) continue;
-			if (abs(angles[i] - angles[j]) <= ANGLES_EPSILON) {
+			if (fabs(angles[i] - angles[j]) <= ANGLES_EPSILON) {
+				// check if they are very close in start or end
+				int x3 = lines[j][0], y3 = lines[j][1], x4 = lines[j][2], y4 = lines[j][3];
+				if ((abs(x1 - x3) < POSITION_EPSILON && abs(y1 - y3) < POSITION_EPSILON) ||
+						(abs(x2 - x4) < POSITION_EPSILON && abs(y2 - y4) < POSITION_EPSILON)) {
+					// let's keep the longest
+					if (lengths[i] >= lengths[j]) {
+						kept[j] = false;
+						siril_debug_print("removing %zd (too close)\n", j);
+						continue;
+					} else {
+						kept[i] = false;
+						siril_debug_print("removing %zd (too close)\n", i);
+						break;
+					}
+				}
+
 				// check if segments intersect https://stackoverflow.com/a/3842157
 				if (segments_intersect(lines, i, j)) {
 					kept[j] = false;
-					siril_debug_print("removing %zd\n", j);
+					siril_debug_print("removing %zd (intersects)\n", j);
+					continue;
 				}
 			}
 		}
@@ -780,7 +800,7 @@ static size_t remove_duplicate_segments(std::vector<Vec4i> lines, std::vector<do
 }
 
 #define PROBABILITSIC_HOUGH
-int cvHoughLines(fits *image, int layer, float threshvalue, int minlen) {
+int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct track **tracks) {
 	Mat src, gray, thresh;
 	double scale;
 
@@ -812,16 +832,17 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen) {
 		gsl_histogram_set_ranges_uniform(hist, -180.0, 180.0);
 
 		for (size_t i = 0; i < nb_lines; i++) {
-			int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
+			// put results in the correct orientation
 			if (!image->top_down) {
-				y1 = image->ry - y1 - 1;
-				y2 = image->ry - y2 - 1;
+				lines[i][1] = image->ry - lines[i][1] - 1;
+				lines[i][3] = image->ry - lines[i][3] - 1;
 			}
 			// compute angle
+			int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
 			angles[i] = atan2(y1 - y2, x1 - x2) / M_PI * 180.0;
 		}
 
-		nb_lines = remove_duplicate_segments(lines, angles, nb_lines);	// in-place edit of lines and angles
+		nb_lines = remove_duplicate_segments(lines, angles, nb_lines); // in-place edit of lines and angles
 
 		for (size_t i = 0; i < nb_lines; i++) {
 			gsl_histogram_increment(hist, angles[i]);
@@ -830,15 +851,32 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen) {
 		}
 
 		for (size_t i = 0; i < gsl_histogram_bins(hist); i++) {
-			double inbin = gsl_histogram_get(hist, i);
-			if (inbin > 0.0) {
+			int inbin = (int)gsl_histogram_get(hist, i);
+			if (inbin > 0) {
 				double bin_size = 360.0 / nb_bins;
 				double start = -180.0 + i * bin_size;
-				siril_log_message(_("%f objects with an angle in [%f, %f]\n"), inbin, start, start + bin_size);
+				siril_log_message(_("%d objects with an angle in [%f, %f]\n"), inbin, start, start + bin_size);
 			}
 		}
-
 		gsl_histogram_free(hist);
+
+		if (tracks) {
+			*tracks = (struct track *)malloc(nb_lines * sizeof(struct track));
+			if (!*tracks) {
+				PRINT_ALLOC_ERR;
+				src.release();
+				gray.release();
+				thresh.release();
+				return 0;
+			}
+			for (size_t i = 0; i < nb_lines; i++) {
+				(*tracks)[i].start.x = lines[i][0];
+				(*tracks)[i].start.y = lines[i][1];
+				(*tracks)[i].end.x = lines[i][2];
+				(*tracks)[i].end.y = lines[i][3];
+				(*tracks)[i].angle = angles[i];
+			}
+		}
 	}
 
 #else
