@@ -1068,3 +1068,25 @@ int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels) {
 	}
 	return !all_copied;
 }
+
+int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *noise) {
+	int status, retval = 0;
+	float *colarray[3];
+	double fSigma = 0.0;
+	if (nchans == 1) {
+		retval = siril_fits_img_stats_float(array, nx, ny, ACTIVATE_NULLCHECK, 0.0f, NULL, NULL, NULL,
+		NULL, NULL, noise, NULL, NULL, NULL, MULTI_THREADED, &status);
+		return retval;
+	} else {
+		colarray[0] = array;
+		colarray[1] = array + (nx * ny);
+		colarray[2] = array + 2 * (nx * ny);
+		for (unsigned i = 0 ; i < nchans ; i++) {
+			retval += siril_fits_img_stats_float(colarray[i], nx, ny, ACTIVATE_NULLCHECK, 0.0f, NULL, NULL, NULL,
+						NULL, NULL, noise, NULL, NULL, NULL, MULTI_THREADED, &status);
+			fSigma += *noise;
+		}
+		*noise = fSigma / nchans;
+	}
+	return retval;
+}

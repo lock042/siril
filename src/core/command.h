@@ -11,6 +11,10 @@ int	process_asinh(int nb);
 
 int	process_bg(int nb);
 int	process_bgnoise(int nb);
+int	process_denoise(int nb);
+gpointer run_nlbayes_on_fit(gpointer p);
+gpointer run_bm3d_on_fit(gpointer p);
+
 int	process_boxselect(int nb);
 
 int	process_capabilities(int nb);
