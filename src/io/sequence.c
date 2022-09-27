@@ -42,6 +42,7 @@
 #include "core/OS_utils.h"
 #include "core/initfile.h"
 #include "core/undo.h"
+#include "core/siril_log.h"
 #include "io/conversion.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
@@ -371,7 +372,13 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		siril_debug_print("Found a AVI sequence\n");
 	}
 #endif
-	else if (check_for_fitseq && !strcasecmp(ext, com.pref.ext + 1) && fitseq_is_fitseq(name, NULL)) {
+	else if (check_for_fitseq && TYPEFITS == get_type_for_extension(ext) && fitseq_is_fitseq(name, NULL)) {
+		/* set the configured extention to the extension of the file, otherwise reading will fail */
+		if (strcasecmp(ext, com.pref.ext + 1)) {
+			g_free(com.pref.ext);
+			com.pref.ext = g_strdup_printf(".%s", ext);
+		}
+
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
 		fitseq_init_struct(fitseq_file);
 		if (fitseq_open(name, fitseq_file)) {

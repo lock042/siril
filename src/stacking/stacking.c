@@ -28,6 +28,7 @@
 #include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"

@@ -25,6 +25,7 @@
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
+#include "core/siril_log.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"

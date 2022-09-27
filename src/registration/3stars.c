@@ -29,6 +29,7 @@
 #include "algos/star_finder.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "core/siril_log.h"
 #include "core/processing.h"
 #include "opencv/opencv.h"
 #include "gui/image_interactions.h"
@@ -319,7 +320,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 					return 1;
 				}
 			} else { //  Do we want to allow for no interp while the transformation has been computed as a similarity?
-				if (shift_fit_from_reg(fit, regargs, sadata->current_regdata[in_index].H)) {
+				if (shift_fit_from_reg(fit, sadata->current_regdata[in_index].H)) {
 					return 1;
 				}
 			}

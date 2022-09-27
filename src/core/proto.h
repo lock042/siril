@@ -1,6 +1,7 @@
 #ifndef PROTO_H_
 #define PROTO_H_
 #include <stdint.h>
+#include <sys/time.h>
 #include "core/siril.h"
 #ifdef HAVE_LIBTIFF
 #define uint64 uint64_hack_
@@ -44,7 +45,7 @@ int readpic(const char *name, fits *fit);
 #ifdef HAVE_LIBTIFF
 int readtif(const char *name, fits *fit, gboolean force_float);
 void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc);
-int savetif(const char *name, fits *fit, uint16_t bitspersample, char *description, char *copyright, gboolean embeded_icc);
+int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *description, const char *copyright, gboolean embeded_icc);
 #endif
 
 #ifdef HAVE_LIBJPEG
@@ -73,6 +74,7 @@ WORD round_to_WORD(double x);
 BYTE round_to_BYTE(double x);
 BYTE roundf_to_BYTE(float f);
 WORD roundf_to_WORD(float f);
+guint float_to_max_range(float f, guint max);
 int round_to_ceiling_multiple(int x, int factor);
 BYTE conv_to_BYTE(double x);
 int truncate_to_int32(uint64_t x);
@@ -108,6 +110,7 @@ uint64_t cpu_to_be64(uint64_t x);
 uint64_t le64_to_cpu(uint64_t x);
 uint64_t be64_to_cpu(uint64_t x);
 gboolean isrgb(fits *fit);
+const char *channel_number_to_name(int channel);
 int get_extension_index(const char *filename);
 image_type get_type_from_filename(const gchar *filename);
 char* remove_ext_from_filename(const char *basename);
@@ -176,10 +179,6 @@ int buildseqfile(sequence *seq, int force_recompute);
 
 /****************** statistics_list.h ******************/
 void computeStat();
-
-/****************** siril_log.h ******************/
-char* siril_log_message(const char* format, ...);
-char* siril_log_color_message(const char* format, const char* color, ...);
 
 #ifdef __cplusplus
 }

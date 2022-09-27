@@ -41,6 +41,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
@@ -715,7 +716,7 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 			}
 		}
 
-		int new_index = i * s_args->seq->nb_layers;
+		int new_index = o * s_args->seq->nb_layers;
 		if (s_args->option == (STATS_BASIC)) {
 			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
 					i + 1,
@@ -1066,4 +1067,26 @@ int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels) {
 		}
 	}
 	return !all_copied;
+}
+
+int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *noise) {
+	int status, retval = 0;
+	float *colarray[3];
+	double fSigma = 0.0;
+	if (nchans == 1) {
+		retval = siril_fits_img_stats_float(array, nx, ny, ACTIVATE_NULLCHECK, 0.0f, NULL, NULL, NULL,
+		NULL, NULL, noise, NULL, NULL, NULL, MULTI_THREADED, &status);
+		return retval;
+	} else {
+		colarray[0] = array;
+		colarray[1] = array + (nx * ny);
+		colarray[2] = array + 2 * (nx * ny);
+		for (unsigned i = 0 ; i < nchans ; i++) {
+			retval += siril_fits_img_stats_float(colarray[i], nx, ny, ACTIVATE_NULLCHECK, 0.0f, NULL, NULL, NULL,
+						NULL, NULL, noise, NULL, NULL, NULL, MULTI_THREADED, &status);
+			fSigma += *noise;
+		}
+		*noise = fSigma / nchans;
+	}
+	return retval;
 }

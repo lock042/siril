@@ -100,6 +100,11 @@ Run with the following commands:
     ninja -C _build
     ninja -C _build install
     
+To install into an arbitrary path - for testing, or where root privilege 
+is not available - a prefix may be supplied to meson:
+`meson --prefix /tmp/siril-testing-something ...` Then build and install, 
+as normal.
+
 To update Siril, run the following commands
     
     git pull --recurse-submodules

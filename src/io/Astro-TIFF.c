@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 /*--------------------------------------------------------------------------*/
 static int ffs2c(const char *instr, /* I - null terminated input string  */
           char *outstr,      /* O - null terminated quoted output string */
-          int *status)       /* IO - error status */
+          const int *status)       /* IO - error status */
 /*
   convert an input string to a quoted string. Leading spaces
   are significant.  FITS string keyword values must be at least

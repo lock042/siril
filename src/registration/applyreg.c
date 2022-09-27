@@ -28,6 +28,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
@@ -251,7 +252,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			return 1;
 		}
 	} else {
-		if (shift_fit_from_reg(fit, regargs, H)) {
+		if (shift_fit_from_reg(fit, H)) {
 			return 1;
 		}
 	}
@@ -529,6 +530,13 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", (max + 1) * 2);
 		return FALSE;
 	}
+
+	// check the consistency of output images size if -interp=none
+	if (regargs->interpolation == OPENCV_NONE && regargs->x2upscale) {
+		siril_log_color_message(_("Applying registration with upscaling when interpolation is set to none is not allowed, aborting\n"), "red");
+		return FALSE;
+	}
+
 	// check the consistency of images size if -interp=none
 	if (regargs->interpolation == OPENCV_NONE && regargs->seq->is_variable) {
 		siril_log_color_message(_("Applying registration on images with different sizes when interpolation is set to none is not allowed, aborting\n"), "red");

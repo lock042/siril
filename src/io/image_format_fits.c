@@ -35,6 +35,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "io/sequence.h"
 #include "io/fits_sequence.h"
 #include "gui/utils.h"
@@ -111,8 +112,8 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 	int ii;
 	long npixels = 1L;
 	long anaxes[3] = { 1L, 1L, 1L }, firstpix[3] = { 1L, 1L, 1L };
-	float *pix, sum = 0.f;
-	float meanval = 0.f, minval = 1.E33, maxval = -1.E33;
+	float *pix;
+	float minval = 1.E33, maxval = -1.E33;
 
 	/* initialize value in case where it does not work */
 	*mini = 0;
@@ -142,7 +143,6 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 				break; /* jump out of loop on error */
 
 			for (ii = 0; ii < npixels; ii++) {
-				sum += pix[ii]; /* accumulate sum */
 				if (pix[ii] < minval)
 					minval = pix[ii]; /* find min and  */
 				if (pix[ii] > maxval)
@@ -155,10 +155,6 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 	if (status) {
 		report_fits_error(status); /* print any error message */
 	} else {
-		if (npixels > 0)
-			meanval = sum / npixels;
-		siril_debug_print("  sum of pixels = %f\n", sum);
-		siril_debug_print("  mean value    = %f\n", meanval);
 		siril_debug_print("  minimum value = %f\n", minval);
 		siril_debug_print("  maximum value = %f\n", maxval);
 		*maxi = maxval;
@@ -230,7 +226,7 @@ static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
 	return status;
 }
 
-static void new_wcs_from_old(fits *fit, double *crota) {
+static void new_wcs_from_old(fits *fit, const double *crota) {
 	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) == 0.0) {
 		double cd[2][2];
 		int sign;
@@ -397,6 +393,7 @@ void read_fits_header(fits *fit) {
 			float mini, maxi;
 			fit_stats(fit, &mini, &maxi);
 			fit->data_max = (double) maxi;
+			fit->data_min = (double) mini;
 		}
 	}
 
@@ -556,6 +553,7 @@ static gboolean siril_str_has_prefix(char *card, char **key) {
 static void copy_string_key(char *to, char *from) {
 	if (!from || from[0]=='\0') return;
 	g_strlcpy(to, from + 1, FLEN_VALUE);
+	to[strlen(to) - 1] = '\0'; // remove the last ' in the string
 	g_strstrip(to);
 }
 
@@ -948,8 +946,9 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 	}
 }
 
-static void convert_floats(int bitpix, float *data, size_t nbdata) {
+static void convert_floats(int bitpix, float *data, size_t nbdata, double max, double min) {
 	size_t i;
+	siril_log_message(_("Normalizing input data from [%f, %f] to our float range [0, 1]\n"), min, max);
 	switch (bitpix) {
 		case BYTE_IMG:
 			for (i = 0; i < nbdata; i++)
@@ -966,6 +965,10 @@ static void convert_floats(int bitpix, float *data, size_t nbdata) {
 				data[i] = (32768.f + data[i]) * INV_USHRT_MAX_SINGLE;
 			}
 			break;
+		case FLOAT_IMG:
+			for (i = 0; i < nbdata; i++) {
+				data[i] = (data[i] - min) / (max - min);
+			}
 	}
 }
 
@@ -1134,7 +1137,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 				&status);
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				|| fit->bitpix == BYTE_IMG) || fit->data_max > 2.0) { // needed for some FLOAT_IMG
-			convert_floats(fit->bitpix, fit->fdata, nbdata);
+			convert_floats(fit->bitpix, fit->fdata, nbdata, fit->data_max, fit->data_min);
 		}
 		fit->bitpix = FLOAT_IMG;
 		fit->orig_bitpix = FLOAT_IMG; // force this, to avoid problems saving the FITS if needed
@@ -1155,6 +1158,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		int bitpix, void *dest, int layer, const rectangle *area) {
 	double data_max = -1.0;
+	double data_min = 0.0;
 	int datatype;
 	BYTE *data8;
 	long *pixels_long;
@@ -1212,7 +1216,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
 			if (status2 == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
-				convert_floats(bitpix, dest, nbdata);
+				convert_floats(bitpix, dest, nbdata, data_max, data_min);
 			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
@@ -1850,6 +1854,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 					float mini, maxi;
 					fit_stats(fit, &mini, &maxi);
 					fit->data_max = (double) maxi;
+					fit->data_min = (double) mini;
 				}
 			}
 		}
@@ -3144,7 +3149,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 			found_WCS = TRUE;
 		}
 		// set date_obs, the date of obs start, to the earliest found
-		if (g_date_time_compare(date_obs, current->date_obs) == 1) {
+		if (date_obs && g_date_time_compare(date_obs, current->date_obs) == 1) {
 			g_date_time_unref(date_obs);
 			date_obs = g_date_time_ref(current->date_obs);
 		}
@@ -3199,4 +3204,3 @@ void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
 	merge_fits_headers_to_result2(result, array);
 	free(array);
 }
-

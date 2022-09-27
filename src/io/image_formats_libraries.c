@@ -51,12 +51,12 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
+#include "core/siril_log.h"
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
-#include "io/Astro-TIFF.h"
 #include "single_image.h"
 #include "image_format_fits.h"
 
@@ -612,15 +612,11 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gbo
 		GtkTextIter itDebut;
 		GtkTextIter itFin;
 
-		if (gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_type_of_tiff"))) == 0) {
-			*description = AstroTiff_build_header(fit);
-		} else {
-			GtkTextView *description_txt_view = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
-			GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
-			gtk_text_buffer_get_start_iter(desbuf, &itDebut);
-			gtk_text_buffer_get_end_iter(desbuf, &itFin);
-			*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
-		}
+		GtkTextView *description_txt_view = GTK_TEXT_VIEW(lookup_widget("Description_txt"));
+		GtkTextBuffer *desbuf = gtk_text_view_get_buffer(description_txt_view);
+		gtk_text_buffer_get_start_iter(desbuf, &itDebut);
+		gtk_text_buffer_get_end_iter(desbuf, &itFin);
+		*description = gtk_text_buffer_get_text(desbuf, &itDebut, &itFin, TRUE);
 
 		GtkTextView *copyright_txt_view = GTK_TEXT_VIEW(lookup_widget("Copyright_txt"));
 		GtkTextBuffer *copybuf = gtk_text_view_get_buffer(copyright_txt_view);
@@ -635,7 +631,7 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gbo
 
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
 
-int savetif(const char *name, fits *fit, uint16_t bitspersample, char *description, char *copyright, gboolean embeded_icc){
+int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *description, const char *copyright, gboolean embeded_icc){
 	int retval = 0;
 	float norm;
 	gchar *filename = g_strdup(name);
@@ -672,11 +668,9 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample, char *descripti
 	TIFFSetField(tif, TIFFTAG_COMPRESSION, get_compression_mode());
 	if (description) {
 		TIFFSetField(tif, TIFFTAG_IMAGEDESCRIPTION, description);
-		g_free(description);
 	}
 	if (copyright) {
 		TIFFSetField(tif, TIFFTAG_COPYRIGHT, copyright);
-		g_free(copyright);
 	}
 	TIFFSetField(tif, TIFFTAG_MINSAMPLEVALUE, fit->mini);
 	TIFFSetField(tif, TIFFTAG_MAXSAMPLEVALUE, fit->maxi);

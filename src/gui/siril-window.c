@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -104,6 +104,7 @@ static GActionEntry any_mono_processing_entries[] = {
 
 static GActionEntry single_processing_entries[] = {
 	{ "asinh-processing", asinh_activate },
+	{ "denoise-processing", denoise_activate },
 	{ "deconvolution-processing", deconvolution_activate },
 	{ "resample-processing", resample_activate },
 	{ "rotation-processing", rotation_activate },
@@ -210,6 +211,7 @@ void siril_window_enable_any_mono_proc_actions(GtkApplicationWindow *window, gbo
 void siril_window_enable_single_proc_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *single_processing_actions[] = {
 		"asinh-processing",
+		"denoise-processing",
 		"deconvolution-processing",
 		"resample-processing",
 		"rotation-processing",

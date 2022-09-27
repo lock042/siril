@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "core/processing.h"
 #include "algos/PSF.h"
 #include "io/sequence.h"

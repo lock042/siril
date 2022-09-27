@@ -695,7 +695,8 @@ static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, do
 	GOutputStream *output_stream = (GOutputStream *)g_file_append_to(file_out, G_FILE_CREATE_NONE, NULL, &error);
 	if (!output_stream) {
 		if (error != NULL) {
-			siril_debug_print("project_local_catalog: can't open file %s for output. [%s]", g_file_peek_path(file_out), error->message);
+			siril_log_color_message(_("Can't open temporary file %s for output. [%s]\n"),
+					"red", g_file_peek_path(file_out), error->message);
 			g_clear_error(&error);
 			return 1;
 		}
@@ -773,7 +774,6 @@ gchar *get_and_project_local_catalog(SirilWorldCS *catalog_center, double radius
 	if (get_raw_stars_from_local_catalogues(center_ra, center_dec, radius, max_mag,
 				for_photometry, &stars, &nb_stars))
 		return NULL;
-	siril_debug_print("got %u stars from local catalogues\n", nb_stars);
 	if (project_local_catalog(stars, nb_stars, center_ra, center_dec, fproj, 1)) {
 		free(stars);
 		return NULL;
@@ -781,6 +781,7 @@ gchar *get_and_project_local_catalog(SirilWorldCS *catalog_center, double radius
 	free(stars);
 	foutput = g_file_get_path(fproj);
 	g_object_unref(fproj);
+	siril_debug_print("Got %u stars from local catalogues.\n", nb_stars);
 
 	return foutput;
 }
