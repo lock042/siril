@@ -279,6 +279,9 @@ int generate_synthstars(fits *fit) {
 
 	// Synthesize a PSF for each star in the star array s, based on its measured parameters
 	for (int n = 0; n < nb_stars; n++) {
+		// Check if stop has been pressed
+		if (!get_thread_run())
+			return -1;
 		float lum = (float) stars[n]->A;
 		if (lum < 0.0f)
 			lum = 0.0f;
@@ -473,6 +476,9 @@ int reprofile_saturated_stars(fits *fit) {
 		siril_log_message(_("Star synthesis: desaturating channel %u...\n"),
 				chan);
 		for (size_t n = 0; n < nb_stars; n++) {
+			// Check if stop has been pressed
+			if (!get_thread_run())
+				return -1;
 			if (stars[n]->has_saturated) {
 				float lum = (float) stars[n]->A;
 				float bg = (float) stars[n]->B;
