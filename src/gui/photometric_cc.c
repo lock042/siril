@@ -63,7 +63,6 @@ enum {
 static rectangle get_bkg_selection();
 
 static void start_photometric_cc() {
-	GtkComboBox *norm_box = GTK_COMBO_BOX(lookup_widget("combo_box_cc_norm"));
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
 	GtkToggleButton *force_platesolve_button = GTK_TOGGLE_BUTTON(lookup_widget("force_astrometry_button"));
 	gboolean plate_solve;
@@ -95,12 +94,10 @@ static void start_photometric_cc() {
 		args->pcc->fit = &gfit;
 		args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 		args->pcc->bg_area = get_bkg_selection();
-		args->pcc->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
 	}
 
 	pcc_args->fit = &gfit;
 	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
-	pcc_args->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
 	pcc_args->catalog = pcc_args->use_local_cat ? NOMAD : get_photometry_catalog();
 
 	set_cursor_waiting(TRUE);
@@ -173,7 +170,8 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	return 0;
 }
 
-static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float kw[], int n_channel) {
+static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float *kw) {
+	int n_channel = CHANNEL_MIDDLE;
 	float *data[3];
 	data[RED] = malloc(sizeof(float) * nb_stars);
 	data[GREEN] = malloc(sizeof(float) * nb_stars);
@@ -310,7 +308,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	return 0;
 }
 
-static int get_background_coefficients(fits *fit, rectangle *area, coeff bg[], gboolean verbose) {
+static int get_background_coefficients(fits *fit, rectangle *area, coeff *bg, gboolean verbose) {
 	if (verbose)
 		siril_log_message(_("Background reference:\n"));
 	// we cannot use compute_all_channels_statistics_single_image because of the area
@@ -329,7 +327,7 @@ static int get_background_coefficients(fits *fit, rectangle *area, coeff bg[], g
 	return 0;
 }
 
-static int apply_white_balance(fits *fit, const float kw[]) {
+static int apply_white_balance(fits *fit, float *kw) {
 	for (int chan = 0; chan < 3; chan++) {
 		float scale = kw[chan];
 		if (scale == 1.0) continue;
@@ -354,7 +352,8 @@ static int apply_white_balance(fits *fit, const float kw[]) {
 }
 
 /* This function equalize the background by giving equal value for all layers */
-static void background_neutralize(fits* fit, coeff bg[], int n_channel, double norm) {
+static void background_neutralize(fits* fit, coeff bg[], double norm) {
+	int n_channel = CHANNEL_MIDDLE;
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	if (fit->type == DATA_USHORT) {
 		for (int chan = 0; chan < 3; chan++) {
@@ -379,30 +378,11 @@ static void background_neutralize(fits* fit, coeff bg[], int n_channel, double n
 	invalidate_stats_from_fit(fit);
 }
 
-static int cmp_coeff(const void *a, const void *b) {
-	coeff *a1 = (coeff *) a;
-	coeff *a2 = (coeff *) b;
-	if (a1->value > a2->value)
-		return 1;
-	if (a1->value < a2->value)
-		return -1;
-	return 0;
-}
-
-static int determine_chan_for_norm(coeff bg[], normalization_channel n_channel) {
-	/* make a copy of bg coefficients because we don't
-	 * want to sort original data */
-	coeff tmp[3];
-	memcpy(tmp, bg, 3 * sizeof(coeff));
-	/* ascending order */
-	qsort(tmp, 3, sizeof(tmp[0]), cmp_coeff);
-
-	if (n_channel == CHANNEL_HIGHEST)
-		return tmp[2].channel;
-	if (n_channel == CHANNEL_MIDDLE)
-		return tmp[1].channel;
-	/* on lowest */
-	return tmp[0].channel;
+static void rescale_image_to_0_1(fits *fit, double minimum, double maximum) {
+	siril_log_message(_("Rescaling image to the [0, 1] range.\n"));
+	for (int i = 0; i < fit->rx * fit->ry * fit->naxes[2]; i++) {
+		fit->fdata[i] = (fit->fdata[i] - minimum) / (maximum - minimum);
+	}
 }
 
 /* run the PCC using the existing star list of the image from the provided file */
@@ -431,8 +411,6 @@ int photometric_cc(struct photometric_cc_data *args) {
 		free(args);
 		return 1;
 	}
-	int chan = determine_chan_for_norm(bg, args->n_channel);
-	siril_log_message(_("Normalizing on %s channel.\n"), (chan == 0) ? _("red") : ((chan == 1) ? _("green") : _("blue")));
 
 	/* set photometry parameters to values adapted to the image */
 	struct phot_config backup = com.pref.phot_set;
@@ -442,7 +420,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 	siril_debug_print("set photometry inner radius to %.2f\n", com.pref.phot_set.inner);
 
 	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
-	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, chan);
+	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw);
 	if (!ret) {
 		double norm = get_normalized_value(args->fit);
 		apply_white_balance(args->fit, kw);
@@ -451,7 +429,11 @@ int photometric_cc(struct photometric_cc_data *args) {
 			siril_log_message(_("failed to compute statistics on image, aborting\n"));
 			set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 		} else {
-			background_neutralize(args->fit, bg, chan, norm);
+			background_neutralize(args->fit, bg, norm);
+			if (args->fit->type == DATA_FLOAT) {
+				image_find_minmax(args->fit);
+				rescale_image_to_0_1(args->fit, args->fit->mini, args->fit->maxi);
+			}
 			set_progress_bar_data(_("Photometric Color Calibration applied"), PROGRESS_DONE);
 		}
 	} else {
@@ -681,7 +663,7 @@ static gboolean is_selection_ok() {
 
 void initialize_photometric_cc_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
-			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *frame_cc_norm,
+			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg,
 			*catalog_label_pcc, *force_platesolve;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
@@ -694,7 +676,6 @@ void initialize_photometric_cc_dialog() {
 	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
-	frame_cc_norm = lookup_widget("frame_cc_norm");
 	force_platesolve = lookup_widget("force_astrometry_button");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
@@ -712,7 +693,6 @@ void initialize_photometric_cc_dialog() {
 	gtk_widget_set_visible(catalog_box_pcc, TRUE);
 	gtk_widget_set_visible(catalog_auto, FALSE);
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
-	gtk_widget_set_visible(frame_cc_norm, TRUE);
 	gtk_widget_set_visible(force_platesolve, TRUE);
 	gtk_widget_grab_focus(button_cc_ok);
 

@@ -6295,7 +6295,6 @@ int process_pcc(int nb) {
 
 	pcc_args->fit = &gfit;
 	pcc_args->bg_auto = TRUE;
-	pcc_args->n_channel = CHANNEL_MIDDLE;
 	pcc_args->catalog = NOMAD;
 
 	if (plate_solve)
