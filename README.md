@@ -110,6 +110,9 @@ To update Siril, run the following commands
     git pull --recurse-submodules
     ninja -C _build install
 
+To uninstall Siril, run the following command:
+
+    ninja -C _build uninstall
 
 Note that a binary package for stable version of SIRIL is maintained for Debian. 
 PPA repositories for Ubuntu and Linux Mint maintained by SIRIL's authors are
