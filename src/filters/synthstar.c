@@ -52,45 +52,6 @@
 int generate_synthstars(fits *fit);
 int reprofile_saturated_stars(fits *fit);
 
-/*
- float calculate_mean_box_f(float* buf, float minfwhm, float xpos, float ypos, int dimx, int dimy) {
- float tot = 0.0f;
- float dim = (float) minfwhm + 1;
- int num = 0;
- int rsq = dim * dim;
- float insq = (float) (minfwhm + 1) / 2.7;
- for (int x=xpos-dim; x<xpos+dim; x++) {
- for (int y=ypos-dim; y<ypos+dim; y++) {
- if (x > 0 && x < dimx && y > 0 && y < dimy) {
- int distsq = ((y-ypos)*(y-ypos)) + ((x-xpos)*(x-xpos));
- if (distsq >= insq && distsq <= rsq) {
- tot += buf[x + ((dimy-y) * dimx)] * buf[x+((dimy-y)*dimx)];
- num++;
- }
- }
- }
- }
- return sqrt(tot / num);
- }
-
- float calculate_mean_box_W(WORD* buf, float minfwhm, float xpos, float ypos, int dimx, int dimy, float invnorm) {
- float tot = 0.0f;
- int dim = (int) ((minfwhm+1) / 2);
- int num = 0;
- int rsq = dim * dim;
- for (int x=xpos-dim; x<xpos+dim; x++) {
- for (int y=ypos-dim; y<ypos+dim; y++) {
- if (x > 0 && x < dimx && y > 0 && y < dimy) {
- if (((y-ypos)*(y-ypos)) + ((x-xpos)*(x-xpos)) < rsq) {
- tot += (float) buf[x + ((dimy-y) * dimx)]/invnorm * (float) buf[x+((dimy-y)*dimx)]/invnorm;
- num++;
- }
- }
- }
- }
- return sqrt(tot / num);
- }
- */
 void makemoffat(float *psf, const int size, const float fwhm, const float lum, const float xoff, const float yoff, const float beta) {
 	const float alpha = 0.6667f * fwhm;
 	const int halfpsfdim = (size - 1) / 2;
@@ -190,7 +151,7 @@ void replace_sat_star_in_buffer(float *psfL, int size, float *Lsynth, int x, int
 #pragma omp parallel
 {
 omp_set_num_threads(com.max_thread);
-#pragma omp for schedule(static) collapse(2) private(xx, yy)
+#pragma omp for simd schedule(static) collapse(2) private(xx, yy)
 #endif
 	for (int psfx = 0; psfx < size; psfx++) {
 		for (int psfy = 0; psfy < size; psfy++) {
@@ -207,7 +168,7 @@ omp_set_num_threads(com.max_thread);
 		}
 	}
 #ifdef _OPENMP
-#pragma omp for schedule(static,8) collapse(2) private(xx, yy)
+#pragma omp for simd schedule(static,8) collapse(2) private(xx, yy)
 #endif
 // 3x3 median blur to smooth off the join between synthetic PSF and original data
 	for (int psfx = 0; psfx < size; psfx++) {
@@ -268,8 +229,9 @@ int generate_synthstars(fits *fit) {
 	float norm = 1.0f, invnorm = 1.0f;
 	int nb_stars = starcount(com.stars);
 	psf_star **stars = NULL;
+	image *input_image = NULL;
 	if (nb_stars < 1) {
-		image *input_image = calloc(1, sizeof(image));
+		input_image = calloc(1, sizeof(image));
 		input_image->fit = fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
@@ -449,6 +411,7 @@ int generate_synthstars(fits *fit) {
 	}
 #endif
 	free(Lsynth);
+	free(input_image);
 	if (fit == &gfit)
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
