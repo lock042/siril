@@ -427,6 +427,7 @@ int reprofile_saturated_stars(fits *fit) {
 	siril_log_color_message(_("Star synthesis (desaturating clipped star profiles): processing...\n"), "green");
 	gboolean is_RGB = (fit->naxes[2] == 3) ? TRUE : FALSE;
 	gboolean is_32bit = TRUE;
+	gboolean buf_needs_freeing = FALSE;
 	float norm = 1.0f, invnorm = 1.0f;
 	if (fit->type == DATA_USHORT) {
 		is_32bit = FALSE;
@@ -447,6 +448,7 @@ int reprofile_saturated_stars(fits *fit) {
 			buf[0] = (float*) calloc(count, sizeof(float));
 			buf[1] = (float*) calloc(count, sizeof(float));
 			buf[2] = (float*) calloc(count, sizeof(float));
+			buf_needs_freeing = TRUE;
 			for (size_t n = 0; n < count; n++) {
 				buf[0][n] = fit->pdata[0][n] * invnorm;
 				buf[1][n] = fit->pdata[1][n] * invnorm;
@@ -460,8 +462,8 @@ int reprofile_saturated_stars(fits *fit) {
 			buf[0][i] = fit->data[i] * invnorm;
 
 	// Synthesize a PSF for each saturated star in the star array, based on its measured parameters. To fix saturated star profiles we have to do this for each color channel as we can't rely on the hue and saturation within the saturated area, whereas the profiles will be accurate.
+	image *input_image = NULL;
 	for (size_t chan = 0; chan < fit->naxes[2]; chan++) {
-		image *input_image = NULL;
 		input_image = calloc(1, sizeof(image));
 		input_image->fit = fit;
 		input_image->from_seq = NULL;
@@ -500,6 +502,7 @@ int reprofile_saturated_stars(fits *fit) {
 			}
 		}
 	}
+	free(input_image);
 
 	// Desaturating stars will take their peak brightness over 1.f so we need to rescale the values of all pixels by a factor of (1 / maxbuf) where maxbuf is the maximum subpixel value across all channels
 	siril_log_message(_("Remapping output to floating point range 0.0 to 1.0\n"));
@@ -521,6 +524,9 @@ int reprofile_saturated_stars(fits *fit) {
 			}
 		}
 	}
+	if (buf_needs_freeing)
+		for (size_t i = 0; i <3; i++)
+			free(buf[i]);
 
 	if (fit == &gfit)
 		notify_gfit_modified();
