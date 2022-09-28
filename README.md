@@ -83,30 +83,30 @@ Source download
 
 You can get SIRIL source code from the release archives on their webpage, or the latest version from git:
 
-    git clone https://gitlab.com/free-astro/siril.git 
-    
+    git clone https://gitlab.com/free-astro/siril.git
+
 So far, we are using submodule for the use of some algorithms. You must therefore run the following commands:
 
     cd siril
     git submodule sync --recursive
-    git submodule update --init --recursive 
+    git submodule update --init --recursive
 
 Building SIRIL for GNU/Linux
 ----------------------------
 The process now uses the meson build system that is faster and more modern than autotools.
 Run with the following commands:
 
-    meson --buildtype release _build 
+    meson --buildtype release _build
     ninja -C _build
     ninja -C _build install
-    
-To install into an arbitrary path - for testing, or where root privilege 
+
+To install into an arbitrary path - for testing, or where root privilege
 is not available - a prefix may be supplied to meson:
-`meson --prefix /tmp/siril-testing-something ...` Then build and install, 
+`meson --prefix /tmp/siril-testing-something ...` Then build and install,
 as normal.
 
 To update Siril, run the following commands
-    
+
     git pull --recurse-submodules
     ninja -C _build install
 
@@ -114,11 +114,11 @@ To uninstall Siril, run the following command:
 
     ninja -C _build uninstall
 
-Note that a binary package for stable version of SIRIL is maintained for Debian. 
+Note that a binary package for stable version of SIRIL is maintained for Debian.
 PPA repositories for Ubuntu and Linux Mint maintained by SIRIL's authors are
 available in **ppa:lock042/siril**.
 
-See the [download](https://free-astro.org/index.php?title=Siril:releases) page 
+See the [download](https://free-astro.org/index.php?title=Siril:releases) page
 of the current version for other packages that could be available.
 
 Building SIRIL for macOS
@@ -142,9 +142,9 @@ The translation system is based on [intltool](https://www.freedesktop.org/wiki/S
 common for GTK+ software, with the help of the [poedit](https://poedit.net/) editor.
 
 Get SIRIL sources. In the siril directory, run **meson** if not already done, then run
-     
+
     ninja siril-pot -C _build
-    
+
 Install poedit and open the **siril.pot** file in the po directory to start a new translation.
 
 Proceed to the translation of the English elements in the list. When you want
@@ -154,7 +154,7 @@ we'll include it in the next version's sources and packages.
 If you want to work on an already existing language, run
 
     ninja siril-update-po -C _build
-    
+
 to update po files and edit it with poedit.
 
 Notes on SIRIL FITS image format
@@ -167,9 +167,9 @@ FITS is the most commonly used digital file format in astronomy.
 Since FITS is a container and doesn't specify the order and size of data, it's
 useful to fix it at some point. Currently, SIRIL uses 32-bit floating point per
 channel values (TFLOAT), and images are stored channel after channel on a
-bottom-to-top, left-to-right order. The convention chosen is the same as professional 
+bottom-to-top, left-to-right order. The convention chosen is the same as professional
 tools, like ds9 (Harvard Smithsonian Center for Astrophysics) and fv
-(FITS viewer from NASA) that store images bottom-up too. More details are 
+(FITS viewer from NASA) that store images bottom-up too. More details are
 described [here](https://free-astro.org/index.php?title=Siril:FITS_orientation).
 
 All files imported and converted in SIRIL or files exported by SIRIL are in this
