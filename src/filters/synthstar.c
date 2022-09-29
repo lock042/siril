@@ -229,6 +229,7 @@ int generate_synthstars(fits *fit) {
 	gboolean stars_needs_freeing = FALSE;
 	float norm = 1.0f, invnorm = 1.0f;
 	int nb_stars = starcount(com.stars);
+	int channel = 1;
 	psf_star **stars = NULL;
 	if (nb_stars < 1) {
 		image *input_image = NULL;
@@ -236,7 +237,9 @@ int generate_synthstars(fits *fit) {
 		input_image->fit = fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
-		stars = peaker(input_image, 1, &com.pref.starfinder_conf, &nb_stars,
+		if (fit->naxes[2] == 1)
+			channel = 0;
+		stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
 				NULL, FALSE, FALSE, MAX_STARS, MULTI_THREADED);
 		free(input_image);
 		stars_needs_freeing = TRUE;
