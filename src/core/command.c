@@ -6055,15 +6055,15 @@ int process_detect_trail(int nb) {
 				com.stars[2*i] = new_psf_star();
 				com.stars[2*i]->xpos = tracks[i].start.x;
 				com.stars[2*i]->ypos = tracks[i].start.y;
-				com.stars[2*i]->fwhmx = 8.0;
+				com.stars[2*i]->fwhmx = 5.0;
 				com.stars[2*i]->has_saturated = FALSE;
 				com.stars[2*i+1] = new_psf_star();
 				com.stars[2*i+1]->xpos = tracks[i].end.x;
 				com.stars[2*i+1]->ypos = tracks[i].end.y;
-				com.stars[2*i+1]->fwhmx = 8.0;
+				com.stars[2*i+1]->fwhmx = 5.0;
 				com.stars[2*i+1]->has_saturated = TRUE;
 			}
-			com.stars[nblines] = NULL;
+			com.stars[2*nblines] = NULL;
 			redraw(REDRAW_OVERLAY);
 			free(tracks);
 		} else {

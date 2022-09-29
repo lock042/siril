@@ -720,11 +720,20 @@ int cvClahe(fits *image, double clip_limit, int size) {
 
 
 // compute the signed triangle area
-static int area(pointi a, pointi b, pointi c) {
-     return (b.x - a.x) * (c.y - a.y) -
-            (c.x - a.x) * (b.y - a.y);
+static int orientation(pointi a, pointi b, pointi c) {
+	int area = (b.y - a.y) * (c.x - b.x) -
+		(b.x - a.x) * (c.y - b.y);
+	if (area == 0)
+		return 0;
+	return area > 0 ? 1 : -1;
 }
 
+static bool onSegment(pointi a, pointi b, pointi c) {
+	return b.x <= max(a.x, c.x) && b.x >= min(a.x, c.x) &&
+		b.y <= max(a.y, c.y) && b.y >= min(a.y, c.y);
+}
+
+// https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
 static bool segments_intersect(std::vector<Vec4i> lines, size_t i, size_t j) {
 	int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
 	pointi a = { x1, y1 };
@@ -732,34 +741,68 @@ static bool segments_intersect(std::vector<Vec4i> lines, size_t i, size_t j) {
 	int x3 = lines[j][0], y3 = lines[j][1], x4 = lines[j][2], y4 = lines[j][3];
 	pointi c = { x3, y3 };
 	pointi d = { x4, y4 };
-	int areaC = area(a, b, c);
-	int areaD = area(a, b, d);
-	return (areaC <= 0 && areaD >= 0) || (areaC >= 0 && areaD <= 0);
+	int orientABC = orientation(a, b, c);
+	int orientABD = orientation(a, b, d);
+	int orientCDA = orientation(c, d, a);
+	int orientCDB = orientation(c, d, b);
+	// TODO: handle them with POSITION_EPSILON
+	if (orientABC != orientABD && orientCDA != orientCDB)
+		return true;
+	// handle colinearity cases too
+	if (orientABC == 0 && onSegment(a, c, b)) return true;
+	if (orientABD == 0 && onSegment(a, d, b)) return true;
+	if (orientCDA == 0 && onSegment(c, a, d)) return true;
+	if (orientCDB == 0 && onSegment(c, b, d)) return true;
+	return false;
 }
 
-#define ANGLES_EPSILON	10.0	// degrees
-#define POSITION_EPSILON 4	// pixels
+#define ANGLES_EPSILON	15.0	// degrees
+#define POSITION_EPSILON 9	// pixels
 
 static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<double> &angles, size_t nb_lines) {
-	std::vector<double> lengths(nb_lines);
+	// compute segment lengths
+	/*std::vector<double> lengths(nb_lines);
 	for (size_t i = 0; i < nb_lines; i++) {
 		int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
 		lengths[i] = sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
-	}
+	}*/
 
 	// O(n^2), this can be very slow
 	std::vector<bool> kept(nb_lines, true);
 	for (size_t i = 0; i < nb_lines; i++) {
+		if (!kept[i]) continue;
 		int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
-		for (size_t j = 0; j < nb_lines; j++) {
-			if (i == j || !kept[j]) continue;
+		for (size_t j = i+1; j < nb_lines; j++) {
+			if (!kept[j]) continue;
 			if (fabs(angles[i] - angles[j]) <= ANGLES_EPSILON) {
 				// check if they are very close in start or end
+				// (assuming start and end of segments are in the same order)
 				int x3 = lines[j][0], y3 = lines[j][1], x4 = lines[j][2], y4 = lines[j][3];
-				if ((abs(x1 - x3) < POSITION_EPSILON && abs(y1 - y3) < POSITION_EPSILON) ||
-						(abs(x2 - x4) < POSITION_EPSILON && abs(y2 - y4) < POSITION_EPSILON)) {
+				if ((abs(x1 - x3) <= POSITION_EPSILON && abs(y1 - y3) <= POSITION_EPSILON) ||
+						(abs(x2 - x4) <= POSITION_EPSILON && abs(y2 - y4) <= POSITION_EPSILON) ||
+						// check if they intersect
+						segments_intersect(lines, i, j)) {
+					int newx1, newx2, newy1, newy2;
+					if (x1 < x2) {
+						newx1 = min(x1, min(x3, x4));
+						newx2 = max(x2, max(x3, x4));
+					} else {
+						newx1 = max(x1, max(x3, x4));
+						newx2 = min(x2, min(x3, x4));
+					}
+					if (y1 < y2) {
+						newy1 = min(y1, min(y3, y4));
+						newy2 = max(y2, max(y3, y4));
+					} else {
+						newy1 = max(y1, max(y3, y4));
+						newy2 = min(y2, min(y3, y4));
+					}
+					kept[j] = false;
+					siril_debug_print("removing %zd (loop %zd)\n", j, i);
+					lines[i][0] = newx1; lines[i][1] = newy1; lines[i][2] = newx2; lines[i][3] = newy2;
+
 					// let's keep the longest
-					if (lengths[i] >= lengths[j]) {
+					/*if (lengths[i] >= lengths[j]) {
 						kept[j] = false;
 						siril_debug_print("removing %zd (too close)\n", j);
 						continue;
@@ -767,15 +810,15 @@ static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<d
 						kept[i] = false;
 						siril_debug_print("removing %zd (too close)\n", i);
 						break;
-					}
+					}*/
 				}
 
 				// check if segments intersect https://stackoverflow.com/a/3842157
-				if (segments_intersect(lines, i, j)) {
+				/*if (segments_intersect(lines, i, j)) {
 					kept[j] = false;
 					siril_debug_print("removing %zd (intersects)\n", j);
 					continue;
-				}
+				}*/
 			}
 		}
 	}
