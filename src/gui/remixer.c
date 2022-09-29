@@ -259,7 +259,7 @@ static void update_remix_histo_left() {
 		gsl_histogram_memcpy(remix_histlayers_left[i], remix_histlayers_backup_left[i]);
 		apply_remix_histo(remix_histlayers_left[i], norm, &params_histo_left, &cp_histo_left);
 	}
-	if (leftBP_changed) {
+	if (leftBP_changed || leftBP != 0.f) {
 		params_histo_left.stretchtype = STRETCH_LINEAR;
 		for (size_t i = 0; i < fit_left.naxes[2]; i++) {
 			apply_remix_histo(remix_histlayers_left[i], norm, &params_histo_left, &cp_histo_left);
@@ -279,7 +279,7 @@ static void update_remix_histo_right() {
 		gsl_histogram_memcpy(remix_histlayers_right[i], remix_histlayers_backup_right[i]);
 		apply_remix_histo(remix_histlayers_right[i], norm, &params_histo_right, &cp_histo_right);
 	}
-	if (rightBP_changed) {
+	if (rightBP_changed || rightBP != 0.f) {
 		params_histo_right.stretchtype = STRETCH_LINEAR;
 		for (size_t i = 0; i < fit_right.naxes[2]; i++) {
 			apply_remix_histo(remix_histlayers_right[i], norm, &params_histo_right, &cp_histo_right);
