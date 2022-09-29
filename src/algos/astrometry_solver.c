@@ -1550,7 +1550,8 @@ clearup:
 		g_object_unref(args->catalog_file);
 	g_free(args->catalogStars);
 
-	siril_add_idle(end_plate_solver, args);
+	if (!args->already_in_a_thread)
+		siril_add_idle(end_plate_solver, args);
 	int retval = args->ret;
 	if (com.script) {
 		if (args->ret)
@@ -1564,20 +1565,20 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
 
 	rectangle croparea = { 0 };
-	if (!args->manual) {
-		// first checking if there is a selection or if the full field is to be used
-		if (com.selection.w != 0 && com.selection.h != 0) {
-			memcpy(&croparea, &com.selection, sizeof(rectangle));
-			siril_log_color_message(_("Warning: using the current selection to detect stars\n"), "salmon");
-		} else {
-			croparea.x = 0;
-			croparea.y = 0;
-			croparea.w = args->fit->rx;
-			croparea.h = args->fit->ry;
-		}
-		double fov_arcmin = get_fov_arcmin(args->scale, croparea.w, croparea.h);
-		siril_debug_print("image fov for given sampling: %f arcmin\n", fov_arcmin);
+	// first checking if there is a selection or if the full field is to be used
+	if (com.selection.w != 0 && com.selection.h != 0) {
+		memcpy(&croparea, &com.selection, sizeof(rectangle));
+		siril_log_color_message(_("Warning: using the current selection to detect stars\n"), "salmon");
+	} else {
+		croparea.x = 0;
+		croparea.y = 0;
+		croparea.w = args->fit->rx;
+		croparea.h = args->fit->ry;
+	}
+	double fov_arcmin = get_fov_arcmin(args->scale, croparea.w, croparea.h);
+	siril_debug_print("image fov for given sampling: %f arcmin\n", fov_arcmin);
 
+	if (!args->manual) {
 		// then apply or not autocropping to 5deg (300 arcmin)
 		args->used_fov = args->autocrop ? min(fov_arcmin, 300.) : fov_arcmin;
 		double cropfactor = (args->used_fov < fov_arcmin) ? args->used_fov / fov_arcmin : 1.0;

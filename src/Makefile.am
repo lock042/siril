@@ -70,6 +70,8 @@ siril_common_SOURCES = \
 	algos/statistics.h \
 	algos/statistics_float.c \
 	algos/statistics_float.h \
+	algos/tracking.c \
+	algos/tracking.h \
 	algos/transform.c \
 	algos/search_objects.c \
 	algos/siril_wcs.h \

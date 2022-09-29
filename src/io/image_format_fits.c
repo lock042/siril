@@ -56,8 +56,8 @@ const char *fit_extension[] = {
 
 static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
 static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
-static char *PIXELSIZEX[] = { "XPIXSZ", "XPIXELSZ", "PIXSIZE1", "PIXSIZEX", NULL };
-static char *PIXELSIZEY[] = { "YPIXSZ", "YPIXELSZ", "PIXSIZE2", "PIXSIZEY", NULL };
+static char *PIXELSIZEX[] = { "XPIXSZ", "XPIXELSZ", "PIXSIZE1", "PIXSIZEX", "XPIXSIZE", NULL };
+static char *PIXELSIZEY[] = { "YPIXSZ", "YPIXELSZ", "PIXSIZE2", "PIXSIZEY", "YPIXSIZE", NULL };
 static char *BINX[] = { "XBINNING", "BINX", NULL };
 static char *BINY[] = { "YBINNING", "BINY", NULL };
 static char *FOCAL[] = { "FOCAL", "FOCALLEN", NULL };
@@ -254,12 +254,22 @@ static void load_wcs_keywords(fits *fit) {
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcsdata.objctra), NULL, &status);
+	if (status) {
+		// alternative keyword for the same thing
+		status = 0;
+		fits_read_key(fit->fptr, TSTRING, "RA_OBJ", &(fit->wcsdata.objctra), NULL, &status);
+	}
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "RA", &(fit->wcsdata.ra), NULL, &status);
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcsdata.objctdec), NULL, &status);
+	if (status) {
+		// alternative keyword for the same thing
+		status = 0;
+		fits_read_key(fit->fptr, TSTRING, "DEC_OBJ", &(fit->wcsdata.objctdec), NULL, &status);
+	}
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "DEC", &(fit->wcsdata.dec), NULL, &status);

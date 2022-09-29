@@ -96,6 +96,7 @@
 #include "algos/sorting.h"
 #include "algos/siril_wcs.h"
 #include "algos/geometry.h"
+#include "algos/tracking.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
@@ -5996,7 +5997,6 @@ int process_detect_trail(int nb) {
 
 	float ksigma = 1.f;
 	int layer = -1, minlen = 100, defminlen = 100; //default min length of 20px to be qualified as a trail
-	int nblines;
 	int startnb = (is_sequence) ? 1 : 0;
 
 	for (int i = 1; i < nb - startnb; i++) {
@@ -6043,13 +6043,45 @@ int process_detect_trail(int nb) {
 		if (threshold < stat->median) {
 			siril_log_color_message(_("Detection threshold is lower than median value.\n"), "salmon");
 		}
+		free_stats(stat);
 
+		image im = { .from_seq = NULL, .index_in_seq = -1 };
+		if (nb == 5) {
+			/* reading targets from the original file, passed as arg */
+			im.fit = calloc(1, sizeof(fits));
+			if (readfits(word[4], im.fit, NULL, TRUE)) {
+				siril_log_message(_("Failed to read original file for target detection\n"));
+				return 1;
+			}
+		} else {
+			/* reading targets from the same file */
+			im.fit = &gfit;
+		}
+		int nb_targets;
+		psf_star **targets_psf = peaker(&im, layer, &com.pref.starfinder_conf, &nb_targets, NULL, FALSE, TRUE, 30, com.max_thread);
+		if (!targets_psf || nb_targets <= 0)
+			return CMD_GENERIC_ERROR;
+		if (nb_targets > 10) {
+			siril_log_message(_("%d punctual objects found in image, refine star detection parameters with the PSF GUI or the setfindstar command\n"), nb_targets);
+			return CMD_GENERIC_ERROR;
+		}
+		siril_log_message(_("Found %d punctual objects in image, tracking it/them\n"), nb_targets);
+
+		struct linetrack_conf *arg = malloc(sizeof(struct linetrack_conf));
+		arg->fit = &gfit;
+		arg->layer = layer;
+		arg->threshold = threshold;
+		arg->minlen = minlen;
+		arg->targets = targets_psf;
+		arg->nb_targets = nb_targets;
+		start_in_new_thread(tracking_worker, arg);
+#if 0
 		struct track *tracks;
-		nblines = cvHoughLines(&gfit, layer, threshold, minlen, &tracks);
+		int nblines = cvHoughLines(&gfit, layer, threshold, minlen, &tracks);
 
-		if (nblines) {
-			if (nblines > 2000) nblines = 2000;
+		if (nblines > 0 && nblines < 200) {
 			siril_log_message(_("Found %d trail(s) in current frame, displaying start points\n"), nblines);
+			if (nblines > 1000) nblines = 1000;
 			com.stars = malloc((2 * nblines + 1) * sizeof(psf_star *));
 			for (int i = 0; i < nblines; i++) {
 				com.stars[2*i] = new_psf_star();
@@ -6070,7 +6102,7 @@ int process_detect_trail(int nb) {
 			siril_log_message(_("No trails found\n"));
 		}
 
-		free_stats(stat);
+#endif
 	} else {
 		/*
 		sequence *seq = load_sequence(word[1], NULL);

@@ -146,8 +146,11 @@ static int parse_buffer(char *buffer) {
 
 	if (world_cs && realname) {
 		gchar **display_name = g_strsplit(realname, "\\n", 2);
-		siril_log_message(_("Found %s at coordinates: %s, %s\n"),display_name[0],
-				siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds"), siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\""));
+		gchar *ra_str = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+		gchar *dec_str = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+		siril_log_message(_("Found %s at coordinates: %s, %s\n"),display_name[0], ra_str, dec_str);
+		g_free(ra_str);
+		g_free(dec_str);
 		com.pref.gui.catalog[6] = TRUE;	// enabling the user catalog in which it will be added
 		add_object_in_catalogue(realname, world_cs, is_solar_system);
 		g_free(realname);

@@ -59,6 +59,7 @@ struct astrometry_data {
 	double forced_magnitude;// if not automatic, use this limit magnitude
 	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
 	struct photometric_cc_data *pcc;// PCC configuration
+	gboolean already_in_a_thread;	// if true, do not run the idle
 
 	/* program-processed input, by process_plate_solver_input() */
 	double limit_mag;	// limit magnitude to sear for in the catalog
