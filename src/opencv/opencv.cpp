@@ -31,6 +31,7 @@
 #include "opencv2/core/version.hpp"
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
+#define _USE_MATH_DEFINES
 #include <math.h>
 
 #include "core/siril.h"
