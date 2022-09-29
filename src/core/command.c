@@ -1712,6 +1712,51 @@ int process_mtf(int nb) {
 	return CMD_OK;
 }
 
+int process_invmtf(int nb) {
+	struct mtf_params params;
+	gchar *end1, *end2, *end3;
+	params.shadows = g_ascii_strtod(word[1], &end1);
+	params.midtones = g_ascii_strtod(word[2], &end2);
+	params.highlights = g_ascii_strtod(word[3], &end3);
+	params.do_red = TRUE;
+	params.do_green = TRUE;
+	params.do_blue = TRUE;
+	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
+			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
+			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
+		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		return CMD_ARG_ERROR;
+	}
+	if (word[4]) {
+		if (!strcmp(word[4], "R")) {
+			params.do_green = FALSE;
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "G")) {
+			params.do_red = FALSE;
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "B")) {
+			params.do_green = FALSE;
+			params.do_red = FALSE;
+		}
+		if (!strcmp(word[4], "RG")) {
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "RB")) {
+			params.do_green = FALSE;
+		}
+		if (!strcmp(word[4], "GB")) {
+			params.do_red = FALSE;
+		}
+	}
+
+	apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
+
+	notify_gfit_modified();
+	return CMD_OK;
+}
+
 int process_autostretch(int nb) {
 	int arg_index = 1;
 	gboolean linked = FALSE;

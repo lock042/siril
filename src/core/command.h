@@ -81,9 +81,10 @@ int	process_offset(int nb);
 
 int process_ght(int nb);
 int process_invght(int nb);
+int process_invmodasinh(int nb);
+int process_invmtf(int nb);
 int process_linstretch(int nb);
 int process_modasinh(int nb);
-int process_invmodasinh(int nb);
 
 int	process_pcc(int nb);
 int	process_pm(int nb);
