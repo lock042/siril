@@ -226,17 +226,20 @@ int generate_synthstars(fits *fit) {
 	siril_log_color_message(_("Star synthesis (full star mask creation): processing...\n"), "green");
 	gboolean is_RGB = TRUE;
 	gboolean is_32bit = TRUE;
+	gboolean stars_needs_freeing = FALSE;
 	float norm = 1.0f, invnorm = 1.0f;
 	int nb_stars = starcount(com.stars);
 	psf_star **stars = NULL;
-	image *input_image = NULL;
 	if (nb_stars < 1) {
+		image *input_image = NULL;
 		input_image = calloc(1, sizeof(image));
 		input_image->fit = fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
 		stars = peaker(input_image, 1, &com.pref.starfinder_conf, &nb_stars,
-				NULL, FALSE, FALSE, 200000, MULTI_THREADED);
+				NULL, FALSE, FALSE, MAX_STARS, MULTI_THREADED);
+		free(input_image);
+		stars_needs_freeing = TRUE;
 	} else {
 		stars = com.stars;
 	}
@@ -290,7 +293,7 @@ int generate_synthstars(fits *fit) {
 		assert(lum >= 0.0f);
 		float xoff = (float) stars[n]->xpos - (int) stars[n]->xpos;
 		float yoff = (float) stars[n]->ypos - (int) stars[n]->ypos;
-		int size = (int) 10 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
+		int size = (int) 20 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
 		if (!(size % 2))
 			size++;
 		float minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
@@ -310,7 +313,8 @@ int generate_synthstars(fits *fit) {
 					(float) stars[n]->ypos, dimx, dimy);
 		free(psfL);
 	}
-
+	if (stars_needs_freeing)
+		free(stars);
 	// Construct the RGB from synthetic L (and for RGB images, also the H and S values from the orginal image thus giving our synthesized stars the correct colour)
 	if (is_RGB) {
 		float *R, *G, *B;
@@ -414,7 +418,6 @@ int generate_synthstars(fits *fit) {
 	}
 #endif
 	free(Lsynth);
-	free(input_image);
 	if (fit == &gfit)
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
@@ -473,6 +476,7 @@ int reprofile_saturated_stars(fits *fit) {
 		input_image->index_in_seq = -1;
 		int nb_stars;
 		psf_star **stars = peaker(input_image, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, MULTI_THREADED);
+		free(input_image);
 		siril_log_message(_("Star synthesis: desaturating channel %u...\n"),
 				chan);
 		for (size_t n = 0; n < nb_stars; n++) {
@@ -507,8 +511,8 @@ int reprofile_saturated_stars(fits *fit) {
 				free(psfL);
 			}
 		}
+		free(stars);
 	}
-	free(input_image);
 
 	// Desaturating stars will take their peak brightness over 1.f so we need to rescale the values of all pixels by a factor of (1 / maxbuf) where maxbuf is the maximum subpixel value across all channels
 	siril_log_message(_("Remapping output to floating point range 0.0 to 1.0\n"));
