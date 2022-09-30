@@ -126,34 +126,6 @@ case "$host_os" in
     ;;
 esac
 
-AC_MSG_CHECKING([for glib-networking (GIO TLS implementation)])
-siril_save_CFLAGS="$CFLAGS"
-siirl_save_LIBS="$LIBS"
-CFLAGS="$CFLAGS $GIO_CFLAGS"
-LIBS="$LIBS $GIO_LIBS"
-AC_LANG([C])
-AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <gio/gio.h>],
-                               [return !g_tls_backend_supports_tls (g_tls_backend_get_default ());])],
-              [have_glib_networking="yes"],
-              [have_glib_networking="no"],
-              [have_glib_networking="unknown (cross-compiling)"])
-CFLAGS="$siril_save_CFLAGS"
-LIBS="$siril_save_LIBS"
-AC_MSG_RESULT($have_glib_networking)
-AC_LANG([C++])
-
-if test "x$have_glib_networking" = "xno"; then
-  AC_MSG_NOTICE(([glib-networking not found]),
-      [Test for glib-networking failed. This is required.])
-elif test "x$have_glib_networking" != "xyes"; then
-  warning_glib_networking="
-WARNING: Test for glib-networking cannot be performed while cross-compiling.
-         Make sure glib-networking is installed, otherwise Siril will not be able
-         to open remote HTTPS (or other protocol using SSL/TLS) files.
-         HTTPS is becoming the expected standard and should not be considered
-         optional anymore."
-fi
-
 dnl check libexiv2
 PKG_CHECK_MODULES(EXIV2, exiv2 >= 0.25)
 
@@ -281,11 +253,53 @@ PKG_CHECK_MODULES(FFMPEG, [libavformat libavutil >= 55.20 libavcodec libswscale 
 		  [AC_DEFINE([HAVE_FFMPEG], [1], [film export supported])],
 		  AC_MSG_WARN([ffmpeg libav libraries not found or too old. Not using film export formats.]))
 
+dnl checking glib-networking and its capability to handle TLS
+AC_MSG_CHECKING([for glib-networking (GIO TLS implementation)])
+siril_save_CFLAGS="$CFLAGS"
+siirl_save_LIBS="$LIBS"
+CFLAGS="$CFLAGS $GIO_CFLAGS"
+LIBS="$LIBS $GIO_LIBS"
+AC_LANG([C])
+AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <gio/gio.h>],
+			       [if (!g_tls_backend_supports_tls (g_tls_backend_get_default ()))
+					return 1;
+				GFile *file = g_file_new_for_uri("https://localhost/test");
+				GError *error = NULL;
+				gchar *content = NULL;
+				g_file_load_contents(file, NULL, &content, NULL, NULL, &error);
+				return error->code == G_IO_ERROR_NOT_SUPPORTED;])],
+              [have_glib_networking="yes"],
+              [have_glib_networking="no"],
+              [have_glib_networking="unknown (cross-compiling)"])
+CFLAGS="$siril_save_CFLAGS"
+LIBS="$siril_save_LIBS"
+AC_MSG_RESULT($have_glib_networking)
+AC_LANG([C++])
+
+if test "x$have_glib_networking" = "xno"; then
+  AC_MSG_NOTICE(([glib-networking not found]),
+      [Test for glib-networking failed. This is required.])
+elif test "x$have_glib_networking" != "xyes"; then
+  warning_glib_networking="
+WARNING: Test for glib-networking cannot be performed while cross-compiling.
+         Make sure glib-networking is installed, otherwise Siril will not be able
+         to open remote HTTPS (or other protocol using SSL/TLS) files.
+         HTTPS is becoming the expected standard and should not be considered
+         optional anymore."
+fi
+
 dnl checking libcurl
+curl_avail=no
 m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
-		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])],
+		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])] curl_avail=yes,
 		     AC_MSG_WARN([libcurl not found. Not using web interaction.]))
+
+if test "x$curl_avail" = "xno" && test "x$have_glib_networking" != "xyes"; then
+	AC_MSG_ERROR([no networking library found, either glib-networking or curl are required])
+else
+	AC_MSG_NOTICE([networking solution found with either glib-networking or curl])
+fi
 
 dnl check wcslib
 PKG_CHECK_MODULES(WCSLIB, [wcslib],
