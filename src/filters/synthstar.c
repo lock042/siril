@@ -479,7 +479,7 @@ int generate_synthstars(fits *fit) {
 	free(Lsynth);
 	if (buf_needs_freeing) {
 		if (is_RGB) {
-			for (size_t i = 0; i <3; i++)
+			for (size_t i = 0; i < 3; i++)
 				free(buf[i]);
 		} else
 			free(buf[0]);
@@ -552,7 +552,8 @@ int reprofile_saturated_stars(fits *fit) {
 		int nb_stars;
 		psf_star **stars = peaker(input_image, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.max_thread);
 		free(input_image);
-		siril_log_message(_("Star synthesis: desaturating channel %u...\n"),
+		int sat_stars = 0;
+		siril_log_message(_("Star synthesis: desaturating stars in channel %u...\n"),
 				chan);
 		for (size_t n = 0; n < nb_stars; n++) {
 			// Check if stop has been pressed
@@ -579,30 +580,33 @@ int reprofile_saturated_stars(fits *fit) {
 
 				float *psfL = (float*) calloc(size * size, sizeof(float));
 				makegaussian(psfL, size, maxfwhm, (lum - bg), xoff, yoff);
-//				float beta = 1.5f;
-//				makemoffat(psfL, size, maxfwhm, (lum - bg), xoff, yoff, beta);
 
 				// Replace the part of the profile above the sat threshold
 				replace_sat_star_in_buffer(psfL, size, buf[chan],
 						(float) stars[n]->xpos, (float) stars[n]->ypos, dimx,
 						dimy, sat, bg, 0.f);
 				free(psfL);
+				sat_stars++;
 			}
 		}
 		free(stars);
+		siril_log_message(_("Star synthesis: %d stars desaturated\n"), sat_stars);
 	}
 
 	// Desaturating stars will take their peak brightness over 1.f so we need to rescale the values of all pixels by a factor of (1 / maxbuf) where maxbuf is the maximum subpixel value across all channels
 	if (!stopcalled) {
-		siril_log_message(_("Remapping output to floating point range 0.0 to 1.0\n"));
 		float bufmax = 1.f;
 		for (size_t chan = 0; chan < fit->naxes[2]; chan++)
 			for (size_t i = 0; i < count; i++)
 				if (buf[chan][i] > bufmax)
 					bufmax = buf[chan][i];
-		for (size_t chan = 0; chan < fit->naxes[2]; chan++)
-			for (size_t i = 0; i < count; i++)
-				buf[chan][i] /= bufmax;
+		if (bufmax > 1.f){
+			float invbufmax = 1.f / bufmax;
+			siril_log_message(_("Remapping output to floating point range 0.0 to 1.0\n"));
+			for (size_t chan = 0; chan < fit->naxes[2]; chan++)
+				for (size_t i = 0; i < count; i++)
+					buf[chan][i] *= invbufmax;
+		}
 
 		if (!is_32bit) {
 			for (size_t n = 0; n < count; n++) {
