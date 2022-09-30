@@ -254,9 +254,9 @@ PKG_CHECK_MODULES(FFMPEG, [libavformat libavutil >= 55.20 libavcodec libswscale 
 		  AC_MSG_WARN([ffmpeg libav libraries not found or too old. Not using film export formats.]))
 
 dnl checking glib-networking and its capability to handle TLS
-AC_MSG_CHECKING([for glib-networking (GIO TLS implementation)])
+AC_MSG_CHECKING([for glib-networking (GIO HTTPS implementation)])
 siril_save_CFLAGS="$CFLAGS"
-siirl_save_LIBS="$LIBS"
+siril_save_LIBS="$LIBS"
 CFLAGS="$CFLAGS $GIO_CFLAGS"
 LIBS="$LIBS $GIO_LIBS"
 AC_LANG([C])
@@ -293,23 +293,24 @@ curl_avail=no
 m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
 		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])] curl_avail=yes,
-		     AC_MSG_WARN([libcurl not found. Not using web interaction.]))
+		     AC_MSG_WARN([libcurl not found]))
 
 if test "x$curl_avail" = "xno" && test "x$have_glib_networking" != "xyes"; then
-	AC_MSG_ERROR([no networking library found, either glib-networking or curl are required])
+	AC_MSG_WARN([no networking library found, either glib-networking or curl are required])
 else
 	AC_MSG_NOTICE([networking solution found with either glib-networking or curl])
+	AC_DEFINE(HAVE_NETWORKING, 1, [Using networking])
 fi
 
 dnl check wcslib
 PKG_CHECK_MODULES(WCSLIB, [wcslib],
 		  [AC_DEFINE([HAVE_WCSLIB], [1], [Using WCSLIB])],
-		  AC_MSG_WARN([wcslib not found. Not using WCS API.]))
+		  AC_MSG_WARN([wcslib not found. Not using astrometry.]))
 
 dnl Check for json-glib
 PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
 		  [AC_DEFINE([HAVE_JSON_GLIB], [1], [Using automatic update])],
-		  AC_MSG_WARN([json-glib not found. not using automatic update.]))
+		  AC_MSG_WARN([json-glib not found. Not using automatic updates.]))
 
 dnl check libconfig
 PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],

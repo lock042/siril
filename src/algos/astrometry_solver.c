@@ -229,7 +229,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	return g_string_free(url, FALSE);
 }
 
-#if defined HAVE_LIBCURL
+#ifdef HAVE_LIBCURL
 /*****
  * HTTP functions
  ****/
