@@ -56,7 +56,7 @@ static command commands[] = {
 	{"crop", 0, "crop [x y width height]", process_crop, STR_CROP, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"ddp", 3, "ddp level coef sigma", process_ddp, STR_DDP, FALSE, REQ_CMD_SINGLE_IMAGE},
-	{"denoise", 0, "denoise [-noscosmetic] [-mod=m] [ -vst | -da3d | -sos=n [-rho=r] ]", process_denoise, STR_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"denoise", 0, "denoise [-nocosmetic] [-mod=m] [ -vst | -da3d | -sos=n [-rho=r] ]", process_denoise, STR_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
 #endif
