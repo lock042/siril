@@ -263,6 +263,46 @@ int generate_synthstars(fits *fit) {
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
 	int count = dimx * dimy;
+	gboolean buf_needs_freeing = FALSE;
+	// Regardless of 16/32bit store the data in a buffer, converting if needed
+	float *buf[3];
+	if (is_RGB) {
+		if (is_32bit) {
+			buf[0] = fit->fpdata[0];
+			buf[1] = fit->fpdata[1];
+			buf[2] = fit->fpdata[2];
+		} else {
+			buf[0] = (float*) calloc(count, sizeof(float));
+			buf[1] = (float*) calloc(count, sizeof(float));
+			buf[2] = (float*) calloc(count, sizeof(float));
+			buf_needs_freeing = TRUE;
+			for (size_t i = 0; i < count; i++) {
+				buf[0][i] = (float) fit->pdata[0][i] * invnorm;
+				buf[1][i] = (float) fit->pdata[1][i] * invnorm;
+				buf[2][i] = (float) fit->pdata[2][i] * invnorm;
+			}
+		}
+	} else { // mono
+		if (is_32bit)
+			buf[0] = fit->fdata;
+		else {
+			buf[0] = (float*) calloc(count, sizeof(float));
+			buf_needs_freeing = TRUE;
+			for (size_t i = 0; i < count; i++)
+				buf[0][i] = (float) fit->data[i] * invnorm;
+		}
+	}
+
+	// Normalize the buffer to avoid issues with colorspace conversion
+	float bufmax = 0.f;
+	for (size_t chan = 0; chan < fit->naxes[2]; chan++)
+		for (size_t i = 0; i < count; i++)
+			if (buf[chan][i] > bufmax)
+				bufmax = buf[chan][i];
+	for (size_t chan = 0; chan < fit->naxes[2]; chan++)
+		for (size_t i = 0; i < count; i++)
+			buf[chan][i] /= bufmax;
+
 	float *H, *S, *Hsynth = NULL, *Ssynth = NULL, *Lsynth, junk;
 	Lsynth = (float*) calloc(count, sizeof(float));
 
@@ -272,14 +312,9 @@ int generate_synthstars(fits *fit) {
 		S = (float*) calloc(count, sizeof(float));
 		Hsynth = (float*) calloc(count, sizeof(float));
 		Ssynth = (float*) calloc(count, sizeof(float));
-		for (int n = 0; n < count; n++) {
-			if (is_32bit)
-				rgb_to_hsl_float_sat(fit->fpdata[0][n], fit->fpdata[1][n],
-						fit->fpdata[2][n], 0.f, &H[n], &S[n], &junk);
-			else
-				rgb_to_hsl_float_sat(fit->pdata[0][n] * invnorm,
-						fit->pdata[1][n] * invnorm, fit->pdata[2][n] * invnorm,
-						0.f, &H[n], &S[n], &junk);
+		for (size_t i = 0; i < count; i++) {
+			rgb_to_hsl_float_sat(buf[0][i], buf[1][i],
+					buf[2][i], 0.f, &H[i], &S[i], &junk);
 		}
 	}
 
@@ -328,6 +363,21 @@ int generate_synthstars(fits *fit) {
 #pragma omp parallel
 		{
 #endif
+			float bufmax = 0.f;
+#ifdef _OPENMP
+#pragma omp for schedule(static)
+#endif
+			for (size_t chan = 0; chan < fit->naxes[2]; chan++)
+				for (size_t i = 0; i < count; i++)
+					if (buf[chan][i] > bufmax)
+						bufmax = buf[chan][i];
+#ifdef _OPENMP
+#pragma omp for schedule(static)
+#endif
+			for (size_t chan = 0; chan < fit->naxes[2]; chan++)
+				for (size_t i = 0; i < count; i++)
+					buf[chan][i] /= bufmax;
+
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
@@ -421,6 +471,13 @@ int generate_synthstars(fits *fit) {
 	}
 #endif
 	free(Lsynth);
+	if (buf_needs_freeing) {
+		if (is_RGB) {
+			for (size_t i = 0; i <3; i++)
+				free(buf[i]);
+		} else
+			free(buf[0]);
+	}
 	if (fit == &gfit)
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
