@@ -56,7 +56,7 @@ void makemoffat(float *psf, const int size, const float fwhm, const float lum, c
 	const float alpha = 0.6667f * fwhm;
 	const int halfpsfdim = (size - 1) / 2;
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static,8) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#pragma omp parallel for simd schedule(static) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
 #endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
@@ -71,7 +71,6 @@ void makemoffat(float *psf, const int size, const float fwhm, const float lum, c
 #pragma omp barrier
 #endif
 	return;
-#undef BETA
 }
 
 void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, float yoffset) {
@@ -79,7 +78,7 @@ void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, fl
 	float sigma = fwhm / _2_SQRT_2_LOG2;
 	float tss = 2 * sigma * sigma;
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static,8) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#pragma omp parallel for simd schedule(static) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
 #endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
@@ -100,7 +99,7 @@ void add_star_to_rgb_buffer(float *H, float *S, float *psfL, int size, float *Hs
 	int xx, yy;
 #define EPSILON 1e-30
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static,8) collapse(2) num_threads(com.max_thread) private(xx, yy) if(com.max_thread > 1)
+#pragma omp parallel for simd schedule(static) collapse(2) num_threads(com.max_thread) private(xx, yy) if(com.max_thread > 1)
 #endif
 	for (int psfx = 0; psfx < size; psfx++) {
 		for (int psfy = 0; psfy < size; psfy++) {
@@ -125,7 +124,7 @@ void add_star_to_mono_buffer(float *psfL, int size, float *Lsynth, int x, int y,
 	const int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static,8) collapse(2) num_threads(com.max_thread) private(xx, yy) if(com.max_thread > 1)
+#pragma omp parallel for simd schedule(static) collapse(2) num_threads(com.max_thread) private(xx, yy) if(com.max_thread > 1)
 #endif
 	for (int psfx = 0; psfx < size; psfx++) {
 		for (int psfy = 0; psfy < size; psfy++) {
@@ -150,7 +149,6 @@ void replace_sat_star_in_buffer(float *psfL, int size, float *Lsynth, int x, int
 #ifdef _OPENMP
 #pragma omp parallel
 {
-omp_set_num_threads(com.max_thread);
 #pragma omp for simd schedule(static) collapse(2) private(xx, yy)
 #endif
 	for (int psfx = 0; psfx < size; psfx++) {
@@ -168,7 +166,7 @@ omp_set_num_threads(com.max_thread);
 		}
 	}
 #ifdef _OPENMP
-#pragma omp for simd schedule(static,8) collapse(2) private(xx, yy)
+#pragma omp for simd schedule(static) collapse(2) private(xx, yy)
 #endif
 // 3x3 median blur to smooth off the join between synthetic PSF and original data
 	for (int psfx = 0; psfx < size; psfx++) {
@@ -240,7 +238,7 @@ int generate_synthstars(fits *fit) {
 		if (fit->naxes[2] == 1)
 			channel = 0;
 		stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
-				NULL, FALSE, FALSE, MAX_STARS, MULTI_THREADED);
+				NULL, FALSE, FALSE, MAX_STARS, com.max_thread);
 		free(input_image);
 		stars_needs_freeing = TRUE;
 	} else {
@@ -294,7 +292,7 @@ int generate_synthstars(fits *fit) {
 	}
 
 	// Normalize the buffer to avoid issues with colorspace conversion
-	float bufmax = 0.f;
+	float bufmax = 1.f;
 	for (size_t chan = 0; chan < fit->naxes[2]; chan++)
 		for (size_t i = 0; i < count; i++)
 			if (buf[chan][i] > bufmax)
@@ -303,7 +301,7 @@ int generate_synthstars(fits *fit) {
 		for (size_t i = 0; i < count; i++)
 			buf[chan][i] /= bufmax;
 
-	float *H, *S, *Hsynth = NULL, *Ssynth = NULL, *Lsynth, junk;
+	float *H = NULL, *S = NULL, *Hsynth = NULL, *Ssynth = NULL, *Lsynth, junk;
 	Lsynth = (float*) calloc(count, sizeof(float));
 
 	// For RGB images, convert pixel colour data from fit into H and S arrays. L is irrelevant as we will synthesize L.
@@ -318,158 +316,166 @@ int generate_synthstars(fits *fit) {
 		}
 	}
 
+	gboolean stopcalled = FALSE;
 	// Synthesize a PSF for each star in the star array s, based on its measured parameters
 	for (int n = 0; n < nb_stars; n++) {
 		// Check if stop has been pressed
 		if (!get_thread_run())
-			return -1;
-		float lum = (float) stars[n]->A;
-		if (lum < 0.0f)
-			lum = 0.0f;
-		if (!is_32bit)
-			lum *= invnorm;
-		assert(lum >= 0.0f);
-		float xoff = (float) stars[n]->xpos - (int) stars[n]->xpos;
-		float yoff = (float) stars[n]->ypos - (int) stars[n]->ypos;
-		int size = (int) 20 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
-		if (!(size % 2))
-			size++;
-		float minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
+			stopcalled = TRUE;
+		if (!stopcalled) {
+			float lum = (float) stars[n]->A;
+			if (lum < 0.0f)
+				lum = 0.0f;
+			if (!is_32bit)
+				lum *= invnorm;
+			assert(lum >= 0.0f);
+			float xoff = (float) stars[n]->xpos - (int) stars[n]->xpos;
+			float yoff = (float) stars[n]->ypos - (int) stars[n]->ypos;
+			int size = (int) 20 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
+			if (!(size % 2))
+				size++;
+			float minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
 
-		// Synthesize the luminance profile and add to the star mask in HSL colourspace
-		float *psfL = (float*) calloc(size * size, sizeof(float));
-		float beta = 2.2f;
-		if (stars[n]->has_saturated)
-			makegaussian(psfL, size, minfwhm, lum, xoff, yoff);
-		else
-			makemoffat(psfL, size, minfwhm, lum, xoff, yoff, beta);
-		if (is_RGB)
-			add_star_to_rgb_buffer(H, S, psfL, size, Hsynth, Ssynth, Lsynth,
-					(float) stars[n]->xpos, (float) stars[n]->ypos, dimx, dimy);
-		else
-			add_star_to_mono_buffer(psfL, size, Lsynth, (float) stars[n]->xpos,
-					(float) stars[n]->ypos, dimx, dimy);
-		free(psfL);
+			// Synthesize the luminance profile and add to the star mask in HSL colourspace
+			float *psfL = (float*) calloc(size * size, sizeof(float));
+			float beta = 2.2f;
+			if (stars[n]->has_saturated)
+				makegaussian(psfL, size, minfwhm, lum, xoff, yoff);
+			else
+				makemoffat(psfL, size, minfwhm, lum, xoff, yoff, beta);
+			if (is_RGB)
+				add_star_to_rgb_buffer(H, S, psfL, size, Hsynth, Ssynth, Lsynth,
+						(float) stars[n]->xpos, (float) stars[n]->ypos, dimx, dimy);
+			else
+				add_star_to_mono_buffer(psfL, size, Lsynth, (float) stars[n]->xpos,
+						(float) stars[n]->ypos, dimx, dimy);
+			free(psfL);
+		}
 	}
 	if (stars_needs_freeing)
 		free(stars);
 	// Construct the RGB from synthetic L (and for RGB images, also the H and S values from the orginal image thus giving our synthesized stars the correct colour)
-	if (is_RGB) {
-		float *R, *G, *B;
-		R = (float*) calloc(count, sizeof(float));
-		G = (float*) calloc(count, sizeof(float));
-		B = (float*) calloc(count, sizeof(float));
+	if (!stopcalled) {
+		if (is_RGB) {
+			float *R, *G, *B;
+			R = (float*) calloc(count, sizeof(float));
+			G = (float*) calloc(count, sizeof(float));
+			B = (float*) calloc(count, sizeof(float));
 #ifdef _OPENMP
-#pragma omp parallel
-		{
+#pragma omp parallel if (com.max_thread > 1)
+			omp_set_num_threads(com.max_thread);
+			{
 #endif
-			float bufmax = 0.f;
-#ifdef _OPENMP
-#pragma omp for schedule(static)
-#endif
-			for (size_t chan = 0; chan < fit->naxes[2]; chan++)
-				for (size_t i = 0; i < count; i++)
-					if (buf[chan][i] > bufmax)
-						bufmax = buf[chan][i];
+			float bufmax = 1.f;
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
-			for (size_t chan = 0; chan < fit->naxes[2]; chan++)
-				for (size_t i = 0; i < count; i++)
-					buf[chan][i] /= bufmax;
+			for (size_t i = 0; i < count; i++)
+				if (Lsynth[i] > bufmax)
+					bufmax = Lsynth[i];
+#ifdef _OPENMP
+#pragma omp for schedule(static)
+#endif
+			for (size_t i = 0; i < count; i++)
+				Lsynth[i] /= bufmax;
 
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
-			for (size_t n = 0; n < count; n++) {
-				hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],
-						&G[n], &B[n]);
-				// Trap NaNs and infinities
-				if (isnan(R[n]))
-					R[n] = 0.f;
-				if (isinf(R[n]))
-					R[n] = 0.f;
-				if (R[n] < 0.f)
-					R[n] = 0.f;
-				if (isnan(G[n]))
-					G[n] = 0.f;
-				if (isinf(G[n]))
-					G[n] = 0.f;
-				if (G[n] < 0.f)
-					G[n] = 0.f;
-				if (isnan(B[n]))
-					B[n] = 0.f;
-				if (isinf(B[n]))
-					B[n] = 0.f;
-				if (B[n] < 0.f)
-					B[n] = 0.f;
-			}
-#ifdef _OPENMP
-#pragma omp barrier
-#endif
-			if (is_32bit) {
+				for (size_t n = 0; n < count; n++) {
+					hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],
+							&G[n], &B[n]);
+					// Trap NaNs and infinities
+					if (isnan(R[n]))
+						R[n] = 0.f;
+					if (isinf(R[n]))
+						R[n] = 0.f;
+					if (R[n] < 0.f)
+						R[n] = 0.f;
+					if (isnan(G[n]))
+						G[n] = 0.f;
+					if (isinf(G[n]))
+						G[n] = 0.f;
+					if (G[n] < 0.f)
+						G[n] = 0.f;
+					if (isnan(B[n]))
+						B[n] = 0.f;
+					if (isinf(B[n]))
+						B[n] = 0.f;
+					if (B[n] < 0.f)
+						B[n] = 0.f;
+				}
+//#ifdef _OPENMP
+//#pragma omp barrier
+//#endif
+				if (is_32bit) {
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
-				for (size_t n = 0; n < count; n++) {
-					fit->fpdata[0][n] = R[n];
-					fit->fpdata[1][n] = G[n];
-					fit->fpdata[2][n] = B[n];
-				}
-			} else {
+					for (size_t n = 0; n < count; n++) {
+						fit->fpdata[0][n] = R[n];
+						fit->fpdata[1][n] = G[n];
+						fit->fpdata[2][n] = B[n];
+					}
+				} else {
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
-				for (size_t n = 0; n < count; n++) {
-					fit->pdata[0][n] = roundf_to_WORD(R[n] * norm);
-					fit->pdata[1][n] = roundf_to_WORD(G[n] * norm);
-					fit->pdata[2][n] = roundf_to_WORD(B[n] * norm);
+					for (size_t n = 0; n < count; n++) {
+						fit->pdata[0][n] = roundf_to_WORD(R[n] * norm);
+						fit->pdata[1][n] = roundf_to_WORD(G[n] * norm);
+						fit->pdata[2][n] = roundf_to_WORD(B[n] * norm);
+					}
 				}
-			}
 #ifdef _OPENMP
-		}
+			}
 #endif
 
-		// Free memory
-		free(R);
-		free(G);
-		free(B);
-		free(H);
-		free(S);
-		free(Hsynth);
-		free(Ssynth);
-	} else {
+			// Free memory
+			free(R);
+			free(G);
+			free(B);
+		} else {
 		// Mono image. Populate the L values into the fits WORD or float data array
 #ifdef _OPENMP
 #pragma omp parallel
-		{
+			{
 #endif
-			if (is_32bit) {
+				if (is_32bit) {
 #ifdef _OPENMP
 #pragma omp for simd schedule(static,8)
 #endif
-				for (size_t n = 0; n < count; n++) {
-					fit->fdata[n] = (float) Lsynth[n];
-				}
-				if (com.pref.force_16bit) {
-					const size_t ndata = fit->naxes[0] * fit->naxes[1]
-							* fit->naxes[2];
-					fit_replace_buffer(fit,
-							float_buffer_to_ushort(fit->fdata, ndata),
-							DATA_USHORT);
-				}
-			} else {
+					for (size_t n = 0; n < count; n++) {
+						fit->fdata[n] = (float) Lsynth[n];
+					}
+					if (com.pref.force_16bit) {
+						const size_t ndata = fit->naxes[0] * fit->naxes[1]
+								* fit->naxes[2];
+						fit_replace_buffer(fit,
+								float_buffer_to_ushort(fit->fdata, ndata),
+								DATA_USHORT);
+					}
+				} else {
 #ifdef _OPENMP
 #pragma omp for simd schedule(static,8)
 #endif
-				for (size_t n = 0; n < count; n++) {
-					fit->data[n] = roundf_to_WORD(Lsynth[n] * norm);
+					for (size_t n = 0; n < count; n++) {
+						fit->data[n] = roundf_to_WORD(Lsynth[n] * norm);
+					}
 				}
+#ifdef _OPENMP
 			}
-		}
-#ifdef _OPENMP
-	}
 #endif
+		}
+	}
+	if (H != NULL)
+		free(H);
+	if (S != NULL)
+		free(S);
+	if (Hsynth != NULL)
+		free(Hsynth);
+	if (Ssynth != NULL)
+		free(Ssynth);
 	free(Lsynth);
 	if (buf_needs_freeing) {
 		if (is_RGB) {
@@ -478,7 +484,7 @@ int generate_synthstars(fits *fit) {
 		} else
 			free(buf[0]);
 	}
-	if (fit == &gfit)
+	if (fit == &gfit && !stopcalled)
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
@@ -535,21 +541,24 @@ int reprofile_saturated_stars(fits *fit) {
 
 	// Synthesize a PSF for each saturated star in the star array, based on its measured parameters. To fix saturated star profiles we have to do this for each color channel as we can't rely on the hue and saturation within the saturated area, whereas the profiles will be accurate.
 	image *input_image = NULL;
+	gboolean stopcalled = FALSE;
 	for (size_t chan = 0; chan < fit->naxes[2]; chan++) {
+		if (stopcalled)
+			break;
 		input_image = calloc(1, sizeof(image));
 		input_image->fit = fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
 		int nb_stars;
-		psf_star **stars = peaker(input_image, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, MULTI_THREADED);
+		psf_star **stars = peaker(input_image, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.max_thread);
 		free(input_image);
 		siril_log_message(_("Star synthesis: desaturating channel %u...\n"),
 				chan);
 		for (size_t n = 0; n < nb_stars; n++) {
 			// Check if stop has been pressed
 			if (!get_thread_run())
-				return -1;
-			if (stars[n]->has_saturated) {
+				stopcalled = TRUE;
+			if (stars[n]->has_saturated && !stopcalled) {
 				float lum = (float) stars[n]->A;
 				float bg = (float) stars[n]->B;
 				float sat = (float) stars[n]->sat;
@@ -569,9 +578,9 @@ int reprofile_saturated_stars(fits *fit) {
 				float maxfwhm = (float) max(stars[n]->fwhmx, stars[n]->fwhmy);
 
 				float *psfL = (float*) calloc(size * size, sizeof(float));
-//				makegaussian(psfL, size, maxfwhm, (lum - bg), xoff, yoff);
-				float beta = 1.5f;
-				makemoffat(psfL, size, maxfwhm, (lum - bg), xoff, yoff, beta);
+				makegaussian(psfL, size, maxfwhm, (lum - bg), xoff, yoff);
+//				float beta = 1.5f;
+//				makemoffat(psfL, size, maxfwhm, (lum - bg), xoff, yoff, beta);
 
 				// Replace the part of the profile above the sat threshold
 				replace_sat_star_in_buffer(psfL, size, buf[chan],
@@ -584,25 +593,27 @@ int reprofile_saturated_stars(fits *fit) {
 	}
 
 	// Desaturating stars will take their peak brightness over 1.f so we need to rescale the values of all pixels by a factor of (1 / maxbuf) where maxbuf is the maximum subpixel value across all channels
-	siril_log_message(_("Remapping output to floating point range 0.0 to 1.0\n"));
-	float bufmax = 0.f;
-	for (size_t chan = 0; chan < fit->naxes[2]; chan++)
-		for (size_t i = 0; i < count; i++)
-			if (buf[chan][i] > bufmax)
-				bufmax = buf[chan][i];
-	for (size_t chan = 0; chan < fit->naxes[2]; chan++)
-		for (size_t i = 0; i < count; i++)
-			buf[chan][i] /= bufmax;
+	if (!stopcalled) {
+		siril_log_message(_("Remapping output to floating point range 0.0 to 1.0\n"));
+		float bufmax = 1.f;
+		for (size_t chan = 0; chan < fit->naxes[2]; chan++)
+			for (size_t i = 0; i < count; i++)
+				if (buf[chan][i] > bufmax)
+					bufmax = buf[chan][i];
+		for (size_t chan = 0; chan < fit->naxes[2]; chan++)
+			for (size_t i = 0; i < count; i++)
+				buf[chan][i] /= bufmax;
 
-	if (!is_32bit) {
-		for (size_t n = 0; n < count; n++) {
-			if (is_RGB) {
-				fit->pdata[0][n] = roundf_to_WORD(buf[0][n] * norm);
-				fit->pdata[1][n] = roundf_to_WORD(buf[0][n] * norm);
-				fit->pdata[2][n] = roundf_to_WORD(buf[0][n] * norm);
+		if (!is_32bit) {
+			for (size_t n = 0; n < count; n++) {
+				if (is_RGB) {
+					fit->pdata[0][n] = roundf_to_WORD(buf[0][n] * norm);
+					fit->pdata[1][n] = roundf_to_WORD(buf[0][n] * norm);
+					fit->pdata[2][n] = roundf_to_WORD(buf[0][n] * norm);
+				}
+				else
+					fit->data[n] = roundf_to_WORD(buf[0][n] * norm);
 			}
-			else
-				fit->data[n] = roundf_to_WORD(buf[0][n] * norm);
 		}
 	}
 	if (buf_needs_freeing) {
@@ -613,7 +624,7 @@ int reprofile_saturated_stars(fits *fit) {
 			free(buf[0]);
 	}
 
-	if (fit == &gfit)
+	if (fit == &gfit && !stopcalled)
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
