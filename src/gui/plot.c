@@ -83,8 +83,24 @@ static double surf_h; // y size of the cairosurface in pixel
 static double xrange[2] = {0., 1.}; // pair between 0 and 1 giving the extent of plotted x values in the datamin,datamax range
 static double yrange[2] = {0., 1.}; // pair between 0 and 1 giving the extent of plotted y values in the datamin,datamax range
 static int marker_grabbed = -1;
-// static const char *regfmt32[] = { "%4.2f", "%4.2f", "%4.2f", "%6.4f", "%4.0f", "%5.1f", "%5.1f", "%5.3f", "%5.0f"};
-// static const char *regfmt16[] = { "%4.2f", "%4.2f", "%4.2f", "%5.0f", "%4.0f", "%5.1f", "%5.1f", "%5.3f", "%5.0f"};
+static char *regfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.0f", "%0.1f", "%0.1f", "%0.3f", "%0.0f" };
+static char *regfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.0f", "%0.1f", "%0.1f", "%0.3f", "%0.0f" };
+static char *phtfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.1f", "%0.1f", "%0.2f"};
+static char *phtfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.1f", "%0.1f", "%0.2f"};
+
+static void formatX(double v, char *buf, size_t bufsz) {
+	char *fmt = (gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
+	snprintf(buf, sizeof(buf), fmt, v);
+}
+static void formatY(double v, char *buf, size_t bufsz) {
+	char *fmt;
+	if (use_photometry) {
+		fmt = (gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source];
+	} else {
+		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source];
+	}
+	snprintf(buf, sizeof(buf), fmt, v);
+}
 
 static void update_ylabel();
 static void set_colors(struct kplotcfg *cfg);
@@ -1163,6 +1179,8 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	cfgplot.yaxislabel = ylabel;
 	cfgplot.yaxislabelrot = M_PI_2 * 3.0;
 	cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
+	cfgplot.xticlabelfmt = formatX;
+	cfgplot.yticlabelfmt = formatY;
 	cfgdata.point.radius = 10;
 	// binding the extrema to the sliders
 	cfgplot.extrema = 0x0F;
