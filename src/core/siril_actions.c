@@ -27,7 +27,6 @@
 #include "core/initfile.h"
 #include "algos/annotate.h"
 #include "algos/astrometry_solver.h"
-#include "algos/colors.h"
 #include "algos/noise.h"
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
@@ -35,6 +34,7 @@
 #include "compositing/compositing.h"
 #include "gui/about_dialog.h"
 #include "gui/utils.h"
+#include "gui/colors.h"
 #include "gui/callbacks.h"
 #include "gui/histogram.h"
 #include "gui/open_dialog.h"
@@ -48,10 +48,11 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/photometric_cc.h"
-#include "livestacking/livestacking.h"
+#include "gui/menu_gray_geometry.h"
 #include "gui/registration_preview.h"
-#include "registration/registration.h"
 #include "gui/remixer.h"
+#include "livestacking/livestacking.h"
+#include "registration/registration.h"
 
 #include "siril_actions.h"
 
@@ -593,4 +594,8 @@ void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 
 void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("nina_light_curve");
+}
+
+void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("denoise_dialog");
 }

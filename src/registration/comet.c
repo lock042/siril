@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "core/processing.h"
 #include "algos/PSF.h"
 #include "io/sequence.h"
@@ -294,7 +295,7 @@ int register_comet(struct registration_args *regargs) {
 	args->layer_for_partial = 0;
 	args->get_photometry_data_for_partial = TRUE;
 
-	if (!regargs->process_all_frames) {
+	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}

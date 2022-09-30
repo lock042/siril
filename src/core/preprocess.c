@@ -27,6 +27,7 @@
 #include "core/arithm.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "algos/fix_xtrans_af.h"
 #include "filters/cosmetic_correction.h"
@@ -125,14 +126,18 @@ static int preprocess(fits *raw, struct preprocessing_data *args) {
 	int ret = 0;
 
 	if (args->use_bias) {
-		if (args->bias_level < FLT_MAX) { // an offset level has been defined
+		if (args->bias_level < FLT_MAX) {
+			// an offset level has been defined
 			ret = soper(raw, args->bias_level, OPER_SUB, args->allow_32bit_output);
-		} else ret = imoper(raw, args->bias, OPER_SUB, args->allow_32bit_output);
+		}
+		else ret = imoper(raw, args->bias, OPER_SUB, args->allow_32bit_output);
 	}
 
 	/* if dark optimization, the master-dark has already been subtracted */
 	if (!ret && args->use_dark && !args->use_dark_optim) {
 		ret = imoper(raw, args->dark, OPER_SUB, args->allow_32bit_output);
+		if (raw->neg_ratio > 0.2f)
+			siril_log_message(_("After dark subtraction, the image contains many negative pixels (%d%%), calibration frames are probably incorrect\n"), (int)(100.f*raw->neg_ratio));
 #ifdef SIRIL_OUTPUT_DEBUG
 		image_find_minmax(raw);
 		fprintf(stdout, "after dark: min=%f, max=%f\n", raw->mini, raw->maxi);
@@ -154,7 +159,7 @@ static int preprocess(fits *raw, struct preprocessing_data *args) {
 	return ret;
 }
 
-static int darkOptimization(fits *raw, struct preprocessing_data *args) {
+static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_index, GSList *hist) {
 	float k0;
 	float lo = 0.f, up = 2.f;
 	int ret = 0;
@@ -167,19 +172,26 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args) {
 	}
 
 	// TODO: avoid duplicating with soper+imoper together
+	// https://gitlab.com/free-astro/siril/-/issues/671
 	if (copyfits(dark, &dark_tmp, CP_ALLOC | CP_COPYA | CP_FORMAT, 0))
 		return 1;
 
 	/* Minimization of background noise to find better k */
 	k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
 	if (k0 < 0.f) {
+		siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
 		ret = -1;
 	} else {
-		siril_log_message(_("Dark optimization: k0=%.3f\n"), k0);
 		/* Multiply coefficient to master-dark */
 		ret = soper(&dark_tmp, k0, OPER_MUL, args->allow_32bit_output);
 		if (!ret)
 			ret = imoper(raw, &dark_tmp, OPER_SUB, args->allow_32bit_output);
+		if (!ret) {
+			siril_log_message(_("Dark optimization of image %d: k0=%.3f\n"), in_index, k0);
+			if (hist)
+				hist = g_slist_append(hist, g_strdup_printf("Calibrated with an optimized master dark (factor: %.3f)", k0));
+		}
+		else siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
 	}
 	clearfits(&dark_tmp);
 	return ret;
@@ -274,11 +286,25 @@ static int prepro_compute_mem_hook(struct generic_seq_args *args, gboolean for_w
 
 int prepro_prepare_hook(struct generic_seq_args *args) {
 	struct preprocessing_data *prepro = args->user;
+	gboolean set_hist = prepro->output_seqtype != SEQ_SER;
 
 	if (prepro->seq) {
 		// handling SER and FITSEQ
 		if (seq_prepare_hook(args))
 			return 1;
+	}
+
+	if (set_hist) {
+		if (prepro->use_dark && !prepro->use_dark_optim)
+			prepro->history = g_slist_prepend(prepro->history, g_strdup("Calibrated with a master dark"));
+		if (prepro->use_bias) {
+			if (prepro->bias_level < FLT_MAX) {
+				int bitpix = prepro->seq ? prepro->seq->bitpix : gfit.orig_bitpix;
+				prepro->history = g_slist_prepend(prepro->history, g_strdup_printf("Calibrated with a synthetic bias of %d", roundf_to_int(prepro->bias_level * ((bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE))));
+			} else {
+				prepro->history = g_slist_prepend(prepro->history, g_strdup("Calibrated with a master bias"));
+			}
+		}
 	}
 
 	// precompute flat levels
@@ -322,15 +348,22 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 			siril_log_message(_("Normalisation value auto evaluated: %.3f\n"),
 					prepro->normalisation);
 		}
+		if (set_hist) {
+			prepro->history = g_slist_append(prepro->history, g_strdup_printf("Calibrated with a master flat, normalization of %.3f", prepro->normalisation));
+		}
 	}
 
 	/** FIX XTRANS AC ISSUE **/
 	if (prepro->fix_xtrans && prepro->use_dark) {
 		fix_xtrans_ac(prepro->dark);
+		if (set_hist)
+			prepro->history = g_slist_append(prepro->history, g_strdup("Fixed X-Trans sensor artifact on the master dark"));
 	}
 
 	if (prepro->fix_xtrans && prepro->use_bias && prepro->bias) { // check for existence of bias in case of synth offset
 		fix_xtrans_ac(prepro->bias);
+		if (set_hist)
+			prepro->history = g_slist_append(prepro->history, g_strdup("Fixed X-Trans sensor artifact on the master bias"));
 	}
 
 	// proceed to cosmetic correction
@@ -346,6 +379,8 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 				str = g_strdup_printf(str, prepro->icold + prepro->ihot, prepro->icold, prepro->ihot);
 				siril_log_message(str);
 				g_free(str);
+				if (set_hist)
+					prepro->history = g_slist_append(prepro->history, g_strdup_printf("Cosmetic correction of %ld cold pixels and %ld hot pixels", prepro->icold, prepro->ihot));
 			} else
 				siril_log_message(_("Darkmap cosmetic correction is only supported with single channel images\n"));
 		}
@@ -356,15 +391,19 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 
 int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct preprocessing_data *prepro = args->user;
+	GSList *history = g_slist_copy_deep(prepro->history, (GCopyFunc)g_strdup, NULL);
 
-	/******/
 	if (prepro->use_dark_optim && prepro->use_dark) {
-		if (darkOptimization(fit, prepro))
+		if (darkOptimization(fit, prepro, in_index, history)) {
+			g_slist_free_full(history, g_free);
 			return 1;
+		}
 	}
 
-	if (preprocess(fit, prepro))
+	if (preprocess(fit, prepro)) {
+		g_slist_free_full(history, g_free);
 		return 1;
+	}
 
 	if (prepro->use_cosmetic_correction && prepro->use_dark
 			&& prepro->dark->naxes[2] == 1 && prepro->cc_from_dark) {
@@ -382,7 +421,7 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 	}
 
 	if (prepro->debayer) {
-		// debayering SER is now allowed - https://gitlab.com/free-astro/siril/-/issues/549	
+		// debayering SER is now allowed - https://gitlab.com/free-astro/siril/-/issues/549
 		if (!prepro->seq || prepro->seq->type == SEQ_REGULAR || prepro->seq->type == SEQ_FITSEQ || prepro->seq->type == SEQ_SER ) {
 			debayer_if_needed(TYPEFITS, fit, TRUE);
 		}
@@ -402,6 +441,8 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 	 * sequence, which may be done automatically by the caller.
 	 */
 	full_stats_invalidation_from_fit(fit);
+	fit->history = g_slist_concat(fit->history, history);
+	fit->lo = 0;
 	return 0;
 }
 
@@ -473,11 +514,11 @@ int preprocess_single_image(struct preprocessing_data *args) {
 	msg = g_strdup_printf(_("Pre-processing image %s"), com.uniq->filename);
 	set_progress_bar_data(msg, 0.5);
 	g_free(msg);
-	struct generic_seq_args generic = { .user = args };
 
 	copyfits(com.uniq->fit, &fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
 	copy_fits_metadata(com.uniq->fit, &fit);
 
+	struct generic_seq_args generic = { .user = args };
 	ret = prepro_prepare_hook(&generic);
 	if (!ret)
 		ret = prepro_image_hook(&generic, 0, 0, &fit, NULL, com.max_thread);
@@ -493,12 +534,13 @@ int preprocess_single_image(struct preprocessing_data *args) {
 		ret = savefits(dest_filename, &fit);
 
 		if (!ret) {
-			// open the new image?
+			// make the result the open image
 			copyfits(&fit, com.uniq->fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
 			com.uniq->nb_layers = fit.naxes[2];
 			if (com.uniq->filename)
 				free(com.uniq->filename);
 			com.uniq->filename = strdup(dest_filename);
+			// this way of opening it will not create gfit.header
 		}
 
 		clearfits(&fit);
@@ -570,7 +612,7 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 		if (!g_str_equal(mulsignpos,"$OFFSET")) goto free_on_error;
 	}
 	if (!multiplier) goto free_on_error; // multiplier not parsed
-	if (!(end[0] == '\0')) goto free_on_error; // some characters were found after the multiplier
+	if (end[0] != '\0') goto free_on_error; // some characters were found after the multiplier
 	offsetlevel = (int)(multiplier * fit->key_offset);
 	if (expressioncpy) g_free(expressioncpy);
 	return offsetlevel;
@@ -840,7 +882,6 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		return;
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
-	gettimeofday(&args->t_start, NULL);
 
 	// set output filename (preprocessed file name prefix)
 	args->ppprefix = gtk_entry_get_text(entry);
@@ -865,6 +906,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		int retval;
 		args->is_sequence = FALSE;
+		args->output_seqtype = SEQ_REGULAR;
 		args->allow_32bit_output = !com.pref.force_16bit;
 		set_cursor_waiting(TRUE);
 		control_window_switch_to_tab(OUTPUT_LOGS);

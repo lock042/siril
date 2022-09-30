@@ -49,6 +49,7 @@
 #include "core/pipe.h"
 #include "core/signals.h"
 #include "core/siril_app_dirs.h"
+#include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
@@ -117,31 +118,7 @@ static void global_initialization() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 
-
 	initialize_default_settings();	// com.pref
-}
-
-static void init_num_procs() {
-	/* Get CPU number and set the number of threads */
-#ifdef _OPENMP
-	int num_proc = (int) g_get_num_processors();
-	int omp_num_proc = omp_get_num_procs();
-	if (num_proc != omp_num_proc) {
-		siril_log_message(_("Questionable parallel processing efficiency - openmp reports %d %s. "
-					"Possibly broken opencv/openblas installation.\n"),	omp_num_proc,
-				ngettext("processor", "processors", omp_num_proc));
-	}
-	omp_set_nested(1);
-	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
-	siril_log_message(
-			_("Parallel processing %s: using %d logical %s%s.\n"),
-			_("enabled"), com.max_thread = num_proc,
-			ngettext("processor", "processors", num_proc),
-			supports_nesting ? "" : _(", nesting not supported"));
-#else
-	com.max_thread = 1;
-	siril_log_message(_("Parallel processing disabled: using 1 logical processor.\n"));
-#endif
 }
 
 static void siril_app_activate(GApplication *application) {

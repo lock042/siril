@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"

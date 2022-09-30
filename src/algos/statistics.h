@@ -64,4 +64,6 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 
 int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels);
 
+int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *noise);
+
 #endif

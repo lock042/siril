@@ -25,7 +25,7 @@
 typedef struct _CatalogObjects CatalogObjects;
 
 GSList *find_objects(fits *fit);
-void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs);
+void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_system);
 gchar *get_catalogue_object_code(CatalogObjects *object);
 gchar *get_catalogue_object_name(CatalogObjects *object);
 gdouble get_catalogue_object_ra(CatalogObjects *object);

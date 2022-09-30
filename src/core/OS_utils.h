@@ -26,21 +26,23 @@
 
 gboolean update_displayed_memory();
 int test_available_space(gint64 req_size);
+
 guint64 get_available_memory();
 int get_max_memory_in_MB();
 void log_used_mem(gchar *when);
+
+int get_available_cpu_cgroups();
+
+void init_num_procs();
+
 GInputStream *siril_input_stream_from_stdin();
+
 #ifdef _WIN32
 gchar *get_special_folder(int csidl);
 int ReconnectIO(int OpenNewConsole);
 char* siril_real_path(const char *source);
 #endif
 
-SirilWidget* siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action);
-SirilWidget* siril_file_chooser_add(GtkWindow *parent, GtkFileChooserAction action);
-SirilWidget* siril_file_chooser_save(GtkWindow *parent, GtkFileChooserAction action);
-gint siril_dialog_run(SirilWidget *widgetdialog);
-void siril_widget_destroy(SirilWidget *widgetdialog);
 gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
 
 #endif /* SRC_CORE_OS_UTILS_H_ */

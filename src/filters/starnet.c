@@ -29,6 +29,7 @@
 #include "core/undo.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/extraction.h"
 #include "algos/geometry.h"
@@ -468,7 +469,7 @@ gpointer do_starnet(gpointer p) {
 	// stretch to the starless version and re-save the final result
 	if (args->linear) {
 		siril_log_message(_("Starnet++: linear mode. Applying inverse MTF stretch to starless image.\n"));
-		apply_linked_pseudoinverse_mtf_to_fits(&workingfit, &workingfit, params);
+		apply_linked_pseudoinverse_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
 	// Chdir back to the Siril working directory, we don't need to be in the starnet

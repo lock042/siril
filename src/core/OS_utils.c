@@ -25,7 +25,6 @@
 #  include <config.h>
 #endif
 
-#include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,6 +42,8 @@
 #else
 #include <sys/resource.h>
 #include <gio/gunixinputstream.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #endif
 #if defined(__unix__) || defined(OS_OSX)
 #include <sys/param.h>		// define or not BSD macro
@@ -69,6 +70,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/message_dialog.h"
@@ -125,7 +127,7 @@ static gint64 find_space(const gchar *name) {
  * Compute the used RAM and returns the value in bytes.
  * @return
  */
-static guint64 update_used_RAM_memory() {
+static guint64 get_used_RAM_memory() {
 #if defined(__linux__) || defined(__CYGWIN__)
 	static gboolean initialized = FALSE;
 	static long page_size;
@@ -201,7 +203,7 @@ static guint64 update_used_RAM_memory() {
  * @return always return TRUE
  */
 gboolean update_displayed_memory() {
-	set_GUI_MEM(update_used_RAM_memory(), "labelmem");
+	set_GUI_MEM(get_used_RAM_memory(), "labelmem");
 	set_GUI_DiskSpace(find_space(com.wd), "labelFreeSpace");
 	set_GUI_DiskSpace(find_space(com.pref.swap_dir), "free_mem_swap");
 	return TRUE;
@@ -237,19 +239,19 @@ int test_available_space(gint64 req_size) {
 				msg = siril_log_message(_("Compression enabled: There may no be enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-				queue_message_dialog(GTK_MESSAGE_WARNING, _("Compression enabled: There may not be enough free disk space to perform this operation"), msg);
+				queue_warning_message_dialog(_("Compression enabled: There may not be enough free disk space to perform this operation"), msg);
 			} else {
 				msg = siril_log_message(_("Compression enabled: It is likely that there is not enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-				queue_message_dialog(GTK_MESSAGE_WARNING, _("Compression enabled: It is likely that there is not enough free disk space to perform this operation"), msg);
+				queue_warning_message_dialog(_("Compression enabled: It is likely that there is not enough free disk space to perform this operation"), msg);
 			}
 			res = 0;
 		} else {
 			msg = siril_log_message(_("Not enough free disk space to perform this operation: "
 						"%s available for %s needed (missing %s)\n"),
 						avail, required, missing);
-			queue_message_dialog(GTK_MESSAGE_ERROR, _("Not enough disk space"), msg);
+			queue_error_message_dialog(_("Not enough disk space"), msg);
 			res = 1;
 		}
 		g_free(avail);
@@ -262,62 +264,306 @@ int test_available_space(gint64 req_size) {
 	return 0;
 }
 
+#if defined(__linux__)
+/* read a value from a file that contains only an integer, like many procfs or sysfs files */
+static int read_from_file(const char *filename, guint64 *value) {
+	int fd = open(filename, O_RDONLY);
+	if (fd == -1)
+		return 1;
+	char buf[30];
+	int retval = read(fd, buf, 30);
+	if (retval <= 0) {
+		close(fd);
+		return 1;
+	}
+	char *end;
+	*value = strtoull(buf, &end, 10);
+	if (end == buf)
+		retval = 1;
+	else retval = 0;
+	close(fd);
+	return retval;
+}
+
+static int read_2_from_file(const char *filename, guint64 *value1, guint64 *value2) {
+	int fd = open(filename, O_RDONLY);
+	if (fd == -1)
+		return 1;
+	char buf[50];
+	int retval = read(fd, buf, 50);
+	if (retval <= 0) {
+		close(fd);
+		return 1;
+	}
+	char *end;
+	*value1 = strtoull(buf, &end, 10);
+	if (end == buf)
+		return 1;
+
+	char *start = end;
+	*value2 = strtoull(start, &end, 10);
+	retval = (end == start);
+	close(fd);
+	return retval;
+}
+
+/* returns the directory in the cgroups filesystem that applies for the current
+ * process for the requested module */
+static gchar *find_cgroups_path(const char *module) {
+	FILE *fd = g_fopen("/proc/self/cgroup", "r");
+	if (!fd)
+		return g_strdup("");
+	char buf[2000];
+	char *cgpath = NULL;
+	while (!cgpath && fgets(buf, 2000, fd)) {
+		remove_trailing_eol(buf);
+		gchar **tokens = g_strsplit(buf, ":", -1);
+		guint n = g_strv_length(tokens);
+		if (n < 3) {
+			siril_debug_print("malformed line in /proc/self/cgroup: %s\n", buf);
+			continue;
+		}
+		if (atoi(tokens[0]) == 0 && tokens[1][0] == '\0') {
+			// cgroups v2, only one entry
+			siril_debug_print("cgroups v2 path: %s\n", tokens[2]);
+			cgpath = g_strdup(tokens[2]);
+		} else {
+			gchar **controllers = g_strsplit(tokens[1], ",", -1);
+			guint ncont = g_strv_length(controllers);
+			for (int i = 0; i < ncont; i++) {
+				if (!strcmp(controllers[i], module)) {
+					siril_debug_print("cgroups v1 path: %s\n", tokens[2]);
+					if (!strcmp("/", tokens[2]))
+						cgpath = g_strdup("");
+					else cgpath = g_strdup(tokens[2]);
+					break;
+				}
+			}
+			g_strfreev(controllers);
+		}
+		g_strfreev(tokens);
+	}
+
+	fclose(fd);
+	if (!cgpath)
+		cgpath = g_strdup("");
+	return cgpath;
+}
+
+static int get_available_mem_cgroups(guint64 *amount) {
+	/* useful files, cgroups v1:
+	 * memory.usage_in_bytes	# show current usage for memory	(for the system?)
+	 * memory.memsw.usage_in_bytes	# show current usage for memory+Swap (system?)
+	 * memory.limit_in_bytes	# set/show limit of memory usage
+	 * memory.soft_limit_in_bytes	# set/show soft limit of memory usage
+	 *
+	 * useful files, cgroups v2:
+	 * memory.low			# soft limit, default is '0'
+	 * memory.high			# hard limit, default is 'max'
+	 * memory.max			# kill limit, default is 'max'
+	 */
+	static gchar *limits_filepath = NULL;
+	static gboolean initialized = FALSE;
+	// assuming cgroups fs is mounted on /sys/fs/cgroup, we could also
+	// check the mount points but that's fairly common
+	const char *limits_paths[] = {	// in order of files to try
+		// v1
+		"/sys/fs/cgroup/memory%s/memory.soft_limit_in_bytes",
+		"/sys/fs/cgroup/memory%s/memory.limit_in_bytes",
+		"/sys/fs/cgroup/memory/memory.soft_limit_in_bytes",
+		"/sys/fs/cgroup/memory/memory.limit_in_bytes",
+		// v2
+		"/sys/fs/cgroup%s/memory.low",
+		"/sys/fs/cgroup%s/memory.high",
+		"/sys/fs/cgroup%s/memory.max"
+	};
+
+	if (initialized && !limits_filepath)
+		return 1;
+	// first, get the limit, currently it can be dynamic but it's slower to read the file every time
+	guint64 limit = 0;
+	if (!initialized) {
+		gchar *cgroup_path = find_cgroups_path("memory");
+		int nb_paths = sizeof limits_paths / sizeof(const char *);
+		int source_file;
+		for (source_file = 0; source_file < nb_paths; source_file++) {
+			gchar *path = g_strdup_printf(limits_paths[source_file], cgroup_path);
+			if (!read_from_file(path, &limit) && limit > (guint64)0 && limit < 0x7fffffffffff0000) {
+				siril_debug_print("Found memory cgroups limit in %s\n", path);
+				gchar *mem = g_format_size_full(limit, G_FORMAT_SIZE_IEC_UNITS);
+				siril_log_message(_("Using cgroups limit on memory: %s\n"), mem);
+				g_free(mem);
+				limits_filepath = path;
+				break;
+			}
+			g_free(path);
+		}
+		initialized = 1;
+		g_free(cgroup_path);
+		if (source_file == nb_paths) {
+			siril_debug_print("no memory cgroup controller detected\n");
+			// not using cgroups
+			return 1;
+		}
+	}
+	else {
+		if (read_from_file(limits_filepath, &limit) || limit == (guint64)0) {
+			siril_log_message(_("Error reading from %s, disabling cgroups memory limits\n"),
+					limits_filepath);
+			g_free(limits_filepath);
+			limits_filepath = NULL;
+		}
+	}
+
+	// then, get the current amount
+	guint64 current = get_used_RAM_memory();
+
+	siril_debug_print("current memory: %d, cgroup limit: %d MB\n",
+			(int)(current / BYTES_IN_A_MB), (int)(limit / BYTES_IN_A_MB));
+	if (limit < current)
+		*amount = (guint64)1;	// 0 mean error in the caller
+	else *amount = limit - current;
+	return 0;
+}
+
+int get_available_cpu_cgroups() {
+	/* computing a number of processors based on the cgroups throttles (cpu bandwidth)
+	 * Using files from the cgroups filesystem mounted in /sys/fs/cgroup
+	 * cgroups v1 (see https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/resource_management_guide/sec-cpu ):
+	 * 	cpu/cpu.cfs_period_us	the period for which CPU resources should be reallocated
+	 * 	cpu/cpu.cfs_quota_us	time for which all tasks in a cgroup can run during one period
+	 *
+	 * cgroups v2 (see https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/managing_monitoring_and_updating_the_kernel/using-cgroups-v2-to-control-distribution-of-cpu-time-for-applications_managing-monitoring-and-updating-the-kernel ):
+	 *	cpu.max			containing 2 numbers, quota and period, space-separated
+	 */
+	guint64 period = 0, quota;
+	gchar *cgroup_path = find_cgroups_path("cpu");
+	gchar *v1periodpath = g_strdup_printf("/sys/fs/cgroup/cpu%s/cpu.cfs_period_us", cgroup_path);
+	gchar *v1quotapath = g_strdup_printf("/sys/fs/cgroup/cpu%s/cpu.cfs_quota_us", cgroup_path);
+	//siril_debug_print("trying cpu controller path: %s\n", v1periodpath);
+	if (!read_from_file(v1periodpath, &period) &&
+			!read_from_file(v1quotapath, &quota)) {
+		siril_debug_print("found cgroups v1 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in cgroup %s\n", quota, period, cgroup_path);
+	} else {
+		/* retry with cgroups v1, but without the group name in the path */
+		if (!read_from_file("/sys/fs/cgroup/cpu/cpu.cfs_period_us", &period) &&
+				!read_from_file("/sys/fs/cgroup/cpu/cpu.cfs_quota_us", &quota)) {
+			siril_debug_print("found cgroups v1 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in main controller\n", quota, period);
+		} else {
+			/* try with cgroups v2 */
+			gchar *v2path = g_strdup_printf("/sys/fs/cgroup%s/cpu.max", cgroup_path);
+			if (!read_2_from_file(v2path, &quota, &period)) {
+				siril_debug_print("found cgroups v2 cpu quota %"G_GUINT64_FORMAT" and period %"G_GUINT64_FORMAT" in %s\n", quota, period, v2path);
+			}
+			else {
+				siril_debug_print("no cgroups cpu bandwidth limitations found\n");
+				period = 0;	// to be sure in case of partial read above
+			}
+			g_free(v2path);
+		}
+	}
+	g_free(v1periodpath);
+	g_free(v1quotapath);
+	g_free(cgroup_path);
+	if (period != 0)
+		return round_to_int((double)quota / period);
+	return 0;
+}
+#else
+int get_available_cpu_cgroups() {
+	return 0;
+}
+#endif
+
+void init_num_procs() {
+	/* Get CPU number and set the number of threads */
+#ifdef _OPENMP
+	int num_proc = (int) g_get_num_processors();
+	int omp_num_proc = omp_get_num_procs();
+	if (num_proc != omp_num_proc) {
+		siril_log_message(_("Questionable parallel processing detection - openmp reports %d %s, glib %d.\n"),
+					omp_num_proc, ngettext("processor", "processors", omp_num_proc), num_proc);
+		// in case of cgroup limitation of the cpuset, openmp already detects the correct count
+	}
+	com.max_thread = num_proc < omp_num_proc ? num_proc : omp_num_proc;;
+	int cgroups_num_proc = get_available_cpu_cgroups();
+	if (cgroups_num_proc > 0 && cgroups_num_proc < com.max_thread) {
+		siril_log_message(_("Using cgroups limit on the number of processors: %d\n"), cgroups_num_proc);
+		com.max_thread = cgroups_num_proc;
+	}
+	omp_set_nested(1);
+	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
+	siril_log_message(
+			_("Parallel processing enabled: using %d logical %s%s.\n"),
+			com.max_thread,
+			ngettext("processor", "processors", com.max_thread),
+			supports_nesting ? "" : _(", nesting not supported"));
+#else
+	com.max_thread = 1;
+	siril_log_message(_("Parallel processing disabled: using 1 logical processor.\n"));
+#endif
+}
+
 /**
- * Gets available memory for stacking process
+ * Gets available memory in bytes.
  * @return available memory in Bytes, 0 if it fails.
  */
 guint64 get_available_memory() {
 #if defined(__linux__) || defined(__CYGWIN__)
-	static gboolean initialized = FALSE;
+	static super_bool initialized_cgroups = BOOL_NOT_SET;
+	static gboolean initialized_meminfo = FALSE;
+
+	/* first, we should check for cgroups limits */
+	if (BOOL_FALSE != initialized_cgroups) {
+		guint64 amount;
+		if (!get_available_mem_cgroups(&amount)) {
+			initialized_cgroups = BOOL_TRUE;
+			return amount;
+		}
+		initialized_cgroups = BOOL_FALSE;
+	}
+
+	/* the code below gets the available memory on the OS in /proc/meminfo. */
 	static gint64 last_check_time = 0;
 	static gint fd;
 	static guint64 available;
 	static gboolean has_available = FALSE;
 	gint64 time;
 
-	if (!initialized) {
+	if (!initialized_meminfo) {
 		fd = g_open("/proc/meminfo", O_RDONLY);
-
-		initialized = TRUE;
+		initialized_meminfo = TRUE;
+	}
+	if (fd < 0) {
+		siril_debug_print("/proc/meminfo is unavailable\n");
+		return (guint64) 0;
 	}
 
-	if (fd < 0)
-		return (guint64) 0;
-
-	/* we don't have a config option for limiting the swap size, so we simply
-	 * return the free space available on the filesystem containing the swap
-	 */
-
 	time = g_get_monotonic_time();
-
 	if (time - last_check_time >= G_TIME_SPAN_SECOND) {
-		gchar buffer[512];
-		gint size;
-		gchar *str;
-
 		last_check_time = time;
-
 		has_available = FALSE;
 
 		if (lseek(fd, 0, SEEK_SET))
 			return (guint64) 0;
 
-		size = read(fd, buffer, sizeof(buffer) - 1);
-
+		gchar buffer[512];
+		ssize_t size = read(fd, buffer, sizeof(buffer) - 1);
 		if (size <= 0)
 			return (guint64) 0;
 
 		buffer[size] = '\0';
 
-		str = strstr(buffer, "MemAvailable:");
-
+		char *str = strstr(buffer, "MemAvailable:");
 		if (!str)
 			return (guint64) 0;
 
-		available = strtoull(str + 13, &str, 0);
-
-		if (!str)
+		char *end;
+		str += 13;
+		available = strtoull(str, &end, 0);
+		if (end == str)
 			return (guint64) 0;
+		str = end;
 
 		for (; *str; str++) {
 			if (*str == 'k') {
@@ -328,8 +574,7 @@ guint64 get_available_memory() {
 				break;
 			}
 		}
-
-		if (!*str)
+		if (*str == '\0')
 			return (guint64) 0;
 
 		has_available = TRUE;
@@ -360,22 +605,27 @@ guint64 get_available_memory() {
 	}
 	return mem;
 #elif defined(BSD) /* BSD (DragonFly BSD, FreeBSD, OpenBSD, NetBSD). ----------- */
-	guint64 mem = (guint64) 0; /* this is the default value if we can't retrieve any values */
-	FILE* fp = fopen("/var/run/dmesg.boot", "r");
-	if (fp != NULL) {
-		size_t bufsize = 1024 * sizeof(char);
-		gchar *buf = g_new(gchar, bufsize);
-		long value = -1L;
-		while (getline(&buf, &bufsize, fp) >= 0) {
-			if (strncmp(buf, "avail memory", 12) != 0)
-				continue;
-			sscanf(buf, "%*s%*s%*s%ld", &value);
-			break;
+	/* FIXME: this is incorrect, this returns the available amount of memory at boot, not at runtime */
+	static gboolean initialized = FALSE;
+	static guint64 mem = (guint64) 0; /* this is the default value if we can't retrieve any values */
+	if (!initialized) {
+		FILE* fp = fopen("/var/run/dmesg.boot", "r");
+		if (fp != NULL) {
+			size_t bufsize = 1024 * sizeof(char);
+			gchar *buf = g_new(gchar, bufsize);
+			long value = -1L;
+			while (getline(&buf, &bufsize, fp) >= 0) {
+				if (strncmp(buf, "avail memory", 12) != 0)
+					continue;
+				sscanf(buf, "%*s%*s%*s%ld", &value);
+				break;
+			}
+			fclose(fp);
+			g_free(buf);
+			if (value != -1L)
+				mem = (guint64) (value * 1024UL);
 		}
-		fclose(fp);
-		g_free(buf);
-		if (value != -1L)
-			mem = (guint64) (value * 1024UL);
+		initialized = TRUE;
 	}
 	return mem;
 #elif defined(_WIN32) /* Windows */
@@ -501,41 +751,6 @@ gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file) {
 	return nb_frames < maxfile;
 }
 
-SirilWidget *siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action) {
-	gchar *title;
-	SirilWidget *w;
-	if (action == GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER) {
-		title = g_strdup(_("Select Folder"));
-	} else {
-		title = g_strdup(_("Open File"));
-	}
-	w = gtk_file_chooser_dialog_new(title, parent, action, _("_Cancel"),
-			GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT,
-			NULL);
-	g_free(title);
-	return w;
-}
-
-SirilWidget *siril_file_chooser_add(GtkWindow *parent, GtkFileChooserAction action) {
-	return gtk_file_chooser_dialog_new(_("Add Files"), parent, action,
-			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Add"), GTK_RESPONSE_ACCEPT,
-			NULL);
-}
-
-SirilWidget *siril_file_chooser_save(GtkWindow *parent, GtkFileChooserAction action) {
-	return gtk_file_chooser_dialog_new(_("Save File"), parent, action,
-			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Save"), GTK_RESPONSE_ACCEPT,
-			NULL);
-}
-
-gint siril_dialog_run(SirilWidget *widgetdialog) {
-	return gtk_dialog_run(GTK_DIALOG(GTK_FILE_CHOOSER(widgetdialog)));
-}
-
-void siril_widget_destroy(SirilWidget *widgetdialog) {
-	gtk_widget_destroy(widgetdialog);
-}
-
 GInputStream *siril_input_stream_from_stdin() {
 	GInputStream *input_stream = NULL;
 #ifdef _WIN32
@@ -638,7 +853,7 @@ char* siril_real_path(const char *source) {
 
 // for debug purposes
 void log_used_mem(gchar *when) {
-	int used = update_used_RAM_memory();
+	guint64 used = get_used_RAM_memory();
 	gchar *mem = g_format_size_full(used, G_FORMAT_SIZE_IEC_UNITS);
 	siril_debug_print("Used memory %s: %s\n", when, mem);
 	g_free(mem);

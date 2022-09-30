@@ -22,28 +22,20 @@
 #include <math.h>
 
 #include "core/siril.h"
-#include "core/proto.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
+#include "algos/astrometry_solver.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
 #include "core/undo.h"
 #include "core/processing.h"
-#include "gui/callbacks.h"
-#include "gui/utils.h"
-#include "gui/image_display.h"
-#include "gui/image_interactions.h"
-#include "gui/PSF_list.h"
-#include "gui/dialogs.h"
-#include "gui/message_dialog.h"
-#include "gui/registration_preview.h"
-#include "gui/siril_preview.h"
 #include "opencv/opencv.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "gui/PSF_list.h"
 
 #include "geometry.h"
-#include "astrometry_solver.h"
 
 /* this method rotates the image 180 degrees, useful after german mount flip.
  * fit->rx, fit->ry, fit->naxes[2] and fit->pdata[*] are required to be assigned correctly */
@@ -147,63 +139,6 @@ static void fits_rotate_pi(fits *fit) {
 	}
 }
 
-void mirrorx_gui(fits *fit) {
-	set_cursor_waiting(TRUE);
-	undo_save_state(fit, _("Mirror X"));
-	mirrorx(fit, TRUE);
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
-}
-
-void mirrory_gui(fits *fit) {
-	set_cursor_waiting(TRUE);
-	undo_save_state(fit, _("Mirror Y"));
-	mirrory(fit, TRUE);
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
-}
-
-static void rotate_gui(fits *fit) {
-	if (com.selection.w == 0 || com.selection.h == 0) return;
-	static GtkToggleButton *crop_rotation = NULL;
-	double angle = gtk_spin_button_get_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")));
-	int interpolation = gtk_combo_box_get_active(
-			GTK_COMBO_BOX(lookup_widget("combo_interpolation_rotation")));
-	int cropped;
-
-	if (crop_rotation == NULL) {
-		crop_rotation = GTK_TOGGLE_BUTTON(
-				lookup_widget("checkbutton_rotation_crop"));
-	}
-	cropped = gtk_toggle_button_get_active(crop_rotation);
-	if ((!cropped) & (com.selection.w < gfit.rx || com.selection.h < gfit.ry)) {
-		cropped = siril_confirm_dialog(_("Crop confirmation"), ("A selection is active and its size is smaller than the original image. Do you want to crop to current selection?"), _("Crop"));
-		if (cropped)
-			gtk_toggle_button_set_active(crop_rotation, TRUE);
-	}
-
-	set_cursor_waiting(TRUE);
-	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s)"), angle,
-			cropped ? "TRUE" : "FALSE");
-	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped);
-	
-	// the UI is still opened, need to reset selection
-	// to current image size and reset rotation
-	rectangle area = {0, 0, fit->rx, fit->ry};
-	memcpy(&com.selection, &area, sizeof(rectangle));
-	gtk_spin_button_set_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_rotation")), 0.);
-	new_selection_zone();
-
-	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
-}
-
 /* These functions do not more than resize_gaussian and rotate_image
  * except for console outputs.
  * Indeed, siril_log_message seems not working in a cpp file */
@@ -215,22 +150,22 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 	float factor_Y = (float)image->ry / (float)toY;
 
 	switch (interpolation) {
-	case OPENCV_NEAREST:
-		str_inter = _("Nearest-Neighbor");
-		break;
-	default:
-	case OPENCV_LINEAR:
-		str_inter = _("Bilinear");
-		break;
-	case OPENCV_AREA:
-		str_inter = _("Pixel Area Relation");
-		break;
-	case OPENCV_CUBIC:
-		str_inter = _("Bicubic");
-		break;
-	case OPENCV_LANCZOS4:
-		str_inter = _("Lanczos4");
-		break;
+		case OPENCV_NEAREST:
+			str_inter = _("Nearest-Neighbor");
+			break;
+		default:
+		case OPENCV_LINEAR:
+			str_inter = _("Bilinear");
+			break;
+		case OPENCV_AREA:
+			str_inter = _("Pixel Area Relation");
+			break;
+		case OPENCV_CUBIC:
+			str_inter = _("Bicubic");
+			break;
+		case OPENCV_LANCZOS4:
+			str_inter = _("Lanczos4");
+			break;
 	}
 
 	siril_log_color_message(_("Resample (%s interpolation): processing...\n"),
@@ -302,25 +237,25 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	struct timeval t_start, t_end;
 
 	switch (interpolation) {
-	case -1:
-		str_inter = _("No");
-		break;
-	case OPENCV_NEAREST:
-		str_inter = _("Nearest-Neighbor");
-		break;
-	default:
-	case OPENCV_LINEAR:
-		str_inter = _("Bilinear");
-		break;
-	case OPENCV_AREA:
-		str_inter = _("Pixel Area Relation");
-		break;
-	case OPENCV_CUBIC:
-		str_inter = _("Bicubic");
-		break;
-	case OPENCV_LANCZOS4:
-		str_inter = _("Lanczos4");
-		break;
+		case -1:
+			str_inter = _("No");
+			break;
+		case OPENCV_NEAREST:
+			str_inter = _("Nearest-Neighbor");
+			break;
+		default:
+		case OPENCV_LINEAR:
+			str_inter = _("Bilinear");
+			break;
+		case OPENCV_AREA:
+			str_inter = _("Pixel Area Relation");
+			break;
+		case OPENCV_CUBIC:
+			str_inter = _("Bicubic");
+			break;
+		case OPENCV_LANCZOS4:
+			str_inter = _("Lanczos4");
+			break;
 	}
 
 	siril_log_color_message(
@@ -468,33 +403,41 @@ void mirrory(fits *fit, gboolean verbose) {
  * data is correctly written to this new area, which makes this function
  * quite dangerous to use when fit is used for something else afterwards.
  */
-static void crop_ushort(fits *fit, rectangle *bounds) {
+static int crop_ushort(fits *fit, rectangle *bounds) {
 	int i, j, layer;
 	int newnbdata;
 	struct timeval t_start = { 0 }, t_end = { 0 };
+	rectangle bounds_cpy = { 0 };
+
+	if (bounds->x >= fit->rx) return -1;
+	if (bounds->y >= fit->ry) return -1;
+	bounds_cpy.x = bounds->x;
+	bounds_cpy.y = bounds->y;
+	bounds_cpy.w = (bounds->x + bounds->w > fit->rx) ? fit->rx - bounds->x : bounds->w;
+	bounds_cpy.h = (bounds->y + bounds->h > fit->ry) ? fit->ry - bounds->y : bounds->h;
 
 	if (fit == &gfit) {
 		siril_log_color_message(_("Crop: processing...\n"), "red");
 		gettimeofday(&t_start, NULL);
 	}
 
-	newnbdata = bounds->w * bounds->h;
+	newnbdata = bounds_cpy.w * bounds_cpy.h;
 	for (layer = 0; layer < fit->naxes[2]; ++layer) {
 		WORD *from = fit->pdata[layer]
-				+ (fit->ry - bounds->y - bounds->h) * fit->rx + bounds->x;
+			+ (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
 		fit->pdata[layer] = fit->data + layer * newnbdata;
 		WORD *to = fit->pdata[layer];
-		int stridefrom = fit->rx - bounds->w;
+		int stridefrom = fit->rx - bounds_cpy.w;
 
-		for (i = 0; i < bounds->h; ++i) {
-			for (j = 0; j < bounds->w; ++j) {
+		for (i = 0; i < bounds_cpy.h; ++i) {
+			for (j = 0; j < bounds_cpy.w; ++j) {
 				*to++ = *from++;
 			}
 			from += stridefrom;
 		}
 	}
-	fit->rx = fit->naxes[0] = bounds->w;
-	fit->ry = fit->naxes[1] = bounds->h;
+	fit->rx = fit->naxes[0] = bounds_cpy.w;
+	fit->ry = fit->naxes[1] = bounds_cpy.h;
 
 	if (fit == &gfit) {
 		clear_stars_list(TRUE);
@@ -502,35 +445,44 @@ static void crop_ushort(fits *fit, rectangle *bounds) {
 		show_time(t_start, t_end);
 	}
 	invalidate_stats_from_fit(fit);
+	return 0;
 }
 
-static void crop_float(fits *fit, rectangle *bounds) {
+static int crop_float(fits *fit, rectangle *bounds) {
 	int i, j, layer;
 	int newnbdata;
 	struct timeval t_start = { 0 }, t_end = { 0 };
+	rectangle bounds_cpy = { 0 };
+
+	if (bounds->x >= fit->rx) return -1;
+	if (bounds->y >= fit->ry) return -1;
+	bounds_cpy.x = bounds->x;
+	bounds_cpy.y = bounds->y;
+	bounds_cpy.w = (bounds->x + bounds->w > fit->rx) ? fit->rx - bounds->x : bounds->w;
+	bounds_cpy.h = (bounds->y + bounds->h > fit->ry) ? fit->ry - bounds->y : bounds->h;
 
 	if (fit == &gfit) {
 		siril_log_color_message(_("Crop: processing...\n"), "green");
 		gettimeofday(&t_start, NULL);
 	}
 
-	newnbdata = bounds->w * bounds->h;
+	newnbdata = bounds_cpy.w * bounds_cpy.h;
 	for (layer = 0; layer < fit->naxes[2]; ++layer) {
 		float *from = fit->fpdata[layer]
-				+ (fit->ry - bounds->y - bounds->h) * fit->rx + bounds->x;
+			+ (fit->ry - bounds_cpy.y - bounds_cpy.h) * fit->rx + bounds_cpy.x;
 		fit->fpdata[layer] = fit->fdata + layer * newnbdata;
 		float *to = fit->fpdata[layer];
-		int stridefrom = fit->rx - bounds->w;
+		int stridefrom = fit->rx - bounds_cpy.w;
 
-		for (i = 0; i < bounds->h; ++i) {
-			for (j = 0; j < bounds->w; ++j) {
+		for (i = 0; i < bounds_cpy.h; ++i) {
+			for (j = 0; j < bounds_cpy.w; ++j) {
 				*to++ = *from++;
 			}
 			from += stridefrom;
 		}
 	}
-	fit->rx = fit->naxes[0] = bounds->w;
-	fit->ry = fit->naxes[1] = bounds->h;
+	fit->rx = fit->naxes[0] = bounds_cpy.w;
+	fit->ry = fit->naxes[1] = bounds_cpy.h;
 
 	if (fit == &gfit) {
 		clear_stars_list(TRUE);
@@ -538,6 +490,7 @@ static void crop_float(fits *fit, rectangle *bounds) {
 		show_time(t_start, t_end);
 	}
 	invalidate_stats_from_fit(fit);
+	return 0;
 }
 
 int crop(fits *fit, rectangle *bounds) {
@@ -549,9 +502,13 @@ int crop(fits *fit, rectangle *bounds) {
 #endif
 
 	if (fit->type == DATA_USHORT) {
-		crop_ushort(fit, bounds);
+		if (crop_ushort(fit, bounds)) {
+			return -1;
+		}
 	} else if (fit->type == DATA_FLOAT) {
-		crop_float(fit, bounds);
+		if (crop_float(fit, bounds)) {
+			return -1;
+		}
 	} else {
 		return -1;
 	}
@@ -563,147 +520,6 @@ int crop(fits *fit, rectangle *bounds) {
 	}
 #endif
 	return 0;
-}
-
-/************************* CALLBACKS *************************************/
-
-/**
- *  ROTATION
- */
-void siril_rotate90() {
-		set_cursor_waiting(TRUE);
-		undo_save_state(&gfit, _("Rotation (90.0deg)"));
-		verbose_rotate_fast(&gfit, 90);	// fast rotation, no interpolation, no crop
-		update_zoom_label();
-		redraw(REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
-}
-
-void siril_rotate270() {
-		set_cursor_waiting(TRUE);
-		undo_save_state(&gfit, _("Rotation (-90.0deg)"));
-		verbose_rotate_fast(&gfit, -90);// fast rotation, no interpolation, no crop
-		update_zoom_label();
-		redraw(REMAP_ALL);
-		redraw_previews();
-		set_cursor_waiting(FALSE);
-}
-
-void on_button_rotation_close_clicked(GtkButton *button, gpointer user_data) {
-	delete_selected_area();
-	siril_close_dialog("rotation_dialog");
-}
-
-void on_button_rotation_ok_clicked(GtkButton *button, gpointer user_data) {
-	rotate_gui(&gfit);
-}
-
-void on_spin_rotation_value_changed(GtkSpinButton *button, gpointer user_data) {
-	if (com.selection.w != 0 && com.selection.h != 0) {
-		gui.rotation = gtk_spin_button_get_value(button);
-		redraw(REDRAW_OVERLAY);
-	}
-}
-
-void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (!gtk_toggle_button_get_active(button)) {
-		rectangle area = {0, 0, gfit.rx, gfit.ry};
-		memcpy(&com.selection, &area, sizeof(rectangle));
-		new_selection_zone();
-	}
-}
-
-/*************
- * RESAMPLE
- */
-
-/* Resample */
-
-void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
-	if (confirm_delete_wcs_keywords(&gfit)) {
-		double sample[2];
-		sample[0] = gtk_spin_button_get_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
-		sample[1] = gtk_spin_button_get_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
-		int interpolation = gtk_combo_box_get_active(
-				GTK_COMBO_BOX(lookup_widget("combo_interpolation")));
-
-		set_cursor_waiting(TRUE);
-		int toX = round_to_int((sample[0] / 100.0) * gfit.rx);
-		int toY = round_to_int((sample[1] / 100.0) * gfit.ry);
-		undo_save_state(&gfit, _("Resample (%g - %g)"), sample[0] / 100.0,
-				sample[1] / 100.0);
-		verbose_resize_gaussian(&gfit, toX, toY, interpolation);
-		
-		redraw(REMAP_ALL);
-		redraw_previews();
-		update_MenuItem();
-		set_cursor_waiting(FALSE);
-	}
-}
-
-void on_button_resample_close_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("resample_dialog");
-}
-
-void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton,
-		gpointer user_data) {
-	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(
-			lookup_widget("button_sample_ratio"));
-	double xvalue = gtk_spin_button_get_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
-
-	if (gtk_toggle_button_get_active(ratio))
-		gtk_spin_button_set_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")),
-				xvalue);
-}
-
-void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton,
-		gpointer user_data) {
-	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(
-			lookup_widget("button_sample_ratio"));
-	double yvalue = gtk_spin_button_get_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
-
-	if (gtk_toggle_button_get_active(ratio))
-		gtk_spin_button_set_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")),
-				yvalue);
-}
-
-void on_button_sample_ratio_toggled(GtkToggleButton *button, gpointer user_data) {
-	double xvalue = gtk_spin_button_get_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
-
-	if (gtk_toggle_button_get_active(button))
-		gtk_spin_button_set_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")),
-				xvalue);
-}
-
-/**************
- * CROP
- */
-void siril_crop() {
-	undo_save_state(&gfit, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
-			com.selection.x, com.selection.y, com.selection.w,
-			com.selection.h);
-	if (is_preview_active()) {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("A live preview session is active"),
-				_("It is impossible to crop the image when a filter with preview session is active. "
-						"Please consider to close the filter dialog first."));
-		return;
-	}
-	crop(&gfit, &com.selection);
-	delete_selected_area();
-	reset_display_offset();
-	update_zoom_label();
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
 }
 
 gint64 crop_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
@@ -737,41 +553,9 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->load_new_sequence = TRUE;
 	args->user = crop_sequence_data;
 
+	remove_prefixed_sequence_files(crop_sequence_data->seq, crop_sequence_data->prefix);
 	start_in_new_thread(generic_sequence_worker, args);
 
 	return 0;
 }
 
-/*** GUI for crop sequence */
-void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
-	if (get_thread_run()) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
-	}
-
-#ifdef HAVE_FFMS2
-	if (com.seq.type == SEQ_AVI) {
-		siril_log_message(_("Crop does not work with "
-				"avi film. Please, convert your file to SER first.\n"));
-		return;
-	}
-#endif
-	if (com.seq.type == SEQ_INTERNAL) {
-		siril_log_message(_("Not a valid sequence for cropping.\n"));
-	}
-
-	struct crop_sequence_data *args = malloc(sizeof(struct crop_sequence_data));
-
-	GtkEntry *cropped_entry = GTK_ENTRY(lookup_widget("cropped_entry"));
-
-	args->seq = &com.seq;
-	memcpy(&args->area, &com.selection, sizeof(rectangle));
-	args->prefix = gtk_entry_get_text(cropped_entry);
-
-	set_cursor_waiting(TRUE);
-	crop_sequence(args);
-}
-
-void on_crop_close_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("crop_dialog");
-}

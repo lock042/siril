@@ -11,8 +11,13 @@ int	process_asinh(int nb);
 
 int	process_bg(int nb);
 int	process_bgnoise(int nb);
+int	process_denoise(int nb);
+gpointer run_nlbayes_on_fit(gpointer p);
+gpointer run_bm3d_on_fit(gpointer p);
+
 int	process_boxselect(int nb);
 
+int	process_capabilities(int nb);
 int	process_cd(int nb);
 int	process_cdg(int nb);
 int	process_crop(int nb);
@@ -76,9 +81,10 @@ int	process_offset(int nb);
 
 int process_ght(int nb);
 int process_invght(int nb);
+int process_invmodasinh(int nb);
+int process_invmtf(int nb);
 int process_linstretch(int nb);
 int process_modasinh(int nb);
-int process_invmodasinh(int nb);
 
 int	process_pcc(int nb);
 int	process_pm(int nb);
@@ -119,6 +125,7 @@ int	process_seq_crop(int nb);
 int	process_seq_extractHa(int nb);
 int	process_seq_extractGreen(int nb);
 int	process_seq_extractHaOIII(int nb);
+int	process_seq_findstar(int nb);
 int	process_seq_header(int nb);
 int	process_seq_mtf(int nb);
 int	process_seq_psf(int nb);
@@ -133,6 +140,7 @@ int	process_set_cpu(int nb);
 #endif
 int	process_set_ext(int nb);
 int	process_set_findstar(int nb);
+int	process_set_stfbits(int nb);
 int	process_set_mag(int nb);
 int	process_set_mag_seq(int nb);
 int	process_set_mem(int nb);

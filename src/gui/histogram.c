@@ -26,6 +26,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_app_dirs.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -54,7 +55,7 @@
 static int invocation = NO_STRETCH_SET_YET;
 
 // Parameters for use in calculations
-static double _B = 0.5, _D = 0.0, _BP = 0.0, _LP = 0.0, _SP = 0.0, _HP = 1.0;
+static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0f;
 static gboolean do_channel[3];
 static int _stretchtype = STRETCH_PAYNE_NORMAL;
 static int _payne_colourstretchmodel = COL_INDEP;
@@ -99,7 +100,23 @@ static void clear_hist_backup() {
 	}
 }
 
+static void init_toggles() {
+	if (!toggles[0]) {
+		toggles[0] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolRed"));
+		toggles[1] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGreen"));
+		toggles[2] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolBlue"));
+		do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
+		do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
+		do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
+		toggles[3] = NULL;
+		toggleGrid = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGrid"));
+		toggleCurve = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolCurve"));
+		toggleOrig = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolOrig"));
+	}
+}
+
 static void histo_startup() {
+	init_toggles();
 	do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
 	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
 	do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
@@ -137,7 +154,7 @@ static void histo_recompute() {
 		apply_linked_mtf_to_fits(get_preview_gfit_backup(), &gfit, params, TRUE);
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
-		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (double) _LP, .SP = (double) _SP, .HP = (double) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
+		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
 		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, compute_params, TRUE);
 	}
@@ -197,21 +214,6 @@ static void _update_clipped_pixels(size_t data) {
 static int is_histogram_visible() {
 	GtkWidget *window = lookup_widget("histogram_dialog");
 	return gtk_widget_get_visible(window);
-}
-
-static void init_toggles() {
-	if (!toggles[0]) {
-		toggles[0] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolRed"));
-		toggles[1] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGreen"));
-		toggles[2] = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolBlue"));
-		do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
-		do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
-		do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
-		toggles[3] = NULL;
-		toggleGrid = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGrid"));
-		toggleCurve = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolCurve"));
-		toggleOrig = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolOrig"));
-	}
 }
 
 // sets the channel names of the toggle buttons in the histogram window, based on
@@ -384,7 +386,7 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
 		for (k = 0; k < width + 1; k++) {
 			float x = k / (float) width;
-			float y = (float) GHT((double) x, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, compute_params);
+			float y = (float) GHT((float) x, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, &compute_params);
 			cairo_line_to(cr, k, height * (1 - y));
 		}
 	}
@@ -491,11 +493,7 @@ void display_scale(cairo_t *cr, int width, int height) {
 		draw_slider(cr, width, height, _shadows * width);
 		draw_slider(cr, width, height, (delta) * width);
 		draw_slider(cr, width, height, _highlights * width);
-/*	} else if (invocation == GHT_STRETCH) {
-		draw_slider(cr, width, height, _shadows * width);
-		draw_slider(cr, width, height, _midtones * width);
-		draw_slider(cr, width, height, _highlights * width);
-*/	}
+	}
 }
 
 void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
@@ -540,13 +538,13 @@ void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 
 	// first loop builds the bins and finds the maximum
 	i = 0;
-	float graph_height = 0.f;
+	double graph_height = 0.f;
 	current_bin = 0;
 	do {
-		float bin_val = 0.f;
+		double bin_val = 0.f;
 		while (i < nb_orig_bins
-				&& (float)i / vals_per_px <= (float)current_bin + 0.5f) {
-			bin_val += (float)gsl_histogram_get(histo, i);
+				&& (double)i / vals_per_px <= current_bin + 0.5f) {
+			bin_val += gsl_histogram_get(histo, i);
 			i++;
 		}
 		if (is_log_scale() && bin_val != 0.f) {
@@ -558,7 +556,7 @@ void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 		current_bin++;
 	} while (i < nb_orig_bins && current_bin < nb_bins_allocated);
 	for (i = 0; i < nb_bins_allocated; i++) {
-		float bin_height = height - height * displayed_values[i] / graph_height;
+		double bin_height = height - height * displayed_values[i] / graph_height;
 		cairo_line_to(cr, i, bin_height);
 	}
 	cairo_stroke(cr);
@@ -585,14 +583,14 @@ static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 		float pxl = ((float)i / norm);
 		guint64 clip[2] = { 0, 0 };
 
-		if (i < round_to_WORD(lo * norm)) {
+		if (i < roundf_to_WORD(lo * norm)) {
 			pxl = lo;
 			clip[0] += binval;
-		} else if (i > round_to_WORD(hi * norm)) {
+		} else if (i > roundf_to_WORD(hi * norm)) {
 			pxl = hi;
 			clip[1] += binval;
 		}
-		mtf = round_to_WORD(MTF(pxl, m, lo, hi) * norm);
+		mtf = roundf_to_WORD(MTF(pxl, m, lo, hi) * norm);
 		gsl_histogram_accumulate(mtf_histo, (double)mtf, (double)binval);
 #ifndef __APPLE__
 #ifdef _OPENMP
@@ -624,19 +622,19 @@ static void apply_ght_to_histo(gsl_histogram *histo, float norm,
 #endif
 #endif
 	for (size_t i = 0; i < int_norm + 1; i++) {
-		double ght;
+		float ght;
 		float binval = gsl_histogram_get(histo, i);
 		float pxl = ((float)i / norm);
 		guint64 clip[2] = { 0, 0 };
 
-		if (i < round_to_WORD(lo * norm)) {
+		if (i < roundf_to_WORD(lo * norm)) {
 			pxl = lo;
 			clip[0] += binval;
-		} else if (i > round_to_WORD(hi * norm)) {
+		} else if (i > roundf_to_WORD(hi * norm)) {
 			pxl = hi;
 			clip[1] += binval;
 		}
-		ght = round_to_WORD(GHT((double)pxl, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, compute_params) * norm);
+		ght = roundf_to_WORD(GHT(pxl, _B, _D, _LP, _SP, _HP, _BP, _stretchtype, &compute_params) * norm);
 		gsl_histogram_accumulate(mtf_histo, (double) ght, (double) binval);
 #ifndef __APPLE__
 #ifdef _OPENMP
@@ -658,12 +656,12 @@ static void reset_cursors_and_values() {
 		_midtones = 0.5f;
 		_highlights = 1.0f;
 	} else if (invocation == GHT_STRETCH) {
-		_D = 0.0;
-		_B = 0.0;
-		_SP = 0.0;
-		_LP = 0.0;
-		_HP = 1.0;
-		_BP = 0.0;
+		_D = 0.0f;
+		_B = 0.0f;
+		_SP = 0.0f;
+		_LP = 0.0f;
+		_HP = 1.0f;
+		_BP = 0.0f;
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtD")), _D);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtB")), _B);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtSP")), _SP);
@@ -671,7 +669,6 @@ static void reset_cursors_and_values() {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP")), _HP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtBP")), _BP);
 	}
-//	graph_height = 0.f;
 	_init_clipped_pixels();
 	_initialize_clip_text();
 	_update_entry_text();
@@ -696,7 +693,7 @@ static void update_histo_mtf() {
 			if (invocation == HISTO_STRETCH) {
 				apply_mtf_to_histo(com.layers_hist[i], norm, _midtones, _shadows, _highlights);
 			} else if (invocation == GHT_STRETCH) {
-				apply_ght_to_histo(com.layers_hist[i], norm, (float) _SP, (float) _BP, 1.0);
+				apply_ght_to_histo(com.layers_hist[i], norm, _SP, _BP, 1.0f);
 			}
 		}
 	}
@@ -890,11 +887,11 @@ gboolean on_scale_key_release_event(GtkWidget *widget, GdkEvent *event,
 
 void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (invocation == HISTO_STRETCH) {
-		if ((_midtones == 0.5f) && (_shadows == 0.f) && (_highlights == 1.f)) {
+		if ((_midtones == 0.5f) && (_shadows == 0.0f) && (_highlights == 1.0f)) {
 			return;
 		}
 	} else if (invocation == GHT_STRETCH) {
-		if ((_D == 0) && (_BP == 0)) {
+		if ((_D == 0.0f) && (_BP == 0.0f)) {
 			return;
 		}
 	}
@@ -996,7 +993,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 	if (!find_linked_midtones_balance_default(get_preview_gfit_backup(), &params)) {
 		_shadows = params.shadows;
 		_midtones = params.midtones;
-		_highlights = 1.f;
+		_highlights = 1.0f;
 		_update_entry_text();
 		histo_update_preview();
 	} else {
@@ -1042,12 +1039,12 @@ void setup_ght_dialog() {
 			gtk_widget_show(w);
 			g_free(image);
 			// Set default parameters
-			_D = 0.0;
-			_B = 0.0;
-			_BP = 0.0;
-			_LP = 0.0;
-			_SP = 0.0;
-			_HP = 1.0;
+			_D = 0.0f;
+			_B = 0.0f;
+			_BP = 0.0f;
+			_LP = 0.0f;
+			_SP = 0.0f;
+			_HP = 1.0f;
 			lp_warning_given = FALSE;
 			hp_warning_given = FALSE;
 			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "ght_");
@@ -1093,9 +1090,7 @@ void updateGHTcontrols() {
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
 			break;
 
-			// This should resize the window to the smallest size that fits the visible widgets
-			// Works initially before the dialog is drawn but not after it's initialised when
-			// changing stretch type.
+			// This resizes the window to the smallest size that fits the visible widgets
 			gtk_window_resize(GTK_WINDOW(lookup_widget("histogram_dialog")),1,1);
 	}
 }
@@ -1233,22 +1228,22 @@ gboolean on_drawingarea_histograms_button_press_event(GtkWidget *widget,
 				break;
 			case STRETCH_PAYNE_NORMAL:
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_PAYNE_INVERSE);
-				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_PAYNE_INVERSE, compute_params);
+				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_PAYNE_INVERSE, &compute_params);
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_PAYNE_NORMAL);
 				break;
 			case STRETCH_PAYNE_INVERSE:
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_PAYNE_NORMAL);
-				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_PAYNE_NORMAL, compute_params);
+				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_PAYNE_NORMAL, &compute_params);
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_PAYNE_INVERSE);
 				break;
 			case STRETCH_ASINH:
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_INVASINH);
-				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_INVASINH, compute_params);
+				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_INVASINH, &compute_params);
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_ASINH);
 				break;
 			case STRETCH_INVASINH:
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_ASINH);
-				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_ASINH, compute_params);
+				invxpos = GHT(xpos, _B, _D, _LP, _SP, _HP, _BP, STRETCH_ASINH, &compute_params);
 				GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, STRETCH_INVASINH);
 				break;
 		}
@@ -1289,7 +1284,7 @@ void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
 }
 
 void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
-	_D = expm1(gtk_spin_button_get_value(button));
+	_D = (float) expm1(gtk_spin_button_get_value(button));
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1298,7 +1293,7 @@ void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_spin_ghtB_value_changed(GtkSpinButton *button, gpointer user_data) {
-	_B = gtk_spin_button_get_value(button);
+	_B = (float) gtk_spin_button_get_value(button);
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1307,7 +1302,7 @@ void on_spin_ghtB_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_spin_ghtLP_value_changed(GtkSpinButton *button, gpointer user_data) {
-	_LP = gtk_spin_button_get_value(button);
+	_LP = (float) gtk_spin_button_get_value(button);
 	if (_LP > _SP) {
 		gtk_spin_button_set_value(button,_SP);
 		if (!lp_warning_given) { // Prevent spamming the warning log message
@@ -1325,12 +1320,12 @@ void on_spin_ghtLP_value_changed(GtkSpinButton *button, gpointer user_data) {
 void on_spin_ghtSP_value_changed(GtkSpinButton *button, gpointer user_data) {
 	GtkSpinButton *spin_HP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP"));
 	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
-	_SP = gtk_spin_button_get_value(button);
+	_SP = (float) gtk_spin_button_get_value(button);
 	if (_SP < _LP) {
-		gtk_spin_button_set_value(spin_LP, _SP);
+		gtk_spin_button_set_value(spin_LP, (double) _SP);
 	}
 	if (_SP > _HP) {
-		gtk_spin_button_set_value(spin_HP, _SP);
+		gtk_spin_button_set_value(spin_HP, (double) _SP);
 	}
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
@@ -1344,7 +1339,11 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_LP = GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP"));
 	int chan;
 	imstats* stats[3];
-	double ref = 0;
+	float ref = 0.0f;
+	float norm = 1.0f;
+	if (get_preview_gfit_backup()->type == DATA_USHORT)
+		norm = USHRT_MAX_DOUBLE;
+
 	if (!com.selection.w || !com.selection.h) {
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the point or area to set SP"));
@@ -1358,20 +1357,22 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 				siril_log_message(_("Error: statistics computation failed.\n"));
 				return;
 			}
+			fprintf(stdout,"channel mean: %f\n", stats[chan]->mean);
 			ref += stats[chan]->mean;
 			free_stats(stats[chan]);
 			active_channels++;
 		}
 	}
 	ref /= active_channels;
-	_SP = ref;
+	ref /= norm;
+	_SP = (float) ref;
 	if (_SP < _LP) {
-		gtk_spin_button_set_value(spin_LP, _SP);
+		gtk_spin_button_set_value(spin_LP, (double) _SP);
 	}
 	if (_SP > _HP) {
-		gtk_spin_button_set_value(spin_HP, _SP);
+		gtk_spin_button_set_value(spin_HP, (double) _SP);
 	}
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtSP")),_SP);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtSP")), (double) _SP);
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1380,7 +1381,7 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_spin_ghtHP_value_changed(GtkSpinButton *button, gpointer user_data) {
-	_HP = gtk_spin_button_get_value(button);
+	_HP = (float) gtk_spin_button_get_value(button);
 	if (_HP < _SP) {
 		gtk_spin_button_set_value(button, _SP);
 		if (!hp_warning_given) { // Prevent spamming the warning log message
@@ -1397,7 +1398,7 @@ void on_spin_ghtHP_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_spin_ghtBP_value_changed(GtkSpinButton *button, gpointer user_data) {
-	_BP = gtk_spin_button_get_value(button);
+	_BP = (float) gtk_spin_button_get_value(button);
 	if (_stretchtype == STRETCH_LINEAR) {
 		update_histo_mtf();
 		queue_window_redraw();

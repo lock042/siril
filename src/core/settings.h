@@ -128,6 +128,7 @@ struct comp_config {
 struct gui_config {
 	gboolean first_start;		// use to display information at first use
 	gboolean silent_quit;
+	gboolean silent_linear;
 	gboolean remember_windows;	// restore windows at their previous location
 	rectangle main_w_pos;
 	gint pan_position;
@@ -152,6 +153,7 @@ struct gui_config {
 
 	// single registration GUI variable
 	int reg_settings;	// selected registration method
+	GSList *pm_presets; // list of pixel math presets
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
@@ -179,6 +181,7 @@ typedef struct {
 	double roundness;
 	double focal_length;
 	double pixel_size_x;
+	int convergence;
 	gboolean relax_checks;
 } star_finder_params;
 
@@ -193,10 +196,13 @@ struct pref_struct {
 	gchar *wd;		// saved working directory, not impacted by scripts like com.wd
 	gchar *ext;		// FITS extension used in SIRIL
 	gboolean force_16bit;	// don't use 32 bits for pixel depth
+	gboolean allow_heterogeneous_fitseq; // allow images in FITS cubes to have different sizes
 
 	enum { RATIO, AMOUNT } mem_mode; // mode of memory management
 	double memory_ratio;		// ratio of available memory to use for stacking (and others)
 	double memory_amount;		// amount of memory in GB to use for stacking (and others)
+
+	int hd_bitdepth; // Default bit depth for HD AutoStretch
 
 	gboolean script_check_requires;	// check the requires command in scripts
 	gboolean pipe_check_requires;	// check the requires command in pipes

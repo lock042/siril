@@ -28,6 +28,7 @@
 #include "core/undo.h"
 #include "core/OS_utils.h"
 #include "core/optimize_utils.h"
+#include "core/siril_log.h"
 #include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
@@ -235,7 +236,7 @@ deviant_pixel* find_deviant_pixels(fits *fit, const double sig[2], long *icold,
 
 	if (eval_only) return NULL;
 
-	/** Second we store deviant pixels in p */
+	/** Second we store deviant pixels in dev */
 	int n = (*icold) + (*ihot);
 	if (n <= 0)
 		return NULL;
@@ -794,4 +795,13 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 		undo_save_state(&gfit, _("Cosmetic Correction"));
 		start_in_new_thread(autoDetectThreaded, args);
 	}
+}
+
+int denoise_hook_cosmetic(fits *fit) {
+	long icold = 0, ihot = 0;
+	double sig[2] = { 3.0, 3.0 };
+	for (size_t layer = 0; layer < fit->naxes[2] ; layer++) {
+		autoDetect(fit, layer, sig, &icold, &ihot, 1.0, FALSE, MULTI_THREADED);
+	}
+	return 0;
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2020 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/preprocess.h"
+#include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/PSF_list.h"	// clear_stars_list
 #include "io/conversion.h"
@@ -227,7 +228,7 @@ int start_livestacking(gboolean with_filewatcher) {
 		livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, REGISTRATION_TYPE);
 	}
 
-	do_links = test_if_symlink_is_ok();
+	do_links = test_if_symlink_is_ok(TRUE);
 
 	new_files_queue = g_async_queue_new();
 	if (with_filewatcher) {
@@ -440,7 +441,6 @@ static int start_global_registration(sequence *seq) {
 	reg_args.func = &register_star_alignment; // TODO: ability to choose a method
 	reg_args.seq = seq;
 	reg_args.reference_image = 0;
-	reg_args.process_all_frames = TRUE;
 	reg_args.layer = (seq->nb_layers == 3) ? 1 : 0;
 	reg_args.run_in_thread = FALSE;
 	reg_args.follow_star = FALSE;
@@ -460,7 +460,7 @@ static int start_global_registration(sequence *seq) {
 		return 1;*/
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
-	if (!reg_args.process_all_frames) {
+	if (reg_args.filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = seq->selnum;
 	}
@@ -727,7 +727,7 @@ static gpointer live_stacker(gpointer arg) {
 		clean_end_stacking(&stackparam);
 		free_sequence(&r_seq, FALSE);
 		free(stackparam.image_indices);
-		free(stackparam.description);
+		g_free(stackparam.description);
 
 		if (retval) {
 			gchar *str = g_strdup_printf(_("Stacking failed for image %d"), index);

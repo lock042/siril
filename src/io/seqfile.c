@@ -32,6 +32,7 @@
 
 #include "core/siril.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "io/fits_sequence.h"
 #include "io/ser.h"

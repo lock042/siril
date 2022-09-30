@@ -35,6 +35,7 @@
 static const SirilDialogEntry entries[] =
 {
 	{"asinh_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_asinh_cancel},
+	{"denoise_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"background_extraction_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_background_cancel},
 	{"canon_fixbanding_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"CLAHE_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_clahe_cancel},
@@ -150,4 +151,41 @@ void siril_close_preview_dialogs() {
 			gtk_widget_hide(w);
 		}
 	}
+}
+
+/************ file chooser ************/
+
+SirilWidget *siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action) {
+	gchar *title;
+	SirilWidget *w;
+	if (action == GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER) {
+		title = g_strdup(_("Select Folder"));
+	} else {
+		title = g_strdup(_("Open File"));
+	}
+	w = gtk_file_chooser_dialog_new(title, parent, action, _("_Cancel"),
+			GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT,
+			NULL);
+	g_free(title);
+	return w;
+}
+
+SirilWidget *siril_file_chooser_add(GtkWindow *parent, GtkFileChooserAction action) {
+	return gtk_file_chooser_dialog_new(_("Add Files"), parent, action,
+			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Add"), GTK_RESPONSE_ACCEPT,
+			NULL);
+}
+
+SirilWidget *siril_file_chooser_save(GtkWindow *parent, GtkFileChooserAction action) {
+	return gtk_file_chooser_dialog_new(_("Save File"), parent, action,
+			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Save"), GTK_RESPONSE_ACCEPT,
+			NULL);
+}
+
+gint siril_dialog_run(SirilWidget *widgetdialog) {
+	return gtk_dialog_run(GTK_DIALOG(GTK_FILE_CHOOSER(widgetdialog)));
+}
+
+void siril_widget_destroy(SirilWidget *widgetdialog) {
+	gtk_widget_destroy(widgetdialog);
 }

@@ -41,6 +41,7 @@
 #include "gui/message_dialog.h"
 #include "gui/dialog_preview.h"
 #include "gui/conversion.h"
+#include "gui/dialogs.h"
 
 #include "open_dialog.h"
 
@@ -425,3 +426,4 @@ void on_open_recent_action_item_activated(GtkRecentChooser *chooser,
 	g_free(uri);
 	g_free(path);
 }
+

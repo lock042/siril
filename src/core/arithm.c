@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "algos/statistics.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -276,6 +277,7 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 		}
 	}
 	invalidate_stats_from_fit(a);
+	a->neg_ratio = 0.0f;
 	return 0;
 }
 
@@ -300,6 +302,7 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 	}
 	else return 1;
 
+	size_t nb_negative = 0;
 	for (size_t i = 0; i < n; ++i) {
 		float aval = a->type == DATA_USHORT ? ushort_to_float_bitpix(a, a->data[i]) : a->fdata[i];
 		float bval = b->type == DATA_USHORT ? ushort_to_float_bitpix(b, b->data[i]) : b->fdata[i];
@@ -324,10 +327,13 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 			result[i] = 1.0f;
 		if (result[i] < -1.0f)	// Here we want to clip all garbages pixels.
 			result[i] = 0.0f;
+		if (result[i] < 0.0f)
+			nb_negative++;
 	}
-	if (a->type == DATA_USHORT) {
+	a->neg_ratio = (float)((double)nb_negative / n);
+	if (a->type == DATA_USHORT)
 		fit_replace_buffer(a, result, DATA_FLOAT);
-	} else invalidate_stats_from_fit(a);
+	else invalidate_stats_from_fit(a);
 	return 0;
 }
 

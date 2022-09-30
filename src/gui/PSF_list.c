@@ -26,6 +26,7 @@
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_world_cs.h"
+#include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
@@ -208,41 +209,51 @@ static void display_PSF(psf_star **result) {
 		double FWHMx = 0.0, FWHMy = 0.0, B = 0.0, A = 0.0, r = 0.0, angle = 0.0,
 				rmse = 0.0;
 		gboolean unit_is_arcsec;
+		int n = 0, layer;
 
 		while (result[i]) {
 			double fwhmx, fwhmy;
 			char *unit;
 			gboolean is_as = get_fwhm_as_arcsec_if_possible(result[i], &fwhmx, &fwhmy, &unit);
-			if (i == 0)
+			if (i == 0) {
 				unit_is_arcsec = is_as;
+				layer = result[i]->layer;
+			}
 			else if (is_as != unit_is_arcsec) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
 						_("Stars FWHM must have the same units."));
 				return;
 			}
-
-			B += result[i]->B;
-			A += result[i]->A;
-			FWHMx += fwhmx;
-			FWHMy += fwhmy;
-			angle += result[i]->angle;
-			rmse += result[i]->rmse;
+			else if (layer != result[i]->layer ) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
+						_("Stars properties must all be computed on the same layer"));
+				return;
+			}
+			if (!result[i]->has_saturated) {
+				B += result[i]->B;
+				A += result[i]->A;
+				FWHMx += fwhmx;
+				FWHMy += fwhmy;
+				angle += result[i]->angle;
+				rmse += result[i]->rmse;
+				n++;
+				}
 			i++;
 		}
-		if (i <= 0) return;
+		if (i <= 0 || n <= 0) return;
 		/* compute average */
-		B = B / (double)i;
-		A = A / (double)i;
-		FWHMx = FWHMx / (double)i;
-		FWHMy = FWHMy / (double)i;
+		B = B / (double)n;
+		A = A / (double)n;
+		FWHMx = FWHMx / (double)n;
+		FWHMy = FWHMy / (double)n;
 		r = FWHMy / FWHMx;
-		angle = angle / (double)i;
-		rmse = rmse / (double)i;
+		angle = angle / (double)n;
+		rmse = rmse / (double)n;
 
 		msg = g_strdup_printf(_("Average Gaussian PSF\n\n"
-				"N:\t%d stars\nB:\t%.6f\nA:\t%.6f\nFWHMx:\t%.2f%s\n"
+				"N:\t%d stars (%d saturated and excluded)\nB:\t%.6f\nA:\t%.6f\nFWHMx:\t%.2f%s\n"
 				"FWHMy:\t%.2f%s\nr:\t%.3f\nAngle:\t%.2f deg\nrmse:\t%.3e\n"),
-				i, B, A, FWHMx, result[0]->units, FWHMy,
+				i, i - n, B, A, FWHMx, result[0]->units, FWHMy,
 				result[0]->units, r, angle, rmse);
 		show_data_dialog(msg, _("Average Star Data"), "stars_list_window", NULL);
 		g_free(msg);
@@ -307,67 +318,67 @@ static void remove_all_stars(){
 	redraw(REDRAW_OVERLAY);
 }
 
-static int save_list(gchar *filename) {
+#define HANDLE_WRITE_ERR \
+	g_warning("%s\n", error->message); \
+	g_clear_error(&error); \
+	g_object_unref(output_stream); \
+	g_object_unref(file); \
+	return 1
+
+int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, gboolean verbose) {
 	int i = 0;
-	if (!com.stars)
-		return 1;
 	GError *error = NULL;
-	gboolean is_in_arcsec = FALSE;
 
 	GFile *file = g_file_new_for_path(filename);
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
 			G_FILE_CREATE_NONE, NULL, &error);
 
-	if (output_stream == NULL) {
-		if (error != NULL) {
-			g_warning("%s\n", error->message);
+	if (!output_stream) {
+		if (error) {
+			siril_log_message(_("Cannot save star list %s: %s\n"), filename, error->message);
 			g_clear_error(&error);
-			fprintf(stderr, "save_list: Cannot save star list\n");
 		}
 		g_object_unref(file);
 		return 1;
 	}
-
-	gchar *buffer = g_strdup_printf("star#\tlayer\tB\tA\tX\tY\tFWHMx [%s]\tFWHMy [%s]\tangle\tRMSE\tmag%s", com.stars[0]->units,com.stars[0]->units,SIRIL_EOL);
-	if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
-		g_warning("%s\n", error->message);
-		g_free(buffer);
-		g_clear_error(&error);
-		g_object_unref(output_stream);
-		g_object_unref(file);
-		return 1;
+	if (nbstars <= 0) {
+		// unknown by caller
+		nbstars = 0;
+		if (stars)
+			while (stars[nbstars++]);
 	}
-	g_free(buffer);
-	if (com.stars[0]) {
-		is_in_arcsec = com.stars[0]->fwhmx_arcsec > 0;
-	}
-	while (com.stars[i]) {
-		if (is_in_arcsec) { 
-			buffer = g_strdup_printf(
-					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
-					i + 1, com.stars[i]->layer, com.stars[i]->B, com.stars[i]->A,
-					com.stars[i]->xpos, com.stars[i]->ypos, com.stars[i]->fwhmx_arcsec,
-					com.stars[i]->fwhmy_arcsec, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag + com.magOffset, SIRIL_EOL);
-		} else {
-			buffer = g_strdup_printf(
-					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
-					i + 1, com.stars[i]->layer, com.stars[i]->B, com.stars[i]->A,
-					com.stars[i]->xpos, com.stars[i]->ypos, com.stars[i]->fwhmx,
-					com.stars[i]->fwhmy, com.stars[i]->angle, com.stars[i]->rmse, com.stars[i]->mag + com.magOffset, SIRIL_EOL);
-		}
 
-		if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
-			g_warning("%s\n", error->message);
-			g_free(buffer);
-			g_clear_error(&error);
-			g_object_unref(output_stream);
-			g_object_unref(file);
-			return 1;
+	char buffer[300];
+	int len = snprintf(buffer, 300, "# %d stars found using the following parameters:%s", nbstars, SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
+	len = snprintf(buffer, 300, "# sigma=%3.2f roundness=%3.2f radius=%d auto_adjust=%d relax=%d max_stars=%d%s",
+			sf->sigma, sf->roundness, sf->radius, sf->adjust, sf->relax_checks, max_stars_fitted, SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
+	len = snprintf(buffer, 300,
+			"# star#\tlayer\tB\tA\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag%s",
+			SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
+	if (stars) {
+		while (stars[i]) {
+			len = snprintf(buffer, 300,
+					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
+					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A,
+					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
+					stars[i]->fwhmy, stars[i]->fwhmx_arcsec ,stars[i]->fwhmy_arcsec,
+					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, SIRIL_EOL);
+		if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+			HANDLE_WRITE_ERR;
 		}
 		i++;
-		g_free(buffer);
 	}
-	siril_log_message(_("The file %s has been created.\n"), filename);
+	}
+	if (verbose) siril_log_message(_("The file %s has been created.\n"), filename);
 	g_object_unref(output_stream);
 	g_object_unref(file);
 
@@ -399,7 +410,7 @@ static void save_stars_dialog() {
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = gtk_file_chooser_get_filename(dialog);
-		save_list(file);
+		save_list(file, MAX_STARS, com.stars, 0, &com.pref.starfinder_conf, TRUE);
 
 		g_free(file);
 	}
@@ -552,8 +563,8 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 	else
 		str = _("relative");
 
-	double x = result->x0 + area->x - 0.5;
-	double y = area->y + area->h - result->y0 + 0.5;
+	double x = result->x0 + area->x;
+	double y = area->y + area->h - result->y0;
 	if (has_wcs(&gfit)) {
 		double world_x, world_y;
 		SirilWorldCS *world_cs;

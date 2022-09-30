@@ -29,6 +29,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "gui/utils.h"
@@ -86,8 +87,8 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 	/* if there are less images in the sequence than threads, we still
 	 * distribute them */
-	if (args->max_parallel_images > nb_frames - 1)
-		args->max_parallel_images = nb_frames - 1;
+	if (args->max_parallel_images > nb_frames)
+		args->max_parallel_images = nb_frames;
 
 	siril_log_message(_("%s: with the current memory and thread limits, up to %d thread(s) can be used\n"),
 			args->description, args->max_parallel_images);
@@ -308,9 +309,11 @@ gpointer generic_sequence_worker(gpointer p) {
 		siril_log_message(_("Finalizing sequence processing failed.\n"));
 		abort = 1;
 	}
-	if (abort) {
+	if (abort || excluded_frames == nb_frames) {
 		set_progress_bar_data(_("Sequence processing failed. Check the log."), PROGRESS_RESET);
 		siril_log_color_message(_("Sequence processing failed.\n"), "red");
+		if (!abort)
+			abort = 1;
 		args->retval = abort;
 	}
 	else {

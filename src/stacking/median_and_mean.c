@@ -26,6 +26,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -769,7 +770,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian(data->stack, stack_size);
 		else {
-			if (args->apply_noise_weights || args->apply_nbstack_weights) {
+			if (args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights) {
 				double *pweights = args->weights + layer * stack_size;
 				WORD pmin = 65535, pmax = 0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -787,7 +788,9 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 						norm += pweights[frame];
 					}
 				}
-				mean = sum / norm;
+				if (norm == 0.0)
+					mean = sum / (double)kept_pixels;
+				else mean = sum / norm;
 			} else {
 				gint64 sum = 0L;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -801,7 +804,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		if (kept_pixels == 0)
 			mean = quickmedian_float(data->stack, stack_size);
 		else {
-			if (args->apply_noise_weights || args->apply_nbstack_weights) {
+			if (args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights) {
 				double *pweights = args->weights + layer * stack_size;
 				float pmin = 10000.0, pmax = -10000.0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -818,7 +821,9 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 						norm += pweights[frame];
 					}
 				}
-			mean = sum / norm;
+				if (norm == 0.0)
+					mean = sum / (double)kept_pixels;
+				else mean = sum / norm;
 			} else {
 				double sum = 0.0;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
@@ -860,6 +865,95 @@ static int compute_noise_weights(struct stacking_args *args) {
 
 		for (int i = 0; i < args->nb_images_to_stack; i++) {
 			pweights[layer][i] /= norm;
+		}
+	}
+	return ST_OK;
+}
+
+static int compute_wfwhm_weights(struct stacking_args *args) {
+	int nb_frames = args->nb_images_to_stack;
+	int nb_layers = args->seq->nb_layers;
+	double fwhmmin = DBL_MAX;
+	double fwhmmax = -DBL_MAX;
+	double invdenom, invfwhmax2;
+
+	if (!layer_has_registration(args->seq, args->reglayer)) {
+		siril_log_color_message(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), "red", "wFWHM");
+		return ST_GENERIC_ERROR;
+	}
+
+	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+	double *pweights[3];
+
+	for (int i = 0; i < args->nb_images_to_stack; ++i) {
+		int idx = args->image_indices[i];
+		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm < fwhmmin && args->seq->regparam[args->reglayer][idx].weighted_fwhm > 0) fwhmmin = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
+		if (args->seq->regparam[args->reglayer][idx].weighted_fwhm > fwhmmax) fwhmmax = args->seq->regparam[args->reglayer][idx].weighted_fwhm;
+	}
+	invdenom = 1. / (1. / (fwhmmin * fwhmmin) - 1. / (fwhmmax * fwhmmax));
+	invfwhmax2 = 1. / (fwhmmax * fwhmmax);
+
+	for (int layer = 0; layer < nb_layers; ++layer) {
+		double norm = 0.0;
+		pweights[layer] = args->weights + layer * nb_frames;
+		for (int i = 0; i < args->nb_images_to_stack; ++i) {
+			int idx = args->image_indices[i];
+			if (args->seq->regparam[args->reglayer][idx].weighted_fwhm > 0) {
+				pweights[layer][i] = (1. / (args->seq->regparam[args->reglayer][idx].weighted_fwhm * args->seq->regparam[args->reglayer][idx].weighted_fwhm) - invfwhmax2) * invdenom;
+				norm += pweights[layer][i];
+			} else {
+				pweights[layer][i] = 0.;
+			}
+		}
+		norm /= (double) nb_frames;
+
+		for (int i = 0; i < args->nb_images_to_stack; i++) {
+			pweights[layer][i] /= norm;
+			siril_debug_print("Image #%d - Layer %d - wFWHM: %3.2f - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->reglayer][args->image_indices[i]].weighted_fwhm, pweights[layer][i]);
+		}
+	}
+	return ST_OK;
+}
+
+static int compute_nbstars_weights(struct stacking_args *args) {
+	int nb_frames = args->nb_images_to_stack;
+	int nb_layers = args->seq->nb_layers;
+	int starmin = INT_MAX;
+	int starmax = 0;
+	double invdenom;
+
+	if (!layer_has_registration(args->seq, args->reglayer)) {
+		siril_log_color_message(_("Sequence does not have registration info, cannot use weighing by %s, aborting\n"), "red", _("number of stars"));
+		return ST_GENERIC_ERROR;
+	}
+
+	args->weights = malloc(nb_layers * nb_frames * sizeof(double));
+	double *pweights[3];
+
+	for (int i = 0; i < args->nb_images_to_stack; ++i) {
+		int idx = args->image_indices[i];
+		if (args->seq->regparam[args->reglayer][idx].number_of_stars < starmin) starmin = args->seq->regparam[args->reglayer][idx].number_of_stars;
+		if (args->seq->regparam[args->reglayer][idx].number_of_stars > starmax) starmax = args->seq->regparam[args->reglayer][idx].number_of_stars;
+	}
+	if (starmax == starmin)
+		invdenom = 1.0;
+	else invdenom = 1. / (double)(starmax - starmin);
+
+	for (int layer = 0; layer < nb_layers; ++layer) {
+		double norm = 0.0;
+		pweights[layer] = args->weights + layer * nb_frames;
+		for (int i = 0; i < args->nb_images_to_stack; ++i) {
+			int idx = args->image_indices[i];
+			pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+				(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+				invdenom * invdenom;
+			norm += pweights[layer][i];
+		}
+		norm /= (double) nb_frames;
+
+		for (int i = 0; i < args->nb_images_to_stack; i++) {
+			pweights[layer][i] /= norm;
+			siril_debug_print("Image #%d - Layer %d - nbstars: %d - weight: %3.2f\n", args->image_indices[i], layer, args->seq->regparam[args->reglayer][args->image_indices[i]].number_of_stars, pweights[layer][i]);
 		}
 	}
 	return ST_OK;
@@ -1087,12 +1181,31 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 
 	if (args->apply_noise_weights) {
-		siril_log_message(_("Computing weights based on image noise...\n"));
+		siril_log_message(_("Computing weights based on noise...\n"));
 		retval = compute_noise_weights(args);
 		if(retval) {
 			retval = ST_GENERIC_ERROR;
 			goto free_and_close;
 		}
+	}
+	if (args->apply_wfwhm_weights) {
+		siril_log_message(_("Computing weights based on wFWHM...\n"));
+		retval = compute_wfwhm_weights(args);
+		if(retval) {
+			retval = ST_GENERIC_ERROR;
+			goto free_and_close;
+		}
+	}
+	if (args->apply_nbstars_weights) {
+		siril_log_message(_("Computing weights based on number of stars...\n"));
+		retval = compute_nbstars_weights(args);
+		if(retval) {
+			retval = ST_GENERIC_ERROR;
+			goto free_and_close;
+		}
+	}
+	if (args->apply_nbstack_weights) {
+		siril_log_message(_("Computing weights based on number of stacked images...\n"));
 	}
 
 	siril_log_message(_("Starting stacking...\n"));

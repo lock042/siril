@@ -64,4 +64,16 @@ enum registration_source {
 	r_FRAME
 };
 
+enum marker_type {
+	X_MIN,
+	X_MAX,
+	Y_MIN,
+	Y_MAX
+};
+
+enum slider_type {
+	X_SLIDER,
+	Y_SLIDER
+};
+
 #endif /* SRC_GUI_PLOT_H_ */

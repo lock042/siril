@@ -25,7 +25,6 @@ struct photometric_cc_data {
 	fits *fit;			// the image to process
 	gboolean bg_auto;		// automatically select an area for bkg neutralization
 	rectangle bg_area;		// the area for background if not bg_auto
-	normalization_channel n_channel;// the reference channel for the white balance
 	gboolean use_local_cat;		// use local NOMAD catalog to get stars
 	online_catalog catalog;		// catalog used for photometry
 

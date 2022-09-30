@@ -29,6 +29,7 @@
 #include "core/proto.h"
 #include "core/command.h" // process_close
 #include "core/OS_utils.h"
+#include "core/siril_log.h"
 #include "algos/colors.h"
 #include "algos/siril_wcs.h"
 #include "io/sequence.h"
@@ -43,6 +44,7 @@
 #include "gui/dialogs.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
+#include "gui/colors.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
@@ -465,12 +467,8 @@ static void check_gfit_is_ours() {
 	 * code taken from stacking.c:start_stacking() and read_single_image() */
 	clear_stars_list(TRUE);
 	com.seq.current = UNRELATED_IMAGE;
-	com.uniq = calloc(1, sizeof(single));
-	com.uniq->comment = strdup(_("Compositing result image"));
-	com.uniq->filename = strdup(_("Unsaved compositing result"));
-	com.uniq->fileexist = FALSE;
-	com.uniq->nb_layers = gfit.naxes[2];
-	com.uniq->fit = &gfit;
+	if (!create_uniq_from_gfit(strdup(_("Unsaved compositing result")), FALSE))
+		com.uniq->comment = strdup(_("Compositing result image"));
 
 	initialize_display_mode();
 	update_zoom_label();
@@ -633,7 +631,7 @@ void create_the_internal_sequence() {
 /* start aligning the layers: create an 'internal' sequence and run the selected method on it */
 void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	int i = 0;
-	struct registration_args regargs;
+	struct registration_args regargs = { 0 };
 	struct registration_method *method;
 	char *msg;
 	GtkComboBox *regcombo;
@@ -645,7 +643,6 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	method = reg_methods[gtk_combo_box_get_active(regcombo)];
 
 	regargs.seq = seq;
-	regargs.process_all_frames = TRUE;
 	get_the_registration_area(&regargs, method);
 	regargs.layer = 0;	// TODO: fix with dynamic layers list
 	regargs.run_in_thread = FALSE;
