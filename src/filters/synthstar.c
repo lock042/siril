@@ -60,8 +60,8 @@ void makemoffat(float *psf, const int size, const float fwhm, const float lum, c
 #endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
-			float xf = x - xoff;
-			float yf = y - yoff;
+			float xf = x - xoff + 0.5f;
+			float yf = y - yoff - 0.5f;
 			psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = lum
 					* powf(1.0f + ((xf * xf + yf * yf) / (alpha * alpha)),
 							-beta);
@@ -78,20 +78,20 @@ void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, fl
 	int halfpsfdim = (size - 1) / 2;
 	float sigma = fwhm / _2_SQRT_2_LOG2;
 	float tss = 2 * sigma * sigma;
-//#ifdef _OPENMP
-//#pragma omp parallel for simd schedule(static,8) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
-//#endif
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static,8) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
-			float xf = x - xoffset;
-			float yf = y - yoffset;
+			float xf = x - xoffset + 0.5f;
+			float yf = y - yoffset - 0.5f;
 			psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = lum
 					* expf(-(((xf * xf) / tss) + ((yf * yf) / tss)));
 		}
 	}
-//#ifdef _OPENMP
-//#pragma omp barrier
-//#endif
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
 	return;
 }
 
@@ -440,9 +440,10 @@ int reprofile_saturated_stars(fits *fit) {
 	float norm = 1.0f, invnorm = 1.0f;
 	if (fit->type == DATA_USHORT) {
 		is_32bit = FALSE;
-		norm = get_normalized_value(fit);
+		norm = (float) get_normalized_value(fit);
 		invnorm = 1.0f / norm;
 	}
+	siril_debug_print("norm %f, invnorm %f\n", (float) norm, (float) invnorm);
 	int dimx = fit->naxes[0];
 	int dimy = fit->naxes[1];
 	int count = dimx * dimy;
@@ -458,17 +459,22 @@ int reprofile_saturated_stars(fits *fit) {
 			buf[1] = (float*) calloc(count, sizeof(float));
 			buf[2] = (float*) calloc(count, sizeof(float));
 			buf_needs_freeing = TRUE;
-			for (size_t n = 0; n < count; n++) {
-				buf[0][n] = fit->pdata[0][n] * invnorm;
-				buf[1][n] = fit->pdata[1][n] * invnorm;
-				buf[2][n] = fit->pdata[2][n] * invnorm;
+			for (size_t i = 0; i < count; i++) {
+				buf[0][i] = (float) fit->pdata[0][i] * invnorm;
+				buf[1][i] = (float) fit->pdata[1][i] * invnorm;
+				buf[2][i] = (float) fit->pdata[2][i] * invnorm;
 			}
 		}
-	} else if (fit->type == DATA_FLOAT)
-		buf[0] = fit->fdata;
-	else
-		for (size_t i = 0; i < count; i++)
-			buf[0][i] = fit->data[i] * invnorm;
+	} else { // mono
+		if (is_32bit)
+			buf[0] = fit->fdata;
+		else {
+			buf[0] = (float*) calloc(count, sizeof(float));
+			buf_needs_freeing = TRUE;
+			for (size_t i = 0; i < count; i++)
+				buf[0][i] = (float) fit->data[i] * invnorm;
+		}
+	}
 
 	// Synthesize a PSF for each saturated star in the star array, based on its measured parameters. To fix saturated star profiles we have to do this for each color channel as we can't rely on the hue and saturation within the saturated area, whereas the profiles will be accurate.
 	image *input_image = NULL;
@@ -489,28 +495,31 @@ int reprofile_saturated_stars(fits *fit) {
 			if (stars[n]->has_saturated) {
 				float lum = (float) stars[n]->A;
 				float bg = (float) stars[n]->B;
+				float sat = (float) stars[n]->sat;
 				if (lum < 0.0f)
 					lum = 0.0f;
-				if (!is_32bit)
+				if (!is_32bit) {
 					lum *= invnorm;
+					bg *= invnorm;
+					sat *= invnorm;
+				}
 				assert(lum >= 0.0f);
 				float xoff = (float) stars[n]->xpos - (int) stars[n]->xpos;
 				float yoff = (float) stars[n]->ypos - (int) stars[n]->ypos;
 				int size = 5.f * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that it should cover the saturated parts of the star
 				if (!(size % 2))
 					size++;
-				float avgfwhm = ((float) stars[n]->fwhmx
-						+ (float) stars[n]->fwhmy) / 2.f;
+				float maxfwhm = (float) max(stars[n]->fwhmx, stars[n]->fwhmy);
 
 				float *psfL = (float*) calloc(size * size, sizeof(float));
-//				makegaussian(psfL, size, avgfwhm, (lum - bg), xoff, yoff);
+//				makegaussian(psfL, size, maxfwhm, (lum - bg), xoff, yoff);
 				float beta = 1.5f;
-				makemoffat(psfL, size, avgfwhm, (lum - bg), xoff, yoff, beta);
+				makemoffat(psfL, size, maxfwhm, (lum - bg), xoff, yoff, beta);
 
 				// Replace the part of the profile above the sat threshold
 				replace_sat_star_in_buffer(psfL, size, buf[chan],
 						(float) stars[n]->xpos, (float) stars[n]->ypos, dimx,
-						dimy, (float) stars[n]->sat, (float) stars[n]->B, 0.f);
+						dimy, sat, bg, 0.f);
 				free(psfL);
 			}
 		}
@@ -530,16 +539,22 @@ int reprofile_saturated_stars(fits *fit) {
 
 	if (!is_32bit) {
 		for (size_t n = 0; n < count; n++) {
-			fit->pdata[0][n] = roundf_to_WORD(buf[0][n] * norm);
 			if (is_RGB) {
+				fit->pdata[0][n] = roundf_to_WORD(buf[0][n] * norm);
 				fit->pdata[1][n] = roundf_to_WORD(buf[0][n] * norm);
 				fit->pdata[2][n] = roundf_to_WORD(buf[0][n] * norm);
 			}
+			else
+				fit->data[n] = roundf_to_WORD(buf[0][n] * norm);
 		}
 	}
-	if (buf_needs_freeing)
-		for (size_t i = 0; i <3; i++)
-			free(buf[i]);
+	if (buf_needs_freeing) {
+		if (is_RGB) {
+			for (size_t i = 0; i <3; i++)
+				free(buf[i]);
+		} else
+			free(buf[0]);
+	}
 
 	if (fit == &gfit)
 		notify_gfit_modified();
