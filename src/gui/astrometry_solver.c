@@ -50,7 +50,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data
 
 static void initialize_ips_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
-			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *frame_cc_norm,
+			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg,
 			*catalog_label_pcc, *force_platesolve;
 	GtkWindow *parent;
 
@@ -62,7 +62,6 @@ static void initialize_ips_dialog() {
 	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
-	frame_cc_norm = lookup_widget("frame_cc_norm");
 	force_platesolve = lookup_widget("force_astrometry_button");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
@@ -75,12 +74,8 @@ static void initialize_ips_dialog() {
 	gtk_widget_set_visible(catalog_box_pcc, FALSE);
 	gtk_widget_set_visible(catalog_auto, TRUE);
 	gtk_widget_set_visible(frame_cc_bkg, FALSE);
-	gtk_widget_set_visible(frame_cc_norm, FALSE);
 	gtk_widget_set_visible(force_platesolve, FALSE);
 	gtk_widget_grab_focus(button_ips_ok);
-
-	// not sure about this one. Fails for a lot of images
-//	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("downsample_ips_button")), gfit.rx > 6000);
 
 	gtk_window_set_title(parent, _("Image Plate Solver"));
 }

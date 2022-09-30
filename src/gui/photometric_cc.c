@@ -62,7 +62,6 @@ enum {
 static rectangle get_bkg_selection();
 
 static void start_photometric_cc() {
-	GtkComboBox *norm_box = GTK_COMBO_BOX(lookup_widget("combo_box_cc_norm"));
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
 	GtkToggleButton *force_platesolve_button = GTK_TOGGLE_BUTTON(lookup_widget("force_astrometry_button"));
 	gboolean plate_solve;
@@ -94,12 +93,10 @@ static void start_photometric_cc() {
 		args->pcc->fit = &gfit;
 		args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
 		args->pcc->bg_area = get_bkg_selection();
-		args->pcc->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
 	}
 
 	pcc_args->fit = &gfit;
 	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
-	pcc_args->n_channel = (normalization_channel) gtk_combo_box_get_active(norm_box);
 	pcc_args->catalog = pcc_args->use_local_cat ? NOMAD : get_photometry_catalog();
 
 	set_cursor_waiting(TRUE);
@@ -172,7 +169,7 @@ static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fi
 	return 0;
 }
 
-static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float kw[], int n_channel) {
+static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float *kw, int norm_channel) {
 	float *data[3];
 	data[RED] = malloc(sizeof(float) * nb_stars);
 	data[GREEN] = malloc(sizeof(float) * nb_stars);
@@ -236,9 +233,9 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		bv2rgb(&r, &g, &b, bv);
 
 		/* get Color calibration factors for current star */
-		data[RED][i] = (flux[n_channel] / flux[RED]) * r;
-		data[GREEN][i] = (flux[n_channel] / flux[GREEN]) * g;
-		data[BLUE][i] = (flux[n_channel] / flux[BLUE]) * b;
+		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
+		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
+		data[BLUE][i] = (flux[norm_channel] / flux[BLUE]) * b;
 
 		if (xisnanf(data[RED][i]) || xisnanf(data[GREEN][i]) || xisnanf(data[BLUE][i])) {
 			data[RED][i] = FLT_MAX;
@@ -290,9 +287,9 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	}
 
 	/* normalize factors */
-	kw[RED] /= (kw[n_channel]);
-	kw[GREEN] /= (kw[n_channel]);
-	kw[BLUE] /= (kw[n_channel]);
+	kw[RED] /= (kw[norm_channel]);
+	kw[GREEN] /= (kw[norm_channel]);
+	kw[BLUE] /= (kw[norm_channel]);
 	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
 	for (int chan = 0; chan < 3; chan++) {
 		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
@@ -306,76 +303,8 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	free(data[GREEN]);
 	free(data[BLUE]);
 
-	return 0;
-}
-
-static int get_background_coefficients(fits *fit, rectangle *area, coeff bg[], gboolean verbose) {
-	if (verbose)
-		siril_log_message(_("Background reference:\n"));
-	// we cannot use compute_all_channels_statistics_single_image because of the area
-	for (int chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC, MULTI_THREADED);
-		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			return 1;
-		}
-		bg[chan].value = stat->median / stat->normValue;
-		bg[chan].channel = chan;
-		if (verbose)
-			siril_log_message("B%d: %.5e\n", chan, bg[chan].value);
-		free_stats(stat);
-	}
-	return 0;
-}
-
-static int apply_white_balance(fits *fit, const float kw[]) {
-	for (int chan = 0; chan < 3; chan++) {
-		float scale = kw[chan];
-		if (scale == 1.0) continue;
-
-		size_t i, n = fit->naxes[0] * fit->naxes[1];
-		if (fit->type == DATA_USHORT) {
-			WORD *buf = fit->pdata[chan];
-			for (i = 0; i < n; ++i) {
-				buf[i] = roundf_to_WORD((float)buf[i] * scale);
-			}
-		}
-		else if (fit->type == DATA_FLOAT) {
-			float *buf = fit->fpdata[chan];
-			for (i = 0; i < n; ++i) {
-				buf[i] = buf[i] * scale;
-			}
-		}
-		else return 1;
-	}
-	invalidate_stats_from_fit(fit);
-	return 0;
-}
-
-/* This function equalize the background by giving equal value for all layers */
-static void background_neutralize(fits* fit, coeff bg[], int n_channel, double norm) {
-	size_t i, n = fit->naxes[0] * fit->naxes[1];
-	if (fit->type == DATA_USHORT) {
-		for (int chan = 0; chan < 3; chan++) {
-			float offset = (bg[chan].value - bg[n_channel].value) * norm;
-			siril_debug_print("offset: %d, %f\n", chan, offset);
-			WORD *buf = fit->pdata[chan];
-			for (i = 0; i < n; ++i) {
-				buf[i] = roundf_to_WORD((float)buf[i] - offset);
-			}
-		}
-	}
-	else if (fit->type == DATA_FLOAT) {
-		for (int chan = 0; chan < 3; chan++) {
-			float offset = bg[chan].value - bg[n_channel].value;
-			siril_debug_print("offset: %d, %f\n", chan, offset);
-			float *buf = fit->fpdata[chan];
-			for (i = 0; i < n; ++i) {
-				buf[i] = buf[i] - offset;
-			}
-		}
-	}
-	invalidate_stats_from_fit(fit);
+	return 
+	0;
 }
 
 static int cmp_coeff(const void *a, const void *b) {
@@ -388,26 +317,103 @@ static int cmp_coeff(const void *a, const void *b) {
 	return 0;
 }
 
-static int determine_chan_for_norm(coeff bg[], normalization_channel n_channel) {
-	/* make a copy of bg coefficients because we don't
-	 * want to sort original data */
+/*
+Gets bg, min and max values per channel and sets the chennel with middle bg value
+*/
+static int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel) {
+	// we cannot use compute_all_channels_statistics_single_image because of the area
+	for (int chan = 0; chan < 3; chan++) {
+		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC, MULTI_THREADED);
+		if (!stat) {
+			siril_log_message(_("Error: statistics computation failed.\n"));
+			return 1;
+		}
+		bg[chan].value = stat->median;
+		bg[chan].channel = chan;
+		if (!area) {
+			mins[chan] = stat->min;
+			maxs[chan] = stat->max;
+		}
+		free_stats(stat);
+	}
 	coeff tmp[3];
 	memcpy(tmp, bg, 3 * sizeof(coeff));
 	/* ascending order */
 	qsort(tmp, 3, sizeof(tmp[0]), cmp_coeff);
+	//selecting middle channel for norm
+	*norm_channel = tmp[1].channel;
 
-	if (n_channel == CHANNEL_HIGHEST)
-		return tmp[2].channel;
-	if (n_channel == CHANNEL_MIDDLE)
-		return tmp[1].channel;
-	/* on lowest */
-	return tmp[0].channel;
+	// if no selection for background we have all the stats required
+	if (!area) return 0;
+
+	// otherwise, we compute image min/max
+	for (int chan = 0; chan < 3; chan++) {
+		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_MINMAX, MULTI_THREADED);
+		if (!stat) {
+			siril_log_message(_("Error: statistics computation failed.\n"));
+			return 1;
+		}
+		mins[chan] = stat->min;
+		maxs[chan] = stat->max;
+	}
+	return 0;
+}
+
+static int apply_photometric_color_correction(fits *fit, const float *kw, const coeff *bg, const float *mins, const float *maxs, int norm_channel) {
+	float maximum = -FLT_MAX;
+	float minimum = FLT_MAX;
+	float scale[3];
+	float offset[3];
+	float invrange;
+
+	for (int chan = 0; chan < 3; chan++) {
+		maximum = max(maximum, kw[chan] * (maxs[chan] - bg[chan].value) + bg[norm_channel].value);
+		minimum = min(minimum, kw[chan] * (mins[chan] - bg[chan].value) + bg[norm_channel].value);
+	}
+	invrange = ((fit->type == DATA_USHORT) ? USHRT_MAX_SINGLE : 1.f) / (maximum - minimum);
+
+	for (int chan = 0; chan < 3; chan++) {
+		scale[chan] = kw[chan] * invrange;
+		offset[chan] = (-bg[chan].value * kw[chan] + bg[norm_channel].value  - minimum) * invrange;
+	}
+
+	siril_log_message("After renormalization, the following coefficients are applied\n");
+	siril_log_color_message(_("White balance factors:\n"), "green");
+	for (int chan = 0; chan < 3; chan++) {
+		siril_log_message("K%d: %5.3f\n", chan, scale[chan]);
+	}
+	siril_log_color_message(_("Background reference:\n"), "green");
+	for (int chan = 0; chan < 3; chan++) {
+		siril_log_message("B%d: %+.5e\n", chan, offset[chan]);
+	}
+
+	for (int chan = 0; chan < 3; chan++) {
+		size_t n = fit->naxes[0] * fit->naxes[1];
+		if (fit->type == DATA_USHORT) {
+			WORD *buf = fit->pdata[chan];
+			for (size_t i = 0; i < n; ++i) {
+				buf[i] = roundf_to_WORD((float)buf[i] * scale[chan] + offset[chan]);
+			}
+		}
+		else if (fit->type == DATA_FLOAT) {
+			float *buf = fit->fpdata[chan];
+			for (size_t i = 0; i < n; ++i) {
+				buf[i] = buf[i] * scale[chan] + offset[chan];
+			}
+		}
+		else return 1;
+	}
+	invalidate_stats_from_fit(fit);
+	return 0;
 }
 
 /* run the PCC using the existing star list of the image from the provided file */
 int photometric_cc(struct photometric_cc_data *args) {
 	float kw[3];
 	coeff bg[3];
+	float mins[3];
+	float maxs[3];
+	int norm_channel;
 
 	if (!isrgb(args->fit)) {
 		siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));
@@ -424,14 +430,13 @@ int photometric_cc(struct photometric_cc_data *args) {
 		bkg_sel = &(args->bg_area);
 
 	/* we use the median of each channel to sort them by level and select
-	 * the reference channel expressed in terms of order of median value */
-	if (get_background_coefficients(args->fit, bkg_sel, bg, FALSE)) {
+	 * the reference channel expressed in terms of order of middle median value */
+	if (get_stats_coefficients(args->fit, bkg_sel, bg, mins, maxs, &norm_channel)) {
 		siril_log_message(_("failed to compute statistics on image, aborting\n"));
 		free(args);
 		return 1;
 	}
-	int chan = determine_chan_for_norm(bg, args->n_channel);
-	siril_log_message(_("Normalizing on %s channel.\n"), (chan == 0) ? _("red") : ((chan == 1) ? _("green") : _("blue")));
+	siril_log_message(_("Normalizing on %s channel.\n"), (norm_channel == 0) ? _("red") : ((norm_channel == 1) ? _("green") : _("blue")));
 
 	/* set photometry parameters to values adapted to the image */
 	struct phot_config backup = com.pref.phot_set;
@@ -441,18 +446,10 @@ int photometric_cc(struct photometric_cc_data *args) {
 	siril_debug_print("set photometry inner radius to %.2f\n", com.pref.phot_set.inner);
 
 	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
-	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, chan);
-	if (!ret) {
-		double norm = get_normalized_value(args->fit);
-		apply_white_balance(args->fit, kw);
+	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, norm_channel);
 
-		if ((ret = get_background_coefficients(args->fit, bkg_sel, bg, TRUE))) {
-			siril_log_message(_("failed to compute statistics on image, aborting\n"));
-			set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
-		} else {
-			background_neutralize(args->fit, bg, chan, norm);
-			set_progress_bar_data(_("Photometric Color Calibration applied"), PROGRESS_DONE);
-		}
+	if (!ret) {
+		apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
 	} else {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 	}
@@ -680,7 +677,7 @@ static gboolean is_selection_ok() {
 
 void initialize_photometric_cc_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
-			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg, *frame_cc_norm,
+			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg,
 			*catalog_label_pcc, *force_platesolve;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
@@ -693,7 +690,6 @@ void initialize_photometric_cc_dialog() {
 	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
-	frame_cc_norm = lookup_widget("frame_cc_norm");
 	force_platesolve = lookup_widget("force_astrometry_button");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
@@ -711,7 +707,6 @@ void initialize_photometric_cc_dialog() {
 	gtk_widget_set_visible(catalog_box_pcc, TRUE);
 	gtk_widget_set_visible(catalog_auto, FALSE);
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
-	gtk_widget_set_visible(frame_cc_norm, TRUE);
 	gtk_widget_set_visible(force_platesolve, TRUE);
 	gtk_widget_grab_focus(button_cc_ok);
 

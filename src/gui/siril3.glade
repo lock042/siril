@@ -10052,43 +10052,6 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="position">3</property>
               </packing>
             </child>
-            <child>
-              <object class="GtkExpander" id="frame_cc_norm">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="margin-top">5</property>
-                <property name="margin-bottom">5</property>
-                <child>
-                  <object class="GtkComboBoxText" id="combo_box_cc_norm">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">This option determines on which channel the factors are normalized.</property>
-                    <property name="halign">start</property>
-                    <property name="active">1</property>
-                    <items>
-                      <item translatable="yes">On highest</item>
-                      <item translatable="yes">On middle</item>
-                      <item translatable="yes">On lowest</item>
-                    </items>
-                  </object>
-                </child>
-                <child type="label">
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Channel Factor Normalisation</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
           </object>
           <packing>
             <property name="expand">False</property>
