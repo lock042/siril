@@ -15176,11 +15176,13 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <property name="tooltip-markup" translatable="yes">Star synthesis should be applied &lt;i&gt;before&lt;/i&gt; &lt;b&gt;stretching&lt;/b&gt;.
+Siril's star modelling and detection algorithms are designed to work with linear images and the results will usually be significantly inferior if applied to stretched images.</property>
                 <property name="action-name">win.star-synthetic</property>
                 <property name="text" translatable="yes">Full Resynthesis</property>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
