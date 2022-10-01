@@ -77,8 +77,12 @@ enum slider_type {
 	SLIDER_Y
 };
 
+// same as rectangle but double to avoid recasting
+typedef struct {
+	double x, y, w, h;
+} rectangled;
+
 typedef struct plot_draw_data {
-	cairo_t *cr;	// the context to draw to
 	point datamin; // coordinates of the min (x,y) data values in data units
 	point datamax; // coordinates of the max (x,y) data values in data units
 	point pdatamin; // coordinates of the plotted min (x,y) data values in data units (accounting for the sliders)
@@ -91,8 +95,9 @@ typedef struct plot_draw_data {
 	double xrange[2]; // pair between 0 and 1 giving the extent of plotted x values in the datamin,datamax range
 	double yrange[2]; // pair between 0 and 1 giving the extent of plotted y values in the datamin,datamax range
 	enum marker_type marker_grabbed; // flag which slider marker is grabbed (0 to 3 from X_MIN to Y_MAX)
-	rectangle selected; // area selected in pixel units (x, y, w, h)
-    gboolean is_selecting;
+	rectangled selection; // area selected in pixel units (x, y, w, h)
+	point start; // coordinates x,y of the initial selection point in pixels
+	gboolean is_selecting;
 } plot_draw_data_t;
 
 #endif /* SRC_GUI_PLOT_H_ */

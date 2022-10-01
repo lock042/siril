@@ -323,6 +323,18 @@ static void plot_draw_all_markers(cairo_t *cr) {
 		plot_draw_marker(cr, i);
 }
 
+static void plot_draw_selection(cairo_t *cr){
+	if (pdd.selection.h == 0. || pdd.selection.w == 0.) return;
+	double dash_format[] = { 4.0, 2.0 };
+	cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
+	cairo_set_dash(cr, dash_format, 2, 0);
+	cairo_set_line_width(cr, 1.);
+	cairo_rectangle(cr, pdd.selection.x,  pdd.selection.y,
+						 pdd.selection.w,  pdd.selection.h);
+	cairo_stroke(cr);
+	cairo_set_dash(cr, NULL, 0, 0);
+}
+
 static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 		pldata *plot) {
 	int i, j;
@@ -1292,6 +1304,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		plot_draw_all_sliders(cr);
 		plot_draw_all_sliders_fill(cr);
 		plot_draw_all_markers(cr);
+		plot_draw_selection(cr);
 	}
 	free_colors(&cfgplot);
 	kplot_free(p);
@@ -1515,6 +1528,17 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 
 	double x = (double)event->x;
 	double y = (double)event->y;
+	if (pdd.is_selecting) {
+		double x1 = max(min(pdd.selection.x, x), 0.);
+		double x2 = min(max(pdd.start.x + pdd.selection.w, x), pdd.surf_w - PLOT_SLIDER_THICKNESS);
+		double y1 = max(min(pdd.selection.y, y), 0.);
+		double y2 = min(max(pdd.start.y + pdd.selection.h, y), pdd.surf_h - PLOT_SLIDER_THICKNESS);
+		pdd.start.x = x1;
+		pdd.start.y = y1;
+		pdd.selection = (rectangled){x1, y1, x2 - x1, y2 - y1};
+		drawPlot();
+		return TRUE;
+	}
 	for (int i = SLIDER_X; i <= SLIDER_Y; i++) {
 		for (int j = 0; j < 2; j++) {
 			if (pdd.marker_grabbed == 2 * i + j) {
@@ -1619,7 +1643,8 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 	// start drawing selection
 	if (is_inside_selectable_zone(x, y) && event->button == GDK_BUTTON_PRIMARY) {
 		pdd.is_selecting = TRUE;
-		pdd.selected = (rectangle){(int)x, (int)y, 0, 0};
+		pdd.selection = (rectangled){x, y, 0., 0.};
+		pdd.start = (point){x, y};
 		return TRUE;
 	}
 	for (int i = SLIDER_X; i <= SLIDER_Y; i++) {
@@ -1655,6 +1680,10 @@ gboolean on_DrawingPlot_button_release_event(GtkWidget *widget,
 		set_cursor_waiting(FALSE);
 	}
 	pdd.marker_grabbed = MARKER_NONE;
+	if (pdd.selection.w < 1. || pdd.selection.h < 1. )
+		pdd.selection = (rectangled){0., 0., 0., 0.};
+	pdd.is_selecting = FALSE;
+	drawPlot();
 	return TRUE;
 }
 
