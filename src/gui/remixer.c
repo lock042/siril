@@ -913,6 +913,10 @@ void on_remix_colour_right_changed(GtkComboBox *combo, gpointer user_data) {
 void on_remix_type_left_changed(GtkComboBox *combo, gpointer user_data) {
 	left_changed = TRUE;
 	type_left = gtk_combo_box_get_active(combo);
+	if (type_left == STRETCH_ASINH || type_left == STRETCH_INVASINH)
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols2")), FALSE);
+	else
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols2")), TRUE);
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -923,6 +927,10 @@ void on_remix_type_left_changed(GtkComboBox *combo, gpointer user_data) {
 void on_remix_type_right_changed(GtkComboBox *combo, gpointer user_data) {
 	right_changed = TRUE;
 	type_right = gtk_combo_box_get_active(combo);
+	if (type_right == STRETCH_ASINH || type_right == STRETCH_INVASINH)
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols1")), FALSE);
+	else
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols1")), TRUE);
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
