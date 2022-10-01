@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -7392,21 +7392,6 @@ Modifying parameters in this windows afterward will void the colour balance, and
           <object class="GtkButtonBox">
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
-            <child>
-              <object class="GtkButton" id="remixer_help_button">
-                <property name="label" translatable="yes">Help</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Show basic tips on how to use the various parameters.</property>
-                <signal name="clicked" handler="on_remixer_help_button_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
             <child>
               <object class="GtkButton" id="remix_advanced">
                 <property name="label" translatable="yes">Advanced</property>
@@ -15073,31 +15058,17 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           </packing>
         </child>
         <child>
-          <object class="GtkModelButton" id="proc_extract_remix">
+          <object class="GtkModelButton" id="proc_star_proc">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="action-name">win.star-remix-processing</property>
-            <property name="text" translatable="yes">Star Recomposition...</property>
+            <property name="text" translatable="yes">Star Processing</property>
+            <property name="menu-name">menu_star</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">25</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="proc_synthstar">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.synthstar-processing</property>
-            <property name="text" translatable="yes">Synthetic Star Tools...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">26</property>
           </packing>
         </child>
         <child>
@@ -15129,6 +15100,123 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
       <packing>
         <property name="submenu">main</property>
         <property name="position">1</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="border-width">4</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkModelButton" id="back_to_star">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="text" translatable="yes">Star Processing</property>
+            <property name="menu-name">main</property>
+            <property name="inverted">True</property>
+            <property name="centered">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_extract_starnet">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.starnet-processing</property>
+            <property name="text" translatable="yes">Starnet++ Star Removal...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_star_recomp">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.star-remix-processing</property>
+            <property name="text" translatable="yes">Star Recomposition...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_star_desaturate">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.star-desaturate</property>
+            <property name="text" translatable="yes">Desaturate Stars</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkModelButton" id="proc_star_synthetic">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="action-name">win.star-synthetic</property>
+                <property name="text" translatable="yes">Full Resynthesis</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="action-name">win.dyn-psf</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">applications-system</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">menu_star</property>
+        <property name="position">2</property>
       </packing>
     </child>
     <child>
@@ -15185,7 +15273,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
       </object>
       <packing>
         <property name="submenu">menu_cc</property>
-        <property name="position">2</property>
+        <property name="position">3</property>
       </packing>
     </child>
     <child>
@@ -15320,7 +15408,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
       </object>
       <packing>
         <property name="submenu">geometry_menu</property>
-        <property name="position">3</property>
+        <property name="position">4</property>
       </packing>
     </child>
     <child>
@@ -15388,24 +15476,10 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="position">3</property>
           </packing>
         </child>
-        <child>
-          <object class="GtkModelButton" id="proc_extract_starnet">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.starnet-processing</property>
-            <property name="text" translatable="yes">Starnet++ Star Removal...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
       </object>
       <packing>
         <property name="submenu">extract_menu</property>
-        <property name="position">4</property>
+        <property name="position">5</property>
       </packing>
     </child>
   </object>
@@ -15439,306 +15513,6 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
     <property name="value">10</property>
     <property name="step-increment">1</property>
     <property name="page-increment">1</property>
-  </object>
-  <object class="GtkDialog" id="remixer_help">
-    <property name="can-focus">False</property>
-    <property name="title" translatable="yes">Star Recomposition Help</property>
-    <property name="default-width">750</property>
-    <property name="type-hint">dialog</property>
-    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child internal-child="vbox">
-      <object class="GtkBox">
-        <property name="width-request">750</property>
-        <property name="can-focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="can-focus">False</property>
-            <property name="layout-style">end</property>
-            <child>
-              <object class="GtkButton" id="remixer_help_okay">
-                <property name="label" translatable="yes">OK</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_remixer_help_okay_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="margin-start">8</property>
-            <property name="margin-end">8</property>
-            <property name="margin-top">4</property>
-            <property name="margin-bottom">4</property>
-            <property name="orientation">vertical</property>
-            <property name="spacing">6</property>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Suggested Star Reduction Workflow</property>
-                <attributes>
-                  <attribute name="weight" value="bold"/>
-                  <attribute name="size" value="13312"/>
-                </attributes>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">1. &lt;b&gt;The simple controls are likely all you need.&lt;/b&gt;
-&lt;i&gt;The advanced controls option enables the full set of options included in the Generalised Hyperbolic Stretch transformations tool, for each image, but the simple controls have been selected to offer the most useful options for many uses.
-You can examine the workings of each option in detail using the histogram displays, which displays mini histogram views for each input image, showing the before and after histograms for each channel and the stretch transfer function.&lt;/i&gt;</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">2. Work left to right and mostly top to bottom. Start with the controls for the starless image:</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="margin-start">16</property>
-                <property name="label" translatable="yes">• Push the &lt;b&gt;Crossfader&lt;/b&gt; slider over to the left and use the &lt;b&gt;D slider&lt;/b&gt; to stretch up the details of the nebulosity.</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-start">16</property>
-                <property name="label" translatable="yes">• Next, use the &lt;b&gt;B and SP controls&lt;/b&gt; to focus the stretch. Try selecting an area of faint nebulosity or the diffuse arm of a galaxy (you have to select using one of the single colour tabs rather than the RGB preview tab) and then using the &lt;b&gt;eyedropper tool&lt;/b&gt; to set &lt;b&gt;SP&lt;/b&gt; to the average pixel value of this area, and then moving the &lt;b&gt;B&lt;/b&gt; slider up until the detail looks nicely defined.</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">&lt;i&gt;Using B in combination with SP will also suppress background noise that is fainter than the SP value, so the background selection that you used to set SP from will stand out more from the general sky background.&lt;/i&gt;</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">5</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">3. Once you have the starless background looking good it's time to start work on the star mask: move the &lt;b&gt;Crossfader&lt;/b&gt; slider back towards the middle.</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">6</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">&lt;i&gt;Go easy with the star mask stretch controls. In order to reduce the stars compared with the original image, you need to stretch the stars less than the background.&lt;/i&gt;</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-start">16</property>
-                <property name="label" translatable="yes">• Try a moderate value for both the &lt;b&gt;D and B&lt;/b&gt; controls (1.0 - 2.0 is often a good starting point): this will boost faint stars while not over-stretching bright ones.</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">8</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-start">16</property>
-                <property name="label" translatable="yes">• At this point you can also use the &lt;b&gt;HP control&lt;/b&gt; to protect star peaks from saturation bloat: try bringing it down as low as 0.3-0.4.</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">9</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="margin-start">16</property>
-                <property name="label" translatable="yes">• Boosting the faint stars may seem odd, but now by using the &lt;b&gt;SP slider&lt;/b&gt; you can quite nicely control the amount of stars that show in the combined image.</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">10</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">&lt;i&gt;You can achieve different star blends using different combinations of the controls on the right-hand side - just don't overdo it, too much stretching of the stars can result in them looking worse than before doing star removal.&lt;/i&gt;</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">11</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">4. You can further adjust the &lt;b&gt;Crossfader&lt;/b&gt; and &lt;b&gt;Overall Stretch&lt;/b&gt; controls to adjust the relative prominence of the stars and the background.</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">12</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-start">16</property>
-                <property name="label" translatable="yes">• &lt;i&gt;The &lt;b&gt;Crossfader&lt;/b&gt; tool works in the same way as the crossfader on a mixing desk: it adjusts the contribution of each input while keeping the overall level the same. With the slider all the way to the left, the result is 100% background and 0% stars; with it all the way to the right, the result is 0% background and 100% stars. This ensures that pixel values cannot be pushed into clipping when combining the two images.&lt;/i&gt;</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">13</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-start">16</property>
-                <property name="label" translatable="yes">• If the crossfader is used to increase the prominence of the stars in the final image, the brightness of the background will be reduced. This can be readjusted using the &lt;b&gt;Overall Stretch&lt;/b&gt; control which applies a subtle stretch to gently boost the shadows.</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">14</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-      </object>
-    </child>
   </object>
   <object class="GtkImage" id="removefilter1">
     <property name="visible">True</property>
@@ -23835,227 +23609,6 @@ WARNING: Reducing the number of allowed processors too much will degrade perform
           <packing>
             <property name="left-attach">2</property>
             <property name="top-attach">2</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-  </object>
-  <object class="GtkDialog" id="synthstar_dialog">
-    <property name="name">synthstar_dialog</property>
-    <property name="width-request">450</property>
-    <property name="height-request">-1</property>
-    <property name="can-focus">False</property>
-    <property name="title" translatable="yes">Synthetic Star Tools</property>
-    <property name="default-width">450</property>
-    <property name="type-hint">dialog</property>
-    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
-    <child internal-child="vbox">
-      <object class="GtkBox">
-        <property name="can-focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">8</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="can-focus">False</property>
-            <property name="layout-style">end</property>
-            <child>
-              <object class="GtkButton" id="synthstar_cancel">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Cancel</property>
-                <signal name="clicked" handler="on_synthstar_cancel_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="orientation">vertical</property>
-            <property name="spacing">8</property>
-            <child>
-              <object class="GtkFrame">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label-xalign">0</property>
-                <property name="shadow-type">none</property>
-                <child>
-                  <object class="GtkAlignment">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="left-padding">12</property>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="margin-top">8</property>
-                            <property name="label" translatable="yes">&lt;i&gt;Star synthesis should be applied &lt;b&gt;before&lt;/b&gt; stretching&lt;/i&gt;.
-Siril's star modelling and detection algorithms are designed to work with linear images and the results will usually be significantly inferior if applied to stretched images.</property>
-                            <property name="use-markup">True</property>
-                            <property name="wrap">True</property>
-                            <property name="xalign">0</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="margin-top">8</property>
-                            <property name="margin-bottom">8</property>
-                            <property name="label" translatable="yes">&lt;b&gt;Desaturation of Clipped Stars&lt;/b&gt;
-Synthetic Star Tools can desaturate clipped star profiles. This requires no preparation, simply use the Desaturate button below. Unsaturated stars and non-star elements will not be altered. As this operation will result in pixel vaues exceeding 1.0, the final output will be linearly rescaled into the floating point range 0.0 to 1.0.</property>
-                            <property name="use-markup">True</property>
-                            <property name="wrap">True</property>
-                            <property name="xalign">0</property>
-                          </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButtonBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">end</property>
-                            <property name="layout-style">start</property>
-                            <child>
-                              <object class="GtkButton" id="synthstar_desaturate">
-                                <property name="label" translatable="yes">Desaturate</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">Desaturate clipped star profiles</property>
-                                <signal name="clicked" handler="on_synthstar_desaturate_clicked" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">2</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="margin-top">8</property>
-                            <property name="margin-bottom">8</property>
-                            <property name="label" translatable="yes">&lt;b&gt;Full Star Replacement&lt;/b&gt;
-Synthetic Star Tools can create a star mask with perfect synthesized profiles for every star detected by Siril's star finder routine, using parameters measured from the original data. This can be recombined with a starless image generated by Starnet++ to fix any coma, astigmatism, minor alignment drift or other aberrations spoiling the stars in an image. For synthetic star mask generation you may prefer to detect stars manually using the Dynamic PSF dialog, as this allows you to add any stars that the star finder algorithm misses. If no star list is populated, stars will be detected automatically.</property>
-                            <property name="use-markup">True</property>
-                            <property name="wrap">True</property>
-                            <property name="xalign">0</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">3</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButtonBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">end</property>
-                            <property name="spacing">6</property>
-                            <property name="layout-style">start</property>
-                            <child>
-                              <object class="GtkButton" id="synthstar_dynpsf">
-                                <property name="label" translatable="yes">Dynamic PSF</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">Open Dynamic PSF dialog</property>
-                                <signal name="clicked" handler="on_synthstar_dynpsf_clicked" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkButton" id="synthstar_apply">
-                                <property name="label" translatable="yes">Full Resynthesis</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">Create synthetic star mask</property>
-                                <signal name="clicked" handler="on_synthstar_apply_clicked" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">4</property>
-                          </packing>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-                <child type="label">
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Usage</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
           </packing>
         </child>
       </object>
