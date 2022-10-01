@@ -14780,7 +14780,6 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the color calibration dialog</property>
             <property name="text" translatable="yes">Color Calibration</property>
             <property name="menu-name">menu_cc</property>
           </object>
@@ -15134,6 +15133,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Go back to main menu</property>
             <property name="text" translatable="yes">Star Processing</property>
             <property name="menu-name">main</property>
             <property name="inverted">True</property>
@@ -15260,6 +15260,7 @@ Siril's star modelling and detection algorithms are designed to work with linear
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Go back to main menu</property>
             <property name="text" translatable="yes">Color Calibration</property>
             <property name="menu-name">main</property>
             <property name="inverted">True</property>
@@ -15276,6 +15277,7 @@ Siril's star modelling and detection algorithms are designed to work with linear
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the manual color calibration dialog</property>
             <property name="action-name">win.color-calib-processing</property>
             <property name="text" translatable="yes">Color Calibration...</property>
           </object>
@@ -15290,6 +15292,7 @@ Siril's star modelling and detection algorithms are designed to work with linear
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the photometry color calibration dialog</property>
             <property name="action-name">win.pcc-processing</property>
             <property name="text" translatable="yes">Photometric Color Calibration...</property>
           </object>
@@ -15317,6 +15320,7 @@ Siril's star modelling and detection algorithms are designed to work with linear
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Go back to main menu</property>
             <property name="text" translatable="yes">Geometry</property>
             <property name="menu-name">main</property>
             <property name="inverted">True</property>
@@ -15333,6 +15337,7 @@ Siril's star modelling and detection algorithms are designed to work with linear
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Rotate  image 90 degrees, clockwise</property>
             <property name="action-name">win.rotation90-processing</property>
             <property name="text" translatable="yes">Rotate 90 degrees, clockwise</property>
           </object>
@@ -15347,6 +15352,7 @@ Siril's star modelling and detection algorithms are designed to work with linear
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Rotate image 90 degrees, counter-clockwise</property>
             <property name="action-name">win.rotation270-processing</property>
             <property name="text" translatable="yes">Rotate 90 degrees, counter-clockwise</property>
           </object>
@@ -15361,6 +15367,7 @@ Siril's star modelling and detection algorithms are designed to work with linear
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the rotation dialog</property>
             <property name="action-name">win.rotation-processing</property>
             <property name="text" translatable="yes">Rotate&amp;Crop</property>
           </object>
@@ -15452,6 +15459,7 @@ Siril's star modelling and detection algorithms are designed to work with linear
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Go back to main menu</property>
             <property name="text" translatable="yes">Extraction</property>
             <property name="menu-name">main</property>
             <property name="inverted">True</property>
