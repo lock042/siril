@@ -65,15 +65,34 @@ enum registration_source {
 };
 
 enum marker_type {
-	X_MIN,
-	X_MAX,
-	Y_MIN,
-	Y_MAX
+	MARKER_NONE = -1,
+	MARKER_X_MIN = 0,
+	MARKER_X_MAX = 1,
+	MARKER_Y_MIN = 2,
+	MARKER_Y_MAX = 3
 };
 
 enum slider_type {
-	X_SLIDER,
-	Y_SLIDER
+	SLIDER_X,
+	SLIDER_Y
 };
+
+typedef struct plot_draw_data {
+	cairo_t *cr;	// the context to draw to
+	point datamin; // coordinates of the min (x,y) data values in data units
+	point datamax; // coordinates of the max (x,y) data values in data units
+	point pdatamin; // coordinates of the plotted min (x,y) data values in data units (accounting for the sliders)
+	point pdatamax; // coordinates of the plotted max (x,y) data values in data units (accounting for the sliders)
+	point range; // coordinates of the extent of (x,y) axes in pixel units
+	point scale; // scales on x and y in data unit/pixel
+	point offset; // coordinates of the topleft corner (x,y) axes in pixel units
+	double surf_w; // x size of the cairosurface in pixel
+	double surf_h; // y size of the cairosurface in pixel
+	double xrange[2]; // pair between 0 and 1 giving the extent of plotted x values in the datamin,datamax range
+	double yrange[2]; // pair between 0 and 1 giving the extent of plotted y values in the datamin,datamax range
+	enum marker_type marker_grabbed; // flag which slider marker is grabbed (0 to 3 from X_MIN to Y_MAX)
+	rectangle selected; // area selected in pixel units (x, y, w, h)
+    gboolean is_selecting;
+} plot_draw_data_t;
 
 #endif /* SRC_GUI_PLOT_H_ */
