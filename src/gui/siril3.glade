@@ -14724,6 +14724,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the inverse hyperbolic sine dialog</property>
             <property name="action-name">win.asinh-processing</property>
             <property name="text" translatable="yes">Asinh Transformation...</property>
           </object>
@@ -14738,6 +14739,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the generalized hyperbolic transform dialog</property>
             <property name="action-name">win.payne-processing</property>
             <property name="text" translatable="yes">Generalised Hyperbolic Stretch Transformations...</property>
           </object>
@@ -14752,6 +14754,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the hystogram transform dialog</property>
             <property name="action-name">win.histo-processing</property>
             <property name="text" translatable="yes">Histogram Transformation...</property>
           </object>
@@ -14777,6 +14780,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the color calibration dialog</property>
             <property name="text" translatable="yes">Color Calibration</property>
             <property name="menu-name">menu_cc</property>
           </object>
@@ -14791,6 +14795,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the color saturation dialog</property>
             <property name="action-name">win.saturation-processing</property>
             <property name="text" translatable="yes">Color Saturation...</property>
           </object>
@@ -14805,6 +14810,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the subtractive chromatic noise reduction dialog</property>
             <property name="action-name">win.remove-green-processing</property>
             <property name="text" translatable="yes">Remove Green Noise...</property>
           </object>
@@ -14819,6 +14825,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Compute the inverse of the image</property>
             <property name="action-name">win.negative-processing</property>
             <property name="text" translatable="yes">Negative Transformation</property>
           </object>
@@ -14844,6 +14851,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the A Trou wavelet transform dialog</property>
             <property name="action-name">win.wavelets-processing</property>
             <property name="text" translatable="yes">À trous Wavelets Transform...</property>
           </object>
@@ -14858,6 +14866,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the remove banding dialog</property>
             <property name="action-name">win.fix-banding-processing</property>
             <property name="text" translatable="yes">Banding Reduction...</property>
           </object>
@@ -14872,6 +14881,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the contrast limited adaptive histogram Equalization dialog</property>
             <property name="action-name">win.clahe-processing</property>
             <property name="text" translatable="yes">Contrast-Limited Adaptive Histogram Equalization...</property>
           </object>
@@ -14886,6 +14896,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the cosmectic correction dialog</property>
             <property name="action-name">win.cosmetic-processing</property>
             <property name="text" translatable="yes">Cosmetic Correction...</property>
           </object>
@@ -14900,6 +14911,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the deconvolution dialog</property>
             <property name="action-name">win.deconvolution-processing</property>
             <property name="text" translatable="yes">Deconvolution...</property>
           </object>
@@ -14914,6 +14926,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the fast Fourier transform dialog</property>
             <property name="action-name">win.fft-processing</property>
             <property name="text" translatable="yes">Fourier Transform...</property>
           </object>
@@ -14928,6 +14941,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the median filter dialog</property>
             <property name="action-name">win.medianfilter-processing</property>
             <property name="text" translatable="yes">Median Filter...</property>
           </object>
@@ -14942,6 +14956,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the denoise dialog</property>
             <property name="action-name">win.denoise-processing</property>
             <property name="text" translatable="yes">Noise Reduction...</property>
           </object>
@@ -14956,6 +14971,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the rotational gradient dialog</property>
             <property name="action-name">win.rgradient-processing</property>
             <property name="text" translatable="yes">Rotational Gradient...</property>
           </object>
@@ -15006,6 +15022,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the background extraction dialog</property>
             <property name="action-name">win.background-extr-processing</property>
             <property name="text" translatable="yes">Background Extraction...</property>
           </object>
@@ -15034,6 +15051,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the linear match dialog</property>
             <property name="action-name">win.linearmatch-processing</property>
             <property name="text" translatable="yes">Linear Match...</property>
           </object>
@@ -15048,6 +15066,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the RGB compositing tool dialog</property>
             <property name="action-name">win.rgb-compositing-processing</property>
             <property name="text" translatable="yes">RGB Compositing...</property>
           </object>
@@ -15087,6 +15106,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the pixel math dialog</property>
             <property name="action-name">win.pixel-math</property>
             <property name="text" translatable="yes">Pixel Math...</property>
           </object>
