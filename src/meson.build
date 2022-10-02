@@ -89,6 +89,7 @@ src_files = [
   'filters/saturation.c',
   'filters/scnr.c',
   'filters/starnet.c',
+  'filters/synthstar.c',
   'filters/wavelets.c',
 
   'filters/da3d/DA3D.cpp',
