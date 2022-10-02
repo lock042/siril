@@ -14850,7 +14850,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the A Trou wavelet transform dialog</property>
+            <property name="tooltip-text" translatable="yes">Open the À Trou wavelet transform dialog</property>
             <property name="action-name">win.wavelets-processing</property>
             <property name="text" translatable="yes">À trous Wavelets Transform...</property>
           </object>
