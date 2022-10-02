@@ -345,14 +345,14 @@ static void plot_draw_selection(cairo_t *cr){
 	gchar fmt[256] = { 0 };
 	gchar buffer[256] = { 0 };
 	if (use_photometry) {
-		g_sprintf(fmt, "Nb: %s - %s: [ %s : %s ] - %s: [ %s : %s ]", "\%d", xlabel,
+		g_sprintf(fmt, "Nb: %s - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
 		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
 		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
 		ylabel,
 		(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
 		(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
 	} else {
-		g_sprintf(fmt, "Nb: %s - %s: [ %s : %s ] - %s: [ %s : %s ]", "\%d", xlabel,
+		g_sprintf(fmt, "Nb: %s - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
 		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
 		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
 		ylabel,
