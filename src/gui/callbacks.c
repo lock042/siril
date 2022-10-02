@@ -583,25 +583,25 @@ display_mode get_display_mode_from_menu() {
 
 void set_initial_display_mode(display_mode x) {
 	switch(x) {
-		case 0:
+		case LINEAR_DISPLAY:
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("linear_item")), TRUE);
 			break;
-		case 1:
+		case LOG_DISPLAY:
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("log_item")), TRUE);
 			break;
-		case 2:
+		case SQRT_DISPLAY:
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("square_root_item")), TRUE);
 			break;
-		case 3:
+		case SQUARED_DISPLAY:
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("squared_item")), TRUE);
 			break;
-		case 4:
+		case ASINH_DISPLAY:
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("asinh_item")), TRUE);
 			break;
-		case 5:
+		case STF_DISPLAY:
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("auto_item")), TRUE);
 			break;
-		case 6:
+		case HISTEQ_DISPLAY:
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("histo_item")), TRUE);
 			break;
 	}
