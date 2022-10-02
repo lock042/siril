@@ -338,9 +338,28 @@ static void plot_draw_selection(cairo_t *cr){
 						 pdd.selection.w,  pdd.selection.h);
 	cairo_stroke(cr);
 	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_move_to(cr, pdd.selection.x,  pdd.selection.y);
+	cairo_move_to(cr, pdd.selection.x,  pdd.selection.y - 2);
+	double xmin, ymin, xmax, ymax;
+	convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+	convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
+	gchar fmt[256] = { 0 };
 	gchar buffer[256] = { 0 };
-	g_sprintf(buffer, "Nb: %d", pdd.nbselected);
+	if (use_photometry) {
+		g_sprintf(fmt, "Nb: %s - %s: [ %s : %s ] - %s: [ %s : %s ]", "\%d", xlabel,
+		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+		ylabel,
+		(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
+		(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
+	} else {
+		g_sprintf(fmt, "Nb: %s - %s: [ %s : %s ] - %s: [ %s : %s ]", "\%d", xlabel,
+		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+		ylabel,
+		(gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source],
+		(gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source]);
+	}
+	g_sprintf(buffer, fmt, pdd.nbselected, xmin, xmax, ymin, ymax);
 	cairo_show_text(cr, buffer);
 	cairo_stroke(cr);
 }
@@ -481,20 +500,22 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	pdd.pdatamin.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[0];
 	pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
 
-	pdd.selected = calloc(j, sizeof(gboolean));
+	pdd.selected = calloc(seq->number, sizeof(gboolean));
 	if (selection_is_active()) {
 		double xmin, ymin, xmax, ymax;
 		int n = 0;
 		convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
 		convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
-		for (int i = 0; i < j; i++) {
-			if (plot->data[i].x >= xmin && plot->data[i].x <= xmax && plot->data[i].y >= ymin && plot->data[i].y <= ymax) {
+		for (i = 0, j = 0; i < seq->number; i++) {
+			if (!seq->imgparam[i].incl) continue;
+			if (plot->data[j].x >= xmin && plot->data[j].x <= xmax && plot->data[j].y >= ymin && plot->data[j].y <= ymax) {
 				n++;
 				pdd.selected[i] = TRUE;
 			}
+			j++;
 		}
 		pdd.nbselected = n;
-	} else{
+	} else {
 		pdd.nbselected = 0;
 	}
 
@@ -1371,11 +1392,13 @@ void on_plotCombo_changed(GtkComboBox *box, gpointer user_data) {
 		registration_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	}
 	requires_seqlist_update = TRUE;
+	pdd.selection = (rectangled){0., 0., 0., 0.};
 	update_slider(SLIDER_Y, 0., 1.);
 }
 
 void on_plotComboX_changed(GtkComboBox *box, gpointer user_data) {
 	X_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(comboX));
+	pdd.selection = (rectangled){0., 0., 0., 0.};
 	update_slider(SLIDER_X, 0., 1.);
 }
 
