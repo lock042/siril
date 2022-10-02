@@ -292,7 +292,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
-	{ "gui", "defalt_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode },
+	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },

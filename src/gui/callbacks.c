@@ -581,6 +581,33 @@ display_mode get_display_mode_from_menu() {
 	return LINEAR_DISPLAY;
 }
 
+void set_initial_display_mode(display_mode x) {
+	switch(x) {
+		case 0:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("linear_item")), TRUE);
+			break;
+		case 1:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("log_item")), TRUE);
+			break;
+		case 2:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("square_root_item")), TRUE);
+			break;
+		case 3:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("squared_item")), TRUE);
+			break;
+		case 4:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("asinh_item")), TRUE);
+			break;
+		case 5:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("auto_item")), TRUE);
+			break;
+		case 6:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("histo_item")), TRUE);
+			break;
+	}
+}
+
+
 void update_prepro_interface(gboolean allow_debayer) {
 	static GtkToggleButton *udark = NULL, *uoffset = NULL, *uflat = NULL,
 			       *checkAutoEvaluate = NULL;
@@ -1289,6 +1316,8 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(selection, "changed", G_CALLBACK(on_treeview_selection_convert_changed), NULL);
 
 	siril_drag_single_image_set_dest();
+
+	set_initial_display_mode((display_mode) com.pref.gui.default_rendering_mode);
 
 	set_GUI_CWD();
 	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
