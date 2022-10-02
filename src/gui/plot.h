@@ -97,7 +97,9 @@ typedef struct plot_draw_data {
 	enum marker_type marker_grabbed; // flag which slider marker is grabbed (0 to 3 from X_MIN to Y_MAX)
 	rectangled selection; // area selected in pixel units (x, y, w, h)
 	point start; // coordinates x,y of the initial selection point in pixels
-	gboolean is_selecting;
+	gboolean is_selecting; // flag true while selection is being drawn
+	gboolean *selected; // array same length as data array stating if point is within selection
+	int nbselected;
 } plot_draw_data_t;
 
 #endif /* SRC_GUI_PLOT_H_ */

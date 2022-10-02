@@ -145,14 +145,14 @@ pldata *alloc_plot_data(int size) {
 
 
 static void convert_surface_to_plot_coords(gdouble x, gdouble y, double *xpos, double *ypos) {
-	*xpos = pdd.scale.x * (x - pdd.offset.x) + pdd.pdatamin.x;
-	*ypos = pdd.scale.y * (pdd.range.y - y + pdd.offset.y) + pdd.pdatamin.y;
+	*xpos = max(min(pdd.scale.x * (x - pdd.offset.x) + pdd.pdatamin.x, pdd.pdatamax.x), pdd.pdatamin.x);
+	*ypos = max(min(pdd.scale.y * (pdd.range.y - y + pdd.offset.y) + pdd.pdatamin.y, pdd.pdatamax.y), pdd.pdatamin.y);
 }
 
-// static void convert_plot_to_surface_coords(double x, double y, double *xpos, double *ypos) {
-// 	*xpos = 1./ pdd.scale.x * (x - pdd.pdatamin.x) + pdd.offset.x;
-// 	*ypos = 1./ pdd.scale.y * (pdd.pdatamin.y - y) + pdd.range.y + pdd.offset.y;
-// }
+static void convert_plot_to_surface_coords(double x, double y, double *xpos, double *ypos) {
+	*xpos = 1./ pdd.scale.x * (x - pdd.pdatamin.x) + pdd.offset.x;
+	*ypos = 1./ pdd.scale.y * (pdd.pdatamin.y - y) + pdd.range.y + pdd.offset.y;
+}
 
 static void reset_plot_zoom() {
 	pdd.xrange[0] = 0.;
@@ -160,6 +160,11 @@ static void reset_plot_zoom() {
 	pdd.yrange[0] = 0.;
 	pdd.yrange[1] = 1.;
 	pdd.marker_grabbed = MARKER_NONE;
+	pdd.selection = (rectangled){0., 0., 0., 0.};
+}
+
+static gboolean selection_is_active() {
+	return pdd.selection.w > 0. && pdd.selection.h > 0.;
 }
 
 static gboolean is_inside_borders(double x, double y) {
@@ -333,6 +338,11 @@ static void plot_draw_selection(cairo_t *cr){
 						 pdd.selection.w,  pdd.selection.h);
 	cairo_stroke(cr);
 	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_move_to(cr, pdd.selection.x,  pdd.selection.y);
+	gchar buffer[256] = { 0 };
+	g_sprintf(buffer, "Nb: %d", pdd.nbselected);
+	cairo_show_text(cr, buffer);
+	cairo_stroke(cr);
 }
 
 static void build_registration_dataset(sequence *seq, int layer, int ref_image,
@@ -466,6 +476,28 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 		j++;
 	}
 	plot->nb = j;
+	pdd.pdatamin.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[0];
+	pdd.pdatamax.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[1];
+	pdd.pdatamin.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[0];
+	pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
+
+	pdd.selected = calloc(j, sizeof(gboolean));
+	if (selection_is_active()) {
+		double xmin, ymin, xmax, ymax;
+		int n = 0;
+		convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+		convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
+		for (int i = 0; i < j; i++) {
+			if (plot->data[i].x >= xmin && plot->data[i].x <= xmax && plot->data[i].y >= ymin && plot->data[i].y <= ymax) {
+				n++;
+				pdd.selected[i] = TRUE;
+			}
+		}
+		pdd.nbselected = n;
+	} else{
+		pdd.nbselected = 0;
+	}
+
 }
 
 static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index, int point_index) {
@@ -601,6 +633,13 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 		j++;
 	}
 	plot->nb = j;
+	pdd.pdatamin.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[0];
+	pdd.pdatamax.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[1];
+	pdd.pdatamin.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[0];
+	pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
+
+	pdd.selected = calloc(j, sizeof(gboolean));
+
 }
 
 static double get_error_for_time(pldata *plot, double time) {
@@ -851,6 +890,8 @@ void free_plot_data() {
 	julian0 = 0;
 	xlabel = NULL;
 	plot_data = NULL;
+	free(pdd.selected);
+	pdd.selected = NULL;
 }
 
 static void set_sensitive(GtkCellLayout *cell_layout,
@@ -1195,10 +1236,10 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	cfgdata.point.radius = 10;
 	// binding the extrema to the sliders
 	cfgplot.extrema = 0x0F;
-	cfgplot.extrema_xmin = pdd.pdatamin.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[0];
-	cfgplot.extrema_xmax = pdd.pdatamax.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[1];
-	cfgplot.extrema_ymin = pdd.pdatamin.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[0];
-	cfgplot.extrema_ymax = pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
+	cfgplot.extrema_xmin = pdd.pdatamin.x;
+	cfgplot.extrema_xmax = pdd.pdatamax.x;
+	cfgplot.extrema_ymin = pdd.pdatamin.y;
+	cfgplot.extrema_ymax = pdd.pdatamax.y;
 
 	struct kplot *p = kplot_alloc(&cfgplot);
 
