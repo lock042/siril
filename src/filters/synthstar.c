@@ -634,26 +634,3 @@ int reprofile_saturated_stars(fits *fit) {
 	show_time_msg(t_start, t_end, "Execution time");
 	return 0;
 }
-
-void on_synthstar_cancel_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("synthstar_dialog");
-}
-
-void on_synthstar_dynpsf_clicked(GtkButton *button, gpointer user_data) {
-	siril_open_dialog("stars_list_window");
-}
-
-void on_synthstar_desaturate_clicked(GtkButton *button, gpointer user_data) {
-	undo_save_state(&gfit, "Synthetic stars: desaturate clipped stars");
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	start_in_new_thread(fix_saturated_stars, NULL);
-	siril_close_dialog("synthstar_dialog");
-}
-
-void on_synthstar_apply_clicked(GtkButton *button, gpointer user_data) {
-	undo_save_state(&gfit, "Synthetic stars: full replacement");
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	start_in_new_thread(do_synthstar, NULL);
-	siril_close_dialog("synthstar_dialog");
-}
-
