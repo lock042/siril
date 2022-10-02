@@ -52,6 +52,7 @@
 
 #define XLABELSIZE 15
 #define PLOT_SLIDER_THICKNESS 10.
+#define SIDE_MARGIN 12.
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
@@ -149,10 +150,10 @@ static void convert_surface_to_plot_coords(gdouble x, gdouble y, double *xpos, d
 	*ypos = max(min(pdd.scale.y * (pdd.range.y - y + pdd.offset.y) + pdd.pdatamin.y, pdd.pdatamax.y), pdd.pdatamin.y);
 }
 
-static void convert_plot_to_surface_coords(double x, double y, double *xpos, double *ypos) {
-	*xpos = 1./ pdd.scale.x * (x - pdd.pdatamin.x) + pdd.offset.x;
-	*ypos = 1./ pdd.scale.y * (pdd.pdatamin.y - y) + pdd.range.y + pdd.offset.y;
-}
+// static void convert_plot_to_surface_coords(double x, double y, double *xpos, double *ypos) {
+// 	*xpos = 1./ pdd.scale.x * (x - pdd.pdatamin.x) + pdd.offset.x;
+// 	*ypos = 1./ pdd.scale.y * (pdd.pdatamin.y - y) + pdd.range.y + pdd.offset.y;
+// }
 
 static void reset_plot_zoom() {
 	pdd.xrange[0] = 0.;
@@ -176,7 +177,7 @@ static gboolean is_inside_borders(double x, double y) {
 // the full-length bottom and right rectangles that enclose sliders
 // This should avoid conflicts with sliders interactions
 static gboolean is_inside_selectable_zone(double x, double y) {
-	if (x <= pdd.surf_w - PLOT_SLIDER_THICKNESS && x >= 0 && y <= pdd.surf_h - PLOT_SLIDER_THICKNESS && y >= 0) return TRUE;
+	if (x <= pdd.surf_w - PLOT_SLIDER_THICKNESS && x >= SIDE_MARGIN && y <= pdd.surf_h - PLOT_SLIDER_THICKNESS && y >= SIDE_MARGIN) return TRUE;
 	return FALSE;
 }
 
@@ -1592,13 +1593,29 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 
 	double x = (double)event->x;
 	double y = (double)event->y;
+	double x1, x2, y1, y2;
 	if (pdd.is_selecting) {
-		double x1 = max(min(pdd.selection.x, x), 0.);
-		double x2 = min(max(pdd.start.x + pdd.selection.w, x), pdd.surf_w - PLOT_SLIDER_THICKNESS);
-		double y1 = max(min(pdd.selection.y, y), 0.);
-		double y2 = min(max(pdd.start.y + pdd.selection.h, y), pdd.surf_h - PLOT_SLIDER_THICKNESS);
+		if (x <= pdd.selection.x) {
+			x1 = x;
+			x2 = pdd.selection.x + pdd.selection.w;
+		} else {
+			x1 = pdd.selection.x;
+			x2 = x;
+		}
+		if (y <= pdd.selection.y) {
+			y1 = y;
+			y2 = pdd.selection.y + pdd.selection.h;
+		} else {
+			y1 = pdd.selection.y;
+			y2 = y;
+		}
+		x1 = max(SIDE_MARGIN, x1);
+		x2 = min(pdd.surf_w - PLOT_SLIDER_THICKNESS, x2);
+		y1 = max(SIDE_MARGIN, y1);
+		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, y2);
+		//siril_debug_print("%.0f %.0f\n", x1, x2);
 		pdd.start.x = x1;
-		pdd.start.y = y1;
+		pdd.start.y = y2;
 		pdd.selection = (rectangled){x1, y1, x2 - x1, y2 - y1};
 		drawPlot();
 		return TRUE;
