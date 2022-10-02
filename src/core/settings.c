@@ -124,6 +124,7 @@ preferences pref_init = {
 		.position_compass = 1,
 		.selection_guides = 0,
 		.reg_settings = 0,
+		.reg_interpolation = OPENCV_AREA,
 		.pm_presets = NULL
 	},
 	.debayer = {
@@ -260,7 +261,8 @@ struct settings_access all_settings[] = {
 	{ "gui_prepro", "use_bias_synth", STYPE_BOOL, N_("use synthetic bias"), &com.pref.prepro.use_bias_synth },
 	{ "gui_prepro", "bias_synth", STYPE_STR, N_("value of synthetic bias"), &com.pref.prepro.bias_synth},
 
-	{ "gui_registration", "method", STYPE_INT, N_("index of the selected method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
+	{ "gui_registration", "method", STYPE_INT, N_("index of the selected registration method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
+	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
 
 	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, 4 } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },

@@ -153,6 +153,7 @@ struct gui_config {
 
 	// single registration GUI variable
 	int reg_settings;	// selected registration method
+	int reg_interpolation; // selected interpolation method
 	GSList *pm_presets; // list of pixel math presets
 };
 

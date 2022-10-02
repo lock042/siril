@@ -161,8 +161,7 @@ void initialize_registration_methods() {
 	g_free(ctip);
 
 	/* fill comboboxregmethod */
-	regcombo = GTK_COMBO_BOX_TEXT(
-			gtk_builder_get_object(gui.builder, "comboboxregmethod"));
+	regcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxregmethod"));
 	gtk_combo_box_text_remove_all(regcombo);
 	i = 0;
 	while (reg_methods[i] != NULL) {
@@ -175,6 +174,7 @@ void initialize_registration_methods() {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(regcombo), com.pref.gui.reg_settings);
 	}
 
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("ComboBoxRegInter")), com.pref.gui.reg_interpolation);
 	/* register to the new area selected event */
 	register_selection_update_callback(_reg_selected_area_callback);
 }
@@ -215,7 +215,7 @@ static void normalizeQualityData(struct registration_args *args, double q_min, d
 }
 
 /* Calculate shift in images to be aligned with the reference image, using
- * discrete Fourrier transform on a square selected area and matching the
+ * discrete Fourier transform on a square selected area and matching the
  * phases.
  */
 int register_shift_dft(struct registration_args *args) {
@@ -772,6 +772,10 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 	com.pref.gui.reg_settings = index;
 	reset_3stars();
 	update_reg_interface(TRUE);
+}
+
+void on_ComboBoxRegInter_changed(GtkComboBox *box, gpointer user_data) {
+	com.pref.gui.reg_interpolation = gtk_combo_box_get_active(box);
 }
 
 void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
