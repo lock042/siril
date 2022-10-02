@@ -12132,21 +12132,30 @@ This should normally be the case only for stacked images. Increasing this value 
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <child>
-      <object class="GtkMenuItem" id="menu_plot_exclude">
+      <object class="GtkMenuItem" id="menu_plot_item1">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="label" translatable="yes">Exclude frame %d</property>
         <property name="use-underline">True</property>
-        <signal name="activate" handler="on_menu_plot_exclude_activate" swapped="no"/>
+        <signal name="activate" handler="on_menu_plot_item1_activate" swapped="no"/>
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menu_plot_show">
+      <object class="GtkMenuItem" id="menu_plot_item2">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="label" translatable="yes">Show frame %d</property>
         <property name="use-underline">True</property>
-        <signal name="activate" handler="on_menu_plot_show_activate" swapped="no"/>
+        <signal name="activate" handler="on_menu_plot_item2_activate" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_plot_item3">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">Show frame %d</property>
+        <property name="use-underline">True</property>
+        <signal name="activate" handler="on_menu_plot_item3_activate" swapped="no"/>
       </object>
     </child>
   </object>

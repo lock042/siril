@@ -77,7 +77,8 @@ static char *regfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.0f", "%0.1f"
 static char *regfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.0f", "%0.1f", "%0.1f", "%0.3f", "%0.0f" };
 static char *phtfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.1f", "%0.1f", "%0.2f"};
 static char *phtfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.1f", "%0.1f", "%0.2f"};
-
+static GtkMenu *menu = NULL;
+static GtkMenuItem *menu_item1 = NULL, *menu_item2 = NULL, *menu_item3 = NULL;
 
 static void formatX(double v, char *buf, size_t bufsz) {
 	char *fmt = (gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
@@ -161,11 +162,18 @@ static void reset_plot_zoom() {
 	pdd.yrange[0] = 0.;
 	pdd.yrange[1] = 1.;
 	pdd.marker_grabbed = MARKER_NONE;
+	pdd.is_selecting = FALSE;
 	pdd.selection = (rectangled){0., 0., 0., 0.};
 }
 
 static gboolean selection_is_active() {
 	return pdd.selection.w > 0. && pdd.selection.h > 0.;
+}
+
+static gboolean is_inside_selection(double x, double y) {
+	if (!selection_is_active()) return FALSE;
+	if (x >= pdd.selection.x && x <= pdd.selection.x + pdd.selection.w && y >= pdd.selection.y && x <= pdd.selection.y + pdd.selection.h) return TRUE;
+	return FALSE;
 }
 
 static gboolean is_inside_borders(double x, double y) {
@@ -332,7 +340,8 @@ static void plot_draw_all_markers(cairo_t *cr) {
 static void plot_draw_selection(cairo_t *cr){
 	if (pdd.selection.h == 0. || pdd.selection.w == 0.) return;
 	double dash_format[] = { 4.0, 2.0 };
-	cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
+	double color = (com.pref.gui.combo_theme == 0) ? 0.8 : 0.2;
+	cairo_set_source_rgb(cr, color, color, color);
 	cairo_set_dash(cr, dash_format, 2, 0);
 	cairo_set_line_width(cr, 1.);
 	cairo_rectangle(cr, pdd.selection.x,  pdd.selection.y,
@@ -1671,11 +1680,7 @@ gboolean on_DrawingPlot_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 	return TRUE;
 }
 
-static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
-	static GtkMenu *menu = NULL;
-	static GtkMenuItem *menu_item = NULL;
-	static GtkMenuItem *menu_item2 = NULL;
-
+static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event) {
 	if (!event) {
 		return;
 	}
@@ -1688,8 +1693,9 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 	if (!menu) {
 		menu = GTK_MENU(lookup_widget("menu_plot"));
 		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
-		menu_item = GTK_MENU_ITEM(lookup_widget("menu_plot_exclude"));
-		menu_item2 = GTK_MENU_ITEM(lookup_widget("menu_plot_show"));
+		menu_item1 = GTK_MENU_ITEM(lookup_widget("menu_plot_item1"));
+		menu_item2 = GTK_MENU_ITEM(lookup_widget("menu_plot_item2"));
+		menu_item3 = GTK_MENU_ITEM(lookup_widget("menu_plot_item3"));
 	}
 
 #if GTK_CHECK_VERSION(3, 22, 0)
@@ -1702,12 +1708,39 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 			event_time);
 #endif
 	gchar *str = g_strdup_printf(_("Exclude Frame %d"), (int)index);
-	gtk_menu_item_set_label(menu_item, str);
+	gtk_menu_item_set_label(menu_item1, str);
 	gchar *str2 = g_strdup_printf(_("Show Frame %d"), (int)index);
 	gtk_menu_item_set_label(menu_item2, str2);
-
+	gtk_menu_item_set_label(menu_item3, "");
 	g_free(str);
 	g_free(str2);
+}
+
+static void do_popup_selectionmenu(GtkWidget *my_widget, GdkEventButton *event) {
+	if (!event) {
+		return;
+	}
+
+	if (!menu) {
+		menu = GTK_MENU(lookup_widget("menu_plot"));
+		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
+		menu_item1 = GTK_MENU_ITEM(lookup_widget("menu_plot_item1"));
+		menu_item2 = GTK_MENU_ITEM(lookup_widget("menu_plot_item2"));
+		menu_item3 = GTK_MENU_ITEM(lookup_widget("menu_plot_item3"));
+	}
+
+#if GTK_CHECK_VERSION(3, 22, 0)
+	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
+#else
+	int button = event->button;
+	int event_time = event->time;
+
+	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button,
+			event_time);
+#endif
+	gtk_menu_item_set_label(menu_item1, _("Zoom to selection"));
+	gtk_menu_item_set_label(menu_item2, _("Only keep points within selection"));
+	gtk_menu_item_set_label(menu_item3, _("Exclude selected points"));
 }
 
 gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
@@ -1716,18 +1749,31 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 	if (!com.seq.imgparam) return FALSE;
 	double x = (double)event->x;
 	double y = (double)event->y;
-	// open or exclude image (if close enough to a data point)
-	if (is_inside_borders(x, y) && event->button == GDK_BUTTON_SECONDARY) {
-		do_popup_plotmenu(widget, event);
-		return TRUE;
+	// if a zone is selected, right-click pops out menu to zoom/keep/exclude in bulk
+	if (event->button == GDK_BUTTON_SECONDARY) {
+		if (selection_is_active()) {
+			do_popup_selectionmenu(widget, event);
+			return TRUE;
+		}
+		// open or exclude image (if close enough to a data point)
+		if (is_inside_borders(x, y) && event->button == GDK_BUTTON_SECONDARY) {
+			do_popup_singleframemenu(widget, event);
+			return TRUE;
+		}
 	}
 	// start drawing selection
 	if (is_inside_selectable_zone(x, y) && event->button == GDK_BUTTON_PRIMARY) {
-		pdd.is_selecting = TRUE;
-		pdd.selection = (rectangled){x, y, 0., 0.};
-		pdd.start = (point){x, y};
-		return TRUE;
+		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {
+			reset_plot_zoom();
+			return TRUE;
+		} else {
+			pdd.is_selecting = TRUE;
+			pdd.selection = (rectangled){x, y, 0., 0.};
+			pdd.start = (point){x, y};
+			return TRUE;
+		}
 	}
+
 	for (int i = SLIDER_X; i <= SLIDER_Y; i++) {
 		if (is_inside_slider(x, y, i) && event->button == GDK_BUTTON_PRIMARY) {
 			// double - click on slider resets both markers
@@ -1782,28 +1828,48 @@ static signed long extract_int_from_label(const gchar *str) {
 	return -1;
 }
 
-void on_menu_plot_exclude_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	const gchar *label = gtk_menu_item_get_label(menuitem);
-	gint index;
+void on_menu_plot_item1_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	if (!selection_is_active()) { // Exclude single frame
+		const gchar *label = gtk_menu_item_get_label(menuitem);
+		gint index;
 
-	index = extract_int_from_label(label);
-	if (index > 0) {
-		index--;
+		index = extract_int_from_label(label);
+		if (index > 0) {
+			index--;
 
-		exclude_single_frame(index);
-		update_seqlist(use_photometry ? 0 : reglayer);
+			exclude_single_frame(index);
+			update_seqlist(use_photometry ? 0 : reglayer);
+		}
+	} else { // Zoom to selection
+		double xmin, xmax, ymin, ymax;
+		convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+		convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
+		pdd.xrange[0] = (xmin - pdd.datamin.x) / (pdd.datamax.x - pdd.datamin.x);
+		pdd.xrange[1] = (xmax - pdd.datamin.x) / (pdd.datamax.x - pdd.datamin.x);
+		pdd.yrange[0] = (ymin - pdd.datamin.y) / (pdd.datamax.y - pdd.datamin.y);
+		pdd.yrange[1] = (ymax - pdd.datamin.y) / (pdd.datamax.y - pdd.datamin.y);
+		pdd.selection = (rectangled){0., 0., 0., 0.};
+		update_slider(SLIDER_X, pdd.xrange[0], pdd.xrange[1]);
+		update_slider(SLIDER_Y, pdd.yrange[0], pdd.yrange[1]);
 	}
 }
 
-void on_menu_plot_show_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	const gchar *label = gtk_menu_item_get_label(menuitem);
-	gint index;
+void on_menu_plot_item2_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	if (!selection_is_active()) { // Open single frame
+		const gchar *label = gtk_menu_item_get_label(menuitem);
+		gint index;
 
-	index = extract_int_from_label(label);
-	if (index > 0) {
-		siril_open_dialog("seqlist_dialog");
-		update_seqlist(use_photometry ? 0 : reglayer);
-		sequence_list_select_row_from_index(index - 1, TRUE);
+		index = extract_int_from_label(label);
+		if (index > 0) {
+			siril_open_dialog("seqlist_dialog");
+			update_seqlist(use_photometry ? 0 : reglayer);
+			sequence_list_select_row_from_index(index - 1, TRUE);
+		}
+	}
+}
+void on_menu_plot_item3_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	if (!selection_is_active()) { // Open single frame
+		return;
 	}
 }
 
