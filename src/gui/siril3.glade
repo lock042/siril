@@ -7556,7 +7556,7 @@ While the primary aim of the tool is star recomposition as part of a star reduct
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Select type of stretch. Generalised hyperbolic stretch performs a hyperbolic stretch with parameters for stretch strength, local intensity, symmetry point, and shadow and highlight preservation regions. Modified arcsinh stretch performs an arcsinh stretch with additional parameters for symmetry point, lowlight and highlight preservation. The inverse hyperbolic and arcsinh stretches are also available.</property>
                             <property name="hexpand">True</property>
-                            <property name="active">0</property>
+                            <property name="active">2</property>
                             <items>
                               <item translatable="yes">Generalised hyperbolic transform</item>
                               <item translatable="yes">Inverse generalised hyperbolic transform</item>
@@ -7701,7 +7701,6 @@ Note that luminance based models are not generally invertible.</property>
                     </child>
                     <child>
                       <object class="GtkBox" id="ghtBcontrols1">
-                        <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="orientation">vertical</property>
                         <child>
@@ -12790,6 +12789,7 @@ This should normally be the case only for stacked images. Increasing this value 
                             <property name="tooltip-text" translatable="yes">Show the histogram with a logarithmic scale. Does not affect the transfer function display.
 </property>
                             <property name="halign">end</property>
+                            <property name="active">True</property>
                             <property name="draw-indicator">True</property>
                             <signal name="toggled" handler="on_histo_toggled" swapped="no"/>
                           </object>

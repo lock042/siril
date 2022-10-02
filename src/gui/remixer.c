@@ -57,7 +57,7 @@ static float leftHP = 1.0f, rightHP = 1.0f;
 static float leftBP = 0.0f, rightBP = 0.0f;
 static float mastermixer = 0.5f;
 static float finalstretch = 0.0f;
-static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_PAYNE_NORMAL;
+static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_ASINH;
 static int colour_left = COL_INDEP, colour_right = COL_INDEP;
 static fits fit_left;
 static fits fit_right;
@@ -536,7 +536,8 @@ void reset_values() {
 	leftHP = 1.0f;
 	rightD = rightB = rightLP = rightSP = rightBP = 0.0f;
 	rightHP = 1.0f;
-	type_left = type_right = STRETCH_PAYNE_NORMAL;
+	type_left = STRETCH_PAYNE_NORMAL;
+	type_right = STRETCH_ASINH;
 	colour_left = colour_right = COL_INDEP;
 	mastermixer = 0.5f;
 	finalstretch = 0.0f;
