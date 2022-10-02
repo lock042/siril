@@ -299,7 +299,6 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	if (!com.headless) {
-		gui.rendering_mode = com.pref.gui.default_rendering_mode;
 		gtk_builder_connect_signals(gui.builder, NULL);
 		initialize_all_GUI(supported_files);
 	}
