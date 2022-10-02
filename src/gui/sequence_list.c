@@ -578,7 +578,6 @@ void exclude_single_frame(int index) {
 			com.seq.imgparam[index].incl ? _("Excluding") : _("Including"),
 			index + 1, com.seq.seqname);
 
-
 	com.seq.imgparam[index].incl = !com.seq.imgparam[index].incl;
 	if (com.seq.imgparam[index].incl)
 		com.seq.selnum++;
@@ -597,6 +596,31 @@ void exclude_single_frame(int index) {
 	drawPlot();
 	adjust_sellabel();
 	writeseqfile(&com.seq);
+}
+
+void select_unselect_frames_from_list(gboolean *selected, gboolean keep) {
+	gboolean current_updated = FALSE, need_ref_update = FALSE, current_incl;
+
+	for (int i = 0; i <= com.seq.number; i++) { // use real index
+		com.seq.imgparam[i].incl = (keep) ? selected[i] : !selected[i] && com.seq.imgparam[i].incl;
+		if (!com.seq.imgparam[i].incl && com.seq.reference_image == i) { // reference image is not included anymore
+			need_ref_update = TRUE;
+		}
+	}
+	if (need_ref_update) {
+		com.seq.reference_image = -1;
+		com.seq.reference_image = sequence_find_refimage(&com.seq);
+		adjust_refimage(com.seq.reference_image);
+		sequence_list_change_reference();
+	}
+
+	redraw(REDRAW_OVERLAY);
+	fix_selnum(&com.seq, FALSE);
+	update_reg_interface(FALSE);
+	update_stack_interface(FALSE);
+	adjust_sellabel();
+	writeseqfile(&com.seq);
+	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), com.seq.selnum);
 }
 
 void on_seqlist_image_selection_toggled(GtkCellRendererToggle *cell_renderer,

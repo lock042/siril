@@ -670,7 +670,24 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 	pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
 
 	pdd.selected = calloc(j, sizeof(gboolean));
-
+	//TODO check again what we want to do for photometry - only select based on X coords?
+	if (selection_is_active()) {
+		double xmin, ymin, xmax, ymax;
+		int n = 0;
+		convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+		convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
+		for (i = 0, j = 0; i < seq->number; i++) {
+			if (!seq->imgparam[i].incl) continue;
+			if (plot->data[j].x >= xmin && plot->data[j].x <= xmax && plot->data[j].y >= ymin && plot->data[j].y <= ymax) {
+				n++;
+				pdd.selected[i] = TRUE;
+			}
+			j++;
+		}
+		pdd.nbselected = n;
+	} else {
+		pdd.nbselected = 0;
+	}
 }
 
 static double get_error_for_time(pldata *plot, double time) {
@@ -1865,11 +1882,19 @@ void on_menu_plot_item2_activate(GtkMenuItem *menuitem, gpointer user_data) {
 			update_seqlist(use_photometry ? 0 : reglayer);
 			sequence_list_select_row_from_index(index - 1, TRUE);
 		}
+	} else {
+		select_unselect_frames_from_list(pdd.selected, TRUE);
+		reset_plot_zoom();
+		drawPlot();
 	}
 }
 void on_menu_plot_item3_activate(GtkMenuItem *menuitem, gpointer user_data) {
 	if (!selection_is_active()) { // Open single frame
 		return;
+	} else {
+		select_unselect_frames_from_list(pdd.selected, FALSE);
+		reset_plot_zoom();
+		drawPlot();
 	}
 }
 
