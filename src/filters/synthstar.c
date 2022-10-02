@@ -484,6 +484,7 @@ int generate_synthstars(fits *fit) {
 		} else
 			free(buf[0]);
 	}
+	update_filter_information(fit, "StarMask", TRUE);
 	if (fit == &gfit && !stopcalled)
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
