@@ -1163,10 +1163,6 @@ void on_dialog_star_remix_close() {
 	apply_remix_cancel();
 }
 
-void on_remixer_help_button_clicked(GtkButton *button, gpointer user_data) {
-	siril_open_dialog("remixer_help");
-}
-
 void on_remixer_help_okay_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("remixer_help");
 }
