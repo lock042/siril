@@ -84,7 +84,12 @@ static GtkMenu *menu = NULL;
 static GtkMenuItem *menu_item1 = NULL, *menu_item2 = NULL, *menu_item3 = NULL;
 
 static void formatX(double v, char *buf, size_t bufsz) {
-	char *fmt = (gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
+	char *fmt;
+	if (use_photometry && julian0 && force_Julian) {
+		fmt = "%0.5f";
+	} else {
+		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
+	}
 	snprintf(buf, sizeof(buf), fmt, v);
 }
 static void formatY(double v, char *buf, size_t bufsz) {
@@ -381,12 +386,21 @@ static void plot_draw_selection(cairo_t *cr){
 	gchar fmt[256] = { 0 };
 	gchar buffer[256] = { 0 };
 	if (use_photometry) {
-		g_sprintf(fmt, "Nb: %s - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
-		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
-		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
-		ylabel,
-		(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
-		(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
+		if (julian0 && force_Julian) {
+			g_sprintf(fmt, "Nb: %s (for V star) - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
+			"%0.5f",
+			"%0.5f",
+			ylabel,
+			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
+			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
+		} else {
+			g_sprintf(fmt, "Nb: %s (for V star) - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
+			(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+			(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+			ylabel,
+			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
+			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
+		}
 	} else {
 		g_sprintf(fmt, "Nb: %s - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
 		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
@@ -610,7 +624,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 					julian0 = (int) date_time_to_Julian(ts0);
 				}
 				g_date_time_unref(ts0);
-				siril_debug_print("julian0 set to %d\n", julian0);
+				//siril_debug_print("julian0 set to %d\n", julian0);
 			}
 			if (julian0 && force_Julian) {
 				xlabel = malloc(XLABELSIZE * sizeof(char));
@@ -695,24 +709,25 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 	pdd.pdatamin.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[0];
 	pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
 
-	pdd.selected = calloc(j, sizeof(gboolean));
-	//TODO check again what we want to do for photometry - only select based on X coords?
-	if (selection_is_active()) {
-		double xmin, ymin, xmax, ymax;
-		int n = 0;
-		convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
-		convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
-		for (i = 0, j = 0; i < seq->number; i++) {
-			if (!seq->imgparam[i].incl) continue;
-			if (plot->data[j].x >= xmin && plot->data[j].x <= xmax && plot->data[j].y >= ymin && plot->data[j].y <= ymax) {
-				n++;
-				pdd.selected[i] = TRUE;
+	if (dataset == 0) { // selection is done of the reference dataset only
+		pdd.selected = calloc(seq->number, sizeof(gboolean));
+		if (selection_is_active()) {
+			double xmin, ymin, xmax, ymax;
+			int n = 0;
+			convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+			convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
+			for (i = 0, j = 0; i < seq->number; i++) {
+				if (!seq->imgparam[i].incl) continue;
+				if (plot->data[j].x >= xmin && plot->data[j].x <= xmax && plot->data[j].y >= ymin && plot->data[j].y <= ymax) {
+					n++;
+					pdd.selected[i] = TRUE;
+				}
+				j++;
 			}
-			j++;
+			pdd.nbselected = n;
+		} else {
+			pdd.nbselected = 0;
 		}
-		pdd.nbselected = n;
-	} else {
-		pdd.nbselected = 0;
 	}
 }
 
@@ -1354,7 +1369,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 						 registration_selected_source == r_NBSTARS) ? comparey_desc : comparey);
 				double imin = pdd.pdatamin.x;
 				double imax = pdd.pdatamax.x;
-				double pace = (imax - imin) / ((double)plot_data->nb - 1.); // TODO: re-check behavior of sorted distribution when zoomed in X
+				double pace = (imax - imin) / ((double)plot_data->nb - 1.);
 				for (int i = 0; i < plot_data->nb; i++) {
 					sorted_data[i].x = imin + (double)i * pace;
 				}
