@@ -77,6 +77,21 @@ enum slider_type {
 	SLIDER_Y
 };
 
+enum border_type {
+	SELBORDER_NONE = -1,
+	SELBORDER_TOP = 0,
+	SELBORDER_BOTTOM = 1,
+	SELBORDER_LEFT = 2,
+	SELBORDER_RIGHT = 3
+};
+
+enum action_type {
+	ACTION_NONE = -1,
+	ACTION_SELECTING = 0,
+	ACTION_RESIZING = 1,
+	ACTION_MOVING = 2
+};
+
 // same as rectangle but double to avoid recasting
 typedef struct {
 	double x, y, w, h;
@@ -97,7 +112,8 @@ typedef struct plot_draw_data {
 	enum marker_type marker_grabbed; // flag which slider marker is grabbed (0 to 3 from X_MIN to Y_MAX)
 	rectangled selection; // area selected in pixel units (x, y, w, h)
 	point start; // coordinates x,y of the initial selection point in pixels
-	gboolean is_selecting; // flag true while selection is being drawn
+	enum action_type action; // action being performed
+	enum border_type border_grabbed; // the border being dragged
 	gboolean *selected; // array same length as data array stating if point is within selection
 	int nbselected;
 } plot_draw_data_t;

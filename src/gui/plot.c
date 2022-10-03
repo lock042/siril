@@ -51,8 +51,9 @@
 #include "opencv/opencv.h"
 
 #define XLABELSIZE 15
-#define PLOT_SLIDER_THICKNESS 10.
-#define SIDE_MARGIN 12.
+#define PLOT_SLIDER_THICKNESS 10. // thickness of the sliders in pixels
+#define SIDE_MARGIN 12. // the margin in pixels top and left to define the start of selectable zone (allows to write info atop of selection)
+#define SEL_TOLERANCE 3. // toerance in pixels for grabbing the selection borders
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
@@ -162,7 +163,7 @@ static void reset_plot_zoom() {
 	pdd.yrange[0] = 0.;
 	pdd.yrange[1] = 1.;
 	pdd.marker_grabbed = MARKER_NONE;
-	pdd.is_selecting = FALSE;
+	pdd.action = ACTION_NONE;
 	pdd.selection = (rectangled){0., 0., 0., 0.};
 }
 
@@ -176,9 +177,18 @@ static gboolean is_inside_selection(double x, double y) {
 	return FALSE;
 }
 
-static gboolean is_inside_borders(double x, double y) {
+static gboolean is_inside_grid(double x, double y) {
 	if (x <= pdd.offset.x + pdd.range.x && x >= pdd.offset.x && y <= pdd.offset.y + pdd.range.y && y >= pdd.offset.y) return TRUE;
 	return FALSE;
+}
+
+static enum border_type is_over_selection_border(double x, double y) {
+	if (!selection_is_active()) return SELBORDER_NONE;
+	if (x >= pdd.selection.x && x <= pdd.selection.x + pdd.selection.w && y >= pdd.selection.y - SEL_TOLERANCE && y <= pdd.selection.y + SEL_TOLERANCE) return SELBORDER_TOP;
+	if (x >= pdd.selection.x && x <= pdd.selection.x + pdd.selection.w && y >= pdd.selection.y + pdd.selection.h - SEL_TOLERANCE && y <= pdd.selection.y + pdd.selection.h + SEL_TOLERANCE) return SELBORDER_BOTTOM;
+	if (y >= pdd.selection.y && y <= pdd.selection.y + pdd.selection.h && x >= pdd.selection.x - SEL_TOLERANCE && x <= pdd.selection.x + SEL_TOLERANCE) return SELBORDER_LEFT;
+	if (y >= pdd.selection.y && y <= pdd.selection.y + pdd.selection.h && x >= pdd.selection.x + pdd.selection.w - SEL_TOLERANCE && x <= pdd.selection.x + pdd.selection.w + SEL_TOLERANCE) return SELBORDER_RIGHT;
+	return SELBORDER_NONE;
 }
 
 // Returns TRUE if within all the plotting surface except
@@ -193,9 +203,9 @@ static gboolean is_inside_slider(double x, double y, enum slider_type slider_t) 
 	switch (slider_t) {
 		// some margins are included to make sure we can grab
 		case SLIDER_X:
-			return (x <= pdd.offset.x + pdd.range.x + PLOT_SLIDER_THICKNESS * 0.5 && x >= pdd.offset.x - PLOT_SLIDER_THICKNESS * 0.5 && y >= pdd.surf_h - PLOT_SLIDER_THICKNESS);
+			return (x <= pdd.offset.x + pdd.range.x + SEL_TOLERANCE && x >= pdd.offset.x - SEL_TOLERANCE && y >= pdd.surf_h - PLOT_SLIDER_THICKNESS);
 		case SLIDER_Y:
-			return (y <= pdd.offset.y + pdd.range.y + PLOT_SLIDER_THICKNESS * 0.5 && y >= pdd.offset.y - PLOT_SLIDER_THICKNESS * 0.5 && x >= pdd.surf_w - PLOT_SLIDER_THICKNESS);
+			return (y <= pdd.offset.y + pdd.range.y + SEL_TOLERANCE && y >= pdd.offset.y - SEL_TOLERANCE && x >= pdd.surf_w - PLOT_SLIDER_THICKNESS);
 		default:
 			return FALSE;
 	}
@@ -1620,7 +1630,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 	double x = (double)event->x;
 	double y = (double)event->y;
 	double x1, x2, y1, y2;
-	if (pdd.is_selecting) {
+	if (pdd.action == ACTION_SELECTING) {
 		if (x <= pdd.selection.x) {
 			x1 = x;
 			x2 = pdd.selection.x + pdd.selection.w;
@@ -1646,6 +1656,42 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		drawPlot();
 		return TRUE;
 	}
+	if (pdd.action == ACTION_RESIZING) {
+		x1 = pdd.selection.x;
+		y1 = pdd.selection.y;
+		x2 = pdd.selection.x + pdd.selection.w;
+		y2 = pdd.selection.y + pdd.selection.h;
+		switch (pdd.border_grabbed) {
+			case SELBORDER_LEFT:
+				x1 = min(x , pdd.selection.x + pdd.selection.w);
+				x2 = max(x , pdd.selection.x + pdd.selection.w);
+				break;
+			case SELBORDER_RIGHT:
+				x1 = min(x , pdd.selection.x);
+				x2 = max(x , pdd.selection.x);
+				break;
+			case SELBORDER_TOP:
+				y1 = min(y , pdd.selection.y + pdd.selection.h);
+				y2 = max(y , pdd.selection.y + pdd.selection.h);
+				break;
+			case SELBORDER_BOTTOM:
+				y1 = min(y , pdd.selection.y);
+				y2 = max(y , pdd.selection.y);
+				break;
+			default:
+				break;
+		}
+		x1 = max(SIDE_MARGIN, x1);
+		x2 = min(pdd.surf_w - PLOT_SLIDER_THICKNESS, x2);
+		y1 = max(SIDE_MARGIN, y1);
+		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, y2);
+		//siril_debug_print("%.0f %.0f\n", x1, x2);
+		pdd.start.x = x1;
+		pdd.start.y = y2;
+		pdd.selection = (rectangled){x1, y1, x2 - x1, y2 - y1};
+		drawPlot();
+		return TRUE;
+	}
 	for (int i = SLIDER_X; i <= SLIDER_Y; i++) {
 		for (int j = 0; j < 2; j++) {
 			if (pdd.marker_grabbed == 2 * i + j) {
@@ -1659,7 +1705,17 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 			}
 		}
 	}
-	if (is_inside_borders(x, y)) {
+	enum border_type border = is_over_selection_border(x, y);
+	if (border > SELBORDER_NONE) {
+		if (border <= SELBORDER_BOTTOM)
+			set_cursor("n-resize");
+		else
+			set_cursor("w-resize");
+		return TRUE;
+	} else {
+		set_cursor("tcross");
+	}
+	if (is_inside_grid(x, y)) {
 		double index, xpos, ypos;
 		gboolean getvals = get_index_of_frame(x, y, FALSE, &index, &xpos, &ypos);
 		gchar *tooltip_text;
@@ -1675,7 +1731,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		}
 	}
 	set_cursor("tcross");
-	return FALSE;
+	return TRUE;
 }
 
 gboolean on_DrawingPlot_enter_notify_event(GtkWidget *widget, GdkEvent *event,
@@ -1773,18 +1829,24 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 			return TRUE;
 		}
 		// open or exclude image (if close enough to a data point)
-		if (is_inside_borders(x, y) && event->button == GDK_BUTTON_SECONDARY) {
+		if (is_inside_grid(x, y) && event->button == GDK_BUTTON_SECONDARY) {
 			do_popup_singleframemenu(widget, event);
 			return TRUE;
 		}
 	}
-	// start drawing selection
+	
 	if (is_inside_selectable_zone(x, y) && event->button == GDK_BUTTON_PRIMARY) {
-		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {
+		enum border_type border = is_over_selection_border(x, y);
+		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {  // double-click resets zoom
 			reset_plot_zoom();
 			return TRUE;
-		} else {
-			pdd.is_selecting = TRUE;
+		} else if (border > SELBORDER_NONE) { // start resizing selection
+			pdd.action = ACTION_RESIZING;
+			pdd.border_grabbed = border;
+			pdd.start = (point){x, y};
+			return TRUE;
+		} else { // start drawing selection
+			pdd.action = ACTION_SELECTING;
 			pdd.selection = (rectangled){x, y, 0., 0.};
 			pdd.start = (point){x, y};
 			return TRUE;
@@ -1826,7 +1888,8 @@ gboolean on_DrawingPlot_button_release_event(GtkWidget *widget,
 	pdd.marker_grabbed = MARKER_NONE;
 	if (pdd.selection.w < 1. || pdd.selection.h < 1. )
 		pdd.selection = (rectangled){0., 0., 0., 0.};
-	pdd.is_selecting = FALSE;
+	pdd.action = ACTION_NONE;
+	pdd.border_grabbed = SELBORDER_NONE;
 	drawPlot();
 	return TRUE;
 }

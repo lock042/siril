@@ -599,7 +599,7 @@ void exclude_single_frame(int index) {
 }
 
 void select_unselect_frames_from_list(gboolean *selected, gboolean keep) {
-	gboolean current_updated = FALSE, need_ref_update = FALSE, current_incl;
+	gboolean need_ref_update = FALSE;
 
 	for (int i = 0; i <= com.seq.number; i++) { // use real index
 		com.seq.imgparam[i].incl = (keep) ? selected[i] : !selected[i] && com.seq.imgparam[i].incl;
