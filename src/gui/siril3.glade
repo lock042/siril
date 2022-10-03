@@ -12789,7 +12789,6 @@ This should normally be the case only for stacked images. Increasing this value 
                             <property name="tooltip-text" translatable="yes">Show the histogram with a logarithmic scale. Does not affect the transfer function display.
 </property>
                             <property name="halign">end</property>
-                            <property name="active">True</property>
                             <property name="draw-indicator">True</property>
                             <signal name="toggled" handler="on_histo_toggled" swapped="no"/>
                           </object>

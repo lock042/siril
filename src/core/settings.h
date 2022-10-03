@@ -156,7 +156,7 @@ struct gui_config {
 	int reg_interpolation; // selected interpolation method
 	GSList *pm_presets; // list of pixel math presets
 	int default_rendering_mode; // Default view STF to use at startup
-
+	gboolean display_histogram_log; // Display histogram view in logarithm scale
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?

@@ -1128,9 +1128,9 @@ void initialize_display_mode() {
 }
 
 /* initialize non-preferences GUI from settings */
-void init_GUI_from_settings() {
-	GtkToggleButton *main_debayer_button = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
-	gtk_toggle_button_set_active(main_debayer_button, com.pref.debayer.open_debayer);
+static void init_GUI_from_settings() {
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton")), com.pref.debayer.open_debayer);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckLogButton")), com.pref.gui.display_histogram_log);
 }
 
 void set_GUI_CWD() {

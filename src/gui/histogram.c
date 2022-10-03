@@ -846,6 +846,7 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_EVENLUM);
 		}
 	}
+	com.pref.gui.display_histogram_log = gtk_toggle_button_get_active(togglebutton);
 
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));

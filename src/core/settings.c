@@ -115,6 +115,7 @@ preferences pref_init = {
 		.show_thumbnails = TRUE,
 		.thumbnail_size = 256,
 		.default_rendering_mode = LINEAR_DISPLAY,
+		.display_histogram_log = FALSE,
 		.catalog[0] = TRUE,
 		.catalog[1] = TRUE,
 		.catalog[2] = TRUE,
@@ -295,6 +296,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode },
+	{ "gui", "display_histogram_log", STYPE_BOOL, N_("display histogram in logarithm scale"), &com.pref.gui.display_histogram_log },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },
