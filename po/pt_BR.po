@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-10-02 22:26+0200\n"
+"POT-Creation-Date: 2022-10-03 10:18+0200\n"
 "PO-Revision-Date: 2021-01-13 22:17+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -29,10 +29,10 @@ msgstr "Correção Cosmética"
 #: src/gui/siril3.glade:3563 src/gui/siril3.glade:5462
 #: src/gui/siril3.glade:5809 src/gui/siril3.glade:6291
 #: src/gui/siril3.glade:6492 src/gui/siril3.glade:6750
-#: src/gui/siril3.glade:7129 src/gui/siril3.glade:8869
-#: src/gui/siril3.glade:9564 src/gui/siril3.glade:10566
-#: src/gui/siril3.glade:10797 src/gui/siril3.glade:12675
-#: src/gui/siril3.glade:12679 src/gui/siril3.glade:14589
+#: src/gui/siril3.glade:7129 src/gui/siril3.glade:8868
+#: src/gui/siril3.glade:9563 src/gui/siril3.glade:10565
+#: src/gui/siril3.glade:10796 src/gui/siril3.glade:12674
+#: src/gui/siril3.glade:12678 src/gui/siril3.glade:14589
 #: src/gui/siril3.glade:15607 src/gui/siril3.glade:15828
 #: src/gui/siril3.glade:16062 src/gui/siril3.glade:23466
 #: src/gui/siril3.glade:23678
@@ -52,8 +52,8 @@ msgstr "Fechar a janela atual"
 #: src/gui/siril3.glade:5476 src/gui/siril3.glade:5823
 #: src/gui/siril3.glade:5951 src/gui/siril3.glade:5955
 #: src/gui/siril3.glade:6305 src/gui/siril3.glade:7143
-#: src/gui/siril3.glade:7442 src/gui/siril3.glade:8884
-#: src/gui/siril3.glade:12691 src/gui/siril3.glade:14603
+#: src/gui/siril3.glade:7442 src/gui/siril3.glade:8883
+#: src/gui/siril3.glade:12690 src/gui/siril3.glade:14603
 #: src/gui/siril3.glade:15621 src/gui/siril3.glade:15842
 #: src/gui/siril3.glade:16077 src/gui/siril3.glade:23692
 #: src/gui/siril3.glade:24424
@@ -147,7 +147,7 @@ msgstr ""
 #: src/gui/siril3.glade:551 src/gui/siril3.glade:829 src/gui/siril3.glade:833
 #: src/gui/siril3.glade:2540 src/gui/siril3.glade:3323
 #: src/gui/siril3.glade:5180 src/gui/siril3.glade:7412
-#: src/gui/siril3.glade:12659 src/gui/siril3.glade:12663
+#: src/gui/siril3.glade:12658 src/gui/siril3.glade:12662
 #: src/gui/siril3.glade:24396
 msgid "Reset"
 msgstr "Reset"
@@ -276,7 +276,8 @@ msgid "Type of algorithm"
 msgstr "Tipo de Algoritmo"
 
 #: src/gui/siril3.glade:1285 src/gui/siril3.glade:2628
-#: src/gui/siril3.glade:12047 src/gui/siril3.glade:22598
+#: src/gui/siril3.glade:12046 src/gui/siril3.glade:22598
+#: src/gui/siril3.glade:27233
 msgid "Linear"
 msgstr "Linear"
 
@@ -390,7 +391,7 @@ msgstr "Rotação"
 msgid "Rotational shift used to compute rotational gradient."
 msgstr ""
 
-#: src/gui/siril3.glade:2140 src/gui/siril3.glade:10467
+#: src/gui/siril3.glade:2140 src/gui/siril3.glade:10466
 #: src/gui/siril3.glade:23845 src/gui/siril3.glade:24234
 msgid "Use current selection"
 msgstr ""
@@ -420,7 +421,7 @@ msgid "Starnet++ Star Removal"
 msgstr ""
 
 #: src/gui/siril3.glade:2291 src/gui/siril3.glade:2686
-#: src/gui/siril3.glade:10550
+#: src/gui/siril3.glade:10549
 msgid "Execute"
 msgstr ""
 
@@ -600,7 +601,7 @@ msgstr ""
 msgid "Background Extraction"
 msgstr "Extrair o fundo"
 
-#: src/gui/siril3.glade:3567 src/gui/siril3.glade:9568
+#: src/gui/siril3.glade:3567 src/gui/siril3.glade:9567
 msgid "Close the window."
 msgstr "Fechar a janela."
 
@@ -1374,7 +1375,7 @@ msgstr "Cortar a imagem a uma área comum depois de alinear"
 msgid "and using this alignment method:"
 msgstr "e usando este método de alinhamento:"
 
-#: src/gui/siril3.glade:7042 src/gui/siril3.glade:12613
+#: src/gui/siril3.glade:7042 src/gui/siril3.glade:12612
 #: src/compositing/align_rgb.c:48 src/compositing/compositing.c:366
 msgid "Image pattern alignment (planetary/deep-sky)"
 msgstr "Alinhamento de padrão de imagem (planetário/céu profundo)"
@@ -1382,7 +1383,7 @@ msgstr "Alinhamento de padrão de imagem (planetário/céu profundo)"
 #. the list below depends on the content of the glade file. It
 #. * should be done in the same way as in registration.c, but it
 #. * woud be easier if the two glades are merged.
-#: src/gui/siril3.glade:7043 src/gui/siril3.glade:12622
+#: src/gui/siril3.glade:7043 src/gui/siril3.glade:12621
 #: src/compositing/align_rgb.c:46 src/compositing/compositing.c:365
 msgid "One star registration (deep-sky)"
 msgstr "Registo de uma estrela (céu profundo)"
@@ -1391,26 +1392,26 @@ msgstr "Registo de uma estrela (céu profundo)"
 msgid "For LRGB composition, the reference layer should be luminance."
 msgstr "Para a composição LRGB, a camada de referência deve ser de luminância."
 
-#: src/gui/siril3.glade:7071 src/gui/callbacks.c:663
+#: src/gui/siril3.glade:7071 src/gui/callbacks.c:690
 msgid "Luminance"
 msgstr "Luminância"
 
-#: src/gui/siril3.glade:7072 src/gui/siril3.glade:10659
+#: src/gui/siril3.glade:7072 src/gui/siril3.glade:10658
 #: src/gui/siril3.glade:16388 src/gui/siril3.glade:23953
-#: src/compositing/compositing.c:539 src/gui/callbacks.c:667
-#: src/gui/callbacks.c:1007
+#: src/compositing/compositing.c:539 src/gui/callbacks.c:694
+#: src/gui/callbacks.c:1034
 msgid "Red"
 msgstr "Vermelho"
 
-#: src/gui/siril3.glade:7073 src/gui/siril3.glade:10673
+#: src/gui/siril3.glade:7073 src/gui/siril3.glade:10672
 #: src/gui/siril3.glade:16556 src/gui/siril3.glade:24012
-#: src/gui/callbacks.c:669
+#: src/gui/callbacks.c:696
 msgid "Green"
 msgstr "Verde"
 
-#: src/gui/siril3.glade:7074 src/gui/siril3.glade:10687
+#: src/gui/siril3.glade:7074 src/gui/siril3.glade:10686
 #: src/gui/siril3.glade:16724 src/gui/siril3.glade:24071
-#: src/gui/callbacks.c:671
+#: src/gui/callbacks.c:698
 msgid "Blue"
 msgstr "Azul"
 
@@ -1471,7 +1472,7 @@ msgstr "Transformada Inversa"
 msgid "Star Recomposition"
 msgstr "Composição HSL"
 
-#: src/gui/siril3.glade:7397 src/gui/remixer.c:600 src/gui/remixer.c:1148
+#: src/gui/siril3.glade:7397 src/gui/remixer.c:601 src/gui/remixer.c:1157
 msgid "Advanced"
 msgstr ""
 
@@ -1489,7 +1490,7 @@ msgstr "Restaurar para o valores Padrão"
 msgid "Apply the current image recomposition"
 msgstr "Composição de imagem multi-camadas"
 
-#: src/gui/siril3.glade:7487 src/gui/siril3.glade:8095
+#: src/gui/siril3.glade:7487 src/gui/siril3.glade:8094
 msgid ""
 "Select a starless image for recomposing with a star mask.\n"
 "While the primary aim of the tool is star recomposition as part of a star "
@@ -1508,13 +1509,13 @@ msgstr ""
 msgid "Star Histogram"
 msgstr "Histograma"
 
-#: src/gui/siril3.glade:7542 src/gui/siril3.glade:8152
+#: src/gui/siril3.glade:7542 src/gui/siril3.glade:8151
 #: src/gui/siril3.glade:13271
 #, fuzzy
 msgid "Type of stretch"
 msgstr "Tipo de Algoritmo"
 
-#: src/gui/siril3.glade:7557 src/gui/siril3.glade:8167
+#: src/gui/siril3.glade:7557 src/gui/siril3.glade:8166
 msgid ""
 "Select type of stretch. Generalised hyperbolic stretch performs a hyperbolic "
 "stretch with parameters for stretch strength, local intensity, symmetry "
@@ -1524,36 +1525,36 @@ msgid ""
 "arcsinh stretches are also available."
 msgstr ""
 
-#: src/gui/siril3.glade:7561 src/gui/siril3.glade:8171
+#: src/gui/siril3.glade:7561 src/gui/siril3.glade:8170
 #: src/gui/siril3.glade:13290
 msgid "Generalised hyperbolic transform"
 msgstr ""
 
-#: src/gui/siril3.glade:7562 src/gui/siril3.glade:8172
+#: src/gui/siril3.glade:7562 src/gui/siril3.glade:8171
 #: src/gui/siril3.glade:13291
 #, fuzzy
 msgid "Inverse generalised hyperbolic transform"
 msgstr "Transformação de histograma..."
 
-#: src/gui/siril3.glade:7563 src/gui/siril3.glade:8173
+#: src/gui/siril3.glade:7563 src/gui/siril3.glade:8172
 #: src/gui/siril3.glade:13292
 #, fuzzy
 msgid "Modified arcsinh transform"
 msgstr "Transformada Inversa"
 
-#: src/gui/siril3.glade:7564 src/gui/siril3.glade:8174
+#: src/gui/siril3.glade:7564 src/gui/siril3.glade:8173
 #: src/gui/siril3.glade:13293
 #, fuzzy
 msgid "Inverse modified arcsinh transform"
 msgstr "Transformada Inversa"
 
-#: src/gui/siril3.glade:7592 src/gui/siril3.glade:8202
+#: src/gui/siril3.glade:7592 src/gui/siril3.glade:8201
 #: src/gui/siril3.glade:13321
 #, fuzzy
 msgid "Colour stretch model"
 msgstr "Saturação de Cor"
 
-#: src/gui/siril3.glade:7607 src/gui/siril3.glade:8217
+#: src/gui/siril3.glade:7607 src/gui/siril3.glade:8216
 msgid ""
 "Set the stretch model for colour stretches. The options are: evenly weighted "
 "luminance, which calculates the stretch based on a luminance value weighting "
@@ -1564,22 +1565,22 @@ msgid ""
 "Note that luminance based models are not generally invertible."
 msgstr ""
 
-#: src/gui/siril3.glade:7612 src/gui/siril3.glade:8222
+#: src/gui/siril3.glade:7612 src/gui/siril3.glade:8221
 #: src/gui/siril3.glade:13340
 msgid "Independent channel values"
 msgstr ""
 
-#: src/gui/siril3.glade:7613 src/gui/siril3.glade:8223
+#: src/gui/siril3.glade:7613 src/gui/siril3.glade:8222
 #: src/gui/siril3.glade:13341
 msgid "Human weighted luminance"
 msgstr ""
 
-#: src/gui/siril3.glade:7614 src/gui/siril3.glade:8224
+#: src/gui/siril3.glade:7614 src/gui/siril3.glade:8223
 #: src/gui/siril3.glade:13342
 msgid "Even weighted luminance"
 msgstr ""
 
-#: src/gui/siril3.glade:7648 src/gui/siril3.glade:8258
+#: src/gui/siril3.glade:7648 src/gui/siril3.glade:8257
 #: src/gui/siril3.glade:13398
 msgid "Stretch factor (ln(D+1))"
 msgstr ""
@@ -1591,12 +1592,12 @@ msgid ""
 "Increasing D increases the intensity of stars in the resulting composition."
 msgstr ""
 
-#: src/gui/siril3.glade:7719 src/gui/siril3.glade:8329
+#: src/gui/siril3.glade:7718 src/gui/siril3.glade:8328
 #: src/gui/siril3.glade:13467
 msgid "Local stretch intensity (b)"
 msgstr ""
 
-#: src/gui/siril3.glade:7730 src/gui/siril3.glade:7754
+#: src/gui/siril3.glade:7729 src/gui/siril3.glade:7753
 msgid ""
 "Controls how tightly the stretch is focused by changing the form of the "
 "transform itself. Increasing b will increase the intensity of stars with "
@@ -1604,12 +1605,12 @@ msgid ""
 "intensity of stars below SP."
 msgstr ""
 
-#: src/gui/siril3.glade:7789 src/gui/siril3.glade:8399
+#: src/gui/siril3.glade:7788 src/gui/siril3.glade:8398
 #: src/gui/siril3.glade:13536
 msgid "Symmetry point (SP)"
 msgstr ""
 
-#: src/gui/siril3.glade:7800 src/gui/siril3.glade:7846
+#: src/gui/siril3.glade:7799 src/gui/siril3.glade:7845
 msgid ""
 "Sets the symmetry point around which the stretch is focused. For star "
 "recomposition, increasing SP reduces the intensity of stars with peak "
@@ -1617,20 +1618,20 @@ msgid ""
 "resulting composition."
 msgstr ""
 
-#: src/gui/siril3.glade:7820
+#: src/gui/siril3.glade:7819
 msgid ""
 "Allows setting SP from the current selection. This is best suited for use "
 "with the background image, where it can effectively pick out faint detail "
 "above the background. It is not generally useful with the star mask image."
 msgstr ""
 
-#: src/gui/siril3.glade:7881 src/gui/siril3.glade:8491
+#: src/gui/siril3.glade:7880 src/gui/siril3.glade:8490
 #: src/gui/siril3.glade:13627
 msgid "Shadow protection point (LP)"
 msgstr ""
 
-#: src/gui/siril3.glade:7892 src/gui/siril3.glade:7917
-#: src/gui/siril3.glade:8502 src/gui/siril3.glade:8527
+#: src/gui/siril3.glade:7891 src/gui/siril3.glade:7916
+#: src/gui/siril3.glade:8501 src/gui/siril3.glade:8526
 #: src/gui/siril3.glade:13638
 msgid ""
 "Sets a value below which the stretch is modified to preserve contrast in the "
@@ -1642,20 +1643,20 @@ msgid ""
 "to 0 and not greater than SP."
 msgstr ""
 
-#: src/gui/siril3.glade:7952 src/gui/siril3.glade:8562
+#: src/gui/siril3.glade:7951 src/gui/siril3.glade:8561
 #: src/gui/siril3.glade:13696
 #, fuzzy
 msgid "Highlight protection point (HP)"
 msgstr "Corte de altas luzes"
 
-#: src/gui/siril3.glade:7963
+#: src/gui/siril3.glade:7962
 msgid ""
 "Sets a value above which the stretch is modified to preserve contrast in the "
 "highlights / stars. The star mask HP can be set to quite a low value to "
 "prevent bloat of brighter stars."
 msgstr ""
 
-#: src/gui/siril3.glade:7989
+#: src/gui/siril3.glade:7988
 msgid ""
 "Sets a value above which the stretch is modified to preserve contrast in the "
 "highlights / stars. This can be set to quite a low value in star "
@@ -1663,31 +1664,31 @@ msgid ""
 "brightness of fainter ones."
 msgstr ""
 
-#: src/gui/siril3.glade:8024 src/gui/siril3.glade:8634
+#: src/gui/siril3.glade:8023 src/gui/siril3.glade:8633
 #: src/gui/siril3.glade:13766
 msgid "Black Point (BP)"
 msgstr ""
 
-#: src/gui/siril3.glade:8035 src/gui/siril3.glade:8061
-#: src/gui/siril3.glade:8645 src/gui/siril3.glade:8671
+#: src/gui/siril3.glade:8034 src/gui/siril3.glade:8060
+#: src/gui/siril3.glade:8644 src/gui/siril3.glade:8670
 msgid ""
 "Black point adjustment. This is a constant value that is subtracted from the "
 "image after the initial hyperbolic stretch. BP adjustment may result in "
 "clipping the shadows."
 msgstr ""
 
-#: src/gui/siril3.glade:8128
+#: src/gui/siril3.glade:8127
 msgid ""
 "Expands to show a mini histogram and transfer function display for the "
 "background image."
 msgstr ""
 
-#: src/gui/siril3.glade:8131
+#: src/gui/siril3.glade:8130
 #, fuzzy
 msgid "Background Histogram"
 msgstr "Extrair o fundo"
 
-#: src/gui/siril3.glade:8269 src/gui/siril3.glade:8294
+#: src/gui/siril3.glade:8268 src/gui/siril3.glade:8293
 #: src/gui/siril3.glade:13409
 msgid ""
 "Independently controls the contrast added (the slope of the stretch) at SP, "
@@ -1698,7 +1699,7 @@ msgid ""
 "transform, but any ordered black point adjustment will still occur."
 msgstr ""
 
-#: src/gui/siril3.glade:8340 src/gui/siril3.glade:8364
+#: src/gui/siril3.glade:8339 src/gui/siril3.glade:8363
 #: src/gui/siril3.glade:13478
 msgid ""
 "Controls how tightly the stretch is focused by changing the form of the "
@@ -1712,7 +1713,7 @@ msgid ""
 "contrast."
 msgstr ""
 
-#: src/gui/siril3.glade:8410 src/gui/siril3.glade:8456
+#: src/gui/siril3.glade:8409 src/gui/siril3.glade:8455
 #: src/gui/siril3.glade:13547
 msgid ""
 "Sets the symmetry point around which the stretch is focused - contrast will "
@@ -1723,14 +1724,14 @@ msgid ""
 "LP and less than or equal to HP."
 msgstr ""
 
-#: src/gui/siril3.glade:8430 src/gui/siril3.glade:13568
+#: src/gui/siril3.glade:8429 src/gui/siril3.glade:13568
 msgid ""
 "This dropper allows you to set the background stretch symmetry point  based "
 "on the average value of  the current selection. This helps in picking out "
 "faint detail above the dark background."
 msgstr ""
 
-#: src/gui/siril3.glade:8573 src/gui/siril3.glade:8599
+#: src/gui/siril3.glade:8572 src/gui/siril3.glade:8598
 msgid ""
 "Sets a value above which the stretch is modified to preserve contrast in the "
 "highlights / stars. This is done by performing a linear stretch of the data "
@@ -1743,21 +1744,21 @@ msgid ""
 "mask for preventing star bloat."
 msgstr ""
 
-#: src/gui/siril3.glade:8700
+#: src/gui/siril3.glade:8699
 #, fuzzy
 msgid "Background Stretch Parameters"
 msgstr "_Processamento de imagem"
 
-#: src/gui/siril3.glade:8716
+#: src/gui/siril3.glade:8715
 #, fuzzy
 msgid "Star Stretch Parameters"
 msgstr "_Processamento de imagem"
 
-#: src/gui/siril3.glade:8775
+#: src/gui/siril3.glade:8774
 msgid "Crossfader"
 msgstr ""
 
-#: src/gui/siril3.glade:8788
+#: src/gui/siril3.glade:8787
 msgid ""
 "Crossfade between the two independently stretched images and normalise the "
 "result. Putting the slider all the way to the left givs 100% background, 0% "
@@ -1765,75 +1766,75 @@ msgid ""
 "stars."
 msgstr ""
 
-#: src/gui/siril3.glade:8815
+#: src/gui/siril3.glade:8814
 #, fuzzy
 msgid "Overall Stretch"
 msgstr "autoEstirar"
 
-#: src/gui/siril3.glade:8827
+#: src/gui/siril3.glade:8826
 msgid ""
 "This slider applies a gentle final stretch tothe result. This can  be used "
 "to increase shadow brightness, if needed, after using the crossfader."
 msgstr ""
 
-#: src/gui/siril3.glade:8853 src/gui/linear_match.c:201
+#: src/gui/siril3.glade:8852 src/gui/linear_match.c:201
 #, fuzzy
 msgid "Linear Match"
 msgstr "Linear"
 
-#: src/gui/siril3.glade:8873
+#: src/gui/siril3.glade:8872
 #, fuzzy
 msgid "Close the dialog."
 msgstr "Fechar a janela."
 
-#: src/gui/siril3.glade:8888
+#: src/gui/siril3.glade:8887
 msgid "Computes a linear function between a reference image and a target."
 msgstr ""
 
-#: src/gui/siril3.glade:8922
+#: src/gui/siril3.glade:8921
 #, fuzzy
 msgid "Reference: "
 msgstr "imagem de referência"
 
-#: src/gui/siril3.glade:8934
+#: src/gui/siril3.glade:8933
 msgid "Choose the reference image. This image must have same dimensions."
 msgstr ""
 
-#: src/gui/siril3.glade:8936
+#: src/gui/siril3.glade:8935
 #, fuzzy
 msgid "Choose Reference Image"
 msgstr "imagem de referência"
 
-#: src/gui/siril3.glade:8960
+#: src/gui/siril3.glade:8959
 msgid "Reject low"
 msgstr ""
 
-#: src/gui/siril3.glade:8972 src/gui/siril3.glade:8997
-#: src/gui/siril3.glade:9031 src/gui/siril3.glade:9057
+#: src/gui/siril3.glade:8971 src/gui/siril3.glade:8996
+#: src/gui/siril3.glade:9030 src/gui/siril3.glade:9056
 msgid ""
 "The algorithm will ignore all reference pixels whose values are outside of "
 "the [low, high] range."
 msgstr ""
 
-#: src/gui/siril3.glade:9019
+#: src/gui/siril3.glade:9018
 msgid "Reject high"
 msgstr ""
 
-#: src/gui/siril3.glade:9199 src/gui/siril3.glade:11320
+#: src/gui/siril3.glade:9198 src/gui/siril3.glade:11319
 msgid ""
 "Detect stars in the current loaded image (not sequence image) and compute PSF"
 msgstr "Detectar estrelas na imagem atual (não a sequência) e computar a PSF"
 
-#: src/gui/siril3.glade:9205 src/gui/siril3.glade:11348
+#: src/gui/siril3.glade:9204 src/gui/siril3.glade:11347
 msgid "Average PSF parameters for selected stars"
 msgstr "Parâmetros PSF médios para as estrelas selecionadas"
 
-#: src/gui/siril3.glade:9239 src/gui/siril3.glade:13883
+#: src/gui/siril3.glade:9238 src/gui/siril3.glade:13883
 #, fuzzy
 msgid "Sequence List"
 msgstr "Sequência"
 
-#: src/gui/siril3.glade:9255
+#: src/gui/siril3.glade:9254
 msgid ""
 "List of images in the sequence, with their state and quality information. "
 "Quality is FWHM when PSF registration is used, so lower is better, and "
@@ -1845,69 +1846,69 @@ msgstr ""
 "melhor, e o estimador de gradiente para o registo DFT, quanto mais alto "
 "melhor. As colunas X e Y são as translações relativas à imagem de referência."
 
-#: src/gui/siril3.glade:9291
+#: src/gui/siril3.glade:9290
 #, fuzzy
 msgid "File"
 msgstr "_Ficheiro"
 
-#: src/gui/siril3.glade:9306
+#: src/gui/siril3.glade:9305
 msgid "X"
 msgstr "X"
 
-#: src/gui/siril3.glade:9319
+#: src/gui/siril3.glade:9318
 msgid "Y"
 msgstr "Y"
 
-#: src/gui/siril3.glade:9332
+#: src/gui/siril3.glade:9331
 #, fuzzy
 msgid "Sel"
 msgstr "sel"
 
-#: src/gui/siril3.glade:9347 src/gui/siril3.glade:20686
+#: src/gui/siril3.glade:9346 src/gui/siril3.glade:20686
 #: src/gui/siril3.glade:20721 src/gui/plot.c:116 src/gui/plot.c:1378
 #: src/gui/plot.c:1406 src/gui/sequence_list.c:505
 msgid "Quality"
 msgstr ""
 
-#: src/gui/siril3.glade:9392 src/gui/sequence_list.c:153
+#: src/gui/siril3.glade:9391 src/gui/sequence_list.c:153
 #, fuzzy
 msgid "Frame List"
 msgstr "Frame rate"
 
-#: src/gui/siril3.glade:9398
+#: src/gui/siril3.glade:9397
 msgid "Select the channel you want to display."
 msgstr ""
 
-#: src/gui/siril3.glade:9413
+#: src/gui/siril3.glade:9412
 #, fuzzy
 msgid "Excludes all images of the sequence from the processing schedule"
 msgstr "Excluir todas as imagens da seqüência do cronograma de processamento"
 
-#: src/gui/siril3.glade:9434
+#: src/gui/siril3.glade:9433
 #, fuzzy
 msgid "Includes all images of the sequence in the processing schedule"
 msgstr "Inclui todas as imagens da seqüência no cronograma de processamento"
 
-#: src/gui/siril3.glade:9456
+#: src/gui/siril3.glade:9455
 #, fuzzy
 msgid ""
 "Includes/excludes selected images of the sequence from the processing "
 "schedule"
 msgstr "Excluir todas as imagens da seqüência do cronograma de processamento"
 
-#: src/gui/siril3.glade:9478
+#: src/gui/siril3.glade:9477
 msgid ""
 "When toggled, the outline of the reference image as transformed with "
 "registration data is drawn on each image to review image position wrt. "
 "reference."
 msgstr ""
 
-#: src/gui/siril3.glade:9502
+#: src/gui/siril3.glade:9501
 #, fuzzy
 msgid "Reference image"
 msgstr "imagem de referência"
 
-#: src/gui/siril3.glade:9506
+#: src/gui/siril3.glade:9505
 msgid ""
 "If set, the current image will be the reference image for registration.\n"
 "Only one image can be the reference image in a sequence, setting it will "
@@ -1915,61 +1916,61 @@ msgid ""
 "If not set manually, the first image of the sequence is taken as reference."
 msgstr ""
 
-#: src/gui/siril3.glade:9522
+#: src/gui/siril3.glade:9521
 msgid "Enter the number of the image you want to reach."
 msgstr ""
 
-#: src/gui/siril3.glade:9548 src/gui/astrometry_solver.c:81
+#: src/gui/siril3.glade:9547 src/gui/astrometry_solver.c:81
 msgid "Image Plate Solver"
 msgstr ""
 
-#: src/gui/siril3.glade:9579 src/gui/siril3.glade:9597
+#: src/gui/siril3.glade:9578 src/gui/siril3.glade:9596
 msgid "OK"
 msgstr ""
 
-#: src/gui/siril3.glade:9583
+#: src/gui/siril3.glade:9582
 msgid "Start the plate solving algorithm."
 msgstr ""
 
-#: src/gui/siril3.glade:9601
+#: src/gui/siril3.glade:9600
 msgid "Start the photometric color calibration algorithm."
 msgstr ""
 
-#: src/gui/siril3.glade:9643 src/gui/siril3.glade:9663
-#: src/gui/siril3.glade:9683 src/gui/siril3.glade:9703
-#: src/gui/siril3.glade:9723 src/gui/siril3.glade:9740
+#: src/gui/siril3.glade:9642 src/gui/siril3.glade:9662
+#: src/gui/siril3.glade:9682 src/gui/siril3.glade:9702
+#: src/gui/siril3.glade:9722 src/gui/siril3.glade:9739
 msgid ""
 "Initial equatorial coordinates. Input value must be inside the image, close "
 "to the centre."
 msgstr ""
 
-#: src/gui/siril3.glade:9648 src/gui/siril3.glade:9668
-#: src/gui/siril3.glade:9688 src/gui/siril3.glade:9708
-#: src/gui/siril3.glade:10372 src/gui/siril3.glade:10390
-#: src/gui/siril3.glade:10408 src/gui/siril3.glade:10426
+#: src/gui/siril3.glade:9647 src/gui/siril3.glade:9667
+#: src/gui/siril3.glade:9687 src/gui/siril3.glade:9707
+#: src/gui/siril3.glade:10371 src/gui/siril3.glade:10389
+#: src/gui/siril3.glade:10407 src/gui/siril3.glade:10425
 #: src/gui/siril3.glade:24677 src/gui/siril3.glade:24692
 #, fuzzy
 msgid "0"
 msgstr "x0"
 
-#: src/gui/siril3.glade:9757
+#: src/gui/siril3.glade:9756
 msgid "Right Ascension: "
 msgstr ""
 
-#: src/gui/siril3.glade:9768
+#: src/gui/siril3.glade:9767
 #, fuzzy
 msgid "Declination: "
 msgstr "Desvio: "
 
-#: src/gui/siril3.glade:9777
+#: src/gui/siril3.glade:9776
 msgid "S"
 msgstr ""
 
-#: src/gui/siril3.glade:9781
+#: src/gui/siril3.glade:9780
 msgid "This button is checked for negative declination (southern hemisphere)."
 msgstr ""
 
-#: src/gui/siril3.glade:9794
+#: src/gui/siril3.glade:9793
 msgid ""
 "Enter the identifier or the name of an object located close to the centre of "
 "the image. This feature requires an Internet connection (asks SIMBAD by "
@@ -1978,11 +1979,11 @@ msgid ""
 "Image button below, this is probably not required."
 msgstr ""
 
-#: src/gui/siril3.glade:9810
+#: src/gui/siril3.glade:9809
 msgid "Find"
 msgstr ""
 
-#: src/gui/siril3.glade:9814
+#: src/gui/siril3.glade:9813
 msgid ""
 "Start searching the coordinates of named object. This feature requires an "
 "Internet connection (asks SIMBAD by default or the selected server at the "
@@ -1991,39 +1992,39 @@ msgid ""
 "Image button below, this is probably not required."
 msgstr ""
 
-#: src/gui/siril3.glade:9829 src/gui/siril3.glade:9865
+#: src/gui/siril3.glade:9828 src/gui/siril3.glade:9864
 msgid ""
 "Effective focal length of the optical system in millimeter. Even if the "
 "input value has not to be very accurate, try to give a value with an error "
 "not exceeding 20%."
 msgstr ""
 
-#: src/gui/siril3.glade:9847 src/gui/siril3.glade:9877
+#: src/gui/siril3.glade:9846 src/gui/siril3.glade:9876
 msgid "Pixel size in microns. The image is assumed to have square pixels."
 msgstr ""
 
-#: src/gui/siril3.glade:9866
+#: src/gui/siril3.glade:9865
 #, fuzzy
 msgid "Focal length (mm):"
 msgstr "Distância focal (mm): "
 
-#: src/gui/siril3.glade:9878
+#: src/gui/siril3.glade:9877
 #, fuzzy
 msgid "Pixel size (µm):"
 msgstr "Dimensão X pixel (micron): "
 
-#: src/gui/siril3.glade:9889 src/gui/siril3.glade:9904
+#: src/gui/siril3.glade:9888 src/gui/siril3.glade:9903
 msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
 msgstr ""
 
-#: src/gui/siril3.glade:9892
+#: src/gui/siril3.glade:9891
 #, fuzzy
 msgid "Resolution: "
 msgstr "Desvio: "
 
-#: src/gui/siril3.glade:9929
+#: src/gui/siril3.glade:9928
 msgid ""
 "Several resolvers can be found and displayed in this list. However, it just "
 "about getting the coordinates of the centre of the object. Choosing one item "
@@ -2031,117 +2032,117 @@ msgid ""
 "which is based on the selected catalogue."
 msgstr ""
 
-#: src/gui/siril3.glade:9938
+#: src/gui/siril3.glade:9937
 msgid "Resolver"
 msgstr ""
 
-#: src/gui/siril3.glade:9949 src/gui/siril3.glade:10607
+#: src/gui/siril3.glade:9948 src/gui/siril3.glade:10606
 #: src/gui/siril3.glade:16913
 msgid "Name"
 msgstr "Nome"
 
-#: src/gui/siril3.glade:9969
+#: src/gui/siril3.glade:9968
 msgid "Flip image if needed"
 msgstr ""
 
-#: src/gui/siril3.glade:9973
+#: src/gui/siril3.glade:9972
 msgid "Flip image at the end of the platesolving if image is mirrored."
 msgstr ""
 
-#: src/gui/siril3.glade:9986
+#: src/gui/siril3.glade:9985
 #, fuzzy
 msgid "Downsample image"
 msgstr "Normalizar imagens"
 
-#: src/gui/siril3.glade:9990
+#: src/gui/siril3.glade:9989
 msgid ""
 "Sometimes, for oversampled images (like with Drizzle), it is complicated to "
 "resolve astrometry data. In consequence, downsampling data generally helps "
 "and also makes star detection run faster."
 msgstr ""
 
-#: src/gui/siril3.glade:10002
+#: src/gui/siril3.glade:10001
 msgid "Auto-crop (for wide field)"
 msgstr ""
 
-#: src/gui/siril3.glade:10006
+#: src/gui/siril3.glade:10005
 msgid ""
 "Only use the center of the image (or selection) if the field is too wide, "
 "larger than 5 degrees."
 msgstr ""
 
-#: src/gui/siril3.glade:10019
+#: src/gui/siril3.glade:10018
 msgid "Force plate solving"
 msgstr ""
 
-#: src/gui/siril3.glade:10023
+#: src/gui/siril3.glade:10022
 msgid ""
 "Checking this box will force plate solving to be redone by Siril. It is not "
 "needed if the image contains trustworthy WCS information."
 msgstr ""
 
-#: src/gui/siril3.glade:10035
+#: src/gui/siril3.glade:10034
 msgid "Get Metadata From Image"
 msgstr ""
 
-#: src/gui/siril3.glade:10039
+#: src/gui/siril3.glade:10038
 msgid ""
 "Click on this button to get focal length, pixel size and RA/Dec pointing "
 "coordinates from the header of the file if they exist."
 msgstr ""
 
-#: src/gui/siril3.glade:10067
+#: src/gui/siril3.glade:10066
 msgid ""
 "Select the server that searches the coordinates of the entered object name."
 msgstr ""
 
-#: src/gui/siril3.glade:10070
+#: src/gui/siril3.glade:10069
 msgid "CDS"
 msgstr ""
 
-#: src/gui/siril3.glade:10071
+#: src/gui/siril3.glade:10070
 msgid "VizieR"
 msgstr ""
 
-#: src/gui/siril3.glade:10072
+#: src/gui/siril3.glade:10071
 msgid "SIMBAD"
 msgstr ""
 
-#: src/gui/siril3.glade:10086
+#: src/gui/siril3.glade:10085
 msgid "Server:"
 msgstr ""
 
-#: src/gui/siril3.glade:10108
+#: src/gui/siril3.glade:10107
 #, fuzzy
 msgid "Image Parameters"
 msgstr "_Processamento de imagem"
 
-#: src/gui/siril3.glade:10140
+#: src/gui/siril3.glade:10139
 msgid "Catalogue Limit Mag: "
 msgstr ""
 
-#: src/gui/siril3.glade:10152
+#: src/gui/siril3.glade:10151
 msgid ""
 "Maximum star magnitude used in the catalog queries. Wider is the field, "
 "lower is the value."
 msgstr ""
 
-#: src/gui/siril3.glade:10166 src/gui/siril3.glade:10220
+#: src/gui/siril3.glade:10165 src/gui/siril3.glade:10219
 #, fuzzy
 msgid "Auto"
 msgstr "Automático"
 
-#: src/gui/siril3.glade:10170
+#: src/gui/siril3.glade:10169
 msgid ""
 "The limit magnitude is automatically determined using the approximation of "
 "the Field Of View."
 msgstr ""
 
-#: src/gui/siril3.glade:10186
+#: src/gui/siril3.glade:10185
 msgid "Online Star Catalogue: "
 msgstr ""
 
-#: src/gui/siril3.glade:10198
+#: src/gui/siril3.glade:10197
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -2161,13 +2162,13 @@ msgid ""
 "the naked eye from Earth. The catalog contains 9,110 objects."
 msgstr ""
 
-#: src/gui/siril3.glade:10224
+#: src/gui/siril3.glade:10223
 msgid ""
 "The online catalogue is automatically determined using the approximation of "
 "the Field Of View and magnitude."
 msgstr ""
 
-#: src/gui/siril3.glade:10239
+#: src/gui/siril3.glade:10238
 msgid ""
 "Choose the online catalogue against one want to compare the image and "
 "compute photometry.\n"
@@ -2181,24 +2182,24 @@ msgid ""
 "magnitude to about 17th magnitude for over 37 million stars."
 msgstr ""
 
-#: src/gui/siril3.glade:10245
+#: src/gui/siril3.glade:10244
 msgid "APASS"
 msgstr ""
 
-#: src/gui/siril3.glade:10258
+#: src/gui/siril3.glade:10257
 msgid "Photometric Star Catalogue: "
 msgstr ""
 
-#: src/gui/siril3.glade:10274
+#: src/gui/siril3.glade:10273
 msgid "Catalogue Parameters"
 msgstr ""
 
-#: src/gui/siril3.glade:10295
+#: src/gui/siril3.glade:10294
 #, fuzzy
 msgid "Manual detection"
 msgstr "Auto deteção"
 
-#: src/gui/siril3.glade:10299
+#: src/gui/siril3.glade:10298
 msgid ""
 "Check this option if you want to pick each stars manually. It could be "
 "useful in some cases where Siril can't find enough stars. Please, try to "
@@ -2207,137 +2208,137 @@ msgid ""
 "your image."
 msgstr ""
 
-#: src/gui/siril3.glade:10309 src/gui/siril3.glade:11279
+#: src/gui/siril3.glade:10308 src/gui/siril3.glade:11278
 msgid "Star Detection"
 msgstr "Deteção de estrelas"
 
-#: src/gui/siril3.glade:10335
+#: src/gui/siril3.glade:10334
 #, fuzzy
 msgid "Automatic detection"
 msgstr "Auto deteção"
 
-#: src/gui/siril3.glade:10339
+#: src/gui/siril3.glade:10338
 msgid ""
 "Uncheck this button if you want to select the background reference by "
 "yourself. It could be useful when nebulae almost cover the whole image."
 msgstr ""
 
-#: src/gui/siril3.glade:10369 src/gui/siril3.glade:23759
+#: src/gui/siril3.glade:10368 src/gui/siril3.glade:23759
 msgid "x coordinate of the start of the background selection"
 msgstr ""
 
-#: src/gui/siril3.glade:10387 src/gui/siril3.glade:23777
+#: src/gui/siril3.glade:10386 src/gui/siril3.glade:23777
 msgid "y coordinate of the start of the background selection"
 msgstr ""
 
-#: src/gui/siril3.glade:10405 src/gui/siril3.glade:23794
+#: src/gui/siril3.glade:10404 src/gui/siril3.glade:23794
 msgid "Width of the background selection"
 msgstr ""
 
-#: src/gui/siril3.glade:10423 src/gui/siril3.glade:23811
+#: src/gui/siril3.glade:10422 src/gui/siril3.glade:23811
 msgid "Height of the background selection"
 msgstr ""
 
-#: src/gui/siril3.glade:10441 src/gui/siril3.glade:23828
+#: src/gui/siril3.glade:10440 src/gui/siril3.glade:23828
 #: src/gui/siril3.glade:24217
 msgid "Selected area"
 msgstr ""
 
-#: src/gui/siril3.glade:10471 src/gui/siril3.glade:23849
+#: src/gui/siril3.glade:10470 src/gui/siril3.glade:23849
 msgid ""
 "You must specify a selection that represents the true background of the "
 "image, trying to exclude all stars or other stellar objects."
 msgstr ""
 
-#: src/gui/siril3.glade:10495
+#: src/gui/siril3.glade:10494
 #, fuzzy
 msgid "Background Reference"
 msgstr "Fundo"
 
-#: src/gui/siril3.glade:10536 src/gui/siril3.glade:11553
-#: src/gui/siril3.glade:12178 src/algos/statistics.c:875
+#: src/gui/siril3.glade:10535 src/gui/siril3.glade:11552
+#: src/gui/siril3.glade:12177 src/algos/statistics.c:875
 msgid "Statistics"
 msgstr "Estatística"
 
-#: src/gui/siril3.glade:10554
+#: src/gui/siril3.glade:10553
 msgid "Run statistic calculation"
 msgstr "Executa cálculo estatístico"
 
-#: src/gui/siril3.glade:10571
+#: src/gui/siril3.glade:10570
 msgid "Close the window"
 msgstr "Fechar a janela"
 
-#: src/gui/siril3.glade:10589
+#: src/gui/siril3.glade:10588
 msgid "Normalized Real [0, 1]"
 msgstr "Real Normalizado [0 , 1]"
 
-#: src/gui/siril3.glade:10620
+#: src/gui/siril3.glade:10619
 msgid "No Selection"
 msgstr "Sem Seleção"
 
-#: src/gui/siril3.glade:10777
+#: src/gui/siril3.glade:10776
 msgid "Dynamic PSF"
 msgstr "PSF Dinâmico"
 
-#: src/gui/siril3.glade:10847
+#: src/gui/siril3.glade:10846
 msgid "Ch."
 msgstr "Ch."
 
-#: src/gui/siril3.glade:10860 src/gui/siril3.glade:14081
+#: src/gui/siril3.glade:10859 src/gui/siril3.glade:14081
 msgid "B"
 msgstr "B"
 
-#: src/gui/siril3.glade:10879
+#: src/gui/siril3.glade:10878
 msgid "A"
 msgstr "A"
 
-#: src/gui/siril3.glade:10898
+#: src/gui/siril3.glade:10897
 msgid "x0"
 msgstr "x0"
 
-#: src/gui/siril3.glade:10917
+#: src/gui/siril3.glade:10916
 msgid "y0"
 msgstr "y0"
 
-#: src/gui/siril3.glade:10936
+#: src/gui/siril3.glade:10935
 msgid "FWHMx"
 msgstr "FWHMx"
 
-#: src/gui/siril3.glade:10955
+#: src/gui/siril3.glade:10954
 msgid "FWHMy"
 msgstr "FWHMy"
 
-#: src/gui/siril3.glade:10974
+#: src/gui/siril3.glade:10973
 msgid "Mag"
 msgstr ""
 
-#: src/gui/siril3.glade:10992
+#: src/gui/siril3.glade:10991
 msgid "r"
 msgstr "r"
 
-#: src/gui/siril3.glade:11011
+#: src/gui/siril3.glade:11010
 msgid "Angle"
 msgstr "Ângulo"
 
-#: src/gui/siril3.glade:11030
+#: src/gui/siril3.glade:11029
 msgid "RMSE"
 msgstr "RMSE"
 
-#: src/gui/siril3.glade:11065 src/gui/siril3.glade:11117
-#: src/gui/siril3.glade:11130 src/gui/siril3.glade:11143
-#: src/gui/siril3.glade:11210
+#: src/gui/siril3.glade:11064 src/gui/siril3.glade:11116
+#: src/gui/siril3.glade:11129 src/gui/siril3.glade:11142
+#: src/gui/siril3.glade:11209
 msgid ""
 "Changes of these four values should be tested on one representative image "
 "before using them for registration."
 msgstr ""
 
-#: src/gui/siril3.glade:11078
+#: src/gui/siril3.glade:11077
 msgid ""
 "Half-size in pixels of the search box. Only the brightest pixel will be used "
 "in this box to fit a star."
 msgstr ""
 
-#: src/gui/siril3.glade:11096
+#: src/gui/siril3.glade:11095
 #, fuzzy
 msgid ""
 "Threshold value above the noise for star detection.\n"
@@ -2352,19 +2353,19 @@ msgstr ""
 "limite é: mediana + [limite]x desv. padrão.\n"
 "O valor padrão para o limite é 1.00."
 
-#: src/gui/siril3.glade:11119
+#: src/gui/siril3.glade:11118
 msgid "Radius: "
 msgstr "Raio: "
 
-#: src/gui/siril3.glade:11132
+#: src/gui/siril3.glade:11131
 msgid "Threshold: "
 msgstr "Limite: "
 
-#: src/gui/siril3.glade:11145
+#: src/gui/siril3.glade:11144
 msgid "Roundness threshold:"
 msgstr "Limite de arredondamento:"
 
-#: src/gui/siril3.glade:11156
+#: src/gui/siril3.glade:11155
 #, fuzzy
 msgid ""
 "Threshold value of star roundnesses. Decrease this value if stars in the "
@@ -2379,23 +2380,23 @@ msgstr ""
 "ATENÇÃO: assegurar que tem uma boa razão para alterar este valor porque pode "
 "degradar a deteção de estrelas."
 
-#: src/gui/siril3.glade:11175
+#: src/gui/siril3.glade:11174
 #, fuzzy
 msgid "Adjust value"
 msgstr "Ajuste"
 
-#: src/gui/siril3.glade:11179
+#: src/gui/siril3.glade:11178
 msgid ""
 "By checking this button, the radius value will be adjusted according to the "
 "image resolution if it is provided. Therefore, it is not necessary to change "
 "the radius value and the default value of 10 should be kept."
 msgstr ""
 
-#: src/gui/siril3.glade:11192
+#: src/gui/siril3.glade:11191
 msgid "Relax PSF checks"
 msgstr ""
 
-#: src/gui/siril3.glade:11196
+#: src/gui/siril3.glade:11195
 msgid ""
 "When checked, this button deactivates some checks done at star detection "
 "stage, to reject candidates initially detected based on some psf quality "
@@ -2404,12 +2405,12 @@ msgid ""
 "all other detection parameters fails."
 msgstr ""
 
-#: src/gui/siril3.glade:11212
+#: src/gui/siril3.glade:11211
 #, fuzzy
 msgid "Convergence:"
 msgstr "Conversão de arquivos"
 
-#: src/gui/siril3.glade:11223
+#: src/gui/siril3.glade:11222
 msgid ""
 "Convergence criterion for PSF fitting.\n"
 "Default value of 1 should work on most cases. However for images with strong "
@@ -2419,349 +2420,349 @@ msgid ""
 "value may signicantly impact star finding computation time."
 msgstr ""
 
-#: src/gui/siril3.glade:11244
+#: src/gui/siril3.glade:11243
 #, fuzzy
 msgid "Resets all parameters to defaults."
 msgstr "Restaurar para o valores Padrão"
 
-#: src/gui/siril3.glade:11334
+#: src/gui/siril3.glade:11333
 msgid "Estimate sensor tilt"
 msgstr ""
 
-#: src/gui/siril3.glade:11372
+#: src/gui/siril3.glade:11371
 #, fuzzy
 msgid "Export PSF parameters in an ASCII file"
 msgstr "Exportar os parâmetros PSF  num arquivo ASCII"
 
-#: src/gui/siril3.glade:11396
+#: src/gui/siril3.glade:11395
 msgid "Remove selected star from the list"
 msgstr "Remover a estrela selecionada da lista"
 
-#: src/gui/siril3.glade:11410
+#: src/gui/siril3.glade:11409
 msgid "Remove all stars from the list"
 msgstr "Remover todas as estrelas da lista"
 
-#: src/gui/siril3.glade:11444
+#: src/gui/siril3.glade:11443
 msgid "Live Stacking"
 msgstr ""
 
-#: src/gui/siril3.glade:11500
+#: src/gui/siril3.glade:11499
 #, fuzzy
 msgid "debayer"
 msgstr "Debayer"
 
-#: src/gui/siril3.glade:11505
+#: src/gui/siril3.glade:11504
 msgid "for now only detected in files and automatically enabled"
 msgstr ""
 
-#: src/gui/siril3.glade:11580
+#: src/gui/siril3.glade:11579
 msgid "waiting for input files"
 msgstr ""
 
-#: src/gui/siril3.glade:11589 src/gui/siril3.glade:21964
+#: src/gui/siril3.glade:11588 src/gui/siril3.glade:21964
 msgid "Stacking"
 msgstr ""
 
-#: src/gui/siril3.glade:11658
+#: src/gui/siril3.glade:11657
 #, fuzzy
 msgid "Master-dark and cosmetic correction"
 msgstr "Correção Cosmética"
 
-#: src/gui/siril3.glade:11670
+#: src/gui/siril3.glade:11669
 #, fuzzy
 msgid "Master-flat"
 msgstr "Usar flat"
 
-#: src/gui/siril3.glade:11682
+#: src/gui/siril3.glade:11681
 msgid "Stacking with weighted mean"
 msgstr ""
 
-#: src/gui/siril3.glade:11731
+#: src/gui/siril3.glade:11730
 #, fuzzy
 msgid "Configuration"
 msgstr "Saturação de Cor"
 
-#: src/gui/siril3.glade:11757
+#: src/gui/siril3.glade:11756
 msgid "live stacking..."
 msgstr ""
 
-#: src/gui/siril3.glade:11794 src/gui/siril3.glade:11913
+#: src/gui/siril3.glade:11793 src/gui/siril3.glade:11912
 #, fuzzy
 msgid "Image Information"
 msgstr "Matriz de Interpolação de Imagem"
 
-#: src/gui/siril3.glade:11820 src/gui/siril3.glade:24379
+#: src/gui/siril3.glade:11819 src/gui/siril3.glade:24379
 #, fuzzy
 msgid "Preferences"
 msgstr "imagem de referência"
 
-#: src/gui/siril3.glade:11845
+#: src/gui/siril3.glade:11844
 msgid "Check For Updates"
 msgstr ""
 
-#: src/gui/siril3.glade:11859
+#: src/gui/siril3.glade:11858
 msgid "Get Scripts"
 msgstr ""
 
-#: src/gui/siril3.glade:11873
+#: src/gui/siril3.glade:11872
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: src/gui/siril3.glade:11887 src/gui/about_dialog.c:71
+#: src/gui/siril3.glade:11886 src/gui/about_dialog.c:71
 #, fuzzy
 msgid "About Siril"
 msgstr "Sobre o siril"
 
-#: src/gui/siril3.glade:11930
+#: src/gui/siril3.glade:11929
 msgid "Image Plate Solver..."
 msgstr ""
 
-#: src/gui/siril3.glade:11944 src/gui/siril3.glade:12291
+#: src/gui/siril3.glade:11943 src/gui/siril3.glade:12290
 msgid "Statistics..."
 msgstr "Estatística..."
 
-#: src/gui/siril3.glade:11958
+#: src/gui/siril3.glade:11957
 msgid "Noise Estimation"
 msgstr "Estimação de ruído"
 
-#: src/gui/siril3.glade:11972 src/gui/siril3.glade:12300
+#: src/gui/siril3.glade:11971 src/gui/siril3.glade:12299
 #: src/gui/siril3.glade:23522
 #, fuzzy
 msgid "Aberration Inspector"
 msgstr "Subtração"
 
-#: src/gui/siril3.glade:11997
+#: src/gui/siril3.glade:11996
 #, fuzzy
 msgid "Information..."
 msgstr "Rotação..."
 
-#: src/gui/siril3.glade:12011 src/gui/siril3.glade:12282
+#: src/gui/siril3.glade:12010 src/gui/siril3.glade:12281
 msgid "FITS Header..."
 msgstr "Cabeçalho FITS..."
 
-#: src/gui/siril3.glade:12025
+#: src/gui/siril3.glade:12024
 msgid "Dynamic PSF..."
 msgstr "PSF Dinâmico..."
 
-#: src/gui/siril3.glade:12058
+#: src/gui/siril3.glade:12057 src/gui/siril3.glade:27234
 msgid "Logarithm"
 msgstr "Logaritmo"
 
-#: src/gui/siril3.glade:12069
+#: src/gui/siril3.glade:12068 src/gui/siril3.glade:27235
 msgid "Square root"
 msgstr "Raiz quadrada"
 
-#: src/gui/siril3.glade:12080
+#: src/gui/siril3.glade:12079 src/gui/siril3.glade:27236
 msgid "Squared"
 msgstr "Ao quadrado"
 
-#: src/gui/siril3.glade:12091
+#: src/gui/siril3.glade:12090 src/gui/siril3.glade:27237
 msgid "Asinh"
 msgstr "Asenh"
 
-#: src/gui/siril3.glade:12102
+#: src/gui/siril3.glade:12101
 msgid "AutoStretch"
 msgstr "AutoEstirar"
 
-#: src/gui/siril3.glade:12114
+#: src/gui/siril3.glade:12113
 msgid "High definition"
 msgstr ""
 
-#: src/gui/siril3.glade:12123
+#: src/gui/siril3.glade:12122 src/gui/siril3.glade:27239
 msgid "Histogram"
 msgstr "Histograma"
 
-#: src/gui/siril3.glade:12138
+#: src/gui/siril3.glade:12137
 msgid "Exclude frame %d"
 msgstr ""
 
-#: src/gui/siril3.glade:12147
+#: src/gui/siril3.glade:12146
 #, fuzzy
 msgid "Show frame %d"
 msgstr "Mostrar Imagem"
 
-#: src/gui/siril3.glade:12163 src/gui/siril3.glade:20502
+#: src/gui/siril3.glade:12162 src/gui/siril3.glade:20502
 #: src/gui/siril3.glade:20800
 msgid "Registration"
 msgstr ""
 
-#: src/gui/siril3.glade:12193 src/gui/siril3.glade:12314
+#: src/gui/siril3.glade:12192 src/gui/siril3.glade:12313
 #, fuzzy
 msgid "Selection"
 msgstr "Sem Seleção"
 
-#: src/gui/siril3.glade:12217
+#: src/gui/siril3.glade:12216
 msgid "Undo"
 msgstr ""
 
-#: src/gui/siril3.glade:12226
+#: src/gui/siril3.glade:12225
 msgid "Redo"
 msgstr ""
 
-#: src/gui/siril3.glade:12241
+#: src/gui/siril3.glade:12240
 msgid "PSF"
 msgstr "PSF"
 
-#: src/gui/siril3.glade:12248
+#: src/gui/siril3.glade:12247
 msgid ""
 "Will use registration data if any are available on the registration layer, "
 "otherwise if the checkbox 'follow star movement' is checked in the "
 "registration tab, it will run with this option."
 msgstr ""
 
-#: src/gui/siril3.glade:12250
+#: src/gui/siril3.glade:12249
 #, fuzzy
 msgid "PSF for the Sequence"
 msgstr "PSF para a sequência"
 
-#: src/gui/siril3.glade:12258
+#: src/gui/siril3.glade:12257
 msgid "Pick a Star"
 msgstr "Escolha uma estrela"
 
-#: src/gui/siril3.glade:12267
+#: src/gui/siril3.glade:12266
 msgid "Search Object..."
 msgstr ""
 
-#: src/gui/siril3.glade:12324
+#: src/gui/siril3.glade:12323
 #, fuzzy
 msgid "Free aspect ratio"
 msgstr "Manter proporção"
 
-#: src/gui/siril3.glade:12325 src/gui/siril3.glade:17756
+#: src/gui/siril3.glade:12324 src/gui/siril3.glade:17756
 #, fuzzy
 msgid "Free ratio"
 msgstr "Frame rate"
 
-#: src/gui/siril3.glade:12336
+#: src/gui/siril3.glade:12335
 #, fuzzy
 msgid "Preserve the original aspect ratio of the image"
 msgstr "Preserva a componente CIE L* original na imagem processada."
 
-#: src/gui/siril3.glade:12337 src/gui/siril3.glade:17755
+#: src/gui/siril3.glade:12336 src/gui/siril3.glade:17755
 #, fuzzy
 msgid "Preserve ratio"
 msgstr "Manter proporção"
 
-#: src/gui/siril3.glade:12354 src/gui/siril3.glade:12366
-#: src/gui/siril3.glade:12378 src/gui/siril3.glade:12390
-#: src/gui/siril3.glade:12402 src/gui/siril3.glade:12414
-#: src/gui/siril3.glade:12426
+#: src/gui/siril3.glade:12353 src/gui/siril3.glade:12365
+#: src/gui/siril3.glade:12377 src/gui/siril3.glade:12389
+#: src/gui/siril3.glade:12401 src/gui/siril3.glade:12413
+#: src/gui/siril3.glade:12425
 msgid "Aspect ratio of the selection"
 msgstr ""
 
-#: src/gui/siril3.glade:12444
+#: src/gui/siril3.glade:12443
 msgid "Select the whole image and reset ratio"
 msgstr ""
 
-#: src/gui/siril3.glade:12445
+#: src/gui/siril3.glade:12444
 #, fuzzy
 msgid "Select All"
 msgstr "Selecionar Fase"
 
-#: src/gui/siril3.glade:12460
+#: src/gui/siril3.glade:12459
 #, fuzzy
 msgid "No guides on the selection"
 msgstr "Seleção de sequência"
 
-#: src/gui/siril3.glade:12461
+#: src/gui/siril3.glade:12460
 msgid "No guides"
 msgstr ""
 
-#: src/gui/siril3.glade:12471
+#: src/gui/siril3.glade:12470
 msgid "Center line guides on the selection"
 msgstr ""
 
-#: src/gui/siril3.glade:12472
+#: src/gui/siril3.glade:12471
 #, fuzzy
 msgid "Center lines"
 msgstr "Centrado"
 
-#: src/gui/siril3.glade:12483
+#: src/gui/siril3.glade:12482
 msgid "3 thirds grid guides on the selection"
 msgstr ""
 
-#: src/gui/siril3.glade:12484
+#: src/gui/siril3.glade:12483
 msgid "Rule of thirds"
 msgstr ""
 
-#: src/gui/siril3.glade:12495
+#: src/gui/siril3.glade:12494
 msgid "5 fifhts grid guides on the selection"
 msgstr ""
 
-#: src/gui/siril3.glade:12496
+#: src/gui/siril3.glade:12495
 msgid "Rule of fifths"
 msgstr ""
 
-#: src/gui/siril3.glade:12512 src/gui/siril3.glade:15931
+#: src/gui/siril3.glade:12511 src/gui/siril3.glade:15931
 #: src/gui/menu_gray_geometry.c:59
 msgid "Crop"
 msgstr "Cortar"
 
-#: src/gui/siril3.glade:12521
+#: src/gui/siril3.glade:12520
 msgid "Crop Sequence..."
 msgstr "Cortar sequência..."
 
-#: src/gui/siril3.glade:12530 src/gui/siril3.glade:15370
+#: src/gui/siril3.glade:12529 src/gui/siril3.glade:15370
 #: src/gui/siril3.glade:15812
 #, fuzzy
 msgid "Rotate&Crop"
 msgstr "Rotação"
 
-#: src/gui/siril3.glade:12542
+#: src/gui/siril3.glade:12541
 #, fuzzy
 msgid "Save RGB image to FITS"
 msgstr "Guardar imagem RGB como FITS de 48 bits"
 
-#: src/gui/siril3.glade:12551
+#: src/gui/siril3.glade:12550
 #, fuzzy
 msgid "Save RGB image to TIFF"
 msgstr "Guardar imagem RGB como JPG"
 
-#: src/gui/siril3.glade:12560
+#: src/gui/siril3.glade:12559
 #, fuzzy
 msgid "Save RGB image to BMP"
 msgstr "Guardar imagem RGB como JPG"
 
-#: src/gui/siril3.glade:12569
+#: src/gui/siril3.glade:12568
 msgid "Save RGB image to JPG"
 msgstr "Guardar imagem RGB como JPG"
 
-#: src/gui/siril3.glade:12578
+#: src/gui/siril3.glade:12577
 #, fuzzy
 msgid "Save RGB image to PNG"
 msgstr "Guardar imagem RGB como JPG"
 
-#: src/gui/siril3.glade:12587
+#: src/gui/siril3.glade:12586
 #, fuzzy
 msgid "Save RGB image to PPM"
 msgstr "Guardar imagem RGB como JPG"
 
-#: src/gui/siril3.glade:12602
+#: src/gui/siril3.glade:12601
 msgid "RGB Align"
 msgstr "Alinhar RGB"
 
-#: src/gui/siril3.glade:12642 src/gui/histogram.c:1006
+#: src/gui/siril3.glade:12641 src/gui/histogram.c:1006
 #, fuzzy
 msgid "Histogram Transformation"
 msgstr "Transformação de histograma..."
 
-#: src/gui/siril3.glade:12695
+#: src/gui/siril3.glade:12694
 msgid "Apply histogram transformation"
 msgstr "Aplicar transformação de histograma"
 
-#: src/gui/siril3.glade:12747
+#: src/gui/siril3.glade:12746
 msgid "Horizontal Zoom"
 msgstr "Zoom Horizontal"
 
-#: src/gui/siril3.glade:12767
+#: src/gui/siril3.glade:12766
 msgid "Reset zooms to 1."
 msgstr "Repor o Zoom a 1."
 
-#: src/gui/siril3.glade:12786
+#: src/gui/siril3.glade:12785
 msgid "Logarithmic scale"
 msgstr "Escala logaritmica"
 
-#: src/gui/siril3.glade:12790
+#: src/gui/siril3.glade:12789
 msgid ""
 "Show the histogram with a logarithmic scale. Does not affect the transfer "
 "function display.\n"
@@ -3026,12 +3027,12 @@ msgstr ""
 msgid "Remove selected image"
 msgstr "Remover arquivos selecionados"
 
-#: src/gui/siril3.glade:14698 src/gui/callbacks.c:818
+#: src/gui/siril3.glade:14698 src/gui/callbacks.c:845
 msgid "16 bits"
 msgstr ""
 
 #: src/gui/siril3.glade:14706 src/gui/siril3.glade:23220
-#: src/gui/callbacks.c:818
+#: src/gui/callbacks.c:845
 msgid "32 bits"
 msgstr ""
 
@@ -3099,7 +3100,7 @@ msgstr "Transformação de histograma..."
 
 #: src/gui/siril3.glade:14853
 #, fuzzy
-msgid "Open the A Trou wavelet transform dialog"
+msgid "Open the À Trou wavelet transform dialog"
 msgstr "À trous Wavelets Transform..."
 
 #: src/gui/siril3.glade:14855
@@ -3833,7 +3834,7 @@ msgid ""
 "you can filter images out."
 msgstr ""
 
-#: src/gui/siril3.glade:17889 src/gui/callbacks.c:1805
+#: src/gui/siril3.glade:17889 src/gui/callbacks.c:1834
 msgid "Sequence"
 msgstr "Sequência"
 
@@ -6178,7 +6179,7 @@ msgstr ""
 msgid "Warning Dialogs"
 msgstr "Aviso"
 
-#: src/gui/siril3.glade:26892 src/gui/siril3.glade:27200
+#: src/gui/siril3.glade:26892 src/gui/siril3.glade:27271
 msgid "User Interface"
 msgstr ""
 
@@ -6263,16 +6264,31 @@ msgstr ""
 msgid "Image Thumbnails"
 msgstr ""
 
-#: src/gui/siril3.glade:27214 src/gui/siril3.glade:27449
+#: src/gui/siril3.glade:27220
+#, fuzzy
+msgid "Default Screen Transfer Function"
+msgstr "Transformação de histograma..."
+
+#: src/gui/siril3.glade:27238
+#, fuzzy
+msgid "Autostretch"
+msgstr "AutoEstirar"
+
+#: src/gui/siril3.glade:27255
+#, fuzzy
+msgid "Image Display"
+msgstr "_Processamento de imagem"
+
+#: src/gui/siril3.glade:27285 src/gui/siril3.glade:27520
 msgid "Performances"
 msgstr ""
 
-#: src/gui/siril3.glade:27250
+#: src/gui/siril3.glade:27321
 #, fuzzy
 msgid "Ratio of available"
 msgstr "Não disponível"
 
-#: src/gui/siril3.glade:27254
+#: src/gui/siril3.glade:27325
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -6283,11 +6299,11 @@ msgid ""
 "above will likely result in a crash of siril or of the operating system."
 msgstr ""
 
-#: src/gui/siril3.glade:27270
+#: src/gui/siril3.glade:27341
 msgid "Fixed amount (GB)"
 msgstr ""
 
-#: src/gui/siril3.glade:27274
+#: src/gui/siril3.glade:27345
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -6295,7 +6311,7 @@ msgid ""
 "result in a crash of siril or of the operating system."
 msgstr ""
 
-#: src/gui/siril3.glade:27290
+#: src/gui/siril3.glade:27361
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -6304,21 +6320,21 @@ msgid ""
 "very slow and unrecommended"
 msgstr ""
 
-#: src/gui/siril3.glade:27337
+#: src/gui/siril3.glade:27408
 #, fuzzy
 msgid "<b>Memory management</b>"
 msgstr "<b>Gestão de Memória</b>"
 
-#: src/gui/siril3.glade:27363
+#: src/gui/siril3.glade:27434
 #, fuzzy
 msgid "HD AutoStretch"
 msgstr "AutoEstirar"
 
-#: src/gui/siril3.glade:27378
+#: src/gui/siril3.glade:27449
 msgid "Default bit depth for HD AutoStretch"
 msgstr ""
 
-#: src/gui/siril3.glade:27394
+#: src/gui/siril3.glade:27465
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -6328,19 +6344,19 @@ msgid ""
 "the button to the right."
 msgstr ""
 
-#: src/gui/siril3.glade:27411
+#: src/gui/siril3.glade:27482
 msgid "Apply bit depth"
 msgstr ""
 
-#: src/gui/siril3.glade:27415
+#: src/gui/siril3.glade:27486
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr ""
 
-#: src/gui/siril3.glade:27463 src/gui/siril3.glade:27832
+#: src/gui/siril3.glade:27534 src/gui/siril3.glade:27903
 msgid "Miscellaneous"
 msgstr ""
 
-#: src/gui/siril3.glade:27495
+#: src/gui/siril3.glade:27566
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -6348,84 +6364,84 @@ msgstr ""
 "Selecionar uma pasta existente. Assegurar que tem permissões de escrita e "
 "espaço livre."
 
-#: src/gui/siril3.glade:27498
+#: src/gui/siril3.glade:27569
 msgid "Select Swap Directory"
 msgstr "Selecionar Pasta Swap"
 
-#: src/gui/siril3.glade:27511
+#: src/gui/siril3.glade:27582
 #, fuzzy
 msgid "available mem"
 msgstr "Não disponível"
 
-#: src/gui/siril3.glade:27523
+#: src/gui/siril3.glade:27594
 msgid "Restore to Default"
 msgstr "Restaurar para o valores Padrão"
 
-#: src/gui/siril3.glade:27527
+#: src/gui/siril3.glade:27598
 #, fuzzy
 msgid "Restore the default swap storage directory"
 msgstr "Restaurar a pasta de armazenamento swap padrão"
 
-#: src/gui/siril3.glade:27548
+#: src/gui/siril3.glade:27619
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Pasta de armazenamento Swap</b>"
 
-#: src/gui/siril3.glade:27579
+#: src/gui/siril3.glade:27650
 msgid "Don't ask before quitting"
 msgstr "Não perguntar antes de sair"
 
-#: src/gui/siril3.glade:27594
+#: src/gui/siril3.glade:27665
 msgid "Don't ask before saving when display is not linear"
 msgstr ""
 
-#: src/gui/siril3.glade:27617
+#: src/gui/siril3.glade:27688
 #, fuzzy
 msgid "Warning Dialog"
 msgstr "Aviso"
 
-#: src/gui/siril3.glade:27644
+#: src/gui/siril3.glade:27715
 #, fuzzy
 msgid "Play introduction"
 msgstr "Interpolação de *Debayer* "
 
-#: src/gui/siril3.glade:27659
+#: src/gui/siril3.glade:27730
 #, fuzzy
 msgid "Introduction Tips"
 msgstr "Interpolação"
 
-#: src/gui/siril3.glade:27692
+#: src/gui/siril3.glade:27763
 #, fuzzy
 msgid ""
 "Select Starnet++ installation directory. Works with both Starnet++ v1.0 and "
 "v2.0.2+ (Command Line Tool version, not GUI version for Windows users)."
 msgstr "Selecionar Pasta Swap"
 
-#: src/gui/siril3.glade:27695
+#: src/gui/siril3.glade:27766
 #, fuzzy
 msgid "Select Starnet++ installation directory"
 msgstr "Selecionar Pasta Swap"
 
-#: src/gui/siril3.glade:27708
+#: src/gui/siril3.glade:27779
 msgid "Must point to a valid Starnet++ installation directory."
 msgstr ""
 
-#: src/gui/siril3.glade:27730
+#: src/gui/siril3.glade:27801
 msgid "Starnet++ Installation Directory"
 msgstr ""
 
-#: src/gui/siril3.glade:27758
+#: src/gui/siril3.glade:27829
 msgid "Copyright when saving image as TIFF"
 msgstr ""
 
-#: src/gui/siril3.glade:27771
+#: src/gui/siril3.glade:27842
 msgid "Copyright TIFF"
 msgstr ""
 
-#: src/gui/siril3.glade:27798
+#: src/gui/siril3.glade:27869
 msgid "Check update at startup"
 msgstr ""
 
-#: src/gui/siril3.glade:27815
+#: src/gui/siril3.glade:27886
 msgid "Update"
 msgstr ""
 
@@ -6685,27 +6701,27 @@ msgstr ""
 msgid "print the copyright"
 msgstr "Exportar para CSV"
 
-#: src/main-cli.c:140 src/main.c:203
+#: src/main-cli.c:140 src/main.c:204
 #, c-format
 msgid "Welcome to %s v%s\n"
 msgstr ""
 
-#: src/main-cli.c:150 src/main.c:213
+#: src/main-cli.c:150 src/main.c:214
 #, c-format
 msgid "Could not load or create settings file, exiting.\n"
 msgstr ""
 
-#: src/main-cli.c:191 src/main.c:261
+#: src/main-cli.c:191 src/main.c:262
 #, c-format
 msgid "File [%s] does not exist (from CWD, use absolute path?)\n"
 msgstr ""
 
 #. g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
-#: src/main-cli.c:319 src/main.c:453
+#: src/main-cli.c:319 src/main.c:454
 msgid "Siril - A free astronomical image processing software."
 msgstr ""
 
-#: src/main-cli.c:326 src/main.c:460
+#: src/main-cli.c:326 src/main.c:461
 #, c-format
 msgid "Run “%s --help” to see a full list of available command line options."
 msgstr ""
@@ -6723,7 +6739,7 @@ msgstr ""
 msgid "Successfully loaded '%s'\n"
 msgstr ""
 
-#: src/main.c:320 src/core/command.c:5183 src/core/command_line_processor.c:584
+#: src/main.c:321 src/core/command.c:5183 src/core/command_line_processor.c:584
 #: src/gui/single_image.c:82
 #, fuzzy, c-format
 msgid "No sequence `%s' found.\n"
@@ -7089,7 +7105,7 @@ msgstr ""
 #: src/filters/cosmetic_correction.c:202 src/filters/cosmetic_correction.c:616
 #: src/filters/saturation.c:159 src/filters/saturation.c:218
 #: src/gui/histogram.c:1357 src/gui/photometric_cc.c:329
-#: src/gui/photometric_cc.c:354 src/gui/remixer.c:1049 src/gui/remixer.c:1092
+#: src/gui/photometric_cc.c:354 src/gui/remixer.c:1058 src/gui/remixer.c:1101
 #: src/gui/statistics_list.c:208
 msgid "Error: statistics computation failed.\n"
 msgstr ""
@@ -11098,391 +11114,396 @@ msgstr ""
 msgid "for a total of images processed of %d)\n"
 msgstr ""
 
-#: src/core/settings.c:196
+#: src/core/settings.c:197
 #, fuzzy
 msgid "current working directory"
 msgstr "arquivo verde atual"
 
-#: src/core/settings.c:197
+#: src/core/settings.c:198
 #, fuzzy
 msgid "FITS file extension"
 msgstr "Conversão de arquivos"
 
-#: src/core/settings.c:198
+#: src/core/settings.c:199
 msgid "don't use 32 bits for pixel depth"
 msgstr ""
 
-#: src/core/settings.c:199
+#: src/core/settings.c:200
 msgid "allow FITS cubes to have different sizes"
 msgstr ""
 
-#: src/core/settings.c:200
+#: src/core/settings.c:201
 msgid "memory mode (0 ratio, 1 amount)"
 msgstr ""
 
-#: src/core/settings.c:201
+#: src/core/settings.c:202
 #, fuzzy
 msgid "memory ratio of available"
 msgstr "Não disponível"
 
-#: src/core/settings.c:202
+#: src/core/settings.c:203
 msgid "amount of memory in GB"
 msgstr ""
 
-#: src/core/settings.c:203
+#: src/core/settings.c:204
 #, fuzzy
 msgid "HD AutoStretch bit depth"
 msgstr "AutoEstirar"
 
-#: src/core/settings.c:204
+#: src/core/settings.c:205
 msgid "need requires cmd in script"
 msgstr ""
 
-#: src/core/settings.c:205
+#: src/core/settings.c:206
 msgid "need requires cmd in pipe"
 msgstr ""
 
-#: src/core/settings.c:206
+#: src/core/settings.c:207
 msgid "check update at start-up"
 msgstr ""
 
-#: src/core/settings.c:207
+#: src/core/settings.c:208
 msgid "active siril language"
 msgstr ""
 
-#: src/core/settings.c:208
+#: src/core/settings.c:209
 #, fuzzy
 msgid "swap directory"
 msgstr "Selecionar Pasta Swap"
 
-#: src/core/settings.c:209
+#: src/core/settings.c:210
 msgid "WCS formalism used in FITS header"
 msgstr ""
 
-#: src/core/settings.c:210
+#: src/core/settings.c:211
 msgid "Path of the namedstars.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:211
+#: src/core/settings.c:212
 msgid "Path of the unnamedstars.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:212
+#: src/core/settings.c:213
 msgid "Path of the deepstars.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:213
+#: src/core/settings.c:214
 msgid "Path of the USNO-NOMAD-1e8.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:214
+#: src/core/settings.c:215
 msgid "add CTYPE3='RGB' in the FITS header"
 msgstr ""
 
-#: src/core/settings.c:215
+#: src/core/settings.c:216
 msgid "user copyright to put in file header"
 msgstr ""
 
-#: src/core/settings.c:216
+#: src/core/settings.c:217
 msgid "directory of the starnet++ installation"
 msgstr ""
 
-#: src/core/settings.c:218
+#: src/core/settings.c:219
 msgid "focal length in mm for radius adjustment"
 msgstr ""
 
-#: src/core/settings.c:219
+#: src/core/settings.c:220
 msgid "pixel size in µm for radius adjustment"
 msgstr ""
 
-#: src/core/settings.c:221
+#: src/core/settings.c:222
 msgid "use pattern from the file header"
 msgstr ""
 
-#: src/core/settings.c:222
+#: src/core/settings.c:223
 #, fuzzy
 msgid "index of the Bayer pattern"
 msgstr "Selecionar o padrão Bayer da sua  câmara."
 
-#: src/core/settings.c:223
+#: src/core/settings.c:224
 #, fuzzy
 msgid "type of interpolation"
 msgstr "Interpolação de *Debayer* "
 
-#: src/core/settings.c:224
+#: src/core/settings.c:225
 msgid "force debayer top-down"
 msgstr ""
 
-#: src/core/settings.c:225
+#: src/core/settings.c:226
 msgid "Bayer matrix offset X"
 msgstr ""
 
-#: src/core/settings.c:226
+#: src/core/settings.c:227
 msgid "Bayer matrix offset Y"
 msgstr ""
 
-#: src/core/settings.c:228
+#: src/core/settings.c:229
 msgid "electrons per ADU for noise estimation"
 msgstr ""
 
-#: src/core/settings.c:229
+#: src/core/settings.c:230
 #, fuzzy
 msgid "inner radius for background annulus"
 msgstr "Raio interior:"
 
-#: src/core/settings.c:230
+#: src/core/settings.c:231
 #, fuzzy
 msgid "outer radius for background annulus"
 msgstr "Fundo"
 
-#: src/core/settings.c:231
+#: src/core/settings.c:232
 msgid "force flux aperture value"
 msgstr ""
 
-#: src/core/settings.c:232
+#: src/core/settings.c:233
 msgid "forced aperture for flux computation"
 msgstr ""
 
-#: src/core/settings.c:233
+#: src/core/settings.c:234
 msgid "minimum valid pixel value for photometry"
 msgstr ""
 
-#: src/core/settings.c:234
+#: src/core/settings.c:235
 msgid "maximum valid pixel value for photometry"
 msgstr ""
 
-#: src/core/settings.c:236
+#: src/core/settings.c:237
 msgid "panel size of aberration inspector"
 msgstr ""
 
-#: src/core/settings.c:238
+#: src/core/settings.c:239
 #, fuzzy
 msgid "FITS compression enabled"
 msgstr "<b>Compressão</b>"
 
-#: src/core/settings.c:239
+#: src/core/settings.c:240
 #, fuzzy
 msgid "FITS compression method"
 msgstr "<b>Compressão</b>"
 
-#: src/core/settings.c:240
+#: src/core/settings.c:241
 msgid "quantization factor for 32-bit float"
 msgstr ""
 
-#: src/core/settings.c:241
+#: src/core/settings.c:242
 msgid "Hcompress scale factor"
 msgstr ""
 
 #. the GUI part, not as useful but still required to be listed in order to be saved in the ini file
-#: src/core/settings.c:244
+#: src/core/settings.c:245
 #, fuzzy
 msgid "type of sensor for cosmetic correction"
 msgstr "Correção Cosmética"
 
-#: src/core/settings.c:245
+#: src/core/settings.c:246
 #, fuzzy
 msgid "equalize flat channels"
 msgstr "Manter três canais"
 
-#: src/core/settings.c:246
+#: src/core/settings.c:247
 msgid "enable correction for X-Trans sensor"
 msgstr ""
 
-#: src/core/settings.c:247 src/core/settings.c:248 src/core/settings.c:249
-#: src/core/settings.c:250 src/core/settings.c:251 src/core/settings.c:252
-#: src/core/settings.c:253 src/core/settings.c:254
+#: src/core/settings.c:248 src/core/settings.c:249 src/core/settings.c:250
+#: src/core/settings.c:251 src/core/settings.c:252 src/core/settings.c:253
+#: src/core/settings.c:254 src/core/settings.c:255
 msgid "if no X-Trans model found, use this"
 msgstr ""
 
-#: src/core/settings.c:255
+#: src/core/settings.c:256
 msgid "default master bias"
 msgstr ""
 
-#: src/core/settings.c:256
+#: src/core/settings.c:257
 #, fuzzy
 msgid "use default master bias"
 msgstr "Restaurar os parâmetros padrão"
 
-#: src/core/settings.c:257
+#: src/core/settings.c:258
 #, fuzzy
 msgid "default master dark"
 msgstr "Usar flat"
 
-#: src/core/settings.c:258
+#: src/core/settings.c:259
 msgid "use default master dark"
 msgstr ""
 
-#: src/core/settings.c:259
+#: src/core/settings.c:260
 #, fuzzy
 msgid "default master flat"
 msgstr "Usar flat"
 
-#: src/core/settings.c:260
+#: src/core/settings.c:261
 msgid "use default master flat"
 msgstr ""
 
-#: src/core/settings.c:261
+#: src/core/settings.c:262
 msgid "use synthetic bias"
 msgstr ""
 
-#: src/core/settings.c:262
+#: src/core/settings.c:263
 msgid "value of synthetic bias"
 msgstr ""
 
-#: src/core/settings.c:264
+#: src/core/settings.c:265
 #, fuzzy
 msgid "index of the selected registration method"
 msgstr "Seleção de sequência"
 
-#: src/core/settings.c:265
+#: src/core/settings.c:266
 #, fuzzy
 msgid "index of the selected interpolation method"
 msgstr "Seleção de sequência"
 
-#: src/core/settings.c:267
+#: src/core/settings.c:268
 #, fuzzy
 msgid "index of the selected method"
 msgstr "Seleção de sequência"
 
-#: src/core/settings.c:268
+#: src/core/settings.c:269
 #, fuzzy
 msgid "index of the normalization method"
 msgstr "Método de Proteção: "
 
-#: src/core/settings.c:269
+#: src/core/settings.c:270
 #, fuzzy
 msgid "index of the rejection method"
 msgstr "Método de Proteção: "
 
-#: src/core/settings.c:270
+#: src/core/settings.c:271
 msgid "sigma low value for rejection"
 msgstr ""
 
-#: src/core/settings.c:271
+#: src/core/settings.c:272
 #, fuzzy
 msgid "sigma high value for rejection"
 msgstr "Matriz de Interpolação de Imagem"
 
-#: src/core/settings.c:272
+#: src/core/settings.c:273
 msgid "linear low value for rejection"
 msgstr ""
 
-#: src/core/settings.c:273
+#: src/core/settings.c:274
 msgid "linear high value for rejection"
 msgstr ""
 
-#: src/core/settings.c:274
+#: src/core/settings.c:275
 msgid "percentile low value for rejection"
 msgstr ""
 
-#: src/core/settings.c:275
+#: src/core/settings.c:276
 msgid "percentile high value for rejection"
 msgstr ""
 
-#: src/core/settings.c:277
+#: src/core/settings.c:278
 msgid "first start of siril"
 msgstr ""
 
-#: src/core/settings.c:278
+#: src/core/settings.c:279
 msgid "don't confirm quit when exiting"
 msgstr ""
 
-#: src/core/settings.c:279
+#: src/core/settings.c:280
 msgid "don't confirm save when non linear mode"
 msgstr ""
 
-#: src/core/settings.c:280
+#: src/core/settings.c:281
 msgid "remember window position"
 msgstr ""
 
-#: src/core/settings.c:281 src/core/settings.c:282 src/core/settings.c:283
-#: src/core/settings.c:284
+#: src/core/settings.c:282 src/core/settings.c:283 src/core/settings.c:284
+#: src/core/settings.c:285
 msgid "main window position"
 msgstr ""
 
-#: src/core/settings.c:285
+#: src/core/settings.c:286
 msgid "position of the two sides separator"
 msgstr ""
 
-#: src/core/settings.c:286
+#: src/core/settings.c:287
 msgid "main window is extended"
 msgstr ""
 
-#: src/core/settings.c:287
+#: src/core/settings.c:288
 msgid "main window is maximized"
 msgstr ""
 
-#: src/core/settings.c:288
+#: src/core/settings.c:289
 #, fuzzy
 msgid "index of the selected theme"
 msgstr "Remover arquivos selecionados"
 
-#: src/core/settings.c:289
+#: src/core/settings.c:290
 msgid "font scale in percent"
 msgstr ""
 
-#: src/core/settings.c:290
+#: src/core/settings.c:291
 msgid "icon style"
 msgstr ""
 
-#: src/core/settings.c:291
+#: src/core/settings.c:292
 msgid "list of script directories"
 msgstr ""
 
-#: src/core/settings.c:292
+#: src/core/settings.c:293
 msgid "warn when launching a script"
 msgstr ""
 
-#: src/core/settings.c:293
+#: src/core/settings.c:294
 msgid "show thumbnails in open dialog"
 msgstr ""
 
-#: src/core/settings.c:294
+#: src/core/settings.c:295
 msgid "size of the thumbnails"
 msgstr ""
 
-#: src/core/settings.c:295
+#: src/core/settings.c:296
 msgid "number of elements of the grid guides"
 msgstr ""
 
 #: src/core/settings.c:297
+#, fuzzy
+msgid "default display mode"
+msgstr "Modo de visualização"
+
+#: src/core/settings.c:299
 msgid "index of the compass position over grid"
 msgstr ""
 
-#: src/core/settings.c:298
+#: src/core/settings.c:300
 msgid "show Messier objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:299
+#: src/core/settings.c:301
 msgid "show NGC objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:300
+#: src/core/settings.c:302
 msgid "show IC objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:301
+#: src/core/settings.c:303
 msgid "show LDN objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:302
+#: src/core/settings.c:304
 msgid "show SH2 objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:303
+#: src/core/settings.c:305
 msgid "show stars in annotations"
 msgstr ""
 
-#: src/core/settings.c:304
+#: src/core/settings.c:306
 msgid "show user objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:306
+#: src/core/settings.c:308
 #, fuzzy
 msgid "list of pixel math presets"
 msgstr "Linear"
 
-#: src/core/settings.c:346
+#: src/core/settings.c:348
 #, c-format
 msgid "Unknown settings variable %s.%s\n"
 msgstr ""
@@ -11759,8 +11780,8 @@ msgstr ""
 #. fail
 #: src/filters/fft.c:557 src/filters/fft.c:563 src/filters/fft.c:584
 #: src/gui/nina_light_curve.c:82 src/gui/nina_light_curve.c:116
-#: src/gui/open_dialog.c:347 src/gui/plot.c:711 src/gui/preferences.c:320
-#: src/gui/preferences.c:338 src/gui/PSF_list.c:223 src/gui/PSF_list.c:228
+#: src/gui/open_dialog.c:347 src/gui/plot.c:711 src/gui/preferences.c:321
+#: src/gui/preferences.c:339 src/gui/PSF_list.c:223 src/gui/PSF_list.c:228
 #: src/gui/save_dialog.c:396
 msgid "Error"
 msgstr ""
@@ -11981,6 +12002,38 @@ msgstr ""
 msgid "Starnet++: job completed.\n"
 msgstr ""
 
+#: src/filters/synthstar.c:224
+msgid "Star synthesis (full star mask creation): processing...\n"
+msgstr ""
+
+#: src/filters/synthstar.c:248
+#, fuzzy
+msgid "No stars detected in the image.\n"
+msgstr "Selecionar Fase"
+
+#: src/filters/synthstar.c:251
+#, c-format
+msgid "Synthesizing %d stars...\n"
+msgstr ""
+
+#: src/filters/synthstar.c:500
+msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
+msgstr ""
+
+#: src/filters/synthstar.c:557
+#, c-format
+msgid "Star synthesis: desaturating stars in channel %u...\n"
+msgstr ""
+
+#: src/filters/synthstar.c:594
+#, c-format
+msgid "Star synthesis: %d stars desaturated\n"
+msgstr ""
+
+#: src/filters/synthstar.c:606
+msgid "Remapping output to floating point range 0.0 to 1.0\n"
+msgstr ""
+
 #: src/filters/wavelets.c:175
 msgid "Could not copy image, aborting\n"
 msgstr ""
@@ -12178,66 +12231,66 @@ msgid ""
 "This sequence name already exists!! Please change the name before converting."
 msgstr ""
 
-#: src/gui/callbacks.c:697
+#: src/gui/callbacks.c:724
 #, c-format
 msgid "W: %dpx H: %dpx ratio: %.4f"
 msgstr ""
 
-#: src/gui/callbacks.c:716
+#: src/gui/callbacks.c:743
 #, c-format
 msgid "fwhm: %.2f px, r: %.2f"
 msgstr ""
 
-#: src/gui/callbacks.c:718 src/gui/callbacks.c:720
+#: src/gui/callbacks.c:745 src/gui/callbacks.c:747
 #, c-format
 msgid "fwhm: N/A"
 msgstr ""
 
-#: src/gui/callbacks.c:782
+#: src/gui/callbacks.c:809
 msgid "Cannot convert a sequence file"
 msgstr ""
 
-#: src/gui/callbacks.c:783
+#: src/gui/callbacks.c:810
 msgid ""
 "A sequence file cannot be converted to 32 bits. This operation can only be "
 "done on a single file."
 msgstr ""
 
-#: src/gui/callbacks.c:788
+#: src/gui/callbacks.c:815
 msgid "Precision loss"
 msgstr ""
 
-#: src/gui/callbacks.c:789
+#: src/gui/callbacks.c:816
 msgid ""
 "Converting the image from 32 bits to 16 bits may lead to a loss of numerical "
 "accuracy. Getting back to 32 bits will not recover this loss.\n"
 "Are you sure you want to convert your data?"
 msgstr ""
 
-#: src/gui/callbacks.c:791
+#: src/gui/callbacks.c:818
 msgid "Convert to 16 bits"
 msgstr ""
 
-#: src/gui/callbacks.c:1004
+#: src/gui/callbacks.c:1031
 msgid "B&W"
 msgstr ""
 
-#: src/gui/callbacks.c:1174
+#: src/gui/callbacks.c:1201
 #, c-format
 msgid "This binning %d x %d is not handled yet\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1294
+#: src/gui/callbacks.c:1323
 #, c-format
 msgid "Default FITS extension is set to %s\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1305
+#: src/gui/callbacks.c:1334
 #, c-format
 msgid "Welcome to %s"
 msgstr ""
 
-#: src/gui/callbacks.c:1308
+#: src/gui/callbacks.c:1337
 msgid ""
 "Hello, this is the first time you use this new version of Siril. Please, "
 "have a seat and take the time to watch the short introduction we have "
@@ -12245,77 +12298,77 @@ msgid ""
 "the Miscellaneous tab of the preferences dialog box."
 msgstr ""
 
-#: src/gui/callbacks.c:1311
+#: src/gui/callbacks.c:1340
 #, fuzzy
 msgid "See Introduction"
 msgstr "Interpolação"
 
-#: src/gui/callbacks.c:1544
+#: src/gui/callbacks.c:1573
 #, fuzzy
 msgid "Closing application"
 msgstr "Calibração de cor..."
 
-#: src/gui/callbacks.c:1545
+#: src/gui/callbacks.c:1574
 msgid "Are you sure you want to quit?"
 msgstr ""
 
-#: src/gui/callbacks.c:1545
+#: src/gui/callbacks.c:1574
 msgid "Exit"
 msgstr ""
 
-#: src/gui/callbacks.c:1676
+#: src/gui/callbacks.c:1705
 #, c-format
 msgid "Selected %s sequence %s..."
 msgstr ""
 
-#: src/gui/callbacks.c:1731
+#: src/gui/callbacks.c:1760
 msgid "Searching for sequences in the current working directory..."
 msgstr ""
 
-#: src/gui/callbacks.c:1765
+#: src/gui/callbacks.c:1794
 msgid "RGB alignment (DFT)"
 msgstr ""
 
-#: src/gui/callbacks.c:1770
+#: src/gui/callbacks.c:1799
 msgid "RGB alignment (PSF)"
 msgstr ""
 
-#: src/gui/callbacks.c:1790
+#: src/gui/callbacks.c:1819
 msgid "This erases the following data, and there's no possible undo:\n"
 msgstr ""
 
-#: src/gui/callbacks.c:1791
+#: src/gui/callbacks.c:1820
 #, fuzzy
 msgid ""
 "\n"
 "- Registration"
 msgstr "Prefixo de saída:"
 
-#: src/gui/callbacks.c:1792
+#: src/gui/callbacks.c:1821
 #, fuzzy
 msgid ""
 "\n"
 "- Statistics"
 msgstr "Estatística"
 
-#: src/gui/callbacks.c:1793
+#: src/gui/callbacks.c:1822
 #, fuzzy
 msgid ""
 "\n"
 "- Selection"
 msgstr "Sem Seleção"
 
-#: src/gui/callbacks.c:1797
+#: src/gui/callbacks.c:1826
 #, fuzzy
 msgid "Clear Sequence Data?"
 msgstr "Sequência de corte"
 
-#: src/gui/callbacks.c:1797
+#: src/gui/callbacks.c:1826
 #, fuzzy
 msgid "Clear Data"
 msgstr "Fechar a janela"
 
-#: src/gui/callbacks.c:1805
+#: src/gui/callbacks.c:1834
 msgid "The requested data of the sequence has been cleaned."
 msgstr ""
 
@@ -12426,7 +12479,7 @@ msgstr[1] "Nenhuma sequência selecionada"
 #: src/gui/colors.c:50 src/gui/colors.c:136 src/gui/colors.c:172
 #: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1348
 #: src/gui/photometric_cc.c:746 src/gui/photometric_cc.c:764
-#: src/gui/remixer.c:1042 src/gui/remixer.c:1085
+#: src/gui/remixer.c:1051 src/gui/remixer.c:1094
 #, fuzzy
 msgid "There is no selection"
 msgstr "Seleção de sequência"
@@ -12517,7 +12570,7 @@ msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr ""
 
-#: src/gui/histogram.c:1349 src/gui/remixer.c:1043 src/gui/remixer.c:1086
+#: src/gui/histogram.c:1349 src/gui/remixer.c:1052 src/gui/remixer.c:1095
 msgid "Make a selection of the point or area to set SP"
 msgstr ""
 
@@ -12965,40 +13018,40 @@ msgstr ""
 msgid "Show Frame %d"
 msgstr "Mostrar Imagem"
 
-#: src/gui/preferences.c:319 src/gui/preferences.c:337
+#: src/gui/preferences.c:320 src/gui/preferences.c:338
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:393
+#: src/gui/preferences.c:394
 msgid "Cannot refresh script list"
 msgstr ""
 
-#: src/gui/preferences.c:603
+#: src/gui/preferences.c:605
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
 msgstr ""
 
-#: src/gui/preferences.c:612
+#: src/gui/preferences.c:614
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
 msgstr ""
 
-#: src/gui/preferences.c:624
+#: src/gui/preferences.c:626
 msgid "Wrong value"
 msgstr ""
 
-#: src/gui/preferences.c:645
+#: src/gui/preferences.c:647
 msgid "Reset all preferences"
 msgstr ""
 
-#: src/gui/preferences.c:646
+#: src/gui/preferences.c:648
 msgid "Do you really want to reset all preferences to default value?"
 msgstr ""
 
-#: src/gui/preferences.c:647
+#: src/gui/preferences.c:649
 #, fuzzy
 msgid "Reset Preferences"
 msgstr "imagem de referência"
@@ -13171,32 +13224,32 @@ msgstr "Composição HSL"
 msgid "Star recomposition"
 msgstr "Composição HSL"
 
-#: src/gui/remixer.c:601 src/gui/remixer.c:1149
+#: src/gui/remixer.c:602 src/gui/remixer.c:1158
 msgid "Show advanced stretch options."
 msgstr ""
 
-#: src/gui/remixer.c:937 src/gui/remixer.c:986
+#: src/gui/remixer.c:946 src/gui/remixer.c:995
 msgid "Error: image could not be loaded"
 msgstr ""
 
-#: src/gui/remixer.c:938 src/gui/remixer.c:987
+#: src/gui/remixer.c:947 src/gui/remixer.c:996
 #, fuzzy
 msgid "Image loading failed"
 msgstr "não carregada"
 
-#: src/gui/remixer.c:949 src/gui/remixer.c:998
+#: src/gui/remixer.c:958 src/gui/remixer.c:1007
 msgid "Error: images do not match"
 msgstr ""
 
-#: src/gui/remixer.c:950 src/gui/remixer.c:999
+#: src/gui/remixer.c:959 src/gui/remixer.c:1008
 msgid "Image width, height, bit depth and number of channels must match"
 msgstr ""
 
-#: src/gui/remixer.c:1132
+#: src/gui/remixer.c:1141
 msgid "Simple"
 msgstr ""
 
-#: src/gui/remixer.c:1133
+#: src/gui/remixer.c:1142
 msgid ""
 "Show only simple stretch options. Note that any parameters that have been "
 "set while in advanced mode will remain set."
@@ -16418,9 +16471,6 @@ msgstr ""
 
 #~ msgid "Negative view"
 #~ msgstr "Visualização negativa"
-
-#~ msgid "Display mode"
-#~ msgstr "Modo de visualização"
 
 #~ msgid "Zoom level"
 #~ msgstr "Nível zoom"
