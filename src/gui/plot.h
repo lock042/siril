@@ -73,8 +73,9 @@ enum marker_type {
 };
 
 enum slider_type {
-	SLIDER_X,
-	SLIDER_Y
+	SLIDER_NONE = -1,
+	SLIDER_X = 0,
+	SLIDER_Y = 1
 };
 
 enum border_type {
@@ -85,11 +86,11 @@ enum border_type {
 	SELBORDER_RIGHT = 3
 };
 
-enum action_type {
-	ACTION_NONE = -1,
-	ACTION_SELECTING = 0,
-	ACTION_RESIZING = 1,
-	ACTION_MOVING = 2
+enum selaction_type {
+	SELACTION_NONE = -1,
+	SELACTION_SELECTING = 0,
+	SELACTION_RESIZING = 1,
+	SELACTION_MOVING = 2
 };
 
 // same as rectangle but double to avoid recasting
@@ -109,10 +110,11 @@ typedef struct plot_draw_data {
 	double surf_h; // y size of the cairosurface in pixel
 	double xrange[2]; // pair between 0 and 1 giving the extent of plotted x values in the datamin,datamax range
 	double yrange[2]; // pair between 0 and 1 giving the extent of plotted y values in the datamin,datamax range
-	enum marker_type marker_grabbed; // flag which slider marker is grabbed (0 to 3 from X_MIN to Y_MAX)
+	enum marker_type marker_grabbed; // flag telling which slider marker is being grabbed (0 to 3 from X_MIN to Y_MAX)
+	enum slider_type slider_grabbed; // flag telling which slider is being grabbed (0 to 3 from SLIDER_X to SLIDER_Y)
 	rectangled selection; // area selected in pixel units (x, y, w, h)
 	point start; // coordinates x,y of the initial selection point in pixels
-	enum action_type action; // action being performed
+	enum selaction_type action; // selection action being performed
 	enum border_type border_grabbed; // the border being dragged
 	gboolean *selected; // array same length as data array stating if point is within selection
 	int nbselected;

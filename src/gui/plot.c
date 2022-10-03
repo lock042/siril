@@ -163,7 +163,9 @@ static void reset_plot_zoom() {
 	pdd.yrange[0] = 0.;
 	pdd.yrange[1] = 1.;
 	pdd.marker_grabbed = MARKER_NONE;
-	pdd.action = ACTION_NONE;
+	pdd.action = SELACTION_NONE;
+	pdd.border_grabbed = SELBORDER_NONE;
+	pdd.slider_grabbed = SLIDER_NONE;
 	pdd.selection = (rectangled){0., 0., 0., 0.};
 }
 
@@ -250,6 +252,10 @@ static void find_range_from_pos(double x, double y, enum slider_type slider_t, i
 	// making sure the values are correctly ordered
 	valrange[0] = min(val, otherval);
 	valrange[1] = max(val, otherval);
+}
+
+static double find_rangeval_from_pos(double v, enum slider_type slider_t) {
+	return (slider_t == SLIDER_X) ? (v - pdd.offset.x) / pdd.range.x : (pdd.offset.y + pdd.range.y - v) / pdd.range.y;
 }
 
 static void update_slider(enum slider_type slider_t, double valmin, double valmax) {
@@ -1637,7 +1643,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 
 	double x = (double)event->x;
 	double y = (double)event->y;
-	if (pdd.action == ACTION_SELECTING) {
+	if (pdd.action == SELACTION_SELECTING) {
 		double x1, x2, y1, y2;
 		if (x <= pdd.selection.x) {
 			x1 = x;
@@ -1658,13 +1664,11 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		y1 = max(SIDE_MARGIN, y1);
 		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, y2);
 		//siril_debug_print("%.0f %.0f\n", x1, x2);
-		pdd.start.x = x1;
-		pdd.start.y = y2;
 		pdd.selection = (rectangled){x1, y1, x2 - x1, y2 - y1};
 		drawPlot();
 		return TRUE;
 	}
-	if (pdd.action == ACTION_RESIZING) {
+	if (pdd.action == SELACTION_RESIZING) {
 		double x1, x2, y1, y2;
 		x1 = pdd.selection.x;
 		y1 = pdd.selection.y;
@@ -1694,13 +1698,11 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		x2 = min(pdd.surf_w - PLOT_SLIDER_THICKNESS, x2);
 		y1 = max(SIDE_MARGIN, y1);
 		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, y2);
-		pdd.start.x = x1;
-		pdd.start.y = y2;
 		pdd.selection = (rectangled){x1, y1, x2 - x1, y2 - y1};
 		drawPlot();
 		return TRUE;
 	}
-	if (pdd.action == ACTION_MOVING) {
+	if (pdd.action == SELACTION_MOVING) {
 		double dx, dy;
 		dx = x - pdd.start.x;
 		dy = y - pdd.start.y;
@@ -1732,6 +1734,49 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 				double *valrange = (i == 0) ? pdd.xrange : pdd.yrange;
 				find_range_from_pos(x, y, i, j, valrange);
 				update_slider(i, valrange[0], valrange[1]);
+				return TRUE;
+			} else if (pdd.slider_grabbed == i) {
+				double dv, v1, v2;
+				if (i == SLIDER_X) {
+					dv = x - pdd.start.x;
+					v1 = pdd.xrange[0] * pdd.range.x + pdd.offset.x;
+					v2 = pdd.xrange[1] * pdd.range.x + pdd.offset.x;
+					if (v1 + dv <= pdd.offset.x) {
+						dv = pdd.offset.x - v1;
+						x = dv + pdd.start.x;
+					}
+					if (v2 + dv >= pdd.offset.x + pdd.range.x) {
+						dv = pdd.offset.x + pdd.range.x - v2;
+						x = dv + pdd.start.x;
+					}
+				} else {
+					dv = pdd.start.y - y;
+					v1 = (1. - pdd.yrange[0]) * pdd.range.y + pdd.offset.y; // y axis is reversed
+					v2 = (1. - pdd.yrange[1]) * pdd.range.y + pdd.offset.y; 
+					if (v2 - dv <= pdd.offset.y) {
+						dv = v2 - pdd.offset.y;
+						y = pdd.start.y - dv;
+					}
+					if (v1 - dv >= pdd.offset.y + pdd.range.y) {
+						dv = -pdd.offset.y - pdd.range.y + v1;
+						y = pdd.start.y - dv;
+					}
+				}
+				pdd.start.x = x;
+				pdd.start.y = y;
+				if (i == SLIDER_X) {
+					v1 += dv;
+					v2 += dv;
+					pdd.xrange[0] = find_rangeval_from_pos(v1, i);
+					pdd.xrange[1] = find_rangeval_from_pos(v2, i);
+					update_slider(i, pdd.xrange[0], pdd.xrange[1]);
+				} else {
+					v1 -= dv;
+					v2 -= dv;
+					pdd.yrange[0] = find_rangeval_from_pos(v1, i);
+					pdd.yrange[1] = find_rangeval_from_pos(v2, i);
+					update_slider(i, pdd.yrange[0], pdd.yrange[1]);
+				}
 				return TRUE;
 			} else if (is_over_marker(x, y, 2 * i + j)) {
 				set_cursor("grab");
@@ -1772,9 +1817,8 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 
 gboolean on_DrawingPlot_enter_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	if (plot_data && pdd.marker_grabbed == MARKER_NONE && pdd.border_grabbed == SELBORDER_NONE) {
+	if (plot_data && pdd.marker_grabbed == MARKER_NONE && pdd.border_grabbed == SELBORDER_NONE && pdd.slider_grabbed == SLIDER_NONE && pdd.action == SELACTION_NONE)
 		set_cursor("tcross");
-	}
 	return TRUE;
 }
 
@@ -1784,7 +1828,8 @@ gboolean on_DrawingPlot_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 		set_cursor_waiting(TRUE);
 	} else {
 		/* trick to get default cursor */
-		if (pdd.marker_grabbed == MARKER_NONE && pdd.border_grabbed == SELBORDER_NONE) set_cursor_waiting(FALSE);
+		if (pdd.marker_grabbed == MARKER_NONE && pdd.border_grabbed == SELBORDER_NONE && pdd.slider_grabbed == SLIDER_NONE && pdd.action == SELACTION_NONE)
+			set_cursor_waiting(FALSE);
 	}
 	return TRUE;
 }
@@ -1879,47 +1924,53 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 			reset_plot_zoom();
 			return TRUE;
 		} else if (is_inside_selection(x, y)) { // start moving selection
-			pdd.action = ACTION_MOVING;
+			pdd.action = SELACTION_MOVING;
 			pdd.start = (point){x, y};
 			return TRUE;
 		} else if (border > SELBORDER_NONE) { // start resizing selection
-			pdd.action = ACTION_RESIZING;
+			pdd.action = SELACTION_RESIZING;
 			pdd.border_grabbed = border;
-			pdd.start = (point){x, y};
 			return TRUE;
 		} else { // start drawing selection
-			pdd.action = ACTION_SELECTING;
+			pdd.action = SELACTION_SELECTING;
 			pdd.selection = (rectangled){x, y, 0., 0.};
-			pdd.start = (point){x, y};
 			return TRUE;
 		}
 	}
 
 	for (int i = SLIDER_X; i <= SLIDER_Y; i++) {
-		if (is_inside_slider(x, y, i) && event->button == GDK_BUTTON_PRIMARY) {
-			// double - click on slider resets both markers
-			if (event->type == GDK_DOUBLE_BUTTON_PRESS) {
-				update_slider(i, 0., 1.);
-				return TRUE;
-			}
-			for (int j = 0; j < 2; j++) {
-				if (is_over_marker(x, y, 2 * i + j) && pdd.marker_grabbed == MARKER_NONE) {
-					pdd.marker_grabbed = 2 * i + j;
-					set_cursor("grabbing");
+		if (is_inside_slider(x, y, i)) {
+			if (event->button == GDK_BUTTON_PRIMARY) {
+				// double - click on slider resets both markers
+				if (event->type == GDK_DOUBLE_BUTTON_PRESS) {
+					update_slider(i, 0., 1.);
 					return TRUE;
 				}
+				for (int j = 0; j < 2; j++) {
+					if (is_over_marker(x, y, 2 * i + j) && pdd.marker_grabbed == MARKER_NONE) {
+						pdd.marker_grabbed = 2 * i + j;
+						set_cursor("grabbing");
+						return TRUE;
+					}
+				}
+				//otherwise, it's just clicked once - we find the closest marker
+				// In case of double-click, that's called once first... we decided to live with that
+				double *valrange = (i == 0) ? &pdd.xrange[0] : &pdd.yrange[0];
+				int j = get_closest_marker(x, y, i, valrange);
+				find_range_from_pos(x, y, i, j, valrange);
+				update_slider(i, valrange[0], valrange[1]);
+				return TRUE;
+			} else if (event->button == GDK_BUTTON_SECONDARY) {
+				(i == SLIDER_X) ? set_cursor("w-resize") : set_cursor("n-resize");
+				pdd.slider_grabbed = i;
+				pdd.start = (point){x, y};
+				return TRUE;
 			}
-			//otherwise, it's just clicked once - we find the closest marker
-			// In case of double-click, that's called once first... we decided to live with that
-			double *valrange = (i == 0) ? &pdd.xrange[0] : &pdd.yrange[0];
-			int j = get_closest_marker(x, y, i, valrange);
-			find_range_from_pos(x, y, i, j, valrange);
-			update_slider(i, valrange[0], valrange[1]);
-			return TRUE;
 		}
 	}
 	return TRUE;
 }
+
 gboolean on_DrawingPlot_button_release_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer user_data) {
 	if (plot_data) {
@@ -1928,10 +1979,11 @@ gboolean on_DrawingPlot_button_release_event(GtkWidget *widget,
 		set_cursor_waiting(FALSE);
 	}
 	pdd.marker_grabbed = MARKER_NONE;
+	pdd.action = SELACTION_NONE;
+	pdd.border_grabbed = SELBORDER_NONE;
+	pdd.slider_grabbed = SLIDER_NONE;
 	if (pdd.selection.w < 1. || pdd.selection.h < 1. )
 		pdd.selection = (rectangled){0., 0., 0., 0.};
-	pdd.action = ACTION_NONE;
-	pdd.border_grabbed = SELBORDER_NONE;
 	drawPlot();
 	return TRUE;
 }
