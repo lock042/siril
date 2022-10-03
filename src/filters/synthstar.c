@@ -515,28 +515,28 @@ int reprofile_saturated_stars(fits *fit) {
 
 	if (is_RGB) {
 		if (is_32bit) {
-			buf[0] = fit->fpdata[0];
-			buf[1] = fit->fpdata[1];
-			buf[2] = fit->fpdata[2];
+			buf[RLAYER] = fit->fpdata[RLAYER];
+			buf[GLAYER] = fit->fpdata[GLAYER];
+			buf[BLAYER] = fit->fpdata[BLAYER];
 		} else {
-			buf[0] = (float*) calloc(count, sizeof(float));
-			buf[1] = (float*) calloc(count, sizeof(float));
-			buf[2] = (float*) calloc(count, sizeof(float));
+			buf[RLAYER] = (float*) calloc(count, sizeof(float));
+			buf[GLAYER] = (float*) calloc(count, sizeof(float));
+			buf[BLAYER] = (float*) calloc(count, sizeof(float));
 			buf_needs_freeing = TRUE;
 			for (size_t i = 0; i < count; i++) {
-				buf[0][i] = (float) fit->pdata[0][i] * invnorm;
-				buf[1][i] = (float) fit->pdata[1][i] * invnorm;
-				buf[2][i] = (float) fit->pdata[2][i] * invnorm;
+				buf[RLAYER][i] = (float) fit->pdata[RLAYER][i] * invnorm;
+				buf[GLAYER][i] = (float) fit->pdata[GLAYER][i] * invnorm;
+				buf[BLAYER][i] = (float) fit->pdata[BLAYER][i] * invnorm;
 			}
 		}
 	} else { // mono
 		if (is_32bit)
-			buf[0] = fit->fdata;
+			buf[RLAYER] = fit->fdata;
 		else {
-			buf[0] = (float*) calloc(count, sizeof(float));
+			buf[RLAYER] = (float*) calloc(count, sizeof(float));
 			buf_needs_freeing = TRUE;
 			for (size_t i = 0; i < count; i++)
-				buf[0][i] = (float) fit->data[i] * invnorm;
+				buf[RLAYER][i] = (float) fit->data[i] * invnorm;
 		}
 	}
 
@@ -612,12 +612,12 @@ int reprofile_saturated_stars(fits *fit) {
 		if (!is_32bit) {
 			for (size_t n = 0; n < count; n++) {
 				if (is_RGB) {
-					fit->pdata[0][n] = roundf_to_WORD(buf[0][n] * norm);
-					fit->pdata[1][n] = roundf_to_WORD(buf[0][n] * norm);
-					fit->pdata[2][n] = roundf_to_WORD(buf[0][n] * norm);
+					fit->pdata[RLAYER][n] = roundf_to_WORD(buf[RLAYER][n] * norm);
+					fit->pdata[GLAYER][n] = roundf_to_WORD(buf[GLAYER][n] * norm);
+					fit->pdata[BLAYER][n] = roundf_to_WORD(buf[BLAYER][n] * norm);
 				}
 				else
-					fit->data[n] = roundf_to_WORD(buf[0][n] * norm);
+					fit->data[n] = roundf_to_WORD(buf[RLAYER][n] * norm);
 			}
 		}
 	}
