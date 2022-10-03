@@ -173,12 +173,20 @@ static gboolean selection_is_active() {
 
 static gboolean is_inside_selection(double x, double y) {
 	if (!selection_is_active()) return FALSE;
-	if (x >= pdd.selection.x && x <= pdd.selection.x + pdd.selection.w && y >= pdd.selection.y && x <= pdd.selection.y + pdd.selection.h) return TRUE;
+	if (x >= pdd.selection.x + SEL_TOLERANCE &&
+		x <= pdd.selection.x + pdd.selection.w - SEL_TOLERANCE &&
+		y >= pdd.selection.y + SEL_TOLERANCE && 
+		y <= pdd.selection.y + pdd.selection.h - SEL_TOLERANCE) 
+			return TRUE;
 	return FALSE;
 }
 
 static gboolean is_inside_grid(double x, double y) {
-	if (x <= pdd.offset.x + pdd.range.x && x >= pdd.offset.x && y <= pdd.offset.y + pdd.range.y && y >= pdd.offset.y) return TRUE;
+	if (x <= pdd.offset.x + pdd.range.x + SEL_TOLERANCE &&
+		x >= pdd.offset.x - SEL_TOLERANCE &&
+		y <= pdd.offset.y + pdd.range.y + SEL_TOLERANCE &&
+		y >= pdd.offset.y - SEL_TOLERANCE)
+			return TRUE;
 	return FALSE;
 }
 
@@ -1629,8 +1637,8 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 
 	double x = (double)event->x;
 	double y = (double)event->y;
-	double x1, x2, y1, y2;
 	if (pdd.action == ACTION_SELECTING) {
+		double x1, x2, y1, y2;
 		if (x <= pdd.selection.x) {
 			x1 = x;
 			x2 = pdd.selection.x + pdd.selection.w;
@@ -1657,6 +1665,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		return TRUE;
 	}
 	if (pdd.action == ACTION_RESIZING) {
+		double x1, x2, y1, y2;
 		x1 = pdd.selection.x;
 		y1 = pdd.selection.y;
 		x2 = pdd.selection.x + pdd.selection.w;
@@ -1685,10 +1694,35 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		x2 = min(pdd.surf_w - PLOT_SLIDER_THICKNESS, x2);
 		y1 = max(SIDE_MARGIN, y1);
 		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, y2);
-		//siril_debug_print("%.0f %.0f\n", x1, x2);
 		pdd.start.x = x1;
 		pdd.start.y = y2;
 		pdd.selection = (rectangled){x1, y1, x2 - x1, y2 - y1};
+		drawPlot();
+		return TRUE;
+	}
+	if (pdd.action == ACTION_MOVING) {
+		double dx, dy;
+		dx = x - pdd.start.x;
+		dy = y - pdd.start.y;
+		if (pdd.selection.x + dx < SIDE_MARGIN) {
+			dx = -pdd.selection.x + SIDE_MARGIN;
+			x = dx + pdd.start.x;
+		}
+		if (pdd.selection.y + dy < SIDE_MARGIN) {
+			dy = -pdd.selection.y + SIDE_MARGIN;
+			y = dy + pdd.start.y;
+		}
+		if (pdd.selection.x + pdd.selection.w + dx > pdd.surf_w - PLOT_SLIDER_THICKNESS) {
+			dx = - (pdd.selection.x + pdd.selection.w) - PLOT_SLIDER_THICKNESS + pdd.surf_w;
+			x = dx + pdd.start.x;
+		}
+		if (pdd.selection.y + pdd.selection.h + dy > pdd.surf_h - PLOT_SLIDER_THICKNESS) {
+			dy = - (pdd.selection.y + pdd.selection.h) - PLOT_SLIDER_THICKNESS + pdd.surf_h;
+			y = dy + pdd.start.y;
+		}
+		pdd.start.x = x;
+		pdd.start.y = y;
+		pdd.selection = (rectangled){pdd.selection.x + dx, pdd.selection.y + dy, pdd.selection.w, pdd.selection.h};
 		drawPlot();
 		return TRUE;
 	}
@@ -1712,6 +1746,8 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		else
 			set_cursor("w-resize");
 		return TRUE;
+	} else if (is_inside_selection(x, y)) {
+		set_cursor("all-scroll");
 	} else {
 		set_cursor("tcross");
 	}
@@ -1841,6 +1877,10 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 		enum border_type border = is_over_selection_border(x, y);
 		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {  // double-click resets zoom
 			reset_plot_zoom();
+			return TRUE;
+		} else if (is_inside_selection(x, y)) { // start moving selection
+			pdd.action = ACTION_MOVING;
+			pdd.start = (point){x, y};
 			return TRUE;
 		} else if (border > SELBORDER_NONE) { // start resizing selection
 			pdd.action = ACTION_RESIZING;
