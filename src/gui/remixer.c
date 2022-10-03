@@ -57,7 +57,7 @@ static float leftHP = 1.0f, rightHP = 1.0f;
 static float leftBP = 0.0f, rightBP = 0.0f;
 static float mastermixer = 0.5f;
 static float finalstretch = 0.0f;
-static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_PAYNE_NORMAL;
+static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_ASINH;
 static int colour_left = COL_INDEP, colour_right = COL_INDEP;
 static fits fit_left;
 static fits fit_right;
@@ -77,7 +77,8 @@ static gboolean advanced_interface = FALSE;
 static gboolean permit_calculation = FALSE;
 static gboolean remixer_show_preview;
 static gboolean left_loaded = FALSE;
-static gboolean right_loaded =FALSE;
+static gboolean right_loaded = FALSE;
+static gboolean remix_log_scale = FALSE;
 
 ////////////////////////////////////////////
 // Remixer histogram functionality        //
@@ -146,7 +147,6 @@ void display_remix_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width
 	if (width <= 0) return;
 	int current_bin;
 	size_t norm = gsl_histogram_bins(histo) - 1;
-	gboolean remix_log_scale = TRUE;
 
 	float vals_per_px = (float)norm / (float)width;	// size of a bin
 	size_t i, nb_orig_bins = gsl_histogram_bins(histo);
@@ -536,7 +536,8 @@ void reset_values() {
 	leftHP = 1.0f;
 	rightD = rightB = rightLP = rightSP = rightBP = 0.0f;
 	rightHP = 1.0f;
-	type_left = type_right = STRETCH_PAYNE_NORMAL;
+	type_left = STRETCH_PAYNE_NORMAL;
+	type_right = STRETCH_ASINH;
 	colour_left = colour_right = COL_INDEP;
 	mastermixer = 0.5f;
 	finalstretch = 0.0f;
@@ -562,7 +563,6 @@ void reset_controls_and_values() {
 	GtkSpinButton *spin_remix_BP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_BP_right"));
 	GtkSpinButton *spin_remix_finalstretch = GTK_SPIN_BUTTON(lookup_widget("spin_finalstretch"));
 	GtkSpinButton *spin_remix_mastermixer = GTK_SPIN_BUTTON(lookup_widget("spin_mastermixer"));
-
 	reset_values();
 
 	set_notify_block(TRUE);
@@ -637,6 +637,9 @@ int toggle_remixer_window_visibility(int _invocation, const fits* _fit_left, con
 	} else {
 		left_loaded = FALSE;
 		right_loaded = FALSE;
+		gboolean remix_log_scale = (com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
+		GtkToggleButton *toggle_log = GTK_TOGGLE_BUTTON(lookup_widget("toggle_remixer_log_histograms"));
+		gtk_toggle_button_set_active(toggle_log, remix_log_scale);
 		if (invocation == CALL_FROM_STARNET) {
 			fit_left = *_fit_left;
 			close_histograms(TRUE, TRUE);
@@ -913,6 +916,10 @@ void on_remix_colour_right_changed(GtkComboBox *combo, gpointer user_data) {
 void on_remix_type_left_changed(GtkComboBox *combo, gpointer user_data) {
 	left_changed = TRUE;
 	type_left = gtk_combo_box_get_active(combo);
+	if (type_left == STRETCH_ASINH || type_left == STRETCH_INVASINH)
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols2")), FALSE);
+	else
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols2")), TRUE);
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -923,6 +930,10 @@ void on_remix_type_left_changed(GtkComboBox *combo, gpointer user_data) {
 void on_remix_type_right_changed(GtkComboBox *combo, gpointer user_data) {
 	right_changed = TRUE;
 	type_right = gtk_combo_box_get_active(combo);
+	if (type_right == STRETCH_ASINH || type_right == STRETCH_INVASINH)
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols1")), FALSE);
+	else
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols1")), TRUE);
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -1149,6 +1160,12 @@ void on_remix_advanced_clicked(GtkButton *button, gpointer user_data) {
 		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("remix_advanced")), _("Show advanced stretch options."));
 		advanced_interface = FALSE;
 	}
+}
+
+void on_toggle_remixer_log_histograms_toggled(GtkToggleButton *button, gpointer user_data) {
+	remix_log_scale = gtk_toggle_button_get_active(button);
+	update_remix_histo_left();
+	update_remix_histo_right();
 }
 
 void on_dialog_star_remix_close() {

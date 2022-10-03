@@ -535,15 +535,17 @@ int preprocess_single_image(struct preprocessing_data *args) {
 
 		if (!ret) {
 			// make the result the open image
-			copyfits(&fit, com.uniq->fit, CP_ALLOC | CP_FORMAT | CP_COPYA, 0);
-			com.uniq->nb_layers = fit.naxes[2];
+			clearfits(com.uniq->fit);
 			if (com.uniq->filename)
 				free(com.uniq->filename);
+
+			memcpy(com.uniq->fit, &fit, sizeof(fits));
+			com.uniq->nb_layers = fit.naxes[2];
 			com.uniq->filename = strdup(dest_filename);
 			// this way of opening it will not create gfit.header
 		}
+		else clearfits(&fit);
 
-		clearfits(&fit);
 		free(filename_noext);
 		g_free(dest_filename);
 		g_free(msg);
