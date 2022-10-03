@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -27070,7 +27070,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Default Screen Transfer Function</property>
+                                                <property name="label" translatable="yes">Default screen transfer function</property>
                                               </object>
                                               <packing>
                                                 <property name="left-attach">0</property>
@@ -27141,7 +27141,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Default Display Mode</property>
+                                                <property name="label" translatable="yes">Default display mode</property>
                                               </object>
                                               <packing>
                                                 <property name="left-attach">0</property>
