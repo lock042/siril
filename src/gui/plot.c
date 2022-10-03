@@ -1736,7 +1736,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 
 gboolean on_DrawingPlot_enter_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	if (plot_data && pdd.marker_grabbed == MARKER_NONE) {
+	if (plot_data && pdd.marker_grabbed == MARKER_NONE && pdd.border_grabbed == SELBORDER_NONE) {
 		set_cursor("tcross");
 	}
 	return TRUE;
@@ -1748,7 +1748,7 @@ gboolean on_DrawingPlot_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 		set_cursor_waiting(TRUE);
 	} else {
 		/* trick to get default cursor */
-		if (pdd.marker_grabbed == MARKER_NONE) set_cursor_waiting(FALSE);
+		if (pdd.marker_grabbed == MARKER_NONE && pdd.border_grabbed == SELBORDER_NONE) set_cursor_waiting(FALSE);
 	}
 	return TRUE;
 }
