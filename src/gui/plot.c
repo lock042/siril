@@ -1770,6 +1770,14 @@ static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event
 		menu_item2 = GTK_MENU_ITEM(lookup_widget("menu_plot_item2"));
 		menu_item3 = GTK_MENU_ITEM(lookup_widget("menu_plot_item3"));
 	}
+	gchar *str = g_strdup_printf(_("Exclude Frame %d"), (int)index);
+	gtk_menu_item_set_label(menu_item1, str);
+	gchar *str2 = g_strdup_printf(_("Show Frame %d"), (int)index);
+	gtk_menu_item_set_label(menu_item2, str2);
+	gtk_menu_item_set_label(menu_item3, "");
+	gtk_widget_set_sensitive(GTK_WIDGET(menu_item3), FALSE);
+	g_free(str);
+	g_free(str2);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
@@ -1780,13 +1788,6 @@ static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event
 	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button,
 			event_time);
 #endif
-	gchar *str = g_strdup_printf(_("Exclude Frame %d"), (int)index);
-	gtk_menu_item_set_label(menu_item1, str);
-	gchar *str2 = g_strdup_printf(_("Show Frame %d"), (int)index);
-	gtk_menu_item_set_label(menu_item2, str2);
-	gtk_menu_item_set_label(menu_item3, "");
-	g_free(str);
-	g_free(str2);
 }
 
 static void do_popup_selectionmenu(GtkWidget *my_widget, GdkEventButton *event) {
@@ -1801,6 +1802,10 @@ static void do_popup_selectionmenu(GtkWidget *my_widget, GdkEventButton *event) 
 		menu_item2 = GTK_MENU_ITEM(lookup_widget("menu_plot_item2"));
 		menu_item3 = GTK_MENU_ITEM(lookup_widget("menu_plot_item3"));
 	}
+	gtk_menu_item_set_label(menu_item1, _("Zoom to selection"));
+	gtk_menu_item_set_label(menu_item2, _("Only keep points within selection"));
+	gtk_menu_item_set_label(menu_item3, _("Exclude selected points"));
+	gtk_widget_set_sensitive(GTK_WIDGET(menu_item3), TRUE);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
@@ -1811,9 +1816,6 @@ static void do_popup_selectionmenu(GtkWidget *my_widget, GdkEventButton *event) 
 	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button,
 			event_time);
 #endif
-	gtk_menu_item_set_label(menu_item1, _("Zoom to selection"));
-	gtk_menu_item_set_label(menu_item2, _("Only keep points within selection"));
-	gtk_menu_item_set_label(menu_item3, _("Exclude selected points"));
 }
 
 gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
