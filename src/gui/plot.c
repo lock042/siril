@@ -50,6 +50,8 @@
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
 
+// TODO: Would probably be more efficient to cache plot surface and add selection as an overlay
+
 #define XLABELSIZE 15
 #define PLOT_SLIDER_THICKNESS 10. // thickness of the sliders in pixels
 #define SIDE_MARGIN 12. // the margin in pixels top and left to define the start of selectable zone (allows to write info atop of selection)
