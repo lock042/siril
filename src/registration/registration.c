@@ -194,6 +194,87 @@ struct registration_method *get_selected_registration_method() {
 	return reg_methods[index];
 }
 
+void fitlogf(fits *fit) {
+	size_t npixels = fit->naxes[0] * fit->naxes[1];
+	size_t nchans = fit->naxes[2];
+	size_t ndata = npixels * nchans;
+	for (size_t i = 0 ; i < ndata ; i++) {
+		// log1pf is used to avoid issues with zero-value pixels
+		fit->fdata[i] = log1pf(fit->fdata[i] < 0.f ? 0.f : fit->fdata[i]);
+	}
+}
+
+void fitlogw(fits *fit) {
+	size_t npixels = fit->naxes[0] * fit->naxes[1];
+	size_t nchans = fit->naxes[2];
+	size_t ndata = npixels * nchans;
+	// Temporarily change fit type to float and allocate fit->fdata, fit->fpdata...
+	fit->type = DATA_FLOAT;
+	fit->fdata = calloc(ndata, sizeof(float));
+	fit->fpdata[0] = fit->fdata;
+	if (nchans > 1) {
+		fit->fpdata[1] = fit->fdata + npixels * sizeof(float);
+		fit->fpdata[2] = fit->fdata + 2 * npixels * sizeof(float);
+	}
+	float norm = USHRT_MAX_SINGLE;
+	float invnorm = 1.f / norm;
+	for (size_t i = 0 ; i < ndata ; i++) {
+		fit->fdata[i] = log1pf(fit->data[i] * invnorm);
+	}
+}
+
+void fitlog(fits *fit, gboolean *originally_WORD) {
+	if (fit->type == DATA_FLOAT) {
+		fitlogf(fit);
+		*originally_WORD = FALSE;
+	} else {
+		fitlogw(fit);
+		*originally_WORD = TRUE;
+	}
+}
+
+void invfitlogf(fits *fit) {
+	size_t npixels = fit->naxes[0] * fit->naxes[1];
+	size_t nchans = fit->naxes[2];
+	size_t ndata = npixels * nchans;
+	for (size_t i = 0 ; i < ndata ; i++) {
+		// expm1f is used as the inverse of log1pf
+		fit->fdata[i] = expm1f(fit->fdata[i]);
+	}
+}
+
+void invfitlogw(fits *fit) {
+	size_t npixels = fit->naxes[0] * fit->naxes[1];
+	size_t nchans = fit->naxes[2];
+	size_t ndata = npixels * nchans;
+	float norm = USHRT_MAX_SINGLE;
+	fit->data = calloc(ndata, sizeof(WORD));
+	fit->pdata[0] = fit->data;
+	if (nchans > 1) {
+		fit->pdata[1] = fit->data + npixels * sizeof(WORD);
+		fit->pdata[2] = fit->data + 2 * npixels * sizeof(WORD);
+	}
+
+	for (size_t i = 0 ; i < ndata ; i++) {
+		fit->data[i] = round_to_WORD(norm * expm1f(fit->fdata[i]));
+	}
+	fit->type = DATA_USHORT;
+	free(fit->fdata);
+	fit->fdata = NULL;
+	fit->fpdata[0] = NULL;
+	if (fit->naxes[2] > 1) {
+		fit->fpdata[1] = NULL;
+		fit->fpdata[2] = NULL;
+	}
+}
+
+void invfitlog(fits *fit, gboolean originally_WORD) {
+	if (!originally_WORD)
+		invfitlogf(fit);
+	else
+		invfitlogw(fit);
+}
+
 static void normalizeQualityData(struct registration_args *args, double q_min, double q_max) {
 	int frame;
 	double diff = q_max - q_min;
@@ -1402,7 +1483,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE; // only TRUE for global registration. Will be updated in this case
-	
+
 	if (method->method_ptr == register_star_alignment) { // seqpplyreg case is dealt with in the sanity checks of the method
 		if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || com.seq.is_variable)) {
 			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");

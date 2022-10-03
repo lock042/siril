@@ -368,10 +368,13 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
+				gboolean originally_WORD;
+				fitlog(fit, &originally_WORD); // Experiment: log transform to try to reduce ringing
 				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
+				invfitlog(fit, originally_WORD); // Experiment: invert the log transform on completion of LANCZOS4
 			} else {
 				if (shift_fit_from_reg(fit, H)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
@@ -497,7 +500,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 	// it here because it's still used in the generic processing function.
 }
 
-int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) { 
+int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
@@ -835,7 +838,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
-	gboolean *meaningful = NULL; 
+	gboolean *meaningful = NULL;
 	int retval = 0;
 	struct timeval t_start, t_end;
 
