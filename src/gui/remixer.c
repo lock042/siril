@@ -57,7 +57,7 @@ static float leftHP = 1.0f, rightHP = 1.0f;
 static float leftBP = 0.0f, rightBP = 0.0f;
 static float mastermixer = 0.5f;
 static float finalstretch = 0.0f;
-static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_PAYNE_NORMAL;
+static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_ASINH;
 static int colour_left = COL_INDEP, colour_right = COL_INDEP;
 static fits fit_left;
 static fits fit_right;
@@ -536,7 +536,8 @@ void reset_values() {
 	leftHP = 1.0f;
 	rightD = rightB = rightLP = rightSP = rightBP = 0.0f;
 	rightHP = 1.0f;
-	type_left = type_right = STRETCH_PAYNE_NORMAL;
+	type_left = STRETCH_PAYNE_NORMAL;
+	type_right = STRETCH_ASINH;
 	colour_left = colour_right = COL_INDEP;
 	mastermixer = 0.5f;
 	finalstretch = 0.0f;
@@ -913,6 +914,10 @@ void on_remix_colour_right_changed(GtkComboBox *combo, gpointer user_data) {
 void on_remix_type_left_changed(GtkComboBox *combo, gpointer user_data) {
 	left_changed = TRUE;
 	type_left = gtk_combo_box_get_active(combo);
+	if (type_left == STRETCH_ASINH || type_left == STRETCH_INVASINH)
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols2")), FALSE);
+	else
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols2")), TRUE);
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -923,6 +928,10 @@ void on_remix_type_left_changed(GtkComboBox *combo, gpointer user_data) {
 void on_remix_type_right_changed(GtkComboBox *combo, gpointer user_data) {
 	right_changed = TRUE;
 	type_right = gtk_combo_box_get_active(combo);
+	if (type_right == STRETCH_ASINH || type_right == STRETCH_INVASINH)
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols1")), FALSE);
+	else
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols1")), TRUE);
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
