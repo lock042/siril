@@ -32,6 +32,7 @@
 #include "algos/siril_wcs.h"
 #include "algos/ccd-inspector.h"
 #include "compositing/compositing.h"
+#include "filters/synthstar.h"
 #include "gui/about_dialog.h"
 #include "gui/utils.h"
 #include "gui/colors.h"
@@ -598,4 +599,16 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("denoise_dialog");
+}
+
+void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, "Synthetic stars: desaturate clipped stars");
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	start_in_new_thread(fix_saturated_stars, NULL);
+}
+
+void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, "Synthetic stars: full replacement");
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	start_in_new_thread(do_synthstar, NULL);
 }

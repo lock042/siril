@@ -153,7 +153,10 @@ struct gui_config {
 
 	// single registration GUI variable
 	int reg_settings;	// selected registration method
+	int reg_interpolation; // selected interpolation method
 	GSList *pm_presets; // list of pixel math presets
+	int default_rendering_mode; // Default view STF to use at startup
+	int display_histogram_mode; // Default histogram view to use at startup
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?

@@ -118,5 +118,7 @@ void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */
