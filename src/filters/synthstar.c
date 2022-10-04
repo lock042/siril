@@ -155,7 +155,7 @@ void replace_sat_star_in_buffer(float *psfL, int size, float *Lsynth, int x, int
 		for (int psfy = 0; psfy < size; psfy++) {
 			xx = x + psfx - halfpsfdim;
 			yy = y + psfy - halfpsfdim;
-			if (xx >= 0 && xx < dimx && yy >= 0 && yy < dimy) {
+			if (xx > 0 && xx < dimx && yy > 0 && yy < dimy) {
 				float orig = Lsynth[xx + ((dimy - yy) * dimx)];
 				float synth = psfL[psfx + (psfy * size)];
 				float synthfactor = (orig < sat) ? 1.f -
