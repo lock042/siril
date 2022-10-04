@@ -90,7 +90,9 @@ static void formatX(double v, char *buf, size_t bufsz) {
 	} else {
 		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
 	}
-	snprintf(buf, sizeof(buf), fmt, v);
+	// size of buf is 128
+	// https://kristaps.bsd.lv/kplot/kplot_alloc.3.html
+	snprintf(buf, 128, fmt, v);
 }
 static void formatY(double v, char *buf, size_t bufsz) {
 	char *fmt;
@@ -99,7 +101,7 @@ static void formatY(double v, char *buf, size_t bufsz) {
 	} else {
 		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source];
 	}
-	snprintf(buf, sizeof(buf), fmt, v);
+	snprintf(buf, 128, fmt, v);
 }
 
 static void update_ylabel();
