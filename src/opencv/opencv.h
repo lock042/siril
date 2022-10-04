@@ -18,7 +18,7 @@ extern "C" {
 WORD *fits_to_bgrbgr_ushort(fits *image);
 float *fits_to_bgrbgr_float(fits *image);
 
-int cvResizeGaussian(fits *, int, int, int);
+int cvResizeGaussian(fits *, int, int, int, gboolean, double);
 
 void cvResizeArray(double *, double *, int, int, int, int);
 

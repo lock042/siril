@@ -384,7 +384,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->no_output) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST)) {
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE, 0.0)) {
 				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
 			}

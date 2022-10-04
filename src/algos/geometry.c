@@ -143,7 +143,7 @@ static void fits_rotate_pi(fits *fit) {
 /* These functions do not more than resize_gaussian and rotate_image
  * except for console outputs.
  * Indeed, siril_log_message seems not working in a cpp file */
-int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
+int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp, double clamping_factor) {
 	int retvalue;
 	const char *str_inter;
 	struct timeval t_start, t_end;
@@ -174,7 +174,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 
 	gettimeofday(&t_start, NULL);
 
-	retvalue = cvResizeGaussian(image, toX, toY, interpolation);
+	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp, clamping_factor);
 	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
 	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
 	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve

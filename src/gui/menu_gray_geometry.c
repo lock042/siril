@@ -175,13 +175,15 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
 		int interpolation = gtk_combo_box_get_active(
 				GTK_COMBO_BOX(lookup_widget("combo_interpolation")));
+		gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
+		double clamping_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_rot_clamp")));
 
 		set_cursor_waiting(TRUE);
 		int toX = round_to_int((sample[0] / 100.0) * gfit.rx);
 		int toY = round_to_int((sample[1] / 100.0) * gfit.ry);
 		undo_save_state(&gfit, _("Resample (%g - %g)"), sample[0] / 100.0,
 				sample[1] / 100.0);
-		verbose_resize_gaussian(&gfit, toX, toY, interpolation);
+		verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp, clamping_factor);
 
 		redraw(REMAP_ALL);
 		redraw_previews();

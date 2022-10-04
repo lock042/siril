@@ -232,7 +232,7 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 }
 
 /* resizes image to the sizes toX * toY, and stores it back in image */
-int cvResizeGaussian(fits *image, int toX, int toY, int interpolation) {
+int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp, double clamping_factor) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -241,7 +241,16 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation) {
 
 	// OpenCV function
 	resize(in, out, out.size(), 0, 0, interpolation);
-
+	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
+		Mat guide, mask;
+		// Create guide image
+		resize(in, guide, out.size(), 0, 0, OPENCV_AREA);
+		// Compare the two, replace out pixels with guide pixels if too far out
+		compare(out, (guide * clamping_factor), mask, CMP_LT);
+		guide.copyTo(out, mask);
+		mask.release();
+		guide.release();
+	}
 	return Mat_to_image(image, &in, &out, bgr, toX, toY);
 }
 

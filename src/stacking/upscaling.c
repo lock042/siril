@@ -111,7 +111,7 @@ static int upscale_image_hook(struct generic_seq_args *args, int o, int i, fits 
 
 	return cvResizeGaussian(fit,
 			round_to_int(fit->rx * factor),
-			round_to_int(fit->ry * factor), OPENCV_NEAREST);
+			round_to_int(fit->ry * factor), OPENCV_NEAREST, FALSE, 0.0);
 }
 
 int upscale_sequence(struct stacking_args *stackargs) {

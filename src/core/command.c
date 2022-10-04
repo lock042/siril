@@ -1829,7 +1829,7 @@ int process_resample(int nb) {
 	int toY = round_to_int(factor * gfit.ry);
 
 	set_cursor_waiting(TRUE);
-	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_AREA);
+	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_AREA, FALSE, 0.0);
 
 	redraw(REMAP_ALL);
 	redraw_previews();

@@ -11,7 +11,7 @@ struct crop_sequence_data {
 	int retvalue;
 };
 
-int verbose_resize_gaussian(fits *, int, int, int);
+int verbose_resize_gaussian(fits *, int, int, int, gboolean, double);
 
 int verbose_rotate_image(fits *, rectangle, double, int, int, gboolean, double);
 int verbose_rotate_fast(fits *image, int angle);

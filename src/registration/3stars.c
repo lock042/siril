@@ -328,7 +328,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	} else {
 		// reference image
 		if (regargs->x2upscale && !regargs->no_output) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE, 0))
 				return 1;
 		}
 	}
