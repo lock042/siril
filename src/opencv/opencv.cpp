@@ -473,13 +473,12 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	// OpenCV function
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 	if (interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) {
+		double clampfactor = 0.5;
 		Mat guide, mask;
-		// factor sets how big an undershoot can be tolerated
-		double factor = 0.45;
 		// Create guide image
-		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_LINEAR, BORDER_TRANSPARENT);
+		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
 		// Compare the two, replace out pixels with guide pixels if too far out
-		compare(out, (guide * factor), mask, CMP_LT);
+		compare(out, (guide * clampfactor), mask, CMP_LT);
 		guide.copyTo(out, mask);
 		mask.release();
 		guide.release();
