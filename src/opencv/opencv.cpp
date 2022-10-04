@@ -759,6 +759,7 @@ static bool segments_intersect(std::vector<Vec4i> lines, size_t i, size_t j) {
 
 #define ANGLES_EPSILON	15.0	// degrees
 #define POSITION_EPSILON 9	// pixels
+// TODO: make POSITION_EPSILON variable, based on sampling
 
 static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<double> &angles, size_t nb_lines) {
 	// compute segment lengths
@@ -801,25 +802,7 @@ static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<d
 					kept[j] = false;
 					siril_debug_print("removing %zd (loop %zd)\n", j, i);
 					lines[i][0] = newx1; lines[i][1] = newy1; lines[i][2] = newx2; lines[i][3] = newy2;
-
-					// let's keep the longest
-					/*if (lengths[i] >= lengths[j]) {
-						kept[j] = false;
-						siril_debug_print("removing %zd (too close)\n", j);
-						continue;
-					} else {
-						kept[i] = false;
-						siril_debug_print("removing %zd (too close)\n", i);
-						break;
-					}*/
 				}
-
-				// check if segments intersect https://stackoverflow.com/a/3842157
-				/*if (segments_intersect(lines, i, j)) {
-					kept[j] = false;
-					siril_debug_print("removing %zd (intersects)\n", j);
-					continue;
-				}*/
 			}
 		}
 	}

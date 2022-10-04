@@ -6045,15 +6045,12 @@ int process_requires(int nb) {
 int process_detect_trail(int nb) {
 	//detect_trail [sigma layer minlen]
 	//seq_detect_trail seqname [sigma layer minlen]
-	gboolean is_sequence;
-
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
-	is_sequence = (word[0][2] == 'q');
-
+	gboolean is_sequence = (word[0][2] == 'q');
 	float ksigma = 1.f;
 	int layer = -1, minlen = 100, defminlen = 100; //default min length of 20px to be qualified as a trail
 	int nblines;
