@@ -26,13 +26,13 @@
 #include <assert.h>
 #include <iostream>
 #include <iomanip>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "opencv2/core/version.hpp"
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
-#define _USE_MATH_DEFINES
-#include <math.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
