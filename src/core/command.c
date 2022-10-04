@@ -6100,6 +6100,7 @@ int process_detect_trail(int nb) {
 		if (threshold < stat->median) {
 			siril_log_color_message(_("Detection threshold is lower than median value.\n"), "salmon");
 		}
+		free_stats(stat);
 
 		struct track *tracks;
 		nblines = cvHoughLines(&gfit, layer, threshold, minlen, &tracks);
@@ -6126,13 +6127,10 @@ int process_detect_trail(int nb) {
 		} else {
 			siril_log_message(_("No trails found\n"));
 		}
-
-		free_stats(stat);
 	} else {
-		/*
 		sequence *seq = load_sequence(word[1], NULL);
 		if (!seq) return 1;
-		gboolean is_cfa = FALSE;
+		/*gboolean is_cfa = FALSE;
 		switch (seq->type) {
 			case SEQ_SER:
 				is_cfa = ser_is_cfa(seq->ser_file);
@@ -6142,9 +6140,7 @@ int process_detect_trail(int nb) {
 				break;
 			default:
 				return 1;
-		}
-		*/
-
+		}*/
 		/* TODO */
 
 	}

@@ -761,6 +761,24 @@ static bool segments_intersect(std::vector<Vec4i> lines, size_t i, size_t j) {
 #define POSITION_EPSILON 9	// pixels
 // TODO: make POSITION_EPSILON variable, based on sampling
 
+static size_t remove_segments_on_the_sides(std::vector<Vec4i> &lines, size_t nb_lines, int rx, int ry) {
+	size_t j = 0;
+	for (size_t i = 0; i < nb_lines; i++) {
+		int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
+		if (x1 > 2 && x2 > 2 && x1 < rx-3 && x2 < rx-3 && y1 > 2 && y2 > 2 && y1 < ry-3 && y2 < ry-3) {
+			if (i != j) {
+				lines[j] = lines[i];
+			}
+			j++;
+		}
+	}
+	size_t new_size = j;
+	for (; j < nb_lines; j++)
+		lines.pop_back();
+	siril_debug_print("kept %zd lines not on the sides\n", new_size);
+	return new_size;
+}
+
 static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<double> &angles, size_t nb_lines) {
 	// compute segment lengths
 	/*std::vector<double> lengths(nb_lines);
@@ -822,7 +840,7 @@ static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<d
 		lines.pop_back();
 		angles.pop_back();
 	}
-	siril_debug_print("kept %zd lines\n", new_size);
+	siril_debug_print("kept %zd unique lines\n", new_size);
 	return new_size;
 }
 
@@ -866,6 +884,7 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 			angles[i] = atan2(y1 - y2, x1 - x2) / M_PI * 180.0;
 		}
 
+		nb_lines = remove_segments_on_the_sides(lines, nb_lines, image->rx, image->ry);
 		nb_lines = remove_duplicate_segments(lines, angles, nb_lines); // in-place edit of lines and angles
 
 		for (size_t i = 0; i < nb_lines; i++) {
