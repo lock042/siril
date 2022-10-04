@@ -25,7 +25,7 @@ v1.2.0 mmm dd, 2022
 * Added calibration details in the FITS history
 * Added saving formulas (presets) in Pixel Math
 * Added solar system object search from online service for image annotations
-* Added zoom sliders in Plot tab
+* Added zoom sliders and plot selection in Plot tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored global registration and added 2pass and Apply Existing methods
