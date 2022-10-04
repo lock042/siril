@@ -369,12 +369,10 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
 				gboolean originally_WORD;
-				fitlog(fit, &originally_WORD); // Experiment: log transform to try to reduce ringing
 				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
-				invfitlog(fit, originally_WORD); // Experiment: invert the log transform on completion of LANCZOS4
 			} else {
 				if (shift_fit_from_reg(fit, H)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
