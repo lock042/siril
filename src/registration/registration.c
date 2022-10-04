@@ -1059,7 +1059,7 @@ static void update_filters_registration() {
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL, *noout = NULL;
 	static GtkLabel *labelreginfo = NULL;
-	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL;
+	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo = NULL;
 	static GtkNotebook *notebook_reg = NULL;
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method;
@@ -1075,6 +1075,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		cumul_data = lookup_widget("check_button_comet");
 		noout = lookup_widget("regNoOutput");
 		reglayer = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
+		filter_combo = GTK_COMBO_BOX(lookup_widget("combofilter4"));
 	}
 
 	if (!dont_change_reg_radio) {
@@ -1097,8 +1098,12 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gboolean isapplyreg = method->method_ptr == &register_apply_reg;
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(lookup_widget("seq_filters_box_reg"), isapplyreg);
-	if (isapplyreg)
+	if (isapplyreg) {
+		if (!dont_change_reg_radio && com.seq.selnum < com.seq.number) {
+			gtk_combo_box_set_active(filter_combo, SELECTED_IMAGES);
+		}
 		update_filters_registration();
+	}
 
 	/* number of registered image */
 	nb_images_reg = gtk_combo_box_get_active(reg_all_sel_box) == 0 ? com.seq.number : com.seq.selnum;

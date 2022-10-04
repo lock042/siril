@@ -396,7 +396,7 @@ static void sequence_setselect_all(gboolean include_all) {
 		sequence_list_change_reference();
 		adjust_refimage(com.seq.current);
 	}
-	update_reg_interface(TRUE);
+	update_reg_interface(FALSE);
 	update_stack_interface(TRUE);
 	writeseqfile(&com.seq);
 	redraw(REDRAW_OVERLAY);
