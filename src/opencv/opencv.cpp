@@ -475,7 +475,7 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	if (interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) {
 		Mat guide, mask;
 		// factor sets how big an undershoot can be tolerated
-		double factor = 0.6;
+		double factor = 0.45;
 		// Create guide image
 		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_LINEAR, BORDER_TRANSPARENT);
 		// Compare the two, replace out pixels with guide pixels if too far out
