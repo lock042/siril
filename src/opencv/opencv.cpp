@@ -844,30 +844,27 @@ static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<d
 }
 
 #define PROBABILITSIC_HOUGH
-int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct track **tracks) {
-	Mat src, gray, thresh;
-	double scale;
 
+int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct track **tracks) {
 	if (layer < 0 || layer >= image->naxes[2]) {
 		layer = (image->naxes[2] == 3) ? 1 : 0;
 		siril_log_message(_("Using layer %d\n"), layer);
 	}
+
+	size_t nbpixels = image->naxes[0] * image->naxes[1];
+	BYTE *buffer = (BYTE *)malloc(nbpixels);
 	if (image->type == DATA_USHORT) {
-		src = Mat(image->ry, image->rx, CV_16UC1, image->pdata[layer]);
-		scale = (image->bitpix == BYTE_IMG) ? 1.0 : UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE;
+		for (size_t i = 0; i < nbpixels; i++)
+			buffer[i] = image->data[i] > threshvalue ? 255 : 0;
 	} else {
-		src = Mat(image->ry, image->rx, CV_32FC1, image->fpdata[layer]);
-		scale = UCHAR_MAX_DOUBLE;
+		for (size_t i = 0; i < nbpixels; i++)
+			buffer[i] = image->fdata[i] > threshvalue ? 255 : 0;
 	}
+	Mat binary = Mat(image->ry, image->rx, CV_8UC1, buffer);
 
-	src.convertTo(gray, CV_8UC1, scale); //converting to UCHAR for HoughLines
-	threshvalue *= scale;
-
-	threshold(gray, thresh, threshvalue, UCHAR_MAX_DOUBLE, THRESH_BINARY);
-	siril_debug_print("image scaled by %f, threshold is %f, minimum length %d\n", scale, threshvalue, minlen);
 #ifdef PROBABILITSIC_HOUGH
 	std::vector<Vec4i> lines; // will hold the results of the detection
-	HoughLinesP(thresh, lines, 1.0, CV_PI / 180.0, minlen, (double)minlen, 5.0);
+	HoughLinesP(binary, lines, 1.0, CV_PI / 180.0, minlen, (double)minlen, 5.0);
 	size_t nb_lines = lines.size();
 	if (nb_lines) {
 		std::vector<double> angles(nb_lines);
@@ -908,9 +905,8 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 			*tracks = (struct track *)malloc(nb_lines * sizeof(struct track));
 			if (!*tracks) {
 				PRINT_ALLOC_ERR;
-				src.release();
-				gray.release();
-				thresh.release();
+				binary.release();
+				free(buffer);
 				return 0;
 			}
 			for (size_t i = 0; i < nb_lines; i++) {
@@ -925,7 +921,7 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 
 #else
 	std::vector<Vec2f> lines; // will hold the results of the detection
-	HoughLines(thresh, lines, 1.0, CV_PI / 180.0, minlen);
+	HoughLines(binary, lines, 1.0, CV_PI / 180.0, minlen);
 
 #ifdef SIRIL_OUTPUT_DEBUG
 	for (size_t i = 0; i < lines.size(); i++) {
@@ -943,9 +939,8 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 #endif
 #endif
 
-	src.release();
-	gray.release();
-	thresh.release();
+	binary.release();
+	free(buffer);
 	return lines.size();
 }
 
