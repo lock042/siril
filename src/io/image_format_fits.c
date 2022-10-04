@@ -3159,7 +3159,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 			found_WCS = TRUE;
 		}
 		// set date_obs, the date of obs start, to the earliest found
-		if (date_obs && g_date_time_compare(date_obs, current->date_obs) == 1) {
+		if (date_obs && current->date_obs && g_date_time_compare(date_obs, current->date_obs) == 1) {
 			g_date_time_unref(date_obs);
 			date_obs = g_date_time_ref(current->date_obs);
 		}

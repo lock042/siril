@@ -79,6 +79,7 @@
 #include "filters/saturation.h"
 #include "filters/scnr.h"
 #include "filters/starnet.h"
+#include "filters/synthstar.h"
 #include "filters/wavelets.h"
 #include "algos/PSF.h"
 #include "algos/astrometry_solver.h"
@@ -247,6 +248,20 @@ int process_savebmp(int nb){
 	savebmp(filename, &gfit);
 	set_cursor_waiting(FALSE);
 	g_free(filename);
+	return CMD_OK;
+}
+
+int process_synthstar(int nb) {
+	set_cursor_waiting(TRUE);
+	start_in_new_thread(do_synthstar, NULL);
+	set_cursor_waiting(FALSE);
+	return CMD_OK;
+}
+
+int process_unclip(int nb) {
+	set_cursor_waiting(TRUE);
+	start_in_new_thread(fix_saturated_stars, NULL);
+	set_cursor_waiting(FALSE);
 	return CMD_OK;
 }
 
@@ -1708,6 +1723,51 @@ int process_mtf(int nb) {
 	}
 
 	apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
+
+	notify_gfit_modified();
+	return CMD_OK;
+}
+
+int process_invmtf(int nb) {
+	struct mtf_params params;
+	gchar *end1, *end2, *end3;
+	params.shadows = g_ascii_strtod(word[1], &end1);
+	params.midtones = g_ascii_strtod(word[2], &end2);
+	params.highlights = g_ascii_strtod(word[3], &end3);
+	params.do_red = TRUE;
+	params.do_green = TRUE;
+	params.do_blue = TRUE;
+	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
+			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
+			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
+		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		return CMD_ARG_ERROR;
+	}
+	if (word[4]) {
+		if (!strcmp(word[4], "R")) {
+			params.do_green = FALSE;
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "G")) {
+			params.do_red = FALSE;
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "B")) {
+			params.do_green = FALSE;
+			params.do_red = FALSE;
+		}
+		if (!strcmp(word[4], "RG")) {
+			params.do_blue = FALSE;
+		}
+		if (!strcmp(word[4], "RB")) {
+			params.do_green = FALSE;
+		}
+		if (!strcmp(word[4], "GB")) {
+			params.do_red = FALSE;
+		}
+	}
+
+	apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -5986,15 +6046,12 @@ int process_requires(int nb) {
 int process_detect_trail(int nb) {
 	//detect_trail [sigma layer minlen]
 	//seq_detect_trail seqname [sigma layer minlen]
-	gboolean is_sequence;
-
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
 	}
 
-	is_sequence = (word[0][2] == 'q');
-
+	gboolean is_sequence = (word[0][2] == 'q');
 	float ksigma = 1.f;
 	int layer = -1, minlen = 100, defminlen = 100; //default min length of 20px to be qualified as a trail
 	int startnb = (is_sequence) ? 1 : 0;
@@ -6101,13 +6158,11 @@ int process_detect_trail(int nb) {
 		} else {
 			siril_log_message(_("No trails found\n"));
 		}
-
 #endif
 	} else {
-		/*
 		sequence *seq = load_sequence(word[1], NULL);
 		if (!seq) return 1;
-		gboolean is_cfa = FALSE;
+		/*gboolean is_cfa = FALSE;
 		switch (seq->type) {
 			case SEQ_SER:
 				is_cfa = ser_is_cfa(seq->ser_file);
@@ -6117,9 +6172,7 @@ int process_detect_trail(int nb) {
 				break;
 			default:
 				return 1;
-		}
-		*/
-
+		}*/
 		/* TODO */
 
 	}
@@ -6439,7 +6492,6 @@ int process_pcc(int nb) {
 
 	pcc_args->fit = &gfit;
 	pcc_args->bg_auto = TRUE;
-	pcc_args->n_channel = CHANNEL_MIDDLE;
 	pcc_args->catalog = NOMAD;
 
 	if (plate_solve)

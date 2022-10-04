@@ -26,13 +26,13 @@
 #include <assert.h>
 #include <iostream>
 #include <iomanip>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "opencv2/core/version.hpp"
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
-#define _USE_MATH_DEFINES
-#include <math.h>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
@@ -759,6 +759,25 @@ static bool segments_intersect(std::vector<Vec4i> lines, size_t i, size_t j) {
 
 #define ANGLES_EPSILON	15.0	// degrees
 #define POSITION_EPSILON 9	// pixels
+// TODO: make POSITION_EPSILON variable, based on sampling
+
+static size_t remove_segments_on_the_sides(std::vector<Vec4i> &lines, size_t nb_lines, int rx, int ry) {
+	size_t j = 0;
+	for (size_t i = 0; i < nb_lines; i++) {
+		int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
+		if (x1 > 2 && x2 > 2 && x1 < rx-3 && x2 < rx-3 && y1 > 2 && y2 > 2 && y1 < ry-3 && y2 < ry-3) {
+			if (i != j) {
+				lines[j] = lines[i];
+			}
+			j++;
+		}
+	}
+	size_t new_size = j;
+	for (; j < nb_lines; j++)
+		lines.pop_back();
+	siril_debug_print("kept %zd lines not on the sides\n", new_size);
+	return new_size;
+}
 
 static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<double> &angles, size_t nb_lines) {
 	// compute segment lengths
@@ -801,25 +820,7 @@ static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<d
 					kept[j] = false;
 					siril_debug_print("removing %zd (loop %zd)\n", j, i);
 					lines[i][0] = newx1; lines[i][1] = newy1; lines[i][2] = newx2; lines[i][3] = newy2;
-
-					// let's keep the longest
-					/*if (lengths[i] >= lengths[j]) {
-						kept[j] = false;
-						siril_debug_print("removing %zd (too close)\n", j);
-						continue;
-					} else {
-						kept[i] = false;
-						siril_debug_print("removing %zd (too close)\n", i);
-						break;
-					}*/
 				}
-
-				// check if segments intersect https://stackoverflow.com/a/3842157
-				/*if (segments_intersect(lines, i, j)) {
-					kept[j] = false;
-					siril_debug_print("removing %zd (intersects)\n", j);
-					continue;
-				}*/
 			}
 		}
 	}
@@ -839,35 +840,32 @@ static size_t remove_duplicate_segments(std::vector<Vec4i> &lines, std::vector<d
 		lines.pop_back();
 		angles.pop_back();
 	}
-	siril_debug_print("kept %zd lines\n", new_size);
+	siril_debug_print("kept %zd unique lines\n", new_size);
 	return new_size;
 }
 
 #define PROBABILITSIC_HOUGH
-int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct track **tracks) {
-	Mat src, gray, thresh;
-	double scale;
 
+int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct track **tracks) {
 	if (layer < 0 || layer >= image->naxes[2]) {
 		layer = (image->naxes[2] == 3) ? 1 : 0;
 		siril_log_message(_("Using layer %d\n"), layer);
 	}
+
+	size_t nbpixels = image->naxes[0] * image->naxes[1];
+	BYTE *buffer = (BYTE *)malloc(nbpixels);
 	if (image->type == DATA_USHORT) {
-		src = Mat(image->ry, image->rx, CV_16UC1, image->pdata[layer]);
-		scale = (image->bitpix == BYTE_IMG) ? 1.0 : UCHAR_MAX_DOUBLE / USHRT_MAX_DOUBLE;
+		for (size_t i = 0; i < nbpixels; i++)
+			buffer[i] = image->data[i] > threshvalue ? 255 : 0;
 	} else {
-		src = Mat(image->ry, image->rx, CV_32FC1, image->fpdata[layer]);
-		scale = UCHAR_MAX_DOUBLE;
+		for (size_t i = 0; i < nbpixels; i++)
+			buffer[i] = image->fdata[i] > threshvalue ? 255 : 0;
 	}
+	Mat binary = Mat(image->ry, image->rx, CV_8UC1, buffer);
 
-	src.convertTo(gray, CV_8UC1, scale); //converting to UCHAR for HoughLines
-	threshvalue *= scale;
-
-	threshold(gray, thresh, threshvalue, UCHAR_MAX_DOUBLE, THRESH_BINARY);
-	siril_debug_print("image scaled by %f, threshold is %f, minimum length %d\n", scale, threshvalue, minlen);
 #ifdef PROBABILITSIC_HOUGH
 	std::vector<Vec4i> lines; // will hold the results of the detection
-	HoughLinesP(thresh, lines, 1.0, CV_PI / 180.0, minlen, (double)minlen, 5.0);
+	HoughLinesP(binary, lines, 1.0, CV_PI / 180.0, minlen, (double)minlen, 5.0);
 	size_t nb_lines = lines.size();
 	if (nb_lines) {
 		std::vector<double> angles(nb_lines);
@@ -886,6 +884,7 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 			angles[i] = atan2(y1 - y2, x1 - x2) / M_PI * 180.0;
 		}
 
+		nb_lines = remove_segments_on_the_sides(lines, nb_lines, image->rx, image->ry);
 		nb_lines = remove_duplicate_segments(lines, angles, nb_lines); // in-place edit of lines and angles
 
 		for (size_t i = 0; i < nb_lines; i++) {
@@ -908,9 +907,8 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 			*tracks = (struct track *)malloc(nb_lines * sizeof(struct track));
 			if (!*tracks) {
 				PRINT_ALLOC_ERR;
-				src.release();
-				gray.release();
-				thresh.release();
+				binary.release();
+				free(buffer);
 				return 0;
 			}
 			for (size_t i = 0; i < nb_lines; i++) {
@@ -925,7 +923,7 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 
 #else
 	std::vector<Vec2f> lines; // will hold the results of the detection
-	HoughLines(thresh, lines, 1.0, CV_PI / 180.0, minlen);
+	HoughLines(binary, lines, 1.0, CV_PI / 180.0, minlen);
 
 #ifdef SIRIL_OUTPUT_DEBUG
 	for (size_t i = 0; i < lines.size(); i++) {
@@ -943,9 +941,8 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 #endif
 #endif
 
-	src.release();
-	gray.release();
-	thresh.release();
+	binary.release();
+	free(buffer);
 	return lines.size();
 }
 

@@ -118,7 +118,9 @@ static GActionEntry single_processing_entries[] = {
 	{ "medianfilter-processing", medianfilter_activate },
 	{ "rgradient-processing", rgradient_activate },
 	{ "clahe-processing", clahe_activate },
-	{ "linearmatch-processing", linearmatch_activate }
+	{ "linearmatch-processing", linearmatch_activate },
+	{ "star-desaturate", star_desaturate_activate },
+	{ "star-synthetic", star_synthetic_activate }
 };
 
 static GActionEntry none_processing_entries[] = {
@@ -226,6 +228,8 @@ void siril_window_enable_single_proc_actions(GtkApplicationWindow *window, gbool
 		"rgradient-processing",
 		"clahe-processing",
 		"linearmatch-processing",
+		"star-desaturate",
+		"star-synthetic",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), single_processing_actions, enable);

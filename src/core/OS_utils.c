@@ -390,8 +390,9 @@ static int get_available_mem_cgroups(guint64 *amount) {
 			gchar *path = g_strdup_printf(limits_paths[source_file], cgroup_path);
 			if (!read_from_file(path, &limit) && limit > (guint64)0 && limit < 0x7fffffffffff0000) {
 				siril_debug_print("Found memory cgroups limit in %s\n", path);
-				siril_log_message(_("Using cgroups limit on memory: %u MB\n"),
-						(unsigned int)(limit / BYTES_IN_A_MB));
+				gchar *mem = g_format_size_full(limit, G_FORMAT_SIZE_IEC_UNITS);
+				siril_log_message(_("Using cgroups limit on memory: %s\n"), mem);
+				g_free(mem);
 				limits_filepath = path;
 				break;
 			}

@@ -156,6 +156,8 @@ siril_common_SOURCES = \
 	filters/scnr.h \
 	filters/starnet.c \
 	filters/starnet.h \
+	filters/synthstar.c \
+	filters/synthstar.h \
 	filters/wavelets.c \
 	filters/wavelets.h \
 	filters/da3d/DA3D.cpp \

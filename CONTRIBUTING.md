@@ -37,6 +37,14 @@ Reporting the bugs that you will encounter is very important to the development,
 Before creating bug reports, please check [this list](https://gitlab.com/free-astro/siril/issues) as you might find out that you don't need to create one. Also, make sure you are using last stable version or last git version before submitting the ticket. 
 When you are creating a bug report, please include as many details as possible. Fill out [the required template](https://gitlab.com/free-astro/siril/blob/master/.gitlab/issue_templates/bug.md), the information it asks for helps us resolve issues faster.
 
+### Getting Your Code Changes Merged
+
+If you would like to fix any bug or add a new feature then follow below steps:
+1. Fork this project in your own repo
+2. Create a branch and make your changes
+3. Create a Merge Request from your branch to master
+4. Once approved, it can be merged
+
 ### Translation
 
 We are looking for volunteer translators, for the software and for the documentation. No programming experience is required; you just need to download [ Poedit ](https://poedit.net/) for your OS, and generate *.pot and *.po files by making:
