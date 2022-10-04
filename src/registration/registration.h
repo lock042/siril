@@ -80,6 +80,8 @@ struct registration_args {
 	gchar *new_seq_name;
 	opencv_interpolation interpolation; // type of rotation interpolation
 	framing_type framing;		// used by seqapplyreg to determine framing
+	gboolean clamp;				// should Bicubic and Lanczos4 interpolation be clamped?
+	double clamping_factor;		// used to set amount of interpolation clamping
 };
 
 /* used to register a registration method */

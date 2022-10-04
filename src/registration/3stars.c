@@ -316,7 +316,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	if (in_index != refimage) {
 		if (guess_transform_from_H(sadata->current_regdata[in_index].H) > -2) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->x2upscale, regargs->interpolation)) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->x2upscale, regargs->interpolation, regargs->clamp, regargs->clamping_factor)) {
 					return 1;
 				}
 			} else { //  Do we want to allow for no interp while the transformation has been computed as a similarity?
@@ -449,7 +449,7 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 	}
 	sadata->regargs = regargs;
 	// we pass the regdata just to avoid recomputing it for the new sequence
-	sadata->current_regdata = current_regdata; 
+	sadata->current_regdata = current_regdata;
 	args->user = sadata;
 
 	// some prep work done in star_align_prepare_hook for global
@@ -464,7 +464,7 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 	}
 
 	generic_sequence_worker(args);
-	
+
 	return args->retval;
 }
 
@@ -546,14 +546,14 @@ int register_3stars(struct registration_args *regargs) {
 			double fwhm = sumx / nb_stars;
 			current_regdata[i].roundness = sumy / sumx;
 			current_regdata[i].fwhm = fwhm;
-			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(nb_stars_ref - nb_stars) / (double)nb_stars + fwhm; 
+			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(nb_stars_ref - nb_stars) / (double)nb_stars + fwhm;
 			current_regdata[i].background_lvl = sumb / nb_stars;
 			current_regdata[i].number_of_stars = nb_stars;
 		} else {
 			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
 			failed++;
 			continue;
-		} 
+		}
 
 		// computing the transformation matrices
 

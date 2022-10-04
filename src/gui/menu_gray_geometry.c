@@ -60,11 +60,13 @@ static void rotate_gui(fits *fit) {
 		if (cropped)
 			gtk_toggle_button_set_active(crop_rotation, TRUE);
 	}
+	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
+	double clamping_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_rot_clamp")));
 
 	set_cursor_waiting(TRUE);
-	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s)"), angle,
-			cropped ? "TRUE" : "FALSE");
-	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped);
+	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s, clamped=%.1lf)"), angle,
+			cropped ? "TRUE" : "FALSE", clamp ? clamping_factor : 0.0);
+	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped, clamp, clamping_factor);
 
 	// the UI is still opened, need to reset selection
 	// to current image size and reset rotation

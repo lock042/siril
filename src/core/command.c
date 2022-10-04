@@ -362,7 +362,7 @@ int process_denoise(int nb){
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			arg += 5;
-			float mod = g_ascii_strtod(arg, &end);
+			float mod = (float) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
 			else if ((mod < 0.f) || (mod > 1.f)) {
 				siril_log_message(_("Error in mod parameter: must be between 0 and 1, aborting.\n"));
@@ -1882,7 +1882,7 @@ int process_rotate(int nb) {
 		} else crop = 0;
 	}
 
-	verbose_rotate_image(&gfit, area, degree, OPENCV_AREA, crop);
+	verbose_rotate_image(&gfit, area, degree, OPENCV_AREA, crop, FALSE, 0.0);
 
 	// the new selection will match the current image
 	if (has_selection) {
@@ -4610,6 +4610,8 @@ int process_register(int nb) {
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
 	reg_args->interpolation = OPENCV_AREA;
+	reg_args->clamp = FALSE;
+	reg_args->clamping_factor = 0.5;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
@@ -4617,6 +4619,22 @@ int process_register(int nb) {
 			reg_args->x2upscale = TRUE;
 		} else if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
+		} else if (g_str_has_prefix(word[i], "-clamp=")) {
+			reg_args->clamp = TRUE;
+			char *current = word[i], *value;
+			value = current + 13;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			gchar *end;
+			reg_args->clamping_factor = g_ascii_strtod(value, &end);
+			if (end == value || reg_args->clamping_factor > 1.0 || reg_args->clamping_factor < 0.0) {
+				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), reg_args->clamping_factor);
+				reg_args->clamping_factor = 0.5;
+				reg_args->clamp = FALSE;
+				goto terminate_register_on_error;
+			}
 		} else if (!strcmp(word[i], "-2pass")) {
 			reg_args->two_pass = TRUE;
 			reg_args->no_output = TRUE;
@@ -4800,6 +4818,9 @@ int process_register(int nb) {
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"), "green", method->name);
 	free(method);
 	msg[strlen(msg) - 1] = '\0';
+	if (reg_args->clamp)
+		siril_log_message(_("Interpolation clamping: %.1lf\n"), reg_args->clamping_factor);
+
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	start_in_new_thread(register_thread_func, reg_args);

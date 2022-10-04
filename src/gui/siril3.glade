@@ -20243,6 +20243,16 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -20268,6 +20278,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Determines the clamping strength to be applied to the interpolation algorithm, between 0.0 and 1.0</property>
+                                                            <property name="text" translatable="yes">0.50</property>
                                                             <property name="adjustment">clamp_adjustment</property>
                                                             <property name="digits">2</property>
                                                             <property name="value">0.5</property>
@@ -20283,14 +20294,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -20307,7 +20311,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -20328,7 +20332,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <property name="expand">True</property>
                                                             <property name="fill">True</property>
                                                             <property name="padding">16</property>
-                                                            <property name="position">5</property>
+                                                            <property name="position">6</property>
                                                             </packing>
                                                             </child>
                                                             </object>

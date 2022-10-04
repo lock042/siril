@@ -406,7 +406,7 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 			return 1;
 		}
 
-		if (cvTransformImage(fit, H, FALSE, REGISTRATION_INTERPOLATION)) {
+		if (cvTransformImage(fit, H, FALSE, REGISTRATION_INTERPOLATION, TRUE, 0.5)) {
 			return 1;
 		}
 
@@ -626,7 +626,7 @@ static gpointer live_stacker(gpointer arg) {
 			seq.imgparam[1].date_obs = NULL;
 			writeseqfile(&seq);
 		}
-		
+
 		if (seq_check_basic_data(&seq, FALSE) < 0) {
 			livestacking_display(_("Failed to read the sequence, aborting."), FALSE);
 			break;

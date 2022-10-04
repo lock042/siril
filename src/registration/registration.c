@@ -1,3 +1,4 @@
+
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
@@ -1335,6 +1336,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
 	ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
 	reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
+	reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
+	reg_args->clamping_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_reg_clamp")));
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
@@ -1417,6 +1420,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
+	if (reg_args->clamp)
+		siril_log_message(_("Interpolation clamping: %.1lf\n"), reg_args->clamping_factor);
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	start_in_reserved_thread(register_thread_func, reg_args);

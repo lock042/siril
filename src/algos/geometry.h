@@ -13,7 +13,7 @@ struct crop_sequence_data {
 
 int verbose_resize_gaussian(fits *, int, int, int);
 
-int verbose_rotate_image(fits *, rectangle, double, int, int);
+int verbose_rotate_image(fits *, rectangle, double, int, int, gboolean, double);
 int verbose_rotate_fast(fits *image, int angle);
 
 void mirrorx(fits *fit, gboolean verbose);

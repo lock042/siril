@@ -440,7 +440,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 }
 
 // transform an image using the homography.
-int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation) {
+int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation, gboolean clamp, double clamping_factor) {
 	Mat in, out;
 	void *bgr = NULL;
 	int target_rx = width, target_ry = height;
@@ -472,13 +472,12 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 
 	// OpenCV function
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
-	if (interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) {
-		double clampfactor = 0.5;
+	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 		Mat guide, mask;
 		// Create guide image
 		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
 		// Compare the two, replace out pixels with guide pixels if too far out
-		compare(out, (guide * clampfactor), mask, CMP_LT);
+		compare(out, (guide * clamping_factor), mask, CMP_LT);
 		guide.copyTo(out, mask);
 		mask.release();
 		guide.release();

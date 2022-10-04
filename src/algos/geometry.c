@@ -34,6 +34,7 @@
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "gui/PSF_list.h"
+#include "gui/utils.h"
 
 #include "geometry.h"
 
@@ -232,7 +233,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 }
 
 int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
-		int cropped) {
+		int cropped, gboolean clamp, double clamping_factor) {
 	const char *str_inter;
 	struct timeval t_start, t_end;
 
@@ -269,7 +270,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
-	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation)) return 1;
+	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation, clamp, clamping_factor)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
