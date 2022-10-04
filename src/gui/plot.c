@@ -551,26 +551,6 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	pdd.pdatamax.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[1];
 	pdd.pdatamin.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[0];
 	pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
-
-	pdd.selected = calloc(seq->number, sizeof(gboolean));
-	if (selection_is_active()) {
-		double xmin, ymin, xmax, ymax;
-		int n = 0;
-		convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
-		convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
-		for (i = 0, j = 0; i < seq->number; i++) {
-			if (!seq->imgparam[i].incl) continue;
-			if (plot->data[j].x >= xmin && plot->data[j].x <= xmax && plot->data[j].y >= ymin && plot->data[j].y <= ymax) {
-				n++;
-				pdd.selected[i] = TRUE;
-			}
-			j++;
-		}
-		pdd.nbselected = n;
-	} else {
-		pdd.nbselected = 0;
-	}
-
 }
 
 static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index, int point_index) {
@@ -710,27 +690,6 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 	pdd.pdatamax.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[1];
 	pdd.pdatamin.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[0];
 	pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
-
-	if (dataset == 0) { // selection is done of the reference dataset only
-		pdd.selected = calloc(seq->number, sizeof(gboolean));
-		if (selection_is_active()) {
-			double xmin, ymin, xmax, ymax;
-			int n = 0;
-			convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
-			convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
-			for (i = 0, j = 0; i < seq->number; i++) {
-				if (!seq->imgparam[i].incl) continue;
-				if (plot->data[j].x >= xmin && plot->data[j].x <= xmax && plot->data[j].y >= ymin && plot->data[j].y <= ymax) {
-					n++;
-					pdd.selected[i] = TRUE;
-				}
-				j++;
-			}
-			pdd.nbselected = n;
-		} else {
-			pdd.nbselected = 0;
-		}
-	}
 }
 
 static double get_error_for_time(pldata *plot, double time) {
@@ -1432,6 +1391,26 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		pdd.range = (point){ get_dimx(),  get_dimy()};
 		pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
 		pdd.offset = (point){ get_offsx(),  get_offsy()};
+		// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
+		pdd.selected = calloc(com.seq.number, sizeof(gboolean));
+		if (selection_is_active()) {
+			double xmin, ymin, xmax, ymax;
+			int n = 0;
+			convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+			convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
+			int i, j;
+			for (i = 0, j = 0; i < com.seq.number; i++) {
+				if (!com.seq.imgparam[i].incl) continue;
+				if (plot_data->data[j].x >= xmin && plot_data->data[j].x <= xmax && plot_data->data[j].y >= ymin && plot_data->data[j].y <= ymax) {
+					n++;
+					pdd.selected[i] = TRUE;
+				}
+				j++;
+			}
+			pdd.nbselected = n;
+		} else {
+			pdd.nbselected = 0;
+		}
 		//drawing the sliders and markers
 		plot_draw_all_sliders(cr);
 		plot_draw_all_sliders_fill(cr);
