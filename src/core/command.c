@@ -1820,16 +1820,82 @@ int process_autostretch(int nb) {
 
 int process_resample(int nb) {
 	gchar *end;
-	double factor = g_ascii_strtod(word[1], &end);
-	if (end == word[1] || factor <= 0.0 || factor > 5.0) {
-		siril_log_message(_("The scaling factor must be less than 5.0\n"));
-		return CMD_ARG_ERROR;
+	gboolean clamp = TRUE;
+	double clamping_factor = 0.5;
+	int interpolation = OPENCV_LANCZOS4;
+
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-scale=")) {
+			char *current = word[i], *value;
+			value = current + 7;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			gchar *end;
+			double factor = g_ascii_strtod(value, &end);
+			if (end == value || factor < 0.0 || factor > 5.0) {
+				siril_log_message(_("Scale %lf not allowed. Should be between 0.0 and 5.0.\n"), factor);
+			}
+		} else if (g_str_has_prefix(word[i], "-interp=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+				interpolation = OPENCV_NEAREST;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+				interpolation = OPENCV_CUBIC;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+				interpolation = OPENCV_LANCZOS4;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+				interpolation = OPENCV_LINEAR;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
+				interpolation = OPENCV_NONE;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+				interpolation = OPENCV_AREA;
+				continue;
+			}
+			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			goto terminate_register_on_error;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			clamp = FALSE;
+		} else if (g_str_has_prefix(word[i], "-clamp=")) {
+			clamp = TRUE;
+			char *current = word[i], *value;
+			value = current + 7;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			gchar *end;
+			reg_args->clamping_factor = g_ascii_strtod(value, &end);
+			if (end == value || clamping_factor > 1.0 || clamping_factor < 0.0) {
+				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), reg_args->clamping_factor);
+				clamping_factor = 0.5;
+				clamp = FALSE;
+				goto terminate_register_on_error;
+			}
+		}
 	}
+
 	int toX = round_to_int(factor * gfit.rx);
 	int toY = round_to_int(factor * gfit.ry);
 
 	set_cursor_waiting(TRUE);
-	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_AREA, FALSE, 0.0);
+	verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp, clamping_factor);
 
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -1873,7 +1939,76 @@ int process_rotate(int nb) {
 		has_selection = TRUE;
 	}
 
-	double degree = g_ascii_strtod(word[1], NULL);
+	gboolean clamp = TRUE;
+	double clamping_factor = 0.5;
+	int interpolation = OPENCV_LANCZOS4;
+
+	for (int i = 1; i < nb; i++) {
+		if (!strcmp(word[i], "-degree=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			gchar *end;
+			double factor = g_ascii_strtod(value, &end);
+			if (end == value || factor < 0.0 || factor > 360.0) {
+				siril_log_message(_("Angle %lf not allowed. Should be between 0.0 and 360.0.\n"), factor);
+			}
+		} else if (g_str_has_prefix(word[i], "-interp=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+				interpolation = OPENCV_NEAREST;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+				interpolation = OPENCV_CUBIC;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+				interpolation = OPENCV_LANCZOS4;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+				interpolation = OPENCV_LINEAR;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
+				interpolation = OPENCV_NONE;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+				interpolation = OPENCV_AREA;
+				continue;
+			}
+			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			goto terminate_register_on_error;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			clamp = FALSE;
+		} else if (g_str_has_prefix(word[i], "-clamp=")) {
+			clamp = TRUE;
+			char *current = word[i], *value;
+			value = current + 7;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			gchar *end;
+			reg_args->clamping_factor = g_ascii_strtod(value, &end);
+			if (end == value || clamping_factor > 1.0 || clamping_factor < 0.0) {
+				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), reg_args->clamping_factor);
+				clamping_factor = 0.5;
+				clamp = FALSE;
+				goto terminate_register_on_error;
+			}
+		}
+	}
 
 	/* check for options */
 	if (word[2] && (!strcmp(word[2], "-nocrop"))) {
@@ -1882,7 +2017,7 @@ int process_rotate(int nb) {
 		} else crop = 0;
 	}
 
-	verbose_rotate_image(&gfit, area, degree, OPENCV_AREA, crop, FALSE, 0.0);
+	verbose_rotate_image(&gfit, area, degree, interpolation, crop, clamp, clamping_factor);
 
 	// the new selection will match the current image
 	if (has_selection) {
@@ -4609,8 +4744,8 @@ int process_register(int nb) {
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
-	reg_args->interpolation = OPENCV_AREA;
-	reg_args->clamp = FALSE;
+	reg_args->interpolation = OPENCV_LANCZOS4;
+	reg_args->clamp = TRUE;
 	reg_args->clamping_factor = 0.5;
 
 	/* check for options */
@@ -4619,10 +4754,12 @@ int process_register(int nb) {
 			reg_args->x2upscale = TRUE;
 		} else if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			reg_args->clamp = FALSE;
 		} else if (g_str_has_prefix(word[i], "-clamp=")) {
 			reg_args->clamp = TRUE;
 			char *current = word[i], *value;
-			value = current + 13;
+			value = current + 7;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
@@ -4974,7 +5111,9 @@ int process_seq_applyreg(int nb) {
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
 	reg_args->layer = layer;
-	reg_args->interpolation = OPENCV_AREA;
+	reg_args->interpolation = OPENCV_LANCZOS4;
+	reg_args->clamp = TRUE;
+	reg_args->clamping_factor = 0.5;
 	reg_args->framing = FRAMING_CURRENT;
 
 	/* check for options */
@@ -4989,6 +5128,24 @@ int process_seq_applyreg(int nb) {
 				goto terminate_register_on_error;
 			}
 			reg_args->prefix = strdup(value);
+		} else if (!strcmp(word[i], "-noclamp")) {
+			reg_args->clamp = FALSE;
+		} else if (g_str_has_prefix(word[i], "-clamp=")) {
+			reg_args->clamp = TRUE;
+			char *current = word[i], *value;
+			value = current + 7;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			gchar *end;
+			reg_args->clamping_factor = g_ascii_strtod(value, &end);
+			if (end == value || reg_args->clamping_factor > 1.0 || reg_args->clamping_factor < 0.0) {
+				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), reg_args->clamping_factor);
+				reg_args->clamping_factor = 0.5;
+				reg_args->clamp = FALSE;
+				goto terminate_register_on_error;
+			}
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -5022,7 +5179,7 @@ int process_seq_applyreg(int nb) {
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
-			} else if (g_str_has_prefix(word[i], "-framing=")) {
+		} else if (g_str_has_prefix(word[i], "-framing=")) {
 			char *current = word[i], *value;
 			value = current + 9;
 			if (value[0] == '\0') {
