@@ -1819,27 +1819,20 @@ int process_autostretch(int nb) {
 }
 
 int process_resample(int nb) {
-//	gchar *end;
+	gchar *end;
 	gboolean clamp = TRUE;
 	double clamping_factor = 0.5;
 	int interpolation = OPENCV_LANCZOS4;
 	double factor = 1.0;
 
-	for (int i = 1; i < nb; i++) {
-		if (g_str_has_prefix(word[i], "-scale=")) {
-			char *current = word[i], *value;
-			value = current + 7;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-			gchar *end;
-			factor = g_ascii_strtod(value, &end);
-			if (end == value || factor < 0.0 || factor > 5.0) {
-				siril_log_message(_("Scale %lf not allowed. Should be between 0.0 and 5.0.\n"), factor);
-				return CMD_ARG_ERROR;
-			}
-		} else if (g_str_has_prefix(word[i], "-interp=")) {
+	factor = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || factor < 0.0 || factor > 5.0) {
+		siril_log_message(_("Scale %lf not allowed. Should be between 0.0 and 5.0.\n"), factor);
+		return CMD_ARG_ERROR;
+	}
+
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
 			if (value[0] == '\0') {
@@ -1934,6 +1927,7 @@ int process_rgradient(int nb) {
 }
 
 int process_rotate(int nb) {
+	gchar *end;
 	set_cursor_waiting(TRUE);
 	int crop = 1;
 	gboolean has_selection = FALSE;
@@ -1949,21 +1943,14 @@ int process_rotate(int nb) {
 	int interpolation = OPENCV_LANCZOS4;
 	double angle=0.0;
 
-	for (int i = 1; i < nb; i++) {
-		if (g_str_has_prefix(word[i], "-angle=")) {
-			char *current = word[i], *value;
-			value = current + 7;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-			gchar *end;
-			angle = g_ascii_strtod(value, &end);
-			siril_debug_print("Rotation angle: %f\n",angle);
-			if (end == value || angle < 0.0 || angle > 360.0) {
-				siril_log_message(_("Angle %lf not allowed. Should be between 0.0 and 360.0.\n"), angle);
-			}
-		} else if (g_str_has_prefix(word[i], "-interp=")) {
+	angle = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || angle < 0.0 || angle > 360.0) {
+		siril_log_message(_("Angle %lf not allowed. Should be between 0.0 and 360.0.\n"), angle);
+		return CMD_ARG_ERROR;
+	}
+
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
 			if (value[0] == '\0') {
