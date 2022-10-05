@@ -1819,30 +1819,32 @@ int process_autostretch(int nb) {
 }
 
 int process_resample(int nb) {
-	gchar *end;
+//	gchar *end;
 	gboolean clamp = TRUE;
 	double clamping_factor = 0.5;
 	int interpolation = OPENCV_LANCZOS4;
+	double factor = 1.0;
 
 	for (int i = 1; i < nb; i++) {
-		if (!strcmp(word[i], "-scale=")) {
+		if (g_str_has_prefix(word[i], "-scale=")) {
 			char *current = word[i], *value;
 			value = current + 7;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
+				return CMD_ARG_ERROR;
 			}
 			gchar *end;
-			double factor = g_ascii_strtod(value, &end);
+			factor = g_ascii_strtod(value, &end);
 			if (end == value || factor < 0.0 || factor > 5.0) {
 				siril_log_message(_("Scale %lf not allowed. Should be between 0.0 and 5.0.\n"), factor);
+				return CMD_ARG_ERROR;
 			}
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
+				return CMD_ARG_ERROR;
 			}
 			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
 				interpolation = OPENCV_NEAREST;
@@ -1869,7 +1871,7 @@ int process_resample(int nb) {
 				continue;
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
-			goto terminate_register_on_error;
+			return CMD_ARG_ERROR;
 		} else if (!strcmp(word[i], "-noclamp")) {
 			clamp = FALSE;
 		} else if (g_str_has_prefix(word[i], "-clamp=")) {
@@ -1878,19 +1880,22 @@ int process_resample(int nb) {
 			value = current + 7;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
+				return CMD_ARG_ERROR;
 			}
 			gchar *end;
-			reg_args->clamping_factor = g_ascii_strtod(value, &end);
+			clamping_factor = g_ascii_strtod(value, &end);
 			if (end == value || clamping_factor > 1.0 || clamping_factor < 0.0) {
-				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), reg_args->clamping_factor);
+				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), clamping_factor);
 				clamping_factor = 0.5;
 				clamp = FALSE;
-				goto terminate_register_on_error;
+				return CMD_ARG_ERROR;
 			}
 		}
 	}
-
+	if (factor == 1.0) {
+		siril_log_message(_("Scale is 1.0. Not doing anything...\n"));
+		return CMD_ARG_ERROR;
+	}
 	int toX = round_to_int(factor * gfit.rx);
 	int toY = round_to_int(factor * gfit.ry);
 
@@ -1942,26 +1947,28 @@ int process_rotate(int nb) {
 	gboolean clamp = TRUE;
 	double clamping_factor = 0.5;
 	int interpolation = OPENCV_LANCZOS4;
+	double angle=0.0;
 
 	for (int i = 1; i < nb; i++) {
-		if (!strcmp(word[i], "-degree=")) {
+		if (g_str_has_prefix(word[i], "-angle=")) {
 			char *current = word[i], *value;
-			value = current + 8;
+			value = current + 7;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
+				return CMD_ARG_ERROR;
 			}
 			gchar *end;
-			double factor = g_ascii_strtod(value, &end);
-			if (end == value || factor < 0.0 || factor > 360.0) {
-				siril_log_message(_("Angle %lf not allowed. Should be between 0.0 and 360.0.\n"), factor);
+			angle = g_ascii_strtod(value, &end);
+			siril_debug_print("Rotation angle: %f\n",angle);
+			if (end == value || angle < 0.0 || angle > 360.0) {
+				siril_log_message(_("Angle %lf not allowed. Should be between 0.0 and 360.0.\n"), angle);
 			}
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
+				return CMD_ARG_ERROR;
 			}
 			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
 				interpolation = OPENCV_NEAREST;
@@ -1988,36 +1995,38 @@ int process_rotate(int nb) {
 				continue;
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
-			goto terminate_register_on_error;
+			return CMD_ARG_ERROR;
 		} else if (!strcmp(word[i], "-noclamp")) {
 			clamp = FALSE;
+		} else if (!strcmp(word[i], "-nocrop")) {
+			if (has_selection) {
+				siril_log_color_message(_("-nocrop option is not valid if a selection is active. Ignoring\n"), "red");
+			} else crop = 0;
 		} else if (g_str_has_prefix(word[i], "-clamp=")) {
 			clamp = TRUE;
 			char *current = word[i], *value;
 			value = current + 7;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
+				return CMD_ARG_ERROR;
 			}
 			gchar *end;
-			reg_args->clamping_factor = g_ascii_strtod(value, &end);
+			clamping_factor = g_ascii_strtod(value, &end);
 			if (end == value || clamping_factor > 1.0 || clamping_factor < 0.0) {
-				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), reg_args->clamping_factor);
+				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), clamping_factor);
 				clamping_factor = 0.5;
 				clamp = FALSE;
-				goto terminate_register_on_error;
+				return CMD_ARG_ERROR;
 			}
 		}
 	}
+	siril_debug_print("%f\n",angle);
 
-	/* check for options */
-	if (word[2] && (!strcmp(word[2], "-nocrop"))) {
-		if (has_selection) {
-			siril_log_color_message(_("-nocrop option is not valid if a selection is active. Ignoring\n"), "red");
-		} else crop = 0;
+	if (angle == 0.0 || angle == 360.0) {
+		siril_log_message(_("Angle is 0.0 or 360.0 degrees. Doing nothing...\n"));
+		return CMD_ARG_ERROR;
 	}
-
-	verbose_rotate_image(&gfit, area, degree, interpolation, crop, clamp, clamping_factor);
+	verbose_rotate_image(&gfit, area, angle, interpolation, crop, clamp, clamping_factor);
 
 	// the new selection will match the current image
 	if (has_selection) {
