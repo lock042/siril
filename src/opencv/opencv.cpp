@@ -765,7 +765,7 @@ static size_t remove_segments_on_the_sides(std::vector<Vec4i> &lines, size_t nb_
 	size_t j = 0;
 	for (size_t i = 0; i < nb_lines; i++) {
 		int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
-		if (x1 > 2 && x2 > 2 && x1 < rx-3 && x2 < rx-3 && y1 > 2 && y2 > 2 && y1 < ry-3 && y2 < ry-3) {
+		if (x1 > 3 && x2 > 3 && x1 < rx-4 && x2 < rx-3 && y1 > 3 && y2 > 3 && y1 < ry-4 && y2 < ry-4) {
 			if (i != j) {
 				lines[j] = lines[i];
 			}

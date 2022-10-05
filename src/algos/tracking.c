@@ -19,7 +19,7 @@
  * 7. get object coordinates for line end
  */
 
-static int plate_solve_for_stars(fits *fit) {
+static int plate_solve_for_stars(fits *fit, psf_star **stars) {
 	struct astrometry_data *args = NULL;
 	args = calloc(1, sizeof(struct astrometry_data));
 	args->fit = fit;
@@ -34,6 +34,7 @@ static int plate_solve_for_stars(fits *fit) {
 	args->autocrop = FALSE;
 	args->flip_image = FALSE;
 	args->manual = TRUE;
+	args->stars = stars;
 	args->auto_magnitude = TRUE;
 	args->pcc = NULL;
 	process_plate_solver_input(args);
@@ -46,7 +47,7 @@ struct tracked_object {
 	double max_motion;
 };
 
-static void set_stars_to_comstars(struct track *tracks, int nbtracks, gboolean start) {
+psf_star **extract_stars(struct track *tracks, int nbtracks, gboolean start, psf_star **stars) {
 	/* we have a list of tracks, some may not be stars, only keep the tracks that have the
 	 * majority of similar orientation */
 	float *angles = malloc(nbtracks * sizeof(float));
@@ -58,29 +59,35 @@ static void set_stars_to_comstars(struct track *tracks, int nbtracks, gboolean s
 	siril_log_message(_("considering trails with angle close to %f for stars\n"), mean);
 
 	int j = 0;
-	if (!com.stars || start) {
-		com.stars = malloc((nbtracks + 1) * sizeof(psf_star *));
+	if (!stars && start) {
+		// assuming stars is NULL
+		stars = malloc((nbtracks + 1) * sizeof(psf_star *));
 		for (int i = 0; i < nbtracks; i++) {
 			if (fabsf(mean - tracks[i].angle) > 10.0)
 				continue;
-			com.stars[j] = new_psf_star();
-			com.stars[j]->xpos = tracks[i].start.x;
-			com.stars[j]->ypos = tracks[i].start.y;
-			com.stars[j]->fwhmx = 5.0;
-			com.stars[j]->has_saturated = FALSE;
+			stars[j] = new_psf_star();
+			stars[j]->xpos = tracks[i].start.x;
+			stars[j]->ypos = tracks[i].start.y;
+			stars[j]->fwhmx = 5.0;
+			stars[j]->has_saturated = FALSE;
 			j++;
 		}
-		com.stars[j] = NULL;
-	} else {
+		stars[j] = NULL;
+	} else if (stars && !start) {
+		// assuming stars is non-NULL
 		for (int i = 0; i < nbtracks; i++) {
 			if (fabsf(mean - tracks[i].angle) > 10.0)
 				continue;
-			com.stars[j]->xpos = tracks[i].end.x;
-			com.stars[j]->ypos = tracks[i].end.y;
+			stars[j]->xpos = tracks[i].end.x;
+			stars[j]->ypos = tracks[i].end.y;
 			j++;
 		}
 	}
-	redraw(REDRAW_OVERLAY);
+	else {
+		siril_log_message("ERROR\n");
+		return NULL;
+	}
+	return stars;
 }
 
 /* call free_star_list() before calling that */
@@ -96,14 +103,33 @@ gpointer tracking_worker(gpointer ptr) {
 	if (nblines > 0 && nblines < 200) {
 		siril_log_message(_("Found %d trail(s) in current frame, displaying start points\n"), nblines);
 		if (nblines > 1000) nblines = 1000;
+		if (arg->display_lines) {
+			com.stars = malloc((2 * nblines + 1) * sizeof(psf_star *));
+			for (int i = 0; i < nblines; i++) {
+				com.stars[2*i] = new_psf_star();
+				com.stars[2*i]->xpos = tracks[i].start.x;
+				com.stars[2*i]->ypos = tracks[i].start.y;
+				com.stars[2*i]->fwhmx = 5.0;
+				com.stars[2*i]->has_saturated = FALSE;
+				com.stars[2*i+1] = new_psf_star();
+				com.stars[2*i+1]->xpos = tracks[i].end.x;
+				com.stars[2*i+1]->ypos = tracks[i].end.y;
+				com.stars[2*i+1]->fwhmx = 5.0;
+				com.stars[2*i+1]->has_saturated = TRUE;
+			}
+			com.stars[2*nblines] = NULL;
+			redraw(REDRAW_OVERLAY);
+		}
 
-		set_stars_to_comstars(tracks, nblines, TRUE);
-
-		if (plate_solve_for_stars(arg->fit)) {
+		psf_star **stars = extract_stars(tracks, nblines, TRUE, NULL);
+		if (plate_solve_for_stars(arg->fit, stars)) {
 			siril_log_message(_("Plate solving using the detected trails as stars failed, adjust parameters or make sure the file metadata is correct\n"));
 			free(tracks);
 			free_fitted_stars(arg->targets);
-			return NULL;
+			free_fitted_stars(stars);
+			if (arg->use_idle)
+				siril_add_idle(end_generic, NULL);
+			return GINT_TO_POINTER(1);
 		}
 		for (int i = 0; i < arg->nb_targets; i++) {
 			double ra, dec;
@@ -112,15 +138,17 @@ gpointer tracking_worker(gpointer ptr) {
 		}
 		siril_log_message(_("Plate solving for start of movement succeeded.\n"));
 
-		set_stars_to_comstars(tracks, nblines, FALSE);
-		redraw(REDRAW_OVERLAY);
-
-		if (plate_solve_for_stars(arg->fit)) {
+		stars = extract_stars(tracks, nblines, FALSE, stars);
+		if (plate_solve_for_stars(arg->fit, stars)) {
 			siril_log_message(_("Plate solving using the detected trails as stars failed, adjust parameters or make sure the file metadata is correct\n"));
 			free(tracks);
 			free_fitted_stars(arg->targets);
-			return NULL;
+			free_fitted_stars(stars);
+			if (arg->use_idle)
+				siril_add_idle(end_generic, NULL);
+			return GINT_TO_POINTER(1);
 		}
+		free_fitted_stars(stars);
 		for (int i = 0; i < arg->nb_targets; i++) {
 			double ra, dec;
 			pix2wcs(arg->fit, targets[i].target->xpos, targets[i].target->ypos, &ra, &dec);
@@ -140,10 +168,12 @@ gpointer tracking_worker(gpointer ptr) {
 		}
 		free(tracks);
 	} else {
-		siril_log_message(_("No trails found\n"));
+		siril_log_message(_("%d trail(s) found\n"), nblines);
 	}
 
 	free_fitted_stars(arg->targets);
-	return NULL;
+	if (arg->use_idle)
+		siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(0);
 }
 

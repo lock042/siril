@@ -54,7 +54,8 @@ struct astrometry_data {
 	gboolean downsample;	// downsample mage before solving
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
 	gboolean flip_image;	// Flip at the end if detected mirrored
-	gboolean manual;	// use stars already detected by user, in com.stars
+	gboolean manual;	// use stars already detected by user (in 'stars')
+	psf_star **stars;	// use stars from here, or com.stars if nil
 	gboolean auto_magnitude;// automatically limit magnitude of the catalog
 	double forced_magnitude;// if not automatic, use this limit magnitude
 	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve

@@ -10,6 +10,8 @@ struct linetrack_conf {
 	int minlen;
 	psf_star **targets;
 	int nb_targets;
+	gboolean display_lines;
+	gboolean use_idle;
 };
 
 gpointer tracking_worker(gpointer ptr);

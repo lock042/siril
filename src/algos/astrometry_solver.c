@@ -1236,9 +1236,9 @@ gpointer match_catalog(gpointer p) {
 		com.pref.starfinder_conf.pixel_size_x = 0.;
 		com.pref.starfinder_conf.focal_length = 0.;
 	} else {
-		stars = com.stars;
-		if (com.stars)
-			while (com.stars[n_fit])
+		stars = args->stars ? args->stars : com.stars;
+		if (stars)
+			while (stars[n_fit])
 				n_fit++;
 	}
 	CHECK_FOR_CANCELLATION;

@@ -6043,9 +6043,17 @@ int process_requires(int nb) {
 	}
 }
 
+static int trails_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads);
+
+struct trail_args {
+	int layer;
+	float knoise;
+	int minlen;
+};
+
 int process_detect_trail(int nb) {
-	//detect_trail [sigma layer minlen]
-	//seq_detect_trail seqname [sigma layer minlen]
+	//detect_trail [sigma layer minlen ref_image]
+	//seqdetect_trail seqname [sigma layer minlen]
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return 1;
@@ -6081,6 +6089,7 @@ int process_detect_trail(int nb) {
 			return 1;
 		}
 		if (layer == -1) layer = (gfit.naxes[2] == 3) ? 1 : 0;
+
 		imstats* stat = statistics(NULL, -1, &gfit, layer, NULL, STATS_BASIC, TRUE);
 		if (!stat) {
 			siril_log_color_message(_("Error: statistics computation failed.\n"), "red");
@@ -6116,8 +6125,10 @@ int process_detect_trail(int nb) {
 		}
 		int nb_targets;
 		psf_star **targets_psf = peaker(&im, layer, &com.pref.starfinder_conf, &nb_targets, NULL, FALSE, TRUE, 30, com.max_thread);
-		if (!targets_psf || nb_targets <= 0)
+		if (!targets_psf || nb_targets <= 0) {
+			siril_log_color_message(_("No target found\n"), "salmon");
 			return CMD_GENERIC_ERROR;
+		}
 		if (nb_targets > 10) {
 			siril_log_message(_("%d punctual objects found in image, refine star detection parameters with the PSF GUI or the setfindstar command\n"), nb_targets);
 			return CMD_GENERIC_ERROR;
@@ -6131,37 +6142,21 @@ int process_detect_trail(int nb) {
 		arg->minlen = minlen;
 		arg->targets = targets_psf;
 		arg->nb_targets = nb_targets;
+		arg->display_lines = TRUE;
+		arg->use_idle = TRUE;
 		start_in_new_thread(tracking_worker, arg);
-#if 0
-		struct track *tracks;
-		int nblines = cvHoughLines(&gfit, layer, threshold, minlen, &tracks);
-
-		if (nblines > 0 && nblines < 200) {
-			siril_log_message(_("Found %d trail(s) in current frame, displaying start points\n"), nblines);
-			if (nblines > 1000) nblines = 1000;
-			com.stars = malloc((2 * nblines + 1) * sizeof(psf_star *));
-			for (int i = 0; i < nblines; i++) {
-				com.stars[2*i] = new_psf_star();
-				com.stars[2*i]->xpos = tracks[i].start.x;
-				com.stars[2*i]->ypos = tracks[i].start.y;
-				com.stars[2*i]->fwhmx = 5.0;
-				com.stars[2*i]->has_saturated = FALSE;
-				com.stars[2*i+1] = new_psf_star();
-				com.stars[2*i+1]->xpos = tracks[i].end.x;
-				com.stars[2*i+1]->ypos = tracks[i].end.y;
-				com.stars[2*i+1]->fwhmx = 5.0;
-				com.stars[2*i+1]->has_saturated = TRUE;
-			}
-			com.stars[2*nblines] = NULL;
-			redraw(REDRAW_OVERLAY);
-			free(tracks);
-		} else {
-			siril_log_message(_("No trails found\n"));
-		}
-#endif
 	} else {
+		if (!local_catalogues_available()) {
+			siril_log_message(_("This feature relies on local star catalogues being available, install them\n"));
+			return CMD_GENERIC_ERROR;
+		}
 		sequence *seq = load_sequence(word[1], NULL);
-		if (!seq) return 1;
+		if (!seq) return CMD_SEQUENCE_NOT_FOUND;
+		if (layer > seq->nb_layers) {
+			siril_log_color_message(_("Layer %d. does not exist.\n"), "red", layer);
+			return 1;
+		}
+		if (layer == -1) layer = (seq->nb_layers == 3) ? 1 : 0;
 		/*gboolean is_cfa = FALSE;
 		switch (seq->type) {
 			case SEQ_SER:
@@ -6173,10 +6168,73 @@ int process_detect_trail(int nb) {
 			default:
 				return 1;
 		}*/
-		/* TODO */
 
+		struct generic_seq_args *args = create_default_seqargs(seq);
+		//args->prepare_hook = ;
+		//args->finalize_hook = ;
+		args->image_hook = trails_image_hook;
+		args->description = _("Crazy trails");
+		args->has_output = FALSE;
+		args->output_type = get_data_type(args->seq->bitpix);
+		args->stop_on_error = FALSE;
+		struct trail_args *targs = malloc(sizeof(struct trail_args));
+		targs->layer = layer;
+		targs->knoise = ksigma;
+		targs->minlen = minlen;
+		args->user = targs;
+
+		start_in_new_thread(generic_sequence_worker, args);
 	}
-	return 0;
+	return CMD_OK;
+}
+
+static int trails_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_, int threads) {
+	struct trail_args *targs = (struct trail_args *)args->user;
+	imstats* stat = statistics(NULL, -1, fit, targs->layer, NULL, STATS_BASIC, TRUE);
+	if (!stat) {
+		siril_log_color_message(_("Error: statistics computation failed.\n"), "red");
+		return 1;
+	}
+
+	float threshold;
+	if (targs->knoise >= 0)
+		threshold = stat->median + targs->knoise * stat->bgnoise;
+	else threshold = stat->median - targs->knoise;
+	// sanity checks
+	if (threshold > stat->max) {
+		siril_log_color_message(_("Detection threshold %f is larger than max value %f.\n"), "red", threshold, stat->max);
+		free_stats(stat);
+		return 1;
+	}
+	if (threshold < stat->median) {
+		siril_log_color_message(_("Detection threshold is lower than median value.\n"), "salmon");
+	}
+	free_stats(stat);
+
+	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
+	int nb_targets;
+	psf_star **targets_psf = peaker(&im, targs->layer, &com.pref.starfinder_conf, &nb_targets, NULL, FALSE, TRUE, 30, com.max_thread);
+	if (!targets_psf || nb_targets <= 0) {
+		siril_log_color_message(_("No target found in image %d\n"), "salmon", i);
+		return CMD_GENERIC_ERROR;
+	}
+	if (nb_targets > 10) {
+		siril_log_message(_("%d punctual objects found in image %d, refine star detection parameters with the PSF GUI or the setfindstar command\n"), nb_targets, i);
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("Found %d punctual objects in image %d, tracking it/them\n"), nb_targets, i);
+
+	struct linetrack_conf *arg = malloc(sizeof(struct linetrack_conf));
+	arg->fit = fit;
+	arg->layer = targs->layer;
+	arg->threshold = threshold;
+	arg->minlen = targs->minlen;
+	arg->targets = targets_psf;
+	arg->nb_targets = nb_targets;
+	arg->display_lines = FALSE;
+	arg->use_idle = FALSE;
+	return GPOINTER_TO_INT(tracking_worker(arg));
 }
 
 int process_boxselect(int nb){

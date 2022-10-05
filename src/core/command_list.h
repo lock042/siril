@@ -1,7 +1,6 @@
 #ifndef SRC_CORE_COMMAND_LIST_H_
 #define SRC_CORE_COMMAND_LIST_H_
 
-
 #include "core/siril.h"
 #include "core/command.h"
 #include "core/command_def.h"
@@ -56,7 +55,7 @@ static command commands[] = {
 	{"crop", 0, "crop [x y width height]", process_crop, STR_CROP, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"ddp", 3, "ddp level coef sigma", process_ddp, STR_DDP, FALSE, REQ_CMD_SINGLE_IMAGE},
-	{"detect_trail", 0, "detect_trail [ksigma] [layer] [minlen]", process_detect_trail, STR_DETECT_TRAIL, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"detect_trail", 0, "detect_trail [ksigma] [layer] [minlen]", process_detect_trail, STR_DETECT_TRAIL, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"denoise", 0, "denoise [-nocosmetic] [-mod=m] [ -vst | -da3d | -sos=n [-rho=r] ]", process_denoise, STR_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
