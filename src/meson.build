@@ -43,6 +43,7 @@ src_files = [
   'algos/star_finder.c',
   'algos/statistics.c',
   'algos/statistics_float.c',
+  'algos/tracking.c',
   'algos/transform.c',
   'algos/search_objects.c',
 
