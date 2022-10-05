@@ -40,6 +40,7 @@ void toggle_histogram_window_visibility();
 void on_histoMidEntry_changed(GtkEditable *editable, gpointer user_data);
 void on_histoShadEntry_changed(GtkEditable *editable, gpointer user_data);
 void on_histoHighEntry_changed(GtkEditable *editable, gpointer user_data);
+void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 
 void apply_mtf_to_sequence(struct mtf_data *mtf_args);
 void apply_ght_to_sequence(struct ght_data *ght_args);

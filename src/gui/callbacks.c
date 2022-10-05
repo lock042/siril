@@ -581,7 +581,7 @@ display_mode get_display_mode_from_menu() {
 	return LINEAR_DISPLAY;
 }
 
-void set_initial_display_mode(display_mode x) {
+static void set_initial_display_mode(display_mode x) {
 	switch(x) {
 		case LINEAR_DISPLAY:
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("linear_item")), TRUE);
@@ -605,6 +605,19 @@ void set_initial_display_mode(display_mode x) {
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("histo_item")), TRUE);
 			break;
 	}
+}
+
+static void set_initial_histogram_display_mode(int x) {
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckLogButton"));
+	g_signal_handlers_block_by_func(button, on_histo_toggled, NULL);
+	switch(x) {
+	case LINEAR_DISPLAY:
+		gtk_toggle_button_set_active(button, FALSE);
+		break;
+	case LOG_DISPLAY:
+		gtk_toggle_button_set_active(button, TRUE);
+	}
+	g_signal_handlers_unblock_by_func(button, on_histo_toggled, NULL);
 }
 
 
@@ -1128,9 +1141,8 @@ void initialize_display_mode() {
 }
 
 /* initialize non-preferences GUI from settings */
-void init_GUI_from_settings() {
-	GtkToggleButton *main_debayer_button = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
-	gtk_toggle_button_set_active(main_debayer_button, com.pref.debayer.open_debayer);
+static void init_GUI_from_settings() {
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton")), com.pref.debayer.open_debayer);
 }
 
 void set_GUI_CWD() {
@@ -1317,10 +1329,11 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	siril_drag_single_image_set_dest();
 
-	set_initial_display_mode((display_mode) com.pref.gui.default_rendering_mode);
-
 	set_GUI_CWD();
 	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
+
+	set_initial_display_mode((display_mode) com.pref.gui.default_rendering_mode);
+	set_initial_histogram_display_mode(com.pref.gui.display_histogram_mode);
 
 	update_spinCPU(com.max_thread);
 
