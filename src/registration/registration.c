@@ -176,6 +176,8 @@ void initialize_registration_methods() {
 	}
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("ComboBoxRegInter")), com.pref.gui.reg_interpolation);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")), com.pref.gui.reg_clamping);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_reg_clamp")), com.pref.gui.reg_clamping_value);
 
 	/* register to the new area selected event */
 	register_selection_update_callback(_reg_selected_area_callback);
@@ -774,6 +776,10 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 	com.pref.gui.reg_settings = index;
 	reset_3stars();
 	update_reg_interface(TRUE);
+}
+
+void on_toggle_reg_clamp_toggled(GtkToggleButton *button, gpointer user_data) {
+	gtk_widget_set_sensitive(lookup_widget("spin_reg_clamp"), gtk_toggle_button_get_active(button));
 }
 
 void on_ComboBoxRegInter_changed(GtkComboBox *box, gpointer user_data) {

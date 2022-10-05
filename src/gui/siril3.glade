@@ -15676,8 +15676,9 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
             <child>
-              <!-- n-columns=2 n-rows=6 -->
+              <!-- n-columns=2 n-rows=4 -->
               <object class="GtkGrid" id="grid36">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -15740,17 +15741,18 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="tooltip-text" translatable="yes">Type of algorithm used for resampling</property>
-                    <property name="halign">start</property>
+                    <property name="halign">end</property>
                     <property name="valign">center</property>
                     <property name="hexpand">True</property>
-                    <property name="active">3</property>
+                    <property name="active">4</property>
                     <items>
                       <item translatable="yes">Nearest Neighbor</item>
-                      <item translatable="yes">Bilinear (default)</item>
+                      <item translatable="yes">Bilinear</item>
                       <item translatable="yes">Bicubic</item>
                       <item translatable="yes">Pixel Area Relation</item>
                       <item translatable="yes">Lanczos-4</item>
                     </items>
+                    <signal name="changed" handler="on_combo_interpolation_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -15800,6 +15802,30 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                     <property name="top-attach">0</property>
                   </packing>
                 </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <!-- n-columns=2 n-rows=2 -->
+              <object class="GtkGrid" id="grid_scale_clamping">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Clamping factor:</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkCheckButton" id="toggle_scale_clamp">
                     <property name="label" translatable="yes">Interpolation clamping</property>
@@ -15813,19 +15839,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
-                    <property name="top-attach">4</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="halign">start</property>
-                    <property name="label" translatable="yes">Clamping factor:</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">5</property>
+                    <property name="top-attach">0</property>
                   </packing>
                 </child>
                 <child>
@@ -15835,15 +15849,14 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                     <property name="tooltip-text" translatable="yes">Strength of clamping factor applied to Bicubic and Lanczos4 interpolation, between 0.0 and 1.0.</property>
                     <property name="halign">end</property>
                     <property name="valign">center</property>
-                    <property name="text" translatable="yes">0</property>
+                    <property name="text" translatable="yes">0,50</property>
                     <property name="adjustment">clamp_adjustment</property>
                     <property name="digits">2</property>
                     <property name="value">0.5</property>
-                    <signal name="value-changed" handler="on_scale_rot_clamp_value_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
-                    <property name="top-attach">5</property>
+                    <property name="top-attach">1</property>
                   </packing>
                 </child>
                 <child>
@@ -15853,7 +15866,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">1</property>
               </packing>
             </child>
           </object>
@@ -16047,14 +16060,15 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                 <property name="halign">end</property>
                 <property name="valign">center</property>
                 <property name="hexpand">True</property>
-                <property name="active">3</property>
+                <property name="active">4</property>
                 <items>
                   <item translatable="yes">Nearest Neighbor</item>
-                  <item translatable="yes">Bilinear (default)</item>
+                  <item translatable="yes">Bilinear</item>
                   <item translatable="yes">Bicubic</item>
                   <item translatable="yes">Pixel Area Relation</item>
                   <item translatable="yes">Lanczos-4</item>
                 </items>
+                <signal name="changed" handler="on_combo_interpolation_rotation_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -16070,26 +16084,8 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           </packing>
         </child>
         <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="hexpand">True</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
-        <child>
           <!-- n-columns=2 n-rows=2 -->
-          <object class="GtkGrid">
+          <object class="GtkGrid" id="grid_rot_clamping">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
@@ -16114,7 +16110,6 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                 <property name="adjustment">clamp_adjustment</property>
                 <property name="digits">2</property>
                 <property name="value">0.5</property>
-                <signal name="value-changed" handler="on_spin_rot_clamp_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">1</property>
@@ -20308,7 +20303,6 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="adjustment">clamp_adjustment</property>
                                                             <property name="digits">2</property>
                                                             <property name="value">0.5</property>
-                                                            <signal name="value-changed" handler="on_spin_reg_clamp_value_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>

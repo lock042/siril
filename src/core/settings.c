@@ -126,7 +126,9 @@ preferences pref_init = {
 		.position_compass = 1,
 		.selection_guides = 0,
 		.reg_settings = 0,
-		.reg_interpolation = OPENCV_AREA,
+		.reg_interpolation = OPENCV_LANCZOS4,
+		.reg_clamping = TRUE,
+		.reg_clamping_value = 0.5,
 		.pm_presets = NULL
 	},
 	.debayer = {
@@ -265,6 +267,8 @@ struct settings_access all_settings[] = {
 
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected registration method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
+	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
+	{ "gui_registration", "clamping_value", STYPE_DOUBLE, N_("value of the clamping"), &com.pref.gui.reg_clamping_value, { .range_double = { 0., 1. } } },
 
 	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, 4 } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },
