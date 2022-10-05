@@ -323,6 +323,11 @@ int generate_synthstars(fits *fit) {
 		if (!get_thread_run())
 			stopcalled = TRUE;
 		if (!stopcalled) {
+			// Avoid potential calloc failure if a star with a bad solution
+			// somehow gets into the list: a fwhm of 256 is already excessive
+			// so we can safely ignore any stars with fwhm greater than this.
+			if (stars[n]->fwhmx > 256 || stars[n]->fwhmy > 256)
+				continue;
 			float lum = (float) stars[n]->A;
 			if (lum < 0.0f)
 				lum = 0.0f;
