@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -20184,6 +20184,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="spacing">6</property>
                                                             <child>
                                                             <object class="GtkLabel" id="preproseqname_label1">
                                                             <property name="visible">True</property>
@@ -20229,6 +20230,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="spacing">6</property>
                                                             <child>
                                                             <object class="GtkLabel" id="GtkLabelRegAlgo">
                                                             <property name="visible">True</property>
@@ -20276,9 +20278,10 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox">
+                                                            <object class="GtkBox" id="box_reg_clamping">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="spacing">6</property>
                                                             <child>
                                                             <object class="GtkCheckButton" id="toggle_reg_clamp">
                                                             <property name="label" translatable="yes">Interpolation clamping</property>
