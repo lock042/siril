@@ -20303,6 +20303,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="adjustment">clamp_adjustment</property>
                                                             <property name="digits">2</property>
                                                             <property name="value">0.5</property>
+                                                            <signal name="value-changed" handler="on_spin_reg_clamp_value_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>

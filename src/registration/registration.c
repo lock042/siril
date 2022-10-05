@@ -779,7 +779,14 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 void on_toggle_reg_clamp_toggled(GtkToggleButton *button, gpointer user_data) {
-	gtk_widget_set_sensitive(lookup_widget("spin_reg_clamp"), gtk_toggle_button_get_active(button));
+	gboolean active = gtk_toggle_button_get_active(button);
+	gtk_widget_set_sensitive(lookup_widget("spin_reg_clamp"), active);
+
+	com.pref.gui.reg_clamping = active;
+}
+
+void on_spin_reg_clamp_value_changed(GtkSpinButton *button, gpointer user_data) {
+	com.pref.gui.reg_clamping_value = gtk_spin_button_get_value(button);
 }
 
 void on_ComboBoxRegInter_changed(GtkComboBox *box, gpointer user_data) {
