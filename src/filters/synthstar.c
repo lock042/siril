@@ -562,6 +562,9 @@ int reprofile_saturated_stars(fits *fit) {
 			// Check if stop has been pressed
 			if (!get_thread_run())
 				stopcalled = TRUE;
+			// Sanity check to avoid risk of buffer overflows
+			if (stars[n]->fwhmx > 256 || stars[n]->fwhmy > 256)
+				continue;
 			if (stars[n]->has_saturated && !stopcalled) {
 				float lum = (float) stars[n]->A;
 				float bg = (float) stars[n]->B;
