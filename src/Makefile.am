@@ -44,6 +44,8 @@ siril_common_SOURCES = \
 	algos/extraction.h \
 	algos/demosaicing.c \
 	algos/demosaicing.h \
+	algos/fitmoffat.c \
+	algos/fitmoffat.h \
 	algos/fix_xtrans_af.c \
 	algos/fix_xtrans_af.h \
 	algos/geometry.c \

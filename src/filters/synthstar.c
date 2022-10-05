@@ -27,6 +27,7 @@
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "algos/colors.h"
+#include "algos/fitmoffat.h"
 #include "algos/median_fast.h"
 #include "algos/star_finder.h"
 #include "algos/PSF.h"
@@ -315,7 +316,6 @@ int generate_synthstars(fits *fit) {
 					buf[BLAYER][i], 0.f, &H[i], &S[i], &junk);
 		}
 	}
-
 	gboolean stopcalled = FALSE;
 	// Synthesize a PSF for each star in the star array s, based on its measured parameters
 	for (int n = 0; n < nb_stars; n++) {
@@ -323,6 +323,11 @@ int generate_synthstars(fits *fit) {
 		if (!get_thread_run())
 			stopcalled = TRUE;
 		if (!stopcalled) {
+
+			if (!stars[n]->has_saturated && stars[n]->sx * stars[n]->sy > 8) {
+				fit_moffat_profile(fit, stars[n]);
+			}
+
 			float lum = (float) stars[n]->A;
 			if (lum < 0.0f)
 				lum = 0.0f;

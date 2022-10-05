@@ -26,6 +26,7 @@ src_files = [
   'algos/demosaicing.c',
   'algos/demosaicing_rtp.cpp',
   'algos/extraction.c',
+  'algos/fitmoffat.c',
   'algos/fix_xtrans_af.c',
   'algos/geometry.c',
   'algos/io_wave.c',
