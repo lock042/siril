@@ -4951,6 +4951,9 @@ int process_register(int nb) {
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"), "green", method->name);
 	free(method);
 	msg[strlen(msg) - 1] = '\0';
+
+	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE || reg_args->no_output)
+		reg_args->clamp = FALSE;
 	if (reg_args->clamp)
 		siril_log_message(_("Interpolation clamping: %.1lf\n"), reg_args->clamping_factor);
 
@@ -5230,6 +5233,11 @@ int process_seq_applyreg(int nb) {
 
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+
+	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
+		reg_args->clamp = FALSE;
+	if (reg_args->clamp)
+		siril_log_message(_("Interpolation clamping: %.1lf\n"), reg_args->clamping_factor);
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
 
