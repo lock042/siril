@@ -482,14 +482,25 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	// OpenCV function
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-		Mat guide, mask;
+		Mat guide, tmp1, tmp2;
 		// Create guide image
 		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
 		// Compare the two, replace out pixels with guide pixels if too far out
-		compare(out, (guide * clamping_factor), mask, CMP_LT);
-		guide.copyTo(out, mask);
-		mask.release();
+		Sobel(guide, tmp1, -1, 2, 0, 3, 3, 1, BORDER_DEFAULT);
+		Sobel(guide, tmp2, -1, 0, 2, 3, 3, 1, BORDER_DEFAULT);
+		double gradmax;
+		if (in.type() == CV_16UC3)
+			gradmax = 1000;
+		else
+			gradmax = 0.01525878;
+		tmp1 = ((tmp1 + tmp2) / 2) > gradmax;
+		tmp2 = out < (guide * clamping_factor);
+		dilate(tmp2, tmp2, Mat(), Point(-1,-1),1);
+		bitwise_and(tmp1, tmp1, tmp2 = tmp2);
+		guide.copyTo(out, tmp1);
 		guide.release();
+		tmp1.release();
+		tmp2.release();
 	}
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
