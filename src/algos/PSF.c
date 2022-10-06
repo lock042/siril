@@ -241,7 +241,7 @@ static int psf_Gaussian_f_an(const gsl_vector * x, void *PSF_data,
 
 	for (i = 0; i < NbRows; i++) {
 		for (j = 0; j < NbCols; j++) {
-			if (mask[NbCols * i + j]) { 
+			if (mask[NbCols * i + j]) {
 				tmpx = cos(alpha) * (j + 0.5 - x0) - sin(alpha) * (i + 0.5 - y0) + x0;
 				tmpy = sin(alpha) * (j + 0.5 - x0) + cos(alpha) * (i + 0.5 - y0) + y0;
 				tmpc = exp(-(SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY));
@@ -275,7 +275,7 @@ static int psf_Gaussian_df_an(const gsl_vector * x, void *PSF_data,
 
 	for (i = 0; i < NbRows; i++) {
 		for (j = 0; j < NbCols; j++) {
-			if (mask[NbCols * i + j]) { 
+			if (mask[NbCols * i + j]) {
 				tmpx = cos(alpha) * (j + 0.5 - x0) - sin(alpha) * (i + 0.5 - y0) + x0;
 				tmpy = sin(alpha) * (j + 0.5 - x0) + cos(alpha) * (i + 0.5 - y0) + y0;
 				s = sigma[k];
@@ -307,6 +307,93 @@ static int psf_Gaussian_fdf_an(const gsl_vector * x, void *PSF_data,
 		gsl_vector * f, gsl_matrix * J) {
 	psf_Gaussian_f_an(x, PSF_data, f);
 	psf_Gaussian_df_an(x, PSF_data, J);
+	return GSL_SUCCESS;
+}
+
+/* Moffat */
+/* No angle */
+static int psf_Moffat_f(const gsl_vector * x, void *PSF_data, gsl_vector * f) {
+	size_t NbRows = ((struct PSF_data *) PSF_data)->NbRows;
+	size_t NbCols = ((struct PSF_data *) PSF_data)->NbCols;
+	size_t n = ((struct PSF_data *) PSF_data)->n;
+	size_t i, j, k = 0;
+	double *y = ((struct PSF_data *) PSF_data)->y;
+	double *sigma = ((struct PSF_data *) PSF_data)->sigma;
+	gboolean *mask = ((struct PSF_data *) PSF_data)->mask;
+	double B = gsl_vector_get(x, 0);
+	double A = gsl_vector_get(x, 1);
+	double x0 = gsl_vector_get(x, 2);
+	double y0 = gsl_vector_get(x, 3);
+	double SX = gsl_vector_get(x, 4);
+	double SY = gsl_vector_get(x, 5);
+	double beta = gsl_vector_get(x, 6);
+	double tmpx, tmpy, tmpc, sumres = 0.;
+
+	for (i = 0; i < NbRows; i++) {
+		for (j = 0; j < NbCols; j++) {
+			if (mask[NbCols * i + j]) {
+				tmpx = j + 0.5;
+				tmpy = i + 0.5;
+				tmpc = pow(1 + (SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY), -beta);
+				gsl_vector_set(f, k,
+						(B + A * tmpc - y[k]) / sigma[k]);
+				sumres += (B + A * tmpc - y[k])
+						* (B + A * tmpc - y[k]);
+				k++;
+			}
+		}
+	}
+	((struct PSF_data *) PSF_data)->rmse = sqrt(sumres / n);
+	return GSL_SUCCESS;
+}
+
+static int psf_Moffat_df(const gsl_vector * x, void *PSF_data, gsl_matrix * J) {
+	size_t NbRows = ((struct PSF_data *) PSF_data)->NbRows;
+	size_t NbCols = ((struct PSF_data *) PSF_data)->NbCols;
+	size_t i, j, k = 0;
+	double *sigma = ((struct PSF_data *) PSF_data)->sigma;
+	gboolean *mask = ((struct PSF_data *) PSF_data)->mask;
+	double A = gsl_vector_get(x, 1);
+	double x0 = gsl_vector_get(x, 2);
+	double y0 = gsl_vector_get(x, 3);
+	double SX = gsl_vector_get(x, 4);
+	double SY = gsl_vector_get(x, 5);
+	double beta = gsl_vector_get(x, 6);
+	double tmpx, tmpy, tmpc, tmpd, tmpe, tmpf, tmpg;
+
+	for (i = 0; i < NbRows; i++) {
+		for (j = 0; j < NbCols; j++) {
+			if (mask[NbCols * i + j]) {
+				tmpx = j + 0.5;
+				tmpy = i + 0.5;
+				double s = sigma[k];
+				tmpc = pow(1 + (SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY), -beta);
+				tmpd = 1.0 / ((SX + SY) * pow(1 + (SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY), beta));
+				tmpe = SQR(tmpc);
+				tmpf = pow(SQR(tmpy-y0)/SY + SQR(tmpx-x0)/SX,beta-1);
+				gsl_matrix_set(J, k, 0, 1. / s); // d/dB
+				gsl_matrix_set(J, k, 1, tmpc / s); // d/dA
+				tmpg = A * beta * 2 * (tmpx-x0) * tmpe * tmpf / SX;
+				gsl_matrix_set(J, k, 2, tmpg / s); // d/dx0
+				tmpg = A * beta * 2 * (tmpy-y0) * tmpe * tmpf / SX;
+				gsl_matrix_set(J, k, 3, tmpg / s); // d/dy0
+				tmpg = A * beta * SQR(tmpx-x0) * tmpf * tmpe / SQR(SX);
+				gsl_matrix_set(J, k, 4, tmpg / s); // d/dSX
+				tmpg = A * beta * SQR(tmpy-y0) * tmpf * tmpe / SQR(SY);
+				gsl_matrix_set(J, k, 5, tmpg / s); // d/dSY
+				tmpg = - A * tmpe * log(SQR(tmpy-y0)/SY + SQR(tmpx-x0)/SX) * pow(SQR(tmpy-y0)/SY + SQR(tmpx-x0)/SX,beta);
+				gsl_matrix_set(J, k, 6, tmpg / s); // d/dbeta
+				k++;
+			}
+		}
+	}
+	return GSL_SUCCESS;
+}
+
+static int psf_Moffat_fdf(const gsl_vector * x, void *PSF_data, gsl_vector * f,
+		gsl_matrix * J) {
+	psf_Moffat_f(x, PSF_data, f);
+	psf_Moffat_df(x, PSF_data, J);
 	return GSL_SUCCESS;
 }
 
@@ -435,6 +522,163 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 	psf->y0 = FIT(3);
 	psf->sx = FIT(4);
 	psf->sy = FIT(5);
+	psf->fwhmx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMx with regards to the Sx parameter
+	psf->fwhmy = sqrt(FIT(5) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMy with regards to the Sy parameter
+	psf->fwhmx_arcsec = -1.0;
+	psf->fwhmy_arcsec = -1.0;
+	psf->angle = 0;	//The angle is not fitted here
+	// Units
+	psf->units = "px";
+	// Magnitude
+	psf->mag = psf_get_mag(z, psf->B);
+	psf->phot = NULL;
+	psf->phot_is_valid = FALSE;
+	// RMSE
+	psf->rmse = d.rmse;
+	// absolute uncertainties
+	psf->B_err = ERR(0) / FIT(0);
+	psf->A_err = ERR(1) / FIT(1);
+	psf->x_err = ERR(2) / FIT(2);
+	psf->y_err = ERR(3) / FIT(3);
+	psf->sx_err = ERR(4) / FIT(4);
+	psf->sy_err = ERR(5) / FIT(5);
+	psf->ang_err = 0;
+	psf->xpos = 0;		// will be set by the peaker
+	psf->ypos = 0;
+	// we free the memory
+free_and_exit:
+	if(sigma) free(sigma);
+	if (y) free(y);
+	if (mask) free(mask);
+	if (MaxV) gsl_vector_free(MaxV);
+	if (s) gsl_multifit_fdfsolver_free(s);
+	if (covar) gsl_matrix_free(covar);
+	return psf;
+}
+
+static psf_star *psf_moffat_minimiz_no_angle(gsl_matrix* z, double background, double sat, int convergence, psf_error *error) {
+	size_t i, j, k = 0;
+	size_t NbRows = z->size1; //characteristics of the selection : height and width
+	size_t NbCols = z->size2;
+	const size_t p = 7;			// Number of parameters fitted (same as Gaussian but with beta added)
+	int status;
+	unsigned int iter = 0;
+	gboolean *mask = NULL;
+	gsl_vector *MaxV = NULL;
+	gsl_matrix *covar = NULL;
+	double *y = NULL, *sigma = NULL;
+	psf_star *psf = NULL;
+	gsl_multifit_fdfsolver *s = NULL;
+	gsl_multifit_function_fdf f;
+	const gsl_multifit_fdfsolver_type *T;
+	int max_iter;
+
+	if (error) *error = PSF_NO_ERR;
+	// computing the mask to discard clipped values
+	mask = malloc(NbRows * NbCols * sizeof(gboolean));
+	if (!mask) {
+		PRINT_ALLOC_ERR;
+		if (error) *error = PSF_ERR_ALLOC;
+		goto free_and_exit;
+	}
+	for (i = 0; i < NbRows; i++) {
+		for (j = 0; j < NbCols; j++) {
+			mask[NbCols * i + j] = gsl_matrix_get(z, i, j) < sat;
+			if (mask[NbCols * i + j]) k++;
+		}
+	}
+
+	const size_t n = k;
+	if (n <= p) { // could happen if star is mostly saturated (hand-selection case)
+		if (error) *error = PSF_ERR_WINDOW_TOO_SMALL;
+		goto free_and_exit;
+	}
+	max_iter = MAX_ITER_NO_ANGLE * ((k < NbRows * NbCols) ? 3 : 1) * convergence;
+
+	MaxV = psf_init_data(z, background);
+	if (!MaxV) {
+		PRINT_ALLOC_ERR;
+		if (error) *error = PSF_ERR_ALLOC;
+		goto free_and_exit;
+	}
+
+	covar = gsl_matrix_alloc(p, p);
+	y = malloc(n * sizeof(double));
+	sigma = malloc(n * sizeof(double));
+	psf = new_psf_star();
+	if (!y || !covar || !sigma || !psf) {
+		PRINT_ALLOC_ERR;
+		if (error) *error = PSF_ERR_ALLOC;
+		if (psf) free_psf(psf);
+		psf = NULL;
+		goto free_and_exit;
+	}
+
+	struct PSF_data d = { n, y, sigma, NbRows, NbCols, 0 , mask};
+	double x_init[] = { background, gsl_vector_get(MaxV, 2), gsl_vector_get(
+			MaxV, 0), gsl_vector_get(MaxV, 1), gsl_vector_get(MaxV, 4),
+			gsl_vector_get(MaxV, 3), 2.0 }; // Wild stab in the dark at beta
+	gsl_vector_view x = gsl_vector_view_array(x_init, p);
+
+	f.f = &psf_Moffat_f;
+	f.df = &psf_Moffat_df;
+	f.fdf = &psf_Moffat_fdf;
+	f.n = n;
+	f.p = p;
+	f.params = &d;
+
+	k = 0;
+	for (i = 0; i < NbRows; i++) {
+		for (j = 0; j < NbCols; j++) {
+			if (mask[NbCols * i + j]) {
+				y[k] = gsl_matrix_get(z, i, j);
+				sigma[k] = 1.0;
+				k++;
+			}
+		}
+	}
+	g_assert(k == n);
+	T = gsl_multifit_fdfsolver_lmsder;
+	s = gsl_multifit_fdfsolver_alloc(T, n, p);
+	gsl_multifit_fdfsolver_set(s, &f, &x.vector);
+
+	do {
+		iter++;
+		status = gsl_multifit_fdfsolver_iterate(s);
+		if (status)
+			break;
+		status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
+	} while (status == GSL_CONTINUE && iter < max_iter);
+
+	if (status != GSL_SUCCESS) {
+		if (error) *error = PSF_ERR_DIVERGED;
+		free_psf(psf);
+		psf = NULL;
+		goto free_and_exit;
+	}
+
+#if HAVE_GSL_1
+	gsl_multifit_covar(s->J, 0.0, covar);
+#elif HAVE_GSL_2
+	gsl_matrix * J = gsl_matrix_alloc(n, p);
+
+	gsl_multifit_fdfsolver_jac(s, J);
+	gsl_multifit_covar(J, 0.0, covar);
+
+	gsl_matrix_free(J);
+#endif
+
+#define FIT(i) gsl_vector_get(s->x, i)
+#define ERR(i) sqrt(gsl_matrix_get(covar,i,i))	//for now, errors are not displayed
+
+	/* Output structure with parameters fitted */
+	psf->B = FIT(0);
+	psf->A = FIT(1);
+	psf->x0 = FIT(2);
+	psf->y0 = FIT(3);
+	psf->sx = FIT(4);
+	psf->sy = FIT(5);
+	fprintf(stdout,"beta: %lf, error: %lf\n", FIT(6), ERR(6)/FIT(6));
 	psf->fwhmx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMx with regards to the Sx parameter
 	psf->fwhmy = sqrt(FIT(5) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMy with regards to the Sy parameter
 	psf->fwhmx_arcsec = -1.0;
@@ -742,7 +986,11 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 	gboolean photometry_computed = FALSE;
 
 	// To compute good starting values, we first compute with no angle
-	if ((psf = psf_minimiz_no_angle(z, bg, sat, convergence, error))) {
+
+// *** Note: following line changed for testing purposes *** //
+
+	if ((psf = psf_moffat_minimiz_no_angle(z, bg, sat, convergence, error))) {
+//                 ^^^^^^^
 		if (fit_angle && fabs(psf->sx - psf->sy) > EPSILON) {
 			/* The  check above is to avoid possible angle divergence
 			 * when sx and sy are too close (star is quite round).
