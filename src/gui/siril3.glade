@@ -20283,7 +20283,13 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms</property>
+                                                            <property name="tooltip-text" translatable="yes">Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms
+
+The main issue of Lanczos and Bicubic interpolation algorithms is the generation of strong undershot artifacts (ringing). These artifacts are caused by the negative lobes of the interpolation functions falling on high contrast edges and isolated bright pixels (like in the stars). This usually only occurs with linear data.
+
+In current Siril implementations, we have included a clamping mechanism that prevents negative interpolated values and ringing artifacts for most images. This parameter represents a threshold value to trigger interpolation clamping.
+
+A lower value leads to a more aggressive clamping.</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
                                                             <signal name="toggled" handler="on_toggle_reg_clamp_toggled" swapped="no"/>
