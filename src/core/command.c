@@ -98,6 +98,7 @@
 #include "algos/siril_wcs.h"
 #include "algos/geometry.h"
 #include "opencv/opencv.h"
+#include "opencv/tracks.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"

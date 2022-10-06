@@ -367,6 +367,8 @@ siril_common_SOURCES += \
 	io/avi_pipp/avi_writer.h \
 	opencv/opencv.cpp \
 	opencv/opencv.h \
+	opencv/tracks.cpp \
+	opencv/tracks.h \
 	opencv/kombat/kombat.cpp \
 	opencv/kombat/kombat.h \
 	core/exif.cpp \
