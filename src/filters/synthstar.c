@@ -27,7 +27,6 @@
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "algos/colors.h"
-#include "algos/fitmoffat.h"
 #include "algos/median_fast.h"
 #include "algos/star_finder.h"
 #include "algos/PSF.h"
@@ -323,11 +322,6 @@ int generate_synthstars(fits *fit) {
 		if (!get_thread_run())
 			stopcalled = TRUE;
 		if (!stopcalled) {
-
-			if (!stars[n]->has_saturated && stars[n]->sx * stars[n]->sy > 8) {
-				fit_moffat_profile(fit, stars[n]);
-			}
-
 			float lum = (float) stars[n]->A;
 			if (lum < 0.0f)
 				lum = 0.0f;

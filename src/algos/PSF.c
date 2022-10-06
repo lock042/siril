@@ -988,7 +988,7 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 	// To compute good starting values, we first compute with no angle
 
 // *** Note: following line changed for testing purposes *** //
-
+	fit_angle = FALSE; // for testing purposes //
 	if ((psf = psf_moffat_minimiz_no_angle(z, bg, sat, convergence, error))) {
 //                 ^^^^^^^
 		if (fit_angle && fabs(psf->sx - psf->sy) > EPSILON) {
