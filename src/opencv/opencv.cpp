@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2015 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -486,18 +486,57 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 		// Create guide image
 		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
 		// Compare the two, replace out pixels with guide pixels if too far out
-		Sobel(guide, tmp1, -1, 2, 0, 3, 3, 1, BORDER_DEFAULT);
-		Sobel(guide, tmp2, -1, 0, 2, 3, 3, 1, BORDER_DEFAULT);
-		double gradmax;
-		if (in.type() == CV_16UC3)
-			gradmax = 1000;
-		else
-			gradmax = 0.01525878;
-		tmp1 = ((tmp1 + tmp2) / 2) > gradmax;
-		tmp2 = out < (guide * clamping_factor);
-		dilate(tmp2, tmp2, Mat(), Point(-1,-1),1);
-		bitwise_and(tmp1, tmp1, tmp2 = tmp2);
-		guide.copyTo(out, tmp1);
+		Sobel(guide, tmp1, CV_16U, 2, 0, 3, 3, 1, BORDER_DEFAULT);
+		Sobel(guide, tmp2, CV_16U, 0, 2, 3, 3, 1, BORDER_DEFAULT);
+		tmp1 = (tmp1 / 2 + tmp2 / 2);
+		// tmp2 is the mask for the areas of high gradient change
+		tmp2 = (tmp1 > 4000);
+
+		// Detect neighbourhoods around undershot pixels
+
+// Disabled at the moment, not this means the GUI parameter currently does
+// nothing. It might be useful to tune the gradient mask cutoff though
+
+//		compare(out, (guide * clamping_factor), tmp1, CMP_LT);
+//		dilate(tmp1, tmp1, Mat(), Point(-1,-1),1);
+		// And with the Sobel mask, this makes tmp2 the mask for the guide data
+//		bitwise_and(tmp1, tmp2, tmp2);
+
+		// This makes tmp1 the mask for the original lanczos4 data
+		bitwise_not(tmp2, tmp1);
+		// Convert masks to the same bitformat as the data
+		switch(out.type()) {
+			case CV_16UC1:
+				tmp1.convertTo(tmp1, CV_16UC1, 65535);
+				tmp2.convertTo(tmp2, CV_16UC1, 65535);
+				bitwise_and(tmp2, guide, guide);
+				bitwise_and(tmp1, out, out);
+				break;
+			case CV_16UC3:
+				tmp1.convertTo(tmp1, CV_16UC3, 65535);
+				tmp2.convertTo(tmp2, CV_16UC3, 65535);
+				bitwise_and(tmp2, guide, guide);
+				bitwise_and(tmp1, out, out);
+				break;
+			case CV_32FC1:
+				tmp1.convertTo(tmp1, CV_32FC1);
+				tmp2.convertTo(tmp2, CV_32FC1);
+				guide = guide.mul(tmp2);
+				out = out.mul(tmp1);
+				break;
+			case CV_32FC3:
+				tmp1.convertTo(tmp1, CV_32FC3);
+				tmp2.convertTo(tmp2, CV_32FC3);
+				guide = guide.mul(tmp2);
+				out = out.mul(tmp1);
+				break;
+		}
+		out = out + guide;
+		if (out.type() == CV_32FC1 || out.type() == CV_32FC3) {
+			double min, max;
+			minMaxIdx(out, &min, &max);
+			out = out / max;
+		}
 		guide.release();
 		tmp1.release();
 		tmp2.release();
