@@ -27,7 +27,6 @@
 #include <iostream>
 #include <iomanip>
 #include <opencv2/core/core.hpp>
-#include <opencv2/core/cuda.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "opencv2/core/version.hpp"
 #define CV_RANSAC FM_RANSAC
@@ -158,7 +157,6 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 		free(image->data);
 		free(image->fdata);
 	}
-	fprintf(stdout, "Test: cuda count = %d\n", cuda::getCudaEnabledDeviceCount());
 
 	size_t ndata = target_rx * target_ry;
 	if (image->type == DATA_USHORT) {

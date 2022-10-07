@@ -21,6 +21,14 @@ struct fwhm_struct {
 	int R; /* Optimized box sixe to enclose sufficient pixels in the background */
 	gboolean has_saturated;
 
+	// Moffat parameters
+	double beta; /* Moffat equation beta parameter */
+	double MoffRx; /* Moffat radius[x]. Not exact equivalent to FWHMx so stored separately */
+	double MoffRy; /* Moffat radius[y]. Not exact equivalent to FWHMy so stored separately */
+	double MoffRmse;
+	gboolean moffat; // FALSE for Gaussian, TRUE for Moffat based on whether a Moffat fit is achieved
+	// The other parameters B, A, x0, y0, angle, rmse, sat... are the same as for Gaussian
+
 	double xpos, ypos; /* position of the star in the image, not set by Minimization */
 
 	/* photometry data - mag, s_mag and SNR are copied from phot if phot_is_valid,
@@ -38,6 +46,7 @@ struct fwhm_struct {
 	double x_err, y_err;
 	double sx_err, sy_err;
 	double ang_err;
+	double beta_err;
 
 	int layer;
 	char* units;

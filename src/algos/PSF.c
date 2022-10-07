@@ -556,7 +556,7 @@ free_and_exit:
 	return psf;
 }
 
-static psf_star *psf_moffat_minimiz_no_angle(gsl_matrix* z, double background, double sat, int convergence, psf_error *error) {
+static psf_star *psf_minimiz_moffat(psf_star *psf, gsl_matrix* z, double background, double sat, int convergence, psf_error *error) {
 	size_t i, j, k = 0;
 	size_t NbRows = z->size1; //characteristics of the selection : height and width
 	size_t NbCols = z->size2;
@@ -567,7 +567,6 @@ static psf_star *psf_moffat_minimiz_no_angle(gsl_matrix* z, double background, d
 	gsl_vector *MaxV = NULL;
 	gsl_matrix *covar = NULL;
 	double *y = NULL, *sigma = NULL;
-	psf_star *psf = NULL;
 	gsl_multifit_fdfsolver *s = NULL;
 	gsl_multifit_function_fdf f;
 	const gsl_multifit_fdfsolver_type *T;
@@ -672,36 +671,13 @@ static psf_star *psf_moffat_minimiz_no_angle(gsl_matrix* z, double background, d
 #define ERR(i) sqrt(gsl_matrix_get(covar,i,i))	//for now, errors are not displayed
 
 	/* Output structure with parameters fitted */
-	psf->B = FIT(0);
-	psf->A = FIT(1);
-	psf->x0 = FIT(2);
-	psf->y0 = FIT(3);
-	psf->sx = FIT(4);
-	psf->sy = FIT(5);
-	fprintf(stdout,"beta: %lf, error: %lf\n", FIT(6), ERR(6)/FIT(6));
-	psf->fwhmx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMx with regards to the Sx parameter
-	psf->fwhmy = sqrt(FIT(5) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMy with regards to the Sy parameter
-	psf->fwhmx_arcsec = -1.0;
-	psf->fwhmy_arcsec = -1.0;
-	psf->angle = 0;	//The angle is not fitted here
-	// Units
-	psf->units = "px";
-	// Magnitude
-	psf->mag = psf_get_mag(z, psf->B);
-	psf->phot = NULL;
-	psf->phot_is_valid = FALSE;
-	// RMSE
-	psf->rmse = d.rmse;
+	psf->moffat = TRUE;
+	psf->beta = FIT(6);
+	psf->MoffRx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Moffat characteristic width
+	psf->MoffRy = sqrt(FIT(5) / 2.) * 2 * sqrt(log(2.) * 2);	//Moffat characteristic width
+	psf->MoffRmse = d.rmse;
 	// absolute uncertainties
-	psf->B_err = ERR(0) / FIT(0);
-	psf->A_err = ERR(1) / FIT(1);
-	psf->x_err = ERR(2) / FIT(2);
-	psf->y_err = ERR(3) / FIT(3);
-	psf->sx_err = ERR(4) / FIT(4);
-	psf->sy_err = ERR(5) / FIT(5);
-	psf->ang_err = 0;
-	psf->xpos = 0;		// will be set by the peaker
-	psf->ypos = 0;
+	psf->beta_err = ERR(6) / FIT(6);
 	// we free the memory
 free_and_exit:
 	if(sigma) free(sigma);
@@ -984,13 +960,13 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 	psf_star *psf;
 	if (error) *error = PSF_NO_ERR;
 	gboolean photometry_computed = FALSE;
+	gboolean fit_moffat = TRUE; // Hardwired for testing purposes
 
 	// To compute good starting values, we first compute with no angle
 
-// *** Note: following line changed for testing purposes *** //
-	fit_angle = FALSE; // for testing purposes //
-	if ((psf = psf_moffat_minimiz_no_angle(z, bg, sat, convergence, error))) {
-//                 ^^^^^^^
+	psf = psf_minimiz_no_angle(z, bg, sat, convergence, error);
+
+	if (psf) {
 		if (fit_angle && fabs(psf->sx - psf->sy) > EPSILON) {
 			/* The  check above is to avoid possible angle divergence
 			 * when sx and sy are too close (star is quite round).
@@ -1030,6 +1006,9 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 				psf->SNR = 0;
 			}
 		}
+
+		if (fit_moffat)
+			psf_minimiz_moffat(psf, z, bg, sat, convergence, error);
 
 		// Solve symmetry problem in order to have Sx>Sy in any case !!!
 		if (psf->sy > psf->sx) {
