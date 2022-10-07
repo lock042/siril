@@ -6102,6 +6102,7 @@ int process_detect_trail(int nb) {
 			siril_log_color_message(_("Detection threshold is lower than median value.\n"), "salmon");
 		}
 		free_stats(stat);
+		siril_debug_print("threshold is %f\n", threshold);
 
 		struct track *tracks;
 		nblines = cvHoughLines(&gfit, layer, threshold, minlen, &tracks);
