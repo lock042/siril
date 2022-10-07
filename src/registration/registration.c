@@ -178,6 +178,8 @@ void initialize_registration_methods() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("ComboBoxRegInter")), com.pref.gui.reg_interpolation);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")), com.pref.gui.reg_clamping);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_reg_clamp")), com.pref.gui.reg_clamping_value);
+	gtk_widget_set_sensitive(lookup_widget("box_reg_clamping"),
+			com.pref.gui.reg_interpolation == OPENCV_LANCZOS4 || com.pref.gui.reg_interpolation == OPENCV_CUBIC);
 
 	/* register to the new area selected event */
 	register_selection_update_callback(_reg_selected_area_callback);
@@ -1436,6 +1438,10 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 	}
+	if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg) &&
+		(reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)) ||
+		reg_args->no_output)
+		reg_args->clamp = FALSE;
 
 	if (method->method_ptr != register_3stars) clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
 
