@@ -148,6 +148,7 @@ static void update_photometry_preferences() {
 
 static void update_analysis_preferences() {
 	com.pref.analysis.mosaic_panel = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinpanel")));
+	com.pref.analysis.mosaic_window = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinwindow")));
 }
 
 static void update_scripts_preferences() {
@@ -529,6 +530,7 @@ void update_preferences_from_model() {
 
 	/* tab 6 */
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinpanel")), pref->analysis.mosaic_panel);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinwindow")), pref->analysis.mosaic_window);
 
 	/* tab 7 */
 	pref->gui.script_path = set_list_to_preferences_dialog(pref->gui.script_path);
