@@ -1340,6 +1340,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	fill_astrometry_catalogue(com.pref.gui.catalog);
 	init_GUI_from_settings();
 
+	// init the Plot tab
+	drawPlot();
+
 	if (com.pref.gui.first_start) {
 		com.pref.gui.first_start = FALSE;
 		writeinitfile();

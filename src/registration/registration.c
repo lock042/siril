@@ -841,6 +841,16 @@ gboolean layer_has_usable_registration(sequence *seq, int layer) {
 	return TRUE;
 }
 
+int seq_has_any_regdata(sequence *seq) {
+	if (!seq || !seq->regparam || seq->nb_layers < 0)
+		return -1;
+	int i;
+	for (i = 0; i < seq->nb_layers; i++)
+		if (seq->regparam[i])
+			return i;
+	return -1;
+}
+
 /****************************************************************/
 
 #define MAX_FILTERS 5
