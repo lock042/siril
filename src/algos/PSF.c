@@ -673,18 +673,17 @@ static psf_star* psf_minimiz_moffat(gsl_matrix* z, double background, double sat
 
 //	siril_debug_print("Moffat parameters: beta %.3f, MoffRx %.3f, MoffRy %.3f\n", FIT(6), FIT(4), FIT(5));
 	/* Output structure with parameters fitted */
-	psf->moffat = TRUE;
-	if (FIT(6) <= 0.0) {
-		*error = PSF_ERR_DIVERGED;
-		goto free_and_exit;
-	}
-	psf->beta = FIT(6);
-	psf->MoffRx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Moffat characteristic width
-	psf->MoffRy = sqrt(FIT(5) / 2.) * 2 * sqrt(log(2.) * 2);	//Moffat characteristic width
-	psf->MoffRmse = d.rmse;
-	// absolute uncertainties
-	psf->beta_err = ERR(6) / FIT(6);
+	psf->moffat = FALSE;
+	if (FIT(6) > 0.0) {
+		psf->moffat = TRUE;
+		psf->beta = FIT(6);
+		psf->MoffRx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Moffat characteristic width
+		psf->MoffRy = sqrt(FIT(5) / 2.) * 2 * sqrt(log(2.) * 2);	//Moffat characteristic width
+		psf->MoffRmse = d.rmse;
+		// absolute uncertainties
+		psf->beta_err = ERR(6) / FIT(6);
 //	siril_debug_print("Moffat parameters: beta %.3f, MoffRx %.3f, MoffRy %.3f\n", psf->beta, psf->MoffRx, psf->MoffRy);
+	}
 	// we free the memory
 free_and_exit:
 	if(sigma) free(sigma);
@@ -1012,7 +1011,6 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 		}
 
 		if (fit_moffat) {
-			siril_debug_print("Fitting Moffat...\n");
 			error = 0;
 			psf_star *moff_psf = psf_minimiz_moffat(z, bg, sat, convergence, error);
 			if (!error) {
@@ -1022,7 +1020,8 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 				psf->MoffRy = moff_psf->MoffRy;
 				psf->MoffRmse = moff_psf->MoffRmse;
 				psf->beta_err = moff_psf->beta_err;
-				siril_debug_print("Moffat parameters: beta %.3f, MoffRx %.3f, MoffRy %.3f\n", psf->beta, psf->MoffRx, psf->MoffRy);
+				if (psf->beta > 0.0)
+					siril_debug_print("Moffat parameters: beta %.3f, MoffRmse %f, Gaussian rmse %f\n", psf->beta, psf->MoffRmse, psf->rmse);
 			}
 			if (moff_psf) {
 				free(moff_psf);
@@ -1100,7 +1099,7 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			result->SNR,
 			result->rmse);
 	siril_log_message(buffer);
-	if (result->moffat) {
+	if (result->moffat && result->beta > 0.0) {
 		buffer2 = g_strdup_printf(_("Moffat fitting:\n"
 			"Beta=%0.2f\n"
 			"Rx=%0.2f\n"
