@@ -25,6 +25,7 @@
 #include "core/initfile.h"
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
+#include "algos/statistics.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/dialog_preview.h"
@@ -96,6 +97,18 @@ static const _pm_op_func functions[] = {
     { "trunc", "trunc ( x )",                           N_("Truncated integer part of x.")            }
 };
 
+static const _pm_op_func image_functions[] = {
+	{ "adev",     "adev ( Image )",                    N_("Average absolute deviation of the image.")  },
+	{ "bwmv",     "bwmv ( Image )",                    N_("Biweight midvariance of the image.")        },
+	{ "mad",      "mad ( Image )",                     N_("Median absolute deviation of the image.")   },
+	{ "max",      "max ( Image )",                     N_("Pixel maximum of the image.")               },
+	{ "mean",     "mean ( Image )",                    N_("Mean of the image.")                        },
+	{ "med",      "med ( Image )",                     N_("Median of the image.")                      },
+	{ "min",      "min ( Image )",                     N_("Pixel minimum of the image.")               },
+	{ "noise",    "noise ( Image )",                   N_("Estimation of Gaussian noise in the image.")},
+	{ "sdev",     "sdev ( Image )",                    N_("Standard deviation of the image.")          }
+};
+
 static const _pm_op_func operators[] = {
     { "~",   "~x",                             N_("Pixel Inversion operator.")                        },
     { "-",   "-x",                             N_("Unary Minus operator (sign change).")              },
@@ -118,6 +131,7 @@ static const _pm_op_func operators[] = {
 };
 
 #define MAX_FUNCTIONS G_N_ELEMENTS(functions)
+#define MAX_IMAGE_FUNCTIONS G_N_ELEMENTS(image_functions)
 #define MAX_OPERATORS G_N_ELEMENTS(operators)
 
 
@@ -201,6 +215,22 @@ static void init_widgets() {
 
 }
 
+static int FnCompare_functions(const void *v1, const void *v2) {
+	const _pm_op_func *i1 = v1;
+	const _pm_op_func *i2 = v2;
+
+	return (g_strcmp0(i1->name, i2->name));
+}
+
+static _pm_op_func *concat_functions() {
+	_pm_op_func *all_functions = malloc((MAX_FUNCTIONS + MAX_IMAGE_FUNCTIONS) * sizeof(_pm_op_func));
+	memcpy(all_functions, functions, MAX_FUNCTIONS * sizeof(_pm_op_func));
+	memcpy(all_functions + MAX_FUNCTIONS, image_functions, MAX_IMAGE_FUNCTIONS * sizeof(_pm_op_func));
+
+	qsort(all_functions, MAX_FUNCTIONS + MAX_IMAGE_FUNCTIONS, sizeof(_pm_op_func), FnCompare_functions);
+
+	return all_functions;
+}
 
 static gchar* get_pixel_math_expression1() {
 	init_widgets();
@@ -428,6 +458,130 @@ static void update_metadata(fits *fit) {
 	free(f);
 }
 
+static gchar *parse_image_functions(gpointer p, int idx) {
+	struct pixel_math_data *args = (struct pixel_math_data *)p;
+
+	gchar *expression;
+	gchar **image = args->varname;
+	int nb_images = args->nb_rows;
+	switch(idx) {
+	default:
+	case 1:
+		expression = args->expression1;
+		break;
+	case 2:
+		expression = args->expression2;
+		break;
+	case 3:
+		expression = args->expression3;
+		break;
+	}
+	if (!expression) return expression;
+	for (int i = 0; i < MAX_IMAGE_FUNCTIONS; i++) {
+		/* First we need to find each occurrences of functions
+		 * Then if args->varname[i] is inside function parameters
+		 * Then apply statistics on args->varname[i]
+		 * Then transform it to numerical expression
+		 */
+		const gchar *function = image_functions[i].name;
+		int len = strlen(function);
+		int total_len = strlen(expression);
+
+		for (int pos = 0; pos < total_len - len; pos++) {
+			// Match word at current position
+			int found = 1;
+			for (int j = 0; j < len; j++) {
+				// If word is not matched
+				if (expression[pos + j] != function[j]) {
+					found = 0;
+					break;
+				}
+			}
+
+			// If word have been found then print found message
+			if (found == 1) {
+				printf("'%s' found at index: %d \n", function, pos);
+				if (expression[pos + len] == '(') {
+					for (int j = 0; j < nb_images; j++) {
+						int len2 = strlen(image[j]);
+						if (expression[pos + len + len2 + 1] == ')') {
+							// possible match
+							gchar *str = malloc(len2 + 1);
+							g_strlcpy(str, expression + pos + len + 1, len2 + 1);
+							if (!g_strcmp0(str, image[j])) {
+								imstats *stats[3];
+								gchar *replace = NULL;
+								double median = 0.0, mean = 0.0, min = 0.0,
+										max = 0.0, noise = 0.0, adev = 0.0,
+										bwmv = 0.0, mad = 0.0, sdev = 0.0;
+								int retval = compute_all_channels_statistics_single_image(&var_fit[j], STATS_MAIN, MULTI_THREADED, stats);
+								if (retval) return expression;
+								for (int chan = 0; chan < var_fit[j].naxes[2]; chan++) {
+									median += stats[chan]->median;
+									mean += stats[chan]->mean;
+									min += stats[chan]->min;
+									max += stats[chan]->max;
+									noise += stats[chan]->bgnoise;
+									adev += stats[chan]->avgDev;
+									bwmv += stats[chan]->sqrtbwmv;
+									mad += stats[chan]->mad;
+									sdev += stats[chan]->sigma;
+								}
+								median /= (double)var_fit[j].naxes[2];
+								mean /= (double)var_fit[j].naxes[2];
+								min /= (double)var_fit[j].naxes[2];
+								max /= (double)var_fit[j].naxes[2];
+								noise /= (double)var_fit[j].naxes[2];
+								adev /= (double)var_fit[j].naxes[2];
+								bwmv /= (double)var_fit[j].naxes[2];
+								mad /= (double)var_fit[j].naxes[2];
+								sdev /= (double)var_fit[j].naxes[2];
+
+								for (int chan = 0; chan < var_fit[j].naxes[2]; chan++) {
+									if (stats[chan]) free_stats(stats[chan]);
+								}
+
+								if (!g_strcmp0(function, "mean")) {
+									replace = g_strdup_printf("%g", mean);
+								} else if (!g_strcmp0(function, "med")) {
+									replace = g_strdup_printf("%g", median);
+								} else if (!g_strcmp0(function, "min")) {
+									replace = g_strdup_printf("%g", min);
+								} else if (!g_strcmp0(function, "max")) {
+									replace = g_strdup_printf("%g", max);
+								} else if (!g_strcmp0(function, "noise")) {
+									replace = g_strdup_printf("%g", noise);
+								} else if (!g_strcmp0(function, "adev")) {
+									replace = g_strdup_printf("%g", adev);
+								} else if (!g_strcmp0(function, "bxmv")) {
+									replace = g_strdup_printf("%g", bwmv);
+								} else if (!g_strcmp0(function, "mad")) {
+									replace = g_strdup_printf("%g", mad);
+								} else if (!g_strcmp0(function, "sdev")) {
+									replace = g_strdup_printf("%g", sdev);
+								}
+								if (replace) {
+									GString *string = g_string_new(expression);
+									g_string_erase(string, pos, len + len2 + 2);
+									g_string_insert(string, pos, replace);
+									g_free(expression);
+									expression = g_string_free(string, FALSE);
+									total_len = strlen(expression);
+									pos = pos + strlen(replace);
+
+									siril_debug_print("Expression: %s\n", expression);
+								}
+							}
+							free(str);
+						}
+					}
+				}
+			}
+		}
+	}
+	return expression;
+}
+
 gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
@@ -438,6 +592,10 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	args->ret = 0;
 	float maximum = -FLT_MAX;
 	float minimum = +FLT_MAX;
+
+	args->expression1 = parse_image_functions(args, 1);
+	args->expression2 = parse_image_functions(args, 2);
+	args->expression3 = parse_image_functions(args, 3);
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) firstprivate(n1,n2,n3)
@@ -743,7 +901,6 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 				_("Parameter symbols could not be parsed."));
 		return 1;
 	}
-	printf("[%s]\n", expression1);
 
 	args->expression1 = expression1;
 	args->expression2 = single_rgb ? NULL : expression2;
@@ -1063,6 +1220,8 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreePath *path = NULL;
 
+	_pm_op_func *all_functions = concat_functions();
+
 	char buffer[512];
 
 	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip,
@@ -1071,7 +1230,7 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 
 	gint real_index = get_real_index_from_index_in_list(model, &iter);
 
-	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", functions[real_index].prototype, _(functions[real_index].definition));
+	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", all_functions[real_index].prototype, _(all_functions[real_index].definition));
 	gtk_tooltip_set_markup(tooltip, buffer);
 
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
@@ -1109,10 +1268,14 @@ gboolean query_tooltip_op_tree_view_cb(GtkWidget *widget, gint x, gint y,
 static void add_functions_to_list() {
 	GtkTreeIter iter;
 
+	_pm_op_func *all_functions = concat_functions();
+
 	init_widgets();
-	for (int i = 0; i < MAX_FUNCTIONS; i++) {
+	int i = 0;
+	/* fill functions */
+	for (i = 0; i < MAX_FUNCTIONS + MAX_IMAGE_FUNCTIONS; i++) {
 		gtk_list_store_append(pixel_math_list_store_functions, &iter);
-		gtk_list_store_set(pixel_math_list_store_functions, &iter, COLUMN_NAME, functions[i].name, COLUMN_INDEX, i, -1);
+		gtk_list_store_set(pixel_math_list_store_functions, &iter, COLUMN_NAME, all_functions[i].name, COLUMN_INDEX, i, -1);
 	}
 }
 
