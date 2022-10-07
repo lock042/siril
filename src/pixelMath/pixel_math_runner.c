@@ -553,7 +553,7 @@ static gchar *parse_image_functions(gpointer p, int idx) {
 									replace = g_strdup_printf("%g", noise);
 								} else if (!g_strcmp0(function, "adev")) {
 									replace = g_strdup_printf("%g", adev);
-								} else if (!g_strcmp0(function, "bxmv")) {
+								} else if (!g_strcmp0(function, "bwmv")) {
 									replace = g_strdup_printf("%g", bwmv);
 								} else if (!g_strcmp0(function, "mad")) {
 									replace = g_strdup_printf("%g", mad);
