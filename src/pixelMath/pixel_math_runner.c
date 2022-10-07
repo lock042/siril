@@ -85,6 +85,7 @@ static const _pm_op_func functions[] = {
     { "log2",  "log2 ( x )",                            N_("Base-2 logarithm of x.")                  },
     { "max",   "max ( x, y )",                          N_("Maximum function.")                       },
     { "min",   "min ( x, y )",                          N_("Minimum function.")                       },
+    { "mtf",   "mtf ( m, x )",                          N_("Midtones Transfer Function (MTF) of x for a midtones balance parameter m in the [0, 1] range.") },
     { "ncr",   "ncr ( x, y )",                          N_("Combinations function.")                  },
     { "npr",   "npr ( x, y )",                          N_("Permutations function.")                  },
     { "pi",    "pi",                                    N_("The constant \u03c0=3.141592...")         },
@@ -523,7 +524,7 @@ static gchar *parse_image_functions(gpointer p, int idx) {
 									max += stats[chan]->max;
 									noise += stats[chan]->bgnoise;
 									adev += stats[chan]->avgDev;
-									bwmv += stats[chan]->sqrtbwmv;
+									bwmv += stats[chan]->sqrtbwmv * stats[chan]->sqrtbwmv;
 									mad += stats[chan]->mad;
 									sdev += stats[chan]->sigma;
 								}
