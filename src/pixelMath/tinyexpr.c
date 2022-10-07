@@ -190,7 +190,7 @@ static double npr(double n, double r) {return ncr(n, r) * fac(r);}
 
 static double maximum(double a, double b) {return max(a, b);}
 static double minimum(double a, double b) {return min(a, b);}
-static double mtf(double a, double b, double c, double d) {return MTF(a, b, 0.0, 1.0);}
+static double mtf(double a, double b) {return MTF(b, a, 0.0, 1.0);}
 
 static double iif(double a, double b, double c) {return a > 0.0 ? b : c;}
 
