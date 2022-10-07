@@ -19,7 +19,7 @@ using namespace cv;
 class Segment {
 	private:
 		double theta;	// in radians
-		double sin_theta;
+		//double sin_theta;
 		double theta_deg;
 		double m;
 
@@ -38,14 +38,14 @@ class Segment {
 			m = dy / dx;
 			theta = atan2(dy, dx);
 			theta_deg = theta / M_PI * 180.0;
-			sin_theta = ::sin(theta);
+			//sin_theta = ::sin(theta);
 			rho = fabs(y1 - m * x1) / sqrt(m * m + 1);
 		}
 		Segment() { };	// for vector allocation
 
 		double toDegrees() { return theta_deg; }
 		double angle() { return theta; }
-		double sin() { return sin_theta; }
+		//double sin() { return sin_theta; }
 
 		pointi start() { pointi p = { x1, y1 }; return p; }
 		pointi end() { pointi p = { x2, y2 }; return p; }
@@ -67,12 +67,12 @@ static bool onSegment(pointi a, pointi b, pointi c) {
 
 #define ANGLES_EPSILON	15.0	// degrees
 #define POS_EPSILON 11	// pixels
-#define RHO_EPSILON 2.0	// something like pixels perpendicular to lines
+#define RHO_EPSILON 7.0	// something like pixels perpendicular to lines
 // TODO: make POS_EPSILON variable, based on sampling
 
 // https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
 // prerequisite: segments[i] and segments[j] have similar angles
-static bool segments_intersect_or_almost(Segment s1, Segment s2) {
+static bool segments_intersect(Segment s1, Segment s2) {
 	pointi a = s1.start();
 	pointi b = s1.end();
 	pointi c = s2.start();
@@ -88,10 +88,16 @@ static bool segments_intersect_or_almost(Segment s1, Segment s2) {
 	if (orientABD == 0 && onSegment(a, d, b)) return true;
 	if (orientCDA == 0 && onSegment(c, a, d)) return true;
 	if (orientCDB == 0 && onSegment(c, b, d)) return true;
-	// and close colinear cases (same theta and rho, one point inside the segment of the other)
 	return false;
+}
+
+// prerequisite: segments[i] and segments[j] have similar angles
+static bool segments_are_closely_colinear(Segment s1, Segment s2) {
+	// same theta and rho, one point inside the segment of the other
 	// FIXME	v  this formula is wrong  v
-	if (fabs((s1.rho - s2.rho) * s1.sin()) > RHO_EPSILON) return false;
+	//if (fabs((s1.rho - s2.rho) * s1.sin()) > RHO_EPSILON) return false;
+	// FIXME	v  this formula is too imprecise and fails too v
+	if (fabs(s1.rho - s2.rho) > RHO_EPSILON) return false;
 	if (s2.x1 >= s1.x1 && s2.x1 <= s1.x2 && s2.y1 >= s1.y1 && s2.y1 <= s1.y2) return true;
 	if (s2.x2 >= s1.x1 && s2.x2 <= s1.x2 && s2.y2 >= s1.y1 && s2.y2 <= s1.y2) return true;
 	if (s1.x1 >= s2.x1 && s1.x1 <= s2.x2 && s1.y1 >= s2.y1 && s1.y1 <= s2.y2) return true;
@@ -142,6 +148,8 @@ static void merge_two_segments(std::vector<Segment> &segments, size_t i, size_t 
 	int x1 = segments[i].x1, x2 = segments[i].x2, y1 = segments[i].y1, y2 = segments[i].y2;
 	int x3 = segments[j].x1, x4 = segments[j].x2, y3 = segments[j].y1, y4 = segments[j].y2;
 	int newx1, newx2, newy1, newy2;
+	// FIXME this approach is not ideal because it can change X without changing Y, resulting
+	// in a different orientation if the test that requests the merge is too loose
 	if (x1 < x2) {
 		newx1 = min(x1, min(x3, x4));
 		newx2 = max(x2, max(x3, x4));
@@ -156,8 +164,7 @@ static void merge_two_segments(std::vector<Segment> &segments, size_t i, size_t 
 		newy1 = max(y1, max(y3, y4));
 		newy2 = min(y2, min(y3, y4));
 	}
-	siril_debug_print("   rho for merged was %f and %f, sin delta rho: %f\n", segments[i].rho,
-			segments[j].rho, fabs((segments[i].rho - segments[j].rho) * segments[i].sin()));
+	siril_debug_print("   rho for merged was %f and %f\n", segments[i].rho, segments[j].rho);
 	segments[i] = Segment(newx1, newy1, newx2, newy2);
 	siril_debug_print("   updated segment %zd to (%d,%d) -> (%d,%d)\n", i, newx1, newy1, newx2, newy2);
 }
@@ -176,16 +183,13 @@ static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
 	do {
 		nb_lines = new_size;
 		std::vector<bool> kept(nb_lines, true);
+		std::vector<Segment> tmpsegments(segments); // copy that will contain segments for next iteration
 		for (size_t i = 0; i < nb_lines; i++) {
-			if (!kept[i]) continue;
+			//if (!kept[i]) continue;
 			int x1 = segments[i].x1, x2 = segments[i].x2, y1 = segments[i].y1, y2 = segments[i].y2;
 			siril_debug_print("considering %ssegment %zd (%d,%d) -> (%d,%d)\n",
 					kept[i]?"":"removed ", i, x1, y1, x2, y2);
 			for (size_t j = i+1; j < nb_lines; j++) {
-				//if (!kept[j]) continue; // this may cause segments similar to removed to be kept
-				//if (i == 0 && j == 12)
-				//	siril_debug_print("rho: %f and %f, sin delta rho: %f\n", segments[i].rho,
-				//			segments[j].rho, fabs((segments[i].rho - segments[j].rho) * segments[i].sin()));
 				if (fabs(segments[i].toDegrees() - segments[j].toDegrees()) <= ANGLES_EPSILON) {
 					int x3 = segments[j].x1, x4 = segments[j].x2, y3 = segments[j].y1, y4 = segments[j].y2;
 					siril_debug_print("  looking at %ssegment %zd (%d,%d) -> (%d,%d)\n",
@@ -197,10 +201,11 @@ static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
 							(abs(x1 - x4) <= POS_EPSILON && abs(y1 - y4) <= POS_EPSILON) ||
 							(abs(x2 - x3) <= POS_EPSILON && abs(y2 - y3) <= POS_EPSILON) ||
 							// check if they intersect
-							// WARNING: this uses the new merged coordinates for i
-							segments_intersect_or_almost(segments[i], segments[j])) {
+							segments_intersect(segments[i], segments[j]) ||
+							// check if they are close enough
+							segments_are_closely_colinear(segments[i], segments[j])) {
 						if (kept[i])
-							merge_two_segments(segments, i, j);
+							merge_two_segments(tmpsegments, i, j);
 						kept[j] = false;
 						siril_debug_print("  removing %zd: (%d,%d) -> (%d,%d)\n", j, x3, y3, x4, y4);
 					}
@@ -211,7 +216,7 @@ static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
 		size_t j = 0;
 		for (size_t i = 0; i < nb_lines; i++) {
 			if (kept[i])
-				segments[j++] = segments[i];
+				segments[j++] = tmpsegments[i];
 		}
 		new_size = j;
 		for (; j < nb_lines; j++) {
