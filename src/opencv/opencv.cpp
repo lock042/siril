@@ -27,6 +27,7 @@
 #include <iostream>
 #include <iomanip>
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/cuda.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "opencv2/core/version.hpp"
 #define CV_RANSAC FM_RANSAC
@@ -157,6 +158,7 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 		free(image->data);
 		free(image->fdata);
 	}
+	fprintf(stdout, "Test: cuda count = %d\n", cuda::getCudaEnabledDeviceCount());
 
 	size_t ndata = target_rx * target_ry;
 	if (image->type == DATA_USHORT) {
@@ -755,7 +757,7 @@ double cvCalculRigidTransform(s_star *star_array_in,
 	outC.at<double>(0,0) = outCx;
 	outC.at<double>(1,0) = outCy;
 	inC.at<double>(0,0) = inCx;
-	inC.at<double>(1,0) = inCy;	
+	inC.at<double>(1,0) = inCy;
 
 	for (int i = 0; i < n; i++) {
 		out.at<double>(0,i) -= outCx;
@@ -862,7 +864,7 @@ void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homograp
 	S2.at<double>(1, 2) = -(double)h * 0.5;
 
 	// get rot matrix about origin {0, 0}
-	Mat r = getRotationMatrix2D(pt, angle, 1.0); 
+	Mat r = getRotationMatrix2D(pt, angle, 1.0);
 	Mat H = Mat::eye(3, 3, CV_64FC1);
 	r.copyTo(H(cv::Rect_<int>(0,0,3,2))); //slicing is (x, y, w, h)
 	// std::cout << H << std::endl;
