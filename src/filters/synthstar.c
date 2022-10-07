@@ -315,6 +315,20 @@ int generate_synthstars(fits *fit) {
 					buf[BLAYER][i], 0.f, &H[i], &S[i], &junk);
 		}
 	}
+	// Calculate average Moffat beta
+	size_t moffat_count = 0;
+	double avg_moffat_beta = 0.;
+	for (size_t n = 0 ; n < nb_stars ; n++) {
+		if (stars[n]->moffat) {
+			count++;
+			avg_moffat_beta += stars[n]->beta;
+		}
+	}
+	if (moffat_count > 0)
+		avg_moffat_beta /= moffat_count;
+	else
+		avg_moffat_beta = -1;
+	siril_debug_print("# Moffat profile stars: %lu, average beta = %.3f\n", moffat_count, avg_moffat_beta);
 	gboolean stopcalled = FALSE;
 	// Synthesize a PSF for each star in the star array s, based on its measured parameters
 	for (int n = 0; n < nb_stars; n++) {
@@ -337,7 +351,12 @@ int generate_synthstars(fits *fit) {
 
 			// Synthesize the luminance profile and add to the star mask in HSL colourspace
 			float *psfL = (float*) calloc(size * size, sizeof(float));
-			float beta = 2.2f;
+			float beta = 2.f;
+			if (stars[n]->moffat) {
+				beta=stars[n]->beta;
+				minfwhm = min(stars[n]->MoffRx, stars[n]->MoffRy);
+			} else if (moffat_count > 0)
+				beta = avg_moffat_beta;
 			if (stars[n]->has_saturated)
 				makegaussian(psfL, size, minfwhm, lum, xoff, yoff);
 			else
