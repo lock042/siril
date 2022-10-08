@@ -47,6 +47,7 @@
 #include "core/siril_log.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
+#include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/catalogues.h"
@@ -5605,6 +5606,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			}
 		} else if (g_str_has_prefix(word[i], "-dark=")) {
 			args->dark = calloc(1, sizeof(fits));
+			gchar *expression = path_parse(&gfit, word[i] + 6);
 			if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_16bit)) {
 				args->use_dark = TRUE;
 				// if input is 8b, we assume 32b master needs to be rescaled
