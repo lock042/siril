@@ -650,17 +650,27 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				x[i] = var_fit[i].fdata[px];
 			}
 
-			if (px < (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
-				fit->fdata[px] = (float) te_eval(n1);
-			} else if (px < 2 * (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
-				fit->fdata[px] = (float) te_eval(n2);
-			} else {
-				fit->fdata[px] = (float) te_eval(n3);
-			}
+			if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
+				fit->fpdata[RLAYER][px] = (float) te_eval(n1);
+				fit->fpdata[GLAYER][px] = (float) te_eval(n2);
+				fit->fpdata[BLAYER][px] = (float) te_eval(n3);
 
-			/* may not be used but (only if rescale) at least it is computed */
-			maximum = max(maximum, fit->fdata[px]);
-			minimum = min(minimum, fit->fdata[px]);
+				/* may not be used but (only if rescale) at least it is computed */
+				maximum = max(maximum, max(fit->fpdata[RLAYER][px], max(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
+				minimum = min(minimum, min(fit->fpdata[RLAYER][px], min(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
+			} else {
+				if (px < (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+					fit->fdata[px] = (float) te_eval(n1);
+				} else if (px < 2 * (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+					fit->fdata[px] = (float) te_eval(n2);
+				} else {
+					fit->fdata[px] = (float) te_eval(n3);
+				}
+
+				/* may not be used but (only if rescale) at least it is computed */
+				maximum = max(maximum, fit->fdata[px]);
+				minimum = min(minimum, fit->fdata[px]);
+			}
 		}
 
 failure: // failure before the eval loop
