@@ -459,7 +459,7 @@ static void update_metadata(fits *fit) {
 	free(f);
 }
 
-static gchar *parse_image_functions(gpointer p, int idx) {
+static gchar *parse_image_functions(gpointer p, int idx, int c) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
 	gchar *expression;
@@ -510,41 +510,28 @@ static gchar *parse_image_functions(gpointer p, int idx) {
 							gchar *str = malloc(len2 + 1);
 							g_strlcpy(str, expression + pos + len + 1, len2 + 1);
 							if (!g_strcmp0(str, image[j])) {
-								imstats *stats[3];
 								gchar *replace = NULL;
 								double median = 0.0, mean = 0.0, min = 0.0,
 										max = 0.0, noise = 0.0, adev = 0.0,
 										bwmv = 0.0, mad = 0.0, sdev = 0.0;
-								int retval = compute_all_channels_statistics_single_image(&var_fit[j], STATS_MAIN, MULTI_THREADED, stats);
-								if (retval) return expression;
-								for (int chan = 0; chan < var_fit[j].naxes[2]; chan++) {
-									median += stats[chan]->median;
-									mean += stats[chan]->mean;
-									min += stats[chan]->min;
-									max += stats[chan]->max;
-									noise += stats[chan]->bgnoise;
-									adev += stats[chan]->avgDev;
-									bwmv += stats[chan]->sqrtbwmv * stats[chan]->sqrtbwmv;
-									mad += stats[chan]->mad;
-									sdev += stats[chan]->sigma;
-								}
-								median /= (double)var_fit[j].naxes[2];
-								mean /= (double)var_fit[j].naxes[2];
-								min /= (double)var_fit[j].naxes[2];
-								max /= (double)var_fit[j].naxes[2];
-								noise /= (double)var_fit[j].naxes[2];
-								adev /= (double)var_fit[j].naxes[2];
-								bwmv /= (double)var_fit[j].naxes[2];
-								mad /= (double)var_fit[j].naxes[2];
-								sdev /= (double)var_fit[j].naxes[2];
+								imstats *stats = statistics(NULL, -1, &var_fit[j], c, NULL, STATS_MAIN, MULTI_THREADED);
+								if (!stats) return expression;
 
-								for (int chan = 0; chan < var_fit[j].naxes[2]; chan++) {
-									if (stats[chan]) free_stats(stats[chan]);
-								}
+								median = stats->median;
+								mean = stats->mean;
+								min = stats->min;
+								max = stats->max;
+								noise = stats->bgnoise;
+								adev = stats->avgDev;
+								bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
+								mad = stats->mad;
+								sdev = stats->sigma;
+
+								free_stats(stats);
 
 								if (!g_strcmp0(function, "mean")) {
 									replace = g_strdup_printf("%g", mean);
-								} else if (!g_strcmp0(function, "med")) {
+								} else if ((g_strcmp0(function, "med" || !g_strcmp0(function, "median")))) {
 									replace = g_strdup_printf("%g", median);
 								} else if (!g_strcmp0(function, "min")) {
 									replace = g_strdup_printf("%g", min);
@@ -570,7 +557,7 @@ static gchar *parse_image_functions(gpointer p, int idx) {
 									total_len = strlen(expression);
 									pos = pos + strlen(replace);
 
-									siril_debug_print("Expression: %s\n", expression);
+									siril_debug_print("Expression%d: %s\n", c, expression);
 								}
 							}
 							free(str);
@@ -594,9 +581,14 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	float maximum = -FLT_MAX;
 	float minimum = +FLT_MAX;
 
-	args->expression1 = parse_image_functions(args, 1);
-	args->expression2 = parse_image_functions(args, 2);
-	args->expression3 = parse_image_functions(args, 3);
+	if (args->single_rgb && args->fit->naxes[2] > 1) {
+		args->expression2 = g_strdup(args->expression1);
+		args->expression3 = g_strdup(args->expression1);
+	}
+
+	args->expression1 = parse_image_functions(args, 1, RLAYER);
+	args->expression2 = parse_image_functions(args, 2, GLAYER);
+	args->expression3 = parse_image_functions(args, 3, BLAYER);
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) firstprivate(n1,n2,n3)
@@ -626,7 +618,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			goto failure;
 		}
 
-		if (!args->single_rgb) {
+		if (args->expression2) {
 			n2 = te_compile(args->expression2, vars, nb_rows, &err);
 			if (!n2) {
 #ifdef _OPENMP
@@ -658,25 +650,22 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				x[i] = var_fit[i].fdata[px];
 			}
 
-			if (args->single_rgb) {
+			if (px < (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
 				fit->fdata[px] = (float) te_eval(n1);
-				/* may not be used but at least it is computed */
-				maximum = max(maximum, fit->fdata[px]);
-				minimum = min(minimum, fit->fdata[px]);
+			} else if (px < 2 * (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+				fit->fdata[px] = (float) te_eval(n2);
 			} else {
-				fit->fpdata[RLAYER][px] = (float) te_eval(n1);
-				fit->fpdata[GLAYER][px] = (float) te_eval(n2);
-				fit->fpdata[BLAYER][px] = (float) te_eval(n3);
-
-				/* may not be used but (only if rescale) at least it is computed */
-				maximum = max(maximum, max(fit->fpdata[RLAYER][px], max(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
-				minimum = min(minimum, min(fit->fpdata[RLAYER][px], min(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
+				fit->fdata[px] = (float) te_eval(n3);
 			}
+
+			/* may not be used but (only if rescale) at least it is computed */
+			maximum = max(maximum, fit->fdata[px]);
+			minimum = min(minimum, fit->fdata[px]);
 		}
 
 failure: // failure before the eval loop
 		te_free(n1);
-		if (!args->single_rgb) {
+		if (args->expression2) {
 			te_free(n2);
 			te_free(n3);
 		}
@@ -699,7 +688,7 @@ failure: // failure before the eval loop
 
 	/* free memory */
 	g_free(args->expression1);
-	if (args->single_rgb) {
+	if (args->expression2) {
 		g_free(args->expression2);
 		g_free(args->expression3);
 	}
