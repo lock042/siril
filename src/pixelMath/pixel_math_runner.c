@@ -502,7 +502,6 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 
 			// If word have been found then print found message
 			if (found == 1) {
-				printf("'%s' found at index: %d \n", function, pos);
 				if (expression[pos + len] == '(') {
 					for (int j = 0; j < nb_images; j++) {
 						int len2 = strlen(image[j]);
@@ -585,11 +584,16 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	if (args->single_rgb && args->fit->naxes[2] > 1) {
 		args->expression2 = g_strdup(args->expression1);
 		args->expression3 = g_strdup(args->expression1);
+
+		args->expression1 = parse_image_functions(args, 1, RLAYER);
+		args->expression2 = parse_image_functions(args, 2, GLAYER);
+		args->expression3 = parse_image_functions(args, 3, BLAYER);
+	} else {
+		args->expression1 = parse_image_functions(args, 1, RLAYER);
+		args->expression2 = parse_image_functions(args, 2, RLAYER);
+		args->expression3 = parse_image_functions(args, 3, RLAYER);
 	}
 
-	args->expression1 = parse_image_functions(args, 1, RLAYER);
-	args->expression2 = parse_image_functions(args, 2, GLAYER);
-	args->expression3 = parse_image_functions(args, 3, BLAYER);
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) firstprivate(n1,n2,n3)
