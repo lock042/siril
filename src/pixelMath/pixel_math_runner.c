@@ -531,7 +531,7 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 
 								if (!g_strcmp0(function, "mean")) {
 									replace = g_strdup_printf("%g", mean);
-								} else if ((g_strcmp0(function, "med" || !g_strcmp0(function, "median")))) {
+								} else if ((!g_strcmp0(function, "med") || !(g_strcmp0(function, "median")))) {
 									replace = g_strdup_printf("%g", median);
 								} else if (!g_strcmp0(function, "min")) {
 									replace = g_strdup_printf("%g", min);
