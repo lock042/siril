@@ -1340,6 +1340,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	fill_astrometry_catalogue(com.pref.gui.catalog);
 	init_GUI_from_settings();
 
+	// init the Plot tab
+	drawPlot();
+
 	if (com.pref.gui.first_start) {
 		com.pref.gui.first_start = FALSE;
 		writeinitfile();
@@ -1841,9 +1844,11 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 
 		if (clear) {
 			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
-			drawPlot();
 			update_stack_interface(TRUE);
+			update_reg_interface(TRUE);
 			adjust_sellabel();
+			reset_plot();
+			set_layers_for_registration();
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
 		}
 	}

@@ -237,7 +237,7 @@ struct settings_access all_settings[] = {
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
 
 	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
-	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 800 } } },
+	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 1600 } } },
 
 	{ "compression", "enabled", STYPE_BOOL, N_("FITS compression enabled"), &com.pref.comp.fits_enabled },
 	{ "compression", "method", STYPE_INT, N_("FITS compression method"), &com.pref.comp.fits_method, { .range_int = { 0, 3 } } },

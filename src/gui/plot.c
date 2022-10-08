@@ -60,7 +60,8 @@
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
-		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL;
+		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
+		*buttonNINA = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -985,6 +986,7 @@ static void fill_plot_statics() {
 		buttonClearAll = lookup_widget("clearAllPhotometry");
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
 		layer_selector = lookup_widget("seqlist_dialog_combo");
+		buttonNINA = lookup_widget("nina_button");
 	}
 }
 
@@ -997,6 +999,7 @@ static void validate_combos() {
 			reglayer = get_registration_layer(&com.seq);
 	}
 	gtk_widget_set_visible(varCurve, use_photometry);
+	gtk_widget_set_visible(buttonNINA, sequence_is_loaded());
 	gtk_widget_set_visible(buttonSaveCSV, TRUE);
 	gtk_widget_set_visible(buttonSavePrt, TRUE);
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
@@ -1022,7 +1025,9 @@ static void validate_combos() {
 		}
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), X_selected_source);
-		gtk_widget_set_sensitive(comboX, TRUE);
+		gtk_widget_set_sensitive(comboX, layer_has_registration(&com.seq, reglayer));
+		gtk_widget_set_sensitive(combo, layer_has_registration(&com.seq, reglayer));
+
 		if ((!is_fwhm) && registration_selected_source < r_X_POSITION) {
 			registration_selected_source = r_QUALITY;
 		}
@@ -1063,9 +1068,10 @@ void reset_plot() {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), registration_selected_source); //remove?
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
-		gtk_widget_set_sensitive(comboX, TRUE);
+		gtk_widget_set_sensitive(comboX, FALSE);
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
 		gtk_widget_set_visible(varCurve, FALSE);
+		gtk_widget_set_visible(buttonNINA, FALSE);
 		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
 		gtk_widget_set_sensitive(buttonSavePrt, FALSE);
 		gtk_widget_set_visible(julianw, FALSE);
