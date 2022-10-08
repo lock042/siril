@@ -47,6 +47,7 @@
 #define MAX_ITER_NO_ANGLE  20		//Number of iterations in the minimization with no angle
 #define MAX_ITER_ANGLE     20		//Number of iterations in the minimization with angle
 #define EPSILON            0.001
+#define MOFFAT_BETA_UBOUND 10. // Max allowable value for Moffat beta
 
 const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 
@@ -324,21 +325,21 @@ static int psf_Moffat_f(const gsl_vector * x, void *PSF_data, gsl_vector * f) {
 	double A = gsl_vector_get(x, 1);
 	double x0 = gsl_vector_get(x, 2);
 	double y0 = gsl_vector_get(x, 3);
-	double SX = gsl_vector_get(x, 4);
-	double SY = gsl_vector_get(x, 5);
-	double beta = gsl_vector_get(x, 6);
-	double tmpx, tmpy, tmpc, sumres = 0.;
+	double SX = gsl_vector_get(x, 4); // Ro_x ^ 2
+	double SY = gsl_vector_get(x, 5); // Ro_y ^ 2
+	double beta = min(gsl_vector_get(x, 6), MOFFAT_BETA_UBOUND); // bounding beta to MOFFAT_BETA_UBOUND
+	double tmpx, tmpy, tmpa, sumres = 0.;
 
 	for (i = 0; i < NbRows; i++) {
 		for (j = 0; j < NbCols; j++) {
 			if (mask[NbCols * i + j]) {
 				tmpx = j + 0.5;
 				tmpy = i + 0.5;
-				tmpc = pow(1 + (SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY), -beta);
+				tmpa = pow(1 + SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY, -beta);
 				gsl_vector_set(f, k,
-						(B + A * tmpc - y[k]) / sigma[k]);
-				sumres += (B + A * tmpc - y[k])
-						* (B + A * tmpc - y[k]);
+						(B + A * tmpa - y[k]) / sigma[k]);
+				sumres += (B + A * tmpa - y[k])
+						* (B + A * tmpa - y[k]);
 				k++;
 			}
 		}
@@ -358,8 +359,8 @@ static int psf_Moffat_df(const gsl_vector * x, void *PSF_data, gsl_matrix * J) {
 	double y0 = gsl_vector_get(x, 3);
 	double SX = gsl_vector_get(x, 4);
 	double SY = gsl_vector_get(x, 5);
-	double beta = gsl_vector_get(x, 6);
-	double tmpx, tmpy, tmpc, tmpd, tmpe, tmpf, tmpg;
+	double beta = min(gsl_vector_get(x, 6), MOFFAT_BETA_UBOUND); // bounding beta to MOFFAT_BETA_UBOUND
+	double tmpx, tmpy, tmpa, tmpb, tmpc, tmpd;
 
 	for (i = 0; i < NbRows; i++) {
 		for (j = 0; j < NbCols; j++) {
@@ -367,22 +368,21 @@ static int psf_Moffat_df(const gsl_vector * x, void *PSF_data, gsl_matrix * J) {
 				tmpx = j + 0.5;
 				tmpy = i + 0.5;
 				double s = sigma[k];
-				tmpc = pow(1 + (SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY), -beta);
-				tmpd = 1.0 / ((SX + SY) * pow(1 + (SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY), beta));
-				tmpe = SQR(tmpc);
-				tmpf = pow(SQR(tmpy-y0)/SY + SQR(tmpx-x0)/SX,beta-1);
+				tmpa = 1 + SQR(tmpx-x0) / SX + SQR(tmpy-y0) / SY;
+				tmpb = pow(tmpa, -beta);
+				tmpc = A * beta * pow(tmpa, -beta - 1.0);
 				gsl_matrix_set(J, k, 0, 1. / s); // d/dB
-				gsl_matrix_set(J, k, 1, tmpc / s); // d/dA
-				tmpg = A * beta * 2 * (tmpx-x0) * tmpe * tmpf / SX;
-				gsl_matrix_set(J, k, 2, tmpg / s); // d/dx0
-				tmpg = A * beta * 2 * (tmpy-y0) * tmpe * tmpf / SX;
-				gsl_matrix_set(J, k, 3, tmpg / s); // d/dy0
-				tmpg = A * beta * SQR(tmpx-x0) * tmpf * tmpe / SQR(SX);
-				gsl_matrix_set(J, k, 4, tmpg / s); // d/dSX
-				tmpg = A * beta * SQR(tmpy-y0) * tmpf * tmpe / SQR(SY);
-				gsl_matrix_set(J, k, 5, tmpg / s); // d/dSY
-				tmpg = - A * tmpe * log(SQR(tmpy-y0)/SY + SQR(tmpx-x0)/SX) * pow(SQR(tmpy-y0)/SY + SQR(tmpx-x0)/SX,beta);
-				gsl_matrix_set(J, k, 6, tmpg / s); // d/dbeta
+				gsl_matrix_set(J, k, 1, tmpb / s); // d/dA
+				tmpd = 2 * (tmpx-x0) * tmpc / SX;
+				gsl_matrix_set(J, k, 2, tmpd / s); // d/dx0
+				tmpd = 2 * (tmpy-y0) * tmpc / SY;
+				gsl_matrix_set(J, k, 3, tmpd / s); // d/dy0
+				tmpd = SQR(tmpx-x0) * tmpc / SQR(SX);
+				gsl_matrix_set(J, k, 4, tmpd / s); // d/dSX
+				tmpd = SQR(tmpy-y0) * tmpc / SQR(SY);
+				gsl_matrix_set(J, k, 5, tmpd / s); // d/dSY
+				tmpd = - A * log(tmpa) * tmpb;
+				gsl_matrix_set(J, k, 6, tmpd / s); // d/dbeta
 				k++;
 			}
 		}
@@ -613,11 +613,13 @@ static psf_star* psf_minimiz_moffat(gsl_matrix* z, double background, double sat
 		psf = NULL;
 		goto free_and_exit;
 	}
-
+	double beta0 = 2.; // Wild stab in the dark at beta
+	double r0x2 = gsl_vector_get(MaxV, 4) * log(2.) / (pow(2., 1. / beta0) - 1.);
+	double r0y2 = gsl_vector_get(MaxV, 3) * log(2.) / (pow(2., 1. / beta0) - 1.);
 	struct PSF_data d = { n, y, sigma, NbRows, NbCols, 0 , mask};
 	double x_init[] = { background, gsl_vector_get(MaxV, 2), gsl_vector_get(
-			MaxV, 0), gsl_vector_get(MaxV, 1), gsl_vector_get(MaxV, 4),
-			gsl_vector_get(MaxV, 3), 2.0 }; // Wild stab in the dark at beta
+			MaxV, 0), gsl_vector_get(MaxV, 1), r0x2,
+			r0y2, beta0 }; 
 	gsl_vector_view x = gsl_vector_view_array(x_init, p);
 
 	f.f = &psf_Moffat_f;
@@ -652,8 +654,8 @@ static psf_star* psf_minimiz_moffat(gsl_matrix* z, double background, double sat
 
 	if (status != GSL_SUCCESS) {
 		if (error) *error = PSF_ERR_DIVERGED;
-//		free_psf(psf);
-//		psf = NULL;
+		free_psf(psf);
+		psf = NULL;
 		goto free_and_exit;
 	}
 
@@ -675,10 +677,16 @@ static psf_star* psf_minimiz_moffat(gsl_matrix* z, double background, double sat
 	/* Output structure with parameters fitted */
 	psf->moffat = FALSE;
 	if (FIT(6) > 0.0) {
+		psf->B = FIT(0);
+		psf->A = FIT(1);
+		psf->x0 = FIT(2);
+		psf->y0 = FIT(3);
 		psf->moffat = TRUE;
 		psf->beta = FIT(6);
-		psf->MoffRx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Moffat characteristic width
-		psf->MoffRy = sqrt(FIT(5) / 2.) * 2 * sqrt(log(2.) * 2);	//Moffat characteristic width
+		psf->MoffRx = sqrt(FIT(4));	//Moffat characteristic width
+		psf->MoffRy = sqrt(FIT(5));	//Moffat characteristic width
+		psf->fwhmx = sqrt(pow(2., 1. / psf->beta) - 1.0) * 2.0 * psf->MoffRx;
+		psf->fwhmy = sqrt(pow(2., 1. / psf->beta) - 1.0) * 2.0 * psf->MoffRy;
 		psf->MoffRmse = d.rmse;
 		// absolute uncertainties
 		psf->beta_err = ERR(6) / FIT(6);
@@ -1011,22 +1019,16 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 		}
 
 		if (fit_moffat) {
-			error = 0;
-			psf_star *moff_psf = psf_minimiz_moffat(z, bg, sat, convergence, error);
-			if (!error) {
-				psf->beta = moff_psf->beta;
-				psf->moffat = TRUE;
-				psf->MoffRx = moff_psf->MoffRx;
-				psf->MoffRy = moff_psf->MoffRy;
-				psf->MoffRmse = moff_psf->MoffRmse;
-				psf->beta_err = moff_psf->beta_err;
-				if (psf->beta > 0.0)
-					siril_debug_print("Moffat parameters: beta %.3f, MoffRmse %f, Gaussian rmse %f\n", psf->beta, psf->MoffRmse, psf->rmse);
+			psf_star *moff_psf;
+			if (!(moff_psf = psf_minimiz_moffat(z, bg, sat, convergence, error))) {
+				free_psf(psf);
+				return NULL;
 			}
-			if (moff_psf) {
-				free(moff_psf);
-				moff_psf = NULL;
-			}
+			if (moff_psf->beta > 0.0)
+				siril_debug_print("Moffat parameters: beta %.3f, MoffRmse %f, Gaussian rmse %f\n",moff_psf->beta, moff_psf->MoffRmse, psf->rmse);
+			free_psf(psf);
+			psf = moff_psf;
+			psf->moffat = TRUE;
 		}
 
 		// Solve symmetry problem in order to have Sx>Sy in any case !!!
