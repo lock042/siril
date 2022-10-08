@@ -105,6 +105,7 @@ static const _pm_op_func image_functions[] = {
 	{ "max",      "max ( Image )",                     N_("Pixel maximum of the image.")               },
 	{ "mean",     "mean ( Image )",                    N_("Mean of the image.")                        },
 	{ "med",      "med ( Image )",                     N_("Median of the image.")                      },
+	{ "median",   "median ( Image )",                  N_("Median of the image.")                      },
 	{ "min",      "min ( Image )",                     N_("Pixel minimum of the image.")               },
 	{ "noise",    "noise ( Image )",                   N_("Estimation of Gaussian noise in the image.")},
 	{ "sdev",     "sdev ( Image )",                    N_("Standard deviation of the image.")          }
