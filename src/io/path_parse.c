@@ -27,22 +27,22 @@
 #include "io/sequence.h"
 
 
-static const char *path_parse_error_to_string(path_parse_errors err) {
-	switch (err) {
-	case PATH_PARSE_KEY_NOT_FOUND:
-		return "Key not found\n";
-	case PATH_PARSE_WRONG_CALL:
-		return "Call to read_key_from_header_text is malformed\n";
-	case PATH_PARSE_HEADER_NULL:
-		return "Header is empty\n";
-	case PATH_PARSE_WRONG_FORMAT:
-		return "Wrong format\n";
-	case PATH_PARSE_UNSUPPORTED_FORMAT:
-		return "Unsupported format\n";
-	default:
-		return NULL;
-	}
-}
+// static const char *path_parse_error_to_string(path_parse_errors err) {
+// 	switch (err) {
+// 	case PATH_PARSE_KEY_NOT_FOUND:
+// 		return "Key not found\n";
+// 	case PATH_PARSE_WRONG_CALL:
+// 		return "Call to read_key_from_header_text is malformed\n";
+// 	case PATH_PARSE_HEADER_NULL:
+// 		return "Header is empty\n";
+// 	case PATH_PARSE_WRONG_FORMAT:
+// 		return "Wrong format\n";
+// 	case PATH_PARSE_UNSUPPORTED_FORMAT:
+// 		return "Unsupported format\n";
+// 	default:
+// 		return NULL;
+// 	}
+// }
 
 static path_parse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
 	path_parse_errors status = PATH_PARSE_OK;
@@ -77,13 +77,34 @@ static path_parse_errors read_key_from_header_text(gchar **headers, gchar *key, 
 }
 
 gchar *path_parse(fits *fit, gchar *expression, int *status) {
-	gchar *out = NULL;
+	gchar *out = NULL, *localexpression = NULL;
 	if (!fit->header) {
 		*status = PATH_PARSE_HEADER_NULL;
 		return out;
 	}
+	if (g_str_has_prefix(expression, "lib")) { // using reserved keywords libbias, libdark, libflat
+		if (!g_strcmp0(expression + 3, "bias")) {
+			localexpression = g_strdup(com.pref.prepro.bias_lib);
+		} else if (!g_strcmp0(expression + 3, "dark")) {
+			localexpression = g_strdup(com.pref.prepro.dark_lib);
+		} else if (!g_strcmp0(expression + 3, "flat")) {
+			localexpression = g_strdup(com.pref.prepro.flat_lib);
+		} else {
+			*status = PATH_PARSE_WRONG_RESERVED_KEYWORD;
+			siril_log_color_message(_("Unknown reserved keyword %s - Error code %d - aborting\n"), "red", expression, *status);
+			return out;
+		}
+		if (strlen(localexpression) == 0) {
+			*status = PATH_PARSE_LIBRARY_NOTDEFINED;
+			siril_log_color_message(_("Library %s is not defined in preferences - Error code %d - aborting\n"), "red", expression, *status);
+			g_free(localexpression);
+			return out;
+		}
+	} else {
+		localexpression = g_strdup(expression);
+	}
 	gchar *pattern = "\\$(.+?)\\$";
-	gchar **tokens = g_regex_split_simple(pattern, expression, G_REGEX_RAW, 0);
+	gchar **tokens = g_regex_split_simple(pattern, localexpression, G_REGEX_RAW, 0);
 	gchar **headerkeys = g_strsplit(fit->header, "\n", 0);
 	for (int i = 0; i < g_strv_length(tokens); i++) {
 		gchar **subs = g_strsplit(tokens[i], ":", 2);
@@ -122,6 +143,7 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 		}
 		if (buf[0] == 0) {
 			*status = PATH_PARSE_WRONG_FORMAT;
+			siril_log_color_message(_("Problem parsing keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
 			g_strfreev(subs);
 			goto free_and_exit;
 		}
@@ -134,5 +156,6 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 	siril_debug_print("String out: %s\n", out);
 free_and_exit:
 	if (tokens) g_strfreev(tokens);
+	if (localexpression) g_free(localexpression);
 	return out;
 }
