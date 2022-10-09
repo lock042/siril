@@ -14194,7 +14194,7 @@ This should normally be the case only for stacked images. Increasing this value 
                         <signal name="key-release-event" handler="on_pixel_math_treeview_key_release_event" swapped="no"/>
                         <signal name="row-activated" handler="on_pixel_math_treeview_row_activated" swapped="no"/>
                         <child internal-child="selection">
-                          <object class="GtkTreeSelection">
+                          <object class="GtkTreeSelection" id="pixel_math_selection">
                             <property name="mode">multiple</property>
                           </object>
                         </child>
@@ -14572,7 +14572,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <signal name="key-release-event" handler="on_pixel_math_treeview_presets_key_release_event" swapped="no"/>
                     <signal name="row-activated" handler="on_pixel_math_treeview_presets_row_activated" swapped="no"/>
                     <child internal-child="selection">
-                      <object class="GtkTreeSelection">
+                      <object class="GtkTreeSelection" id="pixel_math_presets_selection">
                         <property name="mode">multiple</property>
                       </object>
                     </child>
