@@ -1935,6 +1935,7 @@ int read_fits_metadata(fits *fit) {
 	}
 
 	read_fits_header(fit);	// stores useful header data in fit
+	fit->header = copy_header(fit);
 	return 0;
 }
 
