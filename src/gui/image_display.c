@@ -863,6 +863,7 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_set_font_size(cr, 12.0 / dd->zoom);
 				cairo_move_to(cr, textX, textY);
 				cairo_show_text(cr, text);
+				cairo_stroke(cr);
 				g_free(text);
 			}
 		}
