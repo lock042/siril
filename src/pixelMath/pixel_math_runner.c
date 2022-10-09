@@ -1438,6 +1438,7 @@ static void save_presets_list() {
 	com.pref.gui.pm_presets = NULL;
 
 	gtk_tree_model_foreach(GTK_TREE_MODEL(pixel_math_list_store_presets), foreach_func, com.pref.gui.pm_presets);
+	com.pref.gui.pm_presets = g_slist_reverse(com.pref.gui.pm_presets);
 	writeinitfile();
 }
 
