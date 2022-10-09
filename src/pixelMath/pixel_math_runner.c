@@ -196,6 +196,12 @@ static void init_widgets() {
 		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(lookup_widget("pixel_math_scrolled_operators")), TRUE);
 #endif
 
+		/* Due to a glade bug, this property is often removed, lets code it */
+		GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "pixel_math_selection"));
+		gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+		selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "pixel_math_treeview_presets_selection"));
+		gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+
 	}
 	g_assert(pixel_math_tree_view);
 	g_assert(pixel_math_tree_model);
