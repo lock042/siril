@@ -5588,8 +5588,15 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				}
 			} else {
 				g_free(expression);
+				int status;
+				expression = path_parse(&reffit, word[i] + 6, &status);
+				if (status) {
+					retvalue = CMD_GENERIC_ERROR;
+					free(args->dark);
+					break;
+				}
 				args->bias = calloc(1, sizeof(fits));
-				if (!readfits(word[i] + 6, args->bias, NULL, !com.pref.force_16bit)) {
+				if (!readfits(expression, args->bias, NULL, !com.pref.force_16bit)) {
 					args->use_bias = TRUE;
 					// if input is 8b, we assume 32b master needs to be rescaled
 					if ((args->bias->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
@@ -5598,14 +5605,21 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				} else {
 					retvalue = CMD_INVALID_IMAGE;
 					free(args->bias);
+					g_free(expression);
 					break;
 				}
+				g_free(expression);
 			}
 		} else if (g_str_has_prefix(word[i], "-dark=")) {
 			args->dark = calloc(1, sizeof(fits));
-			gboolean success;
-			gchar *expression = path_parse(&reffit, word[i] + 6, &success);
-			if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_16bit)) {
+			int status;
+			gchar *expression = path_parse(&reffit, word[i] + 6, &status);
+			if (status) {
+				retvalue = CMD_GENERIC_ERROR;
+				free(args->dark);
+				break;
+			}
+			if (!readfits(expression, args->dark, NULL, !com.pref.force_16bit)) {
 				args->use_dark = TRUE;
 				// if input is 8b, we assume 32b master needs to be rescaled
 				if ((args->dark->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
@@ -5614,18 +5628,29 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			} else {
 				retvalue = CMD_INVALID_IMAGE;
 				free(args->dark);
+				g_free(expression);
 				break;
 			}
+			g_free(expression);
 		} else if (g_str_has_prefix(word[i], "-flat=")) {
 			args->flat = calloc(1, sizeof(fits));
-			if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_16bit)) {
+			int status;
+			gchar *expression = path_parse(&reffit, word[i] + 6, &status);
+			if (status) {
+				retvalue = CMD_GENERIC_ERROR;
+				free(args->dark);
+				break;
+			}
+			if (!readfits(expression, args->flat, NULL, !com.pref.force_16bit)) {
 				args->use_flat = TRUE;
 				// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
 			} else {
 				retvalue = CMD_INVALID_IMAGE;
 				free(args->flat);
+				g_free(expression);
 				break;
 			}
+			g_free(expression);
 		} else if (g_str_has_prefix(word[i], "-prefix=")) {
 			char *current = word[i], *value;
 			value = current + 8;

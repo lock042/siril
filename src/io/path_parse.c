@@ -57,9 +57,11 @@ static path_parse_errors read_key_from_header_text(gchar **headers, gchar *key, 
 			if (numvalue) {
 				*numvalue = g_ascii_strtod(valsubs[0], NULL); 
 			} else if (strvalue) {
-				strvalue = g_strdup(valsubs[0]);
-				strvalue = g_shell_unquote(strvalue, NULL);
-				remove_spaces_from_str(strvalue);
+				gchar *currstr = g_strdup(valsubs[0]);
+				currstr = g_shell_unquote(currstr, NULL);
+				remove_spaces_from_str(currstr);
+				strncpy(strvalue, currstr, FLEN_VALUE - 1);
+				g_free(currstr);
 			} else {
 				g_free(valsubs);
 				g_free(subs);
@@ -74,12 +76,10 @@ static path_parse_errors read_key_from_header_text(gchar **headers, gchar *key, 
 	return status;
 }
 
-gchar *path_parse(fits *fit, gchar *expression, gboolean *success) {
-	int status;
+gchar *path_parse(fits *fit, gchar *expression, int *status) {
 	gchar *out = NULL;
-	*success = FALSE;
 	if (!fit->header) {
-		status = PATH_PARSE_HEADER_NULL;
+		*status = PATH_PARSE_HEADER_NULL;
 		return out;
 	}
 	gchar *pattern = "\\$(.+?)\\$";
@@ -95,29 +95,29 @@ gchar *path_parse(fits *fit, gchar *expression, gboolean *success) {
 		if (g_str_has_suffix(subs[1], "d") || g_str_has_suffix(subs[1], "f")) { // case %d or %f
 			gboolean isint = g_str_has_suffix(subs[1], "d");
 			double val;
-			status = read_key_from_header_text(headerkeys, subs[0], &val, NULL);
-			if (status) {
-				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], status);
+			*status = read_key_from_header_text(headerkeys, subs[0], &val, NULL);
+			if (*status) {
+				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
 				g_strfreev(subs);
 				goto free_and_exit;
 			}
 			(isint) ? sprintf(buf, subs[1], (int)val) : sprintf(buf, subs[1], val);
 		} else if (g_str_has_suffix(subs[1], "s")) { // case %s
 			char val[FLEN_VALUE];
-			status = read_key_from_header_text(headerkeys, subs[0], NULL, val);
-			if (status) {
-				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], status);
+			*status = read_key_from_header_text(headerkeys, subs[0], NULL, val);
+			if (*status) {
+				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
 				g_strfreev(subs);
 				goto free_and_exit;
 			}
 			sprintf(buf, subs[1], val); // just in case there is a fancy formatting directive like uppercase or else
 		} else {
-			siril_log_color_message(_("Unsupported format %s - aborting\n"), "red", subs[1], status);
+			siril_log_color_message(_("Unsupported format %s - aborting\n"), "red", subs[1], *status);
 			g_strfreev(subs);
 			goto free_and_exit;
 		}
 		if (buf[0] == 0) {
-			status = PATH_PARSE_WRONG_FORMAT;
+			*status = PATH_PARSE_WRONG_FORMAT;
 			g_strfreev(subs);
 			goto free_and_exit;
 		}
