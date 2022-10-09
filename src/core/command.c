@@ -5592,7 +5592,6 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				expression = path_parse(&reffit, word[i] + 6, &status);
 				if (status) {
 					retvalue = CMD_GENERIC_ERROR;
-					free(args->dark);
 					break;
 				}
 				args->bias = calloc(1, sizeof(fits));
@@ -5638,7 +5637,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			gchar *expression = path_parse(&reffit, word[i] + 6, &status);
 			if (status) {
 				retvalue = CMD_GENERIC_ERROR;
-				free(args->dark);
+				free(args->flat);
 				break;
 			}
 			if (!readfits(expression, args->flat, NULL, !com.pref.force_16bit)) {
