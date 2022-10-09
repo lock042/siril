@@ -91,7 +91,11 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 			g_strfreev(subs);
 			continue;
 		}
-		gchar buf[50];
+		if (strlen(subs[0]) == 1 && subs[1][0] == '\\') { // dealing with Windows drive letter "C:""
+			g_strfreev(subs);
+			continue;
+		}
+		gchar buf[FLEN_VALUE];
 		if (g_str_has_suffix(subs[1], "d") || g_str_has_suffix(subs[1], "f")) { // case %d or %f
 			gboolean isint = g_str_has_suffix(subs[1], "d");
 			double val;
