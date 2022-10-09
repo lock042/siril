@@ -432,7 +432,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 					bingo = FALSE;
 					continue;
 				}
-				d2rl  = smooth_image[yy][xx - i - 1] + smooth_image[yy][xx - i + 1] - 2 * smooth_image[yy][xx + i    ];
+				d2rl  = smooth_image[yy][xx - i - 1] + smooth_image[yy][xx - i + 1] - 2 * smooth_image[yy][xx - i    ];
 				d2rll = smooth_image[yy][xx - i - 2] + smooth_image[yy][xx - i    ] - 2 * smooth_image[yy][xx - i - 1];
 				while ((d2rll < 0) && ((xx - i - 2) > areaX0 + 1)) {
 					i++;
@@ -468,7 +468,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 					bingo = FALSE;
 					continue;
 				}
-				d2cu =  smooth_image[yy - i - 1][xx] + smooth_image[yy - i + 1][xx] - 2 * smooth_image[yy + i    ][xx];
+				d2cu =  smooth_image[yy - i - 1][xx] + smooth_image[yy - i + 1][xx] - 2 * smooth_image[yy - i    ][xx];
 				d2cuu = smooth_image[yy - i - 2][xx] + smooth_image[yy - i    ][xx] - 2 * smooth_image[yy - i - 1][xx];
 				while ((d2cuu < 0) && ((yy - i - 2) > areaY0 + 1)) {
 					i++;
