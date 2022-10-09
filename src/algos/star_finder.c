@@ -483,7 +483,11 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 
 				// Computing zero-upcrossing of the 2nd deriv row-wise moving right
 				i = 0;
-				if (has_saturated) while (smooth_image[yy][xx + i] > sat) i++;
+				if (has_saturated) while (xx + i < nx && smooth_image[yy][xx + i] > sat) i++;
+				if (xx + i >= nx - 2) { // largely saturated star close to border - no chances the fit will be meaningful - discarding
+					bingo = FALSE;
+					continue;
+				}
 				d2rr  = smooth_image[yy][xx + i + 1] + smooth_image[yy][xx + i - 1] - 2 * smooth_image[yy][xx + i    ];
 				d2rrr = smooth_image[yy][xx + i + 2] + smooth_image[yy][xx + i    ] - 2 * smooth_image[yy][xx + i + 1];
 				while ((d2rrr < 0) && ((xx + i + 2) < areaX1 - 1)) {
@@ -497,7 +501,11 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 
 				// Computing zero-upcrossing of the 2nd deriv row-wise moving left
 				i = 0;
-				if (has_saturated) while (smooth_image[yy][xx - i] > sat) i++;
+				if (has_saturated) while (xx - i > 0 && smooth_image[yy][xx - i] > sat) i++;
+				if (xx - i <= 2) { // largely saturated star close to border - no chances the fit will be meaningful - discarding
+					bingo = FALSE;
+					continue;
+				}
 				d2rl  = smooth_image[yy][xx - i - 1] + smooth_image[yy][xx - i + 1] - 2 * smooth_image[yy][xx + i    ];
 				d2rll = smooth_image[yy][xx - i - 2] + smooth_image[yy][xx - i    ] - 2 * smooth_image[yy][xx - i - 1];
 				while ((d2rll < 0) && ((xx - i - 2) > areaX0 + 1)) {
@@ -511,7 +519,11 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 
 				// Computing zero-upcrossing of the 2nd deriv column-wise moving down
 				i = 0;
-				if (has_saturated) while (smooth_image[yy + i][xx] > sat) i++;
+				if (has_saturated) while (yy + i < ny && smooth_image[yy + i][xx] > sat) i++;
+				if (yy + i >= ny - 2) { // largely saturated star close to border - no chances the fit will be meaningful - discarding
+					bingo = FALSE;
+					continue;
+				}
 				d2cd  = smooth_image[yy + i + 1][xx] + smooth_image[yy + i - 1][xx] - 2 * smooth_image[yy + i    ][xx];
 				d2cdd = smooth_image[yy + i + 2][xx] + smooth_image[yy + i    ][xx] - 2 * smooth_image[yy + i + 1][xx];
 				while ((d2cdd < 0) && ((yy + i + 2) < areaY1 - 1)) {
@@ -525,7 +537,11 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 
 				// Computing zero-upcrossing of the 2nd deriv column-wise moving up
 				i = 0;
-				if (has_saturated) while (smooth_image[yy - i][xx] > sat) i++;
+				if (has_saturated) while (yy - i > 0 && smooth_image[yy - i][xx] > sat) i++;
+				if (yy - i <= 2) { // largely saturated star close to border - no chances the fit will be meaningful - discarding
+					bingo = FALSE;
+					continue;
+				}
 				d2cu =  smooth_image[yy - i - 1][xx] + smooth_image[yy - i + 1][xx] - 2 * smooth_image[yy + i    ][xx];
 				d2cuu = smooth_image[yy - i - 2][xx] + smooth_image[yy - i    ][xx] - 2 * smooth_image[yy - i - 1][xx];
 				while ((d2cuu < 0) && ((yy - i - 2) > areaY0 + 1)) {
