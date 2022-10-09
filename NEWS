@@ -24,6 +24,7 @@ v1.2.0 mmm dd, 2022
 * Added a warning when images are negative on calibration
 * Added calibration details in the FITS history
 * Added saving formulas (presets) in Pixel Math
+* Added statistic functions to Pixel Math as well as mtf
 * Added solar system object search from online service for image annotations
 * Added zoom sliders and plot selection in Plot tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
