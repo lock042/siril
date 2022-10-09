@@ -1952,6 +1952,7 @@ int read_fits_metadata_from_path(const char *filename, fits *fit) {
 	}
 
 	read_fits_metadata(fit);
+	fit->header = copy_header(fit);
 
 	status = 0;
 	fits_close_file(fit->fptr, &status);

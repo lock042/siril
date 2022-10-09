@@ -22,6 +22,15 @@
 
 #include "core/siril.h"
 
-gchar *path_parse(fits *fit, gchar *expresion);
+typedef enum {
+	PATH_PARSE_OK = 0,
+	PATH_PARSE_HEADER_NULL = 1,
+	PATH_PARSE_WRONG_CALL = 2,
+	PATH_PARSE_KEY_NOT_FOUND = 10,
+	PATH_PARSE_WRONG_FORMAT = 11,
+	PATH_PARSE_UNSUPPORTED_FORMAT = 12
+} path_parse_errors;
+
+gchar *path_parse(fits *fit, gchar *expression, gboolean *success);
 
 #endif /* SRC_IO_PATH_PARSE_H_ */

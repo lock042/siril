@@ -5533,12 +5533,19 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		args->seq = seq;
 		args->is_sequence = TRUE;
 		bitpix = seq->bitpix;
+		// loading the sequence reference image's metadata in case it's needed
+		int image_to_load = sequence_find_refimage(seq);
+		if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
+			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+			retvalue = CMD_INVALID_IMAGE;
+			goto prepro_parse_end;
+		}
 	}
 	else {
 		if (read_fits_metadata_from_path(word[1], &reffit)) {
 			siril_log_message(_("Could not load the image, aborting.\n"));
 			clearfits(&reffit);
-			retvalue = 1;
+			retvalue = CMD_INVALID_IMAGE;
 			goto prepro_parse_end;
 		}
 		bitpix = reffit.bitpix;
@@ -5558,16 +5565,6 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		if (g_str_has_prefix(word[i], "-bias=")) {
 			gchar *expression = g_shell_unquote(word[i] + 6, NULL);
 			if (expression && expression[0] == '=') {
-				if (seq) {
-					// loading the sequence reference image's metadata in case $OFFSET is passed in the expression
-					int image_to_load = sequence_find_refimage(seq);
-					if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
-						siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-						g_free(expression);
-						retvalue = CMD_INVALID_IMAGE;
-						break;
-					}
-				}
 				// parsing offset level
 				int offsetlevel = evaluateoffsetlevel(expression + 1, &reffit);
 				if (!offsetlevel) {
@@ -5606,7 +5603,8 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			}
 		} else if (g_str_has_prefix(word[i], "-dark=")) {
 			args->dark = calloc(1, sizeof(fits));
-			gchar *expression = path_parse(&gfit, word[i] + 6);
+			gboolean success;
+			gchar *expression = path_parse(&reffit, word[i] + 6, &success);
 			if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_16bit)) {
 				args->use_dark = TRUE;
 				// if input is 8b, we assume 32b master needs to be rescaled
