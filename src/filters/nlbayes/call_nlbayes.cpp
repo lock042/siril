@@ -202,8 +202,11 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
         siril_log_message(_("SOS iteration %d of %d complete\n"), iter+1, sos);
       }
     }
-
+// Add another clipping check in case NL-Bayes causes a saturated pixel to slightly exceed 1.0.
     bgr_fout = bgr_vout.data();
+    for (size_t i = 0; i < npixels * nchans; i++)
+      bgr_fout[i] = max(min(1.f, bgr_fout[i]), 0.f);
+
     float *bgr_da3dout;
 
     // Carry out final-stage DA3D denoising if required
@@ -244,4 +247,5 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
 
     return EXIT_SUCCESS;
 }
+
 
