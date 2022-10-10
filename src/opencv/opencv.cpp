@@ -480,6 +480,8 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	H = F2.inv() * H * F1;
 
 	// OpenCV function
+	Scalar initial_mean = mean(in);
+	double im = initial_mean[0];
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 		Mat guide, guide16, tmp1, tmp2;
@@ -506,6 +508,9 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 		copyTo(out, out, tmp1);
 
 		out = out + guide;
+		Scalar final_mean = mean(out);
+		double fm = final_mean[0];
+		out = out * (im/fm); // Preserve brightness
 /*		if (out.type() == CV_32FC1 || out.type() == CV_32FC3) {
 			double min, max;
 			minMaxIdx(out, &min, &max);
