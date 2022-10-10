@@ -99,6 +99,7 @@
 #include "algos/geometry.h"
 #include "algos/tracking.h"
 #include "opencv/opencv.h"
+#include "opencv/tracks.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
@@ -6110,6 +6111,7 @@ int process_detect_trail(int nb) {
 			siril_log_color_message(_("Detection threshold is lower than median value.\n"), "salmon");
 		}
 		free_stats(stat);
+		siril_debug_print("threshold is %f\n", threshold);
 
 		image im = { .from_seq = NULL, .index_in_seq = -1 };
 		if (nb == 5) {

@@ -34,14 +34,6 @@ int cvUnsharpFilter(fits* image, double sigma, double amount);
 
 int cvClahe(fits *image, double clip_limit, int size);
 
-struct track {
-	pointi start;
-	pointi end;
-	float angle;	// with the X axis
-};
-
-int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct track **tracks);
-
 void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointout);
 
 void cvGetEye(Homography *H);

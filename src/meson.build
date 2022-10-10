@@ -104,15 +104,9 @@ src_files = [
 
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
-  'io/avi_pipp/pipp_avi_write.h',
   'io/avi_pipp/pipp_avi_write_dib.cpp',
-  'io/avi_pipp/pipp_avi_write_dib.h',
-  'io/avi_pipp/pipp_utf8.h',
   'io/avi_pipp/pipp_buffer.cpp',
-  'io/avi_pipp/pipp_buffer.h',
-  'io/avi_pipp/pipp_video_write.h',
   'io/avi_pipp/avi_writer.cpp',
-  'io/avi_pipp/avi_writer.h',
   'io/kstars/htmesh_wrapper.cpp',
   'io/catalogues.c',
   'io/conversion.c',
@@ -135,9 +129,8 @@ src_files = [
   'livestacking/livestacking.c',
 
   'opencv/opencv.cpp',
-  'opencv/opencv.h',
+  'opencv/tracks.cpp',
   'opencv/kombat/kombat.cpp',
-  'opencv/kombat/kombat.h',
 
   'gui/about_dialog.c',
   'gui/annotations_pref.c',

@@ -1,6 +1,7 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "opencv/opencv.h"
+#include "core/processing.h"
+#include "opencv/tracks.h"
 #include "algos/astrometry_solver.h"
 #include "core/siril_world_cs.h"
 #include "gui/image_display.h"

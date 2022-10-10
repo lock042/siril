@@ -115,6 +115,7 @@ src/io/single_image.c
 src/livestacking/gui.c
 src/livestacking/livestacking.c
 src/opencv/opencv.cpp
+src/opencv/tracks.cpp
 src/pixelMath/pixel_math_runner.c
 src/registration/3stars.c
 src/registration/applyreg.c
