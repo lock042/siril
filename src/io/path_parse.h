@@ -30,7 +30,8 @@ typedef enum {
 	PATH_PARSE_LIBRARY_NOTDEFINED = 4,
 	PATH_PARSE_KEY_NOT_FOUND = 10,
 	PATH_PARSE_WRONG_FORMAT = 11,
-	PATH_PARSE_UNSUPPORTED_FORMAT = 12
+	PATH_PARSE_UNSUPPORTED_FORMAT = 12,
+	PATH_PARSE_WRONG_DATE = 13
 } path_parse_errors;
 
 gchar *path_parse(fits *fit, gchar *expression, gboolean *success);

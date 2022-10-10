@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/siril_date.h"
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
@@ -136,6 +137,28 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 				goto free_and_exit;
 			}
 			sprintf(buf, subs[1], val); // just in case there is a fancy formatting directive like uppercase or else
+		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
+			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
+			char val[FLEN_VALUE];
+			*status = read_key_from_header_text(headerkeys, subs[0], NULL, val);
+			if (*status) {
+				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
+				g_strfreev(subs);
+				goto free_and_exit;
+			}
+			GDateTime *read_time = FITS_date_to_date_time(val);
+			if (!read_time) {
+				*status = PATH_PARSE_WRONG_DATE;
+				siril_log_color_message(_("Could not read date from %s - Error code %d - aborting\n"), "red", subs[0], *status);
+				g_strfreev(subs);
+				goto free_and_exit;
+			}
+			GDateTime *read_time_corr = g_date_time_add_hours(read_time, minus_hour);
+			gchar *fmtdate = date_time_to_date(read_time_corr);
+			strncpy(buf, fmtdate, FLEN_VALUE - 1);
+			g_date_time_unref(read_time);
+			g_date_time_unref(read_time_corr);
+			g_free(fmtdate);
 		} else {
 			siril_log_color_message(_("Unsupported format %s - aborting\n"), "red", subs[1], *status);
 			g_strfreev(subs);
@@ -143,7 +166,7 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 		}
 		if (buf[0] == 0) {
 			*status = PATH_PARSE_WRONG_FORMAT;
-			siril_log_color_message(_("Problem parsing keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
+			siril_log_color_message(_("Problem parsing expression %s - Error code %d - aborting\n"), "red", tokens[i], *status);
 			g_strfreev(subs);
 			goto free_and_exit;
 		}
@@ -156,6 +179,7 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 	siril_debug_print("String out: %s\n", out);
 free_and_exit:
 	if (tokens) g_strfreev(tokens);
+	if (headerkeys) g_strfreev(headerkeys);
 	if (localexpression) g_free(localexpression);
 	return out;
 }
