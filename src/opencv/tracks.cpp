@@ -25,7 +25,7 @@ class Segment {
 
 	public:
 		int x1, y1, x2, y2;
-		double rho;
+		//double rho;
 
 		Segment(int startx, int starty, int endx, int endy) {
 			x1 = startx;
@@ -35,11 +35,11 @@ class Segment {
 
 			double dx = x1 - x2;
 			double dy = y1 - y2;
-			m = dy / dx;
+			m = dx == 0.0 ? 0.0 : dy / dx;
 			theta = atan2(dy, dx);
 			theta_deg = theta / M_PI * 180.0;
 			//sin_theta = ::sin(theta);
-			rho = fabs(y1 - m * x1) / sqrt(m * m + 1);
+			//rho = fabs(y1 - m * x1) / sqrt(m * m + 1);
 		}
 		Segment() { };	// for vector allocation
 
@@ -91,17 +91,48 @@ static bool segments_intersect(Segment s1, Segment s2) {
 	return false;
 }
 
+// we project point A of s2 on s1, check if it falls inside s1 and if the projected length
+// is <= POS_EPSILON
+// from https://stackoverflow.com/a/73437072
+static bool is_projection_close(Segment s1, pointi s2a, pointi s2b) {
+	int s1x = s1.x1 - s1.x2;
+	int s1y = s1.y1 - s1.y1;
+	int s2x = s2a.x - s2b.x;
+	int s2y = s2a.x - s2b.x;
+	int denom = s1x * s2x + s1y * s2y;
+	if (!denom)
+		return false; // segments are orthogonal
+	double t = (s2x * (s2a.x - s1.x1) + s2y * (s2a.y - s1.y1)) / denom;
+	if (t < 0. || t > 1.)
+		return false; // projected point is outside s1
+	int qx = (int)(s1.x1 + s1x * t + 0.5);
+	int qy = (int)(s1.y1 + s1y * t + 0.5);
+
+	return (sqrt((s2a.x - qx) * (s2a.x - qx) + (s2a.y - qy) * (s2a.y - qy)) <= (double)POS_EPSILON);
+}
+
+static bool check_distance_by_projection(Segment s1, Segment s2) {
+	// we project the two points of s1 on s2 and the two points of s2 on s1 and if they
+	// fall inside the segments, we compare the length of the projection with POS_EPSILON
+	return is_projection_close(s1, s2.start(), s2.end()) ||
+		is_projection_close(s1, s2.end(), s2.start()) ||
+		is_projection_close(s2, s1.end(), s1.start()) ||
+		is_projection_close(s2, s1.start(), s1.end());
+}
+
 // prerequisite: segments[i] and segments[j] have similar angles
 static bool segments_are_closely_colinear(Segment s1, Segment s2) {
-	// same theta and rho, one point inside the segment of the other
-	// FIXME	v  this formula is wrong  v
-	//if (fabs((s1.rho - s2.rho) * s1.sin()) > RHO_EPSILON) return false;
-	// FIXME	v  this formula is too imprecise and fails too v
-	if (fabs(s1.rho - s2.rho) > RHO_EPSILON) return false;
-	if (s2.x1 >= s1.x1 && s2.x1 <= s1.x2 && s2.y1 >= s1.y1 && s2.y1 <= s1.y2) return true;
-	if (s2.x2 >= s1.x1 && s2.x2 <= s1.x2 && s2.y2 >= s1.y1 && s2.y2 <= s1.y2) return true;
-	if (s1.x1 >= s2.x1 && s1.x1 <= s2.x2 && s1.y1 >= s2.y1 && s1.y1 <= s2.y2) return true;
-	if (s1.x2 >= s2.x1 && s1.x2 <= s2.x2 && s1.y2 >= s2.y1 && s1.y2 <= s2.y2) return true;
+	// TODO: that's not a good test below, it should include POS_EPSILON
+	if ((s2.x1 >= s1.x1 && s2.x1 <= s1.x2 && s2.y1 >= s1.y1 && s2.y1 <= s1.y2) ||
+			(s2.x2 >= s1.x1 && s2.x2 <= s1.x2 && s2.y2 >= s1.y1 && s2.y2 <= s1.y2) ||
+			(s1.x1 >= s2.x1 && s1.x1 <= s2.x2 && s1.y1 >= s2.y1 && s1.y1 <= s2.y2) ||
+			(s1.x2 >= s2.x1 && s1.x2 <= s2.x2 && s1.y2 >= s2.y1 && s1.y2 <= s2.y2)) {
+		bool test = check_distance_by_projection(s1, s2);
+		if (test)
+			siril_debug_print("on point of a segment is inside another and segments project closely\n");
+		else siril_debug_print("on point of a segment is inside another but segments are not close\n");
+		return test;
+	}
 	return false;
 }
 
@@ -164,7 +195,7 @@ static void merge_two_segments(std::vector<Segment> &segments, size_t i, size_t 
 		newy1 = max(y1, max(y3, y4));
 		newy2 = min(y2, min(y3, y4));
 	}
-	siril_debug_print("   rho for merged was %f and %f\n", segments[i].rho, segments[j].rho);
+	//siril_debug_print("   rho for merged was %f and %f\n", segments[i].rho, segments[j].rho);
 	segments[i] = Segment(newx1, newy1, newx2, newy2);
 	siril_debug_print("   updated segment %zd to (%d,%d) -> (%d,%d)\n", i, newx1, newy1, newx2, newy2);
 }
