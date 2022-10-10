@@ -1821,7 +1821,6 @@ int process_autostretch(int nb) {
 int process_resample(int nb) {
 	gchar *end;
 	gboolean clamp = TRUE;
-	double clamping_factor = 0.5;
 	int interpolation = OPENCV_LANCZOS4;
 	double factor = 1.0;
 
@@ -1867,22 +1866,6 @@ int process_resample(int nb) {
 			return CMD_ARG_ERROR;
 		} else if (!strcmp(word[i], "-noclamp")) {
 			clamp = FALSE;
-		} else if (g_str_has_prefix(word[i], "-clamp=")) {
-			clamp = TRUE;
-			char *current = word[i], *value;
-			value = current + 7;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-			gchar *end;
-			clamping_factor = g_ascii_strtod(value, &end);
-			if (end == value || clamping_factor > 1.0 || clamping_factor < 0.0) {
-				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), clamping_factor);
-				clamping_factor = 0.5;
-				clamp = FALSE;
-				return CMD_ARG_ERROR;
-			}
 		}
 	}
 	if (factor == 1.0) {
@@ -1893,7 +1876,7 @@ int process_resample(int nb) {
 	int toY = round_to_int(factor * gfit.ry);
 
 	set_cursor_waiting(TRUE);
-	verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp, clamping_factor);
+	verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -1939,7 +1922,6 @@ int process_rotate(int nb) {
 	}
 
 	gboolean clamp = TRUE;
-	double clamping_factor = 0.5;
 	int interpolation = OPENCV_LANCZOS4;
 	double angle=0.0;
 
@@ -1989,22 +1971,6 @@ int process_rotate(int nb) {
 			if (has_selection) {
 				siril_log_color_message(_("-nocrop option is not valid if a selection is active. Ignoring\n"), "red");
 			} else crop = 0;
-		} else if (g_str_has_prefix(word[i], "-clamp=")) {
-			clamp = TRUE;
-			char *current = word[i], *value;
-			value = current + 7;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				return CMD_ARG_ERROR;
-			}
-			gchar *end;
-			clamping_factor = g_ascii_strtod(value, &end);
-			if (end == value || clamping_factor > 1.0 || clamping_factor < 0.0) {
-				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), clamping_factor);
-				clamping_factor = 0.5;
-				clamp = FALSE;
-				return CMD_ARG_ERROR;
-			}
 		}
 	}
 	siril_debug_print("%f\n",angle);
@@ -2013,7 +1979,7 @@ int process_rotate(int nb) {
 		siril_log_message(_("Angle is 0.0 or 360.0 degrees. Doing nothing...\n"));
 		return CMD_ARG_ERROR;
 	}
-	verbose_rotate_image(&gfit, area, angle, interpolation, crop, clamp, clamping_factor);
+	verbose_rotate_image(&gfit, area, angle, interpolation, crop, clamp);
 
 	// the new selection will match the current image
 	if (has_selection) {
@@ -4742,7 +4708,6 @@ int process_register(int nb) {
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
 	reg_args->interpolation = OPENCV_LANCZOS4;
 	reg_args->clamp = TRUE;
-	reg_args->clamping_factor = 0.5;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
@@ -4752,22 +4717,6 @@ int process_register(int nb) {
 			reg_args->no_output = TRUE;
 		} else if (!strcmp(word[i], "-noclamp")) {
 			reg_args->clamp = FALSE;
-		} else if (g_str_has_prefix(word[i], "-clamp=")) {
-			reg_args->clamp = TRUE;
-			char *current = word[i], *value;
-			value = current + 7;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
-			}
-			gchar *end;
-			reg_args->clamping_factor = g_ascii_strtod(value, &end);
-			if (end == value || reg_args->clamping_factor > 1.0 || reg_args->clamping_factor < 0.0) {
-				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), reg_args->clamping_factor);
-				reg_args->clamping_factor = 0.5;
-				reg_args->clamp = FALSE;
-				goto terminate_register_on_error;
-			}
 		} else if (!strcmp(word[i], "-2pass")) {
 			reg_args->two_pass = TRUE;
 			reg_args->no_output = TRUE;
@@ -4955,7 +4904,7 @@ int process_register(int nb) {
 	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE || reg_args->no_output)
 		reg_args->clamp = FALSE;
 	if (reg_args->clamp)
-		siril_log_message(_("Interpolation clamping: %.1lf\n"), reg_args->clamping_factor);
+		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
@@ -5112,7 +5061,6 @@ int process_seq_applyreg(int nb) {
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_LANCZOS4;
 	reg_args->clamp = TRUE;
-	reg_args->clamping_factor = 0.5;
 	reg_args->framing = FRAMING_CURRENT;
 
 	/* check for options */
@@ -5129,22 +5077,6 @@ int process_seq_applyreg(int nb) {
 			reg_args->prefix = strdup(value);
 		} else if (!strcmp(word[i], "-noclamp")) {
 			reg_args->clamp = FALSE;
-		} else if (g_str_has_prefix(word[i], "-clamp=")) {
-			reg_args->clamp = TRUE;
-			char *current = word[i], *value;
-			value = current + 7;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
-			}
-			gchar *end;
-			reg_args->clamping_factor = g_ascii_strtod(value, &end);
-			if (end == value || reg_args->clamping_factor > 1.0 || reg_args->clamping_factor < 0.0) {
-				siril_log_message(_("Clamping factor %lf not allowed. Should be between 0.0 and 1.0.\n"), reg_args->clamping_factor);
-				reg_args->clamping_factor = 0.5;
-				reg_args->clamp = FALSE;
-				goto terminate_register_on_error;
-			}
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -5237,7 +5169,7 @@ int process_seq_applyreg(int nb) {
 	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
 		reg_args->clamp = FALSE;
 	if (reg_args->clamp)
-		siril_log_message(_("Interpolation clamping: %.1lf\n"), reg_args->clamping_factor);
+		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
 

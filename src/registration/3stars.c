@@ -316,7 +316,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	if (in_index != refimage) {
 		if (guess_transform_from_H(sadata->current_regdata[in_index].H) > -2) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->x2upscale, regargs->interpolation, regargs->clamp, regargs->clamping_factor)) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 					return 1;
 				}
 			} else { //  Do we want to allow for no interp while the transformation has been computed as a similarity?
@@ -328,7 +328,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	} else {
 		// reference image
 		if (regargs->x2upscale && !regargs->no_output) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE, 0))
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE))
 				return 1;
 		}
 	}

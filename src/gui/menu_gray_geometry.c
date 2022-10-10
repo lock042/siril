@@ -61,12 +61,10 @@ static void rotate_gui(fits *fit) {
 			gtk_toggle_button_set_active(crop_rotation, TRUE);
 	}
 	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
-	double clamping_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_rot_clamp")));
-
 	set_cursor_waiting(TRUE);
-	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s, clamped=%.1lf)"), angle,
-			cropped ? "TRUE" : "FALSE", clamp ? clamping_factor : 0.0);
-	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped, clamp, clamping_factor);
+	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s, clamped=%s)"), angle,
+			cropped ? "TRUE" : "FALSE", clamp ? "TRUE" : "FALSE");
+	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped, clamp);
 
 	// the UI is still opened, need to reset selection
 	// to current image size and reset rotation
@@ -131,10 +129,6 @@ void on_combo_interpolation_rotation_changed(GtkComboBox *combo_box, gpointer us
 	gtk_widget_set_sensitive(lookup_widget("grid_rot_clamping"), idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
 }
 
-void on_toggle_rot_clamp_toggled(GtkToggleButton *button, gpointer user_data) {
-	gtk_widget_set_sensitive(lookup_widget("spin_rot_clamp"), gtk_toggle_button_get_active(button));
-}
-
 /******
  * MIRROR
  */
@@ -186,14 +180,13 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 		int interpolation = gtk_combo_box_get_active(
 				GTK_COMBO_BOX(lookup_widget("combo_interpolation")));
 		gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
-		double clamping_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_rot_clamp")));
 
 		set_cursor_waiting(TRUE);
 		int toX = round_to_int((sample[0] / 100.0) * gfit.rx);
 		int toY = round_to_int((sample[1] / 100.0) * gfit.ry);
 		undo_save_state(&gfit, _("Resample (%g - %g)"), sample[0] / 100.0,
 				sample[1] / 100.0);
-		verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp, clamping_factor);
+		verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
 		redraw(REMAP_ALL);
 		redraw_previews();
@@ -240,16 +233,6 @@ void on_button_sample_ratio_toggled(GtkToggleButton *button, gpointer user_data)
 		gtk_spin_button_set_value(
 				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")),
 				xvalue);
-}
-
-void on_combo_interpolation_changed(GtkComboBox *combo_box, gpointer user_data) {
-	gint idx = gtk_combo_box_get_active(combo_box);
-
-	gtk_widget_set_sensitive(lookup_widget("grid_scale_clamping"), idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
-}
-
-void on_toggle_scale_clamp_toggled(GtkToggleButton *button, gpointer user_data) {
-	gtk_widget_set_sensitive(lookup_widget("spin_scale_clamp"), gtk_toggle_button_get_active(button));
 }
 
 /**************

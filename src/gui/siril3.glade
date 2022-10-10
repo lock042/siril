@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -15810,22 +15810,10 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
               </packing>
             </child>
             <child>
-              <!-- n-columns=2 n-rows=2 -->
+              <!-- n-columns=2 n-rows=1 -->
               <object class="GtkGrid" id="grid_scale_clamping">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="halign">start</property>
-                    <property name="label" translatable="yes">Clamping factor:</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
                 <child>
                   <object class="GtkCheckButton" id="toggle_scale_clamp">
                     <property name="label" translatable="yes">Interpolation clamping</property>
@@ -15840,23 +15828,6 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                   <packing>
                     <property name="left-attach">0</property>
                     <property name="top-attach">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSpinButton" id="spin_scale_clamp">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">Strength of clamping factor applied to Bicubic and Lanczos4 interpolation, between 0.0 and 1.0.</property>
-                    <property name="halign">end</property>
-                    <property name="valign">center</property>
-                    <property name="text" translatable="yes">0,50</property>
-                    <property name="adjustment">clamp_adjustment</property>
-                    <property name="digits">2</property>
-                    <property name="value">0.5</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">1</property>
                   </packing>
                 </child>
                 <child>
@@ -16084,38 +16055,10 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=2 -->
+          <!-- n-columns=2 n-rows=1 -->
           <object class="GtkGrid" id="grid_rot_clamping">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Clamping factor:</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSpinButton" id="spin_rot_clamp">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">Strength of clamping factor applied to Bicubic and Lanczos4 interpolation, between 0.0 and 1.0.</property>
-                <property name="halign">end</property>
-                <property name="valign">center</property>
-                <property name="adjustment">clamp_adjustment</property>
-                <property name="digits">2</property>
-                <property name="value">0.5</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
             <child>
               <object class="GtkCheckButton" id="toggle_rot_clamp">
                 <property name="label" translatable="yes">Interpolation clamping</property>
@@ -20301,21 +20244,7 @@ A lower value leads to a more aggressive clamping.</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkSpinButton" id="spin_reg_clamp">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Determines the clamping strength to be applied to the interpolation algorithm, between 0.0 and 1.0</property>
-                                                            <property name="text" translatable="yes">0.50</property>
-                                                            <property name="adjustment">clamp_adjustment</property>
-                                                            <property name="digits">2</property>
-                                                            <property name="value">0.5</property>
-                                                            <signal name="value-changed" handler="on_spin_reg_clamp_value_changed" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
+                                                            <placeholder/>
                                                             </child>
                                                             </object>
                                                             <packing>

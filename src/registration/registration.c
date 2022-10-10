@@ -177,7 +177,6 @@ void initialize_registration_methods() {
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("ComboBoxRegInter")), com.pref.gui.reg_interpolation);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")), com.pref.gui.reg_clamping);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_reg_clamp")), com.pref.gui.reg_clamping_value);
 	gtk_widget_set_sensitive(lookup_widget("box_reg_clamping"),
 			com.pref.gui.reg_interpolation == OPENCV_LANCZOS4 || com.pref.gui.reg_interpolation == OPENCV_CUBIC);
 
@@ -787,10 +786,6 @@ void on_toggle_reg_clamp_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.gui.reg_clamping = active;
 }
 
-void on_spin_reg_clamp_value_changed(GtkSpinButton *button, gpointer user_data) {
-	com.pref.gui.reg_clamping_value = gtk_spin_button_get_value(button);
-}
-
 void on_ComboBoxRegInter_changed(GtkComboBox *box, gpointer user_data) {
 	com.pref.gui.reg_interpolation = gtk_combo_box_get_active(box);
 	gtk_widget_set_sensitive(lookup_widget("box_reg_clamping"),
@@ -1361,7 +1356,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
 	reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 	reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
-	reg_args->clamping_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_reg_clamp")));
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
@@ -1449,7 +1443,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
 	if (reg_args->clamp)
-		siril_log_message(_("Interpolation clamping: %.1lf\n"), reg_args->clamping_factor);
+		siril_log_message(_("Interpolation clamping active\n"));
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	start_in_reserved_thread(register_thread_func, reg_args);

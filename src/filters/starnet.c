@@ -385,7 +385,7 @@ gpointer do_starnet(gpointer p) {
 	// Upscale if needed
 	if (args->upscale) {
 		siril_log_message(_("Starnet++: 2x upscaling selected. Upscaling image...\n"));
-		retval = cvResizeGaussian(&workingfit, round_to_int(2*orig_x), round_to_int(2*orig_y), OPENCV_AREA, FALSE, 0.0);
+		retval = cvResizeGaussian(&workingfit, round_to_int(2*orig_x), round_to_int(2*orig_y), OPENCV_AREA, FALSE);
 		if (retval) {
 			siril_log_color_message(_("Error: image resize failed...\n"), "red");
 			goto CLEANUP;
@@ -458,7 +458,7 @@ gpointer do_starnet(gpointer p) {
 	// Downscale again if needed
 	if (args->upscale) {
 		siril_log_message(_("Starnet++: 2x upscaling selected. Re-scaling starless image to original size...\n"));
-		retval = cvResizeGaussian(&workingfit, orig_x, orig_y, OPENCV_AREA, FALSE, 0.0);
+		retval = cvResizeGaussian(&workingfit, orig_x, orig_y, OPENCV_AREA, FALSE);
 		if (retval) {
 			siril_log_color_message(_("Error: image resize failed...\n"), "red");
 			goto CLEANUP;

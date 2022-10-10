@@ -248,7 +248,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	cvTransfH(Himg, Htransf, &H);
 
 	if (regargs->interpolation <= OPENCV_LANCZOS4) {
-		if (cvTransformImage(fit, rx_out, ry_out, H, regargs->x2upscale, regargs->interpolation, regargs->clamp, regargs->clamping_factor)) {
+		if (cvTransformImage(fit, rx_out, ry_out, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 			return 1;
 		}
 	} else {

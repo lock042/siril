@@ -232,24 +232,38 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 }
 
 /* resizes image to the sizes toX * toY, and stores it back in image */
-int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp, double clamping_factor) {
+int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
 	Mat in, out;
 	void *bgr = NULL;
-
+	double clamping_factor = 0.98;
 	if (image_to_Mat(image, &in, &out, &bgr, toX, toY))
 		return 1;
 
 	// OpenCV function
 	resize(in, out, out.size(), 0, 0, interpolation);
+	Scalar initial_mean = mean(in);
+	double im = initial_mean[0];
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-		Mat guide, mask;
+		clamping_factor = 0.98;
+		Mat guide, tmp1;
 		// Create guide image
 		resize(in, guide, out.size(), 0, 0, OPENCV_AREA);
-		// Compare the two, replace out pixels with guide pixels if too far out
-		compare(out, (guide * clamping_factor), mask, CMP_LT);
-		guide.copyTo(out, mask);
-		mask.release();
+		tmp1 = (out < clamping_factor * guide);
+		Mat element = getStructuringElement( MORPH_ELLIPSE,
+                       Size(3, 3), Point(1,1));
+		dilate(tmp1, tmp1, element);
+		tmp1.convertTo(tmp1, CV_8U); // Masks must be in this format
+
+		copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
+		bitwise_not(tmp1, tmp1); // Invert the mask
+		copyTo(out, out, tmp1); // Output copied to all other pixels
+
+		out = out + guide;
+		Scalar final_mean = mean(out);
+		double fm = final_mean[0];
+		out = out * (im/fm); // Preserve brightness
 		guide.release();
+		tmp1.release();
 	}
 	return Mat_to_image(image, &in, &out, bgr, toX, toY);
 }
@@ -449,7 +463,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 }
 
 // transform an image using the homography.
-int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation, gboolean clamp, double clamping_factor) {
+int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation, gboolean clamp) {
 	Mat in, out;
 	void *bgr = NULL;
 	int target_rx = width, target_ry = height;
@@ -484,41 +498,26 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	double im = initial_mean[0];
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-		Mat guide, guide16, tmp1, tmp2;
+		double clamping_factor = 0.98;
+		Mat guide, tmp1;
 		// Create guide image
 		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
-		// Compare the two, replace out pixels with guide pixels if too far out
-		if (guide.type() == CV_16UC1 || guide.type() == CV_16UC3) {
-			Sobel(guide, tmp1, guide.type(), 2, 0, 3, 3, 1, BORDER_DEFAULT);
-			Sobel(guide, tmp2, guide.type(), 0, 2, 3, 3, 1, BORDER_DEFAULT);
-		} else {
-			Mat guide16;
-			guide.convertTo(guide16, CV_16U, 65535);
-			Sobel(guide16, tmp1, guide16.type(), 2, 0, 3, 3, 1, BORDER_DEFAULT);
-			Sobel(guide16, tmp2, guide16.type(), 0, 2, 3, 3, 1, BORDER_DEFAULT);
-			guide16.release();
-		}
-		tmp1 = (tmp1 / 2 + tmp2 / 2);
-		// tmp2 is the mask for the areas of high gradient change
-		tmp2 = (tmp1 > 4000);
-		tmp2.convertTo(tmp2, CV_8U);
-		bitwise_not(tmp2, tmp1);
+		tmp1 = (out < clamping_factor * guide);
+		Mat element = getStructuringElement( MORPH_ELLIPSE,
+                       Size(3, 3), Point(1,1));
+		dilate(tmp1, tmp1, element);
+		tmp1.convertTo(tmp1, CV_8U); // Masks must be in this format
 
-		copyTo(guide, out, tmp2);
-		copyTo(out, out, tmp1);
+		copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
+		bitwise_not(tmp1, tmp1); // Invert the mask
+		copyTo(out, out, tmp1); // Output copied to all other pixels
 
 		out = out + guide;
 		Scalar final_mean = mean(out);
 		double fm = final_mean[0];
 		out = out * (im/fm); // Preserve brightness
-/*		if (out.type() == CV_32FC1 || out.type() == CV_32FC3) {
-			double min, max;
-			minMaxIdx(out, &min, &max);
-			out = out / max;
-		} */
 		guide.release();
 		tmp1.release();
-		tmp2.release();
 	}
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }

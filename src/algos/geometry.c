@@ -143,7 +143,7 @@ static void fits_rotate_pi(fits *fit) {
 /* These functions do not more than resize_gaussian and rotate_image
  * except for console outputs.
  * Indeed, siril_log_message seems not working in a cpp file */
-int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp, double clamping_factor) {
+int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
 	int retvalue;
 	const char *str_inter;
 	struct timeval t_start, t_end;
@@ -174,7 +174,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation, gb
 
 	gettimeofday(&t_start, NULL);
 
-	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp, clamping_factor);
+	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
 	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
 	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
 	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve
@@ -233,7 +233,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 }
 
 int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
-		int cropped, gboolean clamp, double clamping_factor) {
+		int cropped, gboolean clamp) {
 	const char *str_inter;
 	struct timeval t_start, t_end;
 
@@ -270,7 +270,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
-	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation, clamp, clamping_factor)) return 1;
+	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation, clamp)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
