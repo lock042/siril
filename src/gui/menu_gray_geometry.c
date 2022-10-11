@@ -126,7 +126,7 @@ void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user
 void on_combo_interpolation_rotation_changed(GtkComboBox *combo_box, gpointer user_data) {
 	gint idx = gtk_combo_box_get_active(combo_box);
 
-	gtk_widget_set_sensitive(lookup_widget("grid_rot_clamping"), idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
+	gtk_widget_set_sensitive(lookup_widget("toggle_rot_clamp"), idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
 }
 
 /******
@@ -233,6 +233,12 @@ void on_button_sample_ratio_toggled(GtkToggleButton *button, gpointer user_data)
 		gtk_spin_button_set_value(
 				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")),
 				xvalue);
+}
+
+void on_combo_interpolation_changed(GtkComboBox *combo_box, gpointer user_data) {
+	gint idx = gtk_combo_box_get_active(combo_box);
+
+	gtk_widget_set_sensitive(lookup_widget("toggle_scale_clamp"), idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
 }
 
 /**************
