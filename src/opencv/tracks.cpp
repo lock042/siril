@@ -89,6 +89,9 @@ class Segment {
 
 		pointi start() { pointi p = { x1, y1 }; return p; }
 		pointi end() { pointi p = { x2, y2 }; return p; }
+
+		void diagonal_grow(int amount);
+		bool point_is_inside_the_square(pointi p);
 };
 
 // compute the signed triangle area
@@ -137,13 +140,14 @@ static bool segments_intersect(Segment &s1, Segment &s2) {
 static bool is_projection_close(Segment &s1, pointi s2a, pointi s2b) {
 	int s1x = s1.x2 - s1.x1;
 	int s1y = s1.y2 - s1.y1;
-	int s2x = s2a.x - s2b.x;
-	int s2y = s2a.y - s2b.y;
+	int s2x = s2b.x - s2a.x;
+	int s2y = s2b.y - s2a.y;
 	int denom = s1x * s2x + s1y * s2y;
+	//siril_debug_print("s1x: %d, s1y: %d, s2x: %d, s2y: %d\n", s1x, s1y, s2x, s2y);
 	if (!denom)
 		return false; // segments are orthogonal
 	double t = (s2x * (s2a.x - s1.x1) + s2y * (s2a.y - s1.y1)) / (double)denom;
-	siril_debug_print("t: %f\n", t);
+	//siril_debug_print("t: %f\n", t);
 	if (t < 0. || t > 1.)
 		return false; // projected point is outside s1
 	int qx = (int)(s1.x1 + s1x * t + 0.5);
@@ -163,39 +167,71 @@ static bool check_distance_by_projection(Segment &s1, Segment &s2) {
 		is_projection_close(s2, s1.start(), s1.end());
 }
 
-// prerequisite: segments[i] and segments[j] have similar angles
-static bool segments_are_closely_colinear(Segment &s1, Segment &s2) {
-	pointi s1a = s1.start(), s1b = s1.end(), s2a = s2.start(), s2b = s2.end();
-	if (s1a.x < s1b.x) {
-		s1a.x -= POS_EPSILON; s1b.x += POS_EPSILON;
+// this only changes coordinates, doesn't recompute theta
+// warning, they may be out of image bounds at this stage
+void Segment::diagonal_grow(int amount) {
+	if (x1 < x2) {
+		if (y1 < y2) {
+			x1 -= amount; x2 += amount;
+			y1 -= amount; y2 += amount;
+		}
+		else if (y1 > y2) {
+			x1 -= amount; x2 += amount;
+			y1 += amount; y2 -= amount;
+		}
+		else {
+			x1 -= amount; x2 += amount;
+			y1 -= amount; y2 += amount;
+		}
 	}
-	else if (s1a.x > s1b.x) {
-		s1a.x += POS_EPSILON; s1b.x -= POS_EPSILON;
+	else if (x2 < x1) {
+		if (y1 < y2) {
+			x1 += amount; x2 -= amount;
+			y1 -= amount; y2 += amount;
+		}
+		else if (y1 > y2) {
+			x1 += amount; x2 -= amount;
+			y1 += amount; y2 -= amount;
+		}
+		else {
+			x1 += amount; x2 -= amount;
+		}
 	}
-	if (s1a.y < s1b.y) {
-		s1a.y -= POS_EPSILON; s1b.y += POS_EPSILON;
+	else {
+		if (y1 < y2) {
+			x1 -= amount; x2 += amount;
+			y1 -= amount; y2 += amount;
+		}
+		else if (y1 > y2) {
+			x1 -= amount; x2 += amount;
+			y1 += amount; y2 -= amount;
+		}
 	}
-	else if (s1a.y > s1b.y) {
-		s1a.y += POS_EPSILON; s1b.y -= POS_EPSILON;
-	}
-	if (s2a.x < s2b.x) {
-		s2a.x -= POS_EPSILON; s2b.x += POS_EPSILON;
-	}
-	else if (s2a.x > s2b.x) {
-		s2a.x += POS_EPSILON; s2b.x -= POS_EPSILON;
-	}
-	if (s2a.y < s2b.y) {
-		s2a.y -= POS_EPSILON; s2b.y += POS_EPSILON;
-	}
-	else if (s2a.y > s2b.y) {
-		s2a.y += POS_EPSILON; s2b.y -= POS_EPSILON;
-	}
-	// warning, they may be out of image bounds at this stage
+}
 
-	if ((s2a.x >= s1a.x && s2a.x <= s1b.x && s2a.y >= s1a.y && s2a.y <= s1b.y) ||
-			(s2b.x >= s1a.x && s2b.x <= s1b.x && s2b.y >= s1a.y && s2b.y <= s1b.y) ||
-			(s1a.x >= s2a.x && s1a.x <= s2b.x && s1a.y >= s2a.y && s1a.y <= s2b.y) ||
-			(s1b.x >= s2a.x && s1b.x <= s2b.x && s1b.y >= s2a.y && s1b.y <= s2b.y)) {
+// check if a point is inside the square containing a segment
+bool Segment::point_is_inside_the_square(pointi p) {
+	if (x1 <= x2) {
+		if (y1 <= y2)
+			return p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2;
+		else 	return p.x >= x1 && p.x <= x2 && p.y <= y1 && p.y >= y2;
+	} else {
+		if (y1 <= y2)
+			return p.x <= x1 && p.x >= x2 && p.y >= y1 && p.y <= y2;
+		else 	return p.x <= x1 && p.x >= x2 && p.y <= y1 && p.y >= y2;
+	}
+}
+
+// check if two segments are close enough and parallel or almost to be considered one
+// prerequisite: segments have similar angles
+static bool segments_are_closely_colinear(Segment s1, Segment s2) {
+	s1.diagonal_grow(POS_EPSILON);
+	s2.diagonal_grow(POS_EPSILON);
+	siril_debug_print("grown s1 (%d,%d)->(%d,%d)\n", s1.x1, s1.y1, s1.x2, s1.y2);
+	siril_debug_print("grown s2 (%d,%d)->(%d,%d)\n", s2.x1, s2.y1, s2.x2, s2.y2);
+
+	if (s1.point_is_inside_the_square(s2.start()) || s1.point_is_inside_the_square(s2.end()) ||
+			s2.point_is_inside_the_square(s1.start()) || s2.point_is_inside_the_square(s1.end())) {
 		bool test = check_distance_by_projection(s1, s2);
 		if (test)
 			siril_debug_print("  one point of a segment is inside another and segments project closely\n");
@@ -438,29 +474,29 @@ int main() {
 
 	// projection, horizontal segment, backwards
 	s1 = Segment(1100, 1000, 1000, 1000);
-	pointi s2a = { 1030, -1003 };
-	pointi s2b = { 1080, 1005 };
+	s2a = { 1030, 997 };
+	s2b = { 1080, 1005 };
 	res = is_projection_close(s1, s2a, s2b) && is_projection_close(s1, s2b, s2a);
 	RESULT("projection -h");
 
 	// projection, horizontal segment, far away
 	s1 = Segment(1000, 1000, 1100, 1000);
-	pointi s2a = { 1080, 1003 };
-	pointi s2b = { 1030, 1500 };
-	res = !is_projection_close(s1, s2a, s2b) && is_projection_close(s1, s2b, s2a);
+	s2a = { 1080, 1003 };
+	s2b = { 1030, 1100 };
+	res = is_projection_close(s1, s2a, s2b) && !is_projection_close(s1, s2b, s2a);
 	RESULT("projection h far");
 
 	// projection, vertical segment
 	s1 = Segment(1000, 1000, 1000, 1100);
-	pointi s2a = { 1003, 1030 };
-	pointi s2b = { 1005, 1080 };
+	s2a = { 1003, 1030 };
+	s2b = { 1005, 1080 };
 	res = is_projection_close(s1, s2a, s2b) && is_projection_close(s1, s2b, s2a);
 	RESULT("projection v");
 
 	// projection, vertical segment, far away
 	s1 = Segment(1000, 1000, 1000, 1100);
-	pointi s2a = { 1003, 1080 };
-	pointi s2b = { 1005, 1030 };
+	s2a = { 1070, 1080 };
+	s2b = { 995, 1030 };
 	res = !is_projection_close(s1, s2a, s2b) && is_projection_close(s1, s2b, s2a);
 	RESULT("projection v far");
 
@@ -468,7 +504,25 @@ int main() {
 	s1 = Segment(1309,591,1343,622);
 	s2 = Segment(1322,600,1365,643);
 	res = segments_are_closely_colinear(s1, s2);
-	RESULT("proximity");
+	RESULT("proximity 1");
+
+	// two segments slightly separated, not intersecting, close to parallel
+	s1 = Segment(2203,3198,2369,3136);
+	s2 = Segment(2274,3172,2341,3148);
+	res = segments_are_closely_colinear(s1, s2);
+	RESULT("proximity 2");
+
+	// two segments slightly separated, not intersecting, close to parallel
+	s1 = Segment(2608,2023,2792,1942);
+	s2 = Segment(2644,2005,2669,1994);
+	res = segments_are_closely_colinear(s1, s2);
+	RESULT("proximity 3");
+
+	// two segments slightly separated, not intersecting, close to parallel
+	s1 = Segment(1984,2241,2069,2200);
+	s2 = Segment(2056,2204,2106,2182);
+	res = segments_are_closely_colinear(s1, s2);
+	RESULT("proximity 4");
 
 	return 0;
 }
