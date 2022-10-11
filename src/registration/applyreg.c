@@ -364,6 +364,16 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 		* the transformed image, including upscale if required (4x)
 		*/
 	unsigned int required = MB_per_orig_image + MB_per_scaled_image;
+	// If interpolation clamping is set, 2x additional Mats of the same format
+	// as the original image are required
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+	if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
+			regargs->interpolation == OPENCV_LANCZOS4))
+		required += 2 * MB_per_scaled_image;
+	regargs = NULL;
+	sadata = NULL;
+
 	if (limit > 0) {
 
 		int thread_limit = MB_avail / required;
