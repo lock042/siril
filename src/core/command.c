@@ -6062,7 +6062,7 @@ int process_detect_trail(int nb) {
 
 	gboolean is_sequence = (word[0][2] == 'q');
 	float ksigma = 1.f;
-	int layer = -1, minlen = 100, defminlen = 100; //default min length of 20px to be qualified as a trail
+	int layer = -1, minlen = 100, defminlen = 30;
 	int startnb = (is_sequence) ? 1 : 0;
 
 	for (int i = 1; i < nb - startnb; i++) {
@@ -6079,6 +6079,7 @@ int process_detect_trail(int nb) {
 		minlen = defminlen;
 	}
 	if (ksigma < 0) {
+		// TODO: document this usage
 		//siril_log_color_message(_("ksigma cannot be negative, ignoring\n"), "salmon");
 		//ksigma = 1.f;
 	}
@@ -6089,9 +6090,9 @@ int process_detect_trail(int nb) {
 			siril_log_color_message(_("Layer %d. does not exist.\n"), "red", layer);
 			return 1;
 		}
-		if (layer == -1) layer = (gfit.naxes[2] == 3) ? 1 : 0;
-
-		imstats* stat = statistics(NULL, -1, &gfit, layer, NULL, STATS_BASIC, TRUE);
+		if (layer == -1)
+			layer = (gfit.naxes[2] == 3) ? 1 : 0;
+		imstats* stat = statistics(NULL, -1, &gfit, layer, NULL, STATS_BASIC, MULTI_THREADED);
 		if (!stat) {
 			siril_log_color_message(_("Error: statistics computation failed.\n"), "red");
 			return 1;

@@ -41,3 +41,5 @@ $LD -o siril_world_cs_test siril_world_cs_test.o ../core/siril_world_cs.o -Wl,--
 
 # in mpp, a libsiril.a was created to not require the endless dummy list of functions:
 # https://gitlab.com/free-astro/siril/-/blob/mpp/src/Makefile.am
+
+$CXX -g -Wall -DSELF_CONTAINED -I.. -o tracks_test ../opencv/tracks.cpp

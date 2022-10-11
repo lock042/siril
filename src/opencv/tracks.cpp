@@ -1,31 +1,75 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #define _USE_MATH_DEFINES
 #include <math.h>
+#ifndef SELF_CONTAINED
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include "tracks.h"
-#include "core/siril_log.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-//#include "algos/statistics.h"
 #include <gsl/gsl_histogram.h>
 #ifdef __cplusplus
 }
 #endif
+#include "tracks.h"
+#endif // SELF_CONTAINED
+#include "core/siril_log.h"
 
+#ifdef SELF_CONTAINED
+#include <vector>
+typedef struct {
+	int x, y;
+} pointi;
+
+// from siril.h
+#include <stdio.h>
+#undef max
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#undef min
+#define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
+#define DEBUG_TEST 1
+#define siril_debug_print(fmt, ...) \
+	do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
+
+using namespace std;
+#else
 using namespace cv;
+#endif
 
 class Segment {
 	private:
 		double theta;	// in radians
-		//double sin_theta;
 		double theta_deg;
-		double m;
 
 	public:
-		int x1, y1, x2, y2;
-		//double rho;
+		int x1, y1, x2, y2; // don't asign new values, theta is computed from this
 
 		Segment(int startx, int starty, int endx, int endy) {
 			x1 = startx;
@@ -35,21 +79,30 @@ class Segment {
 
 			double dx = x1 - x2;
 			double dy = y1 - y2;
-			m = dx == 0.0 ? 0.0 : dy / dx;
 			theta = atan2(dy, dx);
 			theta_deg = theta / M_PI * 180.0;
-			//sin_theta = ::sin(theta);
-			//rho = fabs(y1 - m * x1) / sqrt(m * m + 1);
 		}
 		Segment() { };	// for vector allocation
 
 		double toDegrees() { return theta_deg; }
 		double angle() { return theta; }
-		//double sin() { return sin_theta; }
 
 		pointi start() { pointi p = { x1, y1 }; return p; }
 		pointi end() { pointi p = { x2, y2 }; return p; }
 };
+
+class Rectangle {
+	public:
+		int x1, y1, x2, y2;
+
+		Rectangle(Segment &s, int inflation);
+
+		pointi start() { pointi p = { x1, y1 }; return p; }
+		pointi end() { pointi p = { x2, y2 }; return p; }
+
+		bool point_is_inside(pointi p);
+};
+
 
 // compute the signed triangle area
 static int orientation(pointi a, pointi b, pointi c) {
@@ -72,7 +125,7 @@ static bool onSegment(pointi a, pointi b, pointi c) {
 
 // https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
 // prerequisite: segments[i] and segments[j] have similar angles
-static bool segments_intersect(Segment s1, Segment s2) {
+static bool segments_intersect(Segment &s1, Segment &s2) {
 	pointi a = s1.start();
 	pointi b = s1.end();
 	pointi c = s2.start();
@@ -94,24 +147,28 @@ static bool segments_intersect(Segment s1, Segment s2) {
 // we project point A of s2 on s1, check if it falls inside s1 and if the projected length
 // is <= POS_EPSILON
 // from https://stackoverflow.com/a/73437072
-static bool is_projection_close(Segment s1, pointi s2a, pointi s2b) {
-	int s1x = s1.x1 - s1.x2;
-	int s1y = s1.y1 - s1.y1;
-	int s2x = s2a.x - s2b.x;
-	int s2y = s2a.x - s2b.x;
+static bool is_projection_close(Segment &s1, pointi s2a, pointi s2b) {
+	int s1x = s1.x2 - s1.x1;
+	int s1y = s1.y2 - s1.y1;
+	int s2x = s2b.x - s2a.x;
+	int s2y = s2b.y - s2a.y;
 	int denom = s1x * s2x + s1y * s2y;
+	//siril_debug_print("s1x: %d, s1y: %d, s2x: %d, s2y: %d\n", s1x, s1y, s2x, s2y);
 	if (!denom)
 		return false; // segments are orthogonal
-	double t = (s2x * (s2a.x - s1.x1) + s2y * (s2a.y - s1.y1)) / denom;
+	double t = (s2x * (s2a.x - s1.x1) + s2y * (s2a.y - s1.y1)) / (double)denom;
+	//siril_debug_print("t: %f\n", t);
 	if (t < 0. || t > 1.)
 		return false; // projected point is outside s1
 	int qx = (int)(s1.x1 + s1x * t + 0.5);
 	int qy = (int)(s1.y1 + s1y * t + 0.5);
 
-	return (sqrt((s2a.x - qx) * (s2a.x - qx) + (s2a.y - qy) * (s2a.y - qy)) <= (double)POS_EPSILON);
+	double dist = sqrt((s2a.x - qx) * (s2a.x - qx) + (s2a.y - qy) * (s2a.y - qy));
+	siril_debug_print("distance: %f\n", dist);
+	return dist <= (double)POS_EPSILON;
 }
 
-static bool check_distance_by_projection(Segment s1, Segment s2) {
+static bool check_distance_by_projection(Segment &s1, Segment &s2) {
 	// we project the two points of s1 on s2 and the two points of s2 on s1 and if they
 	// fall inside the segments, we compare the length of the projection with POS_EPSILON
 	return is_projection_close(s1, s2.start(), s2.end()) ||
@@ -120,39 +177,61 @@ static bool check_distance_by_projection(Segment s1, Segment s2) {
 		is_projection_close(s2, s1.start(), s1.end());
 }
 
-// prerequisite: segments[i] and segments[j] have similar angles
-static bool segments_are_closely_colinear(Segment s1, Segment s2) {
-	// TODO: that's not a good test below, it should include POS_EPSILON
-	if ((s2.x1 >= s1.x1 && s2.x1 <= s1.x2 && s2.y1 >= s1.y1 && s2.y1 <= s1.y2) ||
-			(s2.x2 >= s1.x1 && s2.x2 <= s1.x2 && s2.y2 >= s1.y1 && s2.y2 <= s1.y2) ||
-			(s1.x1 >= s2.x1 && s1.x1 <= s2.x2 && s1.y1 >= s2.y1 && s1.y1 <= s2.y2) ||
-			(s1.x2 >= s2.x1 && s1.x2 <= s2.x2 && s1.y2 >= s2.y1 && s1.y2 <= s2.y2)) {
+// this only changes coordinates, doesn't recompute theta
+// warning, they may be out of image bounds at this stage
+Rectangle::Rectangle(Segment &s, int amount) {
+	if (s.x1 <= s.x2) {
+		if (s.y1 <= s.y2) {
+			x1 = s.x1 - amount; y1 = s.y1 - amount;
+			x2 = s.x2 + amount; y2 = s.y2 + amount;
+		}
+		else {
+			x1 = s.x1 - amount; y1 = s.y1 + amount;
+			x2 = s.x2 + amount; y2 = s.y2 - amount;
+		}
+	}
+	else if (s.x2 < s.x1) {
+		if (s.y1 <= s.y2) {
+			x1 = s.x1 + amount; y1 = s.y1 - amount;
+			x2 = s.x2 - amount; y2 = s.y2 + amount;
+		}
+		else {
+			x1 = s.x1 + amount; y1 = s.y1 + amount;
+			x2 = s.x2 - amount; y2 = s.y2 - amount;
+		}
+	}
+}
+
+// check if a point is inside the square containing a segment
+bool Rectangle::point_is_inside(pointi p) {
+	if (x1 <= x2) {
+		if (y1 <= y2)
+			return p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2;
+		else 	return p.x >= x1 && p.x <= x2 && p.y <= y1 && p.y >= y2;
+	} else {
+		if (y1 <= y2)
+			return p.x <= x1 && p.x >= x2 && p.y >= y1 && p.y <= y2;
+		else 	return p.x <= x1 && p.x >= x2 && p.y <= y1 && p.y >= y2;
+	}
+}
+
+// check if two segments are close enough and parallel or almost to be considered one
+// prerequisite: segments have similar angles
+static bool segments_are_closely_colinear(Segment &s1, Segment &s2) {
+	Rectangle gs1 = Rectangle(s1, POS_EPSILON);
+	Rectangle gs2 = Rectangle(s2, POS_EPSILON);
+	//siril_debug_print("grown s1 (%d,%d)->(%d,%d)\n", gs1.x1, gs1.y1, gs1.x2, gs1.y2);
+	//siril_debug_print("grown s2 (%d,%d)->(%d,%d)\n", gs2.x1, gs2.y1, gs2.x2, gs2.y2);
+
+	if (gs1.point_is_inside(s2.start()) || gs1.point_is_inside(s2.end()) ||
+			gs2.point_is_inside(s1.start()) || gs2.point_is_inside(s1.end())) {
 		bool test = check_distance_by_projection(s1, s2);
-		if (test)
-			siril_debug_print("on point of a segment is inside another and segments project closely\n");
-		else siril_debug_print("on point of a segment is inside another but segments are not close\n");
+		/*if (test)
+			siril_debug_print("  one point of a segment is inside another and segments project closely\n");
+		else siril_debug_print("  one point of a segment is inside another but segments are not close\n");*/
 		return test;
 	}
 	return false;
-}
-
-static size_t remove_segments_on_the_sides(std::vector<Vec4i> &lines, int rx, int ry) {
-	size_t nb_lines = lines.size();
-	size_t j = 0;
-	for (size_t i = 0; i < nb_lines; i++) {
-		int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
-		if (x1 > 2 && x2 > 2 && x1 < rx-3 && x2 < rx-3 && y1 > 2 && y2 > 2 && y1 < ry-3 && y2 < ry-3) {
-			if (i != j) {
-				lines[j] = lines[i];
-			}
-			j++;
-		}
-	}
-	size_t new_size = j;
-	for (; j < nb_lines; j++)
-		lines.pop_back();
-	siril_debug_print("kept %zd lines not on the sides\n", new_size);
-	return new_size;
 }
 
 /*static size_t remove_segments_on_the_sides(std::vector<Segment> &segments, size_t nb_lines, int rx, int ry) {
@@ -197,7 +276,7 @@ static void merge_two_segments(std::vector<Segment> &segments, size_t i, size_t 
 	}
 	//siril_debug_print("   rho for merged was %f and %f\n", segments[i].rho, segments[j].rho);
 	segments[i] = Segment(newx1, newy1, newx2, newy2);
-	siril_debug_print("   updated segment %zd to (%d,%d) -> (%d,%d)\n", i, newx1, newy1, newx2, newy2);
+	//siril_debug_print("   updated segment %zd to (%d,%d) -> (%d,%d)\n", i, newx1, newy1, newx2, newy2);
 }
 
 static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
@@ -218,13 +297,13 @@ static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
 		for (size_t i = 0; i < nb_lines; i++) {
 			//if (!kept[i]) continue;
 			int x1 = segments[i].x1, x2 = segments[i].x2, y1 = segments[i].y1, y2 = segments[i].y2;
-			siril_debug_print("considering %ssegment %zd (%d,%d) -> (%d,%d)\n",
-					kept[i]?"":"removed ", i, x1, y1, x2, y2);
+			//siril_debug_print("considering %ssegment %zd (%d,%d) -> (%d,%d)\n",
+			//		kept[i]?"":"removed ", i, x1, y1, x2, y2);
 			for (size_t j = i+1; j < nb_lines; j++) {
 				if (fabs(segments[i].toDegrees() - segments[j].toDegrees()) <= ANGLES_EPSILON) {
 					int x3 = segments[j].x1, x4 = segments[j].x2, y3 = segments[j].y1, y4 = segments[j].y2;
-					siril_debug_print("  looking at %ssegment %zd (%d,%d) -> (%d,%d)\n",
-							kept[j]?"":"removed ", j, x3, y3, x4, y4);
+					//siril_debug_print("  looking at %ssegment %zd (%d,%d) -> (%d,%d)\n",
+					//		kept[j]?"":"removed ", j, x3, y3, x4, y4);
 					// check if segments have almost the same start or end
 					if ((abs(x1 - x3) <= POS_EPSILON && abs(y1 - y3) <= POS_EPSILON) ||
 							(abs(x2 - x4) <= POS_EPSILON && abs(y2 - y4) <= POS_EPSILON) ||
@@ -238,7 +317,7 @@ static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
 						if (kept[i])
 							merge_two_segments(tmpsegments, i, j);
 						kept[j] = false;
-						siril_debug_print("  removing %zd: (%d,%d) -> (%d,%d)\n", j, x3, y3, x4, y4);
+						//siril_debug_print("  removing %zd: (%d,%d) -> (%d,%d)\n", j, x3, y3, x4, y4);
 					}
 				}
 			}
@@ -259,7 +338,27 @@ static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
 	return new_size;
 }
 
-#define PROBABILITSIC_HOUGH
+
+#ifndef SELF_CONTAINED
+
+static size_t remove_segments_on_the_sides(std::vector<Vec4i> &lines, int rx, int ry) {
+	size_t nb_lines = lines.size();
+	size_t j = 0;
+	for (size_t i = 0; i < nb_lines; i++) {
+		int x1 = lines[i][0], y1 = lines[i][1], x2 = lines[i][2], y2 = lines[i][3];
+		if (x1 > 2 && x2 > 2 && x1 < rx-3 && x2 < rx-3 && y1 > 2 && y2 > 2 && y1 < ry-3 && y2 < ry-3) {
+			if (i != j) {
+				lines[j] = lines[i];
+			}
+			j++;
+		}
+	}
+	size_t new_size = j;
+	for (; j < nb_lines; j++)
+		lines.pop_back();
+	siril_debug_print("kept %zd lines not on the sides\n", new_size);
+	return new_size;
+}
 
 int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct track **tracks) {
 	if (layer < 0 || layer >= image->naxes[2]) {
@@ -267,6 +366,7 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 		siril_log_message(_("Using layer %d\n"), layer);
 	}
 
+	// making the binary image using the passed threshold
 	size_t nbpixels = image->naxes[0] * image->naxes[1];
 	BYTE *buffer = (BYTE *)malloc(nbpixels);
 	if (image->type == DATA_USHORT) {
@@ -278,7 +378,6 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 	}
 	Mat binary = Mat(image->ry, image->rx, CV_8UC1, buffer);
 
-#ifdef PROBABILITSIC_HOUGH
 	std::vector<Vec4i> lines; // will hold the results of the detection
 	HoughLinesP(binary, lines, 1.0, CV_PI / 180.0, minlen, (double)minlen, 5.0);
 	size_t nb_lines = lines.size();
@@ -327,28 +426,103 @@ int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct t
 		}
 	}
 
-#else
-	std::vector<Vec2f> lines; // will hold the results of the detection
-	HoughLines(binary, lines, 1.0, CV_PI / 180.0, minlen);
-
-#ifdef SIRIL_OUTPUT_DEBUG
-	for (size_t i = 0; i < lines.size(); i++) {
-		float rho = lines[i][0], theta = lines[i][1];
-		// rho is the distance to origin in pixels, theta the angle to X axis in radian
-		Point pt1, pt2;
-		double a = cos(theta), b = sin(theta);
-		double x0 = a*rho, y0 = b*rho;
-		pt1.x = cvRound(x0 + 1000*(-b));
-		pt1.y = cvRound(y0 + 1000*(a));
-		pt2.x = cvRound(x0 - 1000*(-b));
-		pt2.y = cvRound(y0 - 1000*(a));
-		siril_debug_print("Line detected (%d,%d)->(%d,%d)\n", pt1.x, pt1.y, pt2.x, pt2.y);
-	}
-#endif
-#endif
-
 	binary.release();
 	free(buffer);
 	return nb_lines;
 }
 
+#else
+#define RESULT(text) \
+	if (!res) { \
+		printf(text " failed\n"); \
+		return 1; \
+	} \
+	printf(text " PASS\n");
+
+int main() {
+	// two intersecting segments, orthogonal
+	Segment s1 = Segment(1000, 1000, 1100, 1000);
+	Segment s2 = Segment(1050, 1050, 1050, 950);
+	bool res = segments_intersect(s1, s2);
+	RESULT("intersection");
+
+	// two touching segments
+	s1 = Segment(1000, 1000, 1100, 1000);
+	s2 = Segment(1000, 1000, 1050, 950);
+	res = segments_intersect(s1, s2);
+	RESULT("touching1");
+
+	// two touching segments, orthogonal
+	s1 = Segment(1000, 1000, 1100, 1000);
+	s2 = Segment(1100, 1000, 1100, 950);
+	res = segments_intersect(s1, s2);
+	RESULT("touching2");
+
+	// projection, horizontal segment
+	s1 = Segment(1000, 1000, 1100, 1000);
+	pointi s2a = { 1030, 1003 };
+	pointi s2b = { 1080, 1005 };
+	res = is_projection_close(s1, s2a, s2b) && is_projection_close(s1, s2b, s2a);
+	RESULT("projection h");
+
+	// projection, horizontal segment, backwards
+	s1 = Segment(1100, 1000, 1000, 1000);
+	s2a = { 1030, 997 };
+	s2b = { 1080, 1005 };
+	res = is_projection_close(s1, s2a, s2b) && is_projection_close(s1, s2b, s2a);
+	RESULT("projection -h");
+
+	// projection, horizontal segment, far away
+	s1 = Segment(1000, 1000, 1100, 1000);
+	s2a = { 1080, 1003 };
+	s2b = { 1030, 1100 };
+	res = is_projection_close(s1, s2a, s2b) && !is_projection_close(s1, s2b, s2a);
+	RESULT("projection h far");
+
+	// projection, vertical segment
+	s1 = Segment(1000, 1000, 1000, 1100);
+	s2a = { 1003, 1030 };
+	s2b = { 1005, 1080 };
+	res = is_projection_close(s1, s2a, s2b) && is_projection_close(s1, s2b, s2a);
+	RESULT("projection v");
+
+	// projection, vertical segment, far away
+	s1 = Segment(1000, 1000, 1000, 1100);
+	s2a = { 1070, 1080 };
+	s2b = { 995, 1030 };
+	res = !is_projection_close(s1, s2a, s2b) && is_projection_close(s1, s2b, s2a);
+	RESULT("projection v far");
+
+	// two segments slightly separated, not intersecting, close to parallel
+	s1 = Segment(1309,591,1343,622);
+	s2 = Segment(1322,600,1365,643);
+	res = segments_are_closely_colinear(s1, s2);
+	RESULT("proximity 1");
+
+	// two segments slightly separated, not intersecting, close to parallel
+	s1 = Segment(2203,3198,2369,3136);
+	s2 = Segment(2274,3172,2341,3148);
+	res = segments_are_closely_colinear(s1, s2);
+	RESULT("proximity 2");
+
+	// two segments slightly separated, not intersecting, close to parallel
+	s1 = Segment(2608,2023,2792,1942);
+	s2 = Segment(2644,2005,2669,1994);
+	res = segments_are_closely_colinear(s1, s2);
+	RESULT("proximity 3");
+
+	// two segments slightly separated, not intersecting, close to parallel
+	s1 = Segment(1984,2241,2069,2200);
+	s2 = Segment(2056,2204,2106,2182);
+	res = segments_are_closely_colinear(s1, s2);
+	RESULT("proximity 4");
+
+	// two segments slightly separated, not intersecting, close to parallel
+	s1 = Segment(2397,2393,2556,2387);
+	s2 = Segment(2467,2393,2641,2385);
+	res = segments_are_closely_colinear(s1, s2);
+	RESULT("proximity 5");
+
+	return 0;
+}
+#endif
