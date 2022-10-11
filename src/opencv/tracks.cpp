@@ -89,10 +89,20 @@ class Segment {
 
 		pointi start() { pointi p = { x1, y1 }; return p; }
 		pointi end() { pointi p = { x2, y2 }; return p; }
-
-		void diagonal_grow(int amount);
-		bool point_is_inside_the_square(pointi p);
 };
+
+class Rectangle {
+	public:
+		int x1, y1, x2, y2;
+
+		Rectangle(Segment &s, int inflation);
+
+		pointi start() { pointi p = { x1, y1 }; return p; }
+		pointi end() { pointi p = { x2, y2 }; return p; }
+
+		bool point_is_inside(pointi p);
+};
+
 
 // compute the signed triangle area
 static int orientation(pointi a, pointi b, pointi c) {
@@ -169,48 +179,31 @@ static bool check_distance_by_projection(Segment &s1, Segment &s2) {
 
 // this only changes coordinates, doesn't recompute theta
 // warning, they may be out of image bounds at this stage
-void Segment::diagonal_grow(int amount) {
-	if (x1 < x2) {
-		if (y1 < y2) {
-			x1 -= amount; x2 += amount;
-			y1 -= amount; y2 += amount;
-		}
-		else if (y1 > y2) {
-			x1 -= amount; x2 += amount;
-			y1 += amount; y2 -= amount;
+Rectangle::Rectangle(Segment &s, int amount) {
+	if (s.x1 <= s.x2) {
+		if (s.y1 <= s.y2) {
+			x1 = s.x1 - amount; y1 = s.y1 - amount;
+			x2 = s.x2 + amount; y2 = s.y2 + amount;
 		}
 		else {
-			x1 -= amount; x2 += amount;
-			y1 -= amount; y2 += amount;
+			x1 = s.x1 - amount; y1 = s.y1 + amount;
+			x2 = s.x2 + amount; y2 = s.y2 - amount;
 		}
 	}
-	else if (x2 < x1) {
-		if (y1 < y2) {
-			x1 += amount; x2 -= amount;
-			y1 -= amount; y2 += amount;
-		}
-		else if (y1 > y2) {
-			x1 += amount; x2 -= amount;
-			y1 += amount; y2 -= amount;
+	else if (s.x2 < s.x1) {
+		if (s.y1 <= s.y2) {
+			x1 = s.x1 + amount; y1 = s.y1 - amount;
+			x2 = s.x2 - amount; y2 = s.y2 + amount;
 		}
 		else {
-			x1 += amount; x2 -= amount;
-		}
-	}
-	else {
-		if (y1 < y2) {
-			x1 -= amount; x2 += amount;
-			y1 -= amount; y2 += amount;
-		}
-		else if (y1 > y2) {
-			x1 -= amount; x2 += amount;
-			y1 += amount; y2 -= amount;
+			x1 = s.x1 + amount; y1 = s.y1 + amount;
+			x2 = s.x2 - amount; y2 = s.y2 - amount;
 		}
 	}
 }
 
 // check if a point is inside the square containing a segment
-bool Segment::point_is_inside_the_square(pointi p) {
+bool Rectangle::point_is_inside(pointi p) {
 	if (x1 <= x2) {
 		if (y1 <= y2)
 			return p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2;
@@ -224,18 +217,18 @@ bool Segment::point_is_inside_the_square(pointi p) {
 
 // check if two segments are close enough and parallel or almost to be considered one
 // prerequisite: segments have similar angles
-static bool segments_are_closely_colinear(Segment s1, Segment s2) {
-	s1.diagonal_grow(POS_EPSILON);
-	s2.diagonal_grow(POS_EPSILON);
-	siril_debug_print("grown s1 (%d,%d)->(%d,%d)\n", s1.x1, s1.y1, s1.x2, s1.y2);
-	siril_debug_print("grown s2 (%d,%d)->(%d,%d)\n", s2.x1, s2.y1, s2.x2, s2.y2);
+static bool segments_are_closely_colinear(Segment &s1, Segment &s2) {
+	Rectangle gs1 = Rectangle(s1, POS_EPSILON);
+	Rectangle gs2 = Rectangle(s2, POS_EPSILON);
+	//siril_debug_print("grown s1 (%d,%d)->(%d,%d)\n", gs1.x1, gs1.y1, gs1.x2, gs1.y2);
+	//siril_debug_print("grown s2 (%d,%d)->(%d,%d)\n", gs2.x1, gs2.y1, gs2.x2, gs2.y2);
 
-	if (s1.point_is_inside_the_square(s2.start()) || s1.point_is_inside_the_square(s2.end()) ||
-			s2.point_is_inside_the_square(s1.start()) || s2.point_is_inside_the_square(s1.end())) {
+	if (gs1.point_is_inside(s2.start()) || gs1.point_is_inside(s2.end()) ||
+			gs2.point_is_inside(s1.start()) || gs2.point_is_inside(s1.end())) {
 		bool test = check_distance_by_projection(s1, s2);
-		if (test)
+		/*if (test)
 			siril_debug_print("  one point of a segment is inside another and segments project closely\n");
-		else siril_debug_print("  one point of a segment is inside another but segments are not close\n");
+		else siril_debug_print("  one point of a segment is inside another but segments are not close\n");*/
 		return test;
 	}
 	return false;
@@ -283,7 +276,7 @@ static void merge_two_segments(std::vector<Segment> &segments, size_t i, size_t 
 	}
 	//siril_debug_print("   rho for merged was %f and %f\n", segments[i].rho, segments[j].rho);
 	segments[i] = Segment(newx1, newy1, newx2, newy2);
-	siril_debug_print("   updated segment %zd to (%d,%d) -> (%d,%d)\n", i, newx1, newy1, newx2, newy2);
+	//siril_debug_print("   updated segment %zd to (%d,%d) -> (%d,%d)\n", i, newx1, newy1, newx2, newy2);
 }
 
 static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
@@ -304,13 +297,13 @@ static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
 		for (size_t i = 0; i < nb_lines; i++) {
 			//if (!kept[i]) continue;
 			int x1 = segments[i].x1, x2 = segments[i].x2, y1 = segments[i].y1, y2 = segments[i].y2;
-			siril_debug_print("considering %ssegment %zd (%d,%d) -> (%d,%d)\n",
-					kept[i]?"":"removed ", i, x1, y1, x2, y2);
+			//siril_debug_print("considering %ssegment %zd (%d,%d) -> (%d,%d)\n",
+			//		kept[i]?"":"removed ", i, x1, y1, x2, y2);
 			for (size_t j = i+1; j < nb_lines; j++) {
 				if (fabs(segments[i].toDegrees() - segments[j].toDegrees()) <= ANGLES_EPSILON) {
 					int x3 = segments[j].x1, x4 = segments[j].x2, y3 = segments[j].y1, y4 = segments[j].y2;
-					siril_debug_print("  looking at %ssegment %zd (%d,%d) -> (%d,%d)\n",
-							kept[j]?"":"removed ", j, x3, y3, x4, y4);
+					//siril_debug_print("  looking at %ssegment %zd (%d,%d) -> (%d,%d)\n",
+					//		kept[j]?"":"removed ", j, x3, y3, x4, y4);
 					// check if segments have almost the same start or end
 					if ((abs(x1 - x3) <= POS_EPSILON && abs(y1 - y3) <= POS_EPSILON) ||
 							(abs(x2 - x4) <= POS_EPSILON && abs(y2 - y4) <= POS_EPSILON) ||
@@ -324,7 +317,7 @@ static size_t remove_duplicate_segments(std::vector<Segment> &segments) {
 						if (kept[i])
 							merge_two_segments(tmpsegments, i, j);
 						kept[j] = false;
-						siril_debug_print("  removing %zd: (%d,%d) -> (%d,%d)\n", j, x3, y3, x4, y4);
+						//siril_debug_print("  removing %zd: (%d,%d) -> (%d,%d)\n", j, x3, y3, x4, y4);
 					}
 				}
 			}
@@ -523,6 +516,12 @@ int main() {
 	s2 = Segment(2056,2204,2106,2182);
 	res = segments_are_closely_colinear(s1, s2);
 	RESULT("proximity 4");
+
+	// two segments slightly separated, not intersecting, close to parallel
+	s1 = Segment(2397,2393,2556,2387);
+	s2 = Segment(2467,2393,2641,2385);
+	res = segments_are_closely_colinear(s1, s2);
+	RESULT("proximity 5");
 
 	return 0;
 }
