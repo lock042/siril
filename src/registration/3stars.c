@@ -361,6 +361,7 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, FALSE,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
 	unsigned int required = MB_per_scaled_image;
+
 	if (limit > 0) {
 		/* The registration memory consumption, n is original image size:
 		 * Monochrome: O(n) for loaded image, O(nscaled) for output image,
@@ -381,6 +382,16 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 		else if (args->seq->nb_layers == 3)
 			required = MB_per_scaled_image * 2;
 		else required = MB_per_orig_image + MB_per_scaled_image;
+
+		// If interpolation clamping is set, 2x additional Mats of the same format
+		// as the original image are required
+		struct star_align_data *sadata = args->user;
+		struct registration_args *regargs = sadata->regargs;
+		if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
+				regargs->interpolation == OPENCV_LANCZOS4))
+			required += 2 * MB_per_scaled_image;
+		regargs = NULL;
+		sadata = NULL;
 
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
