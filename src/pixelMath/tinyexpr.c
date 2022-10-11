@@ -29,6 +29,8 @@
  * 2022/03/11: add min and max function
  *
  * 2022/03/15: uses the branch that includes iif and many operators: https://github.com/cschreib/tinyexpr
+ *
+ * 2022/10/07: add mtf function
  */
 
 /* COMPILE TIME OPTIONS */
@@ -172,10 +174,23 @@ static double ncr(double n, double r) {
     }
     return result;
 }
+
+static double MTF(double x, double m, double lo, double hi) {
+	if (x <= lo)
+		return 0.f;
+	if (x >= hi)
+		return 1.f;
+
+	float xp = (x - lo) / (hi - lo);
+
+	return ((m - 1.f) * xp) / (((2.f * m - 1.f) * xp) - m);
+}
+
 static double npr(double n, double r) {return ncr(n, r) * fac(r);}
 
 static double maximum(double a, double b) {return max(a, b);}
 static double minimum(double a, double b) {return min(a, b);}
+static double mtf(double a, double b) {return MTF(b, a, 0.0, 1.0);}
 
 static double iif(double a, double b, double c) {return a > 0.0 ? b : c;}
 
@@ -204,6 +219,7 @@ static const te_variable functions[] = {
     {"log2", log2,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"max", maximum,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"min", minimum,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"mtf", mtf,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"ncr", ncr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"npr", npr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"pi", pi,        TE_FUNCTION0 | TE_FLAG_PURE, 0},

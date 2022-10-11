@@ -97,6 +97,7 @@ struct phot_config {
 
 struct analysis_config {
 	int mosaic_panel;
+	int mosaic_window;
 };
 
 struct debayer_config {

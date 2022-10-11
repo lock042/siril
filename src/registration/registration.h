@@ -123,7 +123,7 @@ gpointer register_thread_func(gpointer p);
 
 /** getter */
 int get_registration_layer(sequence *seq);
-
+int seq_has_any_regdata(sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
 
 /**** star alignment (global and 3-star) registration ****/
 
