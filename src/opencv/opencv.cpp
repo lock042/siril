@@ -504,7 +504,7 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
 		tmp1 = (out < clamping_factor * guide);
 		Mat element = getStructuringElement( MORPH_ELLIPSE,
-                       Size(3, 3), Point(1,1));
+                       Size(3, 3), Point(-1,-1));
 		dilate(tmp1, tmp1, element);
 		tmp1.convertTo(tmp1, CV_8U); // Masks must be in this format
 
