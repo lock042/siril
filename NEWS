@@ -6,6 +6,7 @@ v1.0.6 xx xx, 2022
 * Fixed bug in iif where no parameters could be used
 * Fixed crash in seqstat when some images were deselected
 * Fixed crash in star detection when large star was close to border
+* Fixed bad behaviour of asinh blackpoint with monochrome/32bits imagesd
 
 v1.0.5 October 09, 2022
 
