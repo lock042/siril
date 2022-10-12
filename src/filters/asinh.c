@@ -145,7 +145,7 @@ static int asinhlut_float(fits *fit, double beta, double offset, gboolean human_
 			x = buf[RLAYER][i];
 			double xprime = max(0, (x - offset) / (1.0 - offset));
 			k = (xprime == 0.0) ? 0.0 : (beta == 0.0) ? 1.0 : asinh(beta * xprime) / (xprime * asinh_beta);
-			buf[RLAYER][i] = min(1.0, max(0.0,(x * k)));
+			buf[RLAYER][i] = min(1.0, max(0.0,(xprime * k)));
 		}
 	}
 	invalidate_stats_from_fit(fit);
