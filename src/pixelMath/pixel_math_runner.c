@@ -1305,6 +1305,7 @@ static void add_presets_to_list() {
 
 	init_widgets();
 
+	com.pref.gui.pm_presets = g_slist_reverse(com.pref.gui.pm_presets);
 	for (GSList *l = com.pref.gui.pm_presets; l; l = l->next) {
 		gtk_list_store_append(pixel_math_list_store_presets, &iter);
 		gtk_list_store_set(pixel_math_list_store_presets, &iter, 0, (gchar *)l->data, -1);
