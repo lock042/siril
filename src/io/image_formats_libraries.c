@@ -997,7 +997,8 @@ int readpng(const char *name, fits* fit) {
 	}
 
 	png_infop info = png_create_info_struct(png);
-	if (!info)
+	png_infop end_info = png_create_info_struct(png);
+	if (!info || !end_info)
 		return OPEN_IMAGE_ERROR;
 
 	if (setjmp(png_jmpbuf(png)))
@@ -1018,6 +1019,7 @@ int readpng(const char *name, fits* fit) {
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		fclose(f);
+		png_destroy_read_struct(&png, &info, &end_info);
 		return OPEN_IMAGE_ERROR;
 	}
 	WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
@@ -1051,6 +1053,7 @@ int readpng(const char *name, fits* fit) {
 	png_read_image(png, row_pointers);
 
 	fclose(f);
+	png_destroy_read_struct(&png, &info, &end_info);
 
 	if (bit_depth == 16) {			//in 16-bit: it is stored as RRGGBB
 		for (int y = height - 1; y > -1; y--) {
