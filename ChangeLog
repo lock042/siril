@@ -25,6 +25,7 @@ xx/xx/22
 * Added a warning when images are negative on calibration
 * Added calibration details in the FITS history
 * Added saving formulas (presets) in Pixel Math
+* Added statistic functions to Pixel Math as well as mtf
 * Added solar system object search from online service for image annotations
 * Added zoom sliders and plot selection in Plot tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
@@ -65,6 +66,8 @@ xx/xx/22
 * Fixed crash in polynomial background extraction when not enough sample were set
 * Fixed bug in iif where no parameters could be used
 * Fixed crash in seqstat when some images were deselected
+* Fixed crash in star detection when large star was close to border
+* Fixed bad behaviour of asinh blackpoint with monochrome/32bits images
 
 siril 1.0.5
 09/09/22

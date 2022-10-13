@@ -863,6 +863,7 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_set_font_size(cr, 12.0 / dd->zoom);
 				cairo_move_to(cr, textX, textY);
 				cairo_show_text(cr, text);
+				cairo_stroke(cr);
 				g_free(text);
 			}
 		}
@@ -1367,6 +1368,7 @@ static void draw_analysis(const draw_data_t* dd) {
 		str = g_strdup_printf("%.2f", com.tilt->fwhm_centre);
 		cairo_move_to(cr, gfit.rx / 2.0, (gfit.ry / 2.0) + size);
 		cairo_show_text(cr, str);
+		cairo_stroke(cr);
 		g_free(str);
 	}
 }
