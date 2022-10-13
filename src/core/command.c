@@ -321,14 +321,60 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	if (msg2) free(msg2);
 	if (msg3) free(msg3);
 
-	siril_log_message("%s\n", log_msg); // This is the standard non-translated message to make things easy for log parsers.
+	siril_log_message("%s\n", log_msg);
+	if (args->suppress_artefacts)
+		siril_log_message(_("Colour artefact suppression active.\n"));
 	free(log_msg);
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data(_("Starting NL-Bayes denoising..."), 0.0);
 
-	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe, args->do_cosme);
+	int retval;
 
-	notify_gfit_modified();
+	// Carry out cosmetic correction at the start, if selected
+	if (args->do_cosme)
+		denoise_hook_cosmetic(args->fit);
+
+	if (args->fit == &gfit && args->fit->naxes[2] == 3 && args->suppress_artefacts) {
+		fits *loop = NULL;
+		new_fit_image(&loop, args->fit->rx, args->fit->ry, 1, args->fit->type);
+		loop->naxis = 1;
+		loop->naxes[2] = 1;
+		size_t npixels = args->fit->naxes[0] * args->fit->naxes[1];
+		if (args->fit->type == DATA_FLOAT) {
+			for (size_t i = 0; i < 3; i++) {
+				float *loop_fdata = (float*) calloc(npixels, sizeof(float));
+				loop->fdata = loop_fdata;
+				for (size_t j = 0 ; j < npixels ; j++) {
+					loop_fdata[j] = args->fit->fpdata[i][j];
+				}
+				retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
+				for (size_t j = 0 ;j < npixels ; j++) {
+					args->fit->fpdata[i][j] = loop->fdata[j];
+				}
+			}
+			free(loop->fdata);
+			loop->fdata = NULL;
+		} else {
+			for (size_t i = 0; i < 3; i++) {
+				WORD *loop_data = (WORD*) calloc(npixels, sizeof(WORD));
+				loop->data = loop_data;
+				for (size_t j = 0 ; j < npixels ; j++) {
+					loop_data[j] = args->fit->pdata[i][j];
+				}
+				retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
+				for (size_t j = 0 ;j < npixels ; j++) {
+					args->fit->pdata[i][j] = loop->data[j];
+				}
+			}
+			free(loop->data);
+			loop->fdata = NULL;
+		}
+		clearfits(loop);
+	} else {
+		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
+	}
+	if (args->fit == &gfit)
+		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, _("NL-Bayes execution time"));
 	set_progress_bar_data(_("Ready."), 0.0);
@@ -346,6 +392,7 @@ int process_denoise(int nb){
 	args->da3d = 0;
 	args->do_anscombe = FALSE;
 	args->do_cosme = TRUE;
+	args->suppress_artefacts = FALSE;
 	args->fit = &gfit;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
@@ -356,6 +403,9 @@ int process_denoise(int nb){
 		}
 		else if (g_str_has_prefix(arg, "-da3d")) {
 			args->da3d = 1;
+		}
+		else if (g_str_has_prefix(arg, "-suppress")) {
+			args->suppress_artefacts = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-nocosmetic")) {
 			args->do_cosme = FALSE;
