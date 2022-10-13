@@ -8,6 +8,12 @@
 #define _2_SQRT_2_LOG2 2.35482004503
 //in siril.h: typedef struct fwhm_struct psf_star;
 
+typedef enum {
+	GAUSSIAN,
+	MOFFAT_BFREE,
+	MOFFAT_BFIXED
+} starprofile;
+
 struct fwhm_struct {
 	double B; /* average sky background value */
 	double A; /* amplitude */
@@ -23,10 +29,7 @@ struct fwhm_struct {
 
 	// Moffat parameters
 	double beta; /* Moffat equation beta parameter */
-	double MoffRx; /* Moffat radius[x]. Not exact equivalent to FWHMx so stored separately */
-	double MoffRy; /* Moffat radius[y]. Not exact equivalent to FWHMy so stored separately */
-	double MoffRmse;
-	gboolean moffat; // FALSE for Gaussian, TRUE for Moffat based on whether a Moffat fit is achieved
+	starprofile profile; // Whether the profile is Gaussian or Moffat with beta {free|fixed}
 	// The other parameters B, A, x0, y0, angle, rmse, sat... are the same as for Gaussian
 
 	double xpos, ypos; /* position of the star in the image, not set by Minimization */
