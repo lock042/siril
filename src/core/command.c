@@ -2714,9 +2714,7 @@ int process_thresh(int nb){
 	}
 	threshlo(&gfit, lo);
 	threshhi(&gfit, hi);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2728,9 +2726,7 @@ int process_threshlo(int nb){
 		return CMD_ARG_ERROR;
 	}
 	threshlo(&gfit, lo);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2742,20 +2738,14 @@ int process_threshhi(int nb){
 		return CMD_ARG_ERROR;
 	}
 	threshhi(&gfit, hi);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int process_neg(int nb) {
 	set_cursor_waiting(TRUE);
 	pos_to_neg(&gfit);
-	update_gfit_histogram_if_needed();
-	invalidate_stats_from_fit(&gfit);
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2767,9 +2757,7 @@ int process_nozero(int nb){
 		return CMD_ARG_ERROR;
 	}
 	nozero(&gfit, (WORD)level);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2778,9 +2766,7 @@ int process_ddp(int nb) {
 	float coeff = g_ascii_strtod(word[2], NULL);
 	float sigma = g_ascii_strtod(word[3], NULL);
 	ddp(&gfit, level, coeff, sigma);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 

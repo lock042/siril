@@ -75,7 +75,7 @@
 #define STR_MIRRORY N_("Flips the image about the horizontal axis")
 #define STR_MTF N_("Applies midtones transfer function to the current loaded image.\n\nThree parameters are needed, <b>low</b>, <b>midtones</b> and <b>high</b> where midtones balance parameter defines a nonlinear histogram stretch in the [0,1] range.\nOptionally the parameter <b>[channels]</b> may be used to specify the channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The default is all channels.")
 
-#define STR_NEG N_("Shows the negative view of the current image")
+#define STR_NEG N_("Changes pixel values of the currently loaded image to a negative view, like 1-value for 32 bits, 65535-value for 16 bits. This does not change the display mode")
 #define STR_NEW N_("Creates a new image filled with zeros with a size of <b>width</b> x <b>height</b>.\n\nThe image is in 32-bit format, and it contains <b>nb_channel</b> channels, <b>nb_channel</b> being 1 or 3. It is not saved, but displayed and can be saved afterwards")
 #define STR_NOMAD N_("Display stars from the local catalogue, for plate solved images loaded in GUI only")
 #define STR_NOZERO N_("Replaces null values by <b>level</b> values. Useful before an idiv or fdiv operation")
