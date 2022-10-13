@@ -358,6 +358,13 @@ void mirrorx(fits *fit, gboolean verbose) {
 	} else if (fit->type == DATA_FLOAT) {
 		mirrorx_float(fit, verbose);
 	}
+	if (!strcmp(fit->row_order, "BOTTOM-UP"))
+		sprintf(fit->row_order, "TOP-DOWN");
+	else { //if (!strcmp(fit->row_order, "TOP-DOWN"))
+		// let's create the keyword in all cases
+		sprintf(fit->row_order, "BOTTOM-UP");
+	}
+	fit->history = g_slist_append(fit->history, strdup("TOP-DOWN mirror"));
 #ifdef HAVE_WCSLIB
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
