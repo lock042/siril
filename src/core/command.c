@@ -1668,7 +1668,7 @@ merge_clean_up:
 	return retval;
 }
 
-int	process_mirrorx(int nb){
+int process_mirrorx(int nb){
 	if (nb == 2 && !strcmp(word[1], "-bottomup")) {
 		if (!strcmp(gfit.row_order, "BOTTOM-UP")) {
 			siril_log_message(_("Image data is already bottom-up\n"));
@@ -1677,15 +1677,13 @@ int	process_mirrorx(int nb){
 		siril_log_message(_("Mirroring image to convert to bottom-up data\n"));
 	}
 	mirrorx(&gfit, TRUE);
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
-int	process_mirrory(int nb){
+int process_mirrory(int nb){
 	mirrory(&gfit, TRUE);
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
