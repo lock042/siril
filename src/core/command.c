@@ -1854,10 +1854,6 @@ int process_resample(int nb) {
 				interpolation = OPENCV_LINEAR;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
-				interpolation = OPENCV_NONE;
-				continue;
-			}
 			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
 				interpolation = OPENCV_AREA;
 				continue;
@@ -1866,6 +1862,9 @@ int process_resample(int nb) {
 			return CMD_ARG_ERROR;
 		} else if (!strcmp(word[i], "-noclamp")) {
 			clamp = FALSE;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
 		}
 	}
 	if (factor == 1.0) {
@@ -1955,10 +1954,6 @@ int process_rotate(int nb) {
 				interpolation = OPENCV_LINEAR;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
-				interpolation = OPENCV_NONE;
-				continue;
-			}
 			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
 				interpolation = OPENCV_AREA;
 				continue;
@@ -1971,6 +1966,9 @@ int process_rotate(int nb) {
 			if (has_selection) {
 				siril_log_color_message(_("-nocrop option is not valid if a selection is active. Ignoring\n"), "red");
 			} else crop = 0;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
 		}
 	}
 	siril_debug_print("%f\n",angle);
