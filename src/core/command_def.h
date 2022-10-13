@@ -71,7 +71,7 @@
 #define STR_LS N_("Lists files and directories in the working directory")
 
 #define STR_MERGE N_("Merges several sequences into one")
-#define STR_MIRRORX N_("Flips the image about the vertical axis")
+#define STR_MIRRORX N_("Flips the image about the vertical axis. Option <b>-bottomup</b> will only flip it if it's not already bottom-up")
 #define STR_MIRRORY N_("Flips the image about the horizontal axis")
 #define STR_MTF N_("Applies midtones transfer function to the current loaded image.\n\nThree parameters are needed, <b>low</b>, <b>midtones</b> and <b>high</b> where midtones balance parameter defines a nonlinear histogram stretch in the [0,1] range.\nOptionally the parameter <b>[channels]</b> may be used to specify the channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The default is all channels.")
 

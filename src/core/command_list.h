@@ -114,7 +114,7 @@ static command commands[] = {
 #endif
 
 	{"merge", 3, "merge sequence1 sequence2 [sequence3 ...] output_sequence", process_merge, STR_MERGE, TRUE, REQ_CMD_NONE},
-	{"mirrorx", 0, "mirrorx", process_mirrorx, STR_MIRRORX, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"mirrorx", 0, "mirrorx [-bottomup]", process_mirrorx, STR_MIRRORX, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mirrory", 0, "mirrory", process_mirrory, STR_MIRRORY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"modasinh", 4, "modasinh [-human | -even | -independent] D LP SP HP [channels]", process_modasinh, STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mtf", 3, "mtf low mid high [channels]", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
