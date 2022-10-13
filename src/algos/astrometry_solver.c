@@ -1437,6 +1437,11 @@ gpointer match_catalog(gpointer p) {
 	if (args->for_photometry_cc) {
 		pcc_star *pcc_stars = NULL;
 		int nb_pcc_stars;
+#ifndef HAVE_WCSLIB
+		siril_log_color_message(_("This operation (PCC) relies on the missing WCSLIB software, cannot continue.\n"), "red");
+		args->ret = 1;
+		goto clearup;
+#endif
 		if (args->use_local_cat) {
 			double tra = siril_world_cs_get_alpha(solution.image_center);
 			double tdec = siril_world_cs_get_delta(solution.image_center);
