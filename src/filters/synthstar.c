@@ -354,7 +354,7 @@ int generate_synthstars(fits *fit) {
 			float beta = 2.f;
 			if (stars[n]->beta > 0.0) {
 				beta=stars[n]->beta;
-				minfwhm = min(stars[n]->MoffRx, stars[n]->MoffRy);
+				minfwhm = min(stars[n]->sx, stars[n]->sy);
 			} else if (moffat_count > 0)
 				beta = avg_moffat_beta;
 			if (stars[n]->has_saturated)

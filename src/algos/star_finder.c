@@ -266,7 +266,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	double dynrange = (min(maxi, norm) - bg);
 	double minsatlevel = dynrange * SAT_THRESHOLD; // the level above background at which pixels are considered to have saturated or be close to saturation
 	double satrange = dynrange * SAT_DETECTION_RANGE; // the max variation level that defines the plateau of saturation
-	double s_factor = sqrt(-2. * log(DENSITY_THRESHOLD)); 
+	double s_factor = sqrt(-2. * log(DENSITY_THRESHOLD));
 	siril_debug_print("Min saturation level: %3.1f\n", minsatlevel);
 	/* Search for candidate stars in the filtered image */
 	for (int y = r + areaY0; y < areaY1 - r; y++) {
@@ -954,8 +954,10 @@ gpointer findstar_worker(gpointer p) {
 
 	if (stars) {
 		int i = 0;
-		while (stars[i])
+		while (stars[i]) {
 			fwhm_to_arcsec_if_needed(args->im.fit, stars[i++]);
+		}
+
 	}
 
 	if (args->update_GUI && stars) {

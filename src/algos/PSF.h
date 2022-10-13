@@ -63,6 +63,8 @@ struct PSF_data {
 	size_t NbCols;
 	double rmse;
 	gboolean *mask;
+	gboolean betafree;
+	double beta;
 };
 
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness);
