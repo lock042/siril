@@ -432,7 +432,6 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 		case MOFFAT_BFIXED:
 			siril_debug_print("Moffat profile modelled, beta fixed\n");
 			break;
-		default:
 	}
 	if (error) *error = PSF_NO_ERR;
 	// computing the mask to discard clipped values
@@ -569,7 +568,6 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 			psf->fwhmx = sqrt(pow(2., 1. / psf->beta) - 1.0) * 2.0 * psf->sx;
 			psf->fwhmy = sqrt(pow(2., 1. / psf->beta) - 1.0) * 2.0 * psf->sy;
 			break;
-		default:
 	}
 
 	psf->fwhmx_arcsec = -1.0;
@@ -877,7 +875,7 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 	psf_star *psf;
 	if (error) *error = PSF_NO_ERR;
 	gboolean photometry_computed = FALSE;
-	starprofile profile = GAUSSIAN; // Hardwired for testing purposes
+	starprofile profile = MOFFAT_BFREE; // Hardwired for testing purposes
 
 	// To compute good starting values, we first compute with no angle
 	if ((psf = psf_minimiz_no_angle(z, bg, sat, convergence, error, profile))) {
@@ -904,7 +902,6 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 						free_psf(tmp_psf);
 					}
 					break;
-				default:
 			}
 		}
 
