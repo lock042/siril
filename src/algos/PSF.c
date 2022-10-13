@@ -875,7 +875,7 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 	psf_star *psf;
 	if (error) *error = PSF_NO_ERR;
 	gboolean photometry_computed = FALSE;
-	starprofile profile = MOFFAT_BFREE; // Hardwired for testing purposes
+	starprofile profile = GAUSSIAN; // Hardwired for testing purposes
 
 	// To compute good starting values, we first compute with no angle
 	if ((psf = psf_minimiz_no_angle(z, bg, sat, convergence, error, profile))) {
