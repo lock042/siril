@@ -351,10 +351,10 @@ int generate_synthstars(fits *fit) {
 
 			// Synthesize the luminance profile and add to the star mask in HSL colourspace
 			float *psfL = (float*) calloc(size * size, sizeof(float));
-			float beta = 2.f;
+			float beta = 8.f;
 			if (stars[n]->beta > 0.0) {
 				beta=stars[n]->beta;
-				minfwhm = min(stars[n]->sx, stars[n]->sy);
+				minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
 			} else if (moffat_count > 0)
 				beta = avg_moffat_beta;
 			if (stars[n]->has_saturated)

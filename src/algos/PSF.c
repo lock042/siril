@@ -716,10 +716,10 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double sat, psf_star *psf, gbo
 	psf_angle->A = FIT(1);
 	psf_angle->x0 = FIT(2);
 	psf_angle->y0 = FIT(3);
-	psf->sx = FIT(4);
-	psf->sy = FIT(5);
-	psf->fwhmx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMx with regards to the Sx parameter
-	psf->fwhmy = sqrt(FIT(5) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMy with regards to the Sy parameter
+	psf_angle->sx = FIT(4);
+	psf_angle->sy = FIT(5);
+	psf_angle->fwhmx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMx with regards to the Sx parameter
+	psf_angle->fwhmy = sqrt(FIT(5) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMy with regards to the Sy parameter
 	psf_angle->angle = -FIT(6) * 180.0 / M_PI;
 	/* The angle must be => -90 and <= 90
 	 * Otherwise, the solution may be degenerate
