@@ -406,7 +406,7 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 			return 1;
 		}
 
-		if (cvTransformImage(fit, H, FALSE, REGISTRATION_INTERPOLATION, TRUE, 0.5)) {
+		if (cvTransformImage(fit, H, FALSE, REGISTRATION_INTERPOLATION, TRUE)) {
 			return 1;
 		}
 

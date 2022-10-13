@@ -235,16 +235,15 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
 	Mat in, out;
 	void *bgr = NULL;
-	double clamping_factor = 0.98;
 	if (image_to_Mat(image, &in, &out, &bgr, toX, toY))
 		return 1;
 
 	// OpenCV function
 	resize(in, out, out.size(), 0, 0, interpolation);
-	Scalar initial_mean = mean(in);
-	double im = initial_mean[0];
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-		clamping_factor = 0.98;
+		Scalar initial_mean = mean(in);
+		double im = initial_mean[0];
+		double clamping_factor = 0.98;
 		Mat guide, tmp1;
 		// Create guide image
 		resize(in, guide, out.size(), 0, 0, OPENCV_AREA);
@@ -494,10 +493,10 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	H = F2.inv() * H * F1;
 
 	// OpenCV function
-	Scalar initial_mean = mean(in);
-	double im = initial_mean[0];
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
+		Scalar initial_mean = mean(in);
+		double im = initial_mean[0];
 		double clamping_factor = 0.98;
 		Mat guide, tmp1;
 		// Create guide image
@@ -506,7 +505,6 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 		Mat element = getStructuringElement( MORPH_ELLIPSE,
                        Size(3, 3), Point(-1,-1));
 		dilate(tmp1, tmp1, element);
-		tmp1.convertTo(tmp1, CV_8U); // Masks must be in this format
 
 		copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
 		bitwise_not(tmp1, tmp1); // Invert the mask
