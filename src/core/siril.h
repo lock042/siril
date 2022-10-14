@@ -417,6 +417,9 @@ struct ffit {
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
 	char observer[FLEN_VALUE];		// OBSERVER key
+	double sitelat;				// SITE LATITUDE key
+	double sitelong;			// SITE LONGITUDE key
+	double siteelev;			// SITE LONGITUDE key
 	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
 	double airmass;                   // relative optical path length through atmosphere.

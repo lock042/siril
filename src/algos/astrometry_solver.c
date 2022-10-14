@@ -396,7 +396,8 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-nbd=1");
 		string_url = g_string_append(string_url, "&-tscale=UTC");
 		string_url = g_string_append(string_url, "&-observer=");
-		string_url = g_string_append(string_url, "@500"); // Geocentric coordinates as default
+		gchar *formatted_site = retrieve_site_coord(&gfit);
+		string_url = g_string_append(string_url, formatted_site);
 		string_url = g_string_append(string_url, "&-theory=INPOP");
 		string_url = g_string_append(string_url, "&-teph=1");
 		string_url = g_string_append(string_url, "&-tcoor=5");
@@ -405,6 +406,13 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-output=--jd");
 		string_url = g_string_append(string_url, "&-from=Siril;");
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"), name, formatted_date);
+
+		if (!gfit.sitelat || !gfit.sitelong) {
+			siril_log_color_message(_("No topocentric data available. Set to geocentric\n"), "salmon");
+		} else {
+			siril_log_message(_("at LAT: %f, LONG: %f\n"), gfit.sitelat, gfit.sitelong);
+		}
+		g_free(formatted_site);
 		g_free(formatted_date);
 		break;
 	}
