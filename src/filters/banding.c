@@ -194,7 +194,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	double invsigma = 1.0 / sigma;
 
 	if (applyRotation) {
-		point center = {gfit.rx / 2.0, gfit.ry / 2.0};
+		point center = {fit->rx / 2.0, fit->ry / 2.0};
 		cvRotateImage(fit, center, 90.0, -1, OPENCV_AREA);
 	}
 
@@ -261,7 +261,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
 	if ((!ret) && applyRotation) {
-		point center = {gfit.rx / 2.0, gfit.ry / 2.0};
+		point center = {fit->rx / 2.0, fit->ry / 2.0};
 		cvRotateImage(fit, center, -90.0, -1, OPENCV_AREA);
 	}
 
@@ -276,7 +276,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	double invsigma = 1.0 / sigma;
 
 	if (applyRotation) {
-		point center = {gfit.rx / 2.0, gfit.ry / 2.0};
+		point center = {fit->rx / 2.0, fit->ry / 2.0};
 		cvRotateImage(fit, center, 90.0, -1, OPENCV_AREA);
 	}
 
@@ -342,7 +342,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
 	if ((!ret) && applyRotation) {
-		point center = {gfit.rx / 2.0, gfit.ry / 2.0};
+		point center = {fit->rx / 2.0, fit->ry / 2.0};
 		cvRotateImage(fit, center, -90.0, -1, OPENCV_AREA);
 	}
 
