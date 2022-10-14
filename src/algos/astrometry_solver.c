@@ -366,21 +366,27 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 
 	switch(server) {
 	case 0:
-		string_url = g_string_new(CDSSESAME);
-		string_url = g_string_append(string_url, "/-oI/A?");
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, "/-oI/A?");
+		string_url = g_string_prepend(string_url, CDSSESAME);
 		siril_log_message(_("Searching %s in CDSESAME...\n"), name);
 		break;
 	case 1:
-		string_url = g_string_new(VIZIERSESAME);
-		string_url = g_string_append(string_url, "/-oI/A?");
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, "/-oI/A?");
+		string_url = g_string_prepend(string_url, VIZIERSESAME);
 		siril_log_message(_("Searching %s in VIZIER...\n"), name);
 		break;
 	default:
 	case 2:
-		string_url = g_string_new(SIMBADSESAME);
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, SIMBADSESAME);
 		string_url = g_string_append(string_url, "';");
 		siril_log_message(_("Searching %s in SIMBAD...\n"), name);
 		break;
