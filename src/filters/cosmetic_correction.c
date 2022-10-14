@@ -543,12 +543,12 @@ int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa) {
 			}
 			dev.type = HOT_PIXEL; // we force it
 			dev.p.y = fit->rx - dev.p.y - 1; /* FITS are stored bottom to top */
-			if (cvRotateImage(&gfit, 90)) {
+			if (cvRotateImage(fit, 90)) {
 				retval = 1;
 				break;
 			}
 			cosmeticCorrOneLine(fit, dev, is_cfa);
-			if (cvRotateImage(&gfit, -90)) {
+			if (cvRotateImage(fit, -90)) {
 				retval = 1;
 				break;
 			}
