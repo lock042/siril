@@ -8,12 +8,6 @@
 #define _2_SQRT_2_LOG2 2.35482004503
 //in siril.h: typedef struct fwhm_struct psf_star;
 
-typedef enum {
-	GAUSSIAN,
-	MOFFAT_BFREE,
-	MOFFAT_BFIXED
-} starprofile;
-
 struct fwhm_struct {
 	double B; /* average sky background value */
 	double A; /* amplitude */
@@ -71,11 +65,11 @@ double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundnes
 
 psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean fit_angle,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
-		psf_error *error);
+		starprofile profile, psf_error *error);
 
 psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, gboolean fit_angle,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
-		psf_error *error);
+		starprofile profile, psf_error *error);
 
 void psf_display_result(psf_star *, rectangle *);
 void fwhm_to_arcsec_if_needed(fits*, psf_star*);

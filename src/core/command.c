@@ -1976,7 +1976,7 @@ int process_set_mag(int nb) {
 		}
 		psf_error error;
 		struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, FALSE, TRUE, ps, TRUE, &error);
+		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, FALSE, TRUE, ps, TRUE, GAUSSIAN, &error);
 		free(ps);
 		if (result) {
 			found = TRUE;
@@ -2207,6 +2207,8 @@ int process_set_findstar(int nb) {
 	double pixel_size_x = com.pref.starfinder_conf.pixel_size_x;
 	gboolean relax_checks = com.pref.starfinder_conf.relax_checks;
 	int convergence = com.pref.starfinder_conf.convergence;
+	starprofile profile = com.pref.starfinder_conf.profile;
+	gboolean fit_angle = com.pref.starfinder_conf.fit_angle;
 	gchar *end;
 
 	if (nb > startoptargs) {
@@ -2226,6 +2228,19 @@ int process_set_findstar(int nb) {
 					sigma = g_ascii_strtod(value, &end);
 					if (end == value || sigma < 0.05) {
 						siril_log_message(_("Wrong parameter values. Sigma must be greater than 0.05, aborting\n"));
+						return CMD_ARG_ERROR;
+					}
+				} else if (g_str_has_prefix(word[i], "-gaussian")) {
+					profile = GAUSSIAN;
+				} else if (g_str_has_prefix(word[i], "-moffat")) {
+					profile = MOFFAT_BFREE;
+				} else if (g_str_has_prefix(word[i], "-angles=")) {
+					char *current = word[i], *value;
+					value = current + 7;
+					if (!(g_ascii_strcasecmp(value, "on"))) fit_angle = TRUE;
+					else if (!(g_ascii_strcasecmp(value, "off"))) fit_angle = FALSE;
+					else {
+						siril_log_message(_("Wrong parameter values. Angles must be set to on or off, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(word[i], "-roundness=")) {
@@ -2288,6 +2303,8 @@ int process_set_findstar(int nb) {
 					pixel_size_x = 0.;
 					relax_checks = FALSE;
 					convergence = 1;
+					profile = GAUSSIAN;
+					fit_angle = FALSE;
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;
@@ -2312,7 +2329,10 @@ int process_set_findstar(int nb) {
 	com.pref.starfinder_conf.adjust = adjust;
 	siril_log_message(_("relax = %s\n"), (relax_checks) ? "on" : "off");
 	com.pref.starfinder_conf.relax_checks = relax_checks;
-
+	siril_log_message(_("profile = %s\n"), (profile == GAUSSIAN) ? "Gaussian" : "Moffat");
+	com.pref.starfinder_conf.profile = profile;
+	siril_log_message(_("fit angles = %s\n"), (fit_angle) ? "on" : "off");
+	com.pref.starfinder_conf.fit_angle = fit_angle;
 	return CMD_OK;
 }
 
@@ -2509,9 +2529,10 @@ int process_psf(int nb){
 		}
 	}
 
+	starprofile profile = com.pref.starfinder_conf.profile;
 	psf_error error;
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, TRUE, ps, TRUE, &error);
+	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, TRUE, ps, TRUE, profile, &error);
 	free(ps);
 	if (result) {
 		psf_display_result(result, &com.selection);
@@ -3184,6 +3205,9 @@ int process_findstar(int nb) {
 	args->max_stars_fitted = 0;
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
+	args->profile = com.pref.starfinder_conf.profile;
+	siril_debug_print("findstar profiling %s stars\n", (args->profile == GAUSSIAN) ? "Gaussian" : "Moffat");
+	args->fit_angle = com.pref.starfinder_conf.fit_angle;
 
 	cmd_errors argparsing = parse_findstar(args, 1, nb);
 
@@ -3218,6 +3242,8 @@ int process_seq_findstar(int nb) {
 	args->max_stars_fitted = 0;
 	args->update_GUI = FALSE;
 	args->save_to_file = TRUE;
+	args->profile = com.pref.starfinder_conf.profile;
+	args->fit_angle = com.pref.starfinder_conf.fit_angle;
 
 	cmd_errors argparsing = parse_findstar(args, 2, nb);
 

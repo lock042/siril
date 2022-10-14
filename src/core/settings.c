@@ -66,7 +66,9 @@ preferences pref_init = {
 		.focal_length = 0.,
 		.pixel_size_x = 0.,
 		.convergence = 1,
-		.relax_checks = FALSE
+		.relax_checks = FALSE,
+		.profile = GAUSSIAN,
+		.fit_angle = FALSE
 	},
 	.prepro = {
 		.cfa = FALSE,

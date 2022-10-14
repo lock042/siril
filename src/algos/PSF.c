@@ -422,17 +422,6 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 	const gsl_multifit_fdfsolver_type *T;
 	int max_iter;
 
-	switch (profile) {
-		case GAUSSIAN:
-			siril_debug_print("Gaussian profile modelled\n");
-			break;
-		case MOFFAT_BFREE:
-			siril_debug_print("Moffat profile modelled, beta free\n");
-			break;
-		case MOFFAT_BFIXED:
-			siril_debug_print("Moffat profile modelled, beta fixed\n");
-			break;
-	}
 	if (error) *error = PSF_NO_ERR;
 	// computing the mask to discard clipped values
 	mask = malloc(NbRows * NbCols * sizeof(gboolean));
@@ -778,7 +767,7 @@ free_and_exit:
 /* Returns the largest FWHM in pixels
  * The optional output parameter roundness is the ratio between the two axis FWHM */
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness) {
-	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, NULL, TRUE, NULL);
+	psf_star *result = psf_get_minimisation(fit, layer, selection, FALSE, FALSE, NULL, TRUE, GAUSSIAN, NULL);
 	if (result == NULL) {
 		*roundness = 0.0;
 		return 0.0;
@@ -798,7 +787,7 @@ double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundnes
  */
 psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean fit_angle,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
-		psf_error *error) {
+		starprofile profile, psf_error *error) {
 	int stridefrom, i, j;
 	psf_star *result;
 	if (error) *error = PSF_NO_ERR;
@@ -846,7 +835,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean f
 		return NULL;
 	}
 
-	result = psf_global_minimisation(z, bg, sat, com.pref.starfinder_conf.convergence, fit_angle, for_photometry, phot_set, verbose, error);
+	result = psf_global_minimisation(z, bg, sat, com.pref.starfinder_conf.convergence, fit_angle, for_photometry, phot_set, verbose, profile, error);
 
 	if (result) {
 		fwhm_to_arcsec_if_needed(fit, result);
@@ -871,11 +860,11 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean f
  */
 psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, gboolean fit_angle,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
-		psf_error *error) {
+		starprofile profile, psf_error *error) {
 	psf_star *psf;
 	if (error) *error = PSF_NO_ERR;
 	gboolean photometry_computed = FALSE;
-	starprofile profile = GAUSSIAN; // Hardwired for testing purposes
+//	starprofile profile = GAUSSIAN; // Hardwired for testing purposes
 
 	// To compute good starting values, we first compute with no angle
 	if ((psf = psf_minimiz_no_angle(z, bg, sat, convergence, error, profile))) {
@@ -991,7 +980,7 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			"Maximal intensity=%0.6f\n"
 			"Magnitude (%s)=%0.2f\n"
 			"SNR=%.1fdB\n"
-			"RMSE=%.3e\n"),
+			"RMSE=%.3e"),
 			coordinates,
 			fwhmx, unts, fwhmy, unts,
 			result->angle,
@@ -1001,15 +990,17 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			result->mag + com.magOffset,
 			result->SNR,
 			result->rmse);
-	siril_log_message(buffer);
 	if (result->beta > 0.0) {
-		buffer2 = g_strdup_printf(_("Moffat fitting:\n"
-			"Beta=%0.2f\n"),
-			result->beta);
-		siril_log_message(buffer2);
-		g_free(buffer2);
+		buffer2 = g_strdup_printf(_("\nMoffat fitting:\n"
+									"Beta=%0.2f\n"), result->beta);
 	}
+	else {
+		buffer2 = g_strdup_printf("\n");
+	}
+	buffer = g_strdup_printf("%s%s", buffer, buffer2);
+	siril_log_message(buffer);
 	g_free(buffer);
+	g_free(buffer2);
 	g_free(coordinates);
 }
 

@@ -58,7 +58,7 @@ void on_spin_sf_convergence_changed(GtkSpinButton *spinbutton, gpointer user_dat
 
 void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {
 	//TODO: do we want to keep focal and pixel_size as they are not exposed?
-	com.pref.starfinder_conf = (star_finder_params){.radius = 10, .adjust = TRUE, .sigma = 1., 
+	com.pref.starfinder_conf = (star_finder_params){.radius = 10, .adjust = TRUE, .sigma = 1.,
 			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE};
 	update_peaker_GUI();
 }
@@ -138,9 +138,16 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 psf_star *add_star(fits *fit, int layer, int *index) {
 	int i = 0;
 	gboolean already_found = FALSE;
+	starprofile profile;
+	if (com.stars && com.stars[0])
+		// Add star depending on fit profile used for existing stars in the array
+		profile = (com.stars[0]->profile == GAUSSIAN ? GAUSSIAN : MOFFAT_BFREE);
+	else
+		// Default to Gaussian (or get this from a parameter in the GUI, tbd)
+		profile = GAUSSIAN;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, NULL, TRUE, NULL);
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, NULL, TRUE, profile, NULL);
 	if (!result)
 		return NULL;
 	/* We do not check if it's matching with the "reject_star()" criteria.

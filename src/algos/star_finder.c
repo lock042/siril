@@ -158,9 +158,9 @@ static int star_cmp_by_mag_est(const void *a, const void *b) {
  Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
  */
 
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads);
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, gboolean fit_angle, int threads);
 
-psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads) {
+psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, starprofile profile, gboolean fit_angle, int threads) {
 	int nx = image->fit->rx;
 	int ny = image->fit->ry;
 	int areaX0 = 0;
@@ -536,7 +536,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 
 	/* Check if candidates are stars by minimizing a PSF on each */
 	psf_star **results;
-	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, dynrange, &results, limit_nbstars, maxstars, threads);
+	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, dynrange, &results, limit_nbstars, maxstars, profile, fit_angle, threads);
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars_by_mag(results, nbstars);
@@ -556,7 +556,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 }
 
 /* returns number of stars found, result is in parameters */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads) {
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, gboolean fit_angle, int threads) {
 	int nx = image->rx;
 	int ny = image->ry;
 	WORD **image_ushort = NULL;
@@ -624,7 +624,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				}
 			}
 			psf_error error;
-			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, com.pref.starfinder_conf.convergence, FALSE, FALSE, NULL, FALSE, &error);
+			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, com.pref.starfinder_conf.convergence, FALSE, FALSE, NULL, FALSE, profile, &error);
 			gsl_matrix_free(z);
 			if (cur_star) {
 				gchar errmsg[SF_ERRMSG_LEN] = "";
@@ -950,7 +950,7 @@ gpointer findstar_worker(gpointer p) {
 	gboolean limit_stars = (args->max_stars_fitted > 0);
 	int threads = check_threading(&args->threading);
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
-			selection, args->update_GUI, limit_stars, args->max_stars_fitted, threads);
+			selection, args->update_GUI, limit_stars, args->max_stars_fitted, args->profile, args->fit_angle, threads);
 
 	if (stars) {
 		int i = 0;
@@ -964,7 +964,8 @@ gpointer findstar_worker(gpointer p) {
 		clear_stars_list(FALSE); // with FALSE it's not a GUI call
 		com.stars = stars;
 	}
-	siril_log_message(_("Found %d stars in %s, channel #%d\n"), nbstars,
+	siril_log_message(_("Found %d %s profile stars in %s, channel #%d\n"), nbstars,
+			args->profile == GAUSSIAN ? _("Gaussian") : _("Moffat"),
 			selection ? _("selection") : _("image"), args->layer);
 	if (args->starfile &&
 			save_list(args->starfile, args->max_stars_fitted, stars, nbstars,

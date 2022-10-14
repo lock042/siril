@@ -1578,7 +1578,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	if (spsfargs->for_photometry)
 		ps = phot_set_adjusted_for_image(fit);
 	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry,
-			spsfargs->for_photometry, ps, TRUE, &error);
+			spsfargs->for_photometry, ps, TRUE, GAUSSIAN, &error);
 	free(ps);
 	if (data->psf) {
 		/* for photometry ? */

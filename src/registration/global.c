@@ -148,10 +148,10 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	image refimage = { .fit = &fit, .from_seq = args->seq, .index_in_seq = regargs->reference_image };
 
 	if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-		sadata->refstars = peaker(&refimage, regargs->layer, &com.pref.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
+		sadata->refstars = peaker(&refimage, regargs->layer, &com.pref.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, GAUSSIAN, FALSE, com.max_thread);
 	}
 	else {
-		sadata->refstars = peaker(&refimage, regargs->layer, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
+		sadata->refstars = peaker(&refimage, regargs->layer, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, GAUSSIAN, FALSE, com.max_thread);
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
@@ -318,10 +318,10 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 
 		image im = { .fit = fit, .from_seq = args->seq, .index_in_seq = in_index };
 		if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-			stars = peaker(&im, layer, &com.pref.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, threads);
+			stars = peaker(&im, layer, &com.pref.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, GAUSSIAN, FALSE, threads);
 		}
 		else {
-			stars = peaker(&im, layer, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, threads);
+			stars = peaker(&im, layer, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, GAUSSIAN, FALSE, threads);
 		}
 
 		siril_log_message(_("Found %d stars in image %d, channel #%d\n"), nb_stars, filenum, regargs->layer);
@@ -497,7 +497,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 	// it here because it's still used in the generic processing function.
 }
 
-int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) { 
+int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
@@ -835,7 +835,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
-	gboolean *meaningful = NULL; 
+	gboolean *meaningful = NULL;
 	int retval = 0;
 	struct timeval t_start, t_end;
 

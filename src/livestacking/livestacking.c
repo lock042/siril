@@ -368,7 +368,7 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 	fitted_PSF **stars;
 	int nb_stars;
 
-	stars = peaker(fit, registration_layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
+	stars = peaker(fit, registration_layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, MAXSTARS, GAUSSIAN, FALSE, com.max_thread);
 	siril_debug_print("Found %d stars in new image\n", nb_stars);
 
 	if (!ref_stars) {
@@ -626,7 +626,7 @@ static gpointer live_stacker(gpointer arg) {
 			seq.imgparam[1].date_obs = NULL;
 			writeseqfile(&seq);
 		}
-		
+
 		if (seq_check_basic_data(&seq, FALSE) < 0) {
 			livestacking_display(_("Failed to read the sequence, aborting."), FALSE);
 			break;
