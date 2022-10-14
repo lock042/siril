@@ -1937,12 +1937,16 @@ gchar *search_in_catalogs(const gchar *object, gboolean is_fallback) {
 	remove_spaces_from_str(name);
 
 	if (!is_fallback){
-		string_url = g_string_new(CDSSESAME);
-		string_url = g_string_append(string_url, "/-oI/A?");
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, "/-oI/A?");
+		string_url = g_string_prepend(string_url, CDSSESAME);
 	} else {
-		string_url = g_string_new(SIMBADSESAME);
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, SIMBADSESAME);
 		string_url = g_string_append(string_url, "';");
 	}
 	url = g_string_free(string_url, FALSE);
