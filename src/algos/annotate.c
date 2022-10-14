@@ -285,12 +285,33 @@ static gchar* replace_str(const gchar *s, const gchar *old, const gchar *new) {
 	return result;
 }
 
+gchar *retrieve_site_coord (fits *fit) {
+	//  In case no localisation data is available, set the reference to geocentric, ie @500 in the request
+	if (!fit->sitelat || !fit->sitelong)
+		return g_strdup("@500");
+
+	GString *formatted_site_coord = g_string_new("");
+
+	if (fit->sitelat < 0.)
+		formatted_site_coord = g_string_append(formatted_site_coord, "%2D");
+	else formatted_site_coord = g_string_append(formatted_site_coord, "%2B");
+	g_string_append_printf(formatted_site_coord, "%f,", fabs(fit->sitelat));
+
+	if (fit->sitelong < 0.)
+		formatted_site_coord = g_string_append(formatted_site_coord, "%2D");
+	else formatted_site_coord = g_string_append(formatted_site_coord, "%2B");
+	g_string_append_printf(formatted_site_coord, "%f,", fabs(fit->sitelong));
+
+	g_string_append_printf(formatted_site_coord, "%f", fabs(fit->siteelev));
+
+	return g_string_free(formatted_site_coord, FALSE);
+}
+
 static void write_in_user_catalogue(CatalogObjects *object) {
 	GError *error = NULL;
 	GFile *file;
 	GOutputStream *output_stream;
 	gchar *root;
-
 	/* First we test if root directory already exists */
 	root = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", NULL);
 
@@ -315,6 +336,7 @@ static void write_in_user_catalogue(CatalogObjects *object) {
 		g_object_unref(file);
 		return;
 	}
+
 	gchar sign = object->dec < 0 ? '-' : '+';
 	gchar *output_line = g_strdup_printf("%s;%lf;%c;%lf;;;;\n", object->code, object->ra / 15.0, sign, fabs(object->dec));
 
@@ -357,7 +379,6 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_s
 
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
-
 	/* check for the object first to avoid duplicates, not for solar system objects */
 	if (!is_solar_system) {
 		GSList *cur = siril_catalogue_list;
