@@ -157,7 +157,7 @@ static void gdouble_beta_cell_data_function(GtkTreeViewColumn *col,
 	gdouble var;
 	gchar *buf;
 	gtk_tree_model_get(model, iter, COLUMN_BETA, &var, -1);
-	if (var == 0.0)
+	if (var == -1.0)
 		buf = g_strdup_printf("%s", "N/A");
 	else
 		buf = g_strdup_printf("%.2f", var);

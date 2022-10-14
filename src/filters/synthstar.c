@@ -70,6 +70,10 @@ void makemoffat(float *psf, const int size, const float fwhm, const float lum, c
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
+	// Check for erroneous fits, such as where a galaxy is modelled as a star and
+	// produces a silly psf
+	if (psf[size * halfpsfdim] > 0.00001)
+		memset(psf, 0, size * size * sizeof(float)); // Zero out the whole psf
 	return;
 }
 

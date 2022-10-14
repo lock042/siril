@@ -3216,7 +3216,6 @@ int process_findstar(int nb) {
 		free(args);
 		return argparsing;
 	}
-
 	start_in_new_thread(findstar_worker, args);
 
 	return CMD_OK;

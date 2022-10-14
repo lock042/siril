@@ -439,7 +439,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 			MaxV, 0), gsl_vector_get(MaxV, 1), gsl_vector_get(MaxV, 4),
 			gsl_vector_get(MaxV, 3), beta };
 	gsl_vector_view x = gsl_vector_view_array(x_init, p);
-	
+
 	gsl_multifit_nlinear_parameters fdf_params = gsl_multifit_nlinear_default_parameters();
 	fdf_params.trs = gsl_multifit_nlinear_trs_lm; // levenberg-marquardt
 
@@ -471,7 +471,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 		}
 	}
 	g_assert(k == n);
-	
+
 	const gsl_multifit_nlinear_type *T = gsl_multifit_nlinear_trust;
 	work = gsl_multifit_nlinear_alloc(T, &fdf_params, n, p);
 	int info;
@@ -510,6 +510,7 @@ static psf_star *psf_minimiz_no_angle(gsl_matrix* z, double background, double s
 	psf->beta_err = 0.0;
 	switch (profile) {
 		case GAUSSIAN:
+			psf->beta = -1.0;
 			psf->sx = FIT(4);
 			psf->sy = FIT(5);
 			psf->fwhmx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMx with regards to the Sx parameter
@@ -667,6 +668,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double sat, psf_star *psf, gbo
 	psf_angle->y0 = FIT(3);
 	psf_angle->sx = FIT(4);
 	psf_angle->sy = FIT(5);
+	psf_angle->beta = -1.0;
 	psf_angle->fwhmx = sqrt(FIT(4) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMx with regards to the Sx parameter
 	psf_angle->fwhmy = sqrt(FIT(5) / 2.) * 2 * sqrt(log(2.) * 2);	//Set the real FWHMy with regards to the Sy parameter
 	psf_angle->angle = -FIT(6) * 180.0 / M_PI;
@@ -712,6 +714,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double sat, psf_star *psf, gbo
 	psf_angle->sx_err = ERR(4) / FIT(4);
 	psf_angle->sy_err = ERR(5) / FIT(5);
 	psf_angle->ang_err = ERR(6) / FIT(6);
+	psf_angle->beta_err = 0.0;
 
 	//we free the memory
 free_and_exit:
@@ -891,7 +894,6 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 				else psf->angle += 90.0;
 			}
 		}
-		if (psf && psf->profile != GAUSSIAN) siril_debug_print("Beta %f\n", psf->beta);
 	}
 	/* When the first minimization gives NULL value, it's probably because the selected
 	 * area was not big enough: we need more samples than parameters to fit the area */

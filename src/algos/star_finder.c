@@ -533,7 +533,6 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	free(smooth_image);
 	clearfits(&smooth_fit);
 	siril_debug_print("Candidates for stars: %d\n", nbstars);
-
 	/* Check if candidates are stars by minimizing a PSF on each */
 	psf_star **results;
 	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, dynrange, &results, limit_nbstars, maxstars, profile, fit_angle, threads);
@@ -624,7 +623,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				}
 			}
 			psf_error error;
-			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, com.pref.starfinder_conf.convergence, FALSE, FALSE, NULL, FALSE, profile, &error);
+			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, com.pref.starfinder_conf.convergence, fit_angle, FALSE, NULL, FALSE, profile, &error);
 			gsl_matrix_free(z);
 			if (cur_star) {
 				gchar errmsg[SF_ERRMSG_LEN] = "";
