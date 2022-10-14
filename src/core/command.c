@@ -2236,7 +2236,7 @@ int process_set_findstar(int nb) {
 					profile = MOFFAT_BFREE;
 				} else if (g_str_has_prefix(word[i], "-angles=")) {
 					char *current = word[i], *value;
-					value = current + 7;
+					value = current + 8;
 					if (!(g_ascii_strcasecmp(value, "on"))) fit_angle = TRUE;
 					else if (!(g_ascii_strcasecmp(value, "off"))) fit_angle = FALSE;
 					else {

@@ -51,6 +51,7 @@ enum {
 	COLUMN_FWHMX,		// gdouble
 	COLUMN_FWHMY,		// gdouble
 	COLUMN_MAG,		    // gdouble
+	COLUMN_BETA,		// gdouble
 	COLUMN_ROUNDNESS,	// gdouble
 	COLUMN_ANGLE,		// gdouble
 	COLUMN_RMSE,		// gdouble
@@ -150,6 +151,21 @@ static void gdouble_angle_cell_data_function(GtkTreeViewColumn *col,
 	g_free(buf);
 }
 
+static void gdouble_beta_cell_data_function(GtkTreeViewColumn *col,
+		GtkCellRenderer *renderer, GtkTreeModel *model, GtkTreeIter *iter,
+		gpointer user_data) {
+	gdouble var;
+	gchar *buf;
+	gtk_tree_model_get(model, iter, COLUMN_BETA, &var, -1);
+	if (var == 0.0)
+		buf = g_strdup_printf("%s", "N/A");
+	else
+		buf = g_strdup_printf("%.2f", var);
+	g_object_set(renderer, "text", buf, NULL);
+
+	g_free(buf);
+}
+
 static void gdouble_rmse_cell_data_function(GtkTreeViewColumn *col,
 		GtkCellRenderer *renderer, GtkTreeModel *model, GtkTreeIter *iter,
 		gpointer user_data) {
@@ -188,6 +204,10 @@ static void get_stars_list_store() {
 	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn_mag"));
 	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_mag"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_mag_cell_data_function, NULL, NULL);
+
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn29"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_beta"));
+	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_beta_cell_data_function, NULL, NULL);
 
 	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn14"));
 	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_r"));
@@ -348,30 +368,41 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 			while (stars[nbstars++]);
 	}
 
-	char buffer[300];
-	int len = snprintf(buffer, 300, "# %d stars found using the following parameters:%s", nbstars, SIRIL_EOL);
+	char buffer[320];
+	char gausstr[9] = "Gaussian";
+	char moffstr[7] = "Moffat";
+	char starprof[9];
+	gdouble beta;
+	int len = snprintf(buffer, 320, "# %d stars found using the following parameters:%s", nbstars, SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
-	len = snprintf(buffer, 300, "# sigma=%3.2f roundness=%3.2f radius=%d auto_adjust=%d relax=%d max_stars=%d%s",
+	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d auto_adjust=%d relax=%d max_stars=%d%s",
 			sf->sigma, sf->roundness, sf->radius, sf->adjust, sf->relax_checks, max_stars_fitted, SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
-	len = snprintf(buffer, 300,
-			"# star#\tlayer\tB\tA\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag%s",
+	len = snprintf(buffer, 320,
+			"# star#\tlayer\tB\tA\tbeta\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag\tProfile%s",
 			SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
 	if (stars) {
 		while (stars[i]) {
-			len = snprintf(buffer, 300,
-					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
-					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A,
+			if (stars[i]->profile == GAUSSIAN) {
+				beta = -1;
+				len = snprintf(starprof, 9, "%s", gausstr);
+			} else {
+				beta = stars[i]->beta;
+				len = snprintf(starprof, 7, "%s", moffstr);
+			}
+			len = snprintf(buffer, 320,
+					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%s%s",
+					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A, beta,
 					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
 					stars[i]->fwhmy, stars[i]->fwhmx_arcsec ,stars[i]->fwhmy_arcsec,
-					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, SIRIL_EOL);
+					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, starprof, SIRIL_EOL);
 		if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 			HANDLE_WRITE_ERR;
 		}
@@ -442,6 +473,7 @@ static void add_star_to_list(psf_star *star) {
 			COLUMN_FWHMX, fwhmx,
 			COLUMN_FWHMY, fwhmy,
 			COLUMN_MAG, star->mag + com.magOffset,
+			COLUMN_BETA, star->beta,
 			COLUMN_ROUNDNESS, fwhmy / fwhmx,
 			COLUMN_ANGLE, star->angle,
 			COLUMN_RMSE, star->rmse,
@@ -662,6 +694,16 @@ void on_stars_list_window_hide(GtkWidget *object, gpointer user_data) {
 
 void on_sum_button_clicked(GtkButton *button, gpointer user_data) {
 	display_PSF(com.stars);
+}
+
+void on_add_button_clicked(GtkButton *button, gpointer user_data) {
+	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
+	int index;
+	add_star(&gfit, layer, &index);
+	if (index > -1)
+		add_star_to_list(com.stars[index]);
+	display_status();
+	refresh_star_list(com.stars);
 }
 
 void on_remove_button_clicked(GtkButton *button, gpointer user_data) {
