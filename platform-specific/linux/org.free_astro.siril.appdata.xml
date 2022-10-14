@@ -90,6 +90,14 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+      <release version="1.0.6" type="stable" date="2022-10-18">
+      <url type="details">https://www.siril.org/download/1.0.6</url>
+      <description>
+        <p>
+          Siril 1.0.6 is a bug fix release only.
+        </p>
+      </description>
+    </release>
       <release version="1.0.5" type="stable" date="2022-09-09">
       <url type="details">https://www.siril.org/download/1.0.5</url>
       <description>
