@@ -8,6 +8,8 @@ xx/xx/22
 * Fixed crash in seqstat when some images were deselected
 * Fixed crash in star detection when large star was close to border
 * Fixed bad behaviour of asinh blackpoint with monochrome/32bits images
+* Fixed bug in PixelMath with negate values
+* Fixed bug in SIMBAD request when object name contains '+'
 
 siril 1.0.5
 09/09/22
