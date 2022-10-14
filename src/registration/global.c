@@ -551,13 +551,15 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 			required = 2 * MB_per_scaled_image;
 		}
 
-		// If interpolation clamping is set, 2x additional Mats of the same format
-		// as the original image are required
+		// If interpolation clamping is set, 1 additional Mat of the same format
+		// as the original image are required, plus 1 of the same size but 8U format
 		struct star_align_data *sadata = args->user;
 		struct registration_args *regargs = sadata->regargs;
 		if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
-				regargs->interpolation == OPENCV_LANCZOS4))
-			required += 2 * MB_per_scaled_image;
+				regargs->interpolation == OPENCV_LANCZOS4)) {
+			float factor = (is_float) ? 0.25 : 0.5;
+			required += (1 + factor) * MB_per_scaled_image;
+		}
 		regargs = NULL;
 		sadata = NULL;
 		int thread_limit = MB_avail / required;

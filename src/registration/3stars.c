@@ -361,6 +361,7 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, FALSE,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
 	unsigned int required = MB_per_scaled_image;
+	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
 
 	if (limit > 0) {
 		/* The registration memory consumption, n is original image size:
@@ -388,8 +389,10 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 		struct star_align_data *sadata = args->user;
 		struct registration_args *regargs = sadata->regargs;
 		if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
-				regargs->interpolation == OPENCV_LANCZOS4))
-			required += 2 * MB_per_scaled_image;
+				regargs->interpolation == OPENCV_LANCZOS4)) {
+			float factor = (is_float) ? 0.25 : 0.5;
+			required += (1 + factor) * MB_per_scaled_image;
+		}
 		regargs = NULL;
 		sadata = NULL;
 

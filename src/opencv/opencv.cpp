@@ -241,8 +241,6 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean 
 	// OpenCV function
 	resize(in, out, out.size(), 0, 0, interpolation);
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-		Scalar initial_mean = mean(in);
-		double im = initial_mean[0];
 		double clamping_factor = 0.98;
 		Mat guide, tmp1;
 		// Create guide image
@@ -251,16 +249,8 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean 
 		Mat element = getStructuringElement( MORPH_ELLIPSE,
                        Size(3, 3), Point(1,1));
 		dilate(tmp1, tmp1, element);
-		tmp1.convertTo(tmp1, CV_8U); // Masks must be in this format
 
 		copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
-		bitwise_not(tmp1, tmp1); // Invert the mask
-		copyTo(out, out, tmp1); // Output copied to all other pixels
-
-		out = out + guide;
-		Scalar final_mean = mean(out);
-		double fm = final_mean[0];
-		out = out * (im/fm); // Preserve brightness
 		guide.release();
 		tmp1.release();
 	}
@@ -495,25 +485,16 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	// OpenCV function
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-		Scalar initial_mean = mean(in);
-		double im = initial_mean[0];
 		double clamping_factor = 0.98;
 		Mat guide, tmp1;
 		// Create guide image
 		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
-		tmp1 = (out < clamping_factor * guide);
+		tmp1 = (out < guide * clamping_factor);
 		Mat element = getStructuringElement( MORPH_ELLIPSE,
                        Size(3, 3), Point(-1,-1));
 		dilate(tmp1, tmp1, element);
 
 		copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
-		bitwise_not(tmp1, tmp1); // Invert the mask
-		copyTo(out, out, tmp1); // Output copied to all other pixels
-
-		out = out + guide;
-		Scalar final_mean = mean(out);
-		double fm = final_mean[0];
-		out = out * (im/fm); // Preserve brightness
 		guide.release();
 		tmp1.release();
 	}
