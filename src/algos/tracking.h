@@ -8,8 +8,8 @@ struct linetrack_conf {
 	int layer;
 	float threshold;	// pixel value in image
 	int minlen;
-	psf_star **targets;
-	int nb_targets;
+	psf_star **fixed_targets;
+	int nb_fixed_targets;
 	gboolean display_lines;
 	gboolean use_idle;
 };

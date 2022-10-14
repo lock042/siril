@@ -6143,8 +6143,8 @@ int process_detect_trail(int nb) {
 		arg->layer = layer;
 		arg->threshold = threshold;
 		arg->minlen = minlen;
-		arg->targets = targets_psf;
-		arg->nb_targets = nb_targets;
+		arg->fixed_targets = targets_psf;
+		arg->nb_fixed_targets = nb_targets;
 		arg->display_lines = TRUE;
 		arg->use_idle = TRUE;
 		start_in_new_thread(tracking_worker, arg);
@@ -6233,8 +6233,8 @@ static int trails_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	arg->layer = targs->layer;
 	arg->threshold = threshold;
 	arg->minlen = targs->minlen;
-	arg->targets = targets_psf;
-	arg->nb_targets = nb_targets;
+	arg->fixed_targets = targets_psf;
+	arg->nb_fixed_targets = nb_targets;
 	arg->display_lines = FALSE;
 	arg->use_idle = FALSE;
 	return GPOINTER_TO_INT(tracking_worker(arg));
