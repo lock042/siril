@@ -29,6 +29,7 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_s
 gchar *get_catalogue_object_code(CatalogObjects *object);
 gchar *get_catalogue_object_name(CatalogObjects *object);
 gdouble get_catalogue_object_ra(CatalogObjects *object);
+gchar *retrieve_site_coord (fits *fit);
 gdouble get_catalogue_object_dec(CatalogObjects *object);
 gdouble get_catalogue_object_radius(CatalogObjects *object);
 void force_to_refresh_catalogue_list();
