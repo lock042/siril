@@ -262,7 +262,7 @@ LIBCURL_CHECK_CONFIG([yes], [7.10.0],
 dnl check wcslib
 PKG_CHECK_MODULES(WCSLIB, [wcslib],
 		  [AC_DEFINE([HAVE_WCSLIB], [1], [Using WCSLIB])],
-		  AC_MSG_WARN([wcslib not found. Not using WCS API.]))
+		  AC_MSG_WARN([wcslib not found. Not using WCS API and PCC.]))
 
 dnl Check for json-glib
 PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],

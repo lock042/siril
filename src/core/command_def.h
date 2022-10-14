@@ -76,12 +76,12 @@
 #define STR_LS N_("Lists files and directories in the working directory")
 
 #define STR_MERGE N_("Merges several sequences into one")
-#define STR_MIRRORX N_("Flips the image about the vertical axis")
+#define STR_MIRRORX N_("Flips the image about the vertical axis. Option <b>-bottomup</b> will only flip it if it's not already bottom-up")
 #define STR_MIRRORY N_("Flips the image about the horizontal axis")
 #define STR_MODASINH N_("Modified arcsinh stretch based on the work of the ghsastro.co.uk team. This is similar to the simple asinh stretch but offers additional parameters for fine tuning.\n\nAn optional argument (either <b>-human</b>, <b>-even</b> or <b>-independent</b>, can be passed to select either human-weighted or even-weighted luminance or independent colour channels for colour stretches. (The argument is ignored for mono images.))\nThere are a number of mandatory arguments:\n<b>D</b> defines the strength of the stretch, between 0 and 10;\n<b>LP</b> defines a shadow preserving range between 0 and SP where the stretch will be linear, preserving shadow detail;\n<b>SP</b> defines the symmetry point of the stretch, between 0 and 1, which is the point at which the stretch will be most intense;\n<b>HP</b> defines a region between HP and 1 where the stretch is linear, preserving highlight details and preventing star bloat.\nOptionally the parameter <b>[channels]</b> may be used to specify the channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The default is all channels.")
 #define STR_MTF N_("Applies midtones transfer function to the current loaded image.\n\nThree parameters are needed, <b>low</b>, <b>midtones</b> and <b>high</b> where midtones balance parameter defines a nonlinear histogram stretch in the [0,1] range.\nOptionally the parameter <b>[channels]</b> may be used to specify the channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The default is all channels.")
 
-#define STR_NEG N_("Shows the negative view of the current image")
+#define STR_NEG N_("Changes pixel values of the currently loaded image to a negative view, like 1-value for 32 bits, 65535-value for 16 bits. This does not change the display mode")
 #define STR_NEW N_("Creates a new image filled with zeros with a size of <b>width</b> x <b>height</b>.\n\nThe image is in 32-bit format, and it contains <b>nb_channel</b> channels, <b>nb_channel</b> being 1 or 3. It is not saved, but displayed and can be saved afterwards")
 #define STR_NOMAD N_("Display stars from the local catalogue, for plate solved images loaded in GUI only")
 #define STR_NOZERO N_("Replaces null values by <b>level</b> values. Useful before an idiv or fdiv operation")
