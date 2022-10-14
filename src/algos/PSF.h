@@ -52,7 +52,6 @@ struct fwhm_struct {
 struct PSF_data {
 	size_t n;
 	double *y;
-	double *sigma;
 	size_t NbRows;
 	size_t NbCols;
 	double rmse;
