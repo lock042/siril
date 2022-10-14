@@ -491,8 +491,10 @@ static te_expr *base(state *s) {
 static te_expr *power(state *s) {
     /* <power>     =    {("-" | "+")} <base> */
     int sign = 1;
+    int neg = 0;
     while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == inverse)) {
         if (s->function == sub || s->function == inverse) sign = -sign;
+        if (s->function == sub) neg = 1;
         next_token(s);
     }
 
@@ -523,7 +525,7 @@ static te_expr *power(state *s) {
     } else {
         if (logical == 0) {
             ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-            if (s->function == sub) {
+            if (neg) {
             	ret->function = negate;
             } else {
             	ret->function = inverse;
