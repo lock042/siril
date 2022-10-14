@@ -59,7 +59,7 @@ xx/xx/22
 * Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
 
 siril 1.0.6
-xx/xx/22
+10/18/22
 
 * Fixed crash on opening a malformed SER
 * Fixed crash in savetif
