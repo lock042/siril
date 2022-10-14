@@ -65,7 +65,9 @@ v1.0.6 xx xx, 2022
 * Fixed bug in iif where no parameters could be used
 * Fixed crash in seqstat when some images were deselected
 * Fixed crash in star detection when large star was close to border
-* Fixed bad behaviour of asinh blackpoint with monochrome/32bits imagesd
+* Fixed bad behaviour of asinh blackpoint with monochrome/32bits images
+* Fixed bug in PixelMath with negate values
+* Fixed bug in SIMBAD request when object name contains '+'
 
 v1.0.5 October 09, 2022
 
