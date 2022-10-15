@@ -48,6 +48,7 @@ extern "C" {
 #endif
 
 #define defaultRANSACReprojThreshold 3
+#define CLAMPING_FACTOR 0.98
 
 using namespace cv;
 
@@ -241,11 +242,10 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean 
 	// OpenCV function
 	resize(in, out, out.size(), 0, 0, interpolation);
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-		double clamping_factor = 0.98;
 		Mat guide, tmp1;
 		// Create guide image
 		resize(in, guide, out.size(), 0, 0, OPENCV_AREA);
-		tmp1 = (out < clamping_factor * guide);
+		tmp1 = (out < CLAMPING_FACTOR * guide);
 		Mat element = getStructuringElement( MORPH_ELLIPSE,
                        Size(3, 3), Point(1,1));
 		dilate(tmp1, tmp1, element);
@@ -485,11 +485,10 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	// OpenCV function
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-		double clamping_factor = 0.98;
 		Mat guide, tmp1;
 		// Create guide image
 		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
-		tmp1 = (out < guide * clamping_factor);
+		tmp1 = (out < guide * CLAMPING_FACTOR);
 		Mat element = getStructuringElement( MORPH_ELLIPSE,
                        Size(3, 3), Point(-1,-1));
 		dilate(tmp1, tmp1, element);
