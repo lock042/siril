@@ -187,7 +187,7 @@ static command commands[] = {
 	{"setcpu", 1, "setcpu number", process_set_cpu, STR_SETCPU, TRUE, REQ_CMD_NONE},
 #endif
 	{"setext", 1, "setext extension", process_set_ext, STR_SETEXT, TRUE, REQ_CMD_NONE},
-	{"setfindstar", 0, "setfindstar [reset] [-radius=] [-sigma=] [-roundness=] [-focal=] [-pixelsize=] [-auto=on|off] [-convergence=] [-relax=on|off]" , process_set_findstar, STR_SETFINDSTAR, TRUE, REQ_CMD_NONE},
+	{"setfindstar", 0, "setfindstar [reset] [-radius=] [-sigma=] [-roundness=] [-focal=] [-pixelsize=] [-auto=on|off] [-convergence=] [ [-gaussian] | [-moffat] ] [-angles=on|off] [-relax=on|off]" , process_set_findstar, STR_SETFINDSTAR, TRUE, REQ_CMD_NONE},
 	{"setmag", 1, "setmag magnitude", process_set_mag, STR_SETMAG, FALSE, REQ_CMD_SINGLE_IMAGE},
 	{"setmagseq", 1, "setmagseq magnitude", process_set_mag_seq, STR_SETMAGSEQ, FALSE, REQ_CMD_SEQUENCE},
 	{"setmem", 1, "setmem ratio", process_set_mem, STR_SETMEM, TRUE, REQ_CMD_NONE},
