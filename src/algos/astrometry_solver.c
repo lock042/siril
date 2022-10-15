@@ -366,21 +366,27 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 
 	switch(server) {
 	case 0:
-		string_url = g_string_new(CDSSESAME);
-		string_url = g_string_append(string_url, "/-oI/A?");
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, "/-oI/A?");
+		string_url = g_string_prepend(string_url, CDSSESAME);
 		siril_log_message(_("Searching %s in CDSESAME...\n"), name);
 		break;
 	case 1:
-		string_url = g_string_new(VIZIERSESAME);
-		string_url = g_string_append(string_url, "/-oI/A?");
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, "/-oI/A?");
+		string_url = g_string_prepend(string_url, VIZIERSESAME);
 		siril_log_message(_("Searching %s in VIZIER...\n"), name);
 		break;
 	default:
 	case 2:
-		string_url = g_string_new(SIMBADSESAME);
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, SIMBADSESAME);
 		string_url = g_string_append(string_url, "';");
 		siril_log_message(_("Searching %s in SIMBAD...\n"), name);
 		break;
@@ -396,7 +402,8 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-nbd=1");
 		string_url = g_string_append(string_url, "&-tscale=UTC");
 		string_url = g_string_append(string_url, "&-observer=");
-		string_url = g_string_append(string_url, "@500"); // Geocentric coordinates as default
+		gchar *formatted_site = retrieve_site_coord(&gfit);
+		string_url = g_string_append(string_url, formatted_site);
 		string_url = g_string_append(string_url, "&-theory=INPOP");
 		string_url = g_string_append(string_url, "&-teph=1");
 		string_url = g_string_append(string_url, "&-tcoor=5");
@@ -405,6 +412,13 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-output=--jd");
 		string_url = g_string_append(string_url, "&-from=Siril;");
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"), name, formatted_date);
+
+		if (!gfit.sitelat || !gfit.sitelong) {
+			siril_log_color_message(_("No topocentric data available. Set to geocentric\n"), "salmon");
+		} else {
+			siril_log_message(_("at LAT: %f, LONG: %f\n"), gfit.sitelat, gfit.sitelong);
+		}
+		g_free(formatted_site);
 		g_free(formatted_date);
 		break;
 	}
@@ -1187,7 +1201,7 @@ gpointer match_catalog(gpointer p) {
 		}
 	}
 	CHECK_FOR_CANCELLATION;
-	
+
 	cstars = new_fitted_stars(MAX_STARS);
 	if (!cstars) {
 		PRINT_ALLOC_ERR;
@@ -1222,7 +1236,7 @@ gpointer match_catalog(gpointer p) {
 
 	if (args->downsample) {
 		copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
+		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA, FALSE);
 	}
 
 	if (!args->manual) {
@@ -1479,6 +1493,11 @@ gpointer match_catalog(gpointer p) {
 	if (args->for_photometry_cc) {
 		pcc_star *pcc_stars = NULL;
 		int nb_pcc_stars;
+#ifndef HAVE_WCSLIB
+		siril_log_color_message(_("This operation (PCC) relies on the missing WCSLIB software, cannot continue.\n"), "red");
+		args->ret = 1;
+		goto clearup;
+#endif
 		if (args->use_local_cat) {
 			double tra = siril_world_cs_get_alpha(solution.image_center);
 			double tdec = siril_world_cs_get_delta(solution.image_center);
