@@ -20204,9 +20204,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
 
 The main issue of Lanczos and Bicubic interpolation algorithms is the generation of strong undershot artifacts (ringing). These artifacts are caused by the negative lobes of the interpolation functions falling on high contrast edges and isolated bright pixels (like in the stars). This usually only occurs with linear data.
 
-In current Siril implementations, we have included a clamping mechanism that prevents negative interpolated values and ringing artifacts for most images. This parameter represents a threshold value to trigger interpolation clamping.
-
-A lower value leads to a more aggressive clamping.</property>
+In current Siril implementations, we have included a clamping mechanism that prevents negative interpolated values and ringing artifacts for most images.</property>
                                                             <property name="halign">start</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
@@ -26949,7 +26947,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                                 <property name="tooltip-text" translatable="yes">Set the scale of the fonts. 90 is the smallest scale you can have while the maximum is at 150.</property>
                                                 <property name="halign">start</property>
                                                 <property name="width-chars">5</property>
-                                                <property name="text" translatable="yes">100</property>
+                                                <property name="text">100</property>
                                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                 <property name="adjustment">adj_fontsize</property>
                                                 <property name="numeric">True</property>
