@@ -362,7 +362,7 @@ int process_denoise(int nb){
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			arg += 5;
-			float mod = g_ascii_strtod(arg, &end);
+			float mod = (float) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
 			else if ((mod < 0.f) || (mod > 1.f)) {
 				siril_log_message(_("Error in mod parameter: must be between 0 and 1, aborting.\n"));
@@ -1825,16 +1825,62 @@ int process_autostretch(int nb) {
 
 int process_resample(int nb) {
 	gchar *end;
-	double factor = g_ascii_strtod(word[1], &end);
-	if (end == word[1] || factor <= 0.0 || factor > 5.0) {
-		siril_log_message(_("The scaling factor must be less than 5.0\n"));
+	gboolean clamp = TRUE;
+	int interpolation = OPENCV_LANCZOS4;
+	double factor = 1.0;
+
+	factor = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || factor < 0.0 || factor > 5.0) {
+		siril_log_message(_("Scale %lf not allowed. Should be between 0.0 and 5.0.\n"), factor);
+		return CMD_ARG_ERROR;
+	}
+
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-interp=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				return CMD_ARG_ERROR;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+				interpolation = OPENCV_NEAREST;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+				interpolation = OPENCV_CUBIC;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+				interpolation = OPENCV_LANCZOS4;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+				interpolation = OPENCV_LINEAR;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+				interpolation = OPENCV_AREA;
+				continue;
+			}
+			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			return CMD_ARG_ERROR;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			clamp = FALSE;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+	if (factor == 1.0) {
+		siril_log_message(_("Scale is 1.0. Not doing anything...\n"));
 		return CMD_ARG_ERROR;
 	}
 	int toX = round_to_int(factor * gfit.rx);
 	int toY = round_to_int(factor * gfit.ry);
 
 	set_cursor_waiting(TRUE);
-	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_AREA);
+	verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -1868,6 +1914,7 @@ int process_rgradient(int nb) {
 }
 
 int process_rotate(int nb) {
+	gchar *end;
 	set_cursor_waiting(TRUE);
 	int crop = 1;
 	gboolean has_selection = FALSE;
@@ -1878,16 +1925,64 @@ int process_rotate(int nb) {
 		has_selection = TRUE;
 	}
 
-	double degree = g_ascii_strtod(word[1], NULL);
+	gboolean clamp = TRUE;
+	int interpolation = OPENCV_LANCZOS4;
+	double angle=0.0;
 
-	/* check for options */
-	if (word[2] && (!strcmp(word[2], "-nocrop"))) {
-		if (has_selection) {
-			siril_log_color_message(_("-nocrop option is not valid if a selection is active. Ignoring\n"), "red");
-		} else crop = 0;
+	angle = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || angle < 0.0 || angle > 360.0) {
+		siril_log_message(_("Angle %lf not allowed. Should be between 0.0 and 360.0.\n"), angle);
+		return CMD_ARG_ERROR;
 	}
 
-	verbose_rotate_image(&gfit, area, degree, OPENCV_AREA, crop);
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-interp=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				return CMD_ARG_ERROR;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+				interpolation = OPENCV_NEAREST;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+				interpolation = OPENCV_CUBIC;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+				interpolation = OPENCV_LANCZOS4;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+				interpolation = OPENCV_LINEAR;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+				interpolation = OPENCV_AREA;
+				continue;
+			}
+			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			return CMD_ARG_ERROR;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			clamp = FALSE;
+		} else if (!strcmp(word[i], "-nocrop")) {
+			if (has_selection) {
+				siril_log_color_message(_("-nocrop option is not valid if a selection is active. Ignoring\n"), "red");
+			} else crop = 0;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+	siril_debug_print("%f\n",angle);
+
+	if (angle == 0.0 || angle == 360.0) {
+		siril_log_message(_("Angle is 0.0 or 360.0 degrees. Doing nothing...\n"));
+		return CMD_ARG_ERROR;
+	}
+	verbose_rotate_image(&gfit, area, angle, interpolation, crop, clamp);
 
 	// the new selection will match the current image
 	if (has_selection) {
@@ -4600,7 +4695,8 @@ int process_register(int nb) {
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
-	reg_args->interpolation = OPENCV_AREA;
+	reg_args->interpolation = OPENCV_LANCZOS4;
+	reg_args->clamp = TRUE;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
@@ -4608,6 +4704,8 @@ int process_register(int nb) {
 			reg_args->x2upscale = TRUE;
 		} else if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			reg_args->clamp = FALSE;
 		} else if (!strcmp(word[i], "-2pass")) {
 			reg_args->two_pass = TRUE;
 			reg_args->no_output = TRUE;
@@ -4791,6 +4889,12 @@ int process_register(int nb) {
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"), "green", method->name);
 	free(method);
 	msg[strlen(msg) - 1] = '\0';
+
+	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE || reg_args->no_output)
+		reg_args->clamp = FALSE;
+	if (reg_args->clamp)
+		siril_log_message(_("Interpolation clamping active\n"));
+
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	start_in_new_thread(register_thread_func, reg_args);
@@ -4944,7 +5048,8 @@ int process_seq_applyreg(int nb) {
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
 	reg_args->layer = layer;
-	reg_args->interpolation = OPENCV_AREA;
+	reg_args->interpolation = OPENCV_LANCZOS4;
+	reg_args->clamp = TRUE;
 	reg_args->framing = FRAMING_CURRENT;
 
 	/* check for options */
@@ -4959,6 +5064,8 @@ int process_seq_applyreg(int nb) {
 				goto terminate_register_on_error;
 			}
 			reg_args->prefix = strdup(value);
+		} else if (!strcmp(word[i], "-noclamp")) {
+			reg_args->clamp = FALSE;
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -4992,7 +5099,7 @@ int process_seq_applyreg(int nb) {
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
-			} else if (g_str_has_prefix(word[i], "-framing=")) {
+		} else if (g_str_has_prefix(word[i], "-framing=")) {
 			char *current = word[i], *value;
 			value = current + 9;
 			if (value[0] == '\0') {
@@ -5047,6 +5154,11 @@ int process_seq_applyreg(int nb) {
 
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+
+	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
+		reg_args->clamp = FALSE;
+	if (reg_args->clamp)
+		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
 
