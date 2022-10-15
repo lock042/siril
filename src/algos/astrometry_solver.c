@@ -1201,7 +1201,7 @@ gpointer match_catalog(gpointer p) {
 		}
 	}
 	CHECK_FOR_CANCELLATION;
-	
+
 	cstars = new_fitted_stars(MAX_STARS);
 	if (!cstars) {
 		PRINT_ALLOC_ERR;
@@ -1236,7 +1236,7 @@ gpointer match_catalog(gpointer p) {
 
 	if (args->downsample) {
 		copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
+		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA, FALSE);
 	}
 
 	if (!args->manual) {

@@ -60,11 +60,11 @@ static void rotate_gui(fits *fit) {
 		if (cropped)
 			gtk_toggle_button_set_active(crop_rotation, TRUE);
 	}
-
+	gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
 	set_cursor_waiting(TRUE);
-	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s)"), angle,
-			cropped ? "TRUE" : "FALSE");
-	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped);
+	undo_save_state(fit, _("Rotation (%.1lfdeg, cropped=%s, clamped=%s)"), angle,
+			cropped ? "TRUE" : "FALSE", clamp ? "TRUE" : "FALSE");
+	verbose_rotate_image(fit, com.selection, angle, interpolation, cropped, clamp);
 
 	// the UI is still opened, need to reset selection
 	// to current image size and reset rotation
@@ -123,6 +123,12 @@ void on_checkbutton_rotation_crop_toggled(GtkToggleButton *button, gpointer user
 	}
 }
 
+void on_combo_interpolation_rotation_changed(GtkComboBox *combo_box, gpointer user_data) {
+	gint idx = gtk_combo_box_get_active(combo_box);
+
+	gtk_widget_set_sensitive(lookup_widget("toggle_rot_clamp"), idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
+}
+
 /******
  * MIRROR
  */
@@ -173,13 +179,14 @@ void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
 		int interpolation = gtk_combo_box_get_active(
 				GTK_COMBO_BOX(lookup_widget("combo_interpolation")));
+		gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
 
 		set_cursor_waiting(TRUE);
 		int toX = round_to_int((sample[0] / 100.0) * gfit.rx);
 		int toY = round_to_int((sample[1] / 100.0) * gfit.ry);
 		undo_save_state(&gfit, _("Resample (%g - %g)"), sample[0] / 100.0,
 				sample[1] / 100.0);
-		verbose_resize_gaussian(&gfit, toX, toY, interpolation);
+		verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
 		redraw(REMAP_ALL);
 		redraw_previews();
@@ -227,6 +234,13 @@ void on_button_sample_ratio_toggled(GtkToggleButton *button, gpointer user_data)
 				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")),
 				xvalue);
 }
+
+void on_combo_interpolation_changed(GtkComboBox *combo_box, gpointer user_data) {
+	gint idx = gtk_combo_box_get_active(combo_box);
+
+	gtk_widget_set_sensitive(lookup_widget("toggle_scale_clamp"), idx == OPENCV_CUBIC || idx == OPENCV_LANCZOS4);
+}
+
 /**************
  * CROP
  */
