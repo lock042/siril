@@ -226,10 +226,11 @@ static void display_PSF(psf_star **result) {
 	if (result) {
 		gchar *msg;
 		int i = 0;
-		double FWHMx = 0.0, FWHMy = 0.0, B = 0.0, A = 0.0, r = 0.0, angle = 0.0,
+		double FWHMx = 0.0, FWHMy = 0.0, B = 0.0, A = 0.0, beta = 0.0, r = 0.0, angle = 0.0,
 				rmse = 0.0;
 		gboolean unit_is_arcsec;
 		int n = 0, layer;
+		starprofile profiletype;
 
 		while (result[i]) {
 			double fwhmx, fwhmy;
@@ -238,6 +239,7 @@ static void display_PSF(psf_star **result) {
 			if (i == 0) {
 				unit_is_arcsec = is_as;
 				layer = result[i]->layer;
+				profiletype = result[i]->profile;
 			}
 			else if (is_as != unit_is_arcsec) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
@@ -249,10 +251,17 @@ static void display_PSF(psf_star **result) {
 						_("Stars properties must all be computed on the same layer"));
 				return;
 			}
+			else if (profiletype != result[i]->profile) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
+						_("Stars must all be modelled with the same profile type"));
+				return;
+			}
 			if (!result[i]->has_saturated) {
 				B += result[i]->B;
 				A += result[i]->A;
 				FWHMx += fwhmx;
+				beta += result[i]->beta;
+
 				FWHMy += fwhmy;
 				angle += result[i]->angle;
 				rmse += result[i]->rmse;
@@ -266,15 +275,24 @@ static void display_PSF(psf_star **result) {
 		A = A / (double)n;
 		FWHMx = FWHMx / (double)n;
 		FWHMy = FWHMy / (double)n;
+		beta =beta / (double)n;
 		r = FWHMy / FWHMx;
 		angle = angle / (double)n;
 		rmse = rmse / (double)n;
 
+		if (profiletype == GAUSSIAN) {
 		msg = g_strdup_printf(_("Average Gaussian PSF\n\n"
 				"N:\t%d stars (%d saturated and excluded)\nB:\t%.6f\nA:\t%.6f\nFWHMx:\t%.2f%s\n"
 				"FWHMy:\t%.2f%s\nr:\t%.3f\nAngle:\t%.2f deg\nrmse:\t%.3e\n"),
 				i, i - n, B, A, FWHMx, result[0]->units, FWHMy,
 				result[0]->units, r, angle, rmse);
+		} else {
+		msg = g_strdup_printf(_("Average Moffat PSF\n\n"
+				"N:\t%d stars (%d saturated and excluded)\nB:\t%.6f\nA:\t%.6f\nBeta:\t%.2f\nFWHMx:\t%.2f%s\n"
+				"FWHMy:\t%.2f%s\nr:\t%.3f\nAngle:\t%.2f deg\nrmse:\t%.3e\n"),
+				i, i - n, B, A, beta, FWHMx, result[0]->units, FWHMy,
+				result[0]->units, r, angle, rmse);
+		}
 		show_data_dialog(msg, _("Average Star Data"), "stars_list_window", NULL);
 		g_free(msg);
 	}
