@@ -781,7 +781,6 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 
 void on_toggle_reg_clamp_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean active = gtk_toggle_button_get_active(button);
-	gtk_widget_set_sensitive(lookup_widget("spin_reg_clamp"), active);
 
 	com.pref.gui.reg_clamping = active;
 }
