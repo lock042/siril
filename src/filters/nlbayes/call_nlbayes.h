@@ -15,9 +15,10 @@ typedef struct denoise_args {
 	float rho;
 	gboolean do_anscombe;
 	gboolean do_cosme;
+	gboolean suppress_artefacts;
 } denoise_args;
 
-EXTERNC int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d, const float rho, const gboolean do_anscombe, const gboolean do_cosme);
+EXTERNC int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d, const float rho, const gboolean do_anscombe);
 #ifdef __cplusplus
 }
 #endif
