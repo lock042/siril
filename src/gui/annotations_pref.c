@@ -32,7 +32,8 @@ static gchar *astro_catalogue[] = {
 		"Lynds Catalogue of Dark Nebulae (LdN)",
 		"Sharpless Catalogue (Sh2)",
 		"Star Catalogue",
-		"User Catalogue"
+		"User Deep Sky Objects Catalogue",
+		"User Solar System Objects Catalogue"
 };
 
 static void get_statlist_store() {
