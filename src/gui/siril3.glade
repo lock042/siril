@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -25356,6 +25356,7 @@ The technique gives very good compression for astronomical images and is relativ
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="orientation">vertical</property>
+                                <property name="spacing">5</property>
                                 <child>
                                   <object class="GtkScrolledWindow">
                                     <property name="height-request">150</property>
@@ -25412,10 +25413,10 @@ The technique gives very good compression for astronomical images and is relativ
                                   </packing>
                                 </child>
                                 <child>
-                                  <!-- n-columns=3 n-rows=1 -->
-                                  <object class="GtkGrid">
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="spacing">5</property>
                                     <child>
                                       <object class="GtkButton" id="purge_SSO_user_catalogue">
                                         <property name="label" translatable="yes">Purge Solar Sys
@@ -25427,8 +25428,10 @@ user Catalog</property>
                                         <signal name="clicked" handler="on_purge_SSO_user_catalogue_clicked" swapped="no"/>
                                       </object>
                                       <packing>
-                                        <property name="left-attach">1</property>
-                                        <property name="top-attach">0</property>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack-type">end</property>
+                                        <property name="position">0</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -25442,25 +25445,18 @@ user Catalog</property>
                                         <signal name="clicked" handler="on_purge_DSO_user_catalogue_clicked" swapped="no"/>
                                       </object>
                                       <packing>
-                                        <property name="left-attach">2</property>
-                                        <property name="top-attach">0</property>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack-type">end</property>
+                                        <property name="position">1</property>
                                       </packing>
-                                    </child>
-                                    <child>
-                                      <placeholder/>
                                     </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">1</property>
+                                    <property name="position">2</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                             </child>
