@@ -25412,20 +25412,55 @@ The technique gives very good compression for astronomical images and is relativ
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkButton" id="purge_user_catalogue">
-                                    <property name="label" translatable="yes">Purge User Catalogue</property>
+                                  <!-- n-columns=3 n-rows=1 -->
+                                  <object class="GtkGrid">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Purge the user catalogue by deleting the file. The operation cannot be undone</property>
-                                    <property name="halign">end</property>
-                                    <signal name="clicked" handler="on_purge_user_catalogue_clicked" swapped="no"/>
+                                    <property name="can-focus">False</property>
+                                    <child>
+                                      <object class="GtkButton" id="purge_SSO_user_catalogue">
+                                        <property name="label" translatable="yes">Purge Solar Sys
+user Catalog</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Purge the SOLAR SYSTEM user catalog by deleting the file. The operation cannot be undone</property>
+                                        <signal name="clicked" handler="on_purge_SSO_user_catalogue_clicked" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="purge_DSO_user_catalogue">
+                                        <property name="label" translatable="yes">Purge Deep Sky
+user Catalog</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Purge the DEEP SKY user catalog by deleting the file. The operation cannot be undone</property>
+                                        <signal name="clicked" handler="on_purge_DSO_user_catalogue_clicked" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">2</property>
+                                    <property name="position">1</property>
                                   </packing>
+                                </child>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                                <child>
+                                  <placeholder/>
                                 </child>
                               </object>
                             </child>

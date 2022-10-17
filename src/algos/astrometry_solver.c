@@ -362,7 +362,7 @@ static gchar *fetch_url(const gchar *url) {
 
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	GString *string_url;
-	gchar *name = g_utf8_strdown(object, -1); //strlwr is non-standard, so g_utf8_strup has been changed to g_utf8_strdown
+	gchar *name = g_utf8_strdown(object, -1);
 
 	switch(server) {
 	case 0:
