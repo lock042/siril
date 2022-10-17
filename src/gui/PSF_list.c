@@ -493,7 +493,7 @@ static void add_star_to_list(psf_star *star) {
 			COLUMN_MAG, star->mag + com.magOffset,
 			COLUMN_BETA, star->beta,
 			COLUMN_ROUNDNESS, fwhmy / fwhmx,
-			COLUMN_ANGLE, star->angle,
+			COLUMN_ANGLE, -star->angle, // the image had been flipped befor the findstar
 			COLUMN_RMSE, star->rmse,
 			-1);
 

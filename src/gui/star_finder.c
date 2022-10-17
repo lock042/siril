@@ -56,18 +56,14 @@ void on_spin_sf_convergence_changed(GtkSpinButton *spinbutton, gpointer user_dat
 	com.pref.starfinder_conf.convergence = (int)gtk_spin_button_get_value(spinbutton);
 }
 
-void on_toggle_fit_angles_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	com.pref.starfinder_conf.fit_angle = gtk_toggle_button_get_active(togglebutton);
-}
-
 void on_combostarfinder_profile_changed(GtkComboBox *combo, gpointer user_data) {
 	com.pref.starfinder_conf.profile = gtk_combo_box_get_active(combo);
 }
 
 void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {
 	//TODO: do we want to keep focal and pixel_size as they are not exposed?
-	com.pref.starfinder_conf = (star_finder_params){.radius = 10, .adjust = TRUE, .sigma = 1.,
-			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE};
+	com.pref.starfinder_conf = (star_finder_params){.radius = 10, .adjust = FALSE, .sigma = 1.,
+			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE, .profile = GAUSSIAN};
 	update_peaker_GUI();
 }
 
@@ -75,7 +71,6 @@ void update_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
 			*spin_roundness = NULL, *spin_convergence = NULL;
 	static GtkToggleButton *toggle_adjust = NULL, *toggle_checks = NULL;
-	static GtkToggleButton *toggle_fit_angles;
 	static GtkComboBox *combostarfinder_profile;
 
 	if (spin_radius == NULL) {
@@ -85,7 +80,6 @@ void update_peaker_GUI() {
 		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
 		toggle_adjust = GTK_TOGGLE_BUTTON(lookup_widget("toggle_radius_adjust"));
 		toggle_checks = GTK_TOGGLE_BUTTON(lookup_widget("toggle_relax_checks"));
-		toggle_fit_angles = GTK_TOGGLE_BUTTON(lookup_widget("toggle_fit_angles"));
 		combostarfinder_profile = GTK_COMBO_BOX(lookup_widget("combostarfinder_profile"));
 	}
 	gtk_spin_button_set_value(spin_radius, (double) com.pref.starfinder_conf.radius);
@@ -94,7 +88,6 @@ void update_peaker_GUI() {
 	gtk_spin_button_set_value(spin_roundness, com.pref.starfinder_conf.roundness);
 	gtk_spin_button_set_value(spin_convergence, com.pref.starfinder_conf.convergence);
 	gtk_toggle_button_set_active(toggle_checks, com.pref.starfinder_conf.relax_checks);
-	gtk_toggle_button_set_active(toggle_fit_angles, com.pref.starfinder_conf.fit_angle);
 	gtk_combo_box_set_active(combostarfinder_profile, com.pref.starfinder_conf.profile);
 }
 

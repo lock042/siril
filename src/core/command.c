@@ -2208,7 +2208,6 @@ int process_set_findstar(int nb) {
 	gboolean relax_checks = com.pref.starfinder_conf.relax_checks;
 	int convergence = com.pref.starfinder_conf.convergence;
 	starprofile profile = com.pref.starfinder_conf.profile;
-	gboolean fit_angle = com.pref.starfinder_conf.fit_angle;
 	gchar *end;
 
 	if (nb > startoptargs) {
@@ -2234,15 +2233,6 @@ int process_set_findstar(int nb) {
 					profile = GAUSSIAN;
 				} else if (g_str_has_prefix(word[i], "-moffat")) {
 					profile = MOFFAT_BFREE;
-				} else if (g_str_has_prefix(word[i], "-angles=")) {
-					char *current = word[i], *value;
-					value = current + 8;
-					if (!(g_ascii_strcasecmp(value, "on"))) fit_angle = TRUE;
-					else if (!(g_ascii_strcasecmp(value, "off"))) fit_angle = FALSE;
-					else {
-						siril_log_message(_("Wrong parameter values. Angles must be set to on or off, aborting.\n"));
-						return CMD_ARG_ERROR;
-					}
 				} else if (g_str_has_prefix(word[i], "-roundness=")) {
 					char *current = word[i], *value;
 					value = current + 11;
@@ -2304,7 +2294,6 @@ int process_set_findstar(int nb) {
 					relax_checks = FALSE;
 					convergence = 1;
 					profile = GAUSSIAN;
-					fit_angle = FALSE;
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;
@@ -2331,8 +2320,6 @@ int process_set_findstar(int nb) {
 	com.pref.starfinder_conf.relax_checks = relax_checks;
 	siril_log_message(_("profile = %s\n"), (profile == GAUSSIAN) ? "Gaussian" : "Moffat");
 	com.pref.starfinder_conf.profile = profile;
-	siril_log_message(_("fit angles = %s\n"), (fit_angle) ? "on" : "off");
-	com.pref.starfinder_conf.fit_angle = fit_angle;
 	return CMD_OK;
 }
 
@@ -3207,7 +3194,6 @@ int process_findstar(int nb) {
 	args->update_GUI = TRUE;
 	args->profile = com.pref.starfinder_conf.profile;
 	siril_debug_print("findstar profiling %s stars\n", (args->profile == GAUSSIAN) ? "Gaussian" : "Moffat");
-	args->fit_angle = com.pref.starfinder_conf.fit_angle;
 
 	cmd_errors argparsing = parse_findstar(args, 1, nb);
 
@@ -3242,7 +3228,6 @@ int process_seq_findstar(int nb) {
 	args->update_GUI = FALSE;
 	args->save_to_file = TRUE;
 	args->profile = com.pref.starfinder_conf.profile;
-	args->fit_angle = com.pref.starfinder_conf.fit_angle;
 
 	cmd_errors argparsing = parse_findstar(args, 2, nb);
 

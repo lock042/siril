@@ -627,7 +627,6 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 					fwhm_to_arcsec_if_needed(&gfit, psfs[i]);
 					fwhm = psfs[i]->fwhmx_arcsec < 0 ? psfs[i]->fwhmx : psfs[i]->fwhmx_arcsec;
 				} else {
-					fwhm_to_pixels(psfs[i]);
 					fwhm = psfs[i]->fwhmx;
 				}
 				plot->data[j].y = fwhm;

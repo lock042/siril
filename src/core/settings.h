@@ -195,7 +195,6 @@ typedef struct {
 	int convergence;
 	gboolean relax_checks;
 	starprofile profile;
-	gboolean fit_angle;
 } star_finder_params;
 
 /**

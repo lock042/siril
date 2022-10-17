@@ -60,15 +60,14 @@ preferences pref_init = {
 	.starnet_dir = NULL,
 	.starfinder_conf = { // starfinder_conf
 		.radius = 10,
-		.adjust = TRUE,
+		.adjust = FALSE,
 		.sigma = 1.0,
 		.roundness = 0.5,
 		.focal_length = 0.,
 		.pixel_size_x = 0.,
 		.convergence = 1,
 		.relax_checks = FALSE,
-		.profile = GAUSSIAN,
-		.fit_angle = FALSE
+		.profile = GAUSSIAN
 	},
 	.prepro = {
 		.cfa = FALSE,

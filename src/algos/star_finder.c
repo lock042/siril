@@ -628,7 +628,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			if (cur_star) {
 				gchar errmsg[SF_ERRMSG_LEN] = "";
 				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], dynrange, (DEBUG_STAR_DETECTION) ? errmsg : NULL);
-				if (star_invalidated <= accepted_level) {
+				if (error != PSF_ERR_DIVERGED && star_invalidated <= accepted_level) { // we don't return NULL on convergence errors so we need to catch that PSF has not diverged
 					cur_star->layer = layer;
 					cur_star->xpos = (x - R) + cur_star->x0;
 					cur_star->ypos = (y - R) + cur_star->y0;

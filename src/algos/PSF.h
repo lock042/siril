@@ -6,6 +6,8 @@
 #include "algos/star_finder.h"
 
 #define _2_SQRT_2_LOG2 2.35482004503
+#define INV_4_LOG2 0.360673760222241
+
 //in siril.h: typedef struct fwhm_struct psf_star;
 
 struct fwhm_struct {
@@ -72,10 +74,8 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 
 void psf_display_result(psf_star *, rectangle *);
 void fwhm_to_arcsec_if_needed(fits*, psf_star*);
-void fwhm_to_pixels(psf_star *result);
 gboolean get_fwhm_as_arcsec_if_possible(psf_star *star, double *fwhmx, double *fwhmy, char **unit);
-double convert_single_fwhm_to_pixels(double fwhm, double s);
-gboolean convert_single_fwhm_to_arcsec_if_possible(double fwhm, double bin, double px_size, double flenght, double *result);
+gboolean convert_single_fwhm_to_arcsec_if_possible(double fwhm, double bin, double px_size, double flength, double *result);
 
 psf_star *new_psf_star();
 psf_star *duplicate_psf(psf_star *);

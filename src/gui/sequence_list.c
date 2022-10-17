@@ -240,7 +240,6 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 						fwhm_to_arcsec_if_needed(&gfit, psfs[index]);
 						fwhm = psfs[index]->fwhmx_arcsec < 0 ? psfs[index]->fwhmx : psfs[index]->fwhmx_arcsec;
 					} else {
-						fwhm_to_pixels(psfs[index]);
 						fwhm = psfs[index]->fwhmx;
 					}
 					break;
