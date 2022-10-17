@@ -69,6 +69,7 @@ v1.0.6 October 18, 2022
 * Fixed bad behaviour of asinh blackpoint with monochrome/32bits images
 * Fixed bug in PixelMath with negate values
 * Fixed bug in SIMBAD request when object name contains '+'
+* Fixed bug in rotational gradient
 
 v1.0.5 September 09, 2022
 
