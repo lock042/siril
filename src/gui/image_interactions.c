@@ -618,6 +618,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	}
 
 	gboolean blank_density_cvport = TRUE, blank_wcs_cvport = TRUE;
+	gtk_label_set_text(GTK_LABEL(lookup_widget("label-rgb")), "");
 
 	if (inside) {
 		if (gui.cvport == RGB_VPORT) {
@@ -633,7 +634,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 						gfit.fpdata[GLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0,
 						gfit.fpdata[BLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0);
 			}
-			gtk_widget_set_tooltip_text(lookup_widget("drawingareargb"), buffer);
+			gtk_label_set_text(GTK_LABEL(lookup_widget("label-rgb")), buffer);
 		}
 		static gchar buffer[256] = { 0 };
 		static gchar wcs_buffer[256] = { 0 };

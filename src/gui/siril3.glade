@@ -12698,45 +12698,6 @@ This should normally be the case only for stacked images. Increasing this value 
         <signal name="activate" handler="on_menu_rgb_save8ppm_activate" swapped="no"/>
       </object>
     </child>
-    <child>
-      <object class="GtkSeparatorMenuItem" id="&lt;séparateur&gt;4">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_rgb_align">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="label" translatable="yes">RGB Align</property>
-        <property name="use-underline">True</property>
-        <signal name="select" handler="on_menu_rgb_align_select" swapped="no"/>
-        <child type="submenu">
-          <object class="GtkMenu" id="menu_align">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkMenuItem" id="rgb_align_dft">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Image pattern alignment (planetary/deep-sky)</property>
-                <property name="use-underline">True</property>
-                <signal name="activate" handler="on_rgb_align_dft_activate" swapped="no"/>
-              </object>
-            </child>
-            <child>
-              <object class="GtkMenuItem" id="rgb_align_psf">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">One star registration (deep-sky)</property>
-                <property name="use-underline">True</property>
-                <signal name="activate" handler="on_rgb_align_psf_activate" swapped="no"/>
-              </object>
-            </child>
-          </object>
-        </child>
-      </object>
-    </child>
   </object>
   <object class="GtkImage" id="mtf">
     <property name="visible">True</property>
@@ -16898,21 +16859,54 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkDrawingArea" id="drawingareargb">
+                          <object class="GtkOverlay">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK</property>
-                            <property name="margin-start">2</property>
-                            <property name="margin-end">2</property>
-                            <property name="margin-top">2</property>
-                            <property name="margin-bottom">2</property>
-                            <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
-                            <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
-                            <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
-                            <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
-                            <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
-                            <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
-                            <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
+                            <child>
+                              <object class="GtkDrawingArea" id="drawingareargb">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK</property>
+                                <property name="margin-start">2</property>
+                                <property name="margin-end">2</property>
+                                <property name="margin-top">2</property>
+                                <property name="margin-bottom">2</property>
+                                <signal name="button-press-event" handler="on_drawingarea_button_press_event" swapped="no"/>
+                                <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
+                                <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
+                                <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                                <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
+                                <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
+                                <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="index">-1</property>
+                              </packing>
+                            </child>
+                            <child type="overlay">
+                              <object class="GtkBox" id="box">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">end</property>
+                                <property name="valign">start</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">5</property>
+                                <child>
+                                  <object class="GtkLabel" id="label-rgb">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <style>
+                                      <class name="label-info"/>
+                                    </style>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
                           </object>
                           <packing>
                             <property name="expand">True</property>
