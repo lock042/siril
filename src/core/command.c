@@ -584,6 +584,66 @@ int process_savepnm(int nb){
 	return CMD_OK;
 }
 
+int process_rebayer(int nb){
+	char filename[256];
+	fits *cfa0 = calloc(1, sizeof(fits));
+	fits *cfa1 = calloc(1, sizeof(fits));
+	fits *cfa2 = calloc(1, sizeof(fits));
+	fits *cfa3 = calloc(1, sizeof(fits));
+	fits *out = NULL;
+	if (nb < 4) {
+		siril_log_color_message(_("Error, requires at least 4 arguments to specify the 4 files!\n"), "red");
+		return CMD_WRONG_N_ARG;
+	}
+
+	set_cursor_waiting(TRUE);
+
+	strncpy(filename, word[1], 250);
+	filename[250] = '\0';
+	expand_home_in_filename(filename, 256);
+	int retval = readfits(filename, cfa0, NULL, FALSE);
+	strncpy(filename, word[2], 250);
+	filename[250] = '\0';
+	expand_home_in_filename(filename, 256);
+	retval += readfits(filename, cfa1, NULL, FALSE);
+	strncpy(filename, word[3], 250);
+	filename[250] = '\0';
+	expand_home_in_filename(filename, 256);
+	retval += readfits(filename, cfa2, NULL, FALSE);
+	strncpy(filename, word[4], 250);
+	filename[250] = '\0';
+	expand_home_in_filename(filename, 256);
+	retval += readfits(filename, cfa3, NULL, FALSE);
+	if (retval) {
+		siril_log_color_message(_("Error loading files!\n"), "red");
+		return CMD_FILE_NOT_FOUND;
+	}
+	out = merge_cfa(cfa0, cfa1, cfa2, cfa3);
+	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
+	close_single_image();
+	copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+
+	clear_stars_list(TRUE);
+	com.seq.current = UNRELATED_IMAGE;
+	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
+		com.uniq->comment = strdup(_("Bayer pattern merge"));
+	initialize_display_mode();
+	update_zoom_label();
+	display_filename();
+	set_precision_switch();
+	sliders_mode_set_state(gui.sliders);
+	init_layers_hi_and_lo_values(MIPSLOHI);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+	set_display_mode();
+	redraw(REMAP_ALL);
+
+	sequence_list_change_current();
+
+	set_cursor_waiting(FALSE);
+	return CMD_OK;
+}
+
 int process_imoper(int nb){
 	fits fit = { 0 };
 

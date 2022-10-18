@@ -1233,3 +1233,77 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 	}
 	return retval;
 }
+
+//
+// Re-mosaic 4 subpattern images previously separated with split_cfa
+// This routine is Bayer pattern agnostic: split_cfa generates files
+// CFA0, CFA1, CFA2 and CFA3 which can be RGGB, BGGR etc. This routine
+// will assemble them in the same pattern as long as the files are
+// provided in the correct order CFA0 to CFA3.
+//
+// (returns 0 on success, -1 on failure)
+//
+
+fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
+	fits *out = NULL;
+
+	// Check input files are compatible
+	if ((!(cfa0->naxes[0] == cfa1->naxes[0] && cfa1->naxes[0] == cfa2->naxes[0] && cfa2->naxes[0] == cfa3->naxes[0])) ||
+                   (!(cfa0->naxes[1] == cfa1->naxes[1] && cfa1->naxes[1] == cfa2->naxes[1] && cfa2->naxes[1] == cfa3->naxes[1])) ||
+                   (!(cfa0->naxes[2] == cfa1->naxes[2] && cfa1->naxes[2] == cfa2->naxes[2] && cfa2->naxes[2] == cfa3->naxes[2] && cfa3->naxes[2] == 1)) ||
+                   (!(cfa0->type == cfa1->type && cfa1->type == cfa2->type && cfa2->type == cfa3->type))) {
+		siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
+		return NULL;
+	}
+//	int indata = cfa0->rx * cfa0->ry * cfa0->naxes[2];
+	int datatype = cfa0->type;
+
+	// Create output fits twice the width and height of the cfa fits files
+	new_fit_image(&out, cfa0->rx << 1, cfa0->ry << 1, 1, datatype);
+//	out->bayer_pattern = pattern;
+
+	for (size_t outx = 0 ; outx < out->rx; outx += 2) {
+		for(size_t outy = 0 ; outy < out->ry ; outy += 2) {
+			size_t cfax = outx >> 1;
+			size_t cfay = outy >> 1;
+			size_t indexcfa = cfax + cfay * (size_t) cfa0->rx;
+			size_t indexout1 = outx + outy * out->rx;
+			size_t indexout3 = (outx + 1) + outy * out->rx;
+			size_t indexout0 = outx + (outy + 1) * out->rx;
+			size_t indexout2 = (outx + 1) + (outy + 1) * out->rx;
+			switch (datatype) {
+				case DATA_FLOAT:
+					out->fdata[indexout0] = cfa0->fdata[indexcfa];
+					out->fdata[indexout1] = cfa1->fdata[indexcfa];
+					out->fdata[indexout2] = cfa2->fdata[indexcfa];
+					out->fdata[indexout3] = cfa3->fdata[indexcfa];
+					break;
+				case DATA_USHORT:
+					out->data[indexout0] = cfa0->data[indexcfa];
+					out->data[indexout1] = cfa1->data[indexcfa];
+					out->data[indexout2] = cfa2->data[indexcfa];
+					out->data[indexout3] = cfa3->data[indexcfa];
+					break;
+			}
+		}
+	}
+
+	if (cfa0) {
+		clearfits (cfa0);
+		cfa0 = NULL;
+	}
+	if (cfa1) {
+		clearfits (cfa1);
+		cfa1 = NULL;
+	}
+	if (cfa2) {
+		clearfits (cfa2);
+		cfa2 = NULL;
+	}
+	if (cfa3) {
+		clearfits (cfa3);
+		cfa3 = NULL;
+	}
+	siril_debug_print("Rebayer complete\n");
+	return out;
+}

@@ -92,6 +92,7 @@ int	process_preprocess(int nb);
 int	process_preprocess_single(int nb);
 int	process_psf(int nb);
 
+int	process_rebayer(int nb);
 int	process_register(int nb);
 int	process_resample(int nb);
 int	process_reloadscripts(int nb);
