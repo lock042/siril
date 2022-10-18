@@ -195,31 +195,31 @@ void update_zoom_fit_button() {
  * Button events
  */
 
-static void do_popup_rgbmenu(GtkWidget *my_widget, GdkEventButton *event) {
-	static GtkMenu *menu = NULL;
-
-	if (!menu) {
-		menu = GTK_MENU(gtk_builder_get_object(gui.builder, "menurgb"));
-		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
-	}
-
-#if GTK_CHECK_VERSION(3, 22, 0)
-	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
-#else
-	int button, event_time;
-
-	if (event) {
-		button = event->button;
-		event_time = event->time;
-	} else {
-		button = 0;
-		event_time = gtk_get_current_event_time();
-	}
-
-	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button,
-			event_time);
-#endif
-}
+//static void do_popup_rgbmenu(GtkWidget *my_widget, GdkEventButton *event) {
+//	static GtkMenu *menu = NULL;
+//
+//	if (!menu) {
+//		menu = GTK_MENU(gtk_builder_get_object(gui.builder, "menurgb"));
+//		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
+//	}
+//
+//#if GTK_CHECK_VERSION(3, 22, 0)
+//	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
+//#else
+//	int button, event_time;
+//
+//	if (event) {
+//		button = event->button;
+//		event_time = event->time;
+//	} else {
+//		button = 0;
+//		event_time = gtk_get_current_event_time();
+//	}
+//
+//	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button,
+//			event_time);
+//#endif
+//}
 
 /* Gray popup menu */
 
@@ -270,10 +270,10 @@ static void do_popup_graymenu(GtkWidget *my_widget, GdkEventButton *event) {
 #endif
 }
 
-gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
-	do_popup_rgbmenu(widget, NULL);
-	return TRUE;
-}
+//gboolean rgb_area_popup_menu_handler(GtkWidget *widget) {
+//	do_popup_rgbmenu(widget, NULL);
+//	return TRUE;
+//}
 
 void init_mouse() {
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
@@ -362,17 +362,11 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			}
 		}
 
-		/* click on RGB image */
-		if (widget == gui.view[RGB_VPORT].drawarea) {
-			if (event->button == GDK_BUTTON_PRIMARY) {	// left click
-				siril_message_dialog(GTK_MESSAGE_INFO, _("Only for visualization"),
-						_("The RGB tab is only for visualization. Operations must be done on R, G, and B channels"));
-			} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
-				do_popup_rgbmenu(widget, event);
-				return TRUE;
-			}
-			return FALSE;
-		}
+//		/* click on RGB image */
+//		if (widget == gui.view[RGB_VPORT].drawarea && (event->button == GDK_BUTTON_SECONDARY)) {
+//			do_popup_rgbmenu(widget, event);
+//			return TRUE;
+//		}
 
 		/* else, click on gray image */
 		if (event->button == GDK_BUTTON_PRIMARY) {	// left click
@@ -445,7 +439,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
 
 					struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-					gui.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, TRUE, ps, TRUE, NULL);
+					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, TRUE, ps, TRUE, NULL);
 					free(ps);
 					if (gui.qphot) {
 						gui.qphot->xpos = gui.qphot->x0 + area.x;
@@ -754,7 +748,7 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	/* don't change cursor if thread is running */
 	if (get_thread_run()) return FALSE;
 
-	if (inside && gui.cvport < RGB_VPORT) {
+	if (inside) {
 		if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 			set_cursor("cell");
 		} else {
@@ -814,17 +808,17 @@ void on_drawingarea_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 	}
 }
 
-static const gchar *label_zoom[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue" };
+static const gchar *label_zoom[] = { "labelzoom_red", "labelzoom_green", "labelzoom_blue", "labelzoom_rgb" };
 
 static gboolean set_label_zoom_text_idle(gpointer p) {
 	const gchar *txt = (const gchar *) p;
 	static GtkLabel *labels[sizeof label_zoom] = { NULL };
 	if (!labels[0]) {
-		for (int i = 0; i < sizeof label_zoom / sizeof (gchar *); i++)
+		for (int i = 0; i < G_N_ELEMENTS(label_zoom); i++)
 			labels[i] = GTK_LABEL(lookup_widget(label_zoom[i]));
 	}
 	if (gfit.naxes[2] == 3)
-		for (int i = 0; i < sizeof label_zoom / sizeof (gchar *); i++)
+		for (int i = 0; i < G_N_ELEMENTS(label_zoom); i++)
 			gtk_label_set_text(labels[i], txt);
 	else gtk_label_set_text(labels[0], txt);
 	return FALSE;
@@ -833,7 +827,7 @@ static gboolean set_label_zoom_text_idle(gpointer p) {
 void update_zoom_label() {
 	static gchar zoom_buffer[256] = { 0 };
 	double zoom = gui.zoom_value;
-	if ((single_image_is_loaded() || sequence_is_loaded()) && gui.cvport < RGB_VPORT) {
+	if ((single_image_is_loaded() || sequence_is_loaded())) {
 		if (zoom < 0)
 			zoom = get_zoom_val();
 		g_sprintf(zoom_buffer, "%d%%", (int) (zoom * 100.0));

@@ -248,3 +248,7 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 	g_cond_clear(&data.cond);
 	siril_debug_print("idle %p wait is over\n", idle);
 }
+
+int select_vport(int vport) {
+	return vport == RGB_VPORT ? GREEN_VPORT : vport;
+}

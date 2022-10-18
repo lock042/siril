@@ -25,6 +25,7 @@
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
 #include "core/initfile.h"
+#include "compositing/align_rgb.h"
 #include "algos/annotate.h"
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
@@ -329,7 +330,7 @@ void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 
 void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	psf_star *result = NULL;
-	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
+	int layer = select_vport(gui.cvport);
 
 	if (layer == -1)
 		return;
@@ -611,4 +612,14 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 	undo_save_state(&gfit, "Synthetic stars: full replacement");
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(do_synthstar, NULL);
+}
+
+void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (DFT)"));
+	rgb_align(1);
+}
+
+void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (PSF)"));
+	rgb_align(0);
 }

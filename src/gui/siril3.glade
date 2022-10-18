@@ -12602,6 +12602,44 @@ This should normally be the case only for stacked images. Increasing this value 
         <property name="use-underline">True</property>
       </object>
     </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="menu_rgb_align2">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="label" translatable="yes">RGB align</property>
+        <property name="use-underline">True</property>
+        <child type="submenu">
+          <object class="GtkMenu">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkMenuItem" id="rgb_align_dft2">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.align-dft</property>
+                <property name="label" translatable="yes">Image pattern alignment (planetary/deep-sky)</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="rgb_align_psf2">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.align-psf</property>
+                <property name="label" translatable="yes">One star registration (deep-sky)</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
   </object>
   <object class="GtkMenu" id="menurgb">
     <property name="visible">True</property>
@@ -16689,6 +16727,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
+                            <property name="pack-type">end</property>
                             <property name="position">0</property>
                           </packing>
                         </child>
@@ -16863,7 +16902,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           <object class="GtkDrawingArea" id="drawingareargb">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK</property>
                             <property name="margin-start">2</property>
                             <property name="margin-end">2</property>
                             <property name="margin-top">2</property>
@@ -16872,32 +16911,14 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                             <signal name="button-release-event" handler="on_drawingarea_button_release_event" swapped="no"/>
                             <signal name="drag-data-received" handler="on_drawingarea_drag_data_received" swapped="no"/>
                             <signal name="draw" handler="redraw_drawingarea" swapped="no"/>
+                            <signal name="leave-notify-event" handler="on_drawingarea_leave_notify_event" swapped="no"/>
                             <signal name="motion-notify-event" handler="on_drawingarea_motion_notify_event" swapped="no"/>
-                            <signal name="popup-menu" handler="rgb_area_popup_menu_handler" swapped="no"/>
                             <signal name="scroll-event" handler="on_drawingarea_scroll_event" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
                             <property name="position">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="labelrgb">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">The RGB channel is only used for visualisation. Please work on the Red, Green or Blue channel.</property>
-                            <property name="label" translatable="yes">ONLY FOR VISUALISATION</property>
-                            <property name="width-chars">20</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                              <attribute name="foreground" value="#efef29292929"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
@@ -16915,7 +16936,93 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="pack-type">end</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="hboxrgb">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="valign">center</property>
+                            <property name="spacing">13</property>
+                            <child>
+                              <object class="GtkLabel" id="labelzoom_rgb">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="width-chars">6</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="max-width-chars">6</property>
+                                <property name="track-visited-links">False</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labelfwhm_rgb">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="padding">6</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labelselection_rgb">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="ellipsize">start</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="padding">3</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="labeldensity_rg">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">end</property>
+                                <property name="single-line-mode">True</property>
+                                <property name="track-visited-links">False</property>
+                                <style>
+                                  <class name="label-data"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="pack-type">end</property>
+                                <property name="position">4</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
                             <property name="position">3</property>
                           </packing>
                         </child>
