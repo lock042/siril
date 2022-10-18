@@ -259,6 +259,7 @@ static void load_wcs_keywords(fits *fit) {
 		status = 0;
 		fits_read_key(fit->fptr, TSTRING, "RA_OBJ", &(fit->wcsdata.objctra), NULL, &status);
 	}
+	siril_debug_print("OBJECT RA: %s\n", fit->wcsdata.objctra);
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "RA", &(fit->wcsdata.ra), NULL, &status);
@@ -270,6 +271,7 @@ static void load_wcs_keywords(fits *fit) {
 		status = 0;
 		fits_read_key(fit->fptr, TSTRING, "DEC_OBJ", &(fit->wcsdata.objctdec), NULL, &status);
 	}
+	siril_debug_print("OBJECT DEC: %s\n", fit->wcsdata.objctdec);
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "DEC", &(fit->wcsdata.dec), NULL, &status);

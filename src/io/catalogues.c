@@ -121,7 +121,7 @@ static void bswap_stardata(deepStarData *stardata) {
 
 /* returns the complete list of stars for a catalogue's list of trixels */
 static int read_trixels_from_catalogue(const char *path, double ra, double dec, double radius, deepStarData **trixel_stars, uint32_t *trixel_nb_stars) {
-	siril_debug_print("reading data from catalogue %s\n", path);
+	//siril_debug_print("reading data from catalogue %s\n", path);
 	FILE *f = g_fopen(path, "rb");
 	if (!f) {
 		siril_log_message(_("Could not open local NOMAD catalogue\n"));
@@ -214,7 +214,7 @@ static int update_coords_with_proper_motion(double *ra, double *dec, double dRA,
 	double pmms = dRA * dRA + dDec * dDec;
 	if (pmms * jmillenia * jmillenia < .01)
 		return 0;
-	siril_debug_print("PM passed the threshold\n");
+	//siril_debug_print("PM passed the threshold\n");
 	double ra_rad = *ra * DEGTORAD, dec_rad = *dec * DEGTORAD;
 	double cosRa = cos(ra_rad), sinRa = sin(ra_rad);
 	double cosDec = cos(dec_rad), sinDec = sin(dec_rad);
@@ -261,7 +261,7 @@ int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *
 		if (retval)
 			break;
 		total_nb_stars += catalogue_nb_stars[catalogue];
-		siril_debug_print("%d stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
+		//siril_debug_print("%d stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
 	}
 
 	if (!retval) {
@@ -440,7 +440,7 @@ static int read_trixels_of_target(double ra, double dec, double radius, struct c
 		return 0;
 	}
 
-	siril_debug_print("trixel search found %d trixels\n", nb_trixels);
+	//siril_debug_print("trixel search found %d trixels\n", nb_trixels);
 	deepStarData **stars_list;
 	uint32_t *nb_stars_list;
 	stars_list = malloc(nb_trixels * sizeof(deepStarData *));
@@ -459,7 +459,7 @@ static int read_trixels_of_target(double ra, double dec, double radius, struct c
 	for (int i = 0; i < nb_trixels; i++) {
 		retval = read_trixel(trixels[i], cat, stars_list + i, nb_stars_list + i);
 		if (retval) break;
-		siril_debug_print("trixel %d (%d) contained %u stars\n", i, trixels[i], nb_stars_list[i]);
+		//siril_debug_print("trixel %d (%d) contained %u stars\n", i, trixels[i], nb_stars_list[i]);
 		total_star_count += nb_stars_list[i];
 	}
 	free(trixels);
@@ -628,7 +628,7 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 		if (retval)
 			break;
 		total_nb_stars += catalogue_nb_stars[catalogue];
-		siril_debug_print("%d raw stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
+		//siril_debug_print("%d raw stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
 	}
 
 	if (catalogue == nb_catalogues) {
@@ -758,7 +758,7 @@ gchar *get_and_project_local_catalog(SirilWorldCS *catalog_center, double radius
 	double center_ra = siril_world_cs_get_alpha(catalog_center);
 	double center_dec = siril_world_cs_get_delta(catalog_center);
 
-	siril_debug_print("using local catalogues for plate solving\n");
+	//siril_debug_print("using local catalogues for plate solving\n");
 	GFile *fproj = g_file_new_build_filename(g_get_tmp_dir(), "catalog.proj", NULL);
 	/* We want to remove the file if already exisit */
 	if (!g_file_delete(fproj, NULL, &error)

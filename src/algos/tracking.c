@@ -2,6 +2,7 @@
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "core/siril_date.h"
+#include "core/proto.h"
 #include "opencv/tracks.h"
 #include "algos/astrometry_solver.h"
 #include "core/siril_world_cs.h"
@@ -21,23 +22,72 @@
  * 7. get object coordinates for line end
  */
 
+#define MAG_SAMPLE_SIZE 7	// side of the square in which sampling will be done
+
+// compute a simple flux for a star, just to be able to sort them
+static void simple_magnitude(fits *fit, int layer, psf_star *star, int size, double B) {
+	double intensity = 1.0;
+	int half_size = size / 2;
+	size = half_size * 2 + 1;
+	int stridefrom = fit->rx - size;
+	int x = round_to_int(star->xpos), y = round_to_int(star->ypos);
+	if (x < half_size) x = half_size;
+	if (x > fit->rx - half_size - 1) x = fit->rx - half_size - 1;
+	if (y < half_size) y = half_size;
+	if (y > fit->ry - half_size - 1) y = fit->ry - half_size - 1;
+	if (fit->type == DATA_USHORT) {
+		WORD *from = fit->pdata[layer] +
+			(fit->ry - y - half_size - 1) * fit->rx + x - half_size;
+
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < size; j++) {
+				intensity += *from - B;
+				from++;
+			}
+			from += stridefrom;
+		}
+	}
+	else if (fit->type == DATA_FLOAT) {
+		float *from = fit->fpdata[layer] +
+			(fit->ry - y - half_size - 1) * fit->rx + x - half_size;
+
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < size; j++) {
+				intensity += *from - B;
+				from++;
+			}
+			from += stridefrom;
+		}
+	}
+	else return;
+	star->mag = -1.0 * intensity;
+}
+
 static int plate_solve_for_stars(fits *fit, psf_star **stars) {
+	SirilWorldCS *cat_center = cat_center = get_eqs_from_header(fit);
+	double pixel_size = max(fit->pixel_size_x, fit->pixel_size_y);
+	if (!cat_center || pixel_size <= 0.0) {
+		siril_log_color_message(_("Image does not have the basic information required for plate solving.\n"), "red");
+		return 1;
+	}
 	struct astrometry_data *args = NULL;
 	args = calloc(1, sizeof(struct astrometry_data));
 	args->fit = fit;
-	args->pixel_size = max(fit->pixel_size_x, fit->pixel_size_y);
-	args->focal_length = 1500.0;	// FIXME
+	args->pixel_size = pixel_size;
+	args->focal_length = fit->focal_length;
+	//args->focal_length = 1500.0;	// FIXME
 	args->use_local_cat = TRUE;
 	args->onlineCatalog = NOMAD;
 	args->for_photometry_cc = FALSE;
 	args->already_in_a_thread = TRUE;
-	args->cat_center = get_eqs_from_header(fit);
+	args->cat_center = cat_center;
 	args->downsample = FALSE;
 	args->autocrop = FALSE;
 	args->flip_image = FALSE;
 	args->manual = TRUE;
 	args->stars = stars;
 	args->auto_magnitude = TRUE;
+	//args->forced_magnitude = 13.8;
 	args->pcc = NULL;
 	process_plate_solver_input(args);
 	return GPOINTER_TO_INT(match_catalog(args));
@@ -56,7 +106,10 @@ struct tracked_object *get_moving_targets(struct track *tracks, int nbtracks, fl
 	for (int i = 0; i < nbtracks; i++) {
 		/* excluding tracks too close from the bunch of trails, and
 		 * vertical ones which are often just bright pixel columns */
-		if (fabsf(mean - tracks[i].angle) > 20.0 && tracks[i].angle != -90.0) {
+		float deviation = fabsf(mean - tracks[i].angle);
+		// angles are [-180, 180]
+		float opposite_dev = mean < 0.0 ? fabsf(mean + 180.0f - tracks[i].angle) : fabsf(mean - 180.0f - tracks[i].angle);
+		if (deviation > 25.0 && opposite_dev > 25.0 && tracks[i].angle != -90.0) {
 			tracked[*nb].moving_track = &tracks[i];
 			(*nb)++;
 		}
@@ -71,6 +124,7 @@ struct tracked_object *get_moving_targets(struct track *tracks, int nbtracks, fl
 	return tracked;
 }
 
+#define MAX_STAR_ANGLE 12.0
 psf_star **extract_stars(struct track *tracks, int nbtracks, gboolean start, float mean, psf_star **stars) {
 	/* we have a list of tracks, some may not be stars, only keep the tracks that have the
 	 * majority of similar orientation */
@@ -79,14 +133,17 @@ psf_star **extract_stars(struct track *tracks, int nbtracks, gboolean start, flo
 		// assuming stars is NULL
 		stars = malloc((nbtracks + 1) * sizeof(psf_star *));
 		for (int i = 0; i < nbtracks; i++) {
-			if (fabsf(mean - tracks[i].angle) > 10.0) {
+			float deviation = fabsf(mean - tracks[i].angle);
+			// angles are [-180, 180]
+			float opposite_dev = mean < 0.0 ? fabsf(mean + 180.0f - tracks[i].angle) : fabsf(mean - 180.0f - tracks[i].angle);
+			if (deviation > MAX_STAR_ANGLE && opposite_dev > MAX_STAR_ANGLE) {
 				/* consider the track as a rogue object to track */
-
 				continue;
 			}
+			pointi start = deviation <= MAX_STAR_ANGLE ? tracks[i].start : tracks[i].end;
 			stars[j] = new_psf_star();
-			stars[j]->xpos = tracks[i].start.x;
-			stars[j]->ypos = tracks[i].start.y;
+			stars[j]->xpos = start.x;
+			stars[j]->ypos = start.y;
 			stars[j]->fwhmx = 5.0;
 			stars[j]->has_saturated = FALSE;
 			j++;
@@ -95,10 +152,16 @@ psf_star **extract_stars(struct track *tracks, int nbtracks, gboolean start, flo
 	} else if (stars && !start) {
 		// assuming stars is non-NULL
 		for (int i = 0; i < nbtracks; i++) {
-			if (fabsf(mean - tracks[i].angle) > 10.0)
+			float deviation = fabsf(mean - tracks[i].angle);
+			// angles are [-180, 180]
+			float opposite_dev = mean < 0.0 ? fabsf(mean + 180.0f - tracks[i].angle) : fabsf(mean - 180.0f - tracks[i].angle);
+			if (deviation > MAX_STAR_ANGLE && opposite_dev > MAX_STAR_ANGLE) {
+				/* consider the track as a rogue object to track */
 				continue;
-			stars[j]->xpos = tracks[i].end.x;
-			stars[j]->ypos = tracks[i].end.y;
+			}
+			pointi end = deviation <= MAX_STAR_ANGLE ? tracks[i].end : tracks[i].start;
+			stars[j]->xpos = end.x;
+			stars[j]->ypos = end.y;
 			j++;
 		}
 	}
@@ -116,7 +179,7 @@ gpointer tracking_worker(gpointer ptr) {
 	int retval = 0;
 	struct track *tracks;
 	int nblines = cvHoughLines(arg->fit, arg->layer, arg->threshold, arg->minlen, &tracks);
-	if (nblines > 0 && nblines < 200) {
+	if (nblines > 0 && nblines < 800) {
 		siril_log_message(_("Found %d trail(s) in current frame, displaying start points\n"), nblines);
 		if (nblines > 1000) nblines = 1000;
 		if (arg->display_lines) {
@@ -142,13 +205,13 @@ gpointer tracking_worker(gpointer ptr) {
 		for (int i = 0; i < nblines; i++)
 			angles[i] = tracks[i].angle;
 		quicksort_f(angles, nblines);
-		float mean = siril_stats_robust_mean(angles, 1, nblines, NULL);
+		float main_angle = siril_stats_robust_mean(angles, 1, nblines, NULL);
 		free(angles);
-		siril_log_message(_("Considering trails with angle close to %f for stars\n"), mean);
+		siril_log_message(_("Considering trails with angle close to %f for stars\n"), main_angle);
 
 		// extract moving targets from the list of tracks
 		int nb_moving_targets;
-		struct tracked_object *moving_targets = get_moving_targets(tracks, nblines, mean, &nb_moving_targets);
+		struct tracked_object *moving_targets = get_moving_targets(tracks, nblines, main_angle, &nb_moving_targets);
 
 		int nb_targets = arg->nb_fixed_targets + nb_moving_targets;
 		struct tracked_object *targets = calloc(nb_targets, sizeof(struct tracked_object));
@@ -157,8 +220,16 @@ gpointer tracking_worker(gpointer ptr) {
 		for (int i = 0; i < nb_moving_targets; i++)
 			memcpy(targets + (i + arg->nb_fixed_targets), &moving_targets[i], sizeof(struct tracked_object));
 
+		double bg = background(arg->fit, arg->layer, NULL, MULTI_THREADED);
+
 		gboolean start_solve_failed = FALSE, end_solve_failed = FALSE;
-		psf_star **stars = extract_stars(tracks, nblines, TRUE, mean, NULL);
+		psf_star **stars = extract_stars(tracks, nblines, TRUE, main_angle, NULL);
+		int nbstars;
+		for (nbstars = 0; stars[nbstars]; nbstars++)
+			simple_magnitude(arg->fit, arg->layer, stars[nbstars], MAG_SAMPLE_SIZE, bg);
+		sort_stars_by_mag(stars, nbstars);
+		for (int i = 0; i < nbstars; i++)
+			siril_debug_print("%f %f %f\n", stars[i]->xpos, stars[i]->ypos, stars[i]->mag);
 		if (plate_solve_for_stars(arg->fit, stars)) {
 			siril_log_message(_("Plate solving using the detected trails as stars failed, adjust parameters or make sure the file metadata is correct\n"));
 			start_solve_failed = TRUE;
@@ -176,7 +247,11 @@ gpointer tracking_worker(gpointer ptr) {
 			siril_log_message(_("Plate solving for start of movement succeeded.\n"));
 		}
 
-		stars = extract_stars(tracks, nblines, FALSE, mean, stars);
+		stars = extract_stars(tracks, nblines, FALSE, main_angle, stars);
+		for (nbstars = 0; stars[nbstars]; nbstars++)
+			simple_magnitude(arg->fit, arg->layer, stars[nbstars], MAG_SAMPLE_SIZE, bg);
+		sort_stars_by_mag(stars, nbstars);
+		siril_debug_print("kept %d stars for plate solving\n", nbstars);
 		if (plate_solve_for_stars(arg->fit, stars)) {
 			siril_log_message(_("Plate solving using the detected trails as stars failed, adjust parameters or make sure the file metadata is correct\n"));
 			end_solve_failed = TRUE;

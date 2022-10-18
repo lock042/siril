@@ -6130,7 +6130,7 @@ int process_detect_trail(int nb) {
 		psf_star **targets_psf = peaker(&im, layer, &com.pref.starfinder_conf, &nb_targets, NULL, FALSE, TRUE, 30, com.max_thread);
 		if (!targets_psf || nb_targets <= 0) {
 			siril_log_color_message(_("No target found\n"), "salmon");
-			return CMD_GENERIC_ERROR;
+			//return CMD_GENERIC_ERROR;
 		}
 		if (nb_targets > 10) {
 			siril_log_message(_("%d punctual objects found in image, refine star detection parameters with the PSF GUI or the setfindstar command\n"), nb_targets);
