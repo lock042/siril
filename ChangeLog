@@ -57,9 +57,10 @@ xx/xx/22
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
 * Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
+* Added undershoot clamping to bicubic and lanczos4 interpolation methods
 
 siril 1.0.6
-xx/xx/22
+10/18/22
 
 * Fixed crash on opening a malformed SER
 * Fixed crash in savetif
@@ -68,6 +69,9 @@ xx/xx/22
 * Fixed crash in seqstat when some images were deselected
 * Fixed crash in star detection when large star was close to border
 * Fixed bad behaviour of asinh blackpoint with monochrome/32bits images
+* Fixed bug in PixelMath with negate values
+* Fixed bug in SIMBAD request when object name contains '+'
+* Fixed bug in rotational gradient
 
 siril 1.0.5
 09/09/22

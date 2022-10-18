@@ -368,7 +368,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
@@ -384,7 +384,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->no_output) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST)) {
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE)) {
 				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
 			}
@@ -550,6 +550,18 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		else {
 			required = 2 * MB_per_scaled_image;
 		}
+
+		// If interpolation clamping is set, 1 additional Mat of the same format
+		// as the original image are required, plus 1 of the same size but 8U format
+		struct star_align_data *sadata = args->user;
+		struct registration_args *regargs = sadata->regargs;
+		if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
+				regargs->interpolation == OPENCV_LANCZOS4)) {
+			float factor = (is_float) ? 0.25 : 0.5;
+			required += (1 + factor) * MB_per_scaled_image;
+		}
+		regargs = NULL;
+		sadata = NULL;
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
 			thread_limit = com.max_thread;

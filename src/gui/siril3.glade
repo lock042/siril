@@ -5695,6 +5695,12 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/astrometry_dark.svg</property>
   </object>
+  <object class="GtkAdjustment" id="clamp_adjustment">
+    <property name="upper">1</property>
+    <property name="value">0.5</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkColorChooserDialog" id="colorchooserdialog">
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
@@ -5988,6 +5994,7 @@ enter a visible wavelength in nm</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">This option applies cosmetic correction to remove salt and pepper noise before the primary denoising algorithm. This is generally a good thing and the setting defaults to active.</property>
+                <property name="halign">start</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <signal name="toggled" handler="on_check_denoise_cosmetic_toggled" swapped="no"/>
@@ -5998,6 +6005,40 @@ enter a visible wavelength in nm</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="label" translatable="yes">Cosmetic Correction</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkFrame" id="denoise_artefact_control">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
+            <child>
+              <object class="GtkCheckButton" id="check_denoise_suppress_artefacts">
+                <property name="label" translatable="yes">Suppress color artefacts</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Suppresses blocky colour artefacts that may rarely appear in colour images. This option treats each channel separately and eliminates artefacts at the cost of some speed. Most of the time this is not required, so it is off by default and should only be enabled in the rare event that you see artefacts when denoising a colour image.</property>
+                <property name="halign">start</property>
+                <property name="draw-indicator">True</property>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Artefact Suppression</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
                 </attributes>
@@ -15747,6 +15788,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
             <child>
               <!-- n-columns=2 n-rows=4 -->
               <object class="GtkGrid" id="grid36">
@@ -15811,17 +15853,18 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="tooltip-text" translatable="yes">Type of algorithm used for resampling</property>
-                    <property name="halign">start</property>
+                    <property name="halign">end</property>
                     <property name="valign">center</property>
                     <property name="hexpand">True</property>
-                    <property name="active">3</property>
+                    <property name="active">4</property>
                     <items>
                       <item translatable="yes">Nearest Neighbor</item>
-                      <item translatable="yes">Bilinear (default)</item>
+                      <item translatable="yes">Bilinear</item>
                       <item translatable="yes">Bicubic</item>
                       <item translatable="yes">Pixel Area Relation</item>
                       <item translatable="yes">Lanczos-4</item>
                     </items>
+                    <signal name="changed" handler="on_combo_interpolation_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -15875,7 +15918,23 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggle_scale_clamp">
+                <property name="label" translatable="yes">Interpolation clamping</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to prevent ringing artefacts</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
               </packing>
             </child>
           </object>
@@ -15960,7 +16019,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="pack-type">end</property>
-            <property name="position">2</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -16041,7 +16100,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -16069,14 +16128,15 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                 <property name="halign">end</property>
                 <property name="valign">center</property>
                 <property name="hexpand">True</property>
-                <property name="active">3</property>
+                <property name="active">4</property>
                 <items>
                   <item translatable="yes">Nearest Neighbor</item>
-                  <item translatable="yes">Bilinear (default)</item>
+                  <item translatable="yes">Bilinear</item>
                   <item translatable="yes">Bicubic</item>
                   <item translatable="yes">Pixel Area Relation</item>
                   <item translatable="yes">Lanczos-4</item>
                 </items>
+                <signal name="changed" handler="on_combo_interpolation_rotation_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -16084,6 +16144,22 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
                 <property name="position">1</property>
               </packing>
             </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="toggle_rot_clamp">
+            <property name="label" translatable="yes">Interpolation clamping</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to prevent ringing artefacts</property>
+            <property name="active">True</property>
+            <property name="draw-indicator">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -20128,6 +20204,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="spacing">6</property>
                                                             <child>
                                                             <object class="GtkLabel" id="preproseqname_label1">
                                                             <property name="visible">True</property>
@@ -20173,6 +20250,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="spacing">6</property>
                                                             <child>
                                                             <object class="GtkLabel" id="GtkLabelRegAlgo">
                                                             <property name="visible">True</property>
@@ -20220,6 +20298,28 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkCheckButton" id="toggle_reg_clamp">
+                                                            <property name="label" translatable="yes">Interpolation clamping</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms
+
+The main issue of Lanczos and Bicubic interpolation algorithms is the generation of strong undershot artifacts (ringing). These artifacts are caused by the negative lobes of the interpolation functions falling on high contrast edges and isolated bright pixels (like in the stars). This usually only occurs with linear data.
+
+In current Siril implementations, we have included a clamping mechanism that prevents negative interpolated values and ringing artifacts for most images.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_toggle_reg_clamp_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">4</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkCheckButton" id="check_button_comet">
                                                             <property name="label" translatable="yes">Accumulate reg. data</property>
                                                             <property name="can-focus">True</property>
@@ -20233,7 +20333,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -20254,7 +20354,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <property name="expand">True</property>
                                                             <property name="fill">True</property>
                                                             <property name="padding">16</property>
-                                                            <property name="position">5</property>
+                                                            <property name="position">6</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -25324,6 +25424,7 @@ The technique gives very good compression for astronomical images and is relativ
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="orientation">vertical</property>
+                                <property name="spacing">5</property>
                                 <child>
                                   <object class="GtkScrolledWindow">
                                     <property name="height-request">150</property>
@@ -25380,14 +25481,44 @@ The technique gives very good compression for astronomical images and is relativ
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkButton" id="purge_user_catalogue">
-                                    <property name="label" translatable="yes">Purge User Catalogue</property>
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Purge the user catalogue by deleting the file. The operation cannot be undone</property>
-                                    <property name="halign">end</property>
-                                    <signal name="clicked" handler="on_purge_user_catalogue_clicked" swapped="no"/>
+                                    <property name="can-focus">False</property>
+                                    <property name="spacing">5</property>
+                                    <child>
+                                      <object class="GtkButton" id="purge_SSO_user_catalogue">
+                                        <property name="label" translatable="yes">Purge Solar Sys
+user Catalog</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Purge the SOLAR SYSTEM user catalog by deleting the file. The operation cannot be undone</property>
+                                        <signal name="clicked" handler="on_purge_SSO_user_catalogue_clicked" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack-type">end</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="purge_DSO_user_catalogue">
+                                        <property name="label" translatable="yes">Purge Deep Sky
+user Catalog</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Purge the DEEP SKY user catalog by deleting the file. The operation cannot be undone</property>
+                                        <signal name="clicked" handler="on_purge_DSO_user_catalogue_clicked" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack-type">end</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -26950,7 +27081,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                                 <property name="tooltip-text" translatable="yes">Set the scale of the fonts. 90 is the smallest scale you can have while the maximum is at 150.</property>
                                                 <property name="halign">start</property>
                                                 <property name="width-chars">5</property>
-                                                <property name="text" translatable="yes">100</property>
+                                                <property name="text">100</property>
                                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                 <property name="adjustment">adj_fontsize</property>
                                                 <property name="numeric">True</property>

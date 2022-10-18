@@ -268,6 +268,12 @@ gchar *AstroTiff_build_header(fits *fit) {
 		siril_string_append_int(str, fit->key_gain, "GAIN", "Camera gain");
 	if (fit->key_offset > 0)
 		siril_string_append_int(str, fit->key_offset, "OFFSET", "Camera offset");
+	if (fit->sitelat)
+		siril_string_append_double(str, fit->sitelat, "SITELAT", "[deg] Observation site latitude");
+	if (fit->sitelong)
+		siril_string_append_double(str, fit->sitelong, "SITELONG", "[deg] Observation site longitude");
+	if (fit->siteelev)
+		siril_string_append_double(str, fit->siteelev, "SITEELEV", "[m] Observation site elevation");
 
 	if (fit->wcsdata.equinox > 0.0) {
 		siril_string_append_str(str, "RA---TAN", "CTYPE1", "Coordinate type for the first axis");

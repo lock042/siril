@@ -20,6 +20,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <algorithm>
+#include <functional>
 #include <math.h>
 
 #include "NlBayes.h"
@@ -147,6 +148,41 @@ void initializeNlbParameters(
 }
 
 /**
+ * @brief Sanitizes bad data (inf, nan and data <0.0 or >1.0
+ *
+ * @param input: contains the image data to be sanitized;
+ * @param ImageSize: contains dimensional information.
+ *
+ * @return sanitized image data.
+ **/
+vector<float> sanitize(vector<float> input, const ImageSize size) {
+#define EPSILON 1.e-29
+	size_t error = 0;
+	for (size_t i = 0 ; i < input.size() ; i++) {
+		size_t x = i % size.width;
+		if (input[i] != input[i]) {
+			error++;
+		}
+		if (isinf(input[i])) {
+			error++;
+		}
+		if (error) {
+			if (i == 0)
+				input[i] = EPSILON;
+			if (i > 0 && x < size.width - 1)
+				input[i] = input[i-1];
+			else if (x == 0)
+				input[i] = input[i-size.width];
+		}
+		if (input[i] > 1.0 || input[i] < 0.0) {
+			input[i] = min(max(EPSILON, input[i]), 1.0);
+		}
+	}
+	siril_debug_print("\n");
+	return input;
+}
+
+/**
  * @brief Main function to process the whole NL-Bayes algorithm.
  *
  * @param i_imNoisy: contains the noisy image;
@@ -160,6 +196,7 @@ void initializeNlbParameters(
  *
  * @return EXIT_FAILURE if something wrong happens during the whole process.
  **/
+
 int runNlBayes(
 	std::vector<float> const& i_imNoisy
 ,   std::vector<float> &o_imBasic
@@ -202,7 +239,7 @@ int runNlBayes(
 	}
 
 	//! RGB to YUV
-	vector<float> imNoisy = i_imNoisy;
+	vector<float> imNoisy = sanitize(i_imNoisy, p_imSize);
 	transformColorSpace(imNoisy, p_imSize, true);
 
 	//! Divide the noisy image into sub-images in order to easier parallelize the process
@@ -245,9 +282,10 @@ int runNlBayes(
 		!= EXIT_SUCCESS) {
 		return EXIT_FAILURE;
 	}
-
+	fprintf(stdout,"ready for YUV2RGB\n");
 	//! YUV to RGB
 	transformColorSpace(o_imBasic, p_imSize, false);
+	o_imBasic = sanitize(o_imBasic, p_imSize);
 
 	if (paramStep1.verbose) {
 		cout << "done." << endl;

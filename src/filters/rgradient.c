@@ -131,7 +131,7 @@ gpointer rgradient_filter(gpointer p) {
 				to_polar(x, y, center, &r, &theta);
 
 				// Positive differential
-				to_cartesian(r - args->dR, theta + dAlpha, center, &delta);
+				to_cartesian(r + args->dR, theta + dAlpha, center, &delta);
 				if (delta.x < 0)
 					delta.x = fabs(delta.x);
 				else if (delta.x > w)

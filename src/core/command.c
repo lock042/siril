@@ -321,14 +321,60 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	if (msg2) free(msg2);
 	if (msg3) free(msg3);
 
-	siril_log_message("%s\n", log_msg); // This is the standard non-translated message to make things easy for log parsers.
+	siril_log_message("%s\n", log_msg);
+	if (args->suppress_artefacts)
+		siril_log_message(_("Colour artefact suppression active.\n"));
 	free(log_msg);
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data(_("Starting NL-Bayes denoising..."), 0.0);
 
-	int retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe, args->do_cosme);
+	int retval;
 
-	notify_gfit_modified();
+	// Carry out cosmetic correction at the start, if selected
+	if (args->do_cosme)
+		denoise_hook_cosmetic(args->fit);
+
+	if (args->fit == &gfit && args->fit->naxes[2] == 3 && args->suppress_artefacts) {
+		fits *loop = NULL;
+		new_fit_image(&loop, args->fit->rx, args->fit->ry, 1, args->fit->type);
+		loop->naxis = 1;
+		loop->naxes[2] = 1;
+		size_t npixels = args->fit->naxes[0] * args->fit->naxes[1];
+		if (args->fit->type == DATA_FLOAT) {
+			for (size_t i = 0; i < 3; i++) {
+				float *loop_fdata = (float*) calloc(npixels, sizeof(float));
+				loop->fdata = loop_fdata;
+				for (size_t j = 0 ; j < npixels ; j++) {
+					loop_fdata[j] = args->fit->fpdata[i][j];
+				}
+				retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
+				for (size_t j = 0 ;j < npixels ; j++) {
+					args->fit->fpdata[i][j] = loop->fdata[j];
+				}
+			}
+			free(loop->fdata);
+			loop->fdata = NULL;
+		} else {
+			for (size_t i = 0; i < 3; i++) {
+				WORD *loop_data = (WORD*) calloc(npixels, sizeof(WORD));
+				loop->data = loop_data;
+				for (size_t j = 0 ; j < npixels ; j++) {
+					loop_data[j] = args->fit->pdata[i][j];
+				}
+				retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
+				for (size_t j = 0 ;j < npixels ; j++) {
+					args->fit->pdata[i][j] = loop->data[j];
+				}
+			}
+			free(loop->data);
+			loop->fdata = NULL;
+		}
+		clearfits(loop);
+	} else {
+		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
+	}
+	if (args->fit == &gfit)
+		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, _("NL-Bayes execution time"));
 	set_progress_bar_data(_("Ready."), 0.0);
@@ -346,6 +392,7 @@ int process_denoise(int nb){
 	args->da3d = 0;
 	args->do_anscombe = FALSE;
 	args->do_cosme = TRUE;
+	args->suppress_artefacts = FALSE;
 	args->fit = &gfit;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
@@ -357,12 +404,15 @@ int process_denoise(int nb){
 		else if (g_str_has_prefix(arg, "-da3d")) {
 			args->da3d = 1;
 		}
+		else if (g_str_has_prefix(arg, "-suppress")) {
+			args->suppress_artefacts = TRUE;
+		}
 		else if (g_str_has_prefix(arg, "-nocosmetic")) {
 			args->do_cosme = FALSE;
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			arg += 5;
-			float mod = g_ascii_strtod(arg, &end);
+			float mod = (float) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
 			else if ((mod < 0.f) || (mod > 1.f)) {
 				siril_log_message(_("Error in mod parameter: must be between 0 and 1, aborting.\n"));
@@ -1668,17 +1718,22 @@ merge_clean_up:
 	return retval;
 }
 
-int	process_mirrorx(int nb){
+int process_mirrorx(int nb){
+	if (nb == 2 && !strcmp(word[1], "-bottomup")) {
+		if (!strcmp(gfit.row_order, "BOTTOM-UP")) {
+			siril_log_message(_("Image data is already bottom-up\n"));
+			return CMD_OK;
+		}
+		siril_log_message(_("Mirroring image to convert to bottom-up data\n"));
+	}
 	mirrorx(&gfit, TRUE);
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
-int	process_mirrory(int nb){
+int process_mirrory(int nb){
 	mirrory(&gfit, TRUE);
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -1820,16 +1875,62 @@ int process_autostretch(int nb) {
 
 int process_resample(int nb) {
 	gchar *end;
-	double factor = g_ascii_strtod(word[1], &end);
-	if (end == word[1] || factor <= 0.0 || factor > 5.0) {
-		siril_log_message(_("The scaling factor must be less than 5.0\n"));
+	gboolean clamp = TRUE;
+	int interpolation = OPENCV_LANCZOS4;
+	double factor = 1.0;
+
+	factor = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || factor < 0.0 || factor > 5.0) {
+		siril_log_message(_("Scale %lf not allowed. Should be between 0.0 and 5.0.\n"), factor);
+		return CMD_ARG_ERROR;
+	}
+
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-interp=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				return CMD_ARG_ERROR;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+				interpolation = OPENCV_NEAREST;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+				interpolation = OPENCV_CUBIC;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+				interpolation = OPENCV_LANCZOS4;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+				interpolation = OPENCV_LINEAR;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+				interpolation = OPENCV_AREA;
+				continue;
+			}
+			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			return CMD_ARG_ERROR;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			clamp = FALSE;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+	if (factor == 1.0) {
+		siril_log_message(_("Scale is 1.0. Not doing anything...\n"));
 		return CMD_ARG_ERROR;
 	}
 	int toX = round_to_int(factor * gfit.rx);
 	int toY = round_to_int(factor * gfit.ry);
 
 	set_cursor_waiting(TRUE);
-	verbose_resize_gaussian(&gfit, toX, toY, OPENCV_AREA);
+	verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -1863,6 +1964,7 @@ int process_rgradient(int nb) {
 }
 
 int process_rotate(int nb) {
+	gchar *end;
 	set_cursor_waiting(TRUE);
 	int crop = 1;
 	gboolean has_selection = FALSE;
@@ -1873,16 +1975,64 @@ int process_rotate(int nb) {
 		has_selection = TRUE;
 	}
 
-	double degree = g_ascii_strtod(word[1], NULL);
+	gboolean clamp = TRUE;
+	int interpolation = OPENCV_LANCZOS4;
+	double angle=0.0;
 
-	/* check for options */
-	if (word[2] && (!strcmp(word[2], "-nocrop"))) {
-		if (has_selection) {
-			siril_log_color_message(_("-nocrop option is not valid if a selection is active. Ignoring\n"), "red");
-		} else crop = 0;
+	angle = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || angle < 0.0 || angle > 360.0) {
+		siril_log_message(_("Angle %lf not allowed. Should be between 0.0 and 360.0.\n"), angle);
+		return CMD_ARG_ERROR;
 	}
 
-	verbose_rotate_image(&gfit, area, degree, OPENCV_AREA, crop);
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-interp=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				return CMD_ARG_ERROR;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+				interpolation = OPENCV_NEAREST;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+				interpolation = OPENCV_CUBIC;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+				interpolation = OPENCV_LANCZOS4;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+				interpolation = OPENCV_LINEAR;
+				continue;
+			}
+			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+				interpolation = OPENCV_AREA;
+				continue;
+			}
+			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			return CMD_ARG_ERROR;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			clamp = FALSE;
+		} else if (!strcmp(word[i], "-nocrop")) {
+			if (has_selection) {
+				siril_log_color_message(_("-nocrop option is not valid if a selection is active. Ignoring\n"), "red");
+			} else crop = 0;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+	siril_debug_print("%f\n",angle);
+
+	if (angle == 0.0 || angle == 360.0) {
+		siril_log_message(_("Angle is 0.0 or 360.0 degrees. Doing nothing...\n"));
+		return CMD_ARG_ERROR;
+	}
+	verbose_rotate_image(&gfit, area, angle, interpolation, crop, clamp);
 
 	// the new selection will match the current image
 	if (has_selection) {
@@ -2971,9 +3121,7 @@ int process_thresh(int nb){
 	}
 	threshlo(&gfit, lo);
 	threshhi(&gfit, hi);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2985,9 +3133,7 @@ int process_threshlo(int nb){
 		return CMD_ARG_ERROR;
 	}
 	threshlo(&gfit, lo);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2999,20 +3145,14 @@ int process_threshhi(int nb){
 		return CMD_ARG_ERROR;
 	}
 	threshhi(&gfit, hi);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int process_neg(int nb) {
 	set_cursor_waiting(TRUE);
 	pos_to_neg(&gfit);
-	update_gfit_histogram_if_needed();
-	invalidate_stats_from_fit(&gfit);
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -3024,9 +3164,7 @@ int process_nozero(int nb){
 		return CMD_ARG_ERROR;
 	}
 	nozero(&gfit, (WORD)level);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -3035,9 +3173,7 @@ int process_ddp(int nb) {
 	float coeff = g_ascii_strtod(word[2], NULL);
 	float sigma = g_ascii_strtod(word[3], NULL);
 	ddp(&gfit, level, coeff, sigma);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -4619,7 +4755,8 @@ int process_register(int nb) {
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
-	reg_args->interpolation = OPENCV_AREA;
+	reg_args->interpolation = OPENCV_LANCZOS4;
+	reg_args->clamp = TRUE;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
@@ -4627,6 +4764,8 @@ int process_register(int nb) {
 			reg_args->x2upscale = TRUE;
 		} else if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			reg_args->clamp = FALSE;
 		} else if (!strcmp(word[i], "-2pass")) {
 			reg_args->two_pass = TRUE;
 			reg_args->no_output = TRUE;
@@ -4810,6 +4949,12 @@ int process_register(int nb) {
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"), "green", method->name);
 	free(method);
 	msg[strlen(msg) - 1] = '\0';
+
+	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE || reg_args->no_output)
+		reg_args->clamp = FALSE;
+	if (reg_args->clamp)
+		siril_log_message(_("Interpolation clamping active\n"));
+
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	start_in_new_thread(register_thread_func, reg_args);
@@ -4963,7 +5108,8 @@ int process_seq_applyreg(int nb) {
 	reg_args->x2upscale = FALSE;
 	reg_args->prefix = "r_";
 	reg_args->layer = layer;
-	reg_args->interpolation = OPENCV_AREA;
+	reg_args->interpolation = OPENCV_LANCZOS4;
+	reg_args->clamp = TRUE;
 	reg_args->framing = FRAMING_CURRENT;
 
 	/* check for options */
@@ -4978,6 +5124,8 @@ int process_seq_applyreg(int nb) {
 				goto terminate_register_on_error;
 			}
 			reg_args->prefix = strdup(value);
+		} else if (!strcmp(word[i], "-noclamp")) {
+			reg_args->clamp = FALSE;
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -5011,7 +5159,7 @@ int process_seq_applyreg(int nb) {
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
-			} else if (g_str_has_prefix(word[i], "-framing=")) {
+		} else if (g_str_has_prefix(word[i], "-framing=")) {
 			char *current = word[i], *value;
 			value = current + 9;
 			if (value[0] == '\0') {
@@ -5066,6 +5214,11 @@ int process_seq_applyreg(int nb) {
 
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+
+	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
+		reg_args->clamp = FALSE;
+	if (reg_args->clamp)
+		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
 

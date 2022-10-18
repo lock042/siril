@@ -464,7 +464,7 @@ float measure_image_FWHM(fits *fit) {
 	float fwhm[3];
 	/*fits downsampled = { 0 };
 	copyfits(fit, &downsampled, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-	cvResizeGaussian(&downsampled, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);*/
+	cvResizeGaussian(&downsampled, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA, FALSE, 0.0);*/
 	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
 	gboolean failed = FALSE;
 #ifdef _OPENMP
