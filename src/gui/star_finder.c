@@ -130,7 +130,6 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
 	args->profile = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combostarfinder_profile")));
-	args->fit_angle = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_fit_angles")));
 
 	start_in_new_thread(findstar_worker, args);
 }
@@ -159,6 +158,7 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, NULL, TRUE, profile, NULL);
 	if (!result)
 		return NULL;
+	result->angle = -result->angle; // we need to invert the angle because of the way the matrix is passed to minimizer
 	/* We do not check if it's matching with the "reject_star()" criteria.
 	 * Indeed, in this case the user can add manually stars missed by star_finder */
 

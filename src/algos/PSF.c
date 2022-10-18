@@ -46,7 +46,7 @@
 
 #define MAX_ITER_NO_ANGLE  20		//Number of iterations in the minimization with no angle
 #define MAX_ITER_ANGLE     20		//Number of iterations in the minimization with angle
-#define MOFFAT_BETA_UBOUND 20. // Max allowable value for Moffat beta
+#define MOFFAT_BETA_UBOUND 10. // Max allowable value for Moffat beta
 #define EPSILON            0.001
 #define XTOL 1e-3
 #define GTOL 1e-3
@@ -241,7 +241,7 @@ static int psf_Gaussian_df_ang(const gsl_vector * x, void *PSF_data,
 				gsl_matrix_set(J, k, 3, tmpd);
 				tmpd = tmpc * A * (SQR(tmpx / SX) + SQR(tmpy / SX / r)); // dSX
 				gsl_matrix_set(J, k, 4, tmpd);
-				tmpd = -A * tmpc * sc * SQR(tmpy) / SY / r; // dc
+				tmpd = -A * tmpc * sc * SQR(tmpy) / SY / r; // dfc
 				gsl_matrix_set(J, k, 5, tmpd);
 				tmpd = 2 * A * tmpc * tmpx * tmpy *(1. / SX - 1. / SY); // dalpha
 				gsl_matrix_set(J, k, 6, tmpd);
@@ -306,10 +306,12 @@ static int psf_Moffat_df_ang(const gsl_vector * x, void *PSF_data, gsl_matrix * 
 	double SX = fabs(gsl_vector_get(x, 4)); // Ro_x ^ 2
 	double r = 0.5 * (cos(gsl_vector_get(x, 5)) + 1.);
 	double SY = SQR(r) * SX; // Ro_y ^ 2
+	double sc = sin(gsl_vector_get(x, 5));
 	double alpha = gsl_vector_get(x, 6);
 	double ca = cos(alpha);
 	double sa = sin(alpha);
 	double beta = MOFFAT_BETA_UBOUND * 0.5 * (cos(gsl_vector_get(x, 7)) + 1.);
+	double sfbeta = sin(gsl_vector_get(x, 7));
 	// // bounding beta to MOFFAT_BETA_UBOUND if free, otherwise setting to PSF_data->beta
 	// double beta = (((struct PSF_data *) PSF_data)->betafree ?
 	// 		min(gsl_vector_get(x, 6), MOFFAT_BETA_UBOUND) :
@@ -321,21 +323,23 @@ static int psf_Moffat_df_ang(const gsl_vector * x, void *PSF_data, gsl_matrix * 
 			if (mask[NbCols * i + j]) {
 				tmpx = ca * (j + 0.5 - x0) - sa * (i + 0.5 - y0);
 				tmpy = sa * (j + 0.5 - x0) + ca * (i + 0.5 - y0);
-				tmpa = pow(1 + SQR(tmpx) / SX + SQR(tmpy) / SY, -beta);
+				tmpa = 1 + SQR(tmpx) / SX + SQR(tmpy) / SY;
 				tmpb = pow(tmpa, -beta);
 				tmpc = A * beta * pow(tmpa, -beta - 1.0);
-				gsl_matrix_set(J, k, 0, 1.); // d/dB
-				gsl_matrix_set(J, k, 1, tmpb); // d/dA
-				tmpd = 2 * (tmpx-x0) * tmpc / SX;
-				gsl_matrix_set(J, k, 2, tmpd); // d/dx0
-				tmpd = 2 * (tmpy-y0) * tmpc / SY;
-				gsl_matrix_set(J, k, 3, tmpd); // d/dy0
-				tmpd = SQR(tmpx-x0) * tmpc / SQR(SX);
-				gsl_matrix_set(J, k, 4, tmpd); // d/dSX
-				tmpd = SQR(tmpy-y0) * tmpc / SQR(SY);
-				gsl_matrix_set(J, k, 5, tmpd); // d/dSY
-				tmpd = - A * log(tmpa) * tmpb;
-				gsl_matrix_set(J, k, 6, tmpd); // d/dbeta
+				gsl_matrix_set(J, k, 0, 1.); // dB
+				gsl_matrix_set(J, k, 1, tmpb); // dA
+				tmpd = 2 * tmpc * (  tmpx / SX * ca + tmpy / SY * sa); // dx0
+				gsl_matrix_set(J, k, 2, tmpd);
+				tmpd = 2 * tmpc * ( -tmpx / SX * sa + tmpy / SY * ca); // dy0
+				gsl_matrix_set(J, k, 3, tmpd);
+				tmpd = tmpc * (SQR(tmpx / SX) + SQR(tmpy / SX / r));
+				gsl_matrix_set(J, k, 4, tmpd); // dSX
+				tmpd = -tmpc * sc * SQR(tmpy) / SY / r;
+				gsl_matrix_set(J, k, 5, tmpd); // dfc
+				tmpd = 2 * tmpc * tmpx * tmpy *(1. / SX - 1. / SY); // dalpha
+				gsl_matrix_set(J, k, 6, tmpd);
+				tmpd = 0.5 * A * MOFFAT_BETA_UBOUND * sfbeta * log(tmpa) * tmpb; // dfbeta
+				gsl_matrix_set(J, k, 7, tmpd);
 				k++;
 			}
 		}
@@ -365,10 +369,10 @@ static void callback(const size_t iter, void *params, const gsl_multifit_nlinear
 						gsl_vector_get(x, 1),
 						gsl_vector_get(x, 2),
 						gsl_vector_get(x, 3),
-						FWHM_from_S(fabs(gsl_vector_get(x, 4)), gsl_vector_get(x, 7), MOFFAT_BFREE), // FWHM
+						FWHM_from_S(fabs(gsl_vector_get(x, 4)), 0.5 * MOFFAT_BETA_UBOUND * (cos(gsl_vector_get(x, 7)) + 1.), MOFFAT_BFREE), // FWHM
 						0.5 * (cos(gsl_vector_get(x, 5)) + 1.), // roundness
-						gsl_vector_get(x, 6),
-						gsl_vector_get(x, 7),
+						gsl_vector_get(x, 6) * 180. / M_PI,
+						0.5 * MOFFAT_BETA_UBOUND * (cos(gsl_vector_get(x, 7)) + 1.), // beta
 						gsl_blas_dnrm2(f));
 	} else {
 		if (iter == 0) {
@@ -449,7 +453,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 		goto free_and_exit;
 	}
 
-	double beta = (profile == GAUSSIAN) ? -1. : 2.;
+	double beta = (profile == GAUSSIAN) ? -1. : 2; // TODO: to be changed if we implement MOFFAT_BFIXED
 	double fbeta = acos(2. * beta / MOFFAT_BETA_UBOUND - 1.);
 
 	struct PSF_data d = { n, y, NbRows, NbCols, 0. , mask };
@@ -473,7 +477,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 		fdf.df = &psf_Gaussian_df_ang;
 	} else {
 		fdf.f = &psf_Moffat_f_ang;
-		fdf.df = NULL; //&psf_Moffat_df_ang;
+		fdf.df = &psf_Moffat_df_ang;
 	}
 	fdf.fvv = NULL;
 	fdf.n = n;
@@ -500,7 +504,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 
 	/* iterate until convergence */
 #if DEBUG_PSF
-	struct callback_params c_params = { GAUSSIAN };
+	struct callback_params c_params = { profile };
 	status = gsl_multifit_nlinear_driver(max_iter, XTOL, GTOL, FTOL,
 	callback, &c_params, &info, work);
 #else
