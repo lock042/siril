@@ -16727,7 +16727,6 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="pack-type">end</property>
                             <property name="position">0</property>
                           </packing>
                         </child>
@@ -16922,7 +16921,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="labeldensity_rgb">
+                          <object class="GtkLabel" id="labelwcs_rgb">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">end</property>
@@ -17002,7 +17001,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="labeldensity_rg">
+                              <object class="GtkLabel" id="labeldensity_rgb">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">end</property>

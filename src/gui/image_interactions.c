@@ -607,98 +607,93 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
 
 	const gchar *label_density_names[] = { "labeldensity_red", "labeldensity_green", "labeldensity_blue", "labeldensity_rgb" };
-	const gchar *label_wcs_names[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue" };
-	static GtkLabel *labels_wcs[sizeof label_wcs_names / sizeof(gchar *)] = { 0 };
-	static GtkLabel *labels_density[sizeof label_density_names / sizeof(gchar *)] = { 0 };
+	const gchar *label_wcs_names[] = { "labelwcs_red", "labelwcs_green", "labelwcs_blue", "labelwcs_rgb" };
+	static GtkLabel *labels_wcs[G_N_ELEMENTS(label_wcs_names)] = { 0 };
+	static GtkLabel *labels_density[G_N_ELEMENTS(label_density_names)] = { 0 };
 	if (!labels_wcs[0]) {
-		for (int i = 0; i < sizeof label_wcs_names / sizeof(gchar *); i++)
+		for (int i = 0; i < G_N_ELEMENTS(label_wcs_names); i++)
 			labels_wcs[i] = GTK_LABEL(lookup_widget(label_wcs_names[i]));
-		for (int i = 0; i < sizeof label_density_names / sizeof(gchar *); i++)
+		for (int i = 0; i < G_N_ELEMENTS(label_density_names); i++)
 			labels_density[i] = GTK_LABEL(lookup_widget(label_density_names[i]));
 	}
 
 	gboolean blank_density_cvport = TRUE, blank_wcs_cvport = TRUE;
 
-	if (gui.cvport < RGB_VPORT) {
-		if (inside) {
+	if (inside) {
+		if (gui.cvport == RGB_VPORT) {
 			static gchar buffer[256] = { 0 };
-			static gchar wcs_buffer[256] = { 0 };
-			static gchar format[256] = { 0 };
-			int coords_width = 3;
-
-			if (gfit.rx >= 1000 || gfit.ry >= 1000)
-				coords_width = 4;
-			if (gfit.rx >= 10000 || gfit.ry >= 10000)
-				coords_width = 5;
-			if (gfit.type == DATA_USHORT && gfit.pdata[gui.cvport] != NULL) {
-				int val_width = 3;
-				char *format_base_ushort = "x: %%.%dd y: %%.%dd (=%%.%dd)";
-				if (gfit.hi >= 1000)
-					val_width = 4;
-				if (gfit.hi >= 10000)
-					val_width = 5;
-				g_sprintf(format, format_base_ushort,
-						coords_width, coords_width, val_width);
-				g_sprintf(buffer, format, zoomed.x, zoomed.y,
-						gfit.pdata[gui.cvport][gfit.rx * (gfit.ry - zoomed.y - 1)
-						+ zoomed.x]);
-			} else if (gfit.type == DATA_FLOAT && gfit.fpdata[gui.cvport] != NULL) {
-				char *format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
-				g_sprintf(format, format_base_float,
-						coords_width, coords_width);
-				g_sprintf(buffer, format, zoomed.x, zoomed.y,
-						gfit.fpdata[gui.cvport][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x]);
+			if (gfit.type == DATA_USHORT) {
+				g_sprintf(buffer, "R=%.3lf%%\nG=%.3lf%%\nB=%.3lf%%",
+						gfit.pdata[RLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0,
+						gfit.pdata[GLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0,
+						gfit.pdata[BLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0);
+			} else if (gfit.type == DATA_FLOAT) {
+				g_sprintf(buffer, "R=%.3lf%%\nG=%.3lf%%\nB=%.3lf%%",
+						gfit.fpdata[RLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0,
+						gfit.fpdata[GLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0,
+						gfit.fpdata[BLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0);
 			}
-			if (has_wcs(&gfit)) {
-				double world_x, world_y;
-				pix2wcs(&gfit, (double) zoomed.x, (double) (gfit.ry - zoomed.y - 1), &world_x, &world_y);
-				if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
-					SirilWorldCS *world_cs;
+			gtk_widget_set_tooltip_text(lookup_widget("drawingareargb"), buffer);
+		}
+		static gchar buffer[256] = { 0 };
+		static gchar wcs_buffer[256] = { 0 };
+		static gchar format[256] = { 0 };
+		int coords_width = 3;
+		int vport = select_vport(gui.cvport);
 
-					world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
-					if (world_cs) {
-						gchar *ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
-						gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
-						g_sprintf(wcs_buffer, "α: %s δ: %s", ra, dec);
 
-						gtk_label_set_text(labels_wcs[gui.cvport], wcs_buffer);
-						blank_wcs_cvport = FALSE;
+		if (gfit.rx >= 1000 || gfit.ry >= 1000)
+			coords_width = 4;
+		if (gfit.rx >= 10000 || gfit.ry >= 10000)
+			coords_width = 5;
+		if (gfit.type == DATA_USHORT && gfit.pdata[vport] != NULL) {
+			int val_width = 3;
+			char *format_base_ushort = "x: %%.%dd y: %%.%dd (=%%.%dd)";
+			if (gfit.hi >= 1000)
+				val_width = 4;
+			if (gfit.hi >= 10000)
+				val_width = 5;
+			g_sprintf(format, format_base_ushort,
+					coords_width, coords_width, val_width);
+			g_sprintf(buffer, format, zoomed.x, zoomed.y,
+					gfit.pdata[vport][gfit.rx * (gfit.ry - zoomed.y - 1)
+					+ zoomed.x]);
+		} else if (gfit.type == DATA_FLOAT && gfit.fpdata[vport] != NULL) {
+			char *format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
+			g_sprintf(format, format_base_float,
+					coords_width, coords_width);
+			g_sprintf(buffer, format, zoomed.x, zoomed.y,
+				gfit.fpdata[vport][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x]);
+		}
+		if (has_wcs(&gfit)) {
+			double world_x, world_y;
+			pix2wcs(&gfit, (double) zoomed.x, (double) (gfit.ry - zoomed.y - 1), &world_x, &world_y);
+			if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
+				SirilWorldCS *world_cs;
 
-						g_free(ra);
-						g_free(dec);
-						siril_world_cs_unref(world_cs);
-					}
+				world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+				if (world_cs) {
+					gchar *ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
+					gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+					g_sprintf(wcs_buffer, "α: %s δ: %s", ra, dec);
+
+					gtk_label_set_text(labels_wcs[gui.cvport], wcs_buffer);
+					blank_wcs_cvport = FALSE;
+
+					g_free(ra);
+					g_free(dec);
+					siril_world_cs_unref(world_cs);
 				}
 			}
-
-			if (buffer[0] != '\0') {
-				gtk_label_set_text(labels_density[gui.cvport], buffer);
-				blank_density_cvport = FALSE;
-			}
 		}
-		if (blank_wcs_cvport && gtk_label_get_text(labels_wcs[gui.cvport])[0] != '\0')
-			gtk_label_set_text(labels_wcs[gui.cvport], " ");
-	} else {
-		static gchar buffer[256] = { 0 };
 
-		if (inside) {
-			if (gfit.type == DATA_USHORT) {
-				g_sprintf(buffer, "R=%.3lf%%/G=%.3lf%%/B=%.3lf%%",
-										gfit.pdata[RLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0,
-										gfit.pdata[GLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0,
-										gfit.pdata[BLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0
-										);
-			} else if (gfit.type == DATA_FLOAT) {
-				g_sprintf(buffer, "R=%.3lf%%/G=%.3lf%%/B=%.3lf%%",
-										gfit.fpdata[RLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0,
-										gfit.fpdata[GLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0,
-										gfit.fpdata[BLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0
-										);
-			}
+		if (buffer[0] != '\0') {
 			gtk_label_set_text(labels_density[gui.cvport], buffer);
 			blank_density_cvport = FALSE;
 		}
 	}
+	if (blank_wcs_cvport && gtk_label_get_text(labels_wcs[gui.cvport])[0] != '\0')
+		gtk_label_set_text(labels_wcs[gui.cvport], " ");
 	if (blank_density_cvport && gtk_label_get_text(labels_density[gui.cvport])[0] != '\0')
 		gtk_label_set_text(labels_density[gui.cvport], " ");
 
