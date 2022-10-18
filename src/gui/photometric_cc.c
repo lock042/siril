@@ -217,7 +217,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		gboolean no_phot = FALSE;
 		psf_error error = PSF_NO_ERR;
 		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, FALSE, TRUE, ps, FALSE, GAUSSIAN, &error);
+			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
 			g_atomic_int_inc(errors+error);
 			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
 				no_phot = TRUE;
@@ -479,7 +479,7 @@ float measure_image_FWHM(fits *fit) {
 #else
 		nb_subthreads = com.max_thread;
 #endif
-		psf_star **stars = peaker(&im, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, GAUSSIAN, FALSE, nb_subthreads);
+		psf_star **stars = peaker(&im, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, com.pref.starfinder_conf.profile, nb_subthreads);
 		if (stars) {
 			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
 			siril_debug_print("FWHM for channel %d: %.3f\n", chan, fwhm[chan]);

@@ -20,7 +20,6 @@ struct starfinder_data {
 	psf_star ***stars;	// save to pointer if not NULL
 	int *nb_stars;		// number of stars in stars if not NULL
 	starprofile profile; // Gaussian or Moffat with beta {free | fixed}
-	gboolean fit_angle; // Solve for angle information?
 	threading_type threading;
 	gboolean update_GUI;	// FALSE for sequence operation
 	gboolean process_all_images;	// for sequence operation
@@ -53,7 +52,7 @@ typedef enum {
 
 void update_peaker_GUI();
 void confirm_peaker_GUI();
-psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, starprofile profile, gboolean fit_angle, int threads);
+psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, starprofile profile, int threads);
 psf_star *add_star(fits *fit, int layer, int *index);
 int remove_star(int index);
 void sort_stars_by_mag(psf_star **stars, int total);

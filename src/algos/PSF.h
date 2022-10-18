@@ -64,11 +64,11 @@ struct PSF_data {
 
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness);
 
-psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean fit_angle,
+psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error);
 
-psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, gboolean fit_angle,
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, 
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error);
 

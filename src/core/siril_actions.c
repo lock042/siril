@@ -336,7 +336,7 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	if (!(com.selection.h && com.selection.w))
 		return;
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, ps, TRUE, GAUSSIAN, NULL);
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 	free(ps);
 	if (!result)
 		return;

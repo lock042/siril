@@ -153,7 +153,7 @@ void test_photometry_float() {
 	double bg = BG;
 	initialize_photometric_param();
 	gsl_matrix *matrix = fill_star(star, DATA_FLOAT);
-	psf_star *psf = psf_global_minimisation(matrix, bg, 1., 1, TRUE, TRUE, &com.pref.phot_set, FALSE, GAUSSIAN, NULL);
+	psf_star *psf = psf_global_minimisation(matrix, bg, 1., 1, TRUE, &com.pref.phot_set, FALSE, GAUSSIAN, NULL);
 
 	cr_assert(psf, "psf failed");
 	cr_assert(psf->phot, "photometry failed");
@@ -181,7 +181,7 @@ void test_photometry_ushort() {
 	initialize_photometric_param();
 	gsl_matrix *matrix = fill_star(star, DATA_USHORT);
 	psf_error error;
-	psf_star *psf = psf_global_minimisation(matrix, bg, USHRT_MAX_DOUBLE, 1, TRUE, TRUE, &com.pref.phot_set, FALSE, GAUSSIAN, &error);
+	psf_star *psf = psf_global_minimisation(matrix, bg, USHRT_MAX_DOUBLE, 1, TRUE, &com.pref.phot_set, FALSE, GAUSSIAN, &error);
 
 	cr_assert(psf, "psf failed");
 	cr_assert(psf->phot, "photometry failed");

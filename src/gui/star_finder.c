@@ -152,10 +152,10 @@ psf_star *add_star(fits *fit, int layer, int *index) {
 		profile = (com.stars[0]->profile == GAUSSIAN ? GAUSSIAN : MOFFAT_BFREE);
 	else
 		// Default to Gaussian (or get this from a parameter in the GUI, tbd)
-		profile = GAUSSIAN;
+		profile = com.pref.starfinder_conf.profile;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, NULL, TRUE, profile, NULL);
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, TRUE, profile, NULL);
 	if (!result)
 		return NULL;
 	result->angle = -result->angle; // we need to invert the angle because of the way the matrix is passed to minimizer

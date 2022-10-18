@@ -242,8 +242,7 @@ int generate_synthstars(fits *fit) {
 		if (fit->naxes[2] == 1)
 			channel = 0;
 		stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
-				NULL, FALSE, FALSE, MAX_STARS, MOFFAT_BFREE, TRUE,
-				com.max_thread);
+				NULL, FALSE, FALSE, MAX_STARS, MOFFAT_BFREE, com.max_thread);
 		free(input_image);
 		stars_needs_freeing = TRUE;
 	} else {
@@ -574,7 +573,7 @@ int reprofile_saturated_stars(fits *fit) {
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
 		int nb_stars;
-		psf_star **stars = peaker(input_image, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, GAUSSIAN, TRUE, com.max_thread);
+		psf_star **stars = peaker(input_image, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
 		int sat_stars = 0;
 		siril_log_message(_("Star synthesis: desaturating stars in channel %u...\n"),

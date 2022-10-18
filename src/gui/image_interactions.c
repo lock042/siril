@@ -445,7 +445,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
 
 					struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-					gui.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, TRUE, ps, TRUE, GAUSSIAN, NULL);
+					gui.qphot = psf_get_minimisation(&gfit, gui.cvport, &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 					free(ps);
 					if (gui.qphot) {
 						gui.qphot->xpos = gui.qphot->x0 + area.x;

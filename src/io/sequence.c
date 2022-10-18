@@ -1577,8 +1577,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	struct phot_config *ps = NULL;
 	if (spsfargs->for_photometry)
 		ps = phot_set_adjusted_for_image(fit);
-	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry,
-			spsfargs->for_photometry, ps, TRUE, GAUSSIAN, &error);
+	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 	free(ps);
 	if (data->psf) {
 		/* for photometry ? */
