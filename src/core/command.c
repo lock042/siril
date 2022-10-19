@@ -2103,11 +2103,6 @@ int process_set(int nb) {
 }
 
 int process_set_mag(int nb) {
-	if (gui.cvport > MAXGRAYVPORT) {
-		siril_log_color_message(_("Please display the channel on which you set the reference magnitude\n"), "red");
-		return CMD_GENERIC_ERROR;
-	}
-
 	double mag_reference = g_ascii_strtod(word[1], NULL);
 
 	gboolean found = FALSE;
@@ -2644,7 +2639,7 @@ int process_psf(int nb){
 		return CMD_SELECTION_ERROR;
 	}
 
-	if (gfit.naxes[2] > 1 && nb == 1 && (com.headless || gui.cvport > MAXGRAYVPORT)) {
+	if (gfit.naxes[2] > 1 && nb == 1 && com.headless) {
 		siril_log_color_message(_("Please display the channel on which you want to compute the PSF or use -channel argument\n"), "red");
 		return CMD_GENERIC_ERROR;
 	}
@@ -2804,12 +2799,8 @@ int process_seq_psf(int nb) {
 	int layer;
 	if (nb < 4) {
 		seq = &com.seq;
-		layer = gui.cvport;
+		layer = select_vport(gui.cvport);
 
-		if (gui.cvport > MAXGRAYVPORT) {
-			siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
-			return CMD_GENERIC_ERROR;
-		}
 		if (com.selection.w > 300 || com.selection.h > 300) {
 			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
 			return CMD_SELECTION_ERROR;
