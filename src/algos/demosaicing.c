@@ -1244,7 +1244,7 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 // (returns 0 on success, -1 on failure)
 //
 
-fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
+fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern pattern) {
 	fits *out = NULL;
 
 	// Check input files are compatible
@@ -1255,12 +1255,10 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 		siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
 		return NULL;
 	}
-//	int indata = cfa0->rx * cfa0->ry * cfa0->naxes[2];
 	int datatype = cfa0->type;
 
 	// Create output fits twice the width and height of the cfa fits files
 	new_fit_image(&out, cfa0->rx << 1, cfa0->ry << 1, 1, datatype);
-//	out->bayer_pattern = pattern;
 
 	for (size_t outx = 0 ; outx < out->rx; outx += 2) {
 		for(size_t outy = 0 ; outy < out->ry ; outy += 2) {
@@ -1287,6 +1285,24 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 					break;
 			}
 		}
+	}
+
+	// Set Bayer pattern in FITS header
+	switch (pattern) {
+		case BAYER_FILTER_RGGB:
+			strncpy(out->bayer_pattern, "RGGB", 5);
+			break;
+		case BAYER_FILTER_BGGR:
+			strncpy(out->bayer_pattern, "BGGR", 5);
+			break;
+		case BAYER_FILTER_GRBG:
+			strncpy(out->bayer_pattern, "GRBG", 5);
+			break;
+		case BAYER_FILTER_GBRG:
+			strncpy(out->bayer_pattern, "GBRG", 5);
+			break;
+		default:
+			break;
 	}
 
 	if (cfa0) {

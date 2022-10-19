@@ -591,7 +591,8 @@ int process_rebayer(int nb){
 	fits *cfa2 = calloc(1, sizeof(fits));
 	fits *cfa3 = calloc(1, sizeof(fits));
 	fits *out = NULL;
-	if (nb < 4) {
+	sensor_pattern pattern = -1;
+	if (nb < 5) {
 		siril_log_color_message(_("Error, requires at least 4 arguments to specify the 4 files!\n"), "red");
 		return CMD_WRONG_N_ARG;
 	}
@@ -618,7 +619,24 @@ int process_rebayer(int nb){
 		siril_log_color_message(_("Error loading files!\n"), "red");
 		return CMD_FILE_NOT_FOUND;
 	}
-	out = merge_cfa(cfa0, cfa1, cfa2, cfa3);
+	if (!strcmp(word[5], "RGGB")) {
+		pattern = BAYER_FILTER_RGGB;
+		siril_log_message(_("Reconstructing RGGB Bayer matrix.\n"));
+	} else if (!strcmp(word[5], "BGGR")) {
+		pattern = BAYER_FILTER_BGGR;
+		siril_log_message(_("Reconstructing BGGR Bayer matrix.\n"));
+	} else if (!strcmp(word[5], "GBRG")) {
+		pattern = BAYER_FILTER_GBRG;
+		siril_log_message(_("Reconstructing GBRG Bayer matrix.\n"));
+	} else if (!strcmp(word[5], "GRBG")) {
+		pattern = BAYER_FILTER_GRBG;
+		siril_log_message(_("Reconstructing GRBG Bayer matrix.\n"));
+	} else {
+		siril_log_color_message(_("Invalid Bayer matrix specified!\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+
+	out = merge_cfa(cfa0, cfa1, cfa2, cfa3, pattern);
 	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
 	close_single_image();
 	copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);

@@ -134,7 +134,7 @@ static command commands[] = {
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_PREPROCESS_SINGLE, TRUE, REQ_CMD_NONE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
 
-	{"rebayer", 4, "rebayer file_CFA0 file_CFA1 file_CFA2 file_CFA3", process_rebayer, STR_REBAYER, TRUE, REQ_CMD_NONE},
+	{"merge_cfa", 5, "merge_cfa file_CFA0 file_CFA1 file_CFA2 file_CFA3 bayerpattern", process_rebayer, STR_REBAYER, TRUE, REQ_CMD_NONE},
 	{"register", 1, "register sequence [-2pass] [-noout] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=] [-nostarlist] [-interp=] [-noclamp] [-selected]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires version", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},

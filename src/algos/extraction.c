@@ -355,64 +355,6 @@ void apply_extractGreen_to_sequence(struct split_cfa_data *split_cfa_args) {
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
-int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern) {
-	int width = in->rx / 2, height = in->ry / 2;
-
-	if (strlen(in->bayer_pattern) > 4) {
-		siril_log_message(_("Extract_HaOIII does not work on non-Bayer filter camera images!\n"));
-		return 1;
-	}
-	if (new_fit_image(&Ha, width, height, 1, DATA_FLOAT) ||
-			new_fit_image(&OIII, width, height, 1, DATA_FLOAT)) {
-		return 1;
-	}
-
-	int j = 0;
-
-	for (int row = 0; row < in->ry - 1; row += 2) {
-		for (int col = 0; col < in->rx - 1; col += 2) {
-			float c0 = in->fdata[col + row * in->rx];
-			float c1 = in->fdata[1 + col + row * in->rx];
-			float c2 = in->fdata[col + (1 + row) * in->rx];
-			float c3 = in->fdata[1 + col + (1 + row) * in->rx];
-
-			switch(pattern) {
-			case BAYER_FILTER_RGGB:
-				Ha->fdata[j] = c0;
-				OIII->fdata[j] = (c1 + c2 + c3) / 3;
-				break;
-			case BAYER_FILTER_BGGR:
-				Ha->fdata[j] = c3;
-				OIII->fdata[j] = (c1 + c2 + c0) / 3;
-				break;
-			case BAYER_FILTER_GRBG:
-				Ha->fdata[j] = c1;
-				OIII->fdata[j] = (c0 + c2 + c3) / 3;
-				break;
-			case BAYER_FILTER_GBRG:
-				Ha->fdata[j] = c2;
-				OIII->fdata[j] = (c1 + c0 + c3) / 3;
-				break;
-			default:
-				printf("Should not happen.\n");
-				return 1;
-			}
-			j++;
-		}
-	}
-
-	/* We update FITS keywords */
-	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha);
-	update_filter_information(Ha, "Ha", TRUE);
-
-	copy_fits_metadata(in, OIII);
-	update_sampling_information(OIII);
-	update_filter_information(OIII, "OIII", TRUE);
-
-	return 0;
-}
-
 struct _double_split {
 	int index;
 	fits *ha;
@@ -921,6 +863,182 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern)
 					}
 					interp /= weight;
 					OIII->fdata[HaIndex] = interp * invnorm;
+				}
+			}
+		}
+	}
+	if (error)
+		return 1;
+	// Scale images to match: either upsample Ha to match OIII, downsample OIII to match Ha
+	// or do nothing. Hardcoded to upscale for now.
+	// TODO: update this to be user-selectable once glade updates are not blocked by other MRs
+	int scaling = 0;
+	switch (scaling) {
+		case 0: // Upsample Ha to OIII size
+			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
+			break;
+		case 1: // Downsample OIII to Ha size
+			verbose_resize_gaussian(OIII, Ha->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
+			break;
+		default:
+			break;
+	}
+
+	/* We update FITS keywords */
+	copy_fits_metadata(in, Ha);
+	update_sampling_information(Ha);
+	update_filter_information(Ha, "Ha", TRUE);
+
+	copy_fits_metadata(in, OIII);
+	update_sampling_information(OIII);
+	update_filter_information(OIII, "OIII", TRUE);
+
+	return 0;
+}
+
+int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern) {
+	int width = in->rx / 2, height = in->ry / 2;
+
+	if (strlen(in->bayer_pattern) > 4) {
+		siril_log_message(_("Extract_HaOIII does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+	if (new_fit_image(&Ha, width, height, 1, DATA_FLOAT) ||
+			new_fit_image(&OIII, in->rx, in->ry, 1, DATA_FLOAT)) {
+		return 1;
+	}
+	// Loop through calculating the means of the 3 O-III photosite subchannels
+	// Also populate the Ha fits data
+	float g1 = 0.f, g2 = 0.f, b = 0.f;
+	unsigned j = 0;
+	unsigned error = 0;
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			float c0 = in->fdata[col + row * in->rx];
+			float c1 = in->fdata[1 + col + row * in->rx];
+			float c2 = in->fdata[col + (1 + row) * in->rx];
+			float c3 = in->fdata[1 + col + (1 + row) * in->rx];
+
+			switch(pattern) {
+			case BAYER_FILTER_RGGB:
+				Ha->fdata[j] = c0;
+				g1 += c1;
+				g2 += c2;
+				b += c3;
+				break;
+			case BAYER_FILTER_BGGR:
+				Ha->fdata[j] = c3;
+				g1 += c1;
+				g2 += c2;
+				b += c0;
+				break;
+			case BAYER_FILTER_GRBG:
+				Ha->fdata[j] = c1;
+				g1 += c0;
+				g2 += c3;
+				b += c2;
+				break;
+			case BAYER_FILTER_GBRG:
+				Ha->fdata[j] = c2;
+				g1 += c0;
+				g2 += c3;
+				b += c1;
+				break;
+			default:
+				printf("Should not happen.\n");
+				error++;
+			}
+		j++;
+		}
+	}
+	if (!error) {
+		// g1, g2 and b are divided by j to give averages, work out the mean OIII level and calculate scaling ratios
+		// for each of the 3 OIII subchannels to equalize them
+		g1 /= j;
+		g2 /= j;
+		b /= j;
+		float avgoiii = (g1 + g2 + b) / 3;
+		float g1ratio = avgoiii / g1;
+		float g2ratio = avgoiii / g2;
+		float bratio = avgoiii / b;
+
+		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
+		for (int row = 0; row < in->ry - 1; row += 2) {
+			for (int col = 0; col < in->rx - 1; col += 2) {
+				int HaIndex;
+				switch(pattern) {
+					case BAYER_FILTER_RGGB:
+						HaIndex = col + row * in->rx;
+						OIII->fdata[1 + col + row * in->rx] = g1ratio * in->fdata[1 + col + row * in->rx];
+						OIII->fdata[col + (1 + row) * in->rx] = g2ratio * in->fdata[col + (1 + row) * in->rx];
+						OIII->fdata[1 + col + (1 + row) * in->rx] = bratio * in->fdata[1 + col + (1 + row) * in->rx];
+						break;
+					case BAYER_FILTER_BGGR:
+						HaIndex = 1 + col + (1 + row) * in->rx;
+						OIII->fdata[1 + col + row * in->rx] = g1ratio * in->fdata[1 + col + row * in->rx];
+						OIII->fdata[col + (1 + row) * in->rx] = g2ratio * in->fdata[col + (1 + row) * in->rx];
+						OIII->fdata[col + row * in->rx] = bratio * in->fdata[col + row * in->rx];
+						break;
+					case BAYER_FILTER_GRBG:
+						HaIndex = 1 + col + row * in->rx;
+						OIII->fdata[col + row * in->rx] = g1ratio * in->fdata[col + row * in->rx];
+						OIII->fdata[1 + col + (1 + row) * in->rx] = g2ratio * in->fdata[1 + col + (1 + row) * in->rx];
+						OIII->fdata[col + (1 + row) * in->rx] = bratio * in->fdata[col + (1 + row) * in->rx];
+						break;
+					case BAYER_FILTER_GBRG:
+						HaIndex = col + (1 + row) * in->rx;
+						OIII->fdata[col + row * in->rx] = g1ratio * in->fdata[col + row * in->rx];
+						OIII->fdata[1 + col + (1 + row) * in->rx] = g2ratio * in->fdata[1 + col + (1 + row) * in->rx];
+						OIII->fdata[1 + col + row * in->rx] = bratio * in->fdata[1 + col + row * in->rx];
+						break;
+					default:
+						printf("Should not happen.\n");
+						error++;
+				}
+				if (!error) {
+					float interp = 0.f;
+					float weight = 0.f;
+					gboolean first_y = (HaIndex / in->rx == 0) ? TRUE : FALSE;
+					gboolean last_y = (HaIndex / in->rx == in->ry - 1) ? TRUE : FALSE;
+					gboolean first_x = (HaIndex % in->rx == 0) ? TRUE : FALSE;
+					gboolean last_x = (HaIndex % in->rx == in->rx - 1) ? TRUE : FALSE;
+					if (!first_y) {
+						interp += in->fdata[HaIndex - in->rx] * SQRTF_2;
+						weight += SQRTF_2;
+						if (!first_x) {
+							interp += (in->fdata[HaIndex - 1] * SQRTF_2);
+							interp += in->fdata[HaIndex - in->rx - 1];
+							weight += (1 + SQRTF_2);
+						}
+						if (!last_x) {
+							interp += in->fdata[HaIndex - in->rx + 1];
+							interp += in->fdata[HaIndex + 1] * SQRTF_2;
+							weight += (1 + SQRTF_2);
+						}
+					} else { // first_y
+						if (!first_x) {
+							interp += in->fdata[HaIndex - 1] * SQRTF_2;
+							weight += SQRTF_2;
+						}
+						if(!last_x) {
+							interp += in->fdata[HaIndex+1] * SQRTF_2;
+							weight += SQRTF_2;
+						}
+					}
+					if (!last_y) {
+						interp += in->fdata[HaIndex + in->rx] * SQRTF_2;
+						weight += SQRTF_2;
+						if(!first_x) {
+							interp += in->fdata[HaIndex + in->rx - 1];
+							weight += 1.f;
+						}
+						if(!last_x) {
+							interp += in->fdata[HaIndex + in->rx + 1];
+							weight += 1.f;
+						}
+					}
+					interp /= weight;
+					OIII->fdata[HaIndex] = interp;
 				}
 			}
 		}

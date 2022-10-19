@@ -43,7 +43,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 #ifdef __cplusplus
 extern "C" {
 #endif
-fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3);
+fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern pattern);
 #ifdef __cplusplus
 }
 #endif
