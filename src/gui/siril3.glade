@@ -12609,7 +12609,7 @@ This should normally be the case only for stacked images. Increasing this value 
       </object>
     </child>
     <child>
-      <object class="GtkMenuItem" id="menu_rgb_align2">
+      <object class="GtkMenuItem" id="menu_rgb_align">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="label" translatable="yes">RGB align</property>
@@ -12619,7 +12619,7 @@ This should normally be the case only for stacked images. Increasing this value 
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
-              <object class="GtkMenuItem" id="rgb_align_dft2">
+              <object class="GtkMenuItem" id="rgb_align_dft">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="action-name">win.align-dft</property>
@@ -12628,7 +12628,7 @@ This should normally be the case only for stacked images. Increasing this value 
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="rgb_align_psf2">
+              <object class="GtkMenuItem" id="rgb_align_psf">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="action-name">win.align-psf</property>
@@ -12638,64 +12638,6 @@ This should normally be the case only for stacked images. Increasing this value 
             </child>
           </object>
         </child>
-      </object>
-    </child>
-  </object>
-  <object class="GtkMenu" id="menurgb">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <child>
-      <object class="GtkMenuItem" id="menu_rgb_savefits">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to FITS</property>
-        <property name="use-underline">True</property>
-        <signal name="activate" handler="on_menu_rgb_savefits_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_rgb_savetiff">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to TIFF</property>
-        <property name="use-underline">True</property>
-        <signal name="activate" handler="on_menu_rgb_savetiff_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_rgb_savebmp">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to BMP</property>
-        <property name="use-underline">True</property>
-        <signal name="activate" handler="on_menu_rgb_savebmp_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_rgb_savejpg">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to JPG</property>
-        <property name="use-underline">True</property>
-        <signal name="activate" handler="on_menu_rgb_savejpg_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_rgb_savepng">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to PNG</property>
-        <property name="use-underline">True</property>
-        <signal name="activate" handler="on_menu_rgb_savepng_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkMenuItem" id="menu_rgb_save8ppm">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="label" translatable="yes">Save RGB image to PPM</property>
-        <property name="use-underline">True</property>
-        <signal name="activate" handler="on_menu_rgb_save8ppm_activate" swapped="no"/>
       </object>
     </child>
   </object>
