@@ -24,6 +24,7 @@
 #include "core/undo.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
+#include "core/siril_log.h"
 #include "core/initfile.h"
 #include "compositing/align_rgb.h"
 #include "algos/annotate.h"
@@ -336,6 +337,11 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		return;
 	if (!(com.selection.h && com.selection.w))
 		return;
+	if (com.selection.w > 300 || com.selection.h > 300) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Current selection is too large"),
+				_("To determine the PSF, please make a selection around a star."));
+		return;
+	}
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
 	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, ps, TRUE, NULL);
 	free(ps);
@@ -621,5 +627,9 @@ void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	undo_save_state(&gfit, _("RGB alignment (PSF)"));
+	if (com.selection.w > 300 || com.selection.h > 300) {
+		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+		return;
+	}
 	rgb_align(0);
 }

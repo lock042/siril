@@ -362,12 +362,6 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			}
 		}
 
-//		/* click on RGB image */
-//		if (widget == gui.view[RGB_VPORT].drawarea && (event->button == GDK_BUTTON_SECONDARY)) {
-//			do_popup_rgbmenu(widget, event);
-//			return TRUE;
-//		}
-
 		/* else, click on gray image */
 		if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 			if (mouse_status == MOUSE_ACTION_SELECT_REG_AREA) {
@@ -624,17 +618,17 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		if (gui.cvport == RGB_VPORT) {
 			static gchar buffer[256] = { 0 };
 			if (gfit.type == DATA_USHORT) {
-				g_sprintf(buffer, "R=%.3lf%%\nG=%.3lf%%\nB=%.3lf%%",
+				g_sprintf(buffer, "<span foreground=\"red\"><b>R=%.3lf%%</b></span>\n<span foreground=\"green\"><b>G=%.3lf%%</b></span>\n<span foreground=\"blue\"><b>B=%.3lf%%</b></span>",
 						gfit.pdata[RLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0,
 						gfit.pdata[GLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0,
 						gfit.pdata[BLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] / USHRT_MAX_DOUBLE * 100.0);
 			} else if (gfit.type == DATA_FLOAT) {
-				g_sprintf(buffer, "R=%.3lf%%\nG=%.3lf%%\nB=%.3lf%%",
+				g_sprintf(buffer, "<span foreground=\"red\"><b>R=%.3lf%%</b></span>\n<span foreground=\"green\"><b>G=%.3lf%%</b></span>\n<span foreground=\"blue\"><b>B=%.3lf%%</b></span>",
 						gfit.fpdata[RLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0,
 						gfit.fpdata[GLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0,
 						gfit.fpdata[BLAYER][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x] * 100.0);
 			}
-			gtk_label_set_text(GTK_LABEL(lookup_widget("label-rgb")), buffer);
+			gtk_label_set_markup(GTK_LABEL(lookup_widget("label-rgb")), buffer);
 		}
 		static gchar buffer[256] = { 0 };
 		static gchar format[256] = { 0 };

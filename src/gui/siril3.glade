@@ -16895,9 +16895,9 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                                   <object class="GtkLabel" id="label-rgb">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <style>
-                                      <class name="label-info"/>
-                                    </style>
+                                    <attributes>
+                                      <attribute name="scale" value="2"/>
+                                    </attributes>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
