@@ -174,9 +174,9 @@ vector<float> sanitize(vector<float> input, const ImageSize size) {
 			else if (x == 0)
 				input[i] = input[i-size.width];
 		}
-		if (input[i] > 1.0 || input[i] < 0.0) {
-			input[i] = min(max(EPSILON, input[i]), 1.0);
-		}
+//		if (input[i] > 1.0 || input[i] < 0.0) {
+//			input[i] = min(max(EPSILON, input[i]), 1.0);
+//		}
 	}
 	siril_debug_print("\n");
 	return input;
