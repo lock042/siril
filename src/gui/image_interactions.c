@@ -637,11 +637,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			gtk_label_set_text(GTK_LABEL(lookup_widget("label-rgb")), buffer);
 		}
 		static gchar buffer[256] = { 0 };
-		static gchar wcs_buffer[256] = { 0 };
 		static gchar format[256] = { 0 };
 		int coords_width = 3;
 		int vport = select_vport(gui.cvport);
-
 
 		if (gfit.rx >= 1000 || gfit.ry >= 1000)
 			coords_width = 4;
@@ -649,23 +647,44 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			coords_width = 5;
 		if (gfit.type == DATA_USHORT && gfit.pdata[vport] != NULL) {
 			int val_width = 3;
-			char *format_base_ushort = "x: %%.%dd y: %%.%dd (=%%.%dd)";
+			char *format_base_ushort;
+			if (gui.cvport < RGB_VPORT) {
+				format_base_ushort = "x: %%.%dd y: %%.%dd (=%%.%dd)";
+			} else {
+				format_base_ushort = "x: %%.%dd y: %%.%dd";
+			}
 			if (gfit.hi >= 1000)
 				val_width = 4;
 			if (gfit.hi >= 10000)
 				val_width = 5;
 			g_sprintf(format, format_base_ushort,
 					coords_width, coords_width, val_width);
-			g_sprintf(buffer, format, zoomed.x, zoomed.y,
-					gfit.pdata[vport][gfit.rx * (gfit.ry - zoomed.y - 1)
-					+ zoomed.x]);
+			if (gui.cvport < RGB_VPORT) {
+				g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit.pdata[vport][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x]);
+			} else {
+				g_sprintf(buffer, format, zoomed.x, zoomed.y);
+			}
 		} else if (gfit.type == DATA_FLOAT && gfit.fpdata[vport] != NULL) {
-			char *format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
-			g_sprintf(format, format_base_float,
-					coords_width, coords_width);
-			g_sprintf(buffer, format, zoomed.x, zoomed.y,
-				gfit.fpdata[vport][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x]);
+			char *format_base_float;
+			if (gui.cvport < RGB_VPORT) {
+				format_base_float = "x: %%.%dd y: %%.%dd (=%%f)";
+			} else {
+				format_base_float = "x: %%.%dd y: %%.%dd";
+			}
+			g_sprintf(format, format_base_float, coords_width, coords_width);
+			if (gui.cvport < RGB_VPORT) {
+				g_sprintf(buffer, format, zoomed.x, zoomed.y, gfit.fpdata[vport][gfit.rx * (gfit.ry - zoomed.y - 1) + zoomed.x]);
+			} else {
+				g_sprintf(buffer, format, zoomed.x, zoomed.y);
+			}
 		}
+
+		if (buffer[0] != '\0') {
+			gtk_label_set_text(labels_density[gui.cvport], buffer);
+			blank_density_cvport = FALSE;
+		}
+
+		static gchar wcs_buffer[256] = { 0 };
 		if (has_wcs(&gfit)) {
 			double world_x, world_y;
 			pix2wcs(&gfit, (double) zoomed.x, (double) (gfit.ry - zoomed.y - 1), &world_x, &world_y);
@@ -687,12 +706,8 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 				}
 			}
 		}
-
-		if (buffer[0] != '\0') {
-			gtk_label_set_text(labels_density[gui.cvport], buffer);
-			blank_density_cvport = FALSE;
-		}
 	}
+
 	if (blank_wcs_cvport && gtk_label_get_text(labels_wcs[gui.cvport])[0] != '\0')
 		gtk_label_set_text(labels_wcs[gui.cvport], " ");
 	if (blank_density_cvport && gtk_label_get_text(labels_density[gui.cvport])[0] != '\0')
