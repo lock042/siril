@@ -16906,6 +16906,9 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                                   </packing>
                                 </child>
                               </object>
+                              <packing>
+                                <property name="pass-through">True</property>
+                              </packing>
                             </child>
                           </object>
                           <packing>
