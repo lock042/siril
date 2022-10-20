@@ -2103,11 +2103,6 @@ int process_set(int nb) {
 }
 
 int process_set_mag(int nb) {
-	if (gui.cvport >= MAXGRAYVPORT) {
-		siril_log_color_message(_("Please display the channel on which you set the reference magnitude\n"), "red");
-		return CMD_GENERIC_ERROR;
-	}
-
 	double mag_reference = g_ascii_strtod(word[1], NULL);
 
 	gboolean found = FALSE;
@@ -2126,7 +2121,7 @@ int process_set_mag(int nb) {
 		}
 		psf_error error;
 		struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-		psf_star *result = psf_get_minimisation(&gfit, gui.cvport, &com.selection, FALSE, TRUE, ps, TRUE, &error);
+		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, FALSE, TRUE, ps, TRUE, &error);
 		free(ps);
 		if (result) {
 			found = TRUE;
@@ -2644,12 +2639,12 @@ int process_psf(int nb){
 		return CMD_SELECTION_ERROR;
 	}
 
-	if (gfit.naxes[2] > 1 && nb == 1 && (com.headless || gui.cvport >= MAXGRAYVPORT)) {
+	if (gfit.naxes[2] > 1 && nb == 1 && com.headless) {
 		siril_log_color_message(_("Please display the channel on which you want to compute the PSF or use -channel argument\n"), "red");
 		return CMD_GENERIC_ERROR;
 	}
 
-	int channel = com.headless ? 0 : gui.cvport;
+	int channel = com.headless ? 0 : select_vport(gui.cvport);
 	if (nb == 2) {
 		char *next;
 		channel = g_ascii_strtoull(word[1], &next, 10);
@@ -2804,12 +2799,8 @@ int process_seq_psf(int nb) {
 	int layer;
 	if (nb < 4) {
 		seq = &com.seq;
-		layer = gui.cvport;
+		layer = select_vport(gui.cvport);
 
-		if (gui.cvport >= MAXGRAYVPORT) {
-			siril_log_color_message(_("Please display the channel on which you want to compute the PSF\n"), "red");
-			return CMD_GENERIC_ERROR;
-		}
 		if (com.selection.w > 300 || com.selection.h > 300) {
 			siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
 			return CMD_SELECTION_ERROR;
@@ -3299,7 +3290,7 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 int process_findstar(int nb) {
 	int layer;
 	if (!com.script) {
-		layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
+		layer = select_vport(gui.cvport);
 	} else {
 		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
 	}
@@ -3342,7 +3333,7 @@ int process_seq_findstar(int nb) {
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
 	int layer;
 	if (!com.script) {
-		layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
+		layer = select_vport(gui.cvport);
 	} else {
 		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
 	}

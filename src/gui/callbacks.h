@@ -47,6 +47,7 @@ void adjust_vport_size_to_image();
 void set_output_filename_to_sequence_name();
 void close_tab();
 void activate_tab(int vport);
+void init_right_tab();
 
 void update_prepro_interface();
 

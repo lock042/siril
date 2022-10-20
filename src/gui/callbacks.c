@@ -119,10 +119,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (single_image_is_loaded()) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
 		if ((strcmp(filename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Image:");
+			markup = g_markup_printf_escaped (format_green, "Image: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Image:");
+			markup = g_markup_printf_escaped (format_white, "Image: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 	}
@@ -131,10 +131,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (sequence_is_loaded()) {
 		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
 		if ((strcmp(seq_basename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Sequence:");
+			markup = g_markup_printf_escaped (format_green, "Sequence: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Sequence:");
+			markup = g_markup_printf_escaped (format_white, "Sequence: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 	}
@@ -442,14 +442,14 @@ void adjust_sellabel() {
 
 		buffer_global = g_strdup_printf(_("%s, %d/%d images selected"),
 				seq_basename, com.seq.selnum, com.seq.number);
-		buffer_title = g_strdup(_("Sequence:"));
+		buffer_title = g_strdup(_("Sequence: "));
 
 		g_free(seq_basename);
 	} else if (single_image_is_loaded()) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
 
 		buffer_global = g_strdup_printf("%s", filename);
-		buffer_title = g_strdup(_("Image:"));
+		buffer_title = g_strdup(_("Image: "));
 
 		g_free(filename);
 	} else {
@@ -537,6 +537,8 @@ void update_MenuItem() {
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
 	siril_window_enable_if_selection_sequence_actions(app_win, com.selection.w && com.selection.h && sequence_is_loaded());
+	/* selectoin and isrgb is needed */
+	siril_window_enable_if_selection_rgb_actions(app_win, com.selection.w && com.selection.h && isrgb(&gfit));
 
 	/* Image processing Menu */
 
@@ -729,8 +731,7 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 }
 
 void update_display_selection() {
-	if (gui.cvport == RGB_VPORT || com.script) return;
-	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb"};
+	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb" };
 	static gchar selection_buffer[256] = { 0 };
 
 	if (com.selection.w && com.selection.h) {
@@ -743,8 +744,7 @@ void update_display_selection() {
 }
 
 void update_display_fwhm() {
-	if (gui.cvport == RGB_VPORT || com.script) return;
-	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb"};
+	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb" };
 	static gchar fwhm_buffer[256] = { 0 };
 
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
@@ -752,7 +752,7 @@ void update_display_fwhm() {
 	} else if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
 		if (com.selection.w < 300 && com.selection.h < 300) {
 			double roundness;
-			double fwhm_val = psf_get_fwhm(&gfit, gui.cvport, &com.selection, &roundness);
+			double fwhm_val = psf_get_fwhm(&gfit, select_vport(gui.cvport), &com.selection, &roundness);
 			g_sprintf(fwhm_buffer, _("fwhm: %.2f px, r: %.2f"), fwhm_val, roundness);
 		} else
 			g_sprintf(fwhm_buffer, _("fwhm: N/A"));
@@ -1059,6 +1059,9 @@ void activate_tab(int vport) {
 	if (gtk_notebook_get_current_page(notebook) != vport)
 		gtk_notebook_set_current_page(notebook, vport);
 	// com.cvport is set in the event handler for changed page
+}
+void init_right_tab() {
+	activate_tab(isrgb(&gfit) ? RGB_VPORT : RED_VPORT);
 }
 
 void update_spinCPU(int max) {
@@ -1804,16 +1807,6 @@ void on_menu_rgb_align_select(GtkMenuItem *menuitem, gpointer user_data) {
 
 	gtk_widget_set_sensitive(lookup_widget("rgb_align_dft"), sel_is_drawn);
 	gtk_widget_set_sensitive(lookup_widget("rgb_align_psf"), sel_is_drawn);
-}
-
-void on_rgb_align_dft_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	undo_save_state(&gfit, _("RGB alignment (DFT)"));
-	rgb_align(1);
-}
-
-void on_rgb_align_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	undo_save_state(&gfit, _("RGB alignment (PSF)"));
-	rgb_align(0);
 }
 
 void on_gotoStacking_button_clicked(GtkButton *button, gpointer user_data) {
