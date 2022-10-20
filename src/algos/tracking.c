@@ -75,7 +75,7 @@ static int plate_solve_for_stars(fits *fit, psf_star **stars) {
 	args->fit = fit;
 	args->pixel_size = pixel_size;
 	args->focal_length = fit->focal_length;
-	//args->focal_length = 1500.0;	// FIXME
+	//args->focal_length = 2800.0;	// FIXME
 	args->use_local_cat = TRUE;
 	args->onlineCatalog = NOMAD;
 	args->for_photometry_cc = FALSE;
@@ -178,8 +178,8 @@ gpointer tracking_worker(gpointer ptr) {
 
 	int retval = 0;
 	struct track *tracks;
-	int nblines = cvHoughLines(arg->fit, arg->layer, arg->threshold, arg->minlen, &tracks);
-	if (nblines > 0 && nblines < 800) {
+	int nblines = cvHoughLines(arg->fit, arg->layer, arg->threshold, arg->minlen, TRUE, &tracks);
+	if (nblines > 0 && nblines < 1000) {
 		siril_log_message(_("Found %d trail(s) in current frame, displaying start points\n"), nblines);
 		if (nblines > 1000) nblines = 1000;
 		if (arg->display_lines) {
@@ -230,6 +230,8 @@ gpointer tracking_worker(gpointer ptr) {
 		sort_stars_by_mag(stars, nbstars);
 		for (int i = 0; i < nbstars; i++)
 			siril_debug_print("%f %f %f\n", stars[i]->xpos, stars[i]->ypos, stars[i]->mag);
+
+		siril_debug_print("kept %d stars for plate solving\n", nbstars);
 		if (plate_solve_for_stars(arg->fit, stars)) {
 			siril_log_message(_("Plate solving using the detected trails as stars failed, adjust parameters or make sure the file metadata is correct\n"));
 			start_solve_failed = TRUE;

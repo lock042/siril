@@ -13,8 +13,7 @@ struct track {
 	float angle;	// with the X axis
 };
 
-int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, struct track **tracks);
-
+int cvHoughLines(fits *image, int layer, float threshvalue, int minlen, gboolean assume_main_population, struct track **tracks);
 
 #ifdef __cplusplus
 }
