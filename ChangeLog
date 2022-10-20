@@ -58,6 +58,8 @@ xx/xx/22
 * Optimised asinh code for speed
 * Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
 * Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Improved Ha-OIII extraction to offer full resolution O-III output and improve star roundness
+* Added CFA merge process for reconstructing a Bayer pattern previously split out with extraction
 
 siril 1.0.6
 10/18/22
