@@ -152,12 +152,14 @@ int	process_split_cfa(int nb);
 int	process_stat(int nb);
 int	process_stackall(int nb);
 int	process_stackone(int nb);
+int	process_synthstar(int nb);
 
 int	process_thresh(int nb);
 int	process_threshlo(int nb);
 int	process_threshhi(int nb);
 int	process_tilt(int nb);
 
+int	process_unclip(int nb);
 int	process_unset_mag(int nb);
 int	process_unset_mag_seq(int nb);
 int	process_unselect(int nb);

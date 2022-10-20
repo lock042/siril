@@ -196,7 +196,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	double invsigma = 1.0 / sigma;
 
 	if (applyRotation) {
-		if (cvRotateImage(&gfit, 90)) return 1;
+		if (cvRotateImage(fit, 90)) return 1;
 	}
 
 	if (new_fit_image(&fiximage, fit->rx, fit->ry, fit->naxes[2], DATA_USHORT))
@@ -262,7 +262,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
 	if ((!ret) && applyRotation) {
-		if (cvRotateImage(&gfit, -90)) return 1;
+		if (cvRotateImage(fit, -90)) return 1;
 	}
 
 	return ret;
@@ -276,7 +276,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	double invsigma = 1.0 / sigma;
 
 	if (applyRotation) {
-		if (cvRotateImage(&gfit, 90)) return 1;
+		if (cvRotateImage(fit, 90)) return 1;
 	}
 
 	if (new_fit_image(&fiximage, fit->rx, fit->ry, fit->naxes[2], DATA_FLOAT))
@@ -341,7 +341,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
 	if ((!ret) && applyRotation) {
-		if (cvRotateImage(&gfit, -90)) return 1;
+		if (cvRotateImage(fit, -90)) return 1;
 	}
 
 	return ret;

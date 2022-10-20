@@ -85,6 +85,7 @@ static void display_stat(const double *value, const double *normalization, char 
 }
 
 static double get_value_from_stat(imstats *stat, int index) {
+	if (!stat) return 0.0;
 	switch (index) {
 	case 0:
 		return stat->mean;
@@ -137,10 +138,10 @@ static void add_chan_stats_to_list(imstats **stat, int nblayer, data_type type, 
 		}
 
 		if (normalized) {
-			normalization[RLAYER] = stat[RLAYER]->normValue;
+			normalization[RLAYER] = stat[RLAYER] ? stat[RLAYER]->normValue : 0.0;
 			if (nblayer > 1) {
-				normalization[GLAYER] = stat[GLAYER]->normValue;
-				normalization[BLAYER] = stat[BLAYER]->normValue;
+				normalization[GLAYER] = stat[GLAYER] ? stat[GLAYER]->normValue : 0.0;
+				normalization[BLAYER] = stat[BLAYER] ? stat[BLAYER]->normValue : 0.0;
 			}
 			if (value[RLAYER] < 1E-5 && value[RLAYER] > 0.0) {
 				sprintf(format, "%%.5e");

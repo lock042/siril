@@ -119,10 +119,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (single_image_is_loaded()) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
 		if ((strcmp(filename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Image:");
+			markup = g_markup_printf_escaped (format_green, "Image: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Image:");
+			markup = g_markup_printf_escaped (format_white, "Image: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 	}
@@ -131,10 +131,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (sequence_is_loaded()) {
 		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
 		if ((strcmp(seq_basename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Sequence:");
+			markup = g_markup_printf_escaped (format_green, "Sequence: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Sequence:");
+			markup = g_markup_printf_escaped (format_white, "Sequence: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 	}
@@ -442,14 +442,14 @@ void adjust_sellabel() {
 
 		buffer_global = g_strdup_printf(_("%s, %d/%d images selected"),
 				seq_basename, com.seq.selnum, com.seq.number);
-		buffer_title = g_strdup(_("Sequence:"));
+		buffer_title = g_strdup(_("Sequence: "));
 
 		g_free(seq_basename);
 	} else if (single_image_is_loaded()) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
 
 		buffer_global = g_strdup_printf("%s", filename);
-		buffer_title = g_strdup(_("Image:"));
+		buffer_title = g_strdup(_("Image: "));
 
 		g_free(filename);
 	} else {
@@ -537,6 +537,8 @@ void update_MenuItem() {
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
 	siril_window_enable_if_selection_sequence_actions(app_win, com.selection.w && com.selection.h && sequence_is_loaded());
+	/* selectoin and isrgb is needed */
+	siril_window_enable_if_selection_rgb_actions(app_win, com.selection.w && com.selection.h && isrgb(&gfit));
 
 	/* Image processing Menu */
 
@@ -580,6 +582,46 @@ display_mode get_display_mode_from_menu() {
 	}
 	return LINEAR_DISPLAY;
 }
+
+static void set_initial_display_mode(display_mode x) {
+	switch(x) {
+		case LINEAR_DISPLAY:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("linear_item")), TRUE);
+			break;
+		case LOG_DISPLAY:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("log_item")), TRUE);
+			break;
+		case SQRT_DISPLAY:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("square_root_item")), TRUE);
+			break;
+		case SQUARED_DISPLAY:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("squared_item")), TRUE);
+			break;
+		case ASINH_DISPLAY:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("asinh_item")), TRUE);
+			break;
+		case STF_DISPLAY:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("auto_item")), TRUE);
+			break;
+		case HISTEQ_DISPLAY:
+			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(lookup_widget("histo_item")), TRUE);
+			break;
+	}
+}
+
+static void set_initial_histogram_display_mode(int x) {
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckLogButton"));
+	g_signal_handlers_block_by_func(button, on_histo_toggled, NULL);
+	switch(x) {
+	case LINEAR_DISPLAY:
+		gtk_toggle_button_set_active(button, FALSE);
+		break;
+	case LOG_DISPLAY:
+		gtk_toggle_button_set_active(button, TRUE);
+	}
+	g_signal_handlers_unblock_by_func(button, on_histo_toggled, NULL);
+}
+
 
 void update_prepro_interface(gboolean allow_debayer) {
 	static GtkToggleButton *udark = NULL, *uoffset = NULL, *uflat = NULL,
@@ -689,8 +731,7 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 }
 
 void update_display_selection() {
-	if (gui.cvport == RGB_VPORT || com.script) return;
-	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb"};
+	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb" };
 	static gchar selection_buffer[256] = { 0 };
 
 	if (com.selection.w && com.selection.h) {
@@ -703,8 +744,7 @@ void update_display_selection() {
 }
 
 void update_display_fwhm() {
-	if (gui.cvport == RGB_VPORT || com.script) return;
-	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb"};
+	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb" };
 	static gchar fwhm_buffer[256] = { 0 };
 
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
@@ -712,7 +752,7 @@ void update_display_fwhm() {
 	} else if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
 		if (com.selection.w < 300 && com.selection.h < 300) {
 			double roundness;
-			double fwhm_val = psf_get_fwhm(&gfit, gui.cvport, &com.selection, &roundness);
+			double fwhm_val = psf_get_fwhm(&gfit, select_vport(gui.cvport), &com.selection, &roundness);
 			g_sprintf(fwhm_buffer, _("fwhm: %.2f px, r: %.2f"), fwhm_val, roundness);
 		} else
 			g_sprintf(fwhm_buffer, _("fwhm: N/A"));
@@ -1020,6 +1060,9 @@ void activate_tab(int vport) {
 		gtk_notebook_set_current_page(notebook, vport);
 	// com.cvport is set in the event handler for changed page
 }
+void init_right_tab() {
+	activate_tab(isrgb(&gfit) ? RGB_VPORT : RED_VPORT);
+}
 
 void update_spinCPU(int max) {
 	static GtkSpinButton *spin_cpu = NULL;
@@ -1101,9 +1144,8 @@ void initialize_display_mode() {
 }
 
 /* initialize non-preferences GUI from settings */
-void init_GUI_from_settings() {
-	GtkToggleButton *main_debayer_button = GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton"));
-	gtk_toggle_button_set_active(main_debayer_button, com.pref.debayer.open_debayer);
+static void init_GUI_from_settings() {
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton")), com.pref.debayer.open_debayer);
 }
 
 void set_GUI_CWD() {
@@ -1293,10 +1335,16 @@ void initialize_all_GUI(gchar *supported_files) {
 	set_GUI_CWD();
 	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
 
+	set_initial_display_mode((display_mode) com.pref.gui.default_rendering_mode);
+	set_initial_histogram_display_mode(com.pref.gui.display_histogram_mode);
+
 	update_spinCPU(com.max_thread);
 
 	fill_astrometry_catalogue(com.pref.gui.catalog);
 	init_GUI_from_settings();
+
+	// init the Plot tab
+	drawPlot();
 
 	if (com.pref.gui.first_start) {
 		com.pref.gui.first_start = FALSE;
@@ -1761,16 +1809,6 @@ void on_menu_rgb_align_select(GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_widget_set_sensitive(lookup_widget("rgb_align_psf"), sel_is_drawn);
 }
 
-void on_rgb_align_dft_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	undo_save_state(&gfit, _("RGB alignment (DFT)"));
-	rgb_align(1);
-}
-
-void on_rgb_align_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	undo_save_state(&gfit, _("RGB alignment (PSF)"));
-	rgb_align(0);
-}
-
 void on_gotoStacking_button_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(STACKING);
 }
@@ -1799,9 +1837,11 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 
 		if (clear) {
 			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
-			drawPlot();
 			update_stack_interface(TRUE);
+			update_reg_interface(TRUE);
 			adjust_sellabel();
+			reset_plot();
+			set_layers_for_registration();
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
 		}
 	}

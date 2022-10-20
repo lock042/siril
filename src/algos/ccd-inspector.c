@@ -159,7 +159,6 @@ static int compute_tilt_values(fits *fit, int nbstars, psf_star **stars, float *
 
 int draw_sensor_tilt(fits *fit) {
 	int nbstars = 0;
-	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 
 	float m = 0;
 	float m1 = 0;
@@ -172,7 +171,7 @@ int draw_sensor_tilt(fits *fit) {
 	delete_selected_area();
 
 	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
-	psf_star **stars = peaker(&im, layer, &com.pref.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.max_thread);
+	psf_star **stars = peaker(&im, select_vport(gui.cvport), &com.pref.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.max_thread);
 
 	if (!compute_tilt_values(fit, nbstars, stars, &m, &m1, &m2, &m3, &m4, &mr1, &mr2)) {
 		float best = min(min(m1, m2), min(m3, m4));
@@ -295,9 +294,6 @@ void apply_tilt_to_sequence(struct tilt_data *tilt_args) {
 
 
 /**** show edges features **********/
-
-#define WIDGET_SIZE 127;
-
 static cairo_surface_t *edge_surface = NULL;
 int image_width = -1;
 int image_height = -1;
@@ -332,7 +328,8 @@ static void set_edge_square(gchar **panel) {
 		edge_surface = NULL;
 		return;
 	}
-	double scale = com.pref.analysis.mosaic_panel / WIDGET_SIZE;
+	int widget_size = com.pref.analysis.mosaic_window / 3;
+	double scale = com.pref.analysis.mosaic_panel / widget_size;
 	if (scale < 1.0) scale = 1.0;
 	cairo_surface_set_device_scale(edge_surface, scale, scale);
 	image_width = (int) ((double)image_width / scale);
@@ -471,6 +468,17 @@ gboolean on_right_bottom_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 void compute_aberration_inspector() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
+		int widget_size = com.pref.analysis.mosaic_window / 3;
+
+		gtk_widget_set_size_request(lookup_widget("left_top"), widget_size, widget_size);
+		gtk_widget_set_size_request(lookup_widget("center_top"), widget_size, widget_size);
+		gtk_widget_set_size_request(lookup_widget("right_top"), widget_size, widget_size);
+		gtk_widget_set_size_request(lookup_widget("left_center"), widget_size, widget_size);
+		gtk_widget_set_size_request(lookup_widget("center_center"), widget_size, widget_size);
+		gtk_widget_set_size_request(lookup_widget("right_center"), widget_size, widget_size);
+		gtk_widget_set_size_request(lookup_widget("left_bottom"), widget_size, widget_size);
+		gtk_widget_set_size_request(lookup_widget("center_bottom"), widget_size, widget_size);
+		gtk_widget_set_size_request(lookup_widget("right_bottom"), widget_size, widget_size);
 		set_edge_square(edge_w);
 	}
 }

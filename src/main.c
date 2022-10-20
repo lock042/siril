@@ -168,6 +168,7 @@ static void global_initialization() {
 		gui.hd_remap_index[i] = NULL;
 
 	initialize_default_settings();	// com.pref
+
 }
 
 static void siril_app_startup(GApplication *application) {

@@ -430,6 +430,7 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectan
 		return statistics_internal(fit, layer, selection, option, NULL, fit->bitpix, threads);
 	} else if (!seq || image_index < 0) {
 		// we have a single image, store in the fits
+		g_assert(layer < fit->naxes[2]);
 		if (fit->stats && fit->stats[layer]) {
 			oldstat = fit->stats[layer];
 			atomic_int_incref(oldstat->_nb_refs);

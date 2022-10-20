@@ -97,6 +97,7 @@ struct phot_config {
 
 struct analysis_config {
 	int mosaic_panel;
+	int mosaic_window;
 };
 
 struct debayer_config {
@@ -153,7 +154,11 @@ struct gui_config {
 
 	// single registration GUI variable
 	int reg_settings;	// selected registration method
+	int reg_interpolation; // selected interpolation method
+	gboolean reg_clamping; // clamping for Lanczos/Cubic
 	GSList *pm_presets; // list of pixel math presets
+	int default_rendering_mode; // Default view STF to use at startup
+	int display_histogram_mode; // Default histogram view to use at startup
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?

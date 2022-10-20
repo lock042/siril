@@ -34,6 +34,7 @@
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "gui/PSF_list.h"
+#include "gui/utils.h"
 
 #include "geometry.h"
 
@@ -142,7 +143,7 @@ static void fits_rotate_pi(fits *fit) {
 /* These functions do not more than resize_gaussian and rotate_image
  * except for console outputs.
  * Indeed, siril_log_message seems not working in a cpp file */
-int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
+int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
 	int retvalue;
 	const char *str_inter;
 	struct timeval t_start, t_end;
@@ -173,7 +174,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation) {
 
 	gettimeofday(&t_start, NULL);
 
-	retvalue = cvResizeGaussian(image, toX, toY, interpolation);
+	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
 	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
 	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
 	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve
@@ -232,7 +233,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 }
 
 int verbose_rotate_image(fits *image, rectangle area, double angle, int interpolation,
-		int cropped) {
+		int cropped, gboolean clamp) {
 	const char *str_inter;
 	struct timeval t_start, t_end;
 
@@ -269,7 +270,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
-	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation)) return 1;
+	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation, clamp)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -358,6 +359,13 @@ void mirrorx(fits *fit, gboolean verbose) {
 	} else if (fit->type == DATA_FLOAT) {
 		mirrorx_float(fit, verbose);
 	}
+	if (!strcmp(fit->row_order, "BOTTOM-UP"))
+		sprintf(fit->row_order, "TOP-DOWN");
+	else { //if (!strcmp(fit->row_order, "TOP-DOWN"))
+		// let's create the keyword in all cases
+		sprintf(fit->row_order, "BOTTOM-UP");
+	}
+	fit->history = g_slist_append(fit->history, strdup("TOP-DOWN mirror"));
 #ifdef HAVE_WCSLIB
 	if (has_wcs(fit)) {
 		Homography H = { 0 };

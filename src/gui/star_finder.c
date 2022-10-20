@@ -101,7 +101,6 @@ void confirm_peaker_GUI() {
 }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
-	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
 		return;
@@ -117,7 +116,7 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 		args->im.from_seq = NULL;
 		args->im.index_in_seq = -1;
 	}
-	args->layer = layer;
+	args->layer = select_vport(gui.cvport);
 	args->max_stars_fitted = 0;
 	args->starfile = NULL;
 	args->threading = MULTI_THREADED;

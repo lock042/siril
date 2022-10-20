@@ -1,3 +1,4 @@
+
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
@@ -161,8 +162,7 @@ void initialize_registration_methods() {
 	g_free(ctip);
 
 	/* fill comboboxregmethod */
-	regcombo = GTK_COMBO_BOX_TEXT(
-			gtk_builder_get_object(gui.builder, "comboboxregmethod"));
+	regcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxregmethod"));
 	gtk_combo_box_text_remove_all(regcombo);
 	i = 0;
 	while (reg_methods[i] != NULL) {
@@ -174,6 +174,11 @@ void initialize_registration_methods() {
 	if (i > 0) {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(regcombo), com.pref.gui.reg_settings);
 	}
+
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("ComboBoxRegInter")), com.pref.gui.reg_interpolation);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")), com.pref.gui.reg_clamping);
+	gtk_widget_set_sensitive(lookup_widget("toggle_reg_clamp"),
+			com.pref.gui.reg_interpolation == OPENCV_LANCZOS4 || com.pref.gui.reg_interpolation == OPENCV_CUBIC);
 
 	/* register to the new area selected event */
 	register_selection_update_callback(_reg_selected_area_callback);
@@ -215,7 +220,7 @@ static void normalizeQualityData(struct registration_args *args, double q_min, d
 }
 
 /* Calculate shift in images to be aligned with the reference image, using
- * discrete Fourrier transform on a square selected area and matching the
+ * discrete Fourier transform on a square selected area and matching the
  * phases.
  */
 int register_shift_dft(struct registration_args *args) {
@@ -774,6 +779,19 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 	update_reg_interface(TRUE);
 }
 
+void on_toggle_reg_clamp_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean active = gtk_toggle_button_get_active(button);
+
+	com.pref.gui.reg_clamping = active;
+}
+
+void on_ComboBoxRegInter_changed(GtkComboBox *box, gpointer user_data) {
+	com.pref.gui.reg_interpolation = gtk_combo_box_get_active(box);
+	gtk_widget_set_sensitive(lookup_widget("toggle_reg_clamp"),
+			com.pref.gui.reg_interpolation == OPENCV_LANCZOS4
+					|| com.pref.gui.reg_interpolation == OPENCV_CUBIC);
+}
+
 void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
 	GtkAdjustment *register_minpairs = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "register_minpairs"));
 	double val = gtk_adjustment_get_value(register_minpairs);
@@ -835,6 +853,16 @@ gboolean layer_has_usable_registration(sequence *seq, int layer) {
 	guess_transform_from_seq(seq, layer, &min, &max, FALSE); // will check first that layer_has_registration
 	if (max <= -1) return FALSE; // max <= -1 means all H matrices are identity or null
 	return TRUE;
+}
+
+int seq_has_any_regdata(sequence *seq) {
+	if (!seq || !seq->regparam || seq->nb_layers < 0)
+		return -1;
+	int i;
+	for (i = 0; i < seq->nb_layers; i++)
+		if (seq->regparam[i])
+			return i;
+	return -1;
 }
 
 /****************************************************************/
@@ -1055,7 +1083,7 @@ static void update_filters_registration() {
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL, *noout = NULL;
 	static GtkLabel *labelreginfo = NULL;
-	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL;
+	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo = NULL;
 	static GtkNotebook *notebook_reg = NULL;
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method;
@@ -1071,6 +1099,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		cumul_data = lookup_widget("check_button_comet");
 		noout = lookup_widget("regNoOutput");
 		reglayer = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
+		filter_combo = GTK_COMBO_BOX(lookup_widget("combofilter4"));
 	}
 
 	if (!dont_change_reg_radio) {
@@ -1093,8 +1122,12 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gboolean isapplyreg = method->method_ptr == &register_apply_reg;
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(lookup_widget("seq_filters_box_reg"), isapplyreg);
-	if (isapplyreg)
+	if (isapplyreg) {
+		if (!dont_change_reg_radio && com.seq.selnum < com.seq.number) {
+			gtk_combo_box_set_active(filter_combo, SELECTED_IMAGES);
+		}
 		update_filters_registration();
+	}
 
 	/* number of registered image */
 	nb_images_reg = gtk_combo_box_get_active(reg_all_sel_box) == 0 ? com.seq.number : com.seq.selnum;
@@ -1331,6 +1364,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
 	ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
 	reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
+	reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
@@ -1398,7 +1432,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
 	reg_args->load_new_sequence = FALSE; // only TRUE for global registration. Will be updated in this case
-	
+
 	if (method->method_ptr == register_star_alignment) { // seqpplyreg case is dealt with in the sanity checks of the method
 		if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || com.seq.is_variable)) {
 			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
@@ -1407,12 +1441,18 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 	}
+	if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg) &&
+		(reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)) ||
+		reg_args->no_output)
+		reg_args->clamp = FALSE;
 
 	if (method->method_ptr != register_3stars) clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
+	if (reg_args->clamp)
+		siril_log_message(_("Interpolation clamping active\n"));
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
 	start_in_reserved_thread(register_thread_func, reg_args);
