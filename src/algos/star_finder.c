@@ -823,15 +823,17 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		if (!strncmp(buffer, "# sigma=", 8)) {
 			star_finder_params fparams = { 0 };
 			int fmax_stars;
-			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d auto_adjust=%d relax=%d max_stars=%d",
+			int prof;
+			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d auto_adjust=%d relax=%d profile=%d max_stars=%d",
 						&fparams.sigma, &fparams.roundness, &fparams.radius,
-						&fparams.adjust, &fparams.relax_checks, &fmax_stars) != 6) {
+						&fparams.adjust, &fparams.relax_checks, &prof, &fmax_stars) != 6) {
 				read_failure = TRUE;
 				break;
 			}
+			fparams.profile = prof;
 			params_ok = fparams.sigma == sf->sigma && fparams.roundness == sf->roundness &&
 				fparams.radius == sf->radius && fparams.adjust == sf->adjust &&
-				fparams.relax_checks == sf->relax_checks &&
+				fparams.relax_checks == sf->relax_checks && fparams.profile == sf->profile &&
 				(fmax_stars >= sfargs->max_stars_fitted);
 			if (fmax_stars > sfargs->max_stars_fitted) sfargs->max_stars_fitted = fmax_stars;
 			siril_debug_print("params check: %d\n", params_ok);
@@ -854,11 +856,12 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		psf_star *s = new_psf_star();
 		memset(s, 0, sizeof(psf_star));
 		int fi, tokens;
+		char dump[9];
 		tokens = sscanf(buffer,
-				"%d\t%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%le\t%lf",
-				&fi, &s->layer, &s->B, &s->A, &s->xpos, &s->ypos,
-				&s->fwhmx, &s->fwhmy, &s->fwhmx_arcsec, &s->fwhmy_arcsec, &s->angle, &s->rmse, &s->mag);
-		if (tokens != 13) {
+				"%d\t%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%le\t%lf\t%s",
+				&fi, &s->layer, &s->B, &s->A, &s->beta, &s->xpos, &s->ypos,
+				&s->fwhmx, &s->fwhmy, &s->fwhmx_arcsec, &s->fwhmy_arcsec, &s->angle, &s->rmse, &s->mag, dump);
+		if (tokens != 15) {
 			siril_debug_print("malformed line: %s", buffer);
 			read_failure = TRUE;
 			break;

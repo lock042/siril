@@ -395,8 +395,8 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
-	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d auto_adjust=%d relax=%d max_stars=%d%s",
-			sf->sigma, sf->roundness, sf->radius, sf->adjust, sf->relax_checks, max_stars_fitted, SIRIL_EOL);
+	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d auto_adjust=%d relax=%d profile=%d max_stars=%d%s",
+			sf->sigma, sf->roundness, sf->radius, sf->adjust, sf->relax_checks,sf->profile, max_stars_fitted, SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
