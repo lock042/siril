@@ -1245,11 +1245,6 @@ static void draw_annotates(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
 
-	if (dd->neg_view) {
-		cairo_set_source_rgba(cr, 0.5, 0.0, 0.7, 0.9);
-	} else {
-		cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
-	}
 	cairo_set_line_width(cr, 1.0 / dd->zoom);
 	cairo_rectangle(cr, 0., 0., width, height); // to clip the grid
 	cairo_clip(cr);
@@ -1260,8 +1255,26 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble world_x = get_catalogue_object_ra(object);
 		gdouble world_y = get_catalogue_object_dec(object);
 		gchar *code = get_catalogue_object_code(object);
+		guint catalog = get_catalogue_object_cat(object);
 		gdouble resolution = get_wcs_image_resolution(&gfit);
 		gdouble x, y;
+
+		switch (catalog) {
+		case USER_DSO_CAT_INDEX:
+			cairo_set_source_rgba(cr, 1.0, 0.5, 0.0, 0.9);
+			break;
+		case USER_SSO_CAT_INDEX:
+			cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.9);
+			break;
+		default:
+		case 0:
+			if (dd->neg_view) {
+				cairo_set_source_rgba(cr, 0.5, 0.0, 0.7, 0.9);
+			} else {
+				cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
+			}
+			break;
+		}
 
 		if (resolution <= 0) return;
 
