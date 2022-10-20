@@ -457,7 +457,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	double fbeta = acos(2. * beta / MOFFAT_BETA_UBOUND - 1.);
 
 	struct PSF_data d = { n, y, NbRows, NbCols, 0. , mask };
-	double FWHM = max(gsl_vector_get(MaxV, 3), gsl_vector_get(MaxV, 4));
+	double FWHM = max(max(gsl_vector_get(MaxV, 3), gsl_vector_get(MaxV, 4)), 3); // using a min FWHM of 3 pixels to make sure init does not fail
 	double a_init = (gsl_vector_get(MaxV, 3) > gsl_vector_get(MaxV, 4)) ? 0. : M_PI / 2;
 	double x_init[8] = { background, // B
 						gsl_vector_get(MaxV, 0), // A
