@@ -24,9 +24,13 @@
 
 typedef struct _CatalogObjects CatalogObjects;
 
+#define USER_DSO_CAT_INDEX 6
+#define USER_SSO_CAT_INDEX 7
+
 GSList *find_objects(fits *fit);
 void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_system);
 gchar *get_catalogue_object_code(CatalogObjects *object);
+guint get_catalogue_object_cat(CatalogObjects *object);
 gchar *get_catalogue_object_name(CatalogObjects *object);
 gdouble get_catalogue_object_ra(CatalogObjects *object);
 gchar *retrieve_site_coord (fits *fit);

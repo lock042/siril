@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -6025,7 +6025,7 @@ enter a visible wavelength in nm</property>
             <property name="shadow-type">none</property>
             <child>
               <object class="GtkCheckButton" id="check_denoise_suppress_artefacts">
-                <property name="label" translatable="yes">Suppress color artefacts</property>
+                <property name="label" translatable="yes">Independant Channel</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
@@ -6038,7 +6038,7 @@ enter a visible wavelength in nm</property>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Artefact Suppression</property>
+                <property name="label" translatable="yes">Color Denoising</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
                 </attributes>
@@ -25356,6 +25356,7 @@ The technique gives very good compression for astronomical images and is relativ
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="orientation">vertical</property>
+                                <property name="spacing">5</property>
                                 <child>
                                   <object class="GtkScrolledWindow">
                                     <property name="height-request">150</property>
@@ -25412,14 +25413,44 @@ The technique gives very good compression for astronomical images and is relativ
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkButton" id="purge_user_catalogue">
-                                    <property name="label" translatable="yes">Purge User Catalogue</property>
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Purge the user catalogue by deleting the file. The operation cannot be undone</property>
-                                    <property name="halign">end</property>
-                                    <signal name="clicked" handler="on_purge_user_catalogue_clicked" swapped="no"/>
+                                    <property name="can-focus">False</property>
+                                    <property name="spacing">5</property>
+                                    <child>
+                                      <object class="GtkButton" id="purge_SSO_user_catalogue">
+                                        <property name="label" translatable="yes">Purge Solar Sys
+user Catalog</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Purge the SOLAR SYSTEM user catalog by deleting the file. The operation cannot be undone</property>
+                                        <signal name="clicked" handler="on_purge_SSO_user_catalogue_clicked" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack-type">end</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="purge_DSO_user_catalogue">
+                                        <property name="label" translatable="yes">Purge Deep Sky
+user Catalog</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Purge the DEEP SKY user catalog by deleting the file. The operation cannot be undone</property>
+                                        <signal name="clicked" handler="on_purge_DSO_user_catalogue_clicked" swapped="no"/>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack-type">end</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
