@@ -58,6 +58,7 @@ xx/xx/22
 * Optimised asinh code for speed
 * Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
 * Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Allow area selection (and much more) to be done on RGB display tab
 
 siril 1.0.6
 10/18/22

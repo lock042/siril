@@ -159,7 +159,6 @@ static int compute_tilt_values(fits *fit, int nbstars, psf_star **stars, float *
 
 int draw_sensor_tilt(fits *fit) {
 	int nbstars = 0;
-	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 
 	float m = 0;
 	float m1 = 0;
@@ -172,7 +171,7 @@ int draw_sensor_tilt(fits *fit) {
 	delete_selected_area();
 
 	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
-	psf_star **stars = peaker(&im, layer, &com.pref.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.pref.starfinder_conf.profile, com.max_thread);
+	psf_star **stars = peaker(&im, select_vport(gui.cvport), &com.pref.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.pref.starfinder_conf.profile, com.max_thread);
 
 	if (!compute_tilt_values(fit, nbstars, stars, &m, &m1, &m2, &m3, &m4, &mr1, &mr2)) {
 		float best = min(min(m1, m2), min(m3, m4));

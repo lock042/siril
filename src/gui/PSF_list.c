@@ -551,7 +551,7 @@ void clear_stars_list(gboolean refresh_GUI) {
 }
 
 void pick_a_star() {
-	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
+	int layer = match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
 	if (layer != -1) {
 		if (!(com.selection.h && com.selection.w))
 			return;

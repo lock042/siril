@@ -24,7 +24,9 @@
 #include "core/undo.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
+#include "core/siril_log.h"
 #include "core/initfile.h"
+#include "compositing/align_rgb.h"
 #include "algos/annotate.h"
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
@@ -329,12 +331,17 @@ void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 
 void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	psf_star *result = NULL;
-	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
+	int layer = select_vport(gui.cvport);
 
 	if (layer == -1)
 		return;
 	if (!(com.selection.h && com.selection.w))
 		return;
+	if (com.selection.w > 300 || com.selection.h > 300) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Current selection is too large"),
+				_("To determine the PSF, please make a selection around a star."));
+		return;
+	}
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
 	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 	free(ps);
@@ -611,4 +618,18 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 	undo_save_state(&gfit, "Synthetic stars: full replacement");
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(do_synthstar, NULL);
+}
+
+void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (DFT)"));
+	rgb_align(1);
+}
+
+void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (PSF)"));
+	if (com.selection.w > 300 || com.selection.h > 300) {
+		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+		return;
+	}
+	rgb_align(0);
 }
