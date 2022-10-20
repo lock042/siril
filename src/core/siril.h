@@ -200,7 +200,6 @@ typedef enum {
 	SQUARED_DISPLAY,
 	ASINH_DISPLAY,
 	STF_DISPLAY,
-//	STFHD_DISPLAY,
 	HISTEQ_DISPLAY
 } display_mode;
 #define DISPLAY_MODE_MAX HISTEQ_DISPLAY
@@ -418,6 +417,9 @@ struct ffit {
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
 	char observer[FLEN_VALUE];		// OBSERVER key
+	double sitelat;				// SITE LATITUDE key
+	double sitelong;			// SITE LONGITUDE key
+	double siteelev;			// SITE LONGITUDE key
 	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
 	double airmass;                   // relative optical path length through atmosphere.
@@ -525,7 +527,7 @@ struct guiinf {
 	WORD lo, hi;			// the values of the cutoff sliders
 	gboolean cut_over;		// display values over hi as negative
 	sliders_mode sliders;		// lo/hi, minmax, user
-	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY
+	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY or default_rendering_mode if set in preferences
 	gboolean unlink_channels;	// only for autostretch
 	BYTE remap_index[3][USHRT_MAX];	// abstracted here so it can be used for previews and is easier to change the bit depth
 	BYTE *hd_remap_index[3]; // HD remap indexes for the high precision LUTs.
