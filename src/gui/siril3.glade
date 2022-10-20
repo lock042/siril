@@ -6025,7 +6025,7 @@ enter a visible wavelength in nm</property>
             <property name="shadow-type">none</property>
             <child>
               <object class="GtkCheckButton" id="check_denoise_suppress_artefacts">
-                <property name="label" translatable="yes">Suppress color artefacts</property>
+                <property name="label" translatable="yes">Independant Channel</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
@@ -6038,7 +6038,7 @@ enter a visible wavelength in nm</property>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Artefact Suppression</property>
+                <property name="label" translatable="yes">Color Denoising</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
                 </attributes>
