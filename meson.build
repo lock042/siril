@@ -548,10 +548,11 @@ else # not meson.is_cross_build() or meson.has_exe_wrapper()
     endif
 endif
 
-if not glib_networking_works
-  error('Test for glib-networking failed. This is required.')
+if not glib_networking_works and not libcurl_dep.found()
+  error('no networking library found, either glib-networking or curl are required.')
 else
-  message('glib-networking is detected.')
+  message('networking solution found with either glib-networking or curl.')
+  conf_data.set('HAVE_NETWORKING', true, description : 'Using networking.')
 endif
 
 ## Git configuration
