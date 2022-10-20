@@ -32,8 +32,7 @@ extern "C" {
 }
 #endif
 #include "tracks.h"
-#endif // SELF_CONTAINED
-
+#endif // not SELF_CONTAINED
 #include "core/siril_log.h"
 
 #ifdef SELF_CONTAINED
@@ -502,6 +501,12 @@ int main() {
 	Segment s2 = Segment(1050, 1050, 1050, 950);
 	bool res = segments_intersect(s1, s2);
 	RESULT("intersection");
+
+	// two intersecting segments, almost colinear but with inverted start and end
+	s1 = Segment(292,115,301,344); // angle -92.250641
+	s2 = Segment(298,340,309,113); // angle 92.774277
+	res = segments_intersect(s1, s2);
+	RESULT("intersection reversed");
 
 	// two touching segments
 	s1 = Segment(1000, 1000, 1100, 1000);
