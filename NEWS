@@ -57,6 +57,7 @@ v1.2.0 mmm dd, 2022
 * Optimised asinh code for speed
 * Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
 * Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Allow area selection (and much more) to be done on RGB display tab
 
 v1.0.6 October 18, 2022
 

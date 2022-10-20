@@ -1533,7 +1533,7 @@ void adjust_vport_size_to_image() {
 
 void redraw(remap_type doremap) {
 	if (com.script) return;
-	siril_debug_print("redraw %d\n", doremap);
+//	siril_debug_print("redraw %d\n", doremap);
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;
