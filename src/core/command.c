@@ -6559,7 +6559,9 @@ int process_nomad(int nb) {
 		com.stars[j]->xpos = stars[i].x;
 		com.stars[j]->ypos = stars[i].y;
 		com.stars[j]->fwhmx = 5.0f;
+		com.stars[j]->fwhmy = 5.0f;
 		com.stars[j]->layer = 0;
+		com.stars[j]->angle = 0.0f;
 		j++;
 	}
 	if (j > 0)
