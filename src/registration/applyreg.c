@@ -215,7 +215,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	/* preparing reference data from reference fit and making sanity checks*/
 	sadata->current_regdata = apply_reg_get_current_regdata(regargs);
 	if (!sadata->current_regdata) return -2;
-	
+
 
 	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
@@ -248,7 +248,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	cvTransfH(Himg, Htransf, &H);
 
 	if (regargs->interpolation <= OPENCV_LANCZOS4) {
-		if (cvTransformImage(fit, rx_out, ry_out, H, regargs->x2upscale, regargs->interpolation)) {
+		if (cvTransformImage(fit, rx_out, ry_out, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 			return 1;
 		}
 	} else {
@@ -337,7 +337,7 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Total: %d failed, %d exported.\n"), "green", failed, regargs->new_total);
 
 		g_free(str);
-		
+
 		// explicit sequence creation to copy imgparam and regparam
 		create_output_sequence_for_apply_reg(regargs);
 		// will be loaded in the idle function if (load_new_sequence)
@@ -354,16 +354,29 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 	// it here because it's still used in the generic processing function.
 }
 
-int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) { 
+int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
-	
+	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+
 	/* The transformation memory consumption is:
 		* the original image
 		* the transformed image, including upscale if required (4x)
 		*/
 	unsigned int required = MB_per_orig_image + MB_per_scaled_image;
+	// If interpolation clamping is set, 2x additional Mats of the same format
+	// as the original image are required
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+	if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
+			regargs->interpolation == OPENCV_LANCZOS4)) {
+		float factor = (is_float) ? 0.25 : 0.5;
+		required += (1 + factor) * MB_per_scaled_image;
+	}
+	regargs = NULL;
+	sadata = NULL;
+
 	if (limit > 0) {
 
 		int thread_limit = MB_avail / required;
@@ -524,7 +537,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		return FALSE;
 	}
 	// check the number of dof if -interp=none
-	int min, max; 
+	int min, max;
 	guess_transform_from_seq(regargs->seq, regargs->layer, &min, &max, TRUE);
 	if (max > SHIFT_TRANSFORMATION && regargs->interpolation == OPENCV_NONE) {
 		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", (max + 1) * 2);

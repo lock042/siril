@@ -25,6 +25,7 @@
 #include "core/initfile.h"
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
+#include "algos/statistics.h"
 #include "gui/utils.h"
 #include "gui/dialogs.h"
 #include "gui/dialog_preview.h"
@@ -84,6 +85,7 @@ static const _pm_op_func functions[] = {
     { "log2",  "log2 ( x )",                            N_("Base-2 logarithm of x.")                  },
     { "max",   "max ( x, y )",                          N_("Maximum function.")                       },
     { "min",   "min ( x, y )",                          N_("Minimum function.")                       },
+    { "mtf",   "mtf ( m, x )",                          N_("Midtones Transfer Function (MTF) of x for a midtones balance parameter m in the [0, 1] range.") },
     { "ncr",   "ncr ( x, y )",                          N_("Combinations function.")                  },
     { "npr",   "npr ( x, y )",                          N_("Permutations function.")                  },
     { "pi",    "pi",                                    N_("The constant \u03c0=3.141592...")         },
@@ -94,6 +96,19 @@ static const _pm_op_func functions[] = {
     { "tan",   "tan ( x )",                             N_("Tangent of x.")                           },
     { "tanh",  "tanh ( x )",                            N_("Hyperbolic tangent of x.")                },
     { "trunc", "trunc ( x )",                           N_("Truncated integer part of x.")            }
+};
+
+static const _pm_op_func image_functions[] = {
+	{ "adev",     "adev ( Image )",                    N_("Average absolute deviation of the image.")  },
+	{ "bwmv",     "bwmv ( Image )",                    N_("Biweight midvariance of the image.")        },
+	{ "mad",      "mad ( Image )",                     N_("Median absolute deviation of the image.")   },
+	{ "max",      "max ( Image )",                     N_("Pixel maximum of the image.")               },
+	{ "mean",     "mean ( Image )",                    N_("Mean of the image.")                        },
+	{ "med",      "med ( Image )",                     N_("Median of the image.")                      },
+	{ "median",   "median ( Image )",                  N_("Median of the image.")                      },
+	{ "min",      "min ( Image )",                     N_("Pixel minimum of the image.")               },
+	{ "noise",    "noise ( Image )",                   N_("Estimation of Gaussian noise in the image.")},
+	{ "sdev",     "sdev ( Image )",                    N_("Standard deviation of the image.")          }
 };
 
 static const _pm_op_func operators[] = {
@@ -118,6 +133,7 @@ static const _pm_op_func operators[] = {
 };
 
 #define MAX_FUNCTIONS G_N_ELEMENTS(functions)
+#define MAX_IMAGE_FUNCTIONS G_N_ELEMENTS(image_functions)
 #define MAX_OPERATORS G_N_ELEMENTS(operators)
 
 
@@ -180,6 +196,12 @@ static void init_widgets() {
 		gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(lookup_widget("pixel_math_scrolled_operators")), TRUE);
 #endif
 
+		/* Due to a glade bug, this property is often removed, lets code it */
+		GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "pixel_math_selection"));
+		gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+		selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "pixel_math_presets_selection"));
+		gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+
 	}
 	g_assert(pixel_math_tree_view);
 	g_assert(pixel_math_tree_model);
@@ -201,6 +223,22 @@ static void init_widgets() {
 
 }
 
+static int FnCompare_functions(const void *v1, const void *v2) {
+	const _pm_op_func *i1 = v1;
+	const _pm_op_func *i2 = v2;
+
+	return (g_strcmp0(i1->name, i2->name));
+}
+
+static _pm_op_func *concat_functions() {
+	_pm_op_func *all_functions = malloc((MAX_FUNCTIONS + MAX_IMAGE_FUNCTIONS) * sizeof(_pm_op_func));
+	memcpy(all_functions, functions, MAX_FUNCTIONS * sizeof(_pm_op_func));
+	memcpy(all_functions + MAX_FUNCTIONS, image_functions, MAX_IMAGE_FUNCTIONS * sizeof(_pm_op_func));
+
+	qsort(all_functions, MAX_FUNCTIONS + MAX_IMAGE_FUNCTIONS, sizeof(_pm_op_func), FnCompare_functions);
+
+	return all_functions;
+}
 
 static gchar* get_pixel_math_expression1() {
 	init_widgets();
@@ -428,6 +466,116 @@ static void update_metadata(fits *fit) {
 	free(f);
 }
 
+static gchar *parse_image_functions(gpointer p, int idx, int c) {
+	struct pixel_math_data *args = (struct pixel_math_data *)p;
+
+	gchar *expression;
+	gchar **image = args->varname;
+	int nb_images = args->nb_rows;
+	switch(idx) {
+	default:
+	case 1:
+		expression = args->expression1;
+		break;
+	case 2:
+		expression = args->expression2;
+		break;
+	case 3:
+		expression = args->expression3;
+		break;
+	}
+	if (!expression) return expression;
+	for (int i = 0; i < MAX_IMAGE_FUNCTIONS; i++) {
+		/* First we need to find each occurrences of functions
+		 * Then if args->varname[i] is inside function parameters
+		 * Then apply statistics on args->varname[i]
+		 * Then transform it to numerical expression
+		 */
+		const gchar *function = image_functions[i].name;
+		int len = strlen(function);
+		int total_len = strlen(expression);
+
+		for (int pos = 0; pos < total_len - len; pos++) {
+			// Match word at current position
+			int found = 1;
+			for (int j = 0; j < len; j++) {
+				// If word is not matched
+				if (expression[pos + j] != function[j]) {
+					found = 0;
+					break;
+				}
+			}
+
+			// If word have been found then print found message
+			if (found == 1) {
+				if (expression[pos + len] == '(') {
+					for (int j = 0; j < nb_images; j++) {
+						int len2 = strlen(image[j]);
+						if (expression[pos + len + len2 + 1] == ')') {
+							// possible match
+							gchar *str = malloc(len2 + 1);
+							g_strlcpy(str, expression + pos + len + 1, len2 + 1);
+							if (!g_strcmp0(str, image[j])) {
+								gchar *replace = NULL;
+								double median = 0.0, mean = 0.0, min = 0.0,
+										max = 0.0, noise = 0.0, adev = 0.0,
+										bwmv = 0.0, mad = 0.0, sdev = 0.0;
+								imstats *stats = statistics(NULL, -1, &var_fit[j], c, NULL, STATS_MAIN, MULTI_THREADED);
+								if (!stats) return expression;
+
+								median = stats->median;
+								mean = stats->mean;
+								min = stats->min;
+								max = stats->max;
+								noise = stats->bgnoise;
+								adev = stats->avgDev;
+								bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
+								mad = stats->mad;
+								sdev = stats->sigma;
+
+								free_stats(stats);
+
+								if (!g_strcmp0(function, "mean")) {
+									replace = g_strdup_printf("%g", mean);
+								} else if ((!g_strcmp0(function, "med") || !(g_strcmp0(function, "median")))) {
+									replace = g_strdup_printf("%g", median);
+								} else if (!g_strcmp0(function, "min")) {
+									replace = g_strdup_printf("%g", min);
+								} else if (!g_strcmp0(function, "max")) {
+									replace = g_strdup_printf("%g", max);
+								} else if (!g_strcmp0(function, "noise")) {
+									replace = g_strdup_printf("%g", noise);
+								} else if (!g_strcmp0(function, "adev")) {
+									replace = g_strdup_printf("%g", adev);
+								} else if (!g_strcmp0(function, "bwmv")) {
+									replace = g_strdup_printf("%g", bwmv);
+								} else if (!g_strcmp0(function, "mad")) {
+									replace = g_strdup_printf("%g", mad);
+								} else if (!g_strcmp0(function, "sdev")) {
+									replace = g_strdup_printf("%g", sdev);
+								}
+								if (replace) {
+									GString *string = g_string_new(expression);
+									g_string_erase(string, pos, len + len2 + 2);
+									g_string_insert(string, pos, replace);
+									g_free(expression);
+									expression = g_string_free(string, FALSE);
+									total_len = strlen(expression);
+									pos = pos + strlen(replace);
+
+									siril_debug_print("Expression%d: %s\n", c, expression);
+								}
+							}
+							free(str);
+						}
+					}
+				}
+			}
+		}
+	}
+	return expression;
+}
+
 gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
@@ -438,6 +586,20 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	args->ret = 0;
 	float maximum = -FLT_MAX;
 	float minimum = +FLT_MAX;
+
+	if (args->single_rgb && args->fit->naxes[2] > 1) {
+		args->expression2 = g_strdup(args->expression1);
+		args->expression3 = g_strdup(args->expression1);
+
+		args->expression1 = parse_image_functions(args, 1, RLAYER);
+		args->expression2 = parse_image_functions(args, 2, GLAYER);
+		args->expression3 = parse_image_functions(args, 3, BLAYER);
+	} else {
+		args->expression1 = parse_image_functions(args, 1, RLAYER);
+		args->expression2 = parse_image_functions(args, 2, RLAYER);
+		args->expression3 = parse_image_functions(args, 3, RLAYER);
+	}
+
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) firstprivate(n1,n2,n3)
@@ -467,7 +629,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			goto failure;
 		}
 
-		if (!args->single_rgb) {
+		if (args->expression2) {
 			n2 = te_compile(args->expression2, vars, nb_rows, &err);
 			if (!n2) {
 #ifdef _OPENMP
@@ -499,12 +661,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				x[i] = var_fit[i].fdata[px];
 			}
 
-			if (args->single_rgb) {
-				fit->fdata[px] = (float) te_eval(n1);
-				/* may not be used but at least it is computed */
-				maximum = max(maximum, fit->fdata[px]);
-				minimum = min(minimum, fit->fdata[px]);
-			} else {
+			if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
 				fit->fpdata[RLAYER][px] = (float) te_eval(n1);
 				fit->fpdata[GLAYER][px] = (float) te_eval(n2);
 				fit->fpdata[BLAYER][px] = (float) te_eval(n3);
@@ -512,12 +669,24 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				/* may not be used but (only if rescale) at least it is computed */
 				maximum = max(maximum, max(fit->fpdata[RLAYER][px], max(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
 				minimum = min(minimum, min(fit->fpdata[RLAYER][px], min(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
+			} else {
+				if (px < (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+					fit->fdata[px] = (float) te_eval(n1);
+				} else if (px < 2 * (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+					fit->fdata[px] = (float) te_eval(n2);
+				} else {
+					fit->fdata[px] = (float) te_eval(n3);
+				}
+
+				/* may not be used but (only if rescale) at least it is computed */
+				maximum = max(maximum, fit->fdata[px]);
+				minimum = min(minimum, fit->fdata[px]);
 			}
 		}
 
 failure: // failure before the eval loop
 		te_free(n1);
-		if (!args->single_rgb) {
+		if (args->expression2) {
 			te_free(n2);
 			te_free(n3);
 		}
@@ -540,7 +709,7 @@ failure: // failure before the eval loop
 
 	/* free memory */
 	g_free(args->expression1);
-	if (args->single_rgb) {
+	if (args->expression2) {
 		g_free(args->expression2);
 		g_free(args->expression3);
 	}
@@ -743,7 +912,6 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 				_("Parameter symbols could not be parsed."));
 		return 1;
 	}
-	printf("[%s]\n", expression1);
 
 	args->expression1 = expression1;
 	args->expression2 = single_rgb ? NULL : expression2;
@@ -1063,6 +1231,8 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreePath *path = NULL;
 
+	_pm_op_func *all_functions = concat_functions();
+
 	char buffer[512];
 
 	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip,
@@ -1071,7 +1241,7 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 
 	gint real_index = get_real_index_from_index_in_list(model, &iter);
 
-	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", functions[real_index].prototype, _(functions[real_index].definition));
+	g_snprintf(buffer, 511, "<b>%s</b>\n\n%s", all_functions[real_index].prototype, _(all_functions[real_index].definition));
 	gtk_tooltip_set_markup(tooltip, buffer);
 
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
@@ -1109,10 +1279,14 @@ gboolean query_tooltip_op_tree_view_cb(GtkWidget *widget, gint x, gint y,
 static void add_functions_to_list() {
 	GtkTreeIter iter;
 
+	_pm_op_func *all_functions = concat_functions();
+
 	init_widgets();
-	for (int i = 0; i < MAX_FUNCTIONS; i++) {
+	int i = 0;
+	/* fill functions */
+	for (i = 0; i < MAX_FUNCTIONS + MAX_IMAGE_FUNCTIONS; i++) {
 		gtk_list_store_append(pixel_math_list_store_functions, &iter);
-		gtk_list_store_set(pixel_math_list_store_functions, &iter, COLUMN_NAME, functions[i].name, COLUMN_INDEX, i, -1);
+		gtk_list_store_set(pixel_math_list_store_functions, &iter, COLUMN_NAME, all_functions[i].name, COLUMN_INDEX, i, -1);
 	}
 }
 
@@ -1131,6 +1305,7 @@ static void add_presets_to_list() {
 
 	init_widgets();
 
+	com.pref.gui.pm_presets = g_slist_reverse(com.pref.gui.pm_presets);
 	for (GSList *l = com.pref.gui.pm_presets; l; l = l->next) {
 		gtk_list_store_append(pixel_math_list_store_presets, &iter);
 		gtk_list_store_set(pixel_math_list_store_presets, &iter, 0, (gchar *)l->data, -1);
@@ -1264,6 +1439,7 @@ static void save_presets_list() {
 	com.pref.gui.pm_presets = NULL;
 
 	gtk_tree_model_foreach(GTK_TREE_MODEL(pixel_math_list_store_presets), foreach_func, com.pref.gui.pm_presets);
+	com.pref.gui.pm_presets = g_slist_reverse(com.pref.gui.pm_presets);
 	writeinitfile();
 }
 

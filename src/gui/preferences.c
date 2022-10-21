@@ -148,6 +148,7 @@ static void update_photometry_preferences() {
 
 static void update_analysis_preferences() {
 	com.pref.analysis.mosaic_panel = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinpanel")));
+	com.pref.analysis.mosaic_window = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinwindow")));
 }
 
 static void update_scripts_preferences() {
@@ -169,6 +170,7 @@ static void update_user_interface_preferences() {
 	com.pref.gui.show_thumbnails = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")));
 	com.pref.gui.thumbnail_size = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size"))) == 1 ? 256 : 128;
 	com.pref.gui.default_rendering_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")));
+	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 }
 
 static void update_FITS_options_preferences() {
@@ -528,6 +530,7 @@ void update_preferences_from_model() {
 
 	/* tab 6 */
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinpanel")), pref->analysis.mosaic_panel);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinwindow")), pref->analysis.mosaic_window);
 
 	/* tab 7 */
 	pref->gui.script_path = set_list_to_preferences_dialog(pref->gui.script_path);
@@ -543,6 +546,8 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("show_preview_button")), pref->gui.show_thumbnails);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("thumbnails_box_size")), pref->gui.thumbnail_size == 256 ? 1 : 0);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
+
 
 	/* tab 9 */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);

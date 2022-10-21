@@ -25,8 +25,9 @@ xx/xx/22
 * Added a warning when images are negative on calibration
 * Added calibration details in the FITS history
 * Added saving formulas (presets) in Pixel Math
+* Added statistic functions to Pixel Math as well as mtf
 * Added solar system object search from online service for image annotations
-* Added zoom sliders in Plot tab
+* Added zoom sliders and plot selection in Plot tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored global registration and added 2pass and Apply Existing methods
@@ -56,15 +57,22 @@ xx/xx/22
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
 * Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
+* Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Allow area selection (and much more) to be done on RGB display tab
 
 siril 1.0.6
-xx/xx/22
+10/18/22
 
 * Fixed crash on opening a malformed SER
 * Fixed crash in savetif
 * Fixed crash in polynomial background extraction when not enough sample were set
 * Fixed bug in iif where no parameters could be used
 * Fixed crash in seqstat when some images were deselected
+* Fixed crash in star detection when large star was close to border
+* Fixed bad behaviour of asinh blackpoint with monochrome/32bits images
+* Fixed bug in PixelMath with negate values
+* Fixed bug in SIMBAD request when object name contains '+'
+* Fixed bug in rotational gradient
 
 siril 1.0.5
 09/09/22

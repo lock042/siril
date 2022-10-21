@@ -86,6 +86,8 @@ static GActionEntry rgb_processing_entries[] = {
 	{ "saturation-processing", saturation_activate },
 	{ "color-calib-processing", color_calib_activate },
 	{ "pcc-processing", pcc_activate },
+	{ "align-dft", align_dft_activate },
+	{ "align-psf", align_psf_activate },
 	{ "split-channel-processing", split_channel_activate }
 };
 
@@ -254,6 +256,15 @@ void siril_window_enable_if_selection_actions(GtkApplicationWindow *window, gboo
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_actions, enable);
+}
+
+void siril_window_enable_if_selection_rgb_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *selection_rgb_actions[] = {
+		"align-dft",
+		"align-psf",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_rgb_actions, enable);
 }
 
 void siril_window_enable_if_selection_sequence_actions(GtkApplicationWindow *window, gboolean enable) {

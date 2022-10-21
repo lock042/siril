@@ -155,7 +155,7 @@ void replace_sat_star_in_buffer(float *psfL, int size, float *Lsynth, int x, int
 		for (int psfy = 0; psfy < size; psfy++) {
 			xx = x + psfx - halfpsfdim;
 			yy = y + psfy - halfpsfdim;
-			if (xx >= 0 && xx < dimx && yy >= 0 && yy < dimy) {
+			if (xx > 0 && xx < dimx && yy > 0 && yy < dimy) {
 				float orig = Lsynth[xx + ((dimy - yy) * dimx)];
 				float synth = psfL[psfx + (psfy * size)];
 				float synthfactor = (orig < sat) ? 1.f -
@@ -266,28 +266,28 @@ int generate_synthstars(fits *fit) {
 	float *buf[3];
 	if (is_RGB) {
 		if (is_32bit) {
-			buf[0] = fit->fpdata[0];
-			buf[1] = fit->fpdata[1];
-			buf[2] = fit->fpdata[2];
+			buf[RLAYER] = fit->fpdata[RLAYER];
+			buf[GLAYER] = fit->fpdata[GLAYER];
+			buf[BLAYER] = fit->fpdata[BLAYER];
 		} else {
-			buf[0] = (float*) calloc(count, sizeof(float));
-			buf[1] = (float*) calloc(count, sizeof(float));
-			buf[2] = (float*) calloc(count, sizeof(float));
+			buf[RLAYER] = (float*) calloc(count, sizeof(float));
+			buf[GLAYER] = (float*) calloc(count, sizeof(float));
+			buf[BLAYER] = (float*) calloc(count, sizeof(float));
 			buf_needs_freeing = TRUE;
 			for (size_t i = 0; i < count; i++) {
-				buf[0][i] = (float) fit->pdata[0][i] * invnorm;
-				buf[1][i] = (float) fit->pdata[1][i] * invnorm;
-				buf[2][i] = (float) fit->pdata[2][i] * invnorm;
+				buf[RLAYER][i] = (float) fit->pdata[RLAYER][i] * invnorm;
+				buf[GLAYER][i] = (float) fit->pdata[GLAYER][i] * invnorm;
+				buf[BLAYER][i] = (float) fit->pdata[BLAYER][i] * invnorm;
 			}
 		}
 	} else { // mono
 		if (is_32bit)
-			buf[0] = fit->fdata;
+			buf[RLAYER] = fit->fdata;
 		else {
-			buf[0] = (float*) calloc(count, sizeof(float));
+			buf[RLAYER] = (float*) calloc(count, sizeof(float));
 			buf_needs_freeing = TRUE;
 			for (size_t i = 0; i < count; i++)
-				buf[0][i] = (float) fit->data[i] * invnorm;
+				buf[RLAYER][i] = (float) fit->data[i] * invnorm;
 		}
 	}
 
@@ -311,8 +311,8 @@ int generate_synthstars(fits *fit) {
 		Hsynth = (float*) calloc(count, sizeof(float));
 		Ssynth = (float*) calloc(count, sizeof(float));
 		for (size_t i = 0; i < count; i++) {
-			rgb_to_hsl_float_sat(buf[0][i], buf[1][i],
-					buf[2][i], 0.f, &H[i], &S[i], &junk);
+			rgb_to_hsl_float_sat(buf[RLAYER][i], buf[GLAYER][i],
+					buf[BLAYER][i], 0.f, &H[i], &S[i], &junk);
 		}
 	}
 
@@ -413,18 +413,18 @@ int generate_synthstars(fits *fit) {
 #pragma omp for schedule(static)
 #endif
 					for (size_t n = 0; n < count; n++) {
-						fit->fpdata[0][n] = R[n];
-						fit->fpdata[1][n] = G[n];
-						fit->fpdata[2][n] = B[n];
+						fit->fpdata[RLAYER][n] = R[n];
+						fit->fpdata[GLAYER][n] = G[n];
+						fit->fpdata[BLAYER][n] = B[n];
 					}
 				} else {
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
 					for (size_t n = 0; n < count; n++) {
-						fit->pdata[0][n] = roundf_to_WORD(R[n] * norm);
-						fit->pdata[1][n] = roundf_to_WORD(G[n] * norm);
-						fit->pdata[2][n] = roundf_to_WORD(B[n] * norm);
+						fit->pdata[RLAYER][n] = roundf_to_WORD(R[n] * norm);
+						fit->pdata[GLAYER][n] = roundf_to_WORD(G[n] * norm);
+						fit->pdata[BLAYER][n] = roundf_to_WORD(B[n] * norm);
 					}
 				}
 #ifdef _OPENMP
@@ -449,11 +449,8 @@ int generate_synthstars(fits *fit) {
 						fit->fdata[n] = (float) Lsynth[n];
 					}
 					if (com.pref.force_16bit) {
-						const size_t ndata = fit->naxes[0] * fit->naxes[1]
-								* fit->naxes[2];
-						fit_replace_buffer(fit,
-								float_buffer_to_ushort(fit->fdata, ndata),
-								DATA_USHORT);
+						const size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+						fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 					}
 				} else {
 #ifdef _OPENMP
@@ -482,7 +479,7 @@ int generate_synthstars(fits *fit) {
 			for (size_t i = 0; i < 3; i++)
 				free(buf[i]);
 		} else
-			free(buf[0]);
+			free(buf[RLAYER]);
 	}
 	update_filter_information(fit, "StarMask", TRUE);
 	if (fit == &gfit && !stopcalled)
@@ -626,7 +623,7 @@ int reprofile_saturated_stars(fits *fit) {
 			for (size_t i = 0; i <3; i++)
 				free(buf[i]);
 		} else
-			free(buf[0]);
+			free(buf[RLAYER]);
 	}
 
 	if (fit == &gfit && !stopcalled)

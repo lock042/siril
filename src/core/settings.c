@@ -115,6 +115,7 @@ preferences pref_init = {
 		.show_thumbnails = TRUE,
 		.thumbnail_size = 256,
 		.default_rendering_mode = LINEAR_DISPLAY,
+		.display_histogram_mode = LINEAR_DISPLAY,
 		.catalog[0] = TRUE,
 		.catalog[1] = TRUE,
 		.catalog[2] = TRUE,
@@ -122,10 +123,12 @@ preferences pref_init = {
 		.catalog[4] = TRUE,
 		.catalog[5] = TRUE,
 		.catalog[6] = TRUE,
+		.catalog[7] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
 		.reg_settings = 0,
-		.reg_interpolation = OPENCV_AREA,
+		.reg_interpolation = OPENCV_LANCZOS4,
+		.reg_clamping = TRUE,
 		.pm_presets = NULL
 	},
 	.debayer = {
@@ -148,6 +151,7 @@ preferences pref_init = {
 	},
 	.analysis = {
 		.mosaic_panel = 256,
+		.mosaic_window = 381,
 	},
 	.stack = {
 		.method = 0,
@@ -235,6 +239,7 @@ struct settings_access all_settings[] = {
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
 
 	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
+	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 1600 } } },
 
 	{ "compression", "enabled", STYPE_BOOL, N_("FITS compression enabled"), &com.pref.comp.fits_enabled },
 	{ "compression", "method", STYPE_INT, N_("FITS compression method"), &com.pref.comp.fits_method, { .range_int = { 0, 3 } } },
@@ -264,6 +269,7 @@ struct settings_access all_settings[] = {
 
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected registration method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
+	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
 
 	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, 4 } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },
@@ -294,7 +300,8 @@ struct settings_access all_settings[] = {
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
-	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode },
+	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
+	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },

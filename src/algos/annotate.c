@@ -32,7 +32,6 @@
 
 #include "annotate.h"
 
-#define USER_CATALOGUE "user-catalogue.txt"
 #define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec
 
 static GSList *siril_catalogue_list = NULL; // loaded data from all annotation catalogues
@@ -44,8 +43,11 @@ static const gchar *cat[] = {
 	"ic.txt",
 	"ldn.txt",
 	"sh2.txt",
-	"stars.txt"
+	"stars.txt",
+	"user-DSO-catalogue.txt",
+	"user-SSO-catalogue.txt"
 };
+// update USER_DSO_CAT_INDEX and USER_SSO_CAT_INDEX from the .h in case of change
 
 struct _CatalogObjects {
 	gchar *code;
@@ -87,7 +89,9 @@ static const char *cat_index_to_name(int index) {
 		case 5:
 			return "stars";
 		case 6:
-			return "user";
+			return "user-DSO";
+		case 7:
+			return "user-SSO";
 		default:
 			return "(undefined)";
 	}
@@ -179,6 +183,7 @@ static GSList *load_catalog(const gchar *filename, gint cat_index) {
 		g_free(line);
 	}
 	list = g_slist_reverse(list);
+	siril_debug_print("loaded %d objects from annotations catalogue %s\n", g_slist_length(list), filename);
 
 	g_object_unref(data_input);
 	g_object_unref(input_stream);
@@ -187,26 +192,21 @@ static GSList *load_catalog(const gchar *filename, gint cat_index) {
 }
 
 static void load_all_catalogues() {
-	int cat_size = G_N_ELEMENTS(cat);
-
 	if (siril_catalogue_list) {
 		g_slist_free_full(siril_catalogue_list, (GDestroyNotify)free_catalogue_object);
 		siril_catalogue_list = NULL;
 	}
 
+	int cat_size = G_N_ELEMENTS(cat);
 	for (int i = 0; i < cat_size; i++) {
-		gchar *filename = g_build_filename(siril_get_system_data_dir(), "catalogue", cat[i], NULL);
-		siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(filename, i));
-
+		gchar *filename;
+		if (i < USER_DSO_CAT_INDEX)
+			filename = g_build_filename(siril_get_system_data_dir(), "catalogue", cat[i], NULL);
+		else filename = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[i], NULL);
+		if (g_file_test(filename, G_FILE_TEST_EXISTS))
+			siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(filename, i));
 		g_free(filename);
 	}
-	/* load user catalogue */
-	gchar *filename = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", USER_CATALOGUE, NULL);
-	if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		siril_catalogue_list = g_slist_concat(siril_catalogue_list, load_catalog(filename, cat_size));
-	}
-
-	g_free(filename);
 }
 
 static GSList *get_siril_catalogue_list() {
@@ -285,12 +285,33 @@ static gchar* replace_str(const gchar *s, const gchar *old, const gchar *new) {
 	return result;
 }
 
-static void write_in_user_catalogue(CatalogObjects *object) {
+gchar *retrieve_site_coord (fits *fit) {
+	//  In case no localisation data is available, set the reference to geocentric, ie @500 in the request
+	if (!fit->sitelat || !fit->sitelong)
+		return g_strdup("@500");
+
+	GString *formatted_site_coord = g_string_new("");
+
+	if (fit->sitelat < 0.)
+		formatted_site_coord = g_string_append(formatted_site_coord, "%2D");
+	else formatted_site_coord = g_string_append(formatted_site_coord, "%2B");
+	g_string_append_printf(formatted_site_coord, "%f,", fabs(fit->sitelat));
+
+	if (fit->sitelong < 0.)
+		formatted_site_coord = g_string_append(formatted_site_coord, "%2D");
+	else formatted_site_coord = g_string_append(formatted_site_coord, "%2B");
+	g_string_append_printf(formatted_site_coord, "%f,", fabs(fit->sitelong));
+
+	g_string_append_printf(formatted_site_coord, "%f", fabs(fit->siteelev));
+
+	return g_string_free(formatted_site_coord, FALSE);
+}
+
+static void write_in_user_catalogue(CatalogObjects *object, gboolean is_solar_system) {
 	GError *error = NULL;
 	GFile *file;
 	GOutputStream *output_stream;
 	gchar *root;
-
 	/* First we test if root directory already exists */
 	root = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", NULL);
 
@@ -302,8 +323,9 @@ static void write_in_user_catalogue(CatalogObjects *object) {
 		}
 	}
 
-	/* we write in the catalogue */
-	file = g_file_new_build_filename(root, USER_CATALOGUE, NULL);
+	if (is_solar_system)
+		file = g_file_new_build_filename(root, cat[USER_SSO_CAT_INDEX], NULL);
+	else file = g_file_new_build_filename(root, cat[USER_DSO_CAT_INDEX], NULL);
 	g_free(root);
 
 	output_stream = (GOutputStream *)g_file_append_to(file, G_FILE_CREATE_NONE, NULL, &error);
@@ -315,6 +337,7 @@ static void write_in_user_catalogue(CatalogObjects *object) {
 		g_object_unref(file);
 		return;
 	}
+
 	gchar sign = object->dec < 0 ? '-' : '+';
 	gchar *output_line = g_strdup_printf("%s;%lf;%c;%lf;;;;\n", object->code, object->ra / 15.0, sign, fabs(object->dec));
 
@@ -357,7 +380,6 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_s
 
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
-
 	/* check for the object first to avoid duplicates, not for solar system objects */
 	if (!is_solar_system) {
 		GSList *cur = siril_catalogue_list;
@@ -375,10 +397,10 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_s
 
 	CatalogObjects *new_object = new_catalog_object(code,
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
-			NULL, NULL, cat_size);
+			NULL, NULL, is_solar_system ? cat_size -1 : cat_size -2);
 
 	siril_catalogue_list = g_slist_append(siril_catalogue_list, new_object);
-	write_in_user_catalogue(new_object);
+	write_in_user_catalogue(new_object, is_solar_system);
 }
 
 gchar *get_catalogue_object_code(CatalogObjects *object) {
@@ -404,6 +426,10 @@ gchar *get_catalogue_object_code(CatalogObjects *object) {
 
 gchar *get_catalogue_object_name(CatalogObjects *object) {
 	return object->name;
+}
+
+guint get_catalogue_object_cat(CatalogObjects *object) {
+	return object->catalogue;
 }
 
 gdouble get_catalogue_object_ra(CatalogObjects *object) {
@@ -437,15 +463,35 @@ static gboolean show_catalog(int catalog) {
 	return com.pref.gui.catalog[catalog];
 }
 
-void on_purge_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
-	int confirm = siril_confirm_dialog(_("Catalogue deletion"),
-			_("You are about to purge user catalogue. This means the file containing the manually added objects will be deleted. "
+void on_purge_SSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
+	int confirm = siril_confirm_dialog(_("Catalog deletion"),
+			_("You are about to purge your SOLAR SYSTEM user catalog. This means the file containing the manually added objects will be deleted. "
 				"This operation cannot be undone."), _("Purge Catalogue"));
 	if (!confirm) {
 		return;
 	}
 
-	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", USER_CATALOGUE, NULL);
+	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[USER_SSO_CAT_INDEX], NULL);
+
+	g_autoptr(GError) local_error = NULL;
+	if (!g_file_delete(file, NULL, &local_error)) {
+		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
+	} else {
+		load_all_catalogues();
+	}
+
+	g_object_unref(file);
+}
+
+void on_purge_DSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
+	int confirm = siril_confirm_dialog(_("Catalogue deletion"),
+			_("You are about to purge your DEEP SKY user catalogue. This means the file containing the manually added objects will be deleted. "
+				"This operation cannot be undone."), _("Purge Catalogue"));
+	if (!confirm) {
+		return;
+	}
+
+	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[USER_DSO_CAT_INDEX], NULL);
 
 	g_autoptr(GError) local_error = NULL;
 	if (!g_file_delete(file, NULL, &local_error)) {
