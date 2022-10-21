@@ -4073,7 +4073,7 @@ int process_convertraw(int nb) {
 	int count = 0;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
-		if (!ext)
+		if (!ext || file[0] == '.')
 			continue;
 		image_type type = get_type_for_extension(ext);
 		if (type == TYPERAW) {
@@ -4169,7 +4169,7 @@ int process_link(int nb) {
 	int count = 0;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
-		if (!ext)
+		if (!ext || file[0] == '.')
 			continue;
 		image_type type = get_type_for_extension(ext);
 		if (type == TYPEFITS) {
@@ -4279,7 +4279,7 @@ int process_convert(int nb) {
 	int count = 0;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
-		if (!ext)
+		if (!ext || file[0] == '.')
 			continue;
 		image_type type = get_type_for_extension(ext);
 		if (type != TYPEUNDEF && type != TYPEAVI && type != TYPESER) {
