@@ -187,7 +187,11 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 	if (evtype == G_FILE_MONITOR_EVENT_CREATED) {
 		gchar *filename = g_file_get_basename(file);
 		siril_debug_print("File %s created\n", filename);
-		if (paused) return;	// manage in https://gitlab.com/free-astro/siril/-/issues/786
+		if (filename[0] == '.' || // hidden files
+				paused)	{ // manage in https://gitlab.com/free-astro/siril/-/issues/786
+			g_free(filename);
+			return;
+		}
 
 		image_type type;
 		stat_file(filename, &type, NULL);
@@ -201,6 +205,7 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 				if (wait_for_file_to_be_written(filename)) {
 					gchar *str = g_strdup_printf(_("Could not open file: %s"), filename);
 					livestacking_display(str, TRUE);
+					g_free(filename);
 					return;
 				}
 				g_async_queue_push(new_files_queue, filename);
