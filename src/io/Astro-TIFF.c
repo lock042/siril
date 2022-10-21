@@ -287,22 +287,22 @@ gchar *AstroTiff_build_header(fits *fit) {
 		siril_string_append_str(str, "RGB", "CTYPE3", "RGB image");
 	}
 
-	if (fit->wcsdata.objctra[0] !='\0')
+	if (fit->wcsdata.objctra[0] !='\0') {
 		siril_string_append_str(str, fit->wcsdata.objctra, "OBJCTRA", "Image center Right Ascension (hms)");
-	if (fit->wcsdata.ra != 0.0)
-		siril_string_append_double(str, fit->wcsdata.ra, "RA", "Image center Right Ascension (deg)");
-	if (fit->wcsdata.objctdec[0] !='\0')
 		siril_string_append_str(str, fit->wcsdata.objctdec, "OBJCTDEC", "Image center Declination (dms)");
-	if (fit->wcsdata.dec != 0.0)
+	}
+	if (fit->wcsdata.ra > 0.0) {
+		siril_string_append_double(str, fit->wcsdata.ra, "RA", "Image center Right Ascension (deg)");
 		siril_string_append_double(str, fit->wcsdata.dec, "DEC", "Image center Declination (deg)");
-	if (fit->wcsdata.crpix[0] != 0.0)
+	}
+	if (fit->wcsdata.crpix[0] != '\0') {
 		siril_string_append_double(str, fit->wcsdata.crpix[0], "CRPIX1", "Axis1 reference pixel");
-	if (fit->wcsdata.crpix[1] != 0.0)
 		siril_string_append_double(str, fit->wcsdata.crpix[1], "CRPIX2", "Axis2 reference pixel");
-	if (fit->wcsdata.crval[0] != 0.0)
+	}
+	if (fit->wcsdata.crval[0] != '\0') {
 		siril_string_append_double(str, fit->wcsdata.crval[0], "CRVAL1", "Axis1 reference value (deg)");
-	if (fit->wcsdata.crval[1] != 0.0)
 		siril_string_append_double(str, fit->wcsdata.crval[1], "CRVAL2", "Axis2 reference value (deg)");
+	}
 
 	/* check if pc matrix exists */
 	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) != 0.0) {
