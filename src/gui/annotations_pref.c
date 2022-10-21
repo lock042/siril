@@ -35,6 +35,7 @@ static gchar *astro_catalogue[] = {
 		"User Deep Sky Objects Catalogue",
 		"User Solar System Objects Catalogue"
 };
+// update the size of gui_config.catalog if changed
 
 static void get_statlist_store() {
 	if (list_store_catalogue == NULL)
