@@ -40,6 +40,8 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		set_cursor_waiting(TRUE);
 		args->seq = &com.seq;
+		args->scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
+		args->scaling = 0; // Temporary until the glade element is added (TODO)
 		args->seqEntry = gtk_entry_get_text(entrySplitCFA);
 		switch (method) {
 			case 0:

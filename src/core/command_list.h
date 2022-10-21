@@ -67,7 +67,7 @@ static command commands[] = {
 	{"extract", 1, "extract NbPlans", process_extract, STR_EXTRACT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"extract_Ha", 0, "extract_Ha", process_extractHa, STR_EXTRACTHA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
 	{"extract_Green", 0, "extract_Green", process_extractGreen, STR_EXTRACTGREEN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
-	{"extract_HaOIII", 0, "extract_HaOIII", process_extractHaOIII, STR_EXTRACTHAOIII, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
+	{"extract_HaOIII", 0, "extract_HaOIII [-resample=]", process_extractHaOIII, STR_EXTRACTHAOIII, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
 
 	{"fdiv", 2, "fdiv filename scalar", process_fdiv, STR_FDIV, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"fftd", 2, "fftd modulus phase", process_fft, STR_FFTD, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
@@ -166,7 +166,7 @@ static command commands[] = {
 	{"seqclean", 1, "seqclean sequencename [-reg] [-stat] [-sel]", process_seq_clean, STR_SEQCLEAN, TRUE, REQ_CMD_NONE},
 	{"seqextract_Ha", 1, "seqextract_Ha sequencename [-prefix=]", process_seq_extractHa, STR_SEQEXTRACTHA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqextract_Green", 1, "seqextract_Green sequencename [-prefix=]", process_seq_extractGreen, STR_SEQEXTRACTGREEN, TRUE, REQ_CMD_NO_THREAD},
-	{"seqextract_HaOIII", 1, "seqextract_HaOIII sequencename", process_seq_extractHaOIII, STR_SEQEXTRACTHAOIII, TRUE, REQ_CMD_NO_THREAD},
+	{"seqextract_HaOIII", 1, "seqextract_HaOIII sequencename [-resample=]", process_seq_extractHaOIII, STR_SEQEXTRACTHAOIII, TRUE, REQ_CMD_NO_THREAD},
 	{"seqcosme", 2, "seqcosme sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME, TRUE, REQ_CMD_NONE},
 	{"seqcosme_cfa", 2, "seqcosme_cfa sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME_CFA, TRUE, REQ_CMD_NONE},
 	{"seqcrop", 5, "seqcrop sequencename x y width height [-prefix=]", process_seq_crop, STR_SEQCROP, TRUE, REQ_CMD_NO_THREAD},

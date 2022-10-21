@@ -204,6 +204,7 @@ siril_common_SOURCES = \
 	gui/menu_gray_geometry.c \
 	gui/menu_gray_geometry.h \
 	gui/menu_gray_psf.c \
+	gui/merge_cfa.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
 	gui/nina_light_curve.c \

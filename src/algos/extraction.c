@@ -374,10 +374,10 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	double_data->index = o;
 
 	if (fit->type == DATA_USHORT) {
-		ret = extractHaOIII_ushort(fit, double_data->ha, double_data->oiii, pattern);
+		ret = extractHaOIII_ushort(fit, double_data->ha, double_data->oiii, pattern, cfa_args->scaling);
 	}
 	else if (fit->type == DATA_FLOAT) {
-		ret = extractHaOIII_float(fit, double_data->ha, double_data->oiii, pattern);
+		ret = extractHaOIII_float(fit, double_data->ha, double_data->oiii, pattern, cfa_args->scaling);
 	}
 
 	if (ret) {
@@ -718,7 +718,7 @@ void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 
 #define SQRTF_2 1.41421356f
 
-int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern) {
+int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, int scaling) {
 	int width = in->rx / 2, height = in->ry / 2;
 	float norm = USHRT_MAX_SINGLE;
 	float invnorm = 1.f / norm;
@@ -871,13 +871,12 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern)
 		return 1;
 	// Scale images to match: either upsample Ha to match OIII, downsample OIII to match Ha
 	// or do nothing. Hardcoded to upscale for now.
-	// TODO: update this to be user-selectable once glade updates are not blocked by other MRs
-	int scaling = 0;
+
 	switch (scaling) {
-		case 0: // Upsample Ha to OIII size
+		case 1: // Upsample Ha to OIII size
 			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
 			break;
-		case 1: // Downsample OIII to Ha size
+		case 2: // Downsample OIII to Ha size
 			verbose_resize_gaussian(OIII, Ha->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
 			break;
 		default:
@@ -896,7 +895,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern)
 	return 0;
 }
 
-int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern) {
+int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, int scaling) {
 	int width = in->rx / 2, height = in->ry / 2;
 
 	if (strlen(in->bayer_pattern) > 4) {
@@ -1047,13 +1046,12 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern) 
 		return 1;
 	// Scale images to match: either upsample Ha to match OIII, downsample OIII to match Ha
 	// or do nothing. Hardcoded to upscale for now.
-	// TODO: update this to be user-selectable once glade updates are not blocked by other MRs
-	int scaling = 0;
+
 	switch (scaling) {
-		case 0: // Upsample Ha to OIII size
+		case 1: // Upsample Ha to OIII size
 			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
 			break;
-		case 1: // Downsample OIII to Ha size
+		case 2: // Downsample OIII to Ha size
 			verbose_resize_gaussian(OIII, Ha->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
 			break;
 		default:

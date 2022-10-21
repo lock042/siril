@@ -4122,6 +4122,7 @@ int process_extractHa(int nb) {
 int process_extractHaOIII(int nb) {
 	char *filename = NULL;
 	int ret = 1;
+	int scaling = 0;
 
 	fits f_Ha = { 0 }, f_OIII = { 0 };
 
@@ -4135,21 +4136,35 @@ int process_extractHaOIII(int nb) {
 			free(tmp);
 		}
 	}
+	if (word[1]) {
+		if (g_str_has_prefix(word[1], "-resample=")) {
+			char *current = word[1], *value;
+			value = current + 10;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
+				return CMD_ARG_ERROR;
+			} else if (!strcmp(value, "ha")) {
+				scaling = 1;
+			} else if (!strcmp(value, "oiii")) {
+				scaling = 2;
+			}
+		}
+	}
 
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
 
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
-		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern))) {
+		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
 			ret = save1fits16(Ha, &f_Ha, 0) ||
 					save1fits16(OIII, &f_OIII, 0);
 		}
 	}
 	else if (gfit.type == DATA_FLOAT) {
-		if (!(ret = extractHaOIII_float(&gfit, &f_Ha, &f_OIII, pattern))) {
+		if (!(ret = extractHaOIII_float(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
 			ret = save1fits32(Ha, &f_Ha, 0) ||
-					save1fits16(OIII, &f_OIII, 0);
+					save1fits32(OIII, &f_OIII, 0);
 		}
 	} else return CMD_INVALID_IMAGE;
 
@@ -4365,6 +4380,22 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
+	args->scaling = 0;
+
+	if (word[2]) {
+		if (g_str_has_prefix(word[2], "-resample=")) {
+			char *current = word[2], *value;
+			value = current + 10;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[2]);
+				return CMD_ARG_ERROR;
+			} else if (!strcmp(value, "ha")) {
+				args->scaling = 1;
+			} else if (!strcmp(value, "oiii")) {
+				args->scaling = 2;
+			}
+		}
+	}
 
 	args->seq = seq;
 	args->seqEntry = ""; // not used
