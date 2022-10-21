@@ -46,7 +46,8 @@
 
 #define MAX_ITER_NO_ANGLE  20		//Number of iterations in the minimization with no angle
 #define MAX_ITER_ANGLE     20		//Number of iterations in the minimization with angle
-#define MOFFAT_BETA_UBOUND 10. // Max allowable value for Moffat beta
+#define MOFFAT_BETA_UBOUND 10.		// Max allowable value for Moffat beta
+#define MIN_HALF_RADIUS 	1		// Minimum radius around center pixel to initialize FWHM
 #define EPSILON            0.001
 #define XTOL 1e-3
 #define GTOL 1e-3
@@ -120,37 +121,36 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg) {
 	if (!m_tmp) return NULL;
 	max = gsl_matrix_max(m_tmp);
 	gsl_matrix_max_index(m_tmp, &i, &j); // i=y , j=x
-	gsl_matrix_free(m_tmp);
 	gsl_vector_set(MaxV, 1, j); // x0
 	gsl_vector_set(MaxV, 2, i); // y0
 	halfA = (max - bg) * 0.5; // half amplitude
 	gsl_vector_set(MaxV, 0, max - bg); // A
 
-	size_t ii1 = (size_t) gsl_vector_get(MaxV, 2);
-	size_t ii2 = (size_t) gsl_vector_get(MaxV, 2);
-	size_t jj1 = (size_t) gsl_vector_get(MaxV, 1);
-	size_t jj2 = (size_t) gsl_vector_get(MaxV, 1);
-	size_t perm1 = (size_t) gsl_vector_get(MaxV, 2);
-	size_t perm2 = (size_t) gsl_vector_get(MaxV, 1);
+	int ii1 = (int) gsl_vector_get(MaxV, 2) + MIN_HALF_RADIUS;
+	int ii2 = (int) gsl_vector_get(MaxV, 2) - MIN_HALF_RADIUS;
+	int jj1 = (int) gsl_vector_get(MaxV, 1) + MIN_HALF_RADIUS;
+	int jj2 = (int) gsl_vector_get(MaxV, 1) - MIN_HALF_RADIUS;
+	int perm1 = (int) gsl_vector_get(MaxV, 2);
+	int perm2 = (int) gsl_vector_get(MaxV, 1);
 
-	while (gsl_matrix_get(z, ii1, perm2) - bg > halfA && (ii1 < NbRows - 1.0)) {
+	while (ii1 < NbRows - 1 && gsl_matrix_get(m_tmp, ii1, perm2) - bg > halfA) {
 		ii1++;
 	}
-	while (gsl_matrix_get(z, ii2, perm2) - bg > halfA && (ii2 > 0)) {
+	while (ii2 > 0 && gsl_matrix_get(m_tmp, ii2, perm2) - bg > halfA) {
 		ii2--;
 	}
 
-	while (gsl_matrix_get(z, perm1, jj1) - bg > halfA && (jj1 < NbCols - 1)) {
+	while (jj1 < NbCols - 1 && gsl_matrix_get(m_tmp, perm1, jj1) - bg > halfA) {
 		jj1++;
 	}
-	while (gsl_matrix_get(z, perm1, jj2) - bg > halfA && (jj2 > 0)) {
+	while (jj2 > 0 && gsl_matrix_get(m_tmp, perm1, jj2) - bg > halfA) {
 		jj2--;
 	}
-	gsl_vector_set(MaxV, 1, (jj1 + jj2 + 1) / 2.0); //x0
-	gsl_vector_set(MaxV, 2, (ii1 + ii2 + 1) / 2.0); //y0
+	gsl_vector_set(MaxV, 1, (double)(jj1 + jj2 + 1) / 2.0); //x0
+	gsl_vector_set(MaxV, 2, (double)(ii1 + ii2 + 1) / 2.0); //y0
 	gsl_vector_set(MaxV, 3, jj1 - jj2); //FWHM x
 	gsl_vector_set(MaxV, 4, ii1 - ii2); //FWHM y
-
+	gsl_matrix_free(m_tmp);
 	return MaxV;
 }
 
@@ -405,7 +405,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	gboolean *mask = NULL;
 	gsl_vector *MaxV = NULL;
 	gsl_matrix *covar = NULL;
-	psf_star *psf;
+	psf_star *psf = NULL;
 	double *y = NULL;
 	int max_iter;
 	gsl_multifit_nlinear_workspace *work = NULL;
@@ -455,16 +455,17 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 
 	double beta = (profile == GAUSSIAN) ? -1. : 2; // TODO: to be changed if we implement MOFFAT_BFIXED
 	double fbeta = acos(2. * beta / MOFFAT_BETA_UBOUND - 1.);
+	double fr = acos(2. * 0.5 - 1.); // r = 0.5 *(cos(fc)+1) to bound it between 0 and 1 - we init at r = 0.5 to be able to start in a place where the direction of variation is well defined
 
 	struct PSF_data d = { n, y, NbRows, NbCols, 0. , mask };
-	double FWHM = max(max(gsl_vector_get(MaxV, 3), gsl_vector_get(MaxV, 4)), 3); // using a min FWHM of 3 pixels to make sure init does not fail
+	double FWHM = max(gsl_vector_get(MaxV, 3), gsl_vector_get(MaxV, 4));
 	double a_init = (gsl_vector_get(MaxV, 3) > gsl_vector_get(MaxV, 4)) ? 0. : M_PI / 2;
 	double x_init[8] = { background, // B
 						gsl_vector_get(MaxV, 0), // A
 						gsl_vector_get(MaxV, 1), // x0
 						gsl_vector_get(MaxV, 2), // y0
 						S_from_FWHM(FWHM, beta, profile), // SX
-						M_PI / 2., // r = 0.5*(cos(fc)+1) to bound it between 0 and 1 - we init at r = 0.5 to be able to start in a place where the direction of variation is well defined
+						fr, // 
 						a_init, // angle
 						fbeta}; // beta = betamax * 0.5 * (cos(fbeta) + 1)
 	gsl_vector_view x = gsl_vector_view_array(x_init, p);
