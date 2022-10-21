@@ -2432,7 +2432,7 @@ int process_set_findstar(int nb) {
 					siril_log_message(_("Resetting findstar parameters to default values.\n"));
 					sigma = 1.;
 					roundness = 0.5;
-					radius = 10;
+					radius = DEF_BOX_RADIUS;
 					adjust = TRUE;
 					focal_length = 0.;
 					pixel_size_x = 0.;

@@ -41,7 +41,7 @@
 #include "gui/PSF_list.h"
 
 #define _SQRT_EXP1 1.6487212707
-#define KERNEL_SIZE 3.  // sigma of the gaussian smoothing kernel
+#define KERNEL_SIZE 2.  // sigma of the gaussian smoothing kernel
 #define DENSITY_THRESHOLD 0.001 // energy density threshold at which the PSF theoretical radius is cut. Value of 0.001 means we set the box radius to enclose 99.9% of the volume below the psf
 #define SAT_THRESHOLD 0.7 // fraction of the dynamic range (frame max - bg) above which pixels are expected to saturate or be close to saturation
 #define SAT_DETECTION_RANGE 0.1 // fraction of the dynamic range (frame max - bg) below local max value above which the 8 adjacent pixels must remain to consider we have a saturation plateau

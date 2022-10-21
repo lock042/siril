@@ -3240,7 +3240,7 @@ If the parameters is null, so no filter is apply at all.</property>
   <object class="GtkAdjustment" id="adjstarfinder_radius">
     <property name="lower">3</property>
     <property name="upper">50</property>
-    <property name="value">10</property>
+    <property name="value">5</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
