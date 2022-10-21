@@ -553,6 +553,8 @@ int set_seq(const char *name){
 
 		/* redraw and display image */
 		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
+		init_right_tab();
+
 		redraw(REMAP_ALL);
 		drawPlot();
 	}

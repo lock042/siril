@@ -319,6 +319,8 @@ void open_single_image_from_gfit() {
 	update_MenuItem();
 
 	close_tab();
+	init_right_tab();
+
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
 }

@@ -60,6 +60,7 @@ xx/xx/22
 * Added undershoot clamping to bicubic and lanczos4 interpolation methods
 * Improved Ha-OIII extraction to offer full resolution O-III output and improve star roundness
 * Added CFA merge process for reconstructing a Bayer pattern previously split out with extraction
+* Allow area selection (and much more) to be done on RGB display tab
 
 siril 1.0.6
 10/18/22
