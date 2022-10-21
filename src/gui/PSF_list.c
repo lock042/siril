@@ -607,6 +607,7 @@ static const char *SNR_quality(double SNR) {
 
 void popup_psf_result(psf_star *result, rectangle *area) {
 	gchar *msg, *coordinates, *url = NULL;
+	char buffer2[50];
 	const char *str;
 	if (com.magOffset > 0.0)
 		str = _("true reduced");
@@ -650,20 +651,28 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 	double fwhmx, fwhmy;
 	char *unts;
 	get_fwhm_as_arcsec_if_possible(result, &fwhmx, &fwhmy, &unts);
-	msg = g_strdup_printf(_("Centroid Coordinates:\n\t\t%s\n\n"
-				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\n"
+	if (result->beta > 0.0) {
+		g_snprintf(buffer2, 50, ", beta=%0.1f", result->beta);
+	}
+	else {
+		g_snprintf(buffer2, 50, "%s", "");
+	}
+	msg = g_strdup_printf(_("PSF fit Result (%s%s):\n\n"
+				"Centroid Coordinates:\n\t\t%s\n\n"
+				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\t\tr=%.2f\n"
 				"Angle:\n\t\t%0.2fdeg\n\n"
 				"Background Value:\n\t\tB=%.6f\n\n"
 				"Maximal Intensity:\n\t\tA=%.6f\n\n"
 				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
 				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
 				"RMSE:\n\t\tRMSE=%.3e"),
-			coordinates, fwhmx, unts, fwhmy, unts,
+			(result->profile == GAUSSIAN) ? "Gaussian" : "Moffat", buffer2,
+			coordinates, fwhmx, unts, fwhmy, unts, fwhmy / fwhmx,
 			result->angle, result->B, result->A, str,
 			result->mag + com.magOffset, result->s_mag, result->SNR,
 			SNR_quality(result->SNR), result->rmse);
-	show_data_dialog(msg, _("PSF and quick photometry results"), NULL, url);
 	g_free(coordinates);
+	show_data_dialog(msg, _("PSF and quick photometry results"), NULL, url);
 	g_free(msg);
 	g_free(url);
 }

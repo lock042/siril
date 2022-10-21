@@ -770,17 +770,27 @@ void psf_display_result(psf_star *result, rectangle *area) {
 	char *unts;
 	get_fwhm_as_arcsec_if_possible(result, &fwhmx, &fwhmy, &unts);
 
-	buffer = g_strdup_printf(_("PSF fit Result:\n"
+	if (result->beta > 0.0) {
+		buffer2 = g_strdup_printf(_("\nbeta=%0.2f\n"), result->beta);
+	}
+	else {
+		buffer2 = g_strdup_printf("\n");
+	}
+
+	buffer = g_strdup_printf(_("PSF fit Result (%s):\n"
 			"%s\n"
 			"FWHM X=%0.2f%s, FWHM Y=%0.2f%s\n"
+			"r=%0.2f"
+			"%s"
 			"Angle=%0.2f deg\n"
 			"Background value=%0.6f\n"
 			"Maximal intensity=%0.6f\n"
 			"Magnitude (%s)=%0.2f\n"
 			"SNR=%.1fdB\n"
 			"RMSE=%.3e"),
+			(result->profile == GAUSSIAN) ? "Gaussian" : "Moffat",
 			coordinates,
-			fwhmx, unts, fwhmy, unts,
+			fwhmx, unts, fwhmy, unts, fwhmy / fwhmx, buffer2,
 			result->angle,
 			result->B,
 			result->A,
@@ -788,14 +798,6 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			result->mag + com.magOffset,
 			result->SNR,
 			result->rmse);
-	if (result->beta > 0.0) {
-		buffer2 = g_strdup_printf(_("\nMoffat fitting:\n"
-									"Beta=%0.2f\n"), result->beta);
-	}
-	else {
-		buffer2 = g_strdup_printf("\n");
-	}
-	buffer = g_strdup_printf("%s%s", buffer, buffer2);
 	siril_log_message(buffer);
 	g_free(buffer);
 	g_free(buffer2);
