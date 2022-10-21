@@ -396,7 +396,7 @@ static void callback(const size_t iter, void *params, const gsl_multifit_nlinear
 /* The function returns the fitted parameters with angle. However it returns
  * NULL if the number of parameters is => to the pixel number.
  */
-static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat, int convergence, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose, starprofile profile, psf_error *error) {
+static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat, int convergence, gboolean from_peaker, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose, starprofile profile, psf_error *error) {
 	size_t i, j, k = 0;
 	size_t NbRows = z->size1; //characteristics of the selection : height and width
 	size_t NbCols = z->size2;
@@ -460,10 +460,12 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	struct PSF_data d = { n, y, NbRows, NbCols, 0. , mask };
 	double FWHM = max(gsl_vector_get(MaxV, 3), gsl_vector_get(MaxV, 4));
 	double a_init = (gsl_vector_get(MaxV, 3) > gsl_vector_get(MaxV, 4)) ? 0. : M_PI / 2;
+	double x0_init = (from_peaker) ? (double)(NbCols - 1) * 0.5 : gsl_vector_get(MaxV, 1);
+	double y0_init = (from_peaker) ? (double)(NbRows - 1) * 0.5 : gsl_vector_get(MaxV, 2);
 	double x_init[8] = { background, // B
 						gsl_vector_get(MaxV, 0), // A
-						gsl_vector_get(MaxV, 1), // x0
-						gsl_vector_get(MaxV, 2), // y0
+						x0_init, // x0
+						y0_init, // y0
 						S_from_FWHM(FWHM, beta, profile), // SX
 						fr, // 
 						a_init, // angle
@@ -671,7 +673,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 		return NULL;
 	}
 
-	result = psf_global_minimisation(z, bg, sat, com.pref.starfinder_conf.convergence, for_photometry, phot_set, verbose, profile, error);
+	result = psf_global_minimisation(z, bg, sat, com.pref.starfinder_conf.convergence, FALSE, for_photometry, phot_set, verbose, profile, error);
 
 	if (result) {
 		fwhm_to_arcsec_if_needed(fit, result);
@@ -695,13 +697,13 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
  * of the minimisation.
  */
 psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, 
-		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
+		gboolean from_peaker, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error) {
 	if (error) *error = PSF_NO_ERR;
 	gboolean photometry_computed = FALSE;
 
 	psf_star *psf = NULL;
-	if (!(psf = psf_minimiz_angle(z, bg, sat, convergence, for_photometry, phot_set, verbose, profile, error))) {
+	if (!(psf = psf_minimiz_angle(z, bg, sat, convergence, from_peaker, for_photometry, phot_set, verbose, profile, error))) {
 		return NULL;
 	}
 	photometry_computed = TRUE;

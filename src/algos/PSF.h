@@ -69,7 +69,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 		starprofile profile, psf_error *error);
 
 psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, 
-		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
+		gboolean from_peaker, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error);
 
 void psf_display_result(psf_star *, rectangle *);

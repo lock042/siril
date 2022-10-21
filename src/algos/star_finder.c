@@ -132,7 +132,7 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
 		return SF_FWHM_TOO_LARGE; //crit 2
 	}
-	if (((result->rmse * sf->sigma / result->A) > 0.1) && (!(result->A > dynrange))) {
+	if (((result->rmse * sf->sigma / result->A) > 0.2) && (!(result->A > dynrange))) {
 	//  do not apply for saturated stars to keep them for alignement purposes
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE; //crit 3
@@ -623,7 +623,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				}
 			}
 			psf_error error;
-			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, com.pref.starfinder_conf.convergence, FALSE, NULL, FALSE, profile, &error);
+			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, com.pref.starfinder_conf.convergence, TRUE, FALSE, NULL, FALSE, profile, &error);
 			gsl_matrix_free(z);
 			if (cur_star) {
 				gchar errmsg[SF_ERRMSG_LEN] = "";
