@@ -58,7 +58,9 @@ inline DftPatch::DftPatch(int rows, int columns, int channels)
   freq_ = reinterpret_cast<std::complex<float> *>(fftwf_malloc(
       sizeof(fftwf_complex) * N_half));
   int n[] = {rows, columns};
+#ifdef _OPENMP
 #pragma omp critical
+#endif
   {
     plan_forward_ = fftwf_plan_many_dft_r2c(2, n, channels, space_, NULL,
                                             channels, 1,
