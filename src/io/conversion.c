@@ -409,6 +409,7 @@ typedef enum {
 
 	/* for next file opening */
 	OPEN_ERROR,
+	OPEN_ERROR_AND_STOP,
 	OPEN_OK,
 	OPEN_SEQ,
 	OPEN_NOT_A_SEQ,
@@ -815,8 +816,11 @@ static void open_next_input_seq(convert_status *conv) {
 	do {
 		const char *filename = conv->args->list[conv->next_file];
 		status = open_next_input_sequence(filename, conv, FALSE);
-		if (status == OPEN_ERROR) {
+		if (status == OPEN_ERROR || status == OPEN_ERROR_AND_STOP) {
 			siril_log_color_message(_("File %s was not recognised as readable by Siril, skipping\n"), "salmon", filename);
+			g_atomic_int_inc(&conv->failed_images);
+			g_atomic_int_set(&conv->fatal_error, 1);
+			if (status == OPEN_ERROR_AND_STOP) break;
 		}
 		else if (status == OPEN_OK) {
 			conv->next_file++;
@@ -1174,7 +1178,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			fitseq_close_file(convert->current_fitseq);
 			free(convert->current_fitseq);
 			convert->current_fitseq = NULL;
-			return OPEN_ERROR;
+			return OPEN_ERROR_AND_STOP;
 		}
 		convert->readseq_count = get_new_read_counter();
 		return OPEN_OK;
