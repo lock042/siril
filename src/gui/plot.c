@@ -1649,25 +1649,10 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 	double y = (double)event->y;
 	if (pdd.action == SELACTION_SELECTING) {
 		double x1, x2, y1, y2;
-		if (x <= pdd.selection.x) {
-			x1 = x;
-			x2 = pdd.selection.x + pdd.selection.w;
-		} else {
-			x1 = pdd.selection.x;
-			x2 = x;
-		}
-		if (y <= pdd.selection.y) {
-			y1 = y;
-			y2 = pdd.selection.y + pdd.selection.h;
-		} else {
-			y1 = pdd.selection.y;
-			y2 = y;
-		}
-		x1 = max(SIDE_MARGIN, x1);
-		x2 = min(pdd.surf_w - PLOT_SLIDER_THICKNESS, x2);
-		y1 = max(SIDE_MARGIN, y1);
-		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, y2);
-		//siril_debug_print("%.0f %.0f\n", x1, x2);
+		x1 = max(SIDE_MARGIN, min(pdd.start.x, x));
+		x2 = min(pdd.surf_w - PLOT_SLIDER_THICKNESS, max(pdd.start.x, x));
+		y1 = max(SIDE_MARGIN, min(pdd.start.y, y));
+		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, max(pdd.start.y, y));
 		pdd.selection = (rectangled){x1, y1, x2 - x1, y2 - y1};
 		drawPlot();
 		return TRUE;
@@ -1680,20 +1665,44 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		y2 = pdd.selection.y + pdd.selection.h;
 		switch (pdd.border_grabbed) {
 			case SELBORDER_LEFT:
-				x1 = min(x , pdd.selection.x + pdd.selection.w);
-				x2 = max(x , pdd.selection.x + pdd.selection.w);
+				if (x <= pdd.selection.x + pdd.selection.w) {
+					x1 = x;
+					x2 = pdd.selection.x + pdd.selection.w;
+				} else {
+					x2 = x;
+					x1 = pdd.selection.x + pdd.selection.w;
+					pdd.border_grabbed = SELBORDER_RIGHT;
+				}
 				break;
 			case SELBORDER_RIGHT:
-				x1 = min(x , pdd.selection.x);
-				x2 = max(x , pdd.selection.x);
+				if (x >= pdd.selection.x) {
+					x1 = pdd.selection.x;
+					x2 = x;
+				} else {
+					x1 = x;
+					x2 = pdd.selection.x;
+					pdd.border_grabbed = SELBORDER_LEFT;
+				}
 				break;
 			case SELBORDER_TOP:
-				y1 = min(y , pdd.selection.y + pdd.selection.h);
-				y2 = max(y , pdd.selection.y + pdd.selection.h);
+				if (y <= pdd.selection.y + pdd.selection.h) {
+					y1 = y;
+					y2 = pdd.selection.y + pdd.selection.h;
+				} else {
+					y2 = y;
+					y1 = pdd.selection.y + pdd.selection.h;
+					pdd.border_grabbed = SELBORDER_BOTTOM;
+				}
 				break;
 			case SELBORDER_BOTTOM:
-				y1 = min(y , pdd.selection.y);
-				y2 = max(y , pdd.selection.y);
+				if (y >= pdd.selection.y) {
+					y1 = pdd.selection.y;
+					y2 = y;
+				} else {
+					y1 = y;
+					y2 = pdd.selection.y;
+					pdd.border_grabbed = SELBORDER_TOP;
+				}
 				break;
 			default:
 				break;
@@ -1949,6 +1958,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 		} else { // start drawing selection
 			pdd.action = SELACTION_SELECTING;
 			pdd.selection = (rectangled){x, y, 0., 0.};
+			pdd.start = (point){x, y};
 			return TRUE;
 		}
 	}
