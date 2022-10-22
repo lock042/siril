@@ -2375,9 +2375,9 @@ int process_set_findstar(int nb) {
 						return CMD_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(word[i], "-gaussian")) {
-					profile = GAUSSIAN;
+					profile = PSF_GAUSSIAN;
 				} else if (g_str_has_prefix(word[i], "-moffat")) {
-					profile = MOFFAT_BFREE;
+					profile = PSF_MOFFAT_BFREE;
 				} else if (g_str_has_prefix(word[i], "-roundness=")) {
 					char *current = word[i], *value;
 					value = current + 11;
@@ -2438,7 +2438,7 @@ int process_set_findstar(int nb) {
 					pixel_size_x = 0.;
 					relax_checks = FALSE;
 					convergence = 1;
-					profile = GAUSSIAN;
+					profile = PSF_GAUSSIAN;
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;
@@ -2463,7 +2463,7 @@ int process_set_findstar(int nb) {
 	com.pref.starfinder_conf.adjust = adjust;
 	siril_log_message(_("relax = %s\n"), (relax_checks) ? "on" : "off");
 	com.pref.starfinder_conf.relax_checks = relax_checks;
-	siril_log_message(_("profile = %s\n"), (profile == GAUSSIAN) ? "Gaussian" : "Moffat");
+	siril_log_message(_("profile = %s\n"), (profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
 	com.pref.starfinder_conf.profile = profile;
 	return CMD_OK;
 }
@@ -3320,7 +3320,7 @@ int process_findstar(int nb) {
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
 	args->profile = com.pref.starfinder_conf.profile;
-	siril_debug_print("findstar profiling %s stars\n", (args->profile == GAUSSIAN) ? "Gaussian" : "Moffat");
+	siril_debug_print("findstar profiling %s stars\n", (args->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
 
 	cmd_errors argparsing = parse_findstar(args, 1, nb);
 

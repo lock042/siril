@@ -70,9 +70,9 @@ typedef enum {
 } interpolation_method;
 
 typedef enum {
-	GAUSSIAN,
-	MOFFAT_BFREE,
-	MOFFAT_BFIXED
+	PSF_GAUSSIAN,
+	PSF_MOFFAT_BFREE,
+	PSF_MOFFAT_BFIXED
 } starprofile;
 
 

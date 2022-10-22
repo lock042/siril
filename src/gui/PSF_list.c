@@ -280,7 +280,7 @@ static void display_PSF(psf_star **result) {
 		angle = angle / (double)n;
 		rmse = rmse / (double)n;
 
-		if (profiletype == GAUSSIAN) {
+		if (profiletype == PSF_GAUSSIAN) {
 		msg = g_strdup_printf(_("Average Gaussian PSF\n\n"
 				"N:\t%d stars (%d saturated and excluded)\nB:\t%.6f\nA:\t%.6f\nFWHMx:\t%.2f%s\n"
 				"FWHMy:\t%.2f%s\nr:\t%.3f\nAngle:\t%.2f deg\nrmse:\t%.3e\n"),
@@ -408,7 +408,7 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 	}
 	if (stars) {
 		while (stars[i]) {
-			if (stars[i]->profile == GAUSSIAN) {
+			if (stars[i]->profile == PSF_GAUSSIAN) {
 				beta = -1;
 				len = snprintf(starprof, 9, "%s", gausstr);
 			} else {
@@ -666,7 +666,7 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
 				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
 				"RMSE:\n\t\tRMSE=%.3e"),
-			(result->profile == GAUSSIAN) ? "Gaussian" : "Moffat", buffer2,
+			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat", buffer2,
 			coordinates, fwhmx, unts, fwhmy, unts, fwhmy / fwhmx,
 			result->angle, result->B, result->A, str,
 			result->mag + com.magOffset, result->s_mag, result->SNR,

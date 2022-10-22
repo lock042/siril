@@ -967,7 +967,7 @@ gpointer findstar_worker(gpointer p) {
 		com.stars = stars;
 	}
 	siril_log_message(_("Found %d %s profile stars in %s, channel #%d\n"), nbstars,
-			args->profile == GAUSSIAN ? _("Gaussian") : _("Moffat"),
+			args->profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
 			selection ? _("selection") : _("image"), args->layer);
 	if (args->starfile &&
 			save_list(args->starfile, args->max_stars_fitted, stars, nbstars,

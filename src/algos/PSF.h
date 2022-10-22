@@ -58,8 +58,8 @@ struct PSF_data {
 	size_t NbCols;
 	double rmse;
 	gboolean *mask;
-	gboolean betafree; // not used untill we implement MOFFAT_BFIXED
-	double beta; //  not used untill we implement MOFFAT_BFIXED
+	gboolean betafree; // not used untill we implement PSF_MOFFAT_BFIXED
+	double beta; //  not used untill we implement PSF_MOFFAT_BFIXED
 };
 
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness);

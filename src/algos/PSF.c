@@ -78,27 +78,27 @@ static gsl_matrix *removeHotPixels(gsl_matrix *in) {
 }
 
 static double S_from_FWHM(double FWHM, double beta, starprofile profile) {
-	if (profile == GAUSSIAN)
+	if (profile == PSF_GAUSSIAN)
 		return SQR(FWHM) * INV_4_LOG2;
 	return SQR(FWHM) * 0.25 / (pow(2., 1. / beta) - 1.);
 }
 
 #if DEBUG_PSF
 static double FWHM_from_S(double S, double beta, starprofile profile) {
-	if (profile == GAUSSIAN)
+	if (profile == PSF_GAUSSIAN)
 		return 2. * sqrt(S * log(2.));
 	return 2. * sqrt(S * (pow(2., 1./ beta) - 1.));
 }
 #endif
 
 // static double s_from_FWHM(double FWHM, double beta, starprofile profile) {
-// 	if (profile == GAUSSIAN)
+// 	if (profile == PSF_GAUSSIAN)
 // 		return FWHM / _2_SQRT_2_LOG2;
 // 	return FWHM * 0.5 /  sqrt(pow(2., 1./ beta) - 1.);
 // }
 
 static double FWHM_from_s(double s, double beta, starprofile profile) {
-	if (profile == GAUSSIAN)
+	if (profile == PSF_GAUSSIAN)
 		return s * _2_SQRT_2_LOG2;
 	return 2. * s * sqrt(pow(2., 1./ beta) - 1.);
 }
@@ -357,7 +357,7 @@ static void callback(const size_t iter, void *params, const gsl_multifit_nlinear
 	gsl_vector *f = gsl_multifit_nlinear_residual(w);
 	gsl_vector *x = gsl_multifit_nlinear_position(w);
 	struct callback_params *c_params = (struct callback_params *) params;
-	gboolean ismoffat = c_params->profile != GAUSSIAN;
+	gboolean ismoffat = c_params->profile != PSF_GAUSSIAN;
 
 	if (ismoffat) {
 		if (iter == 0) {
@@ -369,7 +369,7 @@ static void callback(const size_t iter, void *params, const gsl_multifit_nlinear
 						gsl_vector_get(x, 1),
 						gsl_vector_get(x, 2),
 						gsl_vector_get(x, 3),
-						FWHM_from_S(fabs(gsl_vector_get(x, 4)), 0.5 * MOFFAT_BETA_UBOUND * (cos(gsl_vector_get(x, 7)) + 1.), MOFFAT_BFREE), // FWHM
+						FWHM_from_S(fabs(gsl_vector_get(x, 4)), 0.5 * MOFFAT_BETA_UBOUND * (cos(gsl_vector_get(x, 7)) + 1.), PSF_MOFFAT_BFREE), // FWHM
 						0.5 * (cos(gsl_vector_get(x, 5)) + 1.), // roundness
 						gsl_vector_get(x, 6) * 180. / M_PI,
 						0.5 * MOFFAT_BETA_UBOUND * (cos(gsl_vector_get(x, 7)) + 1.), // beta
@@ -384,7 +384,7 @@ static void callback(const size_t iter, void *params, const gsl_multifit_nlinear
 						gsl_vector_get(x, 1),
 						gsl_vector_get(x, 2),
 						gsl_vector_get(x, 3),
-						FWHM_from_S(fabs(gsl_vector_get(x, 4)), 0., GAUSSIAN), // FWHM
+						FWHM_from_S(fabs(gsl_vector_get(x, 4)), 0., PSF_GAUSSIAN), // FWHM
 						0.5 * (cos(gsl_vector_get(x, 5)) + 1.), // roundness
 						gsl_vector_get(x, 6) * 180. / M_PI,
 						gsl_blas_dnrm2(f));
@@ -400,7 +400,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	size_t i, j, k = 0;
 	size_t NbRows = z->size1; //characteristics of the selection : height and width
 	size_t NbCols = z->size2;
-	const size_t p = (profile == GAUSSIAN) ? 7 : 8;	// Number of parameters fitted
+	const size_t p = (profile == PSF_GAUSSIAN) ? 7 : 8;	// Number of parameters fitted
 	int status;
 	gboolean *mask = NULL;
 	gsl_vector *MaxV = NULL;
@@ -442,7 +442,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 		goto free_and_exit;
 	}
 
-	max_iter = MAX_ITER_ANGLE * ((k < NbRows * NbCols) ? 3 : 1) * convergence * ((profile == GAUSSIAN) ? 1 : 2);
+	max_iter = MAX_ITER_ANGLE * ((k < NbRows * NbCols) ? 3 : 1) * convergence * ((profile == PSF_GAUSSIAN) ? 1 : 2);
 
 	MaxV = psf_init_data(z, background);
 	if (!MaxV) {
@@ -453,7 +453,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 		goto free_and_exit;
 	}
 
-	double beta = (profile == GAUSSIAN) ? -1. : 2; // TODO: to be changed if we implement MOFFAT_BFIXED
+	double beta = (profile == PSF_GAUSSIAN) ? -1. : 2; // TODO: to be changed if we implement PSF_MOFFAT_BFIXED
 	double fbeta = acos(2. * beta / MOFFAT_BETA_UBOUND - 1.);
 	double fr = acos(2. * 0.5 - 1.); // r = 0.5 *(cos(fc)+1) to bound it between 0 and 1 - we init at r = 0.5 to be able to start in a place where the direction of variation is well defined
 
@@ -475,7 +475,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	gsl_multifit_nlinear_parameters fdf_params = gsl_multifit_nlinear_default_parameters();
 	fdf_params.trs = gsl_multifit_nlinear_trs_lm; // levenberg-marquardt
 	gsl_multifit_nlinear_fdf fdf;
-	if (profile == GAUSSIAN) {
+	if (profile == PSF_GAUSSIAN) {
 		fdf.f = &psf_Gaussian_f_ang;
 		fdf.df = &psf_Gaussian_df_ang;
 	} else {
@@ -538,8 +538,8 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	psf->A = FIT(1);
 	psf->x0 = FIT(2);
 	psf->y0 = FIT(3);
-	psf->beta = (profile == GAUSSIAN) ? -1.0 : 0.5 * MOFFAT_BETA_UBOUND * (cos(FIT(7)) + 1.);
-	psf->sx = (profile == GAUSSIAN) ? sqrt(fabs(FIT(4)) * 0.5) : sqrt(fabs(FIT(4))); // Gaussian: sigma, Moffat: Ro
+	psf->beta = (profile == PSF_GAUSSIAN) ? -1.0 : 0.5 * MOFFAT_BETA_UBOUND * (cos(FIT(7)) + 1.);
+	psf->sx = (profile == PSF_GAUSSIAN) ? sqrt(fabs(FIT(4)) * 0.5) : sqrt(fabs(FIT(4))); // Gaussian: sigma, Moffat: Ro
 	double r = 0.5 * (cos(FIT(5)) + 1.);
 	psf->sy = psf->sx * r;
 	psf->fwhmx = FWHM_from_s(psf->sx, psf->beta, profile);	//Set the real FWHMx with regards to the sx parameter
@@ -589,7 +589,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	psf->sx_err = ERR(4) / FIT(4);
 	psf->sy_err = ERR(5) / FIT(5);
 	psf->ang_err = ERR(6) / FIT(6);
-	psf->beta_err = (profile == GAUSSIAN) ? 0. : ERR(7) / FIT(7);
+	psf->beta_err = (profile == PSF_GAUSSIAN) ? 0. : ERR(7) / FIT(7);
 
 	//we free the memory
 free_and_exit:
@@ -790,7 +790,7 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			"Magnitude (%s)=%0.2f\n"
 			"SNR=%.1fdB\n"
 			"RMSE=%.3e"),
-			(result->profile == GAUSSIAN) ? "Gaussian" : "Moffat",
+			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat",
 			coordinates,
 			fwhmx, unts, fwhmy, unts, fwhmy / fwhmx, buffer2,
 			result->angle,
