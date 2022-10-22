@@ -329,6 +329,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 
 #ifdef _OPENMP
+	free(threads_per_image);
 	omp_destroy_lock(&args->lock);
 #endif
 the_end:
@@ -346,6 +347,16 @@ the_end:
 		if (args->idle_function)
 			siril_add_idle(args->idle_function, args);
 		else siril_add_idle(end_generic_sequence, args);
+		if (com.script) {
+			/* should we have an args->end_headless and args->end_gui?
+			 * some things usually managed in the non-executed idle are
+			 * not generic and cannot be managed here
+			 */
+			if (args->user)
+				free(args->user);
+			free_sequence(args->seq, TRUE);
+			free(args);
+		}
 	}
 	return GINT_TO_POINTER(retval);
 }

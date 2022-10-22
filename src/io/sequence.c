@@ -1171,6 +1171,7 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 		g_snprintf(seqname, len, "%s%s", prefix, basename);
 		siril_debug_print("Removing %s\n", seqname);
 		g_unlink(seqname);
+		free(seqname);
 		break;
 	}
 }
