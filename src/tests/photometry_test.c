@@ -158,17 +158,16 @@ void test_photometry_float() {
 	cr_assert(psf, "psf failed");
 	cr_assert(psf->phot, "photometry failed");
 	cr_assert(psf->phot_is_valid, "photometry is not valid");
-	printf("mag:%0.6f\n", psf->s_mag);
 
-	cr_expect_float_eq(psf->mag, -3.451166f, 1e-6);
+	cr_expect_float_eq(psf->mag, -3.451165f, 1e-6);
 	cr_expect_float_eq(psf->s_mag, 0.146089f, 1e-6);
 
 	cr_expect_float_eq(psf->x0, 51.27f, 1e-2);
 	cr_expect_float_eq(psf->y0, 54.24f, 1e-2);
-	cr_expect_float_eq(psf->fwhmx, 8.161106f, 1e-6);
-	cr_expect_float_eq(psf->fwhmy, 7.250467f, 1e-6);
-	cr_expect_float_eq(psf->angle, -21.648570f, 1e-6);
-	cr_expect_float_eq(psf->A, 0.329286f, 1e-6);
+	cr_expect_float_eq(psf->fwhmx, 8.160966f, 1e-6);
+	cr_expect_float_eq(psf->fwhmy, 7.250390f, 1e-6);
+	cr_expect_float_eq(psf->angle, -21.648769f, 1e-6);
+	cr_expect_float_eq(psf->A, 0.329290f, 1e-6);
 	cr_expect_float_eq(psf->B, 0.021232f, 1e-6);
 	cr_expect_float_eq(psf->rmse, 2.250e-03, 1e-6);
 
@@ -191,25 +190,23 @@ void test_photometry_ushort() {
 	/* These values are different from float case. This
 	 * is perfectly normal.
 	 */
-	printf("mag:%0.6f\n", psf->s_mag);
-	cr_expect_float_eq(psf->mag, -15.492349f, 1e-6);
+	cr_expect_float_eq(psf->mag, -15.492348f, 1e-6);
 	cr_expect_float_eq(psf->s_mag, 0.000947f, 1e-6);
 
-
-	/* These values are strictly identical to float case.
-	 * This is perfectly normal too.
+	/* These values are almost identical to float case.
+	 * This is due to the tolerance being set in the psf fit solver.
 	 */
 	cr_expect_float_eq(psf->x0, 51.27f, 1e-2);
 	cr_expect_float_eq(psf->y0, 54.24f, 1e-2);
-	cr_expect_float_eq(psf->fwhmy, 7.250467f, 1e-6);
-	cr_expect_float_eq(psf->fwhmx, 8.161106f, 1e-6);
-	cr_expect_float_eq(psf->fwhmy, 7.250467f, 1e-6);
-	cr_expect_float_eq(psf->angle, -21.648570f, 1e-6);
+	cr_expect_float_eq(psf->fwhmy, 7.250367f, 1e-6);
+	cr_expect_float_eq(psf->fwhmx, 8.160933f, 1e-6);
+	cr_expect_float_eq(psf->fwhmy, 7.250367f, 1e-6);
+	cr_expect_float_eq(psf->angle, -21.648115f, 1e-6);
 
 	/* Here we multiply by USHRT_MAX_SINGLE and we take a low
 	 * accuracy because of rounding errors.
 	 */
-	cr_expect_float_eq(psf->A, 0.329286f * USHRT_MAX_SINGLE, 0.1);
+	cr_expect_float_eq(psf->A, 0.329290f * USHRT_MAX_SINGLE, 0.1);
 	cr_expect_float_eq(psf->B, 0.021232f * USHRT_MAX_SINGLE, 0.1);
 	cr_expect_float_eq(psf->rmse, 2.250e-03 * USHRT_MAX_SINGLE, 0.1);
 

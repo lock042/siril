@@ -43,6 +43,7 @@ guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
 #endif
 
+#ifndef _WIN32
 #define TMP_FILE1 "/tmp/test_tmp1.ser"
 #define TMP_FILE2 "/tmp/test_tmp2.ser"
 #define TMP_FILE3 "/tmp/test_tmp3.ser"
@@ -50,6 +51,15 @@ fits gfit;	// currently loaded image
 #define TMP_FILE5 "/tmp/test_tmp5.ser"
 #define TMP_FILE6 "/tmp/test_tmp6.ser"
 #define TMP_FILE7 "/tmp/test_tmp7.ser"
+#else
+#define TMP_FILE1 ".\\test_tmp1.ser"
+#define TMP_FILE2 ".\\test_tmp2.ser"
+#define TMP_FILE3 ".\\test_tmp3.ser"
+#define TMP_FILE4 ".\\test_tmp4.ser"
+#define TMP_FILE5 ".\\test_tmp5.ser"
+#define TMP_FILE6 ".\\test_tmp6.ser"
+#define TMP_FILE7 ".\\test_tmp7.ser"
+#endif
 
 static fits *create_image(int w, int h, int layers) {
 	fits *fit = NULL;
