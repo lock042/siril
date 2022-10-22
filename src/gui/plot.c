@@ -83,6 +83,7 @@ static char *phtfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.1f"
 static char *phtfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.1f", "%0.1f", "%0.2f"};
 static GtkMenu *menu = NULL;
 static GtkMenuItem *menu_item1 = NULL, *menu_item2 = NULL, *menu_item3 = NULL;
+static gboolean popup_already_shown = FALSE, has_item3 = TRUE;
 
 static void formatX(double v, char *buf, size_t bufsz) {
 	char *fmt;
@@ -1858,8 +1859,15 @@ static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event
 	gtk_menu_item_set_label(menu_item1, str);
 	gchar *str2 = g_strdup_printf(_("Show Frame %d"), (int)index);
 	gtk_menu_item_set_label(menu_item2, str2);
-	gtk_menu_item_set_label(menu_item3, "");
-	gtk_widget_set_sensitive(GTK_WIDGET(menu_item3), FALSE);
+	if (!popup_already_shown) {
+		// we need to ref it to keep it alive after removing from container
+		g_object_ref(menu_item3); 
+		popup_already_shown = TRUE;
+	}
+	if (has_item3) {
+		gtk_container_remove(GTK_CONTAINER(menu), lookup_widget("menu_plot_item3"));
+		has_item3 = FALSE;
+	}
 	g_free(str);
 	g_free(str2);
 
@@ -1888,6 +1896,10 @@ static void do_popup_selectionmenu(GtkWidget *my_widget, GdkEventButton *event) 
 	}
 	gtk_menu_item_set_label(menu_item1, _("Zoom to selection"));
 	gtk_menu_item_set_label(menu_item2, _("Only keep points within selection"));
+	if (!has_item3) {
+		gtk_container_add(GTK_CONTAINER(menu), lookup_widget("menu_plot_item3"));
+		has_item3 = TRUE;
+	}
 	gtk_menu_item_set_label(menu_item3, _("Exclude selected points"));
 	gtk_widget_set_sensitive(GTK_WIDGET(menu_item3), TRUE);
 
