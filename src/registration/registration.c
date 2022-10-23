@@ -1299,11 +1299,13 @@ void get_the_registration_area(struct registration_args *reg_args,
 /* callback for no output button */
 void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	GtkWidget *Algo = lookup_widget("ComboBoxRegInter");
+	GtkWidget *clamping = lookup_widget("toggle_reg_clamp");
 	GtkWidget *Prefix = lookup_widget("regseqname_entry");
 
 	gboolean toggled = gtk_toggle_button_get_active(togglebutton);
 
 	gtk_widget_set_sensitive(Algo, !toggled);
+	gtk_widget_set_sensitive(clamping, !toggled);
 	gtk_widget_set_sensitive(Prefix, !toggled);
 
 	keep_noout_state = toggled;
