@@ -160,20 +160,31 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 			g_date_time_unref(read_time);
 			g_date_time_unref(read_time_corr);
 			g_free(fmtdate);
-		} else if (!g_strcmp0(subs[1],"ra") || !g_strcmp0(subs[1],"dec")) { // case ra and dec, raf and decf
-			gboolean is_ra = !g_strcmp0(subs[1],"ra");
+		} else if (g_str_has_prefix(subs[1],"ra") || g_str_has_prefix(subs[1],"dec")) { // case ra and dec (str), ran and decn (num)
+			gboolean is_ra = g_str_has_prefix(subs[1],"ra");
+			gboolean is_float = g_str_has_suffix(subs[1],"n");
 			SirilWorldCS *target_coords = NULL;
 			char val[FLEN_VALUE];
-			*status = read_key_from_header_text(headerkeys, subs[0], NULL, val);
+			double valf;
+			if (is_float)
+				*status = read_key_from_header_text(headerkeys, subs[0], &valf, NULL);
+			else
+				*status = read_key_from_header_text(headerkeys, subs[0], NULL, val);
 			if (*status) {
 				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
 				g_strfreev(subs);
 				goto free_and_exit;
 			}
 			if (is_ra)
-				target_coords = siril_world_cs_new_from_objct_ra_dec(val, "+00 00 00");
+				if (is_float)
+					target_coords = siril_world_cs_new_from_a_d(valf, 0.0);
+				else
+					target_coords = siril_world_cs_new_from_objct_ra_dec(val, "+00 00 00");
 			else
-				target_coords = siril_world_cs_new_from_objct_ra_dec("00 00 00", val);
+				if (is_float)
+					target_coords = siril_world_cs_new_from_a_d(0.0, valf);
+				else
+					target_coords = siril_world_cs_new_from_objct_ra_dec("00 00 00", val);
 			if (!target_coords) {
 				*status = PATH_PARSE_WRONG_WCS;
 				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
