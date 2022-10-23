@@ -41,12 +41,17 @@ int sos_iters = 3;
 float sos_rho = 0.2f;
 gboolean do_anscombe = FALSE;
 gboolean do_cosme = TRUE;
+gboolean suppress_artefacts = FALSE;
 
 void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 	da3d = 0;
 	GtkSpinButton *spin_denoise_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_denoise_modulation"));
 	denoise_modulation = 1.f;
 	gtk_spin_button_set_value(spin_denoise_modulation, denoise_modulation);
+	if (gfit.naxes[2] == 3)
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("denoise_artefact_control")), TRUE);
+	else
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("denoise_artefact_control")), FALSE);
 }
 
 void on_denoise_cancel_clicked(GtkButton *button, gpointer user_data) {
@@ -73,18 +78,7 @@ void on_spin_rho_value_changed(GtkSpinButton *button, gpointer user_data) {
 void on_spin_denoise_modulation_value_changed(GtkSpinButton *button, gpointer user_data) {
 	denoise_modulation = (float)gtk_spin_button_get_value(button);
 }
-/*
-void on_radio_denoise_nosecondary_group_changed(GtkWidget *widget, gpointer user_data) {
-	GtkToggleButton *toggle_da3d = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_da3d"));
-	GtkToggleButton *toggle_sos = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_sos"));
-	da3d = (gtk_toggle_button_get_active(toggle_da3d) ? 1 : 0);
-	sos = (gtk_toggle_button_get_active(toggle_sos) ? 1 : 0);
-	if (sos ==1)
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), TRUE);
-	else
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("sos_advanced_options")), FALSE);
-}
-*/
+
 void on_radio_denoise_nosecondary_toggled(GtkToggleButton *button, gpointer user_data) {
 	GtkToggleButton *toggle_da3d = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_da3d"));
 	GtkToggleButton *toggle_vst = GTK_TOGGLE_BUTTON(lookup_widget("radio_denoise_vst"));
@@ -142,6 +136,7 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_denoise_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_denoise_modulation"));
 	denoise_modulation = (float)gtk_spin_button_get_value(spin_denoise_modulation);
 	//	copy_gfit_to_backup();
+	gboolean suppress_artefacts = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_denoise_suppress_artefacts")));
 	denoise_args *args = calloc(1, sizeof(denoise_args));
 	args->fit = &gfit;
 	args->da3d = da3d;
@@ -149,6 +144,7 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->rho = sos_rho;
 	args->do_anscombe = do_anscombe;
 	args->do_cosme = do_cosme;
+	args->suppress_artefacts = suppress_artefacts;
 	if (sos == 1)
 		args->sos = sos_iters;
 	args->modulation = denoise_modulation;

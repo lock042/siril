@@ -58,6 +58,14 @@ static int parse_buffer(char *buffer) {
 		// "# Comet : P/Churyumov-Gerasimenko  (67P) | ..."
 		// "# Asteroid: 103516 2000 BY4 | ..."
 		// "# Planet : 4 Mars | ..."
+
+		// The result of the request is different between geocentric and topocentric
+		// To retrieve the right RA and DEC, we have to introcuce a +1 offset in the position (see RA and DEC retrieve, below)
+		int offset_ind = 0;
+		if (gfit.sitelat != 0.) {
+			offset_ind = 1;
+		}
+
 		gchar *objname = NULL;
 		char *start = strchr(token[2], ':');
 		if (start && *(start+1) != '\0') {
@@ -88,8 +96,9 @@ static int parse_buffer(char *buffer) {
 			double hours = 0.0, min = 0.0, seconds = 0.0, degres = 0.0;
 			double ra, dec;
 			gboolean valid = FALSE;
+
 			// For RA coordinates
-			part = g_strsplit(fields[1], " ", -1);
+			part = g_strsplit(fields[1 + offset_ind], " ", -1);
 			if (g_strv_length(part) > 3) {
 				sscanf(part[1], "%lf", &hours);
 				sscanf(part[2], "%lf", &min);
@@ -101,7 +110,7 @@ static int parse_buffer(char *buffer) {
 
 			// For Dec coordinates
 			if (valid) {
-				part = g_strsplit(fields[2], " ", -1);
+				part = g_strsplit(fields[2 + offset_ind], " ", -1);
 				if (g_strv_length(part) > 3) {
 					sscanf(part[1], "%lf", &degres);
 					sscanf(part[2], "%lf", &min);

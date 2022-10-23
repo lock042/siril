@@ -316,7 +316,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	if (in_index != refimage) {
 		if (guess_transform_from_H(sadata->current_regdata[in_index].H) > -2) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->x2upscale, regargs->interpolation)) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 					return 1;
 				}
 			} else { //  Do we want to allow for no interp while the transformation has been computed as a similarity?
@@ -328,7 +328,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	} else {
 		// reference image
 		if (regargs->x2upscale && !regargs->no_output) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST))
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE))
 				return 1;
 		}
 	}
@@ -361,6 +361,8 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, FALSE,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
 	unsigned int required = MB_per_scaled_image;
+	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+
 	if (limit > 0) {
 		/* The registration memory consumption, n is original image size:
 		 * Monochrome: O(n) for loaded image, O(nscaled) for output image,
@@ -381,6 +383,18 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 		else if (args->seq->nb_layers == 3)
 			required = MB_per_scaled_image * 2;
 		else required = MB_per_orig_image + MB_per_scaled_image;
+
+		// If interpolation clamping is set, 2x additional Mats of the same format
+		// as the original image are required
+		struct star_align_data *sadata = args->user;
+		struct registration_args *regargs = sadata->regargs;
+		if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
+				regargs->interpolation == OPENCV_LANCZOS4)) {
+			float factor = (is_float) ? 0.25 : 0.5;
+			required += (1 + factor) * MB_per_scaled_image;
+		}
+		regargs = NULL;
+		sadata = NULL;
 
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
@@ -449,7 +463,7 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 	}
 	sadata->regargs = regargs;
 	// we pass the regdata just to avoid recomputing it for the new sequence
-	sadata->current_regdata = current_regdata; 
+	sadata->current_regdata = current_regdata;
 	args->user = sadata;
 
 	// some prep work done in star_align_prepare_hook for global
@@ -464,7 +478,7 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 	}
 
 	generic_sequence_worker(args);
-	
+
 	return args->retval;
 }
 
@@ -546,14 +560,14 @@ int register_3stars(struct registration_args *regargs) {
 			double fwhm = sumx / nb_stars;
 			current_regdata[i].roundness = sumy / sumx;
 			current_regdata[i].fwhm = fwhm;
-			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(nb_stars_ref - nb_stars) / (double)nb_stars + fwhm; 
+			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(nb_stars_ref - nb_stars) / (double)nb_stars + fwhm;
 			current_regdata[i].background_lvl = sumb / nb_stars;
 			current_regdata[i].number_of_stars = nb_stars;
 		} else {
 			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
 			failed++;
 			continue;
-		} 
+		}
 
 		// computing the transformation matrices
 

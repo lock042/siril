@@ -368,7 +368,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
@@ -384,7 +384,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->no_output) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST)) {
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE)) {
 				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
 			}
@@ -497,7 +497,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 	// it here because it's still used in the generic processing function.
 }
 
-int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) { 
+int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
@@ -550,6 +550,18 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		else {
 			required = 2 * MB_per_scaled_image;
 		}
+
+		// If interpolation clamping is set, 1 additional Mat of the same format
+		// as the original image are required, plus 1 of the same size but 8U format
+		struct star_align_data *sadata = args->user;
+		struct registration_args *regargs = sadata->regargs;
+		if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
+				regargs->interpolation == OPENCV_LANCZOS4)) {
+			float factor = (is_float) ? 0.25 : 0.5;
+			required += (1 + factor) * MB_per_scaled_image;
+		}
+		regargs = NULL;
+		sadata = NULL;
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
 			thread_limit = com.max_thread;
@@ -835,7 +847,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
-	gboolean *meaningful = NULL; 
+	gboolean *meaningful = NULL;
 	int retval = 0;
 	struct timeval t_start, t_end;
 

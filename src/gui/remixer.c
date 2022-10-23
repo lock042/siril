@@ -392,6 +392,7 @@ void initialise_image() {
 	/* update menus */
 	update_MenuItem();
 	close_tab();
+	init_right_tab();
 }
 
 gboolean check_images_match(fits *fit1, fits *fit2) {

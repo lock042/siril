@@ -56,16 +56,23 @@ v1.2.0 mmm dd, 2022
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
 * Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
+* Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Allow area selection (and much more) to be done on RGB display tab
 
-v1.0.6 xx xx, 2022
+v1.0.6 October 18, 2022
 
 * Fixed crash on opening a malformed SER
 * Fixed crash in savetif
 * Fixed crash in polynomial background extraction when not enough sample were set
 * Fixed bug in iif where no parameters could be used
 * Fixed crash in seqstat when some images were deselected
+* Fixed crash in star detection when large star was close to border
+* Fixed bad behaviour of asinh blackpoint with monochrome/32bits images
+* Fixed bug in PixelMath with negate values
+* Fixed bug in SIMBAD request when object name contains '+'
+* Fixed bug in rotational gradient
 
-v1.0.5 October 09, 2022
+v1.0.5 September 09, 2022
 
 * Fixed bug in eyedropper feature with 16bits images
 * Added button to see original image in background extraction

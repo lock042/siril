@@ -32,8 +32,10 @@ static gchar *astro_catalogue[] = {
 		"Lynds Catalogue of Dark Nebulae (LdN)",
 		"Sharpless Catalogue (Sh2)",
 		"Star Catalogue",
-		"User Catalogue"
+		"User Deep Sky Objects Catalogue",
+		"User Solar System Objects Catalogue"
 };
+// update the size of gui_config.catalog if changed
 
 static void get_statlist_store() {
 	if (list_store_catalogue == NULL)

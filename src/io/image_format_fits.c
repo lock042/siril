@@ -488,6 +488,20 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TSTRING, "OBJECT", &(fit->object), NULL, &status);
 
 	status = 0;
+	fits_read_record(fit->fptr, 0, NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "*LAT", &(fit->sitelat), NULL, &status);	// Handles SITELAT and SITE-LAT keyword cases
+
+	status = 0;
+	fits_read_record(fit->fptr, 0, NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "*LON*", &(fit->sitelong), NULL, &status);	// Handles SITELONG and SITE-LON keyword cases
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->siteelev), NULL, &status);
+	if (status) {
+		fit->siteelev = 0.0;	// set to 0.0 if no elevation keyword
+	}
+
+	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "APERTURE", &(fit->aperture), NULL, &status);
 
 	status = 0;
@@ -648,6 +662,16 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			copy_string_key(fit->wcsdata.objctra, value);
 		} else if (g_str_has_prefix(card, "RA      =")) {
 			fit->wcsdata.ra = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SITELAT =")) {	// It seems either SITELATE or SITE-LATE can be seen, depending on the software...
+			fit->sitelat = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SITE-LAT=")) {
+			fit->sitelat = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SITELONG=")) {	// It seems either SITELONG or SITE-LON can be seen, depending on the software...
+			fit->sitelong = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SITE-LON=")) {
+			fit->sitelong = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SITEELEV=")) {	// It seems either SITELEV or TELALT can be seen, depending on the software...
+			fit->sitelong = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "OBJCTDEC=")) {
 			copy_string_key(fit->wcsdata.objctdec, value);
 		} else if (g_str_has_prefix(card, "DEC     =")) {
@@ -1517,6 +1541,21 @@ void save_fits_header(fits *fit) {
 	if (fit->airmass > 0.)
 		fits_update_key(fit->fptr, TDOUBLE, "AIRMASS", &(fit->airmass),
 				"Airmass", &status);
+
+	status = 0;
+	if (fit->sitelat)
+		fits_update_key(fit->fptr, TDOUBLE, "SITELAT", &(fit->sitelat),
+			"[deg] Observation site latitude", &status);
+	
+	status = 0;
+	if (fit->sitelong)
+		fits_update_key(fit->fptr, TDOUBLE, "SITELONG", &(fit->sitelong),
+				"[deg] Observation site longitude", &status);
+
+	status = 0;
+	if (fit->siteelev)
+		fits_update_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->siteelev),
+				"[m] Observation site elevation", &status);
 
 	/*******************************************************************
 	 * ************************* DFT KEYWORDS **************************
@@ -2484,6 +2523,9 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->key_gain = from->key_gain;
 	to->key_offset = from->key_offset;
 	to->airmass = from->airmass;
+	to->sitelat = from->sitelat;
+	to->sitelong = from->sitelong;
+	to->siteelev = from->siteelev;
 
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
