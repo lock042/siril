@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
+#include "core/siril_world_cs.h"
 #include "io/fits_sequence.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
@@ -60,7 +61,6 @@ static path_parse_errors read_key_from_header_text(gchar **headers, gchar *key, 
 			} else if (strvalue) {
 				gchar *currstr = g_strdup(valsubs[0]);
 				currstr = g_shell_unquote(currstr, NULL);
-				remove_spaces_from_str(currstr);
 				strncpy(strvalue, currstr, FLEN_VALUE - 1);
 				g_free(currstr);
 			} else {
@@ -136,6 +136,7 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 				g_strfreev(subs);
 				goto free_and_exit;
 			}
+			remove_spaces_from_str(val);
 			sprintf(buf, subs[1], val); // just in case there is a fancy formatting directive like uppercase or else
 		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
@@ -159,6 +160,34 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 			g_date_time_unref(read_time);
 			g_date_time_unref(read_time_corr);
 			g_free(fmtdate);
+		} else if (!g_strcmp0(subs[1],"ra") || !g_strcmp0(subs[1],"dec")) { // case ra and dec, raf and decf
+			gboolean is_ra = !g_strcmp0(subs[1],"ra");
+			SirilWorldCS *target_coords = NULL;
+			char val[FLEN_VALUE];
+			*status = read_key_from_header_text(headerkeys, subs[0], NULL, val);
+			if (*status) {
+				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
+				g_strfreev(subs);
+				goto free_and_exit;
+			}
+			if (is_ra)
+				target_coords = siril_world_cs_new_from_objct_ra_dec(val, "+00 00 00");
+			else
+				target_coords = siril_world_cs_new_from_objct_ra_dec("00 00 00", val);
+			if (!target_coords) {
+				*status = PATH_PARSE_WRONG_WCS;
+				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
+				g_strfreev(subs);
+				goto free_and_exit;
+			}
+			gchar *fmtcoord;
+			if (is_ra)
+				fmtcoord = siril_world_cs_alpha_format(target_coords, "%02dh%02dm%02ds");
+			else
+				fmtcoord = siril_world_cs_delta_format(target_coords, "%c%02dd%02dm%02ds");
+			strncpy(buf, fmtcoord, FLEN_VALUE - 1);
+			siril_world_cs_unref(target_coords);
+			g_free(fmtcoord);
 		} else {
 			siril_log_color_message(_("Unsupported format %s - aborting\n"), "red", subs[1], *status);
 			g_strfreev(subs);
