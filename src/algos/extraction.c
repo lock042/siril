@@ -67,6 +67,7 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
 				break;
 			default:
+				clearfits(Ha);
 				printf("Should not happen.\n");
 				return 1;
 			}

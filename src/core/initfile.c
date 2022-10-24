@@ -423,7 +423,10 @@ int readinitfile(char *path) {
 	gchar *fname = get_locale_filename(path);
 	GError *error = NULL;
 	if (!g_key_file_load_from_file(kf, fname, G_KEY_FILE_NONE, &error)) {
-		siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
+		if (error != NULL) {
+			siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
+			g_clear_error(&error);
+		}
 		g_free(fname);
 		return 1;
 	}

@@ -297,8 +297,10 @@ static int read_2_from_file(const char *filename, guint64 *value1, guint64 *valu
 	}
 	char *end;
 	*value1 = strtoull(buf, &end, 10);
-	if (end == buf)
+	if (end == buf) {
+		close(fd);
 		return 1;
+	}
 
 	char *start = end;
 	*value2 = strtoull(start, &end, 10);

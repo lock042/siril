@@ -395,7 +395,9 @@ gchar *get_catalogue_object_code(CatalogObjects *object) {
 		i++;
 	}
 	if (found) {
-		gchar *code = g_strdup(replace_str(object->code, convert_to_greek[i].latin, convert_to_greek[i].greek));
+		gchar *tmp = replace_str(object->code, convert_to_greek[i].latin, convert_to_greek[i].greek);
+		gchar *code = g_strdup(tmp);
+		g_free(tmp);
 		g_free(object->code);
 		object->code = code;
 	}

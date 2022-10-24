@@ -484,6 +484,7 @@ struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fp
 		video_st->fmt->video_codec = AV_CODEC_ID_H265;
 		break;
 	default:
+		free(video_st);
 		fprintf(stderr, "mp4_create: unknown type, should not happen\n");
 		return NULL;
 	}

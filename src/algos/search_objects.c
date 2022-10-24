@@ -72,9 +72,15 @@ static gboolean parse_buffer(char *buffer) {
 	g_strfreev(token);
 
 	if (world_cs && realname) {
-		siril_log_message(_("Found %s at coordinates %g %g\n"), realname, siril_world_cs_get_alpha(world_cs), siril_world_cs_get_delta(world_cs));
+		gchar **display_name = g_strsplit(realname, "\\n", 2);
+		gchar *alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+		gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+		siril_log_message(_("Found %s at coordinates: %s, %s\n"),display_name[0], alpha, delta);
 		com.pref.gui.catalog[6] = TRUE;	// enabling the user catalog in which it will be added
-		add_object_in_catalogue(realname, world_cs);
+		add_object_in_catalogue(realname, world_cs, is_solar_system);
+
+		g_free(alpha);
+		g_free(delta);
 		g_free(realname);
 		siril_world_cs_unref(world_cs);
 		ok = TRUE;

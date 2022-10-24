@@ -49,13 +49,15 @@
  * fit->rx, fit->ry, fit->naxes[2] and fit->pdata[*] are required to be assigned correctly */
 static void fits_rotate_pi_ushort(fits *fit) {
 	int i, line, axis;
-	WORD *line1, *line2, *src, *dst, swap;
+	WORD *line1 = NULL, *line2 = NULL, *src, *dst, swap;
 
 	size_t line_size = fit->rx * sizeof(WORD);
 	line1 = malloc(line_size);
 	line2 = malloc(line_size);
 	if (!line1 || !line2) {
 		PRINT_ALLOC_ERR;
+		if (line1) free(line1);
+		if (line2) free(line2);
 		return;
 	}
 
@@ -95,13 +97,15 @@ static void fits_rotate_pi_ushort(fits *fit) {
 
 static void fits_rotate_pi_float(fits *fit) {
 	int i, line, axis;
-	float *line1, *line2, *src, *dst, swap;
+	float *line1 = NULL, *line2 = NULL, *src, *dst, swap;
 
 	size_t line_size = fit->rx * sizeof(float);
 	line1 = malloc(line_size);
 	line2 = malloc(line_size);
 	if (!line1 || !line2) {
 		PRINT_ALLOC_ERR;
+		if (line1) free(line1);
+		if (line2) free(line2);
 		return;
 	}
 
