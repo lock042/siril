@@ -77,7 +77,7 @@ static gboolean parse_buffer(char *buffer) {
 		gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
 		siril_log_message(_("Found %s at coordinates: %s, %s\n"),display_name[0], alpha, delta);
 		com.pref.gui.catalog[6] = TRUE;	// enabling the user catalog in which it will be added
-		add_object_in_catalogue(realname, world_cs, is_solar_system);
+		add_object_in_catalogue(realname, world_cs);
 
 		g_free(alpha);
 		g_free(delta);
