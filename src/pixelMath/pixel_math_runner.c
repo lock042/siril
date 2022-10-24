@@ -1247,6 +1247,7 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
 
 	gtk_tree_path_free(path);
+	free(all_functions);
 
 	return TRUE;
 }
@@ -1288,6 +1289,7 @@ static void add_functions_to_list() {
 		gtk_list_store_append(pixel_math_list_store_functions, &iter);
 		gtk_list_store_set(pixel_math_list_store_functions, &iter, COLUMN_NAME, all_functions[i].name, COLUMN_INDEX, i, -1);
 	}
+	free(all_functions);
 }
 
 static void add_operators_to_list() {
@@ -1445,8 +1447,8 @@ static void save_presets_list() {
 
 void on_pm_expr1_bt_clicked(GtkButton *button, gpointer user_data) {
 	gchar *str = get_pixel_math_expression1();
-	g_strstrip(str);
 	if (str) {
+		g_strstrip(str);
 		if (str[0] != '\0') {
 			add_expr_to_tree(str);
 			save_presets_list();
@@ -1457,8 +1459,8 @@ void on_pm_expr1_bt_clicked(GtkButton *button, gpointer user_data) {
 
 void on_pm_expr2_bt_clicked(GtkButton *button, gpointer user_data) {
 	gchar *str = get_pixel_math_expression2();
-	g_strstrip(str);
 	if (str) {
+		g_strstrip(str);
 		if (str[0] != '\0') {
 			add_expr_to_tree(str);
 			save_presets_list();
@@ -1469,8 +1471,8 @@ void on_pm_expr2_bt_clicked(GtkButton *button, gpointer user_data) {
 
 void on_pm_expr3_bt_clicked(GtkButton *button, gpointer user_data) {
 	gchar *str = get_pixel_math_expression3();
-	g_strstrip(str);
 	if (str) {
+		g_strstrip(str);
 		if (str[0] != '\0') {
 			add_expr_to_tree(str);
 			save_presets_list();

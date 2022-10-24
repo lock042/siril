@@ -395,6 +395,8 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 		break;
 	default:
 		shError("atFindTrans: invalid trans->order %d ", trans->order);
+		free_star_array(star_array_A);
+		free_star_array(star_array_B);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -701,6 +703,8 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 		break;
 	default:
 		shError("atRecalcTrans: invalid trans->order %d ", trans->order);
+		free_star_array(star_array_A);
+		free_star_array(star_array_B);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -2991,6 +2995,8 @@ TRANS *trans /* O: place solved coefficients into this */
 		 */
 		if (nr < 2) {
 			if (nr == 0) {
+				shFree(dist2);
+				shFree(dist2_sorted);
 				shFree(a_prime);
 				return (SH_GENERIC_ERROR);
 			}
@@ -3962,10 +3968,6 @@ int *num_stars_2 /* I/O: number of stars in array 2 */
 
 		s1 = &(star_array_1[pos1]);
 		s2 = &(star_array_2[pos2]);
-		if ((s1 == NULL) || (s2 == NULL)) {
-			shError("remove_repeated_elements: missing elem in array 1 or 2");
-			return (SH_GENERIC_ERROR);
-		}
 
 		if (last1 == NULL) {
 			last1 = s1;
@@ -4437,6 +4439,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 3, vector) != SH_SUCCESS) {
 		shError("calc_trans_linear: can't solve for coeffs A,B,C ");
+		free_matrix(matrix, 3);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -4484,6 +4487,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 3, vector) != SH_SUCCESS) {
 		shError("calc_trans_linear: can't solve for coeffs D,E,F ");
+		free_matrix(matrix, 3);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -4802,6 +4806,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 6, vector) != SH_SUCCESS) {
 		shError("calc_trans_quadratic: can't solve for coeffs A,B,C,D,E,F ");
+		free_matrix(matrix, 6);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -4890,6 +4895,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 6, vector) != SH_SUCCESS) {
 		shError("calc_trans_quadratic: can't solve for coeffs G,H,I,J,K,L ");
+		free_matrix(matrix, 6);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -5305,6 +5311,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 8, vector) != SH_SUCCESS) {
 		shError("calc_trans_cubic: can't solve for coeffs A,B,C,D,E,F,G,H ");
+		free_matrix(matrix, 8);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -5429,6 +5436,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 8, vector) != SH_SUCCESS) {
 		shError("calc_trans_cubic: can't solve for coeffs I,J,K,L,M,N,O,P ");
+		free_matrix(matrix, 8);
 		return (SH_GENERIC_ERROR);
 	}
 
