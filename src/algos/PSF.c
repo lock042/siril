@@ -454,7 +454,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	}
 
 	double beta = (profile == PSF_GAUSSIAN) ? -1. : 2; // TODO: to be changed if we implement PSF_MOFFAT_BFIXED
-	double fbeta = acos(2. * beta / MOFFAT_BETA_UBOUND - 1.);
+	double fbeta = (profile == PSF_GAUSSIAN) ? 0. : acos(2. * beta / MOFFAT_BETA_UBOUND - 1.);
 	double fr = acos(2. * 0.5 - 1.); // r = 0.5 *(cos(fc)+1) to bound it between 0 and 1 - we init at r = 0.5 to be able to start in a place where the direction of variation is well defined
 
 	struct PSF_data d = { n, y, NbRows, NbCols, 0. , mask };
