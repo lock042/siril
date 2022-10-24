@@ -634,7 +634,7 @@ gpointer extract_channels(gpointer p) {
 	free(args->channel[1]);
 	free(args->channel[2]);
 	free(args);
-	siril_add_idle(end_generic, args);
+	siril_add_idle(end_generic, NULL);
 	return retval;
 }
 

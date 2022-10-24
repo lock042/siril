@@ -61,6 +61,7 @@ static const char *cmd_err_to_str(cmd_errors err) {
 			return _("invalid image area selection");
 		case CMD_OK:
 			return _("command succeeded");
+		default:
 		case CMD_GENERIC_ERROR:
 			return _("generic error");
 		case CMD_IMAGE_NOT_FOUND:
