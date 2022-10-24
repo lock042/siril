@@ -3503,7 +3503,7 @@ int process_split(int nb){
 		return CMD_ALLOC_ERROR;
 	}
 
-	args->type = 0;
+	args->type = EXTRACT_RGB;
 	args->str_type = _("RGB");
 
 	args->channel[0] = g_strdup_printf("%s%s", word[1], com.pref.ext);
