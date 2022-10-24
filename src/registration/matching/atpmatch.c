@@ -762,6 +762,9 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 			RECALC_YES, max_iter, halt_sigma, trans) != SH_SUCCESS) {
 
 		shError("atRecalcTrans: iter_trans unable to create a valid TRANS");
+		shFree(winner_votes);
+		shFree(winner_index_A);
+		shFree(winner_index_B);
 		free_star_array(star_array_A);
 		free_star_array(star_array_B);
 		return (SH_GENERIC_ERROR);
@@ -2987,8 +2990,10 @@ TRANS *trans /* O: place solved coefficients into this */
 		 * failure....
 		 */
 		if (nr < 2) {
-			if (nr == 0)
+			if (nr == 0) {
+				shFree(a_prime);
 				return (SH_GENERIC_ERROR);
+			}
 			sigma = 0.0;
 #ifdef DEBUG
 			printf("   sigma = %10.5e  (only %d matches) \n", sigma, nr);

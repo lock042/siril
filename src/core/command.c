@@ -3487,6 +3487,7 @@ int process_seq_cosme(int nb) {
 	}
 
 	GFile *file = g_file_new_for_path(filename);
+	g_free(filename);
 
 	struct cosme_data *args = malloc(sizeof(struct cosme_data));
 
@@ -3495,7 +3496,6 @@ int process_seq_cosme(int nb) {
 		value = current + 8;
 		if (value[0] == '\0') {
 			free_sequence(seq, TRUE);
-			g_free(filename);
 			g_object_unref(file);
 			free(args);
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
@@ -4024,7 +4024,7 @@ int process_extractHa(int nb) {
 		if (!(ret = extractHa_float(&gfit, &f_Ha, pattern))) {
 			ret = save1fits32(Ha, &f_Ha, 0);
 		}
-	} else return CMD_INVALID_IMAGE;
+	} else ret = CMD_INVALID_IMAGE;
 
 	g_free(Ha);
 	clearfits(&f_Ha);
