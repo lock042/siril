@@ -42,6 +42,57 @@
 
 #include "command_line_processor.h"
 
+static const char *cmd_err_to_str(cmd_errors err) {
+	switch (err) {
+		case CMD_NOT_FOUND:
+			return _("unknown command name");
+		case CMD_NO_WAIT:
+			return _("non-blocking command, no error");
+		case CMD_NO_CWD:
+			return _("current working directory is invalid");
+		case CMD_NOT_SCRIPTABLE:
+			return _("command cannot be used in a script");
+		case CMD_WRONG_N_ARG:
+			return _("invalid number of arguments");
+		case CMD_ARG_ERROR:
+			return _("invalid arguments");
+		case CMD_SELECTION_ERROR:
+			return _("invalid image area selection");
+		case CMD_OK:
+			return _("command succeeded");
+		case CMD_GENERIC_ERROR:
+			return _("generic error");
+		case CMD_IMAGE_NOT_FOUND:
+			return _("input image not found");
+		case CMD_SEQUENCE_NOT_FOUND:
+			return _("invalid input sequence");
+		case CMD_INVALID_IMAGE:
+			return _("invalid input image");
+		case CMD_LOAD_IMAGE_FIRST:
+			return _("load an image or sequence first");
+		case CMD_ONLY_SINGLE_IMAGE:
+			return _("command is only for a loaded single image");
+		case CMD_NOT_FOR_SINGLE:
+			return _("command is only for a sequence");
+		case CMD_NOT_FOR_MONO:
+			return _("command is not for monochrome images");
+		case CMD_NOT_FOR_RGB:
+			return _("command is not for color images");
+		case CMD_FOR_CFA_IMAGE:
+			return _("command is only for OSC CFA images");
+		case CMD_FILE_NOT_FOUND:
+			return _("file not found");
+		case CMD_FOR_PLATE_SOLVED:
+			return _("command is only for plate solved images");
+		case CMD_NEED_INIT_FIRST:
+			return _("command requires a preliminary step");
+		case CMD_ALLOC_ERROR:
+			return _("memory allocation error");
+		case CMD_THREAD_RUNNING:
+			return _("a processing is already running");
+	}
+}
+
 void parse_line(char *myline, int len, int *nb) {
 	int i = 0, wordnb = 0;
 	char string_starter = '\0';	// quotes don't split words on spaces
@@ -302,7 +353,7 @@ gpointer execute_script(gpointer p) {
 		retval = execute_command(wordnb);
 
 		if (retval && retval != CMD_NO_WAIT) {
-			siril_log_message(_("Error in line %d: '%s'.\n"), line, buffer);
+			siril_log_message(_("Error in line %d ('%s'): %s.\n"), line, buffer, cmd_err_to_str(retval));
 			siril_log_message(_("Exiting batch processing.\n"));
 			g_free (buffer);
 			break;
@@ -476,35 +527,6 @@ static gboolean on_command_key_press_event(GtkWidget *widget, GdkEventKey *event
 	return (handled == 1);
 }
 
-static const char *cmd_error_to_string(cmd_errors err) {
-	switch (err) {
-	case CMD_LOAD_IMAGE_FIRST:
-		return "Load an image or a sequence first.\n";
-		break;
-	case CMD_ONLY_SINGLE_IMAGE:
-		return "Single image must be loaded, and this command cannot be applied on a sequence.\n";
-		break;
-	case CMD_NOT_FOR_SINGLE:
-		return "This command can only be used when a sequence is loaded.\n";
-		break;
-	case CMD_NOT_FOR_MONO:
-		return "This command cannot be applied on monochrome images.\n";
-		break;
-	case CMD_NOT_FOR_RGB:
-		return "This command cannot be applied on rgb images.\n";
-		break;
-	case CMD_FOR_CFA_IMAGE:
-		return "Make sure your image is in CFA mode.\n";
-		break;
-	case CMD_WRONG_N_ARG:
-		return "Incorrect number of arguments\n";
-	case CMD_THREAD_RUNNING:
-		return PRINT_ANOTHER_THREAD_RUNNING;
-	default:
-		return NULL;
-	}
-}
-
 int processcommand(const char *line) {
 	int wordnb = 0;
 	GError *error = NULL;
@@ -553,10 +575,7 @@ int processcommand(const char *line) {
 		parse_line(myline, len, &wordnb);
 		int ret = execute_command(wordnb);
 		if (ret) {
-			siril_log_color_message(_("Command execution failed with error code: %d.\n"), "red", ret);
-			const char *msg = cmd_error_to_string(ret);
-			if (msg)
-				siril_log_color_message(msg, "red");
+			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
 			if (!com.script && !com.headless && (ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
 				show_command_help_popup(GTK_ENTRY(lookup_widget("command")));
 			}
