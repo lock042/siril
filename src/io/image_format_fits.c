@@ -50,8 +50,7 @@
 const char *fit_extension[] = {
 		".fit",
 		".fits",
-		".fts",
-		".fits.fz"
+		".fts"
 };
 
 static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
@@ -2129,18 +2128,44 @@ int savefits(const char *name, fits *f) {
 		return 1;
 	}
 
+	gboolean comp_flag = FALSE;
+	/* first check if there is fz extension */
+	if (g_str_has_suffix(name, ".fz")) {
+		comp_flag = TRUE;
+	}
+
 	gboolean right_extension = FALSE;
 	for (int i = 0; i < G_N_ELEMENTS(fit_extension); i++) {
-		if (g_str_has_suffix(name, fit_extension[i])) {
+		gchar *extension;
+		if (comp_flag) {
+			extension = g_strdup_printf("%s.fz", fit_extension[i]);
+		} else {
+			extension = g_strdup(fit_extension[i]);
+		}
+		if (g_str_has_suffix(name, extension)) {
 			right_extension = TRUE;
+			g_free(extension);
 			break;
 		}
+		g_free(extension);
 	}
 
 	if (!right_extension) {
-		snprintf(filename, 255, "%s%s", name, com.pref.ext);
+		if (com.pref.comp.fits_enabled) {
+			snprintf(filename, 255, "%s%s.fz", name, com.pref.ext);
+		} else {
+			snprintf(filename, 255, "%s%s", name, com.pref.ext);
+		}
 	} else {
-		snprintf(filename, 255, "%s", name);
+		if (comp_flag && !com.pref.comp.fits_enabled) {
+			/* we remove .fz */
+			gchar *tmp = g_strdup(name);
+			tmp[strlen(tmp) - 3] = '\0';
+			snprintf(filename, 255, "%s", tmp);
+			g_free(tmp);
+		} else {
+			snprintf(filename, 255, "%s", name);
+		}
 	}
 
 	g_unlink(filename); /* Delete old file if it already exists */
