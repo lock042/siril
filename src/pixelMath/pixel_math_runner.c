@@ -66,9 +66,12 @@ typedef struct {
 static const _pm_op_func functions[] = {
     { "abs",   "abs ( x )",                             N_("Absolute value of x.")                    },
     { "acos",  "acos ( x )",                            N_("Arc cosine of x.")                        },
+    { "acosh", "acosh ( x )",                           N_("Hyperbolic arc cosine of x.")             },
     { "asin",  "asin ( x )",                            N_("Arc sine of x.")                          },
+    { "asinh", "asinh ( x )",                           N_("Hyperbolic arc sine of x.")               },
     { "atan",  "atan ( x )",                            N_("Arc tangent of x.")                       },
     { "atan2", "atan2 ( y, x )",                        N_("Arc tangent of y/x.")                     },
+    { "atanh", "atanh ( x )",                           N_("Hyperbolic arc tangent of x.")            },
     { "ceil",  "ceil ( x )",                            N_("Round x upwards to the nearest integer.") },
     { "cos",   "cos ( x )",                             N_("Cosine of x.")                            },
     { "cosh",  "cosh ( x )",                            N_("Hyperbolic cosine of x.")                 },
@@ -76,8 +79,8 @@ static const _pm_op_func functions[] = {
     { "exp",   "exp ( x )",                             N_("Exponential function.")                   },
     { "fac",   "fac( x )",                              N_("Factorial function.")                     },
     { "iif",   "iif( cond, expr_true, expr_false )",    N_("Conditional function (or inline if function).\n"
-										"\nReturns <i>expr_true</i> if <i>cond</i> evaluates to nonzero."
-										"\nReturns <i>expr_false</i> if <i>cond</i> evaluates to zero.") },
+                                        "\nReturns <i>expr_true</i> if <i>cond</i> evaluates to nonzero."
+                                        "\nReturns <i>expr_false</i> if <i>cond</i> evaluates to zero.") },
     { "floor", "floor ( x )",                           N_("Highest integer less than or equal to x.")},
     { "ln",    "ln ( x )",                              N_("Natural logarithm of x.")                 },
     { "log",   "log ( x )",                             N_("Base-10 logarithm of x.")                 },
@@ -90,6 +93,10 @@ static const _pm_op_func functions[] = {
     { "npr",   "npr ( x, y )",                          N_("Permutations function.")                  },
     { "pi",    "pi",                                    N_("The constant \u03c0=3.141592...")         },
     { "pow",   "pow ( x, y )",                          N_("Exponentiation function.")                },
+    { "sign",  "sign ( x )",                            N_("Sign of x:\n"
+                                                                                "\n\t +1 if x &gt; 0"
+                                                                                "\n\t −1 if x &lt; 0"
+                                                                                "\n\t  0 if x = 0.")  },
     { "sin",   "sin ( x )",                             N_("Sine of x.")                              },
     { "sinh",  "sinh ( x )",                            N_("Hyperbolic sine of x.")                   },
     { "sqrt",  "sqrt ( x )",                            N_("Square root of x.")                       },
@@ -101,14 +108,17 @@ static const _pm_op_func functions[] = {
 static const _pm_op_func image_functions[] = {
 	{ "adev",     "adev ( Image )",                    N_("Average absolute deviation of the image.")  },
 	{ "bwmv",     "bwmv ( Image )",                    N_("Biweight midvariance of the image.")        },
+	{ "height",   "height ( Image )",                  N_("Height in pixels of the specified image.")  },
 	{ "mad",      "mad ( Image )",                     N_("Median absolute deviation of the image.")   },
 	{ "max",      "max ( Image )",                     N_("Pixel maximum of the image.")               },
+	{ "mdev",     "mdev ( Image )",                    N_("Median absolute deviation of the image.")   },
 	{ "mean",     "mean ( Image )",                    N_("Mean of the image.")                        },
 	{ "med",      "med ( Image )",                     N_("Median of the image.")                      },
 	{ "median",   "median ( Image )",                  N_("Median of the image.")                      },
 	{ "min",      "min ( Image )",                     N_("Pixel minimum of the image.")               },
 	{ "noise",    "noise ( Image )",                   N_("Estimation of Gaussian noise in the image.")},
-	{ "sdev",     "sdev ( Image )",                    N_("Standard deviation of the image.")          }
+	{ "sdev",     "sdev ( Image )",                    N_("Standard deviation of the image.")          },
+	{ "width",    "width ( Image )",                   N_("Width in pixels of the specified image.")   }
 };
 
 static const _pm_op_func operators[] = {
@@ -124,8 +134,8 @@ static const _pm_op_func operators[] = {
     { "-",   "x - y",                          N_("Subtraction operator.")                            },
     { "<",   "x &lt; y",                       N_("Less Than relational operator.")                   },
     { "<=",  "x &lt;= y",                      N_("Less Than Or Equal relational operator.")          },
-    { ">",   "x > y",                          N_("Greater Than relational operator.")                },
-    { ">=",  "x >= y",                         N_("Greater Than Or Equal relational operator.")       },
+    { ">",   "x &gt; y",                       N_("Greater Than relational operator.")                },
+    { ">=",  "x &gt;= y",                      N_("Greater Than Or Equal relational operator.")       },
     { "==",  "x == y",                         N_("Equal To relational operator.")                    },
     { "!=",  "x != y",                         N_("Not Equal To relational operator.")                },
     { "&&",  "x &amp;&amp; y",                 N_("Logical AND operator.")                            },
@@ -520,6 +530,7 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 								double median = 0.0, mean = 0.0, min = 0.0,
 										max = 0.0, noise = 0.0, adev = 0.0,
 										bwmv = 0.0, mad = 0.0, sdev = 0.0;
+								double w = 0.0, h = 0.0;
 								imstats *stats = statistics(NULL, -1, &var_fit[j], c, NULL, STATS_MAIN, MULTI_THREADED);
 								if (!stats) return expression;
 
@@ -532,6 +543,9 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 								bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
 								mad = stats->mad;
 								sdev = stats->sigma;
+
+								w = (double) var_fit[j].rx;
+								h = (double) var_fit[j].ry;
 
 								free_stats(stats);
 
@@ -549,10 +563,14 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 									replace = g_strdup_printf("%g", adev);
 								} else if (!g_strcmp0(function, "bwmv")) {
 									replace = g_strdup_printf("%g", bwmv);
-								} else if (!g_strcmp0(function, "mad")) {
+								} else if ((!g_strcmp0(function, "mad") || !(g_strcmp0(function, "mdev")))) {
 									replace = g_strdup_printf("%g", mad);
 								} else if (!g_strcmp0(function, "sdev")) {
 									replace = g_strdup_printf("%g", sdev);
+								} else if ((!g_strcmp0(function, "width") || !(g_strcmp0(function, "w")))) {
+									replace = g_strdup_printf("%g", w);
+								} else if ((!g_strcmp0(function, "height") || !(g_strcmp0(function, "h")))) {
+									replace = g_strdup_printf("%g", h);
 								}
 								if (replace) {
 									GString *string = g_string_new(expression);
