@@ -291,7 +291,6 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 	// images may have been excluded but selnum wasn't updated
 	fix_selnum(args->seq, FALSE);
 
-
 	if (!args->retval) {
 		for (int i = 0; i < args->nb_filtered_images; i++)
 			if (!sadata->success[i])
@@ -348,10 +347,6 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		siril_log_message(_("Transformation aborted.\n"));
 	}
 	return regargs->new_total == 0;
-	// TODO: args is never freed because we don't call an end function for
-	// this generic processing function. The register idle is called for
-	// everything else, but does not know this pointer, and we cannot free
-	// it here because it's still used in the generic processing function.
 }
 
 int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {

@@ -340,20 +340,16 @@ the_end:
 	}
 
 	int retval = args->retval;	// so we can free args if needed in the idle
-	if (args->already_in_a_thread) {
+
+	if (!args->already_in_a_thread) {
+		gboolean run_idle;
 		if (args->idle_function)
-			args->idle_function(args);
-	} else {
-		if (args->idle_function)
-			siril_add_idle(args->idle_function, args);
-		else siril_add_idle(end_generic_sequence, args);
-		if (com.script) {
-			/* should we have an args->end_headless and args->end_gui?
-			 * some things usually managed in the non-executed idle are
-			 * not generic and cannot be managed here
-			 */
-			if (args->user)
-				free(args->user);
+			run_idle = siril_add_idle(args->idle_function, args) > 0;
+		else run_idle = siril_add_idle(end_generic_sequence, args) > 0; // the generic idle
+
+		if (!run_idle) {
+			// some generic cleanup for scripts
+			// should we check for seq = com.seq?
 			free_sequence(args->seq, TRUE);
 			free(args);
 		}
