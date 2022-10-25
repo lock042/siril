@@ -928,6 +928,7 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	args->has_output = FALSE;
 	args->load_new_sequence = FALSE;
 	args->user = findstar_args;
+	args->already_in_a_thread = findstar_args->already_in_thread;
 
 	if (findstar_args->already_in_thread)
 		return GPOINTER_TO_INT(generic_sequence_worker(args));

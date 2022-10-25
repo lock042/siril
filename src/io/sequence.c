@@ -1198,9 +1198,10 @@ void initialize_sequence(sequence *seq, gboolean is_zeroed) {
  * initialize_sequence() must be called on it right after free_sequence()
  * (= do it for com.seq) */
 void free_sequence(sequence *seq, gboolean free_seq_too) {
+	if (seq == NULL) return;
+	siril_debug_print("free_sequence(%s)\n", seq->seqname ? seq->seqname : "null name");
 	int layer, j;
 
-	if (seq == NULL) return;
 	// free regparam
 	if (seq->nb_layers > 0 && seq->regparam) {
 		for (layer = 0; layer < seq->nb_layers; layer++) {
