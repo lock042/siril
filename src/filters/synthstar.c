@@ -332,10 +332,6 @@ int generate_synthstars(fits *fit) {
 		avg_moffat_beta = -1;
 	siril_debug_print("# Moffat profile stars: %lu, average beta = %.3f\n", moffat_count, avg_moffat_beta);
 
-	// TODO: need something here to automatically filter out "stars" with
-	// very low beta and high fwhm, as these are usually false positives from
-	// background galaxies and synthesize as junk.
-
 	gboolean stopcalled = FALSE;
 	// Synthesize a PSF for each star in the star array s, based on its measured parameters
 	for (int n = 0; n < nb_stars; n++) {
@@ -391,18 +387,18 @@ int generate_synthstars(fits *fit) {
 			omp_set_num_threads(com.max_thread);
 			{
 #endif
-			float bufmax = 1.f;
+			float bufmaxx = 1.f;
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
 			for (size_t i = 0; i < count; i++)
-				if (Lsynth[i] > bufmax)
-					bufmax = Lsynth[i];
+				if (Lsynth[i] > bufmaxx)
+					bufmaxx = Lsynth[i];
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
 			for (size_t i = 0; i < count; i++)
-				Lsynth[i] /= bufmax;
+				Lsynth[i] /= bufmaxx;
 
 #ifdef _OPENMP
 #pragma omp for schedule(static)
