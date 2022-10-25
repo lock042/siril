@@ -367,7 +367,7 @@ gboolean end_generic_sequence(gpointer p) {
 		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
 		check_seq();
 		update_sequences_list(seqname);
-		free(seqname);
+		g_free(seqname);
 		g_free(basename);
 	}
 
