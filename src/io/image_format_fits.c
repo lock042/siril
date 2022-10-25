@@ -2163,6 +2163,8 @@ int savefits(const char *name, fits *f) {
 			tmp[strlen(tmp) - 3] = '\0';
 			snprintf(filename, 255, "%s", tmp);
 			g_free(tmp);
+		} else if (!comp_flag && com.pref.comp.fits_enabled) {
+			snprintf(filename, 255, "%s%s.fz", name, com.pref.ext);
 		} else {
 			snprintf(filename, 255, "%s", name);
 		}
