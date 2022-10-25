@@ -120,6 +120,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			ymax = DBL_MAX;
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+					continue;
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
@@ -152,6 +153,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			n = 0;
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+					continue;
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
