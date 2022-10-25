@@ -300,41 +300,6 @@ static void display_PSF(psf_star **result) {
 	}
 }
 
-void set_iter_of_clicked_psf(double x, double y) {
-	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")));
-	GtkTreeIter iter;
-	gboolean valid;
-	gint row_count = 0;
-	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
-	valid = gtk_tree_model_get_iter_first(model, &iter);
-	while (valid) {
-		siril_debug_print("Testing star %d for closeness to clicked point / ", iter.stamp);
-		gdouble xpos, ypos, starangle, fwhmx, fwhmy;
-		gtk_tree_model_get(model, &iter, COLUMN_X0, &xpos, -1);
-		gtk_tree_model_get(model, &iter, COLUMN_Y0, &ypos, -1);
-		gtk_tree_model_get(model, &iter, COLUMN_ANGLE, &starangle, -1);
-		gtk_tree_model_get(model, &iter, COLUMN_FWHMX, &fwhmx, -1);
-		gtk_tree_model_get(model, &iter, COLUMN_FWHMY, &fwhmy, -1);
-		gdouble distsq = (xpos - x) * (xpos - x) + (ypos - y) * (ypos - y);
-		gdouble angle = xatan2(ypos - y, xpos - x) - starangle;
-		double2 sincos = xsincos(angle);
-		gdouble psflimsq = 4. * fwhmx * fwhmx * sincos.y * sincos.y + fwhmy * fwhmy * sincos.x * sincos.x;
-		siril_debug_print("dsq %f psfsq %f\n", distsq, psflimsq);
-		if (distsq < psflimsq) {
-			gtk_tree_selection_select_iter(selection, &iter);
-			path = gtk_tree_model_get_path(model, &iter);
-			GtkTreeView *treeview = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
-			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
-			return;
-		}
-		valid = gtk_tree_model_iter_next(model, &iter);
-		row_count++;
-	}
-	siril_debug_print("End of list\n");
-	return;
-}
-
 
 static gint get_index_of_selected_star(gdouble x, gdouble y) {
 	int i = 0;
@@ -369,6 +334,44 @@ static void display_status() {
 	}
 	gtk_statusbar_push(statusbar, COUNT_STATE, text);
 	g_free(text);
+}
+
+void set_iter_of_clicked_psf(double x, double y) {
+	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")));
+	GtkTreeIter iter;
+	gboolean valid;
+	gint row_count = 0;
+	valid = gtk_tree_model_get_iter_first(model, &iter);
+	while (valid) {
+		gdouble xpos, ypos, starangle, fwhmx, fwhmy;
+		gtk_tree_model_get(model, &iter, COLUMN_X0, &xpos, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_Y0, &ypos, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_ANGLE, &starangle, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_FWHMX, &fwhmx, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_FWHMY, &fwhmy, -1);
+		gdouble distsq = (xpos - x) * (xpos - x) + (ypos - y) * (ypos - y);
+		gdouble angle = xatan2(ypos - y, xpos - x) - starangle;
+		double2 sincos = xsincos(angle);
+		gdouble psflimsq = 6. * fwhmx * fwhmx * sincos.y * sincos.y + fwhmy * fwhmy * sincos.x * sincos.x;
+		if (distsq < psflimsq) {
+			gtk_tree_selection_select_iter(selection, &iter);
+			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+			GtkTreeView *treeview = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
+			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
+			display_status();
+			redraw(REDRAW_OVERLAY);
+			if (path) {
+				gtk_tree_path_free(path);
+				path = NULL;
+			}
+			return;
+		}
+		valid = gtk_tree_model_iter_next(model, &iter);
+		row_count++;
+	}
+	siril_debug_print("Point clicked does not correspond to a known star\n");
+	return;
 }
 
 static void remove_selected_star(int index) {
