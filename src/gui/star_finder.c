@@ -73,7 +73,7 @@ void on_combostarfinder_profile_changed(GtkComboBox *combo, gpointer user_data) 
 void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {
 	//TODO: do we want to keep focal and pixel_size as they are not exposed?
 	com.pref.starfinder_conf = (star_finder_params){.radius = DEF_BOX_RADIUS, .adjust = FALSE, .sigma = 1.,
-			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE, .profile = PSF_GAUSSIAN, .min_beta = 0.};
+			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE, .profile = PSF_GAUSSIAN, .min_beta = 1.5};
 	update_peaker_GUI();
 }
 

@@ -1943,6 +1943,7 @@ If the parameters is null, so no filter is apply at all.</property>
   </object>
   <object class="GtkAdjustment" id="adj_min_beta">
     <property name="upper">10</property>
+    <property name="value">1.5</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
@@ -11405,8 +11406,10 @@ This should normally be the case only for stacked images. Increasing this value 
                           <object class="GtkSpinButton" id="spin_minbeta">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Minimum value for Moffat beta parameter. This can be used to avoid galaxies being modelled as stars with excessively low beta.</property>
                             <property name="adjustment">adj_min_beta</property>
                             <property name="digits">2</property>
+                            <property name="value">1.5</property>
                             <signal name="value-changed" handler="on_spin_sf_minbeta_changed" swapped="no"/>
                           </object>
                           <packing>

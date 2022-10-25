@@ -68,7 +68,7 @@ preferences pref_init = {
 		.convergence = 1,
 		.relax_checks = FALSE,
 		.profile = PSF_GAUSSIAN,
-		.min_beta = 0.
+		.min_beta = 1.5
 	},
 	.prepro = {
 		.cfa = FALSE,
