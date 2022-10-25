@@ -137,7 +137,7 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE; //crit 3
 	}
-	if ((result->type != PSF_GAUSSIAN) && (result->beta < com.pref.starfinder_conf.min_beta)) {
+	if ((result->profile != PSF_GAUSSIAN) && (result->beta < com.pref.starfinder_conf.min_beta)) {
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "Beta: %4.3e\n", result->beta);
 		return SF_MOFFAT_BETA_TOO_SMALL; // crit 17
 	}

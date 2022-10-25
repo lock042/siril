@@ -1941,6 +1941,11 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">1</property>
   </object>
+  <object class="GtkAdjustment" id="adj_min_beta">
+    <property name="upper">10</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_plans_w">
     <property name="lower">2</property>
     <property name="upper">6</property>
@@ -11380,6 +11385,40 @@ This should normally be the case only for stacked images. Increasing this value 
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkBox" id="min_beta_control">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Minimum beta:</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="spin_minbeta">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="adjustment">adj_min_beta</property>
+                            <property name="digits">2</property>
+                            <signal name="value-changed" handler="on_spin_sf_minbeta_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">1</property>
+                      </packing>
                     </child>
                     <child>
                       <placeholder/>
