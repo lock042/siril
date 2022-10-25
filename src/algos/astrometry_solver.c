@@ -984,7 +984,7 @@ static int read_catalog(GInputStream *stream, psf_star **cstars, int type) {
 }
 
 static TRANS H_to_linear_TRANS(Homography H) {
-	TRANS trans;
+	TRANS trans = { 0 };
 
 	trans.order = AT_TRANS_LINEAR;
 

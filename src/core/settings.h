@@ -147,7 +147,7 @@ struct gui_config {
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[7];	// 6 catalogs and 1 user catalog for annotations
+	gboolean catalog[8];	// 6 system catalogs and 2 user catalogs for annotations
 
 	gint selection_guides;	// number of elements of the grid guides
 				// (2 for a simple cross, 3 for the 3 thirds rule, etc.)
