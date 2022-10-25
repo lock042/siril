@@ -42,7 +42,9 @@ extern "C" {
 #define WIDEN(s) (s)
 #endif
 
+#ifdef HAVE_EXIV2
 #include <exiv2/exiv2.hpp>
+#endif
 
 #include "exif.h"
 
@@ -74,6 +76,7 @@ public:
  * Get the largest possible thumbnail from the image
  */
 int siril_get_thumbnail_exiv(const char *path, uint8_t **buffer, size_t *size, char **mime_type) {
+#ifdef HAVE_EXIV2
 	try {
 		std::unique_ptr<Exiv2::Image> image(Exiv2::ImageFactory::open(WIDEN(path)));
 		assert(image.get() != 0);
@@ -113,4 +116,7 @@ int siril_get_thumbnail_exiv(const char *path, uint8_t **buffer, size_t *size, c
 		std::cerr << "[exiv2]: " << s << std::endl;
 		return 1;
 	}
+#else
+	return 1;
+#endif
 }

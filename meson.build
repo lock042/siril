@@ -44,6 +44,7 @@ warnings = []
 
 enable_openmp    = get_option('openmp')
 enable_json_glib = get_option('json_glib')
+enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')
 enable_libtiff   = get_option('libtiff')
 enable_libjpeg   = get_option('libjpeg')
@@ -184,7 +185,7 @@ if cc.has_argument('-msse4.1') and cpp.has_argument('-msse4.1')
 endif
 
 ################################################################################
-# Directories 
+# Directories
 
 siril_share = get_option('prefix') + '/' + get_option('datadir') + '/'
 siril_datadir = siril_share + meson.project_name() + '/'
@@ -235,7 +236,6 @@ endif
 gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
-exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
 fftw3f_dep = dependency('fftw3f', required : true)
 cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
@@ -249,7 +249,7 @@ if not rtprocess_dep.found()
   # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
   opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
   sub_proj = cmake.subproject('librtprocess', options: opt_var)
-  
+
   rtprocess_dep = sub_proj.dependency('rtprocess')
   rtprocess_inc = sub_proj.include_directories('rtprocess')
 else
@@ -264,7 +264,7 @@ if not htmesh_dep.found()
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
   #opt_var.append_compile_args(
   sub_proj = cmake.subproject('htmesh', options: opt_var)
-  
+
   htmesh_dep = sub_proj.dependency('htmesh')
   htmesh_inc = sub_proj.include_directories('htmesh')
 else
@@ -290,6 +290,11 @@ endif
 json_glib_dep = no_dep
 if enable_json_glib
   json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
+endif
+
+exiv_dep = no_dep
+if enable_exiv
+  exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
 endif
 
 libraw_dep = no_dep
@@ -435,33 +440,39 @@ else
   conf_data.set('HAVE_JSON_GLIB', false, description : 'Using json glib')
 endif
 
+if exiv_dep.found()
+  conf_data.set('HAVE_EXIV2', true, description : 'Using exif previews.')
+else
+  conf_data.set('HAVE_EXIV2', false, description : 'Using exif previews.')
+endif
+
 if libraw_dep.found()
   conf_data.set('HAVE_LIBRAW', true, description : 'Using RAW images.')
-else 
+else
   conf_data.set('HAVE_LIBRAW', false, description : 'Using RAW images.')
 endif
 
 if libtiff_dep.found()
   conf_data.set('HAVE_LIBTIFF', true, description : 'Using TIFF images.')
-else 
+else
   conf_data.set('HAVE_LIBTIFF', false, description : 'Using TIFF images.')
 endif
 
 if libjpeg_dep.found()
   conf_data.set('HAVE_LIBJPEG', true, description : 'Using JPEG images.')
-else 
+else
   conf_data.set('HAVE_LIBJPEG', false, description : 'Using JPEG images.')
 endif
 
 if libpng_dep.found()
   conf_data.set('HAVE_LIBPNG', true, description : 'Using PNG images.')
-else 
+else
   conf_data.set('HAVE_LIBPNG', false, description : 'Using PNG images.')
 endif
 
 if libheif_dep.found()
   conf_data.set('HAVE_LIBHEIF', true, description : 'Using HEIF.')
-else 
+else
   conf_data.set('HAVE_LIBHEIF', false, description : 'Using HEIF.')
 endif
 
@@ -478,13 +489,13 @@ conf_data.set('HAVE_FFMPEG', ffmpeg_found, description : 'Using FFMS.')
 
 if ffms2_dep.found()
   conf_data.set('HAVE_FFMS2', true, description : 'Using FFMS.')
-else 
+else
   conf_data.set('HAVE_FFMS2', false, description : 'Using FFMS.')
 endif
 
 if libcurl_dep.found()
   conf_data.set('HAVE_LIBCURL', true, description : 'Using Curl.')
-else 
+else
   conf_data.set('HAVE_LIBCURL', false, description : 'Using Curl.')
 endif
 
@@ -497,7 +508,7 @@ if wcslib_dep.found()
   '''
   warnings += wcslib_warning
 endif
-else 
+else
   conf_data.set('HAVE_WCSLIB', false, description : 'Using wcslib.')
 endif
 
@@ -657,6 +668,7 @@ summary(
 summary(
   {
     'json glib' : json_glib_dep.found(),
+    'exiv2'     : exiv_dep.found(),
     'libraw'    : libraw_dep.found(),
     'TIFF'      : libtiff_dep.found(),
     'JPEG'      : libjpeg_dep.found(),

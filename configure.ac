@@ -126,9 +126,6 @@ case "$host_os" in
     ;;
 esac
 
-dnl check libexiv2
-PKG_CHECK_MODULES(EXIV2, exiv2 >= 0.25)
-
 dnl check GTK
 PKG_CHECK_MODULES(GTK, gtk+-3.0 >= 3.20.0)
 
@@ -222,6 +219,11 @@ dnl check raw lib
 PKG_CHECK_MODULES(LIBRAW, [libraw >= 0.17],
 		  [AC_DEFINE([HAVE_LIBRAW], [1], [Using RAW images])],
 		  AC_MSG_WARN([libraw not found. Not using RAW importer.]))
+
+dnl check libexiv2
+PKG_CHECK_MODULES(EXIV2, [exiv2 >= 0.25],
+		  [AC_DEFINE([HAVE_EXIV2], [1], [Using exif previews])],
+		  AC_MSG_WARN([exiv2 not found. Not extracting image previews.]))
 
 dnl check tiff lib
 PKG_CHECK_MODULES(LIBTIFF, [libtiff-4],

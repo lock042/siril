@@ -39,7 +39,6 @@ Then, mandatory build dependencies:
 * **GSL** (The GNU Scientific Library) for PSF implementation, histograms and background extraction
 * **A C++ compiler** for opencv code and avi exporter
 * **libopencv** for various image transformation algorithms (>= 4.4, 4.2 is possbile without some shift-only registration)
-* **exiv2** to manage image metadata
  
 SIRIL works internally with FITS files, but other file formats can be used as
 input and converted using the conversion tab of the control window. Some file
@@ -47,18 +46,19 @@ formats are handled internally, like BMP, PPM and SER, some require external
 libraries listed below. Libraries need to be present at compilation time, or
 their support won't be included.
 
- * **json-glib-1.0**, (>= 1.2.6) for Siril update check
- * **libraw** for DSLR RAW files import
- * **libffms2** for films import (any format supported by ffmpeg)
- * **libtiff** (>= 4) for TIFF format support
- * **libjpeg** or compatible libraries like libjpeg-turbo for JPEG format support
- * **libheif** for HEIF format files import
- * **libpng** (>= 1.6) for PNG format support
- * **libavformat**, **libavutil** (>= 55.20), **libavcodec**, **libswscale** and **libswresample** for avi export (usually provided by ffmpeg)
- * **wcslib** for some astrometry utilities
- * **gnuplot** for photometry graphs output, runtime executable dependency
- * **libconfig** (>= 1.4) to read old configuration files (not used since 1.1)
- * **criterion** for unit testing (development)
+* **json-glib-1.0**, (>= 1.2.6) for Siril update check
+* **exiv2** to get thumbnails from files
+* **libraw** for DSLR RAW files import
+* **libffms2** for films import (any format supported by ffmpeg)
+* **libtiff** (>= 4) for TIFF format support
+* **libjpeg** or compatible libraries like libjpeg-turbo for JPEG format support
+* **libheif** for HEIF format files import
+* **libpng** (>= 1.6) for PNG format support
+* **libavformat**, **libavutil** (>= 55.20), **libavcodec**, **libswscale** and **libswresample** for avi export (usually provided by ffmpeg)
+* **wcslib** for some astrometry utilities
+* **gnuplot** for photometry graphs output, runtime executable dependency
+* **libconfig** (>= 1.4) to read old configuration files (not used since 1.1)
+* **criterion** for unit testing (development)
 
 All these libraries and programs are available in most Linux distributions and
 free systems, maybe with the exception of ffms2 that is not as popular as the
