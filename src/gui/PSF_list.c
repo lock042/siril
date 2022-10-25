@@ -599,6 +599,8 @@ void clear_stars_list(gboolean refresh_GUI) {
 		g_mutex_unlock(&com.mutex);
 	}
 	com.star_is_seqdata = FALSE;
+	if (refresh_GUI && !com.headless)
+		display_status();
 }
 
 void pick_a_star() {
