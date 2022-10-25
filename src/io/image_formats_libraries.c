@@ -1283,10 +1283,12 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		samples_per_pixel = 1;
 	}
 
+	WORD *data = NULL;
+
 	if (bytes_per_sample == 2) {
 		/* swap bytes of 16 bit files to most significant bit first */
 		png_set_swap(png_ptr);
-		WORD *data = convert_data(fit);
+		data = convert_data(fit);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (png_bytep) ((uint16_t*) data + (size_t) samples_per_pixel * i * width);
 	} else {
@@ -1306,6 +1308,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	/* Close the file */
 	fclose(p_png_file);
+	if (data) free(data);
 	free(row_pointers);
 	free(filename);
 	return 0;

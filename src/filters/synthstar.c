@@ -98,7 +98,7 @@ void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, fl
 	return;
 }
 
-void add_star_to_rgb_buffer(float *H, float *S, float *psfL, int size, float *Hsynth, float *Ssynth, float *Lsynth, int x, int y, int dimx, int dimy) {
+static void add_star_to_rgb_buffer(const float *H, const float *S, const float *psfL, int size, float *Hsynth, float *Ssynth, float *Lsynth, int x, int y, int dimx, int dimy) {
 	int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 #define EPSILON 1e-30
@@ -124,7 +124,7 @@ void add_star_to_rgb_buffer(float *H, float *S, float *psfL, int size, float *Hs
 	return;
 }
 
-void add_star_to_mono_buffer(float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy) {
+static void add_star_to_mono_buffer(const float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy) {
 	const int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 #ifdef _OPENMP
@@ -146,7 +146,7 @@ void add_star_to_mono_buffer(float *psfL, int size, float *Lsynth, int x, int y,
 	return;
 }
 
-void replace_sat_star_in_buffer(float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy, float sat, float bg, float noise) {
+static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy, float sat, float bg, float noise) {
 	const int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 
