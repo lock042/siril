@@ -35,6 +35,11 @@ typedef enum {
 	PATH_PARSE_WRONG_WCS = 14
 } path_parse_errors;
 
-gchar *path_parse(fits *fit, gchar *expression, gboolean *success);
+typedef enum {
+	PATH_PARSE_READ,
+	PATH_PARSE_WRITE,
+} path_parse_mode;
+
+gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *status);
 
 #endif /* SRC_IO_PATH_PARSE_H_ */

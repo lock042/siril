@@ -77,7 +77,7 @@ static path_parse_errors read_key_from_header_text(gchar **headers, gchar *key, 
 	return status;
 }
 
-gchar *path_parse(fits *fit, gchar *expression, int *status) {
+gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *status) {
 	gchar *out = NULL, *localexpression = NULL;
 	if (!fit->header) {
 		*status = PATH_PARSE_HEADER_NULL;
@@ -118,10 +118,25 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 			continue;
 		}
 		gchar buf[FLEN_VALUE];
-		if (g_str_has_suffix(subs[1], "d") || g_str_has_suffix(subs[1], "f")) { // case %d or %f
+		gchar key[9];
+		buf[0] = '\0';
+		// Check if expression starts with a * wildcard
+		// Behavior will depend if we are in read or write mode
+		if (subs[0][0] == '*') {
+			if (mode == PATH_PARSE_READ) {
+				strncpy(buf, "*", FLEN_VALUE - 1);
+			} else {
+				strncpy(key, subs[0] + 1, 9);
+			}
+		} else {
+			strncpy(key, subs[0], 9);
+		}
+		if (buf[0] == '*') {
+			printf("Wildcard in READ mode\n");
+		} else if (g_str_has_suffix(subs[1], "d") || g_str_has_suffix(subs[1], "f")) { // case %d or %f
 			gboolean isint = g_str_has_suffix(subs[1], "d");
 			double val;
-			*status = read_key_from_header_text(headerkeys, subs[0], &val, NULL);
+			*status = read_key_from_header_text(headerkeys, key, &val, NULL);
 			if (*status) {
 				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
 				g_strfreev(subs);
@@ -130,7 +145,7 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 			(isint) ? sprintf(buf, subs[1], (int)val) : sprintf(buf, subs[1], val);
 		} else if (g_str_has_suffix(subs[1], "s")) { // case %s
 			char val[FLEN_VALUE];
-			*status = read_key_from_header_text(headerkeys, subs[0], NULL, val);
+			*status = read_key_from_header_text(headerkeys, key, NULL, val);
 			if (*status) {
 				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
 				g_strfreev(subs);
@@ -141,7 +156,7 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
 			char val[FLEN_VALUE];
-			*status = read_key_from_header_text(headerkeys, subs[0], NULL, val);
+			*status = read_key_from_header_text(headerkeys, key, NULL, val);
 			if (*status) {
 				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
 				g_strfreev(subs);
@@ -160,16 +175,16 @@ gchar *path_parse(fits *fit, gchar *expression, int *status) {
 			g_date_time_unref(read_time);
 			g_date_time_unref(read_time_corr);
 			g_free(fmtdate);
-		} else if (g_str_has_prefix(subs[1],"ra") || g_str_has_prefix(subs[1],"dec")) { // case ra and dec (str), ran and decn (num)
+		} else if (g_str_has_prefix(subs[1], "ra") || g_str_has_prefix(subs[1], "dec")) { // case ra and dec (str), ran and decn (num)
 			gboolean is_ra = g_str_has_prefix(subs[1],"ra");
 			gboolean is_float = g_str_has_suffix(subs[1],"n");
 			SirilWorldCS *target_coords = NULL;
 			char val[FLEN_VALUE];
 			double valf;
 			if (is_float)
-				*status = read_key_from_header_text(headerkeys, subs[0], &valf, NULL);
+				*status = read_key_from_header_text(headerkeys, key, &valf, NULL);
 			else
-				*status = read_key_from_header_text(headerkeys, subs[0], NULL, val);
+				*status = read_key_from_header_text(headerkeys, key, NULL, val);
 			if (*status) {
 				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
 				g_strfreev(subs);
