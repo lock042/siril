@@ -516,6 +516,12 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 				if (com.selection.h == 0 && gtk_widget_is_visible(histo_dlg))
 					com.selection.h = 1;
 			}
+			// Clicking in displayed pdf selects star in list if the DynamicPSF dialog is open
+			GtkWidget *dynpsf_dlg = lookup_widget("stars_list_window");
+			if (((com.selection.w == 0 || com.selection.w == 1) && (com.selection.h == 0 || com.selection.h == 1)) && gtk_widget_is_visible(dynpsf_dlg)) {
+				set_iter_of_clicked_psf((double) com.selection.x, (double) com.selection.y);
+			}
+
 			// never let selection be null if rotation_dlg is visible
 			// reinstate full image instead
 			if (!gui.freezeX && com.selection.w == 0 && gtk_widget_is_visible(rotation_dlg))

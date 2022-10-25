@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,6 +28,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_world_cs.h"
 #include "core/siril_log.h"
+#include "core/sleef.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
@@ -297,6 +299,42 @@ static void display_PSF(psf_star **result) {
 		g_free(msg);
 	}
 }
+
+void set_iter_of_clicked_psf(double x, double y) {
+	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")));
+	GtkTreeIter iter;
+	gboolean valid;
+	gint row_count = 0;
+	GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+	valid = gtk_tree_model_get_iter_first(model, &iter);
+	while (valid) {
+		siril_debug_print("Testing star %d for closeness to clicked point / ", iter.stamp);
+		gdouble xpos, ypos, starangle, fwhmx, fwhmy;
+		gtk_tree_model_get(model, &iter, COLUMN_X0, &xpos, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_Y0, &ypos, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_ANGLE, &starangle, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_FWHMX, &fwhmx, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_FWHMY, &fwhmy, -1);
+		gdouble distsq = (xpos - x) * (xpos - x) + (ypos - y) * (ypos - y);
+		gdouble angle = xatan2(ypos - y, xpos - x) - starangle;
+		double2 sincos = xsincos(angle);
+		gdouble psflimsq = 4. * fwhmx * fwhmx * sincos.y * sincos.y + fwhmy * fwhmy * sincos.x * sincos.x;
+		siril_debug_print("dsq %f psfsq %f\n", distsq, psflimsq);
+		if (distsq < psflimsq) {
+			gtk_tree_selection_select_iter(selection, &iter);
+			path = gtk_tree_model_get_path(model, &iter);
+			GtkTreeView *treeview = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
+			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
+			return;
+		}
+		valid = gtk_tree_model_iter_next(model, &iter);
+		row_count++;
+	}
+	siril_debug_print("End of list\n");
+	return;
+}
+
 
 static gint get_index_of_selected_star(gdouble x, gdouble y) {
 	int i = 0;
