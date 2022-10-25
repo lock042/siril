@@ -233,7 +233,7 @@ int check_seq() {
 		if ((new_seq = check_seq_one_file(file, FALSE))) {
 			sequences[nb_seq] = new_seq;
 			nb_seq++;
-		} else if (!strcasecmp(ext, com.pref.ext + 1)) {
+		} else if (is_ext_equal(ext)) {
 			char *basename = NULL;
 			if (!get_index_and_basename(file, &basename, &curidx, &fixed)) {
 				int current_seq = -1;
@@ -374,9 +374,13 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 #endif
 	else if (check_for_fitseq && TYPEFITS == get_type_for_extension(ext) && fitseq_is_fitseq(name, NULL)) {
 		/* set the configured extention to the extension of the file, otherwise reading will fail */
-		if (strcasecmp(ext, com.pref.ext + 1)) {
+		if (!is_ext_equal(ext)) {
 			g_free(com.pref.ext);
-			com.pref.ext = g_strdup_printf(".%s", ext);
+			gchar *tmp = g_strdup(ext);
+			if (g_str_has_prefix(tmp, ".fz"))
+				tmp[strlen(tmp) - 3] = '\0';
+			com.pref.ext = g_strdup_printf(".%s", tmp);
+			g_free(tmp);
 		}
 
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
@@ -387,7 +391,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		}
 		new_seq = calloc(1, sizeof(sequence));
 		initialize_sequence(new_seq, TRUE);
-		new_seq->seqname = g_strndup(name, fnlen-strlen(com.pref.ext));
+		new_seq->seqname = g_strndup(name, fnlen - strlen(com.pref.ext));
 		new_seq->beg = 0;
 		new_seq->end = fitseq_file->frame_count - 1;
 		new_seq->number = fitseq_file->frame_count;
@@ -1100,9 +1104,9 @@ int	get_index_and_basename(const char *filename, char **basename, int *index, in
 	first_zero = -1;
 	*basename = NULL;
 	fnlen = strlen(filename);
-	if (fnlen < strlen(com.pref.ext)+2) return -1;
+	if (fnlen < strlen(com.pref.ext) + 2) return -1;
 	if (!g_str_has_suffix(filename, com.pref.ext)) return -1;
-	i = fnlen-strlen(com.pref.ext)-1;
+	i = fnlen - strlen(com.pref.ext) - 1;
 	if (!isdigit(filename[i])) return -1;
 	digit_idx = i;
 

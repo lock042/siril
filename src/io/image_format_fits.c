@@ -2164,7 +2164,7 @@ int savefits(const char *name, fits *f) {
 			snprintf(filename, 255, "%s", tmp);
 			g_free(tmp);
 		} else if (!comp_flag && com.pref.comp.fits_enabled) {
-			snprintf(filename, 255, "%s%s.fz", name, com.pref.ext);
+			snprintf(filename, 255, "%s.fz", name);
 		} else {
 			snprintf(filename, 255, "%s", name);
 		}

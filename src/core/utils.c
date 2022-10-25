@@ -593,11 +593,28 @@ const char *get_filename_ext(const char *filename) {
 	g_free(basename);
 
 	p = filename + len;
-	dot = strrchr(p, '.');
+
+	dot = strchr(p, '.');
 	if (!dot || dot == p) {
 		return NULL;
 	}
 	return dot + 1;
+}
+
+/**
+ * Check if extension match global extension with
+ * and without compression extension
+ * @param ext
+ * @return
+ */
+gboolean is_ext_equal(const char *ext) {
+	if (strcasecmp(ext, com.pref.ext + 1)) {
+		gchar *tmp = g_strdup_printf("%s.fz", com.pref.ext + 1);
+		int ret = strcasecmp(ext, tmp);
+		g_free(tmp);
+		return ret;
+	}
+	return TRUE;
 }
 
 /**
