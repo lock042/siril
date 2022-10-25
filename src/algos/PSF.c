@@ -467,7 +467,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 						x0_init, // x0
 						y0_init, // y0
 						S_from_FWHM(FWHM, beta, profile), // SX
-						fr, // 
+						fr, //
 						a_init, // angle
 						fbeta}; // beta = betamax * 0.5 * (cos(fbeta) + 1)
 	gsl_vector_view x = gsl_vector_view_array(x_init, p);
@@ -580,8 +580,8 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	}
 	//RMSE
 	psf->rmse = d.rmse;
-	// absolute uncertainties 
-	// TODO: this will need to be revisited if of use as we are using interemdiate variables
+	// absolute uncertainties
+	// TODO: this will need to be revisited if of use as we are using intermediate variables
 	psf->B_err = ERR(0) / FIT(0);
 	psf->A_err = ERR(1) / FIT(1);
 	psf->x_err = ERR(2) / FIT(2);
@@ -623,7 +623,7 @@ double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundnes
  * Return value is a structure, type psf_star, that has to be freed after use.
  * verbose is used in photometry only, to inform that inner is too small for example
  */
-psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, 
+psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error) {
 	int stridefrom, i, j;
@@ -696,7 +696,7 @@ psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
  * Error can be reported if error is provided, giving a reason for the failure
  * of the minimisation.
  */
-psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, 
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence,
 		gboolean from_peaker, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error) {
 	if (error) *error = PSF_NO_ERR;

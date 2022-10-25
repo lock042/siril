@@ -341,19 +341,28 @@ void set_iter_of_clicked_psf(double x, double y) {
 	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")));
 	GtkTreeIter iter;
 	gboolean valid;
+	gboolean is_as;
+	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
+	double invpixscalex = 1.0;
+	double bin_X = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+	if (com.stars[0]) {// If the first star has units of arcsec, all should have
+		is_as = (strcmp(com.stars[0]->units,"px"));
+	} else {
+		return; // If com.stars is empty there is no point carrying on
+	}
+	if (is_as) {
+		invpixscalex = 1.0 / (radian_conversion * (double) gfit.pixel_size_x / gfit.focal_length) * bin_X;
+	}
 	gint row_count = 0;
 	valid = gtk_tree_model_get_iter_first(model, &iter);
 	while (valid) {
-		gdouble xpos, ypos, starangle, fwhmx, fwhmy;
+		gdouble xpos, ypos, fwhmx;
 		gtk_tree_model_get(model, &iter, COLUMN_X0, &xpos, -1);
 		gtk_tree_model_get(model, &iter, COLUMN_Y0, &ypos, -1);
-		gtk_tree_model_get(model, &iter, COLUMN_ANGLE, &starangle, -1);
 		gtk_tree_model_get(model, &iter, COLUMN_FWHMX, &fwhmx, -1);
-		gtk_tree_model_get(model, &iter, COLUMN_FWHMY, &fwhmy, -1);
+		fwhmx *= invpixscalex;
 		gdouble distsq = (xpos - x) * (xpos - x) + (ypos - y) * (ypos - y);
-		gdouble angle = xatan2(ypos - y, xpos - x) - starangle;
-		double2 sincos = xsincos(angle);
-		gdouble psflimsq = 6. * fwhmx * fwhmx * sincos.y * sincos.y + fwhmy * fwhmy * sincos.x * sincos.x;
+		gdouble psflimsq = 6. * fwhmx * fwhmx;
 		if (distsq < psflimsq) {
 			gtk_tree_selection_select_iter(selection, &iter);
 			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
