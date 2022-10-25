@@ -47,7 +47,8 @@ typedef enum {
 	SF_NO_MAG = 13,
 	SF_FWHM_TOO_SMALL = 14,
 	SF_FWHM_NEG = 15,
-	SF_ROUNDNESS_BELOW_CRIT = 16
+	SF_ROUNDNESS_BELOW_CRIT = 16,
+	SF_MOFFAT_BETA_TOO_SMALL = 17
 } sf_errors;
 
 void update_peaker_GUI();

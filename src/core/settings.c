@@ -67,7 +67,8 @@ preferences pref_init = {
 		.pixel_size_x = 0.,
 		.convergence = 1,
 		.relax_checks = FALSE,
-		.profile = PSF_GAUSSIAN
+		.profile = PSF_GAUSSIAN,
+		.min_beta = 0.
 	},
 	.prepro = {
 		.cfa = FALSE,
