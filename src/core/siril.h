@@ -323,7 +323,7 @@ struct sequ {
 	struct fits_sequence *fitseq_file; // FITS sequence data structure
 #ifdef HAVE_FFMS2
 	struct film_struct *film_file;
-	char *ext;		// extension of video, NULL if not video
+	const char *ext;	// extension of video, NULL if not video
 #endif
 	fits **internal_fits;	// for INTERNAL sequences: images references. Length: number
 	fitsfile **fptr;	// file descriptors for open-mode operations

@@ -459,18 +459,8 @@ void clear_preprocessing_data(struct preprocessing_data *prepro) {
 
 static int prepro_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
-	struct preprocessing_data *prepro = args->user;
-	clear_preprocessing_data(prepro);
+	clear_preprocessing_data((struct preprocessing_data *)args->user);
 	free(args->user);
-	return retval;
-}
-
-gpointer prepro_worker(gpointer p) {
-	gpointer retval = generic_sequence_worker(p);
-
-	struct generic_seq_args *args = (struct generic_seq_args *)p;
-	free_sequence(args->seq, TRUE);
-	free(args);
 	return retval;
 }
 
@@ -496,13 +486,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 
 	remove_prefixed_sequence_files(prepro->seq, prepro->ppprefix);
 
-	if (com.script) {
-		args->already_in_a_thread = TRUE;
-		start_in_new_thread(prepro_worker, args);
-	} else {
-		args->already_in_a_thread = FALSE;
-		start_in_new_thread(generic_sequence_worker, args);
-	}
+	start_in_new_thread(generic_sequence_worker, args);
 }
 
 /********** SINGLE IMAGE (from com.uniq) ************/
