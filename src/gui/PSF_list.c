@@ -365,14 +365,13 @@ void set_iter_of_clicked_psf(double x, double y) {
 		gdouble psflimsq = 6. * fwhmx * fwhmx;
 		if (distsq < psflimsq) {
 			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+			if (!path) return;
 			gtk_tree_selection_select_path(selection, path);
 			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
+			gtk_tree_path_free(path);
 			gui.selected_star = get_index_of_selected_star(xpos, ypos);
 			display_status();
 			redraw(REDRAW_OVERLAY);
-			if (path) {
-				gtk_tree_path_free(path);
-			}
 			return;
 		}
 		valid = gtk_tree_model_iter_next(model, &iter);
