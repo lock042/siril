@@ -366,7 +366,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 		if (distsq < psflimsq) {
 			gtk_tree_selection_select_iter(selection, &iter);
 			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
-			GtkTreeView *treeview = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
+			GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget("Stars_stored"));
 			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
 			gui.selected_star = get_index_of_selected_star(xpos, ypos);
 			display_status();
@@ -818,7 +818,6 @@ void on_export_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_stars_list_window_show(GtkWidget *widget, gpointer user_data) {
 	update_peaker_GUI();
-	fill_stars_list(&gfit, com.stars);
 }
 
 void on_button_stars_list_ok_clicked(GtkButton *button, gpointer user_data) {
