@@ -62,12 +62,12 @@ void on_spin_sf_convergence_changed(GtkSpinButton *spinbutton, gpointer user_dat
 }
 
 void on_combostarfinder_profile_changed(GtkComboBox *combo, gpointer user_data) {
-	GtkWidget *min_beta_controls = GTK_WIDGET(lookup_widget("min_beta_control"));
+	GtkWidget *beta_control_label = GTK_WIDGET(lookup_widget("beta_control_label"));
+	GtkWidget *beta_control_spin = GTK_WIDGET(lookup_widget("spin_minbeta"));
 	com.pref.starfinder_conf.profile = gtk_combo_box_get_active(combo);
-	if (com.pref.starfinder_conf.profile != PSF_GAUSSIAN)
-		gtk_widget_set_visible(min_beta_controls, TRUE);
-	else
-		gtk_widget_set_visible(min_beta_controls, FALSE);
+
+	gtk_widget_set_visible(beta_control_label, com.pref.starfinder_conf.profile != PSF_GAUSSIAN);
+	gtk_widget_set_visible(beta_control_spin, com.pref.starfinder_conf.profile != PSF_GAUSSIAN);
 }
 
 void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {

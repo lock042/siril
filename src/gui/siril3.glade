@@ -11181,7 +11181,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                 <property name="left-padding">12</property>
                 <child>
-                  <!-- n-columns=3 n-rows=5 -->
+                  <!-- n-columns=4 n-rows=5 -->
                   <object class="GtkGrid" id="grid35">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -11287,23 +11287,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="toggle_radius_adjust">
-                        <property name="label" translatable="yes">Adjust value</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">By checking this button, the radius value will be adjusted according to the image resolution if it is provided. Therefore, it is not necessary to change the radius value and the default value of 5 should be kept.</property>
-                        <property name="halign">start</property>
-                        <property name="active">True</property>
-                        <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_toggle_radius_adjust_toggled" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkCheckButton" id="toggle_relax_checks">
                         <property name="label" translatable="yes">Relax PSF checks</property>
                         <property name="visible">True</property>
@@ -11316,7 +11299,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">4</property>
+                        <property name="top-attach">3</property>
                       </packing>
                     </child>
                     <child>
@@ -11353,28 +11336,6 @@ This should normally be the case only for stacked images. Increasing this value 
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="reset_findstar_button">
-                        <property name="width-request">128</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Resets all parameters to defaults.</property>
-                        <property name="halign">start</property>
-                        <signal name="clicked" handler="on_reset_findstar_button_clicked" swapped="no"/>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="icon-name">view-refresh</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -11403,42 +11364,68 @@ This should normally be the case only for stacked images. Increasing this value 
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox" id="min_beta_control">
+                      <object class="GtkLabel" id="beta_control_label">
                         <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Minimum beta:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spin_minbeta">
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Minimum value for Moffat beta parameter. This can be used to avoid galaxies being modelled as stars with excessively low beta.</property>
+                        <property name="halign">start</property>
+                        <property name="text" translatable="yes">1,50</property>
+                        <property name="adjustment">adj_min_beta</property>
+                        <property name="digits">2</property>
+                        <property name="value">1.5</property>
+                        <signal name="value-changed" handler="on_spin_sf_minbeta_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="reset_findstar_button">
+                        <property name="width-request">128</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Resets all parameters to defaults.</property>
+                        <property name="halign">start</property>
+                        <signal name="clicked" handler="on_reset_findstar_button_clicked" swapped="no"/>
                         <child>
-                          <object class="GtkLabel">
+                          <object class="GtkImage">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="label" translatable="yes">Minimum beta:</property>
+                            <property name="icon-name">view-refresh</property>
                           </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="spin_minbeta">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Minimum value for Moffat beta parameter. This can be used to avoid galaxies being modelled as stars with excessively low beta.</property>
-                            <property name="adjustment">adj_min_beta</property>
-                            <property name="digits">2</property>
-                            <property name="value">1.5</property>
-                            <signal name="value-changed" handler="on_spin_sf_minbeta_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="padding">5</property>
-                            <property name="position">1</property>
-                          </packing>
                         </child>
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">1</property>
+                        <property name="top-attach">0</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
