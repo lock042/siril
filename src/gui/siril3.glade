@@ -10854,7 +10854,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       <object class="GtkBox" id="dialog-vbox13">
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
+        <property name="spacing">5</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="dialog-action_area13">
             <property name="can-focus">False</property>
@@ -10902,7 +10902,6 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="vscroll-policy">natural</property>
                 <property name="model">liststore_stars</property>
                 <property name="reorderable">True</property>
-                <property name="rules-hint">True</property>
                 <property name="search-column">0</property>
                 <property name="show-expanders">False</property>
                 <property name="enable-grid-lines">horizontal</property>
@@ -11151,6 +11150,22 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="toggle_star_centered">
+            <property name="label" translatable="yes">Center selected star</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">If checked, a star selected from the list will be centered in the display. The current zoom level will not be altered. This does not apply to stars selected by clicking their PSF in the main display.</property>
+            <property name="halign">end</property>
+            <property name="draw-indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
           </packing>
         </child>
         <child>
@@ -11426,19 +11441,7 @@ This should normally be the case only for stacked images. Increasing this value 
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="toggle_star_centered">
-                        <property name="label" translatable="yes">Center selected star</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">If checked, a star selected from the list will be centered in the display. The current zoom level will not be altered. This does not apply to stars selected by clicking their PSF in the main display.</property>
-                        <property name="halign">start</property>
-                        <property name="draw-indicator">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">2</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                   </object>
                 </child>
