@@ -245,8 +245,7 @@ int remove_star(int index) {
 gboolean end_findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *) p;
 	stop_processing_thread();
-	if (com.stars)
-		refresh_star_list(com.stars);
+	refresh_star_list(com.stars);
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;
