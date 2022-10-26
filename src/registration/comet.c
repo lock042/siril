@@ -280,7 +280,7 @@ static int comet_align_finalize_hook(struct generic_seq_args *args) {
 		g_date_time_unref(cadata->reference_date);
 
 	free(cadata);
-	cadata = NULL;
+	args->user = NULL;
 	return 0;
 }
 
@@ -313,6 +313,8 @@ int register_comet(struct registration_args *regargs) {
 	args->user = cadata;
 
 	generic_sequence_worker(args);
-	return args->retval;
-}
 
+	regargs->retval = args->retval;
+	free(args);
+	return regargs->retval;
+}

@@ -452,7 +452,7 @@ sequence * readseqfile(const char *name){
 					}
 					else {
 						film_display_info(seq->film_file);
-						seq->ext = strdup(get_filename_ext(seq->film_file->filename));
+						seq->ext = get_filename_ext(seq->film_file->filename);
 						g_free(filmname);
 					}
 				}

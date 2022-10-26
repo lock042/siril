@@ -197,7 +197,6 @@ static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
 		struct seqpsf_data *data = iterator->data;
 		results[data->image_index].stars[awaiting_star - 1] = data->psf;
 	}
-	g_slist_free(spsfargs->list);
 
 	int refimage = sequence_find_refimage(&com.seq);
 	if (!results[refimage].stars[awaiting_star - 1]) {
@@ -209,11 +208,13 @@ static int _3stars_seqpsf_finalize_hook(struct generic_seq_args *args) {
 	}
 
 	com.stars = realloc(com.stars, 4 * sizeof(psf_star *)); // to be sure...
+	com.stars[3] = NULL;
 	com.stars[awaiting_star - 1] = duplicate_psf(results[args->seq->current].stars[awaiting_star - 1]);
 
-
 psf_end:
+	g_slist_free(spsfargs->list);
 	free(spsfargs);
+	args->user = NULL;
 	return args->retval;
 }
 
@@ -299,6 +300,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	}
 
 	generic_sequence_worker(args);
+
 	regargs->retval = args->retval;
 	free(args);
 	return regargs->retval;
@@ -463,8 +465,9 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 	}
 
 	generic_sequence_worker(args);
-	
-	return args->retval;
+	regargs->retval = args->retval;
+	free(args);
+	return regargs->retval;
 }
 
 /*
