@@ -524,7 +524,6 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 
 	/* computing the covariance to estimate the errors*/
 	gsl_matrix * J;
-	covar = gsl_matrix_alloc (p, p);
 
 	J = gsl_multifit_nlinear_jac(work);
 	gsl_multifit_nlinear_covar (J, 0.0, covar);
