@@ -966,7 +966,7 @@ gpointer findstar_worker(gpointer p) {
 
 	}
 
-	if (args->update_GUI && stars) {
+	if (args->update_GUI) {
 		clear_stars_list(FALSE); // with FALSE it's not a GUI call
 		com.stars = stars;
 	}
