@@ -129,6 +129,7 @@ static GActionEntry none_processing_entries[] = {
 	{ "fft-processing", fft_activate },
 	{ "rgb-compositing-processing", rgb_compositing_activate },
 	{ "star-remix-processing", star_remix_activate },
+	{ "merge-cfa-processing", merge_cfa_activate },
 	{ "pixel-math", pixel_math_activate },
 	{ "nina_light_curve", nina_lc_activate }
 };
@@ -242,6 +243,7 @@ void siril_window_enable_none_proc_actions(GtkApplicationWindow *window, gboolea
 		"fft-processing",
 		"rgb-compositing-processing",
 		"star-remix-processing",
+		"merge-cfa-processing",
 		"pixel-math",
 		NULL,
 	};
