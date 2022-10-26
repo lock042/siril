@@ -329,6 +329,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 
 #ifdef _OPENMP
+	free(threads_per_image);
 	omp_destroy_lock(&args->lock);
 #endif
 the_end:
@@ -339,13 +340,19 @@ the_end:
 	}
 
 	int retval = args->retval;	// so we can free args if needed in the idle
-	if (args->already_in_a_thread) {
+
+	if (!args->already_in_a_thread) {
+		gboolean run_idle;
 		if (args->idle_function)
-			args->idle_function(args);
-	} else {
-		if (args->idle_function)
-			siril_add_idle(args->idle_function, args);
-		else siril_add_idle(end_generic_sequence, args);
+			run_idle = siril_add_idle(args->idle_function, args) > 0;
+		else run_idle = siril_add_idle(end_generic_sequence, args) > 0; // the generic idle
+
+		if (!run_idle) {
+			// some generic cleanup for scripts
+			// should we check for seq = com.seq?
+			free_sequence(args->seq, TRUE);
+			free(args);
+		}
 	}
 	return GINT_TO_POINTER(retval);
 }
@@ -360,7 +367,7 @@ gboolean end_generic_sequence(gpointer p) {
 		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
 		check_seq();
 		update_sequences_list(seqname);
-		free(seqname);
+		g_free(seqname);
 		g_free(basename);
 	}
 
