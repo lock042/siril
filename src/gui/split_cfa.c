@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/command.h"
+#include "core/command_line_processor.h"
 #include "algos/extraction.h"
 #include "io/sequence.h"
 #include "gui/dialogs.h"
@@ -41,7 +42,6 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(TRUE);
 		args->seq = &com.seq;
 		args->scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
-		args->scaling = 0; // Temporary until the glade element is added (TODO)
 		args->seqEntry = gtk_entry_get_text(entrySplitCFA);
 		switch (method) {
 			case 0:
@@ -66,6 +66,8 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				fprintf(stderr, "unhandled case!\n");
 		}
 	} else {
+		int scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
+		fprintf(stdout,"Scaling %d\n",scaling);
 		switch (method) {
 			case 0:
 				process_split_cfa(0);
@@ -74,7 +76,17 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				process_extractHa(0);
 				break;
 			case 2:
-				process_extractHaOIII(0);
+				switch (scaling) {
+					case 0:
+						processcommand("extract_HaOIII");
+						break;
+					case 1:
+						processcommand("extract_HaOIII -resample=ha");
+						break;
+					case 2:
+						processcommand("extract_HaOIII -resample=oiii");
+						break;
+				}
 				break;
 			case 3:
 				process_extractGreen(0);
@@ -87,9 +99,13 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 
 void on_combo_split_cfa_method_changed(GtkComboBox *box, gpointer user_data) {
 	GtkWidget *w = lookup_widget("label10");
+	GtkWidget *cb = lookup_widget("combo_haoiii_scaling");
+	GtkWidget *cbl = lookup_widget("labelhaoiiiscaling");
 	GtkWidget *txt = lookup_widget("entrySplitCFA");
 	gint method = gtk_combo_box_get_active(box);
 
+	gtk_widget_set_sensitive(cb, method == 2);
+	gtk_widget_set_sensitive(cbl, method == 2);
 	gtk_widget_set_sensitive(w, method != 2);
 	gtk_widget_set_sensitive(txt, method != 2);
 	switch (method) {
