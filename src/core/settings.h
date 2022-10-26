@@ -187,8 +187,6 @@ struct prepro_config {
 
 typedef struct {
 	int radius;
-	int adj_radius;
-	gboolean adjust;
 	double sigma;
 	double roundness;
 	double focal_length;

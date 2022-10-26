@@ -50,37 +50,6 @@
 // Use this flag to print canditates rejection output (0 or 1, only works if SIRIL_OUTPUT_DEBUG is on)
 #define DEBUG_STAR_DETECTION 0
 
-static double guess_resolution(fits *fit) {
-	double focal = fit->focal_length;
-	double size = fit->pixel_size_x;
-	double bin;
-
-	/* if we have no way to guess, we return the
-		* flag -1
-		*/
-	if ((focal <= 0.0) || (size <= 0.0)) {  // try to read values that were filled only if coming from astrometry solver
-		focal = com.pref.starfinder_conf.focal_length;
-		size = com.pref.starfinder_conf.pixel_size_x;
-	}
-
-	if ((focal <= 0.0) || (size <= 0.0))
-		return -1.0;
-
-	bin = ((fit->binning_x + fit->binning_y) / 2.0);
-	if (bin <= 0) bin = 1.0;
-
-	double res = RADCONV / focal * size * bin;
-
-	/* test for high value. In this case we increase
-	 * the number of detected star in reject_star function
-	 */
-	/* if res > 1.0 we use default radius value */
-	if (res > 1.0) return 1.0;
-	/* if res is too small, we bound the value to 2.0 to avoid expanding the first search box (and decrease perf) */
-	if (res < 0.5) return 0.5;
-	return res;
-}
-
 static float compute_threshold(image *image, double ksigma, int layer, rectangle *area, float *norm, double *bg, double *bgnoise, double *max, int threads) {
 	float threshold;
 	imstats *stat;
@@ -137,7 +106,7 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE; //crit 3
 	}
-	if ((result->profile != PSF_GAUSSIAN) && (result->beta < com.pref.starfinder_conf.min_beta)) {
+	if ((result->profile != PSF_GAUSSIAN) && (result->beta <  sf->min_beta)) {
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "Beta: %4.3e\n", result->beta);
 		return SF_MOFFAT_BETA_TOO_SMALL; // crit 17
 	}
@@ -255,15 +224,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 		return NULL;
 	}
 
-	double res = guess_resolution(image->fit);
-
-	if (res < 0) {
-		res = 1.0;
-	}
-
-	sf->adj_radius = sf->adjust ? sf->radius / res : sf->radius;
-	siril_debug_print("Adjusted radius: %d\n", sf->adj_radius);
-	int r = sf->adj_radius;
+	int r = sf->radius;
 	int boxsize = (2 * r + 1)*(2 * r + 1);
 	double locthreshold = sf->sigma * 5.0 * bgnoise;
 	double sat = 0.;
@@ -828,16 +789,16 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 			star_finder_params fparams = { 0 };
 			int fmax_stars;
 			int prof;
-			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d auto_adjust=%d relax=%d profile=%d max_stars=%d",
+			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d relax=%d profile=%d minbeta=%lf max_stars=%d",
 						&fparams.sigma, &fparams.roundness, &fparams.radius,
-						&fparams.adjust, &fparams.relax_checks, &prof, &fmax_stars) != 6) {
+						&fparams.relax_checks, &prof, &fparams.min_beta, &fmax_stars) != 7) {
 				read_failure = TRUE;
 				break;
 			}
 			fparams.profile = prof;
 			params_ok = fparams.sigma == sf->sigma && fparams.roundness == sf->roundness &&
-				fparams.radius == sf->radius && fparams.adjust == sf->adjust &&
-				fparams.relax_checks == sf->relax_checks && fparams.profile == sf->profile &&
+				fparams.radius == sf->radius &&	fparams.relax_checks == sf->relax_checks &&
+				fparams.profile == sf->profile && fparams.min_beta == sf->min_beta &&
 				(fmax_stars >= sfargs->max_stars_fitted);
 			if (fmax_stars > sfargs->max_stars_fitted) sfargs->max_stars_fitted = fmax_stars;
 			siril_debug_print("params check: %d\n", params_ok);
@@ -956,7 +917,7 @@ gpointer findstar_worker(gpointer p) {
 	gboolean limit_stars = (args->max_stars_fitted > 0);
 	int threads = check_threading(&args->threading);
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
-			selection, args->update_GUI, limit_stars, args->max_stars_fitted, args->profile, threads);
+			selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
 
 	if (stars) {
 		int i = 0;
@@ -971,7 +932,7 @@ gpointer findstar_worker(gpointer p) {
 		com.stars = stars;
 	}
 	siril_log_message(_("Found %d %s profile stars in %s, channel #%d\n"), nbstars,
-			args->profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
+			com.pref.starfinder_conf.profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
 			selection ? _("selection") : _("image"), args->layer);
 	if (args->starfile &&
 			save_list(args->starfile, args->max_stars_fitted, stars, nbstars,

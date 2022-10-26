@@ -33,9 +33,6 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 
-void on_toggle_radius_adjust_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	com.pref.starfinder_conf.adjust = gtk_toggle_button_get_active(togglebutton);
-}
 
 void on_toggle_relax_checks_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	com.pref.starfinder_conf.relax_checks = gtk_toggle_button_get_active(togglebutton);
@@ -72,7 +69,7 @@ void on_combostarfinder_profile_changed(GtkComboBox *combo, gpointer user_data) 
 
 void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {
 	//TODO: do we want to keep focal and pixel_size as they are not exposed?
-	com.pref.starfinder_conf = (star_finder_params){.radius = DEF_BOX_RADIUS, .adjust = FALSE, .sigma = 1.,
+	com.pref.starfinder_conf = (star_finder_params){.radius = DEF_BOX_RADIUS, .sigma = 1.,
 			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE, .profile = PSF_GAUSSIAN, .min_beta = 1.5};
 	update_peaker_GUI();
 }
@@ -80,7 +77,7 @@ void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {
 void update_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
 			*spin_roundness = NULL, *spin_convergence = NULL, *spin_minbeta = NULL;
-	static GtkToggleButton *toggle_adjust = NULL, *toggle_checks = NULL;
+	static GtkToggleButton *toggle_checks = NULL;
 	static GtkComboBox *combostarfinder_profile;
 
 	if (spin_radius == NULL) {
@@ -89,12 +86,10 @@ void update_peaker_GUI() {
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
 		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
 		spin_minbeta = GTK_SPIN_BUTTON(lookup_widget("spin_minbeta"));
-		toggle_adjust = GTK_TOGGLE_BUTTON(lookup_widget("toggle_radius_adjust"));
 		toggle_checks = GTK_TOGGLE_BUTTON(lookup_widget("toggle_relax_checks"));
 		combostarfinder_profile = GTK_COMBO_BOX(lookup_widget("combostarfinder_profile"));
 	}
 	gtk_spin_button_set_value(spin_radius, (double) com.pref.starfinder_conf.radius);
-	gtk_toggle_button_set_active(toggle_adjust, com.pref.starfinder_conf.adjust);
 	gtk_spin_button_set_value(spin_sigma, com.pref.starfinder_conf.sigma);
 	gtk_spin_button_set_value(spin_roundness, com.pref.starfinder_conf.roundness);
 	gtk_spin_button_set_value(spin_convergence, com.pref.starfinder_conf.convergence);
@@ -105,18 +100,20 @@ void update_peaker_GUI() {
 
 void confirm_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
-			*spin_roundness = NULL, *spin_convergence = NULL;
+			*spin_roundness = NULL, *spin_convergence = NULL, *spin_minbeta = NULL;
 
 	if (spin_radius == NULL) {
 		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
 		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
 		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
+		spin_minbeta = GTK_SPIN_BUTTON(lookup_widget("spin_minbeta"));
 	}
 	gtk_spin_button_update(spin_radius);
 	gtk_spin_button_update(spin_sigma);
 	gtk_spin_button_update(spin_roundness);
 	gtk_spin_button_update(spin_convergence);
+	gtk_spin_button_update(spin_minbeta);
 }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
@@ -140,7 +137,6 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 	args->starfile = NULL;
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
-	args->profile = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combostarfinder_profile")));
 
 	start_in_new_thread(findstar_worker, args);
 }

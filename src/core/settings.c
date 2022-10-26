@@ -60,7 +60,6 @@ preferences pref_init = {
 	.starnet_dir = NULL,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
-		.adjust = FALSE,
 		.sigma = 1.0,
 		.roundness = 0.5,
 		.focal_length = 0.,

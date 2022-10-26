@@ -19,7 +19,6 @@ struct starfinder_data {
 	gchar *starfile;	// save to file if not NULL
 	psf_star ***stars;	// save to pointer if not NULL
 	int *nb_stars;		// number of stars in stars if not NULL
-	starprofile profile; // Gaussian or Moffat with beta {free | fixed}
 	threading_type threading;
 	gboolean update_GUI;	// FALSE for sequence operation
 	gboolean process_all_images;	// for sequence operation

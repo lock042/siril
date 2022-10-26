@@ -7,6 +7,7 @@
 
 #define _2_SQRT_2_LOG2 2.35482004503
 #define INV_4_LOG2 0.360673760222241
+#define MOFFAT_BETA_UBOUND 10.		// Max allowable value for Moffat beta
 
 //in siril.h: typedef struct fwhm_struct psf_star;
 

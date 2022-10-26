@@ -46,7 +46,6 @@
 
 #define MAX_ITER_NO_ANGLE  20		//Number of iterations in the minimization with no angle
 #define MAX_ITER_ANGLE     20		//Number of iterations in the minimization with angle
-#define MOFFAT_BETA_UBOUND 10.		// Max allowable value for Moffat beta
 #define MIN_HALF_RADIUS 	1		// Minimum radius around center pixel to initialize FWHM
 #define EPSILON            0.001
 #define XTOL 1e-3
