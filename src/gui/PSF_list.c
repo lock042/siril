@@ -368,7 +368,6 @@ void set_iter_of_clicked_psf(double x, double y) {
 			gtk_tree_selection_select_iter(selection, &iter);
 			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
 			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
-			gtk_widget_show_all(dynpsf_dlg);
 			gui.selected_star = get_index_of_selected_star(xpos, ypos);
 			display_status();
 			redraw(REDRAW_OVERLAY);
