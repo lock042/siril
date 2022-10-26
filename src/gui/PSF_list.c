@@ -337,7 +337,6 @@ static void display_status() {
 }
 
 void set_iter_of_clicked_psf(double x, double y) {
-	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
 	GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget("Stars_stored"));
 	GtkTreeModel *model = gtk_tree_view_get_model(treeview);
 	GtkTreeIter iter;
@@ -364,6 +363,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 		gdouble distsq = (xpos - x) * (xpos - x) + (ypos - y) * (ypos - y);
 		gdouble psflimsq = 6. * fwhmx * fwhmx;
 		if (distsq < psflimsq) {
+			GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
 			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
 			if (!path) return;
 			gtk_tree_selection_select_path(selection, path);
