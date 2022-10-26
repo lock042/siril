@@ -338,7 +338,7 @@ static void display_status() {
 
 void set_iter_of_clicked_psf(double x, double y) {
 	GtkWidget *dynpsf_dlg = lookup_widget("stars_list_window");
-	GtkTreeSelection *selection = GTK_TREE_SELECTION(lookup_widget("treeview-selection"));
+	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
 	GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget("Stars_stored"));
 	GtkTreeModel *model = gtk_tree_view_get_model(treeview);
 	GtkTreeIter iter;
