@@ -1248,11 +1248,20 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 	fits *out = NULL;
 
 	// Check input files are compatible
-	if ((!(cfa0->naxes[0] == cfa1->naxes[0] && cfa1->naxes[0] == cfa2->naxes[0] && cfa2->naxes[0] == cfa3->naxes[0])) ||
-                   (!(cfa0->naxes[1] == cfa1->naxes[1] && cfa1->naxes[1] == cfa2->naxes[1] && cfa2->naxes[1] == cfa3->naxes[1])) ||
-                   (!(cfa0->naxes[2] == cfa1->naxes[2] && cfa1->naxes[2] == cfa2->naxes[2] && cfa2->naxes[2] == cfa3->naxes[2] && cfa3->naxes[2] == 1)) ||
-                   (!(cfa0->type == cfa1->type && cfa1->type == cfa2->type && cfa2->type == cfa3->type))) {
+	gboolean x_compat = (cfa0->naxes[0] == cfa1->naxes[0] && cfa1->naxes[0] == cfa2->naxes[0] && cfa2->naxes[0] == cfa3->naxes[0]);
+	gboolean y_compat = (cfa0->naxes[1] == cfa1->naxes[1] && cfa1->naxes[1] == cfa2->naxes[1] && cfa2->naxes[1] == cfa3->naxes[1]);
+	gboolean c_compat = (cfa0->naxes[2] == cfa1->naxes[2] && cfa1->naxes[2] == cfa2->naxes[2] && cfa2->naxes[2] == cfa3->naxes[2] && cfa3->naxes[2] == 1);
+	gboolean t_compat = (cfa0->type == cfa1->type && cfa1->type == cfa2->type && cfa2->type == cfa3->type);
+	if (!(x_compat && y_compat && c_compat && t_compat)) {
 		siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
+		if(!x_compat)
+			siril_log_message(_("X dimensions incompatible\n"));
+		if(!y_compat)
+			siril_log_message(_("Y dimensions incompatible\n"));
+		if(!c_compat)
+			siril_log_message(_("Channels not all mono\n"));
+		if(!t_compat)
+			siril_log_message(_("Input files not all the same bit depth\n"));
 		return NULL;
 	}
 	int datatype = cfa0->type;

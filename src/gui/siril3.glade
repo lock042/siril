@@ -12756,6 +12756,7 @@ This should normally be the case only for stacked images. Increasing this value 
     </child>
   </object>
   <object class="GtkDialog" id="merge_cfa_dialog">
+    <property name="width-request">600</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Merge CFA Elements</property>
     <property name="type-hint">dialog</property>
@@ -12871,6 +12872,7 @@ This should normally be the case only for stacked images. Increasing this value 
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Select the image containing the CFA0 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA0 prefix.</property>
                         <property name="title" translatable="yes"/>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA0_file_set" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -12883,6 +12885,7 @@ This should normally be the case only for stacked images. Increasing this value 
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Select the image containing the CFA1 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA1 prefix.</property>
                         <property name="title" translatable="yes"/>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA1_file_set" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -12895,6 +12898,7 @@ This should normally be the case only for stacked images. Increasing this value 
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Select the image containing the CFA2 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA2 prefix.</property>
                         <property name="title" translatable="yes"/>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA2_file_set" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -12907,6 +12911,7 @@ This should normally be the case only for stacked images. Increasing this value 
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Select the image containing the CFA3 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA3 prefix.</property>
                         <property name="title" translatable="yes"/>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA3_file_set" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
