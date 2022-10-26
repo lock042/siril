@@ -750,7 +750,7 @@ void update_display_fwhm() {
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		g_sprintf(fwhm_buffer, " ");
 	} else if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
-		if (com.selection.w < 300 && com.selection.h < 300) {
+		if (com.selection.w < 300 && com.selection.h < 300 && com.selection.w > 5 && com.selection.h > 5) {
 			double roundness;
 			double fwhm_val = psf_get_fwhm(&gfit, select_vport(gui.cvport), &com.selection, &roundness);
 			g_sprintf(fwhm_buffer, _("fwhm: %.2f px, r: %.2f"), fwhm_val, roundness);

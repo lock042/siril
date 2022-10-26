@@ -2199,7 +2199,7 @@ int process_set_mag(int nb) {
 		}
 		psf_error error;
 		struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, FALSE, TRUE, ps, TRUE, &error);
+		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 		free(ps);
 		if (result) {
 			found = TRUE;
@@ -2423,13 +2423,14 @@ int process_set_ext(int nb) {
 int process_set_findstar(int nb) {
 	int startoptargs = 1;
 	double sigma = com.pref.starfinder_conf.sigma;
+	double minbeta = com.pref.starfinder_conf.min_beta;
 	double roundness = com.pref.starfinder_conf.roundness;
 	int radius = com.pref.starfinder_conf.radius;
-	gboolean adjust = com.pref.starfinder_conf.adjust;
 	double focal_length = com.pref.starfinder_conf.focal_length;
 	double pixel_size_x = com.pref.starfinder_conf.pixel_size_x;
 	gboolean relax_checks = com.pref.starfinder_conf.relax_checks;
 	int convergence = com.pref.starfinder_conf.convergence;
+	starprofile profile = com.pref.starfinder_conf.profile;
 	gchar *end;
 
 	if (nb > startoptargs) {
@@ -2451,6 +2452,18 @@ int process_set_findstar(int nb) {
 						siril_log_message(_("Wrong parameter values. Sigma must be greater than 0.05, aborting\n"));
 						return CMD_ARG_ERROR;
 					}
+				} else if (g_str_has_prefix(word[i], "-minbeta=")) {
+					char *current = word[i], *value;
+					value = current + 9;
+					minbeta = g_ascii_strtod(value, &end);
+					if (end == value || minbeta < 0.0 || minbeta >= MOFFAT_BETA_UBOUND) {
+						siril_log_message(_("Wrong parameter values. Minimum beta must be greater than or equal to 0.0 and less than %.0f, aborting\n"), MOFFAT_BETA_UBOUND);
+						return CMD_ARG_ERROR;
+					}
+				} else if (g_str_has_prefix(word[i], "-gaussian")) {
+					profile = PSF_GAUSSIAN;
+				} else if (g_str_has_prefix(word[i], "-moffat")) {
+					profile = PSF_MOFFAT_BFREE;
 				} else if (g_str_has_prefix(word[i], "-roundness=")) {
 					char *current = word[i], *value;
 					value = current + 11;
@@ -2475,15 +2488,6 @@ int process_set_findstar(int nb) {
 						siril_log_message(_("Wrong parameter values. Pixel size must be greater than 0, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
-				} else if (g_str_has_prefix(word[i], "-auto=")) {
-					char *current = word[i], *value;
-					value = current + 6;
-					if (!(g_ascii_strcasecmp(value, "on"))) adjust = TRUE;
-					else if (!(g_ascii_strcasecmp(value, "off"))) adjust = FALSE;
-					else {
-						siril_log_message(_("Wrong parameter values. Auto must be set to on or off, aborting.\n"));
-						return CMD_ARG_ERROR;
-					}
 				} else if (g_str_has_prefix(word[i], "-relax=")) {
 					char *current = word[i], *value;
 					value = current + 7;
@@ -2505,12 +2509,13 @@ int process_set_findstar(int nb) {
 					siril_log_message(_("Resetting findstar parameters to default values.\n"));
 					sigma = 1.;
 					roundness = 0.5;
-					radius = 10;
-					adjust = TRUE;
+					radius = DEF_BOX_RADIUS;
 					focal_length = 0.;
 					pixel_size_x = 0.;
 					relax_checks = FALSE;
 					convergence = 1;
+					profile = PSF_GAUSSIAN;
+					minbeta = 1.5;
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					return CMD_ARG_ERROR;
@@ -2531,11 +2536,14 @@ int process_set_findstar(int nb) {
 	com.pref.starfinder_conf.focal_length = focal_length;
 	siril_log_message(_("pixelsize = %3.2f\n"), pixel_size_x);
 	com.pref.starfinder_conf.pixel_size_x = pixel_size_x;
-	siril_log_message(_("auto = %s\n"), (adjust) ? "on" : "off");
-	com.pref.starfinder_conf.adjust = adjust;
 	siril_log_message(_("relax = %s\n"), (relax_checks) ? "on" : "off");
 	com.pref.starfinder_conf.relax_checks = relax_checks;
-
+	siril_log_message(_("profile = %s\n"), (profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
+	com.pref.starfinder_conf.profile = profile;
+	if (profile != PSF_GAUSSIAN) {
+		siril_log_message(_("minimum beta = %3.2f\n"), minbeta);
+		com.pref.starfinder_conf.min_beta = minbeta;
+	}
 	return CMD_OK;
 }
 
@@ -2732,9 +2740,10 @@ int process_psf(int nb){
 		}
 	}
 
+	starprofile profile = com.pref.starfinder_conf.profile;
 	psf_error error;
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, TRUE, ps, TRUE, &error);
+	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, ps, TRUE, profile, &error);
 	free(ps);
 	if (result) {
 		psf_display_result(result, &com.selection);
@@ -3389,6 +3398,7 @@ int process_findstar(int nb) {
 	args->max_stars_fitted = 0;
 	args->threading = MULTI_THREADED;
 	args->update_GUI = TRUE;
+	siril_debug_print("findstar profiling %s stars\n", (com.pref.starfinder_conf.profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat");
 
 	cmd_errors argparsing = parse_findstar(args, 1, nb);
 
@@ -3397,7 +3407,6 @@ int process_findstar(int nb) {
 		free(args);
 		return argparsing;
 	}
-
 	start_in_new_thread(findstar_worker, args);
 
 	return CMD_OK;
@@ -3423,7 +3432,6 @@ int process_seq_findstar(int nb) {
 	args->max_stars_fitted = 0;
 	args->update_GUI = FALSE;
 	args->save_to_file = TRUE;
-
 	cmd_errors argparsing = parse_findstar(args, 2, nb);
 
 	if (argparsing) {
@@ -3565,6 +3573,7 @@ int process_seq_cosme(int nb) {
 	}
 
 	GFile *file = g_file_new_for_path(filename);
+	g_free(filename);
 
 	struct cosme_data *args = malloc(sizeof(struct cosme_data));
 
@@ -3573,7 +3582,6 @@ int process_seq_cosme(int nb) {
 		value = current + 8;
 		if (value[0] == '\0') {
 			free_sequence(seq, TRUE);
-			g_free(filename);
 			g_object_unref(file);
 			free(args);
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
@@ -3965,7 +3973,7 @@ int process_split(int nb){
 		return CMD_ALLOC_ERROR;
 	}
 
-	args->type = 0;
+	args->type = EXTRACT_RGB;
 	args->str_type = _("RGB");
 
 	args->channel[0] = g_strdup_printf("%s%s", word[1], com.pref.ext);
@@ -4102,7 +4110,7 @@ int process_extractHa(int nb) {
 		if (!(ret = extractHa_float(&gfit, &f_Ha, pattern))) {
 			ret = save1fits32(Ha, &f_Ha, 0);
 		}
-	} else return CMD_INVALID_IMAGE;
+	} else ret = CMD_INVALID_IMAGE;
 
 	g_free(Ha);
 	clearfits(&f_Ha);
@@ -4566,7 +4574,7 @@ int process_convertraw(int nb) {
 	int count = 0;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
-		if (!ext)
+		if (!ext || file[0] == '.')
 			continue;
 		image_type type = get_type_for_extension(ext);
 		if (type == TYPERAW) {
@@ -4662,7 +4670,7 @@ int process_link(int nb) {
 	int count = 0;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
-		if (!ext)
+		if (!ext || file[0] == '.')
 			continue;
 		image_type type = get_type_for_extension(ext);
 		if (type == TYPEFITS) {
@@ -4772,7 +4780,7 @@ int process_convert(int nb) {
 	int count = 0;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
-		if (!ext)
+		if (!ext || file[0] == '.')
 			continue;
 		image_type type = get_type_for_extension(ext);
 		if (type != TYPEUNDEF && type != TYPEAVI && type != TYPESER) {
@@ -6658,7 +6666,9 @@ int process_nomad(int nb) {
 		com.stars[j]->xpos = stars[i].x;
 		com.stars[j]->ypos = stars[i].y;
 		com.stars[j]->fwhmx = 5.0f;
+		com.stars[j]->fwhmy = 5.0f;
 		com.stars[j]->layer = 0;
+		com.stars[j]->angle = 0.0f;
 		j++;
 	}
 	if (j > 0)

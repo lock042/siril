@@ -638,7 +638,7 @@ int toggle_remixer_window_visibility(int _invocation, const fits* _fit_left, con
 	} else {
 		left_loaded = FALSE;
 		right_loaded = FALSE;
-		gboolean remix_log_scale = (com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
+		remix_log_scale = (com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
 		GtkToggleButton *toggle_log = GTK_TOGGLE_BUTTON(lookup_widget("toggle_remixer_log_histograms"));
 		gtk_toggle_button_set_active(toggle_log, remix_log_scale);
 		if (invocation == CALL_FROM_STARNET) {
