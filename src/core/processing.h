@@ -15,7 +15,8 @@
  *   All GTK+ calls that write data, like setting a label, must be done in this
  *   thread. Other threads can request an update in this thread by using the
  *   'idle functions', called when the main thread is idle, with the function
- *   gdk_threads_add_idle().
+ *   gdk_threads_add_idle(), or siril_add_idle() which only calls it when
+ *   appropriate
  * - the processing thread, as we call it, is defined in the global structure
  *   com.thread, and executes long operations, to avoid blocking the main thread.
  *   It is managed in processing.c which provides functions to start something
@@ -74,22 +75,23 @@ struct generic_seq_args {
 	 *  of image currently processed and the image, area if partial */
 	int (*image_hook)(struct generic_seq_args *, int, int, fits *, rectangle *, int);
 	/** saving the processed image, the one passed to the image_hook, so
-	 * in-place editing, if the image_hook succeeded. Only used if
-	 * has_output, set to NULL to get default behaviour */
+	 *  in-place editing, if the image_hook succeeded. Only used if
+	 *  has_output, set to NULL to get default behaviour */
 	int (*save_hook)(struct generic_seq_args *, int, int, fits *);
 	/** function called after iterating through the sequence, or on
-	 * clean-up, even in case of error */
+	 *  clean-up, even in case of error */
 	int (*finalize_hook)(struct generic_seq_args *);
 
-	/** idle function to register at the end. If NULL, the default ending
-	 *  that stops the thread is queued. Return false for single execution.
-	 *  It should free its argument. */
+	/** idle function to register at the end, if not already_in_a_thread and
+	 *  not when the generic function is used from a script. If NULL, the
+	 *  default idle function that stops the thread is used.
+	 *  Return false for single execution. It should free its argument. */
 	GSourceFunc idle_function;
 	/** retval, useful for the idle_function, set by the worker */
 	int retval;
 
 	/** if false, ignore image_hook errors, unselect failing image from the
-	    sequence and continue processing other images */
+	 *  sequence and continue processing other images */
 	gboolean stop_on_error;
 
 	/** string description for progress and logs */
@@ -114,12 +116,16 @@ struct generic_seq_args {
 	/** new output SER if seq->type == SEQ_FITSEQ or force_fitseq_output (internal) */
 	fitseq *new_fitseq;
 
-	/** user data: pointer to operation-specific data */
+	/** user data: pointer to operation-specific data. It is managed by the
+	 * caller and by convention should be freed in the finalize hook */
 	void *user;
 
 	/** if the generic sequence processing is run from an existing thread,
-	 * the idle function is not executed in the GTK+ main thread but in this
-	 * same thread. If this is false, the generic idle function is run. */
+	 *  meaning not started directly within the start_in_new_thread() call,
+	 *  the idle function is not executed.
+	 *  Otherwise, if GUI is active, the provided or a generic idle function
+	 *  is excuted, if not, generic clean-up code is run: it frees this
+	 *  structure and closes the sequence. */
 	gboolean already_in_a_thread;
 	/** activate parallel execution */
 	gboolean parallel;

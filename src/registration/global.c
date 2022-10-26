@@ -491,10 +491,6 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 		siril_log_message(_("Registration aborted.\n"));
 	}
 	return regargs->new_total == 0;
-	// TODO: args is never freed because we don't call an end function for
-	// this generic processing function. The register idle is called for
-	// everything else, but does not know this pointer, and we cannot free
-	// it here because it's still used in the generic processing function.
 }
 
 int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
