@@ -345,7 +345,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 	double invpixscalex = 1.0;
 	double bin_X = gfit.unbinned ? (double) gfit.binning_x : 1.0;
-	if (com.stars[0]) {// If the first star has units of arcsec, all should have
+	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
 		is_as = (strcmp(com.stars[0]->units,"px"));
 	} else {
 		return; // If com.stars is empty there is no point carrying on
