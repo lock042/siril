@@ -737,6 +737,8 @@ void on_treeview_cursor_changed(GtkTreeView *tree_view,
 	GtkTreeIter iter;
 	GValue value_x = G_VALUE_INIT;
 	GValue value_y = G_VALUE_INIT;
+	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
+	GtkWidget *widget = lookup_widget(area[gui.cvport]);
 
 	if (gtk_tree_model_get_iter_first(treeModel, &iter) == FALSE)
 		return;	//The tree is empty
@@ -751,7 +753,17 @@ void on_treeview_cursor_changed(GtkTreeView *tree_view,
 		g_value_unset(&value_x);
 		g_value_unset(&value_y);
 
+		// Set this to draw blue crosshairs
 		gui.selected_star = get_index_of_selected_star(x0, y0);
+		// Centre selected star
+		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("toggle_star_centered"));
+		if (gtk_toggle_button_get_active(toggle)) {
+			double z = get_zoom_val();
+			gui.display_offset.x = (gtk_widget_get_allocated_width(widget)/2 - x0 * z);
+			gui.display_offset.y = (gtk_widget_get_allocated_height(widget)/2 - y0 * z);
+			adjust_vport_size_to_image();
+		}
+
 		display_status();
 		redraw(REDRAW_OVERLAY);
 	}

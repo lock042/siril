@@ -11426,7 +11426,18 @@ This should normally be the case only for stacked images. Increasing this value 
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkCheckButton" id="toggle_star_centered">
+                        <property name="label" translatable="yes">Center selected star</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">If checked, a star selected from the list will be centered in the display. The current zoom level will not be altered. This does not apply to stars selected by clicking their PSF in the main display.</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">2</property>
+                      </packing>
                     </child>
                   </object>
                 </child>
