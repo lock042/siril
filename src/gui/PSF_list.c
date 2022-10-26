@@ -339,6 +339,7 @@ static void display_status() {
 void set_iter_of_clicked_psf(double x, double y) {
 	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
 	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")));
+	GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget("Stars_stored"));
 	GtkTreeIter iter;
 	gboolean valid;
 	gboolean is_as;
@@ -353,7 +354,6 @@ void set_iter_of_clicked_psf(double x, double y) {
 	if (is_as) {
 		invpixscalex = 1.0 / (radian_conversion * (double) gfit.pixel_size_x / gfit.focal_length) * bin_X;
 	}
-	gint row_count = 0;
 	valid = gtk_tree_model_get_iter_first(model, &iter);
 	while (valid) {
 		gdouble xpos, ypos, fwhmx;
@@ -366,7 +366,6 @@ void set_iter_of_clicked_psf(double x, double y) {
 		if (distsq < psflimsq) {
 			gtk_tree_selection_select_iter(selection, &iter);
 			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
-			GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget("Stars_stored"));
 			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
 			gui.selected_star = get_index_of_selected_star(xpos, ypos);
 			display_status();
@@ -378,7 +377,6 @@ void set_iter_of_clicked_psf(double x, double y) {
 			return;
 		}
 		valid = gtk_tree_model_iter_next(model, &iter);
-		row_count++;
 	}
 	siril_debug_print("Point clicked does not correspond to a known star\n");
 	return;
