@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -11171,7 +11171,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="row-spacing">10</property>
-                    <property name="column-spacing">5</property>
+                    <property name="column-spacing">10</property>
                     <child>
                       <object class="GtkSpinButton" id="spinstarfinder_radius">
                         <property name="visible">True</property>
@@ -11295,7 +11295,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
                         <property name="tooltip-text" translatable="yes">When checked, this button deactivates some checks done at star detection stage, to reject candidates initially detected based on some psf quality metrics. This can be used to force detecting oddly shaped stars (bad guiding, strong coma) but should be used as a last resort, if playing with all other detection parameters fails.</property>
-                        <property name="halign">end</property>
+                        <property name="halign">start</property>
                         <property name="draw-indicator">True</property>
                         <signal name="toggled" handler="on_toggle_relax_checks_toggled" swapped="no"/>
                       </object>
@@ -11432,6 +11432,7 @@ This should normally be the case only for stacked images. Increasing this value 
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
                         <property name="tooltip-text" translatable="yes">If checked, a star selected from the list will be centered in the display. The current zoom level will not be altered. This does not apply to stars selected by clicking their PSF in the main display.</property>
+                        <property name="halign">start</property>
                         <property name="draw-indicator">True</property>
                       </object>
                       <packing>
