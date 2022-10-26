@@ -69,6 +69,13 @@ typedef enum {
 	XTRANS
 } interpolation_method;
 
+typedef enum {
+	PSF_GAUSSIAN,
+	PSF_MOFFAT_BFREE,
+	PSF_MOFFAT_BFIXED
+} starprofile;
+
+
 /***********************************************************************************************/
 
 
@@ -180,14 +187,14 @@ struct prepro_config {
 
 typedef struct {
 	int radius;
-	int adj_radius;
-	gboolean adjust;
 	double sigma;
 	double roundness;
 	double focal_length;
 	double pixel_size_x;
 	int convergence;
 	gboolean relax_checks;
+	starprofile profile;
+	double min_beta;
 } star_finder_params;
 
 /**

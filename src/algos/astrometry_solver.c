@@ -1246,7 +1246,7 @@ gpointer match_catalog(gpointer p) {
 		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
 		int max_stars = (args->for_photometry_cc) ? n_cat : min(n_cat, BRIGHTEST_STARS); // capping the detection to max usable number of stars
 
-		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE, TRUE, max_stars, com.max_thread); // TODO: use good layer
+		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE, TRUE, max_stars, com.pref.starfinder_conf.profile, com.max_thread); // TODO: use good layer
 		com.pref.starfinder_conf.pixel_size_x = 0.;
 		com.pref.starfinder_conf.focal_length = 0.;
 	} else {

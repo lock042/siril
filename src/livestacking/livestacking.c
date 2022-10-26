@@ -373,7 +373,7 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 	fitted_PSF **stars;
 	int nb_stars;
 
-	stars = peaker(fit, registration_layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE);
+	stars = peaker(fit, registration_layer, &com.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, MAXSTARS, com.pref.starfinder_conf.profile, com.max_thread);
 	siril_debug_print("Found %d stars in new image\n", nb_stars);
 
 	if (!ref_stars) {
