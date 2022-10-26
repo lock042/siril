@@ -2345,6 +2345,7 @@ int process_set_ext(int nb) {
 int process_set_findstar(int nb) {
 	int startoptargs = 1;
 	double sigma = com.pref.starfinder_conf.sigma;
+	double minbeta = com.pref.starfinder_conf.min_beta;
 	double roundness = com.pref.starfinder_conf.roundness;
 	int radius = com.pref.starfinder_conf.radius;
 	gboolean adjust = com.pref.starfinder_conf.adjust;
@@ -2372,6 +2373,14 @@ int process_set_findstar(int nb) {
 					sigma = g_ascii_strtod(value, &end);
 					if (end == value || sigma < 0.05) {
 						siril_log_message(_("Wrong parameter values. Sigma must be greater than 0.05, aborting\n"));
+						return CMD_ARG_ERROR;
+					}
+				} else if (g_str_has_prefix(word[i], "-minbeta=")) {
+					char *current = word[i], *value;
+					value = current + 9;
+					minbeta = g_ascii_strtod(value, &end);
+					if (end == value || minbeta < 0.0 || minbeta >= 10.0) {
+						siril_log_message(_("Wrong parameter values. Minimum beta must be greater than or equal to 0.0 and less than 10.0, aborting\n"));
 						return CMD_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(word[i], "-gaussian")) {
@@ -2449,6 +2458,8 @@ int process_set_findstar(int nb) {
 
 	siril_log_message(_("sigma = %3.2f\n"), sigma);
 	com.pref.starfinder_conf.sigma = sigma;
+	siril_log_message(_("minimum beta = %3.2f\n"), minbeta);
+	com.pref.starfinder_conf.min_beta = minbeta;
 	siril_log_message(_("roundness = %3.2f\n"), roundness);
 	com.pref.starfinder_conf.roundness = roundness;
 	siril_log_message(_("radius = %d\n"), radius);
