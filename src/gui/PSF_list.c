@@ -364,7 +364,6 @@ void set_iter_of_clicked_psf(double x, double y) {
 		gdouble distsq = (xpos - x) * (xpos - x) + (ypos - y) * (ypos - y);
 		gdouble psflimsq = 6. * fwhmx * fwhmx;
 		if (distsq < psflimsq) {
-			gtk_tree_selection_select_iter(selection, &iter);
 			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
 			gtk_tree_selection_select_path(selection, path);
 			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
