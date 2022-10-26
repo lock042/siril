@@ -745,8 +745,14 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_set_source_rgba(cr, 0.75, 0.22, 1.0, 0.9);
 				cairo_set_line_width(cr, 3.0 / dd->zoom);
 			}
-			cairo_arc(cr, com.stars[i]->xpos, com.stars[i]->ypos, size, 0., 2. * M_PI);
+			cairo_save(cr); // save the original transform
+			cairo_translate(cr, com.stars[i]->xpos, com.stars[i]->ypos);
+			cairo_rotate(cr, M_PI * 0.5 + com.stars[i]->angle * M_PI / 180.);
+			cairo_scale(cr, com.stars[i]->fwhmy / com.stars[i]->fwhmx, 1);
+			cairo_arc(cr, 0., 0., size, 0.,2 * M_PI);
+			cairo_restore(cr); // restore the original transform
 			cairo_stroke(cr);
+			/* to keep  for debugging boxes adjustements */
 			// if (com.stars[i]->R > 0)
 			// 	cairo_rectangle(cr, com.stars[i]->xpos - (double)com.stars[i]->R, com.stars[i]->ypos - (double)com.stars[i]->R, (double)com.stars[i]->R * 2 + 1, (double)com.stars[i]->R * 2 + 1);
 			// cairo_stroke(cr);
