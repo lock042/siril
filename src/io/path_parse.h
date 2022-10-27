@@ -23,6 +23,7 @@
 #include "core/siril.h"
 
 typedef enum {
+	PATH_PARSE_MORE_THAN_ONE_HIT = -1,
 	PATH_PARSE_OK = 0,
 	PATH_PARSE_HEADER_NULL = 1,
 	PATH_PARSE_WRONG_CALL = 2,
@@ -32,7 +33,9 @@ typedef enum {
 	PATH_PARSE_WRONG_FORMAT = 11,
 	PATH_PARSE_UNSUPPORTED_FORMAT = 12,
 	PATH_PARSE_WRONG_DATE = 13,
-	PATH_PARSE_WRONG_WCS = 14
+	PATH_PARSE_WRONG_WCS = 14,
+	PATH_PARSE_NODIR = 15,
+	PATH_PARSE_NO_HIT_FOUND = 16
 } path_parse_errors;
 
 typedef enum {

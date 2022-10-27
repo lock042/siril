@@ -77,6 +77,52 @@ static path_parse_errors read_key_from_header_text(gchar **headers, gchar *key, 
 	return status;
 }
 
+static gchar *wildcard_check(gchar *expression, int *status) {
+	gchar *out = NULL, *dirname = NULL, *basename = NULL;
+	const gchar *file = NULL;
+	GDir *dir;
+	GError *error = NULL;
+	GPatternSpec *patternspec;
+	gint count = 0;
+
+	if (!g_utf8_strchr(expression, -1, '*')) {
+		return g_strdup(expression);
+	}
+
+	dirname = g_path_get_dirname(expression);
+	basename = g_path_get_basename(expression);
+
+	if ((dir = g_dir_open(dirname, 0, &error)) == NULL) {
+		siril_debug_print("wildcard dircheck: %s\n", error->message);
+		siril_log_color_message(_("Problem parsing expression %s - Error code %d - aborting\n"), "red", dirname, *status);
+		g_clear_error(&error);
+		g_free(dirname);
+		g_free(basename);
+		return out;
+	}
+	patternspec = g_pattern_spec_new(basename);
+	while ((file = g_dir_read_name(dir)) != NULL) {
+		if (g_pattern_spec_match(patternspec, g_utf8_strlen(file, -1), file, NULL)) {
+			if (!count) {
+				out = g_build_filename(dirname, file, NULL);
+			}
+			count++;
+		}
+	}
+	if (count > 1) {
+		*status = PATH_PARSE_MORE_THAN_ONE_HIT;
+		siril_log_color_message(_("Found more than one file matching %s - Warning code %d\nUsing first:%s\n"), "salmon", basename, *status, out);
+
+	} else if (!count) {
+		*status = PATH_PARSE_MORE_THAN_ONE_HIT;
+		siril_log_color_message(_("Problem parsing expression %s - Error code %d - aborting\n"), "red", expression, *status);
+	}
+	g_free(dirname);
+	g_free(basename);
+	g_pattern_spec_free(patternspec);
+	return out;
+}
+
 gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *status) {
 	gchar *out = NULL, *localexpression = NULL;
 	if (!fit->header) {
@@ -232,6 +278,13 @@ gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *statu
 	out = g_strjoinv("", tokens);
 	siril_debug_print("String in: %s\n", expression);
 	siril_debug_print("String out: %s\n", out);
+	if (mode == PATH_PARSE_READ) {
+		gchar *foundmatch = wildcard_check(out, status);
+		g_free(out);
+		out = NULL;
+		if (*status <= 0) out = g_strdup(foundmatch);
+		g_free(foundmatch);
+	}
 free_and_exit:
 	if (tokens) g_strfreev(tokens);
 	if (headerkeys) g_strfreev(headerkeys);
