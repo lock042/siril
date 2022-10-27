@@ -1,9 +1,9 @@
 ###################################################
-# Script pour Siril 1.0
-# Avril 2022
+# Script pour Siril 1.2
+# October 2022
 # (C) Cyril Richard
 # Adapté, modifié et traduit par Colmic
-# Couleur_Extraction_HaOIII v1.2
+# Couleur_Extraction_HaOIII v1.3
 #
 ###################################################
 #
@@ -60,7 +60,7 @@ register Ha_pp_brute -drizzle
 stack r_Ha_pp_brute rej 3 3 -norm=addscale -output_norm -out=../Ha_resultat
 
 #alignement des brutes OIII
-register OIII_pp_brute -drizzle
+register OIII_pp_brute
 
 #empilement des brutes OIII calibrées
 stack r_OIII_pp_brute rej 3 3 -norm=addscale -output_norm -out=../OIII_resultat
