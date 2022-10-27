@@ -1268,7 +1268,10 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 
 	// Create output fits twice the width and height of the cfa fits files
 	new_fit_image(&out, cfa0->rx << 1, cfa0->ry << 1, 1, datatype);
+//	out->header = copy_header(cfa0);
 	copy_fits_metadata(cfa0, out);
+	if (out->header)
+		fprintf(stdout, "header ok\n");
 	for (size_t outx = 0 ; outx < out->rx; outx += 2) {
 		for(size_t outy = 0 ; outy < out->ry ; outy += 2) {
 			size_t cfax = outx >> 1;

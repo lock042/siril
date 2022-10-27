@@ -12784,6 +12784,20 @@ This should normally be the case only for stacked images. Increasing this value 
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="merge_cfa_reset">
+                <property name="label" translatable="yes">Reset</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_merge_cfa_reset_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="merge_cfa_apply">
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>
@@ -12794,7 +12808,7 @@ This should normally be the case only for stacked images. Increasing this value 
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -12942,8 +12956,8 @@ This should normally be the case only for stacked images. Increasing this value 
                         <items>
                           <item translatable="yes">RGGB</item>
                           <item translatable="yes">BGGR</item>
-                          <item translatable="yes">GRBG</item>
                           <item translatable="yes">GBRG</item>
+                          <item translatable="yes">GRBG</item>
                         </items>
                       </object>
                       <packing>
