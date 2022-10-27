@@ -12816,7 +12816,7 @@ This should normally be the case only for stacked images. Increasing this value 
                 <property name="can-focus">False</property>
                 <property name="left-padding">12</property>
                 <child>
-                  <!-- n-columns=2 n-rows=6 -->
+                  <!-- n-columns=2 n-rows=5 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -12930,7 +12930,7 @@ This should normally be the case only for stacked images. Increasing this value 
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">5</property>
+                        <property name="top-attach">4</property>
                       </packing>
                     </child>
                     <child>
@@ -12948,14 +12948,8 @@ This should normally be the case only for stacked images. Increasing this value 
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">5</property>
+                        <property name="top-attach">4</property>
                       </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
                     </child>
                   </object>
                 </child>
