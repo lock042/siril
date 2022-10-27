@@ -107,7 +107,11 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 	}
 	patternspec = g_pattern_spec_new(basename);
 	while ((file = g_dir_read_name(dir)) != NULL) {
-		if (g_pattern_spec_match(patternspec, g_utf8_strlen(file, -1), file, NULL)) {
+#if GLIB_CHECK_VERSION(2,70,0)
+		if (g_pattern_spec_match(patternspec, strlen(file), file, NULL)) {
+#else
+		if (g_pattern_match(patternspec, strlen(file), file, NULL)) {
+#endif
 			if (!count) {
 				out = g_build_filename(dirname, file, NULL);
 			}
