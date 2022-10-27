@@ -4454,7 +4454,7 @@ int process_jsonmetadata(int nb) {
 		for (int i = 0; i < nb_channels; ++i) {
 			if (stats[i]) {
 				char channame[16];
-				sprintf(channame, "channel %d", i);
+				sprintf(channame, "channel%d", i);
 				json_builder_set_member_name(builder, channame);
 				json_builder_begin_object(builder);
 				json_builder_set_member_name(builder, "min");
