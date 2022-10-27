@@ -77,6 +77,11 @@ static path_parse_errors read_key_from_header_text(gchar **headers, gchar *key, 
 	return status;
 }
 
+/*
+This function takes an expression with potentially a wildcard in it
+Searches the directory for files matching the pattern
+and returns the first occurence of the match if any
+*/
 static gchar *wildcard_check(gchar *expression, int *status) {
 	gchar *out = NULL, *dirname = NULL, *basename = NULL;
 	const gchar *file = NULL;
@@ -123,6 +128,18 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 	return out;
 }
 
+/*
+This is the main function. It takes as argument a fit, an expresion to be parsed
+and a mode (read or write).
+It searches for reserved keywords (starting with "lib")
+and fetches the libs set in preferences if required.
+It then parses all the tokens in between $ signs in the form $KEY:fmt$ where KEY
+is a valid HEADER key and fmt either a %d %f or %s specifier or special formatters
+such as "dm12" (date minus 12 hrs), "dm0" (date), "ra", "dec", "ran", "decn" which format
+RA and DEC values (the suffix "n" indicates the input key should be read as numerical)
+It returns the expression with all the tokens replaced by the formatted values
+In read mode, it also replaces * by searching the directory for a file matching the pattern
+*/
 gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *status) {
 	gchar *out = NULL, *localexpression = NULL;
 	if (!fit->header) {
@@ -198,7 +215,7 @@ gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *statu
 				goto free_and_exit;
 			}
 			remove_spaces_from_str(val);
-			sprintf(buf, subs[1], val); // just in case there is a fancy formatting directive like uppercase or else
+			sprintf(buf, subs[1], val); // just in case there is a fancy formatting directive
 		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
 			char val[FLEN_VALUE];
