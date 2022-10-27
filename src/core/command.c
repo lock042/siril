@@ -645,6 +645,7 @@ int process_rebayer(int nb){
 	com.seq.current = UNRELATED_IMAGE;
 	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
+	open_single_image_from_gfit();
 	initialize_display_mode();
 	update_zoom_label();
 	display_filename();
