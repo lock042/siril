@@ -22,8 +22,14 @@
 #include "core/command.h"
 #include "algos/demosaicing.h"
 #include "io/sequence.h"
+#include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "gui/callbacks.h"
 #include "gui/dialogs.h"
+#include "gui/image_interactions.h"
+#include "gui/image_display.h"
+#include "gui/sequence_list.h"
+#include "gui/PSF_list.h"
 #include "gui/message_dialog.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
@@ -98,27 +104,52 @@ void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *combo_pattern = GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern"));
 	gint p = gtk_combo_box_get_active(combo_pattern);
 	sensor_pattern pattern = (sensor_pattern) p;
+	fits *out = NULL;
 	gboolean x_compat = (cfa0->naxes[0] == cfa1->naxes[0] && cfa1->naxes[0] == cfa2->naxes[0] && cfa2->naxes[0] == cfa3->naxes[0]);
 	gboolean y_compat = (cfa0->naxes[1] == cfa1->naxes[1] && cfa1->naxes[1] == cfa2->naxes[1] && cfa2->naxes[1] == cfa3->naxes[1]);
 	gboolean c_compat = (cfa0->naxes[2] == cfa1->naxes[2] && cfa1->naxes[2] == cfa2->naxes[2] && cfa2->naxes[2] == cfa3->naxes[2] && cfa3->naxes[2] == 1);
 	gboolean t_compat = (cfa0->type == cfa1->type && cfa1->type == cfa2->type && cfa2->type == cfa3->type);
-	if (!(x_compat && y_compat && c_compat && t_compat)) {
-		siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
-		if(!x_compat)
-			siril_log_message(_("X dimensions incompatible\n"));
-		if(!y_compat)
-			siril_log_message(_("Y dimensions incompatible\n"));
-		if(!c_compat)
-			siril_log_message(_("Channels not all mono\n"));
-		if(!t_compat)
-			siril_log_message(_("Input files not all the same bit depth\n"));
-		return;
+	if (!(cfa0_loaded && cfa1_loaded && cfa2_loaded && cfa3_loaded)) {
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: images are not all loaded"),
+				_("Merge CFA cannot proceed"));
 	} else {
-//	if (cfa0_loaded && cfa1_loaded && cfa2_loaded && cfa3_loaded) {
-		merge_cfa(cfa0, cfa1, cfa2, cfa3, pattern);
-//	} else {
-//		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: images are not all loaded"),
-//				_("Merge CFA cannot proceed"));
+		if (!(x_compat && y_compat && c_compat && t_compat)) {
+			siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
+			if(!x_compat)
+				siril_log_message(_("X dimensions incompatible\n"));
+			if(!y_compat)
+				siril_log_message(_("Y dimensions incompatible\n"));
+			if(!c_compat)
+				siril_log_message(_("Channels not all mono\n"));
+			if(!t_compat)
+				siril_log_message(_("Input files not all the same bit depth\n"));
+			return;
+		} else {
+			set_cursor_waiting(TRUE);
+			out = merge_cfa(cfa0, cfa1, cfa2, cfa3, pattern);
+			siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
+			close_single_image();
+			copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+
+			clear_stars_list(TRUE);
+			com.seq.current = UNRELATED_IMAGE;
+			if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
+				com.uniq->comment = strdup(_("Bayer pattern merge"));
+			initialize_display_mode();
+			update_zoom_label();
+			display_filename();
+			set_precision_switch();
+			sliders_mode_set_state(gui.sliders);
+			init_layers_hi_and_lo_values(MIPSLOHI);
+			set_cutoff_sliders_max_values();
+			set_cutoff_sliders_values();
+			set_display_mode();
+			redraw(REMAP_ALL);
+			sequence_list_change_current();
+			set_cursor_waiting(FALSE);
+			siril_close_dialog("merge_cfa_dialog");
+
+		}
 	}
 }
 
