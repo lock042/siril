@@ -35,6 +35,12 @@
 #include <windows.h>
 #include <tchar.h>
 #endif
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+#ifdef HAVE_JSON_GLIB
+#include <json-glib/json-glib.h>
+#endif
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -4369,6 +4375,133 @@ int process_seq_stat(int nb) {
 	apply_stats_to_sequence(args);
 
 	return CMD_OK;
+}
+
+// Only for FITS images
+int process_jsonmetadata(int nb) {
+#ifdef HAVE_JSON_GLIB
+	/* we need both the file descriptor to read the header and the data to
+	 * compute stats, so we need the file name even in the case of a loaded
+	 * image, but we may use the loaded data if the option is provided, to
+	 * avoid reading it for nothing */
+	char *input_filename = word[1];
+	const char *output_filename = "out.json";
+	gboolean use_gfit = FALSE, compute_stats = TRUE;
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0')
+			output_filename = word[i] + 5;
+		else if (!strcmp(word[i], "-stats_from_loaded"))
+			use_gfit = TRUE;
+		else if (!strcmp(word[i], "-nostats"))
+			compute_stats = FALSE;
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	int status = 0;
+	fitsfile *fptr;
+	if (siril_fits_open_diskfile(&fptr, input_filename, READONLY, &status)) {
+		report_fits_error(status);
+		return CMD_GENERIC_ERROR;
+	}
+
+	GSList *header = read_header_keyvals_strings(fptr);
+
+	imstats *stats[3] = { NULL };
+	int nb_channels;
+	if (compute_stats) {
+		if (use_gfit) {
+			compute_all_channels_statistics_single_image(&gfit, STATS_BASIC, MULTI_THREADED, stats);
+			nb_channels = (int)gfit.naxes[2];
+		} else {
+			fits fit = { 0 };
+			fit.fptr = fptr;
+			if (read_fits_metadata(&fit) || read_fits_with_convert(&fit, input_filename, FALSE)) {
+				fits_close_file(fptr, &status);
+				return CMD_GENERIC_ERROR;
+			}
+			nb_channels = (int)fit.naxes[2];
+			// TODO: stats for CFA
+			compute_all_channels_statistics_single_image(&fit, STATS_BASIC, MULTI_THREADED, stats);
+			clearfits(&fit);
+		}
+	}
+	fits_close_file(fptr, &status);
+
+	// https://gnome.pages.gitlab.gnome.org/json-glib/class.Builder.html
+	JsonBuilder *builder = json_builder_new();
+	json_builder_begin_object(builder);
+	json_builder_set_member_name(builder, "headers");
+	json_builder_begin_array(builder);
+	GSList *ptr = header;
+	while (ptr) {
+		json_builder_begin_object(builder);
+		header_record *r = ptr->data;
+		json_builder_set_member_name(builder, "key");
+		json_builder_add_string_value(builder, r->key);
+		json_builder_set_member_name(builder, "value");
+		json_builder_add_string_value(builder, r->value);
+		json_builder_end_object(builder);
+		ptr = ptr->next;
+	}
+	json_builder_end_array(builder);
+
+	if (compute_stats) {
+		json_builder_set_member_name(builder, "statistics");
+		json_builder_begin_object(builder);
+		for (int i = 0; i < nb_channels; ++i) {
+			if (stats[i]) {
+				char channame[16];
+				sprintf(channame, "channel %d", i);
+				json_builder_set_member_name(builder, channame);
+				json_builder_begin_object(builder);
+				json_builder_set_member_name(builder, "min");
+				json_builder_add_double_value(builder, stats[i]->min);
+				json_builder_set_member_name(builder, "max");
+				json_builder_add_double_value(builder, stats[i]->max);
+				json_builder_set_member_name(builder, "mean");
+				json_builder_add_double_value(builder, stats[i]->mean);
+				json_builder_set_member_name(builder, "median");
+				json_builder_add_double_value(builder, stats[i]->median);
+				json_builder_set_member_name(builder, "sigma");
+				json_builder_add_double_value(builder, stats[i]->sigma);
+				json_builder_set_member_name(builder, "noise");
+				json_builder_add_double_value(builder, stats[i]->bgnoise);
+				json_builder_end_object(builder);
+				// BASIC: median, mean, sigma, noise, min, max
+				free_stats(stats[i]);
+			}
+		}
+		json_builder_end_object(builder);
+	}
+	json_builder_end_object(builder);
+
+	JsonGenerator *gen = json_generator_new();
+	JsonNode *root = json_builder_get_root(builder);
+	json_generator_set_root(gen, root);
+	GError *err = NULL;
+	int retval = CMD_OK;
+	if (!json_generator_to_file(gen, output_filename, &err)) {
+		siril_log_message(_("Failed to save the JSON file %s: %s\n"), output_filename, err->message);
+		retval = CMD_GENERIC_ERROR;
+	}
+
+#ifdef DEBUG_TEST
+	json_generator_set_pretty(gen, TRUE);
+	gchar *str = json_generator_to_data(gen, NULL);
+	printf("JSON:\n%s\n", str);
+#endif
+
+	json_node_free(root);
+	g_object_unref(gen);
+	g_object_unref(builder);
+	return retval;
+#else
+	siril_log_message(_("json-glib was not found at build time, cannot proceed. Install and rebuild.\n"));
+	return CMD_GENERIC_ERROR;
+#endif
 }
 
 int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int index) {
