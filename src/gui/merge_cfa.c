@@ -40,6 +40,11 @@ fits *cfa0 = NULL, *cfa1 = NULL, *cfa2 = NULL, *cfa3 = NULL;
 static gboolean cfa0_loaded = FALSE, cfa1_loaded = FALSE, cfa2_loaded = FALSE, cfa3_loaded = FALSE;
 
 void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa0")));
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa1")));
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa2")));
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa3")));
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern")), 0);
 	siril_close_dialog("merge_cfa_dialog");
 }
 
@@ -105,14 +110,14 @@ void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 	gint p = gtk_combo_box_get_active(combo_pattern);
 	sensor_pattern pattern = (sensor_pattern) p;
 	fits *out = NULL;
-	gboolean x_compat = (cfa0->naxes[0] == cfa1->naxes[0] && cfa1->naxes[0] == cfa2->naxes[0] && cfa2->naxes[0] == cfa3->naxes[0]);
-	gboolean y_compat = (cfa0->naxes[1] == cfa1->naxes[1] && cfa1->naxes[1] == cfa2->naxes[1] && cfa2->naxes[1] == cfa3->naxes[1]);
-	gboolean c_compat = (cfa0->naxes[2] == cfa1->naxes[2] && cfa1->naxes[2] == cfa2->naxes[2] && cfa2->naxes[2] == cfa3->naxes[2] && cfa3->naxes[2] == 1);
-	gboolean t_compat = (cfa0->type == cfa1->type && cfa1->type == cfa2->type && cfa2->type == cfa3->type);
 	if (!(cfa0_loaded && cfa1_loaded && cfa2_loaded && cfa3_loaded)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: images are not all loaded"),
 				_("Merge CFA cannot proceed"));
 	} else {
+		gboolean x_compat = (cfa0->naxes[0] == cfa1->naxes[0] && cfa1->naxes[0] == cfa2->naxes[0] && cfa2->naxes[0] == cfa3->naxes[0]);
+		gboolean y_compat = (cfa0->naxes[1] == cfa1->naxes[1] && cfa1->naxes[1] == cfa2->naxes[1] && cfa2->naxes[1] == cfa3->naxes[1]);
+		gboolean c_compat = (cfa0->naxes[2] == cfa1->naxes[2] && cfa1->naxes[2] == cfa2->naxes[2] && cfa2->naxes[2] == cfa3->naxes[2] && cfa3->naxes[2] == 1);
+		gboolean t_compat = (cfa0->type == cfa1->type && cfa1->type == cfa2->type && cfa2->type == cfa3->type);
 		if (!(x_compat && y_compat && c_compat && t_compat)) {
 			siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
 			if(!x_compat)
@@ -147,6 +152,11 @@ void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			redraw(REMAP_ALL);
 			sequence_list_change_current();
 			set_cursor_waiting(FALSE);
+			gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa0")));
+			gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa1")));
+			gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa2")));
+			gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa3")));
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern")), 0);
 			siril_close_dialog("merge_cfa_dialog");
 
 		}
