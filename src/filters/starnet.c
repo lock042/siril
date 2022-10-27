@@ -123,7 +123,7 @@ static int exec_prog(const char **argv)
 		while (0 == waitpid(my_pid , &status , WNOHANG)) {
 			usleep(100000);	// Wait for starnet++ to finish before attempting to process the output
 			if ((n = read(pipe_fds[0], buf, 0x100)) >= 0) {
-				buf[n] = 0;
+				buf[n-1] = 0;
 				char *m = strstr(buf, "pid:");
 				if (m != 0) {
 					m += 4;
@@ -177,7 +177,7 @@ static int exec_prog(const char **argv)
 		while (nExitCode == STILL_ACTIVE) {
 			usleep(100000);	// Wait for starnet++ to finish before attempting to process the output
 			if ((n = _read(pipe_fds[0], buf, 256)) >= 0) {
-				buf[n] = '\0';
+				buf[n-1] = '\0';
 				double value = g_ascii_strtod(buf, NULL);
 				if (value != 0.0 && value == value) { //
 					set_progress_bar_data("Running Starnet++", (value / 100));

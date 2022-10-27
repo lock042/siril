@@ -46,12 +46,13 @@ typedef enum {
 	SF_NO_MAG = 13,
 	SF_FWHM_TOO_SMALL = 14,
 	SF_FWHM_NEG = 15,
-	SF_ROUNDNESS_BELOW_CRIT = 16
+	SF_ROUNDNESS_BELOW_CRIT = 16,
+	SF_MOFFAT_BETA_TOO_SMALL = 17
 } sf_errors;
 
 void update_peaker_GUI();
 void confirm_peaker_GUI();
-psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads);
+psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, starprofile profile, int threads);
 psf_star *add_star(fits *fit, int layer, int *index);
 int remove_star(int index);
 void sort_stars_by_mag(psf_star **stars, int total);

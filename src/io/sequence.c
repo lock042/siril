@@ -1171,6 +1171,7 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 		g_snprintf(seqname, len, "%s%s", prefix, basename);
 		siril_debug_print("Removing %s\n", seqname);
 		g_unlink(seqname);
+		free(seqname);
 		break;
 	}
 }
@@ -1197,9 +1198,10 @@ void initialize_sequence(sequence *seq, gboolean is_zeroed) {
  * initialize_sequence() must be called on it right after free_sequence()
  * (= do it for com.seq) */
 void free_sequence(sequence *seq, gboolean free_seq_too) {
+	if (seq == NULL) return;
+	siril_debug_print("free_sequence(%s)\n", seq->seqname ? seq->seqname : "null name");
 	int layer, j;
 
-	if (seq == NULL) return;
 	// free regparam
 	if (seq->nb_layers > 0 && seq->regparam) {
 		for (layer = 0; layer < seq->nb_layers; layer++) {
@@ -1579,8 +1581,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	struct phot_config *ps = NULL;
 	if (spsfargs->for_photometry)
 		ps = phot_set_adjusted_for_image(fit);
-	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry,
-			spsfargs->for_photometry, ps, TRUE, &error);
+	data->psf = psf_get_minimisation(fit, 0, &psfarea, spsfargs->for_photometry, ps, TRUE, com.pref.starfinder_conf.profile, &error);
 	free(ps);
 	if (data->psf) {
 		/* for photometry ? */
@@ -1662,7 +1663,8 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		// for photometry use: store data in seq->photometry
 		seq->photometry[photometry_index][data->image_index] = data->psf;
 	}
-	if (com.headless && !args->already_in_a_thread) {
+
+	if (args->already_in_a_thread || com.script) { // the idle won't be called
 		// printing results ordered, the list isn't
 		gboolean first = TRUE;
 		for (int j = 0; j < seq->number; j++) {
@@ -1681,11 +1683,12 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		if (spsfargs->list)
 			g_slist_free_full(spsfargs->list, free);
 		free(spsfargs);
-		free_sequence(seq, TRUE);
+		args->user = NULL;
 	}
 	return 0;
 }
 
+// only does something if allow_use_as_regdata != false or GUI can be used
 gboolean end_seqpsf(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *)p;
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
@@ -1743,40 +1746,34 @@ gboolean end_seqpsf(gpointer p) {
 	if (seq->needs_saving)
 		writeseqfile(seq);
 
+	// GUI things
 	if (seq == &com.seq) {
 		set_fwhm_star_as_star_list_with_layer(seq, layer);
 
-		if (!args->already_in_a_thread) {
-			/* do here all GUI-related items, because it runs in the main thread.
-			 * Most of these things are already done in end_register_idle
-			 * in case seqpsf is called for registration. */
+		/* do here all GUI-related items, because it runs in the main thread.
+		 * Most of these things are already done in end_register_idle
+		 * in case seqpsf is called for registration. */
+		if (seq->type != SEQ_INTERNAL) {
 			// update the list in the GUI
-			if (seq->type != SEQ_INTERNAL) {
-				update_seqlist(layer);
-				fill_sequence_list(seq, layer, FALSE);
-			}
-			set_layers_for_registration();	// update display of available reg data
-			drawPlot();
-			notify_new_photometry();	// switch to and update plot tab
-			redraw(REDRAW_OVERLAY);
+			update_seqlist(layer);
+			fill_sequence_list(seq, layer, FALSE);
 		}
+		set_layers_for_registration();	// update display of available reg data
+		drawPlot();
+		notify_new_photometry();	// switch to and update plot tab
+		redraw(REDRAW_OVERLAY);
 	}
 
 proper_ending:
 	if (spsfargs->list)
 		g_slist_free_full(spsfargs->list, free);
-	free(spsfargs);
 
-	if (seq == &com.seq && !args->already_in_a_thread && !com.script)
+	if (seq == &com.seq)
 		adjust_sellabel();
 
-	if (args->already_in_a_thread) {
-		// we must not call stop_processing_thread() here
-		return FALSE;
-	} else {
-		free(args);
-		return end_generic(NULL);
-	}
+	free(spsfargs);
+	free(args);
+	return end_generic(NULL);
 }
 
 /* process PSF for the given sequence, on the given layer, the area of the
@@ -1855,8 +1852,8 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 		start_in_new_thread(generic_sequence_worker, args);
 		return 0;
 	} else {
-		generic_sequence_worker(args);
-		int retval = args->retval;
+		int retval = GPOINTER_TO_INT(generic_sequence_worker(args));
+		free(spsfargs);
 		free(args);
 		return retval;
 	}

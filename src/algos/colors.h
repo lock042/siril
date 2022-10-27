@@ -1,12 +1,17 @@
 #ifndef _COLORS_H_
 #define _COLORS_H_
 
-/* extract_channels data from GUI */
+typedef enum {
+	EXTRACT_RGB,
+	EXTRACT_HSL,
+	EXTRACT_HSV,
+	EXTRACT_CIELAB,
+} channel_extract_type;
+
 struct extract_channels_data {
-	gboolean process;
 	fits *fit;
 	char *channel[3];
-	int type;
+	channel_extract_type type;
 	const char* str_type;
 };
 

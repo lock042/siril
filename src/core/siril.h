@@ -162,6 +162,7 @@ typedef enum {
 #define MAX_STARS 200000		// maximum length of com.stars
 #define MAX_STARS_FITTED 2000	// maximum number of stars fitted for registration
 #define MIN_STARS_FITTED 100	// minimum number of stars fitted for registration
+#define DEF_BOX_RADIUS 5 // default radius of the box in starfinder_conf
 
 #define INDEX_MAX 65535		// maximum index for images
 
@@ -322,7 +323,7 @@ struct sequ {
 	struct fits_sequence *fitseq_file; // FITS sequence data structure
 #ifdef HAVE_FFMS2
 	struct film_struct *film_file;
-	char *ext;		// extension of video, NULL if not video
+	const char *ext;	// extension of video, NULL if not video
 #endif
 	fits **internal_fits;	// for INTERNAL sequences: images references. Length: number
 	fitsfile **fptr;	// file descriptors for open-mode operations
