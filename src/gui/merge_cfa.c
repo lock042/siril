@@ -39,13 +39,25 @@ static gchar *f_cfa0 = NULL, *f_cfa1 = NULL, *f_cfa2 = NULL, *f_cfa3 = NULL;
 fits *cfa0 = NULL, *cfa1 = NULL, *cfa2 = NULL, *cfa3 = NULL;
 static gboolean cfa0_loaded = FALSE, cfa1_loaded = FALSE, cfa2_loaded = FALSE, cfa3_loaded = FALSE;
 
-void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
+void reset_controls() {
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa0")), com.wd);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa1")), com.wd);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa2")), com.wd);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa3")), com.wd);
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa0")));
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa1")));
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa2")));
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa3")));
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern")), 0);
+}
+
+void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
+	reset_controls();
 	siril_close_dialog("merge_cfa_dialog");
+}
+
+void on_merge_cfa_show(GtkWidget *widget, gpointer user_data) {
+	reset_controls();
 }
 
 void on_merge_cfa_filechooser_CFA0_file_set(GtkFileChooser *filechooser, gpointer user_data) {
@@ -135,7 +147,7 @@ void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
 			close_single_image();
 			copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-
+			clearfits(out);
 			clear_stars_list(TRUE);
 			com.seq.current = UNRELATED_IMAGE;
 			if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
@@ -152,13 +164,8 @@ void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			redraw(REMAP_ALL);
 			sequence_list_change_current();
 			set_cursor_waiting(FALSE);
-			gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa0")));
-			gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa1")));
-			gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa2")));
-			gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa3")));
-			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern")), 0);
+			reset_controls();
 			siril_close_dialog("merge_cfa_dialog");
-
 		}
 	}
 }
