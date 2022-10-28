@@ -117,6 +117,7 @@ struct debayer_config {
 	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
 	gboolean top_down;			// debayer top-down orientation
 	int xbayeroff, ybayeroff;		// x and y Bayer offsets
+	int xtrans_passes;			// number of passes for X-Trans debayer
 };
 
 // GUI data backup
