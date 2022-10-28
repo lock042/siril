@@ -1250,7 +1250,7 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 		} else {
 			tmp_pattern = bayer;
 			tmp_algo = XTRANS;
-			siril_log_color_message(_("XTRANS Sensor detected. Using special algorithm.\n"), "green");
+			siril_log_message(_("XTRANS Sensor detected. Using special algorithm.\n"));
 		}
 	}
 	if (tmp_pattern >= BAYER_FILTER_MIN && tmp_pattern <= BAYER_FILTER_MAX) {
@@ -1270,21 +1270,19 @@ static unsigned int compile_bayer_pattern(sensor_pattern pattern) {
 	/* red is 0, green is 1, blue is 2 */
 	switch (pattern) {
 		case BAYER_FILTER_RGGB:
-			return 0x00010102;
+			return cpu_to_be32(0x00010102);
 		case BAYER_FILTER_BGGR:
-			return 0x02010100;
+			return cpu_to_be32(0x02010100);
 		case BAYER_FILTER_GBRG:
-			return 0x01020001;
+			return cpu_to_be32(0x01020001);
 		case BAYER_FILTER_GRBG:
-			return 0x01000201;
+			return cpu_to_be32(0x01000201);
 		default:
-			return 0;
+			return 0x03030303;
 	}
 }
 
-WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
-	BYTE pattern[36];	// red is 0, green is 1, blue is 2
-	int pattern_size;	// 2 or 6
+static int get_compiled_pattern(fits *fit, int layer, BYTE pattern[36], int *pattern_size) {
 	g_assert(layer >= 0 || layer < 3);
 	sensor_pattern idx = get_cfa_pattern_index_from_string(fit->bayer_pattern);
 
@@ -1293,8 +1291,9 @@ WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 		// reorient it correctly for the image
 		adjust_Bayer_pattern(fit, &idx);
 		*((unsigned int *)pattern) = compile_bayer_pattern(idx);
-		pattern_size = 2;
+		*pattern_size = 2;
 		siril_debug_print("extracting CFA data for filter %d on Bayer pattern\n", layer);
+		return 0;
 	}
 	else if (idx != BAYER_FILTER_NONE) {
 		/* 6x6 X-Trans matrix */
@@ -1303,22 +1302,35 @@ WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 		adjust_XTrans_pattern(fit, xtrans);
 		for (int i = 0; i < 36; i++)
 			pattern[i] = (BYTE)(((unsigned int *)xtrans)[i]);
-		pattern_size = 6;
+		*pattern_size = 6;
 		siril_debug_print("extracting CFA data for filter %d on X-Trans pattern\n", layer);
+		return 0;
 	}
+	return 1;
+}
+
+WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
+	BYTE pattern[36];	// red is 0, green is 1, blue is 2
+	int pattern_size;	// 2 or 6
+	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+		return NULL;
 
 	// alloc buffer
 	size_t npixels = fit->naxes[0] * fit->naxes[1];
 	WORD *buf = malloc(npixels * sizeof(WORD));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	WORD *input = fit->data;
 
 	// and we copy the pixels top-down
 	size_t i = 0, j = 0;
-	int x, y, pattern_y = 0;//, pattern_x = 0;
+	int x, y, pattern_y = 0;
 	for (y = 0; y < fit->ry; y++) {
 		int pattern_idx_y = pattern_y * pattern_size;
 		for (x = 0; x < fit->rx; x++) {
-			int pattern_idx = pattern_idx_y + x % 6;
+			int pattern_idx = pattern_idx_y + x % pattern_size;
 			if (pattern[pattern_idx] == layer)
 				buf[j++] = input[i];
 			i++;
@@ -1330,3 +1342,38 @@ WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 	*newsize = j;
 	return buf;
 }
+
+float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
+	BYTE pattern[36];	// red is 0, green is 1, blue is 2
+	int pattern_size;	// 2 or 6
+	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+		return NULL;
+
+	// alloc buffer
+	size_t npixels = fit->naxes[0] * fit->naxes[1];
+	float *buf = malloc(npixels * sizeof(float));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	float *input = fit->fdata;
+
+	// and we copy the pixels top-down
+	size_t i = 0, j = 0;
+	int x, y, pattern_y = 0;
+	for (y = 0; y < fit->ry; y++) {
+		int pattern_idx_y = pattern_y * pattern_size;
+		for (x = 0; x < fit->rx; x++) {
+			int pattern_idx = pattern_idx_y + x % pattern_size;
+			if (pattern[pattern_idx] == layer)
+				buf[j++] = input[i];
+			i++;
+		}
+		pattern_y = (pattern_y + 1) % pattern_size;
+	}
+
+	buf = realloc(buf, j * sizeof(float));
+	*newsize = j;
+	return buf;
+}
+

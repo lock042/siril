@@ -265,6 +265,10 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 				 */
 				size_t newsz;
 				data = extract_CFA_buffer_ushort(fit, -layer - 1, &newsz);
+				if (!data) {
+					siril_log_color_message(_("Failed to compute CFA statistics\n"), "red");
+					return NULL;
+				}
 				nx = newsz;
 				ny = 1;
 				free_data = 1;
@@ -432,6 +436,9 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
  * Min and max value, average deviation, MAD, Bidweight Midvariance and IKSS
  * are computed with gsl stats.
  *
+ * layer can be negative, this is a special trick to get statistics on a CFA
+ * channel, -1 being red, -2 green and -3 blue. These computations are not
+ * stored.
  * If the selection is not null or empty, computed data is not stored and seq
  * is not used.
  * If seq is null (single image processing), image_index is ignored, data is
