@@ -263,7 +263,7 @@ const char *psf_error_to_string(psf_error err) {
 		case PSF_ERR_UNSUPPORTED:
 			return _("unsupported image type");
 		case PSF_ERR_DIVERGED:
-			return _("Gaussian fit failed");
+			return _("PSF fit failed");
 		case PSF_ERR_OUT_OF_WINDOW:
 			return _("not in area");
 		case PSF_ERR_INNER_TOO_SMALL:

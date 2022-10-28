@@ -1,4 +1,3 @@
-
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
@@ -1081,7 +1080,7 @@ static void update_filters_registration() {
  * Verifies that enough images are selected and an area is selected.
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
-	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL, *noout = NULL;
+	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL, *noout = NULL, *toggle_reg_clamp = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -1100,6 +1099,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		noout = lookup_widget("regNoOutput");
 		reglayer = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 		filter_combo = GTK_COMBO_BOX(lookup_widget("combofilter4"));
+		toggle_reg_clamp = lookup_widget("toggle_reg_clamp");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -1148,6 +1148,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_APPLYREG);
 		}
 		gtk_widget_set_visible(follow, (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_3stars));
+		gtk_widget_set_sensitive(toggle_reg_clamp, (method->method_ptr == &register_apply_reg)
+																			|| (method->method_ptr == &register_3stars)
+																			|| (method->method_ptr == &register_star_alignment));
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars || method->method_ptr == &register_shift_fwhm) {
@@ -1299,11 +1302,13 @@ void get_the_registration_area(struct registration_args *reg_args,
 /* callback for no output button */
 void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	GtkWidget *Algo = lookup_widget("ComboBoxRegInter");
+	GtkWidget *clamping = lookup_widget("toggle_reg_clamp");
 	GtkWidget *Prefix = lookup_widget("regseqname_entry");
 
 	gboolean toggled = gtk_toggle_button_get_active(togglebutton);
 
 	gtk_widget_set_sensitive(Algo, !toggled);
+	gtk_widget_set_sensitive(clamping, !toggled);
 	gtk_widget_set_sensitive(Prefix, !toggled);
 
 	keep_noout_state = toggled;
@@ -1431,7 +1436,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
 	get_the_registration_area(reg_args, method);	// sets selection
 	reg_args->run_in_thread = TRUE;
-	reg_args->load_new_sequence = FALSE; // only TRUE for global registration. Will be updated in this case
+	reg_args->load_new_sequence = FALSE; // only TRUE for some methods. Will be updated in these cases
 
 	if (method->method_ptr == register_star_alignment) { // seqpplyreg case is dealt with in the sanity checks of the method
 		if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || com.seq.is_variable)) {

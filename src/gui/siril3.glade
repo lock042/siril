@@ -1941,6 +1941,12 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">1</property>
   </object>
+  <object class="GtkAdjustment" id="adj_min_beta">
+    <property name="upper">10</property>
+    <property name="value">1.5</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_plans_w">
     <property name="lower">2</property>
     <property name="upper">6</property>
@@ -3240,7 +3246,7 @@ If the parameters is null, so no filter is apply at all.</property>
   <object class="GtkAdjustment" id="adjstarfinder_radius">
     <property name="lower">3</property>
     <property name="upper">50</property>
-    <property name="value">10</property>
+    <property name="value">5</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -10822,6 +10828,8 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       <column type="gdouble"/>
       <!-- column-name FWHMy -->
       <column type="gdouble"/>
+      <!-- column-name beta -->
+      <column type="gdouble"/>
       <!-- column-name mag -->
       <column type="gdouble"/>
       <!-- column-name r -->
@@ -10846,7 +10854,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       <object class="GtkBox" id="dialog-vbox13">
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
+        <property name="spacing">5</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="dialog-action_area13">
             <property name="can-focus">False</property>
@@ -10894,7 +10902,6 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="vscroll-policy">natural</property>
                 <property name="model">liststore_stars</property>
                 <property name="reorderable">True</property>
-                <property name="rules-hint">True</property>
                 <property name="search-column">0</property>
                 <property name="show-expanders">False</property>
                 <property name="enable-grid-lines">horizontal</property>
@@ -10905,6 +10912,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn13">
+                    <property name="spacing">2</property>
                     <property name="sizing">fixed</property>
                     <property name="title" translatable="yes">Ch.</property>
                     <property name="alignment">0.5</property>
@@ -10918,6 +10926,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn11">
+                    <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">B</property>
                     <property name="expand">True</property>
@@ -10937,6 +10946,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn12">
+                    <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">A</property>
                     <property name="expand">True</property>
@@ -10956,6 +10966,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn7">
+                    <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">x0</property>
                     <property name="expand">True</property>
@@ -10975,6 +10986,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn8">
+                    <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">y0</property>
                     <property name="expand">True</property>
@@ -10994,6 +11006,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn9">
+                    <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">FWHMx</property>
                     <property name="expand">True</property>
@@ -11013,6 +11026,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn10">
+                    <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">FWHMy</property>
                     <property name="expand">True</property>
@@ -11032,6 +11046,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn_mag">
+                    <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">Mag</property>
                     <property name="clickable">True</property>
@@ -11049,14 +11064,35 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                   </object>
                 </child>
                 <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn29">
+                    <property name="spacing">2</property>
+                    <property name="sizing">autosize</property>
+                    <property name="title" translatable="yes">Beta</property>
+                    <property name="expand">True</property>
+                    <property name="clickable">True</property>
+                    <property name="alignment">0.5</property>
+                    <property name="reorderable">True</property>
+                    <property name="sort-column-id">8</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_beta">
+                        <property name="alignment">right</property>
+                      </object>
+                      <attributes>
+                        <attribute name="text">7</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn14">
+                    <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">r</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">8</property>
+                    <property name="sort-column-id">9</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_r">
                         <property name="alignment">right</property>
@@ -11069,13 +11105,14 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn6">
+                    <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">Angle</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">9</property>
+                    <property name="sort-column-id">10</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_angle">
                         <property name="alignment">right</property>
@@ -11088,13 +11125,14 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn15">
+                    <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
                     <property name="title" translatable="yes">RMSE</property>
                     <property name="expand">True</property>
                     <property name="clickable">True</property>
                     <property name="alignment">0.5</property>
                     <property name="reorderable">True</property>
-                    <property name="sort-column-id">10</property>
+                    <property name="sort-column-id">11</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_rmse">
                         <property name="alignment">right</property>
@@ -11115,6 +11153,22 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
           </packing>
         </child>
         <child>
+          <object class="GtkCheckButton" id="toggle_star_centered">
+            <property name="label" translatable="yes">Center selected star</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">If checked, a star selected from the list will be centered in the display. The current zoom level will not be altered. This does not apply to stars selected by clicking their PSF in the main display.</property>
+            <property name="halign">end</property>
+            <property name="draw-indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkFrame" id="frame35">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -11127,12 +11181,12 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                 <property name="left-padding">12</property>
                 <child>
-                  <!-- n-columns=3 n-rows=5 -->
+                  <!-- n-columns=4 n-rows=5 -->
                   <object class="GtkGrid" id="grid35">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="row-spacing">10</property>
-                    <property name="column-spacing">5</property>
+                    <property name="column-spacing">10</property>
                     <child>
                       <object class="GtkSpinButton" id="spinstarfinder_radius">
                         <property name="visible">True</property>
@@ -11233,23 +11287,6 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="toggle_radius_adjust">
-                        <property name="label" translatable="yes">Adjust value</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">By checking this button, the radius value will be adjusted according to the image resolution if it is provided. Therefore, it is not necessary to change the radius value and the default value of 10 should be kept.</property>
-                        <property name="halign">start</property>
-                        <property name="active">True</property>
-                        <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_toggle_radius_adjust_toggled" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkCheckButton" id="toggle_relax_checks">
                         <property name="label" translatable="yes">Relax PSF checks</property>
                         <property name="visible">True</property>
@@ -11261,8 +11298,8 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <signal name="toggled" handler="on_toggle_relax_checks_toggled" swapped="no"/>
                       </object>
                       <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">4</property>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">3</property>
                       </packing>
                     </child>
                     <child>
@@ -11299,11 +11336,68 @@ This should normally be the case only for stacked images. Increasing this value 
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Profile type:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="combostarfinder_profile">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="active">0</property>
+                        <items>
+                          <item translatable="yes">Gaussian</item>
+                          <item translatable="yes">Moffat</item>
+                        </items>
+                        <signal name="changed" handler="on_combostarfinder_profile_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="beta_control_label">
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Minimum beta:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spin_minbeta">
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Minimum value for Moffat beta parameter. This can be used to avoid galaxies being modelled as stars with excessively low beta.</property>
+                        <property name="halign">start</property>
+                        <property name="text">1,50</property>
+                        <property name="adjustment">adj_min_beta</property>
+                        <property name="digits">2</property>
+                        <property name="value">1.5</property>
+                        <signal name="value-changed" handler="on_spin_sf_minbeta_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">4</property>
+                      </packing>
+                    </child>
+                    <child>
                       <object class="GtkButton" id="reset_findstar_button">
+                        <property name="width-request">128</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
                         <property name="tooltip-text" translatable="yes">Resets all parameters to defaults.</property>
+                        <property name="halign">start</property>
                         <signal name="clicked" handler="on_reset_findstar_button_clicked" swapped="no"/>
                         <child>
                           <object class="GtkImage">
@@ -11315,8 +11409,14 @@ This should normally be the case only for stacked images. Increasing this value 
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">3</property>
+                        <property name="top-attach">0</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
@@ -11445,6 +11545,20 @@ This should normally be the case only for stacked images. Increasing this value 
                   <object class="GtkSeparatorToolItem" id="separateur2">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="add_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Add star to list from selection</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">list-add</property>
+                    <signal name="clicked" handler="on_add_button_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>

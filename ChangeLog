@@ -28,6 +28,7 @@ xx/xx/22
 * Added statistic functions to Pixel Math as well as mtf
 * Added solar system object search from online service for image annotations
 * Added zoom sliders and plot selection in Plot tab
+* Added Moffat star profile as an option instead of Gaussian
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored global registration and added 2pass and Apply Existing methods
@@ -36,6 +37,7 @@ xx/xx/22
 * Refactored settings, preferences and configuration file, adding get and set commands
 * Refactored commands error handling
 * Refactored light curve creation, filtering the reference stars to valid only
+* Refactored PSF fitting to solve for the angle in all cases
 * Added background level and number of stars to stored registation data and plots
 * Added commands: [update with https://free-astro.org/index.php?title=Siril:Commands#Commands_history ]
 * Added KOMBAT alogrithm for registration and removed deprecated ECC

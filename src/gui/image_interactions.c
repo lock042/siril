@@ -433,7 +433,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
 
 					struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, TRUE, ps, TRUE, NULL);
+					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 					free(ps);
 					if (gui.qphot) {
 						gui.qphot->xpos = gui.qphot->x0 + area.x;
@@ -516,6 +516,12 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 				if (com.selection.h == 0 && gtk_widget_is_visible(histo_dlg))
 					com.selection.h = 1;
 			}
+			// Clicking in displayed psf selects star in list if the DynamicPSF dialog is open
+			GtkWidget *dynpsf_dlg = lookup_widget("stars_list_window");
+			if (((com.selection.w == 0 || com.selection.w == 1) && (com.selection.h == 0 || com.selection.h == 1)) && gtk_widget_is_visible(dynpsf_dlg)) {
+				set_iter_of_clicked_psf((double) com.selection.x, (double) com.selection.y);
+			}
+
 			// never let selection be null if rotation_dlg is visible
 			// reinstate full image instead
 			if (!gui.freezeX && com.selection.w == 0 && gtk_widget_is_visible(rotation_dlg))
