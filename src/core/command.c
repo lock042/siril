@@ -4413,8 +4413,9 @@ int process_jsonmetadata(int nb) {
 	int nb_channels;
 	if (compute_stats) {
 		if (use_gfit) {
-			compute_all_channels_statistics_single_image(&gfit, STATS_BASIC, MULTI_THREADED, stats);
-			nb_channels = (int)gfit.naxes[2];
+			compute_all_channels_statistics_single_image(&gfit, STATS_BASIC | STATS_FOR_CFA, MULTI_THREADED, stats);
+			gboolean cfa = gfit.bayer_pattern[0] != '\0';
+			nb_channels = cfa ? 3 : (int)gfit.naxes[2];
 		} else {
 			fits fit = { 0 };
 			fit.fptr = fptr;
@@ -4422,9 +4423,9 @@ int process_jsonmetadata(int nb) {
 				fits_close_file(fptr, &status);
 				return CMD_GENERIC_ERROR;
 			}
-			nb_channels = (int)fit.naxes[2];
-			// TODO: stats for CFA
-			compute_all_channels_statistics_single_image(&fit, STATS_BASIC, MULTI_THREADED, stats);
+			compute_all_channels_statistics_single_image(&fit, STATS_BASIC | STATS_FOR_CFA, MULTI_THREADED, stats);
+			gboolean cfa = fit.bayer_pattern[0] != '\0';
+			nb_channels = cfa ? 3 : (int)fit.naxes[2];
 			clearfits(&fit);
 		}
 	}
@@ -4457,10 +4458,6 @@ int process_jsonmetadata(int nb) {
 				sprintf(channame, "channel%d", i);
 				json_builder_set_member_name(builder, channame);
 				json_builder_begin_object(builder);
-				json_builder_set_member_name(builder, "min");
-				json_builder_add_double_value(builder, stats[i]->min);
-				json_builder_set_member_name(builder, "max");
-				json_builder_add_double_value(builder, stats[i]->max);
 				json_builder_set_member_name(builder, "mean");
 				json_builder_add_double_value(builder, stats[i]->mean);
 				json_builder_set_member_name(builder, "median");
@@ -4469,6 +4466,14 @@ int process_jsonmetadata(int nb) {
 				json_builder_add_double_value(builder, stats[i]->sigma);
 				json_builder_set_member_name(builder, "noise");
 				json_builder_add_double_value(builder, stats[i]->bgnoise);
+				json_builder_set_member_name(builder, "min");
+				json_builder_add_double_value(builder, stats[i]->min);
+				json_builder_set_member_name(builder, "max");
+				json_builder_add_double_value(builder, stats[i]->max);
+				json_builder_set_member_name(builder, "total_pix_count");
+				json_builder_add_double_value(builder, stats[i]->total);
+				json_builder_set_member_name(builder, "good_pix_count");
+				json_builder_add_double_value(builder, stats[i]->ngoodpix);
 				json_builder_end_object(builder);
 				// BASIC: median, mean, sigma, noise, min, max
 				free_stats(stats[i]);

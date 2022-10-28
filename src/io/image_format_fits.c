@@ -747,6 +747,8 @@ GSList *read_header_keyvals_strings(fitsfile *fptr) {
 			report_fits_error(status);
 			break;
 		}
+		if (!strcmp(key, "COMMENT"))
+			continue;
 		int len = strlen(value);
 		// pretty-print strings: remove quotes and trailing spaces
 		if (len > 0 && value[0] == '\'' && value[len-1] == '\'') {
@@ -1585,7 +1587,7 @@ void save_fits_header(fits *fit) {
 	if (fit->sitelat)
 		fits_update_key(fit->fptr, TDOUBLE, "SITELAT", &(fit->sitelat),
 			"[deg] Observation site latitude", &status);
-	
+
 	status = 0;
 	if (fit->sitelong)
 		fits_update_key(fit->fptr, TDOUBLE, "SITELONG", &(fit->sitelong),

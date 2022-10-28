@@ -830,7 +830,7 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 	return newbuf;
 }
 
-int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
+int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	int xbayeroff = 0, ybayeroff = 0;
 	gboolean top_down = com.pref.debayer.top_down;
 
@@ -912,28 +912,59 @@ int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	return 0;
 }
 
-/* This function retrieve the xtrans matrix from the FITS header */
-static int retrieve_XTRANS_pattern(char *bayer, unsigned int xtrans[6][6]) {
+static void adjust_XTrans_pattern(fits *fit, unsigned int xtrans[6][6]) {
+	gboolean top_down = com.pref.debayer.top_down;
+
+	if (com.pref.debayer.use_bayer_header) {
+		if (!g_strcmp0(fit->row_order, "TOP-DOWN")) {
+			top_down = TRUE;
+		} else if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+			top_down = FALSE;
+		}
+	}
+
+	siril_debug_print("X-Trans pattern will be used %s\n", top_down ? "top-down" : "bottom-up (inverted)");
+
+	if (!top_down) {
+		siril_debug_print("Inverting the X-Trans matrix to read images top-down\n");
+		int offset = fit->ry % 6;
+		if (offset)
+			siril_debug_print("Image with an X-Trans sensor doesn't have it's height multiple of 6\n");
+		unsigned int orig[6][6];
+		memcpy(orig, xtrans, 36 * sizeof(unsigned int));
+		for (int i = 0; i < 6; i++) {
+			int y = (5 - i + offset) % 6;
+			for (int j = 0; j < 6; j++) {
+				xtrans[i][j] = orig[y][j];
+			}
+		}
+
+	}
+}
+
+/* convert the string-described X-Trans pattern into an int array with value corresponding to filter */
+static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6]) {
 	int i = 0;
 
 	if (strlen(bayer) != 36) {
-		siril_log_color_message(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done"), "red");
+		siril_log_color_message(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done\n"), "red");
 		return 1;
 	}
 
-	for (int x = 0; x < 6; x++) {
-		for (int y = 0; y < 6; y++) {
+	for (int y = 0; y < 6; y++) {
+		for (int x = 0; x < 6; x++) {
 			switch (bayer[i]) {
 			case 'R':
-				xtrans[x][y] = 0;
+				xtrans[y][x] = 0;
 				break;
 			case 'G':
-				xtrans[x][y] = 1;
+				xtrans[y][x] = 1;
 				break;
 			case 'B':
-				xtrans[x][y] = 2;
+				xtrans[y][x] = 2;
 				break;
 			default:
+				siril_log_color_message(_("Invalid character in X-Trans filter pattern: %c\n"), "red", bayer[i]);
 				return 1;
 			}
 			i++;
@@ -1086,9 +1117,9 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		}
 		if (!top_down)
 			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
-		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
+		compile_XTrans_pattern(fit->bayer_pattern, xtrans);
 	} else {
-		retrieve_Bayer_pattern(fit, &pattern);
+		adjust_Bayer_pattern(fit, &pattern);
 	}
 
 	if (USE_SIRIL_DEBAYER) {
@@ -1145,9 +1176,9 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		}
 		if (!top_down)
 			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
-		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
+		compile_XTrans_pattern(fit->bayer_pattern, xtrans);
 	} else {
-		retrieve_Bayer_pattern(fit, &pattern);
+		adjust_Bayer_pattern(fit, &pattern);
 	}
 
 	float *newbuf = debayer_buffer_new_float(buf, &width, &height, interpolation, pattern, xtrans);
@@ -1171,7 +1202,8 @@ int debayer(fits *fit, interpolation_method interpolation, sensor_pattern patter
 	else return -1;
 }
 
-int retrieveBayerPatternFromChar(const char *bayer) {
+// gets the index in filter_pattern
+int get_cfa_pattern_index_from_string(const char *bayer) {
 	for (int i = 0; i < G_N_ELEMENTS(filter_pattern); i++) {
 		if (g_ascii_strcasecmp(bayer, filter_pattern[i]) == 0) {
 			return i;
@@ -1201,7 +1233,7 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 	interpolation_method tmp_algo = com.pref.debayer.bayer_inter;
 	if (com.pref.debayer.use_bayer_header) {
 		sensor_pattern bayer;
-		bayer = retrieveBayerPatternFromChar(fit->bayer_pattern);
+		bayer = get_cfa_pattern_index_from_string(fit->bayer_pattern);
 
 		if (bayer <= BAYER_FILTER_MAX) {
 			if (bayer != tmp_pattern) {
@@ -1232,4 +1264,69 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 		retval = -1;
 	}
 	return retval;
+}
+
+static unsigned int compile_bayer_pattern(sensor_pattern pattern) {
+	/* red is 0, green is 1, blue is 2 */
+	switch (pattern) {
+		case BAYER_FILTER_RGGB:
+			return 0x00010102;
+		case BAYER_FILTER_BGGR:
+			return 0x02010100;
+		case BAYER_FILTER_GBRG:
+			return 0x01020001;
+		case BAYER_FILTER_GRBG:
+			return 0x01000201;
+		default:
+			return 0;
+	}
+}
+
+WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
+	BYTE pattern[36];	// red is 0, green is 1, blue is 2
+	int pattern_size;	// 2 or 6
+	g_assert(layer >= 0 || layer < 3);
+	sensor_pattern idx = get_cfa_pattern_index_from_string(fit->bayer_pattern);
+
+	if (idx >= BAYER_FILTER_MIN && idx <= BAYER_FILTER_MAX) {
+		/* 2x2 Bayer matrix */
+		// reorient it correctly for the image
+		adjust_Bayer_pattern(fit, &idx);
+		*((unsigned int *)pattern) = compile_bayer_pattern(idx);
+		pattern_size = 2;
+		siril_debug_print("extracting CFA data for filter %d on Bayer pattern\n", layer);
+	}
+	else if (idx != BAYER_FILTER_NONE) {
+		/* 6x6 X-Trans matrix */
+		unsigned int xtrans[6][6];
+		compile_XTrans_pattern(fit->bayer_pattern, xtrans);
+		adjust_XTrans_pattern(fit, xtrans);
+		for (int i = 0; i < 36; i++)
+			pattern[i] = (BYTE)(((unsigned int *)xtrans)[i]);
+		pattern_size = 6;
+		siril_debug_print("extracting CFA data for filter %d on X-Trans pattern\n", layer);
+	}
+
+	// alloc buffer
+	size_t npixels = fit->naxes[0] * fit->naxes[1];
+	WORD *buf = malloc(npixels * sizeof(WORD));
+	WORD *input = fit->data;
+
+	// and we copy the pixels top-down
+	size_t i = 0, j = 0;
+	int x, y, pattern_y = 0;//, pattern_x = 0;
+	for (y = 0; y < fit->ry; y++) {
+		int pattern_idx_y = pattern_y * pattern_size;
+		for (x = 0; x < fit->rx; x++) {
+			int pattern_idx = pattern_idx_y + x % 6;
+			if (pattern[pattern_idx] == layer)
+				buf[j++] = input[i];
+			i++;
+		}
+		pattern_y = (pattern_y + 1) % pattern_size;
+	}
+
+	buf = realloc(buf, j * sizeof(WORD));
+	*newsize = j;
+	return buf;
 }
