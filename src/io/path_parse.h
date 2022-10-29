@@ -17,32 +17,46 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_IO_PATH_PARSE_H_
-#define SRC_IO_PATH_PARSE_H_
+#ifndef SRC_IO_PATHPARSE_ERR_H_
+#define SRC_IO_PATHPARSE_ERR_H_
 
 #include "core/siril.h"
 
+// negative errors are warnings
 typedef enum {
-	PATH_PARSE_MORE_THAN_ONE_HIT = -1,
-	PATH_PARSE_OK = 0,
-	PATH_PARSE_HEADER_NULL = 1,
-	PATH_PARSE_WRONG_CALL = 2,
-	PATH_PARSE_WRONG_RESERVED_KEYWORD = 3,
-	PATH_PARSE_LIBRARY_NOTDEFINED = 4,
-	PATH_PARSE_KEY_NOT_FOUND = 10,
-	PATH_PARSE_WRONG_FORMAT = 11,
-	PATH_PARSE_UNSUPPORTED_FORMAT = 12,
-	PATH_PARSE_WRONG_DATE = 13,
-	PATH_PARSE_WRONG_WCS = 14,
-	PATH_PARSE_NODIR = 15,
-	PATH_PARSE_NO_HIT_FOUND = 16
-} path_parse_errors;
+	// warning for wilcard read mode
+	PATHPARSE_ERR_MORE_THAN_ONE_HIT = -10,
+	// warnings for write_nofail mode (exact opposite of errors betw 1 and 10)
+	PATHPARSE_ERR_HEADER_NULL_NOFAIL = -1,
+	PATHPARSE_ERR_WRONG_RESERVED_KEYWORD_NOFAIL = -2,
+	PATHPARSE_ERR_LIBRARY_NOTDEFINED_NOFAIL = -3,
+	PATHPARSE_ERR_KEY_NOT_FOUND_NOFAIL = -4,
+	PATHPARSE_ERR_WRONG_DATE_NOFAIL = -5,
+	PATHPARSE_ERR_WRONG_WCS_NOFAIL = -6,
+	PATHPARSE_ERR_UNSUPPORTED_FORMAT_NOFAIL = -7,
+	// no error
+	PATHPARSE_ERR_OK = 0,
+	// parsing errors for classic read or write modes
+	PATHPARSE_ERR_HEADER_NULL = 1,
+	PATHPARSE_ERR_WRONG_RESERVED_KEYWORD = 2,
+	PATHPARSE_ERR_LIBRARY_NOTDEFINED = 3,
+	PATHPARSE_ERR_KEY_NOT_FOUND = 4,
+	PATHPARSE_ERR_WRONG_DATE = 5,
+	PATHPARSE_ERR_WRONG_WCS = 6,
+	PATHPARSE_ERR_UNSUPPORTED_FORMAT = 7,
+	// errors for read mode with wildcards
+	PATHPARSE_ERR_NO_HIT_FOUND = 10,
+	PATHPARSE_ERR_NO_DIR = 11,
+	// internal errors
+	PATHPARSE_ERR_WRONG_CALL = 20
+} pathparse_errors;
 
 typedef enum {
-	PATH_PARSE_READ,
-	PATH_PARSE_WRITE,
-} path_parse_mode;
+	PATHPARSE_MODE_READ,
+	PATHPARSE_MODE_WRITE,
+	PATHPARSE_MODE_WRITE_NOFAIL
+} pathparse_mode;
 
-gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *status);
+gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status);
 
-#endif /* SRC_IO_PATH_PARSE_H_ */
+#endif /* SRC_IO_PATHPARSE_ERR_H_ */

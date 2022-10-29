@@ -5741,7 +5741,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			} else {
 				g_free(expression);
 				int status;
-				expression = path_parse(&reffit, word[i] + 6, PATH_PARSE_READ, &status);
+				expression = path_parse(&reffit, word[i] + 6, PATHPARSE_MODE_READ, &status);
 				if (status) {
 					retvalue = CMD_GENERIC_ERROR;
 					break;
@@ -5764,7 +5764,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		} else if (g_str_has_prefix(word[i], "-dark=")) {
 			args->dark = calloc(1, sizeof(fits));
 			int status;
-			gchar *expression = path_parse(&reffit, word[i] + 6, PATH_PARSE_READ, &status);
+			gchar *expression = path_parse(&reffit, word[i] + 6, PATHPARSE_MODE_READ, &status);
 			if (status > 0) { // negative status are warnings
 				retvalue = CMD_GENERIC_ERROR;
 				free(args->dark);
@@ -5786,7 +5786,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		} else if (g_str_has_prefix(word[i], "-flat=")) {
 			args->flat = calloc(1, sizeof(fits));
 			int status;
-			gchar *expression = path_parse(&reffit, word[i] + 6, PATH_PARSE_READ, &status);
+			gchar *expression = path_parse(&reffit, word[i] + 6, PATHPARSE_MODE_READ, &status);
 			if (status) {
 				retvalue = CMD_GENERIC_ERROR;
 				free(args->flat);

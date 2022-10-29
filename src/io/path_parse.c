@@ -28,26 +28,58 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 
+static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
+	if (!err) return;
+	gchar *endstr = (err < 0) ? _("going on") : _("aborting");
+	gchar *msg = NULL;
+	switch (err) {
+		case PATHPARSE_ERR_HEADER_NULL:
+		case PATHPARSE_ERR_HEADER_NULL_NOFAIL:
+			msg = _("Header is empty");
+			break;
+		case PATHPARSE_ERR_WRONG_RESERVED_KEYWORD:
+		case PATHPARSE_ERR_WRONG_RESERVED_KEYWORD_NOFAIL:
+			msg = _("Wrong reserved keyword : ");
+			break;
+		case PATHPARSE_ERR_LIBRARY_NOTDEFINED:
+		case PATHPARSE_ERR_LIBRARY_NOTDEFINED_NOFAIL:
+			msg = _("Library not defined in preferences : ");
+			break;
+		case PATHPARSE_ERR_KEY_NOT_FOUND:
+		case PATHPARSE_ERR_KEY_NOT_FOUND_NOFAIL:
+			msg = _("Key not found : ");
+			break;
+		case PATHPARSE_ERR_WRONG_DATE:
+		case PATHPARSE_ERR_WRONG_DATE_NOFAIL:
+			msg = _("Wrong date : ");
+			break;
+		case PATHPARSE_ERR_WRONG_WCS:
+		case PATHPARSE_ERR_WRONG_WCS_NOFAIL:
+			msg = _("Wrong coordinates: ");
+			break;
+		case PATHPARSE_ERR_UNSUPPORTED_FORMAT:
+		case PATHPARSE_ERR_UNSUPPORTED_FORMAT_NOFAIL:
+			msg = _("Unsupported format : ");
+			break;
+		case PATHPARSE_ERR_MORE_THAN_ONE_HIT:
+			msg = _("More than one match for : ");
+			break;
+		case PATHPARSE_ERR_NO_HIT_FOUND:
+			msg = _("No match found for : ");
+			break;
+		case PATHPARSE_ERR_NO_DIR:
+			msg = _("Problem with path : ");
+			break;
+		case PATHPARSE_ERR_WRONG_CALL:
+		default:
+			msg = _("Internal error");
+			break;
+	}
+	siril_log_color_message(_("Err %3d - %s%s - %s\n"), "red", err, msg, addstr, endstr);
+}
 
-// static const char *path_parse_error_to_string(path_parse_errors err) {
-// 	switch (err) {
-// 	case PATH_PARSE_KEY_NOT_FOUND:
-// 		return "Key not found\n";
-// 	case PATH_PARSE_WRONG_CALL:
-// 		return "Call to read_key_from_header_text is malformed\n";
-// 	case PATH_PARSE_HEADER_NULL:
-// 		return "Header is empty\n";
-// 	case PATH_PARSE_WRONG_FORMAT:
-// 		return "Wrong format\n";
-// 	case PATH_PARSE_UNSUPPORTED_FORMAT:
-// 		return "Unsupported format\n";
-// 	default:
-// 		return NULL;
-// 	}
-// }
-
-static path_parse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
-	path_parse_errors status = PATH_PARSE_OK;
+static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
+	pathparse_errors status = PATHPARSE_ERR_OK;
 	gboolean keyfound = FALSE;
 	char searchstr[10];
 	g_sprintf(searchstr, "%-8s=", key);
@@ -66,14 +98,15 @@ static path_parse_errors read_key_from_header_text(gchar **headers, gchar *key, 
 			} else {
 				g_free(valsubs);
 				g_free(subs);
-				return PATH_PARSE_WRONG_CALL;
+				status = PATHPARSE_ERR_WRONG_CALL; // internal error, should not be thrown
+				return status;
 			}
 			g_strfreev(subs);
 			g_strfreev(valsubs);
 			break;
 		}
 	}
-	if (!keyfound) return PATH_PARSE_KEY_NOT_FOUND;
+	if (!keyfound) return PATHPARSE_ERR_KEY_NOT_FOUND;
 	return status;
 }
 
@@ -99,7 +132,8 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 
 	if ((dir = g_dir_open(dirname, 0, &error)) == NULL) {
 		siril_debug_print("wildcard dircheck: %s\n", error->message);
-		siril_log_color_message(_("Problem parsing expression %s - Error code %d - aborting\n"), "red", dirname, *status);
+		*status = PATHPARSE_ERR_NO_DIR;
+		display_path_parse_error(*status, dirname);
 		g_clear_error(&error);
 		g_free(dirname);
 		g_free(basename);
@@ -119,12 +153,12 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 		}
 	}
 	if (count > 1) {
-		*status = PATH_PARSE_MORE_THAN_ONE_HIT;
-		siril_log_color_message(_("Found more than one file matching %s - Warning code %d\nUsing first:%s\n"), "salmon", basename, *status, out);
-
+		*status = PATHPARSE_ERR_MORE_THAN_ONE_HIT;
+		display_path_parse_error(*status, basename);
+		siril_log_color_message(_("Using first match: %s\n"), "salmon", out);
 	} else if (!count) {
-		*status = PATH_PARSE_MORE_THAN_ONE_HIT;
-		siril_log_color_message(_("Problem parsing expression %s - Error code %d - aborting\n"), "red", expression, *status);
+		*status = PATHPARSE_ERR_NO_HIT_FOUND;
+		display_path_parse_error(*status, expression);
 	}
 	g_free(dirname);
 	g_free(basename);
@@ -143,13 +177,19 @@ such as "dm12" (date minus 12 hrs), "dm0" (date), "ra", "dec", "ran", "decn" whi
 RA and DEC values (the suffix "n" indicates the input key should be read as numerical)
 It returns the expression with all the tokens replaced by the formatted values
 In read mode, it also replaces * by searching the directory for a file matching the pattern
+In write mode, the * is omitted and the token is parsed as per specifier
+In write mode "nofail", it will try to return something no matter what
 */
-gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *status) {
+gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
 	gchar *out = NULL, *localexpression = NULL;
+	int nofail = (mode == PATHPARSE_MODE_WRITE_NOFAIL) ? -1 : 1; // statuses in nofail mode are transformed to warnings if multiplied by -1
 	if (!fit->header) {
-		*status = PATH_PARSE_HEADER_NULL;
-		return out;
-	}
+		*status = nofail * PATHPARSE_ERR_HEADER_NULL;
+		if (*status > 0) {
+			display_path_parse_error(*status, NULL);
+			return out;
+		}
+	} 
 	if (g_str_has_prefix(expression, "lib")) { // using reserved keywords libbias, libdark, libflat
 		if (!g_strcmp0(expression + 3, "bias")) {
 			localexpression = g_strdup(com.pref.prepro.bias_lib);
@@ -158,13 +198,16 @@ gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *statu
 		} else if (!g_strcmp0(expression + 3, "flat")) {
 			localexpression = g_strdup(com.pref.prepro.flat_lib);
 		} else {
-			*status = PATH_PARSE_WRONG_RESERVED_KEYWORD;
-			siril_log_color_message(_("Unknown reserved keyword %s - Error code %d - aborting\n"), "red", expression, *status);
+			*status = nofail * PATHPARSE_ERR_WRONG_RESERVED_KEYWORD;
+			display_path_parse_error(*status, expression);
+			out = (*status > 0) ? NULL : g_strdup(expression); // using libsmthg as a fallback
+			g_free(localexpression);
 			return out;
 		}
 		if (strlen(localexpression) == 0) {
-			*status = PATH_PARSE_LIBRARY_NOTDEFINED;
-			siril_log_color_message(_("Library %s is not defined in preferences - Error code %d - aborting\n"), "red", expression, *status);
+			*status = nofail * PATHPARSE_ERR_LIBRARY_NOTDEFINED;
+			display_path_parse_error(*status, expression);
+			out = (*status > 0) ? NULL : g_strdup(expression); // using libsmthg as a fallback
 			g_free(localexpression);
 			return out;
 		}
@@ -173,14 +216,17 @@ gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *statu
 	}
 	gchar *pattern = "\\$(.+?)\\$";
 	gchar **tokens = g_regex_split_simple(pattern, localexpression, G_REGEX_RAW, 0);
-	gchar **headerkeys = g_strsplit(fit->header, "\n", 0);
+	gchar **headerkeys = NULL;
+	if (fit->header) { // avoiding split in case we are in nofail and header is empty
+		headerkeys = g_strsplit(fit->header, "\n", 0);
+	}
 	for (int i = 0; i < g_strv_length(tokens); i++) {
 		gchar **subs = g_strsplit(tokens[i], ":", 2);
 		if (g_strv_length(subs) == 1) {
 			g_strfreev(subs);
 			continue;
 		}
-		if (strlen(subs[0]) == 1 && subs[1][0] == '\\') { // dealing with Windows drive letter "C:""
+		if (strlen(subs[0]) == 1 && subs[1][0] == '\\') { // dealing with Windows drive letter "C:"
 			g_strfreev(subs);
 			continue;
 		}
@@ -190,7 +236,7 @@ gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *statu
 		// Check if expression starts with a * wildcard
 		// Behavior will depend if we are in read or write mode
 		if (subs[0][0] == '*') {
-			if (mode == PATH_PARSE_READ) {
+			if (mode == PATHPARSE_MODE_READ) {
 				strncpy(buf, "*", FLEN_VALUE - 1);
 			} else {
 				strncpy(key, subs[0] + 1, 9);
@@ -203,45 +249,54 @@ gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *statu
 		} else if (g_str_has_suffix(subs[1], "d") || g_str_has_suffix(subs[1], "f")) { // case %d or %f
 			gboolean isint = g_str_has_suffix(subs[1], "d");
 			double val;
-			*status = read_key_from_header_text(headerkeys, key, &val, NULL);
-			if (*status) {
-				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
+			*status = nofail * read_key_from_header_text(headerkeys, key,&val, NULL);
+			display_path_parse_error(*status, subs[0]);
+			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
 			}
-			(isint) ? sprintf(buf, subs[1], (int)val) : sprintf(buf, subs[1], val);
+			if (*status == 0) // can still be neg with write_nofail
+				(isint) ? sprintf(buf, subs[1], (int)val) : sprintf(buf, subs[1], val);
 		} else if (g_str_has_suffix(subs[1], "s")) { // case %s
 			char val[FLEN_VALUE];
-			*status = read_key_from_header_text(headerkeys, key, NULL, val);
-			if (*status) {
-				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
+			*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+			display_path_parse_error(*status, subs[0]);
+			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
 			}
-			remove_spaces_from_str(val);
-			sprintf(buf, subs[1], val); // just in case there is a fancy formatting directive
+			if (*status == 0) { // can still be neg with write_nofail
+				remove_spaces_from_str(val);
+				sprintf(buf, subs[1], val); // just in case there is a fancy formatting directive
+			}
 		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
 			char val[FLEN_VALUE];
-			*status = read_key_from_header_text(headerkeys, key, NULL, val);
-			if (*status) {
-				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
+			*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+			display_path_parse_error(*status, subs[0]);
+			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
 			}
-			GDateTime *read_time = FITS_date_to_date_time(val);
-			if (!read_time) {
-				*status = PATH_PARSE_WRONG_DATE;
-				siril_log_color_message(_("Could not read date from %s - Error code %d - aborting\n"), "red", subs[0], *status);
-				g_strfreev(subs);
-				goto free_and_exit;
+			if (*status == 0) {
+				GDateTime *read_time = FITS_date_to_date_time(val);
+				if (!read_time) {
+					*status = nofail * PATHPARSE_ERR_WRONG_DATE;
+					display_path_parse_error(*status, subs[0]);
+					if (status > 0) {
+						g_strfreev(subs);
+						goto free_and_exit;
+					}
+				}
+				if (*status == 0) {
+					GDateTime *read_time_corr = g_date_time_add_hours(read_time, minus_hour);
+					gchar *fmtdate = date_time_to_date(read_time_corr);
+					strncpy(buf, fmtdate, FLEN_VALUE - 1);
+					g_date_time_unref(read_time);
+					g_date_time_unref(read_time_corr);
+					g_free(fmtdate);
+				}
 			}
-			GDateTime *read_time_corr = g_date_time_add_hours(read_time, minus_hour);
-			gchar *fmtdate = date_time_to_date(read_time_corr);
-			strncpy(buf, fmtdate, FLEN_VALUE - 1);
-			g_date_time_unref(read_time);
-			g_date_time_unref(read_time_corr);
-			g_free(fmtdate);
 		} else if (g_str_has_prefix(subs[1], "ra") || g_str_has_prefix(subs[1], "dec")) { // case ra and dec (str), ran and decn (num)
 			gboolean is_ra = g_str_has_prefix(subs[1],"ra");
 			gboolean is_float = g_str_has_suffix(subs[1],"n");
@@ -249,48 +304,54 @@ gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *statu
 			char val[FLEN_VALUE];
 			double valf;
 			if (is_float)
-				*status = read_key_from_header_text(headerkeys, key, &valf, NULL);
+				*status = nofail * read_key_from_header_text(headerkeys, key,&valf, NULL);
 			else
-				*status = read_key_from_header_text(headerkeys, key, NULL, val);
-			if (*status) {
-				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
+				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+			display_path_parse_error(*status, subs[0]);
+			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
 			}
-			if (is_ra)
-				if (is_float)
-					target_coords = siril_world_cs_new_from_a_d(valf, 0.0);
+			if (*status == 0) {
+				if (is_ra)
+					if (is_float)
+						target_coords = siril_world_cs_new_from_a_d(valf, 0.0);
+					else
+						target_coords = siril_world_cs_new_from_objct_ra_dec(val, "+00 00 00");
 				else
-					target_coords = siril_world_cs_new_from_objct_ra_dec(val, "+00 00 00");
-			else
-				if (is_float)
-					target_coords = siril_world_cs_new_from_a_d(0.0, valf);
-				else
-					target_coords = siril_world_cs_new_from_objct_ra_dec("00 00 00", val);
-			if (!target_coords) {
-				*status = PATH_PARSE_WRONG_WCS;
-				siril_log_color_message(_("Problem reading keyword %s - Error code %d - aborting\n"), "red", subs[0], *status);
-				g_strfreev(subs);
-				goto free_and_exit;
+					if (is_float)
+						target_coords = siril_world_cs_new_from_a_d(0.0, valf);
+					else
+						target_coords = siril_world_cs_new_from_objct_ra_dec("00 00 00", val);
+				if (!target_coords) {
+					*status = nofail * PATHPARSE_ERR_WRONG_WCS;
+					display_path_parse_error(*status, subs[0]);
+					if (*status > 0) {
+						g_strfreev(subs);
+						goto free_and_exit;
+					}
+				}
+				if (*status == 0) {
+					gchar *fmtcoord;
+					if (is_ra)
+						fmtcoord = siril_world_cs_alpha_format(target_coords, "%02dh%02dm%02ds");
+					else
+						fmtcoord = siril_world_cs_delta_format(target_coords, "%c%02dd%02dm%02ds");
+					strncpy(buf, fmtcoord, FLEN_VALUE - 1);
+					siril_world_cs_unref(target_coords);
+					g_free(fmtcoord);
+				}
 			}
-			gchar *fmtcoord;
-			if (is_ra)
-				fmtcoord = siril_world_cs_alpha_format(target_coords, "%02dh%02dm%02ds");
-			else
-				fmtcoord = siril_world_cs_delta_format(target_coords, "%c%02dd%02dm%02ds");
-			strncpy(buf, fmtcoord, FLEN_VALUE - 1);
-			siril_world_cs_unref(target_coords);
-			g_free(fmtcoord);
 		} else {
-			siril_log_color_message(_("Unsupported format %s - aborting\n"), "red", subs[1], *status);
-			g_strfreev(subs);
-			goto free_and_exit;
+			*status = nofail * PATHPARSE_ERR_UNSUPPORTED_FORMAT;
+			display_path_parse_error(*status, subs[1]);
+			if (*status > 0) {
+				g_strfreev(subs);
+				goto free_and_exit;
+			}
 		}
-		if (buf[0] == 0) {
-			*status = PATH_PARSE_WRONG_FORMAT;
-			siril_log_color_message(_("Problem parsing expression %s - Error code %d - aborting\n"), "red", tokens[i], *status);
-			g_strfreev(subs);
-			goto free_and_exit;
+		if (buf[0] == '\0' && mode == PATHPARSE_MODE_WRITE_NOFAIL) {
+			strncpy(buf, subs[0], 9);
 		}
 		g_free(tokens[i]);
 		tokens[i] = g_strdup(buf);
@@ -299,7 +360,7 @@ gchar *path_parse(fits *fit, gchar *expression, path_parse_mode mode, int *statu
 	out = g_strjoinv("", tokens);
 	siril_debug_print("String in: %s\n", expression);
 	siril_debug_print("String out: %s\n", out);
-	if (mode == PATH_PARSE_READ) {
+	if (mode == PATHPARSE_MODE_READ) {
 		gchar *foundmatch = wildcard_check(out, status);
 		g_free(out);
 		out = NULL;

@@ -172,18 +172,20 @@ void main_stack(struct stacking_args *args) {
 gpointer stack_function_handler(gpointer p) {
 	struct stacking_args *args = (struct stacking_args *)p;
 
-	main_stack(args);
-
-	int status;
+	int status = PATHPARSE_ERR_OK;
 	gchar *expression = g_strdup(args->output_filename);
-	gchar *pardsedname = path_parse(&gfit, expression, PATH_PARSE_WRITE, &status);
-	if (!status) {
-		args->output_parsed_filename = g_strdup(pardsedname);
-		g_free(pardsedname);
+	gchar *parsedname = path_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	//TODO: is it really here or in end_stacking that we want to handle that?
+	//TODO: should see how to handle dusplay name as well
+	if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
+		args->output_parsed_filename = g_strdup("unknown");
 	} else {
-		args->output_parsed_filename = NULL;
+		args->output_parsed_filename = g_strdup(parsedname);
 	}
+	g_free(parsedname);
 	g_free(expression);
+
+	main_stack(args);
 
 	// 4. save result and clean-up
 	siril_add_idle(end_stacking, args);
