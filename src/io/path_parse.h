@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_IO_PATHPARSE_ERR_H_
-#define SRC_IO_PATHPARSE_ERR_H_
+#ifndef SRC_IO_PATH_PARSE_H_
+#define SRC_IO_PATH_PARSE_H_
 
 #include "core/siril.h"
 
@@ -59,4 +59,4 @@ typedef enum {
 
 gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status);
 
-#endif /* SRC_IO_PATHPARSE_ERR_H_ */
+#endif /* SRC_IO_PATH_PARSE_H_ */
