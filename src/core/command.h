@@ -86,6 +86,7 @@ int process_invmtf(int nb);
 int process_linstretch(int nb);
 int process_modasinh(int nb);
 
+int process_parse(int nb);
 int	process_pcc(int nb);
 int	process_pm(int nb);
 int	process_preprocess(int nb);

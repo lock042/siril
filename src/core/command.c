@@ -6651,3 +6651,21 @@ int process_stop_ls(int nb) {
 	stop_live_stacking_engine();
 	return CMD_OK;
 }
+
+int process_parse(int nb) {
+	pathparse_mode mode = PATHPARSE_MODE_WRITE;
+	if (nb >= 3) {
+		if (g_strcmp0(word[2], "-r")) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+			return CMD_ARG_ERROR;
+		}
+		mode = PATHPARSE_MODE_READ;
+	}
+	int status;
+	gchar *expression = NULL;
+	expression = path_parse(&gfit, word[1], mode, &status);
+	siril_log_message(_("String in: %s\n"), word[1]);
+	siril_log_message(_("String out: %s\n"), expression);
+	g_free(expression);
+	return CMD_OK;
+}

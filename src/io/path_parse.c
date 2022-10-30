@@ -168,8 +168,8 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 
 /*
 This is the main function. It takes as argument a fit, an expresion to be parsed
-and a mode (read or write).
-It searches for reserved keywords (starting with "lib")
+and a mode (read or write). It returns a newly allocated string.
+It first searches for reserved keywords (starting with "lib")
 and fetches the libs set in preferences if required.
 It then parses all the tokens in between $ signs in the form $KEY:fmt$ where KEY
 is a valid HEADER key and fmt either a %d %f or %s specifier or special formatters
@@ -204,7 +204,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			g_free(localexpression);
 			return out;
 		}
-		if (strlen(localexpression) == 0) {
+		if (!localexpression || strlen(localexpression) == 0) {
 			*status = nofail * PATHPARSE_ERR_LIBRARY_NOTDEFINED;
 			display_path_parse_error(*status, expression);
 			out = (*status > 0) ? NULL : g_strdup(expression); // using libsmthg as a fallback
@@ -221,6 +221,8 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 		headerkeys = g_strsplit(fit->header, "\n", 0);
 	}
 	for (int i = 0; i < g_strv_length(tokens); i++) {
+		if (!tokens[i] || tokens[i][0] == '\0')
+			continue;
 		gchar **subs = g_strsplit(tokens[i], ":", 2);
 		if (g_strv_length(subs) == 1) {
 			g_strfreev(subs);
