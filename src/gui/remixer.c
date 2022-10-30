@@ -496,6 +496,7 @@ int remixer() {
 	right_changed = FALSE;
 
 	// Combine images together
+
 	const size_t ndata = gfit.naxes[0] * gfit.naxes[1] * gfit.naxes[2];
 	if (gfit.data)
 		memset(gfit.data, 0, ndata * sizeof(WORD));
@@ -504,12 +505,12 @@ int remixer() {
 
 	size_t npixels = gfit.naxes[0] * gfit.naxes[1];
 	const float norm = USHRT_MAX_SINGLE;
-	const float invnorm = 1.f/norm;
+	const float invnorm = 1.f / norm;
 	if (gfit.naxes[2] == 1) {
 		switch (gfit.type) {
 			case DATA_FLOAT:
 				for (size_t i = 0 ; i < npixels ; i++) {
-					gfit.fdata[i] = (1.f - (1.f - fit_left_calc.fdata[i])*(1.f - fit_right_calc.fdata[i]));
+					gfit.fdata[i] = fit_left_calc.fdata[i] + fit_right_calc.fdata[i] - fit_left_calc.fdata[i] * fit_right_calc.fdata[i];
 				}
 				break;
 			case DATA_USHORT:
@@ -549,13 +550,16 @@ int remixer() {
 					}
 					rgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
 					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
-					float Cl = sqrtf(Al * Al + Bl * Bl);
-					float hl = (Al != 0.f) ? xatanf(Bl / Al) : 0.f;
-
 					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
 					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
-					float Cr = sqrtf(Ar * Ar + Br * Br);
-					float hr = (Ar != 0.f) ? xatanf(Br / Ar) : 0.f;
+					float Cl = Al * Al + Bl * Bl;
+					float Cr = Ar * Ar + Br * Br;
+					Cl = sqrtf(Cl);
+					Cr = sqrtf(Cr);
+					float hl = (Al != 0.f) ? Bl / Al : 0.f;
+					float hr = (Ar != 0.f) ? Br / Ar : 0.f;
+					hl = xatanf(hl);
+					hr = xatanf(hr);
 					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
 
 					float Co = (Ll * Cl + Lr * Cr) / divisor;
@@ -579,18 +583,18 @@ int remixer() {
 					float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
 					float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
 					if (left_loaded) {
-						rinl = fit_left_calc.fpdata[0][i];
-						ginl = fit_left_calc.fpdata[1][i];
-						binl = fit_left_calc.fpdata[2][i];
+						rinl = fit_left_calc.pdata[0][i] * invnorm;
+						ginl = fit_left_calc.pdata[1][i] * invnorm;
+						binl = fit_left_calc.pdata[2][i] * invnorm;
 					} else {
 						rinl = 0.f;
 						ginl = 0.f;
 						binl = 0.f;
 					}
 					if (right_loaded) {
-						rinr = fit_right_calc.fpdata[0][i];
-						ginr = fit_right_calc.fpdata[1][i];
-						binr = fit_right_calc.fpdata[2][i];
+						rinr = fit_right_calc.pdata[0][i] * invnorm;
+						ginr = fit_right_calc.pdata[1][i] * invnorm;
+						binr = fit_right_calc.pdata[2][i] * invnorm;
 					} else {
 						rinr = 0.f;
 						ginr = 0.f;
@@ -602,13 +606,14 @@ int remixer() {
 					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
 					float Cl = Al * Al + Bl * Bl;
 					float Cr = Ar * Ar + Br * Br;
-					Cl = sqrtf(Cl); // No optimised sqrtf available in bundled sleef.h
+					Cl = sqrtf(Cl);
 					Cr = sqrtf(Cr);
-					float hl = (Al != 0.f) ? xatanf(Bl / Al) : 0.f;
-
-					float hr = (Ar != 0.f) ? xatanf(Br / Ar) : 0.f;
-
+					float hl = (Al != 0.f) ? Bl / Al : 0.f;
+					float hr = (Ar != 0.f) ? Br / Ar : 0.f;
+					hl = xatanf(hl);
+					hr = xatanf(hr);
 					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
+
 					float Co = (Ll * Cl + Lr * Cr) / divisor;
 					float ho = (Ll * hl + Lr * hr) / divisor;
 					float2 sc = xsincosf(ho);
@@ -626,7 +631,6 @@ int remixer() {
 				break;
 		}
 	}
-
 	// If 16bit preference is set, check the images are 16bit
 	if (com.pref.force_16bit && gfit.type == DATA_FLOAT)
 		fit_replace_buffer(&gfit, float_buffer_to_ushort(gfit.fdata, ndata), DATA_USHORT);
