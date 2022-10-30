@@ -250,7 +250,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			gboolean isint = g_str_has_suffix(subs[1], "d");
 			double val;
 			*status = nofail * read_key_from_header_text(headerkeys, key,&val, NULL);
-			display_path_parse_error(*status, subs[0]);
+			display_path_parse_error(*status, key);
 			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
@@ -260,7 +260,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 		} else if (g_str_has_suffix(subs[1], "s")) { // case %s
 			char val[FLEN_VALUE];
 			*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
-			display_path_parse_error(*status, subs[0]);
+			display_path_parse_error(*status, key);
 			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
@@ -273,7 +273,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
 			char val[FLEN_VALUE];
 			*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
-			display_path_parse_error(*status, subs[0]);
+			display_path_parse_error(*status, key);
 			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
@@ -282,7 +282,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 				GDateTime *read_time = FITS_date_to_date_time(val);
 				if (!read_time) {
 					*status = nofail * PATHPARSE_ERR_WRONG_DATE;
-					display_path_parse_error(*status, subs[0]);
+					display_path_parse_error(*status, key);
 					if (status > 0) {
 						g_strfreev(subs);
 						goto free_and_exit;
@@ -307,7 +307,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 				*status = nofail * read_key_from_header_text(headerkeys, key,&valf, NULL);
 			else
 				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
-			display_path_parse_error(*status, subs[0]);
+			display_path_parse_error(*status, key);
 			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
@@ -325,7 +325,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 						target_coords = siril_world_cs_new_from_objct_ra_dec("00 00 00", val);
 				if (!target_coords) {
 					*status = nofail * PATHPARSE_ERR_WRONG_WCS;
-					display_path_parse_error(*status, subs[0]);
+					display_path_parse_error(*status, key);
 					if (*status > 0) {
 						g_strfreev(subs);
 						goto free_and_exit;
@@ -351,7 +351,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			}
 		}
 		if (buf[0] == '\0' && mode == PATHPARSE_MODE_WRITE_NOFAIL) {
-			strncpy(buf, subs[0], 9);
+			strncpy(buf, key, 9);
 		}
 		g_free(tokens[i]);
 		tokens[i] = g_strdup(buf);

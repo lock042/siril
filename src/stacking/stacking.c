@@ -176,12 +176,14 @@ gpointer stack_function_handler(gpointer p) {
 	gchar *expression = g_strdup(args->output_filename);
 	gchar *parsedname = path_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
 	//TODO: is it really here or in end_stacking that we want to handle that?
-	//TODO: should see how to handle dusplay name as well
+	//TODO: should see how to handle display name as well
 	if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
 		args->output_parsed_filename = g_strdup("unknown");
 	} else {
 		args->output_parsed_filename = g_strdup(parsedname);
 	}
+	add_extension_if_required(args->output_parsed_filename);
+
 	g_free(parsedname);
 	g_free(expression);
 
