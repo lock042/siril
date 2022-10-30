@@ -529,7 +529,7 @@ int remixer() {
 				for (size_t i = 0 ; i < npixels ; i++) {
 					float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
 					float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
-					if (fit_left_calc.fpdata) {
+					if (left_loaded) {
 						rinl = fit_left_calc.fpdata[0][i];
 						ginl = fit_left_calc.fpdata[1][i];
 						binl = fit_left_calc.fpdata[2][i];
@@ -538,7 +538,7 @@ int remixer() {
 						ginl = 0.f;
 						binl = 0.f;
 					}
-					if (fit_right_calc.fpdata) {
+					if (right_loaded) {
 						rinr = fit_right_calc.fpdata[0][i];
 						ginr = fit_right_calc.fpdata[1][i];
 						binr = fit_right_calc.fpdata[2][i];
@@ -563,7 +563,7 @@ int remixer() {
 					float2 sc = xsincosf(ho);
 					float ao = Co * sc.y;
 					float bo = Co * sc.x;
-					float Lo = 100.f * (1.f - (1.f-(Ll * 0.01f))*(1.f-(Lr * 0.01f)));
+					float Lo = Ll + Lr - Ll * Lr * 0.01f;
 					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
 					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
 					gfit.fpdata[0][i] = rout;
@@ -578,7 +578,7 @@ int remixer() {
 				for (size_t i = 0 ; i < npixels ; i++) {
 					float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
 					float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
-					if (fit_left_calc.fpdata) {
+					if (left_loaded) {
 						rinl = fit_left_calc.fpdata[0][i];
 						ginl = fit_left_calc.fpdata[1][i];
 						binl = fit_left_calc.fpdata[2][i];
@@ -587,7 +587,7 @@ int remixer() {
 						ginl = 0.f;
 						binl = 0.f;
 					}
-					if (fit_right_calc.fpdata) {
+					if (right_loaded) {
 						rinr = fit_right_calc.fpdata[0][i];
 						ginr = fit_right_calc.fpdata[1][i];
 						binr = fit_right_calc.fpdata[2][i];
@@ -614,7 +614,7 @@ int remixer() {
 					float2 sc = xsincosf(ho);
 					float ao = Co * sc.y;
 					float bo = Co * sc.x;
-					float Lo = 100.f * (1.f - (1.f-(Ll * 0.01f))*(1.f-(Lr * 0.01f)));
+					float Lo = Ll + Lr - Ll * Lr * 0.01f;
 					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
 					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
 					gfit.pdata[0][i] = roundf_to_WORD(rout * norm);
