@@ -25939,117 +25939,12 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                             <property name="valign">center</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=4 n-rows=4 -->
+                              <!-- n-columns=4 n-rows=3 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="row-spacing">6</property>
                                 <property name="column-spacing">6</property>
-                                <child>
-                                  <object class="GtkFileChooserButton" id="filechooser_bias_lib">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Choose a master-bias that can be used as generic master-bias by clicking on the button "Use it as default".</property>
-                                    <property name="filter">filefilter_fits</property>
-                                    <property name="title" translatable="yes">master-bias</property>
-                                    <property name="width-chars">40</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkFileChooserButton" id="filechooser_dark_lib">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Choose a master-dark that can be used as generic master-dark by clicking on the button "Use it as default".</property>
-                                    <property name="filter">filefilter_fits</property>
-                                    <property name="title" translatable="yes">master-dark</property>
-                                    <property name="width-chars">40</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkFileChooserButton" id="filechooser_flat_lib">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Choose a master-flat that can be used as generic master-flat by clicking on the button "Use it as default".</property>
-                                    <property name="filter">filefilter_fits</property>
-                                    <property name="title" translatable="yes">master-flat</property>
-                                    <property name="width-chars">40</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="clear_bias_entry">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Delete the selected file</property>
-                                    <property name="halign">end</property>
-                                    <signal name="clicked" handler="on_clear_bias_entry_clicked" object="filechooser_bias_lib" swapped="no"/>
-                                    <child>
-                                      <object class="GtkImage">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="icon-name">edit-delete</property>
-                                      </object>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="clear_dark_entry">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Delete the selected file</property>
-                                    <property name="halign">end</property>
-                                    <signal name="clicked" handler="on_clear_dark_entry_clicked" object="filechooser_dark_lib" swapped="no"/>
-                                    <child>
-                                      <object class="GtkImage">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="icon-name">edit-delete</property>
-                                      </object>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="clear_flat_entry">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Delete the selected file</property>
-                                    <property name="halign">end</property>
-                                    <signal name="clicked" handler="on_clear_flat_entry_clicked" object="filechooser_flat_lib" swapped="no"/>
-                                    <child>
-                                      <object class="GtkImage">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="icon-name">edit-delete</property>
-                                      </object>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
                                 <child>
                                   <object class="GtkCheckButton" id="check_button_pref_flat">
                                     <property name="label" translatable="yes">Use it as default</property>
@@ -26062,7 +25957,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   </object>
                                   <packing>
                                     <property name="left-attach">3</property>
-                                    <property name="top-attach">3</property>
+                                    <property name="top-attach">2</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -26077,7 +25972,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   </object>
                                   <packing>
                                     <property name="left-attach">3</property>
-                                    <property name="top-attach">2</property>
+                                    <property name="top-attach">1</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -26089,7 +25984,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="tooltip-text" translatable="yes">Use the chosen master as default file in the pre-processing tab</property>
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
-                                    <signal name="toggled" handler="on_check_button_pref_bias_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left-attach">3</property>
@@ -26105,7 +25999,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">3</property>
+                                    <property name="top-attach">2</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -26118,7 +26012,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <packing>
                                     <property name="left-attach">0</property>
                                     <property name="top-attach">0</property>
-                                    <property name="height">2</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -26130,17 +26023,92 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="biaslib_entry">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Instead of an image, you can also specify a uniform level to be subtracted, starting with an "=" sign, such as =256 or =64*$OFFSET</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="biaslibfile_button">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Choose a master-bias that can be used as generic master-bias by clicking on the button "Use it as default"</property>
+                                    <property name="halign">start</property>
+                                    <property name="use-underline">True</property>
+                                    <signal name="clicked" handler="on_offsetlibfile_button_clicked" swapped="no"/>
+                                    <child>
+                                      <object class="GtkImage">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="icon-name">document-open-symbolic</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="darklibfile_button">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Choose a master-dark that can be used as generic master-dark by clicking on the button "Use it as default".</property>
+                                    <property name="halign">start</property>
+                                    <property name="use-underline">True</property>
+                                    <signal name="clicked" handler="on_darklibfile_button_clicked" swapped="no"/>
+                                    <child>
+                                      <object class="GtkImage">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="icon-name">document-open-symbolic</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="flatlibfile_button">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Choose a master-flat that can be used as generic master-flat by clicking on the button "Use it as default".</property>
+                                    <property name="halign">start</property>
+                                    <property name="use-underline">True</property>
+                                    <signal name="clicked" handler="on_flatlibfile_button_clicked" swapped="no"/>
+                                    <child>
+                                      <object class="GtkImage">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="icon-name">document-open-symbolic</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">2</property>
                                     <property name="top-attach">2</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkEntry" id="bias_synth_entry">
+                                  <object class="GtkEntry" id="darklib_entry">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">Instead of an image, you can also specify a uniform level to be subtracted, starting with an "=" sign, such as =256 or =64*$OFFSET</property>
-                                    <property name="text">=</property>
                                     <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                    <signal name="insert-text" handler="bias_text_insert" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
@@ -26148,23 +26116,15 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkCheckButton" id="check_button_pref_bias_bis">
-                                    <property name="label" translatable="yes">Use it as default</property>
+                                  <object class="GtkEntry" id="flatlib_entry">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Use the chosen level as default synthetic master in the pre-processing tab</property>
-                                    <property name="halign">start</property>
-                                    <property name="draw-indicator">True</property>
-                                    <signal name="toggled" handler="on_check_button_pref_bias_bis_toggled" swapped="no"/>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                   </object>
                                   <packing>
-                                    <property name="left-attach">3</property>
-                                    <property name="top-attach">1</property>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">2</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                             </child>

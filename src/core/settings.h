@@ -177,8 +177,6 @@ struct prepro_config {
 	rectangle xtrans_sample;// if no xtrans model found, use these values
 	gchar *bias_lib;
 	gboolean use_bias_lib;
-	gchar *bias_synth;
-	gboolean use_bias_synth;
 	gchar *dark_lib;
 	gboolean use_dark_lib;
 	gchar *flat_lib;

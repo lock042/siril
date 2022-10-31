@@ -953,25 +953,19 @@ void initialize_FITS_name_entries() {
 	mflat = GTK_ENTRY(lookup_widget("flatname_entry"));
 	final_stack = GTK_ENTRY(lookup_widget("entryresultfile"));
 
-	if (com.pref.prepro.bias_lib && (g_file_test(com.pref.prepro.bias_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.bias_lib) {
 		if (com.pref.prepro.use_bias_lib) {
 			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_lib);
 		}
 	}
 
-	if (com.pref.prepro.bias_synth) {
-		if (com.pref.prepro.use_bias_synth) {
-			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_synth);
-		}
-	}
-
-	if (com.pref.prepro.dark_lib && (g_file_test(com.pref.prepro.dark_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.dark_lib) {
 		if (com.pref.prepro.use_dark_lib) {
 			str[1] = g_strdup_printf("%s", com.pref.prepro.dark_lib);
 		}
 	}
 
-	if (com.pref.prepro.flat_lib && (g_file_test(com.pref.prepro.flat_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.flat_lib) {
 		if (com.pref.prepro.use_flat_lib) {
 			str[2] = g_strdup_printf("%s", com.pref.prepro.flat_lib);
 		}
