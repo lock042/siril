@@ -405,11 +405,10 @@ gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode
 	tmpfit.fptr = fptr;
 	save_fits_header(&tmpfit);
 	tmpfit.header = copy_header(&tmpfit);
-	parsedname = path_parse(&tmpfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, status);
+	parsedname = path_parse(&tmpfit, expression, mode, status);
 	fits_close_file(fptr, &fstatus);
-
 free_and_exit:
-	// g_free(tmpdir);
 	g_free(tmpheadername);
+	clearfits(&tmpfit);
 	return parsedname;
 }
