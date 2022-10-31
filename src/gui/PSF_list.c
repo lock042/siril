@@ -255,7 +255,7 @@ static void display_PSF(psf_star **result) {
 			}
 			else if (profiletype != result[i]->profile) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
-						_("Stars must all be modeled with the same profile type"));
+						_("Stars must all be modelled with the same profile type"));
 				return;
 			}
 			if (!result[i]->has_saturated) {
