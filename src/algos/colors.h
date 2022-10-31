@@ -22,13 +22,9 @@ void hsl_to_rgb(double, double, double, double *, double *, double *);
 void rgb_to_hsv(double, double, double, double *, double *, double *);
 void hsv_to_rgb(double, double, double, double *, double *, double *);
 void rgb_to_xyz(double, double, double, double *, double *, double *);
-void rgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z);
 void xyz_to_LAB(double, double, double, double *, double *, double *);
-void xyz_to_LABf(float x, float y, float z, float *L, float *a, float *b);
 void LAB_to_xyz(double, double, double, double *, double *, double *);
-void LAB_to_xyzf(float L, float a, float b, float *x, float *y, float *z);
 void xyz_to_rgb(double, double, double, double *, double *, double *);
-void xyz_to_rgbf(float x, float y, float z, float *r, float *g, float *b);
 double BV_to_T(double BV);
 
 int pos_to_neg(fits *fit);
