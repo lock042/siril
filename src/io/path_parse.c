@@ -260,8 +260,18 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 				g_strfreev(subs);
 				goto free_and_exit;
 			}
-			if (*status == 0) // can still be neg with write_nofail
-				(isint) ? sprintf(buf, subs[1], (int)val) : sprintf(buf, subs[1], val);
+			if (*status == 0) {// can still be neg with write_nofail
+				int success = (isint) ? sprintf(buf, subs[1], (int)val) : sprintf(buf, subs[1], val);
+				if (success < 0) {// parsing failed probably due to format
+					*status = nofail * PATHPARSE_ERR_UNSUPPORTED_FORMAT;
+					display_path_parse_error(*status, subs[1]);
+					if (*status > 0) {
+						g_strfreev(subs);
+						goto free_and_exit;
+					}
+				}
+				remove_spaces_from_str(buf); // just in case the formatter introduced spaces
+			}
 		} else if (subs[1][0] == '%' && g_str_has_suffix(subs[1], "s")) { // case %s
 			char val[FLEN_VALUE];
 			*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
@@ -271,8 +281,16 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 				goto free_and_exit;
 			}
 			if (*status == 0) { // can still be neg with write_nofail
-				remove_spaces_from_str(val);
-				sprintf(buf, subs[1], val); // just in case there is a fancy formatting directive
+				int success = sprintf(buf, subs[1], val); // just in case there is a fancy formatting directive
+				if (success < 0) {// parsing failed probably due to format
+					*status = nofail * PATHPARSE_ERR_UNSUPPORTED_FORMAT;
+					display_path_parse_error(*status, subs[1]);
+					if (*status > 0) {
+						g_strfreev(subs);
+						goto free_and_exit;
+					}
+				}
+				remove_spaces_from_str(buf); // just in case the formatter introduced spaces or some were present in the key value
 			}
 		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
