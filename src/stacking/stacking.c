@@ -172,21 +172,6 @@ void main_stack(struct stacking_args *args) {
 gpointer stack_function_handler(gpointer p) {
 	struct stacking_args *args = (struct stacking_args *)p;
 
-	int status = PATHPARSE_ERR_OK;
-	gchar *expression = g_strdup(args->output_filename);
-	gchar *parsedname = path_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
-	//TODO: is it really here or in end_stacking that we want to handle that?
-	//TODO: should see how to handle display name as well
-	if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
-		args->output_parsed_filename = g_strdup("unknown");
-	} else {
-		args->output_parsed_filename = g_strdup(parsedname);
-	}
-	add_extension_if_required(args->output_parsed_filename);
-
-	g_free(parsedname);
-	g_free(expression);
-
 	main_stack(args);
 
 	// 4. save result and clean-up
@@ -399,6 +384,22 @@ static gboolean end_stacking(gpointer p) {
 		_show_summary(args);
 		/* Giving noise estimation (new thread) */
 		bgnoise_async(&gfit, TRUE);
+
+		// updating the header string to parse the final name
+		// and parse the name
+		int status = PATHPARSE_ERR_OK;
+		gchar *expression = g_strdup(args->output_filename);
+		gchar *parsedname = update_header_and_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+
+		if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
+			args->output_parsed_filename = g_strdup("unknown");
+		} else {
+			args->output_parsed_filename = g_strdup(parsedname);
+		}
+		add_extension_if_required(args->output_parsed_filename);
+		g_free(parsedname);
+		g_free(expression);
+
 
 		/* save stacking result */
 		if (args->output_parsed_filename != NULL && args->output_parsed_filename[0] != '\0') {

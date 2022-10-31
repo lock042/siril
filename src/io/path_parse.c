@@ -70,12 +70,15 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 		case PATHPARSE_ERR_NO_DIR:
 			msg = _("Problem with path : ");
 			break;
+		case PATHPARSE_ERR_TMPFIT:
+			msg = _("Could not create temp fit for header update : ");
+			break;
 		case PATHPARSE_ERR_WRONG_CALL:
 		default:
 			msg = _("Internal error");
 			break;
 	}
-	siril_log_color_message(_("Err %3d - %s%s - %s\n"), "red", err, msg, addstr, endstr);
+	siril_log_color_message(_("Err %d - %s%s - %s\n"), "red", err, msg, addstr, endstr);
 }
 
 static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
@@ -374,4 +377,39 @@ free_and_exit:
 	if (headerkeys) g_strfreev(headerkeys);
 	if (localexpression) g_free(localexpression);
 	return out;
+}
+
+/*
+Same as path_parse but makes sure the header is updated before parsing
+A copy of the fits metadata is made into a temporary fit that gets updated
+and its header string generated.
+This temporary fit is then called by path_parse.
+*/
+gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
+	fits tmpfit = { 0 };
+	fitsfile *fptr;
+	int fstatus = 0;
+	gchar *parsedname = NULL;
+	copyfits(fit, &tmpfit, CP_FORMAT, 0);
+	const gchar *tmpdir = g_get_tmp_dir();
+	gchar *tmpheadername = g_build_filename(tmpdir, "header.fit", NULL);
+	unlink(tmpheadername);
+	fits_create_diskfile(&fptr, tmpheadername, &fstatus);
+	if (fstatus) {
+		char tbuf[30];
+		fits_get_errstatus(fstatus, tbuf);
+		*status = PATHPARSE_ERR_TMPFIT;
+		display_path_parse_error(*status, tbuf);
+		goto free_and_exit;
+	}
+	tmpfit.fptr = fptr;
+	save_fits_header(&tmpfit);
+	tmpfit.header = copy_header(&tmpfit);
+	parsedname = path_parse(&tmpfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, status);
+	fits_close_file(fptr, &fstatus);
+
+free_and_exit:
+	// g_free(tmpdir);
+	g_free(tmpheadername);
+	return parsedname;
 }
