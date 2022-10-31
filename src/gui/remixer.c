@@ -1209,7 +1209,7 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 		gtk_spin_button_set_value(spin_remix_HP_right, (double) rightSP);
 		rightHP = rightSP;
 	}
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_right")),leftSP);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_right")),rightSP);
 	right_changed = TRUE;
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
