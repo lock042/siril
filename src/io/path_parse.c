@@ -251,7 +251,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 		}
 		if (buf[0] == '*') {
 			printf("Wildcard in READ mode\n");
-		} else if (g_str_has_suffix(subs[1], "d") || g_str_has_suffix(subs[1], "f")) { // case %d or %f
+		} else if (subs[1][0] == '%' && (g_str_has_suffix(subs[1], "d") || g_str_has_suffix(subs[1], "f"))) { // case %d or %f
 			gboolean isint = g_str_has_suffix(subs[1], "d");
 			double val;
 			*status = nofail * read_key_from_header_text(headerkeys, key,&val, NULL);
@@ -262,7 +262,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			}
 			if (*status == 0) // can still be neg with write_nofail
 				(isint) ? sprintf(buf, subs[1], (int)val) : sprintf(buf, subs[1], val);
-		} else if (g_str_has_suffix(subs[1], "s")) { // case %s
+		} else if (subs[1][0] == '%' && g_str_has_suffix(subs[1], "s")) { // case %s
 			char val[FLEN_VALUE];
 			*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
 			display_path_parse_error(*status, key);
