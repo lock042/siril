@@ -3674,7 +3674,7 @@ If the parameters is null, so no filter is apply at all.</property>
                               <object class="GtkSpinButton" id="spin_background_smoothing">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Number of sample per line that will be automatically placed.</property>
+                                <property name="tooltip-text" translatable="yes">Adjust the smoothing parameter for the interpolation method. A smoothing parameter that is too small may result in overshoots and undershoots between points in the background, while a smoothing parameter that is too large may not be suitable for large deviations in gradient.</property>
                                 <property name="halign">end</property>
                                 <property name="hexpand">True</property>
                                 <property name="width-chars">6</property>
@@ -3871,7 +3871,7 @@ This should be enabled for non-stretched images.</property>
                       <object class="GtkSpinButton">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Tolerance factor of global sample rejection, in mad units (median + this * mad). By decreasing this value, Siril will be more restrictive to select background samples.</property>
+                        <property name="tooltip-text" translatable="yes">Tolerance of global sample rejection, in sigma units. By decreasing this value, Siril will be more restrictive to select background samples.</property>
                         <property name="text">2,00</property>
                         <property name="input-purpose">digits</property>
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
