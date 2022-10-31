@@ -109,18 +109,18 @@ static gboolean is_inside_of_sel(pointi zoomed, double zoom) {
 */
 static gboolean clamp2image(pointi* pt) {
 	gboolean x_inside = FALSE;
-	gboolean y_inside = FALSE;
 	if (pt->x < 0) {
 		pt->x = 0;
-	} else if (pt->x >= gfit.rx) {
+	} else if (pt->x > gfit.rx) {
 		pt->x = gfit.rx - 1;
 	} else {
 		x_inside = TRUE;
 	}
 
+	gboolean y_inside = FALSE;
 	if (pt->y < 0) {
 		pt->y = 0;
-	} else if (pt->y >= gfit.ry) {
+	} else if (pt->y > gfit.ry) {
 		pt->y = gfit.ry - 1;
 	} else {
 		y_inside = TRUE;
