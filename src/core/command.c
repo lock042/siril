@@ -4307,12 +4307,21 @@ int process_stat(int nb){
 	char layername[6];
 
 	nplane = gfit.naxes[2];
+	gboolean cfa = FALSE;
+	if (nb == 2 && !strcmp(word[1], "-cfa") && nplane == 1 && gfit.bayer_pattern[0] != '\0') {
+		siril_debug_print("Running stats on CFA\n");
+		nplane = 3;
+		cfa = TRUE;
+	}
 
 	for (layer = 0; layer < nplane; layer++) {
-		imstats* stat = statistics(NULL, -1, &gfit, layer, &com.selection, STATS_MAIN, MULTI_THREADED);
+		int super_layer = layer;
+		if (cfa)
+			super_layer = -layer - 1;
+		imstats* stat = statistics(NULL, -1, &gfit, super_layer, &com.selection, STATS_MAIN, MULTI_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			return CMD_GENERIC_ERROR;
+			siril_log_message(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
+			continue;
 		}
 
 		switch (layer) {

@@ -41,6 +41,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 #endif
 
 WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize);
+WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, size_t *newsize);
 float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize);
 
 #endif

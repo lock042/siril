@@ -52,7 +52,7 @@
 #include "demosaicing.h"
 #include "core/OS_utils.h"
 
-// uncomment to debug statistics
+// comment to debug statistics
 #undef siril_debug_print
 #define siril_debug_print(fmt, ...) { }
 
@@ -229,12 +229,9 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	int compute_median = (option & STATS_BASIC) || (option & STATS_AVGDEV) ||
 		(option & STATS_MAD) || (option & STATS_BWMV) || (option & STATS_IKSS);
 
-	if (layer < 0) {
-		if (!fit)
-			return NULL;	// not in cache, don't compute
-		g_assert(!selection || selection->h <= 0 || selection->w <= 0);
-		// selection is not supported because not useful for now
-	}
+	gboolean valid_selection = selection && selection->h > 0 && selection->w > 0;
+	if (!fit && (layer < 0 || valid_selection))
+		return NULL;	// not in cache, don't compute
 
 	if (!stat) {
 		allocate_stats(&stat);
@@ -243,19 +240,32 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	}
 
 	if (fit) {
-		if (selection && selection->h > 0 && selection->w > 0) {
+		if (valid_selection) {
 			nx = selection->w;
 			ny = selection->h;
-			data = malloc(nx * ny * sizeof(WORD));
-			if (!data) {
-				PRINT_ALLOC_ERR;
-				if (stat_is_local) free(stat);
-				return NULL;
+			if (layer < 0) {
+				size_t newsz;
+				data = extract_CFA_buffer_area_ushort(fit, -layer - 1, selection, &newsz);
+				if (!data) {
+					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
+					return NULL;
+				}
+				nx = newsz;
+				ny = 1;
+			} else {
+				data = malloc(nx * ny * sizeof(WORD));
+				if (!data) {
+					PRINT_ALLOC_ERR;
+					if (stat_is_local) free(stat);
+					return NULL;
+				}
+				g_assert(layer < fit->naxes[2]);
+				select_area_ushort(fit, data, layer, selection);
 			}
-			select_area_ushort(fit, data, layer, selection);
 			free_data = 1;
 		} else {
 			if (layer >= 0) {
+				g_assert(layer < fit->naxes[2]);
 				nx = fit->rx;
 				ny = fit->ry;
 				data = fit->pdata[layer];
@@ -425,6 +435,7 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
 			return statistics_internal_ushort(fit, layer, selection, option, stats, bitpix, threads);
 		if (fit->type == DATA_FLOAT)
 			return statistics_internal_float(fit, layer, selection, option, stats, bitpix, threads);
+		return NULL;
 	}
 	if (bitpix == FLOAT_IMG)
 		return statistics_internal_float(fit, layer, selection, option, stats, bitpix, threads);
@@ -457,7 +468,7 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int super_layer, 
 		return statistics_internal(fit, super_layer, selection, option, NULL, fit->bitpix, threads);
 	} else if (super_layer < 0) {
 		// we are computing stats per filter on a CFA image, don't store anything
-		return statistics_internal(fit, super_layer, NULL, option, oldstat, fit->bitpix, threads);
+		return statistics_internal(fit, super_layer, NULL, option, NULL, fit->bitpix, threads);
 	} else if (!seq || image_index < 0) {
 		// we have a single image, store in the fits
 		g_assert(layer < fit->naxes[2]);

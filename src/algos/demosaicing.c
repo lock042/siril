@@ -922,14 +922,12 @@ static void adjust_XTrans_pattern(fits *fit, unsigned int xtrans[6][6]) {
 			top_down = FALSE;
 		}
 	}
-
 	siril_debug_print("X-Trans pattern will be used %s\n", top_down ? "top-down" : "bottom-up (inverted)");
 
 	if (!top_down) {
-		siril_debug_print("Inverting the X-Trans matrix to read images top-down\n");
 		int offset = fit->ry % 6;
 		if (offset)
-			siril_debug_print("Image with an X-Trans sensor doesn't have it's height multiple of 6\n");
+			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
 		unsigned int orig[6][6];
 		memcpy(orig, xtrans, 36 * sizeof(unsigned int));
 		for (int i = 0; i < 6; i++) {
@@ -938,7 +936,6 @@ static void adjust_XTrans_pattern(fits *fit, unsigned int xtrans[6][6]) {
 				xtrans[i][j] = orig[y][j];
 			}
 		}
-
 	}
 }
 
@@ -1282,6 +1279,8 @@ static unsigned int compile_bayer_pattern(sensor_pattern pattern) {
 	}
 }
 
+/* from the header description of the color filter array, we create a mask that
+ * contains filter values for top-down reading */
 static int get_compiled_pattern(fits *fit, int layer, BYTE pattern[36], int *pattern_size) {
 	g_assert(layer >= 0 || layer < 3);
 	sensor_pattern idx = get_cfa_pattern_index_from_string(fit->bayer_pattern);
@@ -1343,6 +1342,43 @@ WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 	return buf;
 }
 
+WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, size_t *newsize) {
+	BYTE pattern[36];	// red is 0, green is 1, blue is 2
+	int pattern_size;	// 2 or 6
+	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+		return NULL;
+	siril_debug_print("CFA buffer extraction with area\n");
+
+	// alloc buffer
+	size_t npixels = bounds->w * bounds->h;
+	WORD *buf = malloc(npixels * sizeof(WORD));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	WORD *input = fit->data;
+
+	// copy the pixels top-down
+	size_t j = 0;
+	int start_y = fit->ry - bounds->y - bounds-> h;
+	int pattern_y = start_y % pattern_size;
+	for (int y = start_y; y < fit->ry - bounds->y; y++) {
+		int pattern_idx_y = pattern_y * pattern_size;
+		size_t i = y * fit->rx + bounds->x;
+		for (int x = bounds->x; x < bounds->x + bounds->w; x++) {
+			int pattern_idx = pattern_idx_y + x % pattern_size;
+			if (pattern[pattern_idx] == layer)
+				buf[j++] = input[i];
+			i++;
+		}
+		pattern_y = (pattern_y + 1) % pattern_size;
+	}
+
+	buf = realloc(buf, j * sizeof(float));
+	*newsize = j;
+	return buf;
+}
+
 float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
 	BYTE pattern[36];	// red is 0, green is 1, blue is 2
 	int pattern_size;	// 2 or 6
@@ -1358,7 +1394,7 @@ float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
 	}
 	float *input = fit->fdata;
 
-	// and we copy the pixels top-down
+	// copy the pixels top-down
 	size_t i = 0, j = 0;
 	int x, y, pattern_y = 0;
 	for (y = 0; y < fit->ry; y++) {
