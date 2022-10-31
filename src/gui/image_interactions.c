@@ -114,7 +114,7 @@ static gboolean clamp2image(pointi* pt) {
 	} else if (pt->x > gfit.rx) {
 		pt->x = gfit.rx - 1;
 	} else {
-		x_inside = TRUE;
+		x_inside = pt->x < gfit.rx;
 	}
 
 	gboolean y_inside = FALSE;
@@ -123,7 +123,7 @@ static gboolean clamp2image(pointi* pt) {
 	} else if (pt->y > gfit.ry) {
 		pt->y = gfit.ry - 1;
 	} else {
-		y_inside = TRUE;
+		y_inside = pt->y < gfit.ry;
 	}
 	return x_inside && y_inside;
 }
