@@ -7538,7 +7538,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
             <child>
-              <!-- n-columns=2 n-rows=3 -->
+              <!-- n-columns=2 n-rows=2 -->
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -8790,30 +8790,6 @@ Note that luminance based models are not generally invertible.</property>
                   <packing>
                     <property name="left-attach">1</property>
                     <property name="top-attach">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSpinButton" id="spin_mastermixer">
-                    <property name="can-focus">True</property>
-                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                    <property name="adjustment">adjustment_remix_master</property>
-                    <signal name="value-changed" handler="on_spin_mastermixer_value_changed" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSpinButton" id="spin_finalstretch">
-                    <property name="can-focus">True</property>
-                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                    <property name="adjustment">adjustment-finalstretch</property>
-                    <signal name="value-changed" handler="on_spin_finalstretch_value_changed" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">2</property>
                   </packing>
                 </child>
               </object>
