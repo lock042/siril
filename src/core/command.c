@@ -5303,18 +5303,6 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return CMD_ARG_ERROR;
 				}
-
-				/* Make sure path exists */
-				gchar *dirname = g_path_get_dirname(value);
-
-				if (g_mkdir_with_parents(dirname, 0755) < 0) {
-					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
-					g_free(dirname);
-					return CMD_GENERIC_ERROR;
-				}
-
-				g_free(dirname);
-
 				arg->result_file = g_strdup(value);
 			}
 			else {
@@ -5388,15 +5376,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	if (!arg->result_file) {
-		char filename[256];
-		char *suffix = g_str_has_suffix(seq->seqname, "_") ||
-			g_str_has_suffix(seq->seqname, "-") ? "" : "_";
-		snprintf(filename, 256, "%s%sstacked%s",
-				seq->seqname, suffix, com.pref.ext);
-		arg->result_file = g_strdup(filename);
-	}
-
 	main_stack(&args);
 
 	int retval = args.retval;
@@ -5407,6 +5386,40 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 	if (!retval) {
 		bgnoise_async(&args.result, TRUE);
+		// preparing the output filename
+		// needs to be done after stack is completed to have
+		// stack-specific keywords available for parsing if needed
+		if (!arg->result_file) {
+			char filename[256];
+			char *suffix = g_str_has_suffix(seq->seqname, "_") ||
+				g_str_has_suffix(seq->seqname, "-") ? "" : "_";
+			snprintf(filename, 256, "%s%sstacked%s",
+					seq->seqname, suffix, com.pref.ext);
+			arg->result_file = g_strdup(filename);
+		} else { // the name is to be parsed (including folder creation if required)
+			int status = PATHPARSE_ERR_OK;
+			gchar *expression = g_strdup(arg->result_file);
+			gchar *parsedname = update_header_and_parse(&args.result, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+			char filename[256];
+			if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
+				snprintf(filename, 256, "unknown");
+			} else {
+				snprintf(filename, 256, "%s", parsedname);
+			}
+			add_extension_if_required(filename);
+			g_free(arg->result_file);
+			arg->result_file = g_strdup(filename);
+			g_free(parsedname);
+			g_free(expression);
+		}
+		/* Make sure path exists */
+		gchar *dirname = g_path_get_dirname(arg->result_file);
+		if (g_mkdir_with_parents(dirname, 0755) < 0) {
+			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+			g_free(dirname);
+			return CMD_GENERIC_ERROR;
+		}
+		g_free(dirname);
 		if (savefits(arg->result_file, &args.result)) {
 			siril_log_color_message(_("Could not save the stacking result %s\n"),
 					"red", arg->result_file);

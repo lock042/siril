@@ -2120,8 +2120,9 @@ int siril_fits_compress(fits *f) {
 
 void add_extension_if_required(gchar *filename) {
 	gboolean right_extension = FALSE;
+	gchar *lowfilename = g_ascii_strdown(filename, -1);
 	for (int i = 0; i < G_N_ELEMENTS(fit_extension); i++) {
-		if (g_str_has_suffix(filename, fit_extension[i])) {
+		if (g_str_has_suffix(lowfilename, fit_extension[i])) {
 			right_extension = TRUE;
 			break;
 		}
@@ -2132,6 +2133,7 @@ void add_extension_if_required(gchar *filename) {
 		snprintf(buf, 255, "%s%s", filename, com.pref.ext);
 		snprintf(filename, 255, "%s", buf);
 	}
+	g_free(lowfilename);
 }
 
 /* creates, saves and closes the file associated to f, overwriting previous  */
