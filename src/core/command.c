@@ -229,26 +229,39 @@ int process_satu(int nb){
 
 int process_save(int nb){
 	gchar *filename = g_strdup(word[1]);
-	set_cursor_waiting(TRUE);
 	if (!com.script) {
 		gfit.lo = gui.lo;
 		gfit.hi = gui.hi;
 	}
-	int retval = savefits(filename, &gfit);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = savefits(savename, &gfit);
+		set_cursor_waiting(FALSE);
+	}
 	set_precision_switch();
-	set_cursor_waiting(FALSE);
 	g_free(filename);
+	g_free(savename);
 	return retval;
 }
 
 int process_savebmp(int nb){
 	gchar *filename = g_strdup_printf("%s.bmp", word[1]);
-
-	set_cursor_waiting(TRUE);
-	savebmp(filename, &gfit);
-	set_cursor_waiting(FALSE);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = savebmp(savename, &gfit);
+		set_cursor_waiting(FALSE);
+	}
 	g_free(filename);
-	return CMD_OK;
+	g_free(savename);
+	return retval;
 }
 
 int process_synthstar(int nb) {
@@ -540,26 +553,37 @@ int process_savejpg(int nb){
 	}
 
 	gchar *filename = g_strdup_printf("%s.jpg", word[1]);
-
-	set_cursor_waiting(TRUE);
-	savejpg(filename, &gfit, quality);
-	set_cursor_waiting(FALSE);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = savejpg(savename, &gfit, quality);
+		set_cursor_waiting(FALSE);
+	}
 	g_free(filename);
-	return CMD_OK;
+	g_free(savename);
+	return retval;
 }
 #endif
 
 #ifdef HAVE_LIBPNG
 int process_savepng(int nb){
-
 	gchar *filename = g_strdup_printf("%s.png", word[1]);
-
-	set_cursor_waiting(TRUE);
-	uint32_t bytes_per_sample = gfit.orig_bitpix != BYTE_IMG ? 2 : 1;
-	savepng(filename, &gfit, bytes_per_sample, gfit.naxes[2] == 3);
-	set_cursor_waiting(FALSE);
+	int status, retval;
+	gchar *savename =update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		uint32_t bytes_per_sample = gfit.orig_bitpix != BYTE_IMG ? 2 : 1;
+		retval = savepng(savename, &gfit, bytes_per_sample, gfit.naxes[2] == 3);
+		set_cursor_waiting(FALSE);
+	}
 	g_free(filename);
-	return CMD_OK;
+	g_free(savename);
+	return retval;
 }
 #endif
 
@@ -572,17 +596,35 @@ int process_savetif(int nb){
 	else if (strcasecmp(word[0], "savetif32") == 0)
 		bitspersample = 32;
 	gchar *filename = g_strdup_printf("%s.tif", word[1]);
-	set_cursor_waiting(TRUE);
-	savetif(filename, &gfit, bitspersample, NULL, com.pref.copyright, TRUE);
-	set_cursor_waiting(FALSE);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = savetif(filename, &gfit, bitspersample, NULL, com.pref.copyright, TRUE);
+		set_cursor_waiting(FALSE);
+	}
 	g_free(filename);
-	return CMD_OK;
+	g_free(savename);
+	return retval;
 }
 #endif
 
 int process_savepnm(int nb){
-	saveNetPBM(word[1], &gfit);
-	return CMD_OK;
+	gchar *filename = g_strdup(word[1]);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = saveNetPBM(savename, &gfit);
+		set_cursor_waiting(FALSE);
+	}
+	g_free(filename);
+	g_free(savename);
+	return retval;
 }
 
 int process_imoper(int nb){

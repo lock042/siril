@@ -1300,7 +1300,7 @@ g_string_replace (GString     *string,
 
 /**
  * Deblanks a string and replace spaces with char c
- * Multiple spaces are replaced only once
+ * Multiple adjacent spaces are replaced only once
  * @param s string to be deblanked
  * @param c character to replace spaces
  */
