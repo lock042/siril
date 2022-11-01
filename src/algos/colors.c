@@ -352,6 +352,20 @@ void rgb_to_xyz(double r, double g, double b, double *x, double *y, double *z) {
 	*z = 0.019334 * r + 0.119193 * g + 0.950227 * b;
 }
 
+void rgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z) {
+	r = (r <= 0.04045f) ? r / 12.92f : powf(((r + 0.055f) / 1.055f), 2.4f);
+	g = (g <= 0.04045f) ? g / 12.92f : powf(((g + 0.055f) / 1.055f), 2.4f);
+	b = (b <= 0.04045f) ? b / 12.92f : powf(((b + 0.055f) / 1.055f), 2.4f);
+
+	r *= 100.f;
+	g *= 100.f;
+	b *= 100.f;
+
+	*x = 0.412453f * r + 0.357580f * g + 0.180423f * b;
+	*y = 0.212671f * r + 0.715160f * g + 0.072169f * b;
+	*z = 0.019334f * r + 0.119193f * g + 0.950227f * b;
+}
+
 void xyz_to_LAB(double x, double y, double z, double *L, double *a, double *b) {
 	x /= 95.047;
 	y /= 100.000;
@@ -364,6 +378,20 @@ void xyz_to_LAB(double x, double y, double z, double *L, double *a, double *b) {
 	*L = (116.0 * y) - 16.0;
 	*a = 500.0 * (x - y);
 	*b = 200.0 * (y - z);
+}
+
+void xyz_to_LABf(float x, float y, float z, float *L, float *a, float *b) {
+	x /= 95.047f;
+	y /= 100.000f;
+	z /= 108.883f;
+
+	x = (x > 0.008856452f) ? powf(x, 1.f / 3.0f) : (7.787037037f * x) + (16.f / 116.f);
+	y = (y > 0.008856452f) ? powf(y, 1.f / 3.0f) : (7.787037037f * y) + (16.f / 116.f);
+	z = (z > 0.008856452f) ? powf(z, 1.f / 3.0f) : (7.787037037f * z) + (16.f / 116.f);
+
+	*L = (116.0f * y) - 16.0f;
+	*a = 500.0f * (x - y);
+	*b = 200.0f * (y - z);
 }
 
 void LAB_to_xyz(double L, double a, double b, double *x, double *y, double *z) {
@@ -385,6 +413,25 @@ void LAB_to_xyz(double L, double a, double b, double *x, double *y, double *z) {
 	*z *= 108.883;
 }
 
+void LAB_to_xyzf(float L, float a, float b, float *x, float *y, float *z) {
+	*y = (L + 16.0f) / 116.0f;
+	*x = a / 500.0f + (*y);
+	*z = *y - b / 200.0f;
+
+	float x3, y3, z3;
+	x3 = (*x) * (*x) * (*x);
+	y3 = (*y) * (*y) * (*y);
+	z3 = (*z) * (*z) * (*z);
+
+	*x = (x3 > 0.008856452f) ? x3 : (*x - 16.f / 116.f) / 7.787037037f;
+	*y = (y3 > 0.008856452f) ? y3 : (*y - 16.f / 116.f) / 7.787037037f;
+	*z = (z3 > 0.008856452f) ? z3 : (*z - 16.f / 116.f) / 7.787037037f;
+
+	*x *= 95.047f;
+	*y *= 100.000f;
+	*z *= 108.883f;
+}
+
 void xyz_to_rgb(double x, double y, double z, double *r, double *g, double *b) {
 	x /= 100.0;
 	y /= 100.0;
@@ -397,6 +444,20 @@ void xyz_to_rgb(double x, double y, double z, double *r, double *g, double *b) {
 	*r = (*r > 0.0031308) ? 1.055 * (pow(*r, (1 / 2.4))) - 0.055 : 12.92 * (*r);
 	*g = (*g > 0.0031308) ? 1.055 * (pow(*g, (1 / 2.4))) - 0.055 : 12.92 * (*g);
 	*b = (*b > 0.0031308) ? 1.055 * (pow(*b, (1 / 2.4))) - 0.055 : 12.92 * (*b);
+}
+
+void xyz_to_rgbf(float x, float y, float z, float *r, float *g, float *b) {
+	x /= 100.0f;
+	y /= 100.0f;
+	z /= 100.0f;
+
+	*r =  3.240479f * x - 1.537150f * y - 0.498535f * z;
+	*g = -0.969256f * x + 1.875992f * y + 0.041556f * z;
+	*b =  0.055648f * x - 0.204043f * y + 1.057311f * z;
+
+	*r = (*r > 0.0031308f) ? 1.055f * (powf(*r, (1.f / 2.4f))) - 0.055f : 12.92f * (*r);
+	*g = (*g > 0.0031308f) ? 1.055f * (powf(*g, (1.f / 2.4f))) - 0.055f : 12.92f * (*g);
+	*b = (*b > 0.0031308f) ? 1.055f * (powf(*b, (1.f / 2.4f))) - 0.055f : 12.92f * (*b);
 }
 
 // color index to temperature in kelvin
