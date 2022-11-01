@@ -30,8 +30,10 @@
 
 static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 	if (!err) return;
+	gchar *startstr = (err < 0) ? _("Warning code:"): _("Error code:");
 	gchar *endstr = (err < 0) ? _("going on") : _("aborting");
 	gchar *msg = NULL;
+	gchar *color = (err < 0) ? "salmon" : "red";
 	switch (err) {
 		case PATHPARSE_ERR_HEADER_NULL:
 		case PATHPARSE_ERR_HEADER_NULL_NOFAIL:
@@ -78,7 +80,7 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 			msg = _("Internal error");
 			break;
 	}
-	siril_log_color_message(_("Err %d - %s%s - %s\n"), "red", err, msg, addstr, endstr);
+	siril_log_color_message(_("%s %d - %s%s - %s\n"), color , startstr, err, msg, addstr, endstr);
 }
 
 static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
