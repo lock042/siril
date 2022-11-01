@@ -1297,3 +1297,23 @@ g_string_replace (GString     *string,
 }
 #endif
 
+
+/**
+ * Deblanks a string and replace spaces with char c
+ * Multiple spaces are replaced only once
+ * @param s string to be deblanked
+ * @param c character to replace spaces
+ */
+void replace_spaces_from_str(gchar *s, gchar c) {
+	gchar *d = s;
+	do {
+		while (g_ascii_isspace(*d)) {
+			++d;
+		}
+		if (g_ascii_isspace(*(d-1))) {
+			*(d-1) = c;
+			d--;
+		}
+	} while((*s++ = *d++));
+}
+

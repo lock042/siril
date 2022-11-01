@@ -142,6 +142,7 @@ gboolean string_is_a_number(const char *str);
 guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
 		guint limit);
 #endif
+void replace_spaces_from_str(gchar *s, char c);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,

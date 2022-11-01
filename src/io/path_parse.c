@@ -292,7 +292,8 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 						goto free_and_exit;
 					}
 				}
-				remove_spaces_from_str(buf); // just in case the formatter introduced spaces or some were present in the key value
+				g_strstrip(buf);
+				replace_spaces_from_str(buf, '_');
 			}
 		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
