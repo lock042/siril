@@ -12657,6 +12657,7 @@ This should normally be the case only for stacked images. Increasing this value 
     </child>
   </object>
   <object class="GtkDialog" id="merge_cfa_dialog">
+    <property name="width-request">500</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Merge CFA Elements</property>
     <property name="type-hint">dialog</property>
@@ -12862,6 +12863,7 @@ This should normally be the case only for stacked images. Increasing this value 
           <object class="GtkFrame">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="margin-top">10</property>
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
@@ -12874,6 +12876,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="tooltip-text" translatable="yes">Sets the Bayer pattern header to be applied to the result. This must match the Bayer pattern of the image that the original Bayer subchannels were split from.</property>
+                    <property name="halign">start</property>
                     <property name="active">0</property>
                     <items>
                       <item translatable="yes">RGGB</item>
@@ -12899,30 +12902,47 @@ This should normally be the case only for stacked images. Increasing this value 
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="merge_cfa_seqapply">
+            <property name="label" translatable="yes">Apply to sequence</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">Merges separated CFA images for a sequence. You should have the sequence for CFA0 loaded to start with, and ensure filenames are consistent across images for all CFA channels.</property>
+            <property name="halign">start</property>
+            <property name="margin-top">10</property>
+            <property name="draw-indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
             <property name="position">2</property>
           </packing>
         </child>
         <child>
           <object class="GtkBox">
+            <property name="width-request">500</property>
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
             <child>
-              <!-- n-columns=2 n-rows=3 -->
-              <object class="GtkGrid">
+              <!-- n-columns=2 n-rows=2 -->
+              <object class="GtkGrid" id="grid_merge_cfa_prefixes">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
+                <property name="hexpand">True</property>
                 <property name="row-spacing">5</property>
                 <property name="column-spacing">10</property>
                 <child>
-                  <object class="GtkCheckButton" id="merge_cfa_seqapply">
-                    <property name="label" translatable="yes">Apply to sequence</property>
+                  <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">start</property>
-                    <property name="draw-indicator">True</property>
+                    <property name="label" translatable="yes">Sequence input marker</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
@@ -12933,23 +12953,11 @@ This should normally be the case only for stacked images. Increasing this value 
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="halign">start</property>
-                    <property name="label" translatable="yes">Sequence input marker</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Sequence output prefix</property>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
-                    <property name="top-attach">2</property>
+                    <property name="top-attach">1</property>
                   </packing>
                 </child>
                 <child>
@@ -12966,7 +12974,7 @@ This should normally be the case only for stacked images. Increasing this value 
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
-                    <property name="top-attach">1</property>
+                    <property name="top-attach">0</property>
                   </packing>
                 </child>
                 <child>
@@ -12983,11 +12991,8 @@ This should normally be the case only for stacked images. Increasing this value 
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
-                    <property name="top-attach">2</property>
+                    <property name="top-attach">1</property>
                   </packing>
-                </child>
-                <child>
-                  <placeholder/>
                 </child>
               </object>
               <packing>
@@ -12997,9 +13002,10 @@ This should normally be the case only for stacked images. Increasing this value 
               </packing>
             </child>
             <child>
-              <object class="GtkFrame" id="sequence_controls">
+              <object class="GtkFrame" id="merge_cfa_seq_controls">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">10</property>
                 <property name="label-xalign">0</property>
                 <property name="shadow-type">none</property>
                 <child>
@@ -13014,17 +13020,20 @@ This should normally be the case only for stacked images. Increasing this value 
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="GtkLabel">
+                            <property name="width-request">500</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-end">8</property>
                             <property name="label" translatable="yes">You must have the CFA0 sequence selected in the main window sequence tab.
 
 Your separate sub-CFA sequences must have been processed in exactly the same way.
 
 The filenames &lt;b&gt;must&lt;/b&gt; be in the same directory and &lt;b&gt;must&lt;/b&gt; differ only by the name of the CFA channel. i.e. if a CFA0 image is &lt;i&gt;r_pp_CFA_0_Light_0001.fit&lt;/i&gt;, the corresponding images for the other CFA channels must be &lt;i&gt;r_pp_CFA_1_Light_0001.fit&lt;/i&gt;, &lt;i&gt;r_pp_CFA_2_Light_0001.fit&lt;/i&gt; and &lt;i&gt;r_pp_CFA_3_Light_0001.fit&lt;/i&gt;.
 
-Each image in the sequence will only be processed if the corresponding images for the other 3 CFA channels can be found. Both G1 and G2 are required. Note this means that if you discard an image containing one CFA channel of an image between split_cfa and merge_cfa, merge_cfa will not merge that image. All sequence filtering should be done either before split_cfa or after merge_cfa.</property>
+Each image in the sequence will only be processed if the corresponding images for the other 3 CFA channels can be found. Both G1 and G2 are required. Note this means that if you discard an image containing one CFA channel of an image between split_cfa and merge_cfa, merge_cfa will be unable to merge the remaining CFA channels for that image. All sequence filtering should be done either before split_cfa or after merge_cfa.</property>
                             <property name="use-markup">True</property>
                             <property name="wrap">True</property>
+                            <property name="max-width-chars">80</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -13040,7 +13049,7 @@ Each image in the sequence will only be processed if the corresponding images fo
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Sequence Warning</property>
+                    <property name="label" translatable="yes">Sequences</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
