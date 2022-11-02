@@ -407,12 +407,18 @@ A copy of the fits metadata is made into a temporary fit that gets updated
 and its header string generated.
 This temporary fit is then called by path_parse.
 */
+//TODO: still need to check if we need to handle different cases
+// e.g if we load a raw DSLR file, we want to update so that command parse works
+// if we load a fit after stacking we want to update to have the new keywords available
+// but if we load a fit and use parse, we don't want to update...
+// maybe we should handle that in the parse command instead
 gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
 	fits tmpfit = { 0 };
 	fitsfile *fptr;
 	int fstatus = 0;
 	gchar *parsedname = NULL;
 	copyfits(fit, &tmpfit, CP_FORMAT, 0);
+	copy_fits_metadata(fit, &tmpfit); // otherwise some fields get wiped out like date-obs
 	const gchar *tmpdir = g_get_tmp_dir();
 	gchar *tmpheadername = g_build_filename(tmpdir, "header.fit", NULL);
 	unlink(tmpheadername);
