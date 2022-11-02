@@ -244,12 +244,13 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 		// Behavior will depend if we are in read or write mode
 		if (subs[0][0] == '*') {
 			if (mode == PATHPARSE_MODE_READ) {
-				strncpy(buf, "*", FLEN_VALUE - 1);
+				g_snprintf(buf, 2, "%s", "*");
 			} else {
-				strncpy(key, subs[0] + 1, 9);
+				g_snprintf(key, 9, "%s", subs[0] + 1);
 			}
 		} else {
-			strncpy(key, subs[0], 9);
+			g_snprintf(key, 9, "%s", subs[0]);
+			// strncpy(key, subs[0], 9);
 		}
 		if (buf[0] == '*') {
 			printf("Wildcard in READ mode\n");

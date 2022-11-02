@@ -6718,7 +6718,7 @@ int process_parse(int nb) {
 	}
 	int status;
 	gchar *expression = NULL;
-	expression = path_parse(&gfit, word[1], mode, &status);
+	expression = update_header_and_parse(&gfit, word[1], mode, &status);
 	siril_log_message(_("String in: %s\n"), word[1]);
 	siril_log_message(_("String out: %s\n"), expression);
 	g_free(expression);
