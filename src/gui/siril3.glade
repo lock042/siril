@@ -9043,6 +9043,11 @@ Note that luminance based models are not generally invertible.</property>
       <action-widget response="0">linearmatch_apply</action-widget>
     </action-widgets>
   </object>
+  <object class="GtkFileFilter" id="filefilter_seq">
+    <patterns>
+      <pattern>*.seq</pattern>
+    </patterns>
+  </object>
   <object class="GtkFileFilter" id="filter_USNO-NOMAD-1e8">
     <patterns>
       <pattern>USNO-NOMAD-1e8.dat</pattern>
@@ -12726,7 +12731,7 @@ This should normally be the case only for stacked images. Increasing this value 
                 <property name="can-focus">False</property>
                 <property name="left-padding">12</property>
                 <child>
-                  <!-- n-columns=2 n-rows=5 -->
+                  <!-- n-columns=2 n-rows=4 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -12832,35 +12837,6 @@ This should normally be the case only for stacked images. Increasing this value 
                         <property name="top-attach">3</property>
                       </packing>
                     </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Bayer Pattern</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBoxText" id="merge_cfa_pattern">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Sets the Bayer pattern header to be applied to the result. This must match the Bayer pattern of the image that the original Bayer subchannels were split from.</property>
-                        <property name="active">0</property>
-                        <items>
-                          <item translatable="yes">RGGB</item>
-                          <item translatable="yes">BGGR</item>
-                          <item translatable="yes">GBRG</item>
-                          <item translatable="yes">GRBG</item>
-                        </items>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">4</property>
-                      </packing>
-                    </child>
                   </object>
                 </child>
               </object>
@@ -12879,7 +12855,209 @@ This should normally be the case only for stacked images. Increasing this value 
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkFrame">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
+            <child>
+              <object class="GtkAlignment">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="left-padding">12</property>
+                <child>
+                  <object class="GtkComboBoxText" id="merge_cfa_pattern">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Sets the Bayer pattern header to be applied to the result. This must match the Bayer pattern of the image that the original Bayer subchannels were split from.</property>
+                    <property name="active">0</property>
+                    <items>
+                      <item translatable="yes">RGGB</item>
+                      <item translatable="yes">BGGR</item>
+                      <item translatable="yes">GBRG</item>
+                      <item translatable="yes">GRBG</item>
+                    </items>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Bayer Pattern</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <!-- n-columns=2 n-rows=3 -->
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="row-spacing">5</property>
+                <property name="column-spacing">10</property>
+                <child>
+                  <object class="GtkCheckButton" id="merge_cfa_seqapply">
+                    <property name="label" translatable="yes">Apply to sequence</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="halign">start</property>
+                    <property name="draw-indicator">True</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Sequence input marker</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Sequence output prefix</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entryMergeCFAin">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Identifier prefix used to denote CFA number in the separate CFA channel images. This should be set to whatever sequence prefix was used when the split_cfa process was run (default: CFA_).</property>
+                    <property name="hexpand">True</property>
+                    <property name="max-length">10</property>
+                    <property name="width-chars">10</property>
+                    <property name="max-width-chars">10</property>
+                    <property name="text">CFA_</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entryMergeCFAout">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the merge CFA process.</property>
+                    <property name="hexpand">True</property>
+                    <property name="max-length">10</property>
+                    <property name="width-chars">10</property>
+                    <property name="max-width-chars">10</property>
+                    <property name="text">CFA_</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkFrame" id="sequence_controls">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label-xalign">0</property>
+                <property name="shadow-type">none</property>
+                <child>
+                  <object class="GtkAlignment">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="left-padding">12</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">You must have the CFA0 sequence selected in the main window sequence tab.
+
+Your separate sub-CFA sequences must have been processed in exactly the same way.
+
+The filenames &lt;b&gt;must&lt;/b&gt; be in the same directory and &lt;b&gt;must&lt;/b&gt; differ only by the name of the CFA channel. i.e. if a CFA0 image is &lt;i&gt;r_pp_CFA_0_Light_0001.fit&lt;/i&gt;, the corresponding images for the other CFA channels must be &lt;i&gt;r_pp_CFA_1_Light_0001.fit&lt;/i&gt;, &lt;i&gt;r_pp_CFA_2_Light_0001.fit&lt;/i&gt; and &lt;i&gt;r_pp_CFA_3_Light_0001.fit&lt;/i&gt;.
+
+Each image in the sequence will only be processed if the corresponding images for the other 3 CFA channels can be found. Both G1 and G2 are required. Note this means that if you discard an image containing one CFA channel of an image between split_cfa and merge_cfa, merge_cfa will not merge that image. All sequence filtering should be done either before split_cfa or after merge_cfa.</property>
+                            <property name="use-markup">True</property>
+                            <property name="wrap">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Sequence Warning</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>

@@ -790,7 +790,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
 		for (int row = 0; row < in->ry - 1; row += 2) {
 			for (int col = 0; col < in->rx - 1; col += 2) {
-				int HaIndex;
+				int HaIndex = 0;
 				switch(pattern) {
 					case BAYER_FILTER_RGGB:
 						HaIndex = col + row * in->rx;
@@ -965,7 +965,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
 		for (int row = 0; row < in->ry - 1; row += 2) {
 			for (int col = 0; col < in->rx - 1; col += 2) {
-				int HaIndex;
+				int HaIndex = 0;
 				switch(pattern) {
 					case BAYER_FILTER_RGGB:
 						HaIndex = col + row * in->rx;

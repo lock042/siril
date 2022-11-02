@@ -48,11 +48,16 @@ void reset_controls() {
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa1")));
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa2")));
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa3")));
+
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern")), 0);
 }
 
 void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
 	reset_controls();
+	if (cfa0) clearfits(cfa0);
+	if (cfa1) clearfits(cfa1);
+	if (cfa2) clearfits(cfa2);
+	if (cfa3) clearfits(cfa3);
 	siril_close_dialog("merge_cfa_dialog");
 }
 
@@ -121,7 +126,25 @@ void on_merge_cfa_filechooser_CFA3_file_set(GtkFileChooser *filechooser, gpointe
 	}
 }
 
-void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
+void apply_to_seq() {
+	GtkEntry *entryMergeCFAin = GTK_ENTRY(lookup_widget("entryMergeCFAin"));
+	GtkEntry *entryMergeCFAout = GTK_ENTRY(lookup_widget("entryMergeCFAout"));
+	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
+	args->seqEntryIn = gtk_entry_get_text(entryMergeCFAin);
+	if (args->seqEntryIn && args->seqEntryIn[0] == '\0')
+		args->seqEntryIn = "CFA_";
+	args->seqEntryOut = gtk_entry_get_text(entryMergeCFAout);
+	if (args->seqEntryOut && args->seqEntryOut[0] == '\0')
+		args->seqEntryOut = "CFA_";
+	GtkComboBox *combo_pattern = GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern"));
+	gint p = gtk_combo_box_get_active(combo_pattern);
+	args->pattern = (sensor_pattern) p;
+	args->seq = &com.seq;
+
+	apply_mergecfa_to_sequence(args);
+}
+
+void apply_to_img() {
 	GtkComboBox *combo_pattern = GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern"));
 	gint p = gtk_combo_box_get_active(combo_pattern);
 	sensor_pattern pattern = (sensor_pattern) p;
@@ -174,4 +197,13 @@ void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 	}
 }
+
+void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
+	GtkToggleButton *to_seq = GTK_TOGGLE_BUTTON(lookup_widget("merge_cfa_seqapply"));
+	if (gtk_toggle_button_get_active(to_seq))
+		apply_to_seq();
+	else
+		apply_to_img();
+}
+
 

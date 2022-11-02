@@ -1234,6 +1234,156 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 	return retval;
 }
 
+static int mergecfa_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	required = 8 * MB_per_image;
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+				thread_limit = com.max_thread;
+		limit = thread_limit;
+		if (for_writer)
+			return 1;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+#endif
+	}
+	return limit;
+}
+
+gint64 mergecfa_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
+	double ratio = 4.;
+	double fullseqsize = seq_compute_size(args->seq, nb_frames, args->output_type);
+	return (gint64)(fullseqsize * ratio);
+}
+
+int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
+	struct merge_cfa_data *merge_cfa_args = (struct merge_cfa_data*) args->user;
+	char *cfa0_f = calloc(256, sizeof(BYTE));
+	char *cfa1_f = calloc(256, sizeof(BYTE));
+	char *cfa2_f = calloc(256, sizeof(BYTE));
+	char *cfa3_f = calloc(256, sizeof(BYTE));
+	cfa0_f = seq_get_image_filename(args->seq, in_index, cfa0_f);
+	size_t len = strlen(merge_cfa_args->seqEntryIn);
+	char *prefix0 = calloc(len + 1, sizeof(BYTE));
+	char *prefix1 = calloc(len + 1, sizeof(BYTE));
+	char *prefix2 = calloc(len + 1, sizeof(BYTE));
+	char *prefix3 = calloc(len + 1, sizeof(BYTE));
+	strncpy(prefix0, merge_cfa_args->seqEntryIn, len);
+	strncat(prefix0, "0", 1);
+	strncpy(prefix1, merge_cfa_args->seqEntryIn, len);
+	strncat(prefix1, "1", 1);
+	strncpy(prefix2, merge_cfa_args->seqEntryIn, len);
+	strncat(prefix2, "2", 1);
+	strncpy(prefix3, merge_cfa_args->seqEntryIn, len);
+	strncat(prefix3, "3", 1);
+	cfa1_f = str_replace(cfa0_f, prefix0, prefix1);
+	cfa2_f = str_replace(cfa0_f, prefix0, prefix2);
+	cfa3_f = str_replace(cfa0_f, prefix0, prefix3);
+	free(prefix0);
+	free(prefix1);
+	free(prefix2);
+	free(prefix3);
+	if (cfa1_f == NULL) {
+		siril_log_message(_("Image %d: error identifying CFA1 filename\n"), args->seq->current);
+		if (cfa0_f) free(cfa0_f);
+		return 1;
+	}
+	if (cfa2_f == NULL) {
+		siril_log_message(_("Image %d: error identifying CFA2 filename\n"), args->seq->current);
+		if (cfa0_f) free(cfa0_f);
+		if (cfa1_f) free(cfa1_f);
+		return 1;
+	}
+	if (cfa3_f == NULL) {
+		siril_log_message(_("Image %d: error identifying CFA3 filename\n"), args->seq->current);
+		if (cfa0_f) free(cfa0_f);
+		if (cfa1_f) free(cfa1_f);
+		if (cfa2_f) free(cfa2_f);
+		return 1;
+	}
+	sensor_pattern pattern = BAYER_FILTER_RGGB; // Store this in args
+
+	fits *cfa1 = calloc(1, sizeof(fits));
+	fits *cfa2 = calloc(1, sizeof(fits));
+	fits *cfa3 = calloc(1, sizeof(fits));
+	fits *out = NULL;
+
+	int retval = 0;
+	retval = readfits(cfa1_f, cfa1, NULL, FALSE);
+	free(cfa1_f);
+	if(retval != 0) {
+		siril_log_message(_("Image %d: error opening CFA1 file\n"), args->seq->current);
+		if (cfa2_f) free(cfa2_f);
+		if (cfa3_f) free(cfa3_f);
+		if (cfa1) clearfits(cfa1);
+		if (cfa2) clearfits(cfa2);
+		if (cfa3) clearfits(cfa3);
+		return 1;
+	}
+	retval = readfits(cfa2_f, cfa2, NULL, FALSE);
+	free(cfa2_f);
+	if(retval != 0) {
+		siril_log_message(_("Image %d: error opening CFA2 file\n"), args->seq->current);
+		if (cfa3_f) free(cfa3_f);
+		if (cfa1) clearfits(cfa1);
+		if (cfa2) clearfits(cfa2);
+		if (cfa3) clearfits(cfa3);
+		return 1;
+	}
+	retval = readfits(cfa3_f, cfa3, NULL, FALSE);
+	free(cfa3_f);
+	if(retval != 0) {
+		siril_log_message(_("Image %d: error opening CFA3 file\n"), args->seq->current);
+		if (cfa1) clearfits(cfa1);
+		if (cfa2) clearfits(cfa2);
+		if (cfa3) clearfits(cfa3);
+		return 1;
+	}
+	out = merge_cfa(fit, cfa1, cfa2, cfa3, pattern);
+	if (out != NULL) {
+		clearfits(fit);
+		fit = out;
+	}
+	return 0;
+}
+
+void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
+	struct generic_seq_args *args = create_default_seqargs(merge_cfa_args->seq);
+	args->force_float = FALSE;
+	args->seq = merge_cfa_args->seq;
+	args->compute_mem_limits_hook = mergecfa_compute_mem_limits;
+	args->compute_size_hook = mergecfa_compute_size_hook;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = seq_finalize_hook;
+	args->image_hook = mergecfa_image_hook;
+	args->description = _("Merge CFA");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = "mCFA_";
+	args->load_new_sequence = TRUE;
+	args->force_ser_output = FALSE;
+	args->user = merge_cfa_args;
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+
 //
 // Re-mosaic 4 subpattern images previously separated with split_cfa
 // This routine is Bayer pattern agnostic: split_cfa generates files
@@ -1314,6 +1464,15 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 			strncpy(out->bayer_pattern, "GBRG", 5);
 			break;
 		default:
+			break;
+	}
+
+	switch (out->type) {
+		case DATA_USHORT:
+			out->bitpix = 16;
+			break;
+		case DATA_FLOAT:
+			out->bitpix = 32;
 			break;
 	}
 

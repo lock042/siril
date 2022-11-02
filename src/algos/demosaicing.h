@@ -23,6 +23,15 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer);
 sensor_pattern get_bayer_pattern(fits *fit);
 void clear_Bayer_information(fits *fit);
 
+struct merge_cfa_data {
+	sequence *seq;
+	const gchar *seqEntryIn;
+	const gchar *seqEntryOut;
+	sensor_pattern pattern;
+};
+
+void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args);
+
 void get_debayer_area(const rectangle *area, rectangle *debayer_area,
 		const rectangle *image_area, int *debayer_offset_x,
 		int *debayer_offset_y);
