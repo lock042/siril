@@ -1360,8 +1360,11 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	out = merge_cfa(fit, cfa1, cfa2, cfa3, pattern);
 	if (out != NULL) {
 		clearfits(fit);
-		fit = out;
+		copyfits(out, fit, (CP_ALLOC | CP_COPYA | CP_FORMAT), -1);
+		clearfits(out);
+		free(out);
 	}
+//	savefits("test.fit", fit);
 	return 0;
 }
 
@@ -1377,7 +1380,7 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	args->description = _("Merge CFA");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = "mCFA_";
+	args->new_seq_prefix = merge_cfa_args->seqEntryOut;
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
 	args->user = merge_cfa_args;
@@ -1470,10 +1473,10 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 
 	switch (datatype) {
 		case DATA_USHORT:
-			out->bitpix = 16;
+			out->orig_bitpix = 16;
 			break;
 		case DATA_FLOAT:
-			out->bitpix = 32;
+			out->orig_bitpix = 32;
 			break;
 	}
 
