@@ -1285,13 +1285,14 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	char *prefix1 = calloc(len + 1, sizeof(BYTE));
 	char *prefix2 = calloc(len + 1, sizeof(BYTE));
 	char *prefix3 = calloc(len + 1, sizeof(BYTE));
-	strncpy(prefix0, merge_cfa_args->seqEntryIn, len);
+	int m = snprintf(NULL, 0, "%s", merge_cfa_args->seqEntryIn);
+	strncpy(prefix0, merge_cfa_args->seqEntryIn, m);
 	strncat(prefix0, "0", 1);
-	strncpy(prefix1, merge_cfa_args->seqEntryIn, len);
+	strncpy(prefix1, merge_cfa_args->seqEntryIn, m);
 	strncat(prefix1, "1", 1);
-	strncpy(prefix2, merge_cfa_args->seqEntryIn, len);
+	strncpy(prefix2, merge_cfa_args->seqEntryIn, m);
 	strncat(prefix2, "2", 1);
-	strncpy(prefix3, merge_cfa_args->seqEntryIn, len);
+	strncpy(prefix3, merge_cfa_args->seqEntryIn, m);
 	strncat(prefix3, "3", 1);
 	cfa1_f = str_replace(cfa0_f, prefix0, prefix1);
 	cfa2_f = str_replace(cfa0_f, prefix0, prefix2);
