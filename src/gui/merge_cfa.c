@@ -142,6 +142,8 @@ void apply_to_seq() {
 	args->seq = &com.seq;
 
 	apply_mergecfa_to_sequence(args);
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	siril_close_dialog("merge_cfa_dialog");
 }
 
 void apply_to_img() {
@@ -193,6 +195,7 @@ void apply_to_img() {
 			sequence_list_change_current();
 			set_cursor_waiting(FALSE);
 			reset_controls();
+			control_window_switch_to_tab(OUTPUT_LOGS);
 			siril_close_dialog("merge_cfa_dialog");
 		}
 	}
