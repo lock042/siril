@@ -1281,10 +1281,10 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	char *cfa3_f = calloc(256, sizeof(BYTE));
 	cfa0_f = seq_get_image_filename(args->seq, in_index, cfa0_f);
 	size_t len = strlen(merge_cfa_args->seqEntryIn);
-	char *prefix0 = calloc(len + 1, sizeof(BYTE));
-	char *prefix1 = calloc(len + 1, sizeof(BYTE));
-	char *prefix2 = calloc(len + 1, sizeof(BYTE));
-	char *prefix3 = calloc(len + 1, sizeof(BYTE));
+	char *prefix0 = calloc(len + 2, sizeof(BYTE));
+	char *prefix1 = calloc(len + 2, sizeof(BYTE));
+	char *prefix2 = calloc(len + 2, sizeof(BYTE));
+	char *prefix3 = calloc(len + 2, sizeof(BYTE));
 	int m = snprintf(NULL, 0, "%s", merge_cfa_args->seqEntryIn);
 	strncpy(prefix0, merge_cfa_args->seqEntryIn, m);
 	strncat(prefix0, "0", 1);
@@ -1358,28 +1358,44 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 		return 1;
 	}
 	out = merge_cfa(fit, cfa1, cfa2, cfa3, pattern);
+//	out->orig_bitpix = (out->type == DATA_USHORT ? 16 : 32);
+//	out->bitpix = (out->type == DATA_USHORT ? 16 : 32);
+
 	if (out != NULL) {
 		clearfits(fit);
 		copyfits(out, fit, (CP_ALLOC | CP_COPYA | CP_FORMAT), -1);
 		clearfits(out);
 		free(out);
 	}
-//	savefits("test.fit", fit);
+	savefits("test.fit", fit);
 	return 0;
 }
-
+int mergecfa_save_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
+	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
+		return ser_write_frame_from_fit(args->new_ser, fit, out_index);
+	} else if (args->force_fitseq_output || (args->seq->type == SEQ_FITSEQ && !args->force_ser_output)) {
+		return fitseq_write_image(args->new_fitseq, fit, out_index);
+	} else {
+		char *dest = fit_sequence_get_image_filename_prefixed(args->seq,
+				args->new_seq_prefix, in_index);
+		int retval = savefits(dest, fit);
+		free(dest);
+		return retval;
+	}
+}
 void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	struct generic_seq_args *args = create_default_seqargs(merge_cfa_args->seq);
-	args->force_float = FALSE;
 	args->seq = merge_cfa_args->seq;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = merge_cfa_args->seq->selnum;
 	args->compute_mem_limits_hook = mergecfa_compute_mem_limits;
-	args->compute_size_hook = mergecfa_compute_size_hook;
+//	args->compute_size_hook = mergecfa_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
 	args->image_hook = mergecfa_image_hook;
+	args->save_hook = mergecfa_save_hook;
+	args->finalize_hook = seq_finalize_hook;
 	args->description = _("Merge CFA");
 	args->has_output = TRUE;
-	args->output_type = get_data_type(args->seq->bitpix);
 	args->new_seq_prefix = merge_cfa_args->seqEntryOut;
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;

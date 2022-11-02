@@ -200,7 +200,7 @@ void apply_to_img() {
 
 void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *to_seq = GTK_TOGGLE_BUTTON(lookup_widget("merge_cfa_seqapply"));
-	if (gtk_toggle_button_get_active(to_seq))
+	if (gtk_toggle_button_get_active(to_seq) && sequence_is_loaded())
 		apply_to_seq();
 	else
 		apply_to_img();
