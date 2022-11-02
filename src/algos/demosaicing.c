@@ -1467,7 +1467,7 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 			break;
 	}
 
-	switch (out->type) {
+	switch (datatype) {
 		case DATA_USHORT:
 			out->bitpix = 16;
 			break;

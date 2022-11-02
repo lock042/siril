@@ -1301,10 +1301,10 @@ char *str_replace(char *orig, char *rep, char *with) {
     char *result; // the return string
     char *ins;    // the next insert point
     char *tmp;    // varies
-    size_t len_rep;  // length of rep (the string to remove)
-    size_t len_with; // length of with (the string to replace rep with)
-    size_t len_front; // distance between rep and end of last rep
-    size_t count;    // number of replacements
+    int len_rep;  // length of rep (the string to remove)
+    int len_with; // length of with (the string to replace rep with)
+    int len_front; // distance between rep and end of last rep
+    int count;    // number of replacements
 
     // sanity checks and initialization
     if (!orig || !rep)
