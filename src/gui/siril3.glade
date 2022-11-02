@@ -12986,7 +12986,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="max-length">10</property>
                     <property name="width-chars">10</property>
                     <property name="max-width-chars">10</property>
-                    <property name="text">CFA_</property>
+                    <property name="text">mCFA_</property>
                     <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                   </object>
                   <packing>

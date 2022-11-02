@@ -1358,8 +1358,8 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 		return 1;
 	}
 	out = merge_cfa(fit, cfa1, cfa2, cfa3, pattern);
-//	out->orig_bitpix = (out->type == DATA_USHORT ? 16 : 32);
-//	out->bitpix = (out->type == DATA_USHORT ? 16 : 32);
+//	out->orig_bitpix = (out->type == DATA_USHORT ? 8 : 32);
+	out->bitpix = (out->type == DATA_USHORT ? 8 : 32);
 
 	if (out != NULL) {
 		clearfits(fit);
@@ -1392,7 +1392,7 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 //	args->compute_size_hook = mergecfa_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->image_hook = mergecfa_image_hook;
-	args->save_hook = mergecfa_save_hook;
+//	args->save_hook = mergecfa_save_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->description = _("Merge CFA");
 	args->has_output = TRUE;
