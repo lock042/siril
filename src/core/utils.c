@@ -1310,9 +1310,9 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 		while (g_ascii_isspace(*d)) {
 			++d;
 		}
-		if (g_ascii_isspace(*(d-1))) {
+		if ((d > s) && g_ascii_isspace(*(d - 1))) {
 			*(d-1) = c;
-			d--;
+			--d;
 		}
 	} while((*s++ = *d++));
 }
