@@ -1274,11 +1274,13 @@ gint64 mergecfa_compute_size_hook(struct generic_seq_args *args, int nb_frames) 
 }
 
 int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
+
+	int retval = 0;
 	struct merge_cfa_data *merge_cfa_args = (struct merge_cfa_data*) args->user;
 	char *cfa0_f = calloc(256, sizeof(BYTE));
-	char *cfa1_f = calloc(256, sizeof(BYTE));
-	char *cfa2_f = calloc(256, sizeof(BYTE));
-	char *cfa3_f = calloc(256, sizeof(BYTE));
+	char *cfa1_f = NULL;
+	char *cfa2_f = NULL;
+	char *cfa3_f = NULL;
 	cfa0_f = seq_get_image_filename(args->seq, in_index, cfa0_f);
 	size_t len = strlen(merge_cfa_args->seqEntryIn);
 	char *prefix0 = calloc(len + 2, sizeof(BYTE));
@@ -1287,84 +1289,73 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	char *prefix3 = calloc(len + 2, sizeof(BYTE));
 	int m = snprintf(NULL, 0, "%s", merge_cfa_args->seqEntryIn);
 	strncpy(prefix0, merge_cfa_args->seqEntryIn, m);
+	strncpy(prefix1, prefix0, m);
+	strncpy(prefix2, prefix0, m);
+	strncpy(prefix3, prefix0, m);
 	strcat(prefix0, "0");
-	strncpy(prefix1, merge_cfa_args->seqEntryIn, m);
 	strcat(prefix1, "1");
-	strncpy(prefix2, merge_cfa_args->seqEntryIn, m);
 	strcat(prefix2, "2");
-	strncpy(prefix3, merge_cfa_args->seqEntryIn, m);
 	strcat(prefix3, "3");
 	cfa1_f = str_replace(cfa0_f, prefix0, prefix1);
 	cfa2_f = str_replace(cfa0_f, prefix0, prefix2);
 	cfa3_f = str_replace(cfa0_f, prefix0, prefix3);
+	if (cfa0_f) free(cfa0_f);
 	free(prefix0);
 	free(prefix1);
 	free(prefix2);
 	free(prefix3);
 	if (cfa1_f == NULL) {
+		retval = 1;
 		siril_log_message(_("Image %d: error identifying CFA1 filename\n"), args->seq->current);
-		if (cfa0_f) free(cfa0_f);
-		return 1;
+		goto CLEANUP_MERGECFA;
 	}
 	if (cfa2_f == NULL) {
+		retval = 1;
 		siril_log_message(_("Image %d: error identifying CFA2 filename\n"), args->seq->current);
-		if (cfa0_f) free(cfa0_f);
-		if (cfa1_f) free(cfa1_f);
-		return 1;
+		goto CLEANUP_MERGECFA;
 	}
 	if (cfa3_f == NULL) {
+		retval = 1;
 		siril_log_message(_("Image %d: error identifying CFA3 filename\n"), args->seq->current);
-		if (cfa0_f) free(cfa0_f);
-		if (cfa1_f) free(cfa1_f);
-		if (cfa2_f) free(cfa2_f);
-		return 1;
+		goto CLEANUP_MERGECFA;
 	}
-	sensor_pattern pattern = BAYER_FILTER_RGGB; // Store this in args
 
-	fits *cfa1 = calloc(1, sizeof(fits));
-	fits *cfa2 = calloc(1, sizeof(fits));
-	fits *cfa3 = calloc(1, sizeof(fits));
-	fits *out = NULL;
+	fits cfa1 = { 0 };
+	fits cfa2 = { 0 };
+	fits cfa3 = { 0 };
+	fits *out = { 0 };
 
-	int retval = 0;
-	retval = readfits(cfa1_f, cfa1, NULL, FALSE);
-	free(cfa1_f);
+	retval = readfits(cfa1_f, &cfa1, NULL, FALSE);
 	if(retval != 0) {
 		siril_log_message(_("Image %d: error opening CFA1 file\n"), args->seq->current);
-		if (cfa2_f) free(cfa2_f);
-		if (cfa3_f) free(cfa3_f);
-		if (cfa1) clearfits(cfa1);
-		if (cfa2) clearfits(cfa2);
-		if (cfa3) clearfits(cfa3);
-		return 1;
+		goto CLEANUP_MERGECFA;
 	}
-	retval = readfits(cfa2_f, cfa2, NULL, FALSE);
-	free(cfa2_f);
+	retval = readfits(cfa2_f, &cfa2, NULL, FALSE);
 	if(retval != 0) {
 		siril_log_message(_("Image %d: error opening CFA2 file\n"), args->seq->current);
-		if (cfa3_f) free(cfa3_f);
-		if (cfa1) clearfits(cfa1);
-		if (cfa2) clearfits(cfa2);
-		if (cfa3) clearfits(cfa3);
-		return 1;
+		goto CLEANUP_MERGECFA;
 	}
-	retval = readfits(cfa3_f, cfa3, NULL, FALSE);
-	free(cfa3_f);
+	retval = readfits(cfa3_f, &cfa3, NULL, FALSE);
 	if(retval != 0) {
 		siril_log_message(_("Image %d: error opening CFA3 file\n"), args->seq->current);
-		if (cfa1) clearfits(cfa1);
-		if (cfa2) clearfits(cfa2);
-		if (cfa3) clearfits(cfa3);
-		return 1;
+		goto CLEANUP_MERGECFA;
 	}
-	out = merge_cfa(fit, cfa1, cfa2, cfa3, pattern);
+	out = merge_cfa(fit, &cfa1, &cfa2, &cfa3, merge_cfa_args->pattern);
 	if (out != NULL) {
 		clearfits(fit);
 		copyfits(out, fit, (CP_ALLOC | CP_COPYA | CP_FORMAT), -1);
 		clearfits(out);
 		free(out);
 	}
-	return 0;
+CLEANUP_MERGECFA:
+	clearfits(&cfa1);
+	clearfits(&cfa2);
+	clearfits(&cfa3);
+	if (cfa1_f) { free(cfa1_f); }
+	if (cfa2_f) { free(cfa2_f); }
+	if (cfa3_f) { free(cfa3_f); }
+
+	return retval;
 }
 
 void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
