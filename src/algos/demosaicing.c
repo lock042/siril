@@ -1367,13 +1367,6 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	return 0;
 }
 
-int mergecfa_save_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
-	char *dest = fit_sequence_get_image_filename_prefixed(args->seq,
-			args->new_seq_prefix, in_index);
-	savefits(dest, fit);
-	return 0;
-}
-
 void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	struct generic_seq_args *args = create_default_seqargs(merge_cfa_args->seq);
 	args->seq = merge_cfa_args->seq;
@@ -1383,7 +1376,6 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	args->compute_size_hook = mergecfa_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->image_hook = mergecfa_image_hook;
-	args->save_hook = mergecfa_save_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->description = _("Merge CFA");
 	args->has_output = TRUE;
@@ -1478,15 +1470,6 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 			break;
 	}
 
-	switch (datatype) {
-		case DATA_USHORT:
-			out->orig_bitpix = 16;
-			break;
-		case DATA_FLOAT:
-			out->orig_bitpix = 32;
-			break;
-	}
-
 	if (cfa0) {
 		clearfits (cfa0);
 		cfa0 = NULL;
@@ -1503,6 +1486,6 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 		clearfits (cfa3);
 		cfa3 = NULL;
 	}
-	siril_debug_print("Rebayer complete\n");
+	siril_debug_print("Merge CFA complete\n");
 	return out;
 }
