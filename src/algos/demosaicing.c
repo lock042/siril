@@ -1364,7 +1364,13 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 		clearfits(out);
 		free(out);
 	}
-//	savefits("test.fit", fit);
+	return 0;
+}
+
+int mergecfa_save_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
+	char *dest = fit_sequence_get_image_filename_prefixed(args->seq,
+			args->new_seq_prefix, in_index);
+	savefits(dest, fit);
 	return 0;
 }
 
@@ -1377,6 +1383,7 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	args->compute_size_hook = mergecfa_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->image_hook = mergecfa_image_hook;
+	args->save_hook = mergecfa_save_hook;
 	args->finalize_hook = seq_finalize_hook;
 	args->description = _("Merge CFA");
 	args->has_output = TRUE;
