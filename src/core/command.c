@@ -4287,6 +4287,72 @@ int process_seq_split_cfa(int nb) {
 	return CMD_OK;
 }
 
+int process_seq_merge_cfa(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	if (seq->nb_layers > 1) {
+		return CMD_FOR_CFA_IMAGE;
+	}
+
+	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
+
+	if (!strcmp(word[2], "RGGB")) {
+		args->pattern = BAYER_FILTER_RGGB;
+		siril_log_message(_("Reconstructing RGGB Bayer matrix.\n"));
+	} else if (!strcmp(word[2], "BGGR")) {
+		args->pattern = BAYER_FILTER_BGGR;
+		siril_log_message(_("Reconstructing BGGR Bayer matrix.\n"));
+	} else if (!strcmp(word[2], "GBRG")) {
+		args->pattern = BAYER_FILTER_GBRG;
+		siril_log_message(_("Reconstructing GBRG Bayer matrix.\n"));
+	} else if (!strcmp(word[2], "GRBG")) {
+		args->pattern = BAYER_FILTER_GRBG;
+		siril_log_message(_("Reconstructing GRBG Bayer matrix.\n"));
+	} else {
+		siril_log_color_message(_("Invalid Bayer matrix specified!\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+	args->seq = seq;
+	args->seqEntryIn = "CFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->seqEntryOut = "mCFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
+
+	int startoptargs = 3;
+	if (nb > startoptargs) {
+		for (int i = startoptargs; i < nb; i++) {
+			if (word[i]) {
+				if (g_str_has_prefix(word[i], "-inprefix=")) {
+					char *current = word[i], *value;
+					value = current + 8;
+					if (value[0] == '\0') {
+						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						return CMD_ARG_ERROR;
+					}
+					args->seqEntryIn = strdup(value);
+				} else if (g_str_has_prefix(word[i], "-outprefix=")) {
+					char *current = word[i], *value;
+					value = current + 8;
+					if (value[0] == '\0') {
+						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						return CMD_ARG_ERROR;
+					}
+					args->seqEntryOut = strdup(value);
+				}
+			}
+			else {
+				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+
+	apply_mergecfa_to_sequence(args);
+
+	return CMD_OK;
+}
+
 int process_seq_extractHa(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
