@@ -121,12 +121,13 @@ Searches the directory for files matching the pattern
 and returns the first occurence of the match if any
 */
 static gchar *wildcard_check(gchar *expression, int *status) {
-	gchar *out = NULL, *dirname = NULL, *basename = NULL;
+	gchar *out = NULL, *dirname = NULL, *basename = NULL, *currfile = NULL;
 	const gchar *file = NULL;
 	GDir *dir;
 	GError *error = NULL;
 	GPatternSpec *patternspec;
 	gint count = 0;
+	struct stat fileInfo, currfileInfo;
 
 	if (!g_utf8_strchr(expression, -1, '*')) {
 		return g_strdup(expression);
@@ -153,6 +154,14 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 #endif
 			if (!count) {
 				out = g_build_filename(dirname, file, NULL);
+				stat(out, &fileInfo);
+			} else {
+				currfile = g_build_filename(dirname, file, NULL);
+				stat(currfile, &currfileInfo);
+				if (currfileInfo.st_ctime > fileInfo.st_ctime) { // currfile is more recent
+					out = g_build_filename(dirname, file, NULL);
+					stat(out, &fileInfo);
+				}
 			}
 			count++;
 		}
@@ -160,13 +169,14 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 	if (count > 1) {
 		*status = PATHPARSE_ERR_MORE_THAN_ONE_HIT;
 		display_path_parse_error(*status, basename);
-		siril_log_color_message(_("Using first match: %s\n"), "salmon", out);
+		siril_log_color_message(_("Using most recent matching file: %s\n"), "salmon", out);
 	} else if (!count) {
 		*status = PATHPARSE_ERR_NO_HIT_FOUND;
 		display_path_parse_error(*status, expression);
 	}
 	g_free(dirname);
 	g_free(basename);
+	g_free(currfile);
 	g_pattern_spec_free(patternspec);
 	return out;
 }
