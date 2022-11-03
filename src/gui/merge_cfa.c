@@ -48,8 +48,10 @@ void reset_controls() {
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa1")));
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa2")));
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("filechooser_cfa3")));
-
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern")), 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("merge_cfa_seqapply")), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
+
 }
 
 void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
@@ -83,6 +85,14 @@ void on_merge_cfa_filechooser_CFA0_file_set(GtkFileChooser *filechooser, gpointe
 		cfa0_loaded = TRUE;
 	}
 }
+
+void on_merge_cfa_seqapply_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (gtk_toggle_button_get_active(button))
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), TRUE);
+	else
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
+}
+
 void on_merge_cfa_filechooser_CFA1_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	if (cfa1) clearfits(cfa1);
 	cfa1 = calloc(1, sizeof(fits));
