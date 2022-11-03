@@ -24,6 +24,7 @@
 #include "algos/extraction.h"
 #include "io/sequence.h"
 #include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 
@@ -43,6 +44,11 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		args->seq = &com.seq;
 		args->scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
 		args->seqEntry = gtk_entry_get_text(entrySplitCFA);
+		if (com.seq.type == SEQ_SER) {
+			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: sequence is SER"),
+						_("Only FITS format is supported for sequence CFA splitting"));
+			return;
+		}
 		switch (method) {
 			case 0:
 				if (args->seqEntry && args->seqEntry[0] == '\0')

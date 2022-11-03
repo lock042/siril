@@ -127,6 +127,11 @@ void on_merge_cfa_filechooser_CFA3_file_set(GtkFileChooser *filechooser, gpointe
 }
 
 void apply_to_seq() {
+	if (com.seq.type == SEQ_SER) {
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: sequence is SER"),
+				_("Only FITS format is supported for CFA merging"));
+		return;
+	}
 	GtkEntry *entryMergeCFAin = GTK_ENTRY(lookup_widget("entryMergeCFAin"));
 	GtkEntry *entryMergeCFAout = GTK_ENTRY(lookup_widget("entryMergeCFAout"));
 	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
