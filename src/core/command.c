@@ -6709,16 +6709,22 @@ int process_stop_ls(int nb) {
 
 int process_parse(int nb) {
 	pathparse_mode mode = PATHPARSE_MODE_WRITE;
-	if (nb >= 3) {
+	if (nb == 3) {
 		if (g_strcmp0(word[2], "-r")) {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
 			return CMD_ARG_ERROR;
 		}
 		mode = PATHPARSE_MODE_READ;
+	} else if (nb > 3) {
+		return CMD_WRONG_N_ARG;
 	}
 	int status;
 	gchar *expression = NULL;
-	expression = update_header_and_parse(&gfit, word[1], mode, &status);
+	if (gfit.header) { // fits or astrotiff - do not update the header
+		expression = path_parse(&gfit, word[1], mode, &status);
+	} else {
+		expression = update_header_and_parse(&gfit, word[1], mode, &status);
+	}
 	siril_log_message(_("String in: %s\n"), word[1]);
 	siril_log_message(_("String out: %s\n"), expression);
 	g_free(expression);
