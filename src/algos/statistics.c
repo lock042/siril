@@ -465,9 +465,11 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int super_layer, 
 	int layer = abs(super_layer);
 	if (selection && selection->h > 0 && selection->w > 0) {
 		// we have a selection, don't store anything
+		if (!fit) return NULL;
 		return statistics_internal(fit, super_layer, selection, option, NULL, fit->bitpix, threads);
 	} else if (super_layer < 0) {
 		// we are computing stats per filter on a CFA image, don't store anything
+		if (!fit) return NULL;
 		return statistics_internal(fit, super_layer, NULL, option, NULL, fit->bitpix, threads);
 	} else if (!seq || image_index < 0) {
 		// we have a single image, store in the fits
