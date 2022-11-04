@@ -4394,11 +4394,11 @@ int process_jsonmetadata(int nb) {
 	 * image, but we may use the loaded data if the option is provided, to
 	 * avoid reading it for nothing */
 	char *input_filename = word[1];
-	const char *output_filename = "out.json";
+	gchar *output_filename = NULL;
 	gboolean use_gfit = FALSE, compute_stats = TRUE;
 	for (int i = 2; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0')
-			output_filename = word[i] + 5;
+			output_filename = g_strdup(word[i] + 5);
 		else if (!strcmp(word[i], "-stats_from_loaded"))
 			use_gfit = TRUE;
 		else if (!strcmp(word[i], "-nostats"))
@@ -4408,6 +4408,8 @@ int process_jsonmetadata(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
+	if (!output_filename)
+		output_filename = replace_ext(input_filename, ".json");
 
 	int status = 0;
 	fitsfile *fptr;
@@ -4501,6 +4503,8 @@ int process_jsonmetadata(int nb) {
 		siril_log_message(_("Failed to save the JSON file %s: %s\n"), output_filename, err->message);
 		retval = CMD_GENERIC_ERROR;
 	}
+	else siril_log_message(_("Save metadata to the JSON file '%s'\n"), output_filename);
+	g_free(output_filename);
 
 #ifdef DEBUG_TEST
 	json_generator_set_pretty(gen, TRUE);
