@@ -41,19 +41,19 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 			break;
 		case PATHPARSE_ERR_WRONG_RESERVED_KEYWORD:
 		case PATHPARSE_ERR_WRONG_RESERVED_KEYWORD_NOFAIL:
-			msg = _("Wrong reserved keyword : ");
+			msg = _("Wrong reserved keyword: ");
 			break;
 		case PATHPARSE_ERR_LIBRARY_NOTDEFINED:
 		case PATHPARSE_ERR_LIBRARY_NOTDEFINED_NOFAIL:
-			msg = _("Library not defined in preferences : ");
+			msg = _("Library not defined in preferences: ");
 			break;
 		case PATHPARSE_ERR_KEY_NOT_FOUND:
 		case PATHPARSE_ERR_KEY_NOT_FOUND_NOFAIL:
-			msg = _("Key not found : ");
+			msg = _("Key not found: ");
 			break;
 		case PATHPARSE_ERR_WRONG_DATE:
 		case PATHPARSE_ERR_WRONG_DATE_NOFAIL:
-			msg = _("Wrong date : ");
+			msg = _("Wrong date: ");
 			break;
 		case PATHPARSE_ERR_WRONG_WCS:
 		case PATHPARSE_ERR_WRONG_WCS_NOFAIL:
@@ -61,19 +61,19 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 			break;
 		case PATHPARSE_ERR_UNSUPPORTED_FORMAT:
 		case PATHPARSE_ERR_UNSUPPORTED_FORMAT_NOFAIL:
-			msg = _("Unsupported format : ");
+			msg = _("Unsupported format: ");
 			break;
 		case PATHPARSE_ERR_MORE_THAN_ONE_HIT:
-			msg = _("More than one match for : ");
+			msg = _("More than one match for: ");
 			break;
 		case PATHPARSE_ERR_NO_HIT_FOUND:
-			msg = _("No match found for : ");
+			msg = _("No match found for: ");
 			break;
 		case PATHPARSE_ERR_NO_DIR:
-			msg = _("Problem with path : ");
+			msg = _("Problem with path: ");
 			break;
 		case PATHPARSE_ERR_TMPFIT:
-			msg = _("Could not create temp fit for header update : ");
+			msg = _("Could not create temp fit for header update: ");
 			break;
 		case PATHPARSE_ERR_WRONG_CALL:
 		default:
@@ -260,7 +260,6 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			}
 		} else {
 			g_snprintf(key, 9, "%s", subs[0]);
-			// strncpy(key, subs[0], 9);
 		}
 		if (buf[0] == '*') {
 			printf("Wildcard in READ mode\n");
