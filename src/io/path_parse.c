@@ -129,7 +129,7 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 	gint count = 0;
 	struct stat fileInfo, currfileInfo;
 
-	if (!g_utf8_strchr(expression, -1, '*')) {
+	if (!char_in_str(expression, '*')) {
 		return g_strdup(expression);
 	}
 
