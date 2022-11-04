@@ -780,6 +780,15 @@ int process_unsharp(int nb) {
 	return CMD_OK;
 }
 
+static gboolean crop_command_idle(gpointer arg) {
+	// operations that are not in the generic idle of notify_gfit_modified()
+	clear_stars_list(TRUE);
+	delete_selected_area();
+	reset_display_offset();
+	update_zoom_label();
+	return FALSE;
+}
+
 int process_crop(int nb) {
 	if (is_preview_active()) {
 		siril_log_message(_("It is impossible to crop the image when a filter with preview session is active. "
@@ -788,7 +797,9 @@ int process_crop(int nb) {
 	}
 
 	rectangle area;
-	if (!com.selection.h || !com.selection.w) {
+	if (com.selection.h && com.selection.w) {
+		area = com.selection;
+	} else {
 		if (nb == 5) {
 			gchar *end1, *end2;
 			area.x = g_ascii_strtoull(word[1], &end1, 10);
@@ -812,17 +823,14 @@ int process_crop(int nb) {
 			siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
 			return CMD_ARG_ERROR;
 		}
-	} else {
-		area = com.selection;
 	}
 
 	crop(&gfit, &area);
-	delete_selected_area();
-	reset_display_offset();
-	adjust_cutoff_from_updated_gfit();
-	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	gfit.history = g_slist_append(gfit.history,
+			g_strdup_printf(_("Crop (x=%d, y=%d, w=%d, h=%d)"),
+					area.x, area.y, area.w, area.h));
+	notify_gfit_modified();
+	siril_add_idle(crop_command_idle, NULL);
 
 	return CMD_OK;
 }
