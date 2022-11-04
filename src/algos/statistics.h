@@ -9,7 +9,7 @@ struct stat_data {
 	sequence *seq;
 	gchar *csv_name;
 	const gchar *seqEntry;	// not used for stats
-
+	gboolean cfa;
 };
 
 #define NULL_STATS -999999.0

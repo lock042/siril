@@ -746,12 +746,18 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 		rectangle *_, int threads) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
 
-	for (int layer = 0; layer < fit->naxes[2]; layer++) {
+	gboolean is_cfa = fit->bayer_pattern[0] != '\0' && s_args->cfa;
+	int nb_layers = (int)fit->naxes[2];
+	if (is_cfa)
+		nb_layers = 3;
+
+	for (int layer = 0; layer < nb_layers; layer++) {
 		/* we first check for data in cache */
-		imstats* stat = statistics(args->seq, i, NULL, layer, &s_args->selection, s_args->option, SINGLE_THREADED);
+		int super_layer = is_cfa ? -layer - 1 : layer;
+		imstats* stat = statistics(args->seq, i, NULL, super_layer, &s_args->selection, s_args->option, SINGLE_THREADED);
 		if (!stat) {
 			/* if no cache */
-			stat = statistics(args->seq, i, fit, layer, &s_args->selection, s_args->option, SINGLE_THREADED);
+			stat = statistics(args->seq, i, fit, super_layer, &s_args->selection, s_args->option, SINGLE_THREADED);
 			if (!stat) {
 				siril_log_message(_("Error: statistics computation failed.\n"));
 				return 1;

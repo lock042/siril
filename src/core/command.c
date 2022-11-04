@@ -4367,19 +4367,34 @@ int process_seq_stat(int nb) {
 	}
 
 	struct stat_data *args = calloc(1, sizeof(struct stat_data));
-
 	args->seq = seq;
 	args->seqEntry = ""; // not used
 	args->csv_name = g_strdup(word[2]);
+	args->selection = com.selection;
+	args->cfa = FALSE;
 
-	if (word[3] && !g_strcmp0(word[3], "main")) {
-		args->option = STATS_MAIN;
-	} else if (word[3] && !g_strcmp0(word[3], "full")) {
-		args->option = STATS_NORM | STATS_MAIN; // adding STATS_MAIN to include also AVGDEV and SQRTBWMV
-	} else {
-		args->option = STATS_BASIC;
+	if (nb > 3) {
+		if (!g_strcmp0(word[3], "main")) {
+			args->option = STATS_MAIN;
+		} else if (!g_strcmp0(word[3], "full")) {
+			args->option = STATS_NORM | STATS_MAIN; // adding STATS_MAIN to include also AVGDEV and SQRTBWMV
+		} else if (!g_strcmp0(word[3], "basic")) {
+			args->option = STATS_BASIC;
+		} else if (!g_strcmp0(word[3], "-cfa")) {
+			args->cfa = TRUE;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[3]);
+			return CMD_ARG_ERROR;
+		}
+		if (nb > 4) {
+			if (!g_strcmp0(word[4], "-cfa")) {
+				args->cfa = TRUE;
+			} else {
+				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[4]);
+				return CMD_ARG_ERROR;
+			}
+		}
 	}
-	com.selection = args->selection;
 
 	apply_stats_to_sequence(args);
 
