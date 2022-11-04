@@ -354,13 +354,6 @@ void read_fits_header(fits *fit) {
 		try_read_float_lo_hi(fit->fptr, &fit->lo, &fit->hi);
 	}
 
-	if (fit->orig_bitpix == SHORT_IMG) {
-		if (fit->lo)
-			fit->lo += 32768;
-		if (fit->hi)
-			fit->hi += 32768;
-	}
-
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
 	if (!status && 1.0 != scale) {
@@ -2078,7 +2071,8 @@ int save_opened_fits(fits *f) {
 	BYTE *data8;
 	long orig[3] = { 1L, 1L, 1L };
 	size_t i, pixel_count;
-	int type, status = 0;
+	int status = 0;
+	signed short *data;
 
 	save_fits_header(f);
 	pixel_count = f->naxes[0] * f->naxes[1] * f->naxes[2];
@@ -2110,11 +2104,25 @@ int save_opened_fits(fits *f) {
 		free(data8);
 		break;
 	case SHORT_IMG:
+		if (f->type == DATA_FLOAT) {
+			data = float_buffer_to_short(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
+		} else {
+			if (f->orig_bitpix == BYTE_IMG) {
+				conv_8_to_16(f->data, pixel_count);
+			}
+			data = ushort_buffer_to_short(f->data, f->naxes[0] * f->naxes[1] * f->naxes[2]);
+		}
+		if (fits_write_pix(f->fptr, TSHORT, orig, pixel_count, data, &status)) {
+			report_fits_error(status);
+			free(data);
+			return 1;
+		}
+		free(data);
+		break;
 	case USHORT_IMG:
-		type = f->bitpix == SHORT_IMG ? TSHORT : TUSHORT;
 		if (f->type == DATA_FLOAT) {
 			WORD *data = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
-			if (fits_write_pix(f->fptr, type, orig, pixel_count, data, &status)) {
+			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, data, &status)) {
 				report_fits_error(status);
 				free(data);
 				return 1;
@@ -2124,8 +2132,7 @@ int save_opened_fits(fits *f) {
 			if (f->orig_bitpix == BYTE_IMG) {
 				conv_8_to_16(f->data, pixel_count);
 			}
-			if (fits_write_pix(f->fptr, type, orig, pixel_count, f->data,
-					&status)) {
+			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, f->data, &status)) {
 				report_fits_error(status);
 				return 1;
 			}
