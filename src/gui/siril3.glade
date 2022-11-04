@@ -10549,14 +10549,43 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
           </packing>
         </child>
         <child>
-          <object class="GtkCheckButton" id="statCheckButton">
-            <property name="label" translatable="yes">Normalized Real [0, 1]</property>
+          <object class="GtkBox">
             <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">False</property>
-            <property name="halign">start</property>
-            <property name="draw-indicator">True</property>
-            <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no"/>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkCheckButton" id="statCheckButton">
+                <property name="label" translatable="yes">Normalized Real [0, 1]</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cfastatsCheckButton">
+                <property name="label" translatable="yes">Per CFA channel</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Compute statistics on pixels that have the same filter as the corresponding channel, for CFA (non-demosaiced) images.</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
