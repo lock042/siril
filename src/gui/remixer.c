@@ -946,7 +946,6 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 	close_histograms(TRUE, FALSE);
 	if (left_loaded) {
 		clearfits(&fit_left);
-		clearfits(&fit_left_calc);
 		left_loaded = FALSE;
 	}
 	filename_left = g_strdup(gtk_file_chooser_get_filename(filechooser));
@@ -1000,7 +999,6 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 	close_histograms(FALSE, TRUE);
 	if (right_loaded) {
 		clearfits(&fit_right);
-		clearfits(&fit_right_calc);
 		right_loaded = FALSE;
 	}
 	filename_right = g_strdup(gtk_file_chooser_get_filename(filechooser));
