@@ -91,6 +91,7 @@ void on_merge_cfa_seqapply_toggled(GtkToggleButton *button, gpointer user_data) 
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), TRUE);
 	else
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
+	gtk_window_resize(GTK_WINDOW(lookup_widget("merge_cfa_dialog")), 1, 1);
 }
 
 void on_merge_cfa_filechooser_CFA1_file_set(GtkFileChooser *filechooser, gpointer user_data) {
