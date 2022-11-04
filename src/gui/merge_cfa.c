@@ -36,7 +36,7 @@
 #include "gui/progress_and_log.h"
 
 static gchar *f_cfa0 = NULL, *f_cfa1 = NULL, *f_cfa2 = NULL, *f_cfa3 = NULL;
-fits *cfa0 = NULL, *cfa1 = NULL, *cfa2 = NULL, *cfa3 = NULL;
+fits cfa0 = { 0 }, cfa1 = { 0 }, cfa2 = { 0 }, cfa3 = { 0 };
 static gboolean cfa0_loaded = FALSE, cfa1_loaded = FALSE, cfa2_loaded = FALSE, cfa3_loaded = FALSE;
 
 void reset_controls() {
@@ -56,10 +56,10 @@ void reset_controls() {
 
 void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
 	reset_controls();
-	if (cfa0) clearfits(cfa0);
-	if (cfa1) clearfits(cfa1);
-	if (cfa2) clearfits(cfa2);
-	if (cfa3) clearfits(cfa3);
+	clearfits(&cfa0);
+	clearfits(&cfa1);
+	clearfits(&cfa2);
+	clearfits(&cfa3);
 	siril_close_dialog("merge_cfa_dialog");
 }
 
@@ -71,11 +71,18 @@ void on_merge_cfa_show(GtkWidget *widget, gpointer user_data) {
 	reset_controls();
 }
 
+void on_merge_cfa_seqapply_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (gtk_toggle_button_get_active(button))
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), TRUE);
+	else
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
+	gtk_window_resize(GTK_WINDOW(lookup_widget("merge_cfa_dialog")), 1, 1);
+}
+
 void on_merge_cfa_filechooser_CFA0_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	if (cfa0) clearfits(cfa0);
-	cfa0 = calloc(1, sizeof(fits));
+	clearfits(&cfa0);
 	f_cfa0 = g_strdup(gtk_file_chooser_get_filename(filechooser));
-	if (readfits(f_cfa0, cfa0, NULL, FALSE)) {
+	if (readfits(f_cfa0, &cfa0, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
 		gtk_file_chooser_unselect_all(filechooser);
@@ -86,19 +93,10 @@ void on_merge_cfa_filechooser_CFA0_file_set(GtkFileChooser *filechooser, gpointe
 	}
 }
 
-void on_merge_cfa_seqapply_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(button))
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), TRUE);
-	else
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
-	gtk_window_resize(GTK_WINDOW(lookup_widget("merge_cfa_dialog")), 1, 1);
-}
-
 void on_merge_cfa_filechooser_CFA1_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	if (cfa1) clearfits(cfa1);
-	cfa1 = calloc(1, sizeof(fits));
+	clearfits(&cfa1);
 	f_cfa1 = g_strdup(gtk_file_chooser_get_filename(filechooser));
-	if (readfits(f_cfa1, cfa1, NULL, FALSE)) {
+	if (readfits(f_cfa1, &cfa1, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
 		gtk_file_chooser_unselect_all(filechooser);
@@ -109,10 +107,9 @@ void on_merge_cfa_filechooser_CFA1_file_set(GtkFileChooser *filechooser, gpointe
 	}
 }
 void on_merge_cfa_filechooser_CFA2_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	if (cfa2) clearfits(cfa2);
-	cfa2 = calloc(1, sizeof(fits));
+	clearfits(&cfa2);
 	f_cfa2 = g_strdup(gtk_file_chooser_get_filename(filechooser));
-	if (readfits(f_cfa2, cfa2, NULL, FALSE)) {
+	if (readfits(f_cfa2, &cfa2, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
 		gtk_file_chooser_unselect_all(filechooser);
@@ -123,10 +120,9 @@ void on_merge_cfa_filechooser_CFA2_file_set(GtkFileChooser *filechooser, gpointe
 	}
 }
 void on_merge_cfa_filechooser_CFA3_file_set(GtkFileChooser *filechooser, gpointer user_data) {
-	if (cfa3) clearfits(cfa3);
-	cfa3 = calloc(1, sizeof(fits));
+	clearfits(&cfa3);
 	f_cfa3 = g_strdup(gtk_file_chooser_get_filename(filechooser));
-	if (readfits(f_cfa3, cfa3, NULL, FALSE)) {
+	if (readfits(f_cfa3, &cfa3, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
 		gtk_file_chooser_unselect_all(filechooser);
@@ -171,10 +167,10 @@ void apply_to_img() {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: images are not all loaded"),
 				_("Merge CFA cannot proceed"));
 	} else {
-		gboolean x_compat = (cfa0->naxes[0] == cfa1->naxes[0] && cfa1->naxes[0] == cfa2->naxes[0] && cfa2->naxes[0] == cfa3->naxes[0]);
-		gboolean y_compat = (cfa0->naxes[1] == cfa1->naxes[1] && cfa1->naxes[1] == cfa2->naxes[1] && cfa2->naxes[1] == cfa3->naxes[1]);
-		gboolean c_compat = (cfa0->naxes[2] == cfa1->naxes[2] && cfa1->naxes[2] == cfa2->naxes[2] && cfa2->naxes[2] == cfa3->naxes[2] && cfa3->naxes[2] == 1);
-		gboolean t_compat = (cfa0->type == cfa1->type && cfa1->type == cfa2->type && cfa2->type == cfa3->type);
+		gboolean x_compat = (cfa0.naxes[0] == cfa1.naxes[0] && cfa1.naxes[0] == cfa2.naxes[0] && cfa2.naxes[0] == cfa3.naxes[0]);
+		gboolean y_compat = (cfa0.naxes[1] == cfa1.naxes[1] && cfa1.naxes[1] == cfa2.naxes[1] && cfa2.naxes[1] == cfa3.naxes[1]);
+		gboolean c_compat = (cfa0.naxes[2] == cfa1.naxes[2] && cfa1.naxes[2] == cfa2.naxes[2] && cfa2.naxes[2] == cfa3.naxes[2] && cfa3.naxes[2] == 1);
+		gboolean t_compat = (cfa0.type == cfa1.type && cfa1.type == cfa2.type && cfa2.type == cfa3.type);
 		if (!(x_compat && y_compat && c_compat && t_compat)) {
 			siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
 			if(!x_compat)
@@ -188,7 +184,7 @@ void apply_to_img() {
 			return;
 		} else {
 			set_cursor_waiting(TRUE);
-			out = merge_cfa(cfa0, cfa1, cfa2, cfa3, pattern);
+			out = merge_cfa(&cfa0, &cfa1, &cfa2, &cfa3, pattern);
 			siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
 			close_single_image();
 			copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);

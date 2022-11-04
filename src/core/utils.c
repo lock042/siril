@@ -1297,6 +1297,18 @@ g_string_replace (GString     *string,
 }
 #endif
 
+/*
+ * str_replace()
+ *
+ * Substring replacement utility function for use with basic null
+ * terminated char* strings that can't be handled with the glib
+ * functions of similar purpose.
+ *
+ * Calling function must initialize a char* to hold the result.
+ * result is malloc()ed here and is the responsibility of the calling
+ * function to free.
+ */
+
 char *str_replace(char *orig, char *rep, char *with) {
     char *result; // the return string
     char *ins;    // the next insert point
@@ -1305,6 +1317,7 @@ char *str_replace(char *orig, char *rep, char *with) {
     int len_with; // length of with (the string to replace rep with)
     int len_front; // distance between rep and end of last rep
     int count;    // number of replacements
+
 
     // sanity checks and initialization
     if (!orig || !rep)

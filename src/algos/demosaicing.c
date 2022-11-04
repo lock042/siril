@@ -1391,6 +1391,8 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern pattern) {
 	fits *out = NULL;
 
+	// The function should always be called with input fits defined
+	assert(cfa0 != NULL && cfa1 != NULL && cfa2 != NULL && cfa3 != NULL);
 	// Check input files are compatible
 	gboolean x_compat = (cfa0->naxes[0] == cfa1->naxes[0] && cfa1->naxes[0] == cfa2->naxes[0] && cfa2->naxes[0] == cfa3->naxes[0]);
 	gboolean y_compat = (cfa0->naxes[1] == cfa1->naxes[1] && cfa1->naxes[1] == cfa2->naxes[1] && cfa2->naxes[1] == cfa3->naxes[1]);
@@ -1442,41 +1444,27 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 			}
 		}
 	}
-
 	// Set Bayer pattern in FITS header
 	switch (pattern) {
 		case BAYER_FILTER_RGGB:
-			strncpy(out->bayer_pattern, "RGGB", 5);
+			strcpy(out->bayer_pattern, "RGGB");
 			break;
 		case BAYER_FILTER_BGGR:
-			strncpy(out->bayer_pattern, "BGGR", 5);
+			strcpy(out->bayer_pattern, "BGGR");
 			break;
 		case BAYER_FILTER_GRBG:
-			strncpy(out->bayer_pattern, "GRBG", 5);
+			strcpy(out->bayer_pattern, "GRBG");
 			break;
 		case BAYER_FILTER_GBRG:
-			strncpy(out->bayer_pattern, "GBRG", 5);
+			strcpy(out->bayer_pattern, "GBRG");
 			break;
 		default:
 			break;
 	}
-
-	if (cfa0) {
-		clearfits (cfa0);
-		cfa0 = NULL;
-	}
-	if (cfa1) {
-		clearfits (cfa1);
-		cfa1 = NULL;
-	}
-	if (cfa2) {
-		clearfits (cfa2);
-		cfa2 = NULL;
-	}
-	if (cfa3) {
-		clearfits (cfa3);
-		cfa3 = NULL;
-	}
+	clearfits (cfa0);
+	clearfits (cfa1);
+	clearfits (cfa2);
+	clearfits (cfa3);
 	siril_debug_print("Merge CFA complete\n");
 	return out;
 }

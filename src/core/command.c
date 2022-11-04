@@ -584,12 +584,27 @@ int process_savepnm(int nb){
 	return CMD_OK;
 }
 
+static gboolean merge_cfa_idle(gpointer arg) {
+	initialize_display_mode();
+	update_zoom_label();
+	display_filename();
+	set_precision_switch();
+	sliders_mode_set_state(gui.sliders);
+	init_layers_hi_and_lo_values(MIPSLOHI);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+	set_display_mode();
+	redraw(REMAP_ALL);
+	sequence_list_change_current();
+	return FALSE;
+}
+
 int process_rebayer(int nb){
 	char filename[256];
-	fits *cfa0 = calloc(1, sizeof(fits));
-	fits *cfa1 = calloc(1, sizeof(fits));
-	fits *cfa2 = calloc(1, sizeof(fits));
-	fits *cfa3 = calloc(1, sizeof(fits));
+	fits cfa0 = { 0 };
+	fits cfa1 = { 0 };
+	fits cfa2 = { 0 };
+	fits cfa3 = { 0 };
 	fits *out = NULL;
 	sensor_pattern pattern = -1;
 	if (nb < 5) {
@@ -602,19 +617,19 @@ int process_rebayer(int nb){
 	strncpy(filename, word[1], 250);
 	filename[250] = '\0';
 	expand_home_in_filename(filename, 256);
-	int retval = readfits(filename, cfa0, NULL, FALSE);
+	int retval = readfits(filename, &cfa0, NULL, FALSE);
 	strncpy(filename, word[2], 250);
 	filename[250] = '\0';
 	expand_home_in_filename(filename, 256);
-	retval += readfits(filename, cfa1, NULL, FALSE);
+	retval += readfits(filename, &cfa1, NULL, FALSE);
 	strncpy(filename, word[3], 250);
 	filename[250] = '\0';
 	expand_home_in_filename(filename, 256);
-	retval += readfits(filename, cfa2, NULL, FALSE);
+	retval += readfits(filename, &cfa2, NULL, FALSE);
 	strncpy(filename, word[4], 250);
 	filename[250] = '\0';
 	expand_home_in_filename(filename, 256);
-	retval += readfits(filename, cfa3, NULL, FALSE);
+	retval += readfits(filename, &cfa3, NULL, FALSE);
 	if (retval) {
 		siril_log_color_message(_("Error loading files!\n"), "red");
 		return CMD_FILE_NOT_FOUND;
@@ -636,7 +651,7 @@ int process_rebayer(int nb){
 		return CMD_ARG_ERROR;
 	}
 
-	out = merge_cfa(cfa0, cfa1, cfa2, cfa3, pattern);
+	out = merge_cfa(&cfa0, &cfa1, &cfa2, &cfa3, pattern);
 	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
 	close_single_image();
 	copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
@@ -646,20 +661,8 @@ int process_rebayer(int nb){
 	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
 	open_single_image_from_gfit();
-	initialize_display_mode();
-	update_zoom_label();
-	display_filename();
-	set_precision_switch();
-	sliders_mode_set_state(gui.sliders);
-	init_layers_hi_and_lo_values(MIPSLOHI);
-	set_cutoff_sliders_max_values();
-	set_cutoff_sliders_values();
-	set_display_mode();
-	redraw(REMAP_ALL);
-
-	sequence_list_change_current();
-
 	set_cursor_waiting(FALSE);
+	siril_add_idle(merge_cfa_idle, NULL);
 	return CMD_OK;
 }
 
@@ -4143,9 +4146,9 @@ int process_extractHaOIII(int nb) {
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
 				return CMD_ARG_ERROR;
-			} else if (!strcmp(value, "ha")) {
+			} else if (!strcasecmp(value, "ha")) {
 				scaling = 1;
-			} else if (!strcmp(value, "oiii")) {
+			} else if (!strcasecmp(value, "oiii")) {
 				scaling = 2;
 			}
 		}
@@ -4301,20 +4304,17 @@ int process_seq_merge_cfa(int nb) {
 
 	if (!strcmp(word[2], "RGGB")) {
 		args->pattern = BAYER_FILTER_RGGB;
-		siril_log_message(_("Reconstructing RGGB Bayer matrix.\n"));
 	} else if (!strcmp(word[2], "BGGR")) {
 		args->pattern = BAYER_FILTER_BGGR;
-		siril_log_message(_("Reconstructing BGGR Bayer matrix.\n"));
 	} else if (!strcmp(word[2], "GBRG")) {
 		args->pattern = BAYER_FILTER_GBRG;
-		siril_log_message(_("Reconstructing GBRG Bayer matrix.\n"));
 	} else if (!strcmp(word[2], "GRBG")) {
 		args->pattern = BAYER_FILTER_GRBG;
-		siril_log_message(_("Reconstructing GRBG Bayer matrix.\n"));
 	} else {
 		siril_log_color_message(_("Invalid Bayer matrix specified!\n"), "red");
 		return CMD_ARG_ERROR;
 	}
+	siril_log_message(_("Reconstructing %s Bayer matrix.\n"), word[2]);
 	args->seq = seq;
 	args->seqEntryIn = "CFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
 	args->seqEntryOut = "mCFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
