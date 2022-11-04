@@ -739,8 +739,9 @@ static void free_stat_list(gchar **list, int nb) {
 
 static int stat_prepare_hook(struct generic_seq_args *args) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
-	s_args->list = calloc(args->nb_filtered_images * s_args->seq->nb_layers, sizeof(char*));
-
+	int nb_layers = s_args->cfa ? 3 : s_args->seq->nb_layers;
+	// cfa may be set to TRUE for a non CFA sequence, but we don't know yet, so we still alloc for 3
+	s_args->list = calloc(args->nb_filtered_images * nb_layers, sizeof(char*));
 	return 0;
 }
 
@@ -749,11 +750,12 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 	struct stat_data *s_args = (struct stat_data*) args->user;
 
 	gboolean is_cfa = fit->bayer_pattern[0] != '\0' && s_args->cfa;
-	int nb_layers = (int)fit->naxes[2];
+	int nb_image_layers = (int)fit->naxes[2];
 	if (is_cfa)
-		nb_layers = 3;
+		nb_image_layers = 3;
+	int nb_data_layers = s_args->cfa ? 3 : s_args->seq->nb_layers;
 
-	for (int layer = 0; layer < nb_layers; layer++) {
+	for (int layer = 0; layer < nb_image_layers; layer++) {
 		/* we first check for data in cache */
 		int super_layer = is_cfa ? -layer - 1 : layer;
 		imstats* stat = statistics(args->seq, i, NULL, super_layer, &s_args->selection, s_args->option, SINGLE_THREADED);
@@ -766,7 +768,7 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 			}
 		}
 
-		int new_index = o * s_args->seq->nb_layers;
+		int new_index = o * nb_data_layers;
 		if (s_args->option == (STATS_BASIC)) {
 			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
 					i + 1,
@@ -818,7 +820,8 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 	GError *error = NULL;
 	struct stat_data *s_args = (struct stat_data*) args->user;
 
-	int size = s_args->seq->nb_layers * args->nb_filtered_images;
+	int nb_data_layers = s_args->cfa ? 3 : s_args->seq->nb_layers;
+	int size = nb_data_layers * args->nb_filtered_images;
 	GFile *file = g_file_new_for_path(s_args->csv_name);
 	GOutputStream* output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
 	g_free(s_args->csv_name);
@@ -851,7 +854,7 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 		return 1;
 	}
 
-	for (int i = 0; i < args->nb_filtered_images * s_args->seq->nb_layers; i++) {
+	for (int i = 0; i < args->nb_filtered_images * nb_data_layers; i++) {
 		if (!s_args->list[i]) continue; //stats can fail
 		if (!g_output_stream_write_all(output_stream, s_args->list[i], strlen(s_args->list[i]), NULL, NULL, &error)) {
 			g_warning("%s\n", error->message);

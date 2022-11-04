@@ -4512,6 +4512,7 @@ int process_jsonmetadata(int nb) {
 	JsonGenerator *gen = json_generator_new();
 	JsonNode *root = json_builder_get_root(builder);
 	json_generator_set_root(gen, root);
+	json_generator_set_pretty(gen, TRUE);
 	GError *err = NULL;
 	int retval = CMD_OK;
 	if (!json_generator_to_file(gen, output_filename, &err)) {
@@ -4522,7 +4523,6 @@ int process_jsonmetadata(int nb) {
 	g_free(output_filename);
 
 #ifdef DEBUG_TEST
-	json_generator_set_pretty(gen, TRUE);
 	gchar *str = json_generator_to_data(gen, NULL);
 	printf("JSON:\n%s\n", str);
 #endif
