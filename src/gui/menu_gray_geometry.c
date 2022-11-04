@@ -254,6 +254,7 @@ void siril_crop() {
 						"Please consider to close the filter dialog first."));
 		return;
 	}
+	clear_stars_list(TRUE);
 	crop(&gfit, &com.selection);
 	delete_selected_area();
 	reset_display_offset();
