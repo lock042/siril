@@ -6690,14 +6690,14 @@ int process_nomad(int nb) {
 	float limit_mag = 13.0f;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		return 1;
+		return CMD_FOR_PLATE_SOLVED;
 	}
 	if (nb == 2) {
 		gchar *end;
 		limit_mag = g_ascii_strtod(word[1], &end);
 		if (end == word[1]) {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
-			return 1;
+			return CMD_ARG_ERROR;
 		}
 	}
 	center2wcs(&gfit, &ra, &dec);
@@ -6707,7 +6707,7 @@ int process_nomad(int nb) {
 	siril_debug_print("centre coords: %f, %f, radius: %f\n", ra, dec, radius);
 	if (get_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
 		siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 
 	siril_debug_print("Got %d stars from the trixels of this target (mag limit %.2f)\n", nb_stars, limit_mag);
@@ -6732,7 +6732,7 @@ int process_nomad(int nb) {
 		com.stars[j] = NULL;
 	siril_log_message("%d stars from local catalogues found with valid photometry data in the image (mag limit %.2f)\n", j, limit_mag);
 	redraw(REDRAW_OVERLAY);
-	return 0;
+	return CMD_OK;
 }
 
 int process_start_ls(int nb) {
