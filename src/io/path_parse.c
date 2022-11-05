@@ -63,6 +63,10 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 		case PATHPARSE_ERR_UNSUPPORTED_FORMAT_NOFAIL:
 			msg = _("Unsupported format: ");
 			break;
+		case PATHPARSE_ERR_NOSEQLOADED:
+		case PATHPARSE_ERR_NOSEQLOADED_NOFAIL:
+			msg = _("No sequence loaded");
+			break;
 		case PATHPARSE_ERR_MORE_THAN_ONE_HIT:
 			msg = _("More than one match for: ");
 			break;
@@ -242,7 +246,27 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 		if (!tokens[i] || tokens[i][0] == '\0')
 			continue;
 		gchar **subs = g_strsplit(tokens[i], ":", 2);
+		gchar buf[FLEN_VALUE];
+		gchar key[9];
+		buf[0] = '\0';
 		if (g_strv_length(subs) == 1) {
+			if (!g_strcmp0(subs[0], "seqname")) { // reserved keyword $seqname$
+				if (sequence_is_loaded()) {
+					g_snprintf(buf, FLEN_VALUE - 1, "%s", com.seq.seqname);
+					g_free(tokens[i]);
+					tokens[i] = g_strdup(buf);
+					g_strfreev(subs);
+					continue;
+				} else {
+					g_snprintf(key, 9, "%s", subs[0]); // to be used if no fail
+					*status = nofail * PATHPARSE_ERR_NOSEQLOADED;
+					display_path_parse_error(*status, key);
+					if (*status > 0) {
+						g_strfreev(subs);
+						goto free_and_exit;
+					}
+				}
+			}
 			g_strfreev(subs);
 			continue;
 		}
@@ -250,9 +274,6 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			g_strfreev(subs);
 			continue;
 		}
-		gchar buf[FLEN_VALUE];
-		gchar key[9];
-		buf[0] = '\0';
 		// Check if expression starts with a * wildcard
 		// Behavior will depend if we are in read or write mode
 		if (subs[0][0] == '*') {
