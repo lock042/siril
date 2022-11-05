@@ -135,9 +135,9 @@ static void update_prepro_preferences() {
 		com.pref.prepro.stack_default = NULL;
 	}
 	const gchar *stackentry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("stack_default_entry")));
-	if (stackentry) {
+	if (stackentry && stackentry[0] != '\0') {
 		com.pref.prepro.stack_default = g_strdup(stackentry);
-		com.pref.prepro.use_stack_default = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")));
+		com.pref.prepro.use_stack_default = (com.pref.prepro.stack_default) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")));
 	}
 
 	com.pref.prepro.xtrans_af.x = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_x"))), NULL, 10);
@@ -473,6 +473,8 @@ void update_preferences_from_model() {
 	if (pref->prepro.stack_default) {
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("stack_default_entry")),pref->prepro.stack_default);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")), pref->prepro.use_stack_default);
+	} else {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")), FALSE);
 	}
 
 	gchar tmp[256];
