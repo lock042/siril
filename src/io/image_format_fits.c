@@ -741,9 +741,9 @@ GSList *read_header_keyvals_strings(fitsfile *fptr) {
 
 	GSList *entries = NULL;
 	for (int n = 1; n <= nkeys; n++) {
-		char key[FLEN_KEYWORD], value[FLEN_VALUE];
+		char key[FLEN_KEYWORD], value[FLEN_VALUE], comment[FLEN_COMMENT];
 		status = 0;
-		if (fits_read_keyn(fptr, n, key, value, NULL, &status)) {
+		if (fits_read_keyn(fptr, n, key, value, comment, &status)) {
 			report_fits_error(status);
 			break;
 		}
@@ -758,13 +758,15 @@ GSList *read_header_keyvals_strings(fitsfile *fptr) {
 			value[len] = '\0';
 			g_strchomp(value);
 		}
+		if (value[0] == '\0' && comment[0] == '\0')
+			continue;
 		header_record *r = malloc(sizeof(header_record));
 		if (!r) {
 			PRINT_ALLOC_ERR;
 			break;
 		}
 		r->key = strdup(key);
-		r->value = strdup(value);
+		r->value = strdup(value[0] == '\0' ? comment : value);
 		entries = g_slist_prepend(entries, r);
 	}
 	entries = g_slist_reverse(entries);
