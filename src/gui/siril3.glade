@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.40.0
 
 Copyright (C) The free-astro development team, 2019
 
@@ -10132,14 +10132,43 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
           </packing>
         </child>
         <child>
-          <object class="GtkCheckButton" id="statCheckButton">
-            <property name="label" translatable="yes">Normalized Real [0, 1]</property>
+          <object class="GtkBox">
             <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">False</property>
-            <property name="halign">start</property>
-            <property name="draw-indicator">True</property>
-            <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no"/>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkCheckButton" id="statCheckButton">
+                <property name="label" translatable="yes">Normalized Real [0, 1]</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cfastatsCheckButton">
+                <property name="label" translatable="yes">Per CFA channel</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Compute statistics on pixels that have the same filter as the corresponding channel, for CFA (non-demosaiced) images.</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_statCheckButton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -23889,6 +23918,12 @@ If the selection is empty, the whole image will be used as reference.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">1</property>
   </object>
+  <object class="GtkAdjustment" id="xtranspass_adj">
+    <property name="lower">1</property>
+    <property name="upper">4</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
   <object class="GtkAdjustment" id="ybayeroff_adj">
     <property name="upper">1</property>
     <property name="step-increment">1</property>
@@ -24025,7 +24060,7 @@ If the selection is empty, the whole image will be used as reference.</property>
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=2 n-rows=7 -->
+                              <!-- n-columns=2 n-rows=8 -->
                               <object class="GtkGrid" id="grid22">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -24217,6 +24252,35 @@ For the XTRANS sensor, a special algorithm called &lt;b&gt;Markesteijn&lt;/b&gt;
                                   <packing>
                                     <property name="left-attach">1</property>
                                     <property name="top-attach">4</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="xtranspasses_label">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Number of passes for the X-Trans
+Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better but slower.</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">X-Trans demosaicing quality</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">7</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="xtranspass_spin">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Number of passes for the X-Trans
+Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better but slower.</property>
+                                    <property name="halign">start</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="adjustment">xtranspass_adj</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">7</property>
                                   </packing>
                                 </child>
                               </object>

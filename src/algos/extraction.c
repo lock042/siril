@@ -136,9 +136,7 @@ sensor_pattern get_bayer_pattern(fits *fit) {
 	/* Get Bayer informations from header if available */
 	sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
 	if (com.pref.debayer.use_bayer_header) {
-		sensor_pattern bayer;
-		bayer = retrieveBayerPatternFromChar(fit->bayer_pattern);
-
+		sensor_pattern bayer = get_cfa_pattern_index_from_string(fit->bayer_pattern);
 		if (bayer <= BAYER_FILTER_MAX) {
 			if (bayer != tmp_pattern) {
 				if (bayer == BAYER_FILTER_NONE) {
@@ -161,7 +159,7 @@ sensor_pattern get_bayer_pattern(fits *fit) {
 				filter_pattern[tmp_pattern]);
 	}
 
-	retrieve_Bayer_pattern(fit, &tmp_pattern);
+	adjust_Bayer_pattern(fit, &tmp_pattern);
 	return tmp_pattern;
 }
 

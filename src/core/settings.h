@@ -49,7 +49,10 @@ typedef enum {
 	BAYER_FILTER_BGGR,
 	BAYER_FILTER_GBRG,
 	BAYER_FILTER_GRBG,
-	XTRANS_FILTER,
+	XTRANS_FILTER_1,
+	XTRANS_FILTER_2,
+	XTRANS_FILTER_3,
+	XTRANS_FILTER_4,
 	BAYER_FILTER_NONE = -1		//case where pattern is undefined or untested
 } sensor_pattern;
 #define BAYER_FILTER_MIN BAYER_FILTER_RGGB
@@ -106,6 +109,7 @@ struct debayer_config {
 	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
 	gboolean top_down;			// debayer top-down orientation
 	int xbayeroff, ybayeroff;		// x and y Bayer offsets
+	int xtrans_passes;			// number of passes for X-Trans debayer
 };
 
 // GUI data backup

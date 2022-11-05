@@ -24,6 +24,7 @@ v1.2.0 mmm dd, 2022
 * Added a warning when images are negative on calibration
 * Added calibration details in the FITS history
 * Added saving formulas (presets) in Pixel Math
+* Added the possibility to run statistics on individual filters of CFA images
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored global registration and added 2pass and Apply Existing methods
@@ -50,6 +51,8 @@ v1.2.0 mmm dd, 2022
 * Fixed photometry analysis of stars with negative pixels around them
 * Fixed dates keywords in sum and min/max algorithms
 * Fixed FITS header preservation on RGB composition
+* Fixed possible FITSEQ infinite loop and inconsistent numbering caused by hidden files in conversion
+* Fixed sequence closing in script processing after each command
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
 

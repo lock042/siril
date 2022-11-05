@@ -705,6 +705,49 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 	return retval;
 }
 
+GSList *read_header_keyvals_strings(fitsfile *fptr) {
+	int nkeys, status = 0;
+	if (fits_get_hdrspace(fptr, &nkeys, NULL, &status)) {
+		report_fits_error(status);
+		return NULL;
+	}
+	if (fits_read_record(fptr, 0, NULL, &status))
+		return NULL;
+
+	GSList *entries = NULL;
+	for (int n = 1; n <= nkeys; n++) {
+		char key[FLEN_KEYWORD], value[FLEN_VALUE], comment[FLEN_COMMENT];
+		status = 0;
+		if (fits_read_keyn(fptr, n, key, value, comment, &status)) {
+			report_fits_error(status);
+			break;
+		}
+		if (!strcmp(key, "COMMENT"))
+			continue;
+		int len = strlen(value);
+		// pretty-print strings: remove quotes and trailing spaces
+		if (len > 0 && value[0] == '\'' && value[len-1] == '\'') {
+			len -= 2;
+			for (int i = 0; i < len; i++)
+				value[i] = value[i+1];
+			value[len] = '\0';
+			g_strchomp(value);
+		}
+		if (value[0] == '\0' && comment[0] == '\0')
+			continue;
+		header_record *r = malloc(sizeof(header_record));
+		if (!r) {
+			PRINT_ALLOC_ERR;
+			break;
+		}
+		r->key = strdup(key);
+		r->value = strdup(value[0] == '\0' ? comment : value);
+		entries = g_slist_prepend(entries, r);
+	}
+	entries = g_slist_reverse(entries);
+	return entries;
+}
+
 /* copy the header for the current HDU in a heap-allocated string */
 static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int *strlength) {
 	int nkeys, status = 0;

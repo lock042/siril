@@ -796,7 +796,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		}
 	} else if (open_debayer && type_ser == SER_MONO && !com.pref.debayer.use_bayer_header) {
 		pattern = filter_pattern[com.pref.debayer.bayer_pattern];
-		type_ser = retrieveBayerPatternFromChar(pattern) + 8;
+		type_ser = get_cfa_pattern_index_from_string(pattern) + 8;
 	}
 	if (pattern) {
 		strcpy(fit->bayer_pattern, pattern);

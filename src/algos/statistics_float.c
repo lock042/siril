@@ -44,6 +44,7 @@
 #include "gui/dialogs.h"
 #include "sorting.h"
 #include "statistics.h"
+#include "demosaicing.h"
 #include "gui/progress_and_log.h"
 
 #define ACTIVATE_NULLCHECK_FLOAT 1
@@ -298,6 +299,13 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 	int compute_median = (option & STATS_BASIC) || (option & STATS_AVGDEV) ||
 		(option & STATS_MAD) || (option & STATS_BWMV) || (option & STATS_IKSS);
 
+	if (layer < 0) {
+		if (!fit)
+			return NULL;	// not in cache, don't compute
+		g_assert(!selection || selection->h <= 0 || selection->w <= 0);
+		// selection is not supported because not useful for now
+	}
+
 	if (!stat) {
 		allocate_stats(&stat);
 		if (!stat) return NULL;
@@ -317,9 +325,24 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 			select_area_float(fit, data, layer, selection);
 			free_data = 1;
 		} else {
-			nx = fit->rx;
-			ny = fit->ry;
-			data = fit->fpdata[layer];
+			if (layer >= 0) {
+				nx = fit->rx;
+				ny = fit->ry;
+				data = fit->fpdata[layer];
+			} else {
+				/* we just create a buffer containing all pixels that have the
+				 * filter number -layer, it's not a real image but ok for stats
+				 */
+				size_t newsz;
+				data = extract_CFA_buffer_float(fit, -layer - 1, &newsz);
+				if (!data) {
+					siril_log_color_message(_("Failed to compute CFA statistics\n"), "red");
+					return NULL;
+				}
+				nx = newsz;
+				ny = 1;
+				free_data = 1;
+			}
 		}
 		stat->total = nx * ny;
 		if (stat->total == 0L) {
