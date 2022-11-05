@@ -34,6 +34,9 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 	gchar *endstr = (err < 0) ? _("going on") : _("aborting");
 	gchar *msg = NULL;
 	gchar *color = (err < 0) ? "salmon" : "red";
+	gchar addbuf[FLEN_VALUE];
+	g_snprintf(addbuf, FLEN_VALUE - 1, "%s", (!addstr) ? "" : addstr);
+
 	switch (err) {
 		case PATHPARSE_ERR_HEADER_NULL:
 		case PATHPARSE_ERR_HEADER_NULL_NOFAIL:
@@ -84,7 +87,7 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 			msg = _("Internal error");
 			break;
 	}
-	siril_log_color_message(_("%s %d - %s%s - %s\n"), color , startstr, err, msg, addstr, endstr);
+	siril_log_color_message(_("%s %d - %s%s - %s\n"), color , startstr, err, msg, addbuf, endstr);
 }
 
 static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
@@ -264,7 +267,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 				} else {
 					g_snprintf(key, 9, "%s", subs[0]); // to be used if no fail
 					*status = nofail * PATHPARSE_ERR_NOSEQLOADED;
-					display_path_parse_error(*status, key);
+					display_path_parse_error(*status, NULL);
 					if (*status > 0) {
 						g_strfreev(subs);
 						goto free_and_exit;

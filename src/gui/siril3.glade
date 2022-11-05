@@ -26144,7 +26144,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="can-focus">True</property>
                                     <property name="tooltip-text" translatable="yes">The default name to be used to name stacking result.
 This can be an expression that uses the keyword $seqname$ which will be parsed as the current sequence name at the end of stacking operation.
-Example: $seqname$stacked would produce "r_pp_light_stacked" for a sequence named "r_pp_light_" (this is the default behavior is nothing is specicified)
+Example: $seqname$stacked would produce "r_pp_light_stacked" for a sequence named "r_pp_light_" (this is the default behavior is nothing is specicified).
 If sequence name does not have the suffix "_", it is automatically added</property>
                                   </object>
                                   <packing>
