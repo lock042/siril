@@ -1853,7 +1853,6 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 		return 0;
 	} else {
 		int retval = GPOINTER_TO_INT(generic_sequence_worker(args));
-		free(spsfargs);
 		free(args);
 		return retval;
 	}

@@ -49,9 +49,10 @@
 #include "sorting.h"
 #include "statistics.h"
 #include "statistics_float.h"
+#include "demosaicing.h"
 #include "core/OS_utils.h"
 
-// uncomment to debug statistics
+// comment to debug statistics
 #undef siril_debug_print
 #define siril_debug_print(fmt, ...) { }
 
@@ -228,6 +229,10 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	int compute_median = (option & STATS_BASIC) || (option & STATS_AVGDEV) ||
 		(option & STATS_MAD) || (option & STATS_BWMV) || (option & STATS_IKSS);
 
+	gboolean valid_selection = selection && selection->h > 0 && selection->w > 0;
+	if (!fit && (layer < 0 || valid_selection))
+		return NULL;	// not in cache, don't compute
+
 	if (!stat) {
 		allocate_stats(&stat);
 		if (!stat) return NULL;
@@ -235,21 +240,49 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 	}
 
 	if (fit) {
-		if (selection && selection->h > 0 && selection->w > 0) {
+		if (valid_selection) {
 			nx = selection->w;
 			ny = selection->h;
-			data = malloc(nx * ny * sizeof(WORD));
-			if (!data) {
-				PRINT_ALLOC_ERR;
-				if (stat_is_local) free(stat);
-				return NULL;
+			if (layer < 0) {
+				size_t newsz;
+				data = extract_CFA_buffer_area_ushort(fit, -layer - 1, selection, &newsz);
+				if (!data) {
+					siril_log_message(_("Failed to compute CFA statistics for channel %d\n"), -layer-1);
+					return NULL;
+				}
+				nx = newsz;
+				ny = 1;
+			} else {
+				data = malloc(nx * ny * sizeof(WORD));
+				if (!data) {
+					PRINT_ALLOC_ERR;
+					if (stat_is_local) free(stat);
+					return NULL;
+				}
+				g_assert(layer < fit->naxes[2]);
+				select_area_ushort(fit, data, layer, selection);
 			}
-			select_area_ushort(fit, data, layer, selection);
 			free_data = 1;
 		} else {
-			nx = fit->rx;
-			ny = fit->ry;
-			data = fit->pdata[layer];
+			if (layer >= 0) {
+				g_assert(layer < fit->naxes[2]);
+				nx = fit->rx;
+				ny = fit->ry;
+				data = fit->pdata[layer];
+			} else {
+				/* we just create a buffer containing all pixels that have the
+				 * filter number -layer, it's not a real image but ok for stats
+				 */
+				size_t newsz;
+				data = extract_CFA_buffer_ushort(fit, -layer - 1, &newsz);
+				if (!data) {
+					siril_log_color_message(_("Failed to compute CFA statistics\n"), "red");
+					return NULL;
+				}
+				nx = newsz;
+				ny = 1;
+				free_data = 1;
+			}
 		}
 		stat->total = nx * ny;
 		if (stat->total == 0L) {
@@ -402,6 +435,7 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
 			return statistics_internal_ushort(fit, layer, selection, option, stats, bitpix, threads);
 		if (fit->type == DATA_FLOAT)
 			return statistics_internal_float(fit, layer, selection, option, stats, bitpix, threads);
+		return NULL;
 	}
 	if (bitpix == FLOAT_IMG)
 		return statistics_internal_float(fit, layer, selection, option, stats, bitpix, threads);
@@ -413,6 +447,9 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
  * Min and max value, average deviation, MAD, Bidweight Midvariance and IKSS
  * are computed with gsl stats.
  *
+ * layer can be negative, this is a special trick to get statistics on a CFA
+ * channel, -1 being red, -2 green and -3 blue. These computations are not
+ * stored.
  * If the selection is not null or empty, computed data is not stored and seq
  * is not used.
  * If seq is null (single image processing), image_index is ignored, data is
@@ -422,12 +459,18 @@ static imstats* statistics_internal(fits *fit, int layer, rectangle *selection, 
  * function because of the special rule of this object that has a reference
  * counter because it can be referenced in 3 different places.
  */
-imstats* statistics(sequence *seq, int image_index, fits *fit, int layer, rectangle *selection, int option, threading_type threads) {
+imstats* statistics(sequence *seq, int image_index, fits *fit, int super_layer, rectangle *selection, int option, threading_type threads) {
 	imstats *oldstat = NULL, *stat;
 	check_threading(&threads);
+	int layer = abs(super_layer);
 	if (selection && selection->h > 0 && selection->w > 0) {
 		// we have a selection, don't store anything
-		return statistics_internal(fit, layer, selection, option, NULL, fit->bitpix, threads);
+		if (!fit) return NULL;
+		return statistics_internal(fit, super_layer, selection, option, NULL, fit->bitpix, threads);
+	} else if (super_layer < 0) {
+		// we are computing stats per filter on a CFA image, don't store anything
+		if (!fit) return NULL;
+		return statistics_internal(fit, super_layer, NULL, option, NULL, fit->bitpix, threads);
 	} else if (!seq || image_index < 0) {
 		// we have a single image, store in the fits
 		g_assert(layer < fit->naxes[2]);
@@ -696,8 +739,13 @@ static void free_stat_list(gchar **list, int nb) {
 
 static int stat_prepare_hook(struct generic_seq_args *args) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
-	s_args->list = calloc(args->nb_filtered_images * s_args->seq->nb_layers, sizeof(char*));
-
+	if (s_args->option != (STATS_BASIC) && s_args->option != (STATS_MAIN) && s_args->option != (STATS_NORM | STATS_MAIN)) {
+		siril_log_color_message(_("Bad argument to stats option\n"), "red");
+		return 1;
+	}
+	int nb_layers = s_args->cfa ? 3 : s_args->seq->nb_layers;
+	// cfa may be set to TRUE for a non CFA sequence, but we don't know yet, so we still alloc for 3
+	s_args->list = calloc(args->nb_filtered_images * nb_layers, sizeof(char*));
 	return 0;
 }
 
@@ -705,19 +753,26 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 		rectangle *_, int threads) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
 
-	for (int layer = 0; layer < fit->naxes[2]; layer++) {
+	gboolean is_cfa = fit->bayer_pattern[0] != '\0' && s_args->cfa;
+	int nb_image_layers = (int)fit->naxes[2];
+	if (is_cfa)
+		nb_image_layers = 3;
+	int nb_data_layers = s_args->cfa ? 3 : s_args->seq->nb_layers;
+
+	for (int layer = 0; layer < nb_image_layers; layer++) {
 		/* we first check for data in cache */
-		imstats* stat = statistics(args->seq, i, NULL, layer, &s_args->selection, s_args->option, SINGLE_THREADED);
+		int super_layer = is_cfa ? -layer - 1 : layer;
+		imstats* stat = statistics(args->seq, i, NULL, super_layer, &s_args->selection, s_args->option, SINGLE_THREADED);
 		if (!stat) {
 			/* if no cache */
-			stat = statistics(args->seq, i, fit, layer, &s_args->selection, s_args->option, SINGLE_THREADED);
+			stat = statistics(args->seq, i, fit, super_layer, &s_args->selection, s_args->option, SINGLE_THREADED);
 			if (!stat) {
 				siril_log_message(_("Error: statistics computation failed.\n"));
 				return 1;
 			}
 		}
 
-		int new_index = o * s_args->seq->nb_layers;
+		int new_index = o * nb_data_layers;
 		if (s_args->option == (STATS_BASIC)) {
 			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
 					i + 1,
@@ -768,8 +823,13 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 static int stat_finalize_hook(struct generic_seq_args *args) {
 	GError *error = NULL;
 	struct stat_data *s_args = (struct stat_data*) args->user;
+	if (!s_args->list) {
+		free(s_args);
+		return 1;
+	}
 
-	int size = s_args->seq->nb_layers * args->nb_filtered_images;
+	int nb_data_layers = s_args->cfa ? 3 : s_args->seq->nb_layers;
+	int size = nb_data_layers * args->nb_filtered_images;
 	GFile *file = g_file_new_for_path(s_args->csv_name);
 	GOutputStream* output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
 	g_free(s_args->csv_name);
@@ -802,7 +862,7 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 		return 1;
 	}
 
-	for (int i = 0; i < args->nb_filtered_images * s_args->seq->nb_layers; i++) {
+	for (int i = 0; i < args->nb_filtered_images * nb_data_layers; i++) {
 		if (!s_args->list[i]) continue; //stats can fail
 		if (!g_output_stream_write_all(output_stream, s_args->list[i], strlen(s_args->list[i]), NULL, NULL, &error)) {
 			g_warning("%s\n", error->message);
@@ -988,7 +1048,13 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 /* compute statistics for all channels of a single image, only on full image, make sure the result (stats) is allocated */
 int compute_all_channels_statistics_single_image(fits *fit, int option,
 		threading_type threading, imstats **stats) {
-	int required_computations = (int)fit->naxes[2];
+	g_assert(fit);
+	gboolean cfa = (option & STATS_FOR_CFA) && fit->bayer_pattern[0] != '\0';
+	int required_computations = cfa ? 3 : (int)fit->naxes[2];
+	if (required_computations == 0) {
+		stats[0] = NULL;
+		return -1;
+	}
 	int retval = 0;
 
 #ifdef _OPENMP
@@ -1031,7 +1097,8 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 		}
 		siril_debug_print("requesting stats for normalization of channel %d with %d threads\n", layer, subthreads);
 #endif
-		stats[layer] = statistics(NULL, -1, fit, layer, NULL, option, subthreads);
+		int layer_arg = cfa ? -layer - 1 : layer;
+		stats[layer] = statistics(NULL, -1, fit, layer_arg, NULL, option, subthreads);
 		if (!stats[layer])
 			retval = -1;
 	}

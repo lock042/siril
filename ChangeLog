@@ -29,6 +29,7 @@ xx/xx/22
 * Added solar system object search from online service for image annotations
 * Added zoom sliders and plot selection in Plot tab
 * Added Moffat star profile as an option instead of Gaussian
+* Added the possibility to run statistics on individual filters of CFA images
 * Added parsing paths with header key values for preprocess, stack and save actions
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
@@ -57,6 +58,8 @@ xx/xx/22
 * Fixed photometry analysis of stars with negative pixels around them
 * Fixed dates keywords in sum and min/max algorithms
 * Fixed FITS header preservation on RGB composition
+* Fixed possible FITSEQ infinite loop and inconsistent numbering caused by hidden files in conversion
+* Fixed sequence closing in script processing after each command
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
 * Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST

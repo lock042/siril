@@ -35,6 +35,12 @@
 #include <windows.h>
 #include <tchar.h>
 #endif
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+#ifdef HAVE_JSON_GLIB
+#include <json-glib/json-glib.h>
+#endif
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -823,6 +829,15 @@ int process_unsharp(int nb) {
 	return CMD_OK;
 }
 
+static gboolean crop_command_idle(gpointer arg) {
+	// operations that are not in the generic idle of notify_gfit_modified()
+	clear_stars_list(TRUE);
+	delete_selected_area();
+	reset_display_offset();
+	update_zoom_label();
+	return FALSE;
+}
+
 int process_crop(int nb) {
 	if (is_preview_active()) {
 		siril_log_message(_("It is impossible to crop the image when a filter with preview session is active. "
@@ -831,7 +846,9 @@ int process_crop(int nb) {
 	}
 
 	rectangle area;
-	if (!com.selection.h || !com.selection.w) {
+	if (com.selection.h && com.selection.w) {
+		area = com.selection;
+	} else {
 		if (nb == 5) {
 			gchar *end1, *end2;
 			area.x = g_ascii_strtoull(word[1], &end1, 10);
@@ -855,17 +872,14 @@ int process_crop(int nb) {
 			siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
 			return CMD_ARG_ERROR;
 		}
-	} else {
-		area = com.selection;
 	}
 
 	crop(&gfit, &area);
-	delete_selected_area();
-	reset_display_offset();
-	adjust_cutoff_from_updated_gfit();
-	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	gfit.history = g_slist_append(gfit.history,
+			g_strdup_printf(_("Crop (x=%d, y=%d, w=%d, h=%d)"),
+					area.x, area.y, area.w, area.h));
+	notify_gfit_modified();
+	siril_add_idle(crop_command_idle, NULL);
 
 	return CMD_OK;
 }
@@ -4344,12 +4358,21 @@ int process_stat(int nb){
 	char layername[6];
 
 	nplane = gfit.naxes[2];
+	gboolean cfa = FALSE;
+	if (nb == 2 && !strcmp(word[1], "-cfa") && nplane == 1 && gfit.bayer_pattern[0] != '\0') {
+		siril_debug_print("Running stats on CFA\n");
+		nplane = 3;
+		cfa = TRUE;
+	}
 
 	for (layer = 0; layer < nplane; layer++) {
-		imstats* stat = statistics(NULL, -1, &gfit, layer, &com.selection, STATS_MAIN, MULTI_THREADED);
+		int super_layer = layer;
+		if (cfa)
+			super_layer = -layer - 1;
+		imstats* stat = statistics(NULL, -1, &gfit, super_layer, &com.selection, STATS_MAIN, MULTI_THREADED);
 		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			return CMD_GENERIC_ERROR;
+			siril_log_message(_("Statistics computation failed for channel %d (all nil?).\n"), layer);
+			continue;
 		}
 
 		switch (layer) {
@@ -4395,23 +4418,179 @@ int process_seq_stat(int nb) {
 	}
 
 	struct stat_data *args = calloc(1, sizeof(struct stat_data));
-
 	args->seq = seq;
 	args->seqEntry = ""; // not used
 	args->csv_name = g_strdup(word[2]);
+	args->selection = com.selection;
+	args->option = STATS_MAIN;
+	args->cfa = FALSE;
 
-	if (word[3] && !g_strcmp0(word[3], "main")) {
-		args->option = STATS_MAIN;
-	} else if (word[3] && !g_strcmp0(word[3], "full")) {
-		args->option = STATS_NORM | STATS_MAIN; // adding STATS_MAIN to include also AVGDEV and SQRTBWMV
-	} else {
-		args->option = STATS_BASIC;
+	if (nb > 3) {
+		if (!g_strcmp0(word[3], "main")) {
+			args->option = STATS_MAIN;
+		} else if (!g_strcmp0(word[3], "full")) {
+			args->option = STATS_NORM | STATS_MAIN; // adding STATS_MAIN to include also AVGDEV and SQRTBWMV
+		} else if (!g_strcmp0(word[3], "basic")) {
+			args->option = STATS_BASIC;
+		} else if (!g_strcmp0(word[3], "-cfa")) {
+			args->cfa = TRUE;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[3]);
+			return CMD_ARG_ERROR;
+		}
+		if (nb > 4) {
+			if (!g_strcmp0(word[4], "-cfa")) {
+				args->cfa = TRUE;
+			} else {
+				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[4]);
+				return CMD_ARG_ERROR;
+			}
+		}
 	}
-	com.selection = args->selection;
 
 	apply_stats_to_sequence(args);
 
 	return CMD_OK;
+}
+
+// Only for FITS images
+int process_jsonmetadata(int nb) {
+#ifdef HAVE_JSON_GLIB
+	/* we need both the file descriptor to read the header and the data to
+	 * compute stats, so we need the file name even in the case of a loaded
+	 * image, but we may use the loaded data if the option is provided, to
+	 * avoid reading it for nothing */
+	char *input_filename = word[1];
+	gchar *output_filename = NULL;
+	gboolean use_gfit = FALSE, compute_stats = TRUE;
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0')
+			output_filename = g_strdup(word[i] + 5);
+		else if (!strcmp(word[i], "-stats_from_loaded")) {
+			use_gfit = TRUE;
+			if (!gfit.rx || !gfit.ry) {
+				siril_log_color_message(_("No image appears to be loaded, reloading from '%s'\n"), "salmon", input_filename);
+				use_gfit = FALSE;
+			}
+		} else if (!strcmp(word[i], "-nostats"))
+			compute_stats = FALSE;
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
+		}
+	}
+	if (!output_filename)
+		output_filename = replace_ext(input_filename, ".json");
+
+	int status = 0;
+	fitsfile *fptr;
+	if (siril_fits_open_diskfile(&fptr, input_filename, READONLY, &status)) {
+		report_fits_error(status);
+		return CMD_GENERIC_ERROR;
+	}
+
+	GSList *header = read_header_keyvals_strings(fptr);
+
+	imstats *stats[3] = { NULL };
+	int nb_channels;
+	if (compute_stats) {
+		if (use_gfit) {
+			compute_all_channels_statistics_single_image(&gfit, STATS_BASIC | STATS_FOR_CFA, MULTI_THREADED, stats);
+			gboolean cfa = gfit.bayer_pattern[0] != '\0';
+			nb_channels = cfa ? 3 : (int)gfit.naxes[2];
+		} else {
+			fits fit = { 0 };
+			fit.fptr = fptr;
+			if (read_fits_metadata(&fit) || read_fits_with_convert(&fit, input_filename, FALSE)) {
+				fits_close_file(fptr, &status);
+				return CMD_GENERIC_ERROR;
+			}
+			compute_all_channels_statistics_single_image(&fit, STATS_BASIC | STATS_FOR_CFA, MULTI_THREADED, stats);
+			gboolean cfa = fit.bayer_pattern[0] != '\0';
+			nb_channels = cfa ? 3 : (int)fit.naxes[2];
+			clearfits(&fit);
+		}
+	}
+	fits_close_file(fptr, &status);
+
+	// https://gnome.pages.gitlab.gnome.org/json-glib/class.Builder.html
+	JsonBuilder *builder = json_builder_new();
+	json_builder_begin_object(builder);
+	json_builder_set_member_name(builder, "headers");
+	json_builder_begin_array(builder);
+	GSList *ptr = header;
+	while (ptr) {
+		json_builder_begin_object(builder);
+		header_record *r = ptr->data;
+		json_builder_set_member_name(builder, "key");
+		json_builder_add_string_value(builder, r->key);
+		json_builder_set_member_name(builder, "value");
+		json_builder_add_string_value(builder, r->value);
+		json_builder_end_object(builder);
+		ptr = ptr->next;
+	}
+	json_builder_end_array(builder);
+
+	if (compute_stats) {
+		json_builder_set_member_name(builder, "statistics");
+		json_builder_begin_object(builder);
+		for (int i = 0; i < nb_channels; ++i) {
+			if (stats[i]) {
+				char channame[16];
+				sprintf(channame, "channel%d", i);
+				json_builder_set_member_name(builder, channame);
+				json_builder_begin_object(builder);
+				json_builder_set_member_name(builder, "mean");
+				json_builder_add_double_value(builder, stats[i]->mean);
+				json_builder_set_member_name(builder, "median");
+				json_builder_add_double_value(builder, stats[i]->median);
+				json_builder_set_member_name(builder, "sigma");
+				json_builder_add_double_value(builder, stats[i]->sigma);
+				json_builder_set_member_name(builder, "noise");
+				json_builder_add_double_value(builder, stats[i]->bgnoise);
+				json_builder_set_member_name(builder, "min");
+				json_builder_add_double_value(builder, stats[i]->min);
+				json_builder_set_member_name(builder, "max");
+				json_builder_add_double_value(builder, stats[i]->max);
+				json_builder_set_member_name(builder, "total_pix_count");
+				json_builder_add_double_value(builder, stats[i]->total);
+				json_builder_set_member_name(builder, "good_pix_count");
+				json_builder_add_double_value(builder, stats[i]->ngoodpix);
+				json_builder_end_object(builder);
+				// BASIC: median, mean, sigma, noise, min, max
+				free_stats(stats[i]);
+			}
+		}
+		json_builder_end_object(builder);
+	}
+	json_builder_end_object(builder);
+
+	JsonGenerator *gen = json_generator_new();
+	JsonNode *root = json_builder_get_root(builder);
+	json_generator_set_root(gen, root);
+	json_generator_set_pretty(gen, TRUE);
+	GError *err = NULL;
+	int retval = CMD_OK;
+	if (!json_generator_to_file(gen, output_filename, &err)) {
+		siril_log_message(_("Failed to save the JSON file %s: %s\n"), output_filename, err->message);
+		retval = CMD_GENERIC_ERROR;
+	}
+	else siril_log_message(_("Save metadata to the JSON file '%s'\n"), output_filename);
+	g_free(output_filename);
+
+#ifdef DEBUG_TEST
+	gchar *str = json_generator_to_data(gen, NULL);
+	printf("JSON:\n%s\n", str);
+#endif
+
+	json_node_free(root);
+	g_object_unref(gen);
+	g_object_unref(builder);
+	return retval;
+#else
+	siril_log_message(_("json-glib was not found at build time, cannot proceed. Install and rebuild.\n"));
+	return CMD_GENERIC_ERROR;
+#endif
 }
 
 int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int index) {
@@ -6603,14 +6782,14 @@ int process_nomad(int nb) {
 	float limit_mag = 13.0f;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		return 1;
+		return CMD_FOR_PLATE_SOLVED;
 	}
 	if (nb == 2) {
 		gchar *end;
 		limit_mag = g_ascii_strtod(word[1], &end);
 		if (end == word[1]) {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
-			return 1;
+			return CMD_ARG_ERROR;
 		}
 	}
 	center2wcs(&gfit, &ra, &dec);
@@ -6620,7 +6799,7 @@ int process_nomad(int nb) {
 	siril_debug_print("centre coords: %f, %f, radius: %f\n", ra, dec, radius);
 	if (get_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
 		siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-		return 1;
+		return CMD_GENERIC_ERROR;
 	}
 
 	siril_debug_print("Got %d stars from the trixels of this target (mag limit %.2f)\n", nb_stars, limit_mag);
@@ -6645,7 +6824,7 @@ int process_nomad(int nb) {
 		com.stars[j] = NULL;
 	siril_log_message("%d stars from local catalogues found with valid photometry data in the image (mag limit %.2f)\n", j, limit_mag);
 	redraw(REDRAW_OVERLAY);
-	return 0;
+	return CMD_OK;
 }
 
 int process_start_ls(int nb) {

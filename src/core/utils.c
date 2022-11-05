@@ -127,6 +127,17 @@ WORD roundf_to_WORD(float f) {
 }
 
 /**
+ * Round float value to a short
+ * @param f value to round
+ * @return a truncated and rounded short
+ */
+signed short roundf_to_short(float f) {
+	if (f < SHRT_MIN + 0.5f) return SHRT_MIN;
+	if (f >= SHRT_MAX - 0.5f) return SHRT_MAX;
+	return (signed short)(f + 0.5f);
+}
+
+/**
  * Scale float value to a maximum value up to 2^32-1
  * and return as guint32
  * @param f value to scale
@@ -262,6 +273,16 @@ WORD float_to_ushort_range(float f) {
 }
 
 /**
+ * convert a siril float [0, 1] to a signed short
+ * @param f value to convert
+ * @return the signed short equivalent
+ * (-SHRT_MAX - 1)
+ */
+signed short float_to_short_range(float f) {
+	return roundf_to_short((f * USHRT_MAX_SINGLE) - SHRT_MAX_SINGLE - 1);
+}
+
+/**
  * convert a siril float [0, 1] to an unsigned char
  * @param f value to convert
  * @return the unsigned char equivalent
@@ -296,6 +317,42 @@ WORD *float_buffer_to_ushort(float *buffer, size_t ndata) {
 	} else {
 		for (size_t i = 0; i < ndata; i++) {
 			buf[i] = float_to_ushort_range(buffer[i]);
+		}
+	}
+	return buf;
+}
+
+/**
+ * convert a float type buffer into a signed short buffer
+ * @param buffer in float
+ * @param ndata
+ * @return
+ */
+signed short *float_buffer_to_short(float *buffer, size_t ndata) {
+	signed short *buf = malloc(ndata * sizeof(signed short));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+	} else {
+		for (size_t i = 0; i < ndata; i++) {
+			buf[i] = float_to_short_range(buffer[i]);
+		}
+	}
+	return buf;
+}
+
+/**
+ * convert a ushort type buffer into a signed short buffer
+ * @param buffer in WORD
+ * @param ndata
+ * @return
+ */
+signed short *ushort_buffer_to_short(WORD *buffer, size_t ndata) {
+	signed short *buf = malloc(ndata * sizeof(signed short));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+	} else {
+		for (size_t i = 0; i < ndata; i++) {
+			buf[i] = (buffer[i] - SHRT_MAX_SINGLE - 1);
 		}
 	}
 	return buf;
