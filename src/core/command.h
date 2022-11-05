@@ -57,6 +57,8 @@ int	process_grey_flat(int nb);
 int	process_help(int nb);
 int	process_histo(int nb);
 
+int	process_jsonmetadata(int nb);
+
 int	process_imoper(int nb);
 int	process_inspector(int nb);
 

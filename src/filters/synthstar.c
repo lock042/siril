@@ -330,7 +330,7 @@ int generate_synthstars(fits *fit) {
 		avg_moffat_beta /= moffat_count;
 	else
 		avg_moffat_beta = -1;
-	siril_debug_print("# Moffat profile stars: %lu, average beta = %.3f\n", moffat_count, avg_moffat_beta);
+	siril_debug_print("# Moffat profile stars: %zd, average beta = %.3f\n", moffat_count, avg_moffat_beta);
 
 	gboolean stopcalled = FALSE;
 	// Synthesize a PSF for each star in the star array s, based on its measured parameters

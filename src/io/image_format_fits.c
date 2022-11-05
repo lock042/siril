@@ -353,13 +353,6 @@ void read_fits_header(fits *fit) {
 		try_read_float_lo_hi(fit->fptr, &fit->lo, &fit->hi);
 	}
 
-	if (fit->orig_bitpix == SHORT_IMG) {
-		if (fit->lo)
-			fit->lo += 32768;
-		if (fit->hi)
-			fit->hi += 32768;
-	}
-
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
 	if (!status && 1.0 != scale) {
@@ -728,6 +721,49 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 	load_WCS_from_memory(fit);
 
 	return retval;
+}
+
+GSList *read_header_keyvals_strings(fitsfile *fptr) {
+	int nkeys, status = 0;
+	if (fits_get_hdrspace(fptr, &nkeys, NULL, &status)) {
+		report_fits_error(status);
+		return NULL;
+	}
+	if (fits_read_record(fptr, 0, NULL, &status))
+		return NULL;
+
+	GSList *entries = NULL;
+	for (int n = 1; n <= nkeys; n++) {
+		char key[FLEN_KEYWORD], value[FLEN_VALUE], comment[FLEN_COMMENT];
+		status = 0;
+		if (fits_read_keyn(fptr, n, key, value, comment, &status)) {
+			report_fits_error(status);
+			break;
+		}
+		if (!strcmp(key, "COMMENT"))
+			continue;
+		int len = strlen(value);
+		// pretty-print strings: remove quotes and trailing spaces
+		if (len > 0 && value[0] == '\'' && value[len-1] == '\'') {
+			len -= 2;
+			for (int i = 0; i < len; i++)
+				value[i] = value[i+1];
+			value[len] = '\0';
+			g_strchomp(value);
+		}
+		if (value[0] == '\0' && comment[0] == '\0')
+			continue;
+		header_record *r = malloc(sizeof(header_record));
+		if (!r) {
+			PRINT_ALLOC_ERR;
+			break;
+		}
+		r->key = strdup(key);
+		r->value = strdup(value[0] == '\0' ? comment : value);
+		entries = g_slist_prepend(entries, r);
+	}
+	entries = g_slist_reverse(entries);
+	return entries;
 }
 
 /* copy the header for the current HDU in a heap-allocated string */
@@ -1546,7 +1582,7 @@ void save_fits_header(fits *fit) {
 	if (fit->sitelat)
 		fits_update_key(fit->fptr, TDOUBLE, "SITELAT", &(fit->sitelat),
 			"[deg] Observation site latitude", &status);
-	
+
 	status = 0;
 	if (fit->sitelong)
 		fits_update_key(fit->fptr, TDOUBLE, "SITELONG", &(fit->sitelong),
@@ -2180,7 +2216,8 @@ int save_opened_fits(fits *f) {
 	BYTE *data8;
 	long orig[3] = { 1L, 1L, 1L };
 	size_t i, pixel_count;
-	int type, status = 0;
+	int status = 0;
+	signed short *data;
 
 	save_fits_header(f);
 	pixel_count = f->naxes[0] * f->naxes[1] * f->naxes[2];
@@ -2212,11 +2249,25 @@ int save_opened_fits(fits *f) {
 		free(data8);
 		break;
 	case SHORT_IMG:
+		if (f->type == DATA_FLOAT) {
+			data = float_buffer_to_short(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
+		} else {
+			if (f->orig_bitpix == BYTE_IMG) {
+				conv_8_to_16(f->data, pixel_count);
+			}
+			data = ushort_buffer_to_short(f->data, f->naxes[0] * f->naxes[1] * f->naxes[2]);
+		}
+		if (fits_write_pix(f->fptr, TSHORT, orig, pixel_count, data, &status)) {
+			report_fits_error(status);
+			free(data);
+			return 1;
+		}
+		free(data);
+		break;
 	case USHORT_IMG:
-		type = f->bitpix == SHORT_IMG ? TSHORT : TUSHORT;
 		if (f->type == DATA_FLOAT) {
 			WORD *data = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
-			if (fits_write_pix(f->fptr, type, orig, pixel_count, data, &status)) {
+			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, data, &status)) {
 				report_fits_error(status);
 				free(data);
 				return 1;
@@ -2226,8 +2277,7 @@ int save_opened_fits(fits *f) {
 			if (f->orig_bitpix == BYTE_IMG) {
 				conv_8_to_16(f->data, pixel_count);
 			}
-			if (fits_write_pix(f->fptr, type, orig, pixel_count, f->data,
-					&status)) {
+			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, f->data, &status)) {
 				report_fits_error(status);
 				return 1;
 			}
