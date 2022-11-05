@@ -129,7 +129,7 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 	gint count = 0;
 	struct stat fileInfo, currfileInfo;
 
-	if (!char_in_str(expression, '*')) {
+	if (!g_utf8_strchr(expression, -1, '*')) {
 		return g_strdup(expression);
 	}
 
@@ -184,7 +184,7 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 /*
 This is the main function. It takes as argument a fit, an expresion to be parsed
 and a mode (read or write). It returns a newly allocated string.
-It first searches for reserved keywords (starting with "lib")
+It first searches for reserved keywords (starting with "$lib")
 and fetches the libs set in preferences if required.
 It then parses all the tokens in between $ signs in the form $KEY:fmt$ where KEY
 is a valid HEADER key and fmt either a %d %f or %s specifier or special formatters
@@ -196,6 +196,9 @@ In write mode, the * is omitted and the token is parsed as per specifier
 In write mode "nofail", it will try to return something no matter what
 */
 gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
+	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
+		return g_strdup(expression);
+	}
 	gchar *out = NULL, *localexpression = NULL;
 	int nofail = (mode == PATHPARSE_MODE_WRITE_NOFAIL) ? -1 : 1; // statuses in nofail mode are transformed to warnings if multiplied by -1
 	if (!fit->header) {
@@ -205,12 +208,12 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			return out;
 		}
 	} 
-	if (g_str_has_prefix(expression, "lib")) { // using reserved keywords libbias, libdark, libflat
-		if (!g_strcmp0(expression + 3, "bias")) {
+	if (g_str_has_prefix(expression, "$lib")) { // using reserved keywords $libbias, $libdark, $libflat
+		if (!g_strcmp0(expression + 4, "bias")) {
 			localexpression = g_strdup(com.pref.prepro.bias_lib);
-		} else if (!g_strcmp0(expression + 3, "dark")) {
+		} else if (!g_strcmp0(expression + 4, "dark")) {
 			localexpression = g_strdup(com.pref.prepro.dark_lib);
-		} else if (!g_strcmp0(expression + 3, "flat")) {
+		} else if (!g_strcmp0(expression + 4, "flat")) {
 			localexpression = g_strdup(com.pref.prepro.flat_lib);
 		} else {
 			*status = nofail * PATHPARSE_ERR_WRONG_RESERVED_KEYWORD;
@@ -417,6 +420,9 @@ and its header string generated.
 This temporary fit is then called by path_parse.
 */
 gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
+	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
+		return g_strdup(expression);
+	}
 	fits tmpfit = { 0 };
 	fitsfile *fptr;
 	int fstatus = 0;

@@ -1374,16 +1374,4 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 	} while((*s++ = *d++));
 }
 
-/**
- * Returns true if char c is found in string s
- * @param s string to be searched
- * @param c character to be found
- */
-gboolean char_in_str(gchar *s, gchar c) {
-	gchar *d = s;
-	do {
-		if (*d == c) return TRUE;
-	} while((*d++));
-	return FALSE;
-}
 
