@@ -396,7 +396,6 @@ static gboolean end_stacking(gpointer p) {
 		} else {
 			args->output_parsed_filename = g_strdup(parsedname);
 		}
-		add_extension_if_required(args->output_parsed_filename);
 		g_free(parsedname);
 		g_free(expression);
 

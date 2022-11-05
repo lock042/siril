@@ -203,6 +203,7 @@ In write mode, the * is omitted and the token is parsed as per specifier
 In write mode "nofail", it will try to return something no matter what
 */
 gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
+	*status = PATHPARSE_ERR_OK;
 	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
 		return g_strdup(expression);
 	}
@@ -448,6 +449,7 @@ and its header string generated.
 This temporary fit is then called by path_parse.
 */
 gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
+	*status = PATHPARSE_ERR_OK;
 	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
 		return g_strdup(expression);
 	}

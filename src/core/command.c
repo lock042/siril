@@ -5627,7 +5627,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 			} else {
 				snprintf(filename, 256, "%s", parsedname);
 			}
-			add_extension_if_required(filename);
 			g_free(arg->result_file);
 			arg->result_file = g_strdup(filename);
 			g_free(parsedname);
