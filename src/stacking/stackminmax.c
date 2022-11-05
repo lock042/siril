@@ -225,18 +225,21 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 			import_metadata_from_fitsfile(args->seq->fptr[ref], result);
 			result->orig_bitpix = result->bitpix = args->seq->bitpix;
 			seq_close_image(args->seq, ref);
+		result->livetime = livetime;
 		}
 	} else if (args->seq->type == SEQ_FITSEQ) {
 		if (!fitseq_set_current_frame(args->seq->fitseq_file, ref)) {
 			import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, result);
 			result->orig_bitpix = result->bitpix = args->seq->fitseq_file->bitpix;
 		}
+		result->livetime = livetime;
 	} else if (args->seq->type == SEQ_SER) {
 		import_metadata_from_serfile(args->seq->ser_file, result);
 		result->orig_bitpix = result->bitpix = (args->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
+		result->livetime = result->exposure * args->nb_images_to_stack; // livetime is null for ser as fit has no exposure data
 	}
 	result->stackcnt = args->nb_images_to_stack;
-	result->livetime = livetime;
+
 	compute_date_time_keywords(list_date, result);
 	g_list_free_full(list_date, (GDestroyNotify) free_list_date);
 
