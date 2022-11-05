@@ -4371,6 +4371,7 @@ int process_seq_stat(int nb) {
 	args->seqEntry = ""; // not used
 	args->csv_name = g_strdup(word[2]);
 	args->selection = com.selection;
+	args->option = STATS_MAIN;
 	args->cfa = FALSE;
 
 	if (nb > 3) {
@@ -4414,9 +4415,13 @@ int process_jsonmetadata(int nb) {
 	for (int i = 2; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0')
 			output_filename = g_strdup(word[i] + 5);
-		else if (!strcmp(word[i], "-stats_from_loaded"))
+		else if (!strcmp(word[i], "-stats_from_loaded")) {
 			use_gfit = TRUE;
-		else if (!strcmp(word[i], "-nostats"))
+			if (!gfit.rx || !gfit.ry) {
+				siril_log_color_message(_("No image appears to be loaded, reloading from '%s'\n"), "salmon", input_filename);
+				use_gfit = FALSE;
+			}
+		} else if (!strcmp(word[i], "-nostats"))
 			compute_stats = FALSE;
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);

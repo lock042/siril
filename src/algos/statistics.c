@@ -739,6 +739,10 @@ static void free_stat_list(gchar **list, int nb) {
 
 static int stat_prepare_hook(struct generic_seq_args *args) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
+	if (s_args->option != (STATS_BASIC) && s_args->option != (STATS_MAIN) && s_args->option != (STATS_NORM | STATS_MAIN)) {
+		siril_log_color_message(_("Bad argument to stats option\n"), "red");
+		return 1;
+	}
 	int nb_layers = s_args->cfa ? 3 : s_args->seq->nb_layers;
 	// cfa may be set to TRUE for a non CFA sequence, but we don't know yet, so we still alloc for 3
 	s_args->list = calloc(args->nb_filtered_images * nb_layers, sizeof(char*));
@@ -819,6 +823,10 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 static int stat_finalize_hook(struct generic_seq_args *args) {
 	GError *error = NULL;
 	struct stat_data *s_args = (struct stat_data*) args->user;
+	if (!s_args->list) {
+		free(s_args);
+		return 1;
+	}
 
 	int nb_data_layers = s_args->cfa ? 3 : s_args->seq->nb_layers;
 	int size = nb_data_layers * args->nb_filtered_images;
@@ -1043,6 +1051,10 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 	g_assert(fit);
 	gboolean cfa = (option & STATS_FOR_CFA) && fit->bayer_pattern[0] != '\0';
 	int required_computations = cfa ? 3 : (int)fit->naxes[2];
+	if (required_computations == 0) {
+		stats[0] = NULL;
+		return -1;
+	}
 	int retval = 0;
 
 #ifdef _OPENMP
