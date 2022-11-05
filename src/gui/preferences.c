@@ -130,6 +130,16 @@ static void update_prepro_preferences() {
 		com.pref.prepro.use_flat_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")));
 	}
 
+	if (com.pref.prepro.stack_default) {
+		g_free(com.pref.prepro.stack_default);
+		com.pref.prepro.stack_default = NULL;
+	}
+	const gchar *stackentry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("stack_default_entry")));
+	if (stackentry) {
+		com.pref.prepro.stack_default = g_strdup(stackentry);
+		com.pref.prepro.use_stack_default = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")));
+	}
+
 	com.pref.prepro.xtrans_af.x = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_x"))), NULL, 10);
 	com.pref.prepro.xtrans_af.y = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_y"))), NULL, 10);
 	com.pref.prepro.xtrans_af.w = g_ascii_strtoull(gtk_entry_get_text(GTK_ENTRY(lookup_widget("xtrans_af_w"))), NULL, 10);
@@ -458,6 +468,11 @@ void update_preferences_from_model() {
 	if (pref->prepro.flat_lib) {
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("flatlib_entry")),pref->prepro.flat_lib);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")), pref->prepro.use_flat_lib);
+	}
+
+	if (pref->prepro.stack_default) {
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("stack_default_entry")),pref->prepro.stack_default);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")), pref->prepro.use_stack_default);
 	}
 
 	gchar tmp[256];

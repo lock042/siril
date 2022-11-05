@@ -212,13 +212,15 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			return out;
 		}
 	} 
-	if (g_str_has_prefix(expression, "$lib")) { // using reserved keywords $libbias, $libdark, $libflat
+	if (g_str_has_prefix(expression, "$def")) { // using reserved keywords $defbias, $defdark, $defflat, $defstack
 		if (!g_strcmp0(expression + 4, "bias")) {
 			localexpression = g_strdup(com.pref.prepro.bias_lib);
 		} else if (!g_strcmp0(expression + 4, "dark")) {
 			localexpression = g_strdup(com.pref.prepro.dark_lib);
 		} else if (!g_strcmp0(expression + 4, "flat")) {
 			localexpression = g_strdup(com.pref.prepro.flat_lib);
+		} else if (!g_strcmp0(expression + 4, "stack")) {
+			localexpression = g_strdup(com.pref.prepro.stack_default);
 		} else {
 			*status = nofail * PATHPARSE_ERR_WRONG_RESERVED_KEYWORD;
 			display_path_parse_error(*status, expression);
@@ -251,8 +253,10 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 		buf[0] = '\0';
 		if (g_strv_length(subs) == 1) {
 			if (!g_strcmp0(subs[0], "seqname")) { // reserved keyword $seqname$
-				if (sequence_is_loaded()) {
-					g_snprintf(buf, FLEN_VALUE - 1, "%s", com.seq.seqname);
+				if (sequence_is_loaded() && com.seq.seqname) {
+					g_snprintf(buf, FLEN_VALUE - 1, "%s%s", com.seq.seqname,
+					g_str_has_suffix(com.seq.seqname, "_") ? "" :
+					(g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"));
 					g_free(tokens[i]);
 					tokens[i] = g_strdup(buf);
 					g_strfreev(subs);

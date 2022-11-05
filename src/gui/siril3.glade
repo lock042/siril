@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -18761,7 +18761,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                       <object class="GtkEntry" id="preproseqname_entry">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the pre-processing.</property>
+                                                        <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the calibration.</property>
                                                         <property name="halign">start</property>
                                                         <property name="text">pp_</property>
                                                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
@@ -18773,7 +18773,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                     </child>
                                                     <child>
                                                       <object class="GtkButton" id="prepro_button">
-                                                        <property name="label" translatable="yes">Start pre-processing</property>
+                                                        <property name="label" translatable="yes">Start calibration</property>
                                                         <property name="visible">True</property>
                                                         <property name="sensitive">False</property>
                                                         <property name="can-focus">True</property>
@@ -18865,9 +18865,9 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                   <object class="GtkLabel" id="label19">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Pre-processing is an optional step to apply to a sequence of images.</property>
+                                    <property name="tooltip-text" translatable="yes">Calibration is an optional step to apply to a sequence of images.</property>
                                     <property name="margin-bottom">2</property>
-                                    <property name="label" translatable="yes">Pre-processing</property>
+                                    <property name="label" translatable="yes">Calibration</property>
                                     <property name="justify">center</property>
                                   </object>
                                   <packing>
@@ -25911,7 +25911,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Use the chosen master as default file in the pre-processing tab</property>
+                                    <property name="tooltip-text" translatable="yes">Use the chosen master as default file in the Calibration tab</property>
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
@@ -25926,7 +25926,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Use the chosen master as default file in the pre-processing tab</property>
+                                    <property name="tooltip-text" translatable="yes">Use the chosen master as default file in the Calibration tab</property>
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
@@ -25941,7 +25941,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Use the chosen master as default file in the pre-processing tab</property>
+                                    <property name="tooltip-text" translatable="yes">Use the chosen master as default file in the Calibration tab</property>
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
@@ -26108,6 +26108,89 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFrame">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="spacing">6</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">default name:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="stack_default_entry">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">The default name to be used to name stacking result.
+This can be an expression that uses the keyword $seqname$ which will be parsed as the current sequence name at the end of stacking operation.
+Example: $seqname$stacked would produce "r_pp_light_stacked" for a sequence named "r_pp_light_" (this is the default behavior is nothing is specicified)
+If sequence name does not have the suffix "_", it is automatically added</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="check_button_pref_stack">
+                                    <property name="label" translatable="yes">Use it as default</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Use this name as default in the Stacking tab</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">3</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Stacking default</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                     <child>
@@ -26423,7 +26506,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">2</property>
+                        <property name="position">3</property>
                       </packing>
                     </child>
                   </object>
