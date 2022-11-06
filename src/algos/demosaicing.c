@@ -1420,8 +1420,6 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern pattern) {
 	fits *out = NULL;
 
-	// The function should always be called with input fits defined
-	assert(cfa0 != NULL && cfa1 != NULL && cfa2 != NULL && cfa3 != NULL);
 	// Check input files are compatible
 	gboolean x_compat = (cfa0->naxes[0] == cfa1->naxes[0] && cfa1->naxes[0] == cfa2->naxes[0] && cfa2->naxes[0] == cfa3->naxes[0]);
 	gboolean y_compat = (cfa0->naxes[1] == cfa1->naxes[1] && cfa1->naxes[1] == cfa2->naxes[1] && cfa2->naxes[1] == cfa3->naxes[1]);
