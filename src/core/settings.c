@@ -92,7 +92,7 @@ preferences pref_init = {
 		.flat_lib = NULL,
 		.use_flat_lib = FALSE,
 		.stack_default = NULL,
-		.use_stack_default = FALSE,
+		.use_stack_default = TRUE,
 	},
 	.gui = {
 		.first_start = TRUE,
@@ -190,6 +190,7 @@ void free_preferences(preferences *pref) {
 void initialize_default_settings() {
 	com.pref = pref_init;
 	com.pref.ext = g_strdup(".fit");
+	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
 }
