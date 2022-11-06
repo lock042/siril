@@ -96,7 +96,7 @@ static int readinitfile_libconfig(gchar *path) {
 	/* Preprocessing settings */
 	config_setting_t *prepro_setting = config_lookup(&config, keywords[PRE]);
 	if (prepro_setting) {
-		const char *bias = NULL, *bias_synth = NULL, *dark = NULL, *flat = NULL;
+		const char *bias = NULL, *dark = NULL, *flat = NULL, *stack = NULL;
 
 		config_setting_lookup_bool(prepro_setting, "cfa", &com.pref.prepro.cfa);
 		config_setting_lookup_bool(prepro_setting, "equalize_cfa", &com.pref.prepro.equalize_cfa);
@@ -106,11 +106,6 @@ static int readinitfile_libconfig(gchar *path) {
 		com.pref.prepro.bias_lib = g_strdup(bias);
 		config_setting_lookup_bool(prepro_setting, "use_bias_lib", &com.pref.prepro.use_bias_lib);
 
-
-		config_setting_lookup_string(prepro_setting, "bias_synth", &bias_synth);
-		com.pref.prepro.bias_synth = g_strdup(bias_synth);
-		config_setting_lookup_bool(prepro_setting, "use_bias_synth", &com.pref.prepro.use_bias_synth);
-
 		config_setting_lookup_string(prepro_setting, "dark_lib", &dark);
 		com.pref.prepro.dark_lib = g_strdup(dark);
 		config_setting_lookup_bool(prepro_setting, "use_dark_lib", &com.pref.prepro.use_dark_lib);
@@ -118,6 +113,10 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_string(prepro_setting, "flat_lib", &flat);
 		com.pref.prepro.flat_lib = g_strdup(flat);
 		config_setting_lookup_bool(prepro_setting, "use_flat_lib", &com.pref.prepro.use_flat_lib);
+
+		config_setting_lookup_string(prepro_setting, "stack_default", &stack);
+		com.pref.prepro.stack_default = g_strdup(stack);
+		config_setting_lookup_bool(prepro_setting, "use_stack_default", &com.pref.prepro.use_stack_default);
 
 		prepro_setting = config_lookup(&config, "prepro-settings.xtrans_af");
 		if (prepro_setting != NULL) {
