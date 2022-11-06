@@ -49,6 +49,8 @@
 #include "core/pipe.h"
 #include "core/signals.h"
 #include "core/siril_app_dirs.h"
+#include "core/siril_language.h"
+#include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
@@ -187,6 +189,9 @@ static void siril_app_activate(GApplication *application) {
 		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
 		exit(EXIT_FAILURE);
 	}
+
+	if (com.pref.combo_lang)
+		language_init(com.pref.combo_lang);
 
 	if (main_option_directory) {
 		if (!g_path_is_absolute(main_option_directory)) {
