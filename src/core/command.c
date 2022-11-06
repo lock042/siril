@@ -1950,23 +1950,23 @@ int process_resample(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				return CMD_ARG_ERROR;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
 				interpolation = OPENCV_NEAREST;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
 				interpolation = OPENCV_CUBIC;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
 				interpolation = OPENCV_LANCZOS4;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
 				interpolation = OPENCV_LINEAR;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
 				interpolation = OPENCV_AREA;
 				continue;
 			}
@@ -2050,23 +2050,23 @@ int process_rotate(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				return CMD_ARG_ERROR;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
 				interpolation = OPENCV_NEAREST;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
 				interpolation = OPENCV_CUBIC;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
 				interpolation = OPENCV_LANCZOS4;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
 				interpolation = OPENCV_LINEAR;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
 				interpolation = OPENCV_AREA;
 				continue;
 			}
@@ -4991,7 +4991,7 @@ int process_register(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"shift")) {
+			if(!g_ascii_strncasecmp(value, "shift", 5)) {
 #ifdef HAVE_CV44
 				reg_args->type = SHIFT_TRANSFORMATION;
 				continue;
@@ -5000,15 +5000,15 @@ int process_register(int nb) {
 				goto terminate_register_on_error;
 #endif
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"similarity")) {
+			if(!g_ascii_strncasecmp(value, "similarity", 10)) {
 				reg_args->type = SIMILARITY_TRANSFORMATION;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"affine")) {
+			if(!g_ascii_strncasecmp(value, "affine", 6)) {
 				reg_args->type = AFFINE_TRANSFORMATION;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"homography")) {
+			if(!g_ascii_strncasecmp(value, "homography", 10)) {
 				reg_args->type = HOMOGRAPHY_TRANSFORMATION;
 				continue;
 			}
@@ -5074,27 +5074,27 @@ int process_register(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
 				reg_args->interpolation = OPENCV_NEAREST;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
 				reg_args->interpolation = OPENCV_CUBIC;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
 				reg_args->interpolation = OPENCV_LANCZOS4;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
 				reg_args->interpolation = OPENCV_LINEAR;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
+			if(!g_ascii_strncasecmp(value, "none", 4) || !g_ascii_strncasecmp(value, "no", 2)) {
 				reg_args->interpolation = OPENCV_NONE;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
 				reg_args->interpolation = OPENCV_AREA;
 				continue;
 			}
@@ -5344,27 +5344,27 @@ int process_seq_applyreg(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"nearest") || !g_strcmp0(g_ascii_strdown(value, -1),"ne")) {
+			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
 				reg_args->interpolation = OPENCV_NEAREST;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"cubic") || !g_strcmp0(g_ascii_strdown(value, -1),"cu")) {
+			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
 				reg_args->interpolation = OPENCV_CUBIC;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"lanczos4") || !g_strcmp0(g_ascii_strdown(value, -1),"la")) {
+			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
 				reg_args->interpolation = OPENCV_LANCZOS4;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"linear") || !g_strcmp0(g_ascii_strdown(value, -1),"li")) {
+			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
 				reg_args->interpolation = OPENCV_LINEAR;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"none") || !g_strcmp0(g_ascii_strdown(value, -1),"no")) {
+			if(!g_ascii_strncasecmp(value, "none", 4) || !g_ascii_strncasecmp(value, "no", 2)) {
 				reg_args->interpolation = OPENCV_NONE;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"area") || !g_strcmp0(g_ascii_strdown(value, -1),"ar")) {
+			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
 				reg_args->interpolation = OPENCV_AREA;
 				continue;
 			}
@@ -5377,19 +5377,19 @@ int process_seq_applyreg(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"current")) {
+			if(!g_ascii_strncasecmp(value, "current", 7)) {
 				reg_args->framing = FRAMING_CURRENT;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"min")) {
+			if(!g_ascii_strncasecmp(value, "min", 3)) {
 				reg_args->framing = FRAMING_MIN;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"max")) {
+			if(!g_ascii_strncasecmp(value, "max", 3)) {
 				reg_args->framing = FRAMING_MAX;
 				continue;
 			}
-			if(!g_strcmp0(g_ascii_strdown(value, -1),"cog")) {
+			if(!g_ascii_strncasecmp(value, "cog", 3)) {
 				reg_args->framing = FRAMING_COG;
 				continue;
 			}
