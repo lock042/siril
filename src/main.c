@@ -288,6 +288,24 @@ static void siril_app_activate(GApplication *application) {
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
+#ifdef OS_OSX //we need to think about it
+		/* see https://gitlab.gnome.org/GNOME/gtk/issues/2342 */
+		NSEvent *focusevent;
+		g_warning("workaround for the GTK3 #2342 bug");
+		focusevent = [NSEvent
+			otherEventWithType: NSEventTypeAppKitDefined
+			location: NSZeroPoint
+			modifierFlags: 0x40
+			timestamp: 0
+			windowNumber: 0
+			context: nil
+			subtype: NSEventSubtypeApplicationActivated
+			data1: 0
+			data2: 0];
+
+		[NSApp postEvent:focusevent atStart:YES];
+#endif
+
 #ifdef HAVE_JSON_GLIB
 		/* Check for update */
 		if (com.pref.check_update) {
