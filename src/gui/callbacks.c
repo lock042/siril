@@ -953,31 +953,31 @@ void initialize_FITS_name_entries() {
 	mflat = GTK_ENTRY(lookup_widget("flatname_entry"));
 	final_stack = GTK_ENTRY(lookup_widget("entryresultfile"));
 
-	if (com.pref.prepro.bias_lib && (g_file_test(com.pref.prepro.bias_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.bias_lib) {
 		if (com.pref.prepro.use_bias_lib) {
 			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_lib);
 		}
 	}
 
-	if (com.pref.prepro.bias_synth) {
-		if (com.pref.prepro.use_bias_synth) {
-			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_synth);
-		}
-	}
-
-	if (com.pref.prepro.dark_lib && (g_file_test(com.pref.prepro.dark_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.dark_lib) {
 		if (com.pref.prepro.use_dark_lib) {
 			str[1] = g_strdup_printf("%s", com.pref.prepro.dark_lib);
 		}
 	}
 
-	if (com.pref.prepro.flat_lib && (g_file_test(com.pref.prepro.flat_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.flat_lib) {
 		if (com.pref.prepro.use_flat_lib) {
 			str[2] = g_strdup_printf("%s", com.pref.prepro.flat_lib);
 		}
 
 	}
-	str[3] = g_strdup_printf("stack_result%s", com.pref.ext);
+
+	if (com.pref.prepro.stack_default) {
+		if (com.pref.prepro.use_stack_default) {
+			str[3] = g_strdup_printf("%s", com.pref.prepro.stack_default);
+		}
+
+	}
 
 	const char *t_bias = gtk_entry_get_text(mbias);
 	if (!str[0] && t_bias[0] == '\0') {
@@ -1004,7 +1004,13 @@ void initialize_FITS_name_entries() {
 	}
 
 	const char *t_stack = gtk_entry_get_text(final_stack);
-	if (t_stack[0] == '\0') {
+	if (!str[3] && t_stack[0] == '\0') {
+		if (sequence_is_loaded())
+			str[3] = g_strdup_printf("%s_stacked%s", com.seq.seqname, com.pref.ext);
+		else
+			str[3] = g_strdup_printf("stack_result%s", com.pref.ext);
+	}
+	if (str[3]) {
 		gtk_entry_set_text(final_stack, str[3]);
 	}
 
@@ -1017,10 +1023,15 @@ void initialize_FITS_name_entries() {
 void set_output_filename_to_sequence_name() {
 	static GtkEntry *output_file = NULL;
 	gchar *msg;
-	if (!output_file)
-		output_file = GTK_ENTRY(lookup_widget("entryresultfile"));
 	if (!com.seq.seqname || *com.seq.seqname == '\0')
 		return;
+	output_file = GTK_ENTRY(lookup_widget("entryresultfile"));
+	if (com.pref.prepro.stack_default) {
+		if (com.pref.prepro.use_stack_default) {
+			gtk_entry_set_text(output_file, com.pref.prepro.stack_default);
+			return;
+		}
+	}
 	msg = g_strdup_printf("%s%sstacked%s", com.seq.seqname,
 			g_str_has_suffix(com.seq.seqname, "_") ?
 			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), com.pref.ext);

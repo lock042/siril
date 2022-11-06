@@ -29,6 +29,7 @@ v1.2.0 mmm dd, 2022
 * Added zoom sliders and plot selection in Plot tab
 * Added Moffat star profile as an option instead of Gaussian
 * Added the possibility to run statistics on individual filters of CFA images
+* Added parsing paths with header key values for preprocess, stack and save actions
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
 * Refactored global registration and added 2pass and Apply Existing methods

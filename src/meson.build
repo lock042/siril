@@ -123,6 +123,7 @@ src_files = [
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',
   'io/mp4_output.c',
+  'io/path_parse.c',
   'io/seqfile.c',
   'io/sequence.c',
   'io/sequence_export.c',

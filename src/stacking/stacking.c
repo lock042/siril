@@ -37,6 +37,7 @@
 #include "gui/sequence_list.h"
 #include "gui/registration_preview.h"
 #include "io/image_format_fits.h"
+#include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/ser.h"
@@ -49,7 +50,7 @@
 #include "stacking.h"
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
-	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, FALSE, { 0, 0 }, -1,
+	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE, { 0, 0 }, -1,
 	{ 0, 0 }, NULL, NO_REJEC, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1,
 	FALSE, FALSE, FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
 };
@@ -384,31 +385,46 @@ static gboolean end_stacking(gpointer p) {
 		/* Giving noise estimation (new thread) */
 		bgnoise_async(&gfit, TRUE);
 
+		// updating the header string to parse the final name
+		// and parse the name
+		int status = PATHPARSE_ERR_OK;
+		gchar *expression = g_strdup(args->output_filename);
+		gchar *parsedname = update_header_and_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+
+		if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
+			args->output_parsed_filename = g_strdup("unknown");
+		} else {
+			args->output_parsed_filename = g_strdup(parsedname);
+		}
+		g_free(parsedname);
+		g_free(expression);
+
+
 		/* save stacking result */
-		if (args->output_filename != NULL && args->output_filename[0] != '\0') {
+		if (args->output_parsed_filename != NULL && args->output_parsed_filename[0] != '\0') {
 			int failed = 0;
-			if (g_file_test(args->output_filename, G_FILE_TEST_EXISTS)) {
+			if (g_file_test(args->output_parsed_filename, G_FILE_TEST_EXISTS)) {
 				failed = !args->output_overwrite;
 				if (!failed) {
-					if (g_unlink(args->output_filename) == -1)
+					if (g_unlink(args->output_parsed_filename) == -1)
 						failed = 1;
-					if (!failed && savefits(args->output_filename, &gfit))
+					if (!failed && savefits(args->output_parsed_filename, &gfit))
 						failed = 1;
 					if (!failed) {
-						com.uniq->filename = strdup(args->output_filename);
+						com.uniq->filename = strdup(args->output_parsed_filename);
 						com.uniq->fileexist = TRUE;
 					}
 				}
 			}
 			else {
-				gchar *dirname = g_path_get_dirname(args->output_filename);
+				gchar *dirname = g_path_get_dirname(args->output_parsed_filename);
 				if (g_mkdir_with_parents(dirname, 0755) < 0) {
 					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
 					failed = 1;
 				}
 				g_free(dirname);
-				if (!savefits(args->output_filename, &gfit)) {
-					com.uniq->filename = strdup(args->output_filename);
+				if (!savefits(args->output_parsed_filename, &gfit)) {
+					com.uniq->filename = strdup(args->output_parsed_filename);
 					com.uniq->fileexist = TRUE;
 				} else {
 					failed = 1;

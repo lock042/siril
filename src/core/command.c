@@ -53,6 +53,7 @@
 #include "core/siril_log.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
+#include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/catalogues.h"
@@ -234,26 +235,39 @@ int process_satu(int nb){
 
 int process_save(int nb){
 	gchar *filename = g_strdup(word[1]);
-	set_cursor_waiting(TRUE);
 	if (!com.script) {
 		gfit.lo = gui.lo;
 		gfit.hi = gui.hi;
 	}
-	int retval = savefits(filename, &gfit);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = savefits(savename, &gfit);
+		set_cursor_waiting(FALSE);
+	}
 	set_precision_switch();
-	set_cursor_waiting(FALSE);
 	g_free(filename);
+	g_free(savename);
 	return retval;
 }
 
 int process_savebmp(int nb){
 	gchar *filename = g_strdup_printf("%s.bmp", word[1]);
-
-	set_cursor_waiting(TRUE);
-	savebmp(filename, &gfit);
-	set_cursor_waiting(FALSE);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = savebmp(savename, &gfit);
+		set_cursor_waiting(FALSE);
+	}
 	g_free(filename);
-	return CMD_OK;
+	g_free(savename);
+	return retval;
 }
 
 int process_synthstar(int nb) {
@@ -545,26 +559,37 @@ int process_savejpg(int nb){
 	}
 
 	gchar *filename = g_strdup_printf("%s.jpg", word[1]);
-
-	set_cursor_waiting(TRUE);
-	savejpg(filename, &gfit, quality);
-	set_cursor_waiting(FALSE);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = savejpg(savename, &gfit, quality);
+		set_cursor_waiting(FALSE);
+	}
 	g_free(filename);
-	return CMD_OK;
+	g_free(savename);
+	return retval;
 }
 #endif
 
 #ifdef HAVE_LIBPNG
 int process_savepng(int nb){
-
 	gchar *filename = g_strdup_printf("%s.png", word[1]);
-
-	set_cursor_waiting(TRUE);
-	uint32_t bytes_per_sample = gfit.orig_bitpix != BYTE_IMG ? 2 : 1;
-	savepng(filename, &gfit, bytes_per_sample, gfit.naxes[2] == 3);
-	set_cursor_waiting(FALSE);
+	int status, retval;
+	gchar *savename =update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		uint32_t bytes_per_sample = gfit.orig_bitpix != BYTE_IMG ? 2 : 1;
+		retval = savepng(savename, &gfit, bytes_per_sample, gfit.naxes[2] == 3);
+		set_cursor_waiting(FALSE);
+	}
 	g_free(filename);
-	return CMD_OK;
+	g_free(savename);
+	return retval;
 }
 #endif
 
@@ -577,17 +602,35 @@ int process_savetif(int nb){
 	else if (strcasecmp(word[0], "savetif32") == 0)
 		bitspersample = 32;
 	gchar *filename = g_strdup_printf("%s.tif", word[1]);
-	set_cursor_waiting(TRUE);
-	savetif(filename, &gfit, bitspersample, NULL, com.pref.copyright, TRUE);
-	set_cursor_waiting(FALSE);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = savetif(filename, &gfit, bitspersample, NULL, com.pref.copyright, TRUE);
+		set_cursor_waiting(FALSE);
+	}
 	g_free(filename);
-	return CMD_OK;
+	g_free(savename);
+	return retval;
 }
 #endif
 
 int process_savepnm(int nb){
-	saveNetPBM(word[1], &gfit);
-	return CMD_OK;
+	gchar *filename = g_strdup(word[1]);
+	int status, retval;
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	if (status > 0) {
+		retval = 1;
+	} else {
+		set_cursor_waiting(TRUE);
+		retval = saveNetPBM(savename, &gfit);
+		set_cursor_waiting(FALSE);
+	}
+	g_free(filename);
+	g_free(savename);
+	return retval;
 }
 
 static gboolean merge_cfa_idle(gpointer arg) {
@@ -5657,18 +5700,6 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 					return CMD_ARG_ERROR;
 				}
-
-				/* Make sure path exists */
-				gchar *dirname = g_path_get_dirname(value);
-
-				if (g_mkdir_with_parents(dirname, 0755) < 0) {
-					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
-					g_free(dirname);
-					return CMD_GENERIC_ERROR;
-				}
-
-				g_free(dirname);
-
 				arg->result_file = g_strdup(value);
 			}
 			else {
@@ -5742,15 +5773,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	if (!arg->result_file) {
-		char filename[256];
-		char *suffix = g_str_has_suffix(seq->seqname, "_") ||
-			g_str_has_suffix(seq->seqname, "-") ? "" : "_";
-		snprintf(filename, 256, "%s%sstacked%s",
-				seq->seqname, suffix, com.pref.ext);
-		arg->result_file = g_strdup(filename);
-	}
-
 	main_stack(&args);
 
 	int retval = args.retval;
@@ -5761,6 +5783,39 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 	if (!retval) {
 		bgnoise_async(&args.result, TRUE);
+		// preparing the output filename
+		// needs to be done after stack is completed to have
+		// stack-specific keywords available for parsing if needed
+		if (!arg->result_file) {
+			char filename[256];
+			char *suffix = g_str_has_suffix(seq->seqname, "_") ||
+				g_str_has_suffix(seq->seqname, "-") ? "" : "_";
+			snprintf(filename, 256, "%s%sstacked%s",
+					seq->seqname, suffix, com.pref.ext);
+			arg->result_file = g_strdup(filename);
+		} else { // the name is to be parsed (including folder creation if required)
+			int status = PATHPARSE_ERR_OK;
+			gchar *expression = g_strdup(arg->result_file);
+			gchar *parsedname = update_header_and_parse(&args.result, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+			char filename[256];
+			if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
+				snprintf(filename, 256, "unknown");
+			} else {
+				snprintf(filename, 256, "%s", parsedname);
+			}
+			g_free(arg->result_file);
+			arg->result_file = g_strdup(filename);
+			g_free(parsedname);
+			g_free(expression);
+		}
+		/* Make sure path exists */
+		gchar *dirname = g_path_get_dirname(arg->result_file);
+		if (g_mkdir_with_parents(dirname, 0755) < 0) {
+			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+			g_free(dirname);
+			return CMD_GENERIC_ERROR;
+		}
+		g_free(dirname);
 		if (savefits(arg->result_file, &args.result)) {
 			siril_log_color_message(_("Could not save the stacking result %s\n"),
 					"red", arg->result_file);
@@ -6039,12 +6094,19 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		args->seq = seq;
 		args->is_sequence = TRUE;
 		bitpix = seq->bitpix;
+		// loading the sequence reference image's metadata in case it's needed
+		int image_to_load = sequence_find_refimage(seq);
+		if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
+			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+			retvalue = CMD_INVALID_IMAGE;
+			goto prepro_parse_end;
+		}
 	}
 	else {
 		if (read_fits_metadata_from_path(word[1], &reffit)) {
 			siril_log_message(_("Could not load the image, aborting.\n"));
 			clearfits(&reffit);
-			retvalue = 1;
+			retvalue = CMD_INVALID_IMAGE;
 			goto prepro_parse_end;
 		}
 		bitpix = reffit.bitpix;
@@ -6064,16 +6126,6 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		if (g_str_has_prefix(word[i], "-bias=")) {
 			gchar *expression = g_shell_unquote(word[i] + 6, NULL);
 			if (expression && expression[0] == '=') {
-				if (seq) {
-					// loading the sequence reference image's metadata in case $OFFSET is passed in the expression
-					int image_to_load = sequence_find_refimage(seq);
-					if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
-						siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-						g_free(expression);
-						retvalue = CMD_INVALID_IMAGE;
-						break;
-					}
-				}
 				// parsing offset level
 				int offsetlevel = evaluateoffsetlevel(expression + 1, &reffit);
 				if (!offsetlevel) {
@@ -6097,8 +6149,14 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				}
 			} else {
 				g_free(expression);
+				int status;
+				expression = path_parse(&reffit, word[i] + 6, PATHPARSE_MODE_READ, &status);
+				if (status) {
+					retvalue = CMD_GENERIC_ERROR;
+					break;
+				}
 				args->bias = calloc(1, sizeof(fits));
-				if (!readfits(word[i] + 6, args->bias, NULL, !com.pref.force_16bit)) {
+				if (!readfits(expression, args->bias, NULL, !com.pref.force_16bit)) {
 					args->use_bias = TRUE;
 					// if input is 8b, we assume 32b master needs to be rescaled
 					if ((args->bias->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
@@ -6107,12 +6165,21 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				} else {
 					retvalue = CMD_INVALID_IMAGE;
 					free(args->bias);
+					g_free(expression);
 					break;
 				}
+				g_free(expression);
 			}
 		} else if (g_str_has_prefix(word[i], "-dark=")) {
 			args->dark = calloc(1, sizeof(fits));
-			if (!readfits(word[i] + 6, args->dark, NULL, !com.pref.force_16bit)) {
+			int status;
+			gchar *expression = path_parse(&reffit, word[i] + 6, PATHPARSE_MODE_READ, &status);
+			if (status > 0) { // negative status are warnings
+				retvalue = CMD_GENERIC_ERROR;
+				free(args->dark);
+				break;
+			}
+			if (!readfits(expression, args->dark, NULL, !com.pref.force_16bit)) {
 				args->use_dark = TRUE;
 				// if input is 8b, we assume 32b master needs to be rescaled
 				if ((args->dark->type == DATA_FLOAT) && (bitpix == BYTE_IMG)) {
@@ -6121,18 +6188,29 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			} else {
 				retvalue = CMD_INVALID_IMAGE;
 				free(args->dark);
+				g_free(expression);
 				break;
 			}
+			g_free(expression);
 		} else if (g_str_has_prefix(word[i], "-flat=")) {
 			args->flat = calloc(1, sizeof(fits));
-			if (!readfits(word[i] + 6, args->flat, NULL, !com.pref.force_16bit)) {
+			int status;
+			gchar *expression = path_parse(&reffit, word[i] + 6, PATHPARSE_MODE_READ, &status);
+			if (status) {
+				retvalue = CMD_GENERIC_ERROR;
+				free(args->flat);
+				break;
+			}
+			if (!readfits(expression, args->flat, NULL, !com.pref.force_16bit)) {
 				args->use_flat = TRUE;
 				// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
 			} else {
 				retvalue = CMD_INVALID_IMAGE;
 				free(args->flat);
+				g_free(expression);
 				break;
 			}
+			g_free(expression);
 		} else if (g_str_has_prefix(word[i], "-prefix=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -6980,5 +7058,29 @@ int process_stop_ls(int nb) {
 		return CMD_NEED_INIT_FIRST;
 	}
 	stop_live_stacking_engine();
+	return CMD_OK;
+}
+
+int process_parse(int nb) {
+	pathparse_mode mode = PATHPARSE_MODE_WRITE;
+	if (nb == 3) {
+		if (g_strcmp0(word[2], "-r")) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+			return CMD_ARG_ERROR;
+		}
+		mode = PATHPARSE_MODE_READ;
+	} else if (nb > 3) {
+		return CMD_WRONG_N_ARG;
+	}
+	int status;
+	gchar *expression = NULL;
+	if (gfit.header) { // fits or astrotiff - do not update the header
+		expression = path_parse(&gfit, word[1], mode, &status);
+	} else {
+		expression = update_header_and_parse(&gfit, word[1], mode, &status);
+	}
+	siril_log_message(_("String in: %s\n"), word[1]);
+	siril_log_message(_("String out: %s\n"), expression);
+	g_free(expression);
 	return CMD_OK;
 }

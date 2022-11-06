@@ -1412,3 +1412,22 @@ char *str_replace(char *orig, char *rep, char *with) {
     strcpy(tmp, orig);
     return result;
 }
+
+/**
+ * Deblanks a string and replace spaces with char c
+ * Multiple adjacent spaces are replaced only once
+ * @param s string to be deblanked
+ * @param c character to replace spaces
+ */
+void replace_spaces_from_str(gchar *s, gchar c) {
+	gchar *d = s;
+	do {
+		while (g_ascii_isspace(*d)) {
+			++d;
+		}
+		if ((d > s) && g_ascii_isspace(*(d - 1))) {
+			*(d-1) = c;
+			--d;
+		}
+	} while((*s++ = *d++));
+}
