@@ -1051,7 +1051,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
 			break;
 		case 2: // Downsample OIII to Ha size
-			verbose_resize_gaussian(OIII, Ha->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
+			verbose_resize_gaussian(OIII, Ha->rx, Ha->ry, OPENCV_LANCZOS4, TRUE);
 			break;
 		default:
 			break;
