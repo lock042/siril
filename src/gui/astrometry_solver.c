@@ -52,7 +52,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data
 static void initialize_ips_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg,
-			*catalog_label_pcc, *force_platesolve;
+			*catalog_label_pcc, *force_platesolve, *flip_image;
 	GtkWindow *parent;
 
 	button_ips_ok = lookup_widget("buttonIPS_ok");
@@ -64,6 +64,7 @@ static void initialize_ips_dialog() {
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	force_platesolve = lookup_widget("force_astrometry_button");
+	flip_image = lookup_widget("checkButton_IPS_flip");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -76,6 +77,7 @@ static void initialize_ips_dialog() {
 	gtk_widget_set_visible(catalog_auto, TRUE);
 	gtk_widget_set_visible(frame_cc_bkg, FALSE);
 	gtk_widget_set_visible(force_platesolve, FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(flip_image), single_image_is_loaded());
 	gtk_widget_grab_focus(button_ips_ok);
 
 	gtk_window_set_title(parent, _("Image Plate Solver"));
@@ -116,11 +118,11 @@ static online_catalog get_astrometry_catalog(double fov, double mag, gboolean au
 
 	if (auto_cat) {
 		if (mag <= 6.5) {
-		  ret = BRIGHT_STARS;
+			ret = BRIGHT_STARS;
 		} else if (fov > 180.0) {
-		  ret = NOMAD;
+			ret = NOMAD;
 		} else {
-		  ret = GAIADR3;
+			ret = GAIADR3;
 		}
 		return ret;
 	} else {
