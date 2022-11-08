@@ -1236,6 +1236,7 @@ gpointer match_catalog(gpointer p) {
 
 	if (args->downsample) {
 		copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		copy_fits_metadata(args->fit, &fit_backup);
 		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA, FALSE);
 	}
 
