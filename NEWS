@@ -6,6 +6,7 @@ v1.2.0 mmm dd, 2022
 * Added LRGB composition command and PixelMath command for new offline compositions
 * Added Starnet++ integration in GUI and command and mask creation
 * Added Star Recomposition tool to mix and stretch starless and starmask images
+* Added star intensive care to unsaturate stars
 * Added pcc command for headless PCC and plate solving
 * Added local KStars star catalogue support for plate solving and PCC (NOMAD)
 * Added a new framing assistant with several modes and image framing preview
@@ -30,15 +31,9 @@ v1.2.0 mmm dd, 2022
 * Added Moffat star profile as an option instead of Gaussian
 * Added the possibility to run statistics on individual filters of CFA images
 * Added parsing paths with header key values for preprocess, stack and save actions
-* Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
-* Updated seq file version to v4. Registration block keeps homography information
-* Refactored global registration and added 2pass and Apply Existing methods
-* Refactored 3-star registration to run the 3 stars analysis successively
-* Refactored PCC, using WCS information to identify stars instead of registration match
-* Refactored settings, preferences and configuration file, adding get and set commands
-* Refactored commands error handling
-* Refactored light curve creation, filtering the reference stars to valid only
-* Refactored PSF fitting to solve for the angle in all cases
+* Added a high definition mode to auto-stretch visualization
+* Added memory and processor count cgroups limits enforcement (linux only)
+* Added a mapping file created by conversion operations
 * Added background level and number of stars to stored registation data and plots
 * Added commands: [update with https://free-astro.org/index.php?title=Siril:Commands#Commands_history ]
 * Added KOMBAT alogrithm for registration and removed deprecated ECC
@@ -47,10 +42,24 @@ v1.2.0 mmm dd, 2022
 * Added option "full" to export all possible stats in seqstat command
 * Added argument to executable to pass pipes path, allowing several instances to run simultaneously
 * Added more reporting on online object search, avoiding duplicates in catalogues
-* Replaced generalized hyperbolic transform stretch method by more general algorithms and optimised for speed
 * Added improved graphical interface to hyperbolic stretches
-* Altered behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels (this is useful in NB workflows etc.)
+* Added 9-panel dialog tool showing corners and center of the image for a closer inspection
+* Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
+* Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Allowed area selection (and much more) to be done on RGB display tab
+* Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
+* Updated seq file version to v4. Registration block keeps homography information
+* Updated behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels
 * Replaced Libraw with RT debayering
+* Replaced generalized hyperbolic transform stretch method by more general algorithms and optimised for speed
+* Optimised asinh code for speed
+* Refactored global registration and added 2pass and Apply Existing methods
+* Refactored 3-star registration to run the 3 stars analysis successively
+* Refactored PCC, using WCS information to identify stars instead of registration match
+* Refactored settings, preferences and configuration file, adding get and set commands
+* Refactored commands error handling
+* Refactored light curve creation, filtering the reference stars to valid only
+* Refactored PSF fitting to solve for the angle in all cases
 * Fixed comet registration when registration was accumulated over existing data
 * Fixed star detection for images with very large stars
 * Fixed cancellation of seqpsf or seqcrop
@@ -59,11 +68,7 @@ v1.2.0 mmm dd, 2022
 * Fixed FITS header preservation on RGB composition
 * Fixed possible FITSEQ infinite loop and inconsistent numbering caused by hidden files in conversion
 * Fixed sequence closing in script processing after each command
-* Added 9-panel dialog tool showing corners and center of the image for a closer inspection
-* Optimised asinh code for speed
-* Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
-* Added undershoot clamping to bicubic and lanczos4 interpolation methods
-* Allow area selection (and much more) to be done on RGB display tab
+* Fixed opening of scientific FITS cube files
 
 v1.0.6 October 18, 2022
 
