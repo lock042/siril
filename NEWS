@@ -73,7 +73,7 @@ v1.2.0 mmm dd, 2022
 v1.0.7 xx xx, 2022
 
 * Fixed bug when saving 16bits signed FITS images
-* Fixing internationalization in siril-cli
+* Fixed internationalization in siril-cli
 
 v1.0.6 October 18, 2022
 
