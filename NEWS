@@ -1,3 +1,8 @@
+v1.0.7 xx xx, 2022
+
+* Fixed bug when saving 16bits signed FITS images
+* Fixing internationalization in siril-cli
+
 v1.0.6 xx xx, 2022
 
 * Fixed crash on opening a malformed SER

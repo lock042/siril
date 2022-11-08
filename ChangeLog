@@ -1,3 +1,9 @@
+siril 1.0.7
+xx/xx/22
+
+* Fixed bug when saving 16bits signed FITS images
+* Fixing internationalization in siril-cli
+
 siril 1.0.6
 10/18/22
 
