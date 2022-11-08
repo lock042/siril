@@ -70,6 +70,11 @@ v1.2.0 mmm dd, 2022
 * Fixed sequence closing in script processing after each command
 * Fixed opening of scientific FITS cube files
 
+v1.0.7 xx xx, 2022
+
+* Fixed bug when saving 16bits signed FITS images
+* Fixing internationalization in siril-cli
+
 v1.0.6 October 18, 2022
 
 * Fixed crash on opening a malformed SER

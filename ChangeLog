@@ -71,6 +71,12 @@ xx/xx/22
 * Fixed sequence closing in script processing after each command
 * Fixed opening of scientific FITS cube files
 
+siril 1.0.7
+xx/xx/22
+
+* Fixed bug when saving 16bits signed FITS images
+* Fixing internationalization in siril-cli
+
 siril 1.0.6
 10/18/22
 
