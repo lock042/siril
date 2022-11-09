@@ -661,16 +661,11 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook)
 		required = 5 * MB_per_image / 4;
 	else if (args->image_hook == extractHaOIII_image_hook) {
-		switch (cfa_args->scaling) {
-			case 0:
+		if (cfa_args->scaling == 0) {
 				required = 3 * MB_per_image / 2;
-				break;
-			case 1:
-				required = 7 * MB_per_image / 2;
-				break;
-			case 2:
-				required = 11 * MB_per_image / 4;
-				break;
+		} else {
+			// Very slightly less for upscaling Ha but this is close enough
+			required = 7 * MB_per_image / 2;
 		}
 	} else if (args->image_hook == split_cfa_image_hook) {
 		required = 2 * MB_per_image;
