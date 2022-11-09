@@ -363,7 +363,6 @@ struct _double_split {
 int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
-
 	sensor_pattern pattern = get_bayer_pattern(fit);
 
 	/* Demosaic and store images for write */
@@ -657,14 +656,25 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_image, MB_avail, required;
 	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 
 	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook)
 		required = 5 * MB_per_image / 4;
-	else if (args->image_hook == extractHaOIII_image_hook)
-		required = 3 * MB_per_image / 2;
-	else if (args->image_hook == split_cfa_image_hook)
+	else if (args->image_hook == extractHaOIII_image_hook) {
+		switch (cfa_args->scaling) {
+			case 0:
+				required = 3 * MB_per_image / 2;
+				break;
+			case 1:
+				required = 7 * MB_per_image / 2;
+				break;
+			case 2:
+				required = 11 * MB_per_image / 4;
+				break;
+		}
+	} else if (args->image_hook == split_cfa_image_hook) {
 		required = 2 * MB_per_image;
-	else {
+	} else {
 		required = MB_per_image;
 		siril_log_color_message("unknown extraction type\n", "red");
 	}
