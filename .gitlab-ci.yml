@@ -335,6 +335,7 @@ appimage-nightly:
     paths:
       - build/appimage/Siril*.AppImage*
   needs: ["build-image-oldstable"]
+  allow_failure: true
 
 ################################################################################
 # Analysis
