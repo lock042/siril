@@ -608,7 +608,7 @@ static void draw_vport(const draw_data_t* dd) {
 		cairo_t *cached_cr = cairo_create(view->disp_surface);
 		cairo_matrix_t y_reflection_matrix, flipped_matrix; 
 		cairo_matrix_init_identity(&y_reflection_matrix);
-		if (!g_strcmp0(gfit.row_order, "TOP-DOWN") && livestacking_is_started()) {
+		if (livestacking_is_started() && !g_strcmp0(gfit.row_order, "TOP-DOWN")) {
 			y_reflection_matrix.yy = -1.0;
 			y_reflection_matrix.y0 = gfit.ry;
 		}
