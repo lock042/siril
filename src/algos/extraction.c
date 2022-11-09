@@ -719,15 +719,13 @@ void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 
 int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, int scaling) {
 	int width = in->rx / 2, height = in->ry / 2;
-	float norm = USHRT_MAX_SINGLE;
-	float invnorm = 1.f / norm;
 
 	if (strlen(in->bayer_pattern) > 4) {
 		siril_log_message(_("Extract_HaOIII does not work on non-Bayer filter camera images!\n"));
 		return 1;
 	}
-	if (new_fit_image(&Ha, width, height, 1, DATA_FLOAT) ||
-			new_fit_image(&OIII, in->rx, in->ry, 1, DATA_FLOAT)) {
+	if (new_fit_image(&Ha, width, height, 1, DATA_USHORT) ||
+			new_fit_image(&OIII, in->rx, in->ry, 1, DATA_USHORT)) {
 		return 1;
 	}
 	// Loop through calculating the means of the 3 O-III photosite subchannels
@@ -744,25 +742,25 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 
 			switch(pattern) {
 			case BAYER_FILTER_RGGB:
-				Ha->fdata[j] = c0 * invnorm;
+				Ha->data[j] = roundf_to_WORD(c0);
 				g1 += c1;
 				g2 += c2;
 				b += c3;
 				break;
 			case BAYER_FILTER_BGGR:
-				Ha->fdata[j] = c3 * invnorm;
+				Ha->data[j] = roundf_to_WORD(c3);
 				g1 += c1;
 				g2 += c2;
 				b += c0;
 				break;
 			case BAYER_FILTER_GRBG:
-				Ha->fdata[j] = c1 * invnorm;
+				Ha->data[j] = roundf_to_WORD(c1);
 				g1 += c0;
 				g2 += c3;
 				b += c2;
 				break;
 			case BAYER_FILTER_GBRG:
-				Ha->fdata[j] = c2 * invnorm;
+				Ha->data[j] = roundf_to_WORD(c2);
 				g1 += c0;
 				g2 += c3;
 				b += c1;
@@ -781,9 +779,9 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 		g2 /= j;
 		b /= j;
 		float avgoiii = (g1 + g2 + b) / 3;
-		float g1ratio = invnorm * avgoiii / g1;
-		float g2ratio = invnorm * avgoiii / g2;
-		float bratio = invnorm * avgoiii / b;
+		float g1ratio = avgoiii / g1;
+		float g2ratio = avgoiii / g2;
+		float bratio = avgoiii / b;
 
 		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
 		for (int row = 0; row < in->ry - 1; row += 2) {
@@ -792,27 +790,27 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 				switch(pattern) {
 					case BAYER_FILTER_RGGB:
 						HaIndex = col + row * in->rx;
-						OIII->fdata[1 + col + row * in->rx] = g1ratio * in->data[1 + col + row * in->rx];
-						OIII->fdata[col + (1 + row) * in->rx] = g2ratio * in->data[col + (1 + row) * in->rx];
-						OIII->fdata[1 + col + (1 + row) * in->rx] = bratio * in->data[1 + col + (1 + row) * in->rx];
+						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[1 + col + row * in->rx]);
+						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[col + (1 + row) * in->rx]);
+						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(bratio * in->data[1 + col + (1 + row) * in->rx]);
 						break;
 					case BAYER_FILTER_BGGR:
 						HaIndex = 1 + col + (1 + row) * in->rx;
-						OIII->fdata[1 + col + row * in->rx] = g1ratio * in->data[1 + col + row * in->rx];
-						OIII->fdata[col + (1 + row) * in->rx] = g2ratio * in->data[col + (1 + row) * in->rx];
-						OIII->fdata[col + row * in->rx] = bratio * in->data[col + row * in->rx];
+						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[1 + col + row * in->rx]);
+						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[col + (1 + row) * in->rx]);
+						OIII->data[col + row * in->rx] = roundf_to_WORD(bratio * in->data[col + row * in->rx]);
 						break;
 					case BAYER_FILTER_GRBG:
 						HaIndex = 1 + col + row * in->rx;
-						OIII->fdata[col + row * in->rx] = g1ratio * in->data[col + row * in->rx];
-						OIII->fdata[1 + col + (1 + row) * in->rx] = g2ratio * in->data[1 + col + (1 + row) * in->rx];
-						OIII->fdata[col + (1 + row) * in->rx] = bratio * in->data[col + (1 + row) * in->rx];
+						OIII->data[col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[col + row * in->rx]);
+						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[1 + col + (1 + row) * in->rx]);
+						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(bratio * in->data[col + (1 + row) * in->rx]);
 						break;
 					case BAYER_FILTER_GBRG:
 						HaIndex = col + (1 + row) * in->rx;
-						OIII->fdata[col + row * in->rx] = g1ratio * in->data[col + row * in->rx];
-						OIII->fdata[1 + col + (1 + row) * in->rx] = g2ratio * in->data[1 + col + (1 + row) * in->rx];
-						OIII->fdata[1 + col + row * in->rx] = bratio * in->data[1 + col + row * in->rx];
+						OIII->data[col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[col + row * in->rx]);
+						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[1 + col + (1 + row) * in->rx]);
+						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(bratio * in->data[1 + col + row * in->rx]);
 						break;
 					default:
 						printf("Should not happen.\n");
@@ -831,12 +829,12 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 						if (!first_x) {
 							interp += (in->data[HaIndex - 1] * SQRTF_2);
 							interp += in->data[HaIndex - in->rx - 1];
-							weight += (1 + SQRTF_2);
+							weight += (1.f + SQRTF_2);
 						}
 						if (!last_x) {
 							interp += in->data[HaIndex - in->rx + 1];
 							interp += in->data[HaIndex + 1] * SQRTF_2;
-							weight += (1 + SQRTF_2);
+							weight += (1.f + SQRTF_2);
 						}
 					} else { // first_y
 						if (!first_x) {
@@ -861,7 +859,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 						}
 					}
 					interp /= weight;
-					OIII->fdata[HaIndex] = interp * invnorm;
+					OIII->data[HaIndex] = roundf_to_WORD(interp);
 				}
 			}
 		}
