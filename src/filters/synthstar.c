@@ -248,7 +248,7 @@ int generate_synthstars(fits *fit) {
 	} else {
 		stars = com.stars;
 	}
-	if (nb_stars < 1) {
+	if (starcount(stars) < 1) {
 		siril_log_color_message(_("No stars detected in the image.\n"), "red");
 		return -1;
 	} else {
@@ -322,18 +322,23 @@ int generate_synthstars(fits *fit) {
 	// Calculate average Moffat beta
 	size_t moffat_count = 0;
 	double avg_moffat_beta = 0.;
-	for (size_t n = 0 ; n < nb_stars ; n++) {
-		moffat_count++;
-		avg_moffat_beta += stars[n]->beta;
-	}
-	if (moffat_count > 0)
-		avg_moffat_beta /= moffat_count;
-	else
-		avg_moffat_beta = -1;
-	siril_debug_print("# Moffat profile stars: %zd, average beta = %.3f\n", moffat_count, avg_moffat_beta);
 
 	gboolean stopcalled = FALSE;
 	// Synthesize a PSF for each star in the star array s, based on its measured parameters
+	gboolean gaussian = TRUE;
+	if (stars[0]->profile == PSF_MOFFAT_BFREE)
+		gaussian = FALSE;
+	if (!gaussian) {
+		for (size_t n = 0 ; n < nb_stars ; n++) {
+			moffat_count++;
+			avg_moffat_beta += stars[n]->beta;
+		}
+		if (moffat_count > 0)
+			avg_moffat_beta /= moffat_count;
+		else
+			avg_moffat_beta = -1;
+		siril_debug_print("# Moffat profile stars: %zd, average beta = %.3f\n", moffat_count, avg_moffat_beta);
+	}
 	for (int n = 0; n < nb_stars; n++) {
 		// Check if stop has been pressed
 		if (!get_thread_run())
@@ -355,12 +360,14 @@ int generate_synthstars(fits *fit) {
 			// Synthesize the luminance profile and add to the star mask in HSL colourspace
 			float *psfL = (float*) calloc(size * size, sizeof(float));
 			float beta = 8.f;
-			if (stars[n]->beta > 0.0) {
-				beta=stars[n]->beta;
-				minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
-			} else if (moffat_count > 0)
-				beta = avg_moffat_beta;
-			if (stars[n]->has_saturated)
+			if (!gaussian) {
+				if (stars[n]->beta > 0.0) {
+					beta=stars[n]->beta;
+					minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
+				} else if (moffat_count > 0)
+					beta = avg_moffat_beta;
+			}
+			if (stars[n]->has_saturated || gaussian)
 				makegaussian(psfL, size, minfwhm, lum, xoff, yoff);
 			else
 				makemoffat(psfL, size, minfwhm, lum, xoff, yoff, beta);
