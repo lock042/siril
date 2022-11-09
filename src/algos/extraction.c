@@ -824,37 +824,37 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 					gboolean first_x = (HaIndex % in->rx == 0) ? TRUE : FALSE;
 					gboolean last_x = (HaIndex % in->rx == in->rx - 1) ? TRUE : FALSE;
 					if (!first_y) {
-						interp += in->data[HaIndex - in->rx] * SQRTF_2;
+						interp += OIII->data[HaIndex - in->rx] * SQRTF_2;
 						weight += SQRTF_2;
 						if (!first_x) {
-							interp += (in->data[HaIndex - 1] * SQRTF_2);
-							interp += in->data[HaIndex - in->rx - 1];
+							interp += (OIII->data[HaIndex - 1] * SQRTF_2);
+							interp += OIII->data[HaIndex - in->rx - 1];
 							weight += (1.f + SQRTF_2);
 						}
 						if (!last_x) {
-							interp += in->data[HaIndex - in->rx + 1];
-							interp += in->data[HaIndex + 1] * SQRTF_2;
+							interp += OIII->data[HaIndex - in->rx + 1];
+							interp += OIII->data[HaIndex + 1] * SQRTF_2;
 							weight += (1.f + SQRTF_2);
 						}
 					} else { // first_y
 						if (!first_x) {
-							interp += in->data[HaIndex - 1] * SQRTF_2;
+							interp += OIII->data[HaIndex - 1] * SQRTF_2;
 							weight += SQRTF_2;
 						}
 						if(!last_x) {
-							interp += in->data[HaIndex+1] * SQRTF_2;
+							interp += OIII->data[HaIndex+1] * SQRTF_2;
 							weight += SQRTF_2;
 						}
 					}
 					if (!last_y) {
-						interp += in->data[HaIndex + in->rx] * SQRTF_2;
+						interp += OIII->data[HaIndex + in->rx] * SQRTF_2;
 						weight += SQRTF_2;
 						if(!first_x) {
-							interp += in->data[HaIndex + in->rx - 1];
+							interp += OIII->data[HaIndex + in->rx - 1];
 							weight += 1.f;
 						}
 						if(!last_x) {
-							interp += in->data[HaIndex + in->rx + 1];
+							interp += OIII->data[HaIndex + in->rx + 1];
 							weight += 1.f;
 						}
 					}
@@ -999,37 +999,37 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 					gboolean first_x = (HaIndex % in->rx == 0) ? TRUE : FALSE;
 					gboolean last_x = (HaIndex % in->rx == in->rx - 1) ? TRUE : FALSE;
 					if (!first_y) {
-						interp += in->fdata[HaIndex - in->rx] * SQRTF_2;
+						interp += OIII->fdata[HaIndex - in->rx] * SQRTF_2;
 						weight += SQRTF_2;
 						if (!first_x) {
-							interp += (in->fdata[HaIndex - 1] * SQRTF_2);
-							interp += in->fdata[HaIndex - in->rx - 1];
+							interp += (OIII->fdata[HaIndex - 1] * SQRTF_2);
+							interp += OIII->fdata[HaIndex - in->rx - 1];
 							weight += (1 + SQRTF_2);
 						}
 						if (!last_x) {
-							interp += in->fdata[HaIndex - in->rx + 1];
-							interp += in->fdata[HaIndex + 1] * SQRTF_2;
+							interp += OIII->fdata[HaIndex - in->rx + 1];
+							interp += OIII->fdata[HaIndex + 1] * SQRTF_2;
 							weight += (1 + SQRTF_2);
 						}
 					} else { // first_y
 						if (!first_x) {
-							interp += in->fdata[HaIndex - 1] * SQRTF_2;
+							interp += OIII->fdata[HaIndex - 1] * SQRTF_2;
 							weight += SQRTF_2;
 						}
 						if(!last_x) {
-							interp += in->fdata[HaIndex+1] * SQRTF_2;
+							interp += OIII->fdata[HaIndex+1] * SQRTF_2;
 							weight += SQRTF_2;
 						}
 					}
 					if (!last_y) {
-						interp += in->fdata[HaIndex + in->rx] * SQRTF_2;
+						interp += OIII->fdata[HaIndex + in->rx] * SQRTF_2;
 						weight += SQRTF_2;
 						if(!first_x) {
-							interp += in->fdata[HaIndex + in->rx - 1];
+							interp += OIII->fdata[HaIndex + in->rx - 1];
 							weight += 1.f;
 						}
 						if(!last_x) {
-							interp += in->fdata[HaIndex + in->rx + 1];
+							interp += OIII->fdata[HaIndex + in->rx + 1];
 							weight += 1.f;
 						}
 					}
