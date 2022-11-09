@@ -5601,7 +5601,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 	int retval = args.retval;
 	clean_end_stacking(&args);
-	free_sequence(seq, TRUE);
 	free(args.image_indices);
 	g_free(args.description);
 
@@ -5637,17 +5636,18 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		if (g_mkdir_with_parents(dirname, 0755) < 0) {
 			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
 			g_free(dirname);
-			return CMD_GENERIC_ERROR;
+			retval = CMD_GENERIC_ERROR;
 		}
 		g_free(dirname);
 		if (savefits(arg->result_file, &args.result)) {
 			siril_log_color_message(_("Could not save the stacking result %s\n"),
 					"red", arg->result_file);
-			retval = 1;
+			retval = CMD_GENERIC_ERROR;
 		}
 		else ++arg->number_of_loaded_sequences;
 		bgnoise_await();
 	}
+	free_sequence(seq, TRUE);
 	clearfits(&args.result);
 	return retval;
 }
