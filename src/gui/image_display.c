@@ -41,6 +41,7 @@
 #include "gui/registration_preview.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
+#include "livestacking/livestacking.h"
 #include "histogram.h"
 #include "registration/matching/degtorad.h"
 #include "registration/registration.h"
@@ -605,8 +606,14 @@ static void draw_vport(const draw_data_t* dd) {
 		view->view_width = dd->window_width;
 		view->view_height = dd->window_height;
 		cairo_t *cached_cr = cairo_create(view->disp_surface);
-
-		cairo_transform(cached_cr, &gui.display_matrix);
+		cairo_matrix_t y_reflection_matrix, flipped_matrix; 
+		cairo_matrix_init_identity(&y_reflection_matrix);
+		if (livestacking_is_started() && !g_strcmp0(gfit.row_order, "TOP-DOWN")) {
+			y_reflection_matrix.yy = -1.0;
+			y_reflection_matrix.y0 = gfit.ry;
+		}
+		cairo_matrix_multiply(&flipped_matrix, &y_reflection_matrix, &gui.display_matrix);
+		cairo_transform(cached_cr, &flipped_matrix);
 		cairo_set_source_surface(cached_cr, view->full_surface, 0, 0);
 		cairo_pattern_set_filter(cairo_get_source(cached_cr), dd->filter);
 		cairo_paint(cached_cr);
