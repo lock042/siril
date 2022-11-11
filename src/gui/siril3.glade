@@ -26888,7 +26888,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="tooltip-text" translatable="yes">Defines the size of the panel used for the mosaic. This size is expressed in pixels. The higher you set the value, the more stars you will see, but at a lower resolution.</property>
                                 <property name="halign">start</property>
                                 <property name="width-chars">6</property>
-                                <property name="text" translatable="yes">256</property>
+                                <property name="text">256</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_ab_inspector_panel</property>
                                 <property name="numeric">True</property>
@@ -26930,7 +26930,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="tooltip-text" translatable="yes">Defines the size of the window.</property>
                                 <property name="halign">start</property>
                                 <property name="width-chars">6</property>
-                                <property name="text" translatable="yes">381</property>
+                                <property name="text">381</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_ab_inspector_window</property>
                                 <property name="numeric">True</property>
