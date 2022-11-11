@@ -163,9 +163,8 @@ int process_seq_clean(int nb) {
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
 	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
-		free_sequence(&com.seq, FALSE);
-		initialize_sequence(&com.seq, FALSE);
-		com.seq = *seq;
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
 	}
 
 	if (nb > 2) {
@@ -194,6 +193,7 @@ int process_seq_clean(int nb) {
 
 	clean_sequence(seq, cleanreg, cleanstat, cleansel);
 	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+		fix_selnum(&com.seq, FALSE);
 		update_stack_interface(TRUE);
 		update_reg_interface(FALSE);
 		adjust_sellabel();
@@ -2353,20 +2353,33 @@ int process_set_ref(int nb) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-
+	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
 	int n = g_ascii_strtoull(word[2], NULL, 10) - 1;
-	if (n < 0 || n > seq->number) {
+	if (n < 0 || n >= seq->number) {
 		siril_log_message(_("The reference image must be set between 1 and %d\n"), seq->number);
 		return CMD_ARG_ERROR;
 	}
 
 	seq->reference_image = n;
 	// a reference image should not be excluded to avoid confusion
-	if (!seq->imgparam[seq->current].incl) {
-		seq->imgparam[seq->current].incl = TRUE;
+	if (!seq->imgparam[seq->reference_image].incl) {
+		seq->imgparam[seq->reference_image].incl = TRUE;
 	}
 
 	writeseqfile(seq);
+	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+		fix_selnum(&com.seq, FALSE);
+		seq_load_image(&com.seq, n, TRUE);
+		update_stack_interface(TRUE);
+		update_reg_interface(FALSE);
+		adjust_sellabel();
+		drawPlot();
+	} else {
+		free_sequence(seq, FALSE);
+	}
 
 	return CMD_OK;
 }
@@ -4428,9 +4441,8 @@ int process_seq_stat(int nb) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
-		free_sequence(&com.seq, FALSE);
-		initialize_sequence(&com.seq, FALSE);
-		com.seq = *seq;
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
 	}
 
 	struct stat_data *args = calloc(1, sizeof(struct stat_data));
