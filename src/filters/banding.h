@@ -11,6 +11,7 @@ struct banding_data {
 	gboolean protect_highlights;
 	gboolean applyRotation;
 	const gchar *seqEntry;
+	sequence *seq;
 };
 
 void apply_banding_to_sequence(struct banding_data *banding_args);
