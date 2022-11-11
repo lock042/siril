@@ -80,14 +80,14 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 			msg = _("Problem with path: ");
 			break;
 		case PATHPARSE_ERR_TMPFIT:
-			msg = _("Could not create temp fit for header update: ");
+			msg = _("Could not create temp FITS for header update: ");
 			break;
 		case PATHPARSE_ERR_WRONG_CALL:
 		default:
 			msg = _("Internal error");
 			break;
 	}
-	siril_log_color_message(_("%s %d - %s%s - %s\n"), color , startstr, err, msg, addbuf, endstr);
+	siril_log_color_message("%s %d - %s%s - %s\n", color, startstr, err, msg, addbuf, endstr);
 }
 
 static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
