@@ -3726,8 +3726,9 @@ int process_fixbanding(int nb) {
 	args->amount = g_ascii_strtod(word[1], NULL);
 	args->sigma = g_ascii_strtod(word[2], NULL);
 	args->protect_highlights = TRUE;
+	args->applyRotation = FALSE;
 	args->fit = &gfit;
-	if (nb >= 3) {
+	if (nb > 3) {
 		int arg_index = 3;
 		while (arg_index < nb && word[arg_index]) {
 			char *arg = word[arg_index];
@@ -3758,7 +3759,7 @@ int process_seq_fixbanding(int nb) {
 	args->seqEntry = "unband_";
 	args->fit = NULL;
 
-	if (nb > 3) {
+	if (nb > 4) {
 		int arg_index = 4;
 		while (arg_index < nb && word[arg_index]) {
 			char *arg = word[arg_index];
