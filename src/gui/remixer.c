@@ -552,21 +552,9 @@ int remixer() {
 					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
 					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
 					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
-					float Cl = Al * Al + Bl * Bl;
-					float Cr = Ar * Ar + Br * Br;
-					Cl = sqrtf(Cl);
-					Cr = sqrtf(Cr);
-					float hl = (Al != 0.f) ? Bl / Al : 0.f;
-					float hr = (Ar != 0.f) ? Br / Ar : 0.f;
-					hl = xatanf(hl);
-					hr = xatanf(hr);
 					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
-
-					float Co = (Ll * Cl + Lr * Cr) / divisor;
-					float ho = (Ll * hl + Lr * hr) / divisor;
-					float2 sc = xsincosf(ho);
-					float ao = Co * sc.y;
-					float bo = Co * sc.x;
+					float ao = (Ll * Al + Lr * Ar) / divisor;
+					float bo = (Ll * Bl + Lr * Br) / divisor;
 					float Lo = Ll + Lr - Ll * Lr * 0.01f;
 					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
 					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
@@ -604,21 +592,9 @@ int remixer() {
 					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
 					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
 					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
-					float Cl = Al * Al + Bl * Bl;
-					float Cr = Ar * Ar + Br * Br;
-					Cl = sqrtf(Cl);
-					Cr = sqrtf(Cr);
-					float hl = (Al != 0.f) ? Bl / Al : 0.f;
-					float hr = (Ar != 0.f) ? Br / Ar : 0.f;
-					hl = xatanf(hl);
-					hr = xatanf(hr);
 					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
-
-					float Co = (Ll * Cl + Lr * Cr) / divisor;
-					float ho = (Ll * hl + Lr * hr) / divisor;
-					float2 sc = xsincosf(ho);
-					float ao = Co * sc.y;
-					float bo = Co * sc.x;
+					float ao = (Ll * Al + Lr * Ar) / divisor;
+					float bo = (Ll * Bl + Lr * Br) / divisor;
 					float Lo = Ll + Lr - Ll * Lr * 0.01f;
 					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
 					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
