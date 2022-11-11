@@ -158,12 +158,15 @@ int process_dumpheader(int nb) {
 
 int process_seq_clean(int nb) {
 	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE;
-	// TODO: if sequence is loaded in the UI, it needs to be closed first
-	// to avoid rewriting again the .seq upon closing
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
+	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+		free_sequence(&com.seq, FALSE);
+		initialize_sequence(&com.seq, FALSE);
+		com.seq = *seq;
+	}
 
 	if (nb > 2) {
 		for (int i = 2; i < nb; i++) {
@@ -190,7 +193,15 @@ int process_seq_clean(int nb) {
 	}
 
 	clean_sequence(seq, cleanreg, cleanstat, cleansel);
-	free_sequence(seq, FALSE);
+	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+		update_stack_interface(TRUE);
+		update_reg_interface(FALSE);
+		adjust_sellabel();
+		set_layers_for_registration();
+		drawPlot();
+	} else {
+		free_sequence(seq, FALSE);
+	}
 	return CMD_OK;
 }
 
@@ -4415,6 +4426,11 @@ int process_seq_stat(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+		free_sequence(&com.seq, FALSE);
+		initialize_sequence(&com.seq, FALSE);
+		com.seq = *seq;
 	}
 
 	struct stat_data *args = calloc(1, sizeof(struct stat_data));
