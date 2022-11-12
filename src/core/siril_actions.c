@@ -608,6 +608,10 @@ void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	siril_open_dialog("denoise_dialog");
 }
 
+void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("merge_cfa_dialog");
+}
+
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	undo_save_state(&gfit, "Synthetic stars: desaturate clipped stars");
 	control_window_switch_to_tab(OUTPUT_LOGS);

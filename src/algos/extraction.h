@@ -19,6 +19,8 @@ struct split_cfa_data {
 	fitseq *new_fitseq_oiii;
 
 	GList *processed_images;
+
+	int scaling; // Used for Ha-OIII split to set whether to scale Ha up, OIII down or none
 };
 
 void update_filter_information(fits *fit, char *filter, gboolean append);
@@ -31,8 +33,8 @@ int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern);
 int extractGreen_float(fits *in, fits *green, sensor_pattern pattern);
 void apply_extractGreen_to_sequence(struct split_cfa_data *split_cfa_args);
 
-int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern);
-int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern);
+int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, int scaling);
+int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, int scaling);
 void apply_extractHaOIII_to_sequence(struct split_cfa_data *split_cfa_args);
 
 int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3);

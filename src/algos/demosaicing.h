@@ -23,6 +23,15 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer);
 sensor_pattern get_bayer_pattern(fits *fit);
 void clear_Bayer_information(fits *fit);
 
+struct merge_cfa_data {
+	sequence *seq;
+	const gchar *seqEntryIn;
+	const gchar *seqEntryOut;
+	sensor_pattern pattern;
+};
+
+void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args);
+
 void get_debayer_area(const rectangle *area, rectangle *debayer_area,
 		const rectangle *image_area, int *debayer_offset_x,
 		int *debayer_offset_y);
@@ -40,6 +49,13 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 }
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern pattern);
+#ifdef __cplusplus
+}
+#endif
 WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize);
 WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, size_t *newsize);
 float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize);

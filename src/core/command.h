@@ -95,6 +95,7 @@ int	process_preprocess(int nb);
 int	process_preprocess_single(int nb);
 int	process_psf(int nb);
 
+int	process_rebayer(int nb);
 int	process_register(int nb);
 int	process_resample(int nb);
 int	process_reloadscripts(int nb);
@@ -131,6 +132,7 @@ int	process_seq_extractHaOIII(int nb);
 int	process_seq_findstar(int nb);
 int	process_seq_fixbanding(int nb);
 int	process_seq_header(int nb);
+int	process_seq_merge_cfa(int nb);
 int	process_seq_mtf(int nb);
 int	process_seq_psf(int nb);
 int	process_seq_split_cfa(int nb);

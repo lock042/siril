@@ -633,6 +633,88 @@ int process_savepnm(int nb){
 	return retval;
 }
 
+static gboolean merge_cfa_idle(gpointer arg) {
+	initialize_display_mode();
+	update_zoom_label();
+	display_filename();
+	set_precision_switch();
+	sliders_mode_set_state(gui.sliders);
+	init_layers_hi_and_lo_values(MIPSLOHI);
+	set_cutoff_sliders_max_values();
+	set_cutoff_sliders_values();
+	set_display_mode();
+	redraw(REMAP_ALL);
+	sequence_list_change_current();
+	return FALSE;
+}
+
+int process_rebayer(int nb){
+	char filename[256];
+	fits cfa0 = { 0 };
+	fits cfa1 = { 0 };
+	fits cfa2 = { 0 };
+	fits cfa3 = { 0 };
+	fits *out = NULL;
+	sensor_pattern pattern = -1;
+	if (nb < 5) {
+		siril_log_color_message(_("Error, requires at least 4 arguments to specify the 4 files!\n"), "red");
+		return CMD_WRONG_N_ARG;
+	}
+
+	set_cursor_waiting(TRUE);
+
+	strncpy(filename, word[1], 250);
+	filename[250] = '\0';
+	expand_home_in_filename(filename, 256);
+	int retval = readfits(filename, &cfa0, NULL, FALSE);
+	strncpy(filename, word[2], 250);
+	filename[250] = '\0';
+	expand_home_in_filename(filename, 256);
+	retval += readfits(filename, &cfa1, NULL, FALSE);
+	strncpy(filename, word[3], 250);
+	filename[250] = '\0';
+	expand_home_in_filename(filename, 256);
+	retval += readfits(filename, &cfa2, NULL, FALSE);
+	strncpy(filename, word[4], 250);
+	filename[250] = '\0';
+	expand_home_in_filename(filename, 256);
+	retval += readfits(filename, &cfa3, NULL, FALSE);
+	if (retval) {
+		siril_log_color_message(_("Error loading files!\n"), "red");
+		return CMD_FILE_NOT_FOUND;
+	}
+	if (!strcmp(word[5], "RGGB")) {
+		pattern = BAYER_FILTER_RGGB;
+		siril_log_message(_("Reconstructing RGGB Bayer matrix.\n"));
+	} else if (!strcmp(word[5], "BGGR")) {
+		pattern = BAYER_FILTER_BGGR;
+		siril_log_message(_("Reconstructing BGGR Bayer matrix.\n"));
+	} else if (!strcmp(word[5], "GBRG")) {
+		pattern = BAYER_FILTER_GBRG;
+		siril_log_message(_("Reconstructing GBRG Bayer matrix.\n"));
+	} else if (!strcmp(word[5], "GRBG")) {
+		pattern = BAYER_FILTER_GRBG;
+		siril_log_message(_("Reconstructing GRBG Bayer matrix.\n"));
+	} else {
+		siril_log_color_message(_("Invalid Bayer matrix specified!\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+
+	out = merge_cfa(&cfa0, &cfa1, &cfa2, &cfa3, pattern);
+	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
+	close_single_image();
+	copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+
+	clear_stars_list(TRUE);
+	com.seq.current = UNRELATED_IMAGE;
+	if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
+		com.uniq->comment = strdup(_("Bayer pattern merge"));
+	open_single_image_from_gfit();
+	set_cursor_waiting(FALSE);
+	siril_add_idle(merge_cfa_idle, NULL);
+	return CMD_OK;
+}
+
 int process_imoper(int nb){
 	fits fit = { 0 };
 
@@ -4150,6 +4232,7 @@ int process_extractHa(int nb) {
 int process_extractHaOIII(int nb) {
 	char *filename = NULL;
 	int ret = 1;
+	int scaling = 0;
 
 	fits f_Ha = { 0 }, f_OIII = { 0 };
 
@@ -4163,21 +4246,35 @@ int process_extractHaOIII(int nb) {
 			free(tmp);
 		}
 	}
+	if (word[1]) {
+		if (g_str_has_prefix(word[1], "-resample=")) {
+			char *current = word[1], *value;
+			value = current + 10;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
+				return CMD_ARG_ERROR;
+			} else if (!strcasecmp(value, "ha")) {
+				scaling = 1;
+			} else if (!strcasecmp(value, "oiii")) {
+				scaling = 2;
+			}
+		}
+	}
 
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
 
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
-		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern))) {
+		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
 			ret = save1fits16(Ha, &f_Ha, 0) ||
 					save1fits16(OIII, &f_OIII, 0);
 		}
 	}
 	else if (gfit.type == DATA_FLOAT) {
-		if (!(ret = extractHaOIII_float(&gfit, &f_Ha, &f_OIII, pattern))) {
+		if (!(ret = extractHaOIII_float(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
 			ret = save1fits32(Ha, &f_Ha, 0) ||
-					save1fits16(OIII, &f_OIII, 0);
+					save1fits32(OIII, &f_OIII, 0);
 		}
 	} else return CMD_INVALID_IMAGE;
 
@@ -4300,6 +4397,69 @@ int process_seq_split_cfa(int nb) {
 	return CMD_OK;
 }
 
+int process_seq_merge_cfa(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	if (seq->nb_layers > 1) {
+		return CMD_FOR_CFA_IMAGE;
+	}
+
+	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
+
+	if (!strcmp(word[2], "RGGB")) {
+		args->pattern = BAYER_FILTER_RGGB;
+	} else if (!strcmp(word[2], "BGGR")) {
+		args->pattern = BAYER_FILTER_BGGR;
+	} else if (!strcmp(word[2], "GBRG")) {
+		args->pattern = BAYER_FILTER_GBRG;
+	} else if (!strcmp(word[2], "GRBG")) {
+		args->pattern = BAYER_FILTER_GRBG;
+	} else {
+		siril_log_color_message(_("Invalid Bayer matrix specified!\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+	siril_log_message(_("Reconstructing %s Bayer matrix.\n"), word[2]);
+	args->seq = seq;
+	args->seqEntryIn = "CFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->seqEntryOut = "mCFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
+
+	int startoptargs = 3;
+	if (nb > startoptargs) {
+		for (int i = startoptargs; i < nb; i++) {
+			if (word[i]) {
+				if (g_str_has_prefix(word[i], "-inprefix=")) {
+					char *current = word[i], *value;
+					value = current + 8;
+					if (value[0] == '\0') {
+						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						return CMD_ARG_ERROR;
+					}
+					args->seqEntryIn = strdup(value);
+				} else if (g_str_has_prefix(word[i], "-outprefix=")) {
+					char *current = word[i], *value;
+					value = current + 8;
+					if (value[0] == '\0') {
+						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						return CMD_ARG_ERROR;
+					}
+					args->seqEntryOut = strdup(value);
+				}
+			}
+			else {
+				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+
+	apply_mergecfa_to_sequence(args);
+
+	return CMD_OK;
+}
+
 int process_seq_extractHa(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
@@ -4393,6 +4553,22 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
+	args->scaling = 0;
+
+	if (word[2]) {
+		if (g_str_has_prefix(word[2], "-resample=")) {
+			char *current = word[2], *value;
+			value = current + 10;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[2]);
+				return CMD_ARG_ERROR;
+			} else if (!strcmp(value, "ha")) {
+				args->scaling = 1;
+			} else if (!strcmp(value, "oiii")) {
+				args->scaling = 2;
+			}
+		}
+	}
 
 	args->seq = seq;
 	args->seqEntry = ""; // not used

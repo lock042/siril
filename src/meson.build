@@ -156,6 +156,7 @@ src_files = [
   'gui/linear_match.c',
   'gui/menu_gray_geometry.c',
   'gui/menu_gray_psf.c',
+  'gui/merge_cfa.c',
   'gui/message_dialog.c',
   'gui/nina_light_curve.c',
   'gui/open_dialog.c',
