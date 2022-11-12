@@ -1,9 +1,9 @@
 ############################################
 #
-# Script for Siril 1.0
-# April 2022
+# Script for Siril 1.2
+# October 2022
 # (C) Cyril Richard
-# ExtractHaOIII v1.1
+# ExtractHaOIII v1.2
 #
 ########### PREPROCESSING SCRIPT ###########
 #
@@ -69,7 +69,7 @@ register Ha_pp_light -drizzle
 stack r_Ha_pp_light rej 3 3 -norm=addscale -output_norm -out=../Ha_result
 
 # Align OIII lights
-register OIII_pp_light -drizzle
+register OIII_pp_light
 
 # Stack calibrated Ha lights to OIII_result.fit
 stack r_OIII_pp_light rej 3 3 -norm=addscale -output_norm -out=../OIII_result
