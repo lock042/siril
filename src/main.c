@@ -425,10 +425,12 @@ static void siril_macos_setenv(const char *progname) {
 		g_setenv("GDK_PIXBUF_MODULE_DIR", tmp, TRUE);
 		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", lib_dir);
 		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/ca-certificates/cacert.pem", lib_dir);
+		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
 		if (g_getenv("HOME") != NULL) {
-			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support", g_getenv("HOME"));
+			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support/org.free-astro.Siril", g_getenv("HOME"));
 			g_setenv("XDG_CONFIG_HOME", tmp, TRUE);
-			g_snprintf (tmp, sizeof(tmp), "%s/Library/Application Support/SiriL/1.00/cache",
+			g_snprintf (tmp, sizeof(tmp), "%s/Library/Caches/org.free-astro.Siril",
 					g_getenv("HOME"));
 			g_setenv ("XDG_CACHE_HOME", tmp, TRUE);
 

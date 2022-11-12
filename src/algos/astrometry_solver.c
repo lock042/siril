@@ -461,6 +461,8 @@ static void init() {
 		printf("initializing CURL\n");
 		curl_global_init(CURL_GLOBAL_ALL);
 		curl = curl_easy_init();
+		if (g_getenv("CURL_CA_BUNDLE"))
+			curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE"));
 	}
 
 	if (!curl)
