@@ -130,6 +130,7 @@ int	process_seq_extractHa(int nb);
 int	process_seq_extractGreen(int nb);
 int	process_seq_extractHaOIII(int nb);
 int	process_seq_findstar(int nb);
+int	process_seq_fixbanding(int nb);
 int	process_seq_header(int nb);
 int	process_seq_merge_cfa(int nb);
 int	process_seq_mtf(int nb);

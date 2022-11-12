@@ -1174,6 +1174,7 @@ gpointer match_catalog(gpointer p) {
 	GInputStream *input_stream = NULL;
 	s_star *star_list_A = NULL, *star_list_B = NULL;
 	fits fit_backup = { 0 };
+	gchar *header_backup = NULL;
 	solve_results solution = { 0 };
 	psf_star **stars = NULL;
 
@@ -1237,6 +1238,7 @@ gpointer match_catalog(gpointer p) {
 	if (args->downsample) {
 		copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		copy_fits_metadata(args->fit, &fit_backup);
+		header_backup = g_strdup(args->fit->header);
 		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA, FALSE);
 	}
 
@@ -1312,6 +1314,8 @@ gpointer match_catalog(gpointer p) {
 	if (args->downsample) {
 		clearfits(args->fit);
 		memcpy(args->fit, &fit_backup, sizeof(fits));
+		args->fit->header = g_strdup(header_backup);
+		g_free(header_backup);
 		memset(&fit_backup, 0, sizeof(fits));
 	}
 	solution.size.x = args->fit->rx;

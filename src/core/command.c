@@ -3808,10 +3808,60 @@ int process_fixbanding(int nb) {
 	args->amount = g_ascii_strtod(word[1], NULL);
 	args->sigma = g_ascii_strtod(word[2], NULL);
 	args->protect_highlights = TRUE;
+	args->applyRotation = FALSE;
 	args->fit = &gfit;
-
+	if (nb > 3) {
+		int arg_index = 3;
+		while (arg_index < nb && word[arg_index]) {
+			char *arg = word[arg_index];
+			if (!g_strcmp0(arg, "-vertical")) {
+				args->applyRotation = TRUE;
+			} else {
+				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+				return CMD_ARG_ERROR;
+			}
+			arg_index++;
+		}
+	} 
 	start_in_new_thread(BandingEngineThreaded, args);
+	return CMD_OK;
+}
 
+int process_seq_fixbanding(int nb) {
+	struct banding_data *args = malloc(sizeof(struct banding_data));
+
+	if (word[1] && word[1][0] != '\0') {
+		args->seq = load_sequence(word[1], NULL);
+	}
+	args->amount = g_ascii_strtod(word[2], NULL);
+	args->sigma = g_ascii_strtod(word[3], NULL);
+	// settings default optional values
+	args->protect_highlights = TRUE;
+	args->applyRotation = FALSE;
+	args->seqEntry = "unband_";
+	args->fit = NULL;
+
+	if (nb > 4) {
+		int arg_index = 4;
+		while (arg_index < nb && word[arg_index]) {
+			char *arg = word[arg_index];
+			if (g_str_has_prefix(arg, "-prefix=")) {
+				char *value = arg + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
+					return CMD_ARG_ERROR;
+				}
+				args->seqEntry = strdup(value);
+			} else if (!g_strcmp0(arg, "-vertical")) {
+				args->applyRotation = TRUE;
+			} else {
+				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+				return CMD_ARG_ERROR;
+			}
+			arg_index++;
+		}
+	}
+	apply_banding_to_sequence(args);
 	return CMD_OK;
 }
 
@@ -5777,7 +5827,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 	int retval = args.retval;
 	clean_end_stacking(&args);
-	free_sequence(seq, TRUE);
 	free(args.image_indices);
 	g_free(args.description);
 
@@ -5813,17 +5862,18 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		if (g_mkdir_with_parents(dirname, 0755) < 0) {
 			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
 			g_free(dirname);
-			return CMD_GENERIC_ERROR;
+			retval = CMD_GENERIC_ERROR;
 		}
 		g_free(dirname);
 		if (savefits(arg->result_file, &args.result)) {
 			siril_log_color_message(_("Could not save the stacking result %s\n"),
 					"red", arg->result_file);
-			retval = 1;
+			retval = CMD_GENERIC_ERROR;
 		}
 		else ++arg->number_of_loaded_sequences;
 		bgnoise_await();
 	}
+	free_sequence(seq, TRUE);
 	clearfits(&args.result);
 	return retval;
 }

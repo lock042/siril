@@ -107,9 +107,9 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 }
 
 void apply_banding_to_sequence(struct banding_data *banding_args) {
-	struct generic_seq_args *args = create_default_seqargs(&com.seq);
+	struct generic_seq_args *args = create_default_seqargs(banding_args->seq);
 	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = com.seq.selnum;
+	args->nb_filtered_images = args->seq->selnum;
 	args->compute_mem_limits_hook = banding_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
@@ -411,6 +411,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		if (args->seqEntry && args->seqEntry[0] == '\0')
 			args->seqEntry = "unband_";
 		gtk_toggle_button_set_active(seq, FALSE);
+		args->seq = &com.seq;
 		apply_banding_to_sequence(args);
 	} else {
 		start_in_new_thread(BandingEngineThreaded, args);
