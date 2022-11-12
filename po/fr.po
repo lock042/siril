@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-11-11 23:05+0100\n"
-"PO-Revision-Date: 2022-11-11 23:10+0100\n"
+"PO-Revision-Date: 2022-11-12 10:15+0100\n"
 "Last-Translator: Cyril Richard\n"
 "Language-Team: French <cyril@free-astro.fr>\n"
 "Language: fr\n"
@@ -4376,9 +4376,8 @@ msgid "Cosmetic correction"
 msgstr "Correction cosmétique"
 
 #: src/gui/siril3.glade:18765
-#, fuzzy
 msgid "Prefix of the image names resulting from the calibration."
-msgstr "Préfixe du nom des images résultantes de l'alignement."
+msgstr "Préfixe du nom des images résultantes de la calibration."
 
 #: src/gui/siril3.glade:18777
 msgid "Start calibration"
@@ -4441,10 +4440,9 @@ msgid "Output sequence"
 msgstr "Séquence de sortie"
 
 #: src/gui/siril3.glade:18869
-#, fuzzy
 msgid "Calibration is an optional step to apply to a sequence of images."
 msgstr ""
-"Le pré-traitement est une étape optionnelle appliquée à la séquence des images."
+"La calibration est une étape optionnelle appliquée à la séquence des images."
 
 #: src/gui/siril3.glade:18871
 msgid "Calibration"
@@ -6327,11 +6325,13 @@ msgid ""
 "Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better "
 "but slower."
 msgstr ""
+"Nombre de passages pour l'algorithme de démosaïquage X-Trans\n"
+"Markesteijn, 1 est la valeur par défaut, 3 peut être légèrement meilleur mais "
+"plus lent."
 
 #: src/gui/siril3.glade:24927
-#, fuzzy
 msgid "X-Trans demosaicing quality"
-msgstr "Basé sur la qualité"
+msgstr "Qualité de dématriçage X-Trans"
 
 #: src/gui/siril3.glade:24941
 msgid "1"
@@ -6764,11 +6764,10 @@ msgstr "Utiliser par défaut"
 
 #: src/gui/siril3.glade:25864 src/gui/siril3.glade:25879
 #: src/gui/siril3.glade:25894
-#, fuzzy
 msgid "Use the chosen master as default file in the Calibration tab"
 msgstr ""
 "Utiliser le fichier choisi comme fichier maître par défaut dans l'onglet de "
-"prétraitement"
+"calibration"
 
 #: src/gui/siril3.glade:25908
 msgid "Master-flat:"
@@ -6791,7 +6790,6 @@ msgstr ""
 "soustraire, en commençant par un signe \"=\", tel que =256 ou =64*$OFFSET"
 
 #: src/gui/siril3.glade:25957
-#, fuzzy
 msgid ""
 "Choose a master-bias that can be used as generic master-bias by clicking on "
 "the button \"Use it as default\""
@@ -6833,13 +6831,19 @@ msgid ""
 "specicified).\n"
 "If sequence name does not have the suffix \"_\", it is automatically added"
 msgstr ""
+"Le nom par défaut à utiliser pour nommer le résultat de l'empilement.\n"
+"Il peut s'agir d'une expression qui utilise le mot-clé $seqname$ qui sera "
+"analysé comme le nom de la séquence courante à la fin de l'opération "
+"d'empilement.\n"
+"Exemple : $seqname$stacked produirait \"r_pp_light_stacked\" pour une séquence "
+"nommée \"r_pp_light_\" (c'est le comportement par défaut si rien n'est "
+"spécifié).\n"
+"Si le nom de la séquence ne comporte pas le suffixe \"_\", celui-ci est "
+"automatiquement ajouté"
 
 #: src/gui/siril3.glade:26112
-#, fuzzy
 msgid "Use this name as default in the Stacking tab"
-msgstr ""
-"Utiliser le fichier choisi comme fichier maître par défaut dans l'onglet de "
-"prétraitement"
+msgstr "Utiliser ce nom par défaut dans l'onglet d'empilement"
 
 #: src/gui/siril3.glade:26130
 msgid "Stacking default"
@@ -8085,13 +8089,12 @@ msgid "Color calibration factors:\n"
 msgstr "Coefficients de l'étalonnage des couleurs :\n"
 
 #: src/algos/demosaicing.c:947
-#, fuzzy
 msgid ""
 "FITS header does not contain a proper XTRANS pattern, demosaicing cannot be "
 "done\n"
 msgstr ""
-"L'en-tête FITS ne contient pas de motif XTRANS approprié, le dématriçage ne "
-"peut pas être effectué"
+"L'en-tête FITS ne contient pas un modèle XTRANS approprié, le dématriçage ne "
+"peut pas être effectué\n"
 
 #: src/algos/demosaicing.c:964
 #, c-format
@@ -8561,14 +8564,13 @@ msgid "image"
 msgstr "l'image"
 
 #: src/algos/statistics.c:250
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to compute CFA statistics for channel %d\n"
-msgstr "échec du calcul des statistiques sur l'image, abandonnant\n"
+msgstr "Échec du calcul des statistiques CFA pour le canal %d\n"
 
 #: src/algos/statistics.c:279 src/algos/statistics_float.c:340
-#, fuzzy
 msgid "Failed to compute CFA statistics\n"
-msgstr "échec du calcul des statistiques sur l'image, abandonnant\n"
+msgstr "Échec du calcul des statistiques CFA\n"
 
 #: src/algos/statistics.c:743
 msgid "Bad argument to stats option\n"
@@ -9612,9 +9614,9 @@ msgid "Could not copy the input image, aborting.\n"
 msgstr "Impossible de copier l'image d'entrée, abandon.\n"
 
 #: src/core/command.c:4424
-#, fuzzy, c-format
+#, c-format
 msgid "Statistics computation failed for channel %d (all nil?).\n"
-msgstr "calculs des statistiques de threading des canaux (%d threads)\n"
+msgstr "Le calcul des statistiques a échoué pour le canal %d (tout nul ?).\n"
 
 #: src/core/command.c:4445 src/core/command.c:4451
 #, c-format
@@ -9628,7 +9630,7 @@ msgstr ""
 #: src/core/command.c:4522
 #, c-format
 msgid "No image appears to be loaded, reloading from '%s'\n"
-msgstr ""
+msgstr "Aucune image ne semble être chargée, rechargement à partir de '%s'.\n"
 
 #: src/core/command.c:4625
 #, c-format
@@ -9644,6 +9646,8 @@ msgstr "Enregistrer les métadonnées dans le fichier JSON '%s'\n"
 msgid ""
 "json-glib was not found at build time, cannot proceed. Install and rebuild.\n"
 msgstr ""
+"json-glib n'a pas été trouvé au moment de la construction, impossible de "
+"continuer. Installez et reconstruisez.\n"
 
 #: src/core/command.c:4652
 #, c-format
@@ -10629,7 +10633,6 @@ msgid "Same function as COSME but applying to RAW CFA images"
 msgstr "Commande identique à COSME mais appliquée a des images RAW CFA"
 
 #: src/core/command_def.h:27
-#, fuzzy
 msgid ""
 "Crops to a selected area of the loaded image.\n"
 "\n"
@@ -10644,7 +10647,8 @@ msgstr ""
 "Dans l'interface graphique, si une sélection est active, aucun autre argument "
 "n'est requis. Sinon, ou dans les scripts, des arguments doivent être donnés, "
 "avec <b>x</b> et <b>y</b> étant les coordonnées du coin supérieur gauche, et "
-"<b>largeur</b> et <b>hauteur</b> la taille de la sélection"
+"<b>width</b> et <b>height</b> la taille de la sélection. Alternativement, la "
+"sélection peut être faite en utilisant la commande BOXSELECT"
 
 #: src/core/command_def.h:29
 msgid ""
@@ -10815,7 +10819,6 @@ msgstr ""
 "Voir aussi la commande CLEARSTAR"
 
 #: src/core/command_def.h:48
-#, fuzzy
 msgid ""
 "Tries to remove the canon banding.\n"
 "\n"
@@ -10828,7 +10831,9 @@ msgstr ""
 "\n"
 "L'argument <b>amount</b> définit le montant de la correction.\n"
 "<b>Sigma</b> définit un niveau de protection de l'algorithme, un sigma plus "
-"élevé donne une protection plus élevée"
+"élevé donne une protection plus élevée.\n"
+"L'option <b>-vertical</b> permet d'effectuer la suppression des bandes "
+"verticales"
 
 #: src/core/command_def.h:49
 msgid ""
@@ -11184,6 +11189,14 @@ msgid ""
 "created with default file name '$(FITS_file_without_ext).json' and can be "
 "changed with the <b>-out=</b> option"
 msgstr ""
+"Vide les métadonnées et les statistiques de l'image actuellement chargée dans "
+"un fichier au format JSON. Le nom de l'image est obligatoire, même si elle est "
+"déjà chargée. Les données d'image peuvent ne pas être lues à partir du fichier "
+"s'il s'agit de l'image actuellement chargée et si l'option <b>-"
+"stats_from_loaded</b> est passée. Les statistiques peuvent être désactivées en "
+"fournissant l'option <b>-nostats</b>. Un fichier contenant les données JSON "
+"est créé avec le nom de fichier par défaut '$(FITS_file_without_ext).json' et "
+"peut être modifié avec l'option <b>-out=</b>"
 
 #: src/core/command_def.h:80
 msgid "Merges several sequences into one"
@@ -11339,6 +11352,23 @@ msgid ""
 "respectively.\n"
 "The keyword <i>$seqname$</i> can also be used when a sequence is loaded"
 msgstr ""
+"Analyse la chaîne <b>str</b> en utilisant les informations contenues dans l'en-"
+"tête de l'image actuellement chargée. L'objectif principal de cette commande "
+"est de déboguer les chemins utilisant des mots clés de l'en-tête qui peuvent "
+"être utilisées dans d'autres commandes.\n"
+"L'option <b>-r</b> spécifie que la chaîne doit être interprétée en mode "
+"lecture. En mode lecture, tous les caractères génériques définis dans la "
+"chaîne <b>str</b> sont utilisés pour trouver un nom de fichier correspondant "
+"au modèle. Sinon, le mode par défaut est le mode écriture et les caractères "
+"génériques, le cas échéant, sont supprimés de la chaîne à analyser.\n"
+"\n"
+"Si <b>str</b> commence par le préfixe <i>$def</i>, il sera reconnu comme un "
+"mot clé réservé et recherché dans les chaînes stockées dans gui_prepro."
+"dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib ou gui_prepro.stack_default "
+"pour <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> ou <i>$defstack</i> "
+"respectivement.\n"
+"Le mot clé <i>$seqname$</i> peut également être utilisé lors du chargement "
+"d'une séquence"
 
 #: src/core/command_def.h:94
 msgid ""
@@ -11537,7 +11567,6 @@ msgstr ""
 "avec l'un des canaux actifs dans la vue"
 
 #: src/core/command_def.h:100
-#, fuzzy
 msgid ""
 "Finds and optionally performs geometric transforms on images of the sequence "
 "given in argument so that they may be superimposed on the reference image. "
@@ -11603,21 +11632,18 @@ msgstr ""
 "permet de trouver plus d'étoiles et d'effectuer un alignement plus précis mais "
 "prend plus de temps à s'exécuter.\n"
 "\n"
-"L'alignement se fait sur le canal vert pour les images RVB sauf si spécifié "
-"par l'option <b>-layer=</b> (0, 1 ou 2 pour R, G et B respectivement).\n"
-"\n"
 "La méthode d'interpolation peut être spécifiée avec le mot-clé <b>-interp=</b> "
 "suivi de l'une des méthodes de la liste { no[ne] | ne[arest] | cu[bic] | "
 "la[nczos4] | li[near] | ar[ea]}. Si <b>none</b> est passé, la transformation "
 "est forcée à la translation et un décalage pixel par pixel est appliqué à "
 "chaque image sans aucune interpolation.\n"
-"\n"
-"Lacontrainte des méthodes d'interpolation bicubique et lanczos4 est active par "
-"défaut, pour éviter les artefacts, mais peut être désactivée avec l'argument "
-"<b>-noclamp=</b>.\n"
+"La contrainte des méthodes d'interpolation bicubique et lanczos4 est active "
+"par défaut, pour éviter les artefacts, mais peut être désactivée avec "
+"l'argument <b>-noclamp=</b>.\n"
 "\n"
 "Toutes les images de la séquence seront alignées à moins que l'option <b>-"
-"selected</b> ne soit passée\n"
+"selected</b> ne soit passée, dans ce cas les images exclues ne seront pas "
+"traitées.\n"
 "\n"
 "Le nom de la séquence de sortie commence par le préfixe <b>\"r_\"</b> sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
@@ -11635,7 +11661,6 @@ msgstr ""
 "en argument"
 
 #: src/core/command_def.h:103
-#, fuzzy
 msgid ""
 "Resamples image with a factor <b>factor</b>. This is generally used to resize "
 "images, a factor of 0.5 divides size by 2.\n"
@@ -11736,7 +11761,6 @@ msgstr ""
 "pour la protection neutre maximale, par défaut le paramètre est à 0"
 
 #: src/core/command_def.h:108
-#, fuzzy
 msgid ""
 "Rotates the image by an angle of <b>degree</b> value. The option <b>-nocrop</"
 "b> can be added to avoid cropping to the image size (black borders will be "
@@ -11898,7 +11922,6 @@ msgstr ""
 "séquence chargée (de <b>from</b> à <b>to</b> inclus)"
 
 #: src/core/command_def.h:121
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using registration data "
@@ -11952,6 +11975,9 @@ msgstr ""
 "la[nczos4] | li[near] | ar[ea]}. Si <b>none</b> est passé, la transformation "
 "est forcée à la translation et un décalage pixel par pixel est appliqué à "
 "chaque image sans aucune interpolation.\n"
+"La contrainte des méthodes d'interpolation bicubique et lanczos4 est active "
+"par défaut, pour éviter les artefacts, mais peut être désactivée avec "
+"l'argument <b>-noclamp=</b>.\n"
 "\n"
 "L'alignement se fait sur le premier canal pour lequel des données existent "
 "pour les images RVB sauf si spécifié par l'option <b>-layer=</b> (0, 1 ou 2 "
@@ -12098,7 +12124,6 @@ msgstr ""
 "indication contraire avec l'option <b>-prefix=</b>"
 
 #: src/core/command_def.h:132
-#, fuzzy
 msgid ""
 "Same command as FIXBANDING but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -12109,7 +12134,9 @@ msgstr ""
 "Même commande que FIND_COSME mais pour la séquence <b>sequencename</b>.\n"
 "\n"
 "Le nom de la séquence de sortie commence par le préfixe \"cc_\" sauf "
-"indication contraire avec l'option <b>-prefix=</b>"
+"indication contraire avec l'option <b>-prefix=</b>.\n"
+"L'option <b>-vertical</b> permet d'effectuer la suppression des bandes "
+"verticales"
 
 #: src/core/command_def.h:133
 msgid ""
@@ -12163,7 +12190,6 @@ msgstr ""
 "nombre sauf indication contraire avec l'option <b>-prefix=</b>"
 
 #: src/core/command_def.h:136
-#, fuzzy
 msgid ""
 "Same command as STAT for sequence <b>sequencename</b>.\n"
 "\n"
@@ -12178,9 +12204,11 @@ msgstr ""
 "\n"
 "La <b>sortie</b> est enregistrée dans un fichier csv donné en deuxième "
 "argument.\n"
-"Le paramètre optionnel définit le nombre de valeurs statistiques calculées : "
+"Le paramètre optionnel définit le nombre de valeurs statistiques calculées : "
 "<b>basic</b>, <b>main</b> ou <b>full</b> (plus détaillé mais plus long à "
-"calculer)"
+"calculer).\n"
+"Si <b>-cfa</b> est passé et que les images sont CFA, les statistiques sont "
+"faites sur les extractions par filtre"
 
 #: src/core/command_def.h:137
 msgid ""
@@ -13663,7 +13691,7 @@ msgstr "décalage de la matrice de Bayer en Y"
 
 #: src/core/settings.c:235
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
-msgstr ""
+msgstr "Nombre de passes pour l'algorithme X-Trans Markesteijn"
 
 #: src/core/settings.c:237
 msgid "electrons per ADU for noise estimation"
@@ -13766,7 +13794,7 @@ msgstr "nom d'empilement par défaut"
 
 #: src/core/settings.c:272
 msgid "use preferred stack name"
-msgstr ""
+msgstr "utiliser le nom de fichier empilé préféré"
 
 #: src/core/settings.c:274
 msgid "index of the selected registration method"
@@ -16998,7 +17026,7 @@ msgstr "Mot clé réservé erroné : "
 
 #: src/io/path_parse.c:51
 msgid "Library not defined in preferences: "
-msgstr ""
+msgstr "Bibliothèque non définie dans les préférences : "
 
 #: src/io/path_parse.c:55
 msgid "Key not found: "
@@ -17018,7 +17046,7 @@ msgstr "Format non supporté : "
 
 #: src/io/path_parse.c:74
 msgid "More than one match for: "
-msgstr "Plus d'une correspondance pour :"
+msgstr "Plus d'une correspondance pour : "
 
 #: src/io/path_parse.c:77
 msgid "No match found for: "
