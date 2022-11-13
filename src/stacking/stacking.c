@@ -55,8 +55,15 @@ static struct stacking_args stackparam = {	// parameters passed to stacking
 	FALSE, FALSE, FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
 };
 
-#define MAX_FILTERS 5
+#define MAX_FILTERS 8
 static struct filtering_tuple stackfilters[MAX_FILTERS];
+/* Values for seq filtering for % or k value*/
+static float filter_initvals[] = {90., 3.}; // max %, max k
+static float filter_maxvals[] = {100., 5.}; // max %, max k
+static float filter_increments[] = {1., 0.1}; // spin button steps for % and k
+// update_adjustment passed here as a static (instead of function parameter like in registration)
+// in order not to mess up all the calls to update_stack_interface
+static int update_adjustment = -1;
 
 stack_method stacking_methods[] = {
 	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_addmax, stack_addmin
@@ -709,6 +716,11 @@ void compute_date_time_keywords(GList *list_date, fits *fit) {
 /****************************************************************/
 
 void on_stacksel_changed(GtkComboBox *widget, gpointer user_data) {
+	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE (widget));
+	if (g_str_has_prefix(caller, "filter_type")) {
+		update_adjustment = (int)g_ascii_strtod(caller + 11, NULL) - 1; // filter_type1, 2 or 3 to be parsed as 0, 1 or 2
+		printf("filter %d needs to be updated");
+	}
 	update_stack_interface(TRUE);
 }
 
@@ -722,6 +734,7 @@ void on_filter_add1_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("filter_add2"), TRUE);
 	gtk_widget_set_visible(lookup_widget("filter_rem2"), TRUE);
 	gtk_widget_set_visible(lookup_widget("labelfilter2"), TRUE);
+	gtk_widget_set_visible(lookup_widget("filter_type2"), TRUE);
 	update_stack_interface(TRUE);
 }
 
@@ -730,6 +743,7 @@ void on_filter_add2_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("stackspin3"), TRUE);
 	gtk_widget_set_visible(lookup_widget("filter_rem3"), TRUE);
 	gtk_widget_set_visible(lookup_widget("labelfilter3"), TRUE);
+	gtk_widget_set_visible(lookup_widget("filter_type3"), TRUE);
 	update_stack_interface(TRUE);
 }
 
@@ -739,6 +753,7 @@ void on_filter_rem2_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("filter_add2"), FALSE);
 	gtk_widget_set_visible(lookup_widget("filter_rem2"), FALSE);
 	gtk_widget_set_visible(lookup_widget("labelfilter2"), FALSE);
+	gtk_widget_set_visible(lookup_widget("filter_type2"), FALSE);
 	update_stack_interface(TRUE);
 }
 
@@ -747,16 +762,19 @@ void on_filter_rem3_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("stackspin3"), FALSE);
 	gtk_widget_set_visible(lookup_widget("filter_rem3"), FALSE);
 	gtk_widget_set_visible(lookup_widget("labelfilter3"), FALSE);
+	gtk_widget_set_visible(lookup_widget("filter_type3"), FALSE);
 	update_stack_interface(TRUE);
 }
 
 void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		double *filtering_parameter) {
 	int filter, guifilter, channel = 0, type;
+	gboolean is_ksig = FALSE;
 	double percent = 0.0;
 	static GtkComboBox *filter_combo[] = {NULL, NULL, NULL};
 	static GtkAdjustment *stackadj[] = {NULL, NULL, NULL};
 	static GtkWidget *spin[] = {NULL, NULL, NULL};
+	static GtkWidget *ksig[] = {NULL, NULL, NULL};
 	if (!spin[0]) {
 		spin[0] = lookup_widget("stackspin1");
 		spin[1] = lookup_widget("stackspin2");
@@ -767,6 +785,9 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter1"));
 		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter2"));
 		filter_combo[2] = GTK_COMBO_BOX(lookup_widget("combofilter3"));
+		ksig[0] = lookup_widget("filter_type1");
+		ksig[1] = lookup_widget("filter_type2");
+		ksig[2] = lookup_widget("filter_type3");
 	}
 	for (filter = 0, guifilter = 0; guifilter < 3; guifilter++) {
 		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[guifilter]))) {
@@ -777,6 +798,7 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		if (type != ALL_IMAGES && type != SELECTED_IMAGES) {
 			channel = get_registration_layer(&com.seq);
 			percent = gtk_adjustment_get_value(stackadj[guifilter]);
+			is_ksig = gtk_combo_box_get_active(GTK_COMBO_BOX(ksig[guifilter]));
 		}
 
 		switch (type) {
@@ -785,48 +807,64 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 				stackfilters[filter].filter = seq_filter_all;
 				stackfilters[filter].param = 0.0;
 				gtk_widget_set_visible(spin[guifilter], FALSE);
+				gtk_widget_set_visible(ksig[guifilter], FALSE);
 				break;
 			case SELECTED_IMAGES:
 				stackfilters[filter].filter = seq_filter_included;
 				stackfilters[filter].param = 0.0;
 				gtk_widget_set_visible(spin[guifilter], FALSE);
+				gtk_widget_set_visible(ksig[guifilter], FALSE);
 				break;
 			case BEST_PSF_IMAGES:
 				stackfilters[filter].filter = seq_filter_fwhm;
 				stackfilters[filter].param = compute_highest_accepted_fwhm(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_WPSF_IMAGES:
 				stackfilters[filter].filter = seq_filter_weighted_fwhm;
 				stackfilters[filter].param = compute_highest_accepted_weighted_fwhm(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_ROUND_IMAGES:
 				stackfilters[filter].filter = seq_filter_roundness;
 				stackfilters[filter].param = compute_lowest_accepted_roundness(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_BKG_IMAGES:
 				stackfilters[filter].filter = seq_filter_background;
 				stackfilters[filter].param = compute_highest_accepted_background(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_NBSTARS_IMAGES:
 				stackfilters[filter].filter = seq_filter_nbstars;
 				stackfilters[filter].param = compute_lowest_accepted_nbstars(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_QUALITY_IMAGES:
 				stackfilters[filter].filter = seq_filter_quality;
 				stackfilters[filter].param = compute_lowest_accepted_quality(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
+		}
+		if (update_adjustment == filter && gtk_widget_get_visible(ksig[guifilter])) {
+			g_signal_handlers_block_by_func(stackadj[filter], on_stacksel_changed, NULL);
+			gtk_adjustment_set_upper(stackadj[filter], filter_maxvals[is_ksig]);
+			gtk_adjustment_set_value(stackadj[filter], filter_initvals[is_ksig]);
+			gtk_adjustment_set_step_increment(stackadj[filter], filter_increments[is_ksig]);
+			g_signal_handlers_unblock_by_func(stackadj[filter], on_stacksel_changed, NULL);
+			update_adjustment = -1;
 		}
 		filter++;
 	}

@@ -33,6 +33,7 @@ seq_image_filter create_multiple_filter_from_list(struct filtering_tuple *filter
 
 struct seq_filter_config {
 	float f_fwhm, f_fwhm_p, f_wfwhm, f_wfwhm_p, f_round, f_round_p, f_quality, f_quality_p, f_bkg, f_bkg_p, f_nbstars, f_nbstars_p; // on if >0
+	gboolean f_fwhm_k, f_wfwhm_k, f_round_k, f_quality_k, f_bkg_k, f_nbstars_k;
 	gboolean filter_included;
 };
 
@@ -40,12 +41,12 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 int setup_filtered_data(struct stacking_args *args);
 
 int stack_fill_list_of_unfiltered_images(struct stacking_args *args);
-double compute_highest_accepted_fwhm(sequence *seq, int layer, double percent);
-double compute_highest_accepted_weighted_fwhm(sequence *seq, int layer, double percent);
-double compute_lowest_accepted_quality(sequence *seq, int layer, double percent);
-double compute_lowest_accepted_roundness(sequence *seq, int layer, double percent);
-double compute_highest_accepted_background(sequence *seq, int layer, double percent);
-double compute_lowest_accepted_nbstars(sequence *seq, int layer, double percent);
+double compute_highest_accepted_fwhm(sequence *seq, int layer, double criterion, gboolean is_ksigma);
+double compute_highest_accepted_weighted_fwhm(sequence *seq, int layer, double criterion, gboolean is_ksigma);
+double compute_lowest_accepted_quality(sequence *seq, int layer, double criterion, gboolean is_ksigma);
+double compute_lowest_accepted_roundness(sequence *seq, int layer, double criterion, gboolean is_ksigma);
+double compute_highest_accepted_background(sequence *seq, int layer, double criterion, gboolean is_ksigma);
+double compute_lowest_accepted_nbstars(sequence *seq, int layer, double criterion, gboolean is_ksigma);
 
 
 gchar *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter);

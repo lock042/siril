@@ -3268,24 +3268,42 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="step-increment">0.05</property>
     <property name="page-increment">0.10</property>
   </object>
-  <object class="GtkAdjustment" id="adjustment1">
+  <object class="GtkAdjustment" id="adjustmentscalemax">
     <property name="lower">1</property>
     <property name="upper">65535</property>
     <property name="value">65535</property>
     <property name="step-increment">20</property>
     <property name="page-increment">1000</property>
   </object>
-  <object class="GtkAdjustment" id="adjustment2">
+  <object class="GtkAdjustment" id="adjustmentscalemin">
     <property name="upper">65535</property>
     <property name="step-increment">20</property>
     <property name="page-increment">1000</property>
   </object>
-  <object class="GtkAdjustment" id="adjustment3">
+  <object class="GtkAdjustment" id="adjustmentqualscale">
     <property name="lower">1</property>
     <property name="upper">5</property>
     <property name="value">2</property>
     <property name="step-increment">1</property>
     <property name="page-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment2">
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment3">
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment4">
     <property name="upper">100</property>
@@ -3293,13 +3311,13 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adjustment6">
+  <object class="GtkAdjustment" id="adjustment5">
     <property name="upper">100</property>
     <property name="value">90</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adjustment7">
+  <object class="GtkAdjustment" id="adjustment6">
     <property name="upper">100</property>
     <property name="value">90</property>
     <property name="step-increment">1</property>
@@ -18494,7 +18512,7 @@ A first computation pass will be done on all images before exporting, it may tak
                                                           <object class="GtkScale" id="exportQualScale">
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Film quality: lower value will use more compression and less bitrate, also resulting in smaller file size. Values above 2 could be useful for fast-moving images like bright time-lapses.</property>
-                                                            <property name="adjustment">adjustment3</property>
+                                                            <property name="adjustment">adjustmentqualscale</property>
                                                             <property name="round-digits">0</property>
                                                             <property name="digits">0</property>
                                                             <property name="value-pos">left</property>
@@ -20320,6 +20338,7 @@ numbers lead to faster computations.</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">90</property>
+                                                            <signal name="changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <signal name="value-changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <style>
                                                             <class name="small-spinbutton"/>
@@ -20332,6 +20351,23 @@ numbers lead to faster computations.</property>
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type4">
+                                                            <property name="visible">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item translatable="yes">k-&#963;</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_regsel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter4">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -20340,7 +20376,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -20357,7 +20393,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -20425,11 +20461,12 @@ numbers lead to faster computations.</property>
                                                             <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjustment6</property>
+                                                            <property name="adjustment">adjustment5</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">90</property>
+                                                            <signal name="changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <signal name="value-changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <style>
                                                             <class name="small-spinbutton"/>
@@ -20442,6 +20479,23 @@ numbers lead to faster computations.</property>
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type5">
+                                                            <property name="visible">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item translatable="yes">k-&#963;</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_regsel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter5">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -20450,7 +20504,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -20466,7 +20520,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -20482,7 +20536,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -20528,6 +20582,7 @@ numbers lead to faster computations.</property>
                                                             <item translatable="yes">nb stars</item>
                                                             <item translatable="yes">quality</item>
                                                             </items>
+                                                            <signal name="changed" handler="on_regsel_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -20546,11 +20601,12 @@ numbers lead to faster computations.</property>
                                                             <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjustment7</property>
+                                                            <property name="adjustment">adjustment6</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">90</property>
+                                                            <signal name="changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <signal name="value-changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <style>
                                                             <class name="small-spinbutton"/>
@@ -20563,6 +20619,23 @@ numbers lead to faster computations.</property>
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type6">
+                                                            <property name="visible">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item translatable="yes">k-&#963;</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_regsel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter6">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -20571,7 +20644,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -20590,7 +20663,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -22156,10 +22229,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="invisible-char">●</property>
                                                             <property name="width-chars">6</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">90,00</property>
+                                                            <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjustment4</property>
+                                                            <property name="adjustment">adjustment1</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
@@ -22177,6 +22250,23 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type1">
+                                                            <property name="visible">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item translatable="yes">k-&#963;</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter1">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -22185,7 +22275,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -22202,7 +22292,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -22267,10 +22357,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="invisible-char">●</property>
                                                             <property name="width-chars">6</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">90,00</property>
+                                                            <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjustment6</property>
+                                                            <property name="adjustment">adjustment2</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
@@ -22288,6 +22378,23 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type2">
+                                                            <property name="visible">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item translatable="yes">k-&#963;</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter2">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -22296,7 +22403,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -22312,7 +22419,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -22328,7 +22435,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -22390,10 +22497,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="invisible-char">●</property>
                                                             <property name="width-chars">6</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">90,00</property>
+                                                            <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjustment7</property>
+                                                            <property name="adjustment">adjustment3</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
@@ -22411,6 +22518,23 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type3">
+                                                            <property name="visible">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item translatable="yes">k-&#963;</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter3">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -22419,7 +22543,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -22438,7 +22562,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -23062,7 +23186,7 @@ WARNING: This option should not be checked for master stacking.</property>
                       <object class="GtkScale" id="scalemax">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="adjustment">adjustment1</property>
+                        <property name="adjustment">adjustmentscalemax</property>
                         <property name="digits">0</property>
                         <property name="draw-value">False</property>
                         <signal name="button-release-event" handler="on_maxscale_release" swapped="no"/>
@@ -23121,7 +23245,7 @@ WARNING: This option should not be checked for master stacking.</property>
                       <object class="GtkScale" id="scalemin">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="adjustment">adjustment2</property>
+                        <property name="adjustment">adjustmentscalemin</property>
                         <property name="digits">0</property>
                         <property name="draw-value">False</property>
                         <signal name="button-release-event" handler="on_minscale_release" swapped="no"/>
