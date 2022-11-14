@@ -33,8 +33,6 @@
 #include "algos/sorting.h"
 #include "core/siril_log.h"
 
-#define MAX_FILTERS 7
-
 /******************* IMAGE FILTERING CRITERIA *******************/
 
 /* a criterion exists for each image filtering method, and is called in a

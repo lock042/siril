@@ -866,7 +866,6 @@ int seq_has_any_regdata(sequence *seq) {
 
 /****************************************************************/
 
-#define MAX_FILTERS 5
 static struct filtering_tuple regfilters[MAX_FILTERS] = { 0 };
 
 static void update_filters_registration();
