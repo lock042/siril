@@ -722,7 +722,6 @@ void on_stacksel_changed(GtkComboBox *widget, gpointer user_data) {
 	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE (widget));
 	if (g_str_has_prefix(caller, "filter_type")) {
 		update_adjustment = (int)g_ascii_strtod(caller + 11, NULL) - 1; // filter_type1, 2 or 3 to be parsed as 0, 1 or 2
-		printf("filter %d needs to be updated");
 	}
 	update_stack_interface(TRUE);
 }
