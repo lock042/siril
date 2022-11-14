@@ -22,6 +22,7 @@
 #include <math.h>
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/astrometry_solver.h"
@@ -142,6 +143,120 @@ static void fits_rotate_pi(fits *fit) {
 	} else if (fit->type == DATA_FLOAT) {
 		fits_rotate_pi_float(fit);
 	}
+}
+
+static void fit_update_buffer(fits *fit, void *newbuf, int width, int height) {
+	size_t nbdata = width * height;
+
+	full_stats_invalidation_from_fit(fit);
+
+	fit->naxes[0] = width;
+	fit->naxes[1] = height;
+	fit->rx = width;
+	fit->ry = height;
+
+	if (fit->type == DATA_USHORT) {
+		if (fit->data)
+			free(fit->data);
+		fit->data = (WORD *)newbuf;
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data + nbdata;
+		fit->pdata[BLAYER] = fit->data + nbdata * 2;
+	}
+	else if (fit->type == DATA_FLOAT) {
+		if (fit->fdata)
+			free(fit->fdata);
+		fit->fdata = (float *)newbuf;
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = fit->fdata + nbdata;
+		fit->fpdata[BLAYER] = fit->fdata + nbdata * 2;
+	}
+}
+
+static void fits_binning_float(fits *fit, int factor, gboolean mean) {
+	int width = fit->rx;
+	int height = fit->ry;
+	int new_width = width / factor;
+	int new_height = height / factor;
+
+	size_t npixels = new_width * new_height;
+
+	float *buf = fit->fdata;
+	float *newbuf = malloc(npixels * sizeof(float));
+	if (!newbuf) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
+	long k = 0;
+	for (int row = 0, nrow = 0; row < height - factor + 1; row += factor, nrow++) {
+		for (int col = 0, ncol = 0; col < width - factor + 1; col += factor, ncol++) {
+			/* we handle last lines and last columns */
+			if (ncol > new_width || nrow > new_height) {
+				newbuf[k++] = buf[col + row * width];
+			} else {
+				int c = 1;
+				newbuf[k] = buf[col + row * width];
+				for (int i = 0; i < factor; i++) {
+					for (int j = 0; j < factor; j++) {
+						newbuf[k] += buf[i + col + (j + row) * width];
+						c++;
+					}
+				}
+				if (mean) newbuf[k] /= c;
+				k++;
+			}
+		}
+	}
+	fit_update_buffer(fit, newbuf, new_width, new_height);
+}
+
+static void fits_binning_ushort(fits *fit, int factor, gboolean mean) {
+	int width = fit->rx;
+	int height = fit->ry;
+	int new_width = width / factor;
+	int new_height = height / factor;
+
+	size_t npixels = new_width * new_height;
+
+	WORD *buf = fit->data;
+	WORD *newbuf = malloc(npixels * sizeof(WORD));
+	if (!newbuf) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
+	long k = 0;
+	for (int row = 0, nrow = 0; row < height - factor + 1; row += factor, nrow++) {
+		for (int col = 0, ncol = 0; col < width - factor + 1; col += factor, ncol++) {
+			/* we handle last lines and last columns */
+			if (ncol > new_width || nrow > new_height) {
+				newbuf[k++] = buf[col + row * width];
+			} else {
+				int c = 1;
+				newbuf[k] = buf[col + row * width];
+				for (int i = 0; i < factor; i++) {
+					for (int j = 0; j < factor; j++) {
+						newbuf[k] = round_to_WORD(newbuf[k] + buf[i + col + (j + row) * width]);
+						c++;
+					}
+				}
+				if (mean) newbuf[k] /= c;
+				k++;
+			}
+		}
+	}
+	fit_update_buffer(fit, newbuf, new_width, new_height);
+}
+
+int fits_binning(fits *fit, int factor, gboolean mean) {
+	if (fit->type == DATA_USHORT) {
+		fits_binning_ushort(fit, factor, mean);
+	} else if (fit->type == DATA_FLOAT) {
+		fits_binning_float(fit, factor, mean);
+	}
+
+	return 0;
 }
 
 /* These functions do not more than resize_gaussian and rotate_image
