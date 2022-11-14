@@ -252,7 +252,7 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		fits_binning_float(fit, factor, mean);
 	}
 
-	siril_log_message(_("New image size: %dx%d pixels"), fit->rx, fit->ry);
+	siril_log_message(_("New image size: %dx%d pixels\n"), fit->rx, fit->ry);
 
 	return 0;
 }
