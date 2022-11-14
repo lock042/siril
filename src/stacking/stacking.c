@@ -55,7 +55,6 @@ static struct stacking_args stackparam = {	// parameters passed to stacking
 	FALSE, FALSE, FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
 };
 
-#define MAX_FILTERS 5
 static struct filtering_tuple stackfilters[MAX_FILTERS];
 
 stack_method stacking_methods[] = {

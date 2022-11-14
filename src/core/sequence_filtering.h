@@ -3,6 +3,8 @@
 
 #include "core/siril.h"
 
+#define MAX_FILTERS 7
+
 struct stacking_args;
 struct stacking_configuration;
 
