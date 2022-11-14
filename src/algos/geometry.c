@@ -150,11 +150,6 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height) {
 
 	full_stats_invalidation_from_fit(fit);
 
-	fit->naxes[0] = width;
-	fit->naxes[1] = height;
-	fit->rx = width;
-	fit->ry = height;
-
 	if (fit->type == DATA_USHORT) {
 		if (fit->data)
 			free(fit->data);
@@ -171,6 +166,11 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height) {
 		fit->fpdata[GLAYER] = fit->fdata + nbdata;
 		fit->fpdata[BLAYER] = fit->fdata + nbdata * 2;
 	}
+	/* update size */
+	fit->naxes[0] = width;
+	fit->naxes[1] = height;
+	fit->rx = width;
+	fit->ry = height;
 }
 
 static void fits_binning_float(fits *fit, int factor, gboolean mean) {
@@ -181,15 +181,16 @@ static void fits_binning_float(fits *fit, int factor, gboolean mean) {
 
 	size_t npixels = new_width * new_height;
 
+	float *newbuf = malloc(npixels * fit->naxes[2] * sizeof(float));
+	if (!newbuf) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		float *buf = fit->fdata + (width * height) * channel;
-		float *newbuf = malloc(npixels * sizeof(float));
-		if (!newbuf) {
-			PRINT_ALLOC_ERR;
-			return;
-		}
 
-		long k = 0;
+		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - factor + 1; row += factor, nrow++) {
 			for (int col = 0, ncol = 0; col < width - factor + 1; col += factor, ncol++) {
 				int c = 1;
@@ -204,8 +205,8 @@ static void fits_binning_float(fits *fit, int factor, gboolean mean) {
 				k++;
 			}
 		}
-		fit_update_buffer(fit, newbuf, new_width, new_height);
 	}
+	fit_update_buffer(fit, newbuf, new_width, new_height);
 }
 
 static void fits_binning_ushort(fits *fit, int factor, gboolean mean) {
@@ -216,15 +217,16 @@ static void fits_binning_ushort(fits *fit, int factor, gboolean mean) {
 
 	size_t npixels = new_width * new_height;
 
+	WORD *newbuf = malloc(npixels * fit->naxes[2] * sizeof(WORD));
+	if (!newbuf) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
 		WORD *buf = fit->data + (width * height) * channel;
-		WORD *newbuf = malloc(npixels * sizeof(WORD));
-		if (!newbuf) {
-			PRINT_ALLOC_ERR;
-			return;
-		}
 
-		long k = 0;
+		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - factor + 1; row += factor, nrow++) {
 			for (int col = 0, ncol = 0; col < width - factor + 1; col += factor, ncol++) {
 				int c = 1;
@@ -239,8 +241,8 @@ static void fits_binning_ushort(fits *fit, int factor, gboolean mean) {
 				k++;
 			}
 		}
-		fit_update_buffer(fit, newbuf, new_width, new_height);
 	}
+	fit_update_buffer(fit, newbuf, new_width, new_height);
 }
 
 int fits_binning(fits *fit, int factor, gboolean mean) {
