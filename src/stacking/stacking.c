@@ -64,6 +64,10 @@ static float filter_increments[] = {1., 0.1}; // spin button steps for % and k
 // update_adjustment passed here as a static (instead of function parameter like in registration)
 // in order not to mess up all the calls to update_stack_interface
 static int update_adjustment = -1;
+static char *filter_tooltip_text[] = {
+	N_("Percents of the images of the sequence."),
+	N_("Number of standard deviations for rejection of worst images by k-sigma clipping algorithm.")
+};
 
 stack_method stacking_methods[] = {
 	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_addmax, stack_addmin
@@ -800,7 +804,15 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 			percent = gtk_adjustment_get_value(stackadj[guifilter]);
 			is_ksig = gtk_combo_box_get_active(GTK_COMBO_BOX(ksig[guifilter]));
 		}
-
+		if (update_adjustment == filter) {
+			g_signal_handlers_block_by_func(stackadj[filter], on_stacksel_changed, NULL);
+			gtk_adjustment_set_upper(stackadj[filter], filter_maxvals[is_ksig]);
+			gtk_adjustment_set_value(stackadj[filter], filter_initvals[is_ksig]);
+			gtk_adjustment_set_step_increment(stackadj[filter], filter_increments[is_ksig]);
+			gtk_widget_set_tooltip_text(spin[filter], filter_tooltip_text[is_ksig]);
+			g_signal_handlers_unblock_by_func(stackadj[filter], on_stacksel_changed, NULL);
+			update_adjustment = -1;
+		}
 		switch (type) {
 			default:
 			case ALL_IMAGES:
@@ -857,14 +869,6 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
-		}
-		if (update_adjustment == filter && gtk_widget_get_visible(ksig[guifilter])) {
-			g_signal_handlers_block_by_func(stackadj[filter], on_stacksel_changed, NULL);
-			gtk_adjustment_set_upper(stackadj[filter], filter_maxvals[is_ksig]);
-			gtk_adjustment_set_value(stackadj[filter], filter_initvals[is_ksig]);
-			gtk_adjustment_set_step_increment(stackadj[filter], filter_increments[is_ksig]);
-			g_signal_handlers_unblock_by_func(stackadj[filter], on_stacksel_changed, NULL);
-			update_adjustment = -1;
 		}
 		filter++;
 	}

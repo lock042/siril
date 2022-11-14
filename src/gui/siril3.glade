@@ -20355,6 +20355,7 @@ numbers lead to faster computations.</property>
                                                             <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="active">0</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
                                                             <item translatable="yes">k-&#963;</item>
@@ -20483,6 +20484,7 @@ numbers lead to faster computations.</property>
                                                             <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="active">0</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
                                                             <item translatable="yes">k-&#963;</item>
@@ -20623,6 +20625,7 @@ numbers lead to faster computations.</property>
                                                             <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="active">0</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
                                                             <item translatable="yes">k-&#963;</item>
@@ -22254,6 +22257,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="active">0</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
                                                             <item translatable="yes">k-&#963;</item>
@@ -22382,6 +22386,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="active">0</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
                                                             <item translatable="yes">k-&#963;</item>
@@ -22522,6 +22527,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="active">0</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
                                                             <item translatable="yes">k-&#963;</item>

@@ -109,6 +109,10 @@ static int maxstars_values[] = { 100, 200, 500, 1000, 2000 };
 static float filter_initvals[] = {90., 3.}; // max %, max k
 static float filter_maxvals[] = {100., 5.}; // max %, max k
 static float filter_increments[] = {1., 0.1}; // spin button steps for % and k
+static char *filter_tooltip_text[] = {
+	N_("Percents of the images of the sequence."),
+	N_("Number of standard deviations for rejection of worst images by k-sigma clipping algorithm.")
+};
 
 int register_kombat(struct registration_args *args);
 
@@ -960,7 +964,14 @@ static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_crit
 			percent = gtk_adjustment_get_value(stackadj[guifilter]);
 			is_ksig =  gtk_combo_box_get_active(GTK_COMBO_BOX(ksig[guifilter]));
 		}
-
+		if (update_adjustment == filter) {
+			g_signal_handlers_block_by_func(stackadj[filter], on_regsel_changed, NULL);
+			gtk_adjustment_set_upper(stackadj[filter], filter_maxvals[is_ksig]);
+			gtk_adjustment_set_value(stackadj[filter], filter_initvals[is_ksig]);
+			gtk_adjustment_set_step_increment(stackadj[filter], filter_increments[is_ksig]);
+			gtk_widget_set_tooltip_text(spin[filter], filter_tooltip_text[is_ksig]);
+			g_signal_handlers_unblock_by_func(stackadj[filter], on_regsel_changed, NULL);
+		}
 		switch (type) {
 			default:
 			case ALL_IMAGES:
@@ -1017,13 +1028,6 @@ static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_crit
 				gtk_widget_set_visible(spin[guifilter], TRUE);
 				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
-		}
-		if (update_adjustment == filter && gtk_widget_get_visible(ksig[guifilter])) {
-			g_signal_handlers_block_by_func(stackadj[filter], on_regsel_changed, NULL);
-			gtk_adjustment_set_upper(stackadj[filter], filter_maxvals[is_ksig]);
-			gtk_adjustment_set_value(stackadj[filter], filter_initvals[is_ksig]);
-			gtk_adjustment_set_step_increment(stackadj[filter], filter_increments[is_ksig]);
-			g_signal_handlers_unblock_by_func(stackadj[filter], on_regsel_changed, NULL);
 		}
 		filter++;
 	}
