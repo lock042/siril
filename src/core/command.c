@@ -5433,8 +5433,10 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
 				return CMD_ARG_ERROR;
 			}
-			if (*end == '%')
+			if (*end == '%' || *end == 'k') {
 				arg->f_fwhm_p = val;
+				arg->f_fwhm_k = (*end == 'k');
+			}
 			else arg->f_fwhm = val;
 		} else {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
@@ -5449,8 +5451,10 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
 				return CMD_ARG_ERROR;
 			}
-			if (*end == '%')
+			if (*end == '%' || *end == 'k') {
 				arg->f_wfwhm_p = val;
+				arg->f_wfwhm_k = (*end == 'k');
+			}
 			else arg->f_wfwhm = val;
 		} else {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
@@ -5466,8 +5470,10 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
 				return CMD_ARG_ERROR;
 			}
-			if (*end == '%')
+			if (*end == '%' || *end == 'k') {
 				arg->f_round_p = val;
+				arg->f_round_k = (*end == 'k');
+			}
 			else arg->f_round = val;
 		} else {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
@@ -5483,8 +5489,10 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
 				return CMD_ARG_ERROR;
 			}
-			if (*end == '%')
+			if (*end == '%' || *end == 'k') {
 				arg->f_quality_p = val;
+				arg->f_quality_k = (*end == 'k');
+			}
 			else arg->f_quality = val;
 		} else {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
@@ -5500,8 +5508,10 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
 				return CMD_ARG_ERROR;
 			}
-			if (*end == '%')
+			if (*end == '%' || *end == 'k') {
 				arg->f_bkg_p = val;
+				arg->f_bkg_k = (*end == 'k');
+			}
 			else arg->f_bkg = val;
 		} else {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
@@ -5516,8 +5526,10 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 				siril_log_message(_("Could not parse argument `%s' to the filter `%s', aborting.\n"), value, current);
 				return CMD_ARG_ERROR;
 			}
-			if (*end == '%')
+			if (*end == '%' || *end == 'k') {
 				arg->f_nbstars_p = val;
+				arg->f_nbstars_k = (*end == 'k');
+			}
 			else arg->f_nbstars = val;
 		} else {
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
@@ -5944,9 +5956,9 @@ int process_stackall(int nb) {
 	arg = calloc(1, sizeof(struct stacking_configuration));
 	arg->norm = NO_NORM;
 
-	// stackall { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-bkg=value[%]] [-filter-nbstars=value[%]] [-filter-incl[uded]]
+	// stackall { sum | min | max } [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-quality=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-incl[uded]]
 	// stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]
-	// stackall { rej | mean } sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%]] [-filter-round=value[%]] [-filter-bkg=value[%]] [-filter-nbstars=value[%]] [-filter-quality=value[%]] [-filter-incl[uded]] [-weighted]
+	// stackall { rej | mean } sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]] [-weighted]
 	if (!word[1]) {
 		arg->method = stack_summing_generic;
 	} else {
@@ -6057,9 +6069,9 @@ int process_stackone(int nb) {
 		goto failure;
 	free_sequence(seq, TRUE);
 
-	// stack seqfilename { sum | min | max } [-filter-fwhm=value[%]] [-filter-wfwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-bkg=value[%]] [-filter-nbstars=value[%]] [-filter-incl[uded]] [-out=result_filename]
+	// stack seqfilename { sum | min | max } [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-quality=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-incl[uded]] [-out=result_filename]
 	// stack seqfilename { med | median } [-nonorm, norm=] [-filter-incl[uded]] [-out=result_filename]
-	// stack seqfilename { rej | mean } [type_of_rejection] sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%]] [-filter-round=value[%]] [-filter-quality=value[%]] [-filter-bkg=value[%]] [-filter-nbstars=value[%]] [-filter-incl[uded]] [-weighted] [-out=result_filename]
+	// stack seqfilename { rej | mean } [type_of_rejection] sigma_low sigma_high [-nonorm, norm=] [-filter-fwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-quality=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-incl[uded]] [-weighted] [-out=result_filename]
 	if (!word[2]) {
 		arg->method = stack_summing_generic;
 	} else {

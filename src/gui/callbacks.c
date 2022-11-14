@@ -248,8 +248,8 @@ void set_sliders_value_to_gfit() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 
 	gfit.hi = gtk_adjustment_get_value(adj1);
@@ -264,8 +264,8 @@ void set_cutoff_sliders_max_values() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 	gdouble max_val;
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 	/* set max value for range according to number of bits of original image
 	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG.
@@ -290,8 +290,8 @@ void set_cutoff_sliders_values() {
 	static GtkEntry *maxentry = NULL, *minentry = NULL;
 	static GtkToggleButton *cutmax = NULL;
 	if (adjmin == NULL) {
-		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1")); // scalemax
-		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2")); // scalemin
+		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax")); // scalemax
+		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin")); // scalemin
 		maxentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "max_entry"));
 		minentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "min_entry"));
 		cutmax = GTK_TOGGLE_BUTTON(
