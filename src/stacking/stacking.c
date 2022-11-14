@@ -55,7 +55,6 @@ static struct stacking_args stackparam = {	// parameters passed to stacking
 	FALSE, FALSE, FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
 };
 
-#define MAX_FILTERS 8
 static struct filtering_tuple stackfilters[MAX_FILTERS];
 /* Values for seq filtering for % or k value*/
 static float filter_initvals[] = {90., 3.}; // max %, max k

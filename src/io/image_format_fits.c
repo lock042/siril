@@ -744,10 +744,10 @@ GSList *read_header_keyvals_strings(fitsfile *fptr) {
 			continue;
 		int len = strlen(value);
 		// pretty-print strings: remove quotes and trailing spaces
-		if (len > 0 && value[0] == '\'' && value[len-1] == '\'') {
+		if (len > 1 && value[0] == '\'' && value[len - 1] == '\'') {
 			len -= 2;
 			for (int i = 0; i < len; i++)
-				value[i] = value[i+1];
+				value[i] = value[i + 1];
 			value[len] = '\0';
 			g_strchomp(value);
 		}
