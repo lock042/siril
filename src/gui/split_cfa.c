@@ -47,6 +47,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		if (com.seq.type == SEQ_SER) {
 			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: sequence is SER"),
 						_("Only FITS format is supported for sequence CFA splitting"));
+			free(args);
 			return;
 		}
 		switch (method) {

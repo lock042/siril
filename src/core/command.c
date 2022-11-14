@@ -3852,7 +3852,7 @@ int process_seq_fixbanding(int nb) {
 	// settings default optional values
 	args->protect_highlights = TRUE;
 	args->applyRotation = FALSE;
-	args->seqEntry = "unband_";
+	args->seqEntry = g_strdup("unband_");
 	args->fit = NULL;
 
 	if (nb > 4) {
@@ -3865,7 +3865,7 @@ int process_seq_fixbanding(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
 					return CMD_ARG_ERROR;
 				}
-				args->seqEntry = strdup(value);
+				args->seqEntry = g_strdup(value);
 			} else if (!g_strcmp0(arg, "-vertical")) {
 				args->applyRotation = TRUE;
 			} else {
@@ -4433,6 +4433,7 @@ int process_seq_merge_cfa(int nb) {
 		args->pattern = BAYER_FILTER_GRBG;
 	} else {
 		siril_log_color_message(_("Invalid Bayer matrix specified!\n"), "red");
+		free(args);
 		return CMD_ARG_ERROR;
 	}
 	siril_log_message(_("Reconstructing %s Bayer matrix.\n"), word[2]);
@@ -4575,6 +4576,7 @@ int process_seq_extractHaOIII(int nb) {
 			value = current + 10;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[2]);
+				free(args);
 				return CMD_ARG_ERROR;
 			} else if (!strcmp(value, "ha")) {
 				args->scaling = 1;
@@ -4676,6 +4678,7 @@ int process_seq_stat(int nb) {
 			args->cfa = TRUE;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[3]);
+			free(args);
 			return CMD_ARG_ERROR;
 		}
 		if (nb > 4) {
@@ -4683,6 +4686,7 @@ int process_seq_stat(int nb) {
 				args->cfa = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[4]);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 		}
