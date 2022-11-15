@@ -245,7 +245,7 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 					}
 				}
 				if (mean) tmp /= c;
-				newbuf[k] = round_to_WORD((double) tmp);
+				newbuf[k] = truncate_to_WORD(tmp);
 				k++;
 			}
 		}
