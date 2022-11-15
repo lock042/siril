@@ -144,7 +144,7 @@ static void fits_rotate_pi(fits *fit) {
 	}
 }
 
-static void fit_update_buffer(fits *fit, void *newbuf, int width, int height) {
+static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, int bin_factor) {
 	size_t nbdata = width * height;
 
 	full_stats_invalidation_from_fit(fit);
@@ -170,13 +170,21 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height) {
 	fit->naxes[1] = height;
 	fit->rx = width;
 	fit->ry = height;
+
+	if (fit->binning_x == 0 || fit->binning_x == 1) {
+		fit->binning_x = bin_factor;
+		fit->binning_y = bin_factor;
+	} else {
+		fit->binning_x *= bin_factor;
+		fit->binning_y *= bin_factor;
+	}
 }
 
-static void fits_binning_float(fits *fit, int factor, gboolean mean) {
+static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
 	int width = fit->rx;
 	int height = fit->ry;
-	int new_width = width / factor;
-	int new_height = height / factor;
+	int new_width = width / bin_factor;
+	int new_height = height / bin_factor;
 
 	size_t npixels = new_width * new_height;
 
@@ -190,12 +198,12 @@ static void fits_binning_float(fits *fit, int factor, gboolean mean) {
 		float *buf = fit->fdata + (width * height) * channel;
 
 		long k = 0 + channel * npixels;
-		for (int row = 0, nrow = 0; row < height - factor + 1; row += factor, nrow++) {
-			for (int col = 0, ncol = 0; col < width - factor + 1; col += factor, ncol++) {
+		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
+			for (int col = 0, ncol = 0; col < width - bin_factor + 1; col += bin_factor, ncol++) {
 				int c = 0;
 				newbuf[k] = 0;
-				for (int i = 0; i < factor; i++) {
-					for (int j = 0; j < factor; j++) {
+				for (int i = 0; i < bin_factor; i++) {
+					for (int j = 0; j < bin_factor; j++) {
 						newbuf[k] += buf[i + col + (j + row) * width];
 						c++;
 					}
@@ -205,14 +213,14 @@ static void fits_binning_float(fits *fit, int factor, gboolean mean) {
 			}
 		}
 	}
-	fit_update_buffer(fit, newbuf, new_width, new_height);
+	fit_update_buffer(fit, newbuf, new_width, new_height, bin_factor);
 }
 
-static void fits_binning_ushort(fits *fit, int factor, gboolean mean) {
+static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 	int width = fit->rx;
 	int height = fit->ry;
-	int new_width = width / factor;
-	int new_height = height / factor;
+	int new_width = width / bin_factor;
+	int new_height = height / bin_factor;
 
 	size_t npixels = new_width * new_height;
 
@@ -226,13 +234,13 @@ static void fits_binning_ushort(fits *fit, int factor, gboolean mean) {
 		WORD *buf = fit->data + (width * height) * channel;
 
 		long k = 0 + channel * npixels;
-		for (int row = 0, nrow = 0; row < height - factor + 1; row += factor, nrow++) {
-			for (int col = 0, ncol = 0; col < width - factor + 1; col += factor, ncol++) {
+		for (int row = 0, nrow = 0; row < height ; row += bin_factor, nrow++) {
+			for (int col = 0, ncol = 0; col < width - bin_factor + 1; col += bin_factor, ncol++) {
 				int c = 0;
 				int tmp = 0;
-				for (int i = 0; i < factor; i++) {
-					for (int j = 0; j < factor; j++) {
-						tmp = round_to_WORD(newbuf[k] + buf[i + col + (j + row) * width]);
+				for (int i = 0; i < bin_factor; i++) {
+					for (int j = 0; j < bin_factor; j++) {
+						tmp += (buf[i + col + (j + row) * width]);
 						c++;
 					}
 				}
@@ -242,7 +250,7 @@ static void fits_binning_ushort(fits *fit, int factor, gboolean mean) {
 			}
 		}
 	}
-	fit_update_buffer(fit, newbuf, new_width, new_height);
+	fit_update_buffer(fit, newbuf, new_width, new_height, bin_factor);
 }
 
 int fits_binning(fits *fit, int factor, gboolean mean) {

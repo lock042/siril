@@ -9,7 +9,7 @@
 
 #define STR_BG N_("Returns the background level of the image loaded in memory")
 #define STR_BGNOISE N_("Returns the background noise level of the image loaded in memory")
-#define STR_BINXY N_("Computes the numerical binning of the in-memory image (sum of the pixels 2x2, 3x3..., like the analogic binning of CCD camera). If the optional argument -sum is passed, then the sum of pixels is computed, while it is the average when no optional argument are provided")
+#define STR_BINXY N_("Computes the numerical binning of the in-memory image (sum of the pixels 2x2, 3x3..., like the analogic binning of CCD camera). If the optional argument <b>-sum</b> is passed, then the sum of pixels is computed, while it is the average when no optional argument is provided")
 #define STR_BOXSELECT N_("Make a selection area in the currently loaded image with the arguments <b>x</b>, <b>y</b>, <b>width</b> and <b>height</b>, with <b>x</b> and <b>y</b> being the coordinates of the top left corner starting at (0, 0), and <b>width</b> and <b>height</b>, the size of the selection. The <b>-clear</b> argument deletes any selection area. If no argument is passed, the current selection is printed")
 
 #define STR_CAPABILITIES N_("Lists Siril capabilities, based on compilation and runtime")
