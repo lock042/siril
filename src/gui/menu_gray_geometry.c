@@ -180,7 +180,7 @@ void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
 		int factor = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spinbutton_binning")));
 
 		set_cursor_waiting(TRUE);
-		undo_save_state(&gfit, _("Binning x%d (%s)"), factor, mean ? "Average" : "Sum");
+		undo_save_state(&gfit, _("Binning x%d (%s)"), factor, mean ? _("average") : _("sum"));
 		fits_binning(&gfit, factor, mean);
 
 		update_MenuItem(); // WCS not available anymore

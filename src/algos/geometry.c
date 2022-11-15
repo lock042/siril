@@ -192,8 +192,8 @@ static void fits_binning_float(fits *fit, int factor, gboolean mean) {
 		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - factor + 1; row += factor, nrow++) {
 			for (int col = 0, ncol = 0; col < width - factor + 1; col += factor, ncol++) {
-				int c = 1;
-				newbuf[k] = buf[col + row * width];
+				int c = 0;
+				newbuf[k] = 0;
 				for (int i = 0; i < factor; i++) {
 					for (int j = 0; j < factor; j++) {
 						newbuf[k] += buf[i + col + (j + row) * width];
@@ -228,15 +228,16 @@ static void fits_binning_ushort(fits *fit, int factor, gboolean mean) {
 		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - factor + 1; row += factor, nrow++) {
 			for (int col = 0, ncol = 0; col < width - factor + 1; col += factor, ncol++) {
-				int c = 1;
-				newbuf[k] = buf[col + row * width];
+				int c = 0;
+				int tmp = 0;
 				for (int i = 0; i < factor; i++) {
 					for (int j = 0; j < factor; j++) {
-						newbuf[k] = round_to_WORD(newbuf[k] + buf[i + col + (j + row) * width]);
+						tmp = round_to_WORD(newbuf[k] + buf[i + col + (j + row) * width]);
 						c++;
 					}
 				}
-				if (mean) newbuf[k] /= c;
+				if (mean) tmp /= c;
+				newbuf[k] = round_to_WORD((double) tmp);
 				k++;
 			}
 		}
