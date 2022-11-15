@@ -1,5 +1,6 @@
 #include "image.hpp"
 
+#define IMG_NO_IIO
 #ifndef IMG_NO_IIO
 extern "C" {
 #include "iio.h"

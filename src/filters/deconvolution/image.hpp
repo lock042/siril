@@ -56,6 +56,21 @@ public:
         : size(o.size), w(o.w), h(o.h), d(o.d), data(o.data) {
     }
 
+    img_t operator=(const img_t<T>& o) {
+        w = o.w;
+        h = o.h;
+        d = o.d;
+        size = w*d*h;
+/*
+        forwardplan = o.forwardplan;
+        backwardplan = o.backwardplan;
+        forwardplanf = o.forwardplanf;
+        backwardplanf = o.backwardplanf;
+*/
+        data = o.data;
+        return *this;
+    }
+
     ~img_t() {
 #ifndef IMG_NO_FFTW
         if (forwardplan)
@@ -493,6 +508,87 @@ public:
                 }
                 for (int x = ww; x < o.w; x++) {
                     (*this)(- ww + x, - hh + y, dd) = o(x, y, od);
+                }
+            }
+        }
+    }
+
+    void ensure_size(int w, int h, int d=1) {
+        assert(w > 0);
+        assert(h > 0);
+        assert(d > 0);
+        if (this->w != w || this->h != h || this->d != d) {
+            this->w = w;
+            this->h = h;
+            this->d = d;
+            size = w * h * d;
+            data.resize(size);
+
+            if (forwardplan) {
+#pragma omp critical (fftw)
+                fftw_destroy_plan(forwardplan);
+                forwardplan = nullptr;
+            }
+            if (backwardplan) {
+#pragma omp critical (fftw)
+                fftw_destroy_plan(backwardplan);
+                backwardplan = nullptr;
+            }
+        }
+    }
+
+    void normalize() {
+        T sum = this->sum();
+        if (sum != 0.) {
+            for (T& v : data) {
+                v /= sum;
+            }
+        }
+    }
+
+    void greyfromcolor(const img_t<T>& color) {
+        assert(d == 1);
+        assert(w == color.w);
+        assert(h == color.h);
+        for (int i = 0; i < size; i++) {
+            T val(0);
+            for (int dd = 0; dd < color.d; dd++) {
+                val += color[i * color.d + dd];
+            }
+            (*this)[i] = val / color.d;
+        }
+    }
+
+    void transpose() {
+        img_t<T> o(*this);
+        this->w = o.h;
+        this->h = o.w;
+        for (int y = 0; y < o.h; y++) {
+            for (int x = 0; x < o.w; x++) {
+                for (int dd = 0; dd < d; dd++) {
+                    (*this)(y, x, dd) = o(x, y, dd);
+                }
+            }
+        }
+    }
+
+    void transposeToMatlab() {
+        img_t<T> o(*this);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                for (int dd = 0; dd < d; dd++) {
+                    (*this)[y + h * (x + w * dd)] = o(x, y, dd);
+                }
+            }
+        }
+    }
+
+    void transposeFromMatlab() {
+        img_t<T> o(*this);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                for (int dd = 0; dd < d; dd++) {
+                    (*this)(x, y, dd) = o[y + h * (x + w * dd)];
                 }
             }
         }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "image.hpp"
+#include "image_expr.hpp"
 #include "labeling.hpp"
 #include "vec2.hpp"
 
@@ -20,86 +21,73 @@ namespace utils {
 
     // upsample an image
     inline void upsample(img_t<float>& out, const img_t<float>& _in, float factor,
-                         int targetw, int targeth, int interp=2/* bilinear */) {
+                         int targetw, int targeth, int interp=2) { // Bilinear
         img_t<float> in = _in; // copy input
         out.resize(targetw, targeth, in.d);
         zoom2(&out[0], &in[0], out.w, out.h, out.d, in.w, in.h, factor, interp);
     }
 
-    // downsample an image with Gaussian filtering
-    void gaussian_downsample(img_t<float>& out, const img_t<float>& _in, float factor/* >= 1 */, float sigma=1.6f) {
-        img_t<float> in = _in; // copy input
-        if (factor == 1) {
-            out = in;
-            return;
+    template <typename T>
+    void transpose(img_t<T>& out, const img_t<T>& in)
+    {
+        if (&in == &out) {
+            auto copy = in;
+            return transpose(out, copy);
         }
 
-        out.resize(std::ceil(in.w/factor), std::ceil(in.h/factor), in.d);
-
-        img_t<float> tmpout(out.w, out.h, 1);
-        img_t<float> tmpin(in.w, in.h, 1);
-        // process channel by channel since downscale_image accepts only grayscale images
+        out.resize(in.h, in.w, in.d);
         for (int d = 0; d < in.d; d++) {
-            for (int i = 0; i < in.w * in.h; i++) {
-                tmpin[i] = in[i*in.d+d];
-            }
-            downscale_image(&tmpout[0], &tmpin[0], tmpout.w, tmpout.h, tmpin.w, tmpin.h, factor, sigma);
-            for (int i = 0; i < out.w * out.h; i++) {
-                out[i*in.d+d] = tmpout[i];
+            for (int y = 0; y < in.h; y++) {
+                for (int x = 0; x < in.w; x++) {
+                    out(y, x, d) = in(x, y, d);
+                }
             }
         }
     }
 
     // add symmetric padding of the size of the kernel
     template <typename T>
-    img_t<T> add_padding(const img_t<T>& _f, const img_t<T>& K)
+    img_t<T> add_padding(const img_t<T>& _f, int hw, int hh)
     {
-        img_t<T> f(_f.w + K.w-1, _f.h + K.h-1, _f.d);
+        img_t<T> f(_f.w + hw*2, _f.h + hh*2, _f.d);
         f.set_value(T(0));
-        for (int y = 0; y < _f.h; y++) {
-            for (int x = 0; x < _f.w; x++) {
-                for (int d = 0; d < _f.d; d++) {
-                    f(x+K.w/2, y+K.h/2, d) = _f(x, y, d);
-                }
-            }
-        }
-
+        slice(f, _(hw, -hw-1), _(hh, -hh-1)).map(_f);
         // replicate borders
-        for (int y = 0; y < K.h/2; y++) {
+        for (int y = 0; y < hh; y++) {
             for (int x = 0; x < f.w; x++) {
                 for (int l = 0; l < f.d; l++) {
-                    f(x, y, l) = f(x, 2*(K.h/2) - y, l);
-                    f(x, f.h-1-y, l) = f(x, f.h-1-2*(K.h/2)+y, l);
+                    f(x, y, l) = f(x, 2*hh - y, l);
+                    f(x, f.h-1-y, l) = f(x, f.h-1-2*hh+y, l);
                 }
             }
         }
         for (int y = 0; y < f.h; y++) {
-            for (int x = 0; x < K.w/2; x++) {
+            for (int x = 0; x < hw; x++) {
                 for (int l = 0; l < f.d; l++) {
-                    f(x, y, l) = f(2*(K.w/2) - x, y, l);
-                    f(f.w-1-x, y, l) = f(f.w-1-2*(K.w/2)+x, y, l);
+                    f(x, y, l) = f(2*hw - x, y, l);
+                    f(f.w-1-x, y, l) = f(f.w-1-2*hw+x, y, l);
                 }
             }
         }
         return f;
     }
 
-    // remove the padding added by add_padding
+    template <typename T>
+    img_t<T> add_padding(const img_t<T>& f, const img_t<T>& K)
+    {
+        return add_padding(f, K.w/2, K.h/2);
+    }
+
+    template <typename T>
+    img_t<T> remove_padding(const img_t<T>& f, int hw, int hh)
+    {
+        return to_img(slice(f, _(hw, -hw-1), _(hh, -hh-1)));
+    }
+
     template <typename T>
     img_t<T> remove_padding(const img_t<T>& f, const img_t<T>& K)
     {
-        int w2 = K.w/2;
-        int h2 = K.w/2;
-        img_t<T> out(f.w - 2*w2, f.h - 2*h2, f.d);
-
-        for (int y = 0; y < out.h; y++) {
-            for (int x = 0; x < out.w; x++) {
-                for (int l = 0; l < out.d; l++) {
-                    out(x, y, l) = f(x+w2, y+h2, l);
-                }
-            }
-        }
-        return out;
+        return remove_padding(f, K.w/2, K.h/2);
     }
 
     template <typename T>

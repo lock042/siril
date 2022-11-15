@@ -31,6 +31,7 @@ public:
     }
 
     T operator[](int i) const {
+        i = i;
         return val;
     }
 

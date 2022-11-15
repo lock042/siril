@@ -3,10 +3,10 @@
 
 #include "estimate_kernel.hpp"
 
-#include "args.hxx"
+//#include "args.hxx"
 #include <iostream>
 
-static options parse_args(int argc, char** argv)
+/*static options parse_args(int argc, char** argv)
 {
     args::ArgumentParser parser("");
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -99,19 +99,47 @@ static options parse_args(int argc, char** argv)
 
     return opts;
 }
+*/
+int estmate_kernel_l0() {
+//    struct options opts = parse_args(argc, argv);
+    options opts;
+    opts.ks = 11;
+    opts.input = "in.png";
+    opts.output = "out.png";
+    opts.lambda = 4e-3f;
+    opts.lambda_ratio = 1/1.1f;
+    opts.lambda_min = 1e-2f;
+    opts.gamma = 20.f;
+    opts.iterations = 2;
+    opts.multiscale = false;
+    opts.scalefactor = 0.5f;
+    opts.kernel_threshold_max = 0.f;
+    opts.remove_isolated = false;
+    opts.outputsharp = false;
+    opts.verbose = false;
+    opts.debug = false;
+    opts.better_kernel = false;
+    opts.warmg = "";
+    opts.warmk = "";
+    opts.upscaleblur = 0;
+    opts.downscaleblur = 1.6f;
+    opts.initu = "";
+    opts.admmu = "";
+    opts.admmu_mu = 0;
+    opts.k_l1 = 0.5f;
+    opts.use_filters = false;
 
-int main(int argc, char** argv) {
-    struct options opts = parse_args(argc, argv);
-
-    img_t<float> v = img_t<float>::load(opts.input);
-
+//    img_t<float> v = img_t<float>::load(opts.input);
+// Instantiate v from gfit here
+    float* ddddd = (float*)calloc(1000*1000*3, sizeof(float));
+    img_t<float> v(1000, 1000, 3, ddddd);
     preprocess_image(v, v, opts);
 
     img_t<float> initu;
     if (opts.initu.empty()) {
         initu = v;
     } else {
-        initu = img_t<float>::load(opts.initu);
+//        initu = img_t<float>::load(opts.initu);
         preprocess_image(initu, initu, opts);
         if (opts.multiscale) {
             fprintf(stderr, "wait, both initu and multiscale are enabled\n");
@@ -126,9 +154,10 @@ int main(int argc, char** argv) {
         l0_kernel_estimation(k, u, v, initu, opts);
     }
 
-    k.save(opts.output);
+//    k.save(opts.output);
     if (!opts.outputsharp.empty()) {
-        u.save(opts.outputsharp);
+//        u.save(opts.outputsharp);
     }
+    return 0;
 }
 

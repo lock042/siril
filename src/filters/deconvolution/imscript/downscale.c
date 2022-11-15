@@ -119,7 +119,7 @@ void downscale_image(float *out, float *in,
 
 	float *gin = xmalloc(inw * inh * sizeof(float));
 	if (outw < inw || outh < inh) {
-		void gblur_gray(float*, float*, int, int, float);
+//		void gblur_gray(float*, float*, int, int, float);
 		gblur_gray(gin, in, inw, inh, blur_size);
 	} else {
 		assert(inw == outw);

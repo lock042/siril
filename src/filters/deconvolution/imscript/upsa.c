@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "iio.h"
+//#include "iio.h"
 #include "fail.c"
 #include "marching_squares.c"
 #include "marching_interpolation.c"
@@ -166,7 +166,7 @@ void zoom2(float *y, const float *x, int W, int H, int pd, int w, int h, float n
  }
 }
 
-
+/*
 int main_upsa(int c, char *v[])
 {
 	float off_x = atof(pick_option(&c, &v, "x", "0"));
@@ -196,7 +196,9 @@ int main_upsa(int c, char *v[])
 	return 0;
 }
 
+
 #ifndef HIDE_ALL_MAINS
 int main(int c, char **v) { return main_upsa(c, v); }
 #endif
+*/
 

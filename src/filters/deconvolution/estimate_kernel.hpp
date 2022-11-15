@@ -6,6 +6,32 @@
 #include "utils.hpp"
 #include "edgetaper.hpp"
 
+namespace utils {
+    // downsample an image with Gaussian filtering
+    void gaussian_downsample(img_t<float>& out, const img_t<float>& _in, float factor, float sigma=1.6f) {
+        img_t<float> in = _in; // copy input
+        if (factor == 1) {
+            out = in;
+            return;
+        }
+
+        out.resize(std::ceil(in.w/factor), std::ceil(in.h/factor), in.d);
+
+        img_t<float> tmpout(out.w, out.h, 1);
+        img_t<float> tmpin(in.w, in.h, 1);
+        // process channel by channel since downscale_image accepts only grayscale images
+        for (int d = 0; d < in.d; d++) {
+            for (int i = 0; i < in.w * in.h; i++) {
+                tmpin[i] = in[i*in.d+d];
+            }
+            downscale_image(&tmpout[0], &tmpin[0], tmpout.w, tmpout.h, tmpin.w, tmpin.h, factor, sigma);
+            for (int i = 0; i < out.w * out.h; i++) {
+                out[i*in.d+d] = tmpout[i];
+            }
+        }
+    }
+}
+
 struct options {
     bool verbose;
     std::string debug;
@@ -373,7 +399,7 @@ template <typename T>
 void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
                           const img_t<T>& initu, struct options& opts) {
     static int it = 0;
-    ImagePredictor<T>* sharp_predictor;
+    ImagePredictor<T>* sharp_predictor = nullptr;
     if (opts.admmu) {
     } else {
         sharp_predictor = new L0ImagePredictor<T>(v);
@@ -386,7 +412,7 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
     }
 
     if (!opts.debug.empty()) {
-        initu.save(string_format("%s/initu_%03d.tiff", opts.debug.c_str(), it));
+//        initu.save(string_format("%s/initu_%03d.tiff", opts.debug.c_str(), it));
     }
 
     u = initu;
@@ -420,9 +446,11 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
 
         if (!opts.debug.empty()) {
             it++;
-            u.save(string_format("%s/u_%03d_%.5f.tiff", opts.debug.c_str(), it, opts.lambda));
-            v.save(string_format("%s/v_%03d.tiff", opts.debug.c_str(), it));
-            k.save(string_format("%s/k_%03d.tiff", opts.debug.c_str(), it));
+//            u.save(string_format("%s/u_%03d_%.5f.tiff", opts.debug.c_str(), it, opts.lambda));
+//            v.save(string_format("%s/v_%03d.tiff", opts.debug.c_str(), it));
+//            k.save(string_format("%s/k_%03d.tiff", opts.debug.c_str(), it));
+            // Debug output
+
         }
 
         kernel_estimator->solve(k, u, opts);

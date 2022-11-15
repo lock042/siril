@@ -17,8 +17,10 @@ int main(int argc, char** argv) {
     if (argc != 5)
         return std::cerr << "Usage: " << argv[0] << " input kernel output lambda" << std::endl, 1;
 
-    img_t<float> f = img_t<float>::load(argv[1]);
-    img_t<float> K = img_t<float>::load(argv[2]);
+    float *aaaaa = (float*) calloc(1000*1000*3, sizeof(float));
+    float *kkkkk = (float*) calloc(11*11*3, sizeof(float));
+    img_t<float> f(1000,1000,3,aaaaa); //= img_t<float>::load(argv[1]);
+    img_t<float> K(11,11,1,kkkkk); //= img_t<float>::load(argv[2]);
     K.map(K / K.sum());
     img_t<float> u;
 
@@ -42,6 +44,6 @@ int main(int argc, char** argv) {
     if (NORMALIZE_INPUT())
         u.map(u * max);
 
-    u.save(argv[3]);
+//    u.save(argv[3]);
 }
 

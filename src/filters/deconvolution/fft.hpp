@@ -213,7 +213,7 @@ namespace fft {
         return out;
     }
 
-    const int* get_optimal_table(int& _lut_size) {
+    __inline__ const int* get_optimal_table(int& _lut_size) {
         // based on the matlab code of Sunghyun Cho
         const int lut_size = 4096;
         static int is_optimal[lut_size] = {0};
@@ -233,7 +233,7 @@ namespace fft {
         return is_optimal;
     }
 
-    int get_optimal_size_up(int size) {
+    __inline__ int get_optimal_size_up(int size) {
         int lut_size;
         const int* is_optimal = get_optimal_table(lut_size);
         for (int i = size; i < lut_size; i++) {
@@ -244,7 +244,7 @@ namespace fft {
         return size;
     }
 
-    int get_optimal_size_down(int size) {
+    __inline__ int get_optimal_size_down(int size) {
         int lut_size;
         const int* is_optimal = get_optimal_table(lut_size);
         for (int i = size; i > 0; i--) {
@@ -253,6 +253,14 @@ namespace fft {
             }
         }
         return size;
+    }
+
+    template <typename T>
+    void psf2otf(img_t<std::complex<T>>& out, const img_t<T>& k, int w, int h, int d=1)
+    {
+        out.resize(w, h, d);
+        out.padcirc(k);
+        out = c2c(out);
     }
 
 }

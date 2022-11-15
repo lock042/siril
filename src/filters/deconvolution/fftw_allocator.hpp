@@ -44,7 +44,7 @@ class fftw_alloc {
 #ifdef _OPENMP
 #pragma omp critical (fftw)
 #endif
-            ptr = fftwf_malloc(num*sizeof(T));
+            ptr = fftw_malloc(num*sizeof(T));
             return (pointer) ptr;
         }
 
@@ -57,11 +57,11 @@ class fftw_alloc {
         }
 
         void deallocate (pointer p, size_type num) {
-            (void) num;
 #ifdef _OPENMP
 #pragma omp critical (fftw)
 #endif
-            fftwf_free(p);
+            fftw_free(p);
+            num = num;
         }
 };
 

@@ -32,7 +32,7 @@ project('siril',
   meson_version: '>=0.56.0',
   default_options : [
     'c_std=gnu11',
-    'cpp_std=c++11',
+    'cpp_std=c++14',
     'buildtype=debugoptimized',
   ],
 )
@@ -184,7 +184,7 @@ if cc.has_argument('-msse4.1') and cpp.has_argument('-msse4.1')
 endif
 
 ################################################################################
-# Directories 
+# Directories
 
 siril_share = get_option('prefix') + '/' + get_option('datadir') + '/'
 siril_datadir = siril_share + meson.project_name() + '/'
@@ -249,7 +249,7 @@ if not rtprocess_dep.found()
   # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
   opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
   sub_proj = cmake.subproject('librtprocess', options: opt_var)
-  
+
   rtprocess_dep = sub_proj.dependency('rtprocess')
   rtprocess_inc = sub_proj.include_directories('rtprocess')
 else
@@ -264,7 +264,7 @@ if not htmesh_dep.found()
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
   #opt_var.append_compile_args(
   sub_proj = cmake.subproject('htmesh', options: opt_var)
-  
+
   htmesh_dep = sub_proj.dependency('htmesh')
   htmesh_inc = sub_proj.include_directories('htmesh')
 else
@@ -437,31 +437,31 @@ endif
 
 if libraw_dep.found()
   conf_data.set('HAVE_LIBRAW', true, description : 'Using RAW images.')
-else 
+else
   conf_data.set('HAVE_LIBRAW', false, description : 'Using RAW images.')
 endif
 
 if libtiff_dep.found()
   conf_data.set('HAVE_LIBTIFF', true, description : 'Using TIFF images.')
-else 
+else
   conf_data.set('HAVE_LIBTIFF', false, description : 'Using TIFF images.')
 endif
 
 if libjpeg_dep.found()
   conf_data.set('HAVE_LIBJPEG', true, description : 'Using JPEG images.')
-else 
+else
   conf_data.set('HAVE_LIBJPEG', false, description : 'Using JPEG images.')
 endif
 
 if libpng_dep.found()
   conf_data.set('HAVE_LIBPNG', true, description : 'Using PNG images.')
-else 
+else
   conf_data.set('HAVE_LIBPNG', false, description : 'Using PNG images.')
 endif
 
 if libheif_dep.found()
   conf_data.set('HAVE_LIBHEIF', true, description : 'Using HEIF.')
-else 
+else
   conf_data.set('HAVE_LIBHEIF', false, description : 'Using HEIF.')
 endif
 
@@ -478,13 +478,13 @@ conf_data.set('HAVE_FFMPEG', ffmpeg_found, description : 'Using FFMS.')
 
 if ffms2_dep.found()
   conf_data.set('HAVE_FFMS2', true, description : 'Using FFMS.')
-else 
+else
   conf_data.set('HAVE_FFMS2', false, description : 'Using FFMS.')
 endif
 
 if libcurl_dep.found()
   conf_data.set('HAVE_LIBCURL', true, description : 'Using Curl.')
-else 
+else
   conf_data.set('HAVE_LIBCURL', false, description : 'Using Curl.')
 endif
 
@@ -497,7 +497,7 @@ if wcslib_dep.found()
   '''
   warnings += wcslib_warning
 endif
-else 
+else
   conf_data.set('HAVE_WCSLIB', false, description : 'Using wcslib.')
 endif
 
