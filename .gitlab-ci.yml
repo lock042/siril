@@ -232,12 +232,15 @@ siril-win64:
       - ${BUILD_DIR}
       - ${CROSSROAD_OUT}
       - ${INSTALL_DIR}
+      
+################################################################################
+# Packaging
 
 ################################################################################
 # macOS CI
 
 siril-macos:
-  stage: siril
+  stage: packaging
   parallel:
     matrix:
       - RUNNER: [ "macosarm" ]
@@ -271,9 +274,6 @@ siril-macos:
     expire_in: 1 week
     paths:
       - Siril*.dmg
-
-################################################################################
-# Packaging
 
 win64-nightly:
   stage: packaging
