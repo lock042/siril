@@ -28,7 +28,6 @@
 #include "algos/astrometry_solver.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
-#include "core/undo.h"
 #include "core/processing.h"
 #include "opencv/opencv.h"
 #include "io/single_image.h"
@@ -246,13 +245,24 @@ static void fits_binning_ushort(fits *fit, int factor, gboolean mean) {
 }
 
 int fits_binning(fits *fit, int factor, gboolean mean) {
+	struct timeval t_start, t_end;
+
+	siril_log_color_message(_("Binning x%d: processing...\n"), "green", factor);
+	gettimeofday(&t_start, NULL);
+
 	if (fit->type == DATA_USHORT) {
 		fits_binning_ushort(fit, factor, mean);
 	} else if (fit->type == DATA_FLOAT) {
 		fits_binning_float(fit, factor, mean);
 	}
 
-	siril_log_message(_("New image size: %dx%d pixels\n"), fit->rx, fit->ry);
+	free_wcs(fit, TRUE); // we keep RA/DEC to initialize platesolve
+	load_WCS_from_memory(fit);
+
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+
+	siril_log_message(_("New image size: %dx%d pixels.\n"), fit->rx, fit->ry);
 
 	return 0;
 }
@@ -286,8 +296,7 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation, gb
 			break;
 	}
 
-	siril_log_color_message(_("Resample (%s interpolation): processing...\n"),
-			"green", str_inter);
+	siril_log_color_message(_("Resample (%s interpolation): processing...\n"), "green", str_inter);
 
 	gettimeofday(&t_start, NULL);
 

@@ -2014,10 +2014,10 @@ int process_autostretch(int nb) {
 
 int process_binxy(int nb) {
 	int factor = g_ascii_strtoull(word[1], NULL, 10);
-	gboolean mean = FALSE;
+	gboolean mean = TRUE;
 
-	if (nb > 2 && !g_ascii_strncasecmp(word[2], "-mean", 5)) {
-		mean = TRUE;
+	if (nb > 2 && !g_ascii_strncasecmp(word[2], "-sum", 4)) {
+		mean = FALSE;
 	}
 
 	fits_binning(&gfit, factor, mean);

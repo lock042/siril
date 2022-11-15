@@ -522,6 +522,10 @@ void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	toggle_histogram_window_visibility(2);
 }
 
+void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("binxy_dialog");
+}
+
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("resample_dialog");
 }
