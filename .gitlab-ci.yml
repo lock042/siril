@@ -234,6 +234,45 @@ siril-win64:
       - ${INSTALL_DIR}
 
 ################################################################################
+# macOS CI
+
+siril-macos:
+  stage: siril
+  parallel:
+    matrix:
+      - RUNNER: [ "macosarm" ]
+  rules:
+    - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
+      when: never  # job requires custom runner, not suitable outside the project
+    - if: $RUNNER == "macosarm"
+      variables:
+        SDKROOT: /Users/Shared/sdks/MacOSX11.3.sdk
+        ARCHITECTURE: arm64
+  tags:
+    - ${RUNNER}
+  variables:
+    REP_DIR: /Users/Shared/data
+    SIRIL_BUILD: $CI_PIPELINE_IID
+    RELEASE_ARCHIVE: jhb-0.23_$ARCHITECTURE.dmg
+    RELEASE_TAG: r2
+    RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
+  script:
+    - git clone --branch $RELEASE_TAG --depth 1 --recurse-submodules https://gitlab.com/free-astro/siril_macos.git
+    - siril_macos/jhb/usr/bin/archive install_dmg
+    - |
+      cd siril_macos
+      ./build_siril.sh
+      mv Siril*.dmg ..
+  after_script:
+    - siril_macos/jhb/usr/bin/archive uninstall_dmg
+  needs: []
+  artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    expire_in: 1 week
+    paths:
+      - Siril*.dmg
+
+################################################################################
 # Packaging
 
 win64-nightly:
