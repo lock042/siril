@@ -9971,7 +9971,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       <object class="GtkEntry" id="GtkEntry_IPS_pixels">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Pixel size in microns. The image is assumed to have square pixels.</property>
+                        <property name="tooltip-text" translatable="yes">Pixel size in microns. The image is assumed to have square pixels. Value is already multiplied by the camera binning.</property>
                         <property name="halign">start</property>
                         <property name="width-chars">10</property>
                         <property name="text">5.00</property>

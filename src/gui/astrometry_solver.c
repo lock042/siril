@@ -196,6 +196,9 @@ static void update_pixel_size() {
 	float pixel;
 
 	pixel = gfit.pixel_size_x > gfit.pixel_size_y ? gfit.pixel_size_x : gfit.pixel_size_y;
+	if (gfit.binning_x != 0 && gfit.binning_x != 1) {
+		pixel *= gfit.binning_x;
+	}
 
 	if (pixel > 0.f) {
 		gchar *cpixels = g_strdup_printf("%.2lf", (double) pixel);
