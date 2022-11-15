@@ -2012,6 +2012,20 @@ int process_autostretch(int nb) {
 	return CMD_OK;
 }
 
+int process_binxy(int nb) {
+	int factor = g_ascii_strtoull(word[1], NULL, 10);
+	gboolean mean = TRUE;
+
+	if (nb > 2 && !g_ascii_strncasecmp(word[2], "-sum", 4)) {
+		mean = FALSE;
+	}
+
+	fits_binning(&gfit, factor, mean);
+
+	notify_gfit_modified();
+	return CMD_OK;
+}
+
 int process_resample(int nb) {
 	gchar *end;
 	gboolean clamp = TRUE;

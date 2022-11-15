@@ -98,6 +98,7 @@ void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpoint
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void rotation90_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
