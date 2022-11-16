@@ -5771,8 +5771,18 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			else {
 				siril_log_message(_("Output filename option is not allowed in this context, ignoring.\n"));
 			}
-		}
-		else {
+		} else if (g_str_has_prefix(current, "-rejmap")) {
+			if (!rej_options_allowed) {
+				siril_log_message(_("Rejection maps can be created only with average stacking, ignoring.\n"));
+			} else if (arg->norm == NO_NORM) {
+				siril_log_message(_("Rejection maps can be created only if normalization has been activated, ignoring.\n"));
+			} else {
+				arg->create_rejmaps = TRUE;
+				arg->merge_lowhigh_rejmaps = TRUE;
+				if (current[strlen(current)-1] == 's')
+					arg->merge_lowhigh_rejmaps = FALSE;
+			}
+		} else {
 			siril_log_message(_("Unexpected argument to stacking `%s', aborting.\n"), current);
 			return CMD_ARG_ERROR;
 		}
@@ -5787,13 +5797,14 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		siril_log_message(_("No sequence `%s' found.\n"), arg->seqfile);
 		return -1;
 	}
-	struct stacking_args args = { 0 };
 	gchar *error = NULL;
 	if (seq_check_basic_data(seq, FALSE) == -1) {
 		free(seq);
 		return CMD_GENERIC_ERROR;
 	}
 	siril_log_message(_("Stacking sequence %s\n"), seq->seqname);
+
+	struct stacking_args args = { 0 };
 	args.seq = seq;
 	args.ref_image = sequence_find_refimage(seq);
 	// the three below: used only if method is average w/ rejection
@@ -5801,6 +5812,9 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.sig[0] = arg->sig[0];
 		args.sig[1] = arg->sig[1];
 		args.type_of_rejection = arg->type_of_rejection;
+		args.create_rejmaps = arg->create_rejmaps;
+		args.merge_lowhigh_rejmaps = arg->merge_lowhigh_rejmaps;
+		args.rejmaps_include_zeros = arg->rejmaps_include_zeros;
 	} else {
 		args.type_of_rejection = NO_REJEC;
 		siril_log_message(_("Not using rejection for stacking\n"));
@@ -5887,6 +5901,34 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 			retval = CMD_GENERIC_ERROR;
 		}
 		else ++arg->number_of_loaded_sequences;
+
+		if (args.create_rejmaps) {
+			siril_log_message(_("Saving rejection maps\n"));
+			if (args.merge_lowhigh_rejmaps) {
+				char new_ext[30];
+				sprintf(new_ext, "_low+high_rejmap%s", com.pref.ext);
+				gchar *low_filename = replace_ext(arg->result_file, new_ext);
+				// soper doesn't work for this non-image data
+				//soper(args.rejmap_low, args.nb_images_to_stack, OPER_DIV, TRUE);
+				savefits(low_filename, args.rejmap_low);
+				g_free(low_filename);
+				clearfits(args.rejmap_low);
+			} else {
+				char new_ext[30];
+				sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
+				gchar *low_filename = replace_ext(arg->result_file, new_ext);
+				savefits(low_filename, args.rejmap_low);
+				g_free(low_filename);
+				clearfits(args.rejmap_low);
+
+				sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
+				gchar *high_filename = replace_ext(arg->result_file, new_ext);
+				savefits(high_filename, args.rejmap_high);
+				g_free(high_filename);
+				clearfits(args.rejmap_high);
+			}
+		}
+
 		bgnoise_await();
 	}
 	free_sequence(seq, TRUE);

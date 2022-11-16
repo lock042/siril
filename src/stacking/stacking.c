@@ -50,9 +50,10 @@
 #include "stacking.h"
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
-	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE, { 0, 0 }, -1,
-	{ 0, 0 }, NULL, NO_REJEC, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1,
-	FALSE, FALSE, FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
+	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE,
+	FALSE, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1, FALSE,
+	NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, FALSE, NULL, NULL,
+	FALSE, FALSE, FALSE, FALSE, NULL, NULL, NULL, { 0 }, 0, { 0 }
 };
 
 static struct filtering_tuple stackfilters[MAX_FILTERS];
