@@ -34,7 +34,7 @@ static const struct { int c,ns; int s[2][2][2]; } marching_squares_table[] = {
 	{14, 1, {{E3,E0},{E_,E_}} },
 	{15, 0, {{E_,E_},{E_,E_}} }
 };
-
+/*
 static float vertex_table[5][2] = { {0,0}, {1,0}, {0,1}, {1,1}, {-1,-1} };
 
 static void interpolate_two_points(float out[2], float a[2], float b[2],
@@ -44,7 +44,7 @@ static void interpolate_two_points(float out[2], float a[2], float b[2],
 	for (int i = 0; i < 2; i++)
 		out[i] = ((vb - t)*a[i] + (t - va)*b[i])/(vb - va);
 }
-
+*/
 /*
  *      v[2] ---- v[3]
  *       |         |
@@ -53,7 +53,7 @@ static void interpolate_two_points(float out[2], float a[2], float b[2],
  *      v[0] ---- v[1]
  *
  */
-static int marching_squares_cell(float (*segments)[2][2], float v[4], float t)
+/*static int marching_squares_cell(float (*segments)[2][2], float v[4], float t)
 {
 	int m = 0;
 	for (int i = 0; i < 4; i++)
@@ -75,8 +75,8 @@ static int marching_squares_cell(float (*segments)[2][2], float v[4], float t)
 	}
 	return r;
 }
-
-
+*/
+/*
 static float (*marching_squares_whole_image_float(int *n,
 			float *image, int w, int h, float t))[2][2]
 {
@@ -101,7 +101,7 @@ static float (*marching_squares_whole_image_float(int *n,
 	return segments;
 #undef getpixel
 }
-
+*/
 
 
 #ifdef USE_MAIN

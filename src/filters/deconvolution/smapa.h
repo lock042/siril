@@ -4,7 +4,7 @@
 
 static const char* int_fmt = "%d";
 static const char* float_fmt = "%f";
-static const char* double_fmt = "%lf";
+//static const char* double_fmt = "%lf";
 
 #define SMART_PARAMETER(t,n,v) static t& n(void)\
 {\

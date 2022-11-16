@@ -236,6 +236,7 @@ gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
 exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
+fftw3_dep = dependency('fftw3', required : true)
 fftw3f_dep = dependency('fftw3f', required : true)
 cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
@@ -527,6 +528,7 @@ externals_dep = declare_dependency(
     exiv_dep,
     wcslib_dep,
     libconfig_dep,
+    fftw3_dep,
     fftw3f_dep,
     cfitsio_dep,
     json_glib_dep,

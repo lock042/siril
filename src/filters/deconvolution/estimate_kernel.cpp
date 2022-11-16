@@ -2,6 +2,7 @@
 #include <random>
 
 #include "estimate_kernel.hpp"
+#include "deconvolution.h"
 
 //#include "args.hxx"
 #include <iostream>
@@ -100,51 +101,40 @@
     return opts;
 }
 */
-int estmate_kernel_l0() {
+int estmate_kernel(estk_data *args, float *kernel) {
 //    struct options opts = parse_args(argc, argv);
     options opts;
-    opts.ks = 11;
-    opts.input = "in.png";
-    opts.output = "out.png";
-    opts.lambda = 4e-3f;
-    opts.lambda_ratio = 1/1.1f;
-    opts.lambda_min = 1e-2f;
-    opts.gamma = 20.f;
-    opts.iterations = 2;
-    opts.multiscale = false;
-    opts.scalefactor = 0.5f;
-    opts.kernel_threshold_max = 0.f;
-    opts.remove_isolated = false;
+    opts.ks = args->ks;
+    opts.input = ""; // Not used in siril
+    opts.output = ""; // Not used in siril
+    opts.lambda = args->lambda;
+    opts.lambda_ratio = args->lambda_ratio;
+    opts.lambda_min = args->lambda_min;
+    opts.gamma = args->gamma;
+    opts.iterations = args->iterations;
+    opts.multiscale = (bool) args->multiscale;
+    opts.scalefactor = args->scalefactor;
+    opts.kernel_threshold_max = args->kernel_threshold_max;
+    opts.remove_isolated = (bool) args->remove_isolated;
     opts.outputsharp = false;
     opts.verbose = false;
     opts.debug = false;
-    opts.better_kernel = false;
+    opts.better_kernel = args->better_kernel;
     opts.warmg = "";
     opts.warmk = "";
-    opts.upscaleblur = 0;
-    opts.downscaleblur = 1.6f;
-    opts.initu = "";
-    opts.admmu = "";
-    opts.admmu_mu = 0;
-    opts.k_l1 = 0.5f;
+    opts.upscaleblur = args->upscaleblur;
+    opts.downscaleblur = args->downscaleblur;
+    opts.initu = ""; // Not used in siril
+    opts.admmu = ""; // Not used in siril
+    opts.admmu_mu = 0; // Not used in siril
+    opts.k_l1 = args->k_l1;
     opts.use_filters = false;
 
-//    img_t<float> v = img_t<float>::load(opts.input);
-// Instantiate v from gfit here
-    float* ddddd = (float*)calloc(1000*1000*3, sizeof(float));
-    img_t<float> v(1000, 1000, 3, ddddd);
+    img_t<float> v(args->rx, args->ry, args->nchans, args->fdata);
     preprocess_image(v, v, opts);
 
     img_t<float> initu;
-    if (opts.initu.empty()) {
-        initu = v;
-    } else {
-//        initu = img_t<float>::load(opts.initu);
-        preprocess_image(initu, initu, opts);
-        if (opts.multiscale) {
-            fprintf(stderr, "wait, both initu and multiscale are enabled\n");
-        }
-    }
+    initu = v; // initu allows for use of an initial sharpened image but this capability is not currently used in Siril
 
     img_t<float> k;
     img_t<float> u;
@@ -155,9 +145,10 @@ int estmate_kernel_l0() {
     }
 
 //    k.save(opts.output);
-    if (!opts.outputsharp.empty()) {
+
+//    if (!opts.outputsharp.empty()) {
 //        u.save(opts.outputsharp);
-    }
+//    }
     return 0;
 }
 

@@ -82,8 +82,7 @@ float march_cyclic(float a, float b, float c, float d, float x, float y)
 
 	return 1*ix;
 }
-
-
+/*
 static
 float march_singular_raw2(float a, float b, float c, float d, float x, float y)
 {
@@ -110,8 +109,9 @@ float march_singular_raw2(float a, float b, float c, float d, float x, float y)
 
 	return 0;
 }
-
+*/
 // consistent with upper-semicontinuous interpolation
+
 static
 float march_singular_usc(float a, float b, float c, float d, float x, float y)
 {
@@ -167,9 +167,10 @@ float march_singular_raw(float a, float b, float c, float d, float x, float y)
 
 //#include <stdlib.h>
 // read an environment variable to switch singularity treatment
+
 static int MARCH_SADDLES(void)
 {
-	static int reat = 0;
+//	static int reat = 0;
 	static int value = 3;
 	//if (!reat) {
 	//	reat = 1;
@@ -179,6 +180,7 @@ static int MARCH_SADDLES(void)
 	//}
 	return value;
 }
+
 
 static
 float march_singular(float a, float b, float c, float d, float x, float y)
@@ -205,6 +207,7 @@ float march_singular(float a, float b, float c, float d, float x, float y)
 	return 0;
 }
 
+
 static float single_marcho(float a, float b, float c, float d, float x, float y)
 {
 	assert(x >= 0); assert(y >= 0); assert(x <= 1); assert(y <= 1);
@@ -223,6 +226,7 @@ static float single_marcho(float a, float b, float c, float d, float x, float y)
 	assert(d <= c);
 	return march_cyclic(a, b, c, d, x, y);
 }
+
 
 static
 float marchi(float a, float b, float c, float d, float x, float y)
@@ -244,6 +248,7 @@ float marchi(float a, float b, float c, float d, float x, float y)
 	return 0;
 }
 
+/*
 static float getpix(float *x, int w, int h, int i, int j)
 {
 	if (i < 0) i = 0;
@@ -252,7 +257,8 @@ static float getpix(float *x, int w, int h, int i, int j)
 	if (j >= h) j = h-1;
 	return x[j*w+i];
 }
-
+*/
+/*
 static float marching_interpolation_at(float *x, int w, int h, float p, float q)
 {
 	int ip = p;
@@ -264,3 +270,4 @@ static float marching_interpolation_at(float *x, int w, int h, float p, float q)
 	float r = marchi(a, b, c, d, p-ip, q-iq);
 	return r;
 }
+*/

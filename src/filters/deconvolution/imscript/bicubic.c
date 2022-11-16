@@ -2,7 +2,7 @@
 #ifndef BICUBIC_C
 #define BICUBIC_C
 
-
+#include <math.h>
 #include "getpixel.c"
 
 
@@ -12,6 +12,7 @@ static float cubic_interpolation(float v[4], float x)
 			+ x*(2.0*v[0] - 5.0*v[1] + 4.0*v[2] - v[3]
 			+ x*(3.0*(v[1] - v[2]) + v[3] - v[0])));
 }
+
 
 static float bicubic_interpolation_cell(float p[4][4], float x, float y)
 {
@@ -43,7 +44,7 @@ void bicubic_interpolation(float *result,
 		result[l] = r;
 	}
 }
-
+/*
 static
 void bicubic_interpolation_nans(float *result,
 		float *img, int w, int h, int pd, float x, float y)
@@ -64,7 +65,6 @@ void bicubic_interpolation_nans(float *result,
 		result[l] = r;
 	}
 }
-
 
 static
 void bicubic_interpolation_boundary(float *result,
@@ -115,5 +115,5 @@ void bicubic_interpolation_boundary2(float *result,
 		result[l] = r;
 	}
 }
-
+*/
 #endif//BICUBIC_C

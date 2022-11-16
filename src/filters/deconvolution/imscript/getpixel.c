@@ -129,7 +129,7 @@ float getsample_constant(float *x, int w, int h, int pd, int i, int j, int l)
 	return x[(i+j*w)*pd + l];
 }
 
-
+/*
 // test for inclusion of stdlib.h and string.h
 #if defined(EXIT_SUCCESS)
 #if defined(_STRING_H) || defined(_STRING_H_)
@@ -158,7 +158,7 @@ static getsample_operator get_sample_operator(getsample_operator o)
 }
 #endif//_STRING_H
 #endif//EXIT_SUCCESS
-
+*/
 
 inline
 static void setsample_0(float *x, int w, int h, int pd, int i, int j, int l,
@@ -179,14 +179,15 @@ static void setsample_segf(float *x, int w, int h, int pd, int i, int j, int l,
 }
 
 typedef float (*getpixel_operator)(float*,int,int,int,int);
-
+/*
 static float getpixel_0(float *x, int w, int h, int i, int j)
 {
 	if (i < 0 || i >= w || j < 0 || j >= h)
 		return 0;
 	return x[i + j*w];
 }
-
+*/
+/*
 static float getpixel_1(float *x, int w, int h, int i, int j)
 {
 	if (i < 0) i = 0;
@@ -195,7 +196,7 @@ static float getpixel_1(float *x, int w, int h, int i, int j)
 	if (j >= h) j = h-1;
 	return x[i+j*w];
 }
-
+*/
 //
 //static void setpixel(float *x, int w, int h, int i, int j, float v)
 //{
