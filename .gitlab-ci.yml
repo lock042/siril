@@ -240,10 +240,11 @@ siril-win64:
 # macOS CI
 
 siril-macos:
+  image: $IMAGE
   stage: packaging
   parallel:
     matrix:
-      - RUNNER: [ "macosarm" ]
+      - RUNNER: [ "macosarm", "shared-macos-amd64" ]
   rules:
     - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
       when: never  # job requires custom runner, not suitable outside the project
@@ -251,6 +252,7 @@ siril-macos:
       variables:
         SDKROOT: /Users/Shared/sdks/MacOSX11.3.sdk
         ARCHITECTURE: arm64
+        IMAGE: macos-10.13-xcode-9
   tags:
     - ${RUNNER}
   variables:
