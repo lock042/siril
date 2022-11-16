@@ -32,7 +32,7 @@ EXTERNC typedef struct estk_data {
 }
 #endif
 
-EXTERNC int estmate_kernel(estk_data *args, float *kernel);
+EXTERNC int estimate_kernel(estk_data *args, float *kernel);
 #ifdef __cplusplus
 }
 #endif

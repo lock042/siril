@@ -34,26 +34,29 @@
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "filters/deconvolution/deconvolution.h"
+
+estk_data args = { 0 };
 
 void reset_args() {
-	args->fdata = NULL;
-	args->rx = 0;
-	args->ry = 0;
-	args->ks = com.kernelsize;
-	args->nchans = 1;
-	args->lambda = 4e-3f;
-	args->lambda_ratio = 1/1.1f;
-	args->lambda_min = 1e-2f;
-	args->gamma = 20.f;
-	args->iterations = 2;
-	args->multiscale = TRUE;
-	args->scalefactor = 0.5f;
-	args->kernel_threshold_max = 0.f;
-	args->remove_isolated = FALSE;
-	args->better_kernel = FALSE;
-	args->upscaleblur = 0.f;
-	args->downscaleblur = 1.6f;
-	args->k_l1 = 0.5f;
+	args.fdata = NULL;
+	args.rx = 0;
+	args.ry = 0;
+	args.ks = com.kernelsize;
+	args.nchans = 1;
+	args.lambda = 4e-3f;
+	args.lambda_ratio = 1/1.1f;
+	args.lambda_min = 1e-2f;
+	args.gamma = 20.f;
+	args.iterations = 2;
+	args.multiscale = TRUE;
+	args.scalefactor = 0.5f;
+	args.kernel_threshold_max = 0.f;
+	args.remove_isolated = FALSE;
+	args.better_kernel = FALSE;
+	args.upscaleblur = 0.f;
+	args.downscaleblur = 1.6f;
+	args.k_l1 = 0.5f;
 }
 
 void reset_kernel() {
@@ -70,7 +73,7 @@ void reset_controls() {
 //	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
 }
 
-void reset_controls_and_args {
+void reset_controls_and_args() {
 	reset_controls();
 	reset_args();
 }
@@ -88,20 +91,23 @@ void on_bdeconv_show(GtkWidget *widget, gpointer user_data) {
 	reset_controls_and_args();
 }
 
-void on_merge_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
-	float *kernel;
+void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
+	args.fdata = gfit.fdata;
+	args.rx = gfit.rx;
+	args.ry = gfit.ry;
+	args.nchans = gfit.naxes[2];
+	float *kernel = NULL;
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_isblind")))) {
 		reset_kernel();
-		kernel = (float*) calloc(args->ks * args->ks, sizeof(float));
 		estimate_kernel(&args, kernel);
 		com.kernel = kernel;
-		com.kernelsize = args->ks;
+		com.kernelsize = args.ks;
 	}
 	if (com.kernel == NULL)
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: no kernel defined"),
 				_("Select blind deconvolution or define a kernel from selection or psf parameters"));
 	else
-		split_bregman(args->fdata, args->rx, args->ry, args->nchans, com.kernel, com.kernelsize, args->lambda);
+		split_bregman(args.fdata, args.rx, args.ry, args.nchans, com.kernel, com.kernelsize, args.lambda);
 
 }
 

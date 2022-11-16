@@ -113,6 +113,7 @@ src_files = [
   'filters/deconvolution/image_expr.hpp',
   'filters/deconvolution/image.hpp',
   'filters/deconvolution/labeling.hpp',
+  'gui/newdeconv.c',
   'filters/deconvolution/optimization.hpp',
   'filters/deconvolution/options.hpp',
   'filters/deconvolution/utils.hpp',

@@ -411,9 +411,10 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
         kernel_estimator = new FourierKernelEstimator<T>(v, opts.ks);
     }
 
-    if (!opts.debug.empty()) {
+// Not used in Siril
+//    if (!opts.debug.empty()) {
 //        initu.save(string_format("%s/initu_%03d.tiff", opts.debug.c_str(), it));
-    }
+//    }
 
     u = initu;
 

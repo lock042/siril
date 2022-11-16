@@ -120,7 +120,7 @@ int estmate_kernel(estk_data *args, float *kernel) {
     opts.verbose = false;
     opts.debug = false;
     opts.better_kernel = args->better_kernel;
-    opts.warmg = "";
+    opts.warmg = true;
     opts.warmk = "";
     opts.upscaleblur = args->upscaleblur;
     opts.downscaleblur = args->downscaleblur;
@@ -144,7 +144,13 @@ int estmate_kernel(estk_data *args, float *kernel) {
         l0_kernel_estimation(k, u, v, initu, opts);
     }
 
-//    k.save(opts.output);
+    opts.ks = k.w; // Update ks which was formerly an upper bound for the kernel size, now it contains the actual size of k
+
+    kernel = (float*) calloc(k.w * k.h, sizeof(float)); // Kernel is passed as a NULL pointer, it is the responsibility of the calling function to free kernel
+    for (int i = 0; i < k.w * k.h; i++)
+        kernel[i] = k.data[i];
+
+    //    k.save(opts.output);
 
 //    if (!opts.outputsharp.empty()) {
 //        u.save(opts.outputsharp);
