@@ -38,7 +38,7 @@
 
 estk_data args = { 0 };
 
-void reset_args() {
+void reset_conv_args() {
 	args.fdata = NULL;
 	args.rx = 0;
 	args.ry = 0;
@@ -59,7 +59,7 @@ void reset_args() {
 	args.k_l1 = 0.5f;
 }
 
-void reset_kernel() {
+void reset_conv_kernel() {
 	if (com.kernel != NULL) {
 		free(com.kernel);
 		com.kernel = NULL;
@@ -67,28 +67,28 @@ void reset_kernel() {
 	com.kernelsize = 0;
 }
 
-void reset_controls() {
+void reset_conv_controls() {
 //	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern")), 0);
 //	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("merge_cfa_seqapply")), FALSE);
 //	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
 }
 
-void reset_controls_and_args() {
-	reset_controls();
-	reset_args();
+void reset_conv_controls_and_args() {
+	reset_conv_controls();
+	reset_conv_args();
 }
 
 void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
-	reset_controls_and_args();
+	reset_conv_controls_and_args();
 	siril_close_dialog("bdeconv_dialog");
 }
 
 void on_bdeconv_reset_clicked(GtkButton *button, gpointer user_data) {
-	reset_controls_and_args();
+	reset_conv_controls_and_args();
 }
 
 void on_bdeconv_show(GtkWidget *widget, gpointer user_data) {
-	reset_controls_and_args();
+	reset_conv_controls_and_args();
 }
 
 void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
@@ -98,7 +98,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	args.nchans = gfit.naxes[2];
 	float *kernel = NULL;
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_isblind")))) {
-		reset_kernel();
+		reset_conv_kernel();
 		estimate_kernel(&args, kernel);
 		com.kernel = kernel;
 		com.kernelsize = args.ks;

@@ -13,7 +13,7 @@ SMART_PARAMETER(float, CONTINUATION_BETA_INIT, 1);
 SMART_PARAMETER(float, CONTINUATION_BETA_RATE, 2.f * std::sqrt(2.f));
 SMART_PARAMETER(float, CONTINUATION_BETA_MAX, std::pow(2.f, 8.f));
 
-int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda) {
+extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda) {
 
     img_t<float> f(rx, ry, nchans, fdata);
     img_t<float> K(kernelsize, kernelsize, 1, kernel);
