@@ -1279,6 +1279,9 @@ static void draw_annotates(const draw_data_t* dd) {
 		case USER_SSO_CAT_INDEX:
 			cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.9);
 			break;
+		case USER_TEMP_CAT_INDEX:
+			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9);
+			break;
 		default:
 		case 0:
 			if (dd->neg_view) {

@@ -72,6 +72,7 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 void crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void seq_crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data);

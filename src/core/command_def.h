@@ -86,6 +86,7 @@
 #define STR_NEG N_("Changes pixel values of the currently loaded image to a negative view, like 1-value for 32 bits, 65535-value for 16 bits. This does not change the display mode")
 #define STR_NEW N_("Creates a new image filled with zeros with a size of <b>width</b> x <b>height</b>.\n\nThe image is in 32-bit format, and it contains <b>nb_channel</b> channels, <b>nb_channel</b> being 1 or 3. It is not saved, but displayed and can be saved afterwards")
 #define STR_NOMAD N_("Display stars from the local catalogue, for plate solved images loaded in GUI only")
+#define STR_SSO N_("Search and display solar system objects in the current loaded and plate solved image. Use <b>-mag=</b> to change the limit magnitude which defaults to 20\n\nThis research has made use of IMCCE's <a href=\"https://ui.adsabs.harvard.edu/abs/2006ASPC..351..367B/abstract\">SkyBoT VO tool</a>")
 #define STR_NOZERO N_("Replaces null values by <b>level</b> values. Useful before an idiv or fdiv operation")
 
 #define STR_OFFSET N_("Adds the constant <b>value</b> (specified in ADU) to the current image. This constant can take a negative value.\n\nIn 16-bit mode, values of pixels that fall outside of [0, 65535] are clipped. In 32-bit mode, no clipping occurs")
