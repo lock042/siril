@@ -45,7 +45,8 @@ static const gchar *cat[] = {
 	"sh2.txt",
 	"stars.txt",
 	"user-DSO-catalogue.txt",
-	"user-SSO-catalogue.txt"
+	"user-SSO-catalogue.txt",
+	"user-temp.txt"
 };
 // update USER_DSO_CAT_INDEX and USER_SSO_CAT_INDEX from the .h in case of change
 
@@ -92,12 +93,14 @@ static const char *cat_index_to_name(int index) {
 			return "user-DSO";
 		case 7:
 			return "user-SSO";
+		case 8:
+			return "user-temp";
 		default:
 			return "(undefined)";
 	}
 }
 
-static gboolean is_inside(fits *fit, double ra, double dec) {
+gboolean is_inside(fits *fit, double ra, double dec) {
 	return wcs2pix(fit, ra, dec, NULL, NULL) == 0;
 }
 
@@ -307,7 +310,7 @@ gchar *retrieve_site_coord (fits *fit) {
 	return g_string_free(formatted_site_coord, FALSE);
 }
 
-static void write_in_user_catalogue(CatalogObjects *object, gboolean is_solar_system) {
+static void write_in_user_catalogue(CatalogObjects *object, gboolean is_solar_system, gboolean is_in_field) {
 	GError *error = NULL;
 	GFile *file;
 	GOutputStream *output_stream;
@@ -323,9 +326,16 @@ static void write_in_user_catalogue(CatalogObjects *object, gboolean is_solar_sy
 		}
 	}
 
-	if (is_solar_system)
-		file = g_file_new_build_filename(root, cat[USER_SSO_CAT_INDEX], NULL);
-	else file = g_file_new_build_filename(root, cat[USER_DSO_CAT_INDEX], NULL);
+	if (is_in_field) {
+		file = g_file_new_build_filename(root, cat[USER_TEMP_CAT_INDEX], NULL);
+	} else {
+		if (is_solar_system) {
+			file = g_file_new_build_filename(root, cat[USER_SSO_CAT_INDEX], NULL);
+		}else {
+			file = g_file_new_build_filename(root, cat[USER_DSO_CAT_INDEX], NULL);
+		}
+	}
+
 	g_free(root);
 
 	output_stream = (GOutputStream *)g_file_append_to(file, G_FILE_CREATE_NONE, NULL, &error);
@@ -375,8 +385,8 @@ GSList *find_objects(fits *fit) {
 	return targets;
 }
 
-void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_system) {
-	int cat_size = G_N_ELEMENTS(cat);
+void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_system, gboolean is_in_field) {
+	int cat_index;
 
 	if (!is_catalogue_loaded())
 		load_all_catalogues();
@@ -395,12 +405,21 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_s
 		}
 	}
 
+	if (is_in_field) cat_index = USER_TEMP_CAT_INDEX;
+	else {
+		if (is_solar_system) cat_index = USER_SSO_CAT_INDEX;
+		else cat_index = USER_DSO_CAT_INDEX;
+	}
+
+
 	CatalogObjects *new_object = new_catalog_object(code,
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
-			NULL, NULL, is_solar_system ? cat_size -1 : cat_size -2);
+			NULL, NULL, cat_index);
+				
+
 
 	siril_catalogue_list = g_slist_append(siril_catalogue_list, new_object);
-	write_in_user_catalogue(new_object, is_solar_system);
+	write_in_user_catalogue(new_object, is_solar_system, is_in_field);
 }
 
 gchar *get_catalogue_object_code(CatalogObjects *object) {
@@ -465,6 +484,18 @@ static gboolean show_catalog(int catalog) {
 	return com.pref.gui.catalog[catalog];
 }
 
+void purge_temp_user_catalogue() {
+	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[USER_TEMP_CAT_INDEX], NULL);
+
+	g_autoptr(GError) local_error = NULL;
+	if (g_file_query_exists(file, NULL) && !g_file_delete(file, NULL, &local_error)) {
+		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
+	} else {
+		load_all_catalogues();
+	}
+	g_object_unref(file);
+}
+
 void on_purge_SSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 	int confirm = siril_confirm_dialog(_("Catalog deletion"),
 			_("You are about to purge your SOLAR SYSTEM user catalog. This means the file containing the manually added objects will be deleted. "
@@ -476,7 +507,7 @@ void on_purge_SSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) 
 	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[USER_SSO_CAT_INDEX], NULL);
 
 	g_autoptr(GError) local_error = NULL;
-	if (!g_file_delete(file, NULL, &local_error)) {
+	if (g_file_query_exists(file, NULL) && !g_file_delete(file, NULL, &local_error)) {
 		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
 	} else {
 		load_all_catalogues();
@@ -496,7 +527,7 @@ void on_purge_DSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) 
 	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[USER_DSO_CAT_INDEX], NULL);
 
 	g_autoptr(GError) local_error = NULL;
-	if (!g_file_delete(file, NULL, &local_error)) {
+	if (g_file_query_exists(file, NULL) && !g_file_delete(file, NULL, &local_error)) {
 		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
 	} else {
 		load_all_catalogues();

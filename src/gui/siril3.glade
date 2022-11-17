@@ -12542,6 +12542,17 @@ This should normally be the case only for stacked images. Increasing this value 
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem" id="menu_search_sso">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Search and display solar system objects with mag&lt;20.0.
+This research has made use of IMCCE's SkyBoT VO tool.</property>
+        <property name="action-name">win.search-solar</property>
+        <property name="label" translatable="yes">Solar System Objects</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
+    <child>
       <object class="GtkSeparatorMenuItem" id="&lt;séparateur&gt;">
         <property name="visible">True</property>
         <property name="can-focus">False</property>

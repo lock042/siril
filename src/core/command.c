@@ -90,6 +90,7 @@
 #include "filters/wavelets.h"
 #include "algos/PSF.h"
 #include "algos/astrometry_solver.h"
+#include "algos/search_objects.h"
 #include "algos/star_finder.h"
 #include "algos/Def_Math.h"
 #include "algos/Def_Wavelet.h"
@@ -7079,6 +7080,57 @@ int process_nomad(int nb) {
 		com.stars[j] = NULL;
 	siril_log_message("%d stars from local catalogues found with valid photometry data in the image (mag limit %.2f)\n", j, limit_mag);
 	redraw(REDRAW_OVERLAY);
+	return CMD_OK;
+}
+
+static gboolean end_process_sso(gpointer p) {
+	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+	force_to_refresh_catalogue_list();
+	if (!gtk_toggle_tool_button_get_active(button)) {
+		gtk_toggle_tool_button_set_active(button, TRUE);
+	} else {
+		redraw(REDRAW_OVERLAY);
+	}
+	return end_generic(NULL);
+}
+
+int process_sso() {
+
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+
+	purge_temp_user_catalogue();
+	force_to_refresh_catalogue_list();
+	redraw(REDRAW_OVERLAY);
+	
+	
+	double lim_mag = 20.0;
+	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+	args->fit = &gfit;
+
+	char *arg = word[1];
+	if (word[1] && g_str_has_prefix(arg, "-mag=")) {
+		char *next, *value = arg + 5;
+		lim_mag = g_ascii_strtod(value, &next);
+		if (next == value) {
+			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+	}
+
+	args->limit_mag = lim_mag;
+	args->focal_length = gfit.focal_length;
+	args->pixel_size = gfit.pixel_size_x;
+	args->scale = get_resolution(args->focal_length, args->pixel_size);
+	gchar *result = search_in_online_conesearch(args);
+
+
+	if (result && !parse_buffer(result, args->limit_mag)) {
+		siril_add_idle(end_process_sso, NULL);
+	}
+	free(args);
 	return CMD_OK;
 }
 
