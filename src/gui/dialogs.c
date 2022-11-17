@@ -43,6 +43,7 @@ static const SirilDialogEntry entries[] =
 	{"color_calibration", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cosmetic_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"crop_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"bdeconv_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, NULL},
 	{"deconvolution_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_deconv_cancel},
 	{"dialog_FFT", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"dialog_star_remix", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},

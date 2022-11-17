@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-extern "C" int estimate_kernel(estk_data *args, float *kernel) {
+extern "C" float *estimate_kernel(estk_data *args) {
     options opts;
     opts.ks = args->ks;
     opts.input = ""; // Not used in siril
@@ -20,17 +20,17 @@ extern "C" int estimate_kernel(estk_data *args, float *kernel) {
     opts.scalefactor = args->scalefactor;
     opts.kernel_threshold_max = args->kernel_threshold_max;
     opts.remove_isolated = (bool) args->remove_isolated;
-    opts.outputsharp = false;
-    opts.verbose = false;
-    opts.debug = false;
-    opts.better_kernel = args->better_kernel;
-    opts.warmg = true;
-    opts.warmk = "";
+    opts.outputsharp = "";
+    opts.verbose = true;
+    opts.debug = "";
+    opts.better_kernel = (bool) args->better_kernel;
+    opts.warmg = false;
+    opts.warmk = false;
     opts.upscaleblur = args->upscaleblur;
     opts.downscaleblur = args->downscaleblur;
     opts.initu = ""; // Not used in siril
-    opts.admmu = ""; // Not used in siril
-    opts.admmu_mu = 0; // Not used in siril
+    opts.admmu = false; // Not used in siril
+    opts.admmu_mu = 0.f; // Not used in siril
     opts.k_l1 = args->k_l1;
     opts.use_filters = false;
 
@@ -50,10 +50,10 @@ extern "C" int estimate_kernel(estk_data *args, float *kernel) {
 
     opts.ks = k.w; // Update ks which was formerly an upper bound for the kernel size, now it contains the actual size of k
 
-    kernel = (float*) calloc(k.w * k.h, sizeof(float)); // Kernel is passed as a NULL pointer, it is the responsibility of the calling function to free kernel
+    float *kernel = (float*) calloc(k.w * k.h, sizeof(float)); // Kernel is passed as a NULL pointer, it is the responsibility of the calling function to free kernel
     for (int i = 0; i < k.w * k.h; i++)
         kernel[i] = k.data[i];
 
-    return 0;
+    return kernel;
 }
 

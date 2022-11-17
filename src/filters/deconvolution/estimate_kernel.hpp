@@ -398,7 +398,7 @@ public:
 template <typename T>
 void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
                           const img_t<T>& initu, struct options& opts) {
-    static int it = 0;
+//    static int it = 0;
     ImagePredictor<T>* sharp_predictor = nullptr;
     if (opts.admmu) {
     } else {
@@ -442,17 +442,19 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
             } else {
                 u = v;
             }
+        printf("CP0\n");
             sharp_predictor->solve(u, k, opts.lambda, betainit, betascale, T(1e5), opts);
+        printf("CP1\n");
         }
 
-        if (!opts.debug.empty()) {
-            it++;
+//        if (!opts.debug.empty()) {
+//            it++;
 //            u.save(string_format("%s/u_%03d_%.5f.tiff", opts.debug.c_str(), it, opts.lambda));
 //            v.save(string_format("%s/v_%03d.tiff", opts.debug.c_str(), it));
 //            k.save(string_format("%s/k_%03d.tiff", opts.debug.c_str(), it));
-            // Debug output
-
-        }
+//            // Debug output
+//
+//        }
 
         kernel_estimator->solve(k, u, opts);
 

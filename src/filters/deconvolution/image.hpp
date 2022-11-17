@@ -25,6 +25,11 @@
 #include <omp.h>
 #endif
 
+#define IMG_NO_IIO
+#ifndef _OPENMP
+#define IMG_NO_OMP
+#endif
+
 template <typename T>
 class img_t {
 public:
@@ -61,12 +66,10 @@ public:
         h = o.h;
         d = o.d;
         size = w*d*h;
-/*
         forwardplan = o.forwardplan;
         backwardplan = o.backwardplan;
         forwardplanf = o.forwardplanf;
         backwardplanf = o.backwardplanf;
-*/
         data = o.data;
         return *this;
     }
@@ -636,7 +639,7 @@ namespace img {
         if (n <= 1) return;
         fftw_init_threads();
         fftw_plan_with_nthreads(n);
-        fprintf(stderr, "initialized with %d threads\n", n);
+        fprintf(stdout, "initialized with %d threads\n", n);
 #endif
     }
 

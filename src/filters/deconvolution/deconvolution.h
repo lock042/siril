@@ -27,12 +27,17 @@ EXTERNC typedef struct estk_data {
 	float upscaleblur;// = 0.f;
 	float downscaleblur;// = 1.6f;
 	float k_l1;// = 0.5f;
+	float alpha; // = 1/3000;
+	float psf_fwhm;
+	float psf_beta;
+	float psf_angle;
+	float psf_ratio;
 } estk_data;
 #ifdef __cplusplus
 }
 #endif
 
-EXTERNC int estimate_kernel(estk_data *args, float *kernel);
+EXTERNC float *estimate_kernel(estk_data *args);
 #ifdef __cplusplus
 }
 #endif

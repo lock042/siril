@@ -81,9 +81,9 @@ void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, fl
 	int halfpsfdim = (size - 1) / 2;
 	float sigma = fwhm / _2_SQRT_2_LOG2;
 	float tss = 2 * sigma * sigma;
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel for simd schedule(static) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+//#endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
 			float xf = x - xoffset + 0.5f;
@@ -92,9 +92,9 @@ void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, fl
 					* expf(-(((xf * xf) / tss) + ((yf * yf) / tss)));
 		}
 	}
-#ifdef _OPENMP
-#pragma omp barrier
-#endif
+//#ifdef _OPENMP
+//#pragma omp barrier
+//#endif
 	return;
 }
 
