@@ -5908,8 +5908,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				char new_ext[30];
 				sprintf(new_ext, "_low+high_rejmap%s", com.pref.ext);
 				gchar *low_filename = replace_ext(arg->result_file, new_ext);
-				// soper doesn't work for this non-image data
-				//soper(args.rejmap_low, args.nb_images_to_stack, OPER_DIV, TRUE);
+				soper_unscaled_div_ushort_to_float(args.rejmap_low, args.nb_images_to_stack);
 				savefits(low_filename, args.rejmap_low);
 				g_free(low_filename);
 				clearfits(args.rejmap_low);
@@ -5917,12 +5916,14 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				char new_ext[30];
 				sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
 				gchar *low_filename = replace_ext(arg->result_file, new_ext);
+				soper_unscaled_div_ushort_to_float(args.rejmap_low, args.nb_images_to_stack);
 				savefits(low_filename, args.rejmap_low);
 				g_free(low_filename);
 				clearfits(args.rejmap_low);
 
 				sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
 				gchar *high_filename = replace_ext(arg->result_file, new_ext);
+				soper_unscaled_div_ushort_to_float(args.rejmap_high, args.nb_images_to_stack);
 				savefits(high_filename, args.rejmap_high);
 				g_free(high_filename);
 				clearfits(args.rejmap_high);
