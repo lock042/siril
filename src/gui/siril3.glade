@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -3268,25 +3268,6 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="step-increment">0.05</property>
     <property name="page-increment">0.10</property>
   </object>
-  <object class="GtkAdjustment" id="adjustmentscalemax">
-    <property name="lower">1</property>
-    <property name="upper">65535</property>
-    <property name="value">65535</property>
-    <property name="step-increment">20</property>
-    <property name="page-increment">1000</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustmentscalemin">
-    <property name="upper">65535</property>
-    <property name="step-increment">20</property>
-    <property name="page-increment">1000</property>
-  </object>
-  <object class="GtkAdjustment" id="adjustmentqualscale">
-    <property name="lower">1</property>
-    <property name="upper">5</property>
-    <property name="value">2</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">1</property>
-  </object>
   <object class="GtkAdjustment" id="adjustment1">
     <property name="upper">100</property>
     <property name="value">90</property>
@@ -5713,6 +5694,25 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="upper">100</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentqualscale">
+    <property name="lower">1</property>
+    <property name="upper">5</property>
+    <property name="value">2</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentscalemax">
+    <property name="lower">1</property>
+    <property name="upper">65535</property>
+    <property name="value">65535</property>
+    <property name="step-increment">20</property>
+    <property name="page-increment">1000</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentscalemin">
+    <property name="upper">65535</property>
+    <property name="step-increment">20</property>
+    <property name="page-increment">1000</property>
   </object>
   <object class="GtkImage" id="astrometry">
     <property name="visible">True</property>
@@ -20352,13 +20352,12 @@ numbers lead to faster computations.</property>
                                                             </child>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="filter_type4">
-                                                            <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                                             <property name="active">0</property>
-                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-&#963;</item>
+                                                            <item translatable="yes">k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_regsel_changed" swapped="no"/>
                                                             </object>
@@ -20481,13 +20480,12 @@ numbers lead to faster computations.</property>
                                                             </child>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="filter_type5">
-                                                            <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                                             <property name="active">0</property>
-                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-&#963;</item>
+                                                            <item translatable="yes">k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_regsel_changed" swapped="no"/>
                                                             </object>
@@ -20622,13 +20620,12 @@ numbers lead to faster computations.</property>
                                                             </child>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="filter_type6">
-                                                            <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                                             <property name="active">0</property>
-                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-&#963;</item>
+                                                            <item translatable="yes">k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_regsel_changed" swapped="no"/>
                                                             </object>
@@ -22022,10 +22019,34 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <placeholder/>
+                                                            <object class="GtkCheckButton" id="rejmaps_checkbutton">
+                                                            <property name="label" translatable="yes">Create rejection maps</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Compute and create rejection maps during stacking. These are images showing how many images were rejected for each pixel of the result image, divided by the number of stacked images.</property>
+                                                            <property name="draw-indicator">True</property>
+							    <signal name="toggled" handler="on_rejmaps_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
                                                             </child>
                                                             <child>
-                                                            <placeholder/>
+                                                            <object class="GtkCheckButton" id="merge_rejmaps_checkbutton">
+                                                            <property name="label" translatable="yes">Merge L+H</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Create only one rejection map that will be the sum of the low and high maps</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
                                                             </child>
                                                             </object>
                                                             <packing>
@@ -22254,13 +22275,12 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </child>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="filter_type1">
-                                                            <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                                             <property name="active">0</property>
-                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-&#963;</item>
+                                                            <item translatable="yes">k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
                                                             </object>
@@ -22383,13 +22403,12 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </child>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="filter_type2">
-                                                            <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                                             <property name="active">0</property>
-                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-&#963;</item>
+                                                            <item translatable="yes">k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
                                                             </object>
@@ -22524,13 +22543,12 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </child>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="filter_type3">
-                                                            <property name="visible">False</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
                                                             <property name="active">0</property>
-                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-&#963; to keep given percentage of images or to compute the allowable threshold using k-&#963; clipping.</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-&#963;</item>
+                                                            <item translatable="yes">k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
                                                             </object>

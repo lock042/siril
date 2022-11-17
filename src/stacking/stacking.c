@@ -29,6 +29,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "core/arithm.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -197,7 +198,8 @@ static void start_stacking() {
 	gchar *error = NULL;
 	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL, *weighing_combo;
 	static GtkEntry *output_file = NULL;
-	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *fast_norm = NULL;
+	static GtkToggleButton *overwrite = NULL, *force_norm = NULL,
+			       *fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
 
@@ -214,6 +216,8 @@ static void start_stacking() {
 		fast_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkfastnorm"));
 		norm_to_max = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
+		rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("rejmaps_checkbutton"));
+		merge_rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("merge_rejmaps_checkbutton"));
 	}
 
 	if (get_thread_run()) {
@@ -224,6 +228,8 @@ static void start_stacking() {
 	stackparam.sig[0] = (float) gtk_spin_button_get_value(sigSpin[0]);
 	stackparam.sig[1] = (float) gtk_spin_button_get_value(sigSpin[1]);
 	stackparam.type_of_rejection = gtk_combo_box_get_active(rejec_combo);
+	stackparam.create_rejmaps = gtk_toggle_button_get_active(rejmaps);
+	stackparam.merge_lowhigh_rejmaps = gtk_toggle_button_get_active(merge_rejmaps);
 	stackparam.normalize = gtk_combo_box_get_active(norm_combo);
 	stackparam.force_norm = gtk_toggle_button_get_active(force_norm);
 	stackparam.output_norm = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(norm_to_max)) && gtk_widget_is_visible(norm_to_max);
@@ -352,9 +358,21 @@ static void _show_summary(struct stacking_args *args) {
 			break;
 		}
 		siril_log_message(_("Pixel rejection ........... %s\n"), rej_str);
-		if (args->type_of_rejection != GESDT) {
-			siril_log_message(_("Rejection parameters ...... low=%.3f high=%.3f\n"),
-				args->sig[0], args->sig[1]);
+		if (args->type_of_rejection != NO_REJEC) {
+			if (args->type_of_rejection == GESDT) {
+				siril_log_message(_("Rejection parameters ...... outliers=%.3f significance=%.3f\n"),
+						args->sig[0], args->sig[1]);
+			} else {
+				siril_log_message(_("Rejection parameters ...... low=%.3f high=%.3f\n"),
+						args->sig[0], args->sig[1]);
+			}
+			if (!args->create_rejmaps)
+				siril_log_message(_("Creating rejection maps ... no\n"));
+			else {
+				if (args->merge_lowhigh_rejmaps)
+					siril_log_message(_("Creating rejection maps ... yes (merged)\n"));
+				else	siril_log_message(_("Creating rejection maps ... yes\n"));
+			}
 		}
 	}
 }
@@ -444,7 +462,39 @@ static gboolean end_stacking(gpointer p) {
 			if (failed) {
 				com.uniq->filename = strdup(_("Unsaved stacking result"));
 				com.uniq->fileexist = FALSE;
+			} else {
+				if (args->create_rejmaps) {
+					siril_log_message(_("Saving rejection maps\n"));
+					if (args->merge_lowhigh_rejmaps) {
+						char new_ext[30];
+						sprintf(new_ext, "_low+high_rejmap%s", com.pref.ext);
+						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
+						savefits(low_filename, args->rejmap_low);
+						g_free(low_filename);
+						clearfits(args->rejmap_low);
+						free(args->rejmap_low);
+					} else {
+						char new_ext[30];
+						sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
+						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
+						savefits(low_filename, args->rejmap_low);
+						g_free(low_filename);
+						clearfits(args->rejmap_low);
+						free(args->rejmap_low);
+
+						sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
+						gchar *high_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_high, args->nb_images_to_stack);
+						savefits(high_filename, args->rejmap_high);
+						g_free(high_filename);
+						clearfits(args->rejmap_high);
+						free(args->rejmap_high);
+					}
+				}
 			}
+
 			display_filename();
 			set_precision_switch(); // set precision on screen
 		}
@@ -566,12 +616,15 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	rejection type_of_rejection = gtk_combo_box_get_active(box);
 	static GtkWidget *labellow = NULL, *labelhigh = NULL;
 	static GtkWidget *siglow = NULL, *sighigh = NULL;
+	static GtkWidget *rejmaps = NULL, *merge_rejmaps = NULL;
 
 	if (!labellow) {
 		labellow = lookup_widget("label_low");
 		labelhigh = lookup_widget("label_high");
 		siglow = lookup_widget("stack_siglow_button");
 		sighigh = lookup_widget("stack_sighigh_button");
+		rejmaps = lookup_widget("rejmaps_checkbutton");
+		merge_rejmaps = lookup_widget("merge_rejmaps_checkbutton");
 	}
 
 	g_signal_handlers_block_by_func(GTK_SPIN_BUTTON(siglow), on_stack_siglow_button_value_changed, NULL);
@@ -580,15 +633,19 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	switch (type_of_rejection) {
 		case NO_REJEC:
 			gtk_widget_set_visible(siglow, FALSE);
+			gtk_widget_set_visible(rejmaps, FALSE);
 			gtk_widget_set_visible(sighigh, FALSE);
 			gtk_widget_set_visible(labellow, FALSE);
 			gtk_widget_set_visible(labelhigh, FALSE);
+			gtk_widget_set_visible(merge_rejmaps, FALSE);
 			break;
 		case PERCENTILE:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Low clipping factor for the percentile clipping rejection algorithm."));
 			gtk_widget_set_tooltip_text(sighigh, _("High clipping factor for the percentile clipping rejection algorithm."));
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(siglow), com.pref.stack.percentile_low);
@@ -600,9 +657,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 			break;
 		case LINEARFIT:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Tolerance for low pixel values of the linear fit clipping algorithm, in sigma units."));
 			gtk_widget_set_tooltip_text(sighigh, _("Tolerance for high pixel values of the linear fit clipping algorithm, in sigma units."));
 			gtk_spin_button_set_range(GTK_SPIN_BUTTON(siglow), 0.0, 10.0);
@@ -618,9 +677,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 		case SIGMEDIAN:
 		case WINSORIZED:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Low clipping factor for the sigma clipping rejection algorithm."));
 			gtk_widget_set_tooltip_text(sighigh, _("High clipping factor for the sigma clipping rejection algorithm."));
 			gtk_spin_button_set_range(GTK_SPIN_BUTTON(siglow), 0.0, 10.0);
@@ -632,9 +693,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 			break;
 		case GESDT:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Expected fraction of maximum outliers for the Generalized Extreme Studentized Deviate Test algorithm."));
 			gtk_widget_set_tooltip_text(sighigh, _("Probability of making a false positive for the Generalized Extreme Studentized Deviate Test algorithm. "
 					"Increasing this value will reject more pixels."));
@@ -651,6 +714,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 
 	com.pref.stack.rej_method = gtk_combo_box_get_active(box);
 	writeinitfile();
+}
+
+void on_rejmaps_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkWidget *merge = lookup_widget("merge_rejmaps_checkbutton");
+	gtk_widget_set_sensitive(merge, gtk_toggle_button_get_active(button));
 }
 
 int find_refimage_in_indices(const int *indices, int nb, int ref) {

@@ -5858,7 +5858,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	int retval = args.retval;
 	clean_end_stacking(&args);
 	free(args.image_indices);
-	g_free(args.description);
+	free(args.description);
+	free(args.critical_value);
 
 	if (!retval) {
 		bgnoise_async(&args.result, TRUE);
@@ -5912,6 +5913,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				savefits(low_filename, args.rejmap_low);
 				g_free(low_filename);
 				clearfits(args.rejmap_low);
+				free(args.rejmap_low);
 			} else {
 				char new_ext[30];
 				sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
@@ -5920,6 +5922,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				savefits(low_filename, args.rejmap_low);
 				g_free(low_filename);
 				clearfits(args.rejmap_low);
+				free(args.rejmap_low);
 
 				sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
 				gchar *high_filename = replace_ext(arg->result_file, new_ext);
@@ -5927,6 +5930,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				savefits(high_filename, args.rejmap_high);
 				g_free(high_filename);
 				clearfits(args.rejmap_high);
+				free(args.rejmap_high);
 			}
 		}
 
