@@ -241,9 +241,10 @@ siril-win64:
 
 siril-macos:
   stage: packaging
+  image: macos-10.13-xcode-9
   parallel:
     matrix:
-      - RUNNER: [ "macosarm" ]
+      - RUNNER: [ "macosarm", "shared-macos-amd64" ]
   rules:
     - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
       when: never  # job requires custom runner, not suitable outside the project
@@ -251,13 +252,17 @@ siril-macos:
       variables:
         SDKROOT: /Users/Shared/sdks/MacOSX11.3.sdk
         ARCHITECTURE: arm64
+    - if: $RUNNER == "shared-macos-amd64"
+      variables:
+        ARCHITECTURE: x86_64
+        SYS_USRLOCAL_IGNORE: "true"
   tags:
     - ${RUNNER}
   variables:
     REP_DIR: /Users/Shared/data
     SIRIL_BUILD: $CI_PIPELINE_IID
     RELEASE_ARCHIVE: jhb-0.23_$ARCHITECTURE.dmg
-    RELEASE_TAG: r2
+    RELEASE_TAG: r3
     RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
     - git clone --branch $RELEASE_TAG --depth 1 --recurse-submodules https://gitlab.com/free-astro/siril_macos.git
