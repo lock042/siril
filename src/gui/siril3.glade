@@ -20522,7 +20522,7 @@ numbers lead to faster computations.</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-σ</item>
+                                                            <item>k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_regsel_changed" swapped="no"/>
                                                             </object>
@@ -20650,7 +20650,7 @@ numbers lead to faster computations.</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-σ</item>
+                                                            <item>k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_regsel_changed" swapped="no"/>
                                                             </object>
@@ -20790,7 +20790,7 @@ numbers lead to faster computations.</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-σ</item>
+                                                            <item>k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_regsel_changed" swapped="no"/>
                                                             </object>
@@ -22421,7 +22421,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-σ</item>
+                                                            <item>k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
                                                             </object>
@@ -22549,7 +22549,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-σ</item>
+                                                            <item>k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
                                                             </object>
@@ -22689,7 +22689,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">%</item>
-                                                            <item translatable="yes">k-σ</item>
+                                                            <item>k-σ</item>
                                                             </items>
                                                             <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
                                                             </object>
