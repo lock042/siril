@@ -160,6 +160,7 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		double *filtering_parameter);
 void update_stack_interface(gboolean dont_change_stack_type);
 
+void describe_stack_for_history(struct stacking_args *args, GSList **hist, gboolean for_rejmap, gboolean low_rejmap);
 
 	/* normalization functions, normalize.c */
 

@@ -5910,6 +5910,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				sprintf(new_ext, "_low+high_rejmap%s", com.pref.ext);
 				gchar *low_filename = replace_ext(arg->result_file, new_ext);
 				soper_unscaled_div_ushort_to_float(args.rejmap_low, args.nb_images_to_stack);
+				describe_stack_for_history(&args, &args.rejmap_low->history, TRUE, FALSE);
 				savefits(low_filename, args.rejmap_low);
 				g_free(low_filename);
 				clearfits(args.rejmap_low);
@@ -5919,6 +5920,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
 				gchar *low_filename = replace_ext(arg->result_file, new_ext);
 				soper_unscaled_div_ushort_to_float(args.rejmap_low, args.nb_images_to_stack);
+				describe_stack_for_history(&args, &args.rejmap_low->history, TRUE, TRUE);
 				savefits(low_filename, args.rejmap_low);
 				g_free(low_filename);
 				clearfits(args.rejmap_low);
@@ -5927,6 +5929,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
 				gchar *high_filename = replace_ext(arg->result_file, new_ext);
 				soper_unscaled_div_ushort_to_float(args.rejmap_high, args.nb_images_to_stack);
+				describe_stack_for_history(&args, &args.rejmap_low->history, TRUE, FALSE);
 				savefits(high_filename, args.rejmap_high);
 				g_free(high_filename);
 				clearfits(args.rejmap_high);

@@ -178,6 +178,9 @@ void main_stack(struct stacking_args *args) {
 		return;
 	// 3. stack
 	args->retval = args->method(args);
+
+	// result is in args->result, not saved
+	describe_stack_for_history(args, &args->result.history, FALSE, FALSE);
 }
 
 /* the function that runs the thread. */
@@ -377,6 +380,108 @@ static void _show_summary(struct stacking_args *args) {
 	}
 }
 
+/* a short version of the above, for FITS header HISTORY */
+void describe_stack_for_history(struct stacking_args *args, GSList **hist, gboolean for_rejmap, gboolean low_rejmap) {
+	const char *stack_name = "sum";
+	if (args->method == &stack_mean_with_rejection) {
+		stack_name = "mean";
+	} else if (args->method == &stack_median) {
+		stack_name = "median";
+	} else if (args->method == &stack_addmin) {
+		stack_name = "minimum";
+	} else if (args->method == &stack_addmax) {
+		stack_name = "maximum";
+	} else {
+		stack_name = "unknown";
+	}
+	GString *str;
+	if (for_rejmap) {
+		g_assert(args->create_rejmaps);
+		if (args->merge_lowhigh_rejmaps)
+			str = g_string_new("merged low+high rejection map for a ");
+		else {
+			if (low_rejmap)
+				str = g_string_new("low rejection map for a ");
+			else str = g_string_new("high rejection map for a ");
+		}
+		g_string_append(str, stack_name);
+		g_string_append(str, " stacking");
+	} else {
+		str = g_string_new(stack_name);
+		g_string_append(str, " stacking");
+	}
+
+	/* Type of rejection */
+	if (args->method != &stack_mean_with_rejection) {
+		g_string_append(str, " with no rejection");
+	}
+	else {
+		switch (args->type_of_rejection) {
+		default:
+		case NO_REJEC:
+			g_string_append(str, " with no rejection");
+			break;
+		case PERCENTILE:
+			g_string_append(str, " with percentile clipping rejection");
+			break;
+		case SIGMA:
+			g_string_append(str, " with sigma clipping rejection");
+			break;
+		case MAD:
+			g_string_append(str, " with MAD clipping rejection");
+			break;
+		case SIGMEDIAN:
+			g_string_append(str, " with median sigma clipping rejection");
+			break;
+		case WINSORIZED:
+			g_string_append(str, " with winsorized sigma clipping rejection");
+			break;
+		case LINEARFIT:
+			g_string_append(str, " with linear fit clipping rejection");
+			break;
+		case GESDT:
+			g_string_append(str, " with GESDT rejection");
+			break;
+		}
+		if (args->type_of_rejection != NO_REJEC) {
+			if (args->type_of_rejection == GESDT) {
+				g_string_append_printf(str, " (outliers=%.3f significance=%.3f)",
+						args->sig[0], args->sig[1]);
+			} else {
+				g_string_append_printf(str, " (low=%.3f high=%.3f)",
+						args->sig[0], args->sig[1]);
+			}
+		}
+	}
+
+
+	/* Normalisation */
+	if (args->method != &stack_mean_with_rejection &&
+			args->method != &stack_median ) {
+		g_string_append(str, ", unnormalized input");
+	} else {
+		switch (args->normalize) {
+		default:
+		case NO_NORM:
+			g_string_append(str, ", unnormalized input");
+			break;
+		case ADDITIVE:
+			g_string_append(str, ", additive normalized input");
+			break;
+		case MULTIPLICATIVE:
+			g_string_append(str, ", multiplicative normalized input");
+			break;
+		case ADDITIVE_SCALING:
+			g_string_append(str, ", additive+scaling normalized input");
+			break;
+		case MULTIPLICATIVE_SCALING:
+			g_string_append(str, ", multiplicative+scaling normalized input");
+			break;
+		}
+	}
+	*hist = g_slist_append(*hist, g_string_free(str, FALSE));
+}
+
 void clean_end_stacking(struct stacking_args *args) {
 	if (!args->retval)
 		_show_summary(args);
@@ -470,6 +575,7 @@ static gboolean end_stacking(gpointer p) {
 						sprintf(new_ext, "_low+high_rejmap%s", com.pref.ext);
 						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
 						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, FALSE);
 						savefits(low_filename, args->rejmap_low);
 						g_free(low_filename);
 						clearfits(args->rejmap_low);
@@ -479,6 +585,7 @@ static gboolean end_stacking(gpointer p) {
 						sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
 						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
 						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, TRUE);
 						savefits(low_filename, args->rejmap_low);
 						g_free(low_filename);
 						clearfits(args->rejmap_low);
@@ -487,6 +594,7 @@ static gboolean end_stacking(gpointer p) {
 						sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
 						gchar *high_filename = replace_ext(args->output_parsed_filename, new_ext);
 						soper_unscaled_div_ushort_to_float(args->rejmap_high, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, FALSE);
 						savefits(high_filename, args->rejmap_high);
 						g_free(high_filename);
 						clearfits(args->rejmap_high);
