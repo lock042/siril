@@ -2031,13 +2031,41 @@ int process_resample(int nb) {
 	gchar *end;
 	gboolean clamp = TRUE;
 	int interpolation = OPENCV_LANCZOS4;
-	double factor = 1.0;
+	int toX, toY;
 
-	factor = g_ascii_strtod(word[1], &end);
-	if (end == word[1] || factor < 0.0 || factor > 5.0) {
-		siril_log_message(_("Scale %lf not allowed. Should be between 0.0 and 5.0.\n"), factor);
-		return CMD_ARG_ERROR;
+	if (word[1][0] == '-') {
+		if (g_str_has_prefix(word[1], "-height=")) {
+			toY = g_ascii_strtoull(word[1]+8, &end, 10);
+			if (end == word[1]+9) {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
+				return CMD_ARG_ERROR;
+			}
+			toX = round_to_int(gfit.rx * (double)toY / gfit.ry);
+		} else if (g_str_has_prefix(word[1], "-width=")) {
+			toX = g_ascii_strtoull(word[1]+7, &end, 10);
+			if (end == word[1]+8) {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
+				return CMD_ARG_ERROR;
+			}
+			toY = round_to_int(gfit.ry * (double)toX / gfit.rx);
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[1]);
+			return CMD_ARG_ERROR;
+		}
+	} else {
+		double factor = g_ascii_strtod(word[1], &end);
+		if (end == word[1] || factor <= 0.0 || factor > 5.0) {
+			siril_log_message(_("Scale %lf not allowed. Should be between 0.0 and 5.0.\n"), factor);
+			return CMD_ARG_ERROR;
+		}
+		if (factor == 1.0) {
+			siril_log_message(_("Scale is 1.0. Not doing anything.\n"));
+			return CMD_ARG_ERROR;
+		}
+		toX = round_to_int(factor * gfit.rx);
+		toY = round_to_int(factor * gfit.ry);
 	}
+	siril_log_message(_("Resampling to %d x %d pixels\n"), toX, toY);
 
 	for (int i = 2; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-interp=")) {
@@ -2076,19 +2104,11 @@ int process_resample(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	if (factor == 1.0) {
-		siril_log_message(_("Scale is 1.0. Not doing anything...\n"));
-		return CMD_ARG_ERROR;
-	}
-	int toX = round_to_int(factor * gfit.rx);
-	int toY = round_to_int(factor * gfit.ry);
 
 	set_cursor_waiting(TRUE);
 	verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
+	notify_gfit_modified();
 	if (!com.script) update_MenuItem();
 	return CMD_OK;
 }
