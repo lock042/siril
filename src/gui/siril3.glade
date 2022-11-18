@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -21992,6 +21992,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
 &lt;b&gt;Noise&lt;/b&gt; weighs individual frames based on background noise values.
 
 &lt;b&gt;Number of images&lt;/b&gt; weighs individual frames based on their integration time.</property>
+                                                            <property name="valign">start</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">None</item>
@@ -22019,6 +22020,12 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="orientation">vertical</property>
+                                                            <property name="spacing">6</property>
+                                                            <child>
                                                             <object class="GtkCheckButton" id="rejmaps_checkbutton">
                                                             <property name="label" translatable="yes">Create rejection maps</property>
                                                             <property name="visible">True</property>
@@ -22026,11 +22033,12 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">Compute and create rejection maps during stacking. These are images showing how many images were rejected for each pixel of the result image, divided by the number of stacked images.</property>
                                                             <property name="draw-indicator">True</property>
-							    <signal name="toggled" handler="on_rejmaps_toggled" swapped="no"/>
+                                                            <signal name="toggled" handler="on_rejmaps_toggled" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">2</property>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -22044,8 +22052,16 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="draw-indicator">True</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="left-attach">2</property>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
                                                             <property name="top-attach">2</property>
+                                                            <property name="width">2</property>
                                                             </packing>
                                                             </child>
                                                             </object>
