@@ -64,7 +64,7 @@ static int line_clipping(float pixel, const float sig[], float sigma, int i, flo
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
-	if (a * i + b - pixel> sigma * sigmalow) {
+	if (a * i + b - pixel > sigma * sigmalow) {
 		rej[0]++;
 		return -1;
 	} else if (pixel - a * i - b > sigma * sigmahigh) {
@@ -252,7 +252,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 				data->yf[frame] = stack[frame];
 			}
 			float a, b;
-			siril_fit_linear(data->xf, data->yf, data->m_x, data->m_dx2, N, &b,	&a);
+			siril_fit_linear(data->xf, data->yf, data->m_x, data->m_dx2, N, &b, &a);
 			float sigma = 0.f;
 			for (int frame = 0; frame < N; frame++)
 				sigma += fabsf(stack[frame] - (a * frame + b));
