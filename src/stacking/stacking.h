@@ -181,12 +181,12 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 
 /* pool of memory blocks for parallel processing */
 struct _data_block {
+	void *tmp;	// the actual single buffer for all others below
 	void **pix;	// buffer for a block on all images
-	void *tmp;	// the actual single buffer for pix
 	void *stack;	// the reordered stack for one pixel in all images
 	int *rejected;	// 0 if pixel ok, 1 or -1 if rejected
-	void *w_stack;	// stack for the winsorized rejection
 	void *o_stack;	// original unordered stack
+	void *w_stack;	// stack for the winsorized rejection
 	float *xf, *yf, m_x, m_dx2;// data for the linear fit rejection
 	int layer;	// to identify layer for normalization
 };

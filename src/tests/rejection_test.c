@@ -35,7 +35,10 @@ cominfo com;	// the core data struct
 guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
 
-float y[] = { 145, 125, 190, 135, 220, 130, 210, 3, 165, 165, 150, 350, 170, 180, 195, 440, 215, 135, 410, 40, 140, 175 };
+float set1[] = { 145, 125, 190, 135, 220, 130, 210, 3, 165, 165, 150, 350, 170, 180, 195, 440, 215, 135, 410, 40, 140, 175 };
+
+float set2[] = { 7.7110e-2f, 4.7330e-1f, 5.7340e-1f, 3.3310e-1f, 5.3160e-1f, 3.6550e-1f, 3.1900e-1f, 3.4650e-1f, 2.2340e-1f, 5.3680e-1f, 4.8200e-1f, 4.8150e-1f, 2.5420e-1f, 7.3770e-1f, 6.6930e-1f, 3.8980e-1f, 5.8780e-1f, 6.6680e-1f, 6.9580e-1f, 3.6260e-1f, 7.1870e-1f, 2.6420e-1f, 5.2890e-1f, 6.1350e-1f, 2.4980e-1f, 2.7930e-1f, 7.9300e-1f, 6.6690e-1f, 5.9180e-1f, 6.5240e-1f, 8.4440e-2f, 8.1500e-1f, 3.5880e-1f, 3.7450e-1f, 5.6660e-1f, 2.5050e-1f, 5.6520e-1f, 4.6880e-1f, 9.7020e-2f, 4.9380e-1 };
+
 
 static float *duplicate(const float *f, int size) {
 	float *d = malloc(size * sizeof(float));
@@ -113,7 +116,7 @@ static float ESD_test(float *stack, int size, float alpha, int max_outliers) {
 }
 
 void test_GESDT_float() {
-	float mean = ESD_test(y, G_N_ELEMENTS(y), 0.05, 7);
+	float mean = ESD_test(set1, G_N_ELEMENTS(set1), 0.05, 7);
 	cr_expect_float_eq(mean, 167.352936, 1e-6);
 }
 
@@ -140,7 +143,7 @@ static float percentile_test(float *stack, int size, float sig[2], int rej[2]) {
 static void test_percentile_float() {
 	int rej[] = { 0, 0 };
 	float sig[] = { 0.3, 0.4 };
-	float mean = percentile_test(duplicate(y, G_N_ELEMENTS(y)), G_N_ELEMENTS(y), sig, rej);
+	float mean = percentile_test(duplicate(set1, G_N_ELEMENTS(set1)), G_N_ELEMENTS(set1), sig, rej);
 	//printf("percentile: %f\trej[0] = %d, rej[1] = %d\n", mean, rej[0], rej[1]);
 	cr_expect_eq(rej[0], 2);
 	cr_expect_eq(rej[1], 3);
@@ -148,7 +151,7 @@ static void test_percentile_float() {
 
 	rej[0] = 0; rej[1] = 0;
 	sig[0] = 1.0; sig[1] = 1.0;
-	mean = percentile_test(duplicate(y, G_N_ELEMENTS(y)), G_N_ELEMENTS(y), sig, rej);
+	mean = percentile_test(duplicate(set1, G_N_ELEMENTS(set1)), G_N_ELEMENTS(set1), sig, rej);
 	//printf("percentile: %f\trej[0] = %d, rej[1] = %d\n", mean, rej[0], rej[1]);
 	cr_expect_eq(rej[0], 0);
 	cr_expect_eq(rej[1], 3);
@@ -180,7 +183,7 @@ static float linearfit_test(float *stack, int size, float sig[2], int rej[2]) {
 		for (int frame = 0; frame < N; frame++)
 			sigma += fabsf(stack[frame] - (a * frame + b));
 		sigma /= (float)N;
-		printf("sigma = %f\n", sigma);
+		//printf("sigma = %f\n", sigma);
 
 		for (int frame = 0; frame < N; frame++) {
 			if (N - r <= 4) {
@@ -188,8 +191,10 @@ static float linearfit_test(float *stack, int size, float sig[2], int rej[2]) {
 				rejected[frame] = 0;
 			} else {
 				rejected[frame] = line_clipping(stack[frame], sig, sigma, frame, a, b, rej);
-				if (rejected[frame] != 0)
+				if (rejected[frame] != 0) {
 					r++;
+					//printf("rejected %f\n", stack[frame]);
+				}
 			}
 		}
 		int output = 0;
@@ -210,20 +215,19 @@ static float linearfit_test(float *stack, int size, float sig[2], int rej[2]) {
 static void test_linearfit_float() {
 	int rej[] = { 0, 0 };
 	float sig[] = { 2.5f, 2.5f };
-	float mean = linearfit_test(duplicate(y, G_N_ELEMENTS(y)), G_N_ELEMENTS(y), sig, rej);
-	/*printf("linearfit: %f\trej[0] = %d, rej[1] = %d\n", mean, rej[0], rej[1]);
-	cr_expect_eq(rej[0], 2);
-	cr_expect_eq(rej[1], 3);
-	cr_expect_float_eq(mean, 167.352936f, 1e-6);
-	*/
+	float mean = linearfit_test(duplicate(set2, G_N_ELEMENTS(set2)), G_N_ELEMENTS(set2), sig, rej);
+	//printf("linearfit: %f\trej[0] = %d, rej[1] = %d\n", mean, rej[0], rej[1]);
+	cr_expect_eq(rej[0], 3);
+	cr_expect_eq(rej[1], 2);
+	cr_expect_float_eq(mean, 0.476394f, 1e-6);
 
 	rej[0] = 0; rej[1] = 0;
-	sig[0] = 5.0f; sig[1] = 2.0f;
-	mean = linearfit_test(duplicate(y, G_N_ELEMENTS(y)), G_N_ELEMENTS(y), sig, rej);
-	printf("linearfit: %f\trej[0] = %d, rej[1] = %d\n", mean, rej[0], rej[1]);
-	cr_expect_eq(rej[0], 0);
-	cr_expect_eq(rej[1], 3);
-	cr_expect_float_eq(mean, 152.0f, 1e-6);
+	sig[0] = 1.0f; sig[1] = 1.0f;
+	mean = linearfit_test(duplicate(set2, G_N_ELEMENTS(set2)), G_N_ELEMENTS(set2), sig, rej);
+	//printf("linearfit: %f\trej[0] = %d, rej[1] = %d\n", mean, rej[0], rej[1]);
+	cr_expect_eq(rej[0], 7);
+	cr_expect_eq(rej[1], 12);
+	cr_expect_float_eq(mean, 0.4966f, 1e-5);
 }
 
 Test(rejection, linearfit) { test_linearfit_float(); }
