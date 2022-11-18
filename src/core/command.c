@@ -5029,6 +5029,10 @@ int process_register(int nb) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
+	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
 
 	reg_args = calloc(1, sizeof(struct registration_args));
 
