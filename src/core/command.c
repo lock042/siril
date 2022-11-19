@@ -6596,10 +6596,10 @@ int process_help(int nb) {
 int process_capabilities(int nb) {
 	// don't translate these strings, they must be easy to parse
 #ifdef SIRIL_UNSTABLE
-	siril_log_message("unreleased %s %s-%s for %s\n", PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
-			SIRIL_BUILD_PLATFORM_FAMILY);
+	siril_log_message("unreleased %s %s-%s for %s (%s)\n", PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
+			SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
 #else
-	siril_log_message("%s %s for %s\n", PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY);
+	siril_log_message("%s %s for %s (%s)\n", PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
 #endif
 #ifdef _OPENMP
 	siril_log_message("OpenMP available (%d %s)\n", com.max_thread,
