@@ -30,7 +30,6 @@ int test_available_space(gint64 req_size);
 guint64 get_available_memory();
 int get_max_memory_in_MB();
 void log_used_mem(gchar *when);
-const char *get_proc_arch();
 
 int get_available_cpu_cgroups();
 
