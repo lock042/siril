@@ -507,6 +507,146 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="step-increment">0.10</property>
     <property name="page-increment">1</property>
   </object>
+  <object class="GtkAdjustment" id="adj_binning">
+    <property name="upper">50</property>
+    <property name="value">2</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkDialog" id="binxy_dialog">
+    <property name="width-request">400</property>
+    <property name="height-request">200</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">5</property>
+    <property name="title" translatable="yes">Binning</property>
+    <property name="resizable">False</property>
+    <property name="window-position">center</property>
+    <property name="type-hint">dialog</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="button_binning_close">
+                <property name="label" translatable="yes">Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_button_binning_close_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_binning_ok">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_button_binning_ok_clicked" swapped="no"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack-type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <!-- n-columns=2 n-rows=2 -->
+          <object class="GtkGrid" id="grid7">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="row-spacing">10</property>
+            <property name="column-spacing">6</property>
+            <child>
+              <object class="GtkLabel" id="label12">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Binning factor:</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="spinbutton_binning">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">start</property>
+                <property name="invisible-char">●</property>
+                <property name="width-chars">4</property>
+                <property name="text">100</property>
+                <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                <property name="adjustment">adj_binning</property>
+                <property name="climb-rate">0.01</property>
+                <property name="numeric">True</property>
+                <property name="value">2</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label13">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Downsample mode:</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="combobox_binning">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">Average</item>
+                  <item translatable="yes">Sum</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
   <object class="GtkAdjustment" id="adj_black_point_asinh">
     <property name="upper">0.20</property>
     <property name="step-increment">0.01</property>
@@ -3269,23 +3409,22 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment1">
-    <property name="lower">1</property>
-    <property name="upper">65535</property>
-    <property name="value">65535</property>
-    <property name="step-increment">20</property>
-    <property name="page-increment">1000</property>
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment2">
-    <property name="upper">65535</property>
-    <property name="step-increment">20</property>
-    <property name="page-increment">1000</property>
+    <property name="upper">100</property>
+    <property name="value">90</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment3">
-    <property name="lower">1</property>
-    <property name="upper">5</property>
-    <property name="value">2</property>
+    <property name="upper">100</property>
+    <property name="value">90</property>
     <property name="step-increment">1</property>
-    <property name="page-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment4">
     <property name="upper">100</property>
@@ -3293,13 +3432,13 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adjustment6">
+  <object class="GtkAdjustment" id="adjustment5">
     <property name="upper">100</property>
     <property name="value">90</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adjustment7">
+  <object class="GtkAdjustment" id="adjustment6">
     <property name="upper">100</property>
     <property name="value">90</property>
     <property name="step-increment">1</property>
@@ -5696,6 +5835,25 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjustmentqualscale">
+    <property name="lower">1</property>
+    <property name="upper">5</property>
+    <property name="value">2</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentscalemax">
+    <property name="lower">1</property>
+    <property name="upper">65535</property>
+    <property name="value">65535</property>
+    <property name="step-increment">20</property>
+    <property name="page-increment">1000</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentscalemin">
+    <property name="upper">65535</property>
+    <property name="step-increment">20</property>
+    <property name="page-increment">1000</property>
+  </object>
   <object class="GtkImage" id="astrometry">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -7427,7 +7585,6 @@ Modifying parameters in this windows afterward will void the colour balance, and
     </action-widgets>
   </object>
   <object class="GtkDialog" id="dialog_star_remix">
-    <property name="name">starnet_dialog</property>
     <property name="width-request">400</property>
     <property name="height-request">200</property>
     <property name="can-focus">False</property>
@@ -9044,6 +9201,11 @@ Note that luminance based models are not generally invertible.</property>
       <action-widget response="0">linearmatch_apply</action-widget>
     </action-widgets>
   </object>
+  <object class="GtkFileFilter" id="filefilter_seq">
+    <patterns>
+      <pattern>*.seq</pattern>
+    </patterns>
+  </object>
   <object class="GtkFileFilter" id="filter_USNO-NOMAD-1e8">
     <patterns>
       <pattern>USNO-NOMAD-1e8.dat</pattern>
@@ -9809,7 +9971,7 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       <object class="GtkEntry" id="GtkEntry_IPS_pixels">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Pixel size in microns. The image is assumed to have square pixels.</property>
+                        <property name="tooltip-text" translatable="yes">Pixel size in microns. The image is assumed to have square pixels. Value is already multiplied by the camera binning.</property>
                         <property name="halign">start</property>
                         <property name="width-chars">10</property>
                         <property name="text">5.00</property>
@@ -12380,6 +12542,17 @@ This should normally be the case only for stacked images. Increasing this value 
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem" id="menu_search_sso">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="tooltip-text" translatable="yes">Search and display solar system objects with mag&lt;20.0.
+This research has made use of IMCCE's SkyBoT VO tool.</property>
+        <property name="action-name">win.search-solar</property>
+        <property name="label" translatable="yes">Solar System Objects</property>
+        <property name="use-underline">True</property>
+      </object>
+    </child>
+    <child>
       <object class="GtkSeparatorMenuItem" id="&lt;séparateur&gt;">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
@@ -12677,6 +12850,423 @@ This should normally be the case only for stacked images. Increasing this value 
               </object>
             </child>
           </object>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkDialog" id="merge_cfa_dialog">
+    <property name="width-request">500</property>
+    <property name="height-request">1</property>
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Merge CFA Elements</property>
+    <property name="type-hint">dialog</property>
+    <signal name="show" handler="on_merge_cfa_show" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="merge_cfa_cancel">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_merge_cfa_close_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="merge_cfa_reset">
+                <property name="label" translatable="yes">Reset</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_merge_cfa_reset_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="merge_cfa_apply">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_merge_cfa_apply_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkFrame">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
+            <child>
+              <object class="GtkAlignment">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="left-padding">12</property>
+                <child>
+                  <!-- n-columns=2 n-rows=4 -->
+                  <object class="GtkGrid">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="row-spacing">10</property>
+                    <property name="column-spacing">10</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">CFA0</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">CFA1</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">CFA2</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">CFA3</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFileChooserButton" id="filechooser_cfa0">
+                        <property name="width-request">256</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select the image containing the CFA0 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA0 prefix.</property>
+                        <property name="title" translatable="yes"/>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA0_file_set" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFileChooserButton" id="filechooser_cfa1">
+                        <property name="width-request">256</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select the image containing the CFA1 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA1 prefix.</property>
+                        <property name="title" translatable="yes"/>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA1_file_set" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFileChooserButton" id="filechooser_cfa2">
+                        <property name="width-request">256</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select the image containing the CFA2 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA2 prefix.</property>
+                        <property name="title" translatable="yes"/>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA2_file_set" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkFileChooserButton" id="filechooser_cfa3">
+                        <property name="width-request">256</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select the image containing the CFA3 Bayer subpattern. If this has been produced using Siril's Split CFA function it will have the CFA3 prefix.</property>
+                        <property name="title" translatable="yes"/>
+                        <signal name="file-set" handler="on_merge_cfa_filechooser_CFA3_file_set" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">3</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Input Files</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkFrame">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="margin-top">10</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
+            <child>
+              <object class="GtkAlignment">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="left-padding">12</property>
+                <child>
+                  <object class="GtkComboBoxText" id="merge_cfa_pattern">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Sets the Bayer pattern header to be applied to the result. This must match the Bayer pattern of the image that the original Bayer subchannels were split from.</property>
+                    <property name="halign">start</property>
+                    <property name="active">0</property>
+                    <items>
+                      <item translatable="yes">RGGB</item>
+                      <item translatable="yes">BGGR</item>
+                      <item translatable="yes">GBRG</item>
+                      <item translatable="yes">GRBG</item>
+                    </items>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="label">
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Bayer Pattern</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="merge_cfa_seqapply">
+            <property name="label" translatable="yes">Apply to sequence</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">Merges separated CFA images for a sequence. You should have the sequence for CFA0 loaded to start with, and ensure filenames are consistent across images for all CFA channels.</property>
+            <property name="halign">start</property>
+            <property name="margin-top">10</property>
+            <property name="draw-indicator">True</property>
+            <signal name="toggled" handler="on_merge_cfa_seqapply_toggled" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="width-request">500</property>
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <!-- n-columns=2 n-rows=2 -->
+              <object class="GtkGrid" id="grid_merge_cfa_prefixes">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="hexpand">True</property>
+                <property name="row-spacing">5</property>
+                <property name="column-spacing">10</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Sequence input marker</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Sequence output prefix</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entryMergeCFAin">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Identifier prefix used to denote CFA number in the separate CFA channel images. This should be set to whatever sequence prefix was used when the split_cfa process was run (default: CFA_).</property>
+                    <property name="hexpand">True</property>
+                    <property name="max-length">10</property>
+                    <property name="width-chars">10</property>
+                    <property name="max-width-chars">10</property>
+                    <property name="text">CFA_</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entryMergeCFAout">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Prefix of the image names resulting from the merge CFA process.</property>
+                    <property name="hexpand">True</property>
+                    <property name="max-length">10</property>
+                    <property name="width-chars">10</property>
+                    <property name="max-width-chars">10</property>
+                    <property name="text">mCFA_</property>
+                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkFrame" id="merge_cfa_seq_controls">
+                <property name="can-focus">False</property>
+                <property name="margin-top">10</property>
+                <property name="label-xalign">0</property>
+                <property name="shadow-type">none</property>
+                <child>
+                  <object class="GtkAlignment">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="left-padding">12</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="width-request">500</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-end">8</property>
+                            <property name="label" translatable="yes">You must have the CFA0 sequence selected in the main window sequence tab.
+
+Your separate sub-CFA sequences must have been processed in exactly the same way.
+
+The filenames &lt;b&gt;must&lt;/b&gt; be in the same directory and &lt;b&gt;must&lt;/b&gt; differ only by the name of the CFA channel. i.e. if a CFA0 image is &lt;i&gt;r_pp_CFA_0_Light_0001.fit&lt;/i&gt;, the corresponding images for the other CFA channels must be &lt;i&gt;r_pp_CFA_1_Light_0001.fit&lt;/i&gt;, &lt;i&gt;r_pp_CFA_2_Light_0001.fit&lt;/i&gt; and &lt;i&gt;r_pp_CFA_3_Light_0001.fit&lt;/i&gt;.
+
+Each image in the sequence will only be processed if the corresponding images for the other 3 CFA channels can be found. Both G1 and G2 are required. Note this means that if you discard an image containing one CFA channel of an image between split_cfa and merge_cfa, merge_cfa will be unable to merge the remaining CFA channels for that image. All sequence filtering should be done either before split_cfa or after merge_cfa.</property>
+                            <property name="use-markup">True</property>
+                            <property name="wrap">True</property>
+                            <property name="max-width-chars">80</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Sequences</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
         </child>
       </object>
     </child>
@@ -15144,6 +15734,20 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="proc_extract_merge_cfa">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.merge-cfa-processing</property>
+            <property name="text" translatable="yes">Merge CFA Channels...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">26</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkSeparator">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -15151,7 +15755,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">26</property>
+            <property name="position">27</property>
           </packing>
         </child>
         <child>
@@ -15166,7 +15770,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">27</property>
+            <property name="position">28</property>
           </packing>
         </child>
       </object>
@@ -15480,6 +16084,20 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="proc_geo_binning">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.binning-processing</property>
+            <property name="text" translatable="yes">Binning...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">8</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="proc_geo_resample">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -15490,7 +16108,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">8</property>
+            <property name="position">9</property>
           </packing>
         </child>
       </object>
@@ -15562,7 +16180,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>
@@ -16188,7 +16806,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
           </packing>
         </child>
         <child>
-          <!-- n-columns=3 n-rows=2 -->
+          <!-- n-columns=3 n-rows=3 -->
           <object class="GtkGrid" id="grid3">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -16269,11 +16887,44 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                 <property name="width">2</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkLabel" id="labelhaoiiiscaling">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Ha/OIII Resampling</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="combo_haoiii_scaling">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">How to handle the output of Extract Ha/OIII. No resampling produces full resolution OIII image and a half resolution Ha image; upsample Ha upsamples the Ha image by a factor of 2 to match the OIII image; downsample OIII downsamples the OIII image by a factor of 2 to match the Ha image.</property>
+                <property name="active">0</property>
+                <items>
+                  <item translatable="yes">No resampling</item>
+                  <item translatable="yes">Upsample Ha</item>
+                  <item translatable="yes">Downsample OIII</item>
+                </items>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </object>
@@ -18026,7 +18677,7 @@ A first computation pass will be done on all images before exporting, it may tak
                                                           <object class="GtkScale" id="exportQualScale">
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Film quality: lower value will use more compression and less bitrate, also resulting in smaller file size. Values above 2 could be useful for fast-moving images like bright time-lapses.</property>
-                                                            <property name="adjustment">adjustment3</property>
+                                                            <property name="adjustment">adjustmentqualscale</property>
                                                             <property name="round-digits">0</property>
                                                             <property name="digits">0</property>
                                                             <property name="value-pos">left</property>
@@ -19852,6 +20503,7 @@ numbers lead to faster computations.</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">90</property>
+                                                            <signal name="changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <signal name="value-changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <style>
                                                             <class name="small-spinbutton"/>
@@ -19864,6 +20516,23 @@ numbers lead to faster computations.</property>
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type4">
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item>k-σ</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_regsel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter4">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -19872,7 +20541,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -19889,7 +20558,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -19957,11 +20626,12 @@ numbers lead to faster computations.</property>
                                                             <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjustment6</property>
+                                                            <property name="adjustment">adjustment5</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">90</property>
+                                                            <signal name="changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <signal name="value-changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <style>
                                                             <class name="small-spinbutton"/>
@@ -19974,6 +20644,23 @@ numbers lead to faster computations.</property>
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type5">
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item>k-σ</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_regsel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter5">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -19982,7 +20669,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -19998,7 +20685,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -20014,7 +20701,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -20060,6 +20747,7 @@ numbers lead to faster computations.</property>
                                                             <item translatable="yes">nb stars</item>
                                                             <item translatable="yes">quality</item>
                                                             </items>
+                                                            <signal name="changed" handler="on_regsel_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -20078,11 +20766,12 @@ numbers lead to faster computations.</property>
                                                             <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjustment7</property>
+                                                            <property name="adjustment">adjustment6</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">90</property>
+                                                            <signal name="changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <signal name="value-changed" handler="on_regspinbut_percent_change" swapped="no"/>
                                                             <style>
                                                             <class name="small-spinbutton"/>
@@ -20095,6 +20784,23 @@ numbers lead to faster computations.</property>
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type6">
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item>k-σ</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_regsel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter6">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -20103,7 +20809,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -20122,7 +20828,7 @@ numbers lead to faster computations.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -21688,10 +22394,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="invisible-char">●</property>
                                                             <property name="width-chars">6</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">90,00</property>
+                                                            <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjustment4</property>
+                                                            <property name="adjustment">adjustment1</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
@@ -21709,6 +22415,23 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type1">
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item>k-σ</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter1">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -21717,7 +22440,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -21734,7 +22457,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -21799,10 +22522,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="invisible-char">●</property>
                                                             <property name="width-chars">6</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">90,00</property>
+                                                            <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjustment6</property>
+                                                            <property name="adjustment">adjustment2</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
@@ -21820,6 +22543,23 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type2">
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item>k-σ</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter2">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -21828,7 +22568,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -21844,7 +22584,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -21860,7 +22600,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -21922,10 +22662,10 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="invisible-char">●</property>
                                                             <property name="width-chars">6</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">90,00</property>
+                                                            <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                                            <property name="adjustment">adjustment7</property>
+                                                            <property name="adjustment">adjustment3</property>
                                                             <property name="climb-rate">1</property>
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
@@ -21943,6 +22683,23 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <object class="GtkComboBoxText" id="filter_type3">
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose between % and k-σ to keep given percentage of images or to compute the allowable threshold using k-σ clipping.</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">%</item>
+                                                            <item>k-σ</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_stacksel_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
                                                             <object class="GtkLabel" id="labelfilter3">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -21951,7 +22708,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -21970,7 +22727,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -22594,7 +23351,7 @@ WARNING: This option should not be checked for master stacking.</property>
                       <object class="GtkScale" id="scalemax">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="adjustment">adjustment1</property>
+                        <property name="adjustment">adjustmentscalemax</property>
                         <property name="digits">0</property>
                         <property name="draw-value">False</property>
                         <signal name="button-release-event" handler="on_maxscale_release" swapped="no"/>
@@ -22653,7 +23410,7 @@ WARNING: This option should not be checked for master stacking.</property>
                       <object class="GtkScale" id="scalemin">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="adjustment">adjustment2</property>
+                        <property name="adjustment">adjustmentscalemin</property>
                         <property name="digits">0</property>
                         <property name="draw-value">False</property>
                         <signal name="button-release-event" handler="on_minscale_release" swapped="no"/>

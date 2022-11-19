@@ -370,7 +370,6 @@ gboolean end_generic_sequence(gpointer p) {
 		g_free(seqname);
 		g_free(basename);
 	}
-
 	free(p);
 	return end_generic(NULL);
 }

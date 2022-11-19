@@ -72,6 +72,7 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 void crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void seq_crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data);
@@ -98,6 +99,7 @@ void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpoint
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void rotation90_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -122,5 +124,7 @@ void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpoint
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+
 
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */

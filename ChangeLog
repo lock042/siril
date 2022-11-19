@@ -15,6 +15,7 @@ xx/xx/22
 * Added bad pixel map option for preprocess, both in GUI and command
 * Added and reviewed commands for offline and automatic post-processing
 * Added background level and star count as new sequence filters
+* Added option to compute sequence filtering threshold using k-sigma clipping
 * Added weighing based on number of stars or wFWHM for stacking
 * Added a new threading mechanism for per-image improved performance
 * Added star selection from coordinates to seqpsf and star tracking with homography
@@ -47,6 +48,11 @@ xx/xx/22
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
 * Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Added 9-panel dialog tool showing corners and center of the image for a closer inspection
+* Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
+* Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Added CFA merge process for reconstructing a Bayer pattern previously split out with extraction
+* Added binning and binxy command
 * Allowed area selection (and much more) to be done on RGB display tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
@@ -69,6 +75,9 @@ xx/xx/22
 * Fixed FITS header preservation on RGB composition
 * Fixed possible FITSEQ infinite loop and inconsistent numbering caused by hidden files in conversion
 * Fixed sequence closing in script processing after each command
+* Optimised asinh code for speed
+* Improved Ha-OIII extraction to offer full resolution O-III output and improve star roundness
+* Allow area selection (and much more) to be done on RGB display tab
 * Fixed opening of scientific FITS cube files
 
 siril 1.0.7

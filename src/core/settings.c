@@ -125,6 +125,7 @@ preferences pref_init = {
 		.catalog[5] = TRUE,
 		.catalog[6] = TRUE,
 		.catalog[7] = TRUE,
+		.catalog[8] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
 		.reg_settings = 0,

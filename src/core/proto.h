@@ -146,6 +146,7 @@ gboolean string_is_a_number(const char *str);
 guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
 		guint limit);
 #endif
+char *str_replace(char *orig, char *rep, char *with);
 void replace_spaces_from_str(gchar *s, char c);
 
 /****************** quantize.h ***************/

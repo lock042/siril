@@ -34,6 +34,7 @@
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
+#include "algos/annotate.h"
 #include "io/conversion.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
@@ -145,7 +146,7 @@ void launch_clipboard_survey() {
 	if (com.script)
 		return;
 	GtkClipboard *clipboard = NULL;
-
+	
 	/* Get the clipboard object */
 	clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 
@@ -248,8 +249,8 @@ void set_sliders_value_to_gfit() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 
 	gfit.hi = gtk_adjustment_get_value(adj1);
@@ -264,8 +265,8 @@ void set_cutoff_sliders_max_values() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 	gdouble max_val;
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 	/* set max value for range according to number of bits of original image
 	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG.
@@ -290,8 +291,8 @@ void set_cutoff_sliders_values() {
 	static GtkEntry *maxentry = NULL, *minentry = NULL;
 	static GtkToggleButton *cutmax = NULL;
 	if (adjmin == NULL) {
-		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1")); // scalemax
-		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2")); // scalemin
+		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax")); // scalemax
+		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin")); // scalemin
 		maxentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "max_entry"));
 		minentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "min_entry"));
 		cutmax = GTK_TOGGLE_BUTTON(
@@ -533,6 +534,9 @@ void update_MenuItem() {
 	/* search object */
 	GAction *action_search_objectr = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-object");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_objectr), any_image_is_loaded && has_wcs(&gfit));
+	/* search SOLAR object */
+	GAction *action_search_solar = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-solar");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_solar), any_image_is_loaded && has_wcs(&gfit));
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
@@ -1121,6 +1125,7 @@ static void load_accels() {
 		"win.zoom-one",               "<Primary>1", NULL,
 
 		"win.search-object",          "<Primary>slash", NULL,
+		"win.search-solar",          "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
