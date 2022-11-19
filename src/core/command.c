@@ -5850,13 +5850,19 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.method = arg->method;
 	args.force_norm = FALSE;
 	args.output_norm = arg->output_norm;
-	args.reglayer = args.seq->nb_layers == 1 ? 0 : 1;
+	args.reglayer = get_registration_layer(args.seq);
 	args.apply_noise_weights = arg->apply_noise_weights;
 	args.apply_nbstack_weights = arg->apply_nbstack_weights;
 	args.apply_wfwhm_weights = arg->apply_wfwhm_weights;
 	args.apply_nbstars_weights = arg->apply_nbstars_weights;
 	args.equalizeRGB = arg->equalizeRGB;
 	args.lite_norm = arg->lite_norm;
+
+	// manage registration data
+	if (!stack_regdata_is_valid(args)) {
+		free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
 
 	// manage filters
 	if (convert_parsed_filter_to_filter(&arg->filters, seq,
