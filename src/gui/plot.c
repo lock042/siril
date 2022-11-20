@@ -33,7 +33,6 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
-#include "core/sleef.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -188,8 +187,8 @@ static gboolean is_inside_selection(double x, double y) {
 	if (!selection_is_active()) return FALSE;
 	if (x >= pdd.selection.x + SEL_TOLERANCE &&
 		x <= pdd.selection.x + pdd.selection.w - SEL_TOLERANCE &&
-		y >= pdd.selection.y + SEL_TOLERANCE && 
-		y <= pdd.selection.y + pdd.selection.h - SEL_TOLERANCE) 
+		y >= pdd.selection.y + SEL_TOLERANCE &&
+		y <= pdd.selection.y + pdd.selection.h - SEL_TOLERANCE)
 			return TRUE;
 	return FALSE;
 }
@@ -299,7 +298,7 @@ static gboolean get_index_of_frame(double x, double y, gboolean check_index_incl
 
 	while (plot) {
 		for (int j = 0; j < plot->nb; j++) {
-			double dist = xpow((*index - plot->data[j].x) * invrangex, 2) + xpow((*ypos - plot->data[j].y) * invrangey, 2);
+			double dist = pow((*index - plot->data[j].x) * invrangex, 2) + pow((*ypos - plot->data[j].y) * invrangey, 2);
 			if (dist < mindist) {
 				mindist = dist;
 				closestframe = plot->frame[j];
@@ -1765,7 +1764,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 				} else {
 					dv = pdd.start.y - y;
 					v1 = (1. - pdd.yrange[0]) * pdd.range.y + pdd.offset.y; // y axis is reversed
-					v2 = (1. - pdd.yrange[1]) * pdd.range.y + pdd.offset.y; 
+					v2 = (1. - pdd.yrange[1]) * pdd.range.y + pdd.offset.y;
 					if (v2 - dv <= pdd.offset.y) {
 						dv = v2 - pdd.offset.y;
 						y = pdd.start.y - dv;
@@ -1870,7 +1869,7 @@ static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event
 	gtk_menu_item_set_label(menu_item2, str2);
 	if (!popup_already_shown) {
 		// we need to ref it to keep it alive after removing from container
-		g_object_ref(menu_item3); 
+		g_object_ref(menu_item3);
 		popup_already_shown = TRUE;
 	}
 	if (has_item3) {
@@ -1941,7 +1940,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 			return TRUE;
 		}
 	}
-	
+
 	if (is_inside_selectable_zone(x, y) && event->button == GDK_BUTTON_PRIMARY) {
 		enum border_type border = is_over_selection_border(x, y);
 		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {  // double-click resets zoom

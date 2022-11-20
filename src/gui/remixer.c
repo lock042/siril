@@ -22,7 +22,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/sleef.h"
 #include "algos/statistics.h"
 #include "algos/colors.h"
 #include "io/single_image.h"

@@ -26,7 +26,7 @@
 //#define BENCHMARK
 #include "StopWatch.h"
 #include "opthelper.h"
-#include "core/sleef.h"
+#include "sleef.h"
 #include "filters/deconv.h"
 #undef min
 #undef max
@@ -61,7 +61,7 @@ void RGB2L(float *R, float *G, float *B, float *L, const float wp[3][3], int wid
     const vfloat bmv = F2V(wp[1][2]);
 #endif
     int i = 0;
-    
+
 #ifdef __SSE2__
     for(; i < width - 3; i+=4) {
         const vfloat rv = LVFU(R[i]);
@@ -237,8 +237,8 @@ void gauss3x3div (float** RESTRICT src, float** RESTRICT dst, float** RESTRICT d
         #pragma GCC ivdep
 #endif
         for (int j = 1; j < tileSize - 1; j++) {
-            const float val = c11 * (src[i - 1][j - 1] + src[i - 1][j + 1] + src[i + 1][j - 1] + src[i + 1][j + 1]) + 
-                              c10 * (src[i - 1][j] + src[i][j - 1] + src[i][j + 1] + src[i + 1][j]) + 
+            const float val = c11 * (src[i - 1][j - 1] + src[i - 1][j + 1] + src[i + 1][j - 1] + src[i + 1][j + 1]) +
+                              c10 * (src[i - 1][j] + src[i][j - 1] + src[i][j + 1] + src[i + 1][j]) +
                               c00 * src[i][j];
             dst[i][j] = divBuffer[i][j] / std::max(val, 0.00001f);
         }
@@ -419,8 +419,8 @@ void gauss3x3mult(float** RESTRICT src, float** RESTRICT dst, const int tileSize
         #pragma GCC ivdep
 #endif
         for (int j = 1; j < tileSize - 1; j++) {
-            const float val = c11 * (src[i - 1][j - 1] + src[i - 1][j + 1] + src[i + 1][j - 1] + src[i + 1][j + 1]) + 
-                              c10 * (src[i - 1][j] + src[i][j - 1] + src[i][j + 1] + src[i + 1][j]) + 
+            const float val = c11 * (src[i - 1][j - 1] + src[i - 1][j + 1] + src[i + 1][j - 1] + src[i + 1][j + 1]) +
+                              c10 * (src[i - 1][j] + src[i][j - 1] + src[i][j + 1] + src[i + 1][j]) +
                               c00 * src[i][j];
             dst[i][j] *= val;
         }
@@ -969,7 +969,7 @@ BENCHFUN
     array2D<float> L(W, H);
     array2D<float> YOld(W, H);
     array2D<float> YNew(W, H);
-    
+
 #ifdef _OPENMP
     #pragma omp parallel for schedule(dynamic, 16)
 #endif

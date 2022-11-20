@@ -28,7 +28,6 @@
 #include "core/OS_utils.h"
 #include "core/siril_world_cs.h"
 #include "core/siril_log.h"
-#include "core/sleef.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
