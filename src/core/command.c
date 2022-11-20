@@ -6628,10 +6628,10 @@ int process_help(int nb) {
 int process_capabilities(int nb) {
 	// don't translate these strings, they must be easy to parse
 #ifdef SIRIL_UNSTABLE
-	siril_log_message("unreleased %s %s-%s for %s\n", PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
-			SIRIL_BUILD_PLATFORM_FAMILY);
+	siril_log_message("unreleased %s %s-%s for %s (%s)\n", PACKAGE, VERSION, SIRIL_GIT_VERSION_ABBREV,
+			SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
 #else
-	siril_log_message("%s %s for %s\n", PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY);
+	siril_log_message("%s %s for %s (%s)\n", PACKAGE, VERSION, SIRIL_BUILD_PLATFORM_FAMILY, CPU_ARCH);
 #endif
 #ifdef _OPENMP
 	siril_log_message("OpenMP available (%d %s)\n", com.max_thread,
@@ -6647,9 +6647,12 @@ int process_capabilities(int nb) {
 #ifdef HAVE_LIBCURL
 	siril_log_message("Built with libcurl\n");
 #endif
+#ifdef HAVE_JSON_GLIB
+	siril_log_message("Built with json-glib\n");
+#endif
 //#ifdef HAVE_GLIB_NETWORKING
 #ifdef HAVE_WCSLIB
-	siril_log_message("Built with WCSLIB\n");
+	siril_log_message("Built with wcslib\n");
 #endif
 
 	siril_log_message("Can read and write FITS files\n");
