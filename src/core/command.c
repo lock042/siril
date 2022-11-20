@@ -6615,9 +6615,12 @@ int process_capabilities(int nb) {
 #ifdef HAVE_LIBCURL
 	siril_log_message("Built with libcurl\n");
 #endif
+#ifdef HAVE_JSON_GLIB
+	siril_log_message("Built with json-glib\n");
+#endif
 //#ifdef HAVE_GLIB_NETWORKING
 #ifdef HAVE_WCSLIB
-	siril_log_message("Built with WCSLIB\n");
+	siril_log_message("Built with wcslib\n");
 #endif
 
 	siril_log_message("Can read and write FITS files\n");
