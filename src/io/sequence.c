@@ -1630,14 +1630,42 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	return !data->psf;
 }
 
+static void write_regdata(sequence *seq, int layer, GSList *list, gboolean duplicate_for_regdata) {
+	check_or_allocate_regparam(seq, layer);
+	GSList *iterator;
+	for (iterator = list; iterator; iterator = iterator->next) {
+		struct seqpsf_data *data = iterator->data;
+		seq->regparam[layer][data->image_index].fwhm_data =
+			duplicate_for_regdata ? duplicate_psf(data->psf) : data->psf;
+		if (data->psf) {
+			seq->regparam[layer][data->image_index].fwhm = data->psf->fwhmx;
+			seq->regparam[layer][data->image_index].roundness =
+				data->psf->fwhmy / data->psf->fwhmx;
+			seq->regparam[layer][data->image_index].weighted_fwhm = data->psf->fwhmx;
+			seq->regparam[layer][data->image_index].background_lvl = data->psf->B;
+			seq->regparam[layer][data->image_index].number_of_stars = 1;
+			//TODO need to update the H matrix with shifts computed from psf diff to refimage
+			//seq->regparam[layer][data->image_index].H = H_from_translation(shiftx, shifty);
+		}
+	}
+	seq->needs_saving = TRUE;
+}
+
 int seqpsf_finalize_hook(struct generic_seq_args *args) {
 	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 	sequence *seq = args->seq;
 	int photometry_index = 0;
 	gboolean displayed_warning = FALSE;
 
-	if (args->retval || !spsfargs->for_photometry)
+	if (args->retval)
 		return 0;
+
+	if (!spsfargs->for_photometry) {
+		if (spsfargs->allow_use_as_regdata == BOOL_TRUE) {
+			write_regdata(seq, args->layer_for_partial, spsfargs->list, FALSE);
+		}
+		return 0;
+	}
 
 	int i;
 	for (i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++);
@@ -1723,24 +1751,7 @@ gboolean end_seqpsf(gpointer p) {
 	}
 
 	if (write_to_regdata) {
-		check_or_allocate_regparam(seq, layer);
-		seq->needs_saving = TRUE;
-		GSList *iterator;
-		for (iterator = spsfargs->list; iterator; iterator = iterator->next) {
-			struct seqpsf_data *data = iterator->data;
-			seq->regparam[layer][data->image_index].fwhm_data =
-				duplicate_for_regdata ? duplicate_psf(data->psf) : data->psf;
-			if (data->psf) {
-				seq->regparam[layer][data->image_index].fwhm = data->psf->fwhmx;
-				seq->regparam[layer][data->image_index].roundness =
-					data->psf->fwhmy / data->psf->fwhmx;
-				seq->regparam[layer][data->image_index].weighted_fwhm = data->psf->fwhmx;
-				seq->regparam[layer][data->image_index].background_lvl = data->psf->B;
-				seq->regparam[layer][data->image_index].number_of_stars = 1;
-				//TODO need to update the H matrix with shifts computed from psf diff to refimage
-				//seq->regparam[layer][data->image_index].H = H_from_translation(shiftx, shifty);
-			}
-		}
+		write_regdata(seq, layer, spsfargs->list, duplicate_for_regdata);
 	}
 
 	if (seq->needs_saving)
@@ -1795,7 +1806,9 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
 
 	spsfargs->for_photometry = !for_registration;
-	spsfargs->allow_use_as_regdata = no_GUI ? BOOL_FALSE : BOOL_NOT_SET;
+	if (!no_GUI)
+		spsfargs->allow_use_as_regdata = BOOL_NOT_SET;
+	else spsfargs->allow_use_as_regdata = for_registration ? BOOL_TRUE : BOOL_FALSE;
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
 
