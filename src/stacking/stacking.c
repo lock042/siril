@@ -32,6 +32,7 @@
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"
 #include "gui/sequence_list.h"
@@ -191,12 +192,13 @@ gpointer stack_function_handler(gpointer p) {
 
 // Checks that the number of degrees of freedoms is not more than shift
 // returns FALSE if not
-gboolean stack_regdata_is_valid(struct stacking_args args) {
+gboolean stack_regdata_is_valid(struct stacking_args args, gboolean verbose) {
 	if (args.reglayer < 0) return FALSE;
 	int regmin, regmax;
 	guess_transform_from_seq(args.seq, args.reglayer, &regmin, &regmax, FALSE);
 	if (regmax > SHIFT_TRANSFORMATION) {
-		siril_log_color_message(_("Stacking has detected registration data on layer %d with more than simple shifts, you need to apply existing registration before stacking, aborting\n"), "red", args.reglayer);
+		if (verbose)
+			siril_log_color_message(_("Stacking has detected registration data on layer %d with more than simple shifts. You should apply existing registration before stacking\n"), "red", args.reglayer);
 		return FALSE;
 	} else if (regmax == SHIFT_TRANSFORMATION) {
 		siril_log_color_message(_("Stacking will use registration data of layer %d\n"), "salmon", args.reglayer);
@@ -265,8 +267,14 @@ static void start_stacking() {
 	stackparam.seq = &com.seq;
 	stackparam.reglayer = get_registration_layer(stackparam.seq);
 	// checking regdata is absent, or if present, is only shift
-	if (!stack_regdata_is_valid(stackparam))
-		return;
+	if (!stack_regdata_is_valid(stackparam, FALSE)) {
+		int confirm = siril_confirm_dialog(_("Registration data found"),
+			_("Stacking has detected registration data with more than simple shifts.\n"
+			"Normally, you should apply existing registration before stacking."),
+			_("Stack anyway"));
+		if (!confirm)
+			return;
+	}
 
 	/* Do not display that cause it uses the generic function that already
 	 * displays this text

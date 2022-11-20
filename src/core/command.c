@@ -5859,7 +5859,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.lite_norm = arg->lite_norm;
 
 	// manage registration data
-	if (!stack_regdata_is_valid(args)) {
+	if (!stack_regdata_is_valid(args, TRUE)) {
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
 	}
