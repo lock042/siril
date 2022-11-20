@@ -359,6 +359,8 @@ endif
 ## General and package configuration
 conf_data = configuration_data()
 
+conf_data.set_quoted('CPU_ARCH', host_cpu_family)
+
 conf_data.set('SIRIL_UNSTABLE', stable ? false : 1)
 conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') ? 1 : false)
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
@@ -389,6 +391,8 @@ elif platform_windows
   conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'windows')
 elif platform_osx
   conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'macos')
+elif platform_bsd
+  conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'bsd')
 else
   conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'other')
 endif

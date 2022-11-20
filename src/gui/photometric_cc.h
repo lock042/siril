@@ -10,6 +10,8 @@
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
 
+__inline __attribute__((always_inline)) int xisnanf(float x) { return x != x; }
+
 typedef struct struct_coeff {
 	float value;
 	int channel;
