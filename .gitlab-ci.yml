@@ -7,6 +7,21 @@
 
 image: debian:testing
 
+# our workflow explained:
+#   - run merge request pipelines
+#   - do not run branch pipeline if merge request exists
+#   - run branch pipeline
+#
+# see relevant documentation:
+# https://docs.gitlab.com/ee/ci/pipelines/merge_request_pipelines.html
+# https://docs.gitlab.com/ee/ci/yaml/#rules
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+
 stages:
   - prepare
   - dependencies
