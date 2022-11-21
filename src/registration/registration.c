@@ -60,13 +60,9 @@
 static gboolean keep_noout_state = FALSE;
 
 #undef DEBUG
-
+//TODO update tooltip
 static char *tooltip_text[] = {
-	N_("<b>One Star Registration</b>: This is the simplest method to register deep-sky images. "
-		"Because only one star is concerned for register, images are aligned using shifting "
-		"(at a fraction of pixel). No rotation or scaling are performed. "
-		"Shifts at pixel precision are saved in seq file."),
-	N_("<b>Two or Three Stars Registration</b>: This method looks like the one star registration "
+	N_("<b>1-2-3 Stars Registration</b>: This method looks like the one star registration "
 		"except one need to select two or three stars. This is very useful for field with a "
 		"few stars."),
 	N_("<b>Global Star Alignment</b>: This is a more powerful and accurate algorithm (but also "
@@ -141,9 +137,7 @@ void initialize_registration_methods() {
 	GString *tip;
 	gchar *ctip;
 
-	reg_methods[i++] = new_reg_method(_("One Star Registration (deep-sky)"),
-			&register_shift_fwhm, REQUIRES_ANY_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[i++] = new_reg_method(_("Two or Three Stars Registration (deep-sky)"),
+	reg_methods[i++] = new_reg_method(_("1, 2, 3 Stars Registration (deep-sky)"),
 			&register_3stars, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Global Star Alignment (deep-sky)"),
 			&register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
@@ -1140,9 +1134,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 
 	if (!dont_change_reg_radio) {
-		if (com.seq.selnum < com.seq.number)
+		if (com.seq.selnum < com.seq.number) {
 			gtk_combo_box_set_active(reg_all_sel_box, 1);
-		else
+			gtk_combo_box_set_active(filter_combo, 1);
+		} else
 			gtk_combo_box_set_active(reg_all_sel_box, 0);
 	}
 
@@ -1184,13 +1179,13 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		} else if (method->method_ptr == &register_apply_reg) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_APPLYREG);
 		}
-		gtk_widget_set_visible(follow, (method->method_ptr == &register_shift_fwhm) || (method->method_ptr == &register_3stars));
+		gtk_widget_set_visible(follow, method->method_ptr == &register_3stars);
 		gtk_widget_set_sensitive(toggle_reg_clamp, (method->method_ptr == &register_apply_reg)
 																			|| (method->method_ptr == &register_3stars)
 																			|| (method->method_ptr == &register_star_alignment));
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
 		ready = TRUE;
-		if (method->method_ptr == &register_3stars || method->method_ptr == &register_shift_fwhm) {
+		if (method->method_ptr == &register_3stars) {
 			ready = _3stars_check_selection(); // checks that the right image is loaded based on doall and dofollow
 		}
 		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
@@ -1230,7 +1225,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	if (method && ((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
-			(method->method_ptr == &register_shift_fwhm) ||
 			(method->method_ptr == &register_shift_dft) ||
 			(method->method_ptr == &register_multi_step_global))) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
