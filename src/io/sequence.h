@@ -33,6 +33,7 @@ void	free_sequence(sequence *seq, gboolean free_seq_too);
 void	free_photometry_set(sequence *seq, int set);
 void	sequence_free_preprocessing_data(sequence *seq);
 void	close_sequence(int loading_another);
+gboolean check_seq_is_comseq(sequence *seq);
 gboolean sequence_is_loaded();
 
 typedef enum {
