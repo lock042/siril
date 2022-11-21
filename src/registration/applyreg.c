@@ -246,7 +246,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	// Composing transformation wrt reference image
 	Himg = regargs->seq->regparam[regargs->layer][in_index].H;
-	if (guess_transform_from_H(Himg) == -2)  return 1; // in case H is null and -selected was not passed
+	if (guess_transform_from_H(Himg) == NULL_TRANSFORMATION)
+		return 1; // in case H is null and -selected was not passed
 	cvTransfH(Himg, Htransf, &H);
 
 	if (regargs->interpolation <= OPENCV_LANCZOS4) {
@@ -491,21 +492,26 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	new_ref_index = -1; // resetting
 }
 
-int guess_transform_from_H(Homography H) {
-	if (fabs(H.h00 + H.h01 + H.h02 + H.h10 + H.h11 + H.h12 + H.h20 + H.h21 + H.h22) < __DBL_EPSILON__) return -2; //null matrix
-	if (fabs(H.h20) > __DBL_EPSILON__ || fabs(H.h21) > __DBL_EPSILON__) return HOMOGRAPHY_TRANSFORMATION;
-	if (fabs(H.h00 - 1.) < __DBL_EPSILON__ && fabs(H.h11 - 1.) < __DBL_EPSILON__ && fabs(H.h10) < __DBL_EPSILON__ && fabs(H.h01) < __DBL_EPSILON__) {
-		if (fabs(H.h02) > __DBL_EPSILON__ || fabs(H.h12) > __DBL_EPSILON__) return SHIFT_TRANSFORMATION;
-		return -1; //identity matrix
+transformation_type guess_transform_from_H(Homography H) {
+	if (fabs(H.h00 + H.h01 + H.h02 + H.h10 + H.h11 + H.h12 + H.h20 + H.h21 + H.h22) < __DBL_EPSILON__)
+		return NULL_TRANSFORMATION;
+	if (fabs(H.h20) > __DBL_EPSILON__ || fabs(H.h21) > __DBL_EPSILON__)
+		return HOMOGRAPHY_TRANSFORMATION;
+	if (fabs(H.h00 - 1.) < __DBL_EPSILON__ && fabs(H.h11 - 1.) < __DBL_EPSILON__ &&
+			fabs(H.h10) < __DBL_EPSILON__ && fabs(H.h01) < __DBL_EPSILON__) {
+		if (fabs(H.h02) > __DBL_EPSILON__ || fabs(H.h12) > __DBL_EPSILON__)
+			return SHIFT_TRANSFORMATION;
+		return IDENTITY_TRANSFORMATION;
 	}
-	if (fabs(H.h10 - H.h00  + H.h01 + H.h11) < __DBL_EPSILON__) return SIMILARITY_TRANSFORMATION;
+	if (fabs(H.h10 - H.h00  + H.h01 + H.h11) < __DBL_EPSILON__)
+		return SIMILARITY_TRANSFORMATION;
 	return AFFINE_TRANSFORMATION;
 }
 
-void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboolean excludenull) {
-	int val;
-	*min = HOMOGRAPHY_TRANSFORMATION;
-	*max = -3;
+void guess_transform_from_seq(sequence *seq, int layer,
+		transformation_type *min, transformation_type *max, gboolean excludenull) {
+	*min = HOMOGRAPHY_TRANSFORMATION; // highest value
+	*max = UNDEFINED_TRANSFORMATION;  // lowest value
 	gboolean needs_sel_update = FALSE;
 
 	if (!layer_has_registration(seq, layer)) {
@@ -513,11 +519,11 @@ void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboo
 		return;
 	}
 	for (int i = 0; i < seq->number; i++){
-		val = guess_transform_from_H(seq->regparam[layer][i].H);
+		transformation_type val = guess_transform_from_H(seq->regparam[layer][i].H);
 		//siril_debug_print("Image #%d - transf = %d\n", i+1, val);
 		if (*max < val) *max = val;
 		if (*min > val) *min = val;
-		if ((val == -2) && excludenull) {
+		if (val == NULL_TRANSFORMATION && excludenull) {
 			seq->imgparam[i].incl = FALSE;
 			needs_sel_update = TRUE;
 		}
@@ -528,16 +534,16 @@ void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboo
 
 gboolean check_before_applyreg(struct registration_args *regargs) {
 		// check the reference image matrix is not null
-	int checkH = guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
-	if (checkH == -2) {
+	transformation_type checkH = guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
+	if (checkH == NULL_TRANSFORMATION) {
 		siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"), "red");
 		return FALSE;
 	}
 	// check the number of dof if -interp=none
-	int min, max;
+	transformation_type min, max;
 	guess_transform_from_seq(regargs->seq, regargs->layer, &min, &max, TRUE);
 	if (max > SHIFT_TRANSFORMATION && regargs->interpolation == OPENCV_NONE) {
-		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", (max + 1) * 2);
+		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", ((int)max + 1) * 2);
 		return FALSE;
 	}
 
@@ -554,19 +560,19 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 
 	// check that we are not trying to apply identity transform to all the images
-	if (max == -1) {
+	if (max == IDENTITY_TRANSFORMATION) {
 		siril_log_color_message(_("Existing registration data is a set of identity matrices, no transformation would be applied, aborting\n"), "red");
 		return FALSE;
 	}
 
 	// check that we are not trying to apply null transform to all the images
-	if (max == -2 || (regargs->seq->selnum <= 1) ) {
+	if (max == NULL_TRANSFORMATION || (regargs->seq->selnum <= 1) ) {
 		siril_log_color_message(_("Existing registration data is a set of null matrices, no transformation would be applied, aborting\n"), "red");
 		return FALSE;
 	}
 
 	// force -selected if some matrices were null
-	if (min == -2) {
+	if (min == NULL_TRANSFORMATION) {
 		siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
 		regargs->filters.filter_included = TRUE;
 	}
