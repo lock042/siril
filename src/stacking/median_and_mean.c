@@ -960,13 +960,15 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 
 /* How many rows fit in memory, based on image size, number and available memory.
  * It returns at most the total number of rows of the image (naxes[1] * naxes[2]) */
-static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack) {
+static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack, int nb_rejmaps) {
 	int max_memory = get_max_memory_in_MB();
 	long total_nb_rows = naxes[1] * naxes[2];
 	int elem_size = type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 
 	guint64 size_of_result = naxes[0] * naxes[1] * naxes[2] * elem_size;
+	guint64 size_of_rejmaps = naxes[0] * naxes[1] * naxes[2] * sizeof(WORD);
 	max_memory -= size_of_result / BYTES_IN_A_MB;
+	max_memory -= nb_rejmaps * size_of_rejmaps / BYTES_IN_A_MB;
 	if (max_memory < 0)
 		max_memory = 0;
 
@@ -1092,7 +1094,13 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	long largest_block_height;
 	int nb_blocks;
 	data_type itype = get_data_type(bitpix);
-	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack);
+	int nb_rejmaps = 0;
+	if (args->create_rejmaps) {
+		if (args->merge_lowhigh_rejmaps)
+			nb_rejmaps = 1;
+		else nb_rejmaps = 2;
+	}
+	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack, nb_rejmaps);
 	/* Compute parallel processing data: the data blocks, later distributed to threads */
 	if ((retval = stack_compute_parallel_blocks(&blocks, max_number_of_rows, naxes, nb_threads,
 					&largest_block_height, &nb_blocks))) {
