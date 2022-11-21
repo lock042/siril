@@ -279,9 +279,7 @@ static void start_stacking() {
 }
 
 static void _show_summary(struct stacking_args *args) {
-	const char *norm_str;
-
-	siril_log_message(_("Integration of %d images:\n"), args->nb_images_to_stack);
+	siril_log_message(_("Integration of %d images on %d of the sequence:\n"), args->nb_images_to_stack, args->seq->number);
 
 	/* Type of algorithm */
 	if (args->method == &stack_mean_with_rejection) {
@@ -299,6 +297,7 @@ static void _show_summary(struct stacking_args *args) {
 	}
 
 	/* Normalisation */
+	const char *norm_str;
 	if (args->method != &stack_mean_with_rejection &&
 			args->method != &stack_median ) {
 		norm_str = _("none");
@@ -322,17 +321,17 @@ static void _show_summary(struct stacking_args *args) {
 			break;
 		}
 	}
+	siril_log_message(_("Input normalization ....... %s\n"), norm_str);
 
-	siril_log_message(_("Normalization ............. %s\n"), norm_str);
+	if (args->output_norm)
+		siril_log_message(_("Output normalization ...... enabled\n"));
+	else siril_log_message(_("Output normalization ...... disabled\n"));
 
-	/* Type of rejection */
+	/* Rejection */
 	if (args->method != &stack_mean_with_rejection) {
 		siril_log_message(_("Pixel rejection ........... none\n"));
-		siril_log_message(_("Rejection parameters ...... none\n"));
-	}
-	else {
+	} else {
 		const char *rej_str;
-
 		switch (args->type_of_rejection) {
 		default:
 		case NO_REJEC:
@@ -377,6 +376,22 @@ static void _show_summary(struct stacking_args *args) {
 				else	siril_log_message(_("Creating rejection maps ... yes\n"));
 			}
 		}
+	}
+
+	if (args->apply_noise_weights)
+		siril_log_message(_("Image weighting ........... from noise\n"));
+	else if (args->apply_nbstack_weights)
+		siril_log_message(_("Image weighting ........... from image count\n"));
+	else if (args->apply_wfwhm_weights)
+		siril_log_message(_("Image weighting ........... from weighted FWHM\n"));
+	else if (args->apply_nbstars_weights)
+		siril_log_message(_("Image weighting ........... from star count\n"));
+	else siril_log_message(_("Image weighting ........... disabled\n"));
+
+	if (args->seq->nb_layers > 1) {
+		if (args->equalizeRGB)
+			siril_log_message(_("RGB equalization ........ disabled\n"));
+		else siril_log_message(_("RGB equalization ........ enabled\n"));
 	}
 }
 
@@ -594,7 +609,7 @@ static gboolean end_stacking(gpointer p) {
 						sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
 						gchar *high_filename = replace_ext(args->output_parsed_filename, new_ext);
 						soper_unscaled_div_ushort_to_float(args->rejmap_high, args->nb_images_to_stack);
-						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, FALSE);
+						describe_stack_for_history(args, &args->rejmap_high->history, TRUE, FALSE);
 						savefits(high_filename, args->rejmap_high);
 						g_free(high_filename);
 						clearfits(args->rejmap_high);
