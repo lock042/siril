@@ -423,11 +423,10 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	double fwhm;
 	double dx, dy;
 	double cx,cy;
-	gboolean Href_is_invalid;
 	cx = (seq->is_variable) ? (double)seq->imgparam[ref_image].rx * 0.5 : (double)seq->rx * 0.5;
 	cy = (seq->is_variable) ? (double)seq->imgparam[ref_image].ry * 0.5 : (double)seq->ry * 0.5;
 	Homography Href = seq->regparam[layer][ref_image].H;
-	Href_is_invalid = (guess_transform_from_H(Href) == -2) ? TRUE : FALSE;
+	gboolean Href_is_invalid = (guess_transform_from_H(Href) == NULL_TRANSFORMATION);
 	pdd.datamin = (point){ DBL_MAX, DBL_MAX};
 	pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
 
@@ -452,7 +451,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				// compute the center of image i in the axes of the reference frame
 				dx = (seq->is_variable) ? (double)seq->imgparam[i].rx * 0.5 : (double)seq->rx * 0.5;
 				dy = (seq->is_variable) ? (double)seq->imgparam[i].ry * 0.5 : (double)seq->ry * 0.5;
-				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == -2) {
+				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == NULL_TRANSFORMATION) {
 					plot->data[j].x = 0;
 					break;
 				}
@@ -502,7 +501,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				// compute the center of image i in the axes of the reference frame
 				dx = (seq->is_variable) ? (double)seq->imgparam[i].rx * 0.5 : (double)seq->rx * 0.5;
 				dy = (seq->is_variable) ? (double)seq->imgparam[i].ry * 0.5 : (double)seq->ry * 0.5;
-				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == -2) {
+				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == NULL_TRANSFORMATION) {
 					plot->data[j].y = 0;
 					break;
 				}
