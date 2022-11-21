@@ -163,7 +163,7 @@ int process_seq_clean(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
-	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
@@ -193,7 +193,7 @@ int process_seq_clean(int nb) {
 	}
 
 	clean_sequence(seq, cleanreg, cleanstat, cleansel);
-	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
 		update_stack_interface(TRUE);
 		update_reg_interface(FALSE);
@@ -2470,7 +2470,7 @@ int process_set_ref(int nb) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
@@ -2487,7 +2487,7 @@ int process_set_ref(int nb) {
 	}
 
 	writeseqfile(seq);
-	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
 		seq_load_image(&com.seq, n, TRUE);
 		update_stack_interface(TRUE);
@@ -4703,7 +4703,7 @@ int process_seq_stat(int nb) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
@@ -5244,7 +5244,7 @@ int process_register(int nb) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname)) {
+	if (check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
