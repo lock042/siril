@@ -62,9 +62,12 @@ static gboolean keep_noout_state = FALSE;
 #undef DEBUG
 //TODO update tooltip
 static char *tooltip_text[] = {
-	N_("<b>1-2-3 Stars Registration</b>: This method looks like the one star registration "
-		"except one need to select two or three stars. This is very useful for field with a "
-		"few stars."),
+	N_("<b>1-2-3 Stars Registration</b>: This is the simplest method to register deep-sky images. "
+		"Images are aligned using shifting, if you pick one star, "
+		"or shifting + rotation if 2 or 3 stars are selected.\n"
+		"If only shifts are computed, they are saved in the seq file and the aligned sequence does not need to be exported. "
+		"Images will be shifted pixel-wise during stacking step.\n"
+		"If rotation is also computed, then the aligned images need to be exported using Apply Existing Registration."),
 	N_("<b>Global Star Alignment</b>: This is a more powerful and accurate algorithm (but also "
 		"slower) to perform deep-sky images. The global matching is based on triangle "
 		"similarity method for automatically identify common stars in each image. A new "
@@ -137,7 +140,7 @@ void initialize_registration_methods() {
 	GString *tip;
 	gchar *ctip;
 
-	reg_methods[i++] = new_reg_method(_("1, 2, 3 Stars Registration (deep-sky)"),
+	reg_methods[i++] = new_reg_method(_("1-2-3 Stars Registration (deep-sky)"),
 			&register_3stars, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Global Star Alignment (deep-sky)"),
 			&register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
