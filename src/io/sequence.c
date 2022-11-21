@@ -1333,6 +1333,13 @@ gboolean sequence_is_loaded() {
 	return (com.seq.seqname != NULL && com.seq.imgparam != NULL);
 }
 
+gboolean check_seq_is_comseq(sequence *seq) {
+	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
+		return TRUE;
+	return FALSE;
+}
+
+
 gboolean close_sequence_idle(gpointer data) {
 	fprintf(stdout, "closing sequence idle\n");
 	free_cbbt_layers();
