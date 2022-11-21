@@ -857,9 +857,10 @@ gboolean layer_has_registration(sequence *seq, int layer) {
 	return TRUE;
 }
 gboolean layer_has_usable_registration(sequence *seq, int layer) {
-	int min, max;
+	transformation_type min, max;
 	guess_transform_from_seq(seq, layer, &min, &max, FALSE); // will check first that layer_has_registration
-	if (max <= -1) return FALSE; // max <= -1 means all H matrices are identity or null
+	if (max <= IDENTITY_TRANSFORMATION)
+		return FALSE; // max <= -1 means all H matrices are identity or null
 	return TRUE;
 }
 
