@@ -297,7 +297,7 @@ static void _show_summary(struct stacking_args *args) {
 	}
 
 	/* Normalisation */
-	const char *norm_str;
+	const char *norm_str, *fast_norm = "";
 	if (args->method != &stack_mean_with_rejection &&
 			args->method != &stack_median ) {
 		norm_str = _("none");
@@ -320,8 +320,10 @@ static void _show_summary(struct stacking_args *args) {
 			norm_str = _("multiplicative + scaling");
 			break;
 		}
+		if (args->normalize != NO_NORM && args->lite_norm)
+			fast_norm = _(" (fast)");
 	}
-	siril_log_message(_("Input normalization ....... %s\n"), norm_str);
+	siril_log_message(_("Input normalization ....... %s%s\n"), norm_str, fast_norm);
 
 	if (args->output_norm)
 		siril_log_message(_("Output normalization ...... enabled\n"));
@@ -335,28 +337,28 @@ static void _show_summary(struct stacking_args *args) {
 		switch (args->type_of_rejection) {
 		default:
 		case NO_REJEC:
-			rej_str = _("None");
+			rej_str = _("none");
 			break;
 		case PERCENTILE:
-			rej_str = _("Percentile Clipping");
+			rej_str = _("percentile clipping");
 			break;
 		case SIGMA:
-			rej_str = _("Sigma Clipping");
+			rej_str = _("sigma clipping");
 			break;
 		case MAD:
-			rej_str = _("MAD Clipping");
+			rej_str = _("MAD clipping");
 			break;
 		case SIGMEDIAN:
-			rej_str = _("Median sigma Clipping");
+			rej_str = _("median sigma clipping");
 			break;
 		case WINSORIZED:
-			rej_str = _("Winsorized Sigma Clipping");
+			rej_str = _("winsorized sigma clipping");
 			break;
 		case LINEARFIT:
-			rej_str = _("Linear Fit Clipping");
+			rej_str = _("linear fit clipping");
 			break;
 		case GESDT:
-			rej_str = _("Generalized Extreme Studentized Deviate Test");
+			rej_str = _("GESDT clipping");
 			break;
 		}
 		siril_log_message(_("Pixel rejection ........... %s\n"), rej_str);
@@ -390,8 +392,8 @@ static void _show_summary(struct stacking_args *args) {
 
 	if (args->seq->nb_layers > 1) {
 		if (args->equalizeRGB)
-			siril_log_message(_("RGB equalization ........ disabled\n"));
-		else siril_log_message(_("RGB equalization ........ enabled\n"));
+			siril_log_message(_("RGB equalization .......... enabled\n"));
+		else siril_log_message(_("RGB equalization .......... disabled\n"));
 	}
 }
 
@@ -493,7 +495,30 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 			g_string_append(str, ", multiplicative+scaling normalized input");
 			break;
 		}
+		if (args->normalize != NO_NORM && args->lite_norm)
+			g_string_append(str, " (fast)");
 	}
+
+	if (args->output_norm)
+		g_string_append(str, ", normalized output");
+	else g_string_append(str, ", unnormalized output");
+
+	if (args->apply_noise_weights)
+		g_string_append(str, ", image weighting from noise");
+	else if (args->apply_nbstack_weights)
+		g_string_append(str, ", image weighting from image count");
+	else if (args->apply_wfwhm_weights)
+		g_string_append(str, ", image weighting from weighted FWHM");
+	else if (args->apply_nbstars_weights)
+		g_string_append(str, ", image weighting from star count");
+	else g_string_append(str, ", no image weighting");
+
+	if (args->seq->nb_layers > 1) {
+		if (args->equalizeRGB)
+			g_string_append(str, ", equalized RGB");
+		else  g_string_append(str, ", unequalized RGB");
+	}
+
 	*hist = g_slist_append(*hist, g_string_free(str, FALSE));
 }
 
