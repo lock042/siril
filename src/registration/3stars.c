@@ -491,7 +491,6 @@ then computes transformation matrix to the ref image
 and finally applies this transform if !no_output
 Registration data is saved to the input sequence in any case
 */
-// TODO: upscale at stacking member for one star reg if noout
 // TODO: Add combo with choice of transform (shift or euclidean)
 // TODO: noout should be the default for one star
 int register_3stars(struct registration_args *regargs) {
@@ -535,6 +534,17 @@ int register_3stars(struct registration_args *regargs) {
 	set_progress_bar_data(msg, PROGRESS_RESET);
 	int processed = 0, failed = 0;
 
+	// local flag accounting both for process_all_frames flag and collecting failures along the process
+	gboolean *included = NULL;
+	float *scores = NULL;
+	included = calloc(regargs->seq->number, sizeof(gboolean));
+	scores = calloc(regargs->seq->number, sizeof(float));
+	if (!included || !scores) {
+		PRINT_ALLOC_ERR;
+		_3stars_free_results();
+		return 1;
+	}
+
 	/* set regparams for current sequence before closing it */
 	for (int i = 0; i < regargs->seq->number; i++) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included) continue;
@@ -575,19 +585,26 @@ int register_3stars(struct registration_args *regargs) {
 			current_regdata[i].weighted_fwhm = 2. * fwhm * (double)(nb_stars_ref - nb_stars) / (double)nb_stars + fwhm;
 			current_regdata[i].background_lvl = sumb / nb_stars;
 			current_regdata[i].number_of_stars = nb_stars;
+			included[i] = TRUE;
+			scores[i] = current_regdata[i].weighted_fwhm;
 		} else {
 			siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
 			failed++;
 			continue;
 		}
-		// TODO: Here, we could cut these calcs in two pass:
-		// first pass we determine the best frame (lowest FWHM)
-		// second pass we compute the transforms
+	}
 
-		// computing the transformation matrices
+	// setting the new reference
+	int best_index = minidx(scores, included, regargs->seq->number, NULL);
+	regargs->seq->reference_image = best_index;
+	int reffilenum = regargs->seq->imgparam[best_index].filenum;	// for display purposes
+	siril_log_message(_("Trial #%d: After sequence analysis, we are choosing image %d as new reference for registration\n"), 1, reffilenum);
 
+	// computing the transformation matrices
+	for (int i = 0; i < regargs->seq->number; i++) {
+		if (!included[i]) continue;
 		// Determine number of stars present in both in image and ref
-		nb_stars = 0;
+		int nb_stars = 0;
 		for (int j = 0; j < selected_stars; j++) {
 			if (results[i].stars[j] != NULL && results[refimage].stars[j] != NULL) nb_stars++;
 		}
@@ -645,6 +662,8 @@ int register_3stars(struct registration_args *regargs) {
 	}
 	// cleaning
 	regargs->new_total = processed - failed;
+	free(included);
+	free(scores);
 	_3stars_free_results();
 
 	if (!regargs->no_output) {

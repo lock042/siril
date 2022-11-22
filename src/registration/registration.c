@@ -60,7 +60,6 @@
 static gboolean keep_noout_state = FALSE;
 
 #undef DEBUG
-//TODO update tooltip
 static char *tooltip_text[] = {
 	N_("<b>1-2-3 Stars Registration</b>: This is the simplest method to register deep-sky images. "
 		"Images are aligned using shifting, if you pick one star, "
@@ -1532,6 +1531,7 @@ static gboolean end_register_idle(gpointer p) {
 			update_seqlist(chan);
 			fill_sequence_list(args->seq, chan, FALSE);
 			set_layers_for_registration();	// update display of available reg data
+			redraw(REDRAW_OVERLAY); // plot registration frame
 		}
 		else {
 			check_seq();

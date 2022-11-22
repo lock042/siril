@@ -160,4 +160,6 @@ Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
 
+int minidx(const float *arr, const gboolean *mask, int nb, float *val);
+
 #endif
