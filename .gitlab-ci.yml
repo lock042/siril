@@ -280,8 +280,8 @@ siril-macos:
     RELEASE_TAG: r3
     RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
-    - siril_macos/jhb/usr/bin/archive uninstall_dmg  # after_script doesn't run for cancelled/timed out jobs
     - git clone --branch $RELEASE_TAG --depth 1 --recurse-submodules https://gitlab.com/free-astro/siril_macos.git
+    - siril_macos/jhb/usr/bin/archive uninstall_dmg  # after_script doesn't run for cancelled/timed out jobs
     - siril_macos/jhb/usr/bin/archive install_dmg
     - |
       cd siril_macos
