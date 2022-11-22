@@ -67,6 +67,7 @@ struct stacking_args {
 	int *image_indices;		/* mapping between selected and sequence image indices */
 	char *description;		/* description of the filtering */
 	const char *output_filename;	/* used in the idle function only */
+	gchar *output_parsed_filename; /* used in the idle function only */
 	gboolean output_overwrite;	/* used in the idle function only */
 	struct timeval t_start;
 	int retval;
@@ -140,7 +141,7 @@ int stack_median(struct stacking_args *args);
 int stack_mean_with_rejection(struct stacking_args *args);
 int stack_addmax(struct stacking_args *args);
 int stack_addmin(struct stacking_args *args);
-
+gboolean stack_regdata_is_valid(struct stacking_args args);
 void main_stack(struct stacking_args *args);
 void clean_end_stacking(struct stacking_args *args);
 

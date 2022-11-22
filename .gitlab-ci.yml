@@ -7,6 +7,21 @@
 
 image: debian:testing
 
+# our workflow explained:
+#   - run merge request pipelines
+#   - do not run branch pipeline if merge request exists
+#   - run branch pipeline
+#
+# see relevant documentation:
+# https://docs.gitlab.com/ee/ci/pipelines/merge_request_pipelines.html
+# https://docs.gitlab.com/ee/ci/yaml/#rules
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+
 stages:
   - prepare
   - dependencies
@@ -232,9 +247,53 @@ siril-win64:
       - ${BUILD_DIR}
       - ${CROSSROAD_OUT}
       - ${INSTALL_DIR}
-
+      
 ################################################################################
 # Packaging
+
+################################################################################
+# macOS CI
+
+siril-macos:
+  stage: packaging
+  image: macos-10.13-xcode-9
+  parallel:
+    matrix:
+      - RUNNER: [ "macosarm", "shared-macos-amd64" ]
+  rules:
+    - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
+      when: never  # job requires custom runner, not suitable outside the project
+    - if: $RUNNER == "macosarm"
+      variables:
+        SDKROOT: /Users/Shared/sdks/MacOSX11.3.sdk
+        ARCHITECTURE: arm64
+    - if: $RUNNER == "shared-macos-amd64"
+      variables:
+        ARCHITECTURE: x86_64
+        SYS_USRLOCAL_IGNORE: "true"
+  tags:
+    - ${RUNNER}
+  variables:
+    REP_DIR: /Users/Shared/data
+    SIRIL_BUILD: $CI_PIPELINE_IID
+    RELEASE_ARCHIVE: jhb-0.23_$ARCHITECTURE.dmg
+    RELEASE_TAG: r3
+    RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
+  script:
+    - git clone --branch $RELEASE_TAG --depth 1 --recurse-submodules https://gitlab.com/free-astro/siril_macos.git
+    - siril_macos/jhb/usr/bin/archive install_dmg
+    - |
+      cd siril_macos
+      ./build_siril.sh
+      mv Siril*.dmg ..
+  after_script:
+    - siril_macos/jhb/usr/bin/archive uninstall_dmg
+  needs: []
+  artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    expire_in: 1 week
+    paths:
+      - Siril*.dmg
 
 win64-nightly:
   stage: packaging
@@ -335,6 +394,7 @@ appimage-nightly:
     paths:
       - build/appimage/Siril*.AppImage*
   needs: ["build-image-oldstable"]
+  allow_failure: true
 
 ################################################################################
 # Analysis

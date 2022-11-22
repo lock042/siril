@@ -49,7 +49,10 @@ typedef enum {
 	BAYER_FILTER_BGGR,
 	BAYER_FILTER_GBRG,
 	BAYER_FILTER_GRBG,
-	XTRANS_FILTER,
+	XTRANS_FILTER_1,
+	XTRANS_FILTER_2,
+	XTRANS_FILTER_3,
+	XTRANS_FILTER_4,
 	BAYER_FILTER_NONE = -1		//case where pattern is undefined or untested
 } sensor_pattern;
 #define BAYER_FILTER_MIN BAYER_FILTER_RGGB
@@ -114,6 +117,7 @@ struct debayer_config {
 	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
 	gboolean top_down;			// debayer top-down orientation
 	int xbayeroff, ybayeroff;		// x and y Bayer offsets
+	int xtrans_passes;			// number of passes for X-Trans debayer
 };
 
 // GUI data backup
@@ -154,7 +158,7 @@ struct gui_config {
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[8];	// 6 system catalogs and 2 user catalogs for annotations
+	gboolean catalog[9];	// 6 system catalogs and 2 user catalogs for annotations and 1 short-lived catalogue for "who's in the field" annotations
 
 	gint selection_guides;	// number of elements of the grid guides
 				// (2 for a simple cross, 3 for the 3 thirds rule, etc.)
@@ -177,12 +181,12 @@ struct prepro_config {
 	rectangle xtrans_sample;// if no xtrans model found, use these values
 	gchar *bias_lib;
 	gboolean use_bias_lib;
-	gchar *bias_synth;
-	gboolean use_bias_synth;
 	gchar *dark_lib;
 	gboolean use_dark_lib;
 	gchar *flat_lib;
 	gboolean use_flat_lib;
+	gchar *stack_default;
+	gboolean use_stack_default;
 };
 
 typedef struct {

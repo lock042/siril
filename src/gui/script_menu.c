@@ -58,6 +58,9 @@ static GSList *initialize_script_paths(){
 	g_free(execpath);
 #else
 	list = g_slist_prepend(list, g_build_filename(siril_get_system_data_dir(), "scripts", NULL));
+	if (g_getenv("XDG_CONFIG_HOME") != NULL) {
+		list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), getenv("XDG_CONFIG_HOME"), "scripts", NULL));
+	}
 	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), ".siril", "scripts", NULL));
 	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), "siril", "scripts", NULL));
 #endif

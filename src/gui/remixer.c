@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
+#include "algos/colors.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "gui/image_display.h"
@@ -55,8 +56,6 @@ static float leftLP = 0.0f, rightLP = 0.0f;
 static float leftSP = 0.0f, rightSP = 0.0f;
 static float leftHP = 1.0f, rightHP = 1.0f;
 static float leftBP = 0.0f, rightBP = 0.0f;
-static float mastermixer = 0.5f;
-static float finalstretch = 0.0f;
 static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_ASINH;
 static int colour_left = COL_INDEP, colour_right = COL_INDEP;
 static fits fit_left;
@@ -458,7 +457,7 @@ int remixer() {
 	// * Apply GHT stretch according to chosen parameters
 	// * Apply linear stretch according to chosen blackpoint
 	// (combining)
-	// Add together (mastermixer * right image) + ((1-mastermixer) * left image)
+	// Combine in CIE LCh colorspace
 	// Renormalize to [0,1]
 
 	// Are we allowed to proceed?
@@ -496,27 +495,116 @@ int remixer() {
 	right_changed = FALSE;
 
 	// Combine images together
-//	clearfits(&gfit);
-//	copyfits(&fit_left_calc, &gfit, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
+
 	const size_t ndata = gfit.naxes[0] * gfit.naxes[1] * gfit.naxes[2];
 	if (gfit.data)
 		memset(gfit.data, 0, ndata * sizeof(WORD));
 	if (gfit.fdata)
 		memset(gfit.fdata, 0, ndata * sizeof(float));
 
-	// Scale left and right images according to master mixer slider
-	// imoper_scaled ( a, b, oper, factor ) = a oper factor * b
-	if (left_loaded && (mastermixer != 1.0f)) {
-		imoper_scaled(&gfit, &fit_left_calc, OPER_ADD, (1.0f - mastermixer));
-	}
-	if (right_loaded && (mastermixer != 0.0f)) {
-		imoper_scaled(&gfit, &fit_right_calc, OPER_ADD, mastermixer);
-	}
-
-	if (finalstretch != 0.0f) {
-		ght_compute_params cp_final = { 0.0f };
-		ght_params params_final = { (finalstretch - 5.0f), 4.0f, 0.0f, 0.0f, 1.0f, 0.0f, STRETCH_PAYNE_NORMAL, COL_HUMANLUM, TRUE, TRUE, TRUE };
-		apply_linked_ght_to_fits(&gfit, &gfit, params_final, cp_final, TRUE);
+	size_t npixels = gfit.naxes[0] * gfit.naxes[1];
+	const float norm = USHRT_MAX_SINGLE;
+	const float invnorm = 1.f / norm;
+	if (gfit.naxes[2] == 1) {
+		switch (gfit.type) {
+			case DATA_FLOAT:
+				for (size_t i = 0 ; i < npixels ; i++) {
+					gfit.fdata[i] = fit_left_calc.fdata[i] + fit_right_calc.fdata[i] - fit_left_calc.fdata[i] * fit_right_calc.fdata[i];
+				}
+				break;
+			case DATA_USHORT:
+				for (size_t i = 0 ; i < npixels ; i++) {
+					gfit.data[i] = roundf_to_WORD(norm * (1.f - (1.f - (fit_left_calc.data[i]*invnorm))*(1.f - (fit_right_calc.data[i]*invnorm))));
+				}
+				break;
+			default:
+				break;
+		}
+	} else {
+		switch (gfit.type) {
+			case DATA_FLOAT:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0 ; i < npixels ; i++) {
+					float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
+					float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
+					if (left_loaded) {
+						rinl = fit_left_calc.fpdata[0][i];
+						ginl = fit_left_calc.fpdata[1][i];
+						binl = fit_left_calc.fpdata[2][i];
+					} else {
+						rinl = 0.f;
+						ginl = 0.f;
+						binl = 0.f;
+					}
+					if (right_loaded) {
+						rinr = fit_right_calc.fpdata[0][i];
+						ginr = fit_right_calc.fpdata[1][i];
+						binr = fit_right_calc.fpdata[2][i];
+					} else {
+						rinr = 0.f;
+						ginr = 0.f;
+						binr = 0.f;
+					}
+					rgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
+					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
+					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
+					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
+					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
+					float ao = (Ll * Al + Lr * Ar) / divisor;
+					float bo = (Ll * Bl + Lr * Br) / divisor;
+					float Lo = Ll + Lr - Ll * Lr * 0.01f;
+					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
+					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
+					gfit.fpdata[0][i] = rout;
+					gfit.fpdata[1][i] = gout;
+					gfit.fpdata[2][i] = bout;
+				}
+				break;
+			case DATA_USHORT:
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+				for (size_t i = 0 ; i < npixels ; i++) {
+					float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
+					float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
+					if (left_loaded) {
+						rinl = fit_left_calc.pdata[0][i] * invnorm;
+						ginl = fit_left_calc.pdata[1][i] * invnorm;
+						binl = fit_left_calc.pdata[2][i] * invnorm;
+					} else {
+						rinl = 0.f;
+						ginl = 0.f;
+						binl = 0.f;
+					}
+					if (right_loaded) {
+						rinr = fit_right_calc.pdata[0][i] * invnorm;
+						ginr = fit_right_calc.pdata[1][i] * invnorm;
+						binr = fit_right_calc.pdata[2][i] * invnorm;
+					} else {
+						rinr = 0.f;
+						ginr = 0.f;
+						binr = 0.f;
+					}
+					rgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
+					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
+					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
+					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
+					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
+					float ao = (Ll * Al + Lr * Ar) / divisor;
+					float bo = (Ll * Bl + Lr * Br) / divisor;
+					float Lo = Ll + Lr - Ll * Lr * 0.01f;
+					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
+					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
+					gfit.pdata[0][i] = roundf_to_WORD(rout * norm);
+					gfit.pdata[1][i] = roundf_to_WORD(gout * norm);
+					gfit.pdata[2][i] = roundf_to_WORD(bout * norm);
+				}
+				break;
+			default:
+				break;
+		}
 	}
 	// If 16bit preference is set, check the images are 16bit
 	if (com.pref.force_16bit && gfit.type == DATA_FLOAT)
@@ -540,8 +628,6 @@ void reset_values() {
 	type_left = STRETCH_PAYNE_NORMAL;
 	type_right = STRETCH_ASINH;
 	colour_left = colour_right = COL_INDEP;
-	mastermixer = 0.5f;
-	finalstretch = 0.0f;
 }
 
 void reset_filechoosers() {
@@ -562,8 +648,6 @@ void reset_controls_and_values() {
 	GtkSpinButton *spin_remix_HP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_right"));
 	GtkSpinButton *spin_remix_BP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_BP_left"));
 	GtkSpinButton *spin_remix_BP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_BP_right"));
-	GtkSpinButton *spin_remix_finalstretch = GTK_SPIN_BUTTON(lookup_widget("spin_finalstretch"));
-	GtkSpinButton *spin_remix_mastermixer = GTK_SPIN_BUTTON(lookup_widget("spin_mastermixer"));
 	reset_values();
 
 	set_notify_block(TRUE);
@@ -579,8 +663,6 @@ void reset_controls_and_values() {
 	gtk_spin_button_set_value(spin_remix_HP_right, rightHP);
 	gtk_spin_button_set_value(spin_remix_BP_left, leftBP);
 	gtk_spin_button_set_value(spin_remix_BP_right, rightBP);
-	gtk_spin_button_set_value(spin_remix_finalstretch, finalstretch);
-	gtk_spin_button_set_value(spin_remix_mastermixer, mastermixer);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_left")), STRETCH_PAYNE_NORMAL);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_PAYNE_NORMAL);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_INDEP);
@@ -878,22 +960,6 @@ void on_spin_remix_BP_right_value_changed(GtkSpinButton *button, gpointer user_d
 	notify_update((gpointer) param);
 }
 
-void on_spin_mastermixer_value_changed(GtkSpinButton *button, gpointer user_data) {
-	mastermixer = (float) gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = remixer_update_preview;
-	param->show_preview = TRUE;
-	notify_update((gpointer) param);
-}
-
-void on_spin_finalstretch_value_changed(GtkSpinButton *button, gpointer user_data) {
-	finalstretch = (float) gtk_spin_button_get_value(button);
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = remixer_update_preview;
-	param->show_preview = TRUE;
-	notify_update((gpointer) param);
-}
-
 void on_remix_colour_left_changed(GtkComboBox *combo, gpointer user_data) {
 	left_changed = TRUE;
 	colour_left = gtk_combo_box_get_active(combo);
@@ -944,6 +1010,11 @@ void on_remix_type_right_changed(GtkComboBox *combo, gpointer user_data) {
 
 void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	close_histograms(TRUE, FALSE);
+	if (left_loaded) {
+		clearfits(&fit_left);
+		clearfits(&fit_left_calc);
+		left_loaded = FALSE;
+	}
 	filename_left = g_strdup(gtk_file_chooser_get_filename(filechooser));
 	if (readfits(filename_left, &fit_left, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
@@ -993,6 +1064,11 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 
 void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	close_histograms(FALSE, TRUE);
+	if (right_loaded) {
+		clearfits(&fit_right);
+		clearfits(&fit_right_calc);
+		right_loaded = FALSE;
+	}
 	filename_right = g_strdup(gtk_file_chooser_get_filename(filechooser));
 	if (readfits(filename_right, &fit_right, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
@@ -1118,7 +1194,7 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 		gtk_spin_button_set_value(spin_remix_HP_right, (double) rightSP);
 		rightHP = rightSP;
 	}
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_right")),leftSP);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_right")),rightSP);
 	right_changed = TRUE;
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));

@@ -41,6 +41,7 @@
 #include "gui/registration_preview.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
+#include "livestacking/livestacking.h"
 #include "histogram.h"
 #include "registration/matching/degtorad.h"
 #include "registration/registration.h"
@@ -605,8 +606,14 @@ static void draw_vport(const draw_data_t* dd) {
 		view->view_width = dd->window_width;
 		view->view_height = dd->window_height;
 		cairo_t *cached_cr = cairo_create(view->disp_surface);
-
-		cairo_transform(cached_cr, &gui.display_matrix);
+		cairo_matrix_t y_reflection_matrix, flipped_matrix; 
+		cairo_matrix_init_identity(&y_reflection_matrix);
+		if (livestacking_is_started() && !g_strcmp0(gfit.row_order, "TOP-DOWN")) {
+			y_reflection_matrix.yy = -1.0;
+			y_reflection_matrix.y0 = gfit.ry;
+		}
+		cairo_matrix_multiply(&flipped_matrix, &y_reflection_matrix, &gui.display_matrix);
+		cairo_transform(cached_cr, &flipped_matrix);
 		cairo_set_source_surface(cached_cr, view->full_surface, 0, 0);
 		cairo_pattern_set_filter(cairo_get_source(cached_cr), dd->filter);
 		cairo_paint(cached_cr);
@@ -1272,6 +1279,9 @@ static void draw_annotates(const draw_data_t* dd) {
 		case USER_SSO_CAT_INDEX:
 			cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.9);
 			break;
+		case USER_TEMP_CAT_INDEX:
+			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9);
+			break;
 		default:
 		case 0:
 			if (dd->neg_view) {
@@ -1404,14 +1414,13 @@ static void draw_regframe(const draw_data_t* dd) {
 	int activelayer = gtk_combo_box_get_active(seqcombo);
 	if (!layer_has_registration(&com.seq, activelayer)) return;
 	if (com.seq.reg_invalidated) return;
-	int min, max;
+	transformation_type min, max;
 	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
-	if (max <= -1) return;
+	if (max <= IDENTITY_TRANSFORMATION) return;
 
-	int Htyperef = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H);
-	int Htypecur = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H);
-	if (Htyperef == -2) return; // reference image H matrix is null matrix
-	if (Htypecur == -2) return; // current image H matrix is null
+	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == NULL_TRANSFORMATION ||
+			guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H) == NULL_TRANSFORMATION)
+		return; // reference or current image H matrix is null matrix
 
 	regframe framing = { 0 };
 	framing.pt[0].x = 0.;

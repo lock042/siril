@@ -105,6 +105,15 @@ static char *reg_frame_registration[] = {
 Needs to be consistent with list in comboreg_maxstars*/
 static int maxstars_values[] = { 100, 200, 500, 1000, 2000 };
 
+/* Values for seq filtering for % or k value*/
+static float filter_initvals[] = {90., 3.}; // max %, max k
+static float filter_maxvals[] = {100., 5.}; // max %, max k
+static float filter_increments[] = {1., 0.1}; // spin button steps for % and k
+static char *filter_tooltip_text[] = {
+	N_("Percents of the images of the sequence."),
+	N_("Number of standard deviations for rejection of worst images by k-sigma clipping algorithm.")
+};
+
 int register_kombat(struct registration_args *args);
 
 /* callback for the selected area event */
@@ -698,7 +707,7 @@ int register_shift_fwhm(struct registration_args *args) {
 	 * images to register, which provides FWHM but also star coordinates */
 	// TODO: detect that it was already computed, and don't do it again
 	// -> should be done at a higher level and passed in the args
-	if (seqpsf(args->seq, args->layer, TRUE, !args->filters.filter_included, framing, FALSE, FALSE))
+	if (seqpsf(args->seq, args->layer, TRUE, !args->filters.filter_included, framing, FALSE, TRUE))
 		return 1;
 
 	// regparam is managed in seqpsf idle function already
@@ -848,9 +857,10 @@ gboolean layer_has_registration(sequence *seq, int layer) {
 	return TRUE;
 }
 gboolean layer_has_usable_registration(sequence *seq, int layer) {
-	int min, max;
+	transformation_type min, max;
 	guess_transform_from_seq(seq, layer, &min, &max, FALSE); // will check first that layer_has_registration
-	if (max <= -1) return FALSE; // max <= -1 means all H matrices are identity or null
+	if (max <= IDENTITY_TRANSFORMATION)
+		return FALSE; // max <= -1 means all H matrices are identity or null
 	return TRUE;
 }
 
@@ -866,17 +876,20 @@ int seq_has_any_regdata(sequence *seq) {
 
 /****************************************************************/
 
-#define MAX_FILTERS 5
 static struct filtering_tuple regfilters[MAX_FILTERS] = { 0 };
 
-static void update_filters_registration();
+static void update_filters_registration(int update_adjustment);
 
 void on_regsel_changed(GtkComboBox *widget, gpointer user_data) {
-	update_filters_registration();
+	int filter = -1;
+	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE (widget));
+	if (g_str_has_prefix(caller, "filter_type"))
+		filter = (int)g_ascii_strtod(caller + 11, NULL) - 4; // filter_type4, 5 or 6 to be parsed as 0, 1 or 2
+	update_filters_registration(filter);
 }
 
 void on_regspinbut_percent_change(GtkSpinButton *spinbutton, gpointer user_data) {
-	update_filters_registration();
+	update_filters_registration(-1);
 }
 
 void on_filter_add4_clicked(GtkButton *button, gpointer user_data){
@@ -885,7 +898,8 @@ void on_filter_add4_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("filter_add5"), TRUE);
 	gtk_widget_set_visible(lookup_widget("filter_rem5"), TRUE);
 	gtk_widget_set_visible(lookup_widget("labelfilter5"), TRUE);
-	update_filters_registration();
+	gtk_widget_set_visible(lookup_widget("filter_type5"), TRUE);
+	update_filters_registration(-1);
 }
 
 void on_filter_add5_clicked(GtkButton *button, gpointer user_data){
@@ -893,7 +907,8 @@ void on_filter_add5_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("stackspin6"), TRUE);
 	gtk_widget_set_visible(lookup_widget("filter_rem6"), TRUE);
 	gtk_widget_set_visible(lookup_widget("labelfilter6"), TRUE);
-	update_filters_registration();
+	gtk_widget_set_visible(lookup_widget("filter_type6"), TRUE);
+	update_filters_registration(-1);
 }
 
 void on_filter_rem5_clicked(GtkButton *button, gpointer user_data){
@@ -902,7 +917,8 @@ void on_filter_rem5_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("filter_add5"), FALSE);
 	gtk_widget_set_visible(lookup_widget("filter_rem5"), FALSE);
 	gtk_widget_set_visible(lookup_widget("labelfilter5"), FALSE);
-	update_filters_registration();
+	gtk_widget_set_visible(lookup_widget("filter_type5"), FALSE);
+	update_filters_registration(-1);
 }
 
 void on_filter_rem6_clicked(GtkButton *button, gpointer user_data){
@@ -910,16 +926,19 @@ void on_filter_rem6_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("stackspin6"), FALSE);
 	gtk_widget_set_visible(lookup_widget("filter_rem6"), FALSE);
 	gtk_widget_set_visible(lookup_widget("labelfilter6"), FALSE);
-	update_filters_registration();
+	gtk_widget_set_visible(lookup_widget("filter_type6"), FALSE);
+	update_filters_registration(-1);
 }
 
 static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
-		double *filtering_parameter) {
+		double *filtering_parameter, int update_adjustment) {
 	int filter, guifilter, channel = 0, type;
+	gboolean is_ksig = FALSE;
 	double percent = 0.0;
 	static GtkComboBox *filter_combo[3] = { NULL };
 	static GtkAdjustment *stackadj[3] = { NULL };
 	static GtkWidget *spin[3] = { NULL };
+	static GtkWidget *ksig[3] = { NULL };
 	if (!spin[0]) {
 		spin[0] = lookup_widget("stackspin4");
 		spin[1] = lookup_widget("stackspin5");
@@ -930,6 +949,9 @@ static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_crit
 		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter4"));
 		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter5"));
 		filter_combo[2] = GTK_COMBO_BOX(lookup_widget("combofilter6"));
+		ksig[0] = lookup_widget("filter_type4");
+		ksig[1] = lookup_widget("filter_type5");
+		ksig[2] = lookup_widget("filter_type6");
 	}
 	for (filter = 0, guifilter = 0; guifilter < 3; guifilter++) {
 		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[guifilter]))) {
@@ -940,55 +962,71 @@ static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_crit
 		if (type != ALL_IMAGES && type != SELECTED_IMAGES) {
 			channel = get_registration_layer(&com.seq);
 			percent = gtk_adjustment_get_value(stackadj[guifilter]);
+			is_ksig =  gtk_combo_box_get_active(GTK_COMBO_BOX(ksig[guifilter]));
 		}
-
+		if (update_adjustment == filter) {
+			g_signal_handlers_block_by_func(stackadj[filter], on_regsel_changed, NULL);
+			gtk_adjustment_set_upper(stackadj[filter], filter_maxvals[is_ksig]);
+			gtk_adjustment_set_value(stackadj[filter], filter_initvals[is_ksig]);
+			gtk_adjustment_set_step_increment(stackadj[filter], filter_increments[is_ksig]);
+			gtk_widget_set_tooltip_text(spin[filter], filter_tooltip_text[is_ksig]);
+			g_signal_handlers_unblock_by_func(stackadj[filter], on_regsel_changed, NULL);
+		}
 		switch (type) {
 			default:
 			case ALL_IMAGES:
 				regfilters[filter].filter = seq_filter_all;
 				regfilters[filter].param = 0.0;
 				gtk_widget_set_visible(spin[guifilter], FALSE);
+				gtk_widget_set_visible(ksig[guifilter], FALSE);
 				break;
 			case SELECTED_IMAGES:
 				regfilters[filter].filter = seq_filter_included;
 				regfilters[filter].param = 0.0;
 				gtk_widget_set_visible(spin[guifilter], FALSE);
+				gtk_widget_set_visible(ksig[guifilter], FALSE);
 				break;
 			case BEST_PSF_IMAGES:
 				regfilters[filter].filter = seq_filter_fwhm;
 				regfilters[filter].param = compute_highest_accepted_fwhm(
-						&com.seq, channel, percent);
+						&com.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_WPSF_IMAGES:
 				regfilters[filter].filter = seq_filter_weighted_fwhm;
 				regfilters[filter].param = compute_highest_accepted_weighted_fwhm(
-						&com.seq, channel, percent);
+						&com.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_ROUND_IMAGES:
 				regfilters[filter].filter = seq_filter_roundness;
 				regfilters[filter].param = compute_lowest_accepted_roundness(
-						&com.seq, channel, percent);
+						&com.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_BKG_IMAGES:
 				regfilters[filter].filter = seq_filter_background;
 				regfilters[filter].param = compute_highest_accepted_background(
-						&com.seq, channel, percent);
+						&com.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_NBSTARS_IMAGES:
 				regfilters[filter].filter = seq_filter_nbstars;
 				regfilters[filter].param = compute_lowest_accepted_nbstars(
-						&com.seq, channel, percent);
+						&com.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_QUALITY_IMAGES:
 				regfilters[filter].filter = seq_filter_quality;
 				regfilters[filter].param = compute_lowest_accepted_quality(
-						&com.seq, channel, percent);
+						&com.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 		}
 		filter++;
@@ -1065,13 +1103,13 @@ static void update_filter_label(seq_image_filter filtering_criterion, double fil
 	g_free(labelbuffer);
 }
 
-static void update_filters_registration() {
+static void update_filters_registration(int update_adjustment) {
 	if (!sequence_is_loaded())
 		return;
 	siril_debug_print("updating registration filters GUI\n");
 	seq_image_filter criterion;
 	double param;
-	get_reg_sequence_filtering_from_gui(&criterion, &param);
+	get_reg_sequence_filtering_from_gui(&criterion, &param, update_adjustment);
 	update_filter_label(criterion, param);
 }
 
@@ -1126,7 +1164,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		if (!dont_change_reg_radio && com.seq.selnum < com.seq.number) {
 			gtk_combo_box_set_active(filter_combo, SELECTED_IMAGES);
 		}
-		update_filters_registration();
+		update_filters_registration(-1);
 	}
 
 	/* number of registered image */
@@ -1396,7 +1434,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 #endif
 	if (method->method_ptr == register_apply_reg) {
 		get_reg_sequence_filtering_from_gui(
-				&reg_args->filtering_criterion, &reg_args->filtering_parameter);
+				&reg_args->filtering_criterion, &reg_args->filtering_parameter, -1);
 	} else {
 		reg_args->filters.filter_included = gtk_combo_box_get_active(reg_all_sel_box);
 	}

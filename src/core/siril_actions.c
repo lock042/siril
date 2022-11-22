@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "core/command.h"
 #include "core/undo.h"
+#include "core/command.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
 #include "core/siril_log.h"
@@ -369,12 +370,19 @@ void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer
 		siril_open_dialog("search_objects");
 }
 
+void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (has_wcs(&gfit))
+		process_sso();
+}
+
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		if (has_wcs(&gfit)) {
 			com.found_object = find_objects(&gfit);
 		}
 	} else {
+		purge_temp_user_catalogue();
+		force_to_refresh_catalogue_list();
 		g_slist_free_full(com.found_object, (GDestroyNotify) free_catalogue_object);
 		com.found_object = NULL;
 	}
@@ -522,6 +530,10 @@ void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	toggle_histogram_window_visibility(2);
 }
 
+void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("binxy_dialog");
+}
+
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("resample_dialog");
 }
@@ -606,6 +618,10 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("denoise_dialog");
+}
+
+void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("merge_cfa_dialog");
 }
 
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

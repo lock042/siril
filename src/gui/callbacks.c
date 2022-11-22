@@ -34,6 +34,7 @@
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
+#include "algos/annotate.h"
 #include "io/conversion.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
@@ -145,7 +146,7 @@ void launch_clipboard_survey() {
 	if (com.script)
 		return;
 	GtkClipboard *clipboard = NULL;
-
+	
 	/* Get the clipboard object */
 	clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 
@@ -248,8 +249,8 @@ void set_sliders_value_to_gfit() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 
 	gfit.hi = gtk_adjustment_get_value(adj1);
@@ -264,8 +265,8 @@ void set_cutoff_sliders_max_values() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 	gdouble max_val;
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 	/* set max value for range according to number of bits of original image
 	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG.
@@ -290,8 +291,8 @@ void set_cutoff_sliders_values() {
 	static GtkEntry *maxentry = NULL, *minentry = NULL;
 	static GtkToggleButton *cutmax = NULL;
 	if (adjmin == NULL) {
-		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1")); // scalemax
-		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2")); // scalemin
+		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax")); // scalemax
+		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin")); // scalemin
 		maxentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "max_entry"));
 		minentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "min_entry"));
 		cutmax = GTK_TOGGLE_BUTTON(
@@ -533,6 +534,9 @@ void update_MenuItem() {
 	/* search object */
 	GAction *action_search_objectr = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-object");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_objectr), any_image_is_loaded && has_wcs(&gfit));
+	/* search SOLAR object */
+	GAction *action_search_solar = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-solar");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_solar), any_image_is_loaded && has_wcs(&gfit));
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
@@ -953,31 +957,31 @@ void initialize_FITS_name_entries() {
 	mflat = GTK_ENTRY(lookup_widget("flatname_entry"));
 	final_stack = GTK_ENTRY(lookup_widget("entryresultfile"));
 
-	if (com.pref.prepro.bias_lib && (g_file_test(com.pref.prepro.bias_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.bias_lib) {
 		if (com.pref.prepro.use_bias_lib) {
 			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_lib);
 		}
 	}
 
-	if (com.pref.prepro.bias_synth) {
-		if (com.pref.prepro.use_bias_synth) {
-			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_synth);
-		}
-	}
-
-	if (com.pref.prepro.dark_lib && (g_file_test(com.pref.prepro.dark_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.dark_lib) {
 		if (com.pref.prepro.use_dark_lib) {
 			str[1] = g_strdup_printf("%s", com.pref.prepro.dark_lib);
 		}
 	}
 
-	if (com.pref.prepro.flat_lib && (g_file_test(com.pref.prepro.flat_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.flat_lib) {
 		if (com.pref.prepro.use_flat_lib) {
 			str[2] = g_strdup_printf("%s", com.pref.prepro.flat_lib);
 		}
 
 	}
-	str[3] = g_strdup_printf("stack_result%s", com.pref.ext);
+
+	if (com.pref.prepro.stack_default) {
+		if (com.pref.prepro.use_stack_default) {
+			str[3] = g_strdup_printf("%s", com.pref.prepro.stack_default);
+		}
+
+	}
 
 	const char *t_bias = gtk_entry_get_text(mbias);
 	if (!str[0] && t_bias[0] == '\0') {
@@ -1004,7 +1008,13 @@ void initialize_FITS_name_entries() {
 	}
 
 	const char *t_stack = gtk_entry_get_text(final_stack);
-	if (t_stack[0] == '\0') {
+	if (!str[3] && t_stack[0] == '\0') {
+		if (sequence_is_loaded())
+			str[3] = g_strdup_printf("%s_stacked%s", com.seq.seqname, com.pref.ext);
+		else
+			str[3] = g_strdup_printf("stack_result%s", com.pref.ext);
+	}
+	if (str[3]) {
 		gtk_entry_set_text(final_stack, str[3]);
 	}
 
@@ -1017,10 +1027,15 @@ void initialize_FITS_name_entries() {
 void set_output_filename_to_sequence_name() {
 	static GtkEntry *output_file = NULL;
 	gchar *msg;
-	if (!output_file)
-		output_file = GTK_ENTRY(lookup_widget("entryresultfile"));
 	if (!com.seq.seqname || *com.seq.seqname == '\0')
 		return;
+	output_file = GTK_ENTRY(lookup_widget("entryresultfile"));
+	if (com.pref.prepro.stack_default) {
+		if (com.pref.prepro.use_stack_default) {
+			gtk_entry_set_text(output_file, com.pref.prepro.stack_default);
+			return;
+		}
+	}
 	msg = g_strdup_printf("%s%sstacked%s", com.seq.seqname,
 			g_str_has_suffix(com.seq.seqname, "_") ?
 			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), com.pref.ext);
@@ -1110,6 +1125,7 @@ static void load_accels() {
 		"win.zoom-one",               "<Primary>1", NULL,
 
 		"win.search-object",          "<Primary>slash", NULL,
+		"win.search-solar",          "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
@@ -1838,7 +1854,7 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 		if (clear) {
 			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
 			update_stack_interface(TRUE);
-			update_reg_interface(TRUE);
+			update_reg_interface(FALSE);
 			adjust_sellabel();
 			reset_plot();
 			set_layers_for_registration();

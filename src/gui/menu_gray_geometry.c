@@ -168,30 +168,52 @@ void mirrory_gui(fits *fit) {
 }
 
 /*************
+ * BINNING
+ */
+
+void on_button_binning_ok_clicked(GtkButton *button, gpointer user_data) {
+	if (confirm_delete_wcs_keywords(&gfit)) {
+		/* Switch to console tab */
+		control_window_switch_to_tab(OUTPUT_LOGS);
+
+		gboolean mean = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combobox_binning"))) == 0;
+		int factor = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spinbutton_binning")));
+
+		set_cursor_waiting(TRUE);
+		undo_save_state(&gfit, _("Binning x%d (%s)"), factor, mean ? _("average") : _("sum"));
+		fits_binning(&gfit, factor, mean);
+
+		update_MenuItem(); // WCS not available anymore
+		notify_gfit_modified();
+	}
+}
+
+void on_button_binning_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("binxy_dialog");
+}
+
+/*************
  * RESAMPLE
  */
 void on_button_resample_ok_clicked(GtkButton *button, gpointer user_data) {
 	if (confirm_delete_wcs_keywords(&gfit)) {
+		/* Switch to console tab */
+		control_window_switch_to_tab(OUTPUT_LOGS);
+
 		double sample[2];
-		sample[0] = gtk_spin_button_get_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
-		sample[1] = gtk_spin_button_get_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
-		int interpolation = gtk_combo_box_get_active(
-				GTK_COMBO_BOX(lookup_widget("combo_interpolation")));
+		sample[0] = gtk_spin_button_get_value( GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
+		sample[1] = gtk_spin_button_get_value( GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
+		int interpolation = gtk_combo_box_get_active( GTK_COMBO_BOX(lookup_widget("combo_interpolation")));
 		gboolean clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_rot_clamp")));
 
 		set_cursor_waiting(TRUE);
 		int toX = round_to_int((sample[0] / 100.0) * gfit.rx);
 		int toY = round_to_int((sample[1] / 100.0) * gfit.ry);
-		undo_save_state(&gfit, _("Resample (%g - %g)"), sample[0] / 100.0,
-				sample[1] / 100.0);
+		undo_save_state(&gfit, _("Resample (%g - %g)"), sample[0] / 100.0, sample[1] / 100.0);
 		verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
-		redraw(REMAP_ALL);
-		redraw_previews();
-		update_MenuItem();
-		set_cursor_waiting(FALSE);
+		update_MenuItem(); // WCS not available anymore
+		notify_gfit_modified();
 	}
 }
 
@@ -201,15 +223,11 @@ void on_button_resample_close_clicked(GtkButton *button, gpointer user_data) {
 
 void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton,
 		gpointer user_data) {
-	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(
-			lookup_widget("button_sample_ratio"));
-	double xvalue = gtk_spin_button_get_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
+	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(lookup_widget("button_sample_ratio"));
+	double xvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
 
 	if (gtk_toggle_button_get_active(ratio))
-		gtk_spin_button_set_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")),
-				xvalue);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")), xvalue);
 }
 
 void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton,
@@ -254,6 +272,7 @@ void siril_crop() {
 						"Please consider to close the filter dialog first."));
 		return;
 	}
+	clear_stars_list(TRUE);
 	crop(&gfit, &com.selection);
 	delete_selected_area();
 	reset_display_offset();

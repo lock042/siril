@@ -297,9 +297,13 @@ platform_family="other"
 PATHSEP=':'
 AC_MSG_CHECKING([platform and architecture])
 case "$host_os" in
-	linux-* | freebsd-*)
+	linux-**)
 		platform=unix
 		platform_family="linux"
+		;;
+	freebsd-*)
+		platform=unix
+		platform_family="bsd"
 		;;
 	cygwin*)
 		platform=windows
@@ -331,8 +335,8 @@ AM_CONDITIONAL([PLATFORM_UNIX], [test "$platform" = "unix"])
 AM_CONDITIONAL([PLATFORM_WIN32], [test "$platform" = "windows"])
 AM_CONDITIONAL([PLATFORM_OSX], [test "$platform" = "osx"])
 
-AC_DEFINE_UNQUOTED(SIRIL_BUILD_PLATFORM_FAMILY, "$platform_family",
-		   [The OS family this was built for])
+AC_DEFINE_UNQUOTED(CPU_ARCH, "$host_cpu", [The CPU family this was built for])
+AC_DEFINE_UNQUOTED(SIRIL_BUILD_PLATFORM_FAMILY, "$platform_family", [The OS family this was built for])
 
 AC_SUBST(WIN32_LARGE_ADDRESS_AWARE)
 AC_SUBST(PATHSEP)

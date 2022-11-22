@@ -447,7 +447,7 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	if (!MaxV) {
 		PRINT_ALLOC_ERR;
 		if (error) *error = PSF_ERR_ALLOC;
-		if (psf) free_psf(psf);
+		free_psf(psf);
 		psf = NULL;
 		goto free_and_exit;
 	}

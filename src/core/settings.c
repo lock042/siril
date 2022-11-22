@@ -87,12 +87,12 @@ preferences pref_init = {
 		},
 		.bias_lib = NULL,
 		.use_bias_lib = FALSE,
-		.bias_synth = NULL,
-		.use_bias_synth = FALSE,
 		.dark_lib = NULL,
 		.use_dark_lib = FALSE,
 		.flat_lib = NULL,
 		.use_flat_lib = FALSE,
+		.stack_default = NULL,
+		.use_stack_default = TRUE,
 	},
 	.gui = {
 		.first_start = TRUE,
@@ -125,6 +125,7 @@ preferences pref_init = {
 		.catalog[5] = TRUE,
 		.catalog[6] = TRUE,
 		.catalog[7] = TRUE,
+		.catalog[8] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
 		.reg_settings = 0,
@@ -140,6 +141,7 @@ preferences pref_init = {
 		.top_down = TRUE,
 		.xbayeroff = 0,
 		.ybayeroff = 0,
+		.xtrans_passes = 1
 	},
 	.phot_set = {
 		.gain = 2.3,
@@ -189,6 +191,7 @@ void free_preferences(preferences *pref) {
 void initialize_default_settings() {
 	com.pref = pref_init;
 	com.pref.ext = g_strdup(".fit");
+	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
 }
@@ -225,11 +228,12 @@ struct settings_access all_settings[] = {
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
 
 	{ "debayer", "use_debayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
-	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER } } },
+	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER_4 } } },
 	{ "debayer", "interpolation", STYPE_INT, N_("type of interpolation"), &com.pref.debayer.bayer_inter, { .range_int = { 0, XTRANS } } },
 	{ "debayer", "top_down", STYPE_BOOL, N_("force debayer top-down"), &com.pref.debayer.top_down },
 	{ "debayer", "offset_x", STYPE_INT, N_("Bayer matrix offset X"), &com.pref.debayer.xbayeroff, { .range_int = { 0, 1 } } },
 	{ "debayer", "offset_y", STYPE_INT, N_("Bayer matrix offset Y"), &com.pref.debayer.ybayeroff, { .range_int = { 0, 1 } } },
+	{ "debayer", "xtrans_passes", STYPE_INT, N_("Number of passes for the X-Trans Markesteijn algorithm"), &com.pref.debayer.xtrans_passes, { .range_int = { 1, 4 } } },
 
 	{ "photometry", "gain", STYPE_DOUBLE, N_("electrons per ADU for noise estimation"), &com.pref.phot_set.gain, { .range_double = { 0., 10. } } },
 	{ "photometry", "inner", STYPE_DOUBLE, N_("inner radius for background annulus"), &com.pref.phot_set.inner, { .range_double = { 2., 100. } } },
@@ -265,8 +269,8 @@ struct settings_access all_settings[] = {
 	{ "gui_prepro", "use_dark_lib", STYPE_BOOL, N_("use default master dark"), &com.pref.prepro.use_dark_lib },
 	{ "gui_prepro", "flat_lib", STYPE_STR, N_("default master flat"), &com.pref.prepro.flat_lib },
 	{ "gui_prepro", "use_flat_lib", STYPE_BOOL, N_("use default master flat"), &com.pref.prepro.use_flat_lib },
-	{ "gui_prepro", "use_bias_synth", STYPE_BOOL, N_("use synthetic bias"), &com.pref.prepro.use_bias_synth },
-	{ "gui_prepro", "bias_synth", STYPE_STR, N_("value of synthetic bias"), &com.pref.prepro.bias_synth},
+	{ "gui_prepro", "stack_default", STYPE_STR, N_("default stack name"), &com.pref.prepro.stack_default },
+	{ "gui_prepro", "use_stack_default", STYPE_BOOL, N_("use preferred stack name"), &com.pref.prepro.use_stack_default },
 
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected registration method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },

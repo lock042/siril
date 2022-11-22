@@ -96,7 +96,7 @@ static int readinitfile_libconfig(gchar *path) {
 	/* Preprocessing settings */
 	config_setting_t *prepro_setting = config_lookup(&config, keywords[PRE]);
 	if (prepro_setting) {
-		const char *bias = NULL, *bias_synth = NULL, *dark = NULL, *flat = NULL;
+		const char *bias = NULL, *dark = NULL, *flat = NULL;
 
 		config_setting_lookup_bool(prepro_setting, "cfa", &com.pref.prepro.cfa);
 		config_setting_lookup_bool(prepro_setting, "equalize_cfa", &com.pref.prepro.equalize_cfa);
@@ -105,11 +105,6 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_string(prepro_setting, "bias_lib", &bias);
 		com.pref.prepro.bias_lib = g_strdup(bias);
 		config_setting_lookup_bool(prepro_setting, "use_bias_lib", &com.pref.prepro.use_bias_lib);
-
-
-		config_setting_lookup_string(prepro_setting, "bias_synth", &bias_synth);
-		com.pref.prepro.bias_synth = g_strdup(bias_synth);
-		config_setting_lookup_bool(prepro_setting, "use_bias_synth", &com.pref.prepro.use_bias_synth);
 
 		config_setting_lookup_string(prepro_setting, "dark_lib", &dark);
 		com.pref.prepro.dark_lib = g_strdup(dark);
