@@ -144,7 +144,7 @@ siril_c_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFS
 siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 
 if platform_linux
-  siril_link_arg += '-rdynamic'
+  siril_link_arg += ['-rdynamic']
 elif platform_bsd
   siril_link_arg += '-Wl,--no-as-needed' # workaround for https://gitlab.com/free-astro/siril/-/issues/614 (Bug#251206)
   siril_link_arg += '-rdynamic'
@@ -236,7 +236,6 @@ gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
 exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
-fftw3_dep = dependency('fftw3', required : true)
 fftw3f_dep = dependency('fftw3f', required : true)
 cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
@@ -276,6 +275,7 @@ endif
 
 openmp_dep = []
 if enable_openmp
+  siril_link_arg += ['-lfftw3f_omp']
   if platform_osx
     message('Set OpenMP flags for macOS')
     siril_link_arg += ['-lomp']
@@ -528,7 +528,6 @@ externals_dep = declare_dependency(
     exiv_dep,
     wcslib_dep,
     libconfig_dep,
-    fftw3_dep,
     fftw3f_dep,
     cfitsio_dep,
     json_glib_dep,

@@ -33,6 +33,16 @@
 template <typename T>
 class img_t {
 public:
+    static void use_threading(int n) {
+#ifdef _OPENMP
+        if (n <= 1) return;
+// Change these lines to use fftw functions if double support is ever required
+        fftwf_init_threads();
+        fftwf_plan_with_nthreads(n);
+        fprintf(stdout, "fftwf initialized with %d threads\n", n);
+
+#endif
+    }
     typedef T value_type;
     int size, w, h, d;
 #ifndef IMG_NO_FFTW
@@ -76,7 +86,7 @@ public:
 
     ~img_t() {
 #ifndef IMG_NO_FFTW
-        if (forwardplan)
+/*        if (forwardplan)
 #ifdef _OPENMP
 #pragma omp critical (fftw)
 #endif
@@ -86,6 +96,7 @@ public:
 #pragma omp critical (fftw)
 #endif
             fftw_destroy_plan(backwardplan);
+*/
         if (forwardplanf)
 #ifdef _OPENMP
 #pragma omp critical (fftw)
@@ -147,7 +158,7 @@ public:
     void resize(int w, int h, int d=1) {
         if (this->w != w || this->h != h || this->d != d) {
 #ifndef IMG_NO_FFTW
-            if (forwardplan)
+/*            if (forwardplan)
 #ifdef _OPENMP
 #pragma omp critical (fftw)
 #endif
@@ -157,6 +168,7 @@ public:
 #pragma omp critical (fftw)
 #endif
                 fftw_destroy_plan(backwardplan);
+*/
             if (forwardplanf)
 #ifdef _OPENMP
 #pragma omp critical (fftw)
@@ -527,7 +539,7 @@ public:
             size = w * h * d;
             data.resize(size);
 
-            if (forwardplan) {
+/*            if (forwardplan) {
 #pragma omp critical (fftw)
                 fftw_destroy_plan(forwardplan);
                 forwardplan = nullptr;
@@ -535,6 +547,17 @@ public:
             if (backwardplan) {
 #pragma omp critical (fftw)
                 fftw_destroy_plan(backwardplan);
+                backwardplan = nullptr;
+            }
+*/
+            if (forwardplanf) {
+#pragma omp critical (fftw)
+                fftwf_destroy_plan(forwardplanf);
+                forwardplan = nullptr;
+            }
+            if (backwardplanf) {
+#pragma omp critical (fftw)
+                fftwf_destroy_plan(backwardplanf);
                 backwardplan = nullptr;
             }
         }
@@ -634,14 +657,14 @@ namespace img {
         return std::sqrt(sum<T>(img*img));
     }
 
-    inline void use_threading(int n) {
-#if !defined(IMG_NO_OMP) && !defined(IMG_NO_FFTW)
+/*    inline void use_threading(int n) {
+#ifdef _OPENMP
         if (n <= 1) return;
         fftw_init_threads();
         fftw_plan_with_nthreads(n);
         fprintf(stdout, "initialized with %d threads\n", n);
 #endif
-    }
+    }*/
 
 };
 

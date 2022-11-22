@@ -7,6 +7,7 @@
 #include <iostream>
 
 extern "C" float *estimate_kernel(estk_data *args) {
+    img_t<float>::use_threading(omp_get_max_threads());
     options opts;
     opts.ks = args->ks;
     opts.input = ""; // Not used in siril
@@ -47,7 +48,6 @@ extern "C" float *estimate_kernel(estk_data *args) {
     } else {
         l0_kernel_estimation(k, u, v, initu, opts);
     }
-
     opts.ks = k.w; // Update ks which was formerly an upper bound for the kernel size, now it contains the actual size of k
 
     float *kernel = (float*) calloc(k.w * k.h, sizeof(float)); // Kernel is passed as a NULL pointer, it is the responsibility of the calling function to free kernel

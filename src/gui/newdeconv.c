@@ -28,7 +28,9 @@
 #include "gui/image_display.h"
 #include "gui/sequence_list.h"
 #include "gui/message_dialog.h"
+#include "gui/registration_preview.h"
 #include "core/siril_log.h"
+#include "core/undo.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "filters/deconvolution/deconvolution.h"
@@ -93,6 +95,18 @@ void reset_conv_controls_and_args() {
 
 void on_bdeconv_psfblind_toggled(GtkToggleButton *button, gpointer user_data) {
 	psftype = 0;
+}
+
+void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
+	args.ks = gtk_spin_button_get_value(button);
+	if(!(args.ks % 2)) {
+		args.ks++;
+		gtk_spin_button_set_value(button, args.ks);
+	}
+}
+
+void on_bdeconv_expander_activate(GtkExpander *expander, gpointer user_data) {
+		gtk_window_resize(GTK_WINDOW(lookup_widget("bdeconv_dialog")), 1, 1);
 }
 
 void on_bdeconv_psfselection_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -173,12 +187,10 @@ void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_bdeconv_reset_clicked(GtkButton *button, gpointer user_data) {
-	printf("Hello says the jolly sailor!\n");
 	reset_conv_controls_and_args();
 }
 
-void on_bdeconv_show(GtkWidget *widget, gpointer user_data) {
-	printf("Hello says the sailor!\n");
+void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	reset_conv_controls_and_args();
 }
 
@@ -187,28 +199,11 @@ void on_bdeconv_setlambdafromnoise_clicked(GtkButton *button, gpointer user_data
 }
 
 void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
-	// Testing
-	args.lambda = 4e-3f;
-	args.lambda_ratio = 1/1.1f;
-	args.lambda_min = 1e-2f;
-	args.gamma = 20.f;
-	args.iterations = 2;
-	args.multiscale = FALSE;
-	args.scalefactor = 0.5f;
-	args.kernel_threshold_max = 0.f;
-	args.remove_isolated = FALSE;
-	args.better_kernel = FALSE;
-	args.upscaleblur = 0.f;
-	args.downscaleblur = 1.6f;
-	args.k_l1 = 0.5f;
-	args.alpha = 1.f/3000.f;
-	//
-
+	set_cursor_waiting(TRUE);
+	undo_save_state(&gfit, _("Deconvolution"));
 	gboolean out_16bit = (com.pref.force_16bit) ? TRUE : FALSE;
-		unsigned ndata = gfit.rx * gfit.ry * gfit.naxes[2];
-//	if (gfit.type != DATA_FLOAT) {
-//		fit_replace_buffer(&gfit, ushort_buffer_to_float(gfit.data, ndata), DATA_FLOAT);
-//	}
+	unsigned ndata = gfit.rx * gfit.ry * gfit.naxes[2];
+
 	args.fdata = malloc(ndata * sizeof(float));
 	if (gfit.type == DATA_FLOAT)
 		memcpy(args.fdata, gfit.fdata, ndata * sizeof(float));
@@ -225,10 +220,13 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	switch (psftype) {
 		case 0:
 			reset_conv_kernel();
-//			args.better_kernel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_betterkernel")));
-//			args.remove_isolated = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_removeisolated")));
-//			args.multiscale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")));
+			args.better_kernel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_betterkernel")));
+			args.remove_isolated = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_removeisolated")));
+			args.multiscale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")));
+
+			siril_log_message(_("Starting kernel estimation...\n"));
 			kernel = estimate_kernel(&args);
+			siril_log_message(_("Kernel estimation complete. Starting non-blin deconvolution...\n"));
 			break;
 		case 1:
 			break;
@@ -261,8 +259,10 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	free(args.fdata);
 	args.fdata = NULL;
 
-	notify_gfit_modified();
+	update_zoom_label();
 	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
 
 }
 

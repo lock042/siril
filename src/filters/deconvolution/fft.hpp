@@ -88,7 +88,7 @@ struct plan_t<float> {
     }
 
 };
-
+/*
 template <>
 struct plan_t<double> {
     typedef fftw_plan plan_type;
@@ -139,7 +139,7 @@ struct plan_t<double> {
     }
 
 };
-
+*/
 template <typename T>
 inline plan_t<T>* make_plan(dim_t dim, int flags)
 {

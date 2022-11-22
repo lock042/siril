@@ -442,9 +442,7 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
             } else {
                 u = v;
             }
-        printf("CP0\n");
             sharp_predictor->solve(u, k, opts.lambda, betainit, betascale, T(1e5), opts);
-        printf("CP1\n");
         }
 
 //        if (!opts.debug.empty()) {
