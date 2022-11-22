@@ -159,12 +159,14 @@ int process_dumpheader(int nb) {
 
 int process_seq_clean(int nb) {
 	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE;
-	// TODO: if sequence is loaded in the UI, it needs to be closed first
-	// to avoid rewriting again the .seq upon closing
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
 
 	if (nb > 2) {
 		for (int i = 2; i < nb; i++) {
@@ -191,7 +193,16 @@ int process_seq_clean(int nb) {
 	}
 
 	clean_sequence(seq, cleanreg, cleanstat, cleansel);
-	free_sequence(seq, FALSE);
+	if (check_seq_is_comseq(seq)) {
+		fix_selnum(&com.seq, FALSE);
+		update_stack_interface(TRUE);
+		update_reg_interface(FALSE);
+		adjust_sellabel();
+		set_layers_for_registration();
+		drawPlot();
+	} else {
+		free_sequence(seq, FALSE);
+	}
 	return CMD_OK;
 }
 
@@ -2459,20 +2470,33 @@ int process_set_ref(int nb) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
 	int n = g_ascii_strtoull(word[2], NULL, 10) - 1;
-	if (n < 0 || n > seq->number) {
+	if (n < 0 || n >= seq->number) {
 		siril_log_message(_("The reference image must be set between 1 and %d\n"), seq->number);
 		return CMD_ARG_ERROR;
 	}
 
 	seq->reference_image = n;
 	// a reference image should not be excluded to avoid confusion
-	if (!seq->imgparam[seq->current].incl) {
-		seq->imgparam[seq->current].incl = TRUE;
+	if (!seq->imgparam[seq->reference_image].incl) {
+		seq->imgparam[seq->reference_image].incl = TRUE;
 	}
 
 	writeseqfile(seq);
+	if (check_seq_is_comseq(seq)) {
+		fix_selnum(&com.seq, FALSE);
+		seq_load_image(&com.seq, n, TRUE);
+		update_stack_interface(TRUE);
+		update_reg_interface(FALSE);
+		adjust_sellabel();
+		drawPlot();
+	} else {
+		free_sequence(seq, FALSE);
+	}
 
 	return CMD_OK;
 }
@@ -4679,6 +4703,10 @@ int process_seq_stat(int nb) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
 
 	struct stat_data *args = calloc(1, sizeof(struct stat_data));
 	args->seq = seq;
@@ -5215,6 +5243,10 @@ int process_register(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
 	}
 
 	reg_args = calloc(1, sizeof(struct registration_args));
@@ -5850,13 +5882,20 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.method = arg->method;
 	args.force_norm = FALSE;
 	args.output_norm = arg->output_norm;
-	args.reglayer = args.seq->nb_layers == 1 ? 0 : 1;
+	args.reglayer = get_registration_layer(args.seq);
 	args.apply_noise_weights = arg->apply_noise_weights;
 	args.apply_nbstack_weights = arg->apply_nbstack_weights;
 	args.apply_wfwhm_weights = arg->apply_wfwhm_weights;
 	args.apply_nbstars_weights = arg->apply_nbstars_weights;
 	args.equalizeRGB = arg->equalizeRGB;
 	args.lite_norm = arg->lite_norm;
+
+	// manage registration data
+	if (!stack_regdata_is_valid(args)) {
+		siril_log_color_message(_("Stacking has detected registration data on layer %d with more than simple shifts. You should apply existing registration before stacking\n"), "red", args.reglayer);
+		free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
 
 	// manage filters
 	if (convert_parsed_filter_to_filter(&arg->filters, seq,
@@ -7139,6 +7178,7 @@ int process_sso() {
 		lim_mag = g_ascii_strtod(value, &next);
 		if (next == value) {
 			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+			free(args);
 			return CMD_ARG_ERROR;
 		}
 	}

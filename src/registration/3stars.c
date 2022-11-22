@@ -244,7 +244,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	}
 	if (spsfargs->framing == REGISTERED_FRAME) {
 		if (regargs->seq->reference_image < 0) regargs->seq->reference_image = sequence_find_refimage(regargs->seq);
-		if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H) == -2) {
+		if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H) == NULL_TRANSFORMATION) {
 			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
 			free(args);
 			free(spsfargs);
@@ -252,7 +252,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 		}
 		if (regargs->seq->current != regargs->seq->reference_image) {
 			// transform selection back from current to ref frame coordinates
-			if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->current].H) == -2) {
+			if (guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->current].H) == NULL_TRANSFORMATION) {
 				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the stars.\n"), "red");
 				free(args);
 				free(spsfargs);
@@ -316,7 +316,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	sadata->success[out_index] = 0;
 
 	if (in_index != refimage) {
-		if (guess_transform_from_H(sadata->current_regdata[in_index].H) > -2) {
+		if (guess_transform_from_H(sadata->current_regdata[in_index].H) > NULL_TRANSFORMATION) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
 				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 					return 1;

@@ -34,6 +34,9 @@ typedef enum {
 } reg_notebook_page;
 
 typedef enum {
+	UNDEFINED_TRANSFORMATION = -3,
+	NULL_TRANSFORMATION = -2,
+	IDENTITY_TRANSFORMATION = -1,
 	SHIFT_TRANSFORMATION,
 	SIMILARITY_TRANSFORMATION,
 	AFFINE_TRANSFORMATION,
@@ -144,8 +147,9 @@ int star_align_finalize_hook(struct generic_seq_args *args);
 const char *describe_transformation_type(transformation_type type);
 
 void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
-void guess_transform_from_seq(sequence *seq, int layer, int *mindof, int *maxdof, gboolean excludenull);
-int guess_transform_from_H(Homography H);
+void guess_transform_from_seq(sequence *seq, int layer,
+		transformation_type *min, transformation_type *max, gboolean excludenull);
+transformation_type guess_transform_from_H(Homography H);
 gboolean check_before_applyreg(struct registration_args *regargs);
 gboolean layer_has_registration(sequence *seq, int layer);
 gboolean layer_has_usable_registration(sequence *seq, int layer);

@@ -1414,14 +1414,13 @@ static void draw_regframe(const draw_data_t* dd) {
 	int activelayer = gtk_combo_box_get_active(seqcombo);
 	if (!layer_has_registration(&com.seq, activelayer)) return;
 	if (com.seq.reg_invalidated) return;
-	int min, max;
+	transformation_type min, max;
 	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
-	if (max <= -1) return;
+	if (max <= IDENTITY_TRANSFORMATION) return;
 
-	int Htyperef = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H);
-	int Htypecur = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H);
-	if (Htyperef == -2) return; // reference image H matrix is null matrix
-	if (Htypecur == -2) return; // current image H matrix is null
+	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == NULL_TRANSFORMATION ||
+			guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H) == NULL_TRANSFORMATION)
+		return; // reference or current image H matrix is null matrix
 
 	regframe framing = { 0 };
 	framing.pt[0].x = 0.;

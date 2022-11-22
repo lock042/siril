@@ -1854,7 +1854,7 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 		if (clear) {
 			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
 			update_stack_interface(TRUE);
-			update_reg_interface(TRUE);
+			update_reg_interface(FALSE);
 			adjust_sellabel();
 			reset_plot();
 			set_layers_for_registration();

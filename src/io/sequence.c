@@ -1333,6 +1333,13 @@ gboolean sequence_is_loaded() {
 	return (com.seq.seqname != NULL && com.seq.imgparam != NULL);
 }
 
+gboolean check_seq_is_comseq(sequence *seq) {
+	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
+		return TRUE;
+	return FALSE;
+}
+
+
 gboolean close_sequence_idle(gpointer data) {
 	fprintf(stdout, "closing sequence idle\n");
 	free_cbbt_layers();
@@ -1816,7 +1823,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
 	if (framing == REGISTERED_FRAME) {
 		if (seq->reference_image < 0) seq->reference_image = sequence_find_refimage(seq);
-		if (guess_transform_from_H(seq->regparam[layer][seq->reference_image].H) == -2) {
+		if (guess_transform_from_H(seq->regparam[layer][seq->reference_image].H) == NULL_TRANSFORMATION) {
 			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
 			free(args);
 			free(spsfargs);
@@ -1824,7 +1831,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 		}
 		// transform selection back from current to ref frame coordinates
 		if (seq->current != seq->reference_image) {
-			if (guess_transform_from_H(seq->regparam[layer][seq->current].H) == -2) {
+			if (guess_transform_from_H(seq->regparam[layer][seq->current].H) == NULL_TRANSFORMATION) {
 				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the star.\n"), "red");
 				free(args);
 				free(spsfargs);
