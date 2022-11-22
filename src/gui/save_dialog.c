@@ -293,7 +293,7 @@ static gchar *get_filename_and_replace_ext() {
 	if (!is_format_valid) {
 		char *file_no_ext = remove_ext_from_filename(basename);
 		g_free(basename);
-		basename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
+		basename = g_strdup_printf("%s%s", file_no_ext, get_com_ext());
 	}
 
 	return basename;
@@ -314,7 +314,7 @@ static void filter_changed(gpointer user_data) {
 	switch (format) {
 	default:
 	case TYPEFITS:
-		new_filename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
+		new_filename = g_strdup_printf("%s%s", file_no_ext, get_com_ext());
 		break;
 	case TYPEBMP:
 		new_filename = g_strdup_printf("%s.bmp", file_no_ext);

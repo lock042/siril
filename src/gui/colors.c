@@ -378,11 +378,11 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	args->channel[0] = args->channel[1] = args->channel[2] = NULL;
 
 	if (gtk_entry_get_text(channel_extract_entry[0]))
-		args->channel[0] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[0]), com.pref.ext);
+		args->channel[0] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[0]), get_com_ext());
 	if (gtk_entry_get_text(channel_extract_entry[1]))
-		args->channel[1] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[1]), com.pref.ext);
+		args->channel[1] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[1]), get_com_ext());
 	if (gtk_entry_get_text(channel_extract_entry[2]))
-		args->channel[2] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[2]), com.pref.ext);
+		args->channel[2] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[2]), get_com_ext());
 
 	if ((args->channel[0][0] != '\0') && (args->channel[1][0] != '\0')
 			&& (args->channel[2][0] != '\0')) {

@@ -211,6 +211,7 @@ typedef struct {
 struct pref_struct {
 	gchar *wd;		// saved working directory, not impacted by scripts like com.wd
 	gchar *ext;		// FITS extension used in SIRIL
+	gboolean add_fz; // add fz extension to FITS extension
 	gboolean force_16bit;	// don't use 32 bits for pixel depth
 	gboolean allow_heterogeneous_fitseq; // allow images in FITS cubes to have different sizes
 

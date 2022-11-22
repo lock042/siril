@@ -391,13 +391,13 @@ sequence * readseqfile(const char *name){
 				else if (line[1] == 'F') {
 					seq->type = SEQ_FITSEQ;
 #ifdef HAVE_FFMS2
-					seq->ext = com.pref.ext + 1;
+					seq->ext = get_com_ext() + 1;
 #endif
 					if (seq->fitseq_file) break;
 					seq->fitseq_file = malloc(sizeof(struct ser_struct));
 					fitseq_init_struct(seq->fitseq_file);
 					GString *fileString = g_string_new(filename);
-					g_string_append(fileString, com.pref.ext);
+					g_string_append(fileString, get_com_ext());
 					seq->fitseq_file->filename = g_string_free(fileString, FALSE);
 					if (fitseq_open(seq->fitseq_file->filename, seq->fitseq_file)) {
 						free(seq->fitseq_file);

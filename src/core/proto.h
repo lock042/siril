@@ -125,7 +125,6 @@ gboolean is_forbiden_in_filename(gchar c);
 gboolean file_name_has_invalid_chars(const char *name);
 int stat_file(const char *filename2, image_type *type, char **realname);
 const char* get_filename_ext(const char *filename);
-gboolean is_ext_equal(const char *ext);
 
 int siril_change_dir(const char *dir, gchar **err);
 gchar* get_locale_filename(const gchar *path);
@@ -149,6 +148,7 @@ guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
 #endif
 char *str_replace(char *orig, char *rep, char *with);
 void replace_spaces_from_str(gchar *s, char c);
+char *get_com_ext();
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,

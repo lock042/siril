@@ -33,6 +33,7 @@
 preferences pref_init = {
 	.wd = NULL,
 	.ext = NULL,
+	.add_fz = FALSE,
 	.force_16bit = FALSE,
 	.allow_heterogeneous_fitseq = FALSE,
 	.mem_mode = RATIO,
@@ -204,6 +205,7 @@ void update_gain_from_gfit() {
 struct settings_access all_settings[] = {
 	{ "core", "wd", STYPE_STRDIR, N_("current working directory"), &com.pref.wd },
 	{ "core", "extension", STYPE_STR, N_("FITS file extension"), &com.pref.ext },
+	{ "core", "fz_extension", STYPE_BOOL, N_("add fz to the FITS extension"), &com.pref.add_fz },
 	{ "core", "force_16bit", STYPE_BOOL, N_("don't use 32 bits for pixel depth"), &com.pref.force_16bit },
 	{ "core", "allow_heterogeneous_fitseq", STYPE_BOOL, N_("allow FITS cubes to have different sizes"), &com.pref.allow_heterogeneous_fitseq },
 	{ "core", "mem_mode", STYPE_INT, N_("memory mode (0 ratio, 1 amount)"), &com.pref.mem_mode, { .range_int = { 0, 1 } } },

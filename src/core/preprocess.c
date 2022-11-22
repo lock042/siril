@@ -512,7 +512,7 @@ int preprocess_single_image(struct preprocessing_data *args) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
 		char *filename_noext = remove_ext_from_filename(filename);
 		g_free(filename);
-		gchar *dest_filename = g_strdup_printf("%s%s%s", args->ppprefix, filename_noext, com.pref.ext);
+		gchar *dest_filename = g_strdup_printf("%s%s%s", args->ppprefix, filename_noext, get_com_ext());
 		msg = g_strdup_printf(_("Saving image %s"), filename_noext);
 		set_progress_bar_data(msg, PROGRESS_NONE);
 		ret = savefits(dest_filename, &fit);
@@ -560,7 +560,7 @@ int preprocess_given_image(char *file, struct preprocessing_data *args) {
 		gchar *filename = g_path_get_basename(file);
 		char *filename_noext = remove_ext_from_filename(filename);
 		g_free(filename);
-		gchar *dest_filename = g_strdup_printf("%s%s%s", args->ppprefix, filename_noext, com.pref.ext);
+		gchar *dest_filename = g_strdup_printf("%s%s%s", args->ppprefix, filename_noext, get_com_ext());
 		siril_log_message(_("Saving image %s\n"), filename_noext);
 		ret = savefits(dest_filename, &fit);
 		free(filename_noext);

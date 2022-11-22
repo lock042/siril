@@ -659,22 +659,6 @@ const char *get_filename_ext(const char *filename) {
 }
 
 /**
- * Check if extension match global extension with
- * and without compression extension
- * @param ext
- * @return
- */
-gboolean is_ext_equal(const char *ext) {
-	if (strcasecmp(ext, com.pref.ext + 1)) {
-		gchar *tmp = g_strdup_printf("%s.fz", com.pref.ext + 1);
-		int ret = strcasecmp(ext, tmp);
-		g_free(tmp);
-		return ret;
-	}
-	return TRUE;
-}
-
-/**
  *
  * @param filename
  * @return the type of the file from its filename
@@ -1447,4 +1431,11 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 			--d;
 		}
 	} while((*s++ = *d++));
+}
+
+char *get_com_ext() {
+	if (com.pref.add_fz && !g_str_has_suffix(com.pref.ext, ".fz")) {
+		return str_append(&com.pref.ext, ".fz");
+	}
+	return com.pref.ext;
 }
