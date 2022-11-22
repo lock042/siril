@@ -215,8 +215,6 @@ int check_seq() {
 		return 1;
 	}
 
-	printf("test: %s\n\n", get_com_ext());
-
 	sequences = malloc(sizeof(sequence *) * max_seq);
 	if (!sequences) {
 		PRINT_ALLOC_ERR;

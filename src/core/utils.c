@@ -650,8 +650,19 @@ const char *get_filename_ext(const char *filename) {
 	g_free(basename);
 
 	p = filename + len;
-
-	dot = strchr(p, '.');
+	if (g_str_has_suffix(p, ".fz")) {
+		int l = strlen(p);
+		int c = 0;
+		for (int i = l - 1; i >= 0; i--) {
+			if ((p[i] == '.')) {
+				c++;
+			}
+			if (c == 2) {
+				return (p + i + 1);
+			}
+		}
+	}
+	dot = strrchr(p, '.');
 	if (!dot || dot == p) {
 		return NULL;
 	}
