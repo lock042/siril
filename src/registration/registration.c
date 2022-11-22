@@ -707,7 +707,7 @@ int register_shift_fwhm(struct registration_args *args) {
 	 * images to register, which provides FWHM but also star coordinates */
 	// TODO: detect that it was already computed, and don't do it again
 	// -> should be done at a higher level and passed in the args
-	if (seqpsf(args->seq, args->layer, TRUE, !args->filters.filter_included, framing, FALSE, FALSE))
+	if (seqpsf(args->seq, args->layer, TRUE, !args->filters.filter_included, framing, FALSE, TRUE))
 		return 1;
 
 	// regparam is managed in seqpsf idle function already
@@ -857,9 +857,10 @@ gboolean layer_has_registration(sequence *seq, int layer) {
 	return TRUE;
 }
 gboolean layer_has_usable_registration(sequence *seq, int layer) {
-	int min, max;
+	transformation_type min, max;
 	guess_transform_from_seq(seq, layer, &min, &max, FALSE); // will check first that layer_has_registration
-	if (max <= -1) return FALSE; // max <= -1 means all H matrices are identity or null
+	if (max <= IDENTITY_TRANSFORMATION)
+		return FALSE; // max <= -1 means all H matrices are identity or null
 	return TRUE;
 }
 

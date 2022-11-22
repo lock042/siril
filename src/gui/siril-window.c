@@ -66,6 +66,7 @@ static GActionEntry image_entries[] = {
 	{ "annotate-object", annotate_object_activate, NULL, "false", annotate_object_state },
 	{ "wcs-grid", wcs_grid_activate, NULL, "false", wcs_grid_state },
 	{ "search-object", search_object_activate },
+	{ "search-solar", search_object_solar_activate },
 	{ "seq-list", seq_list_activate },
 	{ "regframe", regframe_activate , NULL, "true", regframe_state }
 };
@@ -108,6 +109,7 @@ static GActionEntry single_processing_entries[] = {
 	{ "asinh-processing", asinh_activate },
 	{ "denoise-processing", denoise_activate },
 	{ "deconvolution-processing", deconvolution_activate },
+	{ "binning-processing", binning_activate },
 	{ "resample-processing", resample_activate },
 	{ "rotation-processing", rotation_activate },
 	{ "rotation90-processing", rotation90_activate },
@@ -219,6 +221,7 @@ void siril_window_enable_single_proc_actions(GtkApplicationWindow *window, gbool
 		"denoise-processing",
 		"deconvolution-processing",
 		"resample-processing",
+		"binning-processing",
 		"rotation-processing",
 		"rotation90-processing",
 		"rotation270-processing",

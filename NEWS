@@ -47,6 +47,11 @@ v1.2.0 mmm dd, 2022
 * Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
 * Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Added 9-panel dialog tool showing corners and center of the image for a closer inspection
+* Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
+* Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Added CFA merge process for reconstructing a Bayer pattern previously split out with extraction
+* Added binning and binxy command
 * Allowed area selection (and much more) to be done on RGB display tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
@@ -69,12 +74,8 @@ v1.2.0 mmm dd, 2022
 * Fixed FITS header preservation on RGB composition
 * Fixed possible FITSEQ infinite loop and inconsistent numbering caused by hidden files in conversion
 * Fixed sequence closing in script processing after each command
-* Added 9-panel dialog tool showing corners and center of the image for a closer inspection
 * Optimised asinh code for speed
-* Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
-* Added undershoot clamping to bicubic and lanczos4 interpolation methods
 * Improved Ha-OIII extraction to offer full resolution O-III output and improve star roundness
-* Added CFA merge process for reconstructing a Bayer pattern previously split out with extraction
 * Allow area selection (and much more) to be done on RGB display tab
 * Fixed opening of scientific FITS cube files
 
