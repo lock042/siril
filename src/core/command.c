@@ -5881,7 +5881,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.type_of_rejection = arg->type_of_rejection;
 		args.create_rejmaps = arg->create_rejmaps;
 		args.merge_lowhigh_rejmaps = arg->merge_lowhigh_rejmaps;
-		args.rejmaps_include_zeros = arg->rejmaps_include_zeros;
 	} else {
 		args.type_of_rejection = NO_REJEC;
 		siril_log_message(_("Not using rejection for stacking\n"));

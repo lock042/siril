@@ -54,7 +54,7 @@
 static struct stacking_args stackparam = {	// parameters passed to stacking
 	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE,
 	FALSE, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1, FALSE,
-	NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, FALSE, NULL, NULL,
+	NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, NULL, NULL,
 	FALSE, FALSE, FALSE, FALSE, NULL, NULL, NULL, { 0 }, 0, { 0 }
 };
 

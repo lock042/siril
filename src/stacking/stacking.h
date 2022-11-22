@@ -86,7 +86,6 @@ struct stacking_args {
 	float *critical_value;		/* index of critical_values for GESTD */
 	gboolean create_rejmaps;	/* main activation flag for the rejection maps creation */
 	gboolean merge_lowhigh_rejmaps;	/* create only one map */
-	gboolean rejmaps_include_zeros;	/* include zeros in rejection counts */
 	fits *rejmap_low, *rejmap_high;	/* rejection maps */
 
 	gboolean apply_noise_weights;	/* enable weights */
@@ -113,7 +112,6 @@ struct stacking_configuration {
 	double sig[2];
 	gboolean create_rejmaps;
 	gboolean merge_lowhigh_rejmaps;
-	gboolean rejmaps_include_zeros;
 	gboolean force_no_norm;
 	gboolean output_norm;
 	gboolean equalizeRGB;
