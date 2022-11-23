@@ -231,11 +231,12 @@ int check_seq() {
 		if (!ext) continue;
 
 		com.add_fz = g_str_has_suffix(ext, ".fz");
+		gchar *com_ext = get_com_ext();
 
 		if ((new_seq = check_seq_one_file(file, FALSE))) {
 			sequences[nb_seq] = new_seq;
 			nb_seq++;
-		} else if (!strcasecmp(ext, get_com_ext() + 1)) {
+		} else if (!strcasecmp(ext, com_ext + 1)) {
 			char *basename = NULL;
 			if (!get_index_and_basename(file, &basename, &curidx, &fixed)) {
 				int current_seq = -1;
@@ -274,6 +275,7 @@ int check_seq() {
 				nb_seq++;
 			}
 		}
+		g_free(com_ext);
 		if (nb_seq == max_seq) {
 			max_seq *= 2;
 			sequence **tmp = realloc(sequences, sizeof(sequence *) * max_seq);
@@ -324,7 +326,7 @@ int check_seq() {
 	}
 	free(sequences);
 	siril_log_message(_("No sequence found, verify working directory or "
-				"change FITS extension in settings (current is %s)\n"), get_com_ext());
+				"change FITS extension in settings (current is %s)\n"), com.pref.ext);
 	return 1;	// no sequence found
 }
 
@@ -376,7 +378,9 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 #endif
 	else if (check_for_fitseq && TYPEFITS == get_type_for_extension(ext) && fitseq_is_fitseq(name, NULL)) {
 		/* set the configured extention to the extension of the file, otherwise reading will fail */
-		if (strcasecmp(ext, get_com_ext() + 1)) {
+		gchar *com_ext = get_com_ext();
+
+		if (strcasecmp(ext, com_ext + 1)) {
 			g_free(com.pref.ext);
 			com.pref.ext = g_strdup_printf(".%s", ext);
 			if (g_str_has_suffix(ext, ".fz")) {
@@ -389,17 +393,20 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		fitseq_init_struct(fitseq_file);
 		if (fitseq_open(name, fitseq_file)) {
 			free(fitseq_file);
+			g_free(com_ext);
 			return NULL;
 		}
 		new_seq = calloc(1, sizeof(sequence));
 		initialize_sequence(new_seq, TRUE);
-		new_seq->seqname = g_strndup(name, fnlen - strlen(get_com_ext()));
+		new_seq->seqname = g_strndup(name, fnlen - strlen(com_ext));
 		new_seq->beg = 0;
 		new_seq->end = fitseq_file->frame_count - 1;
 		new_seq->number = fitseq_file->frame_count;
 		new_seq->type = SEQ_FITSEQ;
 		new_seq->fitseq_file = fitseq_file;
 		siril_debug_print("Found a FITS sequence\n");
+
+		g_free(com_ext);
 	}
 
 	if (new_seq && new_seq->beg != new_seq->end) {
@@ -717,7 +724,7 @@ char *seq_get_image_filename(sequence *seq, int index, char *name_buf) {
 			if (!name_buf || index < 0 || index > seq->end) {
 				return NULL;
 			}
-			snprintf(name_buf, 255, "%s_%d%s", seq->seqname,  index, get_com_ext());
+			snprintf(name_buf, 255, "%s_%d%s", seq->seqname,  index, com.pref.ext);
 			return name_buf;
 #ifdef HAVE_FFMS2
 		case SEQ_AVI:
@@ -1052,6 +1059,8 @@ void set_fwhm_star_as_star_list(sequence *seq) {
  */
 char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffer, gboolean add_fits_ext) {
 	char format[20];
+	gchar *com_ext = get_com_ext();
+
 	if (index < 0 || index > seq->number || name_buffer == NULL)
 		return NULL;
 	if (seq->fixed <= 1) {
@@ -1060,20 +1069,22 @@ char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffe
 		sprintf(format, "%%s%%.%dd", seq->fixed);
 	}
 	if (add_fits_ext)
-		strcat(format, get_com_ext());
-	snprintf(name_buffer, 255, format,
-			seq->seqname, seq->imgparam[index].filenum);
+		strcat(format, com_ext);
+	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
 	name_buffer[255] = '\0';
+	g_free(com_ext);
 	return name_buffer;
 }
 
 char *fit_sequence_get_image_filename_prefixed(sequence *seq, const char *prefix, int index) {
 	char format[16];
+	gchar *com_ext = get_com_ext();
 	gchar *basename = g_path_get_basename(seq->seqname);
 	GString *str = g_string_sized_new(70);
 	sprintf(format, "%%s%%s%%0%dd%%s", seq->fixed);
-	g_string_printf(str, format, prefix, basename, seq->imgparam[index].filenum, get_com_ext());
+	g_string_printf(str, format, prefix, basename, seq->imgparam[index].filenum, com_ext);
 	g_free(basename);
+	g_free(com_ext);
 	return g_string_free(str, FALSE);
 }
 
@@ -1082,13 +1093,16 @@ char *fit_sequence_get_image_filename_prefixed(sequence *seq, const char *prefix
  */
 char *get_possible_image_filename(sequence *seq, int image_number, char *name_buffer) {
 	char format[20];
+	gchar *com_ext = get_com_ext();
+
 	if (image_number < seq->beg || image_number > seq->end || name_buffer == NULL)
 		return NULL;
 	if (seq->fixed <= 1){
-		sprintf(format, "%%s%%d%s", get_com_ext());
+		sprintf(format, "%%s%%d%s", com_ext);
 	} else {
-		sprintf(format, "%%s%%.%dd%s", seq->fixed, get_com_ext());
+		sprintf(format, "%%s%%.%dd%s", seq->fixed, com_ext);
 	}
+	g_free(com_ext);
 	sprintf(name_buffer, format, seq->seqname, image_number);
 	return name_buffer;
 }
@@ -1099,19 +1113,21 @@ int	get_index_and_basename(const char *filename, char **basename, int *index, in
 	char *buffer;
 	int i, fnlen, first_zero, digit_idx;
 
+	gchar *com_ext = get_com_ext();
+
 	*index = -1;		// error values
 	*fixed = 0;
 	first_zero = -1;
 	*basename = NULL;
 	fnlen = strlen(filename);
-	if (fnlen < strlen(get_com_ext()) + 2) return -1;
-	if (!g_str_has_suffix(filename, get_com_ext())) return -1;
-	i = fnlen - strlen(get_com_ext()) - 1;
+	if (fnlen < strlen(com_ext) + 2) return -1;
+	if (!g_str_has_suffix(filename, com_ext)) return -1;
+	i = fnlen - strlen(com_ext) - 1;
 	if (!isdigit(filename[i])) return -1;
 	digit_idx = i;
 
 	buffer = strdup(filename);
-	buffer[fnlen - strlen(get_com_ext())] = '\0';		// for g_ascii_strtoll()
+	buffer[fnlen - strlen(com_ext)] = '\0';		// for g_ascii_strtoll()
 	do {
 		if (buffer[i] == '0' && first_zero < 0)
 			first_zero = i;
@@ -1135,6 +1151,7 @@ int	get_index_and_basename(const char *filename, char **basename, int *index, in
 	}
 	//fprintf(stdout, "from filename %s, base name is %s, index is %d\n", filename, *basename, *index);
 	free(buffer);
+	g_free(com_ext);
 	return 0;
 }
 

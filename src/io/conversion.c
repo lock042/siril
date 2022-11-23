@@ -1029,7 +1029,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 		else if (args->output_type == SEQ_FITSEQ) {
 			if (!conv->output_fitseq) {
 				conv->output_fitseq = malloc(sizeof(struct fits_sequence));
-				char *dest = g_str_has_suffix(args->destroot, get_com_ext()) ? args->destroot : g_strdup_printf("%s%s", args->destroot, get_com_ext());
+				char *dest = g_str_has_suffix(args->destroot, com.pref.ext) ? args->destroot : g_strdup_printf("%s%s", args->destroot, com.pref.ext);
 				if (fitseq_create_file(dest, conv->output_fitseq,
 							args->input_has_a_seq ? -1 : args->total)) {
 					siril_log_message(_("Creating the FITS sequence file `%s' failed, aborting.\n"), args->destroot);
@@ -1196,13 +1196,13 @@ static gchar *create_sequence_filename(sequence_type output_type, const char *de
 	gboolean append_underscore = dest_end != '_' && dest_end != '-' && (dest_end < '0' || dest_end > '9');
 	switch (output_type) {
 		case SEQ_REGULAR:
-			output = g_strdup_printf("%s%s%05d%s", destroot_noext, append_underscore ? "_" : "", index, get_com_ext());
+			output = g_strdup_printf("%s%s%05d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
 			break;
 		case SEQ_SER:
 			output = g_strdup_printf("%s%s%03d.ser", destroot_noext, append_underscore ? "_" : "", index);
 			break;
 		case SEQ_FITSEQ:
-			output = g_strdup_printf("%s%s%03d%s", destroot_noext, append_underscore ? "_" : "", index, get_com_ext());
+			output = g_strdup_printf("%s%s%03d%s", destroot_noext, append_underscore ? "_" : "", index, com.pref.ext);
 			break;
 		default:
 			siril_log_color_message(_("output sequence type unknown, aborting\n"), "red");
