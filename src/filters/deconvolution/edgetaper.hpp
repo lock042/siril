@@ -1,7 +1,7 @@
 #pragma once
 
 #include "image.hpp"
-#include <cmath>
+#include <glib.h>
 
 template <typename T>
 void edgetaper(img_t<T>& out, const img_t<T>& in, const img_t<T>& kernel, int iterations=1)
@@ -11,16 +11,16 @@ void edgetaper(img_t<T>& out, const img_t<T>& in, const img_t<T>& kernel, int it
     for (int y = 0; y < in.h; y++) {
         T wy = 1.;
         if (y < kernel.h) {
-            wy = std::pow(std::sin(y * M_PI / (kernel.h*2 - 1)), 2.);
+            wy = std::pow(std::sin(y * G_PI / (kernel.h*2 - 1)), 2.);
         } else if (y > in.h - kernel.h) {
-            wy = std::pow(std::sin((in.h-1 - y) * M_PI / (kernel.h*2 - 1)), 2.);
+            wy = std::pow(std::sin((in.h-1 - y) * G_PI / (kernel.h*2 - 1)), 2.);
         }
         for (int x = 0; x < in.w; x++) {
             T wx = 1.;
             if (x < kernel.w) {
-                wx = std::pow(std::sin(x * M_PI / (kernel.w*2 - 1)), 2.);
+                wx = std::pow(std::sin(x * G_PI / (kernel.w*2 - 1)), 2.);
             } else if (x > in.w - kernel.w) {
-                wx = std::pow(std::sin((in.w-1 - x) * M_PI / (kernel.w*2 - 1)), 2.);
+                wx = std::pow(std::sin((in.w-1 - x) * G_PI / (kernel.w*2 - 1)), 2.);
             }
             weights(x, y) = wx * wy;
         }
