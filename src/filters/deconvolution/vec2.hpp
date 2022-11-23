@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <numeric>
 
 #include "better_than_std.hpp"
