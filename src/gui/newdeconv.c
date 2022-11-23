@@ -226,7 +226,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 
 			siril_log_message(_("Starting kernel estimation...\n"));
 			kernel = estimate_kernel(&args);
-			siril_log_message(_("Kernel estimation complete. Starting non-blin deconvolution...\n"));
+			siril_log_message(_("Kernel estimation complete. Starting non-blind deconvolution...\n"));
 			break;
 		case 1:
 			break;

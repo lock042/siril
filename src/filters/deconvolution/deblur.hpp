@@ -7,6 +7,7 @@
 #include "utils.hpp"
 
 namespace deblur {
+// (ROF = Rudin-Osher-Fatemi method for TV regularization)
     namespace rof {
 
         template <typename T>
