@@ -34,7 +34,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/sleef.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
@@ -43,6 +42,7 @@
 #include "core/undo.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
+#include "algos/search_objects.h"
 #include "algos/annotate.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
@@ -362,6 +362,43 @@ static gchar *fetch_url(const gchar *url) {
 }
 #endif
 
+gchar *search_in_online_conesearch(struct astrometry_data *args) {
+	GString *string_url;
+
+	double ra, dec;
+	center2wcs(args->fit, &ra, &dec);
+
+	// https://vo.imcce.fr/webservices/skybot/?conesearch
+	string_url = g_string_new(SKYBOT);
+	string_url = g_string_append(string_url, "&-ep=");
+	gchar *formatted_date = date_time_to_FITS_date(gfit.date_obs);
+	string_url = g_string_append(string_url, formatted_date);
+	string_url = g_string_append(string_url, "&-ra=");		// RA
+	g_string_append_printf(string_url, "%lf", ra);
+	string_url = g_string_append(string_url, "&-dec=");		// DEC
+	g_string_append_printf(string_url, "%lf", dec);
+	string_url = g_string_append(string_url, "&-rm=");		// FOV
+	g_string_append_printf(string_url, "%lf", 1.0 * get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry));
+	string_url = g_string_append(string_url, "&-mime=text");
+	string_url = g_string_append(string_url, "&-output=object");
+	string_url = g_string_append(string_url, "&-loc=500");
+	string_url = g_string_append(string_url, "&-filter=0");
+	string_url = g_string_append(string_url, "&-objFilter=111");
+	string_url = g_string_append(string_url, "&-refsys=EQJ2000");
+	string_url = g_string_append(string_url, "&-from=Siril;");
+
+	gchar *url = g_string_free(string_url, FALSE);
+	gchar *cleaned_url = url_cleanup(url);
+	gchar *result = fetch_url(cleaned_url);
+	siril_debug_print(_("URL: %s \n"), cleaned_url);
+
+	g_free(cleaned_url);
+	g_free(url);
+	g_free(formatted_date);
+
+	return result;
+}
+
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	GString *string_url;
 	gchar *name = g_utf8_strdown(object, -1);
@@ -428,6 +465,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	gchar *url = g_string_free(string_url, FALSE);
 	gchar *cleaned_url = url_cleanup(url);
 	gchar *result = fetch_url(cleaned_url);
+	siril_debug_print(_("URL: %s \n"), cleaned_url);
 
 	g_free(cleaned_url);
 	g_free(url);
@@ -507,7 +545,6 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 	g_strfreev(token);
 	return 0;
 }
-
 
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag) {
 	gchar *buffer = NULL;

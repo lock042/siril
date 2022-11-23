@@ -346,7 +346,7 @@ signed short *float_buffer_to_short(float *buffer, size_t ndata) {
  * @param ndata
  * @return
  */
-signed short *ushort_buffer_to_short(WORD *buffer, size_t ndata) {
+signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
 	signed short *buf = malloc(ndata * sizeof(signed short));
 	if (!buf) {
 		PRINT_ALLOC_ERR;

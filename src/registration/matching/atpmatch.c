@@ -466,6 +466,14 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 	 */
 	prune_triangle_array(triangle_array_A, &num_triangles_A);
 	prune_triangle_array(triangle_array_B, &num_triangles_B);
+	if (num_triangles_A <= 0 || num_triangles_B <= 0) {
+		shError("After pruning: No more stars in array A or B\n");
+		free_star_array(star_array_A);
+		free_star_array(star_array_B);
+		shFree(triangle_array_A);
+		shFree(triangle_array_B);
+		return (SH_GENERIC_ERROR);
+	}
 #ifdef DEBUG2
 	printf("after pruning, here comes triangle array A\n");
 	print_triangle_array(triangle_array_A, num_triangles_A,
@@ -2004,7 +2012,7 @@ int *numtriangles /* I/O: number of triangles in the t_array */
 		}
 	}
 	*numtriangles = i;
-	g_assert(*numtriangles >= 0);
+	//g_assert(*numtriangles >= 0);
 }
 
 /************************************************************************

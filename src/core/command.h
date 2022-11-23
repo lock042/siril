@@ -11,6 +11,7 @@ int	process_asinh(int nb);
 
 int	process_bg(int nb);
 int	process_bgnoise(int nb);
+int	process_binxy(int nb);
 int	process_denoise(int nb);
 gpointer run_nlbayes_on_fit(gpointer p);
 gpointer run_bm3d_on_fit(gpointer p);
@@ -77,6 +78,7 @@ int	process_mtf(int nb);
 int	process_neg(int nb);
 int	process_new(int nb);
 int	process_nomad(int nb);
+int	process_sso();
 int	process_nozero(int nb);
 
 int	process_offset(int nb);

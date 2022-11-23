@@ -93,7 +93,7 @@ BYTE float_to_uchar_range(float f);
 float ushort_to_float_bitpix(fits *fit, WORD value);
 WORD *float_buffer_to_ushort(float *buffer, size_t ndata);
 signed short *float_buffer_to_short(float *buffer, size_t ndata);
-signed short *ushort_buffer_to_short(WORD *buffer, size_t ndata);
+signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata);
 float *uchar_buffer_to_float(BYTE *buffer, size_t ndata);
 float *ushort_buffer_to_float(WORD *buffer, size_t ndata);
 float *ushort8_buffer_to_float(WORD *buffer, size_t ndata);

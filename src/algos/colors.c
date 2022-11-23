@@ -589,9 +589,11 @@ static gpointer extract_channels_ushort(gpointer p) {
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
 	for (int i = 0; i < 3; i++) {
-		update_filter_information(args->fit, add_filter_str[i], TRUE);
-		save1fits16(args->channel[i], args->fit, i);
-		update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+		if (args->channel[i]) {
+			update_filter_information(args->fit, add_filter_str[i], TRUE);
+			save1fits16(args->channel[i], args->fit, i);
+			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+		}
 	}
 	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);
@@ -669,9 +671,11 @@ static gpointer extract_channels_float(gpointer p) {
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
 	for (int i = 0; i < 3; i++) {
-		update_filter_information(args->fit, add_filter_str[i], TRUE);
-		save1fits32(args->channel[i], args->fit, i);
-		update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+		if (args->channel[i]) {
+			update_filter_information(args->fit, add_filter_str[i], TRUE);
+			save1fits32(args->channel[i], args->fit, i);
+			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+		}
 	}
 	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);
