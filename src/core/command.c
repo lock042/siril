@@ -5841,8 +5841,8 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 		} else if (g_str_has_prefix(current, "-rejmap")) {
 			if (!rej_options_allowed) {
 				siril_log_message(_("Rejection maps can be created only with average stacking, ignoring.\n"));
-			} else if (arg->norm == NO_NORM) {
-				siril_log_message(_("Rejection maps can be created only if normalization has been activated, ignoring.\n"));
+			} else if (arg->type_of_rejection == NO_REJEC) {
+				siril_log_message(_("Rejection maps can be created only if rejection has been activated, ignoring.\n"));
 			} else {
 				arg->create_rejmaps = TRUE;
 				arg->merge_lowhigh_rejmaps = TRUE;
