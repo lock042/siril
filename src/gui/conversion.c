@@ -536,8 +536,8 @@ void process_destroot(sequence_type output_type) {
 		seq_exists = check_if_seq_exist(destroot, FALSE);
 	}
 	else if (output_type == SEQ_FITSEQ) {
-		if (!g_str_has_suffix(destroot, get_com_ext()))
-			str_append(&destroot, get_com_ext());
+		if (!g_str_has_suffix(destroot, com.pref.ext))
+			str_append(&destroot, com.pref.ext);
 		seq_exists = check_if_seq_exist(destroot, FALSE);
 	}
 	else {

@@ -568,7 +568,7 @@ static gpointer live_stacker(gpointer arg) {
 		}
 
 		siril_debug_print("Adding file to input sequence\n");
-		gchar *target = g_strdup_printf("live_stack_%05d%s", index, get_com_ext());
+		gchar *target = g_strdup_printf("live_stack_%05d%s", index, com.pref.ext);
 		/* Preprocess image */
 		if (!preprocess_image(filename, target)) {
 			siril_log_message(_("Preprocessed image to %s\n"), target);
@@ -670,7 +670,7 @@ static gpointer live_stacker(gpointer arg) {
 		show_time_msg(tv_tmp, tv_end, "registration");
 		tv_tmp = tv_end;
 
-		gchar *result_filename = g_strdup_printf("live_stack_00001%s", get_com_ext());
+		gchar *result_filename = g_strdup_printf("live_stack_00001%s", com.pref.ext);
 
 		/* Stack the sequence */
 		siril_debug_print("Stacking image %d\n", index);

@@ -292,10 +292,10 @@ gpointer do_starnet(gpointer p) {
 	strncat(starlesstif, ".tif", 5);
 	strncat(starlessfit, imagenoext, sizeof(starlessfit) - strlen(imagenoext));
 	strncat(starlessfit, starlesssuffix, 10);
-	strncat(starlessfit, get_com_ext(), 5);
+	strncat(starlessfit, com.pref.ext, 5);
 	strncat(starmaskfit, imagenoext, sizeof(starmaskfit) - strlen(imagenoext));
 	strncat(starmaskfit, starmasksuffix, 10);
-	strncat(starmaskfit, get_com_ext(), 5);
+	strncat(starmaskfit, com.pref.ext, 5);
 
 	// ok, let's start
 	set_progress_bar_data(_("Starting Starnet++"), PROGRESS_NONE);

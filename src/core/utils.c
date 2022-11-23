@@ -1440,9 +1440,13 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 	} while((*s++ = *d++));
 }
 
-char *get_com_ext() {
-	if (com.pref.add_fz && !g_str_has_suffix(com.pref.ext, ".fz")) {
-		return str_append(&com.pref.ext, ".fz");
+/**
+ *
+ * @return
+ */
+gchar *get_com_ext() {
+	if (com.add_fz) {
+		return g_strdup_printf("%s%s", com.pref.ext, ".fz");
 	}
-	return com.pref.ext;
+	return g_strdup(com.pref.ext);
 }

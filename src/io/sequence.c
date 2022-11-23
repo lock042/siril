@@ -230,6 +230,8 @@ int check_seq() {
 		const char *ext = get_filename_ext(file);
 		if (!ext) continue;
 
+		com.add_fz = g_str_has_suffix(ext, ".fz");
+
 		if ((new_seq = check_seq_one_file(file, FALSE))) {
 			sequences[nb_seq] = new_seq;
 			nb_seq++;
@@ -379,7 +381,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 			com.pref.ext = g_strdup_printf(".%s", ext);
 			if (g_str_has_suffix(ext, ".fz")) {
 				com.pref.ext[strlen(com.pref.ext) - 3] = '\0';
-				com.pref.add_fz = TRUE;
+				com.add_fz = TRUE;
 			}
 		}
 

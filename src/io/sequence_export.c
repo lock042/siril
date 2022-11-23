@@ -152,7 +152,7 @@ static gpointer export_sequence(gpointer ptr) {
 			break;
 		case EXPORT_FITSEQ:
 			fitseq_file = malloc(sizeof(fitseq));
-			snprintf(dest, 256, "%s%s", args->basename, get_com_ext());
+			snprintf(dest, 256, "%s%s", args->basename, com.pref.ext);
 			if (fitseq_create_file(dest, fitseq_file, -1)) {
 				free(fitseq_file);
 				fitseq_file = NULL;
@@ -462,7 +462,7 @@ static gpointer export_sequence(gpointer ptr) {
 
 		switch (args->output) {
 			case EXPORT_FITS:
-				snprintf(dest, 255, "%s%05d%s", args->basename, i + 1, get_com_ext());
+				snprintf(dest, 255, "%s%05d%s", args->basename, i + 1, com.pref.ext);
 				retval = savefits(dest, destfit);
 				break;
 			case EXPORT_FITSEQ:

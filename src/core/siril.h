@@ -570,6 +570,7 @@ struct cominf {
 
 	sequence seq;			// currently loaded sequence
 	single *uniq;			// currently loaded image, if outside sequence
+	gboolean add_fz; 		// add fz extension to FITS extension
 
 	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
 					      // TODO: move in ffit?

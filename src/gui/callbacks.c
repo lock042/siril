@@ -985,7 +985,7 @@ void initialize_FITS_name_entries() {
 
 	const char *t_bias = gtk_entry_get_text(mbias);
 	if (!str[0] && t_bias[0] == '\0') {
-		str[0] = g_strdup_printf("master-bias%s", get_com_ext());
+		str[0] = g_strdup_printf("master-bias%s", com.pref.ext);
 	}
 	if (str[0]) {
 		gtk_entry_set_text(mbias, str[0]);
@@ -993,7 +993,7 @@ void initialize_FITS_name_entries() {
 
 	const char *t_dark = gtk_entry_get_text(mdark);
 	if (!str[1] && t_dark[0] == '\0') {
-		str[1] = g_strdup_printf("master-dark%s", get_com_ext());
+		str[1] = g_strdup_printf("master-dark%s", com.pref.ext);
 	}
 	if (str[1]) {
 		gtk_entry_set_text(mdark, str[1]);
@@ -1001,7 +1001,7 @@ void initialize_FITS_name_entries() {
 
 	const char *t_flat = gtk_entry_get_text(mflat);
 	if (!str[2] && t_flat[0] == '\0') {
-		str[2] = g_strdup_printf("master-flat%s", get_com_ext());
+		str[2] = g_strdup_printf("master-flat%s", com.pref.ext);
 	}
 	if (str[2]) {
 		gtk_entry_set_text(mflat, str[2]);
@@ -1010,9 +1010,9 @@ void initialize_FITS_name_entries() {
 	const char *t_stack = gtk_entry_get_text(final_stack);
 	if (!str[3] && t_stack[0] == '\0') {
 		if (sequence_is_loaded())
-			str[3] = g_strdup_printf("%s_stacked%s", com.seq.seqname, get_com_ext());
+			str[3] = g_strdup_printf("%s_stacked%s", com.seq.seqname, com.pref.ext);
 		else
-			str[3] = g_strdup_printf("stack_result%s", get_com_ext());
+			str[3] = g_strdup_printf("stack_result%s", com.pref.ext);
 	}
 	if (str[3]) {
 		gtk_entry_set_text(final_stack, str[3]);
@@ -1036,12 +1036,15 @@ void set_output_filename_to_sequence_name() {
 			return;
 		}
 	}
+	gchar* ext = get_com_ext();
+
 	msg = g_strdup_printf("%s%sstacked%s", com.seq.seqname,
 			g_str_has_suffix(com.seq.seqname, "_") ?
-			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), get_com_ext());
+			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), ext);
 	gtk_entry_set_text(output_file, msg);
 
 	g_free(msg);
+	g_free(ext);
 }
 
 void close_tab() {
@@ -1349,7 +1352,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	siril_drag_single_image_set_dest();
 
 	set_GUI_CWD();
-	siril_log_message(_("Default FITS extension is set to %s\n"), get_com_ext());
+	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
 
 	set_initial_display_mode((display_mode) com.pref.gui.default_rendering_mode);
 	set_initial_histogram_display_mode(com.pref.gui.display_histogram_mode);

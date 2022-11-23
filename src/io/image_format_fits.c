@@ -2190,9 +2190,9 @@ int savefits(const char *name, fits *f) {
 
 	if (!right_extension) {
 		if (com.pref.comp.fits_enabled) {
-			snprintf(filename, 255, "%s%s.fz", name, get_com_ext());
+			snprintf(filename, 255, "%s%s.fz", name, com.pref.ext);
 		} else {
-			snprintf(filename, 255, "%s%s", name, get_com_ext());
+			snprintf(filename, 255, "%s%s", name, com.pref.ext);
 		}
 	} else {
 		if (comp_flag && !com.pref.comp.fits_enabled) {

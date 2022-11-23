@@ -1815,9 +1815,9 @@ int process_merge(int nb) {
 			break;
 
 		case SEQ_FITSEQ:
-			if (g_str_has_suffix(word[nb - 1], get_com_ext()))
+			if (g_str_has_suffix(word[nb - 1], com.pref.ext))
 				outseq_name = g_strdup(word[nb - 1]);
-			else outseq_name = g_strdup_printf("%s%s", word[nb - 1], get_com_ext());
+			else outseq_name = g_strdup_printf("%s%s", word[nb - 1], com.pref.ext);
 			if (fitseq_create_file(outseq_name, &out_fitseq, -1)) {
 				siril_log_message(_("Failed to create the output SER file `%s'\n"), word[nb - 1]);
 				retval = 1;
@@ -4146,9 +4146,9 @@ int process_split(int nb){
 	args->type = EXTRACT_RGB;
 	args->str_type = _("RGB");
 
-	args->channel[0] = g_strdup_printf("%s%s", word[1], get_com_ext());
-	args->channel[1] = g_strdup_printf("%s%s", word[2], get_com_ext());
-	args->channel[2] = g_strdup_printf("%s%s", word[3], get_com_ext());
+	args->channel[0] = g_strdup_printf("%s%s", word[1], com.pref.ext);
+	args->channel[1] = g_strdup_printf("%s%s", word[2], com.pref.ext);
+	args->channel[2] = g_strdup_printf("%s%s", word[3], com.pref.ext);
 
 	args->fit = calloc(1, sizeof(fits));
 	if (copyfits(&gfit, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
@@ -4183,10 +4183,10 @@ int process_split_cfa(int nb) {
 		}
 	}
 
-	gchar *cfa0 = g_strdup_printf("CFA0_%s%s", filename, get_com_ext());
-	gchar *cfa1 = g_strdup_printf("CFA1_%s%s", filename, get_com_ext());
-	gchar *cfa2 = g_strdup_printf("CFA2_%s%s", filename, get_com_ext());
-	gchar *cfa3 = g_strdup_printf("CFA3_%s%s", filename, get_com_ext());
+	gchar *cfa0 = g_strdup_printf("CFA0_%s%s", filename, com.pref.ext);
+	gchar *cfa1 = g_strdup_printf("CFA1_%s%s", filename, com.pref.ext);
+	gchar *cfa2 = g_strdup_printf("CFA2_%s%s", filename, com.pref.ext);
+	gchar *cfa3 = g_strdup_printf("CFA3_%s%s", filename, com.pref.ext);
 
 	if (gfit.type == DATA_USHORT) {
 		if (!(ret = split_cfa_ushort(&gfit, &f_cfa0, &f_cfa1, &f_cfa2, &f_cfa3))) {
@@ -4232,7 +4232,7 @@ int process_extractGreen(int nb) {
 
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
 
-	gchar *green = g_strdup_printf("Green_%s%s", filename, get_com_ext());
+	gchar *green = g_strdup_printf("Green_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
 		if (!(ret = extractGreen_ushort(&gfit, &f_green, pattern))) {
 			ret = save1fits16(green, &f_green, 0);
@@ -4270,7 +4270,7 @@ int process_extractHa(int nb) {
 
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
 
-	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, get_com_ext());
+	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
 		if (!(ret = extractHa_ushort(&gfit, &f_Ha, pattern))) {
 			ret = save1fits16(Ha, &f_Ha, 0);
@@ -4322,8 +4322,8 @@ int process_extractHaOIII(int nb) {
 
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
 
-	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, get_com_ext());
-	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, get_com_ext());
+	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
+	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
 		if (!(ret = extractHaOIII_ushort(&gfit, &f_Ha, &f_OIII, pattern, scaling))) {
 			ret = save1fits16(Ha, &f_Ha, 0) ||
@@ -4934,8 +4934,8 @@ int process_convertraw(int nb) {
 			debayer = TRUE;
 		} else if (!strcmp(current, "-fitseq")) {
 			output = SEQ_FITSEQ;
-			if (!g_str_has_suffix(destroot, get_com_ext()))
-				str_append(&destroot, get_com_ext());
+			if (!g_str_has_suffix(destroot, com.pref.ext))
+				str_append(&destroot, com.pref.ext);
 		} else if (!strcmp(current, "-ser")) {
 			output = SEQ_SER;
 			if (!g_str_has_suffix(destroot, ".ser"))
@@ -5139,8 +5139,8 @@ int process_convert(int nb) {
 			make_link = FALSE;
 		} else if (!strcmp(current, "-fitseq")) {
 			output = SEQ_FITSEQ;
-			if (!g_str_has_suffix(destroot, get_com_ext()))
-				str_append(&destroot, get_com_ext());
+			if (!g_str_has_suffix(destroot, com.pref.ext))
+				str_append(&destroot, com.pref.ext);
 		} else if (!strcmp(current, "-ser")) {
 			output = SEQ_SER;
 			if (!g_str_has_suffix(destroot, ".ser"))
@@ -5929,8 +5929,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 			char filename[256];
 			char *suffix = g_str_has_suffix(seq->seqname, "_") ||
 				g_str_has_suffix(seq->seqname, "-") ? "" : "_";
-			snprintf(filename, 256, "%s%sstacked%s",
-					seq->seqname, suffix, get_com_ext());
+			snprintf(filename, 256, "%s%sstacked%s", seq->seqname, suffix, com.pref.ext);
 			arg->result_file = g_strdup(filename);
 		} else { // the name is to be parsed (including folder creation if required)
 			int status = PATHPARSE_ERR_OK;
@@ -6928,10 +6927,10 @@ int process_rgbcomp(int nb) {
 	if (nb == next_arg + 1 && g_str_has_prefix(word[next_arg], "-out=") &&
 			word[next_arg][5] != '\0') {
 		result_filename = word[next_arg] + 5;
-		if (g_str_has_suffix(result_filename, get_com_ext()))
+		if (g_str_has_suffix(result_filename, com.pref.ext))
 			result_filename = g_strdup(result_filename);
-		else result_filename = g_strdup_printf("%s%s", result_filename, get_com_ext());
-	} else result_filename = g_strdup_printf("%s%s", default_result_name, get_com_ext());
+		else result_filename = g_strdup_printf("%s%s", result_filename, com.pref.ext);
+	} else result_filename = g_strdup_printf("%s%s", default_result_name, com.pref.ext);
 
 	retval = savefits(result_filename, rgbptr);
 	g_free(result_filename);

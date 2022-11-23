@@ -442,8 +442,8 @@ int seq_prepare_hook(struct generic_seq_args *args) {
 		gchar *dest;
 		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
 		if (ptr)
-			dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, ptr + 1, get_com_ext());
-		else dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, args->seq->seqname, get_com_ext());
+			dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, ptr + 1, com.pref.ext);
+		else dest = g_strdup_printf("%s%s%s", args->new_seq_prefix, args->seq->seqname, com.pref.ext);
 
 		args->new_fitseq = malloc(sizeof(fitseq));
 		if (fitseq_create_file(dest, args->new_fitseq, args->nb_filtered_images)) {
