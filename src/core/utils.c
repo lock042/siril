@@ -652,12 +652,8 @@ const char *get_filename_ext(const char *filename) {
 	p = filename + len;
 	if (g_str_has_suffix(p, ".fz")) {
 		int l = strlen(p);
-		int c = 0;
-		for (int i = l - 1; i >= 0; i--) {
+		for (int i = l - 1 - 3; i >= 0; i--) {
 			if ((p[i] == '.')) {
-				c++;
-			}
-			if (c == 2) {
 				return (p + i + 1);
 			}
 		}
