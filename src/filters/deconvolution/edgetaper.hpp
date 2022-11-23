@@ -1,6 +1,7 @@
 #pragma once
 
 #include "image.hpp"
+#include <cmath>
 
 template <typename T>
 void edgetaper(img_t<T>& out, const img_t<T>& in, const img_t<T>& kernel, int iterations=1)
