@@ -174,6 +174,25 @@ siril_common_SOURCES = \
 	filters/nlbayes/NlBayes.h \
 	filters/nlbayes/Utilities.cpp \
 	filters/nlbayes/Utilities.h \
+	filters/deconvolution/args.hxx \
+	filters/deconvolution/better_than_std.hpp \
+	filters/deconvolution/deblur.cpp \
+	filters/deconvolution/deblur.hpp \
+	filters/deconvolution/edgetaper.hpp \
+	filters/deconvolution/estimate_kernel.cpp \
+	filters/deconvolution/fft.hpp \
+	filters/deconvolution/fftw_allocator.hpp \
+	filters/deconvolution/image.cpp \
+	filters/deconvolution/image_expr.hpp \
+	filters/deconvolution/image.hpp \
+	filters/deconvolution/labeling.hpp \
+	gui/newdeconv.c \
+	filters/deconvolution/optimization.hpp \
+	filters/deconvolution/options.hpp \
+	filters/deconvolution/utils.hpp \
+	filters/deconvolution/vec2.hpp \
+	filters/deconvolution/imscript/upsa.c \
+	filters/deconvolution/imscript/downscale.c \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
 	gui/annotations_pref.c \
