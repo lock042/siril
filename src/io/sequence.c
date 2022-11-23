@@ -202,6 +202,7 @@ int check_seq() {
 	const gchar *file;
 	sequence **sequences;
 	int i, nb_seq = 0, max_seq = 10;
+	gboolean keep_fz_flag = FALSE;
 
 	if (!com.wd) {
 		siril_log_message(_("Current working directory is not set, aborting.\n"));
@@ -230,7 +231,7 @@ int check_seq() {
 		const char *ext = get_filename_ext(file);
 		if (!ext) continue;
 
-		com.add_fz = g_str_has_suffix(ext, ".fz");
+		com.add_fz = keep_fz_flag || g_str_has_suffix(ext, ".fz");
 		gchar *com_ext = get_com_ext();
 
 		if ((new_seq = check_seq_one_file(file, FALSE))) {
@@ -259,6 +260,7 @@ int check_seq() {
 					sequences[nb_seq] = new_seq;
 					current_seq = nb_seq;
 					nb_seq++;
+					if (com.add_fz) keep_fz_flag = TRUE;
 					siril_debug_print("Found a sequence (number %d) with base name"
 							" \"%s\", looking for first and last indexes.\n",
 							nb_seq, basename);
@@ -317,8 +319,9 @@ int check_seq() {
 			}
 			siril_debug_print(_("sequence %d, found: %d to %d\n"),
 					i + 1, sequences[i]->beg, sequences[i]->end);
-			if (!buildseqfile(sequences[i], 0) && retval)
+			if (!buildseqfile(sequences[i], 0) && retval) {
 				retval = 0;	// at least one succeeded to be created
+			}
 			free_sequence(sequences[i], TRUE);
 		}
 		free(sequences);
