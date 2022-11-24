@@ -113,7 +113,7 @@ int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
 
 void reset_3stars();
-void _3stars_check_registration_ready();
+int _3stars_check_registration_ready();
 gboolean _3stars_check_selection();
 
 pointf get_velocity();

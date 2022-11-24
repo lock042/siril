@@ -1114,7 +1114,8 @@ static void update_filters_registration(int update_adjustment) {
  * Verifies that enough images are selected and an area is selected.
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
-	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL, *noout = NULL, *toggle_reg_clamp = NULL;
+	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
+	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -1122,10 +1123,12 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	struct registration_method *method;
 	gboolean selection_is_done;
 	gboolean has_reg, ready;
+	int nbselstars = 0;
 
 	if (!go_register) {
 		go_register = lookup_widget("goregister_button");
 		follow = lookup_widget("followStarCheckButton");
+		onlyshift = lookup_widget("onlyshift_checkbutton");
 		reg_all_sel_box = GTK_COMBO_BOX(lookup_widget("reg_sel_all_combobox"));
 		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
 		notebook_reg = GTK_NOTEBOOK(lookup_widget("notebook_registration"));
@@ -1156,7 +1159,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* show the appropriate frame selection widgets */
 	gboolean isapplyreg = method->method_ptr == &register_apply_reg;
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
-	gtk_widget_set_visible(lookup_widget("seq_filters_box_reg"), isapplyreg);
+	gtk_widget_set_visible(GTK_WIDGET(filter_combo), isapplyreg);
 	if (isapplyreg) {
 		if (!dont_change_reg_radio && com.seq.selnum < com.seq.number) {
 			gtk_combo_box_set_active(filter_combo, SELECTED_IMAGES);
@@ -1183,9 +1186,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_APPLYREG);
 		}
 		gtk_widget_set_visible(follow, method->method_ptr == &register_3stars);
-		gtk_widget_set_sensitive(toggle_reg_clamp, (method->method_ptr == &register_apply_reg)
-																			|| (method->method_ptr == &register_3stars)
-																			|| (method->method_ptr == &register_star_alignment));
+		gtk_widget_set_visible(onlyshift, method->method_ptr == &register_3stars);
+		gtk_widget_set_sensitive(toggle_reg_clamp, (method->method_ptr == &register_apply_reg) || (method->method_ptr == &register_star_alignment));
 		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars) {
@@ -1199,7 +1201,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		// the 3 stars method has special GUI requirements
 		if (method->method_ptr == &register_3stars) {
 			if (!ready) gtk_widget_set_sensitive(go_register,FALSE);
-			else _3stars_check_registration_ready();
+			else nbselstars = _3stars_check_registration_ready();
 		} else gtk_widget_set_sensitive(go_register, ready);
 	} else {
 		gtk_widget_set_sensitive(go_register, FALSE);
@@ -1229,7 +1231,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	if (method && ((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
 			(method->method_ptr == &register_shift_dft) ||
-			(method->method_ptr == &register_multi_step_global))) {
+			(method->method_ptr == &register_multi_step_global) ||
+			(method->method_ptr == &register_3stars && nbselstars <= 1))) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
 		gtk_widget_set_sensitive(noout, FALSE);
 	} else if (method && method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
@@ -1352,12 +1355,19 @@ void on_regfollowStar_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 	update_reg_interface(TRUE);
 }
 
+void on_shiftonly_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	gboolean toggled = gtk_toggle_button_get_active(togglebutton);
+	GtkWidget *noout = lookup_widget("regNoOutput");
+	gtk_widget_set_sensitive(noout, !toggled);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), toggled);
+}
+
 /* callback for 'Go register' button, GTK thread */
 void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	struct registration_args *reg_args;
 	struct registration_method *method;
 	char *msg;
-	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul;
+	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul, *onlyshift;
 	GtkComboBox *cbbt_layers, *reg_all_sel_box;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
 	GtkSpinButton *minpairs, *percent_moved;
@@ -1392,6 +1402,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 
 	/* filling the arguments for registration */
 	follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+	onlyshift = GTK_TOGGLE_BUTTON(lookup_widget("onlyshift_checkbutton"));
 	matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
 	x2upscale = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
 	cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
@@ -1418,10 +1429,15 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->percent_moved = (float) gtk_spin_button_get_value(percent_moved) / 100.f;
 	int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));
 	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
-	reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
+	if (method->method_ptr != register_3stars)
+		reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
+	else {
+		reg_args->type = (gtk_toggle_button_get_active(onlyshift)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
+		reg_args->no_output = (gtk_toggle_button_get_active(onlyshift)) ? TRUE : keep_noout_state;
+	}
 	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
 #ifndef HAVE_CV44
-	if (reg_args->type == SHIFT_TRANSFORMATION) {
+	if (reg_args->type == SHIFT_TRANSFORMATION && method->method_ptr != register_3stars) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
 		free(reg_args);
 		unreserve_thread();
@@ -1531,6 +1547,7 @@ static gboolean end_register_idle(gpointer p) {
 			update_seqlist(chan);
 			fill_sequence_list(args->seq, chan, FALSE);
 			set_layers_for_registration();	// update display of available reg data
+			seq_load_image(args->seq, args->seq->reference_image, TRUE);
 			redraw(REDRAW_OVERLAY); // plot registration frame
 		}
 		else {

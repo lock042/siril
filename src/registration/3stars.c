@@ -44,7 +44,7 @@ static GtkWidget *three_buttons[3] = { 0 };
 static GtkWidget *go_register = NULL;
 static GtkLabel *labelreginfo = NULL;
 static GtkImage *image_3stars[3] = { NULL };
-static GtkWidget *follow = NULL;
+static GtkWidget *follow = NULL, *onlyshift = NULL, *noout = NULL;
 static GtkComboBox *reg_all_sel_box = NULL;
 
 struct _3psf {
@@ -97,12 +97,15 @@ void reset_3stars(){
 	gtk_widget_set_sensitive(three_buttons[0], TRUE);
 	set_registration_ready(FALSE);
 	clear_stars_list(TRUE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), FALSE);
+	gtk_widget_set_sensitive(onlyshift, FALSE);
 	awaiting_star = 0;
 	selected_stars = 0;
 }
 
-void _3stars_check_registration_ready() {
+int _3stars_check_registration_ready() {
 	set_registration_ready((selected_stars >= 1) ? TRUE : FALSE);
+	return selected_stars;
 }
 
 gboolean _3stars_check_selection() {
@@ -110,6 +113,8 @@ gboolean _3stars_check_selection() {
 		follow = lookup_widget("followStarCheckButton");
 		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
+		onlyshift = lookup_widget("onlyshift_checkbutton");
+		noout = lookup_widget("regNoOutput");
 	}
 	gboolean dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
 	gboolean doall = !gtk_combo_box_get_active(reg_all_sel_box);
@@ -150,11 +155,21 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		clear_stars_list(TRUE);
 		selected_stars = 0;
 		awaiting_star = 1;
-	} else if (three_buttons[1] == widget)
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), TRUE);
+		gtk_widget_set_sensitive(onlyshift, FALSE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
+		gtk_widget_set_sensitive(noout, FALSE);
+	} else if (three_buttons[1] == widget) {
 		awaiting_star = 2;
-	else if (three_buttons[2] == widget)
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), FALSE);
+		gtk_widget_set_sensitive(onlyshift, TRUE);
+		gtk_widget_set_sensitive(noout, TRUE);
+	} else if (three_buttons[2] == widget) {
 		awaiting_star = 3;
-	else {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), FALSE);
+		gtk_widget_set_sensitive(onlyshift, TRUE);
+		gtk_widget_set_sensitive(noout, TRUE);
+	} else {
 		fprintf(stderr, "unknown button clicked\n");
 		return;
 	}
@@ -491,8 +506,6 @@ then computes transformation matrix to the ref image
 and finally applies this transform if !no_output
 Registration data is saved to the input sequence in any case
 */
-// TODO: Add combo with choice of transform (shift or euclidean)
-// TODO: noout should be the default for one star
 int register_3stars(struct registration_args *regargs) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
@@ -609,18 +622,21 @@ int register_3stars(struct registration_args *regargs) {
 			if (results[i].stars[j] != NULL && results[refimage].stars[j] != NULL) nb_stars++;
 		}
 		if (i != refimage) {
-			if (onestar) { // one-star reg
+			if (regargs->type == SHIFT_TRANSFORMATION) { // shift only 2-3 stars or onestar
 				if (nb_stars == 0) {
 					siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
 					failed++;
 					continue;
 				}
-				double shiftx = results[refimage].stars[0]->xpos - results[i].stars[0]->xpos;
-				double shifty = results[i].stars[0]->ypos - results[refimage].stars[0]->ypos;
-				current_regdata[i].H = H_from_translation(shiftx, shifty);
+				double shiftx = 0., shifty = 0.;
+				for (int j = 0; j < selected_stars; j++) {
+					shiftx += results[refimage].stars[0]->xpos - results[i].stars[0]->xpos;
+					shifty += results[i].stars[0]->ypos - results[refimage].stars[0]->ypos;
+				}
+				current_regdata[i].H = H_from_translation(shiftx / nb_stars, shifty / nb_stars);
 				fprintf(stderr, "reg: file %d, shiftx=%f shifty=%f\n",
 				regargs->seq->imgparam[i].filenum, shiftx, shifty);
-			} else { // 2-3 stars reg
+			} else { // 2-3 stars reg with rotation
 				if (nb_stars < 2) {
 					siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
 					failed++;
