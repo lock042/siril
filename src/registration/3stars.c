@@ -19,6 +19,7 @@
  */
 
 #include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include <assert.h>
 #include "core/siril.h"
@@ -629,11 +630,34 @@ int register_3stars(struct registration_args *regargs) {
 					continue;
 				}
 				double shiftx = 0., shifty = 0.;
+				int k = 0;
 				for (int j = 0; j < selected_stars; j++) {
-					shiftx += results[refimage].stars[0]->xpos - results[i].stars[0]->xpos;
-					shifty += results[i].stars[0]->ypos - results[refimage].stars[0]->ypos;
+					if (results[i].stars[j] != NULL && results[refimage].stars[j] != NULL) {
+						shiftx += results[refimage].stars[j]->xpos - results[i].stars[j]->xpos;
+						shifty += results[i].stars[j]->ypos - results[refimage].stars[j]->ypos;
+						k++;
+					}
 				}
-				current_regdata[i].H = H_from_translation(shiftx / nb_stars, shifty / nb_stars);
+				shiftx /= (double)k;
+				shifty /= (double)k;
+				if (selected_stars > 1 && nb_stars > 1) { // error checking can only be computed if more than one star
+					double err = 0., tmp_err = 0.;;
+					for (int j = 0; j < selected_stars; j++) {
+						if (results[i].stars[j] != NULL && results[refimage].stars[j] != NULL) {
+							tmp_err += SQR(results[refimage].stars[j]->xpos - results[i].stars[j]->xpos - shiftx);
+							tmp_err += SQR(results[i].stars[j]->ypos - results[refimage].stars[j]->ypos - shifty);
+							if (tmp_err > err) err = tmp_err;
+						}
+					}
+					err = pow(err, 0.5);
+					if (err > current_regdata[i].fwhm) {
+						siril_log_color_message(_("Cannot perform star matching: Image %d skipped\n"), "red",  regargs->seq->imgparam[i].filenum);
+						printf("Image %d max_error : %3.2f > fwhm: %3.2f\n", regargs->seq->imgparam[i].filenum, err, current_regdata[i].fwhm);
+						failed++;
+						continue;
+					}
+				}
+				current_regdata[i].H = H_from_translation(shiftx, shifty);
 				fprintf(stderr, "reg: file %d, shiftx=%f shifty=%f\n",
 				regargs->seq->imgparam[i].filenum, shiftx, shifty);
 			} else { // 2-3 stars reg with rotation
