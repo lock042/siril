@@ -275,7 +275,10 @@ endif
 
 openmp_dep = []
 if enable_openmp
-  siril_link_arg += ['-lfftw3f_omp']
+  if platform_linux
+    siril_cpp_flag += '-DHAVE_FFTW3F_OMP'
+    siril_link_arg += ['-lfftw3f_omp']
+  endif
   if platform_osx
     message('Set OpenMP flags for macOS')
     siril_link_arg += ['-lomp']

@@ -34,7 +34,7 @@ template <typename T>
 class img_t {
 public:
     static void use_threading(int n) {
-#ifdef _OPENMP
+#ifdef HAVE_FFTW3F_OMP
         if (n <= 1) return;
 // Change these lines to use fftw functions if double support is ever required
         fftwf_init_threads();
