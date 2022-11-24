@@ -7227,6 +7227,7 @@ int process_sso() {
 		lim_mag = g_ascii_strtod(value, &next);
 		if (next == value) {
 			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+			free(args);
 			return CMD_ARG_ERROR;
 		}
 	}
