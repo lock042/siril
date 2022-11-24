@@ -110,13 +110,13 @@ sequence * readseqfile(const char *name){
 				 * Such sequences don't exist anymore. */
 				assert(line[2] != '"');
 				if (line[2] == '\'')	/* new format, quoted string */
-					scanformat = "'%511[^']' %d %d %d %d %d %d %d";
-				else scanformat = "%511s %d %d %d %d %d %d %d";
+					scanformat = "'%511[^']' %d %d %d %d %d %d %d %d";
+				else scanformat = "%511s %d %d %d %d %d %d %d %d";
 
 				if(sscanf(line+2, scanformat,
 							filename, &seq->beg, &seq->number,
 							&seq->selnum, &seq->fixed,
-							&seq->reference_image, &version, &seq->is_variable) < 6 ||
+							&seq->reference_image, &version, &seq->is_variable, &seq->fz) < 6 ||
 						allocated != 0){
 					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 					goto error;
@@ -596,10 +596,10 @@ int writeseqfile(sequence *seq){
 	free(filename);
 
 	fprintf(seqfile,"#Siril sequence file. Contains list of images, selection, registration data and statistics\n");
-	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size\n");
-	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d\n",
+	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size fz_flag\n");
+	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d %d\n",
 			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed,
-			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable);
+			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable, seq->fz);
 	if (seq->type != SEQ_REGULAR) {
 		char type;
 		switch (seq->type) {

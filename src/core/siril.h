@@ -316,6 +316,7 @@ struct sequ {
 	int beg;		// imgparam[0]->filenum
 	int end;		// imgparam[number-1]->filenum
 	double exposure;	// exposure of frames (we assume they are all identical)
+	gboolean fz;
 
 	sequence_type type;
 	struct ser_struct *ser_file;
@@ -570,7 +571,6 @@ struct cominf {
 
 	sequence seq;			// currently loaded sequence
 	single *uniq;			// currently loaded image, if outside sequence
-	gboolean add_fz; 		// add fz extension to FITS extension
 
 	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
 					      // TODO: move in ffit?

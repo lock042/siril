@@ -1444,8 +1444,8 @@ void replace_spaces_from_str(gchar *s, gchar c) {
  *
  * @return
  */
-gchar *get_com_ext() {
-	if (com.add_fz) {
+gchar *get_com_ext(gboolean fz) {
+	if (fz) {
 		return g_strdup_printf("%s%s", com.pref.ext, ".fz");
 	}
 	return g_strdup(com.pref.ext);

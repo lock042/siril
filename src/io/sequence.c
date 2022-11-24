@@ -202,7 +202,6 @@ int check_seq() {
 	const gchar *file;
 	sequence **sequences;
 	int i, nb_seq = 0, max_seq = 10;
-	gboolean keep_fz_flag = FALSE;
 
 	if (!com.wd) {
 		siril_log_message(_("Current working directory is not set, aborting.\n"));
@@ -231,15 +230,15 @@ int check_seq() {
 		const char *ext = get_filename_ext(file);
 		if (!ext) continue;
 
-		com.add_fz = keep_fz_flag || g_str_has_suffix(ext, ".fz");
-		gchar *com_ext = get_com_ext();
+		gboolean is_fz = g_str_has_suffix(ext, ".fz");
+		gchar *com_ext = get_com_ext(is_fz);
 
 		if ((new_seq = check_seq_one_file(file, FALSE))) {
 			sequences[nb_seq] = new_seq;
 			nb_seq++;
 		} else if (!strcasecmp(ext, com_ext + 1)) {
 			char *basename = NULL;
-			if (!get_index_and_basename(file, &basename, &curidx, &fixed)) {
+			if (!get_index_and_basename(file, &basename, &curidx, &fixed, com_ext)) {
 				int current_seq = -1;
 				/* search in known sequences if we already have it */
 				for (i = 0; i < nb_seq; i++) {
@@ -257,10 +256,10 @@ int check_seq() {
 					new_seq->beg = INT_MAX;
 					new_seq->end = 0;
 					new_seq->fixed = fixed;
+					new_seq->fz = is_fz;
 					sequences[nb_seq] = new_seq;
 					current_seq = nb_seq;
 					nb_seq++;
-					if (com.add_fz) keep_fz_flag = TRUE;
 					siril_debug_print("Found a sequence (number %d) with base name"
 							" \"%s\", looking for first and last indexes.\n",
 							nb_seq, basename);
@@ -381,35 +380,27 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 #endif
 	else if (check_for_fitseq && TYPEFITS == get_type_for_extension(ext) && fitseq_is_fitseq(name, NULL)) {
 		/* set the configured extention to the extension of the file, otherwise reading will fail */
-		gchar *com_ext = get_com_ext();
 
-		if (strcasecmp(ext, com_ext + 1)) {
+		if (strcasecmp(ext, com.pref.ext + 1)) {
 			g_free(com.pref.ext);
 			com.pref.ext = g_strdup_printf(".%s", ext);
-			if (g_str_has_suffix(ext, ".fz")) {
-				com.pref.ext[strlen(com.pref.ext) - 3] = '\0';
-				com.add_fz = TRUE;
-			}
 		}
 
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
 		fitseq_init_struct(fitseq_file);
 		if (fitseq_open(name, fitseq_file)) {
 			free(fitseq_file);
-			g_free(com_ext);
 			return NULL;
 		}
 		new_seq = calloc(1, sizeof(sequence));
 		initialize_sequence(new_seq, TRUE);
-		new_seq->seqname = g_strndup(name, fnlen - strlen(com_ext));
+		new_seq->seqname = g_strndup(name, fnlen - strlen(com.pref.ext));
 		new_seq->beg = 0;
 		new_seq->end = fitseq_file->frame_count - 1;
 		new_seq->number = fitseq_file->frame_count;
 		new_seq->type = SEQ_FITSEQ;
 		new_seq->fitseq_file = fitseq_file;
 		siril_debug_print("Found a FITS sequence\n");
-
-		g_free(com_ext);
 	}
 
 	if (new_seq && new_seq->beg != new_seq->end) {
@@ -1062,7 +1053,7 @@ void set_fwhm_star_as_star_list(sequence *seq) {
  */
 char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffer, gboolean add_fits_ext) {
 	char format[20];
-	gchar *com_ext = get_com_ext();
+	gchar *com_ext = get_com_ext(seq->fz);
 
 	if (index < 0 || index > seq->number || name_buffer == NULL)
 		return NULL;
@@ -1081,7 +1072,7 @@ char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffe
 
 char *fit_sequence_get_image_filename_prefixed(sequence *seq, const char *prefix, int index) {
 	char format[16];
-	gchar *com_ext = get_com_ext();
+	gchar *com_ext = get_com_ext(seq->fz);
 	gchar *basename = g_path_get_basename(seq->seqname);
 	GString *str = g_string_sized_new(70);
 	sprintf(format, "%%s%%s%%0%dd%%s", seq->fixed);
@@ -1096,7 +1087,7 @@ char *fit_sequence_get_image_filename_prefixed(sequence *seq, const char *prefix
  */
 char *get_possible_image_filename(sequence *seq, int image_number, char *name_buffer) {
 	char format[20];
-	gchar *com_ext = get_com_ext();
+	gchar *com_ext = get_com_ext(seq->fz);
 
 	if (image_number < seq->beg || image_number > seq->end || name_buffer == NULL)
 		return NULL;
@@ -1112,11 +1103,9 @@ char *get_possible_image_filename(sequence *seq, int image_number, char *name_bu
 
 /* splits a filename in a base name and an index number, if the file name ends with .fit
  * it also computes the fixed length if there are zeros in the index */
-int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed){
+int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed, gchar *com_ext){
 	char *buffer;
 	int i, fnlen, first_zero, digit_idx;
-
-	gchar *com_ext = get_com_ext();
 
 	*index = -1;		// error values
 	*fixed = 0;
@@ -1154,7 +1143,6 @@ int	get_index_and_basename(const char *filename, char **basename, int *index, in
 	}
 	//fprintf(stdout, "from filename %s, base name is %s, index is %d\n", filename, *basename, *index);
 	free(buffer);
-	g_free(com_ext);
 	return 0;
 }
 
