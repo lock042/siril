@@ -109,6 +109,7 @@ src_files = [
   'filters/deconvolution/estimate_kernel.cpp',
   'filters/deconvolution/fft.hpp',
   'filters/deconvolution/fftw_allocator.hpp',
+  'filters/deconvolution/goldfat.cpp',
   'filters/deconvolution/image.cpp',
   'filters/deconvolution/image_expr.hpp',
   'filters/deconvolution/image.hpp',

@@ -28,7 +28,7 @@ static void *fftwf_xmalloc(size_t n)
 {
 	float *r = fftwf_malloc(n);
 	if (!r)
-		fail("coult not fftwf_malloc %zu bytes\n", n);
+		fail("could not fftwf_malloc %zu bytes\n", n);
 	return r;
 }
 
@@ -314,7 +314,6 @@ static float kernel_2d_logcauchy(float x, float y, float *p)
 static float kernel_2d_powerlaw2(float x, float y, float *p)
 {
 	float sigma = p[1];
-	float power = 2;
 
 	float a = (x*x + y*y)/(sigma*sigma);
 	float r = 1.0/(1.0 + a*a);

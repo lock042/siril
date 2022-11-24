@@ -71,8 +71,8 @@ static float interpolate_float_image_bilinearly(float *x, int w, int h,
 	return cell_interpolate(a, b, c, d, i-ii, j-jj, 2);
 }
 
-SMART_PARAMETER_SILENT(MAGIC_SIGMA,1.6)
-SMART_PARAMETER_SILENT(PRESMOOTH,0)
+//SMART_PARAMETER_SILENT(MAGIC_SIGMA,1.6)
+//SMART_PARAMETER_SILENT(PRESMOOTH,0)
 
 static void downsa_v2(float *out, float *in,
 		int outw, int outh, int inw, int inh)
