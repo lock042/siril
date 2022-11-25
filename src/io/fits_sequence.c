@@ -307,16 +307,19 @@ int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, cons
 
 /* create a fits sequence with the given name into the given struct */
 int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
-	g_unlink(filename); /* Delete old file if it already exists */
+	gchar *new_filename = set_right_extension(filename);
+
+	g_unlink(new_filename); /* Delete old file if it already exists */
 	fitseq_init_struct(fitseq);
 
 	int status = 0;
-	if (siril_fits_create_diskfile(&fitseq->fptr, filename, &status)) { /* create new FITS file */
+	if (siril_fits_create_diskfile(&fitseq->fptr, new_filename, &status)) { /* create new FITS file */
 		report_fits_error(status);
+		g_free(new_filename);
 		return 1;
 	}
 
-	fitseq->filename = strdup(filename);
+	fitseq->filename = strdup(new_filename);
 	fitseq->frame_count = frame_count;
 	fitseq->writer = malloc(sizeof(struct seqwriter_data));
 	fitseq->writer->write_image_hook = fitseq_write_image_for_writer;
@@ -325,6 +328,7 @@ int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
 			fitseq->filename, fitseq->frame_count);
 
 	start_writer(fitseq->writer, frame_count);
+	g_free(new_filename);
 	return 0;
 }
 

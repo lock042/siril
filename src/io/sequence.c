@@ -721,7 +721,7 @@ char *seq_get_image_filename(sequence *seq, int index, char *name_buf) {
 			if (!name_buf || index < 0 || index > seq->end) {
 				return NULL;
 			}
-			snprintf(name_buf, 255, "%s_%d%s", seq->seqname,  index, com.pref.ext);
+			snprintf(name_buf, 255, "%s_%d%s", seq->seqname,  index, get_com_ext(seq->fz));
 			return name_buf;
 #ifdef HAVE_FFMS2
 		case SEQ_AVI:
