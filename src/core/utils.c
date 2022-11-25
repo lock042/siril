@@ -1441,8 +1441,10 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 }
 
 /**
- *
- * @return
+ * Get the file extension following the fz flag. If the file is
+ * compressed, fz is appended to the file extension.
+ * @param fz flag to know if the fz extension must be appended.
+ * @return a string that must not be freed
  */
 static const gchar *ext[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
 const gchar *get_com_ext(gboolean fz) {

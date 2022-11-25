@@ -378,11 +378,14 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 	}
 #endif
 	else if (check_for_fitseq && TYPEFITS == get_type_for_extension(ext) && fitseq_is_fitseq(name, NULL)) {
-		/* set the configured extention to the extension of the file, otherwise reading will fail */
+		gboolean is_fz = g_str_has_suffix(ext, ".fz");
+		const gchar *com_ext = get_com_ext(is_fz);
 
-		if (strcasecmp(ext, com.pref.ext + 1)) {
+		/* set the configured extention to the extension of the file, otherwise reading will fail */
+		if (strcasecmp(ext, com_ext + 1)) {
 			g_free(com.pref.ext);
 			com.pref.ext = g_strdup_printf(".%s", ext);
+			if (is_fz) com.pref.ext[strlen(com.pref.ext) - 2] = '\0';
 		}
 
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
@@ -393,12 +396,13 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		}
 		new_seq = calloc(1, sizeof(sequence));
 		initialize_sequence(new_seq, TRUE);
-		new_seq->seqname = g_strndup(name, fnlen - strlen(com.pref.ext));
+		new_seq->seqname = g_strndup(name, fnlen - strlen(com_ext));
 		new_seq->beg = 0;
 		new_seq->end = fitseq_file->frame_count - 1;
 		new_seq->number = fitseq_file->frame_count;
 		new_seq->type = SEQ_FITSEQ;
 		new_seq->fitseq_file = fitseq_file;
+		new_seq->fz = is_fz;
 		siril_debug_print("Found a FITS sequence\n");
 	}
 
