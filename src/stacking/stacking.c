@@ -148,7 +148,6 @@ gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 	return seq->bitpix == FLOAT_IMG; // for min or max, only use it if input is already float
 }
 
-
 /* the function that prepares the stacking and runs it */
 void main_stack(struct stacking_args *args) {
 	int nb_allowed_files;
@@ -453,13 +452,13 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 
 	/* Type of rejection */
 	if (args->method != &stack_mean_with_rejection) {
-		g_string_append(str, " no rejection");
+		g_string_append(str, " without rejection");
 	}
 	else {
 		switch (args->type_of_rejection) {
 		default:
 		case NO_REJEC:
-			g_string_append(str, " with no rejection");
+			g_string_append(str, " without rejection");
 			break;
 		case PERCENTILE:
 			g_string_append(str, " with percentile clipping rejection");
@@ -493,7 +492,6 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 			}
 		}
 	}
-
 
 	/* Normalisation */
 	if (args->method != &stack_mean_with_rejection &&

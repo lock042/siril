@@ -206,7 +206,6 @@ int process_seq_clean(int nb) {
 	return CMD_OK;
 }
 
-
 int process_satu(int nb){
 	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
 	args->background_factor = 1.0;
@@ -3881,7 +3880,7 @@ int process_fixbanding(int nb) {
 			}
 			arg_index++;
 		}
-	} 
+	}
 	start_in_new_thread(BandingEngineThreaded, args);
 	return CMD_OK;
 }
@@ -3923,7 +3922,6 @@ int process_seq_fixbanding(int nb) {
 	apply_banding_to_sequence(args);
 	return CMD_OK;
 }
-
 
 int process_subsky(int nb) {
 	sequence *seq = NULL;
@@ -4029,7 +4027,6 @@ int process_subsky(int nb) {
 	return CMD_OK;
 }
 
-
 int process_findcosme(int nb) {
 	sequence *seq = NULL;
 	int i = 0;
@@ -4052,7 +4049,6 @@ int process_findcosme(int nb) {
 	args->is_cfa = (word[0][10] == '_' || word[0][13] == '_');	// find_cosme_cfa or seqfind_cosme_cfa
 	args->amount = 1.0;
 	args->fit = &gfit;
-
 
 	if (is_sequence) {
 		args->seqEntry = "cc_";
@@ -5209,7 +5205,6 @@ int process_convert(int nb) {
 	siril_log_color_message(str, "green");
 	g_free(str);
 
-
 	if (!com.wd) {
 		siril_log_message(_("Convert: no working directory set.\n"));
 		return CMD_NO_CWD;
@@ -5845,9 +5840,9 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			}
 		} else if (g_str_has_prefix(current, "-rejmap")) {
 			if (!rej_options_allowed) {
-				siril_log_message(_("Rejection maps can be created only with average stacking, ignoring.\n"));
+				siril_log_message(_("Rejection maps can only be created with rejection stacking, ignoring.\n"));
 			} else if (arg->type_of_rejection == NO_REJEC) {
-				siril_log_message(_("Rejection maps can be created only if rejection has been activated, ignoring.\n"));
+				siril_log_message(_("Rejection maps can only be created if rejection has been activated, ignoring.\n"));
 			} else {
 				arg->create_rejmaps = TRUE;
 				arg->merge_lowhigh_rejmaps = TRUE;
@@ -6578,7 +6573,7 @@ int process_set_compress(int nb) {
 		} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip1", 5)) {
 			method = GZIP1_COMP;
 			comp = g_strdup("GZIP1");
-		} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip2", 5))  {
+		} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip2", 5)) {
 			method = GZIP2_COMP;
 			comp = g_strdup("GZIP2");
 		}
@@ -6674,14 +6669,14 @@ int process_help(int nb) {
 		siril_log_message(_("********* LIST OF AVAILABLE COMMANDS *********\n"));
 	while (current->process) {
 		if (nb == 2) {
-		       if (!g_ascii_strcasecmp(current->name, word[1])) {
-			       siril_log_message("%s\n", current->usage);
-			       char *def = strdup(current->definition);
-			       log_several_lines(def);
-			       free(def);
-			       siril_log_message(_("Can be used in a script: %s\n"), current->scriptable ? _("YES") : _("NO"));
-			       break;
-		       }
+			if (!g_ascii_strcasecmp(current->name, word[1])) {
+				siril_log_message("%s\n", current->usage);
+				char *def = strdup(current->definition);
+				log_several_lines(def);
+				free(def);
+				siril_log_message(_("Can be used in a script: %s\n"), current->scriptable ? _("YES") : _("NO"));
+				break;
+			}
 		}
 		else siril_log_message("%s\n", current->usage);
 		current++;
@@ -6785,7 +6780,6 @@ int process_extract(int nb) {
 int process_reloadscripts(int nb){
 	return refresh_scripts(FALSE, NULL);
 }
-
 
 int process_requires(int nb) {
 	gchar **version, **required;
@@ -7069,7 +7063,7 @@ int process_pcc(int nb) {
 
 	if (plate_solve)
 		siril_log_message(_("Photometric color correction will use plate solving first\n"));
-	else  siril_log_message(_("Photometric color correction will use WCS information and bypass internal plate solver\n"));
+	else siril_log_message(_("Photometric color correction will use WCS information and bypass internal plate solver\n"));
 
 	struct astrometry_data *args = NULL;
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
@@ -7227,8 +7221,7 @@ int process_sso() {
 	purge_temp_user_catalogue();
 	force_to_refresh_catalogue_list();
 	redraw(REDRAW_OVERLAY);
-	
-	
+
 	double lim_mag = 20.0;
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 	args->fit = &gfit;
@@ -7249,7 +7242,6 @@ int process_sso() {
 	args->pixel_size = gfit.pixel_size_x;
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
 	gchar *result = search_in_online_conesearch(args);
-
 
 	if (result && !parse_buffer(result, args->limit_mag)) {
 		siril_add_idle(end_process_sso, NULL);
