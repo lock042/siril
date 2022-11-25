@@ -5751,13 +5751,18 @@ terminate_register_on_error:
 }
 
 // parse normalization and filters from the stack command line, starting at word `first'
-static int parse_stack_command_line(struct stacking_configuration *arg, int first, gboolean rej_options_allowed, gboolean out_allowed) {
+static int parse_stack_command_line(struct stacking_configuration *arg, int first,
+		gboolean med_options_allowed, gboolean rej_options_allowed, gboolean out_allowed) {
 	while (word[first]) {
 		char *current = word[first], *value;
 		if (!strcmp(current, "-nonorm") || !strcmp(current, "-no_norm"))
 			arg->force_no_norm = TRUE;
 		else if (!strcmp(current, "-output_norm")) {
-			arg->output_norm = TRUE;
+			if (!med_options_allowed) {
+				siril_log_message(_("Output normalization is allowed only with median or mean stacking, ignoring.\n"));
+			} else {
+				arg->output_norm = TRUE;
+			}
 		} else if (!strcmp(current, "-weight_from_noise")) {
 			if (!rej_options_allowed) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
@@ -5784,14 +5789,6 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			} else {
 				arg->apply_nbstars_weights = TRUE;
 			}
-		} else if (!strcmp(current, "-rgb_equal")) {
-			if (!rej_options_allowed) {
-				siril_log_message(_("RGB equalization is allowed only with average stacking, ignoring.\n"));
-			} else if (arg->norm == NO_NORM) {
-				siril_log_message(_("RGB equalization is allowed only if normalization has been activated, ignoring.\n"));
-			} else {
-				arg->equalizeRGB = TRUE;
-			}
 		} else if (!strcmp(current, "-weight_from_nbstack")) {
 			if (!rej_options_allowed) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
@@ -5803,7 +5800,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->apply_nbstack_weights = TRUE;
 			}
 		} else if (!strcmp(current, "-fastnorm")) {
-			if (!rej_options_allowed) {
+			if (!med_options_allowed) {
 				siril_log_message(_("Fast normalization is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Fast normalization is allowed only if normalization has been activated, ignoring.\n"));
@@ -5811,7 +5808,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->lite_norm = TRUE;
 			}
 		} else if (g_str_has_prefix(current, "-norm=")) {
-			if (!rej_options_allowed) {
+			if (!med_options_allowed) {
 				siril_log_message(_("Normalization options are not allowed in this context, ignoring.\n"));
 			} else {
 				value = current + 6;
@@ -5823,6 +5820,14 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 					arg->norm = MULTIPLICATIVE;
 				else if (!strcmp(value, "mulscale"))
 					arg->norm = MULTIPLICATIVE_SCALING;
+			}
+		} else if (!strcmp(current, "-rgb_equal")) {
+			if (!med_options_allowed) {
+				siril_log_message(_("RGB equalization is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->norm == NO_NORM) {
+				siril_log_message(_("RGB equalization is allowed only if normalization has been activated, ignoring.\n"));
+			} else {
+				arg->equalizeRGB = TRUE;
 			}
 		} else if (parse_filter_args(current, &arg->filters)) {
 			;
@@ -5895,13 +5900,13 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.method = arg->method;
 	args.force_norm = FALSE;
 	args.output_norm = arg->output_norm;
+	args.equalizeRGB = arg->equalizeRGB;
+	args.lite_norm = arg->lite_norm;
 	args.reglayer = get_registration_layer(args.seq);
 	args.apply_noise_weights = arg->apply_noise_weights;
 	args.apply_nbstack_weights = arg->apply_nbstack_weights;
 	args.apply_wfwhm_weights = arg->apply_wfwhm_weights;
 	args.apply_nbstars_weights = arg->apply_nbstars_weights;
-	args.equalizeRGB = arg->equalizeRGB;
-	args.lite_norm = arg->lite_norm;
 
 	// manage registration data
 	if (!stack_regdata_is_valid(args)) {
@@ -6072,7 +6077,7 @@ int process_stackall(int nb) {
 		arg->method = stack_summing_generic;
 	} else {
 		int start_arg_opt = 2;
-		gboolean allow_rej_options = FALSE;
+		gboolean allow_rej_options = FALSE, allow_med_options = FALSE;
 		if (!strcmp(word[1], "sum")) {
 			arg->method = stack_summing_generic;
 		} else if (!strcmp(word[1], "max")) {
@@ -6081,7 +6086,7 @@ int process_stackall(int nb) {
 			arg->method = stack_addmin;
 		} else if (!strcmp(word[1], "med") || !strcmp(word[1], "median")) {
 			arg->method = stack_median;
-			allow_rej_options = TRUE;
+			allow_med_options = TRUE;
 		} else if (!strcmp(word[1], "rej") || !strcmp(word[1], "mean")) {
 			int shift = 1;
 			if (!strcmp(word[3], "p") || !strcmp(word[3], "percentile")) {
@@ -6119,13 +6124,14 @@ int process_stackall(int nb) {
 			}
 			arg->method = stack_mean_with_rejection;
 			start_arg_opt = 4 + shift;
+			allow_med_options = TRUE;
 			allow_rej_options = TRUE;
 		}
 		else {
 			siril_log_color_message(_("Stacking method type '%s' is invalid\n"), "red", word[2]);
 			goto failure;
 		}
-		if (parse_stack_command_line(arg, start_arg_opt, allow_rej_options, FALSE))
+		if (parse_stack_command_line(arg, start_arg_opt, allow_med_options, allow_rej_options, FALSE))
 			goto failure;
 	}
 
@@ -6185,7 +6191,7 @@ int process_stackone(int nb) {
 		arg->method = stack_summing_generic;
 	} else {
 		int start_arg_opt = 3;
-		gboolean allow_rej_options = FALSE;
+		gboolean allow_rej_options = FALSE, allow_med_options = FALSE;
 		if (!strcmp(word[2], "sum")) {
 			arg->method = stack_summing_generic;
 		} else if (!strcmp(word[2], "max")) {
@@ -6194,7 +6200,7 @@ int process_stackone(int nb) {
 			arg->method = stack_addmin;
 		} else if (!strcmp(word[2], "med") || !strcmp(word[2], "median")) {
 			arg->method = stack_median;
-			allow_rej_options = TRUE;
+			allow_med_options = TRUE;
 		} else if (!strcmp(word[2], "rej") || !strcmp(word[2], "mean")) {
 			int shift = 1, base_shift = 5;
 			if (nb < 4) {
@@ -6245,13 +6251,14 @@ int process_stackone(int nb) {
 			}
 			arg->method = stack_mean_with_rejection;
 			start_arg_opt = base_shift + shift;
+			allow_med_options = TRUE;
 			allow_rej_options = TRUE;
 		}
 		else {
 			siril_log_color_message(_("Stacking method type '%s' is invalid\n"), "red", word[2]);
 			goto failure;
 		}
-		if (parse_stack_command_line(arg, start_arg_opt, allow_rej_options, TRUE))
+		if (parse_stack_command_line(arg, start_arg_opt, allow_med_options, allow_rej_options, TRUE))
 			goto failure;
 	}
 

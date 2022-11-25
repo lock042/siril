@@ -421,18 +421,19 @@ static void _show_summary(struct stacking_args *args) {
 
 /* a short version of the above, for FITS header HISTORY */
 void describe_stack_for_history(struct stacking_args *args, GSList **hist, gboolean for_rejmap, gboolean low_rejmap) {
-	const char *stack_name = "sum";
-	if (args->method == &stack_mean_with_rejection) {
+	const char *stack_name;
+	if (args->method == &stack_summing_generic)
+		stack_name = "sum";
+	else if (args->method == &stack_mean_with_rejection)
 		stack_name = "mean";
-	} else if (args->method == &stack_median) {
+	else if (args->method == &stack_median)
 		stack_name = "median";
-	} else if (args->method == &stack_addmin) {
+	else if (args->method == &stack_addmin)
 		stack_name = "minimum";
-	} else if (args->method == &stack_addmax) {
+	else if (args->method == &stack_addmax)
 		stack_name = "maximum";
-	} else {
-		stack_name = "unknown";
-	}
+	else stack_name = "unknown";
+
 	GString *str;
 	if (for_rejmap) {
 		g_assert(args->create_rejmaps);
@@ -452,7 +453,7 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 
 	/* Type of rejection */
 	if (args->method != &stack_mean_with_rejection) {
-		g_string_append(str, " with no rejection");
+		g_string_append(str, " no rejection");
 	}
 	else {
 		switch (args->type_of_rejection) {
