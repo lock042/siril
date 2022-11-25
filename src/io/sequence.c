@@ -231,7 +231,7 @@ int check_seq() {
 		if (!ext) continue;
 
 		gboolean is_fz = g_str_has_suffix(ext, ".fz");
-		gchar *com_ext = get_com_ext(is_fz);
+		const gchar *com_ext = get_com_ext(is_fz);
 
 		if ((new_seq = check_seq_one_file(file, FALSE))) {
 			sequences[nb_seq] = new_seq;
@@ -276,7 +276,6 @@ int check_seq() {
 				nb_seq++;
 			}
 		}
-		g_free(com_ext);
 		if (nb_seq == max_seq) {
 			max_seq *= 2;
 			sequence **tmp = realloc(sequences, sizeof(sequence *) * max_seq);
@@ -1053,7 +1052,7 @@ void set_fwhm_star_as_star_list(sequence *seq) {
  */
 char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffer, gboolean add_fits_ext) {
 	char format[20];
-	gchar *com_ext = get_com_ext(seq->fz);
+	const gchar *com_ext = get_com_ext(seq->fz);
 
 	if (index < 0 || index > seq->number || name_buffer == NULL)
 		return NULL;
@@ -1066,19 +1065,20 @@ char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffe
 		strcat(format, com_ext);
 	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
 	name_buffer[255] = '\0';
-	g_free(com_ext);
+
 	return name_buffer;
 }
 
 char *fit_sequence_get_image_filename_prefixed(sequence *seq, const char *prefix, int index) {
 	char format[16];
-	gchar *com_ext = get_com_ext(seq->fz);
+	const gchar *com_ext = get_com_ext(seq->fz);
 	gchar *basename = g_path_get_basename(seq->seqname);
 	GString *str = g_string_sized_new(70);
+
 	sprintf(format, "%%s%%s%%0%dd%%s", seq->fixed);
 	g_string_printf(str, format, prefix, basename, seq->imgparam[index].filenum, com_ext);
 	g_free(basename);
-	g_free(com_ext);
+
 	return g_string_free(str, FALSE);
 }
 
@@ -1087,7 +1087,7 @@ char *fit_sequence_get_image_filename_prefixed(sequence *seq, const char *prefix
  */
 char *get_possible_image_filename(sequence *seq, int image_number, char *name_buffer) {
 	char format[20];
-	gchar *com_ext = get_com_ext(seq->fz);
+	const gchar *com_ext = get_com_ext(seq->fz);
 
 	if (image_number < seq->beg || image_number > seq->end || name_buffer == NULL)
 		return NULL;
@@ -1096,14 +1096,14 @@ char *get_possible_image_filename(sequence *seq, int image_number, char *name_bu
 	} else {
 		sprintf(format, "%%s%%.%dd%s", seq->fixed, com_ext);
 	}
-	g_free(com_ext);
+
 	sprintf(name_buffer, format, seq->seqname, image_number);
 	return name_buffer;
 }
 
 /* splits a filename in a base name and an index number, if the file name ends with .fit
  * it also computes the fixed length if there are zeros in the index */
-int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed, gchar *com_ext){
+int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed, const gchar *com_ext){
 	char *buffer;
 	int i, fnlen, first_zero, digit_idx;
 

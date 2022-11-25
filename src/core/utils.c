@@ -1444,9 +1444,12 @@ void replace_spaces_from_str(gchar *s, gchar c) {
  *
  * @return
  */
-gchar *get_com_ext(gboolean fz) {
-	if (fz) {
-		return g_strdup_printf("%s%s", com.pref.ext, ".fz");
-	}
-	return g_strdup(com.pref.ext);
+static const gchar *ext[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
+const gchar *get_com_ext(gboolean fz) {
+    if (fz) {
+        for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
+            if (g_str_has_prefix(ext[i], com.pref.ext)) return ext[i];
+        }
+    }
+    return com.pref.ext;
 }
