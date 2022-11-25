@@ -14,6 +14,7 @@ EXTERNC typedef struct estk_data {
 	unsigned ry;
 	unsigned nchans;
 	int ks; // Kernel size
+	// Anger-Delbracio-Facciolo
 	float lambda;// = 4e-3f; // Lambda
 	float lambda_ratio;// = 1/1.1f; // Scaling ratio of lambda for multiscale
 	float lambda_min;// = 1e-2f; // Min lambda
@@ -32,12 +33,25 @@ EXTERNC typedef struct estk_data {
 	float psf_beta;
 	float psf_angle;
 	float psf_ratio;
+	// Goldstein-Fattal
+	int ninner;
+	int ntries;
+	int nouter;
+	float compensationfactor;
+	float medianfilter;
+	float finaldeconvolutionweight;
+	float intermediatedeconvolutionweight;
 } estk_data;
 #ifdef __cplusplus
 }
 #endif
 
 EXTERNC float *estimate_kernel(estk_data *args);
+#ifdef __cplusplus
+}
+#endif
+
+EXTERNC float *gf_estimate_kernel(estk_data *args);
 #ifdef __cplusplus
 }
 #endif

@@ -11,11 +11,11 @@ struct options {
     int Ninner;
     int Ntries;
     int Nouter;
-    flt compensationFactor;
+    float compensationFactor;
     int medianFilter;
 
-    flt finalDeconvolutionWeight;
-    flt intermediateDeconvolutionWeight;
+    float finalDeconvolutionWeight;
+    float intermediateDeconvolutionWeight;
     int seed;
 };
 

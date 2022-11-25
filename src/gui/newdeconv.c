@@ -225,8 +225,16 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 			args.multiscale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")));
 
 			siril_log_message(_("Starting kernel estimation...\n"));
-			kernel = estimate_kernel(&args);
-			siril_log_message(_("Kernel estimation complete. Starting non-blind deconvolution...\n"));
+			args.ks = 11;
+			args.ninner = 300;
+			args.ntries = 30;
+			args.nouter = 3;
+			args.compensationfactor = 2.1f;
+			args.medianfilter = 1.f;
+			args.finaldeconvolutionweight = 3000.f;
+			args.intermediatedeconvolutionweight = 3000.f;
+			kernel = gf_estimate_kernel(&args);
+			siril_log_message(_("Kernel estimation complete.\n"));
 			break;
 		case 1:
 			break;
@@ -243,7 +251,14 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	}
 	else {
-		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, 3, args.alpha);
+		siril_log_message(_("Starting non-blind deconvolution...\n"));
+		for (int i = 0; i < args.ks; i++) {
+			for (int j = 0 ; j < args.ks ; j++) {
+				printf("%f ",kernel[i + j * args.ks]);
+			}
+			printf("\n");
+		}
+		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
 	}
 	if (kernel) {
 		free (kernel);
