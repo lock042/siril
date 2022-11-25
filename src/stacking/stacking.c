@@ -596,7 +596,6 @@ static gboolean end_stacking(gpointer p) {
 		g_free(parsedname);
 		g_free(expression);
 
-
 		/* save stacking result */
 		if (args->output_parsed_filename != NULL && args->output_parsed_filename[0] != '\0') {
 			int failed = 0;
@@ -641,8 +640,6 @@ static gboolean end_stacking(gpointer p) {
 						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, FALSE);
 						savefits(low_filename, args->rejmap_low);
 						g_free(low_filename);
-						clearfits(args->rejmap_low);
-						free(args->rejmap_low);
 					} else {
 						char new_ext[30];
 						sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
@@ -651,8 +648,6 @@ static gboolean end_stacking(gpointer p) {
 						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, TRUE);
 						savefits(low_filename, args->rejmap_low);
 						g_free(low_filename);
-						clearfits(args->rejmap_low);
-						free(args->rejmap_low);
 
 						sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
 						gchar *high_filename = replace_ext(args->output_parsed_filename, new_ext);
@@ -660,8 +655,6 @@ static gboolean end_stacking(gpointer p) {
 						describe_stack_for_history(args, &args->rejmap_high->history, TRUE, FALSE);
 						savefits(high_filename, args->rejmap_high);
 						g_free(high_filename);
-						clearfits(args->rejmap_high);
-						free(args->rejmap_high);
 					}
 				}
 			}
@@ -698,6 +691,14 @@ static gboolean end_stacking(gpointer p) {
 	}
 
 	memset(&args->result, 0, sizeof(fits));
+	if (args->create_rejmaps) {
+		clearfits(args->rejmap_low);
+		free(args->rejmap_low);
+		if (!args->merge_lowhigh_rejmaps) {
+			clearfits(args->rejmap_high);
+			free(args->rejmap_high);
+		}
+	}
 	set_cursor_waiting(FALSE);
 	/* Do not display time for stack_summing_generic
 	 * cause it uses the generic function that already

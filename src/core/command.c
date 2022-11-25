@@ -5991,8 +5991,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				describe_stack_for_history(&args, &args.rejmap_low->history, TRUE, FALSE);
 				savefits(low_filename, args.rejmap_low);
 				g_free(low_filename);
-				clearfits(args.rejmap_low);
-				free(args.rejmap_low);
 			} else {
 				char new_ext[30];
 				sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
@@ -6001,8 +5999,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				describe_stack_for_history(&args, &args.rejmap_low->history, TRUE, TRUE);
 				savefits(low_filename, args.rejmap_low);
 				g_free(low_filename);
-				clearfits(args.rejmap_low);
-				free(args.rejmap_low);
 
 				sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
 				gchar *high_filename = replace_ext(arg->result_file, new_ext);
@@ -6010,15 +6006,24 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 				describe_stack_for_history(&args, &args.rejmap_low->history, TRUE, FALSE);
 				savefits(high_filename, args.rejmap_high);
 				g_free(high_filename);
-				clearfits(args.rejmap_high);
-				free(args.rejmap_high);
 			}
 		}
 
 		bgnoise_await();
+	} else {
+		siril_log_color_message(_("Stacking failed, please check the log to fix your issue.\n"), "red");
 	}
+
 	free_sequence(seq, TRUE);
 	clearfits(&args.result);
+	if (args.create_rejmaps) {
+		clearfits(args.rejmap_low);
+		free(args.rejmap_low);
+		if (!args.merge_lowhigh_rejmaps) {
+			clearfits(args.rejmap_high);
+			free(args.rejmap_high);
+		}
+	}
 	return retval;
 }
 
