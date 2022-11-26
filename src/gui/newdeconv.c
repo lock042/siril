@@ -252,12 +252,14 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 	else {
 		siril_log_message(_("Starting non-blind deconvolution...\n"));
+#ifdef SIRIL_OUTPUT_DEBUG
 		for (int i = 0; i < args.ks; i++) {
 			for (int j = 0 ; j < args.ks ; j++) {
 				printf("%f ",kernel[i + j * args.ks]);
 			}
 			printf("\n");
 		}
+#endif
 		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
 	}
 	if (kernel) {

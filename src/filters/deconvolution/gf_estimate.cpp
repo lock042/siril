@@ -304,14 +304,14 @@ void gf_kernel(img_t<T>& kernel, const img_t<T>& img,
 extern "C" float *gf_estimate_kernel(estk_data *args) {
     img_t<float>::use_threading(1);
     options opts;
-    opts.kernelSize = 11;//args->ks;
-    opts.Ninner = 300;//args->ninner;
-    opts.Nouter = 3;//args->nouter;
-    opts.Ntries = 64;//args->ntries;
-    opts.compensationFactor = 2.1f;//args->compensationfactor;
-    opts.medianFilter = 1;//args->medianfilter;
-    opts.finalDeconvolutionWeight = 3000.f;//args->finaldeconvolutionweight;
-    opts.intermediateDeconvolutionWeight = 3000.f;//args->intermediatedeconvolutionweight;
+    opts.kernelSize = args->ks;
+    opts.Ninner = args->ninner;
+    opts.Nouter = args->nouter;
+    opts.Ntries = args->ntries;
+    opts.compensationFactor = args->compensationfactor;
+    opts.medianFilter = args->medianfilter;
+    opts.finalDeconvolutionWeight = args->finaldeconvolutionweight;
+    opts.intermediateDeconvolutionWeight = args->intermediatedeconvolutionweight;
 
     img_t<float> v(args->rx, args->ry, args->nchans, args->fdata);
     img_t<float> k;
