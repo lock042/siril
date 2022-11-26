@@ -157,6 +157,7 @@ void stop_live_stacking_engine() {
 
 static int wait_for_file_to_be_written(const gchar *filename) {
 	int iter;
+	guint64 last_size = 0;
 	GFile *fd = g_file_new_for_path(filename);
 	for (iter = 1; iter < WAIT_FILE_WRITTEN_ITERS; iter++) {
 		g_usleep(WAIT_FILE_WRITTEN_US);
@@ -168,7 +169,6 @@ static int wait_for_file_to_be_written(const gchar *filename) {
 		}
 #else
 		guint64 size;
-		guint64 last_size = 0;
 		if (!g_file_measure_disk_usage(fd, G_FILE_MEASURE_NONE, NULL, NULL, NULL, &size, NULL, NULL, NULL)) {
 			g_object_unref(fd);
 			return 1;
