@@ -5929,8 +5929,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 			char filename[256];
 			char *suffix = g_str_has_suffix(seq->seqname, "_") ||
 				g_str_has_suffix(seq->seqname, "-") ? "" : "_";
-			snprintf(filename, 256, "%s%sstacked%s",
-					seq->seqname, suffix, com.pref.ext);
+			snprintf(filename, 256, "%s%sstacked%s", seq->seqname, suffix, com.pref.ext);
 			arg->result_file = g_strdup(filename);
 		} else { // the name is to be parsed (including folder creation if required)
 			int status = PATHPARSE_ERR_OK;

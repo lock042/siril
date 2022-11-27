@@ -316,6 +316,7 @@ struct sequ {
 	int beg;		// imgparam[0]->filenum
 	int end;		// imgparam[number-1]->filenum
 	double exposure;	// exposure of frames (we assume they are all identical)
+	gboolean fz;
 
 	sequence_type type;
 	struct ser_struct *ser_file;

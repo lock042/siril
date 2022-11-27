@@ -50,8 +50,7 @@
 const char *fit_extension[] = {
 		".fit",
 		".fits",
-		".fts",
-		".fits.fz"
+		".fts"
 };
 
 static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
@@ -2154,10 +2153,58 @@ int siril_fits_compress(fits *f) {
 	return status;
 }
 
+gchar *set_right_extension(const char *name) {
+	gchar *filename = NULL;
+
+	gboolean comp_flag = FALSE;
+	/* first check if there is fz extension */
+	if (g_str_has_suffix(name, ".fz")) {
+		comp_flag = TRUE;
+	}
+
+	gboolean right_extension = FALSE;
+	for (int i = 0; i < G_N_ELEMENTS(fit_extension); i++) {
+		gchar *extension;
+		if (comp_flag) {
+			extension = g_strdup_printf("%s.fz", fit_extension[i]);
+		} else {
+			extension = g_strdup(fit_extension[i]);
+		}
+		if (g_str_has_suffix(name, extension)) {
+			right_extension = TRUE;
+			g_free(extension);
+			break;
+		}
+		g_free(extension);
+	}
+
+	if (!right_extension) {
+		if (com.pref.comp.fits_enabled) {
+			filename = g_strdup_printf("%s%s.fz", name, com.pref.ext);
+		} else {
+			filename = g_strdup_printf("%s%s", name, com.pref.ext);
+		}
+	} else {
+		if (comp_flag && !com.pref.comp.fits_enabled) {
+			/* we remove .fz */
+			gchar *tmp = g_strdup(name);
+			tmp[strlen(tmp) - 3] = '\0';
+			filename = g_strdup_printf("%s", tmp);
+
+			g_free(tmp);
+		} else if (!comp_flag && com.pref.comp.fits_enabled) {
+			filename = g_strdup_printf("%s.fz", name);
+
+		} else {
+			filename = g_strdup_printf("%s", name);
+		}
+	}
+	return filename;
+}
+
 /* creates, saves and closes the file associated to f, overwriting previous  */
 int savefits(const char *name, fits *f) {
 	int status;
-	char filename[256];
 
 	f->naxes[0] = f->rx;
 	f->naxes[1] = f->ry;
@@ -2167,25 +2214,15 @@ int savefits(const char *name, fits *f) {
 		return 1;
 	}
 
-	gboolean right_extension = FALSE;
-	for (int i = 0; i < G_N_ELEMENTS(fit_extension); i++) {
-		if (g_str_has_suffix(name, fit_extension[i])) {
-			right_extension = TRUE;
-			break;
-		}
-	}
-
-	if (!right_extension) {
-		snprintf(filename, 255, "%s%s", name, com.pref.ext);
-	} else {
-		snprintf(filename, 255, "%s", name);
-	}
+	gchar *filename = set_right_extension(name);
+	if (!filename) return 1;
 
 	g_unlink(filename); /* Delete old file if it already exists */
 
 	status = 0;
 	if (siril_fits_create_diskfile(&(f->fptr), filename, &status)) { /* create new FITS file */
 		report_fits_error(status);
+		g_free(filename);
 		return 1;
 	}
 
@@ -2193,12 +2230,14 @@ int savefits(const char *name, fits *f) {
 		status = siril_fits_compress(f);
 		if (status) {
 			report_fits_error(status);
+			g_free(filename);
 			return 1;
 		}
 	}
 
 	if (fits_create_img(f->fptr, f->bitpix, f->naxis, f->naxes, &status)) {
 		report_fits_error(status);
+		g_free(filename);
 		return 1;
 	}
 
@@ -2211,6 +2250,7 @@ int savefits(const char *name, fits *f) {
 				filename, f->naxes[2], f->rx, f->ry,
 				f->type == DATA_USHORT ? 16 : 32);
 	}
+	g_free(filename);
 	return 0;
 }
 
