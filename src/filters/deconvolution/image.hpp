@@ -349,7 +349,7 @@ public:
     }
 
 #ifndef IMG_NO_FFTW
-    void fft(const img_t<std::complex<double> >& o) {
+/*     void fft(const img_t<std::complex<double> >& o) {
         static_assert(std::is_same<T, std::complex<double>>::value, "T must be complex double");
         assert(w == o.w);
         assert(h == o.h);
@@ -387,7 +387,7 @@ public:
         this->map(o, [norm](T x){ return x / norm; });
         fftw_execute(backwardplan);
     }
-
+*/
     void fft(const img_t<std::complex<float> >& o) {
         static_assert(std::is_same<T, std::complex<float>>::value, "T must be complex float");
         assert(w == o.w);
@@ -656,15 +656,6 @@ namespace img {
     T sumL2(const E& img) {
         return std::sqrt(sum<T>(img*img));
     }
-
-/*    inline void use_threading(int n) {
-#ifdef _OPENMP
-        if (n <= 1) return;
-        fftw_init_threads();
-        fftw_plan_with_nthreads(n);
-        fprintf(stdout, "initialized with %d threads\n", n);
-#endif
-    }*/
 
 };
 

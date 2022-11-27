@@ -7,7 +7,7 @@
 #include <iostream>
 
 extern "C" float *estimate_kernel(estk_data *args) {
-    img_t<float>::use_threading(omp_get_max_threads());
+    img_t<float>::use_threading(1);
     options opts;
     opts.ks = args->ks;
     opts.input = ""; // Not used in siril

@@ -323,5 +323,6 @@ extern "C" float *gf_estimate_kernel(estk_data *args) {
     for (int i = 0; i < k.w * k.h; i++) {
 		kernel[i] = k.data[i];
 	}
+
     return kernel;
 }

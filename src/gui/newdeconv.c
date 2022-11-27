@@ -18,7 +18,9 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <fftw3.h>
 #include "core/siril.h"
+#include "core/siril_app_dirs.h"
 #include "core/command.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -47,9 +49,9 @@ void reset_conv_args() {
 	args.ry = 0;
 	args.ks = 15;
 	args.nchans = 1;
-	args.lambda = 4e-3f;
+	args.lambda = 3000.f;
 	args.lambda_ratio = 1/1.1f;
-	args.lambda_min = 1e-2f;
+	args.lambda_min = 1e-3f;
 	args.gamma = 20.f;
 	args.iterations = 2;
 	args.multiscale = FALSE;
@@ -61,6 +63,13 @@ void reset_conv_args() {
 	args.downscaleblur = 1.6f;
 	args.k_l1 = 0.5f;
 	args.alpha = 1.f/3000.f;
+	args.ninner = 300;
+	args.ntries = 30;
+	args.nouter = 3;
+	args.compensationfactor = 2.1f;
+	args.intermediatedeconvolutionweight = 3000.f;
+	args.finaldeconvolutionweight = 3000.f;
+	args.blindtype = 0;
 }
 
 void reset_conv_kernel() {
@@ -95,6 +104,14 @@ void reset_conv_controls_and_args() {
 
 void on_bdeconv_psfblind_toggled(GtkToggleButton *button, gpointer user_data) {
 	psftype = 0;
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_psfcontrols")), FALSE);
+	if (args.blindtype == 0) {
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_gfcontrols")), TRUE);
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_l0controls")), FALSE);
+	} else if (args.blindtype == 1) {
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_gfcontrols")), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_l0controls")), TRUE);
+	}
 }
 
 void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -105,20 +122,47 @@ void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
 	}
 }
 
+void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
+	args.blindtype = gtk_combo_box_get_active(combo);
+	printf("combo changed\n");
+	if (psftype == 0) {
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_psfcontrols")), FALSE);
+		switch (args.blindtype) {
+			case 0:
+				gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_l0controls")), FALSE);
+				gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_gfcontrols")), TRUE);
+				break;
+			case 1:
+				gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_l0controls")), TRUE);
+				gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_gfcontrols")), FALSE);
+				break;
+		}
+	}
+}
+
 void on_bdeconv_expander_activate(GtkExpander *expander, gpointer user_data) {
 		gtk_window_resize(GTK_WINDOW(lookup_widget("bdeconv_dialog")), 1, 1);
 }
 
 void on_bdeconv_psfselection_toggled(GtkToggleButton *button, gpointer user_data) {
 	psftype = 1;
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_psfcontrols")), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_l0controls")), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_gfcontrols")), FALSE);
 }
 
 void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
 	psftype = 2;
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_psfcontrols")), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_l0controls")), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_gfcontrols")), FALSE);
 }
 
 void on_bdeconv_psfmanual_toggled(GtkToggleButton *button, gpointer user_data) {
 	psftype = 3;
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_psfcontrols")), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_l0controls")), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_gfcontrols")), FALSE);
 }
 
 void on_bdeconv_psfwhm_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -135,10 +179,6 @@ void on_bdeconv_psfbeta_value_changed(GtkSpinButton *button, gpointer user_data)
 
 void on_bdeconv_psfangle_value_changed(GtkSpinButton *button, gpointer user_data) {
 	args.psf_angle = gtk_spin_button_get_value(button);
-}
-
-void on_bdeconv_lambda_value_changed(GtkSpinButton *button, gpointer user_data) {
-	args.lambda = gtk_spin_button_get_value(button);
 }
 
 void on_bdeconv_gamma_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -177,8 +217,31 @@ void on_bdeconv_kl1_value_changed(GtkSpinButton *button, gpointer user_data) {
 	args.k_l1 = gtk_spin_button_get_value(button);
 }
 
+void on_bdeconv_ninner_value_changed(GtkSpinButton *button, gpointer user_data) {
+	args.ninner = gtk_spin_button_get_value(button);
+}
+
+void on_bdeconv_ntries_value_changed(GtkSpinButton *button, gpointer user_data) {
+	args.ntries = gtk_spin_button_get_value(button);
+}
+
+void on_bdeconv_nouter_value_changed(GtkSpinButton *button, gpointer user_data) {
+	args.nouter = gtk_spin_button_get_value(button);
+}
+
+void on_bdeconv_ncomp_value_changed(GtkSpinButton *button, gpointer user_data) {
+	args.compensationfactor = gtk_spin_button_get_value(button);
+}
+
+void on_bdeconv_gflambda_value_changed(GtkSpinButton *button, gpointer user_data) {
+	args.intermediatedeconvolutionweight = gtk_spin_button_get_value(button);
+	args.finaldeconvolutionweight = gtk_spin_button_get_value(button);
+	args.lambda = 1.f / gtk_spin_button_get_value(button);
+
+}
+
 void on_bdeconv_alpha_value_changed(GtkSpinButton *button, gpointer user_data) {
-	args.alpha = gtk_spin_button_get_value(button);
+	args.alpha = 1.f / gtk_spin_button_get_value(button);
 }
 
 void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
@@ -200,6 +263,14 @@ void on_bdeconv_setlambdafromnoise_clicked(GtkButton *button, gpointer user_data
 
 void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
+	gchar *wisdom_file = g_build_filename(g_get_user_cache_dir(), "siril_fftw.wisdom", NULL);
+    if (fftwf_import_wisdom_from_filename(wisdom_file) == 1) {
+        printf("Siril wisdom imported successfully...\n");
+	} else if (fftwf_import_system_wisdom() == 1) {
+        printf("System wisdom imported successfully...\n");
+	} else {
+        printf("No wisdom found to import...\n");
+	}
 	undo_save_state(&gfit, _("Deconvolution"));
 	gboolean out_16bit = (com.pref.force_16bit) ? TRUE : FALSE;
 	unsigned ndata = gfit.rx * gfit.ry * gfit.naxes[2];
@@ -225,15 +296,14 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 			args.multiscale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")));
 
 			siril_log_message(_("Starting kernel estimation...\n"));
-			args.ks = 11;
-			args.ninner = 300;
-			args.ntries = 30;
-			args.nouter = 3;
-			args.compensationfactor = 2.1f;
-			args.medianfilter = 1.f;
-			args.finaldeconvolutionweight = 3000.f;
-			args.intermediatedeconvolutionweight = 3000.f;
-			kernel = gf_estimate_kernel(&args);
+			switch(args.blindtype) {
+				case 0:
+					kernel = gf_estimate_kernel(&args);
+					break;
+				case 1:
+					kernel = estimate_kernel(&args);
+					break;
+			}
 			siril_log_message(_("Kernel estimation complete.\n"));
 			break;
 		case 1:
@@ -273,6 +343,14 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 			gfit.data[i] = roundf_to_WORD(args.fdata[i] * USHRT_MAX_SINGLE);
 		}
 	}
+
+	if (fftwf_export_wisdom_to_filename(wisdom_file) == 1) {
+        printf("Siril wisdom updated successfully...\n");
+	} else {
+        printf("Siril wisdom update failed...\n");
+	}
+    g_free(wisdom_file);
+
 	free(args.fdata);
 	args.fdata = NULL;
 

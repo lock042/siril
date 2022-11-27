@@ -41,6 +41,7 @@ EXTERNC typedef struct estk_data {
 	float medianfilter;
 	float finaldeconvolutionweight;
 	float intermediatedeconvolutionweight;
+	int blindtype;
 } estk_data;
 #ifdef __cplusplus
 }

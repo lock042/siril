@@ -5969,11 +5969,6 @@ enter a visible wavelength in nm</property>
       </object>
     </child>
   </object>
-  <object class="GtkAdjustment" id="comvgamma">
-    <property name="upper">100</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
-  </object>
   <object class="GtkAdjustment" id="convadflambda">
     <property name="lower">0.0001</property>
     <property name="upper">100</property>
@@ -5981,10 +5976,11 @@ enter a visible wavelength in nm</property>
     <property name="page-increment">0.001</property>
   </object>
   <object class="GtkAdjustment" id="convalpha">
-    <property name="lower">1.0000000000000001e-05</property>
-    <property name="upper">1</property>
-    <property name="step-increment">1.0000000000000001e-05</property>
-    <property name="page-increment">0.0001</property>
+    <property name="lower">1</property>
+    <property name="upper">5000</property>
+    <property name="value">3000</property>
+    <property name="step-increment">10</property>
+    <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="convcompensation">
     <property name="lower">1</property>
@@ -5997,6 +5993,11 @@ enter a visible wavelength in nm</property>
     <property name="upper">5</property>
     <property name="step-increment">0.10</property>
     <property name="page-increment">0.20</property>
+  </object>
+  <object class="GtkAdjustment" id="convgamma">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="convgflambda">
     <property name="lower">1</property>
@@ -6024,6 +6025,7 @@ enter a visible wavelength in nm</property>
   <object class="GtkAdjustment" id="convlambdamin">
     <property name="lower">0.0001</property>
     <property name="upper">0.01</property>
+    <property name="value">0.001</property>
     <property name="step-increment">0.0001</property>
     <property name="page-increment">0.0002</property>
   </object>
@@ -6244,7 +6246,7 @@ enter a visible wavelength in nm</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkComboBoxText">
+                          <object class="GtkComboBoxText" id="bdeconv_blindtype">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="active">0</property>
@@ -6252,6 +6254,7 @@ enter a visible wavelength in nm</property>
                               <item translatable="yes">Spectral Irregularity</item>
                               <item translatable="yes">ℓ0 Descent</item>
                             </items>
+                            <signal name="changed" handler="on_bdeconv_blindtype_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -6284,8 +6287,8 @@ enter a visible wavelength in nm</property>
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkFrame">
-                    <property name="visible">True</property>
+                  <object class="GtkFrame" id="bdeconv_psfcontrols">
+                    <property name="name">bdeconv_psfcontrols</property>
                     <property name="can-focus">False</property>
                     <property name="label-xalign">0</property>
                     <property name="shadow-type">none</property>
@@ -6485,12 +6488,117 @@ enter a visible wavelength in nm</property>
                         <property name="can-focus">False</property>
                         <property name="left-padding">12</property>
                         <child>
+                          <!-- n-columns=2 n-rows=3 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">6</property>
+                            <property name="column-homogeneous">True</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Kernel size</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="bdeconv_ks">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="text" translatable="yes">15</property>
+                                <property name="adjustment">bdeconv_kernelsize</property>
+                                <property name="value">15</property>
+                                <signal name="value-changed" handler="on_bdeconv_ks_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Lambda (λ)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="bdeconv_gflambda">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="adjustment">convgflambda</property>
+                                <property name="value">3000</property>
+                                <signal name="value-changed" handler="on_bdeconv_gflambda_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="bdeconv_setlambdafromnoise">
+                                <property name="label" translatable="yes">Set λ from image noise</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <signal name="clicked" handler="on_bdeconv_setlambdafromnoise_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label">
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">&lt;b&gt;Blind Deconvolution Kernel Estimation&lt;/b&gt;</property>
+                        <property name="use-markup">True</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkFrame" id="bdeconv_l0controls">
+                    <property name="name">bdeconv_l0controls</property>
+                    <property name="can-focus">False</property>
+                    <property name="label-xalign">0</property>
+                    <property name="shadow-type">none</property>
+                    <child>
+                      <object class="GtkAlignment">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="left-padding">12</property>
+                        <child>
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="orientation">vertical</property>
                             <child>
-                              <!-- n-columns=2 n-rows=5 -->
+                              <!-- n-columns=2 n-rows=1 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -6502,79 +6610,11 @@ enter a visible wavelength in nm</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Remove isolated parts</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">4</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="bdeconv_removeisolated">
-                                    <property name="label" translatable="yes"> </property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">If checked, parts of the estimated kernel that are not connected to the main kernel will be removed</property>
-                                    <property name="draw-indicator">True</property>
-                                    <signal name="toggled" handler="on_bdeconv_removeisolated_toggled" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">4</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="bdeconv_setlambdafromnoise">
-                                    <property name="label" translatable="yes">Set λ from image noise</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <signal name="clicked" handler="on_bdeconv_setlambdafromnoise_clicked" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Lambda (λ)</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkSpinButton" id="bdeconv_lambda">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">Regularisation parameter for kernel estimation</property>
-                                    <property name="text" translatable="yes">0.0040</property>
-                                    <property name="adjustment">convadflambda</property>
-                                    <property name="digits">4</property>
-                                    <property name="value">0.004</property>
-                                    <signal name="value-changed" handler="on_bdeconv_lambda_value_changed" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
                                     <property name="label" translatable="yes">Multiscale</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
+                                    <property name="top-attach">0</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -6590,37 +6630,8 @@ enter a visible wavelength in nm</property>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Kernel size</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
                                     <property name="top-attach">0</property>
                                   </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkSpinButton" id="bdeconv_ks">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="text" translatable="yes">15</property>
-                                    <property name="adjustment">bdeconv_kernelsize</property>
-                                    <property name="value">15</property>
-                                    <signal name="value-changed" handler="on_bdeconv_ks_value_changed" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
                                 </child>
                               </object>
                               <packing>
@@ -6633,6 +6644,7 @@ enter a visible wavelength in nm</property>
                               <object class="GtkExpander" id="bdeconv_expander">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
+                                <property name="expanded">True</property>
                                 <child>
                                   <!-- n-columns=2 n-rows=10 -->
                                   <object class="GtkGrid">
@@ -6657,7 +6669,7 @@ enter a visible wavelength in nm</property>
                                         <property name="can-focus">True</property>
                                         <property name="tooltip-text" translatable="yes">Kernel estimation regularisation parameter</property>
                                         <property name="text" translatable="yes">20</property>
-                                        <property name="adjustment">comvgamma</property>
+                                        <property name="adjustment">convgamma</property>
                                         <property name="value">20</property>
                                         <signal name="value-changed" handler="on_bdeconv_gamma_value_changed" swapped="no"/>
                                       </object>
@@ -6889,6 +6901,7 @@ enter a visible wavelength in nm</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
+                                        <property name="active">True</property>
                                         <property name="draw-indicator">True</property>
                                         <signal name="toggled" handler="on_bdeconv_betterkernel_toggled" swapped="no"/>
                                       </object>
@@ -6938,8 +6951,7 @@ enter a visible wavelength in nm</property>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;Blind Deconvolution Kernel Estimation
-&lt;i&gt;Anger-Delbracio-Facciolo ℓ0 Descent Method&lt;/i&gt;&lt;/b&gt;</property>
+                        <property name="label" translatable="yes">&lt;b&gt;&lt;i&gt;Anger-Delbracio-Facciolo ℓ0 Descent Method&lt;/i&gt;&lt;/b&gt;</property>
                         <property name="use-markup">True</property>
                       </object>
                     </child>
@@ -6947,11 +6959,12 @@ enter a visible wavelength in nm</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkFrame">
+                  <object class="GtkFrame" id="bdeconv_gfcontrols">
+                    <property name="name">bdeconv_gfcontrols</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label-xalign">0</property>
@@ -6962,12 +6975,13 @@ enter a visible wavelength in nm</property>
                         <property name="can-focus">False</property>
                         <property name="left-padding">12</property>
                         <child>
-                          <!-- n-columns=2 n-rows=6 -->
+                          <!-- n-columns=2 n-rows=4 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="row-spacing">6</property>
                             <property name="column-spacing">6</property>
+                            <property name="column-homogeneous">True</property>
                             <child>
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
@@ -6985,7 +6999,7 @@ enter a visible wavelength in nm</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Number of samples per outer loop</property>
+                                <property name="label" translatable="yes">Samples per outer loop</property>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -7017,49 +7031,12 @@ enter a visible wavelength in nm</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Lambda (λ)</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">4</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Kernel size</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">5</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="bdeconv_ks1">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="text" translatable="yes">15</property>
-                                <property name="adjustment">bdeconv_kernelsize</property>
-                                <property name="value">15</property>
-                                <signal name="value-changed" handler="on_bdeconv_ks_value_changed" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">5</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton">
+                              <object class="GtkSpinButton" id="bdeconv_ninner">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="adjustment">convninner</property>
                                 <property name="value">300</property>
+                                <signal name="value-changed" handler="on_bdeconv_ninner_value_changed" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -7067,11 +7044,12 @@ enter a visible wavelength in nm</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton">
+                              <object class="GtkSpinButton" id="bdeconv_ntries">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="adjustment">convntries</property>
                                 <property name="value">30</property>
+                                <signal name="value-changed" handler="on_bdeconv_ntries_value_changed" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -7079,11 +7057,12 @@ enter a visible wavelength in nm</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton">
+                              <object class="GtkSpinButton" id="bdeconv_nouter">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="adjustment">convnouter</property>
                                 <property name="value">3</property>
+                                <signal name="value-changed" handler="on_bdeconv_nouter_value_changed" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -7091,27 +7070,16 @@ enter a visible wavelength in nm</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton">
+                              <object class="GtkSpinButton" id="bdeconv_ncomp">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="adjustment">convcompensation</property>
                                 <property name="digits">2</property>
+                                <signal name="value-changed" handler="on_bdeconv_ncomp_value_changed" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">3</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="adjustment">convgflambda</property>
-                                <property name="value">3000</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">4</property>
                               </packing>
                             </child>
                           </object>
@@ -7122,8 +7090,7 @@ enter a visible wavelength in nm</property>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">&lt;b&gt;Blind Deconvolution Kernel Estimation
-&lt;i&gt;Goldstein-Fattal Spectral Irregularity Method&lt;/i&gt;&lt;/b&gt;</property>
+                        <property name="label" translatable="yes">&lt;b&gt;&lt;i&gt;Goldstein-Fattal Spectral Irregularity Method&lt;/i&gt;&lt;/b&gt;</property>
                         <property name="use-markup">True</property>
                       </object>
                     </child>
@@ -7131,7 +7098,7 @@ enter a visible wavelength in nm</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">2</property>
+                    <property name="position">3</property>
                   </packing>
                 </child>
               </object>
@@ -7224,8 +7191,8 @@ enter a visible wavelength in nm</property>
                             <property name="tooltip-text" translatable="yes">Regularisation parameter for the final non-blind stageof deconvolution</property>
                             <property name="text" translatable="yes">0.00033</property>
                             <property name="adjustment">convalpha</property>
-                            <property name="digits">5</property>
-                            <property name="value">0.00033</property>
+                            <property name="digits">2</property>
+                            <property name="value">3000</property>
                             <signal name="value-changed" handler="on_bdeconv_alpha_value_changed" swapped="no"/>
                           </object>
                           <packing>
