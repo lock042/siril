@@ -486,9 +486,8 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 
 	// some prep work done in star_align_prepare_hook for global
 	// need to duplicate it here
-	int refimage = args->seq->reference_image;
-	sadata->ref.x = args->seq->imgparam[refimage].rx;
-	sadata->ref.y = args->seq->imgparam[refimage].ry;
+	sadata->ref.x = args->seq->rx;
+	sadata->ref.y = args->seq->ry;
 
 	if (regargs->x2upscale) {
 		sadata->ref.x *= 2.0;
@@ -502,7 +501,7 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 }
 
 /*
-This function runs seqpsfs on 2/3 stars as selected by the user
+This function runs seqpsfs on 1/2/3 stars as selected by the user
 then computes transformation matrix to the ref image
 and finally applies this transform if !no_output
 Registration data is saved to the input sequence in any case
