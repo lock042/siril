@@ -248,6 +248,25 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		if (whichdial == OD_FLATLIB) {
+			if (com.pref.prepro.flat_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.flat_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
+		} else if (whichdial == OD_DARKLIB) {
+			if (com.pref.prepro.dark_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.dark_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
+		} else if (whichdial == OD_OFFSETLIB) {
+			if (com.pref.prepro.bias_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.bias_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
+		}
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog, whichdial);
 		siril_file_chooser_add_preview(dialog, preview);
