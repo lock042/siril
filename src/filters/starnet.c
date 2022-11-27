@@ -279,23 +279,23 @@ gpointer do_starnet(gpointer p) {
 	if (g_strcmp0(imagenoext, imagenoextorig))
 		siril_log_color_message(_("Starnet++: spaces detected in filename. Starnet++ can't handle these so they have been replaced by underscores.\n"), "salmon");
 	free(imagenoextorig);
-	fprintf(stdout,"%s\n",imagenoext);
+	fprintf(stdout, "%s\n", imagenoext);
 	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
-	fprintf(stdout,"%s\n",imagenoext);
+	fprintf(stdout, "%s\n", imagenoext);
 	imagenoext = remove_ext_from_filename(imagenoext);
-	fprintf(stdout,"%s\n",imagenoext);
-	strncat(temptif,imagenoext,sizeof(temptif) - strlen(imagenoext));
-	strncat(temptif,starnetsuffix, 10);
-	strncat(temptif,".tif", 5);
-	strncat(starlesstif,imagenoext,sizeof(starlesstif) - strlen(imagenoext));
-	strncat(starlesstif,starlesssuffix, 10);
-	strncat(starlesstif,".tif",5);
-	strncat(starlessfit,imagenoext,sizeof(starlessfit) - strlen(imagenoext));
-	strncat(starlessfit,starlesssuffix, 10);
-	strncat(starlessfit,com.pref.ext,5);
-	strncat(starmaskfit,imagenoext,sizeof(starmaskfit) - strlen(imagenoext));
-	strncat(starmaskfit,starmasksuffix, 10);
-	strncat(starmaskfit,com.pref.ext,5);
+	fprintf(stdout, "%s\n", imagenoext);
+	strncat(temptif, imagenoext, sizeof(temptif) - strlen(imagenoext));
+	strncat(temptif, starnetsuffix, 10);
+	strncat(temptif, ".tif", 5);
+	strncat(starlesstif, imagenoext, sizeof(starlesstif) - strlen(imagenoext));
+	strncat(starlesstif, starlesssuffix, 10);
+	strncat(starlesstif, ".tif", 5);
+	strncat(starlessfit, imagenoext, sizeof(starlessfit) - strlen(imagenoext));
+	strncat(starlessfit, starlesssuffix, 10);
+	strncat(starlessfit, com.pref.ext, 5);
+	strncat(starmaskfit, imagenoext, sizeof(starmaskfit) - strlen(imagenoext));
+	strncat(starmaskfit, starmasksuffix, 10);
+	strncat(starmaskfit, com.pref.ext, 5);
 
 	// ok, let's start
 	set_progress_bar_data(_("Starting Starnet++"), PROGRESS_NONE);
