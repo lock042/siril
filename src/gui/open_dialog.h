@@ -14,7 +14,7 @@
 #define OD_DARKLIB  9
 #define OD_OFFSETLIB  10
 
-#define FITS_EXTENSIONS "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fits.fz"
+#define FITS_EXTENSIONS "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.fits.fz;*.fts.fz"
 
 void header_open_button_clicked();
 void cwd_btton_clicked();

@@ -4,6 +4,9 @@
 		<glob pattern="*.fit"/>
 		<glob pattern="*.fits"/>
 		<glob pattern="*.fts"/>
+		<glob pattern="*.fit.fz"/>
+		<glob pattern="*.fits.fz"/>
+		<glob pattern="*.fts.fz"/>
 	</mime-type>
 	<mime-type type="video/ser">
 		<glob pattern="*.ser"/>

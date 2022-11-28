@@ -110,13 +110,13 @@ sequence * readseqfile(const char *name){
 				 * Such sequences don't exist anymore. */
 				assert(line[2] != '"');
 				if (line[2] == '\'')	/* new format, quoted string */
-					scanformat = "'%511[^']' %d %d %d %d %d %d %d";
-				else scanformat = "%511s %d %d %d %d %d %d %d";
+					scanformat = "'%511[^']' %d %d %d %d %d %d %d %d";
+				else scanformat = "%511s %d %d %d %d %d %d %d %d";
 
 				if(sscanf(line+2, scanformat,
 							filename, &seq->beg, &seq->number,
 							&seq->selnum, &seq->fixed,
-							&seq->reference_image, &version, &seq->is_variable) < 6 ||
+							&seq->reference_image, &version, &seq->is_variable, &seq->fz) < 6 ||
 						allocated != 0){
 					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 					goto error;
@@ -391,13 +391,13 @@ sequence * readseqfile(const char *name){
 				else if (line[1] == 'F') {
 					seq->type = SEQ_FITSEQ;
 #ifdef HAVE_FFMS2
-					seq->ext = com.pref.ext + 1;
+					seq->ext = get_com_ext(seq->fz) + 1;
 #endif
 					if (seq->fitseq_file) break;
 					seq->fitseq_file = malloc(sizeof(struct ser_struct));
 					fitseq_init_struct(seq->fitseq_file);
 					GString *fileString = g_string_new(filename);
-					g_string_append(fileString, com.pref.ext);
+					g_string_append(fileString, get_com_ext(seq->fz));
 					seq->fitseq_file->filename = g_string_free(fileString, FALSE);
 					if (fitseq_open(seq->fitseq_file->filename, seq->fitseq_file)) {
 						free(seq->fitseq_file);
@@ -596,10 +596,10 @@ int writeseqfile(sequence *seq){
 	free(filename);
 
 	fprintf(seqfile,"#Siril sequence file. Contains list of images, selection, registration data and statistics\n");
-	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size\n");
-	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d\n",
+	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size fz_flag\n");
+	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d %d\n",
 			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed,
-			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable);
+			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable, seq->fz);
 	if (seq->type != SEQ_REGULAR) {
 		char type;
 		switch (seq->type) {

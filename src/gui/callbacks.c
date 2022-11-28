@@ -1036,9 +1036,11 @@ void set_output_filename_to_sequence_name() {
 			return;
 		}
 	}
+	const gchar* com_ext = get_com_ext(com.seq.fz);
+
 	msg = g_strdup_printf("%s%sstacked%s", com.seq.seqname,
 			g_str_has_suffix(com.seq.seqname, "_") ?
-			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), com.pref.ext);
+			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), com_ext);
 	gtk_entry_set_text(output_file, msg);
 
 	g_free(msg);

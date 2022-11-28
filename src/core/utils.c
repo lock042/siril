@@ -650,6 +650,14 @@ const char *get_filename_ext(const char *filename) {
 	g_free(basename);
 
 	p = filename + len;
+	if (g_str_has_suffix(p, ".fz")) {
+		int l = strlen(p);
+		for (int i = l - 1 - 3; i >= 0; i--) {
+			if ((p[i] == '.')) {
+				return (p + i + 1);
+			}
+		}
+	}
 	dot = strrchr(p, '.');
 	if (!dot || dot == p) {
 		return NULL;
@@ -1430,4 +1438,20 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 			--d;
 		}
 	} while((*s++ = *d++));
+}
+
+/**
+ * Get the file extension following the fz flag. If the file is
+ * compressed, fz is appended to the file extension.
+ * @param fz flag to know if the fz extension must be appended.
+ * @return a string that must not be freed
+ */
+static const gchar *ext[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
+const gchar *get_com_ext(gboolean fz) {
+    if (fz) {
+        for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
+            if (g_str_has_prefix(ext[i], com.pref.ext)) return ext[i];
+        }
+    }
+    return com.pref.ext;
 }

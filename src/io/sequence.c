@@ -230,12 +230,15 @@ int check_seq() {
 		const char *ext = get_filename_ext(file);
 		if (!ext) continue;
 
+		gboolean is_fz = g_str_has_suffix(ext, ".fz");
+		const gchar *com_ext = get_com_ext(is_fz);
+
 		if ((new_seq = check_seq_one_file(file, FALSE))) {
 			sequences[nb_seq] = new_seq;
 			nb_seq++;
-		} else if (!strcasecmp(ext, com.pref.ext + 1)) {
+		} else if (!strcasecmp(ext, com_ext + 1)) {
 			char *basename = NULL;
-			if (!get_index_and_basename(file, &basename, &curidx, &fixed)) {
+			if (!get_index_and_basename(file, &basename, &curidx, &fixed, com_ext)) {
 				int current_seq = -1;
 				/* search in known sequences if we already have it */
 				for (i = 0; i < nb_seq; i++) {
@@ -253,6 +256,7 @@ int check_seq() {
 					new_seq->beg = INT_MAX;
 					new_seq->end = 0;
 					new_seq->fixed = fixed;
+					new_seq->fz = is_fz;
 					sequences[nb_seq] = new_seq;
 					current_seq = nb_seq;
 					nb_seq++;
@@ -313,8 +317,9 @@ int check_seq() {
 			}
 			siril_debug_print(_("sequence %d, found: %d to %d\n"),
 					i + 1, sequences[i]->beg, sequences[i]->end);
-			if (!buildseqfile(sequences[i], 0) && retval)
+			if (!buildseqfile(sequences[i], 0) && retval) {
 				retval = 0;	// at least one succeeded to be created
+			}
 			free_sequence(sequences[i], TRUE);
 		}
 		free(sequences);
@@ -373,10 +378,14 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 	}
 #endif
 	else if (check_for_fitseq && TYPEFITS == get_type_for_extension(ext) && fitseq_is_fitseq(name, NULL)) {
+		gboolean is_fz = g_str_has_suffix(ext, ".fz");
+		const gchar *com_ext = get_com_ext(is_fz);
+
 		/* set the configured extention to the extension of the file, otherwise reading will fail */
-		if (strcasecmp(ext, com.pref.ext + 1)) {
+		if (strcasecmp(ext, com_ext + 1)) {
 			g_free(com.pref.ext);
 			com.pref.ext = g_strdup_printf(".%s", ext);
+			if (is_fz) com.pref.ext[strlen(com.pref.ext) - 2] = '\0';
 		}
 
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
@@ -387,12 +396,13 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		}
 		new_seq = calloc(1, sizeof(sequence));
 		initialize_sequence(new_seq, TRUE);
-		new_seq->seqname = g_strndup(name, fnlen-strlen(com.pref.ext));
+		new_seq->seqname = g_strndup(name, fnlen - strlen(com_ext));
 		new_seq->beg = 0;
 		new_seq->end = fitseq_file->frame_count - 1;
 		new_seq->number = fitseq_file->frame_count;
 		new_seq->type = SEQ_FITSEQ;
 		new_seq->fitseq_file = fitseq_file;
+		new_seq->fz = is_fz;
 		siril_debug_print("Found a FITS sequence\n");
 	}
 
@@ -711,7 +721,7 @@ char *seq_get_image_filename(sequence *seq, int index, char *name_buf) {
 			if (!name_buf || index < 0 || index > seq->end) {
 				return NULL;
 			}
-			snprintf(name_buf, 255, "%s_%d%s", seq->seqname,  index, com.pref.ext);
+			snprintf(name_buf, 255, "%s_%d%s", seq->seqname,  index, get_com_ext(seq->fz));
 			return name_buf;
 #ifdef HAVE_FFMS2
 		case SEQ_AVI:
@@ -1046,6 +1056,8 @@ void set_fwhm_star_as_star_list(sequence *seq) {
  */
 char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffer, gboolean add_fits_ext) {
 	char format[20];
+	const gchar *com_ext = get_com_ext(seq->fz);
+
 	if (index < 0 || index > seq->number || name_buffer == NULL)
 		return NULL;
 	if (seq->fixed <= 1) {
@@ -1054,22 +1066,23 @@ char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffe
 		sprintf(format, "%%s%%.%dd", seq->fixed);
 	}
 	if (add_fits_ext)
-		strcat(format, com.pref.ext);
-	snprintf(name_buffer, 255, format,
-			seq->seqname, seq->imgparam[index].filenum);
+		strcat(format, com_ext);
+	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
 	name_buffer[255] = '\0';
+
 	return name_buffer;
 }
 
 char *fit_sequence_get_image_filename_prefixed(sequence *seq, const char *prefix, int index) {
 	char format[16];
+	const gchar *com_ext = get_com_ext(seq->fz);
 	gchar *basename = g_path_get_basename(seq->seqname);
 	GString *str = g_string_sized_new(70);
+
 	sprintf(format, "%%s%%s%%0%dd%%s", seq->fixed);
-	g_string_printf(str, format, prefix,
-			basename, seq->imgparam[index].filenum,
-			com.pref.ext);
+	g_string_printf(str, format, prefix, basename, seq->imgparam[index].filenum, com_ext);
 	g_free(basename);
+
 	return g_string_free(str, FALSE);
 }
 
@@ -1078,20 +1091,23 @@ char *fit_sequence_get_image_filename_prefixed(sequence *seq, const char *prefix
  */
 char *get_possible_image_filename(sequence *seq, int image_number, char *name_buffer) {
 	char format[20];
+	const gchar *com_ext = get_com_ext(seq->fz);
+
 	if (image_number < seq->beg || image_number > seq->end || name_buffer == NULL)
 		return NULL;
 	if (seq->fixed <= 1){
-		sprintf(format, "%%s%%d%s", com.pref.ext);
+		sprintf(format, "%%s%%d%s", com_ext);
 	} else {
-		sprintf(format, "%%s%%.%dd%s", seq->fixed, com.pref.ext);
+		sprintf(format, "%%s%%.%dd%s", seq->fixed, com_ext);
 	}
+
 	sprintf(name_buffer, format, seq->seqname, image_number);
 	return name_buffer;
 }
 
 /* splits a filename in a base name and an index number, if the file name ends with .fit
  * it also computes the fixed length if there are zeros in the index */
-int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed){
+int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed, const gchar *com_ext){
 	char *buffer;
 	int i, fnlen, first_zero, digit_idx;
 
@@ -1100,14 +1116,14 @@ int	get_index_and_basename(const char *filename, char **basename, int *index, in
 	first_zero = -1;
 	*basename = NULL;
 	fnlen = strlen(filename);
-	if (fnlen < strlen(com.pref.ext)+2) return -1;
-	if (!g_str_has_suffix(filename, com.pref.ext)) return -1;
-	i = fnlen-strlen(com.pref.ext)-1;
+	if (fnlen < strlen(com_ext) + 2) return -1;
+	if (!g_str_has_suffix(filename, com_ext)) return -1;
+	i = fnlen - strlen(com_ext) - 1;
 	if (!isdigit(filename[i])) return -1;
 	digit_idx = i;
 
 	buffer = strdup(filename);
-	buffer[fnlen - strlen(com.pref.ext)] = '\0';		// for g_ascii_strtoll()
+	buffer[fnlen - strlen(com_ext)] = '\0';		// for g_ascii_strtoll()
 	do {
 		if (buffer[i] == '0' && first_zero < 0)
 			first_zero = i;

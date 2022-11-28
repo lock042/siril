@@ -74,7 +74,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 	gchar *pic_filter = "*.pic;*.PIC";
 	gchar *ser_filter = "*.ser;*.SER";
 	if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
-		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts, *.fits.fz)"),
+		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
 				fits_filter, gui.file_ext_filter == TYPEFITS);
 	} else {
 		all_filter = g_string_new(fits_filter);
@@ -248,6 +248,25 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		if (whichdial == OD_FLATLIB) {
+			if (com.pref.prepro.flat_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.flat_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
+		} else if (whichdial == OD_DARKLIB) {
+			if (com.pref.prepro.dark_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.dark_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
+		} else if (whichdial == OD_OFFSETLIB) {
+			if (com.pref.prepro.bias_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.bias_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
+		}
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog, whichdial);
 		siril_file_chooser_add_preview(dialog, preview);
