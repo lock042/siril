@@ -221,6 +221,29 @@ public:
         }
     }
 
+    template <typename T2>
+    void flip(const img_t<T2>&o) {
+        assert(o.similar(*this));
+/*        img_t<T> o(*this);
+        this->w = o.h;
+        this->h = o.w;
+*/        for (int y = 0; y < o.h; y++) {
+            for (int x = 0; x < o.w; x++) {
+                for (int dd = 0; dd < d; dd++) {
+                    (*this)(x, y, dd) = o(w-x-1, h-y-1, dd);
+                }
+            }
+        }
+    }
+/*
+        for (int c = 0 ; c < d ; c++) {
+            for (int i = 0 ; i < w * h ; i++) {
+                (*this)[i] = o[(c+1)*w*h - i - 1];
+            }
+        }
+    }
+    */
+
     void copy(const img_t<T>& o) {
         assert(o.similar(*this));
         std::copy(o.data.begin(), o.data.end(), data.begin());

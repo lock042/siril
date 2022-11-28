@@ -330,7 +330,8 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 			printf("\n");
 		}
 #endif
-		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
+//		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
+		richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, 8);
 	}
 	if (kernel) {
 		free (kernel);

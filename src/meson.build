@@ -105,6 +105,8 @@ src_files = [
   'filters/deconvolution/better_than_std.hpp',
   'filters/deconvolution/deblur.cpp',
   'filters/deconvolution/deblur.hpp',
+  'filters/deconvolution/rl.cpp',
+  'filters/deconvolution/rl.hpp',
   'filters/deconvolution/edgetaper.hpp',
   'filters/deconvolution/estimate_kernel.cpp',
   'filters/deconvolution/fft.hpp',

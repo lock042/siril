@@ -61,3 +61,8 @@ EXTERNC int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchan
 #ifdef __cplusplus
 }
 #endif
+
+EXTERNC int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int maxiter);
+#ifdef __cplusplus
+}
+#endif
