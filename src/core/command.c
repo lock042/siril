@@ -206,7 +206,6 @@ int process_seq_clean(int nb) {
 	return CMD_OK;
 }
 
-
 int process_satu(int nb){
 	struct enhance_saturation_data *args = malloc(sizeof(struct enhance_saturation_data));
 	args->background_factor = 1.0;
@@ -3881,7 +3880,7 @@ int process_fixbanding(int nb) {
 			}
 			arg_index++;
 		}
-	} 
+	}
 	start_in_new_thread(BandingEngineThreaded, args);
 	return CMD_OK;
 }
@@ -3923,7 +3922,6 @@ int process_seq_fixbanding(int nb) {
 	apply_banding_to_sequence(args);
 	return CMD_OK;
 }
-
 
 int process_subsky(int nb) {
 	sequence *seq = NULL;
@@ -4029,7 +4027,6 @@ int process_subsky(int nb) {
 	return CMD_OK;
 }
 
-
 int process_findcosme(int nb) {
 	sequence *seq = NULL;
 	int i = 0;
@@ -4052,7 +4049,6 @@ int process_findcosme(int nb) {
 	args->is_cfa = (word[0][10] == '_' || word[0][13] == '_');	// find_cosme_cfa or seqfind_cosme_cfa
 	args->amount = 1.0;
 	args->fit = &gfit;
-
 
 	if (is_sequence) {
 		args->seqEntry = "cc_";
@@ -5209,7 +5205,6 @@ int process_convert(int nb) {
 	siril_log_color_message(str, "green");
 	g_free(str);
 
-
 	if (!com.wd) {
 		siril_log_message(_("Convert: no working directory set.\n"));
 		return CMD_NO_CWD;
@@ -5751,13 +5746,18 @@ terminate_register_on_error:
 }
 
 // parse normalization and filters from the stack command line, starting at word `first'
-static int parse_stack_command_line(struct stacking_configuration *arg, int first, gboolean rej_options_allowed, gboolean out_allowed) {
+static int parse_stack_command_line(struct stacking_configuration *arg, int first,
+		gboolean med_options_allowed, gboolean rej_options_allowed, gboolean out_allowed) {
 	while (word[first]) {
 		char *current = word[first], *value;
 		if (!strcmp(current, "-nonorm") || !strcmp(current, "-no_norm"))
 			arg->force_no_norm = TRUE;
 		else if (!strcmp(current, "-output_norm")) {
-			arg->output_norm = TRUE;
+			if (!med_options_allowed) {
+				siril_log_message(_("Output normalization is allowed only with median or mean stacking, ignoring.\n"));
+			} else {
+				arg->output_norm = TRUE;
+			}
 		} else if (!strcmp(current, "-weight_from_noise")) {
 			if (!rej_options_allowed) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
@@ -5784,14 +5784,6 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			} else {
 				arg->apply_nbstars_weights = TRUE;
 			}
-		} else if (!strcmp(current, "-rgb_equal")) {
-			if (!rej_options_allowed) {
-				siril_log_message(_("RGB equalization is allowed only with average stacking, ignoring.\n"));
-			} else if (arg->norm == NO_NORM) {
-				siril_log_message(_("RGB equalization is allowed only if normalization has been activated, ignoring.\n"));
-			} else {
-				arg->equalizeRGB = TRUE;
-			}
 		} else if (!strcmp(current, "-weight_from_nbstack")) {
 			if (!rej_options_allowed) {
 				siril_log_message(_("Weighting is allowed only with average stacking, ignoring.\n"));
@@ -5803,7 +5795,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->apply_nbstack_weights = TRUE;
 			}
 		} else if (!strcmp(current, "-fastnorm")) {
-			if (!rej_options_allowed) {
+			if (!med_options_allowed) {
 				siril_log_message(_("Fast normalization is allowed only with average stacking, ignoring.\n"));
 			} else if (arg->norm == NO_NORM) {
 				siril_log_message(_("Fast normalization is allowed only if normalization has been activated, ignoring.\n"));
@@ -5811,7 +5803,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				arg->lite_norm = TRUE;
 			}
 		} else if (g_str_has_prefix(current, "-norm=")) {
-			if (!rej_options_allowed) {
+			if (!med_options_allowed) {
 				siril_log_message(_("Normalization options are not allowed in this context, ignoring.\n"));
 			} else {
 				value = current + 6;
@@ -5823,6 +5815,14 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 					arg->norm = MULTIPLICATIVE;
 				else if (!strcmp(value, "mulscale"))
 					arg->norm = MULTIPLICATIVE_SCALING;
+			}
+		} else if (!strcmp(current, "-rgb_equal")) {
+			if (!med_options_allowed) {
+				siril_log_message(_("RGB equalization is allowed only with average stacking, ignoring.\n"));
+			} else if (arg->norm == NO_NORM) {
+				siril_log_message(_("RGB equalization is allowed only if normalization has been activated, ignoring.\n"));
+			} else {
+				arg->equalizeRGB = TRUE;
 			}
 		} else if (parse_filter_args(current, &arg->filters)) {
 			;
@@ -5838,8 +5838,18 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			else {
 				siril_log_message(_("Output filename option is not allowed in this context, ignoring.\n"));
 			}
-		}
-		else {
+		} else if (g_str_has_prefix(current, "-rejmap")) {
+			if (!rej_options_allowed) {
+				siril_log_message(_("Rejection maps can only be created with rejection stacking, ignoring.\n"));
+			} else if (arg->type_of_rejection == NO_REJEC) {
+				siril_log_message(_("Rejection maps can only be created if rejection has been activated, ignoring.\n"));
+			} else {
+				arg->create_rejmaps = TRUE;
+				arg->merge_lowhigh_rejmaps = TRUE;
+				if (current[strlen(current)-1] == 's')
+					arg->merge_lowhigh_rejmaps = FALSE;
+			}
+		} else {
 			siril_log_message(_("Unexpected argument to stacking `%s', aborting.\n"), current);
 			return CMD_ARG_ERROR;
 		}
@@ -5854,13 +5864,14 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		siril_log_message(_("No sequence `%s' found.\n"), arg->seqfile);
 		return -1;
 	}
-	struct stacking_args args = { 0 };
 	gchar *error = NULL;
 	if (seq_check_basic_data(seq, FALSE) == -1) {
 		free(seq);
 		return CMD_GENERIC_ERROR;
 	}
 	siril_log_message(_("Stacking sequence %s\n"), seq->seqname);
+
+	struct stacking_args args = { 0 };
 	args.seq = seq;
 	args.ref_image = sequence_find_refimage(seq);
 	// the three below: used only if method is average w/ rejection
@@ -5868,6 +5879,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.sig[0] = arg->sig[0];
 		args.sig[1] = arg->sig[1];
 		args.type_of_rejection = arg->type_of_rejection;
+		args.create_rejmaps = arg->create_rejmaps;
+		args.merge_lowhigh_rejmaps = arg->merge_lowhigh_rejmaps;
 	} else {
 		args.type_of_rejection = NO_REJEC;
 		siril_log_message(_("Not using rejection for stacking\n"));
@@ -5882,13 +5895,13 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.method = arg->method;
 	args.force_norm = FALSE;
 	args.output_norm = arg->output_norm;
+	args.equalizeRGB = arg->equalizeRGB;
+	args.lite_norm = arg->lite_norm;
 	args.reglayer = get_registration_layer(args.seq);
 	args.apply_noise_weights = arg->apply_noise_weights;
 	args.apply_nbstack_weights = arg->apply_nbstack_weights;
 	args.apply_wfwhm_weights = arg->apply_wfwhm_weights;
 	args.apply_nbstars_weights = arg->apply_nbstars_weights;
-	args.equalizeRGB = arg->equalizeRGB;
-	args.lite_norm = arg->lite_norm;
 
 	// manage registration data
 	if (!stack_regdata_is_valid(args)) {
@@ -5918,7 +5931,8 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	int retval = args.retval;
 	clean_end_stacking(&args);
 	free(args.image_indices);
-	g_free(args.description);
+	free(args.description);
+	free(args.critical_value);
 
 	if (!retval) {
 		bgnoise_async(&args.result, TRUE);
@@ -5961,10 +5975,50 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 			retval = CMD_GENERIC_ERROR;
 		}
 		else ++arg->number_of_loaded_sequences;
+
+		if (args.create_rejmaps) {
+			siril_log_message(_("Saving rejection maps\n"));
+			if (args.merge_lowhigh_rejmaps) {
+				char new_ext[30];
+				sprintf(new_ext, "_low+high_rejmap%s", com.pref.ext);
+				gchar *low_filename = replace_ext(arg->result_file, new_ext);
+				soper_unscaled_div_ushort_to_float(args.rejmap_low, args.nb_images_to_stack);
+				describe_stack_for_history(&args, &args.rejmap_low->history, TRUE, FALSE);
+				savefits(low_filename, args.rejmap_low);
+				g_free(low_filename);
+			} else {
+				char new_ext[30];
+				sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
+				gchar *low_filename = replace_ext(arg->result_file, new_ext);
+				soper_unscaled_div_ushort_to_float(args.rejmap_low, args.nb_images_to_stack);
+				describe_stack_for_history(&args, &args.rejmap_low->history, TRUE, TRUE);
+				savefits(low_filename, args.rejmap_low);
+				g_free(low_filename);
+
+				sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
+				gchar *high_filename = replace_ext(arg->result_file, new_ext);
+				soper_unscaled_div_ushort_to_float(args.rejmap_high, args.nb_images_to_stack);
+				describe_stack_for_history(&args, &args.rejmap_low->history, TRUE, FALSE);
+				savefits(high_filename, args.rejmap_high);
+				g_free(high_filename);
+			}
+		}
+
 		bgnoise_await();
+	} else {
+		siril_log_color_message(_("Stacking failed, please check the log to fix your issue.\n"), "red");
 	}
+
 	free_sequence(seq, TRUE);
 	clearfits(&args.result);
+	if (args.create_rejmaps) {
+		clearfits(args.rejmap_low);
+		free(args.rejmap_low);
+		if (!args.merge_lowhigh_rejmaps) {
+			clearfits(args.rejmap_high);
+			free(args.rejmap_high);
+		}
+	}
 	return retval;
 }
 
@@ -6023,7 +6077,7 @@ int process_stackall(int nb) {
 		arg->method = stack_summing_generic;
 	} else {
 		int start_arg_opt = 2;
-		gboolean allow_rej_options = FALSE;
+		gboolean allow_rej_options = FALSE, allow_med_options = FALSE;
 		if (!strcmp(word[1], "sum")) {
 			arg->method = stack_summing_generic;
 		} else if (!strcmp(word[1], "max")) {
@@ -6032,7 +6086,7 @@ int process_stackall(int nb) {
 			arg->method = stack_addmin;
 		} else if (!strcmp(word[1], "med") || !strcmp(word[1], "median")) {
 			arg->method = stack_median;
-			allow_rej_options = TRUE;
+			allow_med_options = TRUE;
 		} else if (!strcmp(word[1], "rej") || !strcmp(word[1], "mean")) {
 			int shift = 1;
 			if (!strcmp(word[3], "p") || !strcmp(word[3], "percentile")) {
@@ -6070,13 +6124,14 @@ int process_stackall(int nb) {
 			}
 			arg->method = stack_mean_with_rejection;
 			start_arg_opt = 4 + shift;
+			allow_med_options = TRUE;
 			allow_rej_options = TRUE;
 		}
 		else {
 			siril_log_color_message(_("Stacking method type '%s' is invalid\n"), "red", word[2]);
 			goto failure;
 		}
-		if (parse_stack_command_line(arg, start_arg_opt, allow_rej_options, FALSE))
+		if (parse_stack_command_line(arg, start_arg_opt, allow_med_options, allow_rej_options, FALSE))
 			goto failure;
 	}
 
@@ -6136,7 +6191,7 @@ int process_stackone(int nb) {
 		arg->method = stack_summing_generic;
 	} else {
 		int start_arg_opt = 3;
-		gboolean allow_rej_options = FALSE;
+		gboolean allow_rej_options = FALSE, allow_med_options = FALSE;
 		if (!strcmp(word[2], "sum")) {
 			arg->method = stack_summing_generic;
 		} else if (!strcmp(word[2], "max")) {
@@ -6145,7 +6200,7 @@ int process_stackone(int nb) {
 			arg->method = stack_addmin;
 		} else if (!strcmp(word[2], "med") || !strcmp(word[2], "median")) {
 			arg->method = stack_median;
-			allow_rej_options = TRUE;
+			allow_med_options = TRUE;
 		} else if (!strcmp(word[2], "rej") || !strcmp(word[2], "mean")) {
 			int shift = 1, base_shift = 5;
 			if (nb < 4) {
@@ -6196,13 +6251,14 @@ int process_stackone(int nb) {
 			}
 			arg->method = stack_mean_with_rejection;
 			start_arg_opt = base_shift + shift;
+			allow_med_options = TRUE;
 			allow_rej_options = TRUE;
 		}
 		else {
 			siril_log_color_message(_("Stacking method type '%s' is invalid\n"), "red", word[2]);
 			goto failure;
 		}
-		if (parse_stack_command_line(arg, start_arg_opt, allow_rej_options, TRUE))
+		if (parse_stack_command_line(arg, start_arg_opt, allow_med_options, allow_rej_options, TRUE))
 			goto failure;
 	}
 
@@ -6517,7 +6573,7 @@ int process_set_compress(int nb) {
 		} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip1", 5)) {
 			method = GZIP1_COMP;
 			comp = g_strdup("GZIP1");
-		} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip2", 5))  {
+		} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip2", 5)) {
 			method = GZIP2_COMP;
 			comp = g_strdup("GZIP2");
 		}
@@ -6613,14 +6669,14 @@ int process_help(int nb) {
 		siril_log_message(_("********* LIST OF AVAILABLE COMMANDS *********\n"));
 	while (current->process) {
 		if (nb == 2) {
-		       if (!g_ascii_strcasecmp(current->name, word[1])) {
-			       siril_log_message("%s\n", current->usage);
-			       char *def = strdup(current->definition);
-			       log_several_lines(def);
-			       free(def);
-			       siril_log_message(_("Can be used in a script: %s\n"), current->scriptable ? _("YES") : _("NO"));
-			       break;
-		       }
+			if (!g_ascii_strcasecmp(current->name, word[1])) {
+				siril_log_message("%s\n", current->usage);
+				char *def = strdup(current->definition);
+				log_several_lines(def);
+				free(def);
+				siril_log_message(_("Can be used in a script: %s\n"), current->scriptable ? _("YES") : _("NO"));
+				break;
+			}
 		}
 		else siril_log_message("%s\n", current->usage);
 		current++;
@@ -6724,7 +6780,6 @@ int process_extract(int nb) {
 int process_reloadscripts(int nb){
 	return refresh_scripts(FALSE, NULL);
 }
-
 
 int process_requires(int nb) {
 	gchar **version, **required;
@@ -7008,7 +7063,7 @@ int process_pcc(int nb) {
 
 	if (plate_solve)
 		siril_log_message(_("Photometric color correction will use plate solving first\n"));
-	else  siril_log_message(_("Photometric color correction will use WCS information and bypass internal plate solver\n"));
+	else siril_log_message(_("Photometric color correction will use WCS information and bypass internal plate solver\n"));
 
 	struct astrometry_data *args = NULL;
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
@@ -7166,8 +7221,7 @@ int process_sso() {
 	purge_temp_user_catalogue();
 	force_to_refresh_catalogue_list();
 	redraw(REDRAW_OVERLAY);
-	
-	
+
 	double lim_mag = 20.0;
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 	args->fit = &gfit;
@@ -7188,7 +7242,6 @@ int process_sso() {
 	args->pixel_size = gfit.pixel_size_x;
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
 	gchar *result = search_in_online_conesearch(args);
-
 
 	if (result && !parse_buffer(result, args->limit_mag)) {
 		siril_add_idle(end_process_sso, NULL);
