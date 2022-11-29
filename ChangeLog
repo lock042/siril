@@ -64,6 +64,7 @@ xx/xx/22
 * Improved Ha-OIII extraction to offer full resolution O-III output and improve star roundness
 * Refactored global registration and added 2pass and Apply Existing methods
 * Refactored 3-star registration to run the 3 stars analysis successively
+* Refactored 1- and 2/3-stars registration into one single registration method
 * Refactored PCC, using WCS information to identify stars instead of registration match
 * Refactored settings, preferences and configuration file, adding get and set commands
 * Refactored commands error handling
