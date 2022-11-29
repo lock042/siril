@@ -800,7 +800,7 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 // returns the index of the minimum element of float array arr of size nb
 // if gboolean mask array is passed, it only includes elements where mask is TRUE
 // if *vval is passed, it contains the best value
-static int minidx(const float *arr, const gboolean *mask, int nb, float *val) {
+int minidx(const float *arr, const gboolean *mask, int nb, float *val) {
 	if (!arr) return -1;
 	if (nb < 1) return -1;
 	int idx = -1;
