@@ -53,6 +53,7 @@ xx/xx/22
 * Added undershoot clamping to bicubic and lanczos4 interpolation methods
 * Added CFA merge process for reconstructing a Bayer pattern previously split out with extraction
 * Added binning and binxy command
+* Added rejection maps creation on rejection stacking
 * Allowed area selection (and much more) to be done on RGB display tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
@@ -60,8 +61,10 @@ xx/xx/22
 * Replaced Libraw with RT debayering
 * Replaced generalized hyperbolic transform stretch method by more general algorithms and optimised for speed
 * Optimised asinh code for speed
+* Improved Ha-OIII extraction to offer full resolution O-III output and improve star roundness
 * Refactored global registration and added 2pass and Apply Existing methods
 * Refactored 3-star registration to run the 3 stars analysis successively
+* Refactored 1- and 2/3-stars registration into one single registration method
 * Refactored PCC, using WCS information to identify stars instead of registration match
 * Refactored settings, preferences and configuration file, adding get and set commands
 * Refactored commands error handling
@@ -75,9 +78,6 @@ xx/xx/22
 * Fixed FITS header preservation on RGB composition
 * Fixed possible FITSEQ infinite loop and inconsistent numbering caused by hidden files in conversion
 * Fixed sequence closing in script processing after each command
-* Optimised asinh code for speed
-* Improved Ha-OIII extraction to offer full resolution O-III output and improve star roundness
-* Allow area selection (and much more) to be done on RGB display tab
 * Fixed opening of scientific FITS cube files
 
 siril 1.0.7

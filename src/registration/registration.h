@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 8
+#define NUMBER_OF_METHODS 7
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -113,7 +113,7 @@ int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
 
 void reset_3stars();
-void _3stars_check_registration_ready();
+int _3stars_check_registration_ready();
 gboolean _3stars_check_selection();
 
 pointf get_velocity();
@@ -159,5 +159,7 @@ void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
+
+int minidx(const float *arr, const gboolean *mask, int nb, float *val);
 
 #endif

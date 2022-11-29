@@ -29,6 +29,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "core/arithm.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -51,9 +52,10 @@
 #include "stacking.h"
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
-	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE, { 0, 0 }, -1,
-	{ 0, 0 }, NULL, NO_REJEC, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1,
-	FALSE, FALSE, FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
+	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE,
+	FALSE, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1, FALSE,
+	NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, NULL, NULL,
+	FALSE, FALSE, FALSE, FALSE, NULL, NULL, NULL, { 0 }, 0, { 0 }
 };
 
 static struct filtering_tuple stackfilters[MAX_FILTERS];
@@ -146,7 +148,6 @@ gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 	return seq->bitpix == FLOAT_IMG; // for min or max, only use it if input is already float
 }
 
-
 /* the function that prepares the stacking and runs it */
 void main_stack(struct stacking_args *args) {
 	int nb_allowed_files;
@@ -177,6 +178,9 @@ void main_stack(struct stacking_args *args) {
 		return;
 	// 3. stack
 	args->retval = args->method(args);
+
+	// result is in args->result, not saved
+	describe_stack_for_history(args, &args->result.history, FALSE, FALSE);
 }
 
 /* the function that runs the thread. */
@@ -210,7 +214,8 @@ static void start_stacking() {
 	gchar *error = NULL;
 	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL, *weighing_combo;
 	static GtkEntry *output_file = NULL;
-	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *fast_norm = NULL;
+	static GtkToggleButton *overwrite = NULL, *force_norm = NULL,
+			       *fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
 
@@ -227,6 +232,8 @@ static void start_stacking() {
 		fast_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkfastnorm"));
 		norm_to_max = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
+		rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("rejmaps_checkbutton"));
+		merge_rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("merge_rejmaps_checkbutton"));
 	}
 
 	if (get_thread_run()) {
@@ -237,6 +244,8 @@ static void start_stacking() {
 	stackparam.sig[0] = (float) gtk_spin_button_get_value(sigSpin[0]);
 	stackparam.sig[1] = (float) gtk_spin_button_get_value(sigSpin[1]);
 	stackparam.type_of_rejection = gtk_combo_box_get_active(rejec_combo);
+	stackparam.create_rejmaps = gtk_toggle_button_get_active(rejmaps);
+	stackparam.merge_lowhigh_rejmaps = gtk_toggle_button_get_active(merge_rejmaps);
 	stackparam.normalize = gtk_combo_box_get_active(norm_combo);
 	stackparam.force_norm = gtk_toggle_button_get_active(force_norm);
 	stackparam.output_norm = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(norm_to_max)) && gtk_widget_is_visible(norm_to_max);
@@ -291,9 +300,7 @@ static void start_stacking() {
 }
 
 static void _show_summary(struct stacking_args *args) {
-	const char *norm_str;
-
-	siril_log_message(_("Integration of %d images:\n"), args->nb_images_to_stack);
+	siril_log_message(_("Integration of %d images on %d of the sequence:\n"), args->nb_images_to_stack, args->seq->number);
 
 	/* Type of algorithm */
 	if (args->method == &stack_mean_with_rejection) {
@@ -311,6 +318,7 @@ static void _show_summary(struct stacking_args *args) {
 	}
 
 	/* Normalisation */
+	const char *norm_str, *fast_norm = "";
 	if (args->method != &stack_mean_with_rejection &&
 			args->method != &stack_median ) {
 		norm_str = _("none");
@@ -333,51 +341,206 @@ static void _show_summary(struct stacking_args *args) {
 			norm_str = _("multiplicative + scaling");
 			break;
 		}
+		if (args->normalize != NO_NORM && args->lite_norm)
+			fast_norm = _(" (fast)");
 	}
+	siril_log_message(_("Input normalization ....... %s%s\n"), norm_str, fast_norm);
 
-	siril_log_message(_("Normalization ............. %s\n"), norm_str);
+	if (args->output_norm)
+		siril_log_message(_("Output normalization ...... enabled\n"));
+	else siril_log_message(_("Output normalization ...... disabled\n"));
 
-	/* Type of rejection */
+	/* Rejection */
 	if (args->method != &stack_mean_with_rejection) {
 		siril_log_message(_("Pixel rejection ........... none\n"));
-		siril_log_message(_("Rejection parameters ...... none\n"));
-	}
-	else {
+	} else {
 		const char *rej_str;
-
 		switch (args->type_of_rejection) {
 		default:
 		case NO_REJEC:
-			rej_str = _("None");
+			rej_str = _("none");
 			break;
 		case PERCENTILE:
-			rej_str = _("Percentile Clipping");
+			rej_str = _("percentile clipping");
 			break;
 		case SIGMA:
-			rej_str = _("Sigma Clipping");
+			rej_str = _("sigma clipping");
 			break;
 		case MAD:
-			rej_str = _("MAD Clipping");
+			rej_str = _("MAD clipping");
 			break;
 		case SIGMEDIAN:
-			rej_str = _("Median sigma Clipping");
+			rej_str = _("median sigma clipping");
 			break;
 		case WINSORIZED:
-			rej_str = _("Winsorized Sigma Clipping");
+			rej_str = _("winsorized sigma clipping");
 			break;
 		case LINEARFIT:
-			rej_str = _("Linear Fit Clipping");
+			rej_str = _("linear fit clipping");
 			break;
 		case GESDT:
-			rej_str = _("Generalized Extreme Studentized Deviate Test");
+			rej_str = _("GESDT clipping");
 			break;
 		}
 		siril_log_message(_("Pixel rejection ........... %s\n"), rej_str);
-		if (args->type_of_rejection != GESDT) {
-			siril_log_message(_("Rejection parameters ...... low=%.3f high=%.3f\n"),
-				args->sig[0], args->sig[1]);
+		if (args->type_of_rejection != NO_REJEC) {
+			if (args->type_of_rejection == GESDT) {
+				siril_log_message(_("Rejection parameters ...... outliers=%.3f significance=%.3f\n"),
+						args->sig[0], args->sig[1]);
+			} else {
+				siril_log_message(_("Rejection parameters ...... low=%.3f high=%.3f\n"),
+						args->sig[0], args->sig[1]);
+			}
+			if (!args->create_rejmaps)
+				siril_log_message(_("Creating rejection maps ... no\n"));
+			else {
+				if (args->merge_lowhigh_rejmaps)
+					siril_log_message(_("Creating rejection maps ... yes (merged)\n"));
+				else	siril_log_message(_("Creating rejection maps ... yes\n"));
+			}
 		}
 	}
+
+	if (args->apply_noise_weights)
+		siril_log_message(_("Image weighting ........... from noise\n"));
+	else if (args->apply_nbstack_weights)
+		siril_log_message(_("Image weighting ........... from image count\n"));
+	else if (args->apply_wfwhm_weights)
+		siril_log_message(_("Image weighting ........... from weighted FWHM\n"));
+	else if (args->apply_nbstars_weights)
+		siril_log_message(_("Image weighting ........... from star count\n"));
+	else siril_log_message(_("Image weighting ........... disabled\n"));
+
+	if (args->seq->nb_layers > 1) {
+		if (args->equalizeRGB)
+			siril_log_message(_("RGB equalization .......... enabled\n"));
+		else siril_log_message(_("RGB equalization .......... disabled\n"));
+	}
+}
+
+/* a short version of the above, for FITS header HISTORY */
+void describe_stack_for_history(struct stacking_args *args, GSList **hist, gboolean for_rejmap, gboolean low_rejmap) {
+	const char *stack_name;
+	if (args->method == &stack_summing_generic)
+		stack_name = "sum";
+	else if (args->method == &stack_mean_with_rejection)
+		stack_name = "mean";
+	else if (args->method == &stack_median)
+		stack_name = "median";
+	else if (args->method == &stack_addmin)
+		stack_name = "minimum";
+	else if (args->method == &stack_addmax)
+		stack_name = "maximum";
+	else stack_name = "unknown";
+
+	GString *str;
+	if (for_rejmap) {
+		g_assert(args->create_rejmaps);
+		if (args->merge_lowhigh_rejmaps)
+			str = g_string_new("merged low+high rejection map for a ");
+		else {
+			if (low_rejmap)
+				str = g_string_new("low rejection map for a ");
+			else str = g_string_new("high rejection map for a ");
+		}
+		g_string_append(str, stack_name);
+		g_string_append(str, " stacking");
+	} else {
+		str = g_string_new(stack_name);
+		g_string_append(str, " stacking");
+	}
+
+	/* Type of rejection */
+	if (args->method != &stack_mean_with_rejection) {
+		g_string_append(str, " without rejection");
+	}
+	else {
+		switch (args->type_of_rejection) {
+		default:
+		case NO_REJEC:
+			g_string_append(str, " without rejection");
+			break;
+		case PERCENTILE:
+			g_string_append(str, " with percentile clipping rejection");
+			break;
+		case SIGMA:
+			g_string_append(str, " with sigma clipping rejection");
+			break;
+		case MAD:
+			g_string_append(str, " with MAD clipping rejection");
+			break;
+		case SIGMEDIAN:
+			g_string_append(str, " with median sigma clipping rejection");
+			break;
+		case WINSORIZED:
+			g_string_append(str, " with winsorized sigma clipping rejection");
+			break;
+		case LINEARFIT:
+			g_string_append(str, " with linear fit clipping rejection");
+			break;
+		case GESDT:
+			g_string_append(str, " with GESDT rejection");
+			break;
+		}
+		if (args->type_of_rejection != NO_REJEC) {
+			if (args->type_of_rejection == GESDT) {
+				g_string_append_printf(str, " (outliers=%.3f significance=%.3f)",
+						args->sig[0], args->sig[1]);
+			} else {
+				g_string_append_printf(str, " (low=%.3f high=%.3f)",
+						args->sig[0], args->sig[1]);
+			}
+		}
+	}
+
+	/* Normalisation */
+	if (args->method != &stack_mean_with_rejection &&
+			args->method != &stack_median ) {
+		g_string_append(str, ", unnormalized input");
+	} else {
+		switch (args->normalize) {
+		default:
+		case NO_NORM:
+			g_string_append(str, ", unnormalized input");
+			break;
+		case ADDITIVE:
+			g_string_append(str, ", additive normalized input");
+			break;
+		case MULTIPLICATIVE:
+			g_string_append(str, ", multiplicative normalized input");
+			break;
+		case ADDITIVE_SCALING:
+			g_string_append(str, ", additive+scaling normalized input");
+			break;
+		case MULTIPLICATIVE_SCALING:
+			g_string_append(str, ", multiplicative+scaling normalized input");
+			break;
+		}
+		if (args->normalize != NO_NORM && args->lite_norm)
+			g_string_append(str, " (fast)");
+	}
+
+	if (args->output_norm)
+		g_string_append(str, ", normalized output");
+	else g_string_append(str, ", unnormalized output");
+
+	if (args->apply_noise_weights)
+		g_string_append(str, ", image weighting from noise");
+	else if (args->apply_nbstack_weights)
+		g_string_append(str, ", image weighting from image count");
+	else if (args->apply_wfwhm_weights)
+		g_string_append(str, ", image weighting from weighted FWHM");
+	else if (args->apply_nbstars_weights)
+		g_string_append(str, ", image weighting from star count");
+	else g_string_append(str, ", no image weighting");
+
+	if (args->seq->nb_layers > 1) {
+		if (args->equalizeRGB)
+			g_string_append(str, ", equalized RGB");
+		else  g_string_append(str, ", unequalized RGB");
+	}
+
+	*hist = g_slist_append(*hist, g_string_free(str, FALSE));
 }
 
 void clean_end_stacking(struct stacking_args *args) {
@@ -431,7 +594,6 @@ static gboolean end_stacking(gpointer p) {
 		g_free(parsedname);
 		g_free(expression);
 
-
 		/* save stacking result */
 		if (args->output_parsed_filename != NULL && args->output_parsed_filename[0] != '\0') {
 			int failed = 0;
@@ -465,7 +627,36 @@ static gboolean end_stacking(gpointer p) {
 			if (failed) {
 				com.uniq->filename = strdup(_("Unsaved stacking result"));
 				com.uniq->fileexist = FALSE;
+			} else {
+				if (args->create_rejmaps) {
+					siril_log_message(_("Saving rejection maps\n"));
+					if (args->merge_lowhigh_rejmaps) {
+						char new_ext[30];
+						sprintf(new_ext, "_low+high_rejmap%s", com.pref.ext);
+						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, FALSE);
+						savefits(low_filename, args->rejmap_low);
+						g_free(low_filename);
+					} else {
+						char new_ext[30];
+						sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
+						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, TRUE);
+						savefits(low_filename, args->rejmap_low);
+						g_free(low_filename);
+
+						sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
+						gchar *high_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_high, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_high->history, TRUE, FALSE);
+						savefits(high_filename, args->rejmap_high);
+						g_free(high_filename);
+					}
+				}
 			}
+
 			display_filename();
 			set_precision_switch(); // set precision on screen
 		}
@@ -498,6 +689,14 @@ static gboolean end_stacking(gpointer p) {
 	}
 
 	memset(&args->result, 0, sizeof(fits));
+	if (args->create_rejmaps) {
+		clearfits(args->rejmap_low);
+		free(args->rejmap_low);
+		if (!args->merge_lowhigh_rejmaps) {
+			clearfits(args->rejmap_high);
+			free(args->rejmap_high);
+		}
+	}
 	set_cursor_waiting(FALSE);
 	/* Do not display time for stack_summing_generic
 	 * cause it uses the generic function that already
@@ -587,12 +786,15 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	rejection type_of_rejection = gtk_combo_box_get_active(box);
 	static GtkWidget *labellow = NULL, *labelhigh = NULL;
 	static GtkWidget *siglow = NULL, *sighigh = NULL;
+	static GtkWidget *rejmaps = NULL, *merge_rejmaps = NULL;
 
 	if (!labellow) {
 		labellow = lookup_widget("label_low");
 		labelhigh = lookup_widget("label_high");
 		siglow = lookup_widget("stack_siglow_button");
 		sighigh = lookup_widget("stack_sighigh_button");
+		rejmaps = lookup_widget("rejmaps_checkbutton");
+		merge_rejmaps = lookup_widget("merge_rejmaps_checkbutton");
 	}
 
 	g_signal_handlers_block_by_func(GTK_SPIN_BUTTON(siglow), on_stack_siglow_button_value_changed, NULL);
@@ -601,15 +803,19 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	switch (type_of_rejection) {
 		case NO_REJEC:
 			gtk_widget_set_visible(siglow, FALSE);
+			gtk_widget_set_visible(rejmaps, FALSE);
 			gtk_widget_set_visible(sighigh, FALSE);
 			gtk_widget_set_visible(labellow, FALSE);
 			gtk_widget_set_visible(labelhigh, FALSE);
+			gtk_widget_set_visible(merge_rejmaps, FALSE);
 			break;
 		case PERCENTILE:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Low clipping factor for the percentile clipping rejection algorithm."));
 			gtk_widget_set_tooltip_text(sighigh, _("High clipping factor for the percentile clipping rejection algorithm."));
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(siglow), com.pref.stack.percentile_low);
@@ -621,9 +827,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 			break;
 		case LINEARFIT:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Tolerance for low pixel values of the linear fit clipping algorithm, in sigma units."));
 			gtk_widget_set_tooltip_text(sighigh, _("Tolerance for high pixel values of the linear fit clipping algorithm, in sigma units."));
 			gtk_spin_button_set_range(GTK_SPIN_BUTTON(siglow), 0.0, 10.0);
@@ -639,9 +847,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 		case SIGMEDIAN:
 		case WINSORIZED:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Low clipping factor for the sigma clipping rejection algorithm."));
 			gtk_widget_set_tooltip_text(sighigh, _("High clipping factor for the sigma clipping rejection algorithm."));
 			gtk_spin_button_set_range(GTK_SPIN_BUTTON(siglow), 0.0, 10.0);
@@ -653,9 +863,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 			break;
 		case GESDT:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Expected fraction of maximum outliers for the Generalized Extreme Studentized Deviate Test algorithm."));
 			gtk_widget_set_tooltip_text(sighigh, _("Probability of making a false positive for the Generalized Extreme Studentized Deviate Test algorithm. "
 					"Increasing this value will reject more pixels."));
@@ -672,6 +884,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 
 	com.pref.stack.rej_method = gtk_combo_box_get_active(box);
 	writeinitfile();
+}
+
+void on_rejmaps_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkWidget *merge = lookup_widget("merge_rejmaps_checkbutton");
+	gtk_widget_set_sensitive(merge, gtk_toggle_button_get_active(button));
 }
 
 int find_refimage_in_indices(const int *indices, int nb, int ref) {
