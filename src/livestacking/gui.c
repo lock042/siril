@@ -79,16 +79,16 @@ static void update_icon(const gchar *name, gboolean is_loaded) {
 }
 
 void livestacking_display_config(gboolean use_dark, gboolean use_flat, transformation_type regtype) {
-	static GtkLabel *conf_label = NULL;
-	if (!conf_label)
-		conf_label = GTK_LABEL(lookup_widget("ls_config_label"));
-
+	static GtkLabel *reg_conf_label = NULL;
+	if (!reg_conf_label)
+		reg_conf_label = GTK_LABEL(lookup_widget("ls_reg_config_label"));
 	const char *desc = describe_transformation_type(regtype);
-	update_icon("ls_config", g_strcmp0(desc, "INVALID"));
+	update_icon("ls_reg_config", g_strcmp0(desc, "INVALID"));
 
 	gchar *txt = g_strdup_printf(_("Registering with %s transformation"), desc);
-	gtk_label_set_text(conf_label, txt);
+	gtk_label_set_text(reg_conf_label, txt);
 	g_free(txt);
+
 	update_icon("ls_masterdark", use_dark);
 	update_icon("ls_masterflat", use_flat);
 }
@@ -302,7 +302,10 @@ void init_preprocessing_from_GUI() {
 		}
 	}
 
-	init_preprocessing_finalize(prepro);
+	GtkToggleButton *use_32b_button = GTK_TOGGLE_BUTTON(lookup_widget("ls_32bits"));
+	gboolean use_32_bits = gtk_toggle_button_get_active(use_32b_button);
+
+	init_preprocessing_finalize(prepro, use_32_bits);
 
 	GtkToggleButton *shift_reg_button = GTK_TOGGLE_BUTTON(lookup_widget("ls_shiftonly"));
 	init_registration_finalize(gtk_toggle_button_get_active(shift_reg_button));

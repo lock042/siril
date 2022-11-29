@@ -10,8 +10,8 @@ void pause_live_stacking_engine();
 
 int get_paused_status();
 
-int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_watcher/*, gboolean remove_gradient*/, gboolean shift_only);
-void init_preprocessing_finalize(struct preprocessing_data *prepro_data);
+int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_watcher/*, gboolean remove_gradient*/, gboolean shift_only, gboolean use_32b);
+void init_preprocessing_finalize(struct preprocessing_data *prepro_data, gboolean use_32b);
 void init_registration_finalize(gboolean shift_only);
 int start_livestacking(gboolean with_filewatcher);
 gboolean livestacking_is_started();

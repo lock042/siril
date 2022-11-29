@@ -76,14 +76,16 @@ static gboolean paused = FALSE;
 static int seq_rx = -1, seq_ry = -1;
 static struct star_align_data *sadata = NULL;
 static regdata *regparam_bkp = NULL;
-static transformation_type reg_type = SHIFT_TRANSFORMATION;
-static gboolean reg_rotates = FALSE;
 
 static struct preprocessing_data *prepro = NULL;
 static gboolean first_stacking_result = TRUE;
 static imstats *refimage_stats[3] = { NULL };
 
+/* config */
+static gboolean use_32bits = FALSE;
 static super_bool use_demosaicing = BOOL_NOT_SET;
+static transformation_type reg_type = SHIFT_TRANSFORMATION;
+static gboolean reg_rotates = FALSE;
 
 static gpointer live_stacker(gpointer arg);
 int star_align_prepare_hook(struct generic_seq_args *args);
@@ -266,7 +268,7 @@ int start_livestacking(gboolean with_filewatcher) {
 	return 0;
 }
 
-static void init_preprocessing_from_command(char *dark, char *flat) {
+static void init_preprocessing_from_command(char *dark, char *flat, gboolean use_32bits) {
 	prepro = calloc(1, sizeof(struct preprocessing_data));
 	if (dark) {
 		prepro->dark = calloc(1, sizeof(fits));
@@ -322,14 +324,15 @@ static void init_preprocessing_from_command(char *dark, char *flat) {
 		}
 	}
 
-	init_preprocessing_finalize(prepro);
+	init_preprocessing_finalize(prepro, use_32bits);
 }
 
 /* code common to GUI and CLI for prepro init */
-void init_preprocessing_finalize(struct preprocessing_data *prepro_data) {
+void init_preprocessing_finalize(struct preprocessing_data *prepro_data, gboolean use_32b) {
 	prepro = prepro_data;
 	prepro->is_sequence = FALSE;
-	prepro->allow_32bit_output = !com.pref.force_16bit;
+	use_32bits = use_32b;
+	prepro->allow_32bit_output = use_32b;
 
 	if (prepro->use_dark || prepro->use_flat) {
 		struct generic_seq_args generic = { .user = prepro };
@@ -355,14 +358,14 @@ void init_registration_finalize(gboolean shift_only) {
 	reg_rotates = !shift_only;
 }
 
-int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_watcher/*, gboolean remove_gradient*/, gboolean shift_only) {
+int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_watcher/*, gboolean remove_gradient*/, gboolean shift_only, gboolean use_32b) {
 	if (live_stacker_thread) {
 		siril_log_message(_("live stacking is already running, stop it first\n"));
 		return 1;
 	}
 
 	prepro = calloc(1, sizeof(struct preprocessing_data));
-	init_preprocessing_from_command(dark, flat);
+	init_preprocessing_from_command(dark, flat, use_32b);
 
 	init_registration_finalize(shift_only);
 
@@ -449,7 +452,7 @@ static int live_stacking_star_align_prepare(struct generic_seq_args *args) {
 static int start_global_registration(sequence *seq) {
 	/* Register the sequence */
 	struct registration_args reg_args = { 0 };
-	reg_args.func = &register_star_alignment; // TODO: ability to choose a method
+	reg_args.func = &register_star_alignment;
 	reg_args.seq = seq;
 	reg_args.reference_image = 0;
 	reg_args.layer = (seq->nb_layers == 3) ? 1 : 0;
@@ -466,9 +469,6 @@ static int start_global_registration(sequence *seq) {
 	reg_args.interpolation = REGISTRATION_INTERPOLATION;
 	reg_args.type = reg_type;
 	reg_args.max_stars_candidates = 200;
-	/*reg_args.func(&reg_args);
-	if (reg_args.retval)
-		return 1;*/
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
 	if (reg_args.filters.filter_included) {
@@ -478,7 +478,6 @@ static int start_global_registration(sequence *seq) {
 	//args->compute_mem_limits_hook = star_align_compute_mem_limits;
 	args->prepare_hook = live_stacking_star_align_prepare;
 	args->image_hook = star_align_image_hook;
-	//args->finalize_hook = star_align_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Global star registration");
 	args->has_output = reg_rotates;
@@ -492,6 +491,7 @@ static int start_global_registration(sequence *seq) {
 		sadata->regargs = &reg_args;
 	}
 	args->user = sadata;
+	/* registration will work in 16 bits if input data is 16 bits */
 
 	reserve_thread(); // hack: generic function fails otherwise
 	int retval = GPOINTER_TO_INT(generic_sequence_worker(args));
@@ -521,6 +521,7 @@ static int preprocess_image(char *filename, char *target) {
 	clearfits(&fit);
 	if (ret) {
 		char *msg = siril_log_message(_("preprocessing failed\n"));
+		msg[strlen(msg) - 1] = '\0';
 		livestacking_display(msg, FALSE);
 	}
 	return ret;
@@ -544,7 +545,7 @@ static gpointer live_stacker(gpointer arg) {
 		if (use_demosaicing == BOOL_NOT_SET) {	// another kind of first_loop
 			fits fit = { 0 };
 			if (read_fits_metadata_from_path(filename, &fit)) {
-				livestacking_display(_("Failed to open the first image\n"), FALSE);
+				livestacking_display(_("Failed to open the first image"), FALSE);
 				clearfits(&fit);
 				break;
 			}
@@ -647,12 +648,14 @@ static gpointer live_stacker(gpointer arg) {
 			seq_ry = seq.ry;
 			if (prepro && prepro->dark && (prepro->dark->rx != seq_rx || prepro->dark->ry != seq_ry)) {
 				char *msg = siril_log_color_message(_("Dark image is not the same size, not using (%dx%d)\n"), "salmon", prepro->dark->rx, prepro->dark->ry);
+				msg[strlen(msg) - 1] = '\0';
 				livestacking_display(msg, FALSE);
 				clearfits(prepro->dark);
 				prepro->use_dark = FALSE;
 			}
 			if (prepro && prepro->flat && (prepro->flat->rx != seq_rx || prepro->flat->ry != seq_ry)) {
 				char *msg = siril_log_color_message(_("Flat image is not the same size, not using (%dx%d)\n"), "salmon", prepro->flat->rx, prepro->flat->ry);
+				msg[strlen(msg) - 1] = '\0';
 				livestacking_display(msg, FALSE);
 				clearfits(prepro->flat);
 				prepro->use_flat = FALSE;
@@ -664,6 +667,7 @@ static gpointer live_stacker(gpointer arg) {
 		} else {
 			if (seq_rx != seq.rx || seq_ry != seq.ry) {
 				char *msg = siril_log_color_message(_("Images must have same dimensions.\n"), "red");
+				msg[strlen(msg) - 1] = '\0';
 				livestacking_display(msg, FALSE);
 				break;
 			}
@@ -719,7 +723,7 @@ static gpointer live_stacker(gpointer arg) {
 		 * otherwise we end up with a mixed sequence to process;
 		 * inputs to stack are 16 bits when no preprocessing or debayer occur */
 		stackparam.use_32bit_output = get_data_type(r_seq.bitpix) == DATA_FLOAT ||
-			(!com.pref.force_16bit && (prepro || use_demosaicing == BOOL_TRUE));
+			(use_32bits && (prepro || use_demosaicing == BOOL_TRUE));
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
 		stackparam.apply_nbstack_weights = TRUE;
 
@@ -752,6 +756,7 @@ static gpointer live_stacker(gpointer arg) {
 		if (savefits(result_filename, &stackparam.result)) {
 			char *msg = siril_log_color_message(_("Could not save the stacking result %s, aborting\n"),
 					"red", result_filename);
+			msg[strlen(msg) - 1] = '\0';
 			livestacking_display(msg, FALSE);
 			bgnoise_await();
 			break;

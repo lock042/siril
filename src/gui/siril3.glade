@@ -11718,9 +11718,13 @@ This should normally be the case only for stacked images. Increasing this value 
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child>
-          <object class="GtkBox">
+          <!-- n-columns=3 n-rows=2 -->
+          <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="row-spacing">2</property>
+            <property name="column-spacing">2</property>
+            <property name="column-homogeneous">True</property>
             <child>
               <object class="GtkToolbar">
                 <property name="visible">True</property>
@@ -11754,44 +11758,9 @@ This should normally be the case only for stacked images. Increasing this value 
                 </child>
               </object>
               <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkCheckButton" id="ls_lbgr">
-                <property name="label" translatable="yes">remove gradient</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Apply a linear background gradient removal on calibrated input frames.</property>
-                <property name="draw-indicator">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">2</property>
-                <property name="pack-type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkCheckButton" id="ls_shiftonly">
-                <property name="label" translatable="yes">shift-only registration</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Only shift images instead of using rotation on registration. This should be unchecked for alt-az or heavily drifting mounts. This makes one image processing much faster.</property>
-                <property name="active">True</property>
-                <property name="draw-indicator">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">2</property>
-                <property name="pack-type">end</property>
-                <property name="position">2</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+                <property name="height">2</property>
               </packing>
             </child>
             <child>
@@ -11802,16 +11771,60 @@ This should normally be the case only for stacked images. Increasing this value 
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">for now only detected in files and automatically enabled</property>
+                <property name="halign">start</property>
                 <property name="margin-end">6</property>
                 <property name="inconsistent">True</property>
                 <property name="draw-indicator">True</property>
               </object>
               <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">2</property>
-                <property name="pack-type">end</property>
-                <property name="position">3</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="ls_shiftonly">
+                <property name="label" translatable="yes">shift-only registration</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Only shift images instead of using rotation on registration. This should be unchecked for alt-az or heavily drifting mounts. This makes one image processing much faster.</property>
+                <property name="halign">start</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="ls_lbgr">
+                <property name="label" translatable="yes">remove gradient</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Apply a linear background gradient removal on calibrated input frames.</property>
+                <property name="halign">start</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="ls_32bits">
+                <property name="label" translatable="yes">use 32 bits</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Use 32 bits for image processing. This is slower and generally useless in terms of quality for live stacking.</property>
+                <property name="halign">start</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
           </object>
@@ -11916,7 +11929,7 @@ This should normally be the case only for stacked images. Increasing this value 
                     <property name="row-spacing">10</property>
                     <property name="column-spacing">10</property>
                     <child>
-                      <object class="GtkLabel" id="ls_config_label">
+                      <object class="GtkLabel" id="ls_reg_config_label">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
@@ -12001,7 +12014,7 @@ This should normally be the case only for stacked images. Increasing this value 
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkImage" id="ls_config">
+                      <object class="GtkImage" id="ls_reg_config">
                         <property name="name">ls_masterflat</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
