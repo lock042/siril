@@ -67,7 +67,7 @@ void livestacking_display(gchar *str, gboolean free_after_display) {
 	if (!label)
 		label = GTK_LABEL(lookup_widget("livest_label1"));
 	set_label(label, str, free_after_display);
-	livestacking_update_number_of_images(0, 0.0, -1.0);
+	livestacking_update_number_of_images(0, 0.0, -1.0, NULL);
 }
 
 static void update_icon(const gchar *name, gboolean is_loaded) {
@@ -93,7 +93,7 @@ void livestacking_display_config(gboolean use_dark, gboolean use_flat, transform
 	update_icon("ls_masterflat", use_flat);
 }
 
-void livestacking_update_number_of_images(int nb, double total_exposure, double noise) {
+void livestacking_update_number_of_images(int nb, double total_exposure, double noise, const char *process_time) {
 	if (com.headless)
 		return;
 	static GtkLabel *label_cumul = NULL, *label_stats = NULL;
@@ -112,7 +112,10 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 		unit = _("seconds");
 	}
 	gchar *txt;
-	if (noise > 0.0) {
+	if (noise > 0.0 && process_time) {
+		txt = g_strdup_printf(_("Noise: %0.3f\n\nLast image processing time: %s"), noise, process_time);
+		set_label(label_stats, txt, TRUE);
+	} else if (noise > 0.0) {
 		txt = g_strdup_printf(_("Noise: %0.3f"), noise);
 		set_label(label_stats, txt, TRUE);
 	} else {

@@ -622,7 +622,7 @@ static gpointer live_stacker(gpointer arg) {
 			if (buildseqfile(&seq, 1) || seq.number == 1) {
 				index++;
 				livestacking_display(_("Waiting for second image"), FALSE);
-				livestacking_update_number_of_images(1, gfit.exposure, -1.0);
+				livestacking_update_number_of_images(1, gfit.exposure, -1.0, NULL);
 				continue;
 			}
 			first_loop = FALSE;
@@ -786,10 +786,12 @@ static gpointer live_stacker(gpointer arg) {
 		double noise = bgnoise_await();
 		if (com.headless)
 			clearfits(&stackparam.result);
-		livestacking_update_number_of_images(number_of_images_stacked, gfit.livetime, noise);
 		gettimeofday(&tv_end, NULL);
 		show_time_msg(tv_tmp, tv_end, "stacking");
-		show_time_msg(tv_start, tv_end, "time to process the last image for live stacking");
+		const char *total_time = format_time_diff(tv_start, tv_end);
+		siril_log_color_message(_("Time to process the last image for live stacking: %s\n"),
+				"green", total_time);
+		livestacking_update_number_of_images(number_of_images_stacked, gfit.livetime, noise, total_time);
 	} while (1);
 
 	siril_debug_print("===== exiting live stacking thread =====\n");

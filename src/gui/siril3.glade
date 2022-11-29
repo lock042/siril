@@ -11801,6 +11801,7 @@ This should normally be the case only for stacked images. Increasing this value 
               <object class="GtkCheckButton" id="ls_lbgr">
                 <property name="label" translatable="yes">remove gradient</property>
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">Apply a linear background gradient removal on calibrated input frames.</property>
