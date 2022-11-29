@@ -3441,7 +3441,7 @@ msgstr "Paramètres"
 
 #: src/gui/siril3.glade:15093
 msgid "Rescale result"
-msgstr "Résultat de la mise à l'échelle"
+msgstr "Mise à l'echelle du résultat"
 
 #: src/gui/siril3.glade:15097
 msgid ""
