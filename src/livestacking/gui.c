@@ -291,6 +291,10 @@ void init_preprocessing_from_GUI() {
 	}
 
 	init_preprocessing_finalize(prepro);
+
+	// someday, when we have a control GUI for LS, we can call init_registration_finalize() here
+	// until then, I force it here for testing purposes:
+	init_registration_finalize(TRUE);
 }
 
 void on_livestacking_start() {

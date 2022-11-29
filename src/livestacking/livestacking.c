@@ -54,13 +54,12 @@
 #include "gui.h"
 
 /* hard-coded configuration */
-#define REGISTRATION_TYPE SIMILARITY_TRANSFORMATION
 #define REGISTRATION_INTERPOLATION OPENCV_AREA
 /****************************/
 
 
-#define WAIT_FILE_WRITTEN_US 60000	// check file size or readbility every 60 ms
-#define WAIT_FILE_WRITTEN_ITERS 11	// 60*11 = 660ms, after that it's a failure
+#define WAIT_FILE_WRITTEN_US 80000	// check file size or readbility every 80 ms
+#define WAIT_FILE_WRITTEN_ITERS 15	// .080*15 = 1.2s, after that it's a failure
 #define EXIT_TOKEN ":EXIT:"
 
 static GFileMonitor *dirmon = NULL;
@@ -77,6 +76,9 @@ static gboolean paused = FALSE;
 static int seq_rx = -1, seq_ry = -1;
 static struct star_align_data *sadata = NULL;
 static regdata *regparam_bkp = NULL;
+static transformation_type reg_type = SHIFT_TRANSFORMATION;
+static gboolean reg_rotates = FALSE;
+
 static struct preprocessing_data *prepro = NULL;
 static gboolean first_stacking_result = TRUE;
 static imstats *refimage_stats[3] = { NULL };
@@ -230,7 +232,7 @@ int start_livestacking(gboolean with_filewatcher) {
 		set_display_mode();
 		force_unlinked_channels();
 		show_hide_toolbox();
-		livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, REGISTRATION_TYPE);
+		livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, reg_type);
 	}
 
 	do_links = test_if_symlink_is_ok(TRUE);
@@ -351,7 +353,12 @@ void init_preprocessing_finalize(struct preprocessing_data *prepro_data) {
 		livestacking_display(msg, FALSE);
 }
 
-int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_watcher, gboolean remove_gradient) {
+void init_registration_finalize(gboolean shift_only) {
+	reg_type = shift_only ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
+	reg_rotates = !shift_only;
+}
+
+int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_watcher/*, gboolean remove_gradient*/, gboolean shift_only) {
 	if (live_stacker_thread) {
 		siril_log_message(_("live stacking is already running, stop it first\n"));
 		return 1;
@@ -359,6 +366,8 @@ int start_livestack_from_command(gchar *dark, gchar *flat, gboolean use_file_wat
 
 	prepro = calloc(1, sizeof(struct preprocessing_data));
 	init_preprocessing_from_command(dark, flat);
+
+	init_registration_finalize(shift_only);
 
 	int retval = start_livestacking(use_file_watcher);
 	if (retval && prepro) {
@@ -454,11 +463,11 @@ static int start_global_registration(sequence *seq) {
 	reg_args.x2upscale = FALSE;
 	reg_args.cumul = FALSE;
 	reg_args.min_pairs = 10;
-	reg_args.no_output = FALSE;
+	reg_args.no_output = !reg_rotates;
 	reg_args.prefix = "r_";
 	reg_args.load_new_sequence = FALSE;
 	reg_args.interpolation = REGISTRATION_INTERPOLATION;
-	reg_args.type = REGISTRATION_TYPE;
+	reg_args.type = reg_type;
 	reg_args.max_stars_candidates = 200;
 	/*reg_args.func(&reg_args);
 	if (reg_args.retval)
@@ -475,10 +484,10 @@ static int start_global_registration(sequence *seq) {
 	//args->finalize_hook = star_align_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Global star registration");
-	args->has_output = TRUE;
+	args->has_output = reg_rotates;
 	args->output_type = get_data_type(seq->bitpix);
 	args->upscale_ratio = 1.0;
-	args->new_seq_prefix = "r_";
+	args->new_seq_prefix = reg_args.prefix;
 	args->load_new_sequence = FALSE;
 	args->already_in_a_thread = TRUE;
 	if (!sadata) {
@@ -680,9 +689,9 @@ static gpointer live_stacker(gpointer arg) {
 			free(r_seq);
 			return FALSE;
 		}*/
-		sequence r_seq;
+		sequence r_seq;	// registered sequence
 		initialize_sequence(&r_seq, FALSE);
-		create_seq_of_2(&r_seq, "r_live_stack_", index);
+		create_seq_of_2(&r_seq, reg_rotates ? "r_live_stack_" : "live_stack_", index);
 		if (seq_check_basic_data(&r_seq, FALSE) < 0) {
 			continue;
 		}
@@ -712,7 +721,8 @@ static gpointer live_stacker(gpointer arg) {
 		/* we should not use 32 bits for stack results if input files are 16 bits,
 		 * otherwise we end up with a mixed sequence to process;
 		 * inputs to stack are 16 bits when no preprocessing or debayer occur */
-		stackparam.use_32bit_output = !com.pref.force_16bit && (prepro || use_demosaicing == BOOL_TRUE);
+		stackparam.use_32bit_output = get_data_type(r_seq.bitpix) == DATA_FLOAT ||
+			(!com.pref.force_16bit && (prepro || use_demosaicing == BOOL_TRUE));
 		stackparam.reglayer = (r_seq.nb_layers == 3) ? 1 : 0;
 		stackparam.apply_nbstack_weights = TRUE;
 
