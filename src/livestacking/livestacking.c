@@ -151,10 +151,7 @@ void stop_live_stacking_engine() {
 	first_stacking_result = TRUE;
 	unreserve_thread();
 
-	if (!com.headless) {
-		show_hide_toolbox();
-		set_cursor_waiting(FALSE);
-	}
+	set_cursor_waiting(FALSE);
 }
 
 static int wait_for_file_to_be_written(const gchar *filename) {

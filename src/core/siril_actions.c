@@ -74,8 +74,6 @@ void livestacking_action_activate(GSimpleAction *action, GVariant *parameter, gp
 
 	gtk_widget_show(w);
 	gtk_window_set_keep_above(GTK_WINDOW(w), TRUE);
-
-	on_livestacking_start();
 }
 
 void save_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

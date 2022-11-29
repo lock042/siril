@@ -123,17 +123,29 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 	set_label(label_cumul, txt, TRUE);
 }
 
-void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {
+void on_livestacking_playpause_clicked(GtkToolButton *button, gpointer user_data) {
+	GtkWidget *label = lookup_widget("livest_label1");
+	widget_set_class(label, "record", "");
+	gtk_tool_button_set_icon_name(button, pause_play_button[get_paused_status()]);
+	if (!livestacking_is_started())
+		on_livestacking_start();
+	else {
+		gtk_label_set_text(GTK_LABEL(label), _("Paused ..."));
+		pause_live_stacking_engine();
+	}
+}
+
+void on_livestacking_stop_clicked(GtkToolButton *button, gpointer user_data) {
+	GtkWidget *label = lookup_widget("livest_label1");
+	gtk_label_set_text(GTK_LABEL(label), _("Idle"));
+	widget_set_class(label, "", "record");
+	gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(lookup_widget("livestacking_playpause")),
+			pause_play_button[1]);
 	stop_live_stacking_engine();
 }
 
-void on_livestacking_stop_clicked(GtkButton *button, gpointer user_data) {
-	gtk_widget_hide(lookup_widget("livestacking_player"));
-}
-
-void on_livestacking_pause_clicked(GtkToolButton *button, gpointer user_data) {
-	pause_live_stacking_engine();
-	gtk_tool_button_set_icon_name(button, pause_play_button[get_paused_status()]);
+void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {
+	on_livestacking_stop_clicked(NULL, NULL);
 }
 
 gboolean update_debayer_button_status_idle(gpointer new_state) {
@@ -292,9 +304,8 @@ void init_preprocessing_from_GUI() {
 
 	init_preprocessing_finalize(prepro);
 
-	// someday, when we have a control GUI for LS, we can call init_registration_finalize() here
-	// until then, I force it here for testing purposes:
-	init_registration_finalize(TRUE);
+	GtkToggleButton *shift_reg_button = GTK_TOGGLE_BUTTON(lookup_widget("ls_shiftonly"));
+	init_registration_finalize(gtk_toggle_button_get_active(shift_reg_button));
 }
 
 void on_livestacking_start() {
