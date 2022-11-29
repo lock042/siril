@@ -53,7 +53,7 @@ int test_consistency() {
 	 *  structure is accurate down to 1 microsecond
 	 */
 	diff = INPUT_TIME - ts;
-	CHECK(diff == UNDER_US, "Failed with retval=%lu", diff);
+	CHECK(diff == UNDER_US, "Failed with retval=%"G_GUINT64_FORMAT, diff);
 
 	dt2 = g_date_time_new_from_iso8601 ("2016-11-30T22:10:42Z", NULL);
 	ts = date_time_to_ser_timestamp(dt2);

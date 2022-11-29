@@ -118,6 +118,23 @@ static int soper_ushort_to_float(fits *a, float scalar, image_operator oper) {
 	return 0;
 }
 
+int soper_unscaled_div_ushort_to_float(fits *a, int scalar) {
+	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
+	if (!n) return 1;
+	WORD *data = a->data;
+	float *result = malloc(n * sizeof(float));
+	if (!result) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	float operand = 1.0f / (float)scalar;
+	for (i = 0; i < n; ++i) {
+		result[i] = data[i] * operand;
+	}
+	fit_replace_buffer(a, result, DATA_FLOAT);
+	return 0;
+}
+
 static int soper_float(fits *a, float scalar, image_operator oper) {
 	float *data;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
