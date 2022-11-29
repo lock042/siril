@@ -5,6 +5,7 @@
 #include "optimization.hpp"
 #include "fft.hpp"
 #include "utils.hpp"
+#include "chelperfuncs.h"
 
 namespace richardsonlucy {
 
@@ -30,7 +31,7 @@ namespace richardsonlucy {
         est.map(f);
         img_t<std::complex<T>> working(f.w, f.h, f.d);
         working.map(est);
-
+        float regularization = 0.f;
         for (int iter = 0 ; iter < maxiter ; iter++) {
             printf("Iteration %d ", iter);
             working.fft(est);
@@ -40,8 +41,9 @@ namespace richardsonlucy {
             working.fft(working);
             working.map(working * Kflip_otf);
             working.ifft(working);
-            est.map(working * est);
+            est.map(working * (est / (1 - lambda * regularization)));
             printf("complete...\n");
+            updateprogress("Richardson-Lucy deconvolution", (iter / maxiter));
         }
         x.map(std::real(est)); // x needs to be real
     }

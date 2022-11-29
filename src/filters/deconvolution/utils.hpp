@@ -169,5 +169,71 @@ namespace utils {
         }
     }
 
+    template <typename T>
+    T getpixel_1(const img_t<T>& x, int i, int j, int d=0)
+    {
+        i = std::max(std::min(i, x.w - 1), 0);
+        j = std::max(std::min(j, x.h - 1), 0);
+        return x(i, j, d);
+    }
+
+    template <typename T>
+    void downsa2(img_t<T>& out, const img_t<T>& in)
+    {
+        if (out.size == 0)
+            out.resize(in.w/2, in.h/2, in.d);
+        for (int d = 0; d < out.d; d++)
+        for (int j = 0; j < out.h; j++)
+        for (int i = 0; i < out.w; i++)
+        {
+            T m = getpixel_1(in, 2*i, 2*j, d)
+                + getpixel_1(in, 2*i+1, 2*j, d)
+                + getpixel_1(in, 2*i, 2*j+1, d)
+                + getpixel_1(in, 2*i+1, 2*j+1, d);
+            out(i, j, d) = m / T(4);
+        }
+    }
+
+    template <typename T>
+    T evaluate_bilinear_cell(T a[4], float x, float y)
+    {
+        T r = 0;
+        r += a[0] * (1-x) * (1-y);
+        r += a[1] * ( x ) * (1-y);
+        r += a[2] * (1-x) * ( y );
+        r += a[3] * ( x ) * ( y );
+        return r;
+    }
+
+    template <typename T>
+    T bilinear_interpolation(const img_t<T>& x, float p, float q, int d)
+    {
+        int ip = floor(p);
+        int iq = floor(q);
+        T a[4] = {
+            getpixel_1(x, ip  , iq  , d),
+            getpixel_1(x, ip+1, iq  , d),
+            getpixel_1(x, ip  , iq+1, d),
+            getpixel_1(x, ip+1, iq+1, d)
+        };
+        T r = evaluate_bilinear_cell(a, p-ip, q-iq);
+        return r;
+    }
+
+    template <typename T>
+    void upsa2(img_t<T>& out, const img_t<T>& in)
+    {
+        if (out.size == 0)
+            out.resize(in.w*2, in.h*2, in.d);
+        for (int d = 0; d < out.d; d++)
+        for (int j = 0; j < out.h; j++)
+        for (int i = 0; i < out.w; i++)
+        {
+            float x = (i - 0.5) / 2;
+            float y = (j - 0.5) / 2;
+            out(i, j, d) = bilinear_interpolation(in, x, y, d);
+        }
+    }
+
 }
 
