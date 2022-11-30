@@ -66,3 +66,8 @@ EXTERNC int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nch
 #ifdef __cplusplus
 }
 #endif
+
+EXTERNC int stochastic(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda);
+#ifdef __cplusplus
+}
+#endif

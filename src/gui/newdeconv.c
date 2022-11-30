@@ -331,7 +331,8 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 #endif
 //		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
-		richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, 8);
+//		richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, 8);
+		stochastic(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, 0.0008f);
 	}
 	if (kernel) {
 		free (kernel);
