@@ -7250,9 +7250,9 @@ int process_sso() {
 }
 
 int process_start_ls(int nb) {
-	// start_ls [-dark=filename] [-flat=filename] [-gradient_removal] [-watch_files]"
+	// start_ls [-dark=filename] [-flat=filename] [-rotate] [-32bits] [-gradient_removal] [-watch_files]"
 	gchar *dark_file = NULL, *flat_file = NULL;
-	gboolean use_file_watcher = FALSE, remove_gradient = FALSE;
+	gboolean use_file_watcher = FALSE/*, remove_gradient = FALSE*/, shift_reg = TRUE, use_32b = FALSE;
 	for (int i = 1; i < nb; i++) {
 		if (!word[i])
 			continue;
@@ -7268,13 +7268,17 @@ int process_start_ls(int nb) {
 			//use_file_watcher = TRUE;
 			siril_log_message("file watcher in headless live stacking is not yet implemented\n");
 			return CMD_GENERIC_ERROR;
+		} else if (!strcmp(word[i], "-rotate")) {
+			shift_reg = FALSE;
+		} else if (!strcmp(word[i], "-32bits")) {
+			use_32b = TRUE;
 		} else {
 			siril_log_message(_("Unknown option provided: %s\n"), word[i]);
 			return CMD_ARG_ERROR;
 		}
 	}
 
-	return start_livestack_from_command(dark_file, flat_file, use_file_watcher, remove_gradient);
+	return start_livestack_from_command(dark_file, flat_file, use_file_watcher/*, remove_gradient*/, shift_reg, use_32b);
 }
 
 int process_livestack(int nb) {
