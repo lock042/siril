@@ -10,10 +10,12 @@
 namespace richardsonlucy {
 
     template <typename T>
-    void rl_deconvolve(img_t<T>& x, const img_t<T>& f, const img_t<T>& K,
-                                T lambda, int maxiter) {
+    void rl_deconvolve(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter) {
 
+        assert(K.w % 2);
+        assert(K.h % 2);
         x = f;
+
         // Generate OTF of kernel
         img_t<std::complex<T>> K_otf(f.w, f.h, f.d);
         K_otf.padcirc(K);
