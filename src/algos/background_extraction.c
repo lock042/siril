@@ -887,7 +887,11 @@ gpointer remove_gradient_from_image(gpointer p) {
 			return GINT_TO_POINTER(1);
 		}
 		/* remove background */
-		const char *c_name = channel_number_to_name(channel);
+		const char *c_name;
+		if (gfit.naxes[2] > 1)
+			c_name = channel_number_to_name(channel);
+		else
+			c_name = _("monochrome");
 		siril_log_message(_("Background extraction from %s channel.\n"), c_name);
 		convert_fits_to_img(&gfit, image, channel, args->dither);
 		remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
