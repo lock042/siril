@@ -38,7 +38,7 @@ float calcBlendFactor(float val, float threshold) {
     // sigmoid function
     // result is in ]0;1] range
     // inflexion point is at (x, y) (threshold, 0.5)
-    return 1.f / (1.f + xexpf(16.f - 16.f * val / threshold));
+    return 1.f / (1.f + expf(16.f - 16.f * val / threshold));
 }
 
 #ifdef __SSE2__

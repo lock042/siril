@@ -45,7 +45,7 @@ inline float computeXYZ2LabY(float f, const LUTf& cachefy)
         constexpr static float kappa = 24389.f / 27.f;
         return 327.68f * (kappa * f / 65535.f);
     } else if (f > 65535.f) {
-        return 327.68f * (116.f * xcbrtf(f / 65535.f) - 16.f);
+        return 327.68f * (116.f * cbrtf(f / 65535.f) - 16.f);
     } else {
         return cachefy[f];
     }
