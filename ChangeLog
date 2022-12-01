@@ -3,6 +3,7 @@ xx/xx/22
 
 * Fixed bug when saving 16bits signed FITS images
 * Fixed internationalization in siril-cli
+* Fixed subsky command success status
 
 siril 1.0.6
 10/18/22
