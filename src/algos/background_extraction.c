@@ -850,7 +850,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 	if (!background && !com.script) {
 		PRINT_ALLOC_ERR;
 		set_cursor_waiting(FALSE);
-		return NULL;
+		return GINT_TO_POINTER(1);
 	}
 
 	const size_t n = gfit.naxes[0] * gfit.naxes[1];
@@ -858,7 +858,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 	if (!image) {
 		free(background);
 		PRINT_ALLOC_ERR;
-		return NULL;
+		return GINT_TO_POINTER(1);
 	}
 
 	/* Make sure to update local median. Useful if undo is pressed */
@@ -884,7 +884,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 			queue_error_message_dialog(_("Not enough samples."), error);
 			free(args);
 			siril_add_idle(end_background, NULL);
-			return NULL;
+			return GINT_TO_POINTER(1);
 		}
 		/* remove background */
 		const char *c_name = channel_number_to_name(channel);
@@ -901,7 +901,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 	free(image);
 	free(background);
 	siril_add_idle(end_background, args);
-	return args;
+	return GINT_TO_POINTER(0);
 }
 
 /** Apply for sequence **/
