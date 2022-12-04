@@ -2024,7 +2024,12 @@ int process_autostretch(int nb) {
 }
 
 int process_binxy(int nb) {
-	int factor = g_ascii_strtoull(word[1], NULL, 10);
+	gchar *end;
+	int factor = g_ascii_strtoull(word[1], &end, 10);
+	if (end == word[1] || factor <= 0) {
+		siril_log_message(_("Factor must be a number greater than 0.\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
 	gboolean mean = TRUE;
 
 	if (nb > 2 && !g_ascii_strncasecmp(word[2], "-sum", 4)) {
@@ -2045,14 +2050,14 @@ int process_resample(int nb) {
 
 	if (word[1][0] == '-') {
 		if (g_str_has_prefix(word[1], "-height=")) {
-			toY = g_ascii_strtoull(word[1]+8, &end, 10);
-			if (end == word[1]+9) {
+			toY = g_ascii_strtoull(word[1] + 8, &end, 10);
+			if (end == word[1] + 9) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
 				return CMD_ARG_ERROR;
 			}
 			toX = round_to_int(gfit.rx * (double)toY / gfit.ry);
 		} else if (g_str_has_prefix(word[1], "-width=")) {
-			toX = g_ascii_strtoull(word[1]+7, &end, 10);
+			toX = g_ascii_strtoull(word[1] + 7, &end, 10);
 			if (end == word[1]+8) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
 				return CMD_ARG_ERROR;
