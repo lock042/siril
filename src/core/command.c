@@ -3654,6 +3654,7 @@ int process_seq_findstar(int nb) {
 	if (args->starfile) {
 		siril_log_message(_("Option -out= is not available for sequences, ignoring\n"));
 		g_free(args->starfile);
+		args->starfile = NULL;
 	}
 	// allocating space for results storage
 	args->stars = calloc(seq->number, sizeof(psf_star **));
