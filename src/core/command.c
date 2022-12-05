@@ -435,7 +435,7 @@ int process_denoise(int nb){
 		else if (g_str_has_prefix(arg, "-da3d")) {
 			args->da3d = 1;
 		}
-		else if (g_str_has_prefix(arg, "-independant")) {
+		else if (g_str_has_prefix(arg, "-indep")) {
 			args->suppress_artefacts = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-nocosmetic")) {
