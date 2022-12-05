@@ -799,9 +799,9 @@ int process_fdiv(int nb){
 
 int process_fmul(int nb){
 	gboolean from8b = (gfit.orig_bitpix == BYTE_IMG); // get orig bitdepth of 8b before it gets converted to 32b by soper
-
-	float coeff = g_ascii_strtod(word[1], NULL);
-	if (coeff <= 0.f) {
+	gchar *end;
+	float coeff = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || coeff <= 0.f) {
 		siril_log_message(_("Multiplying by a coefficient less than or equal to 0 is not possible.\n"));
 		return CMD_ARG_ERROR;
 	}
@@ -1008,7 +1008,12 @@ int process_wrecons(int nb) {
 	const char *tmpdir = g_get_tmp_dir();
 
 	for (int i = 0; i < nb - 1; ++i) {
-		coef[i] = g_ascii_strtod(word[i + 1], NULL);
+		gchar *end;
+		coef[i] = g_ascii_strtod(word[i + 1], &end);
+		if (end == word[i + 1]) {
+			siril_log_message(_("Wrong parameters.\n"));
+			return CMD_ARG_ERROR;
+		}
 	}
 
 	for (int i = 0; i < nb_chan; i++) {
@@ -1031,12 +1036,14 @@ int process_linstretch(int nb) {
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
 	gboolean do_blue = TRUE;
-	if (nb <= 0)
-	return CMD_ARG_ERROR;
+
+	if (nb <= 0) return CMD_ARG_ERROR;
 
 	double BP = 0.0;
-	BP = g_ascii_strtod(word[1], NULL);
-	if ((BP < 0.0) || (BP > 1.0)) {
+	gchar *end;
+
+	BP = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || (BP < 0.0) || (BP > 1.0)) {
 		siril_log_message(_("Black Point BP must be between 0 and 1\n"));
 	}
 	if (word[2]) {
@@ -1078,6 +1085,8 @@ int process_ght(int nb) {
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
 	gboolean do_blue = TRUE;
+	gchar *end;
+
 	if (!strcmp(word[1], "-human")) {
 		stretch_colourmodel = COL_HUMANLUM;
 		arg_offset = 1;
@@ -1093,33 +1102,33 @@ int process_ght(int nb) {
 	if (nb <= 4 + arg_offset)
 	return CMD_WRONG_N_ARG;
 
-	double D = g_ascii_strtod(word[1 + arg_offset], NULL);
-	if ((D < 0.0) || (D > 10.0)) {
+	double D = g_ascii_strtod(word[1 + arg_offset], &end);
+	if (end == word[1 + arg_offset] || (D < 0.0) || (D > 10.0)) {
 		siril_log_message(_("Stretch factor D must be between 0 and 10\n"));
 		return CMD_ARG_ERROR;
 	}
 	D = expm1f((float) D);
 
-	double B = g_ascii_strtod(word[2 + arg_offset],NULL);
-	if ((B < -5.0) || (B > 15.0)) {
+	double B = g_ascii_strtod(word[2 + arg_offset], &end);
+	if (end == word[2 + arg_offset] || (B < -5.0) || (B > 15.0)) {
 		siril_log_message(_("Stretch intensity B must be between -5 and +15\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double SP = g_ascii_strtod(word[4 + arg_offset],NULL);
-	if ((SP < 0.0) || (SP > 1.0)) {
+	double SP = g_ascii_strtod(word[4 + arg_offset], &end);
+	if (end == word[4 + arg_offset] || (SP < 0.0) || (SP > 1.0)) {
 		siril_log_message(_("Stretch focal point SP must be between 0 and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double LP = g_ascii_strtod(word[3 + arg_offset],NULL);
-	if ((LP < 0.0) || (LP > SP)) {
+	double LP = g_ascii_strtod(word[3 + arg_offset], &end);
+	if (end == word[3 + arg_offset] || (LP < 0.0) || (LP > SP)) {
 		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double HP = g_ascii_strtod(word[5 + arg_offset],NULL);
-	if ((HP < SP) || (HP > 1.0)) {
+	double HP = g_ascii_strtod(word[5 + arg_offset], &end);
+	if (end == word[5 + arg_offset] || (HP < SP) || (HP > 1.0)) {
 		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
@@ -1161,6 +1170,8 @@ int process_invght(int nb) {
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
 	gboolean do_blue = TRUE;
+	gchar *end;
+
 	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
@@ -1179,33 +1190,33 @@ int process_invght(int nb) {
 
 		return CMD_WRONG_N_ARG;
 
-	double D = g_ascii_strtod(word[1 + arg_offset], NULL);
-	if ((D < 0.0) || (D > 10.0)) {
+	double D = g_ascii_strtod(word[1 + arg_offset], &end);
+	if (end == word[1 + arg_offset] || (D < 0.0) || (D > 10.0)) {
 		siril_log_message(_("Stretch factor D must be between 0 and 10\n"));
 		return CMD_ARG_ERROR;
 	}
 	D = expm1f((float) D);
 
-	double B = g_ascii_strtod(word[2 + arg_offset],NULL);
-	if ((B < -5.0) || (B > 15.0)) {
+	double B = g_ascii_strtod(word[2 + arg_offset], &end);
+	if (end == word[2 + arg_offset] || (B < -5.0) || (B > 15.0)) {
 		siril_log_message(_("Stretch intensity B must be between -5 and +15\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double SP = g_ascii_strtod(word[4 + arg_offset],NULL);
-	if ((SP < 0.0) || (SP > 1.0)) {
+	double SP = g_ascii_strtod(word[4 + arg_offset], &end);
+	if (end == word[4 + arg_offset] || (SP < 0.0) || (SP > 1.0)) {
 		siril_log_message(_("Stretch focal point SP must be between 0 and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double LP = g_ascii_strtod(word[3 + arg_offset],NULL);
-	if ((LP < 0.0) || (LP > SP)) {
+	double LP = g_ascii_strtod(word[3 + arg_offset], &end);
+	if (end == word[3 + arg_offset] || (LP < 0.0) || (LP > SP)) {
 		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double HP = g_ascii_strtod(word[5 + arg_offset],NULL);
-	if ((HP < SP) || (HP > 1.0)) {
+	double HP = g_ascii_strtod(word[5 + arg_offset], &end);
+	if (end == word[5 + arg_offset] || (HP < SP) || (HP > 1.0)) {
 		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
@@ -1247,6 +1258,8 @@ int process_modasinh(int nb) {
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
 	gboolean do_blue = TRUE;
+	gchar *end;
+
 	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
@@ -1264,27 +1277,27 @@ int process_modasinh(int nb) {
 	if (nb <= arg_offset + 3)
 	return CMD_WRONG_N_ARG;
 
-	double D = g_ascii_strtod(word[arg_offset+1], NULL);
-	if ((D < 0.0) || (D > 10.0)) {
+	double D = g_ascii_strtod(word[arg_offset + 1], &end);
+	if (end == word[1 + arg_offset] || (D < 0.0) || (D > 10.0)) {
 		siril_log_message(_("D must be between 0 and 10\n"));
 		return CMD_ARG_ERROR;
 	}
 	D = expm1f((float) D);
 
-	double SP = g_ascii_strtod(word[arg_offset+3],NULL);
-	if ((SP < 0.0) || (SP > 1.0)) {
+	double SP = g_ascii_strtod(word[arg_offset + 3], &end);
+	if (end == word[3 + arg_offset] || (SP < 0.0) || (SP > 1.0)) {
 		siril_log_message(_("SP must be between 0 and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double LP = g_ascii_strtod(word[arg_offset+2],NULL);
-	if ((LP < 0.0) || (LP > SP)) {
+	double LP = g_ascii_strtod(word[arg_offset + 2], &end);
+	if (end == word[2 + arg_offset] || (LP < 0.0) || (LP > SP)) {
 		siril_log_message(_("LP must be between 0 and stretch focal point\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double HP = g_ascii_strtod(word[arg_offset+4],NULL);
-	if ((HP < SP) || (HP > 1.0)) {
+	double HP = g_ascii_strtod(word[arg_offset + 4], &end);
+	if (end == word[4 + arg_offset] || (HP < SP) || (HP > 1.0)) {
 		siril_log_message(_("HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
@@ -1326,6 +1339,8 @@ int process_invmodasinh(int nb) {
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
 	gboolean do_blue = TRUE;
+	gchar *end;
+
 	int stretch_colourmodel = COL_INDEP;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
@@ -1343,27 +1358,27 @@ int process_invmodasinh(int nb) {
 	if (nb <= arg_offset + 3)
 	return CMD_WRONG_N_ARG;
 
-	double D = g_ascii_strtod(word[arg_offset+1], NULL);
-	if ((D < 0.0) || (D > 10.0)) {
+	double D = g_ascii_strtod(word[arg_offset + 1], &end);
+	if (end == word[1 + arg_offset] || (D < 0.0) || (D > 10.0)) {
 		siril_log_message(_("D must be between 0 and 10\n"));
 		return CMD_ARG_ERROR;
 	}
 	D = expm1f((float)D);
 
-	double SP = g_ascii_strtod(word[arg_offset+3],NULL);
-	if ((SP < 0.0) || (SP > 1.0)) {
+	double SP = g_ascii_strtod(word[arg_offset + 3], &end);
+	if (end == word[3 + arg_offset] || (SP < 0.0) || (SP > 1.0)) {
 		siril_log_message(_("SP must be between 0 and 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double LP = g_ascii_strtod(word[arg_offset+2],NULL);
-	if ((LP < 0.0) || (LP > SP)) {
+	double LP = g_ascii_strtod(word[arg_offset + 2], &end);
+	if (end == word[2 + arg_offset] || (LP < 0.0) || (LP > SP)) {
 		siril_log_message(_("LP must be between 0 and stretch focal point\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	double HP = g_ascii_strtod(word[arg_offset+4],NULL);
-	if ((HP < SP) || (HP > 1.0)) {
+	double HP = g_ascii_strtod(word[arg_offset + 4], &end);
+	if (end == word[4 + arg_offset] || (HP < SP) || (HP > 1.0)) {
 		siril_log_message(_("HP must be between stretch focal point and 1\n"));
 		return CMD_ARG_ERROR;
 	}
@@ -1406,11 +1421,11 @@ int process_wavelet(int nb) {
 			"b_rawdata.wave" }, *dir[3];
 
 	int Type_Transform, Nbr_Plan, maxplan, mins, chan, nb_chan;
-
 	const char* tmpdir = g_get_tmp_dir();
+	gchar *end1, *end2;
 
-	Nbr_Plan = g_ascii_strtoull(word[1], NULL, 10);
-	Type_Transform = g_ascii_strtoull(word[2], NULL, 10);
+	Nbr_Plan = g_ascii_strtoull(word[1], &end1, 10);
+	Type_Transform = g_ascii_strtoull(word[2], &end2, 10);
 
 	nb_chan = gfit.naxes[2];
 	g_assert(nb_chan <= 3);
@@ -1418,13 +1433,13 @@ int process_wavelet(int nb) {
 	mins = min (gfit.rx, gfit.ry);
 	maxplan = log(mins) / log(2) - 2;
 
-	if ( Nbr_Plan > maxplan ){
+	if (end1 == word[1] || Nbr_Plan > maxplan ){
 		siril_log_message(_("Wavelet: maximum number of plans for this image size is %d\n"),
 				maxplan);
 		return CMD_ARG_ERROR;
 	}
 
-	if(Type_Transform != TO_PAVE_LINEAR && Type_Transform != TO_PAVE_BSPLINE){
+	if(end2 == word[2] || (Type_Transform != TO_PAVE_LINEAR && Type_Transform != TO_PAVE_BSPLINE)){
 		siril_log_message(_("Wavelet: type must be %d or %d\n"), TO_PAVE_LINEAR, TO_PAVE_BSPLINE);
 		return CMD_ARG_ERROR;
 	}
@@ -1466,9 +1481,21 @@ int process_log(int nb){
 
 int process_linear_match(int nb) {
 	fits ref = { 0 };
+	gchar *end1, *end2;
 	double a[3] = { 0.0 }, b[3] = { 0.0 };
-	double low = g_ascii_strtod(word[2], NULL);
-	double high = g_ascii_strtod(word[3], NULL);
+	double low = g_ascii_strtod(word[2], &end1);
+	double high = g_ascii_strtod(word[3], &end2);
+
+	if (end1 == word[2] || low < 0 || low > 1) {
+		siril_log_message(_("Low value must be in the [0, 1] range.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	if (end1 == word[3] || high < 0 || high > 1) {
+		siril_log_message(_("High value must be in the [0, 1] range.\n"));
+		return CMD_ARG_ERROR;
+	}
+
 	if (readfits(word[1], &ref, NULL, gfit.type == DATA_FLOAT))
 		return CMD_INVALID_IMAGE;
 	if (!find_linear_coeff(&gfit, &ref, low, high, a, b, NULL)) {
@@ -1486,6 +1513,7 @@ int process_linear_match(int nb) {
 
 int process_asinh(int nb) {
 	gboolean human_luminance = FALSE;
+	gchar *end;
 	int arg_offset = 0;
 	if (!strcmp(word[1], "-human")) {
 		human_luminance = TRUE;
@@ -1493,17 +1521,16 @@ int process_asinh(int nb) {
 	}
 	if (nb <= arg_offset + 1)
 		return CMD_WRONG_N_ARG;
-	double beta = g_ascii_strtod(word[arg_offset + 1], NULL);
-	if (beta < 1.0) {
+	double beta = g_ascii_strtod(word[arg_offset + 1], &end);
+	if (end == word[arg_offset + 1] || beta < 1.0) {
 		siril_log_message(_("Stretch must be greater than or equal to 1\n"));
 		return CMD_ARG_ERROR;
 	}
 
 	double offset = 0.0;
-	gchar *end;
 	if (nb > 2 + arg_offset) {
 		offset = g_ascii_strtod(word[2 + arg_offset], &end);
-		if (end == word[2+arg_offset]) {
+		if (end == word[2 + arg_offset]) {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2 + arg_offset]);
 			return CMD_ARG_ERROR;
 		}
@@ -1517,16 +1544,17 @@ int process_asinh(int nb) {
 }
 
 int process_clahe(int nb) {
-	double clip_limit = g_ascii_strtod(word[1], NULL);
+	gchar *end;
+	double clip_limit = g_ascii_strtod(word[1], &end);
 
-	if (clip_limit <= 0.0) {
+	if (end == word[1] || clip_limit <= 0.0) {
 		siril_log_message(_("Clip limit must be > 0.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	int size = g_ascii_strtoull(word[2], NULL, 10);
+	int size = g_ascii_strtoull(word[2], &end, 10);
 
-	if (size <= 0.0) {
+	if (end == word[2] || size <= 0.0) {
 		siril_log_message(_("Tile size must be > 0.\n"));
 		return CMD_ARG_ERROR;
 	}
@@ -2134,14 +2162,18 @@ int process_rgradient(int nb) {
 		return CMD_INVALID_IMAGE;
 	}
 
+	gchar *endxc, *endyc, *enddR, *endda;
+
 	struct rgradient_filter_data *args = malloc(sizeof(struct rgradient_filter_data));
-	args->xc = g_ascii_strtod(word[1], NULL);
-	args->yc = g_ascii_strtod(word[2], NULL);
-	args->dR = g_ascii_strtod(word[3], NULL);
-	args->da = g_ascii_strtod(word[4], NULL);
+	args->xc = g_ascii_strtod(word[1], &endxc);
+	args->yc = g_ascii_strtod(word[2], &endyc);
+	args->dR = g_ascii_strtod(word[3], &enddR);
+	args->da = g_ascii_strtod(word[4], &endda);
 	args->fit = &gfit;
 
-	if ((args->xc >= args->fit->rx) || (args->yc >= args->fit->ry)) {
+	if (endxc == word[1] || endyc == word[2] || enddR == word[3]
+			|| endda == word[4] || (args->xc >= args->fit->rx)
+			|| (args->yc >= args->fit->ry)) {
 		siril_log_message(_("The coordinates cannot be greater than the size of the image. "
 				"Please change their values and retry.\n"));
 		free(args);
@@ -2292,7 +2324,12 @@ int process_set(int nb) {
 }
 
 int process_set_mag(int nb) {
-	double mag_reference = g_ascii_strtod(word[1], NULL);
+	gchar *end;
+	double mag_reference = g_ascii_strtod(word[1], &end);
+	if (end == word[1]) {
+		siril_log_message(_("Wrong magnitude value.\n"));
+		return CMD_ARG_ERROR;
+	}
 
 	gboolean found = FALSE;
 	double mag = 0.0;
@@ -2471,6 +2508,8 @@ int process_set_photometry(int nb) {
 
 int process_set_ref(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
+	gchar *end;
+
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
@@ -2478,8 +2517,8 @@ int process_set_ref(int nb) {
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
-	int n = g_ascii_strtoull(word[2], NULL, 10) - 1;
-	if (n < 0 || n >= seq->number) {
+	int n = g_ascii_strtoull(word[2], &end, 10) - 1;
+	if (end == word[2] || n < 0 || n >= seq->number) {
 		siril_log_message(_("The reference image must be set between 1 and %d\n"), seq->number);
 		return CMD_ARG_ERROR;
 	}
@@ -2511,7 +2550,13 @@ int process_unset_mag(int nb) {
 }
 
 int process_set_mag_seq(int nb) {
-	double mag = g_ascii_strtod(word[1], NULL);
+	gchar *end;
+	double mag = g_ascii_strtod(word[1], &end);
+	if (end == word[1]) {
+		siril_log_message(_("Wrong magnitude value.\n"));
+		return CMD_ARG_ERROR;
+	}
+
 	int i;
 	for (i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++);
 	com.seq.reference_star = i - 1;
@@ -2856,7 +2901,7 @@ int process_psf(int nb){
 
 	int channel = com.headless ? 0 : select_vport(gui.cvport);
 	if (nb == 2) {
-		char *next;
+		gchar *next;
 		channel = g_ascii_strtoull(word[1], &next, 10);
 		if (word[1] == next || channel > (int)gfit.naxes[2]) {
 			siril_log_message(_("Please provide the channel number starting from 0 for red\n"));
@@ -3157,24 +3202,30 @@ int process_seq_crop(int nb) {
 	int startoptargs = 6;
 
 	if (nb >= startoptargs) {
-		if (g_ascii_strtoull(word[2], NULL, 10) < 0 || g_ascii_strtoull(word[3], NULL, 10) < 0) {
+		gchar *endx, *endy, *endw, *endh;
+
+		area.x = g_ascii_strtoull(word[2], &endx, 10);
+		area.y = g_ascii_strtoull(word[3], &endy, 10);
+		area.w = g_ascii_strtoull(word[4], &endw, 10);
+		area.h = g_ascii_strtoull(word[5], &endh, 10);
+
+		if (endx == word[2] || endy == word[3] || area.x < 0 || area.y < 0) {
 			siril_log_message(_("Crop: x and y must be positive values.\n"));
 			return CMD_ARG_ERROR;
 		}
-		if (g_ascii_strtoull(word[4], NULL, 10) <= 0 || g_ascii_strtoull(word[5], NULL, 10) <= 0) {
+		if (endw == word[4] || endh == word[5] || area.w <= 0 || area.h <= 0) {
 			siril_log_message(_("Crop: width and height must be greater than 0.\n"));
 			return CMD_ARG_ERROR;
 		}
-		area.x = g_ascii_strtoull(word[2], NULL, 10);
-		area.y = g_ascii_strtoull(word[3], NULL, 10);
-		area.w = g_ascii_strtoull(word[4], NULL, 10);
-		area.h = g_ascii_strtoull(word[5], NULL, 10);
 	} else {
 		siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
 		return CMD_ARG_ERROR;
 	}
+	gchar *end1, *end2;
+	int rx = g_ascii_strtoull(word[4], &end1, 10);
+	int ry = g_ascii_strtoull(word[5], &end2, 10);
 
-	if (g_ascii_strtoull(word[4], NULL, 10) > seq->rx || g_ascii_strtoull(word[5], NULL, 10) > seq->ry) {
+	if (end1 == word[4] || end2 == word[5] || rx > seq->rx || ry > seq->ry) {
 		siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"),
 				seq->rx, seq->ry);
 		return CMD_ARG_ERROR;
@@ -3229,10 +3280,11 @@ int process_bgnoise(int nb) {
 
 int process_histo(int nb) {
 	GError *error = NULL;
-	int nlayer = g_ascii_strtoull(word[1], NULL, 10);
+	gchar *end;
+	int nlayer = g_ascii_strtoull(word[1], &end, 10);
 	const gchar* clayer;
 
-	if (nlayer > 3 || nlayer < 0)
+	if (end == word[1] || nlayer > 3 || nlayer < 0)
 		return CMD_INVALID_IMAGE;
 	gsl_histogram *histo = computeHisto(&gfit, nlayer);
 	if (!isrgb(&gfit))
@@ -3298,14 +3350,15 @@ int process_inspector(int nb) {
 }
 
 int process_thresh(int nb){
+	gchar *end1, *end2;
 	int maxlevel = (gfit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-	int lo = g_ascii_strtoull(word[1], NULL, 10);
-	if (lo < 0 || lo > maxlevel) {
+	int lo = g_ascii_strtoull(word[1], &end1, 10);
+	if (end1 == word[1] || lo < 0 || lo > maxlevel) {
 		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 		return CMD_ARG_ERROR;
 	}
-	int hi = g_ascii_strtoull(word[2], NULL, 10);
-	if (hi < 0 || hi > maxlevel) {
+	int hi = g_ascii_strtoull(word[2], &end2, 10);
+	if (end2 == word[2] || hi < 0 || hi > maxlevel) {
 		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 		return CMD_ARG_ERROR;
 	}
@@ -3319,10 +3372,11 @@ int process_thresh(int nb){
 	return CMD_OK;
 }
 
-int process_threshlo(int nb){
+int process_threshlo(int nb) {
+	gchar *end;
 	int maxlevel = (gfit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-	int lo = g_ascii_strtoull(word[1], NULL, 10);
-	if (lo < 0 || lo > maxlevel) {
+	int lo = g_ascii_strtoull(word[1], &end, 10);
+	if (end == word[1] || lo < 0 || lo > maxlevel) {
 		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 		return CMD_ARG_ERROR;
 	}
@@ -3331,10 +3385,11 @@ int process_threshlo(int nb){
 	return CMD_OK;
 }
 
-int process_threshhi(int nb){
+int process_threshhi(int nb) {
+	gchar *end;
 	int maxlevel = (gfit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-	int hi = g_ascii_strtoull(word[1], NULL, 10);
-	if (hi < 0 || hi > maxlevel) {
+	int hi = g_ascii_strtoull(word[1], &end, 10);
+	if (end == word[1] || hi < 0 || hi > maxlevel) {
 		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 		return CMD_ARG_ERROR;
 	}
@@ -3351,9 +3406,10 @@ int process_neg(int nb) {
 }
 
 int process_nozero(int nb){
-	int level = g_ascii_strtoull(word[1], NULL, 10);
+	gchar *end;
+	int level = g_ascii_strtoull(word[1], &end, 10);
 	int maxlevel = (gfit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-	if (level < 0 || level > maxlevel) {
+	if (end == word[1] || level < 0 || level > maxlevel) {
 		siril_log_message(_("Replacement value is out of range (0 - %d)\n"), maxlevel);
 		return CMD_ARG_ERROR;
 	}
@@ -3363,9 +3419,22 @@ int process_nozero(int nb){
 }
 
 int process_ddp(int nb) {
-	unsigned level = g_ascii_strtoull(word[1], NULL, 10);
-	float coeff = g_ascii_strtod(word[2], NULL);
-	float sigma = g_ascii_strtod(word[3], NULL);
+	gchar *end;
+	unsigned level = g_ascii_strtoull(word[1], &end, 10);
+	if (end == word[1] || level < 0) {
+		siril_log_message(_("Level value is incorrect\n"));
+		return CMD_ARG_ERROR;
+	}
+	float coeff = g_ascii_strtod(word[2], &end);
+	if (end == word[2] || coeff < 0) {
+		siril_log_message(_("Coeff value is incorrect\n"));
+		return CMD_ARG_ERROR;
+	}
+	float sigma = g_ascii_strtod(word[3], &end);
+	if (end == word[3] || sigma < 0) {
+		siril_log_message(_("Sigma value is incorrect\n"));
+		return CMD_ARG_ERROR;
+	}
 	ddp(&gfit, level, coeff, sigma);
 	notify_gfit_modified();
 	return CMD_OK;
@@ -3373,15 +3442,19 @@ int process_ddp(int nb) {
 
 int process_new(int nb){
 	int width, height, layers;
+	gchar *end, *endw, *endh;
 
-	width = g_ascii_strtod(word[1], NULL);
-	height = g_ascii_strtod(word[2], NULL);
-	layers = g_ascii_strtoull(word[3], NULL, 10);
-	if (layers != 1 && layers != 3) {
+	width = g_ascii_strtod(word[1], &endw);
+	height = g_ascii_strtod(word[2], &endh);
+	layers = g_ascii_strtoull(word[3], &end, 10);
+	if (end == word[3] || (layers != 1 && layers != 3)) {
 		siril_log_message(_("Number of layers MUST be 1 or 3\n"));
 		return CMD_ARG_ERROR;
 	}
-	if (!height || !width) return CMD_ARG_ERROR;
+	if (endw == word[1] || endh == word[2] || !height || !width) {
+		siril_log_message(_("Width and Height must be positive values.\n"));
+		return CMD_ARG_ERROR;
+	}
 
 	close_single_image();
 	close_sequence(FALSE);
@@ -3398,9 +3471,10 @@ int process_new(int nb){
 }
 
 int process_visu(int nb) {
-	int low = g_ascii_strtoull(word[1], NULL, 10);
-	int high = g_ascii_strtoull(word[2], NULL, 10);
-	if ((high > USHRT_MAX) || (low < 0)) {
+	gchar *end1, *end2;
+	int low = g_ascii_strtoull(word[1], &end1, 10);
+	int high = g_ascii_strtoull(word[2], &end2, 10);
+	if ((end2 == word[2] || high > USHRT_MAX) || (end1 == word[1] || low < 0)) {
 		siril_log_message(_("Values must be positive and less than %d.\n"), USHRT_MAX);
 		return CMD_ARG_ERROR;
 	}
@@ -3408,17 +3482,25 @@ int process_visu(int nb) {
 	return CMD_OK;
 }
 
-int process_fill2(int nb){
-	int level = g_ascii_strtoull(word[1], NULL, 10);
+int process_fill2(int nb) {
+	gchar *end;
 	rectangle area;
+	int level = g_ascii_strtoull(word[1], &end, 10);
+	if (end == word[1] || level < 0 || level > USHRT_MAX) {
+		siril_log_message(_("Value must be positive and less than %d.\n"), USHRT_MAX);
+		return CMD_ARG_ERROR;
+	}
 
 	if ((!com.selection.h) || (!com.selection.w)) {
 		if (nb == 6) {
-			area.x = g_ascii_strtoull(word[2], NULL, 10);
-			area.y = g_ascii_strtoull(word[3], NULL, 10);
-			area.w = g_ascii_strtoull(word[4], NULL, 10);
-			area.h = g_ascii_strtoull(word[5], NULL, 10);
-			if ((area.w + area.x > gfit.rx) || (area.h + area.y > gfit.ry)) {
+			gchar *endx, *endy, *endw, *endh;
+			area.x = g_ascii_strtoull(word[2], &endx, 10);
+			area.y = g_ascii_strtoull(word[3], &endy, 10);
+			area.w = g_ascii_strtoull(word[4], &endw, 10);
+			area.h = g_ascii_strtoull(word[5], &endh, 10);
+			if (endx == word[2] || endy == word[3] || endw == word[4]
+					|| endh == word[5] || (area.w + area.x > gfit.rx)
+					|| (area.h + area.y > gfit.ry)) {
 				siril_log_message(_("Wrong parameters.\n"));
 				return CMD_ARG_ERROR;
 			}
@@ -3728,16 +3810,17 @@ int process_seq_cosme(int nb) {
 
 int process_fmedian(int nb){
 	struct median_filter_data *args = malloc(sizeof(struct median_filter_data));
-	args->ksize = g_ascii_strtoull(word[1], NULL, 10);
-	args->amount = g_ascii_strtod(word[2], NULL);
+	gchar *end1, *end2;
+	args->ksize = g_ascii_strtoull(word[1], &end1, 10);
+	args->amount = g_ascii_strtod(word[2], &end2);
 	args->iterations = 1;
 
-	if (!(args->ksize & 1) || args->ksize < 2 || args->ksize > 15) {
+	if (end1 == word[1] || !(args->ksize & 1) || args->ksize < 2 || args->ksize > 15) {
 		siril_log_message(_("The size of the kernel MUST be odd and in the range [3, 15].\n"));
 		free(args);
 		return CMD_ARG_ERROR;
 	}
-	if (args->amount < 0.0 || args->amount > 1.0) {
+	if (end2 == word[2] || args->amount < 0.0 || args->amount > 1.0) {
 		siril_log_message(_("Modulation value MUST be between 0 and 1\n"));
 		free(args);
 		return CMD_ARG_ERROR;
@@ -3789,14 +3872,18 @@ int process_close(int nb) {
 
 int process_fill(int nb){
 	rectangle area;
+	gchar *end;
 
 	if ((!com.selection.h) || (!com.selection.w)) {
 		if (nb == 6) {
-			area.x = g_ascii_strtoull(word[2], NULL, 10);
-			area.y = g_ascii_strtoull(word[3], NULL, 10);
-			area.w = g_ascii_strtoull(word[4], NULL, 10);
-			area.h = g_ascii_strtoull(word[5], NULL, 10);
-			if ((area.w + area.x > gfit.rx) || (area.h + area.y > gfit.ry)) {
+			gchar *endx, *endy, *endw, *endh;
+			area.x = g_ascii_strtoull(word[2], &endx, 10);
+			area.y = g_ascii_strtoull(word[3], &endy, 10);
+			area.w = g_ascii_strtoull(word[4], &endw, 10);
+			area.h = g_ascii_strtoull(word[5], &endh, 10);
+			if (endx == word[2] || endy == word[3] || endw == word[4]
+					|| endh == word[5] || (area.w + area.x > gfit.rx)
+					|| (area.h + area.y > gfit.ry)) {
 				siril_log_message(_("Wrong parameters.\n"));
 				return CMD_ARG_ERROR;
 			}
@@ -3808,7 +3895,11 @@ int process_fill(int nb){
 	} else {
 		area = com.selection;
 	}
-	int level = g_ascii_strtoull(word[1], NULL, 10);
+	int level = g_ascii_strtoull(word[1], &end, 10);
+	if (end == word[1] || level < 0 || level > USHRT_MAX) {
+		siril_log_message(_("Value must be positive and less than %d.\n"), USHRT_MAX);
+		return CMD_ARG_ERROR;
+	}
 	int retval = fill(&gfit, level, &area);
 	if (retval) {
 		siril_log_message(_("Wrong parameters.\n"));
@@ -3818,8 +3909,14 @@ int process_fill(int nb){
 	return CMD_OK;
 }
 
-int process_offset(int nb){
-	int level = g_ascii_strtod(word[1], NULL);
+int process_offset(int nb) {
+	gchar *end;
+
+	int level = g_ascii_strtod(word[1], &end);
+	if (end == word[1]) {
+		siril_log_message(_("Wrong parameters.\n"));
+		return CMD_ARG_ERROR;
+	}
 	off(&gfit, (float)level);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
@@ -3867,9 +3964,19 @@ int process_fft(int nb){
 
 int process_fixbanding(int nb) {
 	struct banding_data *args = malloc(sizeof(struct banding_data));
+	gchar *end1, *end2;
 
-	args->amount = g_ascii_strtod(word[1], NULL);
-	args->sigma = g_ascii_strtod(word[2], NULL);
+	args->amount = g_ascii_strtod(word[1], &end1);
+	if (end1 == word[1] || args->amount < 0 || args->amount > 4) {
+		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
+		return CMD_ARG_ERROR;
+	}
+	args->sigma = g_ascii_strtod(word[2], &end2);
+	if (end2 == word[2] || args->sigma < 0 || args->sigma > 5) {
+		siril_log_message(_("1/sigma value must be in the [0, 5] range.\n"));
+		return CMD_ARG_ERROR;
+	}
+
 	args->protect_highlights = TRUE;
 	args->applyRotation = FALSE;
 	args->fit = &gfit;
@@ -3892,12 +3999,21 @@ int process_fixbanding(int nb) {
 
 int process_seq_fixbanding(int nb) {
 	struct banding_data *args = malloc(sizeof(struct banding_data));
+	gchar *end1, *end2;
 
 	if (word[1] && word[1][0] != '\0') {
 		args->seq = load_sequence(word[1], NULL);
 	}
-	args->amount = g_ascii_strtod(word[2], NULL);
-	args->sigma = g_ascii_strtod(word[3], NULL);
+	args->amount = g_ascii_strtod(word[2], &end1);
+	if (end1 == word[2] || args->amount < 0 || args->amount > 4) {
+		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
+		return CMD_ARG_ERROR;
+	}
+	args->sigma = g_ascii_strtod(word[3], &end2);
+	if (end2 == word[3] || args->sigma < 0 || args->sigma > 5) {
+		siril_log_message(_("1/sigma value must be in the [0, 5] range.\n"));
+		return CMD_ARG_ERROR;
+	}
 	// settings default optional values
 	args->protect_highlights = TRUE;
 	args->applyRotation = FALSE;
@@ -3951,9 +4067,10 @@ int process_subsky(int nb) {
 	if (!strcmp(word[arg_index], "-rbf"))
 		interp = BACKGROUND_INTER_RBF;
 	else {
+		gchar *end;
 		interp = BACKGROUND_INTER_POLY;
-		degree = g_ascii_strtoull(word[arg_index], NULL, 10);
-		if (degree < 1 || degree > 4) {
+		degree = g_ascii_strtoull(word[arg_index], &end, 10);
+		if (end == word[arg_index] || degree < 1 || degree > 4) {
 			siril_log_message(_("Polynomial degree order must be within the [1, 4] range.\n"));
 			return CMD_ARG_ERROR;
 		}
@@ -3971,9 +4088,10 @@ int process_subsky(int nb) {
 			prefix = strdup(value);
 		}
 		else if (g_str_has_prefix(arg, "-samples=")) {
+			gchar *end;
 			char *value = arg + 9;
-			samples = g_ascii_strtoull(value, NULL, 10);
-			if (samples <= 1) {
+			samples = g_ascii_strtoull(value, &end, 10);
+			if (end == value || samples <= 1) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
 				return CMD_ARG_ERROR;
 			}
@@ -4047,10 +4165,20 @@ int process_findcosme(int nb) {
 	}
 
 	struct cosmetic_data *args = malloc(sizeof(struct cosmetic_data));
+	gchar *end1, *end2;
 
 	args->seq = seq;
-	args->sigma[0] = g_ascii_strtod(word[1 + i], NULL);
-	args->sigma[1] = g_ascii_strtod(word[2 + i], NULL);
+	args->sigma[0] = g_ascii_strtod(word[1 + i], &end1);
+	if (end1 == word[1 + i] || args->sigma[0] < 0) {
+		siril_log_message(_("Sigma low must be positive.\n"));
+		return CMD_ARG_ERROR;
+	}
+	args->sigma[1] = g_ascii_strtod(word[2 + i], &end2);
+	if (end2 == word[2 + i] || args->sigma[1] < 0) {
+		siril_log_message(_("Sigma high must be positive.\n"));
+		return CMD_ARG_ERROR;
+	}
+
 	args->is_cfa = (word[0][10] == '_' || word[0][13] == '_');	// find_cosme_cfa or seqfind_cosme_cfa
 	args->amount = 1.0;
 	args->fit = &gfit;
@@ -4086,10 +4214,16 @@ int process_findcosme(int nb) {
 }
 
 int select_unselect(gboolean select) {
-	int from = g_ascii_strtoull(word[1], NULL, 10);
-	int to = g_ascii_strtoull(word[2], NULL, 10);
-	if (from < 1 || from >= com.seq.number) {
+	char *end1, *end2;
+	int from = g_ascii_strtoull(word[1], &end1, 10);
+	int to = g_ascii_strtoull(word[2], &end2, 10);
+	if (end1 == word[1] || from < 1 || from >= com.seq.number) {
 		siril_log_message(_("The first argument must be between 1 and the number of images.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	if (end2 == word[2] || to <= from || to >= com.seq.number) {
+		siril_log_message(_("The second argument must be between from and the number of images.\n"));
 		return CMD_ARG_ERROR;
 	}
 	gboolean current_updated = FALSE;
@@ -5341,8 +5475,9 @@ int process_register(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
-			int min_pairs = g_ascii_strtoull(value, NULL, 10);
-			if (min_pairs < 4) { // using absolute min_pairs required by homography
+			gchar *end;
+			int min_pairs = g_ascii_strtoull(value, &end, 10);
+			if (end == value || min_pairs < 4) { // using absolute min_pairs required by homography
 				gchar *str = g_strdup_printf(_("%d smaller than minimum allowable star pairs: %d, aborting.\n"), min_pairs, reg_args->min_pairs);
 				siril_log_message(str);
 				g_free(str);
@@ -6093,6 +6228,8 @@ int process_stackall(int nb) {
 			allow_med_options = TRUE;
 		} else if (!strcmp(word[1], "rej") || !strcmp(word[1], "mean")) {
 			int shift = 1;
+			gchar *end1, *end2;
+
 			if (!strcmp(word[3], "p") || !strcmp(word[3], "percentile")) {
 				arg->type_of_rejection = PERCENTILE;
 			} else if (!strcmp(word[3], "s") || !strcmp(word[3], "sigma")) {
@@ -6111,8 +6248,8 @@ int process_stackall(int nb) {
 				arg->type_of_rejection = WINSORIZED;
 				shift = 0;
 			}
-			if (!word[2 + shift] || !word[3 + shift] || (arg->sig[0] = g_ascii_strtod(word[2 + shift], NULL)) < 0.0
-					|| (arg->sig[1] = g_ascii_strtod(word[3 + shift], NULL)) < 0.0) {
+			if (!word[2 + shift] || !word[3 + shift] || (arg->sig[0] = g_ascii_strtod(word[2 + shift], &end1)) < 0.0
+					|| (arg->sig[1] = g_ascii_strtod(word[3 + shift], &end2)) < 0.0 || end1 == word[2 + shift] || end2 == word[3 + shift]) {
 				siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
 				goto failure;
 			}
@@ -6195,6 +6332,7 @@ int process_stackone(int nb) {
 		arg->method = stack_summing_generic;
 	} else {
 		int start_arg_opt = 3;
+		gchar *end1, *end2;
 		gboolean allow_rej_options = FALSE, allow_med_options = FALSE;
 		if (!strcmp(word[2], "sum")) {
 			arg->method = stack_summing_generic;
@@ -6234,8 +6372,9 @@ int process_stackone(int nb) {
 			if ((nb < 4 + shift + 1) || !word[3 + shift] || !word[4 + shift] ||
 					!string_is_a_number(word[3 + shift]) ||
 					!string_is_a_number(word[4 + shift]) ||
-					(arg->sig[0] = g_ascii_strtod(word[3 + shift], NULL)) < 0.0 ||
-					(arg->sig[1] = g_ascii_strtod(word[4 + shift], NULL)) < 0.0) {
+					(arg->sig[0] = g_ascii_strtod(word[3 + shift], &end1)) < 0.0 ||
+					(arg->sig[1] = g_ascii_strtod(word[4 + shift], &end2)) < 0.0 ||
+					end1 == word[3 + shift] || end2 == word[4 + shift]) {
 				if (arg->type_of_rejection != NO_REJEC) {
 					siril_log_color_message(_("The average stacking with rejection requires two extra arguments: sigma low and high.\n"), "red");
 					goto failure;
@@ -6454,8 +6593,9 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				}
 				args->cc_from_dark = TRUE;
 				//either we use the default sigmas or we try to read the next two checking for sigma low and high
-				if (word[i + 1] && word[i + 2] && (args->sigma[0] = g_ascii_strtod(word[i + 1], NULL)) < 0.0
-						&& (args->sigma[1] = g_ascii_strtod(word[i + 2], NULL)) < 0.0) {
+				gchar *end1, *end2;
+				if (word[i + 1] && word[i + 2] && ((args->sigma[0] = g_ascii_strtod(word[i + 1], &end1)) < 0.0 && end1 != word[i + 1])
+						&& (args->sigma[1] = g_ascii_strtod(word[i + 2], &end2)) < 0.0 && end2 != word[i + 2]) {
 					i+= 2;
 				}
 				if (args->sigma[0] == 0) args->sigma[0] = -1.00;
@@ -6602,8 +6742,9 @@ int process_set_compress(int nb) {
 			g_free(comp);
 			return CMD_ARG_ERROR;
 		}
-		q = g_ascii_strtod(word[3], NULL);
-		if (q == 0.0 && (method == RICE_COMP || method == HCOMPRESS_COMP)) {
+		gchar *end;
+		q = g_ascii_strtod(word[3], &end);
+		if (end == word[3] || (q == 0.0 && (method == RICE_COMP || method == HCOMPRESS_COMP))) {
 			siril_log_message(_("Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"));
 			return CMD_ARG_ERROR;
 		}
@@ -6623,10 +6764,11 @@ int process_set_compress(int nb) {
 #ifdef _OPENMP
 int process_set_cpu(int nb){
 	int proc_in, proc_out, proc_max;
+	gchar *end;
 
-	proc_in = g_ascii_strtoull(word[1], NULL, 10);
+	proc_in = g_ascii_strtoull(word[1], &end, 10);
 	proc_max = omp_get_num_procs();
-	if (proc_in > proc_max || proc_in < 1) {
+	if (end == word[1] || proc_in > proc_max || proc_in < 1) {
 		siril_log_message(_("Number of logical processors MUST be greater "
 				"than 0 and lower or equal to %d.\n"), proc_max);
 		return CMD_ARG_ERROR;
@@ -6651,9 +6793,10 @@ int process_set_cpu(int nb){
 }
 #endif
 
-int process_set_mem(int nb){
-	double ratio = g_ascii_strtod(word[1], NULL);
-	if (ratio < 0.05 || ratio > 4.0) {
+int process_set_mem(int nb) {
+	gchar *end;
+	double ratio = g_ascii_strtod(word[1], &end);
+	if (end == word[1] || ratio < 0.05 || ratio > 4.0) {
 		siril_log_message(_("The accepted range for the ratio of memory used for stacking is [0.05, 4], with values below the available memory recommended\n"));
 		return CMD_ARG_ERROR;
 	}
@@ -6759,13 +6902,14 @@ int process_exit(int nb) {
 
 int process_extract(int nb) {
 	int Nbr_Plan, maxplan, mins;
+	gchar *end;
 
-	Nbr_Plan = g_ascii_strtoull(word[1], NULL, 10);
+	Nbr_Plan = g_ascii_strtoull(word[1], &end, 10);
 
 	mins = min (gfit.rx, gfit.ry);
 	maxplan = log(mins) / log(2) - 2;
 
-	if ( Nbr_Plan > maxplan ){
+	if (end == word[1] || Nbr_Plan > maxplan){
 		siril_log_message(_("Wavelet: maximum number of plans for this image size is %d\n"),
 				maxplan);
 		return CMD_GENERIC_ERROR;
@@ -6789,6 +6933,7 @@ int process_requires(int nb) {
 	gchar **version, **required;
 	gint major, minor, micro;
 	gint req_major, req_minor, req_micro;
+	gchar *endmaj, *endmin, *endmicro, *endreqmaj, *endreqmin, *endreqmicro;
 
 	version = g_strsplit(PACKAGE_VERSION, ".", 3);
 	required = g_strsplit(word[1], ".", 3);
@@ -6801,13 +6946,20 @@ int process_requires(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
-	major = g_ascii_strtoull(version[0], NULL, 10);
-	minor = g_ascii_strtoull(version[1], NULL, 10);
-	micro = g_ascii_strtoull(version[2], NULL, 10);
+	major = g_ascii_strtoull(version[0], &endmaj, 10);
+	minor = g_ascii_strtoull(version[1], &endmin, 10);
+	micro = g_ascii_strtoull(version[2], &endmicro, 10);
 
-	req_major = g_ascii_strtoull(required[0], NULL, 10);
-	req_minor = g_ascii_strtoull(required[1], NULL, 10);
-	req_micro = g_ascii_strtoull(required[2], NULL, 10);
+	req_major = g_ascii_strtoull(required[0], &endreqmaj, 10);
+	req_minor = g_ascii_strtoull(required[1], &endreqmin, 10);
+	req_micro = g_ascii_strtoull(required[2], &endreqmicro, 10);
+
+	if (endmaj == version[0] || endmin == version[1] || endmicro == version[2]
+			|| endreqmaj == required[0] || endreqmin == required[1]
+			|| endreqmicro == required[2]) {
+		siril_log_message(_("Wrong parameters.\n"));
+		return CMD_ARG_ERROR;
+	}
 
 	g_strfreev(version);
 	g_strfreev(required);
@@ -7031,8 +7183,9 @@ int process_pcc(int nb) {
 			plate_solve = TRUE;
 		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
 			char *arg = word[next_arg] + 7;
-			forced_focal = g_ascii_strtod(arg, NULL);
-			if (forced_focal <= 0.0) {
+			gchar *end;
+			forced_focal = g_ascii_strtod(arg, &end);
+			if (end == arg || forced_focal <= 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 				siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
@@ -7040,8 +7193,9 @@ int process_pcc(int nb) {
 		}
 		else if (g_str_has_prefix(word[next_arg], "-pixelsize=")) {
 			char *arg = word[next_arg] + 11;
-			forced_pixsize = g_ascii_strtod(arg, NULL);
-			if (forced_pixsize <= 0.0) {
+			gchar *end;
+			forced_pixsize = g_ascii_strtod(arg, &end);
+			if (end == arg || forced_pixsize <= 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 				siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
