@@ -1115,9 +1115,9 @@ static void update_filters_registration(int update_adjustment) {
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
-	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL;
+	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL;
 	static GtkLabel *labelreginfo = NULL;
-	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo = NULL;
+	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method;
@@ -1135,14 +1135,15 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		cumul_data = lookup_widget("check_button_comet");
 		noout = lookup_widget("regNoOutput");
 		reglayer = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
-		filter_combo = GTK_COMBO_BOX(lookup_widget("combofilter4"));
+		filter_combo_init = GTK_COMBO_BOX(lookup_widget("combofilter4"));
 		toggle_reg_clamp = lookup_widget("toggle_reg_clamp");
+		filter_box = lookup_widget("seq_filters_box_reg");
 	}
 
 	if (!dont_change_reg_radio) {
 		if (com.seq.selnum < com.seq.number) {
 			gtk_combo_box_set_active(reg_all_sel_box, 1);
-			gtk_combo_box_set_active(filter_combo, 1);
+			gtk_combo_box_set_active(filter_combo_init, 1);
 		} else
 			gtk_combo_box_set_active(reg_all_sel_box, 0);
 	}
@@ -1159,10 +1160,11 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* show the appropriate frame selection widgets */
 	gboolean isapplyreg = method->method_ptr == &register_apply_reg;
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
-	gtk_widget_set_visible(GTK_WIDGET(filter_combo), isapplyreg);
+	gtk_widget_set_visible(filter_box, isapplyreg);
+	gtk_widget_set_visible(GTK_WIDGET(filter_combo_init), isapplyreg);
 	if (isapplyreg) {
 		if (!dont_change_reg_radio && com.seq.selnum < com.seq.number) {
-			gtk_combo_box_set_active(filter_combo, SELECTED_IMAGES);
+			gtk_combo_box_set_active(filter_combo_init, SELECTED_IMAGES);
 		}
 		update_filters_registration(-1);
 	}
