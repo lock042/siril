@@ -3544,7 +3544,8 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 			args->starfile = g_strdup(value);
 			siril_debug_print("Findstar: saving at %s\n", args->starfile);
 		} else if (g_str_has_prefix(word[i], "-layer=")) {
-			if (args->im.fit->naxes[2] == 1) {  // handling mono case
+			int nb_layers = (start == 2) ? args->im.from_seq->nb_layers : args->im.fit->naxes[2];
+			if (nb_layers == 1) {  // handling mono case
 				siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
 				continue;
 			}
@@ -3553,8 +3554,8 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 			int layer = g_ascii_strtoull(value, &end, 10);
 			if (end == value || layer < 0 || layer > 2) {
 				siril_log_message(_("Unknown layer number %s, must be between 0 and 2, will use green layer.\n"), value);
-				if (end == value) break;
-				else continue;
+				layer = GLAYER;
+				continue;
 			}
 			args->layer = layer;
 		} else if (g_str_has_prefix(word[i], "-maxstars=")) {
@@ -3622,13 +3623,17 @@ int process_seq_findstar(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
 
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
 	int layer;
-	if (!com.script) {
+	if (!com.script && check_seq_is_comseq(seq)) { // we use vport only if seq is com.seq
 		layer = select_vport(gui.cvport);
 	} else {
-		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
+		layer = (seq->nb_layers > 1) ? GLAYER : RLAYER;
 	}
 	// initializing findstar args
 	args->layer = layer;
@@ -3638,12 +3643,26 @@ int process_seq_findstar(int nb) {
 	args->max_stars_fitted = 0;
 	args->update_GUI = FALSE;
 	args->save_to_file = TRUE;
+	args->starfile = NULL;
 	cmd_errors argparsing = parse_findstar(args, 2, nb);
 
 	if (argparsing) {
 		if (args->starfile) g_free(args->starfile);
 		free(args);
 		return argparsing;
+	}
+	if (args->starfile) {
+		siril_log_message(_("Option -out= is not available for sequences, ignoring\n"));
+		g_free(args->starfile);
+	}
+	// allocating space for results storage
+	args->stars = calloc(seq->number, sizeof(psf_star **));
+	args->nb_stars = calloc(seq->number, sizeof(int));
+	if (!args->stars || !args->nb_stars) {
+		PRINT_ALLOC_ERR;
+		if (args->stars) free(args->stars);
+		if (args->nb_stars) free(args->nb_stars);
+		return CMD_GENERIC_ERROR;
 	}
 
 	apply_findstar_to_sequence(args);
