@@ -3420,7 +3420,7 @@ int process_nozero(int nb){
 
 int process_ddp(int nb) {
 	gchar *end;
-	unsigned level = g_ascii_strtoull(word[1], &end, 10);
+	int level = g_ascii_strtoull(word[1], &end, 10);
 	if (end == word[1] || level < 0) {
 		siril_log_message(_("Level value is incorrect\n"));
 		return CMD_ARG_ERROR;
