@@ -237,7 +237,6 @@ void on_bdeconv_gflambda_value_changed(GtkSpinButton *button, gpointer user_data
 	args.intermediatedeconvolutionweight = gtk_spin_button_get_value(button);
 	args.finaldeconvolutionweight = gtk_spin_button_get_value(button);
 	args.lambda = 1.f / gtk_spin_button_get_value(button);
-
 }
 
 void on_bdeconv_alpha_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -311,8 +310,9 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		case 2:
 			break;
 		case 3:
-			kernel = (float*) calloc(5 * 5, sizeof(float));
-			makegaussian(kernel, 5, 1.f, 1.f, 0.f, 0.f);
+			kernel = (float*) calloc(args.ks * args.ks, sizeof(float));
+			// Should switch here and do gaussian, moffat, disc
+			makegaussian(kernel, args.ks, args.psf_fwhm, 1.f, 0.f, 0.f);
 			break;
 	}
 	if (kernel == NULL) {
@@ -331,7 +331,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 #endif
 //		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
-		richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, 6);
+		richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, 8);
 //		stochastic(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, 0.0008f);
 	}
 	if (kernel) {

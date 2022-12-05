@@ -15,6 +15,9 @@ namespace richardsonlucy {
         assert(K.w % 2);
         assert(K.h % 2);
         x = f;
+        optimization::operators::gradient<T> gradient(f);
+//        using gradtype = typename decltype(gradient)::out_type;
+        img_t<T> w(f.w, f.h, f.d);
 
         // Generate OTF of kernel
         img_t<std::complex<T>> K_otf(f.w, f.h, f.d);
@@ -33,9 +36,27 @@ namespace richardsonlucy {
         est.map(f);
         img_t<std::complex<T>> working(f.w, f.h, f.d);
         working.map(est);
-        float regularization = 0.f;
+        float reallambda = 1.f / lambda; // For consistency with other algorithms
+        img_t<T> gx(f.w, f.h, f.d);
+        img_t<T> gy(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
             printf("Iteration %d ", iter);
+
+            // Calculate TV reglarization weighting
+            w.map(std::real(est));
+            gx.gradientx(w);
+            gx.map(std::max(1.e-6f, gx)); // Avoid div/0
+            for (int i = 0 ; i < gx.size; i++)
+                gx[i] = std::max(1.e-6f, gx[i]);
+            gy.gradienty(w);
+            for (int i = 0 ; i < gy.size; i++)
+                gy[i] = std::max(1.e-6f, gy[i]); // Avoid div/0
+            w.map(std::hypot(gx, gy));
+            gx.map(gx / w);
+            gy.map(gy / w);
+            w.divergence(gx, gy);
+
+            // Richardson-Lucy iteration
             working.fft(est);
             working.map(working * K_otf);
             working.ifft(working);
@@ -43,7 +64,11 @@ namespace richardsonlucy {
             working.fft(working);
             working.map(working * Kflip_otf);
             working.ifft(working);
-            est.map(working * (est / (1 - lambda * regularization)));
+
+            est.map(working * est * (T(1) / (T(1) - reallambda * w)));
+
+            // Stopping criterion?
+
             printf("complete...\n");
             updateprogress("Richardson-Lucy deconvolution", (iter / maxiter));
         }

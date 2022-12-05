@@ -224,10 +224,7 @@ public:
     template <typename T2>
     void flip(const img_t<T2>&o) {
         assert(o.similar(*this));
-/*        img_t<T> o(*this);
-        this->w = o.h;
-        this->h = o.w;
-*/        for (int y = 0; y < o.h; y++) {
+        for (int y = 0; y < o.h; y++) {
             for (int x = 0; x < o.w; x++) {
                 for (int dd = 0; dd < d; dd++) {
                     (*this)(x, y, dd) = o(w-x-1, h-y-1, dd);
