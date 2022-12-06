@@ -806,8 +806,10 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 				read_failure = TRUE;
 				break;
 			}
-			if (!sfargs->stars) // if cannot store them, no need to read them
+			if (!sfargs->stars) {// if cannot store them, no need to read them
+				star = nb_stars; // for message display
 				break;
+			}
 		}
 		if (buffer[0] == '#' || buffer[0] == '\0')
 			continue;
@@ -838,8 +840,8 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		(*sfargs->stars)[star] = NULL;
 	}
 	if (!read_failure) {
-		siril_debug_print("found %d stars with same settings in %s\n", star, filename);
-		*sfargs->nb_stars = star;
+		siril_log_message(_("Found %d stars with same settings in %s, skipping detection\n"), star, filename);
+		if (sfargs->nb_stars) *sfargs->nb_stars = star;
 	} else {
 		if (sfargs->stars) {
 			free(*sfargs->stars);

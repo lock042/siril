@@ -3656,15 +3656,6 @@ int process_seq_findstar(int nb) {
 		g_free(args->starfile);
 		args->starfile = NULL;
 	}
-	// allocating space for results storage
-	args->stars = calloc(seq->number, sizeof(psf_star **));
-	args->nb_stars = calloc(seq->number, sizeof(int));
-	if (!args->stars || !args->nb_stars) {
-		PRINT_ALLOC_ERR;
-		if (args->stars) free(args->stars);
-		if (args->nb_stars) free(args->nb_stars);
-		return CMD_GENERIC_ERROR;
-	}
 
 	apply_findstar_to_sequence(args);
 	return 0;
