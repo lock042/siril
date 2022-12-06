@@ -4000,11 +4000,13 @@ int process_fixbanding(int nb) {
 	args->amount = g_ascii_strtod(word[1], &end1);
 	if (end1 == word[1] || args->amount < 0 || args->amount > 4) {
 		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
+		free(args);
 		return CMD_ARG_ERROR;
 	}
 	args->sigma = g_ascii_strtod(word[2], &end2);
 	if (end2 == word[2] || args->sigma < 0 || args->sigma > 5) {
 		siril_log_message(_("1/sigma value must be in the [0, 5] range.\n"));
+		free(args);
 		return CMD_ARG_ERROR;
 	}
 
@@ -4038,11 +4040,13 @@ int process_seq_fixbanding(int nb) {
 	args->amount = g_ascii_strtod(word[2], &end1);
 	if (end1 == word[2] || args->amount < 0 || args->amount > 4) {
 		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
+		free(args);
 		return CMD_ARG_ERROR;
 	}
 	args->sigma = g_ascii_strtod(word[3], &end2);
 	if (end2 == word[3] || args->sigma < 0 || args->sigma > 5) {
 		siril_log_message(_("1/sigma value must be in the [0, 5] range.\n"));
+		free(args);
 		return CMD_ARG_ERROR;
 	}
 	// settings default optional values
@@ -4202,11 +4206,13 @@ int process_findcosme(int nb) {
 	args->sigma[0] = g_ascii_strtod(word[1 + i], &end1);
 	if (end1 == word[1 + i] || args->sigma[0] < 0) {
 		siril_log_message(_("Sigma low must be positive.\n"));
+		free(args);
 		return CMD_ARG_ERROR;
 	}
 	args->sigma[1] = g_ascii_strtod(word[2 + i], &end2);
 	if (end2 == word[2 + i] || args->sigma[1] < 0) {
 		siril_log_message(_("Sigma high must be positive.\n"));
+		free(args);
 		return CMD_ARG_ERROR;
 	}
 
