@@ -1896,6 +1896,37 @@ merge_clean_up:
 	return retval;
 }
 
+int process_mirrorx_single(int nb){
+	fits fit = { 0 };
+	if (read_fits_metadata_from_path(word[1], &fit)) {
+		siril_log_color_message(_("Could not open file: %s\n"), "red", word[1]);
+		clearfits(&fit);
+		return CMD_ARG_ERROR;
+	}
+	if (!strcmp(fit.row_order, "BOTTOM-UP")) {
+		siril_log_message(_("Image data is already bottom-up\n"));
+		clearfits(&fit);
+		return CMD_OK;
+	}
+	clearfits(&fit);
+	siril_log_message(_("Mirroring image to convert to bottom-up data\n"));
+	if (readfits(word[1], &fit, NULL, FALSE)) {
+		siril_log_color_message(_("Could not open file: %s\n"), "red", word[1]);
+		clearfits(&fit);
+		return CMD_ARG_ERROR;
+	}
+
+	mirrorx(&fit, TRUE);
+
+	int retval = CMD_OK;
+	if (savefits(word[1], &fit)) {
+		siril_log_color_message(_("Could not save mirrored image: %s\n"), "red", word[1]);
+		retval = CMD_ARG_ERROR;
+	}
+	clearfits(&fit);
+	return retval;
+}
+
 int process_mirrorx(int nb){
 	if (nb == 2 && !strcmp(word[1], "-bottomup")) {
 		if (!strcmp(gfit.row_order, "BOTTOM-UP")) {
