@@ -44,14 +44,21 @@ float *kernel;
 
 void reset_conv_args() {
 	siril_debug_print("Resetting deconvolution args\n");
+
+	// Basic image and kernel parameters
 	args.fdata = NULL;
 	args.rx = 0;
 	args.ry = 0;
-	args.ks = 15;
 	args.nchans = 1;
+	args.ks = 15;
+
+	// Process parameters
+	args.blindtype = 0;
+
+	// l0 Descent Kernel Estimation parameters
 	args.lambda = 3000.f;
 	args.lambda_ratio = 1/1.1f;
-	args.lambda_min = 1e-3f;
+	args.lambda_min = 1e-2f; // (was 1e-3 but disagrees with header)
 	args.gamma = 20.f;
 	args.iterations = 2;
 	args.multiscale = FALSE;
@@ -62,14 +69,24 @@ void reset_conv_args() {
 	args.upscaleblur = 0.f;
 	args.downscaleblur = 1.6f;
 	args.k_l1 = 0.5f;
-	args.alpha = 1.f/3000.f;
+
+	// Spectral irregularity kernel estimation parameters
 	args.ninner = 300;
 	args.ntries = 30;
 	args.nouter = 3;
 	args.compensationfactor = 2.1f;
+	args.medianfilter = 1.f; // check
 	args.intermediatedeconvolutionweight = 3000.f;
 	args.finaldeconvolutionweight = 3000.f;
-	args.blindtype = 0;
+
+	// Synthetic kernel parameters
+	args.psf_fwhm = 1.f;
+	args.psf_beta = 4.5f;
+	args.psf_angle = 0.f;
+	args.psf_ratio = 1.f;
+
+	// Non-blind deconvolution parameters
+	args.alpha = 3000.f;
 }
 
 void reset_conv_kernel() {
@@ -82,8 +99,6 @@ void reset_conv_kernel() {
 void reset_conv_controls() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_profile")), 0);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")), args.multiscale);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_removeisolated")), args.remove_isolated);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_betterkernel")), args.better_kernel);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambda")), args.lambda);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdaratio")), args.lambda_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdamin")), args.lambda_min);
@@ -91,15 +106,26 @@ void reset_conv_controls() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_iters")), args.iterations);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_scalefactor")), args.scalefactor);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kthresh")), args.kernel_threshold_max);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_removeisolated")), args.remove_isolated);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_betterkernel")), args.better_kernel);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_upsampleblur")), args.upscaleblur);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_downsampleblur")), args.downscaleblur);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kl1")), args.k_l1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), args.alpha);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfwhm")), args.psf_fwhm);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfbeta")), args.psf_beta);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfangle")), args.psf_angle);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfratio")), args.psf_ratio);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ninner")), args.ninner);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")), args.ntries);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_nouter")), args.nouter);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ncomp")), args.compensationfactor);
 }
 
 void reset_conv_controls_and_args() {
 	reset_conv_args();
 	reset_conv_controls();
+	reset_conv_args();
 }
 
 void on_bdeconv_psfblind_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -330,8 +356,8 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 			printf("\n");
 		}
 #endif
-//		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
-		richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, 8);
+		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
+//		richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, 8);
 //		stochastic(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, 0.0008f);
 	}
 	if (kernel) {
