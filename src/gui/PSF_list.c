@@ -409,7 +409,7 @@ static void remove_all_stars(){
 	g_object_unref(file); \
 	return 1
 
-int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, gboolean verbose) {
+int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, int layer, gboolean verbose) {
 	int i = 0;
 	GError *error = NULL;
 
@@ -441,8 +441,8 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
-	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d relax=%d profile=%d minbeta=%3.1f max_stars=%d%s",
-			sf->sigma, sf->roundness, sf->radius, sf->relax_checks,sf->profile, sf->min_beta, max_stars_fitted, SIRIL_EOL);
+	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d relax=%d profile=%d minbeta=%3.1f max_stars=%d layer=%d%s",
+			sf->sigma, sf->roundness, sf->radius, sf->relax_checks,sf->profile, sf->min_beta, max_stars_fitted, layer, SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
@@ -505,7 +505,7 @@ static void save_stars_dialog() {
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = gtk_file_chooser_get_filename(dialog);
-		save_list(file, MAX_STARS, com.stars, 0, &com.pref.starfinder_conf, TRUE);
+		save_list(file, MAX_STARS, com.stars, 0, &com.pref.starfinder_conf, -1, TRUE); // passing layer as -1 as we are not sure all stars have been detected on same layer
 
 		g_free(file);
 	}
