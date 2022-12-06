@@ -26,6 +26,7 @@ static GActionEntry win_entries[] = {
 	{ "close", close_action_activate },
 	{ "undo", undo_action_activate },
 	{ "redo", redo_action_activate },
+	{ "documentation", doc_action_activate },
 	{ "scripts", scripts_action_activate },
 	{ "updates", updates_action_activate },
 	{ "full-screen", full_screen_activated},

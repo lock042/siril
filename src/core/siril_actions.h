@@ -40,6 +40,7 @@ void preferences_action_activate(GSimpleAction *action, GVariant *parameter, gpo
 void close_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) ;
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void doc_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void keyboard_shortcuts_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data);

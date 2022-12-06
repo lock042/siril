@@ -40,6 +40,7 @@
 #include "gui/utils.h"
 #include "gui/colors.h"
 #include "gui/callbacks.h"
+#include "gui/documentation.h"
 #include "gui/histogram.h"
 #include "gui/open_dialog.h"
 #include "gui/message_dialog.h"
@@ -128,6 +129,10 @@ void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 #ifdef HAVE_JSON_GLIB
 	siril_check_updates(TRUE);
 #endif
+}
+
+void doc_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_get_documentation();
 }
 
 static gboolean is_extended = FALSE;
