@@ -17,18 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef UNDO_H_
-#define UNDO_H_
+#ifndef SRC_GUI_DOCUMENTATION_H_
+#define SRC_GUI_DOCUMENTATION_H_
 
-#define UNDO		-1
-#define REDO		 1
-#define HISTORY_SIZE 30		// size of the operations history
+void siril_get_documentation();
 
-gboolean is_undo_available();
-gboolean is_redo_available();
-int undo_display_data(int dir);
-int undo_save_state(fits *fit, const char *message, ...);
-int	undo_flush();
-void set_undo_redo_tooltip();
-
-#endif /* UNDO_H_ */
+#endif /* SRC_GUI_DOCUMENTATION_H_ */

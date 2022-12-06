@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2017 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -35,7 +35,8 @@ static gchar **authors = (gchar *[] ) {
 };
 
 static gchar **documenters = (gchar *[] ) {
-				"Laurent Rogé <l.roge@siril.org>",
+				"Laurent Rogé <l.roge@siril.org> (2016-2022)",
+				"Team free-astro (2022-"SIRIL_GIT_LAST_COMMIT_YEAR")",
 				NULL
 };
 
@@ -58,7 +59,7 @@ void siril_show_about_dialog() {
 	version = g_strdup_printf("%s\ncommit %s", VERSION, SIRIL_GIT_VERSION_ABBREV);
 #endif
 	copyright = g_strdup_printf("Copyright © 2004-2011 François Meyer\n"
-			"Copyright © 2012-%s team free-astro", SIRIL_GIT_LAST_COMMIT_YEAR);
+			"Copyright © 2012-%s Team free-astro", SIRIL_GIT_LAST_COMMIT_YEAR);
 
 	parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	/* Create pixbuf from siril.svg file */

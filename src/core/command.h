@@ -72,6 +72,7 @@ int	process_ls(int nb);
 
 int	process_merge(int nb);
 int	process_mirrorx(int nb);
+int	process_mirrorx_single(int nb);
 int	process_mirrory(int nb);
 int	process_mtf(int nb);
 

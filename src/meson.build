@@ -175,6 +175,7 @@ src_files = [
   'gui/conversion.c',
   'gui/dialog_preview.c',
   'gui/dialogs.c',
+  'gui/documentation.c',
   'gui/fix_xtrans_af.c',
   'gui/histogram.c',
   'gui/image_display.c',

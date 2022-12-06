@@ -57,7 +57,7 @@ static command commands[] = {
 	{"crop", 0, "crop [x y width height]", process_crop, STR_CROP, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"ddp", 3, "ddp level coef sigma", process_ddp, STR_DDP, FALSE, REQ_CMD_SINGLE_IMAGE},
-	{"denoise", 0, "denoise [-nocosmetic] [-mod=m] [ -vst | -da3d | -sos=n [-rho=r] ] [-independant]", process_denoise, STR_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"denoise", 0, "denoise [-nocosmetic] [-mod=m] [ -vst | -da3d | -sos=n [-rho=r] ] [-indep]", process_denoise, STR_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
 #endif
@@ -119,6 +119,7 @@ static command commands[] = {
 
 	{"merge", 3, "merge sequence1 sequence2 [sequence3 ...] output_sequence", process_merge, STR_MERGE, TRUE, REQ_CMD_NONE},
 	{"mirrorx", 0, "mirrorx [-bottomup]", process_mirrorx, STR_MIRRORX, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"mirrorx_single", 1, "mirrorx_single image", process_mirrorx_single, STR_MIRRORX_SINGLE, TRUE, REQ_CMD_NONE},
 	{"mirrory", 0, "mirrory", process_mirrory, STR_MIRRORY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"modasinh", 4, "modasinh [-human | -even | -independent] D LP SP HP [channels]", process_modasinh, STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mtf", 3, "mtf low mid high [channels]", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
@@ -176,7 +177,7 @@ static command commands[] = {
 	{"seqheader", 2, "seqheader sequencename keyword", process_seq_header, STR_SEQHEADER, TRUE, REQ_CMD_NONE},
 	{"seqfind_cosme", 3, "seqfind_cosme sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME, TRUE, REQ_CMD_NONE},
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME_CFA, TRUE, REQ_CMD_NONE},
-	{"seqfindstar", 1, "seqfindstar sequencename [-layer=] [-maxstars=]", process_seq_findstar, STR_FINDSTAR, TRUE, REQ_CMD_NONE},
+	{"seqfindstar", 1, "seqfindstar sequencename [-out=] [-layer=] [-maxstars=]", process_seq_findstar, STR_FINDSTAR, TRUE, REQ_CMD_NONE},
 	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vertical]", process_seq_fixbanding, STR_SEQFIXBANDING, TRUE, REQ_CMD_NONE},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [channels] [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE, REQ_CMD_NONE},
 	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},

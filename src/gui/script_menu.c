@@ -294,7 +294,7 @@ void siril_get_on_script_pages() {
 	gchar *lang = NULL;
 	int i = 0;
 
-	if (!g_strcmp0(com.pref.lang, "")) {
+	if (!com.pref.lang || !g_strcmp0(com.pref.lang, "")) {
 		locale = setlocale(LC_MESSAGES, NULL);
 	} else {
 		locale = com.pref.lang;

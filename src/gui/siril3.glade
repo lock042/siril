@@ -13419,6 +13419,20 @@ This should normally be the case only for stacked images. Increasing this value 
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="main_menu_doc">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.documentation</property>
+            <property name="text" translatable="yes">Siril Manual</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="main_menu_updates">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -13429,7 +13443,7 @@ This should normally be the case only for stacked images. Increasing this value 
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
         <child>
@@ -13443,7 +13457,7 @@ This should normally be the case only for stacked images. Increasing this value 
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -13457,7 +13471,7 @@ This should normally be the case only for stacked images. Increasing this value 
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">6</property>
+            <property name="position">7</property>
           </packing>
         </child>
         <child>
