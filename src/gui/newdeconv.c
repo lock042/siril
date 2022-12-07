@@ -31,6 +31,7 @@
 #include "gui/sequence_list.h"
 #include "gui/message_dialog.h"
 #include "gui/registration_preview.h"
+#include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
 #include "gui/utils.h"
@@ -58,7 +59,7 @@ void reset_conv_args() {
 	// l0 Descent Kernel Estimation parameters
 	args.lambda = 3000.f;
 	args.lambda_ratio = 1/1.1f;
-	args.lambda_min = 1e-2f; // (was 1e-3 but disagrees with header)
+	args.lambda_min = 1e-3f;
 	args.gamma = 20.f;
 	args.iterations = 2;
 	args.multiscale = FALSE;
@@ -286,7 +287,20 @@ void on_bdeconv_setlambdafromnoise_clicked(GtkButton *button, gpointer user_data
 
 }
 
-void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
+gboolean deconvolve_idle(gpointer arg) {
+
+	free(args.fdata);
+	args.fdata = NULL;
+
+	update_zoom_label();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
+	stop_processing_thread();
+	return FALSE;
+}
+
+gpointer deconvolve(gpointer p) {
 	set_cursor_waiting(TRUE);
 	gchar *wisdom_file = g_build_filename(g_get_user_cache_dir(), "siril_fftw.wisdom", NULL);
     if (fftwf_import_wisdom_from_filename(wisdom_file) == 1) {
@@ -344,7 +358,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (kernel == NULL) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: no kernel defined"),
 				_("Select blind deconvolution or define a kernel from selection or psf parameters"));
-		return;
+		return GINT_TO_POINTER(1);
 	}
 	else {
 		siril_log_message(_("Starting non-blind deconvolution...\n"));
@@ -377,16 +391,12 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	} else {
         printf("Siril wisdom update failed...\n");
 	}
-    g_free(wisdom_file);
+	g_free(wisdom_file);
 
-	free(args.fdata);
-	args.fdata = NULL;
-
-	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
-
+	siril_add_idle(deconvolve_idle, NULL);
+	return GINT_TO_POINTER(0);
 }
 
-
+void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
+	start_in_new_thread(deconvolve, NULL);
+}

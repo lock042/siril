@@ -14,10 +14,10 @@ EXTERNC typedef struct estk_data {
 	unsigned ry;
 	unsigned nchans;
 	int ks; // Kernel size
-	// Anger-Delbracio-Facciolo
+	// Anger-Delbracio-Facciolo l0 Descent
 	float lambda;// = 4e-3f; // Lambda
 	float lambda_ratio;// = 1/1.1f; // Scaling ratio of lambda for multiscale
-	float lambda_min;// = 1e-2f; // Min lambda
+	float lambda_min;// = 1e-3f; // Min lambda
 	float gamma;// = 20.f;
 	float iterations;// = 2;
 	gboolean multiscale;// = FALSE;
@@ -33,7 +33,7 @@ EXTERNC typedef struct estk_data {
 	float psf_beta;
 	float psf_angle;
 	float psf_ratio;
-	// Goldstein-Fattal
+	// Goldstein-Fattal Spectral Irregularity
 	int ninner;
 	int ntries;
 	int nouter;
