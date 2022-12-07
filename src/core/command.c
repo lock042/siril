@@ -6631,18 +6631,14 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->cc_from_dark = TRUE;
 				//either we use the default sigmas or we try to read the next two checking for sigma low and high
 				gchar *end1, *end2;
+				args->sigma[0] = g_ascii_strtod(word[i + 1], &end1);
+				args->sigma[1] = g_ascii_strtod(word[i + 2], &end2);
 
-				if (word[i + 1] && word[i + 2]) {
-					args->sigma[0] = g_ascii_strtod(word[i + 1], &end1);
-					args->sigma[1] = g_ascii_strtod(word[i + 2], &end2);
-
-					if (end1 == word[i + 1] || end2 == word[i + 2]) {
-						args->sigma[0] = 0;
-						args->sigma[1] = 0;
-						continue;
-					}
+				if (word[i + 1] && word[i + 2] && word[i + 1] != end1
+						&& word[i + 2] != end2) {
 					i+= 2;
 				}
+
 				if (args->sigma[0] == 0) args->sigma[0] = -1.00;
 				if (args->sigma[1] == 0) args->sigma[1] = -1.00;
 				if (args->sigma[0] > 0)
