@@ -788,10 +788,10 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		if (!strncmp(buffer, "# sigma=", 8)) {
 			star_finder_params fparams = { 0 };
 			int fmax_stars;
-			int prof;
-			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d relax=%d profile=%d minbeta=%lf max_stars=%d",
+			int prof, layer;
+			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d relax=%d profile=%d minbeta=%lf max_stars=%d layer=%d",
 						&fparams.sigma, &fparams.roundness, &fparams.radius,
-						&fparams.relax_checks, &prof, &fparams.min_beta, &fmax_stars) != 7) {
+						&fparams.relax_checks, &prof, &fparams.min_beta, &fmax_stars, &layer) != 8) {
 				read_failure = TRUE;
 				break;
 			}
@@ -799,15 +799,17 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 			params_ok = fparams.sigma == sf->sigma && fparams.roundness == sf->roundness &&
 				fparams.radius == sf->radius &&	fparams.relax_checks == sf->relax_checks &&
 				fparams.profile == sf->profile && fparams.min_beta == sf->min_beta &&
-				(fmax_stars >= sfargs->max_stars_fitted);
+				(fmax_stars >= sfargs->max_stars_fitted) && layer == sfargs->layer;
 			if (fmax_stars > sfargs->max_stars_fitted) sfargs->max_stars_fitted = fmax_stars;
 			siril_debug_print("params check: %d\n", params_ok);
 			if (!params_ok) {
 				read_failure = TRUE;
 				break;
 			}
-			if (!sfargs->stars) // if cannot store them, no need to read them
+			if (!sfargs->stars) {// if cannot store them, no need to read them
+				star = nb_stars; // for message display
 				break;
+			}
 		}
 		if (buffer[0] == '#' || buffer[0] == '\0')
 			continue;
@@ -838,8 +840,8 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		(*sfargs->stars)[star] = NULL;
 	}
 	if (!read_failure) {
-		siril_debug_print("found %d stars with same settings in %s\n", star, filename);
-		*sfargs->nb_stars = star;
+		siril_log_message(_("Found %d stars with same settings in %s, skipping detection\n"), star, filename);
+		if (sfargs->nb_stars) *sfargs->nb_stars = star;
 	} else {
 		if (sfargs->stars) {
 			free(*sfargs->stars);
@@ -940,7 +942,7 @@ gpointer findstar_worker(gpointer p) {
 			selection ? _("selection") : _("image"), args->layer);
 	if (args->starfile &&
 			save_list(args->starfile, args->max_stars_fitted, stars, nbstars,
-				&com.pref.starfinder_conf, args->update_GUI)) {
+				&com.pref.starfinder_conf, args->layer, args->update_GUI)) {
 		retval = 1;
 	}
 
