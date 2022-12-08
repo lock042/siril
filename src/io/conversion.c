@@ -163,6 +163,9 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".fit";
 	supported_extensions[count_ext++] = ".fits";
 	supported_extensions[count_ext++] = ".fts";
+	supported_extensions[count_ext++] = ".fit.fz";
+	supported_extensions[count_ext++] = ".fits.fz";
+	supported_extensions[count_ext++] = ".fts.fz";
 	supported_extensions[count_ext++] = ".bmp";
 	supported_extensions[count_ext++] = ".ppm";
 	supported_extensions[count_ext++] = ".pgm";
