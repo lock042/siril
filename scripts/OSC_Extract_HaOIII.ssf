@@ -17,7 +17,6 @@
 #   darks/
 #   lights/
 # Saves masters to ./masters/
-# Saves stack to ./result/
 #
 ############################################
 
@@ -71,9 +70,7 @@ register Ha_pp_light -drizzle
 stack r_Ha_pp_light rej 3 3 -norm=addscale -output_norm -out=results_00001
 
 # and flip if required
-load results_00001
-mirrorx -bottomup
-save results_00001
+mirrorx_single results_00001
 
 
 # Align OIII lights
@@ -83,19 +80,17 @@ register OIII_pp_light
 stack r_OIII_pp_light rej 3 3 -norm=addscale -output_norm -out=results_00002
 
 # and flip if required
-load results_00002
-mirrorx -bottomup
-save results_00002
+mirrorx_single results_00002
 
 # Align the result images, small shifts and chromatic aberrations can occur
 register results -transf=shift -interp=none
 
 # Renorm OIII to Ha using PixelMath
 pm $r_results_00002$*mad($r_results_00001$)/mad($r_results_00002$)-mad($r_results_00001$)/mad($r_results_00002$)*median($r_results_00002$)+median($r_results_00001$)
-save ../result_OIII_$LIVETIME:%d$s
+save ../results/result_OIII_$LIVETIME:%d$s
 
 # Save Ha final result
 load r_results_00001
-save ../result_Ha_$LIVETIME:%d$s
+save ../results/result_Ha_$LIVETIME:%d$s
 
 close

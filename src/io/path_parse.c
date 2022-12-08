@@ -447,8 +447,9 @@ Same as path_parse but makes sure the header is updated before parsing
 A copy of the fits metadata is made into a temporary fit that gets updated
 and its header string generated.
 This temporary fit is then called by path_parse.
+If creatdir is TRUE, creates directory if required
 */
-gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
+gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, gboolean createdir, int *status) {
 	*status = PATHPARSE_ERR_OK;
 	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
 		return g_strdup(expression);
@@ -456,7 +457,7 @@ gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode
 	fits tmpfit = { 0 };
 	fitsfile *fptr;
 	int fstatus = 0;
-	gchar *parsedname = NULL;
+	gchar *parsedname = NULL, *dirname = NULL;
 	copyfits(fit, &tmpfit, CP_FORMAT, 0);
 	copy_fits_metadata(fit, &tmpfit); // otherwise some fields get wiped out like date-obs
 	const gchar *tmpdir = g_get_tmp_dir();
@@ -475,8 +476,19 @@ gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode
 	tmpfit.header = copy_header(&tmpfit);
 	parsedname = path_parse(&tmpfit, expression, mode, status);
 	fits_close_file(fptr, &fstatus);
+
+	if (parsedname && createdir) {
+		dirname = g_path_get_dirname(parsedname);
+		if (g_mkdir_with_parents(dirname, 0755) < 0) {
+			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+			g_free(parsedname);
+			parsedname = NULL;
+		}
+	}
+
 free_and_exit:
 	g_free(tmpheadername);
+	g_free(dirname);
 	clearfits(&tmpfit);
 	return parsedname;
 }
