@@ -1897,33 +1897,55 @@ merge_clean_up:
 }
 
 int process_mirrorx_single(int nb){
+	image_type imagetype;
+	char *realname = NULL;
+	if (stat_file(word[1], &imagetype, &realname)) {
+		siril_log_color_message(_("Error opening image %s: file not found or not supported.\n"), "red", word[1]);
+		free(realname);
+		return CMD_FILE_NOT_FOUND;
+	}
+	if (imagetype != TYPEFITS && imagetype != TYPETIFF) {
+		siril_log_color_message(_("This command is only supported with FITS and TIFF, able to contain orientation information\n"), "red");
+		free(realname);
+		return CMD_INVALID_IMAGE;
+	}
+	if (imagetype == TYPEFITS && fitseq_is_fitseq(realname, NULL)) {
+		siril_log_color_message(_("This command is only supported with single FITS images, for the first HDU, not a FITS cube.\n"), "red");
+		free(realname);
+		return CMD_INVALID_IMAGE;
+	}
+
 	fits fit = { 0 };
-	if (read_fits_metadata_from_path(word[1], &fit)) {
-		siril_log_color_message(_("Could not open file: %s\n"), "red", word[1]);
+	if (read_fits_metadata_from_path(realname, &fit)) {
+		siril_log_color_message(_("Could not open file: %s\n"), "red", realname);
 		clearfits(&fit);
+		free(realname);
 		return CMD_ARG_ERROR;
 	}
 	if (!strcmp(fit.row_order, "BOTTOM-UP")) {
 		siril_log_message(_("Image data is already bottom-up\n"));
 		clearfits(&fit);
+		free(realname);
 		return CMD_OK;
 	}
 	clearfits(&fit);
 	siril_log_message(_("Mirroring image to convert to bottom-up data\n"));
-	if (readfits(word[1], &fit, NULL, FALSE)) {
-		siril_log_color_message(_("Could not open file: %s\n"), "red", word[1]);
+	if (readfits(realname, &fit, NULL, FALSE)) {
+		siril_log_color_message(_("Could not open file: %s\n"), "red", realname);
 		clearfits(&fit);
+		free(realname);
 		return CMD_ARG_ERROR;
 	}
 
 	mirrorx(&fit, TRUE);
 
 	int retval = CMD_OK;
-	if (savefits(word[1], &fit)) {
-		siril_log_color_message(_("Could not save mirrored image: %s\n"), "red", word[1]);
+	if (savefits(realname, &fit)) {
+		siril_log_color_message(_("Could not save mirrored image: %s\n"), "red", realname);
 		retval = CMD_ARG_ERROR;
 	}
 	clearfits(&fit);
+	free(realname);
 	return retval;
 }
 
