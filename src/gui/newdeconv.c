@@ -39,6 +39,7 @@
 #include "gui/progress_and_log.h"
 #include "filters/deconvolution/deconvolution.h"
 #include "filters/synthstar.h"
+#include "algos/statistics.h"
 
 estk_data args = { 0 };
 int psftype = 0;
@@ -315,7 +316,26 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_bdeconv_setlambdafromnoise_clicked(GtkButton *button, gpointer user_data) {
-	siril_log_message("Not implemented yet\n");
+	double bgnoise;
+	unsigned ndata = gfit.rx * gfit.ry * gfit.naxes[2];
+	float *buffer = (float*) malloc(ndata * sizeof(float));
+	if (gfit.type == DATA_FLOAT)
+		memcpy(buffer, gfit.fdata, ndata * sizeof(float));
+	else {
+		float invnorm = 1.f / USHRT_MAX_SINGLE;
+		for (size_t i = 0 ; i < ndata ; i++) {
+			buffer[i] = (float) gfit.data[i] * invnorm;
+		}
+	}
+    sos_update_noise_float(buffer, gfit.rx, gfit.ry, gfit.naxes[2], &bgnoise);
+	printf("%f noise\n", bgnoise);
+	args.lambda = (float) bgnoise / 2.f;
+	args.alpha = (float) bgnoise / 2.f;
+	args.intermediatedeconvolutionweight = 2.f / (float) bgnoise;
+	args.finaldeconvolutionweight = 2.f / (float) bgnoise;
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), 1.f / args.alpha);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gflambda")), 1.f / args.lambda);
+	free(buffer);
 }
 
 gboolean deconvolve_idle(gpointer arg) {
@@ -343,7 +363,6 @@ gpointer deconvolve(gpointer p) {
 	}
 	undo_save_state(&gfit, _("Deconvolution"));
 	unsigned ndata = gfit.rx * gfit.ry * gfit.naxes[2];
-
 	args.fdata = malloc(ndata * sizeof(float));
 	if (gfit.type == DATA_FLOAT)
 		memcpy(args.fdata, gfit.fdata, ndata * sizeof(float));
@@ -356,6 +375,7 @@ gpointer deconvolve(gpointer p) {
 	args.rx = gfit.rx;
 	args.ry = gfit.ry;
 	args.nchans = gfit.naxes[2];
+
 	float *kernel = NULL;
 	switch (psftype) {
 		case 0:
