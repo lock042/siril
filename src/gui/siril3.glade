@@ -5866,6 +5866,20 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="step-increment">2</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="bdeconv_rliters">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">10</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="bdeconv_stopadjustment">
+    <property name="lower">1.0000000000000001e-05</property>
+    <property name="upper">0.01</property>
+    <property name="value">0.001</property>
+    <property name="step-increment">1.0000000000000001e-05</property>
+    <property name="page-increment">0.0001</property>
+  </object>
   <object class="GtkAdjustment" id="clamp_adjustment">
     <property name="upper">1</property>
     <property name="value">0.5</property>
@@ -6238,7 +6252,6 @@ enter a visible wavelength in nm</property>
                             <property name="tooltip-text" translatable="yes">If checked, a PSF defined from stars or manual parameters will be circularly symmetric. If unchecked the PSF may be elongated and have a defined rotation angle.</property>
                             <property name="halign">start</property>
                             <property name="draw-indicator">True</property>
-                            <signal name="toggled" handler="on_bdeconv_symkern_toggled" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -6249,7 +6262,7 @@ enter a visible wavelength in nm</property>
                           <object class="GtkComboBoxText" id="bdeconv_blindtype">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="active">0</property>
+                            <property name="active">1</property>
                             <items>
                               <item translatable="yes">Spectral Irregularity</item>
                               <item translatable="yes">ℓ0 Descent</item>
@@ -6626,7 +6639,6 @@ enter a visible wavelength in nm</property>
                                     <property name="tooltip-text" translatable="yes">Multiscale kernel estimation. </property>
                                     <property name="active">True</property>
                                     <property name="draw-indicator">True</property>
-                                    <signal name="toggled" handler="on_bdeconv_multiscale_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="left-attach">1</property>
@@ -6644,7 +6656,6 @@ enter a visible wavelength in nm</property>
                               <object class="GtkExpander" id="bdeconv_expander">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="expanded">True</property>
                                 <child>
                                   <!-- n-columns=2 n-rows=10 -->
                                   <object class="GtkGrid">
@@ -6903,7 +6914,6 @@ enter a visible wavelength in nm</property>
                                         <property name="receives-default">False</property>
                                         <property name="active">True</property>
                                         <property name="draw-indicator">True</property>
-                                        <signal name="toggled" handler="on_bdeconv_betterkernel_toggled" swapped="no"/>
                                       </object>
                                       <packing>
                                         <property name="left-attach">1</property>
@@ -7165,19 +7175,23 @@ enter a visible wavelength in nm</property>
                     <property name="can-focus">False</property>
                     <property name="left-padding">12</property>
                     <child>
-                      <!-- n-columns=2 n-rows=1 -->
+                      <!-- n-columns=1 n-rows=4 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="row-spacing">6</property>
-                        <property name="column-spacing">6</property>
                         <property name="column-homogeneous">True</property>
                         <child>
-                          <object class="GtkLabel">
+                          <object class="GtkComboBoxText" id="bdeconv_nonblindtype">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Alpha (α)</property>
+                            <property name="tooltip-text" translatable="yes">Select the deconvolution method used  for the non-blind stage of deconvolution (i.e. once the blur kernel has been estimated or provided)</property>
+                            <property name="active">0</property>
+                            <items>
+                              <item translatable="yes">Split Bregman method with TV regularization</item>
+                              <item translatable="yes">Richardson-Lucy method with TV regularization</item>
+                            </items>
+                            <signal name="changed" handler="on_bdeconv_nonblindtype_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -7185,19 +7199,122 @@ enter a visible wavelength in nm</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkSpinButton" id="bdeconv_alpha">
+                          <object class="GtkBox">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Regularisation parameter for the final non-blind stageof deconvolution</property>
-                            <property name="text" translatable="yes">0.00033</property>
-                            <property name="adjustment">convalpha</property>
-                            <property name="digits">2</property>
-                            <property name="value">3000</property>
-                            <signal name="value-changed" handler="on_bdeconv_alpha_value_changed" swapped="no"/>
+                            <property name="can-focus">False</property>
+                            <property name="homogeneous">True</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Iterations</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="bdeconv_finaliters">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Number of iterations for final deconvolution if using an iterative method (e.g. Richardson-Lucy)</property>
+                                <property name="adjustment">bdeconv_rliters</property>
+                                <property name="value">10</property>
+                                <signal name="value-changed" handler="on_bdeconv_finaliters_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
                           <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="homogeneous">True</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Alpha (α)</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="bdeconv_alpha">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Regularisation parameter for the final non-blind stage deconvolution</property>
+                                <property name="text" translatable="yes">3000.00</property>
+                                <property name="adjustment">convalpha</property>
+                                <property name="digits">2</property>
+                                <property name="value">3000</property>
+                                <signal name="value-changed" handler="on_bdeconv_alpha_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="homogeneous">True</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Stopping criterion</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="bdeconv_stopcriterion">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Sets an early stop criterion for the Richardson-Lucy algorithm to prevent noise amplification. Deconvolution will stop early if the average pixel difference ratio between subsequent iterations is less than this value.</property>
+                                <property name="adjustment">bdeconv_stopadjustment</property>
+                                <property name="digits">5</property>
+                                <signal name="value-changed" handler="on_bdeconv_stopcriterion_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">3</property>
                           </packing>
                         </child>
                       </object>
@@ -7209,8 +7326,7 @@ enter a visible wavelength in nm</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="tooltip-text" translatable="yes">Once kernel estimation is complete a non-blind deconvolution stage is carried out using the estimated kernel </property>
-                    <property name="label" translatable="yes">&lt;b&gt;Non-Blind Deconvolution
-&lt;i&gt;Split Bregman method with Rudemi-Osher-Fattal TV regularisation&lt;/i&gt;&lt;/b&gt;</property>
+                    <property name="label" translatable="yes">&lt;b&gt;Non-Blind Deconvolution&lt;/b&gt;</property>
                     <property name="use-markup">True</property>
                   </object>
                 </child>

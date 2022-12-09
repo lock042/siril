@@ -3,10 +3,6 @@
 #include "image.hpp"
 #include "deblur.hpp"
 
-/*extern "C" {
-#include "tvdeconv_20120607/tvreg.h"
-}*/
-
 /// pad an image using constant boundaries
 template <typename T>
 static void padimage_replicate(img_t<T>& out, const img_t<T>& in, int padding)
@@ -63,68 +59,6 @@ static void unpadimage(img_t<T>& out, const img_t<T>& in, int padding)
     }
 }
 
-/// smooth the borders of an image so that the result is more periodic
-/// see matlab:'help edgetaper'
-/*template <typename T>
-static void edgetaper(img_t<T>& out, const img_t<T>& in,
-                      const img_t<T>& kernel, int iterations=1)
-{
-    out.ensure_size(in.w, in.h, in.d);
-
-    img_t<T> weights(in.w, in.h);
-    // kind of tukey window
-    for (int y = 0; y < in.h; y++) {
-        T wy = 1.;
-        if (y < kernel.h) {
-            wy = std::pow(std::sin(y * M_PI / (kernel.h*2 - 1)), 2.);
-        } else if (y > in.h - kernel.h) {
-            wy = std::pow(std::sin((in.h-1 - y) * M_PI / (kernel.h*2 - 1)), 2.);
-        }
-        for (int x = 0; x < in.w; x++) {
-            T wx = 1.;
-            if (x < kernel.w) {
-                wx = std::pow(std::sin(x * M_PI / (kernel.w*2 - 1)), 2.);
-            } else if (x > in.w - kernel.w) {
-                wx = std::pow(std::sin((in.w-1 - x) * M_PI / (kernel.w*2 - 1)), 2.);
-            }
-            weights(x, y) = wx * wy;
-        }
-    }
-
-    // kernel's fft
-    img_t<T> blurred(in.w, in.h, in.d);
-    img_t<std::complex<T>> kernel_ft(in.w, in.h, in.d);
-    kernel_ft.padcirc(kernel);
-    kernel_ft.fft(kernel_ft);
-
-    img_t<std::complex<T>> blurred_ft(in.w, in.h, in.d);
-
-    out.copy(in);
-    for (int i = 0; i < iterations; i++) {
-        blurred_ft.copy(out);
-
-        blurred_ft.fft(blurred_ft);
-        for (int y = 0; y < out.h; y++)
-            for (int x = 0; x < out.w; x++)
-                for (int l = 0; l < out.d; l++)
-                    blurred_ft(x, y, l) *= kernel_ft(x, y);
-        blurred_ft.ifft(blurred_ft);
-
-        for (int i = 0; i < blurred.size; i++)
-            blurred[i] = std::real(blurred_ft[i]);
-
-        // blend the images
-        for (int y = 0; y < out.h; y++) {
-            for (int x = 0; x < out.w; x++) {
-                T w = weights(x, y);
-                for (int l = 0; l < out.d; l++) {
-                    out(x, y, l) = w * out(x, y, l) + (1. - w) * blurred(x, y, l);
-                }
-            }
-        }
-    }
-}
-*/
 template <typename T>
 void pad_and_taper(img_t<T>& u, const img_t<T>& f, const img_t<T>& K)
 {
@@ -224,7 +158,7 @@ void deconvBregman(img_t<T>& u, const img_t<T>& f, const img_t<T>& K,
     }
 
     // deconvolve
-    deblur::rof::split_continuation(deconv_planar, f_planar, K, 2.f / lambda, beta, 2.f * std::sqrt(2.f), std::pow(2.f, 8.f));
+    deblur::rof::split_continuation(deconv_planar, f_planar, K, 2.f / lambda, beta, 2.f * std::sqrt(2.f), std::pow(2.f, 8.f), 1);
 
     // reorder to interleaved
     u.ensure_size(deconv_planar.w, deconv_planar.h, deconv_planar.d);

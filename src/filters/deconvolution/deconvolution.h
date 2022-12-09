@@ -14,6 +14,7 @@ EXTERNC typedef struct estk_data {
 	unsigned ry;
 	unsigned nchans;
 	int ks; // Kernel size
+	int blindtype;
 	// Anger-Delbracio-Facciolo l0 Descent
 	float lambda;// = 4e-3f; // Lambda
 	float lambda_ratio;// = 1/1.1f; // Scaling ratio of lambda for multiscale
@@ -28,11 +29,11 @@ EXTERNC typedef struct estk_data {
 	float upscaleblur;// = 0.f;
 	float downscaleblur;// = 1.6f;
 	float k_l1;// = 0.5f;
-	float alpha; // = 1/3000;
 	float psf_fwhm;
 	float psf_beta;
 	float psf_angle;
 	float psf_ratio;
+	int profile;
 	// Goldstein-Fattal Spectral Irregularity
 	int ninner;
 	int ntries;
@@ -41,7 +42,14 @@ EXTERNC typedef struct estk_data {
 	int medianfilter;
 	float finaldeconvolutionweight;
 	float intermediatedeconvolutionweight;
-	int blindtype;
+	// Non-blind deconvoluton stage
+	int nonblindtype;
+	float alpha; // = 1/3000;
+	int finaliters; // Iters for iterative final methods
+	float stopcriterion; // Stopping distance for Richardson-Lucy
+
+
+
 } estk_data;
 #ifdef __cplusplus
 }
@@ -57,12 +65,12 @@ EXTERNC float *gf_estimate_kernel(estk_data *args);
 }
 #endif
 
-EXTERNC int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda);
+EXTERNC int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int iters);
 #ifdef __cplusplus
 }
 #endif
 
-EXTERNC int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int maxiter);
+EXTERNC int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int maxiter, float stopcriterion);
 #ifdef __cplusplus
 }
 #endif

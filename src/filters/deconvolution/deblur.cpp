@@ -6,7 +6,7 @@
 #include "edgetaper.hpp"
 
 
-extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda) {
+extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int iters) {
 
     // These replace smart parameters from the original implementation
     // No need for smapa in Siril as we don't need to be able to overwrite options using
@@ -32,7 +32,7 @@ extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nc
     }
 
     deblur::rof::split_continuation(u, f, K, 2.f / lambda, CONTINUATION_BETA_INIT,
-                                    CONTINUATION_BETA_RATE, CONTINUATION_BETA_MAX);
+                                    CONTINUATION_BETA_RATE, CONTINUATION_BETA_MAX, iters);
 
     if (EDGETAPER) {
         u = utils::remove_padding(u, K);

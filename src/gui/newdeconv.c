@@ -82,13 +82,17 @@ void reset_conv_args() {
 	args.finaldeconvolutionweight = 3000.f;
 
 	// Synthetic kernel parameters
+	args.profile = 0;
 	args.psf_fwhm = 1.f;
 	args.psf_beta = 4.5f;
 	args.psf_angle = 0.f;
 	args.psf_ratio = 1.f;
 
 	// Non-blind deconvolution parameters
+	args.nonblindtype = 0;
 	args.alpha = 1.f / 3000.f;
+	args.finaliters = 1;
+	args.stopcriterion = 0.001f;
 }
 
 void reset_conv_kernel() {
@@ -99,7 +103,9 @@ void reset_conv_kernel() {
 }
 
 void reset_conv_controls() {
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_profile")), 0);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_profile")), args.profile);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_blindtype")), args.blindtype);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_nonblindtype")), args.nonblindtype);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")), args.multiscale);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambda")), 1.f / args.lambda);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdaratio")), args.lambda_ratio);
@@ -121,6 +127,7 @@ void reset_conv_controls() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ninner")), args.ninner);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")), args.ntries);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_nouter")), args.nouter);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), args.finaliters);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ncomp")), args.compensationfactor);
 }
 
@@ -151,7 +158,6 @@ void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
 	args.blindtype = gtk_combo_box_get_active(combo);
-	printf("combo changed\n");
 	if (psftype == 0) {
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("bdeconv_psfcontrols")), FALSE);
 		switch (args.blindtype) {
@@ -165,6 +171,23 @@ void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
 				break;
 		}
 	}
+}
+
+void on_bdeconv_nonblindtype_changed(GtkComboBox *combo, gpointer user_data) {
+	args.nonblindtype = gtk_combo_box_get_active(combo);
+	switch (args.nonblindtype) {
+		case 0:
+			args.finaliters = 1; // Default niters for Split Bregman
+			break;
+		case 1:
+			args.finaliters = 10; // Default niters for RL
+			break;
+	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), args.finaliters);
+}
+
+void on_bdeconv_profile_changed(GtkComboBox *combo, gpointer user_data) {
+	args.profile = gtk_combo_box_get_active(combo);
 }
 
 void on_bdeconv_expander_activate(GtkExpander *expander, gpointer user_data) {
@@ -214,6 +237,10 @@ void on_bdeconv_gamma_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_bdeconv_iters_value_changed(GtkSpinButton *button, gpointer user_data) {
 	args.iterations = gtk_spin_button_get_value(button);
+}
+
+void on_bdeconv_finaliters_value_changed(GtkSpinButton *button, gpointer user_data) {
+	args.finaliters = gtk_spin_button_get_value(button);
 }
 
 void on_bdeconv_lambdaratio_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -270,11 +297,14 @@ void on_bdeconv_alpha_value_changed(GtkSpinButton *button, gpointer user_data) {
 	args.alpha = 1.f / gtk_spin_button_get_value(button);
 }
 
+void on_bdeconv_stopcriterion_value_changed(GtkSpinButton *button, gpointer user_data) {
+	args.stopcriterion = gtk_spin_button_get_value(button);
+}
+
 void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
 	reset_conv_controls_and_args();
 	siril_close_dialog("bdeconv_dialog");
 }
-
 
 void on_bdeconv_reset_clicked(GtkButton *button, gpointer user_data) {
 	reset_conv_controls_and_args();
@@ -285,11 +315,12 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_bdeconv_setlambdafromnoise_clicked(GtkButton *button, gpointer user_data) {
-
+	siril_log_message("Not implemented yet\n");
 }
 
 gboolean deconvolve_idle(gpointer arg) {
 
+	set_progress_bar_data("Ready.", 0);
 	args.fdata = NULL;
 	update_zoom_label();
 	redraw(REMAP_ALL);
@@ -330,10 +361,9 @@ gpointer deconvolve(gpointer p) {
 		case 0:
 			reset_conv_kernel();
 			args.better_kernel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_betterkernel")));
-			args.remove_isolated = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_removeisolated")));
 			args.multiscale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")));
 
-			siril_log_message(_("Starting kernel estimation...\n"));
+			set_progress_bar_data("Starting kernel estimation...", 0);
 			switch(args.blindtype) {
 				case 0:
 					kernel = gf_estimate_kernel(&args);
@@ -360,7 +390,7 @@ gpointer deconvolve(gpointer p) {
 				_("Select blind deconvolution or define a kernel from selection or psf parameters"));
 		return GINT_TO_POINTER(1);
 	} else if (get_thread_run()) {
-		siril_log_message(_("Starting non-blind deconvolution...\n"));
+		set_progress_bar_data("Starting non-blind deconvolution...", 0);
 #ifdef SIRIL_OUTPUT_DEBUG
 		for (int i = 0; i < args.ks; i++) {
 			for (int j = 0 ; j < args.ks ; j++) {
@@ -369,9 +399,18 @@ gpointer deconvolve(gpointer p) {
 			printf("\n");
 		}
 #endif
-//		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
-		richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, 8);
-//		stochastic(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, 0.0008f);
+		siril_debug_print("Type %d\n", args.nonblindtype);
+		switch (args.nonblindtype) {
+			case 0:
+				split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha, args.finaliters);
+				break;
+			case 1:
+				richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, args.finaliters, args.stopcriterion);
+				break;
+			case 2:
+				stochastic(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, 0.0008f);
+				break;
+		}
 	}
 	if (kernel) {
 		free (kernel);

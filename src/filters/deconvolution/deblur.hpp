@@ -15,7 +15,7 @@ namespace deblur {
 
         template <typename T>
         void split_continuation(img_t<T>& x, const img_t<T>& f, const img_t<T>& K,
-                                T lambda, T beta_init, T beta_rate, T beta_max) {
+                                T lambda, T beta_init, T beta_rate, T beta_max, const int iters) {
             assert(K.w % 2);
             assert(K.h % 2);
             optimization::operators::gradient<T> gradient(f);
@@ -80,7 +80,7 @@ namespace deblur {
                 T gamma = beta / lambda;
                 auto denom = KtK + gamma*DtD;
 
-                for (int inner = 0; inner < 1; inner++) {
+                for (int inner = 0; inner < iters; inner++) {
                     if (is_thread_stopped())
                         break;
                     auto gx = gradient.direct(x);

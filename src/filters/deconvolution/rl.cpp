@@ -5,7 +5,7 @@
 #include "utils.hpp"
 #include "edgetaper.hpp"
 
-extern "C" int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int maxiter) {
+extern "C" int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int maxiter, float stopcriterion) {
 
     // These replace smart parameters from the original implementation
     // No need for smapa in Siril as we don't need to be able to overwrite options using
@@ -27,7 +27,7 @@ extern "C" int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned 
         edgetaper(f, f, K, 3);
     }
 
-    richardsonlucy::rl_deconvolve(u, f, K, 2.f / lambda, maxiter);
+    richardsonlucy::rl_deconvolve(u, f, K, 2.f / lambda, maxiter, stopcriterion);
 
     if (EDGETAPER) {
         u = utils::remove_padding(u, K);

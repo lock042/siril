@@ -10,7 +10,7 @@
 namespace richardsonlucy {
 
     template <typename T>
-    void rl_deconvolve(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter) {
+    void rl_deconvolve(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion) {
 
         assert(K.w % 2);
         assert(K.h % 2);
@@ -42,7 +42,7 @@ namespace richardsonlucy {
         for (int iter = 0 ; iter < maxiter ; iter++) {
             if (is_thread_stopped())
                 continue;
-            // Calculate TV reglarization weighting
+            // Calculate TV regularization weighting
             w.map(std::real(est));
             gx.gradientx(w);
             gx.map(std::max(1.e-6f, gx)); // Avoid div/0
@@ -64,12 +64,19 @@ namespace richardsonlucy {
             working.fft(working);
             working.map(working * Kflip_otf);
             working.ifft(working);
-
+            img_t<std::complex<T>> stop(f.w, f.h, f.d);
+            stop.map(est);
             est.map(working * est * (T(1) / (T(1) - reallambda * w)));
-
             // Stopping criterion?
-
+            stop.map((std::abs(std::real(est) - std::real(stop))) / std::abs(std::real(stop)));
+            gx.map(std::real(stop));
             updateprogress("Richardson-Lucy deconvolution", (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+            T stopping = gx.sum() / gx.size;
+            printf("%f\n", stopping);
+            if (stopping < stopcriterion) {
+                sirillog("Richardson-Lucy halted early due to the stopping criterion\n");
+                iter = maxiter;
+            }
         }
         x.map(std::real(est)); // x needs to be real
     }
