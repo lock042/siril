@@ -7186,7 +7186,7 @@ enter a visible wavelength in nm</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Select the deconvolution method used  for the non-blind stage of deconvolution (i.e. once the blur kernel has been estimated or provided)</property>
-                            <property name="active">0</property>
+                            <property name="active">1</property>
                             <items>
                               <item translatable="yes">Split Bregman method with TV regularization</item>
                               <item translatable="yes">Richardson-Lucy method with TV regularization</item>

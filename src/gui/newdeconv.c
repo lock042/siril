@@ -40,6 +40,7 @@
 #include "filters/deconvolution/deconvolution.h"
 #include "filters/synthstar.h"
 #include "algos/statistics.h"
+#include "algos/PSF.h"
 
 estk_data args = { 0 };
 int psftype = 0;
@@ -123,7 +124,6 @@ void reset_conv_controls() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), 1.f / args.alpha);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfwhm")), args.psf_fwhm);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfbeta")), args.psf_beta);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfangle")), args.psf_angle);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfratio")), args.psf_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ninner")), args.ninner);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")), args.ntries);
@@ -314,6 +314,57 @@ void on_bdeconv_reset_clicked(GtkButton *button, gpointer user_data) {
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	reset_conv_controls_and_args();
 }
+static void calculate_parameters() {
+	if (com.stars) {
+		int i = 0;
+		double FWHMx = 0.0, FWHMy = 0.0, beta = 0.0, angle = 0.0;
+		gboolean unit_is_arcsec;
+		int n = 0, layer;
+		starprofile profiletype;
+
+		while (com.stars[i]) {
+			double fwhmx, fwhmy;
+			char *unit;
+			gboolean is_as = get_fwhm_as_arcsec_if_possible(com.stars[i], &fwhmx, &fwhmy, &unit);
+			if (i == 0) {
+				unit_is_arcsec = is_as;
+				layer = com.stars[i]->layer;
+				profiletype = com.stars[i]->profile;
+			}
+			else if (is_as != unit_is_arcsec) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
+						_("Stars FWHM must have the same units."));
+				return;
+			}
+			else if (layer != com.stars[i]->layer ) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
+						_("Stars properties must all be computed on the same layer"));
+				return;
+			}
+			else if (profiletype != com.stars[i]->profile) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
+						_("Stars must all be modeled with the same profile type"));
+				return;
+			}
+			if (!com.stars[i]->has_saturated) {
+				FWHMx += fwhmx;
+				beta += com.stars[i]->beta;
+				FWHMy += fwhmy;
+				angle += com.stars[i]->angle;
+				n++;
+				}
+			i++;
+		}
+		if (i <= 0 || n <= 0) return;
+		/* compute average */
+		args.psf_fwhm = (float) FWHMx / (float) n;
+		FWHMy = (float) FWHMy / (float) n;
+		args.psf_beta = (float) beta / (float) n;
+		args.psf_ratio = FWHMy / args.psf_fwhm;
+		args.psf_angle = (float) angle / (float) n;
+		siril_log_message(_("Using modeled PSF values: FHWMx %f, FWHMy %f, angle %f, beta %f\n"), args.psf_fwhm, args.psf_fwhm * args.psf_ratio, args.psf_angle, args.psf_beta);
+	}
+}
 
 void on_bdeconv_setlambdafromnoise_clicked(GtkButton *button, gpointer user_data) {
 	double bgnoise;
@@ -378,7 +429,7 @@ gpointer deconvolve(gpointer p) {
 
 	float *kernel = NULL;
 	switch (psftype) {
-		case 0:
+		case 0: // Blind deconvolution
 			reset_conv_kernel();
 			args.better_kernel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_betterkernel")));
 			args.multiscale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")));
@@ -395,11 +446,18 @@ gpointer deconvolve(gpointer p) {
 			if (get_thread_run())
 				siril_log_message(_("Kernel estimation complete.\n"));
 			break;
-		case 1:
+		case 1: // Kernel from selection
 			break;
-		case 2:
+		case 2: // Kernel from com.stars
+			calculate_parameters();
+			kernel = (float*) calloc(args.ks * args.ks, sizeof(float));
+			if (com.stars[0]->profile == PSF_GAUSSIAN)
+				makegaussian(kernel, args.ks, args.psf_fwhm, 1.f, 0.f, 0.f);
+			else
+				makemoffat(kernel, args.ks, args.psf_fwhm, 1.f, 0.f, 0.f, args.psf_beta);
+
 			break;
-		case 3:
+		case 3: // Kernel from provided parameters
 			kernel = (float*) calloc(args.ks * args.ks, sizeof(float));
 			// Should switch here and do gaussian, moffat, disc
 			makegaussian(kernel, args.ks, args.psf_fwhm, 1.f, 0.f, 0.f);
@@ -419,7 +477,13 @@ gpointer deconvolve(gpointer p) {
 			printf("\n");
 		}
 #endif
-		siril_debug_print("Type %d\n", args.nonblindtype);
+		// Normalize the kernel
+		float ksum = 0.f;
+		for (unsigned i = 0 ; i < args.ks * args.ks ; i++)
+			ksum += kernel[i];
+		for (unsigned i = 0 ; i < args.ks * args.ks ; i++)
+			kernel[i] /= ksum;
+
 		switch (args.nonblindtype) {
 			case 0:
 				split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha, args.finaliters);
