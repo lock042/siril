@@ -27,11 +27,11 @@ public:
     int h = 0;
     int d = 0;
 
-    scalar_img_expr_t(T val) : val(val) {
+    explicit scalar_img_expr_t(T val) : val(val) {
     }
 
     T operator[](int i) const {
-        i = i;
+//        i = i;
         return val;
     }
 
@@ -47,7 +47,7 @@ public:
     const img_t<T>* img;
     int size, w, h, d;
 
-    raw_img_expr_t(const img_t<T>* img) : img(img), size(img->size),
+    explicit raw_img_expr_t(const img_t<T>* img) : img(img), size(img->size),
                                           w(img->w), h(img->h), d(img->d) {
     }
 
@@ -90,7 +90,7 @@ public:
     int h = 0;
     int d = 0;
 
-    func0_img_expr_t(std::function<T(int i)> f) : f(f) {
+    explicit func0_img_expr_t(std::function<T(int i)> f) : f(f) {
     }
 
     T operator[](int i) const {
@@ -266,6 +266,7 @@ const img_t<T2>& to_img(const img_t<T>& img)
     img_t<T2> img2; img2.resize(img); img2.map(img);
     return img2;
 }
+
 template <typename E>
 img_t<typename E::value_type> to_img(const E& e)
 {

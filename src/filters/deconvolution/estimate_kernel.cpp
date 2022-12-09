@@ -30,8 +30,6 @@ extern "C" float *estimate_kernel(estk_data *args) {
     opts.upscaleblur = args->upscaleblur;
     opts.downscaleblur = args->downscaleblur;
     opts.initu = ""; // Not used in siril
-    opts.admmu = false; // Not used in siril
-    opts.admmu_mu = 0.f; // Not used in siril
     opts.k_l1 = args->k_l1;
     opts.use_filters = false;
 

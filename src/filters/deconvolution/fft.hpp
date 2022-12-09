@@ -66,6 +66,7 @@ struct plan_t<float> {
 
     ~plan_t<float>() {
         return; // don't free the plan...
+/*
 #ifdef _OPENMP
 #pragma omp critical (fftw)
 #endif
@@ -75,6 +76,7 @@ struct plan_t<float> {
             if (plan_backward)
                 fftwf_destroy_plan(plan_backward);
         }
+*/
     }
 
     void execute_forward(std::complex<float>* _out) const {

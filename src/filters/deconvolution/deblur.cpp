@@ -38,7 +38,6 @@ extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nc
 
     if (NORMALIZE_INPUT())
         u.map(u * max);
-
     // copy u.data.data back to image.fdata
     for (unsigned i = 0; i < rx * ry * nchans; i++)
         fdata[i] = u.data[i];

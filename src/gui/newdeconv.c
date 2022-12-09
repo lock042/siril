@@ -28,6 +28,7 @@
 #include "gui/dialogs.h"
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
+#include "gui/newdeconv.h"
 #include "gui/sequence_list.h"
 #include "gui/message_dialog.h"
 #include "gui/registration_preview.h"
@@ -57,7 +58,7 @@ void reset_conv_args() {
 	args.blindtype = 0;
 
 	// l0 Descent Kernel Estimation parameters
-	args.lambda = 3000.f;
+	args.lambda = 1.f / 3000.f;
 	args.lambda_ratio = 1/1.1f;
 	args.lambda_min = 1e-3f;
 	args.gamma = 20.f;
@@ -87,7 +88,7 @@ void reset_conv_args() {
 	args.psf_ratio = 1.f;
 
 	// Non-blind deconvolution parameters
-	args.alpha = 3000.f;
+	args.alpha = 1.f / 3000.f;
 }
 
 void reset_conv_kernel() {
@@ -100,7 +101,7 @@ void reset_conv_kernel() {
 void reset_conv_controls() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_profile")), 0);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")), args.multiscale);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambda")), args.lambda);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambda")), 1.f / args.lambda);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdaratio")), args.lambda_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdamin")), args.lambda_min);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gamma")), args.gamma);
@@ -112,7 +113,7 @@ void reset_conv_controls() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_upsampleblur")), args.upscaleblur);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_downsampleblur")), args.downscaleblur);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kl1")), args.k_l1);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), args.alpha);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), 1.f / args.alpha);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfwhm")), args.psf_fwhm);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfbeta")), args.psf_beta);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfangle")), args.psf_angle);
@@ -126,7 +127,6 @@ void reset_conv_controls() {
 void reset_conv_controls_and_args() {
 	reset_conv_args();
 	reset_conv_controls();
-	reset_conv_args();
 }
 
 void on_bdeconv_psfblind_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -275,6 +275,7 @@ void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("bdeconv_dialog");
 }
 
+
 void on_bdeconv_reset_clicked(GtkButton *button, gpointer user_data) {
 	reset_conv_controls_and_args();
 }
@@ -289,14 +290,13 @@ void on_bdeconv_setlambdafromnoise_clicked(GtkButton *button, gpointer user_data
 
 gboolean deconvolve_idle(gpointer arg) {
 
-	free(args.fdata);
 	args.fdata = NULL;
-
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
 	stop_processing_thread();
+	free(args.fdata);
 	return FALSE;
 }
 
@@ -304,11 +304,11 @@ gpointer deconvolve(gpointer p) {
 	set_cursor_waiting(TRUE);
 	gchar *wisdom_file = g_build_filename(g_get_user_cache_dir(), "siril_fftw.wisdom", NULL);
     if (fftwf_import_wisdom_from_filename(wisdom_file) == 1) {
-        printf("Siril wisdom imported successfully...\n");
+        siril_log_message(_("Siril FFT wisdom imported successfully...\n"));
 	} else if (fftwf_import_system_wisdom() == 1) {
-        printf("System wisdom imported successfully...\n");
+        siril_log_message(_("System FFT wisdom imported successfully...\n"));
 	} else {
-        printf("No wisdom found to import...\n");
+        siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
 	undo_save_state(&gfit, _("Deconvolution"));
 	gboolean out_16bit = (com.pref.force_16bit) ? TRUE : FALSE;
@@ -359,8 +359,7 @@ gpointer deconvolve(gpointer p) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: no kernel defined"),
 				_("Select blind deconvolution or define a kernel from selection or psf parameters"));
 		return GINT_TO_POINTER(1);
-	}
-	else {
+	} else if (get_thread_run()) {
 		siril_log_message(_("Starting non-blind deconvolution...\n"));
 #ifdef SIRIL_OUTPUT_DEBUG
 		for (int i = 0; i < args.ks; i++) {
@@ -378,18 +377,20 @@ gpointer deconvolve(gpointer p) {
 		free (kernel);
 		kernel = NULL;
 	}
-	if (gfit.type == DATA_FLOAT)
-		memcpy(gfit.fdata, args.fdata, ndata * sizeof(float));
-	else {
-		for (size_t i = 0 ; i < ndata ; i++) {
-			gfit.data[i] = roundf_to_WORD(args.fdata[i] * USHRT_MAX_SINGLE);
+	if (get_thread_run()) {
+		if (gfit.type == DATA_FLOAT)
+			memcpy(gfit.fdata, args.fdata, ndata * sizeof(float));
+		else {
+			for (size_t i = 0 ; i < ndata ; i++) {
+				gfit.data[i] = roundf_to_WORD(args.fdata[i] * USHRT_MAX_SINGLE);
+			}
 		}
 	}
 
 	if (fftwf_export_wisdom_to_filename(wisdom_file) == 1) {
-        printf("Siril wisdom updated successfully...\n");
+        siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
 	} else {
-        printf("Siril wisdom update failed...\n");
+        siril_log_message(_("Siril FFT wisdom update failed...\n"));
 	}
 	g_free(wisdom_file);
 
@@ -398,5 +399,9 @@ gpointer deconvolve(gpointer p) {
 }
 
 void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
+	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(deconvolve, NULL);
+	siril_close_dialog("bdeconv_dialog");
+
+
 }

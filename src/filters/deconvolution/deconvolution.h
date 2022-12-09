@@ -38,7 +38,7 @@ EXTERNC typedef struct estk_data {
 	int ntries;
 	int nouter;
 	float compensationfactor;
-	float medianfilter;
+	int medianfilter;
 	float finaldeconvolutionweight;
 	float intermediatedeconvolutionweight;
 	int blindtype;

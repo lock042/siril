@@ -9,7 +9,7 @@ template <typename T>
 using linear_map_t = void(*)(T *y, T *x, int n, void *e);
 
 template <typename T>
-static T scalar_product(T *x, T *y, int n)
+static T scalar_product(const T *x, const T *y, const int n)
 {
 	T r = 0;
 	for (int i = 0; i < n; i++)
@@ -24,9 +24,9 @@ static void fancy_conjugate_gradient(T *x,
 		linear_map_t<T> A, const T *b, int n, void *e,
 		T *x0, int max_iter, T min_residual)
 {
-	T *r  = (T*) malloc(n * sizeof(T));
-	T *p  = (T*) malloc(n * sizeof(T));
-	T *Ap = (T*) malloc(n * sizeof(T));
+	T *r  = static_cast<T*>(malloc(n * sizeof(T)));
+	T *p  = static_cast<T*>(malloc(n * sizeof(T)));
+	T *Ap = static_cast<T*>(malloc(n * sizeof(T)));
 
 	A(Ap, x0, n, e);
 

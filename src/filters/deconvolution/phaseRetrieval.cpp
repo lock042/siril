@@ -51,7 +51,7 @@ static void singlePhaseRetrieval(img_t<T>& kernel, const img_t<T>& magnitude,
         }
 
         gft.ifft(gft);
-        for (int i = 0; i < g.size; i++) {
+        for (int i = 0; i < g2.size; i++) {
             g2[i] = std::real(gft[i]);
         }
 

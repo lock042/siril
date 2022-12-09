@@ -1,5 +1,8 @@
 #pragma once
 
+extern "C" {
+#include "chelperfuncs.h"
+}
 #include "image.hpp"
 #include "vec2.hpp"
 #include "optimization.hpp"
@@ -26,6 +29,9 @@ namespace deblur {
             f_ft.map(f);
             f_ft.fft(f_ft);
 
+            if (is_thread_stopped())
+                return;
+
             img_t<std::complex<T>> dx_otf(f.w, f.h, f.d);
             img_t<T> dx(3, 3, f.d);
             for (int l = 0; l < f.d; l++) {
@@ -33,6 +39,9 @@ namespace deblur {
             }
             dx_otf.padcirc(dx);
             dx_otf.fft(dx_otf);
+
+            if (is_thread_stopped())
+                return;
 
             img_t<std::complex<T>> dy_otf(f.w, f.h, f.d);
             img_t<T> dy(3, 3, f.d);
@@ -42,10 +51,16 @@ namespace deblur {
             dy_otf.padcirc(dy);
             dy_otf.fft(dy_otf);
 
+            if (is_thread_stopped())
+                return;
+
             img_t<std::complex<T>> K_otf(f.w, f.h, f.d);
             K_otf.padcirc(K);
             K_otf.map(K_otf * std::complex<T>(K.d) / K.sum());
             K_otf.fft(K_otf);
+
+            if (is_thread_stopped())
+                return;
 
             auto Ktf = std::conj(K_otf) * f_ft;
 
@@ -60,10 +75,14 @@ namespace deblur {
             T beta = beta_init;
             x = f;
             while (beta < beta_max) {
+                if (is_thread_stopped())
+                    break;
                 T gamma = beta / lambda;
                 auto denom = KtK + gamma*DtD;
 
                 for (int inner = 0; inner < 1; inner++) {
+                    if (is_thread_stopped())
+                        break;
                     auto gx = gradient.direct(x);
                     //w.map(std::max(std::abs(gx) - T(1) / beta, T(0)) * std::sign(gx));  // anisotropic
                     w.map(gx * (T(1) - T(1) / (std::max(T(1), beta * std::hypot(gx)))));  // isotropic
