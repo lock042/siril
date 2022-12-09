@@ -311,7 +311,6 @@ gpointer deconvolve(gpointer p) {
         siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
 	undo_save_state(&gfit, _("Deconvolution"));
-	gboolean out_16bit = (com.pref.force_16bit) ? TRUE : FALSE;
 	unsigned ndata = gfit.rx * gfit.ry * gfit.naxes[2];
 
 	args.fdata = malloc(ndata * sizeof(float));
@@ -379,9 +378,11 @@ gpointer deconvolve(gpointer p) {
 		kernel = NULL;
 	}
 	if (get_thread_run()) {
-		if (gfit.type == DATA_FLOAT)
+		if (gfit.type == DATA_FLOAT) {
 			memcpy(gfit.fdata, args.fdata, ndata * sizeof(float));
-		else {
+			if (com.pref.force_16bit)
+				fit_replace_buffer(&gfit, float_buffer_to_ushort(gfit.fdata, ndata), DATA_USHORT);
+		} else {
 			for (size_t i = 0 ; i < ndata ; i++) {
 				gfit.data[i] = roundf_to_WORD(args.fdata[i] * USHRT_MAX_SINGLE);
 			}

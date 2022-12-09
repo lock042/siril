@@ -5,7 +5,6 @@
 #include "image.hpp"
 #include "image_expr.hpp"
 #include "vec2.hpp"
-#include "smapa.h"
 
 namespace optimization {
 
@@ -219,15 +218,12 @@ namespace optimization {
     }
 
     namespace methods {
-        SMART_PARAMETER_STR(DEBUG_OUT);
 
         template <typename T, class P>
         void gradient_descent(img_t<T>& u, P& p, float step, int iter) {
             for (int i = 0; i < iter; i++) {
                 u.map(u - step * p.gradient(u));
                 fprintf(stderr, "step %d/%d\n", i+1, iter);
-                if (DEBUG_OUT())
-                    u.save(DEBUG_OUT());
             }
         }
 

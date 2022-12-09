@@ -69,8 +69,7 @@ namespace richardsonlucy {
 
             // Stopping criterion?
 
-            printf("complete...\n");
-            updateprogress("Richardson-Lucy deconvolution", (static_cast<float>(iter) / static_cast<float>(maxiter)));
+            updateprogress("Richardson-Lucy deconvolution", (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
         }
         x.map(std::real(est)); // x needs to be real
     }
