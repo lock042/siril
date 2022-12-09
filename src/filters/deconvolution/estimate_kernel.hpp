@@ -5,6 +5,7 @@
 #include "fft.hpp"
 #include "utils.hpp"
 #include "edgetaper.hpp"
+#include "chelperfuncs.h"
 
 namespace utils {
     // downsample an image with Gaussian filtering
@@ -427,6 +428,8 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
 
     // alternate between estimating k and u, while decreasing lambda
     for (int i = 0; i < opts.iterations; i++) {
+        if (is_thread_stopped())
+            break;
         if (opts.verbose) {
             printf("Iteration %d/%d: lambda=%f\n", i+1, opts.iterations, opts.lambda);
         }
@@ -444,15 +447,6 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
             }
             sharp_predictor->solve(u, k, opts.lambda, betainit, betascale, T(1e5), opts);
         }
-
-//        if (!opts.debug.empty()) {
-//            it++;
-//            u.save(string_format("%s/u_%03d_%.5f.tiff", opts.debug.c_str(), it, opts.lambda));
-//            v.save(string_format("%s/v_%03d.tiff", opts.debug.c_str(), it));
-//            k.save(string_format("%s/k_%03d.tiff", opts.debug.c_str(), it));
-//            // Debug output
-//
-//        }
 
         kernel_estimator->solve(k, u, opts);
 

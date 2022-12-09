@@ -343,7 +343,8 @@ gpointer deconvolve(gpointer p) {
 					kernel = estimate_kernel(&args);
 					break;
 			}
-			siril_log_message(_("Kernel estimation complete.\n"));
+			if (get_thread_run())
+				siril_log_message(_("Kernel estimation complete.\n"));
 			break;
 		case 1:
 			break;
@@ -369,8 +370,8 @@ gpointer deconvolve(gpointer p) {
 			printf("\n");
 		}
 #endif
-		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
-//		richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, 8);
+//		split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha);
+		richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, kernel, args.ks, args.alpha, 8);
 //		stochastic(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, 0.0008f);
 	}
 	if (kernel) {

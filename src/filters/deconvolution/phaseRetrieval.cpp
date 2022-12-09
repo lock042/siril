@@ -6,6 +6,7 @@
 #include "deconvBregman.hpp"
 #include "utils.hpp"
 #include "edgetaper.hpp"
+#include "chelperfuncs.h"
 
 /// Algorithm 6
 template <typename T>
@@ -170,6 +171,9 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
         img_t<T> bestKernel;
 #pragma omp for nowait
         for (int k = 0; k < opts.Ntries; k++) {
+
+            if (is_thread_stopped()) continue;
+
             // retrieve one possible kernel
             singlePhaseRetrieval(kernel, magnitude, kernelSize, opts.Ninner);
             centerKernel(kernel);

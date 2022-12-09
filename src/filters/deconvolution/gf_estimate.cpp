@@ -8,6 +8,7 @@
 #include "projectImage.hpp"
 #include "gf_estimate.hpp"
 #include "deconvolution.h"
+#include "chelperfuncs.h"
 
 /// search a patch with high variance in the greyscale blurred image
 template <typename T>
@@ -295,6 +296,9 @@ void gf_kernel(img_t<T>& kernel, const img_t<T>& img,
 
         // retrieve a kernel in spatial domain using the power spectrum
         phaseRetrieval(kernel, blurredPatch, powerSpectrum, kernelSize, opts);
+
+        if (is_thread_stopped())
+            break;
 
         // reestimate the kernel support
         reestimateKernelSupport(support, kernel, angleSet, acRadius);

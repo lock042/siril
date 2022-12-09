@@ -40,8 +40,8 @@ namespace richardsonlucy {
         img_t<T> gx(f.w, f.h, f.d);
         img_t<T> gy(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
-            printf("Iteration %d ", iter);
-
+            if (is_thread_stopped())
+                continue;
             // Calculate TV reglarization weighting
             w.map(std::real(est));
             gx.gradientx(w);
@@ -70,7 +70,7 @@ namespace richardsonlucy {
             // Stopping criterion?
 
             printf("complete...\n");
-            updateprogress("Richardson-Lucy deconvolution", (iter / maxiter));
+            updateprogress("Richardson-Lucy deconvolution", (static_cast<float>(iter) / static_cast<float>(maxiter)));
         }
         x.map(std::real(est)); // x needs to be real
     }
