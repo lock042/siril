@@ -35,22 +35,14 @@ namespace utils {
 
 struct options {
     bool verbose;
-    std::string debug;
-    std::string outputsharp;
-
     int ks;
-    std::string input;
-    std::string output;
-
     float lambda;
     float lambda_ratio;
     float lambda_min;
     float gamma;
-
     int iterations;
     bool multiscale;
     float scalefactor;
-
     float kernel_threshold_max;
     bool remove_isolated;
     bool better_kernel;
@@ -58,12 +50,8 @@ struct options {
     bool warmk;
     float upscaleblur;
     float downscaleblur;
-    bool admmu;
-    float admmu_mu;
     float k_l1;
     bool use_filters;
-
-    std::string initu;
 };
 
 template <typename T>
@@ -401,21 +389,13 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
                           const img_t<T>& initu, struct options& opts) {
 //    static int it = 0;
     ImagePredictor<T>* sharp_predictor = nullptr;
-    if (opts.admmu) {
-    } else {
-        sharp_predictor = new L0ImagePredictor<T>(v);
-    }
+    sharp_predictor = new L0ImagePredictor<T>(v);
     KernelEstimator<T>* kernel_estimator;
     if (opts.better_kernel) {
         kernel_estimator = new IterativeFourierKernelEstimator<T>(v, opts.ks);
     } else {
         kernel_estimator = new FourierKernelEstimator<T>(v, opts.ks);
     }
-
-// Not used in Siril
-//    if (!opts.debug.empty()) {
-//        initu.save(string_format("%s/initu_%03d.tiff", opts.debug.c_str(), it));
-//    }
 
     u = initu;
 

@@ -10,8 +10,6 @@ extern "C" float *estimate_kernel(estk_data *args) {
     img_t<float>::use_threading(1);
     options opts;
     opts.ks = args->ks;
-    opts.input = ""; // Not used in siril
-    opts.output = ""; // Not used in siril
     opts.lambda = args->lambda;
     opts.lambda_ratio = args->lambda_ratio;
     opts.lambda_min = args->lambda_min;
@@ -21,15 +19,12 @@ extern "C" float *estimate_kernel(estk_data *args) {
     opts.scalefactor = args->scalefactor;
     opts.kernel_threshold_max = args->kernel_threshold_max;
     opts.remove_isolated = (bool) args->remove_isolated;
-    opts.outputsharp = "";
     opts.verbose = true;
-    opts.debug = "";
     opts.better_kernel = (bool) args->better_kernel;
     opts.warmg = false;
     opts.warmk = false;
     opts.upscaleblur = args->upscaleblur;
     opts.downscaleblur = args->downscaleblur;
-    opts.initu = ""; // Not used in siril
     opts.k_l1 = args->k_l1;
     opts.use_filters = false;
 
