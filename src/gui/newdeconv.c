@@ -315,7 +315,7 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	reset_conv_controls_and_args();
 }
 static void calculate_parameters() {
-	if (com.stars) {
+	if (com.stars && com.stars[0]) {
 		int i = 0;
 		double FWHMx = 0.0, FWHMy = 0.0, beta = 0.0, angle = 0.0;
 		gboolean unit_is_arcsec;
@@ -361,6 +361,11 @@ static void calculate_parameters() {
 		FWHMy = (float) FWHMy / (float) n;
 		args.psf_beta = (float) beta / (float) n;
 		args.psf_ratio = FWHMy / args.psf_fwhm;
+		if (unit_is_arcsec) {
+			double bin_X = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+			double conversionfactor = (((3600.0 * 180.0) / G_PI) / 1.0E3 * (double)gfit.pixel_size_x / gfit.focal_length) * bin_X;
+			args.psf_fwhm /= (float) conversionfactor;
+		}
 		args.psf_angle = (float) angle / (float) n;
 		siril_log_message(_("Using modeled PSF values: FHWMx %f, FWHMy %f, angle %f, beta %f\n"), args.psf_fwhm, args.psf_fwhm * args.psf_ratio, args.psf_angle, args.psf_beta);
 	}
@@ -390,7 +395,6 @@ void on_bdeconv_setlambdafromnoise_clicked(GtkButton *button, gpointer user_data
 }
 
 gboolean deconvolve_idle(gpointer arg) {
-
 	set_progress_bar_data("Ready.", 0);
 	args.fdata = NULL;
 	update_zoom_label();
@@ -403,6 +407,7 @@ gboolean deconvolve_idle(gpointer arg) {
 }
 
 gpointer deconvolve(gpointer p) {
+	int retval = 0;
 	set_cursor_waiting(TRUE);
 	gchar *wisdom_file = g_build_filename(g_get_user_cache_dir(), "siril_fftw.wisdom", NULL);
     if (fftwf_import_wisdom_from_filename(wisdom_file) == 1) {
@@ -449,6 +454,10 @@ gpointer deconvolve(gpointer p) {
 		case 1: // Kernel from selection
 			break;
 		case 2: // Kernel from com.stars
+			if (!(com.stars && com.stars[0])) {
+				retval = 1;
+				goto END;
+			}
 			calculate_parameters();
 			kernel = (float*) calloc(args.ks * args.ks, sizeof(float));
 			if (com.stars[0]->profile == PSF_GAUSSIAN)
@@ -466,7 +475,8 @@ gpointer deconvolve(gpointer p) {
 	if (kernel == NULL) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: no kernel defined"),
 				_("Select blind deconvolution or define a kernel from selection or psf parameters"));
-		return GINT_TO_POINTER(1);
+		retval = 1;
+		goto END;
 	} else if (get_thread_run()) {
 		set_progress_bar_data("Starting non-blind deconvolution...", 0);
 #ifdef SIRIL_OUTPUT_DEBUG
@@ -484,6 +494,7 @@ gpointer deconvolve(gpointer p) {
 		for (unsigned i = 0 ; i < args.ks * args.ks ; i++)
 			kernel[i] /= ksum;
 
+		// Non-blind deconvolution stage
 		switch (args.nonblindtype) {
 			case 0:
 				split_bregman(args.fdata, args.rx, args.ry, args.nchans, kernel, args.ks, args.alpha, args.finaliters);
@@ -496,10 +507,8 @@ gpointer deconvolve(gpointer p) {
 				break;
 		}
 	}
-	if (kernel) {
-		free (kernel);
-		kernel = NULL;
-	}
+
+	// Update gfit with the result
 	if (get_thread_run()) {
 		if (gfit.type == DATA_FLOAT) {
 			memcpy(gfit.fdata, args.fdata, ndata * sizeof(float));
@@ -512,6 +521,12 @@ gpointer deconvolve(gpointer p) {
 		}
 	}
 
+END:
+
+if (kernel) {
+		free (kernel);
+		kernel = NULL;
+	}
 	if (fftwf_export_wisdom_to_filename(wisdom_file) == 1) {
         siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
 	} else {
@@ -520,7 +535,7 @@ gpointer deconvolve(gpointer p) {
 	g_free(wisdom_file);
 
 	siril_add_idle(deconvolve_idle, NULL);
-	return GINT_TO_POINTER(0);
+	return GINT_TO_POINTER(retval);
 }
 
 void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
