@@ -263,6 +263,11 @@ int open_single_image(const char* filename) {
 	 */
 	if (get_thread_run()) {
 		siril_log_color_message(_("Cannot open another file while the processing thread is still operating on the current one!\n"), "red");
+		if (!com.headless) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
+					_("There was an error when opening this image. "
+							"See the log for more information."));
+		}
 		return 1;
 	}
 
