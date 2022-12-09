@@ -27357,7 +27357,7 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                                 <property name="visible">True</property>
                                 <property name="sensitive">False</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">While floating-point format images may be losslessly compressed (using gzip, since Rice and Hcompress only compress integer arrays), these images often do not compress very well because the pixel values are too noisy; the less significant bits in the mantissa of the pixel values effectively contain incompressible random bit patterns. In order to achieve higher compression, one needs to remove some of this noise, but without losing the useful information content. If it is too large, one undersamples the pixel values resulting in a loss of information in the image. If it is too small, however, it preserves too much of the noise (or even amplifies the noise) in the pixel values, resulting in poor compression.</property>
+                                <property name="tooltip-text" translatable="yes">While floating-point format images may be losslessly compressed (using gzip, since Rice only compresses integer arrays), these images often do not compress very well because the pixel values are too noisy; the less significant bits in the mantissa of the pixel values effectively contain incompressible random bit patterns. In order to achieve higher compression, one needs to remove some of this noise, but without losing the useful information content. If it is too large, one undersamples the pixel values resulting in a loss of information in the image. If it is too small, however, it preserves too much of the noise (or even amplifies the noise) in the pixel values, resulting in poor compression.</property>
                                 <property name="halign">start</property>
                                 <property name="valign">center</property>
                                 <property name="width-chars">9</property>
@@ -27383,12 +27383,7 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
 
 * &lt;b&gt;Rice&lt;/b&gt;: The Rice algorithm is simple and very fast
 * &lt;b&gt;GZIP 1&lt;/b&gt;: The gzip algorithm is used to compress and uncompress the image pixels. Gzip is the compression algorithm used in the free GNU software utility of the same name.
-* &lt;b&gt;GZIP 2&lt;/b&gt;: The bytes in the array of image pixel values are shuffled into decreasing order of significance before being compressed with the gzip algorithm. This is usually especially effective when compressing floating-point arrays.
-* &lt;b&gt;Hcompress&lt;/b&gt;: Briefly, the method used is:
-	- 1. a wavelet transform called the H-transform (a Haar transform generalized to two dimensions), followed by
-	- 2. quantization that discards noise in the image while retaining the signal on all scales, followed by
-	- 3. quadtree coding of the quantized coefficients.
-The technique gives very good compression for astronomical images and is relatively fast. The calculations are carried out using integer arithmetic and are entirely reversible. Consequently, the program can be used for either lossy or lossless compression, with no special approach needed for the lossless case (e.g. there is no need for a file of residuals.)</property>
+* &lt;b&gt;GZIP 2&lt;/b&gt;: The bytes in the array of image pixel values are shuffled into decreasing order of significance before being compressed with the gzip algorithm. This is usually especially effective when compressing floating-point arrays.</property>
                                 <property name="halign">start</property>
                                 <property name="valign">center</property>
                                 <property name="hexpand">True</property>
