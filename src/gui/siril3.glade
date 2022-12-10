@@ -6597,6 +6597,7 @@ enter a visible wavelength in nm</property>
                 <child>
                   <object class="GtkFrame" id="bdeconv_l0controls">
                     <property name="name">bdeconv_l0controls</property>
+                    <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label-xalign">0</property>
                     <property name="shadow-type">none</property>
@@ -6637,7 +6638,6 @@ enter a visible wavelength in nm</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
                                     <property name="tooltip-text" translatable="yes">Multiscale kernel estimation. </property>
-                                    <property name="active">True</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
                                   <packing>
@@ -6975,7 +6975,6 @@ enter a visible wavelength in nm</property>
                 <child>
                   <object class="GtkFrame" id="bdeconv_gfcontrols">
                     <property name="name">bdeconv_gfcontrols</property>
-                    <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label-xalign">0</property>
                     <property name="shadow-type">none</property>
@@ -7185,7 +7184,10 @@ enter a visible wavelength in nm</property>
                           <object class="GtkComboBoxText" id="bdeconv_nonblindtype">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Select the deconvolution method used  for the non-blind stage of deconvolution (i.e. once the blur kernel has been estimated or provided)</property>
+                            <property name="tooltip-text" translatable="yes">Once the kernel is estimated or provided the image is finally deconvolved using the selected algorithm.&#13;
+The Split Bregman method is a common method used to solve a very broad class of L1-regularized problems. It is used internally within the blind kernel estimation processes and may also be used as a final deconvolution method. Here it is Total Variation (TV) regularized using the Rudemi-Osher-Fattal method.&#13;
+The Richardson-Lucy algorithm is an iterative deconvolution technique well known for its use in deconvolving early Hubble images to correct the initial flawed optics. Here it is TV-regularized and has an early stopping check to prevent noise amplification.&#13;
+The Stochastic algorithm takes a different approach to regularisation by testing stochastic pixel value changes against a number of energy minimization problems.</property>
                             <property name="active">1</property>
                             <items>
                               <item translatable="yes">Split Bregman method with TV regularization</item>
