@@ -7,7 +7,7 @@ Get-ChildItem meson.build |
     }
 
 $VERSIONSTR=$MAJOR_VERSION+'.'+$MINOR_VERSION+'.'+$MICRO_VERSION
-Write-Output ('SiriL Version: '+$VERSIONSTR)
+Write-Output ('Siril Version: '+$VERSIONSTR)
 
 #storing cwd for later use
 $RootDir=(Get-Item .).FullName
