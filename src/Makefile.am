@@ -179,6 +179,10 @@ siril_common_SOURCES = \
 	filters/deconvolution/deblur.cpp \
 	filters/deconvolution/deblur.hpp \
 	filters/deconvolution/edgetaper.hpp \
+	filters/deconvolution/rl.cpp \
+	filtes/deconvolution/rl.hpp \
+	filters/deconvolution/chelperfuncs.c \
+	filters/deconvolution/chelperfuncs.h \
 	filters/deconvolution/estimate_kernel.cpp \
 	filters/deconvolution/fft.hpp \
 	filters/deconvolution/fftw_allocator.hpp \
