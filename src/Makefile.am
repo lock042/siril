@@ -174,16 +174,23 @@ siril_common_SOURCES = \
 	filters/nlbayes/NlBayes.h \
 	filters/nlbayes/Utilities.cpp \
 	filters/nlbayes/Utilities.h \
+	filters/deconvolution/angleSet.cpp \
+	filters/decnvolution/angleSet.hpp \
 	filters/deconvolution/args.hxx \
 	filters/deconvolution/better_than_std.hpp \
-	filters/deconvolution/deblur.cpp \
-	filters/deconvolution/deblur.hpp \
-	filters/deconvolution/edgetaper.hpp \
-	filters/deconvolution/rl.cpp \
-	filtes/deconvolution/rl.hpp \
 	filters/deconvolution/chelperfuncs.c \
 	filters/deconvolution/chelperfuncs.h \
+	filters/deconvolution/computeProjectionsAutocorrelation.cpp \
+	filters/deconvolution/computeProjectionsAutocorrelation.hpp \
+	filters/deconvolution/conjugate_gradient.hpp \
+	filters/deconvolution/deblur.cpp \
+	filters/deconvolution/deblur.hpp \
+	filters/deconvolution/deconvBregman.cpp \
+	filters/deconvolution/deconvBregman.hpp \
+	filters/deconvolution/deconvolution.h \
+	filters/deconvolution/edgetaper.hpp \
 	filters/deconvolution/estimate_kernel.cpp \
+	filters/deconvolution/estimate_kernel.hpp \
 	filters/deconvolution/fft.hpp \
 	filters/deconvolution/fftw_allocator.hpp \
 	filters/deconvolution/gf_estimate.cpp \
@@ -192,9 +199,16 @@ siril_common_SOURCES = \
 	filters/deconvolution/image_expr.hpp \
 	filters/deconvolution/image.hpp \
 	filters/deconvolution/labeling.hpp \
-	gui/newdeconv.c \
 	filters/deconvolution/optimization.hpp \
 	filters/deconvolution/options.hpp \
+	filters/deconvolution/phaseRetrieval.cpp \
+	filters/deconvolution/phaseRetrieval.hpp \
+	filters/deconvolution/projectImage.cpp \
+	filters/deconvolution/projectImage.hpp \
+	filters/deconvolution/reconstructPowerSpectrum.cpp \
+	filters/deconvolution/reconstructPowerSpectrum.hpp \
+	filters/deconvolution/rl.cpp \
+	filtes/deconvolution/rl.hpp \
 	filters/deconvolution/stochastic_deconvolution.cpp \
 	filters/deconvolution/utils.hpp \
 	filters/deconvolution/vec2.hpp \
@@ -234,6 +248,7 @@ siril_common_SOURCES = \
 	gui/merge_cfa.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
+	gui/newdeconv.c \
 	gui/nina_light_curve.c \
 	gui/nina_light_curve.h \
 	gui/open_dialog.c \
