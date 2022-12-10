@@ -3,7 +3,7 @@
 
 #include "version.isi"
 
-#define MyAppName "SiriL"
+#define MyAppName "Siril"
 #define MyAppExeName "siril.exe"
 #define RootDir ROOTDIR
 
@@ -12,14 +12,14 @@
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{ADA3C347-68C3-4EAA-92B3-C1BDBD836EDB}
-AppName=SiriL
+AppName=Siril
 AppVersion={#MAJOR}.{#MINOR}.{#MICRO}
 AppPublisher=Free-Astro
 AppPublisherURL=https://www.siril.org/
 AppSupportURL=https://www.siril.org/
 AppUpdatesURL=https://www.siril.org/
-DefaultDirName={commonpf}\SiriL
-DefaultGroupName=SiriL
+DefaultDirName={commonpf}\Siril
+DefaultGroupName=Siril
 OutputDir={#OUTPUT}
 OutputBaseFilename=siril-{#MAJOR}.{#MINOR}.{#MICRO}-setup
 Compression=lzma
@@ -61,12 +61,12 @@ Root: HKCR; Subkey: "{#MyAppName}\DefaultIcon";         ValueData: "{app}\bin\{#
 Root: HKCR; Subkey: "{#MyAppName}\shell\open\command";  ValueData: """{app}\bin\{#MyAppExeName}"" ""%1""";  ValueType: string;  ValueName: ""
 
 [Icons]
-Name: "{group}\SiriL"; Filename: "{app}\bin\{#MyAppExeName}";
-Name: "{group}\{cm:UninstallProgram,SiriL}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\SiriL"; Filename: "{app}\bin\{#MyAppExeName}"; Tasks: desktopicon;
+Name: "{group}\Siril"; Filename: "{app}\bin\{#MyAppExeName}";
+Name: "{group}\{cm:UninstallProgram,Siril}"; Filename: "{uninstallexe}"
+Name: "{commondesktop}\Siril"; Filename: "{app}\bin\{#MyAppExeName}"; Tasks: desktopicon;
 
 [Run]
-Filename: "{app}\bin\siril.exe"; Description: "{cm:LaunchProgram,SiriL}"; Flags: postinstall waituntilidle skipifsilent
+Filename: "{app}\bin\siril.exe"; Description: "{cm:LaunchProgram,Siril}"; Flags: postinstall waituntilidle skipifsilent
 Filename: "{code:getFSURL}"; Description: "{code:getFSstring}"; Flags: postinstall nowait shellexec unchecked
 
 [Code]
