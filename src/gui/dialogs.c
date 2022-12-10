@@ -24,7 +24,6 @@
 #include "gui/histogram.h"
 #include "algos/background_extraction.h"
 #include "filters/asinh.h"
-#include "gui/newdeconv.h"
 #include "filters/deconv.h"
 #include "filters/clahe.h"
 #include "filters/saturation.h"

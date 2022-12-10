@@ -28,7 +28,6 @@
 #include "gui/dialogs.h"
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
-#include "gui/newdeconv.h"
 #include "gui/sequence_list.h"
 #include "gui/message_dialog.h"
 #include "gui/registration_preview.h"
