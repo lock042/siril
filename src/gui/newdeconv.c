@@ -57,7 +57,7 @@ void reset_conv_args() {
 	args.ks = 15;
 
 	// Process parameters
-	args.blindtype = 0;
+	args.blindtype = 1;
 
 	// l0 Descent Kernel Estimation parameters
 	args.lambda = 1.f / 3000.f;
@@ -367,7 +367,7 @@ static void calculate_parameters() {
 			args.psf_fwhm /= (float) conversionfactor;
 		}
 		args.psf_angle = (float) angle / (float) n;
-		siril_log_message(_("Using modeled PSF values: FHWMx %f, FWHMy %f, angle %f, beta %f\n"), args.psf_fwhm, args.psf_fwhm * args.psf_ratio, args.psf_angle, args.psf_beta);
+		siril_log_message(_("Using modeled PSF values: FHWMx %.2f px, FWHMy %.2f px, angle %.2f deg, beta %.2f\n"), args.psf_fwhm, args.psf_fwhm * args.psf_ratio, args.psf_angle, args.psf_beta);
 	}
 }
 
@@ -396,7 +396,10 @@ void on_bdeconv_setlambdafromnoise_clicked(GtkButton *button, gpointer user_data
 
 gboolean deconvolve_idle(gpointer arg) {
 	set_progress_bar_data("Ready.", 0);
-	args.fdata = NULL;
+	if (args.fdata) {
+		free(args.fdata);
+		args.fdata = NULL;
+	}
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -455,10 +458,14 @@ gpointer deconvolve(gpointer p) {
 			break;
 		case 2: // Kernel from com.stars
 			if (!(com.stars && com.stars[0])) {
+				siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: no stars detected"),
+				_("Run findstar or select stars using Dynamic PSF dialog first."));
+
 				retval = 1;
 				goto END;
 			}
 			calculate_parameters();
+			// TODO: Set args.ks based on fwhm
 			kernel = (float*) calloc(args.ks * args.ks, sizeof(float));
 			if (com.stars[0]->profile == PSF_GAUSSIAN)
 				makegaussian(kernel, args.ks, args.psf_fwhm, 1.f, 0.f, 0.f);

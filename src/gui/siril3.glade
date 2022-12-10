@@ -7190,6 +7190,7 @@ enter a visible wavelength in nm</property>
                             <items>
                               <item translatable="yes">Split Bregman method with TV regularization</item>
                               <item translatable="yes">Richardson-Lucy method with TV regularization</item>
+                              <item translatable="yes">Stochastic deconvolution</item>
                             </items>
                             <signal name="changed" handler="on_bdeconv_nonblindtype_changed" swapped="no"/>
                           </object>

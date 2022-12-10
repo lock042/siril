@@ -31,7 +31,6 @@ public:
     }
 
     T operator[](int i) const {
-//        i = i;
         return val;
     }
 
@@ -399,5 +398,59 @@ template <typename T>
 auto slice(img_t<T>& i, slice_t w, slice_t h, slice_t d=_)
 {
     return mappable_slice_img_expr_t<T>(&i, w, h, d);
+}
+
+// Following not used in SB, RL or either blind deconv method.
+
+/*
+enum {
+    AXIS_D=1,
+    AXIS_X=2,
+    AXIS_Y=4,
+} axis_e;
+*/
+
+#define REDUCE_HEAD(name) \
+template <typename E> \
+class name : public img_expr_t<typename E::value_type> { \
+    using T = typename E::value_type; \
+public: \
+    E e; \
+    std::function<typename E::value_type(typename E::value_type, typename E::value_type)> reductor; \
+    int size, w, h, d; \
+\
+    reduce1_img_expr_t(const E& e, std::function<typename E::value_type(typename E::value_type, typename E::value_type)> reductor) \
+            : e(e), reductor(reductor) { \
+
+#define REDUCE_BODY \
+        size = w * h * d; \
+    } \
+    T operator[](int i) const { \
+
+#define REDUCE_TAIL \
+        return val; \
+    } \
+\
+    template <typename E2> \
+    bool similar(const E2& o) const { \
+        return o.similar(*this); \
+    } \
+}; \
+
+REDUCE_HEAD(reduce1_img_expr_t)
+        w = e.w;
+        h = e.h;
+        d = 1;
+REDUCE_BODY
+        T val = e[i];
+        for (int d = 1; d < e.d; d++) {
+            val = reductor(val, e[i*e.d + d]);
+        }
+REDUCE_TAIL
+
+template <typename E>
+auto reduce_d(const E& e, std::function<typename E::value_type(typename E::value_type, typename E::value_type)> reductor)
+{
+    return reduce1_img_expr_t<decltype(to_expr(e))>(to_expr(e), reductor);
 }
 

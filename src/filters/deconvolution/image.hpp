@@ -232,14 +232,6 @@ public:
             }
         }
     }
-/*
-        for (int c = 0 ; c < d ; c++) {
-            for (int i = 0 ; i < w * h ; i++) {
-                (*this)[i] = o[(c+1)*w*h - i - 1];
-            }
-        }
-    }
-    */
 
     void copy(const img_t<T>& o) {
         assert(o.similar(*this));
