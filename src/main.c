@@ -295,6 +295,7 @@ static void siril_app_activate(GApplication *application) {
 		}
 #else
 		gtk_widget_set_visible(lookup_widget("main_menu_updates"), FALSE);
+		gtk_widget_set_visible(lookup_widget("frame24"), FALSE);
 #endif
 	}
 
