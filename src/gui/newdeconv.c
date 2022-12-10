@@ -68,7 +68,7 @@ void reset_conv_args() {
 	args.scalefactor = 0.5f;
 	args.kernel_threshold_max = 0.f;
 	args.remove_isolated = FALSE;
-	args.better_kernel = FALSE;
+	args.better_kernel = TRUE;
 	args.upscaleblur = 0.f;
 	args.downscaleblur = 1.6f;
 	args.k_l1 = 0.5f;
