@@ -186,6 +186,8 @@ siril_common_SOURCES = \
 	filters/deconvolution/estimate_kernel.cpp \
 	filters/deconvolution/fft.hpp \
 	filters/deconvolution/fftw_allocator.hpp \
+	filters/deconvolution/gf_estimate.cpp \
+	filters/deconvolution/gf_estimate.hpp \
 	filters/deconvolution/image.cpp \
 	filters/deconvolution/image_expr.hpp \
 	filters/deconvolution/image.hpp \
@@ -193,6 +195,7 @@ siril_common_SOURCES = \
 	gui/newdeconv.c \
 	filters/deconvolution/optimization.hpp \
 	filters/deconvolution/options.hpp \
+	filters/deconvolution/stochastic.cpp \
 	filters/deconvolution/utils.hpp \
 	filters/deconvolution/vec2.hpp \
 	filters/deconvolution/imscript/upsa.c \
