@@ -195,7 +195,7 @@ siril_common_SOURCES = \
 	gui/newdeconv.c \
 	filters/deconvolution/optimization.hpp \
 	filters/deconvolution/options.hpp \
-	filters/deconvolution/stochastic.cpp \
+	filters/deconvolution/stochastic_deconvolution.cpp \
 	filters/deconvolution/utils.hpp \
 	filters/deconvolution/vec2.hpp \
 	filters/deconvolution/imscript/upsa.c \
