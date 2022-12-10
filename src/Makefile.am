@@ -201,8 +201,8 @@ siril_common_SOURCES = \
 	filters/deconvolution/labeling.hpp \
 	filters/deconvolution/optimization.hpp \
 	filters/deconvolution/options.hpp \
-	filters/deconvolution/phaseRetrieval.cpp \
 	filters/deconvolution/phaseRetrieval.hpp \
+	filters/deconvolution/phaseRetrieval.cpp \
 	filters/deconvolution/projectImage.cpp \
 	filters/deconvolution/projectImage.hpp \
 	filters/deconvolution/reconstructPowerSpectrum.cpp \
