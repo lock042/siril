@@ -15,23 +15,12 @@
 
 #include "SkipListElement.h"
 #include "SkipList.h"
-#include "drand48.h"
+
 
 #include <config-htmesh.h>
 
 #if !defined HAVE_DRAND48 || HAVE_DRAND48 == 0
-double drand48()
-{
-    double result;
-#ifdef _WIN32
-    result = static_cast<double>(rand());
-    result /= RAND_MAX;
-#else
-    result = static_cast<double>(random());
-    result /= LONG_MAX;
-#endif
-    return result;
-}
+#include "drand48.h"
 #define HAVE_DRAND48 1
 #endif /* HAVE_DRAND48 */
 
