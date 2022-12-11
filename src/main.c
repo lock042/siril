@@ -295,6 +295,7 @@ static void siril_app_activate(GApplication *application) {
 		}
 #else
 		gtk_widget_set_visible(lookup_widget("main_menu_updates"), FALSE);
+		gtk_widget_set_visible(lookup_widget("frame24"), FALSE);
 #endif
 	}
 
@@ -362,7 +363,7 @@ static void siril_macos_setenv(const char *progname) {
 
 		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", app_dir);
 		if (realpath(tmp, lib_dir) && !stat(lib_dir, &sb) && S_ISDIR(sb.st_mode))
-			g_print("SiriL is started as MacOS application\n");
+			g_print("Siril is started as MacOS application\n");
 		else
 			return;
 
