@@ -11,7 +11,7 @@
 #include "image_expr.hpp"
 #include "utils.hpp"
 
-#ifdef WIN32
+#ifdef _WIN32
 // Code to replicate drand48() from https://gist.github.com/mortennobel/8665258
 #include <cmath>
 #define RAND48_SEED_0   (0x330e)
