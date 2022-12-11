@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2015 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -48,6 +48,7 @@ extern "C" {
 #endif
 
 #define defaultRANSACReprojThreshold 3
+#define CLAMPING_FACTOR 0.98
 
 using namespace cv;
 
@@ -232,16 +233,27 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 }
 
 /* resizes image to the sizes toX * toY, and stores it back in image */
-int cvResizeGaussian(fits *image, int toX, int toY, int interpolation) {
+int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
 	Mat in, out;
 	void *bgr = NULL;
-
 	if (image_to_Mat(image, &in, &out, &bgr, toX, toY))
 		return 1;
 
 	// OpenCV function
 	resize(in, out, out.size(), 0, 0, interpolation);
+	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
+		Mat guide, tmp1;
+		// Create guide image
+		resize(in, guide, out.size(), 0, 0, OPENCV_AREA);
+		tmp1 = (out < CLAMPING_FACTOR * guide);
+		Mat element = getStructuringElement( MORPH_ELLIPSE,
+                       Size(3, 3), Point(1,1));
+		dilate(tmp1, tmp1, element);
 
+		copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
+		guide.release();
+		tmp1.release();
+	}
 	return Mat_to_image(image, &in, &out, bgr, toX, toY);
 }
 
@@ -440,7 +452,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 }
 
 // transform an image using the homography.
-int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation) {
+int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation, gboolean clamp) {
 	Mat in, out;
 	void *bgr = NULL;
 	int target_rx = width, target_ry = height;
@@ -472,7 +484,19 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 
 	// OpenCV function
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
+	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
+		Mat guide, tmp1;
+		// Create guide image
+		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
+		tmp1 = (out < guide * CLAMPING_FACTOR);
+		Mat element = getStructuringElement( MORPH_ELLIPSE,
+                       Size(3, 3), Point(-1,-1));
+		dilate(tmp1, tmp1, element);
 
+		copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
+		guide.release();
+		tmp1.release();
+	}
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
 
@@ -754,7 +778,7 @@ double cvCalculRigidTransform(s_star *star_array_in,
 	outC.at<double>(0,0) = outCx;
 	outC.at<double>(1,0) = outCy;
 	inC.at<double>(0,0) = inCx;
-	inC.at<double>(1,0) = inCy;	
+	inC.at<double>(1,0) = inCy;
 
 	for (int i = 0; i < n; i++) {
 		out.at<double>(0,i) -= outCx;
@@ -861,7 +885,7 @@ void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homograp
 	S2.at<double>(1, 2) = -(double)h * 0.5;
 
 	// get rot matrix about origin {0, 0}
-	Mat r = getRotationMatrix2D(pt, angle, 1.0); 
+	Mat r = getRotationMatrix2D(pt, angle, 1.0);
 	Mat H = Mat::eye(3, 3, CV_64FC1);
 	r.copyTo(H(cv::Rect_<int>(0,0,3,2))); //slicing is (x, y, w, h)
 	// std::cout << H << std::endl;

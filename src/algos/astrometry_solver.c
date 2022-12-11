@@ -34,7 +34,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/sleef.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
@@ -43,6 +42,7 @@
 #include "core/undo.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
+#include "algos/search_objects.h"
 #include "algos/annotate.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
@@ -247,6 +247,8 @@ static void init() {
 		printf("initializing CURL\n");
 		curl_global_init(CURL_GLOBAL_ALL);
 		curl = curl_easy_init();
+		if (g_getenv("CURL_CA_BUNDLE"))
+			curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE"));
 	}
 
 	if (!curl)
@@ -360,27 +362,70 @@ static gchar *fetch_url(const gchar *url) {
 }
 #endif
 
+gchar *search_in_online_conesearch(struct astrometry_data *args) {
+	GString *string_url;
+
+	double ra, dec;
+	center2wcs(args->fit, &ra, &dec);
+
+	// https://vo.imcce.fr/webservices/skybot/?conesearch
+	string_url = g_string_new(SKYBOT);
+	string_url = g_string_append(string_url, "&-ep=");
+	gchar *formatted_date = date_time_to_FITS_date(gfit.date_obs);
+	string_url = g_string_append(string_url, formatted_date);
+	string_url = g_string_append(string_url, "&-ra=");		// RA
+	g_string_append_printf(string_url, "%lf", ra);
+	string_url = g_string_append(string_url, "&-dec=");		// DEC
+	g_string_append_printf(string_url, "%lf", dec);
+	string_url = g_string_append(string_url, "&-rm=");		// FOV
+	g_string_append_printf(string_url, "%lf", 1.0 * get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry));
+	string_url = g_string_append(string_url, "&-mime=text");
+	string_url = g_string_append(string_url, "&-output=object");
+	string_url = g_string_append(string_url, "&-loc=500");
+	string_url = g_string_append(string_url, "&-filter=0");
+	string_url = g_string_append(string_url, "&-objFilter=111");
+	string_url = g_string_append(string_url, "&-refsys=EQJ2000");
+	string_url = g_string_append(string_url, "&-from=Siril;");
+
+	gchar *url = g_string_free(string_url, FALSE);
+	gchar *cleaned_url = url_cleanup(url);
+	gchar *result = fetch_url(cleaned_url);
+	siril_debug_print(_("URL: %s \n"), cleaned_url);
+
+	g_free(cleaned_url);
+	g_free(url);
+	g_free(formatted_date);
+
+	return result;
+}
+
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	GString *string_url;
-	gchar *name = g_utf8_strdown(object, -1); //strlwr is non-standard, so g_utf8_strup has been changed to g_utf8_strdown
+	gchar *name = g_utf8_strdown(object, -1);
 
 	switch(server) {
 	case 0:
-		string_url = g_string_new(CDSSESAME);
-		string_url = g_string_append(string_url, "/-oI/A?");
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, "/-oI/A?");
+		string_url = g_string_prepend(string_url, CDSSESAME);
 		siril_log_message(_("Searching %s in CDSESAME...\n"), name);
 		break;
 	case 1:
-		string_url = g_string_new(VIZIERSESAME);
-		string_url = g_string_append(string_url, "/-oI/A?");
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, "/-oI/A?");
+		string_url = g_string_prepend(string_url, VIZIERSESAME);
 		siril_log_message(_("Searching %s in VIZIER...\n"), name);
 		break;
 	default:
 	case 2:
-		string_url = g_string_new(SIMBADSESAME);
-		string_url = g_string_append(string_url, name);
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, SIMBADSESAME);
 		string_url = g_string_append(string_url, "';");
 		siril_log_message(_("Searching %s in SIMBAD...\n"), name);
 		break;
@@ -396,7 +441,8 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-nbd=1");
 		string_url = g_string_append(string_url, "&-tscale=UTC");
 		string_url = g_string_append(string_url, "&-observer=");
-		string_url = g_string_append(string_url, "@500"); // Geocentric coordinates as default
+		gchar *formatted_site = retrieve_site_coord(&gfit);
+		string_url = g_string_append(string_url, formatted_site);
 		string_url = g_string_append(string_url, "&-theory=INPOP");
 		string_url = g_string_append(string_url, "&-teph=1");
 		string_url = g_string_append(string_url, "&-tcoor=5");
@@ -405,6 +451,13 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "&-output=--jd");
 		string_url = g_string_append(string_url, "&-from=Siril;");
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"), name, formatted_date);
+
+		if (!gfit.sitelat || !gfit.sitelong) {
+			siril_log_color_message(_("No topocentric data available. Set to geocentric\n"), "salmon");
+		} else {
+			siril_log_message(_("at LAT: %f, LONG: %f\n"), gfit.sitelat, gfit.sitelong);
+		}
+		g_free(formatted_site);
 		g_free(formatted_date);
 		break;
 	}
@@ -412,6 +465,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	gchar *url = g_string_free(string_url, FALSE);
 	gchar *cleaned_url = url_cleanup(url);
 	gchar *result = fetch_url(cleaned_url);
+	siril_debug_print(_("URL: %s \n"), cleaned_url);
 
 	g_free(cleaned_url);
 	g_free(url);
@@ -491,7 +545,6 @@ int parse_content_buffer(char *buffer, struct sky_object *obj) {
 	g_strfreev(token);
 	return 0;
 }
-
 
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius_arcmin, double mag) {
 	gchar *buffer = NULL;
@@ -970,7 +1023,7 @@ static int read_catalog(GInputStream *stream, psf_star **cstars, int type) {
 }
 
 static TRANS H_to_linear_TRANS(Homography H) {
-	TRANS trans;
+	TRANS trans = { 0 };
 
 	trans.order = AT_TRANS_LINEAR;
 
@@ -1160,6 +1213,7 @@ gpointer match_catalog(gpointer p) {
 	GInputStream *input_stream = NULL;
 	s_star *star_list_A = NULL, *star_list_B = NULL;
 	fits fit_backup = { 0 };
+	gchar *header_backup = NULL;
 	solve_results solution = { 0 };
 	psf_star **stars = NULL;
 
@@ -1187,7 +1241,7 @@ gpointer match_catalog(gpointer p) {
 		}
 	}
 	CHECK_FOR_CANCELLATION;
-	
+
 	cstars = new_fitted_stars(MAX_STARS);
 	if (!cstars) {
 		PRINT_ALLOC_ERR;
@@ -1222,7 +1276,9 @@ gpointer match_catalog(gpointer p) {
 
 	if (args->downsample) {
 		copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA);
+		copy_fits_metadata(args->fit, &fit_backup);
+		header_backup = g_strdup(args->fit->header);
+		cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA, FALSE);
 	}
 
 	if (!args->manual) {
@@ -1232,7 +1288,7 @@ gpointer match_catalog(gpointer p) {
 		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
 		int max_stars = (args->for_photometry_cc) ? n_cat : min(n_cat, BRIGHTEST_STARS); // capping the detection to max usable number of stars
 
-		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE, TRUE, max_stars, com.max_thread); // TODO: use good layer
+		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE, TRUE, max_stars, com.pref.starfinder_conf.profile, com.max_thread); // TODO: use good layer
 		com.pref.starfinder_conf.pixel_size_x = 0.;
 		com.pref.starfinder_conf.focal_length = 0.;
 	} else {
@@ -1297,6 +1353,8 @@ gpointer match_catalog(gpointer p) {
 	if (args->downsample) {
 		clearfits(args->fit);
 		memcpy(args->fit, &fit_backup, sizeof(fits));
+		args->fit->header = g_strdup(header_backup);
+		g_free(header_backup);
 		memset(&fit_backup, 0, sizeof(fits));
 	}
 	solution.size.x = args->fit->rx;
@@ -1479,6 +1537,11 @@ gpointer match_catalog(gpointer p) {
 	if (args->for_photometry_cc) {
 		pcc_star *pcc_stars = NULL;
 		int nb_pcc_stars;
+#ifndef HAVE_WCSLIB
+		siril_log_color_message(_("This operation (PCC) relies on the missing WCSLIB software, cannot continue.\n"), "red");
+		args->ret = 1;
+		goto clearup;
+#endif
 		if (args->use_local_cat) {
 			double tra = siril_world_cs_get_alpha(solution.image_center);
 			double tdec = siril_world_cs_get_delta(solution.image_center);

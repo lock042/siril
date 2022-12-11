@@ -124,7 +124,6 @@ siril_common_SOURCES = \
 	core/siril_update.h \
 	core/siril_world_cs.c \
 	core/siril_world_cs.h \
-	core/sleef.h \
 	core/undo.c \
 	core/undo.h \
 	core/utils.c \
@@ -191,6 +190,8 @@ siril_common_SOURCES = \
 	gui/dialog_preview.h \
 	gui/dialogs.c \
 	gui/dialogs.h \
+	gui/documentation.c \
+	gui/documentation.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \
@@ -204,6 +205,7 @@ siril_common_SOURCES = \
 	gui/menu_gray_geometry.c \
 	gui/menu_gray_geometry.h \
 	gui/menu_gray_psf.c \
+	gui/merge_cfa.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
 	gui/nina_light_curve.c \
@@ -268,6 +270,8 @@ siril_common_SOURCES = \
 	io/image_formats_libraries.c \
 	io/mp4_output.c \
 	io/mp4_output.h \
+	io/path_parse.c \
+	io/path_parse.h \
 	io/seqfile.c \
 	io/sequence.c \
 	io/sequence.h \

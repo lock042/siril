@@ -352,6 +352,20 @@ void rgb_to_xyz(double r, double g, double b, double *x, double *y, double *z) {
 	*z = 0.019334 * r + 0.119193 * g + 0.950227 * b;
 }
 
+void rgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z) {
+	r = (r <= 0.04045f) ? r / 12.92f : powf(((r + 0.055f) / 1.055f), 2.4f);
+	g = (g <= 0.04045f) ? g / 12.92f : powf(((g + 0.055f) / 1.055f), 2.4f);
+	b = (b <= 0.04045f) ? b / 12.92f : powf(((b + 0.055f) / 1.055f), 2.4f);
+
+	r *= 100.f;
+	g *= 100.f;
+	b *= 100.f;
+
+	*x = 0.412453f * r + 0.357580f * g + 0.180423f * b;
+	*y = 0.212671f * r + 0.715160f * g + 0.072169f * b;
+	*z = 0.019334f * r + 0.119193f * g + 0.950227f * b;
+}
+
 void xyz_to_LAB(double x, double y, double z, double *L, double *a, double *b) {
 	x /= 95.047;
 	y /= 100.000;
@@ -364,6 +378,20 @@ void xyz_to_LAB(double x, double y, double z, double *L, double *a, double *b) {
 	*L = (116.0 * y) - 16.0;
 	*a = 500.0 * (x - y);
 	*b = 200.0 * (y - z);
+}
+
+void xyz_to_LABf(float x, float y, float z, float *L, float *a, float *b) {
+	x /= 95.047f;
+	y /= 100.000f;
+	z /= 108.883f;
+
+	x = (x > 0.008856452f) ? powf(x, 1.f / 3.0f) : (7.787037037f * x) + (16.f / 116.f);
+	y = (y > 0.008856452f) ? powf(y, 1.f / 3.0f) : (7.787037037f * y) + (16.f / 116.f);
+	z = (z > 0.008856452f) ? powf(z, 1.f / 3.0f) : (7.787037037f * z) + (16.f / 116.f);
+
+	*L = (116.0f * y) - 16.0f;
+	*a = 500.0f * (x - y);
+	*b = 200.0f * (y - z);
 }
 
 void LAB_to_xyz(double L, double a, double b, double *x, double *y, double *z) {
@@ -385,6 +413,25 @@ void LAB_to_xyz(double L, double a, double b, double *x, double *y, double *z) {
 	*z *= 108.883;
 }
 
+void LAB_to_xyzf(float L, float a, float b, float *x, float *y, float *z) {
+	*y = (L + 16.0f) / 116.0f;
+	*x = a / 500.0f + (*y);
+	*z = *y - b / 200.0f;
+
+	float x3, y3, z3;
+	x3 = (*x) * (*x) * (*x);
+	y3 = (*y) * (*y) * (*y);
+	z3 = (*z) * (*z) * (*z);
+
+	*x = (x3 > 0.008856452f) ? x3 : (*x - 16.f / 116.f) / 7.787037037f;
+	*y = (y3 > 0.008856452f) ? y3 : (*y - 16.f / 116.f) / 7.787037037f;
+	*z = (z3 > 0.008856452f) ? z3 : (*z - 16.f / 116.f) / 7.787037037f;
+
+	*x *= 95.047f;
+	*y *= 100.000f;
+	*z *= 108.883f;
+}
+
 void xyz_to_rgb(double x, double y, double z, double *r, double *g, double *b) {
 	x /= 100.0;
 	y /= 100.0;
@@ -397,6 +444,20 @@ void xyz_to_rgb(double x, double y, double z, double *r, double *g, double *b) {
 	*r = (*r > 0.0031308) ? 1.055 * (pow(*r, (1 / 2.4))) - 0.055 : 12.92 * (*r);
 	*g = (*g > 0.0031308) ? 1.055 * (pow(*g, (1 / 2.4))) - 0.055 : 12.92 * (*g);
 	*b = (*b > 0.0031308) ? 1.055 * (pow(*b, (1 / 2.4))) - 0.055 : 12.92 * (*b);
+}
+
+void xyz_to_rgbf(float x, float y, float z, float *r, float *g, float *b) {
+	x /= 100.0f;
+	y /= 100.0f;
+	z /= 100.0f;
+
+	*r =  3.240479f * x - 1.537150f * y - 0.498535f * z;
+	*g = -0.969256f * x + 1.875992f * y + 0.041556f * z;
+	*b =  0.055648f * x - 0.204043f * y + 1.057311f * z;
+
+	*r = (*r > 0.0031308f) ? 1.055f * (powf(*r, (1.f / 2.4f))) - 0.055f : 12.92f * (*r);
+	*g = (*g > 0.0031308f) ? 1.055f * (powf(*g, (1.f / 2.4f))) - 0.055f : 12.92f * (*g);
+	*b = (*b > 0.0031308f) ? 1.055f * (powf(*b, (1.f / 2.4f))) - 0.055f : 12.92f * (*b);
 }
 
 // color index to temperature in kelvin
@@ -457,32 +518,16 @@ int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, const ch
 	return 0;
 }
 
-// idle function executed at the end of the extract_channels processing
-static gboolean end_extract_channels(gpointer p) {
-	struct extract_channels_data *args = (struct extract_channels_data *) p;
-	stop_processing_thread();
-	free(args->channel[0]);
-	free(args->channel[1]);
-	free(args->channel[2]);
-	free(args);
-	set_cursor_waiting(FALSE);
-
-	return FALSE;
-}
-
 static gpointer extract_channels_ushort(gpointer p) {
 	struct extract_channels_data *args = (struct extract_channels_data *) p;
 	WORD *buf[3] = { args->fit->pdata[RLAYER], args->fit->pdata[GLAYER],
 		args->fit->pdata[BLAYER] };
 	size_t n = args->fit->naxes[0] * args->fit->naxes[1];
 	struct timeval t_start, t_end;
-	args->process = TRUE;
 
 	if (args->fit->naxes[2] != 3) {
 		siril_log_message(
 				_("Siril cannot extract layers. Make sure your image is in RGB mode.\n"));
-		args->process = FALSE;
-		clearfits(args->fit);
 		return GINT_TO_POINTER(1);
 	}
 
@@ -491,11 +536,9 @@ static gpointer extract_channels_ushort(gpointer p) {
 	gettimeofday(&t_start, NULL);
 
 	switch (args->type) {
-		/* RGB space: nothing to do */
-		case 0:
-			break;
-			/* HSL space */
-		case 1:
+	case EXTRACT_RGB:
+		break;
+	case EXTRACT_HSL:
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -510,8 +553,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 			buf[BLAYER][i] = round_to_WORD(l * USHRT_MAX_DOUBLE);
 		}
 		break;
-		/* HSV space */
-	case 2:
+	case EXTRACT_HSV:
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -526,8 +568,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 			buf[BLAYER][i] = round_to_WORD(v * USHRT_MAX_DOUBLE);
 		}
 		break;
-		/* CIE L*a*b */
-	case 3:
+	case EXTRACT_CIELAB:
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -548,11 +589,12 @@ static gpointer extract_channels_ushort(gpointer p) {
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
 	for (int i = 0; i < 3; i++) {
-		update_filter_information(args->fit, add_filter_str[i], TRUE);
-		save1fits16(args->channel[i], args->fit, i);
-		update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+		if (args->channel[i]) {
+			update_filter_information(args->fit, add_filter_str[i], TRUE);
+			save1fits16(args->channel[i], args->fit, i);
+			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+		}
 	}
-	clearfits(args->fit);
 	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -566,13 +608,10 @@ static gpointer extract_channels_float(gpointer p) {
 		args->fit->fpdata[BLAYER] };
 	struct timeval t_start, t_end;
 	size_t n = args->fit->naxes[0] * args->fit->naxes[1];
-	args->process = TRUE;
 
 	if (args->fit->naxes[2] != 3) {
 		siril_log_message(
-				_("Siril cannot extract layers. Make sure your image is in RGB mode.\n"));
-		args->process = FALSE;
-		clearfits(args->fit);
+				_("Siril cannot extract channels. Make sure your image is in RGB mode.\n"));
 		return GINT_TO_POINTER(1);
 	}
 
@@ -581,11 +620,9 @@ static gpointer extract_channels_float(gpointer p) {
 	gettimeofday(&t_start, NULL);
 
 	switch (args->type) {
-	/* RGB space: nothing to do */
-	case 0:
+	case EXTRACT_RGB:
 		break;
-		/* HSL space */
-	case 1:
+	case EXTRACT_HSL:
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -600,8 +637,7 @@ static gpointer extract_channels_float(gpointer p) {
 			buf[BLAYER][i] = (float) l;
 		}
 		break;
-		/* HSV space */
-	case 2:
+	case EXTRACT_HSV:
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -616,8 +652,7 @@ static gpointer extract_channels_float(gpointer p) {
 			buf[BLAYER][i] = (float) v;
 		}
 		break;
-		/* CIE L*a*b */
-	case 3:
+	case EXTRACT_CIELAB:
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
@@ -636,11 +671,12 @@ static gpointer extract_channels_float(gpointer p) {
 	}
 	gchar *fitfilter = g_strdup(args->fit->filter);
 	for (int i = 0; i < 3; i++) {
-		update_filter_information(args->fit, add_filter_str[i], TRUE);
-		save1fits32(args->channel[i], args->fit, i);
-		update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+		if (args->channel[i]) {
+			update_filter_information(args->fit, add_filter_str[i], TRUE);
+			save1fits32(args->channel[i], args->fit, i);
+			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
+		}
 	}
-	clearfits(args->fit);
 	g_free(fitfilter);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -648,6 +684,7 @@ static gpointer extract_channels_float(gpointer p) {
 	return GINT_TO_POINTER(0);
 }
 
+// channels extraction computed in-place
 gpointer extract_channels(gpointer p) {
 	struct extract_channels_data *args = (struct extract_channels_data *)p;
 	gpointer retval = GINT_TO_POINTER(1);
@@ -656,7 +693,13 @@ gpointer extract_channels(gpointer p) {
 		retval = extract_channels_ushort(p);
 	else if (args->fit->type == DATA_FLOAT)
 		retval = extract_channels_float(p);
-	siril_add_idle(end_extract_channels, args);
+
+	clearfits(args->fit);
+	free(args->channel[0]);
+	free(args->channel[1]);
+	free(args->channel[2]);
+	free(args);
+	siril_add_idle(end_generic, NULL);
 	return retval;
 }
 

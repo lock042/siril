@@ -41,6 +41,7 @@
 #include "gui/registration_preview.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
+#include "livestacking/livestacking.h"
 #include "histogram.h"
 #include "registration/matching/degtorad.h"
 #include "registration/registration.h"
@@ -605,8 +606,14 @@ static void draw_vport(const draw_data_t* dd) {
 		view->view_width = dd->window_width;
 		view->view_height = dd->window_height;
 		cairo_t *cached_cr = cairo_create(view->disp_surface);
-
-		cairo_transform(cached_cr, &gui.display_matrix);
+		cairo_matrix_t y_reflection_matrix, flipped_matrix; 
+		cairo_matrix_init_identity(&y_reflection_matrix);
+		if (livestacking_is_started() && !g_strcmp0(gfit.row_order, "TOP-DOWN")) {
+			y_reflection_matrix.yy = -1.0;
+			y_reflection_matrix.y0 = gfit.ry;
+		}
+		cairo_matrix_multiply(&flipped_matrix, &y_reflection_matrix, &gui.display_matrix);
+		cairo_transform(cached_cr, &flipped_matrix);
 		cairo_set_source_surface(cached_cr, view->full_surface, 0, 0);
 		cairo_pattern_set_filter(cairo_get_source(cached_cr), dd->filter);
 		cairo_paint(cached_cr);
@@ -745,8 +752,14 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_set_source_rgba(cr, 0.75, 0.22, 1.0, 0.9);
 				cairo_set_line_width(cr, 3.0 / dd->zoom);
 			}
-			cairo_arc(cr, com.stars[i]->xpos, com.stars[i]->ypos, size, 0., 2. * M_PI);
+			cairo_save(cr); // save the original transform
+			cairo_translate(cr, com.stars[i]->xpos, com.stars[i]->ypos);
+			cairo_rotate(cr, M_PI * 0.5 + com.stars[i]->angle * M_PI / 180.);
+			cairo_scale(cr, com.stars[i]->fwhmy / com.stars[i]->fwhmx, 1);
+			cairo_arc(cr, 0., 0., size, 0.,2 * M_PI);
+			cairo_restore(cr); // restore the original transform
 			cairo_stroke(cr);
+			/* to keep  for debugging boxes adjustements */
 			// if (com.stars[i]->R > 0)
 			// 	cairo_rectangle(cr, com.stars[i]->xpos - (double)com.stars[i]->R, com.stars[i]->ypos - (double)com.stars[i]->R, (double)com.stars[i]->R * 2 + 1, (double)com.stars[i]->R * 2 + 1);
 			// cairo_stroke(cr);
@@ -863,6 +876,7 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_set_font_size(cr, 12.0 / dd->zoom);
 				cairo_move_to(cr, textX, textY);
 				cairo_show_text(cr, text);
+				cairo_stroke(cr);
 				g_free(text);
 			}
 		}
@@ -1244,11 +1258,6 @@ static void draw_annotates(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
 
-	if (dd->neg_view) {
-		cairo_set_source_rgba(cr, 0.5, 0.0, 0.7, 0.9);
-	} else {
-		cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
-	}
 	cairo_set_line_width(cr, 1.0 / dd->zoom);
 	cairo_rectangle(cr, 0., 0., width, height); // to clip the grid
 	cairo_clip(cr);
@@ -1259,8 +1268,29 @@ static void draw_annotates(const draw_data_t* dd) {
 		gdouble world_x = get_catalogue_object_ra(object);
 		gdouble world_y = get_catalogue_object_dec(object);
 		gchar *code = get_catalogue_object_code(object);
+		guint catalog = get_catalogue_object_cat(object);
 		gdouble resolution = get_wcs_image_resolution(&gfit);
 		gdouble x, y;
+
+		switch (catalog) {
+		case USER_DSO_CAT_INDEX:
+			cairo_set_source_rgba(cr, 1.0, 0.5, 0.0, 0.9);
+			break;
+		case USER_SSO_CAT_INDEX:
+			cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.9);
+			break;
+		case USER_TEMP_CAT_INDEX:
+			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9);
+			break;
+		default:
+		case 0:
+			if (dd->neg_view) {
+				cairo_set_source_rgba(cr, 0.5, 0.0, 0.7, 0.9);
+			} else {
+				cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
+			}
+			break;
+		}
 
 		if (resolution <= 0) return;
 
@@ -1367,6 +1397,7 @@ static void draw_analysis(const draw_data_t* dd) {
 		str = g_strdup_printf("%.2f", com.tilt->fwhm_centre);
 		cairo_move_to(cr, gfit.rx / 2.0, (gfit.ry / 2.0) + size);
 		cairo_show_text(cr, str);
+		cairo_stroke(cr);
 		g_free(str);
 	}
 }
@@ -1383,14 +1414,13 @@ static void draw_regframe(const draw_data_t* dd) {
 	int activelayer = gtk_combo_box_get_active(seqcombo);
 	if (!layer_has_registration(&com.seq, activelayer)) return;
 	if (com.seq.reg_invalidated) return;
-	int min, max;
+	transformation_type min, max;
 	guess_transform_from_seq(&com.seq, activelayer, &min, &max, FALSE);
-	if (max <= -1) return;
+	if (max <= IDENTITY_TRANSFORMATION) return;
 
-	int Htyperef = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H);
-	int Htypecur = guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H);
-	if (Htyperef == -2) return; // reference image H matrix is null matrix
-	if (Htypecur == -2) return; // current image H matrix is null
+	if (guess_transform_from_H(com.seq.regparam[activelayer][com.seq.reference_image].H) == NULL_TRANSFORMATION ||
+			guess_transform_from_H(com.seq.regparam[activelayer][com.seq.current].H) == NULL_TRANSFORMATION)
+		return; // reference or current image H matrix is null matrix
 
 	regframe framing = { 0 };
 	framing.pt[0].x = 0.;
@@ -1518,7 +1548,7 @@ void adjust_vport_size_to_image() {
 
 void redraw(remap_type doremap) {
 	if (com.script) return;
-	siril_debug_print("redraw %d\n", doremap);
+//	siril_debug_print("redraw %d\n", doremap);
 	switch (doremap) {
 		case REDRAW_OVERLAY:
 			break;

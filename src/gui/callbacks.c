@@ -34,6 +34,7 @@
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
+#include "algos/annotate.h"
 #include "io/conversion.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
@@ -119,10 +120,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (single_image_is_loaded()) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
 		if ((strcmp(filename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Image:");
+			markup = g_markup_printf_escaped (format_green, "Image: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Image:");
+			markup = g_markup_printf_escaped (format_white, "Image: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 	}
@@ -131,10 +132,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (sequence_is_loaded()) {
 		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
 		if ((strcmp(seq_basename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Sequence:");
+			markup = g_markup_printf_escaped (format_green, "Sequence: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Sequence:");
+			markup = g_markup_printf_escaped (format_white, "Sequence: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 	}
@@ -145,7 +146,7 @@ void launch_clipboard_survey() {
 	if (com.script)
 		return;
 	GtkClipboard *clipboard = NULL;
-
+	
 	/* Get the clipboard object */
 	clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 
@@ -248,8 +249,8 @@ void set_sliders_value_to_gfit() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 
 	gfit.hi = gtk_adjustment_get_value(adj1);
@@ -264,8 +265,8 @@ void set_cutoff_sliders_max_values() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 	gdouble max_val;
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 	/* set max value for range according to number of bits of original image
 	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG.
@@ -290,8 +291,8 @@ void set_cutoff_sliders_values() {
 	static GtkEntry *maxentry = NULL, *minentry = NULL;
 	static GtkToggleButton *cutmax = NULL;
 	if (adjmin == NULL) {
-		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1")); // scalemax
-		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2")); // scalemin
+		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax")); // scalemax
+		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin")); // scalemin
 		maxentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "max_entry"));
 		minentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "min_entry"));
 		cutmax = GTK_TOGGLE_BUTTON(
@@ -442,14 +443,14 @@ void adjust_sellabel() {
 
 		buffer_global = g_strdup_printf(_("%s, %d/%d images selected"),
 				seq_basename, com.seq.selnum, com.seq.number);
-		buffer_title = g_strdup(_("Sequence:"));
+		buffer_title = g_strdup(_("Sequence: "));
 
 		g_free(seq_basename);
 	} else if (single_image_is_loaded()) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
 
 		buffer_global = g_strdup_printf("%s", filename);
-		buffer_title = g_strdup(_("Image:"));
+		buffer_title = g_strdup(_("Image: "));
 
 		g_free(filename);
 	} else {
@@ -533,10 +534,15 @@ void update_MenuItem() {
 	/* search object */
 	GAction *action_search_objectr = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-object");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_objectr), any_image_is_loaded && has_wcs(&gfit));
+	/* search SOLAR object */
+	GAction *action_search_solar = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-solar");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_solar), any_image_is_loaded && has_wcs(&gfit));
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
 	siril_window_enable_if_selection_sequence_actions(app_win, com.selection.w && com.selection.h && sequence_is_loaded());
+	/* selectoin and isrgb is needed */
+	siril_window_enable_if_selection_rgb_actions(app_win, com.selection.w && com.selection.h && isrgb(&gfit));
 
 	/* Image processing Menu */
 
@@ -729,8 +735,7 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 }
 
 void update_display_selection() {
-	if (gui.cvport == RGB_VPORT || com.script) return;
-	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb"};
+	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb" };
 	static gchar selection_buffer[256] = { 0 };
 
 	if (com.selection.w && com.selection.h) {
@@ -743,16 +748,15 @@ void update_display_selection() {
 }
 
 void update_display_fwhm() {
-	if (gui.cvport == RGB_VPORT || com.script) return;
-	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb"};
+	static const gchar *label_fwhm[] = { "labelfwhm_red", "labelfwhm_green", "labelfwhm_blue", "labelfwhm_rgb" };
 	static gchar fwhm_buffer[256] = { 0 };
 
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		g_sprintf(fwhm_buffer, " ");
 	} else if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
-		if (com.selection.w < 300 && com.selection.h < 300) {
+		if (com.selection.w < 300 && com.selection.h < 300 && com.selection.w > 5 && com.selection.h > 5) {
 			double roundness;
-			double fwhm_val = psf_get_fwhm(&gfit, gui.cvport, &com.selection, &roundness);
+			double fwhm_val = psf_get_fwhm(&gfit, select_vport(gui.cvport), &com.selection, &roundness);
 			g_sprintf(fwhm_buffer, _("fwhm: %.2f px, r: %.2f"), fwhm_val, roundness);
 		} else
 			g_sprintf(fwhm_buffer, _("fwhm: N/A"));
@@ -953,31 +957,31 @@ void initialize_FITS_name_entries() {
 	mflat = GTK_ENTRY(lookup_widget("flatname_entry"));
 	final_stack = GTK_ENTRY(lookup_widget("entryresultfile"));
 
-	if (com.pref.prepro.bias_lib && (g_file_test(com.pref.prepro.bias_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.bias_lib) {
 		if (com.pref.prepro.use_bias_lib) {
 			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_lib);
 		}
 	}
 
-	if (com.pref.prepro.bias_synth) {
-		if (com.pref.prepro.use_bias_synth) {
-			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_synth);
-		}
-	}
-
-	if (com.pref.prepro.dark_lib && (g_file_test(com.pref.prepro.dark_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.dark_lib) {
 		if (com.pref.prepro.use_dark_lib) {
 			str[1] = g_strdup_printf("%s", com.pref.prepro.dark_lib);
 		}
 	}
 
-	if (com.pref.prepro.flat_lib && (g_file_test(com.pref.prepro.flat_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.flat_lib) {
 		if (com.pref.prepro.use_flat_lib) {
 			str[2] = g_strdup_printf("%s", com.pref.prepro.flat_lib);
 		}
 
 	}
-	str[3] = g_strdup_printf("stack_result%s", com.pref.ext);
+
+	if (com.pref.prepro.stack_default) {
+		if (com.pref.prepro.use_stack_default) {
+			str[3] = g_strdup_printf("%s", com.pref.prepro.stack_default);
+		}
+
+	}
 
 	const char *t_bias = gtk_entry_get_text(mbias);
 	if (!str[0] && t_bias[0] == '\0') {
@@ -1004,7 +1008,13 @@ void initialize_FITS_name_entries() {
 	}
 
 	const char *t_stack = gtk_entry_get_text(final_stack);
-	if (t_stack[0] == '\0') {
+	if (!str[3] && t_stack[0] == '\0') {
+		if (sequence_is_loaded())
+			str[3] = g_strdup_printf("%s_stacked%s", com.seq.seqname, com.pref.ext);
+		else
+			str[3] = g_strdup_printf("stack_result%s", com.pref.ext);
+	}
+	if (str[3]) {
 		gtk_entry_set_text(final_stack, str[3]);
 	}
 
@@ -1017,13 +1027,20 @@ void initialize_FITS_name_entries() {
 void set_output_filename_to_sequence_name() {
 	static GtkEntry *output_file = NULL;
 	gchar *msg;
-	if (!output_file)
-		output_file = GTK_ENTRY(lookup_widget("entryresultfile"));
 	if (!com.seq.seqname || *com.seq.seqname == '\0')
 		return;
+	output_file = GTK_ENTRY(lookup_widget("entryresultfile"));
+	if (com.pref.prepro.stack_default) {
+		if (com.pref.prepro.use_stack_default) {
+			gtk_entry_set_text(output_file, com.pref.prepro.stack_default);
+			return;
+		}
+	}
+	const gchar* com_ext = get_com_ext(com.seq.fz);
+
 	msg = g_strdup_printf("%s%sstacked%s", com.seq.seqname,
 			g_str_has_suffix(com.seq.seqname, "_") ?
-			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), com.pref.ext);
+			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), com_ext);
 	gtk_entry_set_text(output_file, msg);
 
 	g_free(msg);
@@ -1059,6 +1076,9 @@ void activate_tab(int vport) {
 	if (gtk_notebook_get_current_page(notebook) != vport)
 		gtk_notebook_set_current_page(notebook, vport);
 	// com.cvport is set in the event handler for changed page
+}
+void init_right_tab() {
+	activate_tab(isrgb(&gfit) ? RGB_VPORT : RED_VPORT);
 }
 
 void update_spinCPU(int max) {
@@ -1107,6 +1127,7 @@ static void load_accels() {
 		"win.zoom-one",               "<Primary>1", NULL,
 
 		"win.search-object",          "<Primary>slash", NULL,
+		"win.search-solar",          "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
@@ -1339,6 +1360,9 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	fill_astrometry_catalogue(com.pref.gui.catalog);
 	init_GUI_from_settings();
+
+	// init the Plot tab
+	drawPlot();
 
 	if (com.pref.gui.first_start) {
 		com.pref.gui.first_start = FALSE;
@@ -1803,16 +1827,6 @@ void on_menu_rgb_align_select(GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_widget_set_sensitive(lookup_widget("rgb_align_psf"), sel_is_drawn);
 }
 
-void on_rgb_align_dft_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	undo_save_state(&gfit, _("RGB alignment (DFT)"));
-	rgb_align(1);
-}
-
-void on_rgb_align_psf_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	undo_save_state(&gfit, _("RGB alignment (PSF)"));
-	rgb_align(0);
-}
-
 void on_gotoStacking_button_clicked(GtkButton *button, gpointer user_data) {
 	control_window_switch_to_tab(STACKING);
 }
@@ -1841,9 +1855,11 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 
 		if (clear) {
 			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
-			drawPlot();
 			update_stack_interface(TRUE);
+			update_reg_interface(FALSE);
 			adjust_sellabel();
+			reset_plot();
+			set_layers_for_registration();
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
 		}
 	}

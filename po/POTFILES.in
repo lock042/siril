@@ -68,6 +68,7 @@ src/gui/callbacks.c
 src/gui/conversion.c
 src/gui/colors.c
 src/gui/dialog_preview.c
+src/gui/documentation.c
 src/gui/histogram.c
 src/gui/image_display.c
 src/gui/image_interactions.c
@@ -105,6 +106,7 @@ src/io/image_formats_internal.c
 src/io/image_formats_libraries.c
 src/io/image_format_fits.c
 src/io/mp4_output.c
+src/io/path_parse.c
 src/io/seqfile.c
 src/io/sequence.c
 src/io/sequence_export.c

@@ -22,9 +22,12 @@
 #include "core/proto.h"
 #include "core/command.h"
 #include "core/undo.h"
+#include "core/command.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
+#include "core/siril_log.h"
 #include "core/initfile.h"
+#include "compositing/align_rgb.h"
 #include "algos/annotate.h"
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
@@ -37,6 +40,7 @@
 #include "gui/utils.h"
 #include "gui/colors.h"
 #include "gui/callbacks.h"
+#include "gui/documentation.h"
 #include "gui/histogram.h"
 #include "gui/open_dialog.h"
 #include "gui/message_dialog.h"
@@ -71,8 +75,6 @@ void livestacking_action_activate(GSimpleAction *action, GVariant *parameter, gp
 
 	gtk_widget_show(w);
 	gtk_window_set_keep_above(GTK_WINDOW(w), TRUE);
-
-	on_livestacking_start();
 }
 
 void save_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -127,6 +129,10 @@ void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 #ifdef HAVE_JSON_GLIB
 	siril_check_updates(TRUE);
 #endif
+}
+
+void doc_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_get_documentation();
 }
 
 static gboolean is_extended = FALSE;
@@ -329,14 +335,19 @@ void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 
 void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	psf_star *result = NULL;
-	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
+	int layer = select_vport(gui.cvport);
 
 	if (layer == -1)
 		return;
 	if (!(com.selection.h && com.selection.w))
 		return;
+	if (com.selection.w > 300 || com.selection.h > 300) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Current selection is too large"),
+				_("To determine the PSF, please make a selection around a star."));
+		return;
+	}
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, ps, TRUE, NULL);
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 	free(ps);
 	if (!result)
 		return;
@@ -362,12 +373,19 @@ void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer
 		siril_open_dialog("search_objects");
 }
 
+void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (has_wcs(&gfit))
+		process_sso();
+}
+
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		if (has_wcs(&gfit)) {
 			com.found_object = find_objects(&gfit);
 		}
 	} else {
+		purge_temp_user_catalogue();
+		force_to_refresh_catalogue_list();
 		g_slist_free_full(com.found_object, (GDestroyNotify) free_catalogue_object);
 		com.found_object = NULL;
 	}
@@ -515,6 +533,10 @@ void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	toggle_histogram_window_visibility(2);
 }
 
+void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("binxy_dialog");
+}
+
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("resample_dialog");
 }
@@ -601,6 +623,10 @@ void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	siril_open_dialog("denoise_dialog");
 }
 
+void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("merge_cfa_dialog");
+}
+
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	undo_save_state(&gfit, "Synthetic stars: desaturate clipped stars");
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -611,4 +637,18 @@ void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointe
 	undo_save_state(&gfit, "Synthetic stars: full replacement");
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(do_synthstar, NULL);
+}
+
+void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (DFT)"));
+	rgb_align(1);
+}
+
+void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (PSF)"));
+	if (com.selection.w > 300 || com.selection.h > 300) {
+		siril_log_message(_("Current selection is too large. To determine the PSF, please make a selection around a single star.\n"));
+		return;
+	}
+	rgb_align(0);
 }

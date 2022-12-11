@@ -29,6 +29,10 @@
  * 2022/03/11: add min and max function
  *
  * 2022/03/15: uses the branch that includes iif and many operators: https://github.com/cschreib/tinyexpr
+ *
+ * 2022/10/07: add mtf function
+ *
+ * 2022/10/25: add of acosh, asinh, atanh and sign
  */
 
 /* COMPILE TIME OPTIONS */
@@ -172,10 +176,17 @@ static double ncr(double n, double r) {
     }
     return result;
 }
+
+static double MTF(double x, double m) {
+	return ((m - 1.f) * x) / (((2.f * m - 1.f) * x) - m);
+}
+
 static double npr(double n, double r) {return ncr(n, r) * fac(r);}
 
 static double maximum(double a, double b) {return max(a, b);}
 static double minimum(double a, double b) {return min(a, b);}
+static double mtf(double a, double b) {return MTF(b, a);}
+static double sign(double x) {return ((x > 0.0) ? 1.0 : ((x < 0.0) ? -1.0 : 0.0));}
 
 static double iif(double a, double b, double c) {return a > 0.0 ? b : c;}
 
@@ -183,9 +194,12 @@ static const te_variable functions[] = {
     /* must be in alphabetical order */
     {"abs", fabs,     TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"acos", acos,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"acosh", acosh,  TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"asin", asin,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
+    {"asinh", asinh,  TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"atan", atan,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"atan2", atan2,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"atanh", atanh,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"ceil", ceil,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"cos", cos,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"cosh", cosh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
@@ -204,10 +218,12 @@ static const te_variable functions[] = {
     {"log2", log2,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"max", maximum,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"min", minimum,  TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"mtf", mtf,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"ncr", ncr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"npr", npr,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
     {"pi", pi,        TE_FUNCTION0 | TE_FLAG_PURE, 0},
     {"pow", pow,      TE_FUNCTION2 | TE_FLAG_PURE, 0},
+    {"sign", sign,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"sin", sin,      TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"sinh", sinh,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
     {"sqrt", sqrt,    TE_FUNCTION1 | TE_FLAG_PURE, 0},
@@ -491,8 +507,10 @@ static te_expr *base(state *s) {
 static te_expr *power(state *s) {
     /* <power>     =    {("-" | "+")} <base> */
     int sign = 1;
+    int neg = 0;
     while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == inverse)) {
         if (s->function == sub || s->function == inverse) sign = -sign;
+        if (s->function == sub) neg = 1;
         next_token(s);
     }
 
@@ -523,7 +541,7 @@ static te_expr *power(state *s) {
     } else {
         if (logical == 0) {
             ret = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-            if (s->function == sub) {
+            if (neg) {
             	ret->function = negate;
             } else {
             	ret->function = inverse;

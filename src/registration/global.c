@@ -148,10 +148,10 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	image refimage = { .fit = &fit, .from_seq = args->seq, .index_in_seq = regargs->reference_image };
 
 	if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-		sadata->refstars = peaker(&refimage, regargs->layer, &com.pref.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
+		sadata->refstars = peaker(&refimage, regargs->layer, &com.pref.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, com.pref.starfinder_conf.profile, com.max_thread);
 	}
 	else {
-		sadata->refstars = peaker(&refimage, regargs->layer, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, com.max_thread);
+		sadata->refstars = peaker(&refimage, regargs->layer, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, com.pref.starfinder_conf.profile, com.max_thread);
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
@@ -318,10 +318,10 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 
 		image im = { .fit = fit, .from_seq = args->seq, .index_in_seq = in_index };
 		if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-			stars = peaker(&im, layer, &com.pref.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, threads);
+			stars = peaker(&im, layer, &com.pref.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, com.pref.starfinder_conf.profile, threads);
 		}
 		else {
-			stars = peaker(&im, layer, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, threads);
+			stars = peaker(&im, layer, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, regargs->max_stars_candidates, com.pref.starfinder_conf.profile, threads);
 		}
 
 		siril_log_message(_("Found %d stars in image %d, channel #%d\n"), nb_stars, filenum, regargs->layer);
@@ -368,7 +368,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation)) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
@@ -384,7 +384,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
 		if (regargs->x2upscale && !regargs->no_output) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST)) {
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE)) {
 				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
 			}
@@ -491,13 +491,9 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 		siril_log_message(_("Registration aborted.\n"));
 	}
 	return regargs->new_total == 0;
-	// TODO: args is never freed because we don't call an end function for
-	// this generic processing function. The register idle is called for
-	// everything else, but does not know this pointer, and we cannot free
-	// it here because it's still used in the generic processing function.
 }
 
-int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) { 
+int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
@@ -550,6 +546,18 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		else {
 			required = 2 * MB_per_scaled_image;
 		}
+
+		// If interpolation clamping is set, 1 additional Mat of the same format
+		// as the original image are required, plus 1 of the same size but 8U format
+		struct star_align_data *sadata = args->user;
+		struct registration_args *regargs = sadata->regargs;
+		if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
+				regargs->interpolation == OPENCV_LANCZOS4)) {
+			float factor = (is_float) ? 0.25 : 0.5;
+			required += (1 + factor) * MB_per_scaled_image;
+		}
+		regargs = NULL;
+		sadata = NULL;
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
 			thread_limit = com.max_thread;
@@ -792,7 +800,7 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 // returns the index of the minimum element of float array arr of size nb
 // if gboolean mask array is passed, it only includes elements where mask is TRUE
 // if *vval is passed, it contains the best value
-static int minidx(const float *arr, const gboolean *mask, int nb, float *val) {
+int minidx(const float *arr, const gboolean *mask, int nb, float *val) {
 	if (!arr) return -1;
 	if (nb < 1) return -1;
 	int idx = -1;
@@ -835,7 +843,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
-	gboolean *meaningful = NULL; 
+	gboolean *meaningful = NULL;
 	int retval = 0;
 	struct timeval t_start, t_end;
 

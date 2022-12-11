@@ -35,4 +35,6 @@ int addmax(fits *a, fits *b);
 int siril_fdiv(fits *a, fits *b, float scalar, gboolean allow_32bits);
 int siril_ndiv(fits *a, fits *b);
 
+int soper_unscaled_div_ushort_to_float(fits *a, int scalar);
+
 #endif /* SRC_CORE_ARITHM_H_ */

@@ -31,14 +31,14 @@
 #include "opthelper.h"
 #include "rt_algo.h"
 #include "rt_math.h"
-#include "core/sleef.h"
+#include "sleef.h"
 
 namespace {
 float calcBlendFactor(float val, float threshold) {
     // sigmoid function
     // result is in ]0;1] range
     // inflexion point is at (x, y) (threshold, 0.5)
-    return 1.f / (1.f + xexpf(16.f - 16.f * val / threshold));
+    return 1.f / (1.f + expf(16.f - 16.f * val / threshold));
 }
 
 #ifdef __SSE2__
@@ -119,7 +119,7 @@ float calcContrastThreshold(const float* const * luminance, int tileY, int tileX
 #endif
         for(; i < tileX + tilesize - 2; ++i) {
 
-            float contrast = sqrtf(rtengine::SQR(luminance[j][i+1] - luminance[j][i-1]) + rtengine::SQR(luminance[j+1][i] - luminance[j-1][i]) + 
+            float contrast = sqrtf(rtengine::SQR(luminance[j][i+1] - luminance[j][i-1]) + rtengine::SQR(luminance[j+1][i] - luminance[j-1][i]) +
                                    rtengine::SQR(luminance[j][i+2] - luminance[j][i-2]) + rtengine::SQR(luminance[j+2][i] - luminance[j-2][i])) * scale;
 
             blend[j - tileY - 2][i - tileX - 2] = contrast;
@@ -443,7 +443,7 @@ void buildBlendMask(const float* const * luminance, float **blend, int W, int H,
 #endif
                 for(; i < W - 2; ++i) {
 
-                    float contrast = sqrtf(rtengine::SQR(luminance[j][i+1] - luminance[j][i-1]) + rtengine::SQR(luminance[j+1][i] - luminance[j-1][i]) + 
+                    float contrast = sqrtf(rtengine::SQR(luminance[j][i+1] - luminance[j][i-1]) + rtengine::SQR(luminance[j+1][i] - luminance[j-1][i]) +
                                            rtengine::SQR(luminance[j][i+2] - luminance[j][i-2]) + rtengine::SQR(luminance[j+2][i] - luminance[j-2][i])) * scale;
 
                     blend[j][i] = (clipMask ? clipMask[j][i] : 1.f) * calcBlendFactor(contrast, contrastThreshold);

@@ -16,6 +16,7 @@
 #define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
 #define SIMBADSESAME "http://simbad.u-strasbg.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
 #define EPHEMCC "https://ssp.imcce.fr/webservices/miriade/api/ephemcc.php?"
+#define SKYBOT "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?"
 
 
 typedef enum {
@@ -42,6 +43,7 @@ typedef enum {
 	QUERY_SERVER_VIZIER,
 	QUERY_SERVER_SIMBAD,
 	QUERY_SERVER_EPHEMCC,
+	QUERY_SERVER_SKYBOT,
 } query_server;
 
 struct astrometry_data {
@@ -106,6 +108,7 @@ double get_resolution(double focal, double pixel);
 double get_radius_deg(double resolution, int rx, int ry);
 void free_Platedobject();
 int parse_content_buffer(char *buffer, struct sky_object *obj);
+gchar *search_in_online_conesearch(struct astrometry_data *args);
 gboolean has_nonzero_coords();
 gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);

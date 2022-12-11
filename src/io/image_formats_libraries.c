@@ -997,7 +997,8 @@ int readpng(const char *name, fits* fit) {
 	}
 
 	png_infop info = png_create_info_struct(png);
-	if (!info)
+	png_infop end_info = png_create_info_struct(png);
+	if (!info || !end_info)
 		return OPEN_IMAGE_ERROR;
 
 	if (setjmp(png_jmpbuf(png)))
@@ -1018,6 +1019,7 @@ int readpng(const char *name, fits* fit) {
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		fclose(f);
+		png_destroy_read_struct(&png, &info, &end_info);
 		return OPEN_IMAGE_ERROR;
 	}
 	WORD *buf[3] = { data, data + npixels, data + npixels * 2 };
@@ -1051,6 +1053,7 @@ int readpng(const char *name, fits* fit) {
 	png_read_image(png, row_pointers);
 
 	fclose(f);
+	png_destroy_read_struct(&png, &info, &end_info);
 
 	if (bit_depth == 16) {			//in 16-bit: it is stored as RRGGBB
 		for (int y = height - 1; y > -1; y--) {
@@ -1280,10 +1283,12 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		samples_per_pixel = 1;
 	}
 
+	WORD *data = NULL;
+
 	if (bytes_per_sample == 2) {
 		/* swap bytes of 16 bit files to most significant bit first */
 		png_set_swap(png_ptr);
-		WORD *data = convert_data(fit);
+		data = convert_data(fit);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (png_bytep) ((uint16_t*) data + (size_t) samples_per_pixel * i * width);
 	} else {
@@ -1303,6 +1308,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 
 	/* Close the file */
 	fclose(p_png_file);
+	if (data) free(data);
 	free(row_pointers);
 	free(filename);
 	return 0;

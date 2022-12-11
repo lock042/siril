@@ -33,7 +33,6 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
-#include "core/sleef.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -50,13 +49,18 @@
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
 
+// TODO: Would probably be more efficient to cache plot surface and add selection as an overlay
+
 #define XLABELSIZE 15
-#define PLOT_SLIDER_THICKNESS 10.
+#define PLOT_SLIDER_THICKNESS 10. // thickness of the sliders in pixels
+#define SIDE_MARGIN 12. // the margin in pixels top and left to define the start of selectable zone (allows to write info atop of selection)
+#define SEL_TOLERANCE 3. // toerance in pixels for grabbing the selection borders
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*varCurve = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
-		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL;
+		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
+		*buttonNINA = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -71,20 +75,35 @@ static gboolean is_fwhm = TRUE;
 static gnuplot_ctrl *gplot = NULL;
 static gboolean is_arcsec = FALSE;
 static gboolean force_Julian = FALSE;
-static point datamin; // coordinates of the min (x,y) data values in data units
-static point datamax; // coordinates of the max (x,y) data values in data units
-static point pdatamin; // coordinates of the plotted min (x,y) data values in data units (accounting for the sliders)
-static point pdatamax; // coordinates of the plotted max (x,y) data values in data units (accounting for the sliders)
-static point range; // coordinates of the extent of (x,y) axes in pixel units
-static point scale; // scales on x and y in data unit/pixel
-static point offset; // coordinates of the topleft corner (x,y) axes in pixel units
-static double surf_w; // x size of the cairosurface in pixel
-static double surf_h; // y size of the cairosurface in pixel
-static double xrange[2] = {0., 1.}; // pair between 0 and 1 giving the extent of plotted x values in the datamin,datamax range
-static double yrange[2] = {0., 1.}; // pair between 0 and 1 giving the extent of plotted y values in the datamin,datamax range
-static int marker_grabbed = -1;
-// static const char *regfmt32[] = { "%4.2f", "%4.2f", "%4.2f", "%6.4f", "%4.0f", "%5.1f", "%5.1f", "%5.3f", "%5.0f"};
-// static const char *regfmt16[] = { "%4.2f", "%4.2f", "%4.2f", "%5.0f", "%4.0f", "%5.1f", "%5.1f", "%5.3f", "%5.0f"};
+static plot_draw_data_t pdd = { 0 };
+static char *regfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.0f", "%0.1f", "%0.1f", "%0.3f", "%0.0f" };
+static char *regfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.0f", "%0.1f", "%0.1f", "%0.3f", "%0.0f" };
+static char *phtfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.1f", "%0.1f", "%0.2f"};
+static char *phtfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.1f", "%0.1f", "%0.2f"};
+static GtkMenu *menu = NULL;
+static GtkMenuItem *menu_item1 = NULL, *menu_item2 = NULL, *menu_item3 = NULL;
+static gboolean popup_already_shown = FALSE, has_item3 = TRUE;
+
+static void formatX(double v, char *buf, size_t bufsz) {
+	char *fmt;
+	if (use_photometry && julian0 && force_Julian) {
+		fmt = "%0.5f";
+	} else {
+		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
+	}
+	// size of buf is 128
+	// https://kristaps.bsd.lv/kplot/kplot_alloc.3.html
+	snprintf(buf, 128, fmt, v);
+}
+static void formatY(double v, char *buf, size_t bufsz) {
+	char *fmt;
+	if (use_photometry) {
+		fmt = (gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source];
+	} else {
+		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source];
+	}
+	snprintf(buf, 128, fmt, v);
+}
 
 static void update_ylabel();
 static void set_colors(struct kplotcfg *cfg);
@@ -137,36 +156,76 @@ pldata *alloc_plot_data(int size) {
 	return plot;
 }
 
+
 static void convert_surface_to_plot_coords(gdouble x, gdouble y, double *xpos, double *ypos) {
-	*xpos = scale.x * (x - offset.x) + pdatamin.x;
-	*ypos = scale.y * (range.y - y + offset.y) + pdatamin.y;
+	*xpos = max(min(pdd.scale.x * (x - pdd.offset.x) + pdd.pdatamin.x, pdd.pdatamax.x), pdd.pdatamin.x);
+	*ypos = max(min(pdd.scale.y * (pdd.range.y - y + pdd.offset.y) + pdd.pdatamin.y, pdd.pdatamax.y), pdd.pdatamin.y);
 }
 
 // static void convert_plot_to_surface_coords(double x, double y, double *xpos, double *ypos) {
-// 	*xpos = 1./ scale.x * (x - pdatamin.x) + offset.x;
-// 	*ypos = 1./ scale.y * (pdatamin.y - y) + range.y + offset.y;
+// 	*xpos = 1./ pdd.scale.x * (x - pdd.pdatamin.x) + pdd.offset.x;
+// 	*ypos = 1./ pdd.scale.y * (pdd.pdatamin.y - y) + pdd.range.y + pdd.offset.y;
 // }
 
 static void reset_plot_zoom() {
-	xrange[0] = 0.;
-	xrange[1] = 1.;
-	yrange[0] = 0.;
-	yrange[1] = 1.;
-	marker_grabbed = -1;
+	pdd.xrange[0] = 0.;
+	pdd.xrange[1] = 1.;
+	pdd.yrange[0] = 0.;
+	pdd.yrange[1] = 1.;
+	pdd.marker_grabbed = MARKER_NONE;
+	pdd.action = SELACTION_NONE;
+	pdd.border_grabbed = SELBORDER_NONE;
+	pdd.slider_grabbed = SLIDER_NONE;
+	pdd.selection = (rectangled){0., 0., 0., 0.};
 }
 
-static gboolean is_inside_borders(double x, double y) {
-	if (x <= offset.x + range.x && x >= offset.x && y <= offset.y + range.y && y >= offset.y) return TRUE;
+static gboolean selection_is_active() {
+	return pdd.selection.w > 0. && pdd.selection.h > 0.;
+}
+
+static gboolean is_inside_selection(double x, double y) {
+	if (!selection_is_active()) return FALSE;
+	if (x >= pdd.selection.x + SEL_TOLERANCE &&
+		x <= pdd.selection.x + pdd.selection.w - SEL_TOLERANCE &&
+		y >= pdd.selection.y + SEL_TOLERANCE &&
+		y <= pdd.selection.y + pdd.selection.h - SEL_TOLERANCE)
+			return TRUE;
+	return FALSE;
+}
+
+static gboolean is_inside_grid(double x, double y) {
+	if (x <= pdd.offset.x + pdd.range.x + SEL_TOLERANCE &&
+		x >= pdd.offset.x - SEL_TOLERANCE &&
+		y <= pdd.offset.y + pdd.range.y + SEL_TOLERANCE &&
+		y >= pdd.offset.y - SEL_TOLERANCE)
+			return TRUE;
+	return FALSE;
+}
+
+static enum border_type is_over_selection_border(double x, double y) {
+	if (!selection_is_active()) return SELBORDER_NONE;
+	if (x >= pdd.selection.x && x <= pdd.selection.x + pdd.selection.w && y >= pdd.selection.y - SEL_TOLERANCE && y <= pdd.selection.y + SEL_TOLERANCE) return SELBORDER_TOP;
+	if (x >= pdd.selection.x && x <= pdd.selection.x + pdd.selection.w && y >= pdd.selection.y + pdd.selection.h - SEL_TOLERANCE && y <= pdd.selection.y + pdd.selection.h + SEL_TOLERANCE) return SELBORDER_BOTTOM;
+	if (y >= pdd.selection.y && y <= pdd.selection.y + pdd.selection.h && x >= pdd.selection.x - SEL_TOLERANCE && x <= pdd.selection.x + SEL_TOLERANCE) return SELBORDER_LEFT;
+	if (y >= pdd.selection.y && y <= pdd.selection.y + pdd.selection.h && x >= pdd.selection.x + pdd.selection.w - SEL_TOLERANCE && x <= pdd.selection.x + pdd.selection.w + SEL_TOLERANCE) return SELBORDER_RIGHT;
+	return SELBORDER_NONE;
+}
+
+// Returns TRUE if within all the plotting surface except
+// the full-length bottom and right rectangles that enclose sliders
+// This should avoid conflicts with sliders interactions
+static gboolean is_inside_selectable_zone(double x, double y) {
+	if (x <= pdd.surf_w - PLOT_SLIDER_THICKNESS && x >= SIDE_MARGIN && y <= pdd.surf_h - PLOT_SLIDER_THICKNESS && y >= SIDE_MARGIN) return TRUE;
 	return FALSE;
 }
 
 static gboolean is_inside_slider(double x, double y, enum slider_type slider_t) {
 	switch (slider_t) {
 		// some margins are included to make sure we can grab
-		case X_SLIDER:
-			return (x <= offset.x + range.x + PLOT_SLIDER_THICKNESS * 0.5 && x >= offset.x - PLOT_SLIDER_THICKNESS * 0.5 && y >= surf_h - PLOT_SLIDER_THICKNESS);
-		case Y_SLIDER:
-			return (y <= offset.y + range.y + PLOT_SLIDER_THICKNESS * 0.5 && y >= offset.y - PLOT_SLIDER_THICKNESS * 0.5 && x >= surf_w - PLOT_SLIDER_THICKNESS);
+		case SLIDER_X:
+			return (x <= pdd.offset.x + pdd.range.x + SEL_TOLERANCE && x >= pdd.offset.x - SEL_TOLERANCE && y >= pdd.surf_h - PLOT_SLIDER_THICKNESS);
+		case SLIDER_Y:
+			return (y <= pdd.offset.y + pdd.range.y + SEL_TOLERANCE && y >= pdd.offset.y - SEL_TOLERANCE && x >= pdd.surf_w - PLOT_SLIDER_THICKNESS);
 		default:
 			return FALSE;
 	}
@@ -174,21 +233,21 @@ static gboolean is_inside_slider(double x, double y, enum slider_type slider_t) 
 
 static gboolean is_over_marker(double x, double y, enum marker_type marker_t) {
 	switch (marker_t) {
-		case X_MIN:
-			return (fabs(x - (offset.x + range.x * xrange[0])) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (surf_h - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5);
-		case X_MAX:
-			return (fabs(x - (offset.x + range.x * xrange[1])) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (surf_h - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5);
-		case Y_MIN:
-			return (fabs(x - (surf_w - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (offset.y + range.y * (1. - yrange[0]))) <= PLOT_SLIDER_THICKNESS * 0.5);
-		case Y_MAX:
-			return (fabs(x - (surf_w - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (offset.y + range.y * (1. - yrange[1]))) <= PLOT_SLIDER_THICKNESS * 0.5);
+		case MARKER_X_MIN:
+			return (fabs(x - (pdd.offset.x + pdd.range.x * pdd.xrange[0])) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5);
+		case MARKER_X_MAX:
+			return (fabs(x - (pdd.offset.x + pdd.range.x * pdd.xrange[1])) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5);
+		case MARKER_Y_MIN:
+			return (fabs(x - (pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (pdd.offset.y + pdd.range.y * (1. - pdd.yrange[0]))) <= PLOT_SLIDER_THICKNESS * 0.5);
+		case MARKER_Y_MAX:
+			return (fabs(x - (pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5)) <= PLOT_SLIDER_THICKNESS * 0.5 && fabs(y - (pdd.offset.y + pdd.range.y * (1. - pdd.yrange[1]))) <= PLOT_SLIDER_THICKNESS * 0.5);
 		default:
 			return FALSE;
 	}
 }
 
 static int get_closest_marker(double x, double y, enum slider_type slider_t, double *valrange) {
-	double val = (slider_t == X_SLIDER) ? (x - offset.x) / range.x : (offset.y + range.y - y) / range.y;
+	double val = (slider_t == SLIDER_X) ? (x - pdd.offset.x) / pdd.range.x : (pdd.offset.y + pdd.range.y - y) / pdd.range.y;
 	// should not be outside of [0, 1] but just in case
 	val = min(1., val);
 	val = max(0., val);
@@ -196,7 +255,7 @@ static int get_closest_marker(double x, double y, enum slider_type slider_t, dou
 }
 
 static void find_range_from_pos(double x, double y, enum slider_type slider_t, int index, double *valrange) {
-	double val = (slider_t == X_SLIDER) ? (x - offset.x) / range.x : (offset.y + range.y - y) / range.y;
+	double val = (slider_t == SLIDER_X) ? (x - pdd.offset.x) / pdd.range.x : (pdd.offset.y + pdd.range.y - y) / pdd.range.y;
 	val = min(1., val);
 	val = max(0., val);
 	double otherval = (index == 0) ? valrange[1] : valrange[0];
@@ -205,15 +264,19 @@ static void find_range_from_pos(double x, double y, enum slider_type slider_t, i
 	valrange[1] = max(val, otherval);
 }
 
+static double find_rangeval_from_pos(double v, enum slider_type slider_t) {
+	return (slider_t == SLIDER_X) ? (v - pdd.offset.x) / pdd.range.x : (pdd.offset.y + pdd.range.y - v) / pdd.range.y;
+}
+
 static void update_slider(enum slider_type slider_t, double valmin, double valmax) {
 	switch (slider_t) {
-		case X_SLIDER:
-			xrange[0] = valmin;
-			xrange[1] = valmax;
+		case SLIDER_X:
+			pdd.xrange[0] = valmin;
+			pdd.xrange[1] = valmax;
 			break;
-		case Y_SLIDER:
-			yrange[0] = valmin;
-			yrange[1] = valmax;
+		case SLIDER_Y:
+			pdd.yrange[0] = valmin;
+			pdd.yrange[1] = valmax;
 			break;
 		default:
 			break;
@@ -227,15 +290,15 @@ static gboolean get_index_of_frame(double x, double y, gboolean check_index_incl
 	pldata *plot = plot_data;
 	convert_surface_to_plot_coords(x, y, xpos, ypos);
 	// double testx, testy;
-	// convert_plot_to_surface_coords(datamin.x, datamin.y, &testx, &testy);
+	// convert_plot_to_surface_coords(pdd.datamin.x, pdd.datamin.y, &testx, &testy);
 
-	double invrangex = 1./(pdatamax.x - pdatamin.x);
-	double invrangey = 1./(pdatamax.y - pdatamin.y);
+	double invrangex = 1./(pdd.pdatamax.x - pdd.pdatamin.x);
+	double invrangey = 1./(pdd.pdatamax.y - pdd.pdatamin.y);
 	*index = *xpos;
 
 	while (plot) {
 		for (int j = 0; j < plot->nb; j++) {
-			double dist = xpow((*index - plot->data[j].x) * invrangex, 2) + xpow((*ypos - plot->data[j].y) * invrangey, 2);
+			double dist = pow((*index - plot->data[j].x) * invrangex, 2) + pow((*ypos - plot->data[j].y) * invrangey, 2);
 			if (dist < mindist) {
 				mindist = dist;
 				closestframe = plot->frame[j];
@@ -245,7 +308,7 @@ static gboolean get_index_of_frame(double x, double y, gboolean check_index_incl
 	}
 	*index = (mindist < 0.0004) ? closestframe : -1; // only set index if distance between cursor and a point is small enough (2% of scales)
 
-	if (check_index_incl && (*index >= 0 && *index <= pdatamax.x)) return com.seq.imgparam[(int)*index - 1].incl;
+	if (check_index_incl && (*index >= 0 && *index <= pdd.pdatamax.x)) return com.seq.imgparam[(int)*index - 1].incl;
 	return TRUE;
 
 }
@@ -255,10 +318,10 @@ static void plot_draw_all_sliders(cairo_t *cr) {
 	cairo_set_line_width(cr, 1.0);
 	cairo_set_source_rgb(cr, color, color, color);
 	// x-slider
-	cairo_rectangle(cr, offset.x, surf_h - PLOT_SLIDER_THICKNESS, range.x, PLOT_SLIDER_THICKNESS);
+	cairo_rectangle(cr, pdd.offset.x, pdd.surf_h - PLOT_SLIDER_THICKNESS, pdd.range.x, PLOT_SLIDER_THICKNESS);
 	cairo_stroke(cr);
 	// y-slider
-	cairo_rectangle(cr, surf_w - PLOT_SLIDER_THICKNESS, offset.y, PLOT_SLIDER_THICKNESS, range.y);
+	cairo_rectangle(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS, pdd.offset.y, PLOT_SLIDER_THICKNESS, pdd.range.y);
 	cairo_stroke(cr);
 }
 
@@ -267,19 +330,19 @@ static void plot_draw_slider_fill(cairo_t *cr, enum slider_type slider_t) {
 	cairo_set_source_rgb(cr, color, color, color);
 	switch (slider_t) {
 		default:
-		case X_SLIDER:
-			cairo_rectangle(cr, offset.x + range.x * xrange[0], surf_h - PLOT_SLIDER_THICKNESS, range.x * (xrange[1] - xrange[0]), PLOT_SLIDER_THICKNESS);
+		case SLIDER_X:
+			cairo_rectangle(cr, pdd.offset.x + pdd.range.x * pdd.xrange[0], pdd.surf_h - PLOT_SLIDER_THICKNESS, pdd.range.x * (pdd.xrange[1] - pdd.xrange[0]), PLOT_SLIDER_THICKNESS);
 			break;
-		case Y_SLIDER:
-			cairo_rectangle(cr, surf_w - PLOT_SLIDER_THICKNESS, offset.y + range.y * (1. - yrange[1]), PLOT_SLIDER_THICKNESS, range.y * (yrange[1] - yrange[0]));
+		case SLIDER_Y:
+			cairo_rectangle(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[1]), PLOT_SLIDER_THICKNESS, pdd.range.y * (pdd.yrange[1] - pdd.yrange[0]));
 			break;
 	}
 	cairo_fill(cr);
 }
 
 static void plot_draw_all_sliders_fill(cairo_t *cr) {
-	plot_draw_slider_fill(cr, X_SLIDER);
-	plot_draw_slider_fill(cr, Y_SLIDER);
+	plot_draw_slider_fill(cr, SLIDER_X);
+	plot_draw_slider_fill(cr, SLIDER_Y);
 }
 
 
@@ -287,25 +350,71 @@ static void plot_draw_marker(cairo_t *cr, enum marker_type marker_t) {
 	cairo_set_source_rgb(cr, 0.8, 0., 0.);
 	switch (marker_t) {
 		default:
-		case X_MIN:
-			cairo_arc(cr, offset.x + range.x * xrange[0], surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+		case MARKER_X_MIN:
+			cairo_arc(cr, pdd.offset.x + pdd.range.x * pdd.xrange[0], pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
 			break;
-		case X_MAX:
-			cairo_arc(cr, offset.x + range.x * xrange[1], surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+		case MARKER_X_MAX:
+			cairo_arc(cr, pdd.offset.x + pdd.range.x * pdd.xrange[1], pdd.surf_h - PLOT_SLIDER_THICKNESS * 0.5, PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
 			break;
-		case Y_MIN:
-			cairo_arc(cr, surf_w - PLOT_SLIDER_THICKNESS * 0.5, offset.y + range.y * (1. - yrange[0]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+		case MARKER_Y_MIN:
+			cairo_arc(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[0]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
 			break;
-		case Y_MAX:
-			cairo_arc(cr, surf_w - PLOT_SLIDER_THICKNESS * 0.5, offset.y + range.y * (1. - yrange[1]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
+		case MARKER_Y_MAX:
+			cairo_arc(cr, pdd.surf_w - PLOT_SLIDER_THICKNESS * 0.5, pdd.offset.y + pdd.range.y * (1. - pdd.yrange[1]), PLOT_SLIDER_THICKNESS * 0.5, 0., 2. * M_PI);
 			break;
 	}
 	cairo_fill(cr);
 }
 
 static void plot_draw_all_markers(cairo_t *cr) {
-	for (int i = X_MIN; i <= Y_MAX; i++)
+	for (int i = MARKER_X_MIN; i <= MARKER_Y_MAX; i++)
 		plot_draw_marker(cr, i);
+}
+
+static void plot_draw_selection(cairo_t *cr){
+	if (pdd.selection.h == 0. || pdd.selection.w == 0.) return;
+	double dash_format[] = { 4.0, 2.0 };
+	double color = (com.pref.gui.combo_theme == 0) ? 0.8 : 0.2;
+	cairo_set_source_rgb(cr, color, color, color);
+	cairo_set_dash(cr, dash_format, 2, 0);
+	cairo_set_line_width(cr, 1.);
+	cairo_rectangle(cr, pdd.selection.x,  pdd.selection.y,
+						 pdd.selection.w,  pdd.selection.h);
+	cairo_stroke(cr);
+	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_move_to(cr, pdd.selection.x,  pdd.selection.y - 2);
+	double xmin, ymin, xmax, ymax;
+	convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+	convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
+	gchar fmt[256] = { 0 };
+	gchar buffer[256] = { 0 };
+	if (use_photometry) {
+		if (julian0 && force_Julian) {
+			g_sprintf(fmt, "Nb: %s (for V star) - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
+			"%0.5f",
+			"%0.5f",
+			ylabel,
+			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
+			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
+		} else {
+			g_sprintf(fmt, "Nb: %s (for V star) - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
+			(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+			(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+			ylabel,
+			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source],
+			(gfit.type == DATA_FLOAT) ? phtfmt32[photometry_selected_source] : phtfmt16[photometry_selected_source]);
+		}
+	} else {
+		g_sprintf(fmt, "Nb: %s - %s: [ %s , %s ] - %s: [ %s , %s ]", "\%d", xlabel,
+		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+		(gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source],
+		ylabel,
+		(gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source],
+		(gfit.type == DATA_FLOAT) ? regfmt32[registration_selected_source] : regfmt16[registration_selected_source]);
+	}
+	g_sprintf(buffer, fmt, pdd.nbselected, xmin, xmax, ymin, ymax);
+	cairo_show_text(cr, buffer);
+	cairo_stroke(cr);
 }
 
 static void build_registration_dataset(sequence *seq, int layer, int ref_image,
@@ -314,13 +423,12 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	double fwhm;
 	double dx, dy;
 	double cx,cy;
-	gboolean Href_is_invalid;
 	cx = (seq->is_variable) ? (double)seq->imgparam[ref_image].rx * 0.5 : (double)seq->rx * 0.5;
 	cy = (seq->is_variable) ? (double)seq->imgparam[ref_image].ry * 0.5 : (double)seq->ry * 0.5;
 	Homography Href = seq->regparam[layer][ref_image].H;
-	Href_is_invalid = (guess_transform_from_H(Href) == -2) ? TRUE : FALSE;
-	datamin = (point){ DBL_MAX, DBL_MAX};
-	datamax = (point){ -DBL_MAX, -DBL_MAX};
+	gboolean Href_is_invalid = (guess_transform_from_H(Href) == NULL_TRANSFORMATION);
+	pdd.datamin = (point){ DBL_MAX, DBL_MAX};
+	pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
 
 	for (i = 0, j = 0; i < plot->nb; i++) {
 		if (!seq->imgparam[i].incl)
@@ -343,7 +451,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				// compute the center of image i in the axes of the reference frame
 				dx = (seq->is_variable) ? (double)seq->imgparam[i].rx * 0.5 : (double)seq->rx * 0.5;
 				dy = (seq->is_variable) ? (double)seq->imgparam[i].ry * 0.5 : (double)seq->ry * 0.5;
-				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == -2) {
+				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == NULL_TRANSFORMATION) {
 					plot->data[j].x = 0;
 					break;
 				}
@@ -393,7 +501,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				// compute the center of image i in the axes of the reference frame
 				dx = (seq->is_variable) ? (double)seq->imgparam[i].rx * 0.5 : (double)seq->rx * 0.5;
 				dy = (seq->is_variable) ? (double)seq->imgparam[i].ry * 0.5 : (double)seq->ry * 0.5;
-				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == -2) {
+				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == NULL_TRANSFORMATION) {
 					plot->data[j].y = 0;
 					break;
 				}
@@ -432,13 +540,17 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 			curr.y = plot->data[j].y;
 		}
 		// caching the data range
-		if (datamin.x > plot->data[j].x) datamin.x = plot->data[j].x;
-		if (datamax.x < plot->data[j].x) datamax.x = plot->data[j].x;
-		if (datamin.y > plot->data[j].y) datamin.y = plot->data[j].y;
-		if (datamax.y < plot->data[j].y) datamax.y = plot->data[j].y;
+		if (pdd.datamin.x > plot->data[j].x) pdd.datamin.x = plot->data[j].x;
+		if (pdd.datamax.x < plot->data[j].x) pdd.datamax.x = plot->data[j].x;
+		if (pdd.datamin.y > plot->data[j].y) pdd.datamin.y = plot->data[j].y;
+		if (pdd.datamax.y < plot->data[j].y) pdd.datamax.y = plot->data[j].y;
 		j++;
 	}
 	plot->nb = j;
+	pdd.pdatamin.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[0];
+	pdd.pdatamax.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[1];
+	pdd.pdatamin.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[0];
+	pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
 }
 
 static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index, int point_index) {
@@ -494,7 +606,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 					julian0 = (int) date_time_to_Julian(ts0);
 				}
 				g_date_time_unref(ts0);
-				siril_debug_print("julian0 set to %d\n", julian0);
+				//siril_debug_print("julian0 set to %d\n", julian0);
 			}
 			if (julian0 && force_Julian) {
 				xlabel = malloc(XLABELSIZE * sizeof(char));
@@ -514,7 +626,6 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 					fwhm_to_arcsec_if_needed(&gfit, psfs[i]);
 					fwhm = psfs[i]->fwhmx_arcsec < 0 ? psfs[i]->fwhmx : psfs[i]->fwhmx_arcsec;
 				} else {
-					fwhm_to_pixels(psfs[i]);
 					fwhm = psfs[i]->fwhmx;
 				}
 				plot->data[j].y = fwhm;
@@ -567,13 +678,17 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 			curr.y = plot->data[j].y;
 		}
 		// caching the data range
-		if (datamin.x > plot->data[j].x) datamin.x = plot->data[j].x;
-		if (datamax.x < plot->data[j].x) datamax.x = plot->data[j].x;
-		if (datamin.y > plot->data[j].y) datamin.y = plot->data[j].y;
-		if (datamax.y < plot->data[j].y) datamax.y = plot->data[j].y;
+		if (pdd.datamin.x > plot->data[j].x) pdd.datamin.x = plot->data[j].x;
+		if (pdd.datamax.x < plot->data[j].x) pdd.datamax.x = plot->data[j].x;
+		if (pdd.datamin.y > plot->data[j].y) pdd.datamin.y = plot->data[j].y;
+		if (pdd.datamax.y < plot->data[j].y) pdd.datamax.y = plot->data[j].y;
 		j++;
 	}
 	plot->nb = j;
+	pdd.pdatamin.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[0];
+	pdd.pdatamax.x = pdd.datamin.x + (pdd.datamax.x - pdd.datamin.x) * pdd.xrange[1];
+	pdd.pdatamin.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[0];
+	pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
 }
 
 static double get_error_for_time(pldata *plot, double time) {
@@ -824,6 +939,8 @@ void free_plot_data() {
 	julian0 = 0;
 	xlabel = NULL;
 	plot_data = NULL;
+	free(pdd.selected);
+	pdd.selected = NULL;
 }
 
 static void set_sensitive(GtkCellLayout *cell_layout,
@@ -867,6 +984,7 @@ static void fill_plot_statics() {
 		buttonClearAll = lookup_widget("clearAllPhotometry");
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
 		layer_selector = lookup_widget("seqlist_dialog_combo");
+		buttonNINA = lookup_widget("nina_button");
 	}
 }
 
@@ -879,6 +997,7 @@ static void validate_combos() {
 			reglayer = get_registration_layer(&com.seq);
 	}
 	gtk_widget_set_visible(varCurve, use_photometry);
+	gtk_widget_set_visible(buttonNINA, sequence_is_loaded());
 	gtk_widget_set_visible(buttonSaveCSV, TRUE);
 	gtk_widget_set_visible(buttonSavePrt, TRUE);
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
@@ -904,7 +1023,9 @@ static void validate_combos() {
 		}
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), X_selected_source);
-		gtk_widget_set_sensitive(comboX, TRUE);
+		gtk_widget_set_sensitive(comboX, layer_has_registration(&com.seq, reglayer));
+		gtk_widget_set_sensitive(combo, layer_has_registration(&com.seq, reglayer));
+
 		if ((!is_fwhm) && registration_selected_source < r_X_POSITION) {
 			registration_selected_source = r_QUALITY;
 		}
@@ -945,9 +1066,10 @@ void reset_plot() {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 0);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(combo), registration_selected_source); //remove?
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
-		gtk_widget_set_sensitive(comboX, TRUE);
+		gtk_widget_set_sensitive(comboX, FALSE);
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
 		gtk_widget_set_visible(varCurve, FALSE);
+		gtk_widget_set_visible(buttonNINA, FALSE);
 		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
 		gtk_widget_set_sensitive(buttonSavePrt, FALSE);
 		gtk_widget_set_visible(julianw, FALSE);
@@ -1025,8 +1147,8 @@ void drawPlot() {
 		plot = alloc_plot_data(seq->number);
 		plot_data = plot;
 		// datamin/max must be init here to be common to all the stars
-		datamin = (point){ DBL_MAX, DBL_MAX};
-		datamax = (point){ -DBL_MAX, -DBL_MAX};
+		pdd.datamin = (point){ DBL_MAX, DBL_MAX};
+		pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
 		for (int i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++) {
 			if (i > 0) {
 				plot->next = alloc_plot_data(seq->number);
@@ -1163,13 +1285,15 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	cfgplot.yaxislabel = ylabel;
 	cfgplot.yaxislabelrot = M_PI_2 * 3.0;
 	cfgplot.xticlabelpad = cfgplot.yticlabelpad = 10.0;
+	cfgplot.xticlabelfmt = formatX;
+	cfgplot.yticlabelfmt = formatY;
 	cfgdata.point.radius = 10;
 	// binding the extrema to the sliders
 	cfgplot.extrema = 0x0F;
-	cfgplot.extrema_xmin = pdatamin.x = datamin.x + (datamax.x - datamin.x) * xrange[0];
-	cfgplot.extrema_xmax = pdatamax.x = datamin.x + (datamax.x - datamin.x) * xrange[1];
-	cfgplot.extrema_ymin = pdatamin.y = datamin.y + (datamax.y - datamin.y) * yrange[0];
-	cfgplot.extrema_ymax = pdatamax.y = datamin.y + (datamax.y - datamin.y) * yrange[1];
+	cfgplot.extrema_xmin = pdd.pdatamin.x;
+	cfgplot.extrema_xmax = pdd.pdatamax.x;
+	cfgplot.extrema_ymin = pdd.pdatamin.y;
+	cfgplot.extrema_ymax = pdd.pdatamax.y;
 
 	struct kplot *p = kplot_alloc(&cfgplot);
 
@@ -1208,9 +1332,9 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 				qsort(sorted_data, plot_data->nb, sizeof(struct kpair),
 						(registration_selected_source == r_ROUNDNESS || registration_selected_source == r_QUALITY ||
 						 registration_selected_source == r_NBSTARS) ? comparey_desc : comparey);
-				double imin = pdatamin.x;
-				double imax = pdatamax.x;
-				double pace = (imax - imin) / ((double)plot_data->nb - 1.); // TODO: re-check behavior of sorted distribution when zoomed in X
+				double imin = pdd.pdatamin.x;
+				double imax = pdd.pdatamax.x;
+				double pace = (imax - imin) / ((double)plot_data->nb - 1.);
 				for (int i = 0; i < plot_data->nb; i++) {
 					sorted_data[i].x = imin + (double)i * pace;
 				}
@@ -1242,8 +1366,8 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 
 	width =  gtk_widget_get_allocated_width(widget);
 	height = gtk_widget_get_allocated_height(widget);
-	surf_w = (double)width;
-	surf_h = (double)height;
+	pdd.surf_w = (double)width;
+	pdd.surf_h = (double)height;
 	cairo_surface_t *surface = NULL;
 
 	if (for_saving) {
@@ -1268,13 +1392,34 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		g_free(filename);
 	} else {
 		// caching more data
-		range = (point){ get_dimx(),  get_dimy()};
-		scale = (point){ (pdatamax.x - pdatamin.x) / range.x, (pdatamax.y - pdatamin.y) / range.y};
-		offset = (point){ get_offsx(),  get_offsy()};
+		pdd.range = (point){ get_dimx(),  get_dimy()};
+		pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
+		pdd.offset = (point){ get_offsx(),  get_offsy()};
+		// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
+		pdd.selected = calloc(com.seq.number, sizeof(gboolean));
+		if (selection_is_active()) {
+			double xmin, ymin, xmax, ymax;
+			int n = 0;
+			convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+			convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
+			int i, j;
+			for (i = 0, j = 0; i < com.seq.number; i++) {
+				if (!com.seq.imgparam[i].incl) continue;
+				if (plot_data->data[j].x >= xmin && plot_data->data[j].x <= xmax && plot_data->data[j].y >= ymin && plot_data->data[j].y <= ymax) {
+					n++;
+					pdd.selected[i] = TRUE;
+				}
+				j++;
+			}
+			pdd.nbselected = n;
+		} else {
+			pdd.nbselected = 0;
+		}
 		//drawing the sliders and markers
 		plot_draw_all_sliders(cr);
 		plot_draw_all_sliders_fill(cr);
 		plot_draw_all_markers(cr);
+		plot_draw_selection(cr);
 	}
 	free_colors(&cfgplot);
 	kplot_free(p);
@@ -1300,12 +1445,14 @@ void on_plotCombo_changed(GtkComboBox *box, gpointer user_data) {
 		registration_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	}
 	requires_seqlist_update = TRUE;
-	update_slider(Y_SLIDER, 0., 1.);
+	pdd.selection = (rectangled){0., 0., 0., 0.};
+	update_slider(SLIDER_Y, 0., 1.);
 }
 
 void on_plotComboX_changed(GtkComboBox *box, gpointer user_data) {
 	X_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(comboX));
-	update_slider(X_SLIDER, 0., 1.);
+	pdd.selection = (rectangled){0., 0., 0., 0.};
+	update_slider(SLIDER_X, 0., 1.);
 }
 
 void on_arcsecPhotometry_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -1498,12 +1645,149 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 
 	double x = (double)event->x;
 	double y = (double)event->y;
-	for (int i = X_SLIDER; i <= Y_SLIDER; i++) {
+	if (pdd.action == SELACTION_SELECTING) {
+		double x1, x2, y1, y2;
+		x1 = max(SIDE_MARGIN, min(pdd.start.x, x));
+		x2 = min(pdd.surf_w - PLOT_SLIDER_THICKNESS, max(pdd.start.x, x));
+		y1 = max(SIDE_MARGIN, min(pdd.start.y, y));
+		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, max(pdd.start.y, y));
+		pdd.selection = (rectangled){x1, y1, x2 - x1, y2 - y1};
+		drawPlot();
+		return TRUE;
+	}
+	if (pdd.action == SELACTION_RESIZING) {
+		double x1, x2, y1, y2;
+		x1 = pdd.selection.x;
+		y1 = pdd.selection.y;
+		x2 = pdd.selection.x + pdd.selection.w;
+		y2 = pdd.selection.y + pdd.selection.h;
+		switch (pdd.border_grabbed) {
+			case SELBORDER_LEFT:
+				if (x <= pdd.selection.x + pdd.selection.w) {
+					x1 = x;
+					x2 = pdd.selection.x + pdd.selection.w;
+				} else {
+					x2 = x;
+					x1 = pdd.selection.x + pdd.selection.w;
+					pdd.border_grabbed = SELBORDER_RIGHT;
+				}
+				break;
+			case SELBORDER_RIGHT:
+				if (x >= pdd.selection.x) {
+					x1 = pdd.selection.x;
+					x2 = x;
+				} else {
+					x1 = x;
+					x2 = pdd.selection.x;
+					pdd.border_grabbed = SELBORDER_LEFT;
+				}
+				break;
+			case SELBORDER_TOP:
+				if (y <= pdd.selection.y + pdd.selection.h) {
+					y1 = y;
+					y2 = pdd.selection.y + pdd.selection.h;
+				} else {
+					y2 = y;
+					y1 = pdd.selection.y + pdd.selection.h;
+					pdd.border_grabbed = SELBORDER_BOTTOM;
+				}
+				break;
+			case SELBORDER_BOTTOM:
+				if (y >= pdd.selection.y) {
+					y1 = pdd.selection.y;
+					y2 = y;
+				} else {
+					y1 = y;
+					y2 = pdd.selection.y;
+					pdd.border_grabbed = SELBORDER_TOP;
+				}
+				break;
+			default:
+				break;
+		}
+		x1 = max(SIDE_MARGIN, x1);
+		x2 = min(pdd.surf_w - PLOT_SLIDER_THICKNESS, x2);
+		y1 = max(SIDE_MARGIN, y1);
+		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, y2);
+		pdd.selection = (rectangled){x1, y1, x2 - x1, y2 - y1};
+		drawPlot();
+		return TRUE;
+	}
+	if (pdd.action == SELACTION_MOVING) {
+		double dx, dy;
+		dx = x - pdd.start.x;
+		dy = y - pdd.start.y;
+		if (pdd.selection.x + dx < SIDE_MARGIN) {
+			dx = -pdd.selection.x + SIDE_MARGIN;
+			x = dx + pdd.start.x;
+		}
+		if (pdd.selection.y + dy < SIDE_MARGIN) {
+			dy = -pdd.selection.y + SIDE_MARGIN;
+			y = dy + pdd.start.y;
+		}
+		if (pdd.selection.x + pdd.selection.w + dx > pdd.surf_w - PLOT_SLIDER_THICKNESS) {
+			dx = - (pdd.selection.x + pdd.selection.w) - PLOT_SLIDER_THICKNESS + pdd.surf_w;
+			x = dx + pdd.start.x;
+		}
+		if (pdd.selection.y + pdd.selection.h + dy > pdd.surf_h - PLOT_SLIDER_THICKNESS) {
+			dy = - (pdd.selection.y + pdd.selection.h) - PLOT_SLIDER_THICKNESS + pdd.surf_h;
+			y = dy + pdd.start.y;
+		}
+		pdd.start.x = x;
+		pdd.start.y = y;
+		pdd.selection = (rectangled){pdd.selection.x + dx, pdd.selection.y + dy, pdd.selection.w, pdd.selection.h};
+		drawPlot();
+		return TRUE;
+	}
+	for (int i = SLIDER_X; i <= SLIDER_Y; i++) {
 		for (int j = 0; j < 2; j++) {
-			if (marker_grabbed == 2 * i + j) {
-				double *valrange = (i == 0) ? &xrange[0] : &yrange[0];
+			if (pdd.marker_grabbed == 2 * i + j) {
+				double *valrange = (i == 0) ? pdd.xrange : pdd.yrange;
 				find_range_from_pos(x, y, i, j, valrange);
 				update_slider(i, valrange[0], valrange[1]);
+				return TRUE;
+			} else if (pdd.slider_grabbed == i) {
+				double dv, v1, v2;
+				if (i == SLIDER_X) {
+					dv = x - pdd.start.x;
+					v1 = pdd.xrange[0] * pdd.range.x + pdd.offset.x;
+					v2 = pdd.xrange[1] * pdd.range.x + pdd.offset.x;
+					if (v1 + dv <= pdd.offset.x) {
+						dv = pdd.offset.x - v1;
+						x = dv + pdd.start.x;
+					}
+					if (v2 + dv >= pdd.offset.x + pdd.range.x) {
+						dv = pdd.offset.x + pdd.range.x - v2;
+						x = dv + pdd.start.x;
+					}
+				} else {
+					dv = pdd.start.y - y;
+					v1 = (1. - pdd.yrange[0]) * pdd.range.y + pdd.offset.y; // y axis is reversed
+					v2 = (1. - pdd.yrange[1]) * pdd.range.y + pdd.offset.y;
+					if (v2 - dv <= pdd.offset.y) {
+						dv = v2 - pdd.offset.y;
+						y = pdd.start.y - dv;
+					}
+					if (v1 - dv >= pdd.offset.y + pdd.range.y) {
+						dv = -pdd.offset.y - pdd.range.y + v1;
+						y = pdd.start.y - dv;
+					}
+				}
+				pdd.start.x = x;
+				pdd.start.y = y;
+				if (i == SLIDER_X) {
+					v1 += dv;
+					v2 += dv;
+					pdd.xrange[0] = find_rangeval_from_pos(v1, i);
+					pdd.xrange[1] = find_rangeval_from_pos(v2, i);
+					update_slider(i, pdd.xrange[0], pdd.xrange[1]);
+				} else {
+					v1 -= dv;
+					v2 -= dv;
+					pdd.yrange[0] = find_rangeval_from_pos(v1, i);
+					pdd.yrange[1] = find_rangeval_from_pos(v2, i);
+					update_slider(i, pdd.yrange[0], pdd.yrange[1]);
+				}
 				return TRUE;
 			} else if (is_over_marker(x, y, 2 * i + j)) {
 				set_cursor("grab");
@@ -1511,7 +1795,19 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 			}
 		}
 	}
-	if (is_inside_borders(x, y)) {
+	enum border_type border = is_over_selection_border(x, y);
+	if (border > SELBORDER_NONE) {
+		if (border <= SELBORDER_BOTTOM)
+			set_cursor("n-resize");
+		else
+			set_cursor("w-resize");
+		return TRUE;
+	} else if (is_inside_selection(x, y)) {
+		set_cursor("all-scroll");
+	} else {
+		set_cursor("tcross");
+	}
+	if (is_inside_grid(x, y)) {
 		double index, xpos, ypos;
 		gboolean getvals = get_index_of_frame(x, y, FALSE, &index, &xpos, &ypos);
 		gchar *tooltip_text;
@@ -1527,14 +1823,13 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		}
 	}
 	set_cursor("tcross");
-	return FALSE;
+	return TRUE;
 }
 
 gboolean on_DrawingPlot_enter_notify_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	if (plot_data && marker_grabbed == -1) {
+	if (plot_data && pdd.marker_grabbed == MARKER_NONE && pdd.border_grabbed == SELBORDER_NONE && pdd.slider_grabbed == SLIDER_NONE && pdd.action == SELACTION_NONE)
 		set_cursor("tcross");
-	}
 	return TRUE;
 }
 
@@ -1544,16 +1839,13 @@ gboolean on_DrawingPlot_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 		set_cursor_waiting(TRUE);
 	} else {
 		/* trick to get default cursor */
-		if (marker_grabbed == -1) set_cursor_waiting(FALSE);
+		if (pdd.marker_grabbed == MARKER_NONE && pdd.border_grabbed == SELBORDER_NONE && pdd.slider_grabbed == SLIDER_NONE && pdd.action == SELACTION_NONE)
+			set_cursor_waiting(FALSE);
 	}
 	return TRUE;
 }
 
-static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
-	static GtkMenu *menu = NULL;
-	static GtkMenuItem *menu_item = NULL;
-	static GtkMenuItem *menu_item2 = NULL;
-
+static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event) {
 	if (!event) {
 		return;
 	}
@@ -1566,9 +1858,25 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 	if (!menu) {
 		menu = GTK_MENU(lookup_widget("menu_plot"));
 		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
-		menu_item = GTK_MENU_ITEM(lookup_widget("menu_plot_exclude"));
-		menu_item2 = GTK_MENU_ITEM(lookup_widget("menu_plot_show"));
+		menu_item1 = GTK_MENU_ITEM(lookup_widget("menu_plot_item1"));
+		menu_item2 = GTK_MENU_ITEM(lookup_widget("menu_plot_item2"));
+		menu_item3 = GTK_MENU_ITEM(lookup_widget("menu_plot_item3"));
 	}
+	gchar *str = g_strdup_printf(_("Exclude Frame %d"), (int)index);
+	gtk_menu_item_set_label(menu_item1, str);
+	gchar *str2 = g_strdup_printf(_("Show Frame %d"), (int)index);
+	gtk_menu_item_set_label(menu_item2, str2);
+	if (!popup_already_shown) {
+		// we need to ref it to keep it alive after removing from container
+		g_object_ref(menu_item3);
+		popup_already_shown = TRUE;
+	}
+	if (has_item3) {
+		gtk_container_remove(GTK_CONTAINER(menu), lookup_widget("menu_plot_item3"));
+		has_item3 = FALSE;
+	}
+	g_free(str);
+	g_free(str2);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
@@ -1579,13 +1887,38 @@ static void do_popup_plotmenu(GtkWidget *my_widget, GdkEventButton *event) {
 	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button,
 			event_time);
 #endif
-	gchar *str = g_strdup_printf(_("Exclude Frame %d"), (int)index);
-	gtk_menu_item_set_label(menu_item, str);
-	gchar *str2 = g_strdup_printf(_("Show Frame %d"), (int)index);
-	gtk_menu_item_set_label(menu_item2, str2);
+}
 
-	g_free(str);
-	g_free(str2);
+static void do_popup_selectionmenu(GtkWidget *my_widget, GdkEventButton *event) {
+	if (!event) {
+		return;
+	}
+
+	if (!menu) {
+		menu = GTK_MENU(lookup_widget("menu_plot"));
+		gtk_menu_attach_to_widget(GTK_MENU(menu), my_widget, NULL);
+		menu_item1 = GTK_MENU_ITEM(lookup_widget("menu_plot_item1"));
+		menu_item2 = GTK_MENU_ITEM(lookup_widget("menu_plot_item2"));
+		menu_item3 = GTK_MENU_ITEM(lookup_widget("menu_plot_item3"));
+	}
+	gtk_menu_item_set_label(menu_item1, _("Zoom to selection"));
+	gtk_menu_item_set_label(menu_item2, _("Only keep points within selection"));
+	if (!has_item3) {
+		gtk_container_add(GTK_CONTAINER(menu), lookup_widget("menu_plot_item3"));
+		has_item3 = TRUE;
+	}
+	gtk_menu_item_set_label(menu_item3, _("Exclude selected points"));
+	gtk_widget_set_sensitive(GTK_WIDGET(menu_item3), TRUE);
+
+#if GTK_CHECK_VERSION(3, 22, 0)
+	gtk_menu_popup_at_pointer(GTK_MENU(menu), NULL);
+#else
+	int button = event->button;
+	int event_time = event->time;
+
+	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, button,
+			event_time);
+#endif
 }
 
 gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
@@ -1594,35 +1927,73 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 	if (!com.seq.imgparam) return FALSE;
 	double x = (double)event->x;
 	double y = (double)event->y;
-	if (is_inside_borders(x, y)) {
-		do_popup_plotmenu(widget, event);
-		return TRUE;
+	// if a zone is selected, right-click pops out menu to zoom/keep/exclude in bulk
+	if (event->button == GDK_BUTTON_SECONDARY) {
+		if (selection_is_active()) {
+			do_popup_selectionmenu(widget, event);
+			return TRUE;
+		}
+		// open or exclude image (if close enough to a data point)
+		if (is_inside_grid(x, y) && event->button == GDK_BUTTON_SECONDARY) {
+			do_popup_singleframemenu(widget, event);
+			return TRUE;
+		}
 	}
-	for (int i = X_SLIDER; i <= Y_SLIDER; i++) {
-		if (is_inside_slider(x, y, i) && event->button == GDK_BUTTON_PRIMARY) {
-			// double - click on slider resets both markers
-			if (event->type == GDK_DOUBLE_BUTTON_PRESS) {
-				update_slider(i, 0., 1.);
-				return TRUE;
-			}
-			for (int j = 0; j < 2; j++) {
-				if (is_over_marker(x, y, 2 * i + j) && marker_grabbed == -1) {
-					marker_grabbed = 2 * i + j;
-					set_cursor("grabbing");
+
+	if (is_inside_selectable_zone(x, y) && event->button == GDK_BUTTON_PRIMARY) {
+		enum border_type border = is_over_selection_border(x, y);
+		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {  // double-click resets zoom
+			reset_plot_zoom();
+			return TRUE;
+		} else if (is_inside_selection(x, y)) { // start moving selection
+			pdd.action = SELACTION_MOVING;
+			pdd.start = (point){x, y};
+			return TRUE;
+		} else if (border > SELBORDER_NONE) { // start resizing selection
+			pdd.action = SELACTION_RESIZING;
+			pdd.border_grabbed = border;
+			return TRUE;
+		} else { // start drawing selection
+			pdd.action = SELACTION_SELECTING;
+			pdd.selection = (rectangled){x, y, 0., 0.};
+			pdd.start = (point){x, y};
+			return TRUE;
+		}
+	}
+
+	for (int i = SLIDER_X; i <= SLIDER_Y; i++) {
+		if (is_inside_slider(x, y, i)) {
+			if (event->button == GDK_BUTTON_PRIMARY) {
+				// double - click on slider resets both markers
+				if (event->type == GDK_DOUBLE_BUTTON_PRESS) {
+					update_slider(i, 0., 1.);
 					return TRUE;
 				}
+				for (int j = 0; j < 2; j++) {
+					if (is_over_marker(x, y, 2 * i + j) && pdd.marker_grabbed == MARKER_NONE) {
+						pdd.marker_grabbed = 2 * i + j;
+						set_cursor("grabbing");
+						return TRUE;
+					}
+				}
+				//otherwise, it's just clicked once - we find the closest marker
+				// In case of double-click, that's called once first... we decided to live with that
+				double *valrange = (i == 0) ? &pdd.xrange[0] : &pdd.yrange[0];
+				int j = get_closest_marker(x, y, i, valrange);
+				find_range_from_pos(x, y, i, j, valrange);
+				update_slider(i, valrange[0], valrange[1]);
+				return TRUE;
+			} else if (event->button == GDK_BUTTON_SECONDARY) {
+				(i == SLIDER_X) ? set_cursor("w-resize") : set_cursor("n-resize");
+				pdd.slider_grabbed = i;
+				pdd.start = (point){x, y};
+				return TRUE;
 			}
-			//otherwise, it's just clicked once - we find the closest marker
-			// In case of double-click, that's called once first... we ddecided to live with that
-			double *valrange = (i == 0) ? &xrange[0] : &yrange[0];
-			int j = get_closest_marker(x, y, i, valrange);
-			find_range_from_pos(x, y, i, j, valrange);
-			update_slider(i, valrange[0], valrange[1]);
-			return TRUE;
 		}
 	}
 	return TRUE;
 }
+
 gboolean on_DrawingPlot_button_release_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer user_data) {
 	if (plot_data) {
@@ -1630,7 +2001,13 @@ gboolean on_DrawingPlot_button_release_event(GtkWidget *widget,
 	} else {
 		set_cursor_waiting(FALSE);
 	}
-	marker_grabbed = -1;
+	pdd.marker_grabbed = MARKER_NONE;
+	pdd.action = SELACTION_NONE;
+	pdd.border_grabbed = SELBORDER_NONE;
+	pdd.slider_grabbed = SLIDER_NONE;
+	if (pdd.selection.w < 1. || pdd.selection.h < 1. )
+		pdd.selection = (rectangled){0., 0., 0., 0.};
+	drawPlot();
 	return TRUE;
 }
 
@@ -1648,28 +2025,56 @@ static signed long extract_int_from_label(const gchar *str) {
 	return -1;
 }
 
-void on_menu_plot_exclude_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	const gchar *label = gtk_menu_item_get_label(menuitem);
-	gint index;
+void on_menu_plot_item1_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	if (!selection_is_active()) { // Exclude single frame
+		const gchar *label = gtk_menu_item_get_label(menuitem);
+		gint index;
 
-	index = extract_int_from_label(label);
-	if (index > 0) {
-		index--;
+		index = extract_int_from_label(label);
+		if (index > 0) {
+			index--;
 
-		exclude_single_frame(index);
-		update_seqlist(use_photometry ? 0 : reglayer);
+			exclude_single_frame(index);
+			update_seqlist(use_photometry ? 0 : reglayer);
+		}
+	} else { // Zoom to selection
+		double xmin, xmax, ymin, ymax;
+		convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+		convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
+		pdd.xrange[0] = (xmin - pdd.datamin.x) / (pdd.datamax.x - pdd.datamin.x);
+		pdd.xrange[1] = (xmax - pdd.datamin.x) / (pdd.datamax.x - pdd.datamin.x);
+		pdd.yrange[0] = (ymin - pdd.datamin.y) / (pdd.datamax.y - pdd.datamin.y);
+		pdd.yrange[1] = (ymax - pdd.datamin.y) / (pdd.datamax.y - pdd.datamin.y);
+		pdd.selection = (rectangled){0., 0., 0., 0.};
+		update_slider(SLIDER_X, pdd.xrange[0], pdd.xrange[1]);
+		update_slider(SLIDER_Y, pdd.yrange[0], pdd.yrange[1]);
 	}
 }
 
-void on_menu_plot_show_activate(GtkMenuItem *menuitem, gpointer user_data) {
-	const gchar *label = gtk_menu_item_get_label(menuitem);
-	gint index;
+void on_menu_plot_item2_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	if (!selection_is_active()) { // Open single frame
+		const gchar *label = gtk_menu_item_get_label(menuitem);
+		gint index;
 
-	index = extract_int_from_label(label);
-	if (index > 0) {
-		siril_open_dialog("seqlist_dialog");
-		update_seqlist(use_photometry ? 0 : reglayer);
-		sequence_list_select_row_from_index(index - 1, TRUE);
+		index = extract_int_from_label(label);
+		if (index > 0) {
+			siril_open_dialog("seqlist_dialog");
+			update_seqlist(use_photometry ? 0 : reglayer);
+			sequence_list_select_row_from_index(index - 1, TRUE);
+		}
+	} else {
+		select_unselect_frames_from_list(pdd.selected, TRUE);
+		reset_plot_zoom();
+		drawPlot();
+	}
+}
+void on_menu_plot_item3_activate(GtkMenuItem *menuitem, gpointer user_data) {
+	if (!selection_is_active()) { // Open single frame
+		return;
+	} else {
+		select_unselect_frames_from_list(pdd.selected, FALSE);
+		reset_plot_zoom();
+		drawPlot();
 	}
 }
 

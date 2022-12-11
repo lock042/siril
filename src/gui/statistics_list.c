@@ -85,6 +85,7 @@ static void display_stat(const double *value, const double *normalization, char 
 }
 
 static double get_value_from_stat(imstats *stat, int index) {
+	if (!stat) return 0.0;
 	switch (index) {
 	case 0:
 		return stat->mean;
@@ -116,11 +117,15 @@ static double get_value_from_stat(imstats *stat, int index) {
 
 static void init_dialog() {
 	static GtkTreeSelection *selection = NULL;
+	static GtkWidget *cfacheck = NULL;
 	get_statlist_store();
-	if (!selection)
+	if (!selection) {
 		selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection9"));
+		cfacheck = lookup_widget("cfastatsCheckButton");
+	}
 
 	gtk_list_store_clear(list_store);
+	gtk_widget_set_sensitive(cfacheck, gfit.rx > 0 && gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0');
 }
 
 static void add_chan_stats_to_list(imstats **stat, int nblayer, data_type type, gboolean normalized) {
@@ -137,10 +142,10 @@ static void add_chan_stats_to_list(imstats **stat, int nblayer, data_type type, 
 		}
 
 		if (normalized) {
-			normalization[RLAYER] = stat[RLAYER]->normValue;
+			normalization[RLAYER] = stat[RLAYER] ? stat[RLAYER]->normValue : 0.0;
 			if (nblayer > 1) {
-				normalization[GLAYER] = stat[GLAYER]->normValue;
-				normalization[BLAYER] = stat[BLAYER]->normValue;
+				normalization[GLAYER] = stat[GLAYER] ? stat[GLAYER]->normValue : 0.0;
+				normalization[BLAYER] = stat[BLAYER] ? stat[BLAYER]->normValue : 0.0;
 			}
 			if (value[RLAYER] < 1E-5 && value[RLAYER] > 0.0) {
 				sprintf(format, "%%.5e");
@@ -167,16 +172,18 @@ void on_statButtonClose_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void computeStat() {
-	GtkToggleButton *checkButton;
+	GtkToggleButton *checkButton, *cfaCheckButton;
 	GtkLabel *statNameLabel, *statSelecLabel;
-	gboolean normalized;
+	gboolean normalized, use_cfa;
 	int channel;
 	gchar *name, *selection;
 
 	checkButton = GTK_TOGGLE_BUTTON(lookup_widget("statCheckButton"));
+	cfaCheckButton = GTK_TOGGLE_BUTTON(lookup_widget("cfastatsCheckButton"));
 	statNameLabel = GTK_LABEL(lookup_widget("statNameLabel"));
 	statSelecLabel = GTK_LABEL(lookup_widget("statSelecLabel"));
 	normalized = gtk_toggle_button_get_active(checkButton);
+	use_cfa = gtk_toggle_button_get_active(cfaCheckButton);
 
 	if (single_image_is_loaded())
 		name = g_strdup_printf("%s", com.uniq->filename);
@@ -201,15 +208,25 @@ void computeStat() {
 
 	init_dialog();
 
+	int nb_channels = (int)gfit.naxes[2];
+	if (use_cfa) {
+		if (nb_channels == 1 && gfit.bayer_pattern[0] != '\0')
+			nb_channels = 3;
+		else use_cfa = FALSE;
+	}
 	imstats *stat[3] = { NULL, NULL, NULL };
-	for (channel = 0; channel < gfit.naxes[2]; channel++) {
-		stat[channel] = statistics(NULL, -1, &gfit, channel, &com.selection, STATS_MAIN, MULTI_THREADED);
+	for (channel = 0; channel < nb_channels; channel++) {
+		int super_chan = channel;
+		if (use_cfa)
+			super_chan = -channel - 1;
+		stat[channel] = statistics(NULL, -1, &gfit, super_chan, &com.selection, STATS_MAIN, MULTI_THREADED);
 		if (!stat[channel]) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
 		}
 	}
-	add_chan_stats_to_list(stat, gfit.naxes[2], gfit.type, normalized);
-	for (channel = 0; channel < gfit.naxes[2]; channel++) {
+	add_chan_stats_to_list(stat, nb_channels, gfit.type, normalized);
+
+	for (channel = 0; channel < nb_channels; channel++) {
 		free_stats(stat[channel]);
 	}
 }

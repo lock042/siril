@@ -395,6 +395,8 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 		break;
 	default:
 		shError("atFindTrans: invalid trans->order %d ", trans->order);
+		free_star_array(star_array_A);
+		free_star_array(star_array_B);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -464,6 +466,14 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 	 */
 	prune_triangle_array(triangle_array_A, &num_triangles_A);
 	prune_triangle_array(triangle_array_B, &num_triangles_B);
+	if (num_triangles_A <= 0 || num_triangles_B <= 0) {
+		shError("After pruning: No more stars in array A or B\n");
+		free_star_array(star_array_A);
+		free_star_array(star_array_B);
+		shFree(triangle_array_A);
+		shFree(triangle_array_B);
+		return (SH_GENERIC_ERROR);
+	}
 #ifdef DEBUG2
 	printf("after pruning, here comes triangle array A\n");
 	print_triangle_array(triangle_array_A, num_triangles_A,
@@ -701,6 +711,8 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 		break;
 	default:
 		shError("atRecalcTrans: invalid trans->order %d ", trans->order);
+		free_star_array(star_array_A);
+		free_star_array(star_array_B);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -762,6 +774,9 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 			RECALC_YES, max_iter, halt_sigma, trans) != SH_SUCCESS) {
 
 		shError("atRecalcTrans: iter_trans unable to create a valid TRANS");
+		shFree(winner_votes);
+		shFree(winner_index_A);
+		shFree(winner_index_B);
 		free_star_array(star_array_A);
 		free_star_array(star_array_B);
 		return (SH_GENERIC_ERROR);
@@ -1997,7 +2012,7 @@ int *numtriangles /* I/O: number of triangles in the t_array */
 		}
 	}
 	*numtriangles = i;
-	g_assert(*numtriangles >= 0);
+	//g_assert(*numtriangles >= 0);
 }
 
 /************************************************************************
@@ -2987,8 +3002,12 @@ TRANS *trans /* O: place solved coefficients into this */
 		 * failure....
 		 */
 		if (nr < 2) {
-			if (nr == 0)
+			if (nr == 0) {
+				shFree(dist2);
+				shFree(dist2_sorted);
+				shFree(a_prime);
 				return (SH_GENERIC_ERROR);
+			}
 			sigma = 0.0;
 #ifdef DEBUG
 			printf("   sigma = %10.5e  (only %d matches) \n", sigma, nr);
@@ -3957,10 +3976,6 @@ int *num_stars_2 /* I/O: number of stars in array 2 */
 
 		s1 = &(star_array_1[pos1]);
 		s2 = &(star_array_2[pos2]);
-		if ((s1 == NULL) || (s2 == NULL)) {
-			shError("remove_repeated_elements: missing elem in array 1 or 2");
-			return (SH_GENERIC_ERROR);
-		}
 
 		if (last1 == NULL) {
 			last1 = s1;
@@ -4432,6 +4447,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 3, vector) != SH_SUCCESS) {
 		shError("calc_trans_linear: can't solve for coeffs A,B,C ");
+		free_matrix(matrix, 3);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -4479,6 +4495,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 3, vector) != SH_SUCCESS) {
 		shError("calc_trans_linear: can't solve for coeffs D,E,F ");
+		free_matrix(matrix, 3);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -4797,6 +4814,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 6, vector) != SH_SUCCESS) {
 		shError("calc_trans_quadratic: can't solve for coeffs A,B,C,D,E,F ");
+		free_matrix(matrix, 6);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -4885,6 +4903,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 6, vector) != SH_SUCCESS) {
 		shError("calc_trans_quadratic: can't solve for coeffs G,H,I,J,K,L ");
+		free_matrix(matrix, 6);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -5300,6 +5319,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 8, vector) != SH_SUCCESS) {
 		shError("calc_trans_cubic: can't solve for coeffs A,B,C,D,E,F,G,H ");
+		free_matrix(matrix, 8);
 		return (SH_GENERIC_ERROR);
 	}
 
@@ -5424,6 +5444,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 */
 	if (gauss_matrix(matrix, 8, vector) != SH_SUCCESS) {
 		shError("calc_trans_cubic: can't solve for coeffs I,J,K,L,M,N,O,P ");
+		free_matrix(matrix, 8);
 		return (SH_GENERIC_ERROR);
 	}
 

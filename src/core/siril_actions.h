@@ -40,6 +40,7 @@ void preferences_action_activate(GSimpleAction *action, GVariant *parameter, gpo
 void close_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) ;
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void doc_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void full_screen_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void keyboard_shortcuts_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -72,6 +73,7 @@ void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 void crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void seq_crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void annotate_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void wcs_grid_state(GSimpleAction *action, GVariant *state, gpointer user_data);
@@ -98,6 +100,7 @@ void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpoint
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void rotation90_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -120,5 +123,9 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+
 
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */

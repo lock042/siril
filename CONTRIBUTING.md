@@ -4,26 +4,28 @@ First, thanks for taking the time to contribute!
 
 ## How Can I Contribute?
 
-Siril is Free Software and a part of the GNU Project and you are welcome to contribute to this project. There are many ways to do it.
+Siril is Free Software and a part of the GNU Project and you are welcome to contribute to this project. There are many ways to do it:
 
- * program new features,
+ * develop new features,
  * report bugs (errors in the program),
  * test existing features and provide feedback,
- * add and improve documentation,
+ * add or improve the documentation or tutorials,
  * translate Siril to your own language,
  * translate the documentation,
  * donate
- 
+
 ### Getting last version
 
 In order to try the last development version we recommend to compile the sources (see README). Nevertheless it is possible to get nightly builds for Linux and Windows by following these direct links:
 
- * [GNU/Linux (x86_64)](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=appimage-nightly)
- * [Windows (64bits) cross-build](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-nightly)
+ * GNU/Linux [(x86_64)](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=appimage-nightly)
+ * Windows cross-build [(64bits)](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-nightly)
+ * macOS [(arm64)](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=siril-macos:%20[macosarm])
+
 
 You can also get weekly native Windows builds (portable and installer versions) as well as flatpak bundle from there:
- * [Windows (64bits) native portable](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-native-nightly)
- * [Windows (64bits) native with installer](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-native-installer)
+ * Windows native portable [(64bits)](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-native-nightly)
+ * Windows native with installer [(64bits)](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=win64-native-installer)
  * [Flatpak](https://gitlab.com/free-astro/siril/-/jobs/artifacts/master/download?job=flatpak-nightly)
  
  **Test builds are for testing purpose only. They have not been human-tested, it relies on regularly modified development code. So please do not use it for production!**
@@ -64,7 +66,7 @@ Code formatting follows [K&R style](https://en.wikipedia.org/wiki/Indentation_st
 
 * Formatting commands help
 
-When adding commands, you will need to add a description of what it does and which arguments it takes, if any, in src/core/command_def.h. All arguments names must be put in bold and possible string values between quotes. The last sentence of the command help must not be ended by a period.
+When adding commands, you will need to add a description of what it does and which arguments it takes, if any, in `src/core/command_def.h`. All arguments names must be put in bold and possible string values between quotes. The last sentence of the command help must not be ended by a period.
 
 ### Donate
 

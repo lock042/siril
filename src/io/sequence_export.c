@@ -613,7 +613,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 		if (args->film_fps <= 0) args->film_fps = 1;
 	}
 	if (args->output == EXPORT_MP4 || args->output == EXPORT_MP4_H265 || args->output == EXPORT_WEBM_VP9) {
-		GtkAdjustment *adjQual = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder,"adjustment3"));
+		GtkAdjustment *adjQual = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder,"adjustmentqualscale"));
 		GtkToggleButton *checkResize = GTK_TOGGLE_BUTTON(lookup_widget("checkAviResize"));
 		args->film_quality = (int)gtk_adjustment_get_value(adjQual);
 		args->resample = gtk_toggle_button_get_active(checkResize);

@@ -102,7 +102,7 @@ static void siril_string_append_float(GString *str, float value, const char *key
 	char valstring[FLEN_VALUE];
 	char card[FLEN_CARD] = { 0 };
 	int status = 0;
-	sprintf(valstring, "%f", value);
+	sprintf(valstring, "%g", value);
 	fits_make_key(key, valstring, comment, card, &status);
 	if (!status)
 		g_string_append_printf(str, "%s\n", card);
@@ -112,7 +112,7 @@ static void siril_string_append_double(GString *str, float value, const char *ke
 	char valstring[FLEN_VALUE];
 	char card[FLEN_CARD] = { 0 };
 	int status = 0;
-	sprintf(valstring, "%f", value);
+	sprintf(valstring, "%g", value);
 	fits_make_key(key, valstring, comment, card, &status);
 	if (!status)
 		g_string_append_printf(str, "%s\n", card);
@@ -268,6 +268,12 @@ gchar *AstroTiff_build_header(fits *fit) {
 		siril_string_append_int(str, fit->key_gain, "GAIN", "Camera gain");
 	if (fit->key_offset > 0)
 		siril_string_append_int(str, fit->key_offset, "OFFSET", "Camera offset");
+	if (fit->sitelat != 0.0)
+		siril_string_append_double(str, fit->sitelat, "SITELAT", "[deg] Observation site latitude");
+	if (fit->sitelong != 0.0)
+		siril_string_append_double(str, fit->sitelong, "SITELONG", "[deg] Observation site longitude");
+	if (fit->siteelev != 0.0)
+		siril_string_append_double(str, fit->siteelev, "SITEELEV", "[m] Observation site elevation");
 
 	if (fit->wcsdata.equinox > 0.0) {
 		siril_string_append_str(str, "RA---TAN", "CTYPE1", "Coordinate type for the first axis");
@@ -281,22 +287,22 @@ gchar *AstroTiff_build_header(fits *fit) {
 		siril_string_append_str(str, "RGB", "CTYPE3", "RGB image");
 	}
 
-	if (fit->wcsdata.objctra[0] !='\0')
+	if (fit->wcsdata.objctra[0] !='\0') {
 		siril_string_append_str(str, fit->wcsdata.objctra, "OBJCTRA", "Image center Right Ascension (hms)");
-	if (fit->wcsdata.ra > 0.0)
-		siril_string_append_double(str, fit->wcsdata.ra, "RA", "Image center Right Ascension (deg)");
-	if (fit->wcsdata.objctdec[0] !='\0')
 		siril_string_append_str(str, fit->wcsdata.objctdec, "OBJCTDEC", "Image center Declination (dms)");
-	if (fit->wcsdata.dec > 0.0)
+	}
+	if (fit->wcsdata.ra > 0.0) {
+		siril_string_append_double(str, fit->wcsdata.ra, "RA", "Image center Right Ascension (deg)");
 		siril_string_append_double(str, fit->wcsdata.dec, "DEC", "Image center Declination (deg)");
-	if (fit->wcsdata.crpix[0] > 0.0)
+	}
+	if (fit->wcsdata.crpix[0] != '\0') {
 		siril_string_append_double(str, fit->wcsdata.crpix[0], "CRPIX1", "Axis1 reference pixel");
-	if (fit->wcsdata.crpix[1] > 0.0)
 		siril_string_append_double(str, fit->wcsdata.crpix[1], "CRPIX2", "Axis2 reference pixel");
-	if (fit->wcsdata.crval[0] > 0.0)
+	}
+	if (fit->wcsdata.crval[0] != '\0') {
 		siril_string_append_double(str, fit->wcsdata.crval[0], "CRVAL1", "Axis1 reference value (deg)");
-	if (fit->wcsdata.crval[1] > 0.0)
 		siril_string_append_double(str, fit->wcsdata.crval[1], "CRVAL2", "Axis2 reference value (deg)");
+	}
 
 	/* check if pc matrix exists */
 	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) != 0.0) {
@@ -322,7 +328,7 @@ gchar *AstroTiff_build_header(fits *fit) {
 		siril_string_append_logical(str, "T", "PLTSOLVD", "Siril internal solve");
 	}
 
-	if (fit->airmass > 0)
+	if (fit->airmass != 0.0)
 		siril_string_append_double(str, fit->airmass, "AIRMASS", "Airmass");
 	if (fit->dft.norm[0] > 0)
 		siril_string_append_double(str, fit->dft.norm[0], "DFTNORM0", "Normalisation value for channel #0");

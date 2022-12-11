@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 8
+#define NUMBER_OF_METHODS 7
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -34,6 +34,9 @@ typedef enum {
 } reg_notebook_page;
 
 typedef enum {
+	UNDEFINED_TRANSFORMATION = -3,
+	NULL_TRANSFORMATION = -2,
+	IDENTITY_TRANSFORMATION = -1,
 	SHIFT_TRANSFORMATION,
 	SIMILARITY_TRANSFORMATION,
 	AFFINE_TRANSFORMATION,
@@ -80,6 +83,8 @@ struct registration_args {
 	gchar *new_seq_name;
 	opencv_interpolation interpolation; // type of rotation interpolation
 	framing_type framing;		// used by seqapplyreg to determine framing
+	gboolean clamp;				// should Bicubic and Lanczos4 interpolation be clamped?
+	double clamping_factor;		// used to set amount of interpolation clamping
 };
 
 /* used to register a registration method */
@@ -108,7 +113,7 @@ int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
 
 void reset_3stars();
-void _3stars_check_registration_ready();
+int _3stars_check_registration_ready();
 gboolean _3stars_check_selection();
 
 pointf get_velocity();
@@ -121,7 +126,7 @@ gpointer register_thread_func(gpointer p);
 
 /** getter */
 int get_registration_layer(sequence *seq);
-
+int seq_has_any_regdata(sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
 
 /**** star alignment (global and 3-star) registration ****/
 
@@ -142,8 +147,9 @@ int star_align_finalize_hook(struct generic_seq_args *args);
 const char *describe_transformation_type(transformation_type type);
 
 void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
-void guess_transform_from_seq(sequence *seq, int layer, int *mindof, int *maxdof, gboolean excludenull);
-int guess_transform_from_H(Homography H);
+void guess_transform_from_seq(sequence *seq, int layer,
+		transformation_type *min, transformation_type *max, gboolean excludenull);
+transformation_type guess_transform_from_H(Homography H);
 gboolean check_before_applyreg(struct registration_args *regargs);
 gboolean layer_has_registration(sequence *seq, int layer);
 gboolean layer_has_usable_registration(sequence *seq, int layer);
@@ -153,5 +159,7 @@ void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
+
+int minidx(const float *arr, const gboolean *mask, int nb, float *val);
 
 #endif

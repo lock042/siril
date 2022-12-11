@@ -24,14 +24,21 @@
 
 typedef struct _CatalogObjects CatalogObjects;
 
+#define USER_DSO_CAT_INDEX 6
+#define USER_SSO_CAT_INDEX 7
+#define USER_TEMP_CAT_INDEX 8
+
 GSList *find_objects(fits *fit);
-void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_system);
+void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_system, gboolean is_in_field);
 gchar *get_catalogue_object_code(CatalogObjects *object);
+guint get_catalogue_object_cat(CatalogObjects *object);
 gchar *get_catalogue_object_name(CatalogObjects *object);
 gdouble get_catalogue_object_ra(CatalogObjects *object);
+gchar *retrieve_site_coord (fits *fit);
 gdouble get_catalogue_object_dec(CatalogObjects *object);
 gdouble get_catalogue_object_radius(CatalogObjects *object);
 void force_to_refresh_catalogue_list();
 void free_catalogue_object(CatalogObjects *object);
-
+void purge_temp_user_catalogue();
+gboolean is_inside(fits *fit, double ra, double dec);
 #endif /* SRC_ALGOS_ANNOTATE_H_ */

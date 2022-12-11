@@ -10,8 +10,11 @@
 #define OD_OPEN 	5
 #define OD_CONVERT 	6
 #define OD_BADPIXEL	7
+#define OD_FLATLIB  8
+#define OD_DARKLIB  9
+#define OD_OFFSETLIB  10
 
-#define FITS_EXTENSIONS "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fits.fz"
+#define FITS_EXTENSIONS "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.fits.fz;*.fts.fz"
 
 void header_open_button_clicked();
 void cwd_btton_clicked();

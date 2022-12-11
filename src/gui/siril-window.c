@@ -26,6 +26,7 @@ static GActionEntry win_entries[] = {
 	{ "close", close_action_activate },
 	{ "undo", undo_action_activate },
 	{ "redo", redo_action_activate },
+	{ "documentation", doc_action_activate },
 	{ "scripts", scripts_action_activate },
 	{ "updates", updates_action_activate },
 	{ "full-screen", full_screen_activated},
@@ -66,6 +67,7 @@ static GActionEntry image_entries[] = {
 	{ "annotate-object", annotate_object_activate, NULL, "false", annotate_object_state },
 	{ "wcs-grid", wcs_grid_activate, NULL, "false", wcs_grid_state },
 	{ "search-object", search_object_activate },
+	{ "search-solar", search_object_solar_activate },
 	{ "seq-list", seq_list_activate },
 	{ "regframe", regframe_activate , NULL, "true", regframe_state }
 };
@@ -86,6 +88,8 @@ static GActionEntry rgb_processing_entries[] = {
 	{ "saturation-processing", saturation_activate },
 	{ "color-calib-processing", color_calib_activate },
 	{ "pcc-processing", pcc_activate },
+	{ "align-dft", align_dft_activate },
+	{ "align-psf", align_psf_activate },
 	{ "split-channel-processing", split_channel_activate }
 };
 
@@ -106,6 +110,7 @@ static GActionEntry single_processing_entries[] = {
 	{ "asinh-processing", asinh_activate },
 	{ "denoise-processing", denoise_activate },
 	{ "deconvolution-processing", deconvolution_activate },
+	{ "binning-processing", binning_activate },
 	{ "resample-processing", resample_activate },
 	{ "rotation-processing", rotation_activate },
 	{ "rotation90-processing", rotation90_activate },
@@ -127,6 +132,7 @@ static GActionEntry none_processing_entries[] = {
 	{ "fft-processing", fft_activate },
 	{ "rgb-compositing-processing", rgb_compositing_activate },
 	{ "star-remix-processing", star_remix_activate },
+	{ "merge-cfa-processing", merge_cfa_activate },
 	{ "pixel-math", pixel_math_activate },
 	{ "nina_light_curve", nina_lc_activate }
 };
@@ -216,6 +222,7 @@ void siril_window_enable_single_proc_actions(GtkApplicationWindow *window, gbool
 		"denoise-processing",
 		"deconvolution-processing",
 		"resample-processing",
+		"binning-processing",
 		"rotation-processing",
 		"rotation90-processing",
 		"rotation270-processing",
@@ -240,6 +247,7 @@ void siril_window_enable_none_proc_actions(GtkApplicationWindow *window, gboolea
 		"fft-processing",
 		"rgb-compositing-processing",
 		"star-remix-processing",
+		"merge-cfa-processing",
 		"pixel-math",
 		NULL,
 	};
@@ -254,6 +262,15 @@ void siril_window_enable_if_selection_actions(GtkApplicationWindow *window, gboo
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_actions, enable);
+}
+
+void siril_window_enable_if_selection_rgb_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *selection_rgb_actions[] = {
+		"align-dft",
+		"align-psf",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_rgb_actions, enable);
 }
 
 void siril_window_enable_if_selection_sequence_actions(GtkApplicationWindow *window, gboolean enable) {

@@ -58,6 +58,9 @@ static GSList *initialize_script_paths(){
 	g_free(execpath);
 #else
 	list = g_slist_prepend(list, g_build_filename(siril_get_system_data_dir(), "scripts", NULL));
+	if (g_getenv("XDG_CONFIG_HOME") != NULL) {
+		list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), getenv("XDG_CONFIG_HOME"), "scripts", NULL));
+	}
 	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), ".siril", "scripts", NULL));
 	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), "siril", "scripts", NULL));
 #endif
@@ -291,7 +294,7 @@ void siril_get_on_script_pages() {
 	gchar *lang = NULL;
 	int i = 0;
 
-	if (!g_strcmp0(com.pref.lang, "")) {
+	if (!com.pref.lang || !g_strcmp0(com.pref.lang, "")) {
 		locale = setlocale(LC_MESSAGES, NULL);
 	} else {
 		locale = com.pref.lang;

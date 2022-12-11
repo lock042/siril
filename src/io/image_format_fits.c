@@ -50,8 +50,7 @@
 const char *fit_extension[] = {
 		".fit",
 		".fits",
-		".fts",
-		".fits.fz"
+		".fts"
 };
 
 static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
@@ -353,13 +352,6 @@ void read_fits_header(fits *fit) {
 		try_read_float_lo_hi(fit->fptr, &fit->lo, &fit->hi);
 	}
 
-	if (fit->orig_bitpix == SHORT_IMG) {
-		if (fit->lo)
-			fit->lo += 32768;
-		if (fit->hi)
-			fit->hi += 32768;
-	}
-
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
 	if (!status && 1.0 != scale) {
@@ -486,6 +478,20 @@ void read_fits_header(fits *fit) {
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJECT", &(fit->object), NULL, &status);
+
+	status = 0;
+	fits_read_record(fit->fptr, 0, NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "*LAT", &(fit->sitelat), NULL, &status);	// Handles SITELAT and SITE-LAT keyword cases
+
+	status = 0;
+	fits_read_record(fit->fptr, 0, NULL, &status);
+	fits_read_key(fit->fptr, TDOUBLE, "*LON*", &(fit->sitelong), NULL, &status);	// Handles SITELONG and SITE-LON keyword cases
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->siteelev), NULL, &status);
+	if (status) {
+		fit->siteelev = 0.0;	// set to 0.0 if no elevation keyword
+	}
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "APERTURE", &(fit->aperture), NULL, &status);
@@ -648,6 +654,16 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			copy_string_key(fit->wcsdata.objctra, value);
 		} else if (g_str_has_prefix(card, "RA      =")) {
 			fit->wcsdata.ra = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SITELAT =")) {	// It seems either SITELATE or SITE-LATE can be seen, depending on the software...
+			fit->sitelat = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SITE-LAT=")) {
+			fit->sitelat = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SITELONG=")) {	// It seems either SITELONG or SITE-LON can be seen, depending on the software...
+			fit->sitelong = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SITE-LON=")) {
+			fit->sitelong = g_ascii_strtod(value, NULL);
+		} else if (g_str_has_prefix(card, "SITEELEV=")) {	// It seems either SITELEV or TELALT can be seen, depending on the software...
+			fit->sitelong = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "OBJCTDEC=")) {
 			copy_string_key(fit->wcsdata.objctdec, value);
 		} else if (g_str_has_prefix(card, "DEC     =")) {
@@ -704,6 +720,49 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 	load_WCS_from_memory(fit);
 
 	return retval;
+}
+
+GSList *read_header_keyvals_strings(fitsfile *fptr) {
+	int nkeys, status = 0;
+	if (fits_get_hdrspace(fptr, &nkeys, NULL, &status)) {
+		report_fits_error(status);
+		return NULL;
+	}
+	if (fits_read_record(fptr, 0, NULL, &status))
+		return NULL;
+
+	GSList *entries = NULL;
+	for (int n = 1; n <= nkeys; n++) {
+		char key[FLEN_KEYWORD], value[FLEN_VALUE], comment[FLEN_COMMENT];
+		status = 0;
+		if (fits_read_keyn(fptr, n, key, value, comment, &status)) {
+			report_fits_error(status);
+			break;
+		}
+		if (!strcmp(key, "COMMENT"))
+			continue;
+		int len = strlen(value);
+		// pretty-print strings: remove quotes and trailing spaces
+		if (len > 1 && value[0] == '\'' && value[len - 1] == '\'') {
+			len -= 2;
+			for (int i = 0; i < len; i++)
+				value[i] = value[i + 1];
+			value[len] = '\0';
+			g_strchomp(value);
+		}
+		if (value[0] == '\0' && comment[0] == '\0')
+			continue;
+		header_record *r = malloc(sizeof(header_record));
+		if (!r) {
+			PRINT_ALLOC_ERR;
+			break;
+		}
+		r->key = strdup(key);
+		r->value = strdup(value[0] == '\0' ? comment : value);
+		entries = g_slist_prepend(entries, r);
+	}
+	entries = g_slist_reverse(entries);
+	return entries;
 }
 
 /* copy the header for the current HDU in a heap-allocated string */
@@ -948,7 +1007,6 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 
 static void convert_floats(int bitpix, float *data, size_t nbdata, double max, double min) {
 	size_t i;
-	siril_log_message(_("Normalizing input data from [%f, %f] to our float range [0, 1]\n"), min, max);
 	switch (bitpix) {
 		case BYTE_IMG:
 			for (i = 0; i < nbdata; i++)
@@ -966,6 +1024,7 @@ static void convert_floats(int bitpix, float *data, size_t nbdata, double max, d
 			}
 			break;
 		case FLOAT_IMG:
+			siril_log_message(_("Normalizing input data from [%f, %f] to our float range [0, 1]\n"), min, max);
 			for (i = 0; i < nbdata; i++) {
 				data[i] = (data[i] - min) / (max - min);
 			}
@@ -1518,6 +1577,21 @@ void save_fits_header(fits *fit) {
 		fits_update_key(fit->fptr, TDOUBLE, "AIRMASS", &(fit->airmass),
 				"Airmass", &status);
 
+	status = 0;
+	if (fit->sitelat)
+		fits_update_key(fit->fptr, TDOUBLE, "SITELAT", &(fit->sitelat),
+			"[deg] Observation site latitude", &status);
+
+	status = 0;
+	if (fit->sitelong)
+		fits_update_key(fit->fptr, TDOUBLE, "SITELONG", &(fit->sitelong),
+				"[deg] Observation site longitude", &status);
+
+	status = 0;
+	if (fit->siteelev)
+		fits_update_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->siteelev),
+				"[m] Observation site elevation", &status);
+
 	/*******************************************************************
 	 * ************************* DFT KEYWORDS **************************
 	 * ****************************************************************/
@@ -1935,6 +2009,7 @@ int read_fits_metadata(fits *fit) {
 	}
 
 	read_fits_header(fit);	// stores useful header data in fit
+	fit->header = copy_header(fit);
 	return 0;
 }
 
@@ -1952,6 +2027,7 @@ int read_fits_metadata_from_path(const char *filename, fits *fit) {
 	}
 
 	read_fits_metadata(fit);
+	fit->header = copy_header(fit);
 
 	status = 0;
 	fits_close_file(fit->fptr, &status);
@@ -2077,10 +2153,58 @@ int siril_fits_compress(fits *f) {
 	return status;
 }
 
+gchar *set_right_extension(const char *name) {
+	gchar *filename = NULL;
+
+	gboolean comp_flag = FALSE;
+	/* first check if there is fz extension */
+	if (g_str_has_suffix(name, ".fz")) {
+		comp_flag = TRUE;
+	}
+
+	gboolean right_extension = FALSE;
+	for (int i = 0; i < G_N_ELEMENTS(fit_extension); i++) {
+		gchar *extension;
+		if (comp_flag) {
+			extension = g_strdup_printf("%s.fz", fit_extension[i]);
+		} else {
+			extension = g_strdup(fit_extension[i]);
+		}
+		if (g_str_has_suffix(name, extension)) {
+			right_extension = TRUE;
+			g_free(extension);
+			break;
+		}
+		g_free(extension);
+	}
+
+	if (!right_extension) {
+		if (com.pref.comp.fits_enabled) {
+			filename = g_strdup_printf("%s%s.fz", name, com.pref.ext);
+		} else {
+			filename = g_strdup_printf("%s%s", name, com.pref.ext);
+		}
+	} else {
+		if (comp_flag && !com.pref.comp.fits_enabled) {
+			/* we remove .fz */
+			gchar *tmp = g_strdup(name);
+			tmp[strlen(tmp) - 3] = '\0';
+			filename = g_strdup_printf("%s", tmp);
+
+			g_free(tmp);
+		} else if (!comp_flag && com.pref.comp.fits_enabled) {
+			filename = g_strdup_printf("%s.fz", name);
+
+		} else {
+			filename = g_strdup_printf("%s", name);
+		}
+	}
+	return filename;
+}
+
 /* creates, saves and closes the file associated to f, overwriting previous  */
 int savefits(const char *name, fits *f) {
 	int status;
-	char filename[256];
 
 	f->naxes[0] = f->rx;
 	f->naxes[1] = f->ry;
@@ -2090,25 +2214,15 @@ int savefits(const char *name, fits *f) {
 		return 1;
 	}
 
-	gboolean right_extension = FALSE;
-	for (int i = 0; i < G_N_ELEMENTS(fit_extension); i++) {
-		if (g_str_has_suffix(name, fit_extension[i])) {
-			right_extension = TRUE;
-			break;
-		}
-	}
-
-	if (!right_extension) {
-		snprintf(filename, 255, "%s%s", name, com.pref.ext);
-	} else {
-		snprintf(filename, 255, "%s", name);
-	}
+	gchar *filename = set_right_extension(name);
+	if (!filename) return 1;
 
 	g_unlink(filename); /* Delete old file if it already exists */
 
 	status = 0;
 	if (siril_fits_create_diskfile(&(f->fptr), filename, &status)) { /* create new FITS file */
 		report_fits_error(status);
+		g_free(filename);
 		return 1;
 	}
 
@@ -2116,12 +2230,14 @@ int savefits(const char *name, fits *f) {
 		status = siril_fits_compress(f);
 		if (status) {
 			report_fits_error(status);
+			g_free(filename);
 			return 1;
 		}
 	}
 
 	if (fits_create_img(f->fptr, f->bitpix, f->naxis, f->naxes, &status)) {
 		report_fits_error(status);
+		g_free(filename);
 		return 1;
 	}
 
@@ -2134,6 +2250,7 @@ int savefits(const char *name, fits *f) {
 				filename, f->naxes[2], f->rx, f->ry,
 				f->type == DATA_USHORT ? 16 : 32);
 	}
+	g_free(filename);
 	return 0;
 }
 
@@ -2141,7 +2258,8 @@ int save_opened_fits(fits *f) {
 	BYTE *data8;
 	long orig[3] = { 1L, 1L, 1L };
 	size_t i, pixel_count;
-	int type, status = 0;
+	int status = 0;
+	signed short *data;
 
 	save_fits_header(f);
 	pixel_count = f->naxes[0] * f->naxes[1] * f->naxes[2];
@@ -2173,11 +2291,25 @@ int save_opened_fits(fits *f) {
 		free(data8);
 		break;
 	case SHORT_IMG:
+		if (f->type == DATA_FLOAT) {
+			data = float_buffer_to_short(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
+		} else {
+			if (f->orig_bitpix == BYTE_IMG) {
+				conv_8_to_16(f->data, pixel_count);
+			}
+			data = ushort_buffer_to_short(f->data, f->naxes[0] * f->naxes[1] * f->naxes[2]);
+		}
+		if (fits_write_pix(f->fptr, TSHORT, orig, pixel_count, data, &status)) {
+			report_fits_error(status);
+			free(data);
+			return 1;
+		}
+		free(data);
+		break;
 	case USHORT_IMG:
-		type = f->bitpix == SHORT_IMG ? TSHORT : TUSHORT;
 		if (f->type == DATA_FLOAT) {
 			WORD *data = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
-			if (fits_write_pix(f->fptr, type, orig, pixel_count, data, &status)) {
+			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, data, &status)) {
 				report_fits_error(status);
 				free(data);
 				return 1;
@@ -2187,8 +2319,7 @@ int save_opened_fits(fits *f) {
 			if (f->orig_bitpix == BYTE_IMG) {
 				conv_8_to_16(f->data, pixel_count);
 			}
-			if (fits_write_pix(f->fptr, type, orig, pixel_count, f->data,
-					&status)) {
+			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, f->data, &status)) {
 				report_fits_error(status);
 				return 1;
 			}
@@ -2482,6 +2613,9 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->key_gain = from->key_gain;
 	to->key_offset = from->key_offset;
 	to->airmass = from->airmass;
+	to->sitelat = from->sitelat;
+	to->sitelong = from->sitelong;
+	to->siteelev = from->siteelev;
 
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));

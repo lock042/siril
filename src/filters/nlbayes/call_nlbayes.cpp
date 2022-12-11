@@ -66,7 +66,7 @@ using NlBayes::runNlBayes;
 using da3d::Image;
 using da3d::DA3D;
 
-extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d, const float rho, const gboolean do_anscombe, const gboolean do_cosme) {
+extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d, const float rho, const gboolean do_anscombe) {
     // Parameters
     const unsigned width = fit->naxes[0];
     const unsigned height = fit->naxes[1];
@@ -91,17 +91,14 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
     float *bgr_f = (float*) calloc(npixels * nchans, sizeof(float));
     float *bgr_fout;
 
-    // Carry out cosmetic correction at the start, if selected
-    if (do_cosme == true)
-      denoise_hook_cosmetic(fit);
-
+    // Sanitize input to remove any bad pixels
     if (fit->type == DATA_FLOAT) {
-        for (size_t i = 0; i < npixels * nchans; i++)
-          bgr_f[i] = max(min(1.f, fit->fdata[i]), 0.f);
-    } else {
-        for (size_t i = 0; i < npixels * nchans; i++)
-          bgr_f[i] = max(min(1.f, (float) fit->data[i] * invnorm), 0.f);
-    }
+		for (size_t i = 0; i < npixels * nchans; i++)
+			bgr_f[i] = max(min(1.f, fit->fdata[i]), 0.f);
+	} else {
+		for (size_t i = 0; i < npixels * nchans; i++)
+			bgr_f[i] = max(min(1.f, (float) fit->data[i] * invnorm), 0.f);
+	}
 
     // Measure image noise using the custom wrapper to FnNoise1_float in statistics.c
     // Initial noise measurement
@@ -202,8 +199,11 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
         siril_log_message(_("SOS iteration %d of %d complete\n"), iter+1, sos);
       }
     }
-
+// Add another clipping check in case NL-Bayes causes a saturated pixel to slightly exceed 1.0.
     bgr_fout = bgr_vout.data();
+    for (size_t i = 0; i < npixels * nchans; i++)
+      bgr_fout[i] = max(min(1.f, bgr_fout[i]), 0.f);
+
     float *bgr_da3dout;
 
     // Carry out final-stage DA3D denoising if required
@@ -244,4 +244,5 @@ extern "C" int do_nlbayes(fits *fit, const float modulation, unsigned sos, int d
 
     return EXIT_SUCCESS;
 }
+
 

@@ -26,13 +26,14 @@ void	set_fwhm_star_as_star_list(sequence *seq);
 char *	fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffer, gboolean add_fits_ext);
 char *	fit_sequence_get_image_filename_prefixed(sequence *seq, const char *prefix, int index);
 char *	get_possible_image_filename(sequence *seq, int image_number, char *name_buffer);
-int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed);
+int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed, const gchar *com_ext);
 void	remove_prefixed_sequence_files(sequence *seq, const char *prefix);
 void	initialize_sequence(sequence *seq, gboolean is_zeroed);
 void	free_sequence(sequence *seq, gboolean free_seq_too);
 void	free_photometry_set(sequence *seq, int set);
 void	sequence_free_preprocessing_data(sequence *seq);
 void	close_sequence(int loading_another);
+gboolean check_seq_is_comseq(sequence *seq);
 gboolean sequence_is_loaded();
 
 typedef enum {

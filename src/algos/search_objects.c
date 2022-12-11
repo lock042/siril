@@ -18,26 +18,55 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "core/siril.h"
-#include "core/siril_log.h"
-#include "core/siril_world_cs.h"
+
 #include "gui/dialogs.h"
 #include "gui/utils.h"
-#include "core/siril_date.h"
 #include "gui/image_display.h"
-#include "gui/progress_and_log.h"
+#include "core/siril_log.h"
+#include "core/siril_date.h"
+#include "core/processing.h"
 #include "algos/annotate.h"
 #include "algos/siril_wcs.h"
+#include "algos/search_objects.h"
 #include "astrometry_solver.h"
 
-static int parse_buffer(char *buffer) {
+int parse_buffer(char *buffer, double lim_mag) {
 	gchar **token, **part, *realname = NULL;
 	int nargs;
 	gboolean is_solar_system = FALSE;
+	gboolean is_in_field = FALSE;
 	SirilWorldCS *world_cs = NULL;
+	gchar *objname = NULL;
 
 	token = g_strsplit(buffer, "\n", -1);
 	nargs = g_strv_length(token);
+	gboolean conesearch = FALSE;
+
+	// The goal here is to determine if a consearch has been performed or not, by searching the (valid) answer for paricular "word"
+	if (g_str_has_prefix(buffer, "# Flag:")) {
+		// Header of the answer to be tested.
+		if (g_str_has_prefix(buffer, "# Flag: 0")) {
+			siril_log_message("No Solar System object found in this FOV \n");
+			return 1;
+		}
+
+		// Is the answer valid for conesearch?
+		// Extract the first word of the third line, surrounded by ("#" + space) and ("space + "|")
+		gchar *Num_key = NULL;
+		char *start = strchr(token[2], '#');
+		if (start && *(start+1) != '\0') {
+			start += 2; // remove the space
+			char *end = strchr(start, '|');
+			if (end) {
+				end -= 2; // remove the space
+				Num_key = g_strndup(start, end-start+1);
+			}
+		}
+		// We are looking for "Num", which is typical for a consearch request
+		if (!g_strcmp0(Num_key, "Num"))
+			conesearch = TRUE;
+		g_free (Num_key);
+	}
 
 	if (g_str_has_prefix(buffer, "oid")) {
 		gchar **fields = g_strsplit(token[1], "\t", -1);
@@ -51,14 +80,25 @@ static int parse_buffer(char *buffer) {
 		}
 		g_strfreev(fields);
 	}
-	else if (g_str_has_prefix(buffer, "# Flag:")) { /// case of an asteroid
+
+	/// Case of a Solar System Object in Search mode
+	else if (g_str_has_prefix(buffer, "# Flag:") && !conesearch) {
 		// First, retrieve the name of the object
 		// example strings:
 		// "# Comet : PANSTARRS  (C/2017 T2) | ..."
 		// "# Comet : P/Churyumov-Gerasimenko  (67P) | ..."
 		// "# Asteroid: 103516 2000 BY4 | ..."
 		// "# Planet : 4 Mars | ..."
-		gchar *objname = NULL;
+
+		// The result of the request is different between geocentric and topocentric
+		// To retrieve the right RA and DEC, we have to introcuce a +1 offset in the position (see RA and DEC retrieve, below)
+		int offset_ind = 0;
+		if (gfit.sitelat != 0.) {
+			offset_ind = 1;
+		}
+
+		// Is the found object valid?
+		// Extract the first word of the third line, surrounded by (":" + space) and ("space + "|")
 		char *start = strchr(token[2], ':');
 		if (start && *(start+1) != '\0') {
 			start += 2; // remove the space
@@ -68,17 +108,17 @@ static int parse_buffer(char *buffer) {
 				objname = g_strndup(start, end-start+1);
 			}
 		}
-
 		if (!objname) {
 			siril_log_message(_("Unsupported object type in response: %s\n"), token[2]);
 			g_strfreev(token);
-			return FALSE;
+			g_free(objname);
+			return 1;
 		}
 		siril_debug_print("Object name: %s\n", objname);
+
 		// Add date at the end
 		gchar *formatted_date = date_time_to_date(gfit.date_obs);
 		realname = g_strdup_printf("%s\\n(%s)", objname, formatted_date);
-		g_free(objname);
 		g_free(formatted_date);
 
 		// Then, retrieve the coordinates
@@ -88,8 +128,9 @@ static int parse_buffer(char *buffer) {
 			double hours = 0.0, min = 0.0, seconds = 0.0, degres = 0.0;
 			double ra, dec;
 			gboolean valid = FALSE;
+
 			// For RA coordinates
-			part = g_strsplit(fields[1], " ", -1);
+			part = g_strsplit(fields[1 + offset_ind], " ", -1);
 			if (g_strv_length(part) > 3) {
 				sscanf(part[1], "%lf", &hours);
 				sscanf(part[2], "%lf", &min);
@@ -101,7 +142,7 @@ static int parse_buffer(char *buffer) {
 
 			// For Dec coordinates
 			if (valid) {
-				part = g_strsplit(fields[2], " ", -1);
+				part = g_strsplit(fields[2 + offset_ind], " ", -1);
 				if (g_strv_length(part) > 3) {
 					sscanf(part[1], "%lf", &degres);
 					sscanf(part[2], "%lf", &min);
@@ -117,9 +158,112 @@ static int parse_buffer(char *buffer) {
 			if (valid) {
 				world_cs = siril_world_cs_new_from_a_d(ra, dec);
 				is_solar_system = TRUE;
+				is_in_field = FALSE;
 			}
 		}
+		g_free(objname);
 		g_strfreev(fields);
+	}
+
+	/// Case of Solar System Objects in Conesearch mode
+	else if (g_str_has_prefix(buffer, "# Flag:") && conesearch) {
+		gint rank = 3;
+		guint nbr_a = 0;
+		while (token[rank]) {
+			char *start = strchr(token[rank], '|');
+			if (start && *(start+1) != '\0') {
+				start += 2; // remove the space
+				char *end = strchr(start, '|');
+				if (end) {
+					end -= 2; // remove the space
+					objname = g_strndup(start, end-start+1);
+				}
+			}
+
+			if (!objname) {
+				siril_log_message("Unsupported object type in response: \n");
+				g_strfreev(token);
+				g_free(objname);
+				return 1;
+			}
+			siril_debug_print("Object name: %s\n", objname);
+
+			// Add date at the end
+			gchar *formatted_date = date_time_to_date(gfit.date_obs);
+			realname = g_strdup_printf("%s", objname);
+			g_free(formatted_date);
+
+			// Then, retrieve the coordinates
+			gchar **fields = g_strsplit(token[rank], "|", -1);
+			guint n = g_strv_length(fields);
+			double mag = 0.0;
+			double hours = 0.0, min = 0.0, seconds = 0.0, degres = 0.0;
+			double ra = 0.0, dec =0;
+			gboolean valid = FALSE;
+			if (n > 2) {
+				// For RA coordinates
+				part = g_strsplit(fields[2], " ", -1);
+				if (g_strv_length(part) > 3) {
+					sscanf(part[1], "%lf", &hours);
+					sscanf(part[2], "%lf", &min);
+					sscanf(part[3], "%lf", &seconds);
+					ra = 360.0*hours/24.0 + 360.0*min/(24.0*60.0) + 360.0*seconds/(24.0*60.0*60.0);
+					valid = TRUE;
+				}
+				g_strfreev(part);
+
+				// For Dec coordinates
+				if (valid) {
+					part = g_strsplit(fields[3], " ", -1);
+					if (g_strv_length(part) > 3) {
+						sscanf(part[1], "%lf", &degres);
+						sscanf(part[2], "%lf", &min);
+						sscanf(part[3], "%lf", &seconds);
+						if (degres < 0.0)
+							dec = degres - min/60.0 - seconds/3600.0;
+						else dec = degres + min/60.0 + seconds/3600.0;
+					}
+					else valid = FALSE;
+					g_strfreev(part);
+				}
+
+				// Then, retrieve the magnitude, used to sort the objects to be displayed
+				if (valid) {
+					if (fields[5]) sscanf(fields[5], "%lf", &mag);	// Get the magnitude
+					else valid = FALSE;	
+
+					// Is mag enought to be shown? Intentionaly hard-limited to 20
+					if (mag < lim_mag && is_inside(&gfit, ra, dec)) nbr_a+=1;	
+					else valid = FALSE;
+				}
+				if (valid) {
+					world_cs = siril_world_cs_new_from_a_d(ra, dec);
+					is_solar_system = TRUE;
+					is_in_field = TRUE;
+				}
+			}
+			g_strfreev(fields);
+
+			if (world_cs && realname && valid) {
+				gchar **display_name = g_strsplit(realname, "\\n", 2);
+				siril_log_message(_("Found %s at coordinates: %s, %s with magnitude: %0.1lf\n"),display_name[0],
+						siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds"), siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\""), mag);
+
+				if (!com.script && !com.headless) {	// Write in catalogue only if in GUI mode, not in script-mode or headless-mode
+					com.pref.gui.catalog[6] = TRUE;	// enabling the user catalog in which it will be added
+					add_object_in_catalogue(realname, world_cs, is_solar_system, is_in_field);
+					g_strfreev(display_name);
+					siril_world_cs_unref(world_cs);
+				}
+			}
+			g_free(realname);
+			rank+=1;
+		}
+		g_free(objname);
+		siril_log_message(_("Found %d Solar System Objects with mag < %0.1lf\n"), nbr_a, lim_mag);
+
+		//////////
+		return 0;
 
 	} else {
 		// what case is that?
@@ -146,10 +290,14 @@ static int parse_buffer(char *buffer) {
 
 	if (world_cs && realname) {
 		gchar **display_name = g_strsplit(realname, "\\n", 2);
-		siril_log_message(_("Found %s at coordinates: %s, %s\n"),display_name[0],
-				siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds"), siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\""));
+		gchar *alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+		gchar *delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+		siril_log_message(_("Found %s at coordinates: %s, %s\n"),display_name[0], alpha, delta);
 		com.pref.gui.catalog[6] = TRUE;	// enabling the user catalog in which it will be added
-		add_object_in_catalogue(realname, world_cs, is_solar_system);
+		add_object_in_catalogue(realname, world_cs, is_solar_system, is_in_field);
+
+		g_free(alpha);
+		g_free(delta);
 		g_free(realname);
 		g_strfreev(display_name);
 		siril_world_cs_unref(world_cs);
@@ -168,7 +316,7 @@ void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	gchar *result = search_in_online_catalogs(name, solarsystem ? QUERY_SERVER_EPHEMCC : QUERY_SERVER_SIMBAD);
 
-	if (result && !parse_buffer(result)) {
+	if (result && !parse_buffer(result, 20.0)) {
 		GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
 		if (!gtk_toggle_tool_button_get_active(button)) {
 			gtk_toggle_tool_button_set_active(button, TRUE);

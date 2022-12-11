@@ -22,6 +22,7 @@
 #include <math.h>
 
 #include "algos/star_finder.h"
+#include "core/siril.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -32,9 +33,6 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 
-void on_toggle_radius_adjust_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	com.pref.starfinder_conf.adjust = gtk_toggle_button_get_active(togglebutton);
-}
 
 void on_toggle_relax_checks_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	com.pref.starfinder_conf.relax_checks = gtk_toggle_button_get_active(togglebutton);
@@ -52,56 +50,73 @@ void on_spin_sf_roundness_changed(GtkSpinButton *spinbutton, gpointer user_data)
 	com.pref.starfinder_conf.roundness = gtk_spin_button_get_value(spinbutton);
 }
 
+void on_spin_sf_minbeta_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	com.pref.starfinder_conf.min_beta = gtk_spin_button_get_value(spinbutton);
+}
+
 void on_spin_sf_convergence_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 	com.pref.starfinder_conf.convergence = (int)gtk_spin_button_get_value(spinbutton);
 }
 
+void on_combostarfinder_profile_changed(GtkComboBox *combo, gpointer user_data) {
+	GtkWidget *beta_control_label = GTK_WIDGET(lookup_widget("beta_control_label"));
+	GtkWidget *beta_control_spin = GTK_WIDGET(lookup_widget("spin_minbeta"));
+	com.pref.starfinder_conf.profile = gtk_combo_box_get_active(combo);
+
+	gtk_widget_set_visible(beta_control_label, com.pref.starfinder_conf.profile != PSF_GAUSSIAN);
+	gtk_widget_set_visible(beta_control_spin, com.pref.starfinder_conf.profile != PSF_GAUSSIAN);
+}
+
 void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {
 	//TODO: do we want to keep focal and pixel_size as they are not exposed?
-	com.pref.starfinder_conf = (star_finder_params){.radius = 10, .adjust = TRUE, .sigma = 1., 
-			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE};
+	com.pref.starfinder_conf = (star_finder_params){.radius = DEF_BOX_RADIUS, .sigma = 1.,
+			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE, .profile = PSF_GAUSSIAN, .min_beta = 1.5};
 	update_peaker_GUI();
 }
 
 void update_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
-			*spin_roundness = NULL, *spin_convergence = NULL;
-	static GtkToggleButton *toggle_adjust = NULL, *toggle_checks = NULL;
+			*spin_roundness = NULL, *spin_convergence = NULL, *spin_minbeta = NULL;
+	static GtkToggleButton *toggle_checks = NULL;
+	static GtkComboBox *combostarfinder_profile;
 
 	if (spin_radius == NULL) {
 		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
 		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
 		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
-		toggle_adjust = GTK_TOGGLE_BUTTON(lookup_widget("toggle_radius_adjust"));
+		spin_minbeta = GTK_SPIN_BUTTON(lookup_widget("spin_minbeta"));
 		toggle_checks = GTK_TOGGLE_BUTTON(lookup_widget("toggle_relax_checks"));
+		combostarfinder_profile = GTK_COMBO_BOX(lookup_widget("combostarfinder_profile"));
 	}
 	gtk_spin_button_set_value(spin_radius, (double) com.pref.starfinder_conf.radius);
-	gtk_toggle_button_set_active(toggle_adjust, com.pref.starfinder_conf.adjust);
 	gtk_spin_button_set_value(spin_sigma, com.pref.starfinder_conf.sigma);
 	gtk_spin_button_set_value(spin_roundness, com.pref.starfinder_conf.roundness);
 	gtk_spin_button_set_value(spin_convergence, com.pref.starfinder_conf.convergence);
+	gtk_spin_button_set_value(spin_minbeta, com.pref.starfinder_conf.min_beta);
 	gtk_toggle_button_set_active(toggle_checks, com.pref.starfinder_conf.relax_checks);
+	gtk_combo_box_set_active(combostarfinder_profile, com.pref.starfinder_conf.profile);
 }
 
 void confirm_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
-			*spin_roundness = NULL, *spin_convergence = NULL;
+			*spin_roundness = NULL, *spin_convergence = NULL, *spin_minbeta = NULL;
 
 	if (spin_radius == NULL) {
 		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
 		spin_sigma = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_threshold"));
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
 		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
+		spin_minbeta = GTK_SPIN_BUTTON(lookup_widget("spin_minbeta"));
 	}
 	gtk_spin_button_update(spin_radius);
 	gtk_spin_button_update(spin_sigma);
 	gtk_spin_button_update(spin_roundness);
 	gtk_spin_button_update(spin_convergence);
+	gtk_spin_button_update(spin_minbeta);
 }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {
-	int layer = gui.cvport == RGB_VPORT ? GLAYER : gui.cvport;
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		siril_log_color_message(_("Load an image first, aborted.\n"), "red");
 		return;
@@ -117,7 +132,7 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 		args->im.from_seq = NULL;
 		args->im.index_in_seq = -1;
 	}
-	args->layer = layer;
+	args->layer = select_vport(gui.cvport);
 	args->max_stars_fitted = 0;
 	args->starfile = NULL;
 	args->threading = MULTI_THREADED;
@@ -138,11 +153,19 @@ void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data)
 psf_star *add_star(fits *fit, int layer, int *index) {
 	int i = 0;
 	gboolean already_found = FALSE;
+	starprofile profile;
+	if (com.stars && com.stars[0])
+		// Add star depending on fit profile used for existing stars in the array
+		profile = (com.stars[0]->profile == PSF_GAUSSIAN ? PSF_GAUSSIAN : PSF_MOFFAT_BFREE);
+	else
+		// Default to Gaussian (or get this from a parameter in the GUI, tbd)
+		profile = com.pref.starfinder_conf.profile;
 
 	*index = -1;
-	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, FALSE, NULL, TRUE, NULL);
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, TRUE, profile, NULL);
 	if (!result)
 		return NULL;
+	result->angle = -result->angle; // we need to invert the angle because of the way the matrix is passed to minimizer
 	/* We do not check if it's matching with the "reject_star()" criteria.
 	 * Indeed, in this case the user can add manually stars missed by star_finder */
 
@@ -218,8 +241,7 @@ int remove_star(int index) {
 gboolean end_findstar(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *) p;
 	stop_processing_thread();
-	if (com.stars)
-		refresh_star_list(com.stars);
+	refresh_star_list(com.stars);
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;

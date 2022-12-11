@@ -70,6 +70,10 @@ void makemoffat(float *psf, const int size, const float fwhm, const float lum, c
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
+	// Check for erroneous fits, such as where a galaxy is modelled as a star and
+	// produces a silly psf
+//	if (psf[size * halfpsfdim] > 0.00001)
+//		memset(psf, 0, size * size * sizeof(float)); // Zero out the whole psf
 	return;
 }
 
@@ -94,7 +98,7 @@ void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, fl
 	return;
 }
 
-void add_star_to_rgb_buffer(float *H, float *S, float *psfL, int size, float *Hsynth, float *Ssynth, float *Lsynth, int x, int y, int dimx, int dimy) {
+static void add_star_to_rgb_buffer(const float *H, const float *S, const float *psfL, int size, float *Hsynth, float *Ssynth, float *Lsynth, int x, int y, int dimx, int dimy) {
 	int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 #define EPSILON 1e-30
@@ -120,7 +124,7 @@ void add_star_to_rgb_buffer(float *H, float *S, float *psfL, int size, float *Hs
 	return;
 }
 
-void add_star_to_mono_buffer(float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy) {
+static void add_star_to_mono_buffer(const float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy) {
 	const int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 #ifdef _OPENMP
@@ -142,7 +146,7 @@ void add_star_to_mono_buffer(float *psfL, int size, float *Lsynth, int x, int y,
 	return;
 }
 
-void replace_sat_star_in_buffer(float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy, float sat, float bg, float noise) {
+static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy, float sat, float bg, float noise) {
 	const int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
 
@@ -155,7 +159,7 @@ void replace_sat_star_in_buffer(float *psfL, int size, float *Lsynth, int x, int
 		for (int psfy = 0; psfy < size; psfy++) {
 			xx = x + psfx - halfpsfdim;
 			yy = y + psfy - halfpsfdim;
-			if (xx >= 0 && xx < dimx && yy >= 0 && yy < dimy) {
+			if (xx > 0 && xx < dimx && yy > 0 && yy < dimy) {
 				float orig = Lsynth[xx + ((dimy - yy) * dimx)];
 				float synth = psfL[psfx + (psfy * size)];
 				float synthfactor = (orig < sat) ? 1.f -
@@ -238,13 +242,13 @@ int generate_synthstars(fits *fit) {
 		if (fit->naxes[2] == 1)
 			channel = 0;
 		stars = peaker(input_image, channel, &com.pref.starfinder_conf, &nb_stars,
-				NULL, FALSE, FALSE, MAX_STARS, com.max_thread);
+				NULL, FALSE, FALSE, MAX_STARS, PSF_MOFFAT_BFREE, com.max_thread);
 		free(input_image);
 		stars_needs_freeing = TRUE;
 	} else {
 		stars = com.stars;
 	}
-	if (nb_stars < 1) {
+	if (starcount(stars) < 1) {
 		siril_log_color_message(_("No stars detected in the image.\n"), "red");
 		return -1;
 	} else {
@@ -315,9 +319,26 @@ int generate_synthstars(fits *fit) {
 					buf[BLAYER][i], 0.f, &H[i], &S[i], &junk);
 		}
 	}
+	// Calculate average Moffat beta
+	size_t moffat_count = 0;
+	double avg_moffat_beta = 0.;
 
 	gboolean stopcalled = FALSE;
 	// Synthesize a PSF for each star in the star array s, based on its measured parameters
+	gboolean gaussian = TRUE;
+	if (stars[0]->profile == PSF_MOFFAT_BFREE)
+		gaussian = FALSE;
+	if (!gaussian) {
+		for (size_t n = 0 ; n < nb_stars ; n++) {
+			moffat_count++;
+			avg_moffat_beta += stars[n]->beta;
+		}
+		if (moffat_count > 0)
+			avg_moffat_beta /= moffat_count;
+		else
+			avg_moffat_beta = -1;
+		siril_debug_print("# Moffat profile stars: %zd, average beta = %.3f\n", moffat_count, avg_moffat_beta);
+	}
 	for (int n = 0; n < nb_stars; n++) {
 		// Check if stop has been pressed
 		if (!get_thread_run())
@@ -338,8 +359,15 @@ int generate_synthstars(fits *fit) {
 
 			// Synthesize the luminance profile and add to the star mask in HSL colourspace
 			float *psfL = (float*) calloc(size * size, sizeof(float));
-			float beta = 2.2f;
-			if (stars[n]->has_saturated)
+			float beta = 8.f;
+			if (!gaussian) {
+				if (stars[n]->beta > 0.0) {
+					beta=stars[n]->beta;
+					minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
+				} else if (moffat_count > 0)
+					beta = avg_moffat_beta;
+			}
+			if (stars[n]->has_saturated || gaussian)
 				makegaussian(psfL, size, minfwhm, lum, xoff, yoff);
 			else
 				makemoffat(psfL, size, minfwhm, lum, xoff, yoff, beta);
@@ -366,18 +394,18 @@ int generate_synthstars(fits *fit) {
 			omp_set_num_threads(com.max_thread);
 			{
 #endif
-			float bufmax = 1.f;
+			float bufmaxx = 1.f;
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
 			for (size_t i = 0; i < count; i++)
-				if (Lsynth[i] > bufmax)
-					bufmax = Lsynth[i];
+				if (Lsynth[i] > bufmaxx)
+					bufmaxx = Lsynth[i];
 #ifdef _OPENMP
 #pragma omp for schedule(static)
 #endif
 			for (size_t i = 0; i < count; i++)
-				Lsynth[i] /= bufmax;
+				Lsynth[i] /= bufmaxx;
 
 #ifdef _OPENMP
 #pragma omp for schedule(static)
@@ -548,7 +576,7 @@ int reprofile_saturated_stars(fits *fit) {
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
 		int nb_stars;
-		psf_star **stars = peaker(input_image, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.max_thread);
+		psf_star **stars = peaker(input_image, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
 		free(input_image);
 		int sat_stars = 0;
 		siril_log_message(_("Star synthesis: desaturating stars in channel %u...\n"),

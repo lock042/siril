@@ -29,14 +29,17 @@
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "core/arithm.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/PSF_list.h"
 #include "gui/sequence_list.h"
 #include "gui/registration_preview.h"
 #include "io/image_format_fits.h"
+#include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/ser.h"
@@ -49,13 +52,24 @@
 #include "stacking.h"
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
-	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, FALSE, { 0, 0 }, -1,
-	{ 0, 0 }, NULL, NO_REJEC, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1,
-	FALSE, FALSE, FALSE, FALSE, NULL, FALSE, FALSE, NULL, NULL, { 0 }
+	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE,
+	FALSE, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1, FALSE,
+	NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, NULL, NULL,
+	FALSE, FALSE, FALSE, FALSE, NULL, NULL, NULL, { 0 }, 0, { 0 }
 };
 
-#define MAX_FILTERS 5
 static struct filtering_tuple stackfilters[MAX_FILTERS];
+/* Values for seq filtering for % or k value*/
+static float filter_initvals[] = {90., 3.}; // max %, max k
+static float filter_maxvals[] = {100., 5.}; // max %, max k
+static float filter_increments[] = {1., 0.1}; // spin button steps for % and k
+// update_adjustment passed here as a static (instead of function parameter like in registration)
+// in order not to mess up all the calls to update_stack_interface
+static int update_adjustment = -1;
+static char *filter_tooltip_text[] = {
+	N_("Percents of the images of the sequence."),
+	N_("Number of standard deviations for rejection of worst images by k-sigma clipping algorithm.")
+};
 
 stack_method stacking_methods[] = {
 	stack_summing_generic, stack_mean_with_rejection, stack_median, stack_addmax, stack_addmin
@@ -134,7 +148,6 @@ gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 	return seq->bitpix == FLOAT_IMG; // for min or max, only use it if input is already float
 }
 
-
 /* the function that prepares the stacking and runs it */
 void main_stack(struct stacking_args *args) {
 	int nb_allowed_files;
@@ -165,6 +178,9 @@ void main_stack(struct stacking_args *args) {
 		return;
 	// 3. stack
 	args->retval = args->method(args);
+
+	// result is in args->result, not saved
+	describe_stack_for_history(args, &args->result.history, FALSE, FALSE);
 }
 
 /* the function that runs the thread. */
@@ -178,6 +194,19 @@ gpointer stack_function_handler(gpointer p) {
 	return GINT_TO_POINTER(args->retval);
 }
 
+// Checks that the number of degrees of freedoms is not more than shift
+// returns FALSE if not
+gboolean stack_regdata_is_valid(struct stacking_args args) {
+	if (!layer_has_registration(args.seq, args.reglayer)) return TRUE;
+	transformation_type regmin, regmax;
+	guess_transform_from_seq(args.seq, args.reglayer, &regmin, &regmax, FALSE);
+	if (regmax > SHIFT_TRANSFORMATION)
+		return FALSE;
+	else if (regmax == SHIFT_TRANSFORMATION) {
+		siril_log_color_message(_("Stacking will use registration data of layer %d\n"), "salmon", args.reglayer);
+	}
+	return TRUE;
+}
 
 /* starts a summing operation using data stored in the stackparam structure
  * function is not reentrant but can be called again after it has returned and the thread is running */
@@ -185,7 +214,8 @@ static void start_stacking() {
 	gchar *error = NULL;
 	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL, *weighing_combo;
 	static GtkEntry *output_file = NULL;
-	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *fast_norm = NULL;
+	static GtkToggleButton *overwrite = NULL, *force_norm = NULL,
+			       *fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
 
@@ -202,6 +232,8 @@ static void start_stacking() {
 		fast_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkfastnorm"));
 		norm_to_max = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
+		rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("rejmaps_checkbutton"));
+		merge_rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("merge_rejmaps_checkbutton"));
 	}
 
 	if (get_thread_run()) {
@@ -212,6 +244,8 @@ static void start_stacking() {
 	stackparam.sig[0] = (float) gtk_spin_button_get_value(sigSpin[0]);
 	stackparam.sig[1] = (float) gtk_spin_button_get_value(sigSpin[1]);
 	stackparam.type_of_rejection = gtk_combo_box_get_active(rejec_combo);
+	stackparam.create_rejmaps = gtk_toggle_button_get_active(rejmaps);
+	stackparam.merge_lowhigh_rejmaps = gtk_toggle_button_get_active(merge_rejmaps);
 	stackparam.normalize = gtk_combo_box_get_active(norm_combo);
 	stackparam.force_norm = gtk_toggle_button_get_active(force_norm);
 	stackparam.output_norm = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(norm_to_max)) && gtk_widget_is_visible(norm_to_max);
@@ -238,7 +272,15 @@ static void start_stacking() {
 		stackparam.normalize = NO_NORM;
 	stackparam.seq = &com.seq;
 	stackparam.reglayer = get_registration_layer(stackparam.seq);
-	siril_log_color_message(_("Stacking will use registration data of layer %d if some exist.\n"), "salmon", stackparam.reglayer);
+	// checking regdata is absent, or if present, is only shift
+	if (!stack_regdata_is_valid(stackparam)) {
+		int confirm = siril_confirm_dialog(_("Registration data found"),
+			_("Stacking has detected registration data with more than simple shifts.\n"
+			"Normally, you should apply existing registration before stacking."),
+			_("Stack anyway"));
+		if (!confirm)
+			return;
+	}
 
 	/* Do not display that cause it uses the generic function that already
 	 * displays this text
@@ -258,9 +300,7 @@ static void start_stacking() {
 }
 
 static void _show_summary(struct stacking_args *args) {
-	const char *norm_str;
-
-	siril_log_message(_("Integration of %d images:\n"), args->nb_images_to_stack);
+	siril_log_message(_("Integration of %d images on %d of the sequence:\n"), args->nb_images_to_stack, args->seq->number);
 
 	/* Type of algorithm */
 	if (args->method == &stack_mean_with_rejection) {
@@ -278,6 +318,7 @@ static void _show_summary(struct stacking_args *args) {
 	}
 
 	/* Normalisation */
+	const char *norm_str, *fast_norm = "";
 	if (args->method != &stack_mean_with_rejection &&
 			args->method != &stack_median ) {
 		norm_str = _("none");
@@ -300,51 +341,206 @@ static void _show_summary(struct stacking_args *args) {
 			norm_str = _("multiplicative + scaling");
 			break;
 		}
+		if (args->normalize != NO_NORM && args->lite_norm)
+			fast_norm = _(" (fast)");
 	}
+	siril_log_message(_("Input normalization ....... %s%s\n"), norm_str, fast_norm);
 
-	siril_log_message(_("Normalization ............. %s\n"), norm_str);
+	if (args->output_norm)
+		siril_log_message(_("Output normalization ...... enabled\n"));
+	else siril_log_message(_("Output normalization ...... disabled\n"));
 
-	/* Type of rejection */
+	/* Rejection */
 	if (args->method != &stack_mean_with_rejection) {
 		siril_log_message(_("Pixel rejection ........... none\n"));
-		siril_log_message(_("Rejection parameters ...... none\n"));
-	}
-	else {
+	} else {
 		const char *rej_str;
-
 		switch (args->type_of_rejection) {
 		default:
 		case NO_REJEC:
-			rej_str = _("None");
+			rej_str = _("none");
 			break;
 		case PERCENTILE:
-			rej_str = _("Percentile Clipping");
+			rej_str = _("percentile clipping");
 			break;
 		case SIGMA:
-			rej_str = _("Sigma Clipping");
+			rej_str = _("sigma clipping");
 			break;
 		case MAD:
-			rej_str = _("MAD Clipping");
+			rej_str = _("MAD clipping");
 			break;
 		case SIGMEDIAN:
-			rej_str = _("Median sigma Clipping");
+			rej_str = _("median sigma clipping");
 			break;
 		case WINSORIZED:
-			rej_str = _("Winsorized Sigma Clipping");
+			rej_str = _("winsorized sigma clipping");
 			break;
 		case LINEARFIT:
-			rej_str = _("Linear Fit Clipping");
+			rej_str = _("linear fit clipping");
 			break;
 		case GESDT:
-			rej_str = _("Generalized Extreme Studentized Deviate Test");
+			rej_str = _("GESDT clipping");
 			break;
 		}
 		siril_log_message(_("Pixel rejection ........... %s\n"), rej_str);
-		if (args->type_of_rejection != GESDT) {
-			siril_log_message(_("Rejection parameters ...... low=%.3f high=%.3f\n"),
-				args->sig[0], args->sig[1]);
+		if (args->type_of_rejection != NO_REJEC) {
+			if (args->type_of_rejection == GESDT) {
+				siril_log_message(_("Rejection parameters ...... outliers=%.3f significance=%.3f\n"),
+						args->sig[0], args->sig[1]);
+			} else {
+				siril_log_message(_("Rejection parameters ...... low=%.3f high=%.3f\n"),
+						args->sig[0], args->sig[1]);
+			}
+			if (!args->create_rejmaps)
+				siril_log_message(_("Creating rejection maps ... no\n"));
+			else {
+				if (args->merge_lowhigh_rejmaps)
+					siril_log_message(_("Creating rejection maps ... yes (merged)\n"));
+				else	siril_log_message(_("Creating rejection maps ... yes\n"));
+			}
 		}
 	}
+
+	if (args->apply_noise_weights)
+		siril_log_message(_("Image weighting ........... from noise\n"));
+	else if (args->apply_nbstack_weights)
+		siril_log_message(_("Image weighting ........... from image count\n"));
+	else if (args->apply_wfwhm_weights)
+		siril_log_message(_("Image weighting ........... from weighted FWHM\n"));
+	else if (args->apply_nbstars_weights)
+		siril_log_message(_("Image weighting ........... from star count\n"));
+	else siril_log_message(_("Image weighting ........... disabled\n"));
+
+	if (args->seq->nb_layers > 1) {
+		if (args->equalizeRGB)
+			siril_log_message(_("RGB equalization .......... enabled\n"));
+		else siril_log_message(_("RGB equalization .......... disabled\n"));
+	}
+}
+
+/* a short version of the above, for FITS header HISTORY */
+void describe_stack_for_history(struct stacking_args *args, GSList **hist, gboolean for_rejmap, gboolean low_rejmap) {
+	const char *stack_name;
+	if (args->method == &stack_summing_generic)
+		stack_name = "sum";
+	else if (args->method == &stack_mean_with_rejection)
+		stack_name = "mean";
+	else if (args->method == &stack_median)
+		stack_name = "median";
+	else if (args->method == &stack_addmin)
+		stack_name = "minimum";
+	else if (args->method == &stack_addmax)
+		stack_name = "maximum";
+	else stack_name = "unknown";
+
+	GString *str;
+	if (for_rejmap) {
+		g_assert(args->create_rejmaps);
+		if (args->merge_lowhigh_rejmaps)
+			str = g_string_new("merged low+high rejection map for a ");
+		else {
+			if (low_rejmap)
+				str = g_string_new("low rejection map for a ");
+			else str = g_string_new("high rejection map for a ");
+		}
+		g_string_append(str, stack_name);
+		g_string_append(str, " stacking");
+	} else {
+		str = g_string_new(stack_name);
+		g_string_append(str, " stacking");
+	}
+
+	/* Type of rejection */
+	if (args->method != &stack_mean_with_rejection) {
+		g_string_append(str, " without rejection");
+	}
+	else {
+		switch (args->type_of_rejection) {
+		default:
+		case NO_REJEC:
+			g_string_append(str, " without rejection");
+			break;
+		case PERCENTILE:
+			g_string_append(str, " with percentile clipping rejection");
+			break;
+		case SIGMA:
+			g_string_append(str, " with sigma clipping rejection");
+			break;
+		case MAD:
+			g_string_append(str, " with MAD clipping rejection");
+			break;
+		case SIGMEDIAN:
+			g_string_append(str, " with median sigma clipping rejection");
+			break;
+		case WINSORIZED:
+			g_string_append(str, " with winsorized sigma clipping rejection");
+			break;
+		case LINEARFIT:
+			g_string_append(str, " with linear fit clipping rejection");
+			break;
+		case GESDT:
+			g_string_append(str, " with GESDT rejection");
+			break;
+		}
+		if (args->type_of_rejection != NO_REJEC) {
+			if (args->type_of_rejection == GESDT) {
+				g_string_append_printf(str, " (outliers=%.3f significance=%.3f)",
+						args->sig[0], args->sig[1]);
+			} else {
+				g_string_append_printf(str, " (low=%.3f high=%.3f)",
+						args->sig[0], args->sig[1]);
+			}
+		}
+	}
+
+	/* Normalisation */
+	if (args->method != &stack_mean_with_rejection &&
+			args->method != &stack_median ) {
+		g_string_append(str, ", unnormalized input");
+	} else {
+		switch (args->normalize) {
+		default:
+		case NO_NORM:
+			g_string_append(str, ", unnormalized input");
+			break;
+		case ADDITIVE:
+			g_string_append(str, ", additive normalized input");
+			break;
+		case MULTIPLICATIVE:
+			g_string_append(str, ", multiplicative normalized input");
+			break;
+		case ADDITIVE_SCALING:
+			g_string_append(str, ", additive+scaling normalized input");
+			break;
+		case MULTIPLICATIVE_SCALING:
+			g_string_append(str, ", multiplicative+scaling normalized input");
+			break;
+		}
+		if (args->normalize != NO_NORM && args->lite_norm)
+			g_string_append(str, " (fast)");
+	}
+
+	if (args->output_norm)
+		g_string_append(str, ", normalized output");
+	else g_string_append(str, ", unnormalized output");
+
+	if (args->apply_noise_weights)
+		g_string_append(str, ", image weighting from noise");
+	else if (args->apply_nbstack_weights)
+		g_string_append(str, ", image weighting from image count");
+	else if (args->apply_wfwhm_weights)
+		g_string_append(str, ", image weighting from weighted FWHM");
+	else if (args->apply_nbstars_weights)
+		g_string_append(str, ", image weighting from star count");
+	else g_string_append(str, ", no image weighting");
+
+	if (args->seq->nb_layers > 1) {
+		if (args->equalizeRGB)
+			g_string_append(str, ", equalized RGB");
+		else  g_string_append(str, ", unequalized RGB");
+	}
+
+	*hist = g_slist_append(*hist, g_string_free(str, FALSE));
 }
 
 void clean_end_stacking(struct stacking_args *args) {
@@ -384,31 +580,45 @@ static gboolean end_stacking(gpointer p) {
 		/* Giving noise estimation (new thread) */
 		bgnoise_async(&gfit, TRUE);
 
+		// updating the header string to parse the final name
+		// and parse the name
+		int status = PATHPARSE_ERR_OK;
+		gchar *expression = g_strdup(args->output_filename);
+		gchar *parsedname = update_header_and_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+
+		if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
+			args->output_parsed_filename = g_strdup("unknown");
+		} else {
+			args->output_parsed_filename = g_strdup(parsedname);
+		}
+		g_free(parsedname);
+		g_free(expression);
+
 		/* save stacking result */
-		if (args->output_filename != NULL && args->output_filename[0] != '\0') {
+		if (args->output_parsed_filename != NULL && args->output_parsed_filename[0] != '\0') {
 			int failed = 0;
-			if (g_file_test(args->output_filename, G_FILE_TEST_EXISTS)) {
+			if (g_file_test(args->output_parsed_filename, G_FILE_TEST_EXISTS)) {
 				failed = !args->output_overwrite;
 				if (!failed) {
-					if (g_unlink(args->output_filename) == -1)
+					if (g_unlink(args->output_parsed_filename) == -1)
 						failed = 1;
-					if (!failed && savefits(args->output_filename, &gfit))
+					if (!failed && savefits(args->output_parsed_filename, &gfit))
 						failed = 1;
 					if (!failed) {
-						com.uniq->filename = strdup(args->output_filename);
+						com.uniq->filename = strdup(args->output_parsed_filename);
 						com.uniq->fileexist = TRUE;
 					}
 				}
 			}
 			else {
-				gchar *dirname = g_path_get_dirname(args->output_filename);
+				gchar *dirname = g_path_get_dirname(args->output_parsed_filename);
 				if (g_mkdir_with_parents(dirname, 0755) < 0) {
 					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
 					failed = 1;
 				}
 				g_free(dirname);
-				if (!savefits(args->output_filename, &gfit)) {
-					com.uniq->filename = strdup(args->output_filename);
+				if (!savefits(args->output_parsed_filename, &gfit)) {
+					com.uniq->filename = strdup(args->output_parsed_filename);
 					com.uniq->fileexist = TRUE;
 				} else {
 					failed = 1;
@@ -417,7 +627,36 @@ static gboolean end_stacking(gpointer p) {
 			if (failed) {
 				com.uniq->filename = strdup(_("Unsaved stacking result"));
 				com.uniq->fileexist = FALSE;
+			} else {
+				if (args->create_rejmaps) {
+					siril_log_message(_("Saving rejection maps\n"));
+					if (args->merge_lowhigh_rejmaps) {
+						char new_ext[30];
+						sprintf(new_ext, "_low+high_rejmap%s", com.pref.ext);
+						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, FALSE);
+						savefits(low_filename, args->rejmap_low);
+						g_free(low_filename);
+					} else {
+						char new_ext[30];
+						sprintf(new_ext, "_low_rejmap%s", com.pref.ext);
+						gchar *low_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_low, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_low->history, TRUE, TRUE);
+						savefits(low_filename, args->rejmap_low);
+						g_free(low_filename);
+
+						sprintf(new_ext, "_high_rejmap%s", com.pref.ext);
+						gchar *high_filename = replace_ext(args->output_parsed_filename, new_ext);
+						soper_unscaled_div_ushort_to_float(args->rejmap_high, args->nb_images_to_stack);
+						describe_stack_for_history(args, &args->rejmap_high->history, TRUE, FALSE);
+						savefits(high_filename, args->rejmap_high);
+						g_free(high_filename);
+					}
+				}
 			}
+
 			display_filename();
 			set_precision_switch(); // set precision on screen
 		}
@@ -450,6 +689,14 @@ static gboolean end_stacking(gpointer p) {
 	}
 
 	memset(&args->result, 0, sizeof(fits));
+	if (args->create_rejmaps) {
+		clearfits(args->rejmap_low);
+		free(args->rejmap_low);
+		if (!args->merge_lowhigh_rejmaps) {
+			clearfits(args->rejmap_high);
+			free(args->rejmap_high);
+		}
+	}
 	set_cursor_waiting(FALSE);
 	/* Do not display time for stack_summing_generic
 	 * cause it uses the generic function that already
@@ -539,12 +786,15 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	rejection type_of_rejection = gtk_combo_box_get_active(box);
 	static GtkWidget *labellow = NULL, *labelhigh = NULL;
 	static GtkWidget *siglow = NULL, *sighigh = NULL;
+	static GtkWidget *rejmaps = NULL, *merge_rejmaps = NULL;
 
 	if (!labellow) {
 		labellow = lookup_widget("label_low");
 		labelhigh = lookup_widget("label_high");
 		siglow = lookup_widget("stack_siglow_button");
 		sighigh = lookup_widget("stack_sighigh_button");
+		rejmaps = lookup_widget("rejmaps_checkbutton");
+		merge_rejmaps = lookup_widget("merge_rejmaps_checkbutton");
 	}
 
 	g_signal_handlers_block_by_func(GTK_SPIN_BUTTON(siglow), on_stack_siglow_button_value_changed, NULL);
@@ -553,15 +803,19 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	switch (type_of_rejection) {
 		case NO_REJEC:
 			gtk_widget_set_visible(siglow, FALSE);
+			gtk_widget_set_visible(rejmaps, FALSE);
 			gtk_widget_set_visible(sighigh, FALSE);
 			gtk_widget_set_visible(labellow, FALSE);
 			gtk_widget_set_visible(labelhigh, FALSE);
+			gtk_widget_set_visible(merge_rejmaps, FALSE);
 			break;
 		case PERCENTILE:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Low clipping factor for the percentile clipping rejection algorithm."));
 			gtk_widget_set_tooltip_text(sighigh, _("High clipping factor for the percentile clipping rejection algorithm."));
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(siglow), com.pref.stack.percentile_low);
@@ -573,9 +827,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 			break;
 		case LINEARFIT:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Tolerance for low pixel values of the linear fit clipping algorithm, in sigma units."));
 			gtk_widget_set_tooltip_text(sighigh, _("Tolerance for high pixel values of the linear fit clipping algorithm, in sigma units."));
 			gtk_spin_button_set_range(GTK_SPIN_BUTTON(siglow), 0.0, 10.0);
@@ -591,9 +847,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 		case SIGMEDIAN:
 		case WINSORIZED:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Low clipping factor for the sigma clipping rejection algorithm."));
 			gtk_widget_set_tooltip_text(sighigh, _("High clipping factor for the sigma clipping rejection algorithm."));
 			gtk_spin_button_set_range(GTK_SPIN_BUTTON(siglow), 0.0, 10.0);
@@ -605,9 +863,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 			break;
 		case GESDT:
 			gtk_widget_set_visible(siglow, TRUE);
+			gtk_widget_set_visible(rejmaps, TRUE);
 			gtk_widget_set_visible(sighigh, TRUE);
 			gtk_widget_set_visible(labellow, TRUE);
 			gtk_widget_set_visible(labelhigh, TRUE);
+			gtk_widget_set_visible(merge_rejmaps, TRUE);
 			gtk_widget_set_tooltip_text(siglow, _("Expected fraction of maximum outliers for the Generalized Extreme Studentized Deviate Test algorithm."));
 			gtk_widget_set_tooltip_text(sighigh, _("Probability of making a false positive for the Generalized Extreme Studentized Deviate Test algorithm. "
 					"Increasing this value will reject more pixels."));
@@ -624,6 +884,11 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 
 	com.pref.stack.rej_method = gtk_combo_box_get_active(box);
 	writeinitfile();
+}
+
+void on_rejmaps_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkWidget *merge = lookup_widget("merge_rejmaps_checkbutton");
+	gtk_widget_set_sensitive(merge, gtk_toggle_button_get_active(button));
 }
 
 int find_refimage_in_indices(const int *indices, int nb, int ref) {
@@ -693,6 +958,10 @@ void compute_date_time_keywords(GList *list_date, fits *fit) {
 /****************************************************************/
 
 void on_stacksel_changed(GtkComboBox *widget, gpointer user_data) {
+	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE (widget));
+	if (g_str_has_prefix(caller, "filter_type")) {
+		update_adjustment = (int)g_ascii_strtod(caller + 11, NULL) - 1; // filter_type1, 2 or 3 to be parsed as 0, 1 or 2
+	}
 	update_stack_interface(TRUE);
 }
 
@@ -706,6 +975,7 @@ void on_filter_add1_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("filter_add2"), TRUE);
 	gtk_widget_set_visible(lookup_widget("filter_rem2"), TRUE);
 	gtk_widget_set_visible(lookup_widget("labelfilter2"), TRUE);
+	gtk_widget_set_visible(lookup_widget("filter_type2"), TRUE);
 	update_stack_interface(TRUE);
 }
 
@@ -714,6 +984,7 @@ void on_filter_add2_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("stackspin3"), TRUE);
 	gtk_widget_set_visible(lookup_widget("filter_rem3"), TRUE);
 	gtk_widget_set_visible(lookup_widget("labelfilter3"), TRUE);
+	gtk_widget_set_visible(lookup_widget("filter_type3"), TRUE);
 	update_stack_interface(TRUE);
 }
 
@@ -723,6 +994,7 @@ void on_filter_rem2_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("filter_add2"), FALSE);
 	gtk_widget_set_visible(lookup_widget("filter_rem2"), FALSE);
 	gtk_widget_set_visible(lookup_widget("labelfilter2"), FALSE);
+	gtk_widget_set_visible(lookup_widget("filter_type2"), FALSE);
 	update_stack_interface(TRUE);
 }
 
@@ -731,16 +1003,19 @@ void on_filter_rem3_clicked(GtkButton *button, gpointer user_data){
 	gtk_widget_set_visible(lookup_widget("stackspin3"), FALSE);
 	gtk_widget_set_visible(lookup_widget("filter_rem3"), FALSE);
 	gtk_widget_set_visible(lookup_widget("labelfilter3"), FALSE);
+	gtk_widget_set_visible(lookup_widget("filter_type3"), FALSE);
 	update_stack_interface(TRUE);
 }
 
 void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		double *filtering_parameter) {
 	int filter, guifilter, channel = 0, type;
+	gboolean is_ksig = FALSE;
 	double percent = 0.0;
 	static GtkComboBox *filter_combo[] = {NULL, NULL, NULL};
 	static GtkAdjustment *stackadj[] = {NULL, NULL, NULL};
 	static GtkWidget *spin[] = {NULL, NULL, NULL};
+	static GtkWidget *ksig[] = {NULL, NULL, NULL};
 	if (!spin[0]) {
 		spin[0] = lookup_widget("stackspin1");
 		spin[1] = lookup_widget("stackspin2");
@@ -751,6 +1026,9 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter1"));
 		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter2"));
 		filter_combo[2] = GTK_COMBO_BOX(lookup_widget("combofilter3"));
+		ksig[0] = lookup_widget("filter_type1");
+		ksig[1] = lookup_widget("filter_type2");
+		ksig[2] = lookup_widget("filter_type3");
 	}
 	for (filter = 0, guifilter = 0; guifilter < 3; guifilter++) {
 		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[guifilter]))) {
@@ -761,55 +1039,72 @@ void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		if (type != ALL_IMAGES && type != SELECTED_IMAGES) {
 			channel = get_registration_layer(&com.seq);
 			percent = gtk_adjustment_get_value(stackadj[guifilter]);
+			is_ksig = gtk_combo_box_get_active(GTK_COMBO_BOX(ksig[guifilter]));
 		}
-
+		if (update_adjustment == filter) {
+			g_signal_handlers_block_by_func(stackadj[filter], on_stacksel_changed, NULL);
+			gtk_adjustment_set_upper(stackadj[filter], filter_maxvals[is_ksig]);
+			gtk_adjustment_set_value(stackadj[filter], filter_initvals[is_ksig]);
+			gtk_adjustment_set_step_increment(stackadj[filter], filter_increments[is_ksig]);
+			gtk_widget_set_tooltip_text(spin[filter], filter_tooltip_text[is_ksig]);
+			g_signal_handlers_unblock_by_func(stackadj[filter], on_stacksel_changed, NULL);
+			update_adjustment = -1;
+		}
 		switch (type) {
 			default:
 			case ALL_IMAGES:
 				stackfilters[filter].filter = seq_filter_all;
 				stackfilters[filter].param = 0.0;
 				gtk_widget_set_visible(spin[guifilter], FALSE);
+				gtk_widget_set_visible(ksig[guifilter], FALSE);
 				break;
 			case SELECTED_IMAGES:
 				stackfilters[filter].filter = seq_filter_included;
 				stackfilters[filter].param = 0.0;
 				gtk_widget_set_visible(spin[guifilter], FALSE);
+				gtk_widget_set_visible(ksig[guifilter], FALSE);
 				break;
 			case BEST_PSF_IMAGES:
 				stackfilters[filter].filter = seq_filter_fwhm;
 				stackfilters[filter].param = compute_highest_accepted_fwhm(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_WPSF_IMAGES:
 				stackfilters[filter].filter = seq_filter_weighted_fwhm;
 				stackfilters[filter].param = compute_highest_accepted_weighted_fwhm(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_ROUND_IMAGES:
 				stackfilters[filter].filter = seq_filter_roundness;
 				stackfilters[filter].param = compute_lowest_accepted_roundness(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_BKG_IMAGES:
 				stackfilters[filter].filter = seq_filter_background;
 				stackfilters[filter].param = compute_highest_accepted_background(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_NBSTARS_IMAGES:
 				stackfilters[filter].filter = seq_filter_nbstars;
 				stackfilters[filter].param = compute_lowest_accepted_nbstars(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 			case BEST_QUALITY_IMAGES:
 				stackfilters[filter].filter = seq_filter_quality;
 				stackfilters[filter].param = compute_lowest_accepted_quality(
-						stackparam.seq, channel, percent);
+						stackparam.seq, channel, percent, is_ksig);
 				gtk_widget_set_visible(spin[guifilter], TRUE);
+				gtk_widget_set_visible(ksig[guifilter], TRUE);
 				break;
 		}
 		filter++;

@@ -59,14 +59,15 @@ preferences pref_init = {
 	.copyright = NULL,
 	.starnet_dir = NULL,
 	.starfinder_conf = { // starfinder_conf
-		.radius = 10,
-		.adjust = TRUE,
+		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
 		.roundness = 0.5,
 		.focal_length = 0.,
 		.pixel_size_x = 0.,
 		.convergence = 1,
-		.relax_checks = FALSE
+		.relax_checks = FALSE,
+		.profile = PSF_GAUSSIAN,
+		.min_beta = 1.5
 	},
 	.prepro = {
 		.cfa = FALSE,
@@ -86,12 +87,12 @@ preferences pref_init = {
 		},
 		.bias_lib = NULL,
 		.use_bias_lib = FALSE,
-		.bias_synth = NULL,
-		.use_bias_synth = FALSE,
 		.dark_lib = NULL,
 		.use_dark_lib = FALSE,
 		.flat_lib = NULL,
 		.use_flat_lib = FALSE,
+		.stack_default = NULL,
+		.use_stack_default = TRUE,
 	},
 	.gui = {
 		.first_start = TRUE,
@@ -123,10 +124,13 @@ preferences pref_init = {
 		.catalog[4] = TRUE,
 		.catalog[5] = TRUE,
 		.catalog[6] = TRUE,
+		.catalog[7] = TRUE,
+		.catalog[8] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
 		.reg_settings = 0,
-		.reg_interpolation = OPENCV_AREA,
+		.reg_interpolation = OPENCV_LANCZOS4,
+		.reg_clamping = TRUE,
 		.pm_presets = NULL
 	},
 	.debayer = {
@@ -137,6 +141,7 @@ preferences pref_init = {
 		.top_down = TRUE,
 		.xbayeroff = 0,
 		.ybayeroff = 0,
+		.xtrans_passes = 1
 	},
 	.phot_set = {
 		.gain = 2.3,
@@ -149,6 +154,7 @@ preferences pref_init = {
 	},
 	.analysis = {
 		.mosaic_panel = 256,
+		.mosaic_window = 381,
 	},
 	.stack = {
 		.method = 0,
@@ -185,6 +191,7 @@ void free_preferences(preferences *pref) {
 void initialize_default_settings() {
 	com.pref = pref_init;
 	com.pref.ext = g_strdup(".fit");
+	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
 }
@@ -221,11 +228,12 @@ struct settings_access all_settings[] = {
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
 
 	{ "debayer", "use_debayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
-	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER } } },
+	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER_4 } } },
 	{ "debayer", "interpolation", STYPE_INT, N_("type of interpolation"), &com.pref.debayer.bayer_inter, { .range_int = { 0, XTRANS } } },
 	{ "debayer", "top_down", STYPE_BOOL, N_("force debayer top-down"), &com.pref.debayer.top_down },
 	{ "debayer", "offset_x", STYPE_INT, N_("Bayer matrix offset X"), &com.pref.debayer.xbayeroff, { .range_int = { 0, 1 } } },
 	{ "debayer", "offset_y", STYPE_INT, N_("Bayer matrix offset Y"), &com.pref.debayer.ybayeroff, { .range_int = { 0, 1 } } },
+	{ "debayer", "xtrans_passes", STYPE_INT, N_("Number of passes for the X-Trans Markesteijn algorithm"), &com.pref.debayer.xtrans_passes, { .range_int = { 1, 4 } } },
 
 	{ "photometry", "gain", STYPE_DOUBLE, N_("electrons per ADU for noise estimation"), &com.pref.phot_set.gain, { .range_double = { 0., 10. } } },
 	{ "photometry", "inner", STYPE_DOUBLE, N_("inner radius for background annulus"), &com.pref.phot_set.inner, { .range_double = { 2., 100. } } },
@@ -236,6 +244,7 @@ struct settings_access all_settings[] = {
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
 
 	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
+	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 1600 } } },
 
 	{ "compression", "enabled", STYPE_BOOL, N_("FITS compression enabled"), &com.pref.comp.fits_enabled },
 	{ "compression", "method", STYPE_INT, N_("FITS compression method"), &com.pref.comp.fits_method, { .range_int = { 0, 3 } } },
@@ -260,11 +269,12 @@ struct settings_access all_settings[] = {
 	{ "gui_prepro", "use_dark_lib", STYPE_BOOL, N_("use default master dark"), &com.pref.prepro.use_dark_lib },
 	{ "gui_prepro", "flat_lib", STYPE_STR, N_("default master flat"), &com.pref.prepro.flat_lib },
 	{ "gui_prepro", "use_flat_lib", STYPE_BOOL, N_("use default master flat"), &com.pref.prepro.use_flat_lib },
-	{ "gui_prepro", "use_bias_synth", STYPE_BOOL, N_("use synthetic bias"), &com.pref.prepro.use_bias_synth },
-	{ "gui_prepro", "bias_synth", STYPE_STR, N_("value of synthetic bias"), &com.pref.prepro.bias_synth},
+	{ "gui_prepro", "stack_default", STYPE_STR, N_("default stack name"), &com.pref.prepro.stack_default },
+	{ "gui_prepro", "use_stack_default", STYPE_BOOL, N_("use preferred stack name"), &com.pref.prepro.use_stack_default },
 
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected registration method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
+	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
 
 	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, 4 } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },

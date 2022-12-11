@@ -18,6 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,6 +52,7 @@ enum {
 	COLUMN_FWHMX,		// gdouble
 	COLUMN_FWHMY,		// gdouble
 	COLUMN_MAG,		    // gdouble
+	COLUMN_BETA,		// gdouble
 	COLUMN_ROUNDNESS,	// gdouble
 	COLUMN_ANGLE,		// gdouble
 	COLUMN_RMSE,		// gdouble
@@ -150,6 +152,21 @@ static void gdouble_angle_cell_data_function(GtkTreeViewColumn *col,
 	g_free(buf);
 }
 
+static void gdouble_beta_cell_data_function(GtkTreeViewColumn *col,
+		GtkCellRenderer *renderer, GtkTreeModel *model, GtkTreeIter *iter,
+		gpointer user_data) {
+	gdouble var;
+	gchar *buf;
+	gtk_tree_model_get(model, iter, COLUMN_BETA, &var, -1);
+	if (var == -1.0)
+		buf = g_strdup_printf("%s", "N/A");
+	else
+		buf = g_strdup_printf("%.2f", var);
+	g_object_set(renderer, "text", buf, NULL);
+
+	g_free(buf);
+}
+
 static void gdouble_rmse_cell_data_function(GtkTreeViewColumn *col,
 		GtkCellRenderer *renderer, GtkTreeModel *model, GtkTreeIter *iter,
 		gpointer user_data) {
@@ -189,6 +206,10 @@ static void get_stars_list_store() {
 	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_mag"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_mag_cell_data_function, NULL, NULL);
 
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn29"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_beta"));
+	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_beta_cell_data_function, NULL, NULL);
+
 	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn14"));
 	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_r"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_r_cell_data_function, NULL, NULL);
@@ -206,10 +227,11 @@ static void display_PSF(psf_star **result) {
 	if (result) {
 		gchar *msg;
 		int i = 0;
-		double FWHMx = 0.0, FWHMy = 0.0, B = 0.0, A = 0.0, r = 0.0, angle = 0.0,
+		double FWHMx = 0.0, FWHMy = 0.0, B = 0.0, A = 0.0, beta = 0.0, r = 0.0, angle = 0.0,
 				rmse = 0.0;
 		gboolean unit_is_arcsec;
 		int n = 0, layer;
+		starprofile profiletype;
 
 		while (result[i]) {
 			double fwhmx, fwhmy;
@@ -218,6 +240,7 @@ static void display_PSF(psf_star **result) {
 			if (i == 0) {
 				unit_is_arcsec = is_as;
 				layer = result[i]->layer;
+				profiletype = result[i]->profile;
 			}
 			else if (is_as != unit_is_arcsec) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
@@ -229,10 +252,17 @@ static void display_PSF(psf_star **result) {
 						_("Stars properties must all be computed on the same layer"));
 				return;
 			}
+			else if (profiletype != result[i]->profile) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
+						_("Stars must all be modeled with the same profile type"));
+				return;
+			}
 			if (!result[i]->has_saturated) {
 				B += result[i]->B;
 				A += result[i]->A;
 				FWHMx += fwhmx;
+				beta += result[i]->beta;
+
 				FWHMy += fwhmy;
 				angle += result[i]->angle;
 				rmse += result[i]->rmse;
@@ -246,19 +276,29 @@ static void display_PSF(psf_star **result) {
 		A = A / (double)n;
 		FWHMx = FWHMx / (double)n;
 		FWHMy = FWHMy / (double)n;
+		beta =beta / (double)n;
 		r = FWHMy / FWHMx;
 		angle = angle / (double)n;
 		rmse = rmse / (double)n;
 
+		if (profiletype == PSF_GAUSSIAN) {
 		msg = g_strdup_printf(_("Average Gaussian PSF\n\n"
 				"N:\t%d stars (%d saturated and excluded)\nB:\t%.6f\nA:\t%.6f\nFWHMx:\t%.2f%s\n"
 				"FWHMy:\t%.2f%s\nr:\t%.3f\nAngle:\t%.2f deg\nrmse:\t%.3e\n"),
 				i, i - n, B, A, FWHMx, result[0]->units, FWHMy,
 				result[0]->units, r, angle, rmse);
+		} else {
+		msg = g_strdup_printf(_("Average Moffat PSF\n\n"
+				"N:\t%d stars (%d saturated and excluded)\nB:\t%.6f\nA:\t%.6f\nBeta:\t%.2f\nFWHMx:\t%.2f%s\n"
+				"FWHMy:\t%.2f%s\nr:\t%.3f\nAngle:\t%.2f deg\nrmse:\t%.3e\n"),
+				i, i - n, B, A, beta, FWHMx, result[0]->units, FWHMy,
+				result[0]->units, r, angle, rmse);
+		}
 		show_data_dialog(msg, _("Average Star Data"), "stars_list_window", NULL);
 		g_free(msg);
 	}
 }
+
 
 static gint get_index_of_selected_star(gdouble x, gdouble y) {
 	int i = 0;
@@ -295,6 +335,50 @@ static void display_status() {
 	g_free(text);
 }
 
+void set_iter_of_clicked_psf(double x, double y) {
+	GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget("Stars_stored"));
+	GtkTreeModel *model = gtk_tree_view_get_model(treeview);
+	GtkTreeIter iter;
+	gboolean valid;
+	gboolean is_as;
+	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
+	double invpixscalex = 1.0;
+	double bin_X = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
+		is_as = (strcmp(com.stars[0]->units,"px"));
+	} else {
+		return; // If com.stars is empty there is no point carrying on
+	}
+	if (is_as) {
+		invpixscalex = 1.0 / (radian_conversion * (double) gfit.pixel_size_x / gfit.focal_length) * bin_X;
+	}
+	valid = gtk_tree_model_get_iter_first(model, &iter);
+	while (valid) {
+		gdouble xpos, ypos, fwhmx;
+		gtk_tree_model_get(model, &iter, COLUMN_X0, &xpos, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_Y0, &ypos, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_FWHMX, &fwhmx, -1);
+		fwhmx *= invpixscalex;
+		gdouble distsq = (xpos - x) * (xpos - x) + (ypos - y) * (ypos - y);
+		gdouble psflimsq = 6. * fwhmx * fwhmx;
+		if (distsq < psflimsq) {
+			GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
+			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
+			if (!path) return;
+			gtk_tree_selection_select_path(selection, path);
+			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
+			gtk_tree_path_free(path);
+			gui.selected_star = get_index_of_selected_star(xpos, ypos);
+			display_status();
+			redraw(REDRAW_OVERLAY);
+			return;
+		}
+		valid = gtk_tree_model_iter_next(model, &iter);
+	}
+	siril_debug_print("Point clicked does not correspond to a known star\n");
+	return;
+}
+
 static void remove_selected_star(int index) {
 	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
 	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")));
@@ -325,7 +409,7 @@ static void remove_all_stars(){
 	g_object_unref(file); \
 	return 1
 
-int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, gboolean verbose) {
+int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, int layer, gboolean verbose) {
 	int i = 0;
 	GError *error = NULL;
 
@@ -348,30 +432,41 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 			while (stars[nbstars++]);
 	}
 
-	char buffer[300];
-	int len = snprintf(buffer, 300, "# %d stars found using the following parameters:%s", nbstars, SIRIL_EOL);
+	char buffer[320];
+	char gausstr[9] = "Gaussian";
+	char moffstr[7] = "Moffat";
+	char starprof[9];
+	gdouble beta;
+	int len = snprintf(buffer, 320, "# %d stars found using the following parameters:%s", nbstars, SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
-	len = snprintf(buffer, 300, "# sigma=%3.2f roundness=%3.2f radius=%d auto_adjust=%d relax=%d max_stars=%d%s",
-			sf->sigma, sf->roundness, sf->radius, sf->adjust, sf->relax_checks, max_stars_fitted, SIRIL_EOL);
+	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d relax=%d profile=%d minbeta=%3.1f max_stars=%d layer=%d%s",
+			sf->sigma, sf->roundness, sf->radius, sf->relax_checks,sf->profile, sf->min_beta, max_stars_fitted, layer, SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
-	len = snprintf(buffer, 300,
-			"# star#\tlayer\tB\tA\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag%s",
+	len = snprintf(buffer, 320,
+			"# star#\tlayer\tB\tA\tbeta\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag\tProfile%s",
 			SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
 	if (stars) {
 		while (stars[i]) {
-			len = snprintf(buffer, 300,
-					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f%s",
-					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A,
+			if (stars[i]->profile == PSF_GAUSSIAN) {
+				beta = -1;
+				len = snprintf(starprof, 9, "%s", gausstr);
+			} else {
+				beta = stars[i]->beta;
+				len = snprintf(starprof, 7, "%s", moffstr);
+			}
+			len = snprintf(buffer, 320,
+					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%s%s",
+					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A, beta,
 					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
 					stars[i]->fwhmy, stars[i]->fwhmx_arcsec ,stars[i]->fwhmy_arcsec,
-					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, SIRIL_EOL);
+					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, starprof, SIRIL_EOL);
 		if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 			HANDLE_WRITE_ERR;
 		}
@@ -410,7 +505,7 @@ static void save_stars_dialog() {
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = gtk_file_chooser_get_filename(dialog);
-		save_list(file, MAX_STARS, com.stars, 0, &com.pref.starfinder_conf, TRUE);
+		save_list(file, MAX_STARS, com.stars, 0, &com.pref.starfinder_conf, -1, TRUE); // passing layer as -1 as we are not sure all stars have been detected on same layer
 
 		g_free(file);
 	}
@@ -442,8 +537,9 @@ static void add_star_to_list(psf_star *star) {
 			COLUMN_FWHMX, fwhmx,
 			COLUMN_FWHMY, fwhmy,
 			COLUMN_MAG, star->mag + com.magOffset,
+			COLUMN_BETA, star->beta,
 			COLUMN_ROUNDNESS, fwhmy / fwhmx,
-			COLUMN_ANGLE, star->angle,
+			COLUMN_ANGLE, -star->angle, // the image had been flipped befor the findstar
 			COLUMN_RMSE, star->rmse,
 			-1);
 
@@ -498,10 +594,12 @@ void clear_stars_list(gboolean refresh_GUI) {
 		g_mutex_unlock(&com.mutex);
 	}
 	com.star_is_seqdata = FALSE;
+	if (refresh_GUI && !com.headless)
+		display_status();
 }
 
 void pick_a_star() {
-	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
+	int layer = match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
 	if (layer != -1) {
 		if (!(com.selection.h && com.selection.w))
 			return;
@@ -557,6 +655,7 @@ static const char *SNR_quality(double SNR) {
 
 void popup_psf_result(psf_star *result, rectangle *area) {
 	gchar *msg, *coordinates, *url = NULL;
+	char buffer2[50];
 	const char *str;
 	if (com.magOffset > 0.0)
 		str = _("true reduced");
@@ -600,20 +699,28 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 	double fwhmx, fwhmy;
 	char *unts;
 	get_fwhm_as_arcsec_if_possible(result, &fwhmx, &fwhmy, &unts);
-	msg = g_strdup_printf(_("Centroid Coordinates:\n\t\t%s\n\n"
-				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\n"
+	if (result->beta > 0.0) {
+		g_snprintf(buffer2, 50, ", beta=%0.1f", result->beta);
+	}
+	else {
+		g_snprintf(buffer2, 50, "%s", "");
+	}
+	msg = g_strdup_printf(_("PSF fit Result (%s%s):\n\n"
+				"Centroid Coordinates:\n\t\t%s\n\n"
+				"Full Width Half Maximum:\n\t\tFWHMx=%.2f%s\n\t\tFWHMy=%.2f%s\n\t\tr=%.2f\n"
 				"Angle:\n\t\t%0.2fdeg\n\n"
 				"Background Value:\n\t\tB=%.6f\n\n"
 				"Maximal Intensity:\n\t\tA=%.6f\n\n"
 				"Magnitude (%s):\n\t\tm=%.4f\u00B1%.4f\n\n"
 				"Signal-to-noise ratio:\n\t\tSNR=%.1fdB (%s)\n\n"
 				"RMSE:\n\t\tRMSE=%.3e"),
-			coordinates, fwhmx, unts, fwhmy, unts,
+			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat", buffer2,
+			coordinates, fwhmx, unts, fwhmy, unts, fwhmy / fwhmx,
 			result->angle, result->B, result->A, str,
 			result->mag + com.magOffset, result->s_mag, result->SNR,
 			SNR_quality(result->SNR), result->rmse);
-	show_data_dialog(msg, _("PSF and quick photometry results"), NULL, url);
 	g_free(coordinates);
+	show_data_dialog(msg, _("PSF and quick photometry results"), NULL, url);
 	g_free(msg);
 	g_free(url);
 }
@@ -627,6 +734,8 @@ void on_treeview_cursor_changed(GtkTreeView *tree_view,
 	GtkTreeIter iter;
 	GValue value_x = G_VALUE_INIT;
 	GValue value_y = G_VALUE_INIT;
+	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
+	GtkWidget *widget = lookup_widget(area[gui.cvport]);
 
 	if (gtk_tree_model_get_iter_first(treeModel, &iter) == FALSE)
 		return;	//The tree is empty
@@ -641,7 +750,17 @@ void on_treeview_cursor_changed(GtkTreeView *tree_view,
 		g_value_unset(&value_x);
 		g_value_unset(&value_y);
 
+		// Set this to draw blue crosshairs
 		gui.selected_star = get_index_of_selected_star(x0, y0);
+		// Centre selected star
+		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("toggle_star_centered"));
+		if (gtk_toggle_button_get_active(toggle)) {
+			double z = get_zoom_val();
+			gui.display_offset.x = (gtk_widget_get_allocated_width(widget)/2 - x0 * z);
+			gui.display_offset.y = (gtk_widget_get_allocated_height(widget)/2 - y0 * z);
+			adjust_vport_size_to_image();
+		}
+
 		display_status();
 		redraw(REDRAW_OVERLAY);
 	}
@@ -664,6 +783,16 @@ void on_sum_button_clicked(GtkButton *button, gpointer user_data) {
 	display_PSF(com.stars);
 }
 
+void on_add_button_clicked(GtkButton *button, gpointer user_data) {
+	int layer = match_drawing_area_widget(gui.view[gui.cvport].drawarea, FALSE);
+	int index;
+	add_star(&gfit, layer, &index);
+	if (index > -1)
+		add_star_to_list(com.stars[index]);
+	display_status();
+	refresh_star_list(com.stars);
+}
+
 void on_remove_button_clicked(GtkButton *button, gpointer user_data) {
 	remove_selected_star(gui.selected_star);
 }
@@ -684,7 +813,6 @@ void on_export_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_stars_list_window_show(GtkWidget *widget, gpointer user_data) {
 	update_peaker_GUI();
-	fill_stars_list(&gfit, com.stars);
 }
 
 void on_button_stars_list_ok_clicked(GtkButton *button, gpointer user_data) {

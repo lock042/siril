@@ -162,6 +162,7 @@ typedef enum {
 #define MAX_STARS 200000		// maximum length of com.stars
 #define MAX_STARS_FITTED 2000	// maximum number of stars fitted for registration
 #define MIN_STARS_FITTED 100	// minimum number of stars fitted for registration
+#define DEF_BOX_RADIUS 5 // default radius of the box in starfinder_conf
 
 #define INDEX_MAX 65535		// maximum index for images
 
@@ -315,6 +316,7 @@ struct sequ {
 	int beg;		// imgparam[0]->filenum
 	int end;		// imgparam[number-1]->filenum
 	double exposure;	// exposure of frames (we assume they are all identical)
+	gboolean fz;
 
 	sequence_type type;
 	struct ser_struct *ser_file;
@@ -322,7 +324,7 @@ struct sequ {
 	struct fits_sequence *fitseq_file; // FITS sequence data structure
 #ifdef HAVE_FFMS2
 	struct film_struct *film_file;
-	char *ext;		// extension of video, NULL if not video
+	const char *ext;	// extension of video, NULL if not video
 #endif
 	fits **internal_fits;	// for INTERNAL sequences: images references. Length: number
 	fitsfile **fptr;	// file descriptors for open-mode operations
@@ -417,6 +419,9 @@ struct ffit {
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
 	char observer[FLEN_VALUE];		// OBSERVER key
+	double sitelat;				// SITE LATITUDE key
+	double sitelong;			// SITE LONGITUDE key
+	double siteelev;			// SITE LONGITUDE key
 	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
 	double airmass;                   // relative optical path length through atmosphere.

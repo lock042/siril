@@ -122,8 +122,8 @@ static int exec_prog(const char **argv)
 		close(pipe_fds[1]);
 		while (0 == waitpid(my_pid , &status , WNOHANG)) {
 			usleep(100000);	// Wait for starnet++ to finish before attempting to process the output
-			if ((n = read(pipe_fds[0], buf, 0x100)) >= 0) {
-				buf[n] = 0;
+			if ((n = read(pipe_fds[0], buf, 0x100)) > 0) {
+				buf[n - 1] = 0;
 				char *m = strstr(buf, "pid:");
 				if (m != 0) {
 					m += 4;
@@ -176,8 +176,8 @@ static int exec_prog(const char **argv)
 		com.childhandle = (void*) hProcess;
 		while (nExitCode == STILL_ACTIVE) {
 			usleep(100000);	// Wait for starnet++ to finish before attempting to process the output
-			if ((n = _read(pipe_fds[0], buf, 256)) >= 0) {
-				buf[n] = '\0';
+			if ((n = _read(pipe_fds[0], buf, 256)) > 0) {
+				buf[n - 1] = '\0';
 				double value = g_ascii_strtod(buf, NULL);
 				if (value != 0.0 && value == value) { //
 					set_progress_bar_data("Running Starnet++", (value / 100));
@@ -279,23 +279,23 @@ gpointer do_starnet(gpointer p) {
 	if (g_strcmp0(imagenoext, imagenoextorig))
 		siril_log_color_message(_("Starnet++: spaces detected in filename. Starnet++ can't handle these so they have been replaced by underscores.\n"), "salmon");
 	free(imagenoextorig);
-	fprintf(stdout,"%s\n",imagenoext);
+	fprintf(stdout, "%s\n", imagenoext);
 	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
-	fprintf(stdout,"%s\n",imagenoext);
+	fprintf(stdout, "%s\n", imagenoext);
 	imagenoext = remove_ext_from_filename(imagenoext);
-	fprintf(stdout,"%s\n",imagenoext);
-	strncat(temptif,imagenoext,sizeof(temptif) - strlen(imagenoext));
-	strncat(temptif,starnetsuffix, 10);
-	strncat(temptif,".tif", 5);
-	strncat(starlesstif,imagenoext,sizeof(starlesstif) - strlen(imagenoext));
-	strncat(starlesstif,starlesssuffix, 10);
-	strncat(starlesstif,".tif",5);
-	strncat(starlessfit,imagenoext,sizeof(starlessfit) - strlen(imagenoext));
-	strncat(starlessfit,starlesssuffix, 10);
-	strncat(starlessfit,com.pref.ext,5);
-	strncat(starmaskfit,imagenoext,sizeof(starmaskfit) - strlen(imagenoext));
-	strncat(starmaskfit,starmasksuffix, 10);
-	strncat(starmaskfit,com.pref.ext,5);
+	fprintf(stdout, "%s\n", imagenoext);
+	strncat(temptif, imagenoext, sizeof(temptif) - strlen(imagenoext));
+	strncat(temptif, starnetsuffix, 10);
+	strncat(temptif, ".tif", 5);
+	strncat(starlesstif, imagenoext, sizeof(starlesstif) - strlen(imagenoext));
+	strncat(starlesstif, starlesssuffix, 10);
+	strncat(starlesstif, ".tif", 5);
+	strncat(starlessfit, imagenoext, sizeof(starlessfit) - strlen(imagenoext));
+	strncat(starlessfit, starlesssuffix, 10);
+	strncat(starlessfit, com.pref.ext, 5);
+	strncat(starmaskfit, imagenoext, sizeof(starmaskfit) - strlen(imagenoext));
+	strncat(starmaskfit, starmasksuffix, 10);
+	strncat(starmaskfit, com.pref.ext, 5);
 
 	// ok, let's start
 	set_progress_bar_data(_("Starting Starnet++"), PROGRESS_NONE);
@@ -385,7 +385,7 @@ gpointer do_starnet(gpointer p) {
 	// Upscale if needed
 	if (args->upscale) {
 		siril_log_message(_("Starnet++: 2x upscaling selected. Upscaling image...\n"));
-		retval = cvResizeGaussian(&workingfit, round_to_int(2*orig_x), round_to_int(2*orig_y), OPENCV_AREA);
+		retval = cvResizeGaussian(&workingfit, round_to_int(2*orig_x), round_to_int(2*orig_y), OPENCV_AREA, FALSE);
 		if (retval) {
 			siril_log_color_message(_("Error: image resize failed...\n"), "red");
 			goto CLEANUP;
@@ -458,7 +458,7 @@ gpointer do_starnet(gpointer p) {
 	// Downscale again if needed
 	if (args->upscale) {
 		siril_log_message(_("Starnet++: 2x upscaling selected. Re-scaling starless image to original size...\n"));
-		retval = cvResizeGaussian(&workingfit, orig_x, orig_y, OPENCV_AREA);
+		retval = cvResizeGaussian(&workingfit, orig_x, orig_y, OPENCV_AREA, FALSE);
 		if (retval) {
 			siril_log_color_message(_("Error: image resize failed...\n"), "red");
 			goto CLEANUP;

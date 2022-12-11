@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2015 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -96,7 +96,7 @@ static int readinitfile_libconfig(gchar *path) {
 	/* Preprocessing settings */
 	config_setting_t *prepro_setting = config_lookup(&config, keywords[PRE]);
 	if (prepro_setting) {
-		const char *bias = NULL, *bias_synth = NULL, *dark = NULL, *flat = NULL;
+		const char *bias = NULL, *dark = NULL, *flat = NULL;
 
 		config_setting_lookup_bool(prepro_setting, "cfa", &com.pref.prepro.cfa);
 		config_setting_lookup_bool(prepro_setting, "equalize_cfa", &com.pref.prepro.equalize_cfa);
@@ -105,11 +105,6 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_string(prepro_setting, "bias_lib", &bias);
 		com.pref.prepro.bias_lib = g_strdup(bias);
 		config_setting_lookup_bool(prepro_setting, "use_bias_lib", &com.pref.prepro.use_bias_lib);
-
-
-		config_setting_lookup_string(prepro_setting, "bias_synth", &bias_synth);
-		com.pref.prepro.bias_synth = g_strdup(bias_synth);
-		config_setting_lookup_bool(prepro_setting, "use_bias_synth", &com.pref.prepro.use_bias_synth);
 
 		config_setting_lookup_string(prepro_setting, "dark_lib", &dark);
 		com.pref.prepro.dark_lib = g_strdup(dark);
@@ -425,7 +420,10 @@ int readinitfile(char *path) {
 	gchar *fname = get_locale_filename(path);
 	GError *error = NULL;
 	if (!g_key_file_load_from_file(kf, fname, G_KEY_FILE_NONE, &error)) {
-		siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
+		if (error != NULL) {
+			siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
+			g_clear_error(&error);
+		}
 		g_free(fname);
 		return 1;
 	}

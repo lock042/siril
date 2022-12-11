@@ -1,10 +1,10 @@
 #!/bin/sh
-CC=clang
-CXX=clang++
-LD=clang++
-#CC=gcc
-#CXX=g++
-#LD=g++
+#CC=clang
+#CXX=clang++
+#LD=clang++
+CC=gcc
+CXX=g++
+LD=g++
 CFLAGS="-DHAVE_WCSLIB -Wall -g -I.. -fopenmp `pkg-config --cflags gtk+-3.0` `pkg-config --cflags cfitsio` `pkg-config --cflags gsl`"
 LDFLAGS="-fopenmp `pkg-config --libs gtk+-3.0` `pkg-config --libs cfitsio` `pkg-config --libs gsl` -lm"
 

@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
+#include <gsl/gsl_statistics.h>
 #include "sequence_filtering.h"
 #include "proto.h" // is_readable_file()
 #include "registration/registration.h"
@@ -32,8 +33,6 @@
 #include "gui/progress_and_log.h"
 #include "algos/sorting.h"
 #include "core/siril_log.h"
-
-#define MAX_FILTERS 7
 
 /******************* IMAGE FILTERING CRITERIA *******************/
 
@@ -240,7 +239,7 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 	if (arg->f_fwhm_p > 0.0f || arg->f_fwhm > 0.0f) {
 		filters[nb_filters].filter = seq_filter_fwhm;
 		filters[nb_filters].param = arg->f_fwhm > 0.f ? arg->f_fwhm :
-				compute_highest_accepted_fwhm(seq, layer, arg->f_fwhm_p);
+				compute_highest_accepted_fwhm(seq, layer, arg->f_fwhm_p, arg->f_fwhm_k);
 		siril_log_message(_("Using star FWHM images filter (below %f)\n"),
 					filters[nb_filters].param);
 				nb_filters++;
@@ -248,7 +247,7 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 	if (arg->f_wfwhm_p > 0.0f || arg->f_wfwhm > 0.0f) {
 		filters[nb_filters].filter = seq_filter_weighted_fwhm;
 		filters[nb_filters].param = arg->f_wfwhm > 0.f ? arg->f_wfwhm :
-				compute_highest_accepted_weighted_fwhm(seq, layer, arg->f_wfwhm_p);
+				compute_highest_accepted_weighted_fwhm(seq, layer, arg->f_wfwhm_p, arg->f_wfwhm_k);
 		siril_log_message(_("Using star weighted FWHM images filter (below %f)\n"),
 					filters[nb_filters].param);
 				nb_filters++;
@@ -256,7 +255,7 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 	if (arg->f_round_p > 0.0f || arg->f_round > 0.0f) {
 		filters[nb_filters].filter = seq_filter_roundness;
 		filters[nb_filters].param = arg->f_round > 0.f ? arg->f_round :
-			compute_lowest_accepted_roundness(seq, layer, arg->f_round_p);
+			compute_lowest_accepted_roundness(seq, layer, arg->f_round_p, arg->f_round_k);
 		siril_log_message(_("Using star roundness images filter (above %f)\n"),
 				filters[nb_filters].param);
 		nb_filters++;
@@ -264,7 +263,7 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 	if (arg->f_bkg_p > 0.0f || arg->f_bkg > 0.0f) {
 		filters[nb_filters].filter = seq_filter_background;
 		filters[nb_filters].param = arg->f_bkg > 0.f ? arg->f_bkg :
-				compute_highest_accepted_background(seq, layer, arg->f_bkg_p);
+				compute_highest_accepted_background(seq, layer, arg->f_bkg_p, arg->f_bkg_k);
 		siril_log_message(_("Using image background filter (below %f)\n"),
 					filters[nb_filters].param);
 				nb_filters++;
@@ -272,7 +271,7 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 	if (arg->f_nbstars_p > 0.0f || arg->f_nbstars > 0.0f) {
 		filters[nb_filters].filter = seq_filter_nbstars;
 		filters[nb_filters].param = arg->f_nbstars > 0.f ? arg->f_nbstars :
-			compute_lowest_accepted_nbstars(seq, layer, arg->f_nbstars_p);
+			compute_lowest_accepted_nbstars(seq, layer, arg->f_nbstars_p, arg->f_nbstars_k);
 		siril_log_message(_("Using number of stars filter (above %f)\n"),
 				filters[nb_filters].param);
 		nb_filters++;
@@ -280,7 +279,7 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 	if (arg->f_quality_p > 0.0f || arg->f_quality > 0.0f) {
 		filters[nb_filters].filter = seq_filter_quality;
 		filters[nb_filters].param = arg->f_quality > 0.f ? arg->f_quality :
-			compute_lowest_accepted_quality(seq, layer, arg->f_quality_p);
+			compute_lowest_accepted_quality(seq, layer, arg->f_quality_p, arg->f_quality_k);
 		siril_log_message(_("Using image quality filter (below %f)\n"),
 				filters[nb_filters].param);
 		nb_filters++;
@@ -413,28 +412,97 @@ static double generic_compute_accepted_value(sequence *seq, int layer, double pe
 	return threshold;
 }
 
-double compute_highest_accepted_fwhm(sequence *seq, int layer, double percent) {
-	return generic_compute_accepted_value(seq, layer, percent, TRUE, regdata_fwhm);
+/* from a k value (for k-sigma rejection), find the lowest or highest accepted registration property
+ * value for image filtering in sequences. */
+static double generic_compute_accepted_value_with_rejection(sequence *seq, int layer, double k, gboolean lower_is_better, regdata_selector datasel) {
+	double threshold, *val;
+	double factor = (lower_is_better) ? 1. : -1; // if higher is better, we will use opposite values to always reject the upper tail
+	if (layer < 0 || !seq->regparam || !seq->regparam[layer]) {
+		return 0.0;
+	}
+	val = malloc(seq->number * sizeof(double));
+	if (!val) return 0.0;
+
+	// copy values
+	int n = 0;
+	for (int i = 0; i < seq->number; i++) {
+		double data = datasel(&seq->regparam[layer][i]);
+		if (data > 0.0f)
+			val[n++] = data * factor;
+	}
+	if (!n) return 0.0;
+	if (n < seq->number) {
+		siril_log_message(_("Warning: some images don't have information available for best "
+				"images selection, using only available data (%d images on %d).\n"),
+				n, seq->number);
+	}
+
+	//sort values
+	quicksort_d(val, n);
+
+	int j;
+	double m, s, t;
+	do {
+		j = 0;
+		m = gsl_stats_median_from_sorted_data(val, 1, n);
+		s = gsl_stats_sd(val, 1, n);
+		t = m + k * s;
+		for (int i = n; i > 0; i--) {
+			if (val[i - 1] > t)
+				j++;
+			else
+				break;
+		}
+		n -= j;
+	} while (j > 0);
+
+	if (n < 0) return 0.0;
+	
+	threshold = factor * val[n - 1]; // we return a positive value
+	free(val);
+	return threshold;
 }
 
-double compute_highest_accepted_weighted_fwhm(sequence *seq, int layer, double percent) {
-	return generic_compute_accepted_value(seq, layer, percent, TRUE, regdata_weighted_fwhm);
+double compute_highest_accepted_fwhm(sequence *seq, int layer, double criterion, gboolean is_ksigma) {
+	if (!is_ksigma)
+		return generic_compute_accepted_value(seq, layer, criterion, TRUE, regdata_fwhm);
+	else
+		return generic_compute_accepted_value_with_rejection(seq, layer, criterion, TRUE, regdata_fwhm);
 }
 
-double compute_lowest_accepted_quality(sequence *seq, int layer, double percent) {
-	return generic_compute_accepted_value(seq, layer, percent, FALSE, regdata_quality);
+double compute_highest_accepted_weighted_fwhm(sequence *seq, int layer, double criterion, gboolean is_ksigma) {
+	if (!is_ksigma)
+		return generic_compute_accepted_value(seq, layer, criterion, TRUE, regdata_weighted_fwhm);
+	else
+		return generic_compute_accepted_value_with_rejection(seq, layer, criterion, TRUE, regdata_weighted_fwhm);
 }
 
-double compute_lowest_accepted_roundness(sequence *seq, int layer, double percent) {
-	return generic_compute_accepted_value(seq, layer, percent, FALSE, regdata_roundness);
+double compute_lowest_accepted_quality(sequence *seq, int layer, double criterion, gboolean is_ksigma) {
+	if (!is_ksigma)
+		return generic_compute_accepted_value(seq, layer, criterion, FALSE, regdata_quality);
+	else
+		return generic_compute_accepted_value_with_rejection(seq, layer, criterion, FALSE, regdata_quality);
 }
 
-double compute_highest_accepted_background(sequence *seq, int layer, double percent) {
-	return generic_compute_accepted_value(seq, layer, percent, TRUE, regdata_background);
+double compute_lowest_accepted_roundness(sequence *seq, int layer, double criterion, gboolean is_ksigma) {
+	if (!is_ksigma)
+		return generic_compute_accepted_value(seq, layer, criterion, FALSE, regdata_roundness);
+	else
+		return generic_compute_accepted_value_with_rejection(seq, layer, criterion, FALSE, regdata_roundness);
 }
 
-double compute_lowest_accepted_nbstars(sequence *seq, int layer, double percent) {
-	return generic_compute_accepted_value(seq, layer, percent, FALSE, regdata_nbstars);
+double compute_highest_accepted_background(sequence *seq, int layer, double criterion, gboolean is_ksigma) {
+	if (!is_ksigma)
+		return generic_compute_accepted_value(seq, layer, criterion, TRUE, regdata_background);
+	else
+		return generic_compute_accepted_value_with_rejection(seq, layer, criterion, TRUE, regdata_background);
+}
+
+double compute_lowest_accepted_nbstars(sequence *seq, int layer, double criterion, gboolean is_ksigma) {
+	if (!is_ksigma) 
+		return generic_compute_accepted_value(seq, layer, criterion, FALSE, regdata_nbstars);
+	else
+		return generic_compute_accepted_value_with_rejection(seq, layer, criterion, FALSE, regdata_nbstars);
 }
 
 gchar *describe_filter(sequence *seq, seq_image_filter filtering_criterion, double filtering_parameter) {

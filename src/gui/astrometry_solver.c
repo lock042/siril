@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2017 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -52,7 +52,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data
 static void initialize_ips_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg,
-			*catalog_label_pcc, *force_platesolve;
+			*catalog_label_pcc, *force_platesolve, *flip_image;
 	GtkWindow *parent;
 
 	button_ips_ok = lookup_widget("buttonIPS_ok");
@@ -64,6 +64,7 @@ static void initialize_ips_dialog() {
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	force_platesolve = lookup_widget("force_astrometry_button");
+	flip_image = lookup_widget("checkButton_IPS_flip");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -76,6 +77,7 @@ static void initialize_ips_dialog() {
 	gtk_widget_set_visible(catalog_auto, TRUE);
 	gtk_widget_set_visible(frame_cc_bkg, FALSE);
 	gtk_widget_set_visible(force_platesolve, FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(flip_image), single_image_is_loaded());
 	gtk_widget_grab_focus(button_ips_ok);
 
 	gtk_window_set_title(parent, _("Image Plate Solver"));
@@ -116,11 +118,11 @@ static online_catalog get_astrometry_catalog(double fov, double mag, gboolean au
 
 	if (auto_cat) {
 		if (mag <= 6.5) {
-		  ret = BRIGHT_STARS;
+			ret = BRIGHT_STARS;
 		} else if (fov > 180.0) {
-		  ret = NOMAD;
+			ret = NOMAD;
 		} else {
-		  ret = GAIADR3;
+			ret = GAIADR3;
 		}
 		return ret;
 	} else {
@@ -194,6 +196,9 @@ static void update_pixel_size() {
 	float pixel;
 
 	pixel = gfit.pixel_size_x > gfit.pixel_size_y ? gfit.pixel_size_x : gfit.pixel_size_y;
+	if (gfit.binning_x != 0 && gfit.binning_x != 1) {
+		pixel *= gfit.binning_x;
+	}
 
 	if (pixel > 0.f) {
 		gchar *cpixels = g_strdup_printf("%.2lf", (double) pixel);

@@ -107,9 +107,9 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 }
 
 void apply_banding_to_sequence(struct banding_data *banding_args) {
-	struct generic_seq_args *args = create_default_seqargs(&com.seq);
+	struct generic_seq_args *args = create_default_seqargs(banding_args->seq);
 	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = com.seq.selnum;
+	args->nb_filtered_images = args->seq->selnum;
 	args->compute_mem_limits_hook = banding_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = seq_finalize_hook;
@@ -196,7 +196,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	double invsigma = 1.0 / sigma;
 
 	if (applyRotation) {
-		if (cvRotateImage(&gfit, 90)) return 1;
+		if (cvRotateImage(fit, 90)) return 1;
 	}
 
 	if (new_fit_image(&fiximage, fit->rx, fit->ry, fit->naxes[2], DATA_USHORT))
@@ -262,7 +262,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
 	if ((!ret) && applyRotation) {
-		if (cvRotateImage(&gfit, -90)) return 1;
+		if (cvRotateImage(fit, -90)) return 1;
 	}
 
 	return ret;
@@ -276,7 +276,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	double invsigma = 1.0 / sigma;
 
 	if (applyRotation) {
-		if (cvRotateImage(&gfit, 90)) return 1;
+		if (cvRotateImage(fit, 90)) return 1;
 	}
 
 	if (new_fit_image(&fiximage, fit->rx, fit->ry, fit->naxes[2], DATA_FLOAT))
@@ -341,7 +341,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
 	if ((!ret) && applyRotation) {
-		if (cvRotateImage(&gfit, -90)) return 1;
+		if (cvRotateImage(fit, -90)) return 1;
 	}
 
 	return ret;
@@ -411,6 +411,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 		if (args->seqEntry && args->seqEntry[0] == '\0')
 			args->seqEntry = "unband_";
 		gtk_toggle_button_set_active(seq, FALSE);
+		args->seq = &com.seq;
 		apply_banding_to_sequence(args);
 	} else {
 		start_in_new_thread(BandingEngineThreaded, args);

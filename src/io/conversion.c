@@ -163,6 +163,9 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".fit";
 	supported_extensions[count_ext++] = ".fits";
 	supported_extensions[count_ext++] = ".fts";
+	supported_extensions[count_ext++] = ".fit.fz";
+	supported_extensions[count_ext++] = ".fits.fz";
+	supported_extensions[count_ext++] = ".fts.fz";
 	supported_extensions[count_ext++] = ".bmp";
 	supported_extensions[count_ext++] = ".ppm";
 	supported_extensions[count_ext++] = ".pgm";
@@ -293,7 +296,10 @@ image_type get_type_for_extension(const char *extension) {
 	} else if ((supported_filetypes & TYPESER) && !g_ascii_strcasecmp(extension, "ser")) {
 		return TYPESER;
 	} else if (!g_ascii_strcasecmp(extension, "fit") || !g_ascii_strcasecmp(extension, "fits") ||
-			!g_ascii_strcasecmp(extension, "fts") || !g_ascii_strcasecmp(extension, "fz")) {
+			!g_ascii_strcasecmp(extension, "fts")) {
+		return TYPEFITS;
+	} else if (!g_ascii_strcasecmp(extension, "fit.fz") || !g_ascii_strcasecmp(extension, "fits.fz") ||
+			!g_ascii_strcasecmp(extension, "fts.fz")) {
 		return TYPEFITS;
 	}
 	return TYPEUNDEF; // not recognized or not supported
@@ -409,6 +415,7 @@ typedef enum {
 
 	/* for next file opening */
 	OPEN_ERROR,
+	OPEN_ERROR_AND_STOP,
 	OPEN_OK,
 	OPEN_SEQ,
 	OPEN_NOT_A_SEQ,
@@ -815,8 +822,11 @@ static void open_next_input_seq(convert_status *conv) {
 	do {
 		const char *filename = conv->args->list[conv->next_file];
 		status = open_next_input_sequence(filename, conv, FALSE);
-		if (status == OPEN_ERROR) {
+		if (status == OPEN_ERROR || status == OPEN_ERROR_AND_STOP) {
 			siril_log_color_message(_("File %s was not recognised as readable by Siril, skipping\n"), "salmon", filename);
+			g_atomic_int_inc(&conv->failed_images);
+			g_atomic_int_set(&conv->fatal_error, 1);
+			if (status == OPEN_ERROR_AND_STOP) break;
 		}
 		else if (status == OPEN_OK) {
 			conv->next_file++;
@@ -1174,7 +1184,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			fitseq_close_file(convert->current_fitseq);
 			free(convert->current_fitseq);
 			convert->current_fitseq = NULL;
-			return OPEN_ERROR;
+			return OPEN_ERROR_AND_STOP;
 		}
 		convert->readseq_count = get_new_read_counter();
 		return OPEN_OK;
