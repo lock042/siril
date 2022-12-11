@@ -4,7 +4,6 @@
 #ifdef _WIN32
 
 // Code to replicate drand48() from https://gist.github.com/mortennobel/8665258
-#include <math.h>
 #define RAND48_SEED_0   (0x330e)
 #define RAND48_SEED_1 (0xabcd)
 #define RAND48_SEED_2 (0x1234)

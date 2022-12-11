@@ -1,10 +1,8 @@
-#ifndef DRAND48_REPLACEMENT
-#define DRAND48_REPLACEMENT
-
 #ifdef _WIN32
 
 // Code to replicate drand48() from https://gist.github.com/mortennobel/8665258
 #include <math.h>
+#include "drand48.h"
 
 void _dorand48(unsigned short xseed[3]) {
 	         unsigned long accu;
@@ -45,6 +43,4 @@ void srand48(long seed){
 	_rand48_mult[2] = RAND48_MULT_2;
 	_rand48_add = RAND48_ADD;
 }
-#endif
-
 #endif
