@@ -1,7 +1,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
-#include <glib.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846  /* pi */
+#endif
+
 
 #include "image.hpp"
 
@@ -44,7 +48,7 @@ void projectImage(img_t<T>& projections, const img_t<T>& u_x, const img_t<T>& u_
             bool horizontalShear;
             double cos = std::cos(angleSet[a].angle);
             double sin = std::sin(angleSet[a].angle);
-            if (angleSet[a].angle >= -G_PI/4 && angleSet[a].angle <= G_PI/4) {
+            if (angleSet[a].angle >= -M_PI/4 && angleSet[a].angle <= M_PI/4) {
                 factor = std::tan(angleSet[a].angle);
                 horizontalShear = true;
             } else {
@@ -120,7 +124,7 @@ void projectImage(img_t<T>& projections, const img_t<T>& u,
             // compute the shearing factor and orientation
             double factor;
             bool horizontalShear;
-            if (angleSet[a].angle >= -G_PI/4 && angleSet[a].angle <= G_PI/4) {
+            if (angleSet[a].angle >= -M_PI/4 && angleSet[a].angle <= M_PI/4) {
                 factor = std::tan(angleSet[a].angle);
                 horizontalShear = true;
             } else {
