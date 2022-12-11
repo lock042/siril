@@ -11,6 +11,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-htmesh.h.cmake ${CMAKE_CURRENT
 
 ### HTMesh library
 SET(HTMesh_LIB_SRC
+    drand48.c
     MeshIterator.cpp
     HtmRange.cpp
     HtmRangeIterator.cpp
