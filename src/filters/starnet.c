@@ -236,6 +236,7 @@ gboolean end_and_call_remixer(gpointer p)
 /* Starnet++v2 star removal routine */
 
 gpointer do_starnet(gpointer p) {
+	com.thread_will_clobber_gfit = TRUE;
 	int retval;
 	int orig_x = gfit.rx, orig_y = gfit.ry;
 	fits workingfit, fit;

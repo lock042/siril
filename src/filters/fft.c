@@ -420,6 +420,7 @@ static void FFTI(fits *fit, fits *xfit, fits *yfit, int type_order, int layer) {
 static gboolean end_fourier_transform(gpointer p) {
 	struct fft_data *args = (struct fft_data *)p;
 	stop_processing_thread();
+	com.thread_will_clobber_gfit = FALSE;
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -431,6 +432,7 @@ static gboolean end_fourier_transform(gpointer p) {
 }
 
 gpointer fourier_transform(gpointer p) {
+	com.thread_will_clobber_gfit = TRUE;
 	struct fft_data *args = (struct fft_data *) p;
 	unsigned int width = args->fit->rx;
 	unsigned int height = args->fit->ry;

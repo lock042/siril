@@ -607,6 +607,10 @@ struct cominf {
 	sensor_tilt *tilt;		// computed tilt information
 
 	gboolean child_is_running;	// boolean to check if there is a child process running
+
+	gboolean thread_will_clobber_gfit; // boolean to check if the processing thread will
+									   // clobber gfit if gfit is changed before the thread
+									   // finishes
 #ifdef _WIN32
 void* childhandle;			// For Windows, handle of a child process
 #else

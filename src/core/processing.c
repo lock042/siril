@@ -616,7 +616,7 @@ void unreserve_thread() {
  */
 gboolean end_generic(gpointer arg) {
 	stop_processing_thread();
-
+	com.thread_will_clobber_gfit = FALSE;
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }

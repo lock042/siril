@@ -256,13 +256,21 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
 int open_single_image(const char* filename) {
 	char *realname;
 	gboolean is_single_sequence;
+	int retval = 0;
 
-	/* first, close everything */
-	close_sequence(FALSE);	// closing a sequence if loaded
-	close_single_image();	// close the previous image and free resources
+	if (com.thread_will_clobber_gfit) {
+		retval = 1;
+		siril_log_color_message("Cannot open a new image: processing thread is running on current image...\n", "red");
+	}
 
-	/* open the new file */
-	int retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
+	if(!retval) {
+		/* first, close everything */
+		close_sequence(FALSE);	// closing a sequence if loaded
+		close_single_image();	// close the previous image and free resources
+
+		/* open the new file */
+		retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
+	}
 
 	if (retval) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),

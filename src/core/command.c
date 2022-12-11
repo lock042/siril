@@ -298,6 +298,7 @@ int process_unclip(int nb) {
 static gboolean end_denoise(gpointer p) {
 	struct denoise_args *args = (struct denoise_args *) p;
 	stop_processing_thread();// can it be done here in case there is no thread?
+	com.thread_will_clobber_gfit = FALSE;
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -307,6 +308,7 @@ static gboolean end_denoise(gpointer p) {
 }
 
 gpointer run_nlbayes_on_fit(gpointer p) {
+	com.thread_will_clobber_gfit = TRUE;
 	denoise_args *args = (denoise_args *) p;
 	struct timeval t_start, t_end;
 	char *msg1 = NULL, *msg2 = NULL, *msg3 = NULL, *log_msg = NULL;

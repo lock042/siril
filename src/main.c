@@ -148,6 +148,7 @@ static void global_initialization() {
 	com.tilt = NULL;
 	com.uniq = NULL;
 	com.child_is_running = FALSE;
+	com.thread_will_clobber_gfit = FALSE;
 #ifdef _WIN32
 	com.childhandle = NULL;
 #else

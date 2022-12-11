@@ -92,6 +92,7 @@ int deconv_update_preview() {
 
 
 gpointer RTdeconv(gpointer p) {
+	com.thread_will_clobber_gfit = TRUE;
 	struct deconv_data *args = (struct deconv_data *) p;
 
 	deconvolution(args);
