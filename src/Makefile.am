@@ -203,8 +203,6 @@ siril_common_SOURCES = \
 	filters/deconvolution/options.hpp \
 	filters/deconvolution/phaseRetrieval.hpp \
 	filters/deconvolution/projectImage.hpp \
-	filters/deconvolution/reconstructPowerSpectrum.cpp \
-	filters/deconvolution/reconstructPowerSpectrum.hpp \
 	filters/deconvolution/rl.cpp \
 	filtes/deconvolution/rl.hpp \
 	filters/deconvolution/stochastic_deconvolution.cpp \
