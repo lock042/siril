@@ -786,7 +786,7 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			"Maximal intensity=%0.6f\n"
 			"Magnitude (%s)=%0.2f\n"
 			"SNR=%.1fdB\n"
-			"RMSE=%.3e"),
+			"RMSE=%.3e\n"),
 			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat",
 			coordinates,
 			fwhmx, unts, fwhmy, unts, fwhmy / fwhmx, buffer2,
