@@ -7083,14 +7083,13 @@ int process_detect_trail(int nb) {
 		minlen = defminlen;
 	}
 	if (ksigma < 0) {
-		// TODO: document this usage
-		//siril_log_color_message(_("ksigma cannot be negative, ignoring\n"), "salmon");
-		//ksigma = 1.f;
+		siril_log_color_message(_("ksigma cannot be negative, ignoring\n"), "salmon");
+		ksigma = 1.f;
 	}
 
 	if (!is_sequence) {
 		clear_stars_list(FALSE);
-		if (layer > gfit.naxes[2]) {
+		if (layer > 0 && gfit.naxes[2] == 1) {
 			siril_log_color_message(_("Layer %d. does not exist.\n"), "red", layer);
 			return 1;
 		}
@@ -7126,16 +7125,18 @@ int process_detect_trail(int nb) {
 			siril_log_message(_("Found %d trail(s) in current frame, displaying start points\n"), nblines);
 			com.stars = malloc((2 * nblines + 1) * sizeof(psf_star *));
 			for (int i = 0; i < nblines; i++) {
-				com.stars[2*i] = new_psf_star();
-				com.stars[2*i]->xpos = tracks[i].start.x;
-				com.stars[2*i]->ypos = tracks[i].start.y;
-				com.stars[2*i]->fwhmx = 5.0;
-				com.stars[2*i]->has_saturated = FALSE;
-				com.stars[2*i+1] = new_psf_star();
-				com.stars[2*i+1]->xpos = tracks[i].end.x;
-				com.stars[2*i+1]->ypos = tracks[i].end.y;
-				com.stars[2*i+1]->fwhmx = 5.0;
-				com.stars[2*i+1]->has_saturated = TRUE;
+				com.stars[2 * i] = new_psf_star();
+				com.stars[2 * i]->xpos = tracks[i].start.x;
+				com.stars[2 * i]->ypos = tracks[i].start.y;
+				com.stars[2 * i]->fwhmx = 5.0;
+				com.stars[2 * i]->fwhmy = 5.0;
+				com.stars[2 * i]->has_saturated = FALSE;
+				com.stars[2 * i + 1] = new_psf_star();
+				com.stars[2 * i + 1]->xpos = tracks[i].end.x;
+				com.stars[2 * i + 1]->ypos = tracks[i].end.y;
+				com.stars[2 * i + 1]->fwhmx = 5.0;
+				com.stars[2 * i + 1]->fwhmy = 5.0;
+				com.stars[2 * i + 1]->has_saturated = TRUE;
 			}
 			com.stars[2*nblines] = NULL;
 			redraw(REDRAW_OVERLAY);
