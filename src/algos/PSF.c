@@ -784,7 +784,7 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			"Angle=%0.2f deg\n"
 			"Background value=%0.6f\n"
 			"Maximal intensity=%0.6f\n"
-			"Magnitude (%s)=%0.2f\n"
+			"Magnitude (%s)=%0.4f\u00B1%.4f\n"
 			"SNR=%.1fdB\n"
 			"RMSE=%.3e\n"),
 			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat",
@@ -795,6 +795,7 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			result->A,
 			str,
 			result->mag + com.magOffset,
+			result->s_mag,
 			result->SNR,
 			result->rmse);
 	siril_log_message(buffer);
