@@ -195,7 +195,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
-		siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
+		siril_log_color_message(_("Error opening image %s: file not found or not supported.\n"), "red", filename);
 		free(realname);
 		return 1;
 	}
@@ -205,7 +205,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			retval = read_single_sequence(realname, imagetype);
 			single_sequence = TRUE;
 		} else {
-			siril_log_message(_("Cannot open a sequence from here\n"));
+			siril_log_color_message(_("Cannot open a sequence from here\n"), "red");
 			free(realname);
 			return 1;
 		}
@@ -218,7 +218,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		*is_sequence = single_sequence;
 	}
 	if (retval && retval != OPEN_IMAGE_CANCEL)
-		siril_log_message(_("Opening %s failed.\n"), realname);
+		siril_log_color_message(_("Opening %s failed.\n"), "red", realname);
 	if (realname_out)
 		*realname_out = realname;
 	else

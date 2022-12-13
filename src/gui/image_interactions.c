@@ -442,7 +442,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 						else
 							gui.qphot->ypos = area.y + area.h - gui.qphot->y0;
 						redraw(REDRAW_OVERLAY);
-						popup_psf_result(gui.qphot, &area);
+						popup_psf_result(gui.qphot, &area, &gfit);
 					}
 				}
 			}
