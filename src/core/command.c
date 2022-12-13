@@ -1071,9 +1071,7 @@ int process_linstretch(int nb) {
 	}
 	set_cursor_waiting(TRUE);
 	ght_params params = {0.0, 0.0, 0.0, 0.0, 0.0, BP, STRETCH_LINEAR, COL_INDEP, do_red, do_green, do_blue};
-	ght_compute_params compute_params;
-	GHTsetup(&compute_params, 0.0, 0.0, 0.0, 0.0, 0.0, STRETCH_LINEAR);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1158,9 +1156,7 @@ int process_ght(int nb) {
 	}
 	set_cursor_waiting(TRUE);
 	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_NORMAL, stretch_colourmodel, do_red, do_green, do_blue};
-	ght_compute_params compute_params;
-	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_NORMAL);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1246,9 +1242,7 @@ int process_invght(int nb) {
 
 	set_cursor_waiting(TRUE);
 	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE, stretch_colourmodel, do_red, do_green, do_blue};
-	ght_compute_params compute_params;
-	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_INVERSE);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1327,9 +1321,7 @@ int process_modasinh(int nb) {
 
 	set_cursor_waiting(TRUE);
 	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_ASINH, stretch_colourmodel, do_red, do_green, do_blue};
-	ght_compute_params compute_params;
-	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_ASINH);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1408,9 +1400,7 @@ int process_invmodasinh(int nb) {
 
 	set_cursor_waiting(TRUE);
 	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_INVASINH, stretch_colourmodel, do_red, do_green, do_blue};
-	ght_compute_params compute_params;
-	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_INVASINH);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -2034,6 +2024,40 @@ int process_invmtf(int nb) {
 
 	notify_gfit_modified();
 	return CMD_OK;
+}
+
+int process_autoghs(int nb) {
+       gchar *end = NULL;
+       float shadows_clipping;
+       shadows_clipping = g_ascii_strtod(word[1], &end);
+       if (end == word[1]) {
+               siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+               return CMD_ARG_ERROR;
+       }
+
+       float amount = g_ascii_strtod(word[2], &end);
+       if (end == word[2]) {
+               siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+               return CMD_ARG_ERROR;
+       }
+
+       int nb_channels = (int)gfit.naxes[2];
+       imstats *stats[3];
+       int ret = compute_all_channels_statistics_single_image(&gfit, STATS_BASIC, MULTI_THREADED, stats);
+       for (int i = 0; i < nb_channels; ++i) {
+               gboolean do_red = i == 0, do_green = i == 1, do_blue = i == 2;
+               if (stats[i]) {
+                       float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
+                       siril_debug_print("chan % d, SP=%f\n", i, SP);
+
+                       ght_params params = {10.0f, amount, 0.0f, SP, 0.7f, 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
+                       apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+                       free_stats(stats[i]);
+               }
+       }
+       notify_gfit_modified();
+       return ret ? CMD_GENERIC_ERROR : CMD_OK;
 }
 
 int process_autostretch(int nb) {
