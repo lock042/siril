@@ -64,8 +64,6 @@ static fileChooserPreview *new_preview_object() {
 static gboolean end_update_preview_cb(gpointer p) {
 	struct _updta_preview_data *args = (struct _updta_preview_data *) p;
 
-//	stop_processing_thread();
-
 	const char *bytes_str;
 	char *size_str = NULL;
 	char *name_str = NULL;
