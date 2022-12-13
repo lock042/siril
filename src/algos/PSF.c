@@ -47,7 +47,6 @@
 #define MAX_ITER_NO_ANGLE  20		//Number of iterations in the minimization with no angle
 #define MAX_ITER_ANGLE     20		//Number of iterations in the minimization with angle
 #define MIN_HALF_RADIUS 	1		// Minimum radius around center pixel to initialize FWHM
-#define EPSILON            0.001
 #define XTOL 1e-3
 #define GTOL 1e-3
 #define FTOL 1e-3
@@ -785,9 +784,9 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			"Angle=%0.2f deg\n"
 			"Background value=%0.6f\n"
 			"Maximal intensity=%0.6f\n"
-			"Magnitude (%s)=%0.2f\n"
+			"Magnitude (%s)=%0.4f\u00B1%.4f\n"
 			"SNR=%.1fdB\n"
-			"RMSE=%.3e"),
+			"RMSE=%.3e\n"),
 			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat",
 			coordinates,
 			fwhmx, unts, fwhmy, unts, fwhmy / fwhmx, buffer2,
@@ -796,6 +795,7 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			result->A,
 			str,
 			result->mag + com.magOffset,
+			result->s_mag,
 			result->SNR,
 			result->rmse);
 	siril_log_message(buffer);
