@@ -71,6 +71,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	GFileType type;
 
 	fileChooserPreview *preview = args->preview;
+	siril_debug_print("preview idle\n");
 
 	if (!preview_allocated || !preview || !(GTK_IS_IMAGE((preview->image)))) {
 		set_cursor_waiting(FALSE);
@@ -139,7 +140,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	return FALSE;
 }
 
-static gpointer update_preview_cb_idle(gpointer p) {
+static gpointer update_preview(gpointer p) {
 	uint8_t *buffer = NULL;
 	size_t size;
 	char *mime_type = NULL;
@@ -233,7 +234,8 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer p) {
 	g_free(uri);
 	g_object_unref(file);
 
-	g_thread_new("thumbnail", update_preview_cb_idle, data);
+	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
+	g_thread_new("thumbnail", update_preview, data);
 }
 
 void siril_preview_free(fileChooserPreview *preview) {
