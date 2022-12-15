@@ -2070,9 +2070,10 @@ int process_autoghs(int nb) {
                gboolean do_red = i == 0, do_green = i == 1, do_blue = i == 2;
                if (stats[i]) {
                        float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
-                       siril_debug_print("chan % d, SP=%f\n", i, SP);
+                       siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
 
-                       ght_params params = {10.0f, amount, 0.0f, SP, 0.7f, 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
+                       ght_params params = { .B = 13.0f, .D = amount, . LP = 0.0f, .SP = SP, .HP = 0.7f,
+			       .BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
                        apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
                        free_stats(stats[i]);
