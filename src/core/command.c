@@ -7444,10 +7444,14 @@ static gboolean end_process_sso(gpointer p) {
 }
 
 int process_sso() {
-
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
+	}
+
+	if (!gfit.date_obs) {
+		siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+		return CMD_INVALID_IMAGE;
 	}
 
 	purge_temp_user_catalogue();
