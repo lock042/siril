@@ -4,7 +4,7 @@ First, thanks for taking the time to contribute!
 
 ## How Can I Contribute?
 
-Siril is Free Software and a part of the GNU Project and you are welcome to contribute to this project. There are many ways to do it:
+Siril is Free Software and you are welcome to contribute to this project. There are many ways to do it:
 
  * develop new features,
  * report bugs (errors in the program),
