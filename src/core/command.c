@@ -51,6 +51,7 @@
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "io/Astro-TIFF.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
@@ -607,11 +608,16 @@ int process_savepng(int nb){
 #ifdef HAVE_LIBTIFF
 int process_savetif(int nb){
 	uint16_t bitspersample = 16;
+	gchar *astro_tiff = NULL;
 
 	if (strcasecmp(word[0], "savetif8") == 0)
 		bitspersample = 8;
 	else if (strcasecmp(word[0], "savetif32") == 0)
 		bitspersample = 32;
+	if (word[2] && !g_strcmp0(word[2], "-astro")) {
+		astro_tiff = AstroTiff_build_header(&gfit);
+	}
+
 	gchar *filename = g_strdup_printf("%s.tif", word[1]);
 	int status, retval;
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
@@ -619,9 +625,10 @@ int process_savetif(int nb){
 		retval = 1;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savetif(filename, &gfit, bitspersample, NULL, com.pref.copyright, TRUE);
+		retval = savetif(filename, &gfit, bitspersample, astro_tiff, com.pref.copyright, TRUE);
 		set_cursor_waiting(FALSE);
 	}
+	g_free(astro_tiff);
 	g_free(filename);
 	g_free(savename);
 	return retval;

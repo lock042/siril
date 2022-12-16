@@ -161,9 +161,9 @@ static command commands[] = {
 #endif
 	{"savepnm", 1, "savepnm filename", process_savepnm, STR_SAVEPNM, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifdef HAVE_LIBTIFF
-	{"savetif", 1, "savetif filename", process_savetif, STR_SAVETIF, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"savetif32", 1, "savetif32 filename", process_savetif, STR_SAVETIF32, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"savetif8", 1, "savetif8 filename", process_savetif, STR_SAVETIF8, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"savetif", 1, "savetif filename [-astro]", process_savetif, STR_SAVETIF, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"savetif32", 1, "savetif32 filename [-astro]", process_savetif, STR_SAVETIF32, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"savetif8", 1, "savetif8 filename [-astro]", process_savetif, STR_SAVETIF8, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
 	{"select", 2, "select from to", process_select, STR_SELECT, FALSE, REQ_CMD_SEQUENCE},
 	{"seqapplyreg", 1, "seqapplyreg sequencename [-drizzle] [-interp=] [-noclamp] [-layer=] [-framing=] [-prefix=] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},
