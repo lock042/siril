@@ -1565,6 +1565,7 @@ artifacts may appear.</property>
               <object class="GtkSpinButton">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Defines the strength of the correction.</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                 <property name="adjustment">adj_fixbanding_amount</property>
                 <property name="digits">1</property>
@@ -1587,6 +1588,7 @@ artifacts may appear.</property>
           <object class="GtkScale" id="scale_fixbanding_amount">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Defines the strength of the correction.</property>
             <property name="hexpand">True</property>
             <property name="adjustment">adj_fixbanding_amount</property>
             <property name="round-digits">2</property>
@@ -1606,6 +1608,7 @@ artifacts may appear.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">Bright pixels are ignored.</property>
             <property name="halign">end</property>
             <property name="draw-indicator">True</property>
             <signal name="toggled" handler="on_checkbutton_fixbanding_toggled" swapped="no"/>
@@ -1638,6 +1641,7 @@ artifacts may appear.</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Background for lines is computed using pixels in SigmaFactor * StdDev only. Higher value will give a better protection.</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                 <property name="adjustment">adj_fixbanding_invsigma</property>
                 <property name="digits">1</property>
@@ -1661,6 +1665,7 @@ artifacts may appear.</property>
             <property name="visible">True</property>
             <property name="sensitive">False</property>
             <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Background for lines is computed using pixels in SigmaFactor * StdDev only. Higher value will give a better protection.</property>
             <property name="adjustment">adj_fixbanding_invsigma</property>
             <property name="round-digits">2</property>
             <property name="digits">2</property>
