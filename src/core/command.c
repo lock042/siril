@@ -4503,7 +4503,7 @@ int process_extractHa(int nb) {
 int process_extractHaOIII(int nb) {
 	char *filename = NULL;
 	int ret = 1;
-	int scaling = 0;
+	extraction_scaling scaling = SCALING_NONE;
 
 	fits f_Ha = { 0 }, f_OIII = { 0 };
 
@@ -4525,9 +4525,9 @@ int process_extractHaOIII(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
 				return CMD_ARG_ERROR;
 			} else if (!strcasecmp(value, "ha")) {
-				scaling = 1;
+				scaling = SCALING_HA_UP;
 			} else if (!strcasecmp(value, "oiii")) {
-				scaling = 2;
+				scaling = SCALING_OIII_DOWN;
 			}
 		}
 	}
@@ -4825,7 +4825,7 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
-	args->scaling = 0;
+	args->scaling = SCALING_NONE;
 
 	if (word[2]) {
 		if (g_str_has_prefix(word[2], "-resample=")) {
@@ -4836,9 +4836,9 @@ int process_seq_extractHaOIII(int nb) {
 				free(args);
 				return CMD_ARG_ERROR;
 			} else if (!strcmp(value, "ha")) {
-				args->scaling = 1;
+				args->scaling = SCALING_HA_UP;
 			} else if (!strcmp(value, "oiii")) {
-				args->scaling = 2;
+				args->scaling = SCALING_OIII_DOWN;
 			}
 		}
 	}

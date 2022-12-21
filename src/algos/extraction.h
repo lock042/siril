@@ -6,6 +6,12 @@
 #include "io/ser.h"
 #include "io/fits_sequence.h"
 
+typedef enum {
+	SCALING_NONE,
+	SCALING_HA_UP,
+	SCALING_OIII_DOWN
+} extraction_scaling;
+
 struct split_cfa_data {
 	fits *fit;
 	sequence *seq;
@@ -20,7 +26,7 @@ struct split_cfa_data {
 
 	GList *processed_images;
 
-	int scaling; // Used for Ha-OIII split to set whether to scale Ha up, OIII down or none
+	extraction_scaling scaling;
 };
 
 void update_filter_information(fits *fit, char *filter, gboolean append);
@@ -33,8 +39,8 @@ int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern);
 int extractGreen_float(fits *in, fits *green, sensor_pattern pattern);
 void apply_extractGreen_to_sequence(struct split_cfa_data *split_cfa_args);
 
-int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, int scaling);
-int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, int scaling);
+int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling);
+int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling);
 void apply_extractHaOIII_to_sequence(struct split_cfa_data *split_cfa_args);
 
 int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3);

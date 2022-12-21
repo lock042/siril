@@ -472,8 +472,12 @@ static int dual_save(struct generic_seq_args *args, int out_index, int in_index,
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
 		retval1 = ser_write_frame_from_fit(cfa_args->new_ser_ha, double_data->ha, out_index);
 		retval2 = ser_write_frame_from_fit(cfa_args->new_ser_oiii, double_data->oiii, out_index);
-		clearfits(double_data->ha);
-		clearfits(double_data->oiii);
+		// the two fits are freed by the writing thread
+		if (!retval1 && !retval2) {
+			/* special case because it's not done in the generic */
+			clearfits(fit);
+			free(fit);
+		}
 	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
 		retval1 = fitseq_write_image(cfa_args->new_fitseq_ha, double_data->ha, out_index);
 		retval2 = fitseq_write_image(cfa_args->new_fitseq_oiii, double_data->oiii, out_index);
@@ -654,35 +658,47 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 }
 
 static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-	unsigned int MB_per_image, MB_avail, required;
-	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	unsigned int MB_per_input_image, MB_per_output_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_input_image, NULL, &MB_avail);
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 
-	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook)
-		required = 5 * MB_per_image / 4;
+	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook) {
+		MB_per_output_image = min(1, MB_per_input_image / 4);
+		required = 5 * MB_per_input_image / 4;
+	}
 	else if (args->image_hook == extractHaOIII_image_hook) {
-		if (cfa_args->scaling == 0) {
-				required = 3 * MB_per_image / 2;
+		if (cfa_args->scaling == SCALING_NONE) {
+			required = 3 * MB_per_input_image / 2;
+			MB_per_output_image = 5 * MB_per_input_image / 4;
 		} else {
+			if (cfa_args->scaling == SCALING_HA_UP)
+				MB_per_output_image = MB_per_input_image * 2;
+			else MB_per_output_image = min(1, MB_per_input_image / 2);
+
 			// Very slightly less for upscaling Ha but this is close enough
-			required = 7 * MB_per_image / 2;
+			required = 7 * MB_per_input_image / 2;
 		}
 	} else if (args->image_hook == split_cfa_image_hook) {
-		required = 2 * MB_per_image;
+		required = 2 * MB_per_input_image;
+		MB_per_output_image = MB_per_input_image;	// no writer for this split
 	} else {
-		required = MB_per_image;
+		required = MB_per_input_image;
+		MB_per_output_image = MB_per_input_image;
 		siril_log_color_message("unknown extraction type\n", "red");
 	}
 
 	if (limit > 0) {
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
-                        thread_limit = com.max_thread;
-		limit = thread_limit;
+			thread_limit = com.max_thread;
 
-		/* should not happen */
-		if (for_writer)
-			return 1;
+		if (for_writer) {
+			/* we allow the already allocated thread_limit images,
+			 * plus how many images can be stored in what remains
+			 * unused by the main processing */
+			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
+		}
+		else limit = thread_limit;
 	}
 	if (limit == 0) {
 		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
@@ -694,12 +710,20 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 		g_free(mem_per_thread);
 		g_free(mem_available);
 	} else {
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
 #ifdef _OPENMP
 		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
-				required, MB_per_image, limit, for_writer ? "images" : "threads");
+				required, MB_per_input_image, limit, for_writer ? "images" : "threads");
 #else
+		/* we still want the check of limit = 0 above */
 		if (!for_writer)
 			limit = 1;
+		else if (limit > 3)
+			limit = 3;
 #endif
 	}
 	return limit;
@@ -722,7 +746,7 @@ void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 
 #define SQRTF_2 1.41421356f
 
-int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, int scaling) {
+int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling) {
 	int width = in->rx / 2, height = in->ry / 2;
 
 	if (strlen(in->bayer_pattern) > 4) {
@@ -897,7 +921,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 	return 0;
 }
 
-int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, int scaling) {
+int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling) {
 	int width = in->rx / 2, height = in->ry / 2;
 
 	if (strlen(in->bayer_pattern) > 4) {
@@ -1050,10 +1074,10 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 	// or do nothing. Hardcoded to upscale for now.
 
 	switch (scaling) {
-		case 1: // Upsample Ha to OIII size
+		case SCALING_HA_UP: // Upsample Ha to OIII size
 			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
 			break;
-		case 2: // Downsample OIII to Ha size
+		case SCALING_OIII_DOWN: // Downsample OIII to Ha size
 			verbose_resize_gaussian(OIII, Ha->rx, Ha->ry, OPENCV_LANCZOS4, TRUE);
 			break;
 		default:
