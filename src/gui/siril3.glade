@@ -234,7 +234,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkSpinButton" id="spinSigCosmeColdBox">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">How many times (in averrage deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a cold pixel.</property>
+                    <property name="tooltip-text" translatable="yes">How many times (in average deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a cold pixel.</property>
                     <property name="halign">end</property>
                     <property name="hexpand">True</property>
                     <property name="width-chars">5</property>
@@ -264,6 +264,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkScale">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">How many times (in average deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a cold pixel.</property>
                 <property name="adjustment">adjSigCosmeCold</property>
                 <property name="round-digits">1</property>
               </object>
@@ -299,7 +300,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkSpinButton" id="spinSigCosmeHotBox">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">How many times (in averrage deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a hot pixel.</property>
+                    <property name="tooltip-text" translatable="yes">How many times (in average deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a hot pixel.</property>
                     <property name="halign">end</property>
                     <property name="hexpand">True</property>
                     <property name="width-chars">5</property>
@@ -329,6 +330,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkScale">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">How many times (in average deviation units) a pixel value must differ from the value of surrounding neighbors to be considered as a hot pixel.</property>
                 <property name="adjustment">adjSigCosmeHot</property>
                 <property name="round-digits">1</property>
               </object>
