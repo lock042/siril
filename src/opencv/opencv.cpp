@@ -451,6 +451,28 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	return ret;
 }
 
+// compute exact homography from corners corrdinates
+int cvCalculH_exact(double *X, double *Y, int indref, int indimg, Homography *Hom) {
+
+	std::vector<Point2f> ref;
+	std::vector<Point2f> img;
+	Mat H;
+
+	/* build vectors with lists of corners */
+	for (int i = 0; i < 4; i++) {
+		ref.push_back(Point2f(X[indref * 4 + i], Y[indref * 4 + i]));
+		img.push_back(Point2f(X[indimg * 4 + i], Y[indimg * 4 + i]));
+	}
+
+	//fitting the model
+	H = getPerspectiveTransform(ref, img);
+	if (countNonZero(H) < 1) return 1;
+
+	convert_MatH_to_H(H, Hom);
+	Hom->Inliers = 4;
+	return 0;
+}
+
 // transform an image using the homography.
 int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation, gboolean clamp) {
 	Mat in, out;

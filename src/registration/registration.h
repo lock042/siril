@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 7
+#define NUMBER_OF_METHODS 8
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -111,6 +111,7 @@ int register_multi_step_global(struct registration_args *regargs);
 int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
+int register_mosaic(struct registration_args *regargs);
 
 void reset_3stars();
 int _3stars_check_registration_ready();

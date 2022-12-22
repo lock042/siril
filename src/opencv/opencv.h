@@ -24,6 +24,8 @@ void cvResizeArray(double *, double *, int, int, int, int);
 
 int cvRotateImage(fits *image, int angle); // only for fast rotations
 
+int cvCalculH_exact(double *X, double *Y, int indref, int indimg, Homography *Hom);
+
 unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *H, transformation_type type);
 

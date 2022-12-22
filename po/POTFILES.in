@@ -121,6 +121,7 @@ src/registration/3stars.c
 src/registration/applyreg.c
 src/registration/comet.c
 src/registration/global.c
+src/registration/mosaic.c
 src/registration/registration.c
 src/stacking/median_and_mean.c
 src/stacking/normalization.c

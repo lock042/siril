@@ -193,6 +193,7 @@ src_files = [
   'registration/matching/misc.c',
   'registration/matching/project_coords.c',
   'registration/matching/apply_match.c',
+  'registration/mosaic.c',
   'registration/registration.c',
   'registration/applyreg.c',
 

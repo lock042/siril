@@ -85,6 +85,8 @@ static char *tooltip_text[] = {
 		"sequence of star aligned images. This methods makes a translation of a certain number "
 		"of pixels depending on the timestamp of each images and the global shift of the "
 		"object between the first and the last image."),
+	N_("<b>Mosaic Registration</b>: This algorithm computes the transforms between plate-solved images "
+	    " of a sequence"),
 	N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to "
 		"apply previously computed registration data stored in the sequence file. The "
 		"interpolation method and simplified drizzle can be selected in the Output "
@@ -151,6 +153,8 @@ void initialize_registration_methods() {
 			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("Comet/Asteroid Registration"),
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+	reg_methods[i++] = new_reg_method(_("Mosaic Registration"),
+			&register_mosaic, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Apply Existing Registration"),
 			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
 	reg_methods[i] = NULL;
@@ -1176,7 +1180,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(reglayer));
 
 	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
-		if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
+		if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global ||method->method_ptr == &register_mosaic ) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
 		} else if (method->method_ptr == &register_comet) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_COMET);
@@ -1234,6 +1238,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			(method->method_ptr == &register_kombat) ||
 			(method->method_ptr == &register_shift_dft) ||
 			(method->method_ptr == &register_multi_step_global) ||
+			(method->method_ptr == &register_mosaic) ||
 			(method->method_ptr == &register_3stars && nbselstars <= 1))) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
 		gtk_widget_set_sensitive(noout, FALSE);
@@ -1508,7 +1513,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
-	if (reg_args->clamp)
+	if (reg_args->clamp && !reg_args->no_output)
 		siril_log_message(_("Interpolation clamping active\n"));
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
