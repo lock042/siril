@@ -43,7 +43,7 @@ int	process_extractHaOIII(int nb);
 int	process_fdiv(int nb);
 int	process_fft(int nb);
 int	process_fill(int nb);
-int	process_fill2(int nb);
+int	process_ffill(int nb);
 int	process_findcosme(int nb);
 int	process_findhot(int nb);
 int	process_findstar(int nb);

@@ -3542,7 +3542,7 @@ int process_visu(int nb) {
 	return CMD_OK;
 }
 
-int process_fill2(int nb) {
+int process_ffill(int nb) {
 	gchar *end;
 	rectangle area;
 	int level = g_ascii_strtoull(word[1], &end, 10);

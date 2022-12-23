@@ -71,10 +71,10 @@ static command commands[] = {
 	{"extract_HaOIII", 0, "extract_HaOIII [-resample=]", process_extractHaOIII, STR_EXTRACTHAOIII, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
 
 	{"fdiv", 2, "fdiv filename scalar", process_fdiv, STR_FDIV, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"ffill", 1, "ffill value [x y width height]", process_ffill, STR_FFILL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"fftd", 2, "fftd modulus phase", process_fft, STR_FFTD, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"ffti", 2, "ffti modulus phase", process_fft, STR_FFTI, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"fill", 1, "fill value [x y width height]", process_fill, STR_FILL, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"fill2", 1, "fill2 value [x y width height]", process_fill2, STR_FILL2, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"find_cosme", 2, "find_cosme cold_sigma hot_sigma", process_findcosme, STR_FIND_COSME, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"find_cosme_cfa", 2, "find_cosme_cfa cold_sigma hot_sigma", process_findcosme, STR_FIND_COSME_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA | REQ_CMD_NO_THREAD},
 	{"find_hot", 3, "find_hot filename cold_sigma hot_sigma", process_findhot, STR_FIND_HOT, TRUE, REQ_CMD_SINGLE_IMAGE},

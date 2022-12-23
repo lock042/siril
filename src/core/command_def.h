@@ -37,10 +37,10 @@
 #define STR_EXTRACTHAOIII N_("Extracts Ha and OIII signals from a CFA image. The output files names start with the prefix \"Ha_\" and \"OIII_\"\n\nThe optional argument <b>-resample={ha|oiii}</b> sets whether to upsample the Ha image or downsample the OIII image. If this argument is not provided, no resampling will be carried out and the OIII image will have twice the height and width of the Ha image")
 
 #define STR_FDIV N_("Divides the image in memory by the image given in argument. The resulting image is multiplied by the value of the <b>scalar</b> argument. See also IDIV")
+#define STR_FFILL N_("Same command as FILL but this is a symmetric fill of a region defined by the mouse. Used to process an image in the Fourier (FFT) domain")
 #define STR_FFTD N_("Applies a Fast Fourier Transform to the image loaded in memory. <b>Modulus</b> and <b>phase</b> given in argument are saved in FITS files")
 #define STR_FFTI N_("Retrieves corrected image applying an inverse transformation. The <b>modulus</b> and <b>phase</b> used are the files given in argument")
 #define STR_FILL N_("Fills the whole current image (or selection) with pixels having the <b>value</b> intensity expressed in ADU")
-#define STR_FILL2 N_("Same command as FILL but this is a symmetric fill of a region defined by the mouse. Used to process an image in the Fourier (FFT) domain")
 #define STR_FIND_COSME N_("Applies an automatic detection of cold and hot pixels following the thresholds written in arguments")
 #define STR_FIND_COSME_CFA N_("Same command as FIND_COSME but for monochromatic CFA images")
 #define STR_FIND_HOT N_("Saves a list file <b>filename</b> (text format) in the working directory which contains the coordinates of the pixels which have an intensity <b>hot_sigma</b> times higher and <b>cold_sigma</b> lower than standard deviation. We generally use this command on a master-dark file")
