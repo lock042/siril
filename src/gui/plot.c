@@ -1616,8 +1616,6 @@ static const int color_tab[3][] = {
 		{0x98, 0xff, 0x52}
 };
 
-/* copied from subprojects/kplot/draw.c, in which the max is 7, not MAX_SEQPSF.
- * We assign the same color to all others */
 static void set_colors(struct kplotcfg *cfg) {
 	cfg->clrsz = MAX_SEQPSF;
 	cfg->clrs = calloc(cfg->clrsz, sizeof(struct kplotccfg));
