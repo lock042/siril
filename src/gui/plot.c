@@ -1593,7 +1593,7 @@ void notify_new_photometry() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 }
 
-static const int color_tab[3][] = {
+static const int color_tab[][3] = {
 		{0x94, 0x04, 0xd3},
 		{0x00, 0x9e, 0x73},
 		{0x56, 0xb4, 0xe9},
@@ -1630,9 +1630,9 @@ static void set_colors(struct kplotcfg *cfg) {
 	}
 
 	for (int i = 0; i < MAX_SEQPSF; i++) {
-		cfg->clrs[i].rgba[0] = color_tab[0][i] / 255.0;
-		cfg->clrs[i].rgba[1] = color_tab[1][i] / 255.0;
-		cfg->clrs[i].rgba[2] = color_tab[2][i] / 255.0;
+		cfg->clrs[i].rgba[0] = color_tab[i][0] / 255.0;
+		cfg->clrs[i].rgba[1] = color_tab[i][1] / 255.0;
+		cfg->clrs[i].rgba[2] = color_tab[i][2] / 255.0;
 	}
 }
 
