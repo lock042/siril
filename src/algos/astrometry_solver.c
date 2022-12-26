@@ -363,15 +363,15 @@ static gchar *fetch_url(const gchar *url) {
 #endif
 
 gchar *search_in_online_conesearch(struct astrometry_data *args) {
-	GString *string_url;
-
+	if (!args->fit->date_obs)
+		return NULL;
 	double ra, dec;
 	center2wcs(args->fit, &ra, &dec);
 
 	// https://vo.imcce.fr/webservices/skybot/?conesearch
-	string_url = g_string_new(SKYBOT);
+	GString *string_url = g_string_new(SKYBOT);
 	string_url = g_string_append(string_url, "&-ep=");
-	gchar *formatted_date = date_time_to_FITS_date(gfit.date_obs);
+	gchar *formatted_date = date_time_to_FITS_date(args->fit->date_obs);
 	string_url = g_string_append(string_url, formatted_date);
 	string_url = g_string_append(string_url, "&-ra=");		// RA
 	g_string_append_printf(string_url, "%lf", ra);

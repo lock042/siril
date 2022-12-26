@@ -51,6 +51,7 @@
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "io/Astro-TIFF.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
@@ -607,11 +608,16 @@ int process_savepng(int nb){
 #ifdef HAVE_LIBTIFF
 int process_savetif(int nb){
 	uint16_t bitspersample = 16;
+	gchar *astro_tiff = NULL;
 
 	if (strcasecmp(word[0], "savetif8") == 0)
 		bitspersample = 8;
 	else if (strcasecmp(word[0], "savetif32") == 0)
 		bitspersample = 32;
+	if (word[2] && !g_strcmp0(word[2], "-astro")) {
+		astro_tiff = AstroTiff_build_header(&gfit);
+	}
+
 	gchar *filename = g_strdup_printf("%s.tif", word[1]);
 	int status, retval;
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
@@ -619,9 +625,10 @@ int process_savetif(int nb){
 		retval = 1;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savetif(filename, &gfit, bitspersample, NULL, com.pref.copyright, TRUE);
+		retval = savetif(filename, &gfit, bitspersample, astro_tiff, com.pref.copyright, TRUE);
 		set_cursor_waiting(FALSE);
 	}
+	g_free(astro_tiff);
 	g_free(filename);
 	g_free(savename);
 	return retval;
@@ -3535,7 +3542,7 @@ int process_visu(int nb) {
 	return CMD_OK;
 }
 
-int process_fill2(int nb) {
+int process_ffill(int nb) {
 	gchar *end;
 	rectangle area;
 	int level = g_ascii_strtoull(word[1], &end, 10);
@@ -4496,7 +4503,7 @@ int process_extractHa(int nb) {
 int process_extractHaOIII(int nb) {
 	char *filename = NULL;
 	int ret = 1;
-	int scaling = 0;
+	extraction_scaling scaling = SCALING_NONE;
 
 	fits f_Ha = { 0 }, f_OIII = { 0 };
 
@@ -4518,9 +4525,9 @@ int process_extractHaOIII(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
 				return CMD_ARG_ERROR;
 			} else if (!strcasecmp(value, "ha")) {
-				scaling = 1;
+				scaling = SCALING_HA_UP;
 			} else if (!strcasecmp(value, "oiii")) {
-				scaling = 2;
+				scaling = SCALING_OIII_DOWN;
 			}
 		}
 	}
@@ -4818,7 +4825,7 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
-	args->scaling = 0;
+	args->scaling = SCALING_NONE;
 
 	if (word[2]) {
 		if (g_str_has_prefix(word[2], "-resample=")) {
@@ -4829,9 +4836,9 @@ int process_seq_extractHaOIII(int nb) {
 				free(args);
 				return CMD_ARG_ERROR;
 			} else if (!strcmp(value, "ha")) {
-				args->scaling = 1;
+				args->scaling = SCALING_HA_UP;
 			} else if (!strcmp(value, "oiii")) {
-				args->scaling = 2;
+				args->scaling = SCALING_OIII_DOWN;
 			}
 		}
 	}
@@ -7444,10 +7451,14 @@ static gboolean end_process_sso(gpointer p) {
 }
 
 int process_sso() {
-
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
+	}
+
+	if (!gfit.date_obs) {
+		siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
+		return CMD_INVALID_IMAGE;
 	}
 
 	purge_temp_user_catalogue();

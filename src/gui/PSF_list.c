@@ -653,7 +653,7 @@ static const char *SNR_quality(double SNR) {
 	else return _("N/A");
 }
 
-void popup_psf_result(psf_star *result, rectangle *area) {
+void popup_psf_result(psf_star *result, rectangle *area, fits *fit) {
 	gchar *msg, *coordinates, *url = NULL;
 	char buffer2[50];
 	const char *str;
@@ -699,11 +699,12 @@ void popup_psf_result(psf_star *result, rectangle *area) {
 	double fwhmx, fwhmy;
 	char *unts;
 	get_fwhm_as_arcsec_if_possible(result, &fwhmx, &fwhmy, &unts);
+	const gchar *chan = isrgb(fit) ? channel_number_to_name(result->layer) : _("monochrome");
 	if (result->beta > 0.0) {
-		g_snprintf(buffer2, 50, ", beta=%0.1f", result->beta);
+		g_snprintf(buffer2, 50, ", beta=%0.1f, %s channel", result->beta, chan);
 	}
 	else {
-		g_snprintf(buffer2, 50, "%s", "");
+		g_snprintf(buffer2, 50, "%s, %s channel", "", chan);
 	}
 	msg = g_strdup_printf(_("PSF fit Result (%s%s):\n\n"
 				"Centroid Coordinates:\n\t\t%s\n\n"

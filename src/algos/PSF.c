@@ -47,7 +47,6 @@
 #define MAX_ITER_NO_ANGLE  20		//Number of iterations in the minimization with no angle
 #define MAX_ITER_ANGLE     20		//Number of iterations in the minimization with angle
 #define MIN_HALF_RADIUS 	1		// Minimum radius around center pixel to initialize FWHM
-#define EPSILON            0.001
 #define XTOL 1e-3
 #define GTOL 1e-3
 #define FTOL 1e-3
@@ -544,6 +543,15 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	psf->fwhmy = FWHM_from_s(psf->sy, psf->beta, profile);	//Set the real FWHMy with regards to the Sy parameter
 	psf->angle = -FIT(6) * 180.0 / M_PI;
 
+	/* In some cases convergence give crazy values
+	 * very high. Here we add a sanity check to avoid
+	 * pseudo infinite loop with the while.
+	 */
+	if (fabs(psf->angle) > 10000) {
+		free_psf(psf);
+		psf = NULL;
+		goto free_and_exit;
+	}
 	/* The angle must be => -90 and <= 90
 	 * Otherwise, the solution may be degenerate
 	 * and produce an angle > 90. So we're
@@ -785,9 +793,9 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			"Angle=%0.2f deg\n"
 			"Background value=%0.6f\n"
 			"Maximal intensity=%0.6f\n"
-			"Magnitude (%s)=%0.2f\n"
+			"Magnitude (%s)=%0.4f\u00B1%.4f\n"
 			"SNR=%.1fdB\n"
-			"RMSE=%.3e"),
+			"RMSE=%.3e\n"),
 			(result->profile == PSF_GAUSSIAN) ? "Gaussian" : "Moffat",
 			coordinates,
 			fwhmx, unts, fwhmy, unts, fwhmy / fwhmx, buffer2,
@@ -796,6 +804,7 @@ void psf_display_result(psf_star *result, rectangle *area) {
 			result->A,
 			str,
 			result->mag + com.magOffset,
+			result->s_mag,
 			result->SNR,
 			result->rmse);
 	siril_log_message(buffer);

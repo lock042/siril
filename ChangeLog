@@ -54,6 +54,7 @@ xx/xx/22
 * Added CFA merge process for reconstructing a Bayer pattern previously split out with extraction
 * Added binning and binxy command
 * Added rejection maps creation on rejection stacking
+* Added astro-tiff option in the command savetif with -astro
 * Allowed area selection (and much more) to be done on RGB display tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
