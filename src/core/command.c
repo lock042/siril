@@ -59,6 +59,7 @@
 #include "io/single_image.h"
 #include "io/catalogues.h"
 #include "io/FITS_symlink.h"
+#include "io/gnuplot_i.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
@@ -3791,6 +3792,17 @@ int process_fix_xtrans(int nb) {
 	fix_xtrans_ac(&gfit);
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
+	return CMD_OK;
+}
+
+int process_test_gnuplot(int nb) {
+	gboolean use_gnuplot = gnuplot_is_available();
+	if (!use_gnuplot) {
+		siril_log_message(_("Gnuplot was not found\n"));
+	} else {
+		siril_log_message(_("Gnuplot was found\n"));
+	}
+
 	return CMD_OK;
 }
 

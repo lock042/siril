@@ -215,6 +215,7 @@ static command commands[] = {
 	{"subsky", 1, "subsky { -rbf | degree } [-samples=20] [-tolerance=1.0] [-smooth=0.5]", process_subsky, STR_SUBSKY, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"synthstar", 0, "synthstar", process_synthstar, STR_SYNTHSTAR, TRUE, REQ_CMD_SINGLE_IMAGE},
 
+	{"test_gnuplot", 0, "test_gnuplot", process_test_gnuplot, STR_NONE, FALSE, REQ_CMD_NONE},
 	{"threshlo", 1, "threshlo level", process_threshlo, STR_THRESHLO, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"threshhi", 1, "threshi level", process_threshhi, STR_THRESHHI, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"thresh", 2, "thresh lo hi", process_thresh, STR_THRESH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* threshes hi and lo */
