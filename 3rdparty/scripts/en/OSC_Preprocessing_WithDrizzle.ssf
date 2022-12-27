@@ -1,9 +1,9 @@
 ############################################
 #
-# Script for Siril 1.0
-# April 2022
+# Script for Siril 1.2
+# December 2022
 # (C) Cyril Richard
-# OSC_Preprocessing_WithDrizzle v1.1
+# OSC_Preprocessing_WithDrizzle v1.2
 #
 ########### PREPROCESSING SCRIPT ###########
 #
@@ -16,6 +16,7 @@
 #   flats/
 #   darks/
 #   lights/
+# Saves masters to ./masters/
 #
 ############################################
 
@@ -27,7 +28,7 @@ convert bias -out=../process
 cd ../process
 
 # Stack Bias Frames to bias_stacked.fit
-stack bias rej 3 3 -nonorm
+stack bias rej 3 3 -nonorm -out=../masters/bias_stacked
 cd ..
 
 # Convert Flat Frames to .fit files
@@ -36,10 +37,10 @@ convert flat -out=../process
 cd ../process
 
 # Pre-process Flat Frames
-preprocess flat -bias=bias_stacked
+preprocess flat -bias=../masters/bias_stacked
 
 # Stack Flat Frames to pp_flat_stacked.fit
-stack pp_flat rej 3 3 -norm=mul
+stack pp_flat rej 3 3 -norm=mul -out=../masters/pp_flat_stacked
 cd ..
 
 # Convert Dark Frames to .fit files
@@ -48,7 +49,7 @@ convert dark -out=../process
 cd ../process
 
 # Stack Dark Frames to dark_stacked.fit
-stack dark rej 3 3 -nonorm
+stack dark rej 3 3 -nonorm -out=../masters/dark_stacked
 cd ..
 
 # Convert Light Frames to .fit files
@@ -57,13 +58,18 @@ convert light -out=../process
 cd ../process
 
 # Pre-process Light Frames
-preprocess light -dark=dark_stacked -flat=pp_flat_stacked -cc=dark -cfa -equalize_cfa -debayer
+preprocess light -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -cc=dark -cfa -equalize_cfa -debayer
 
 # Align lights with Drizzle 2x
 register pp_light -drizzle
 
 # Stack calibrated lights to result.fit
-stack r_pp_light rej 3 3 -norm=addscale -output_norm -out=../result
+stack r_pp_light rej 3 3 -norm=addscale -output_norm -rgb_equal -out=result
+
+# and flipping if required
+load result
+mirrorx -bottomup
+save ../result_drizzle_$LIVETIME:%d$s
 
 cd ..
 close

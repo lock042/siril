@@ -1,9 +1,9 @@
 ###################################################
-# Script pour Siril 1.0
-# Avril 2022
+# Script pour Siril 1.2
+# December 2022
 # (C) Cyril Richard
 # Adapté, modifié et traduit par Colmic
-# Couleur_Extraction v1.2
+# Couleur_Extraction_Ha v1.3
 #
 ###################################################
 #
@@ -14,7 +14,9 @@
 # Ce script a besoin de 4 dossiers pour fonctionner
 # à installer dans votre dossier de travail de Siril :
 # offsets, darks, flats, brutes
-# Copiez vos images FITS dans ces 4 dossiers 
+# Copiez vos images FITS dans ces 4 dossiers
+#
+# Les fichiers maitres sont sauvés dans ./masters/
 #
 ###################################################
 
@@ -24,31 +26,31 @@ requires 1.1.0
 cd offsets
 convert offset -out=../process
 cd ../process
-stack offset rej 3 3 -nonorm
+stack offset rej 3 3 -nonorm -out=../masters/offset_stacked
 cd ..
 
 #Pré-traitement des flats avec retrait de l'offset (ou du dark de flat)
 cd flats
 convert flat -out=../process
 cd ../process
-preprocess flat -bias=offset_stacked
+preprocess flat -bias=../masters/offset_stacked
 
 #Création du master-flat
-stack pp_flat rej 3 3 -norm=mul
+stack pp_flat rej 3 3 -norm=mul -out=../masters/pp_flat_stacked
 cd ..
 
 #Création du master-dark
 cd darks
 convert dark -out=../process
 cd ../process
-stack dark rej 3 3 -nonorm
+stack dark rej 3 3 -nonorm -out=../masters/dark_stacked
 cd ..
 
 #pré-traitement des brutes
 cd brutes
 convert brute -out=../process
 cd ../process
-preprocess brute -dark=dark_stacked -flat=pp_flat_stacked -cc=dark -cfa -equalize_cfa
+preprocess brute -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -cc=dark -cfa -equalize_cfa
 
 #extraction Ha
 seqextract_Ha pp_brute
@@ -57,7 +59,12 @@ seqextract_Ha pp_brute
 register Ha_pp_brute -drizzle
 
 #empilement des brutes Ha calibrées
-stack r_Ha_pp_brute rej 3 3 -norm=addscale -output_norm -out=../Ha_resultat
+stack r_Ha_pp_brute rej 3 3 -norm=addscale -output_norm -out=Ha_resultat
+
+# retournement si nécessaire
+load Ha_resultat
+mirrorx -bottomup
+save ../resultat_Ha_$LIVETIME:%d$s
 
 cd ..
 close

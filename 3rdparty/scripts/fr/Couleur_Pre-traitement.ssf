@@ -1,9 +1,9 @@
 ###################################################
-# Script pour Siril 1.0
-# Avril 2022
+# Script pour Siril 1.2
+# December 2022
 # (C) Cyril Richard
 # Adapté, modifié et traduit par Colmic
-# Couleur_Pre-traitement v1.3
+# Couleur_Pre-traitement v1.4
 # 
 ###################################################
 #
@@ -14,6 +14,8 @@
 # offsets, darks, flats, brutes
 # Copiez vos images RAW ou FIT dans ces 4 dossiers
 #
+# Les fichiers maitres sont sauvés dans ./masters/
+#
 ###################################################
 
 requires 1.1.0
@@ -22,37 +24,42 @@ requires 1.1.0
 cd offsets
 convert offset -out=../process
 cd ../process
-stack offset rej 3 3 -nonorm
+stack offset rej 3 3 -nonorm -out=../masters/offset_stacked
 cd ..
 
 #Pré-traitement des flats avec retrait de l'offset (ou dark de flat)
 cd flats
 convert flat -out=../process
 cd ../process
-preprocess flat -bias=offset_stacked
+preprocess flat -bias=../masters/offset_stacked
 
 #Création du master-flat
-stack pp_flat rej 3 3 -norm=mul
+stack pp_flat rej 3 3 -norm=mul -out=../masters/pp_flat_stacked
 cd ..
 
 #Création du master-dark
 cd darks
 convert dark -out=../process
 cd ../process
-stack dark rej 3 3 -nonorm
+stack dark rej 3 3 -nonorm -out=../masters/dark_stacked
 cd ..
 
 #pré-traitement des brutes
 cd brutes
 convert brute -out=../process
 cd ../process
-preprocess brute -dark=dark_stacked -flat=pp_flat_stacked -cc=dark -cfa -equalize_cfa -debayer
+preprocess brute -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -cc=dark -cfa -equalize_cfa -debayer
 
 #Alignement des brutes
 register pp_brute
 
 #Empilement des brutes calibrées
-stack r_pp_brute rej 3 3 -norm=addscale -out=../resultat
+stack r_pp_brute rej 3 3 -norm=addscale -output_norm -rgb_equal -out=resultat
+
+# retournement si nécessaire
+load resultat
+mirrorx -bottomup
+save ../resultat_$LIVETIME:%d$s
 
 cd ..
 close

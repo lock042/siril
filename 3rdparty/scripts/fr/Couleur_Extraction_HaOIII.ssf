@@ -1,9 +1,9 @@
 ###################################################
 # Script pour Siril 1.2
-# October 2022
+# December 2022
 # (C) Cyril Richard
 # Adapté, modifié et traduit par Colmic
-# Couleur_Extraction_HaOIII v1.3
+# Couleur_Extraction_HaOIII v1.4
 #
 ###################################################
 #
@@ -14,7 +14,9 @@
 # Ce script a besoin de 4 dossiers pour fonctionner
 # à installer dans votre dossier de travail de Siril :
 # offsets, darks, flats, brutes
-# Copiez vos images FITS dans ces 4 dossiers 
+# Copiez vos images FITS dans ces 4 dossiers
+#
+# Les fichiers maitres sont sauvés dans ./masters/
 #
 ###################################################
 
@@ -24,31 +26,31 @@ requires 1.1.0
 cd offsets
 convert offset -out=../process
 cd ../process
-stack offset rej 3 3 -nonorm
+stack offset rej 3 3 -nonorm -out=../masters/offset_stacked
 cd ..
 
 #Pré-traitement des flats avec retrait de l'offset (ou du dark de flat)
 cd flats
 convert flat -out=../process
 cd ../process
-preprocess flat -bias=offset_stacked
+preprocess flat -bias=../masters/offset_stacked
 
 #Création du master-flat
-stack pp_flat rej 3 3 -norm=mul
+stack pp_flat rej 3 3 -norm=mul -out=../masters/pp_flat_stacked
 cd ..
 
 #Création du master-dark
 cd darks
 convert dark -out=../process
 cd ../process
-stack dark rej 3 3 -nonorm
+stack dark rej 3 3 -nonorm -out=../masters/dark_stacked
 cd ..
 
 #pré-traitement des brutes
 cd brutes
 convert brute -out=../process
 cd ../process
-preprocess brute -dark=dark_stacked -flat=pp_flat_stacked -cc=dark -cfa -equalize_cfa
+preprocess brute -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -cc=dark -cfa -equalize_cfa
 
 #extraction Ha et OIII
 seqextract_HaOIII pp_brute
@@ -57,17 +59,29 @@ seqextract_HaOIII pp_brute
 register Ha_pp_brute -drizzle
 
 #empilement des brutes Ha calibrées
-stack r_Ha_pp_brute rej 3 3 -norm=addscale -output_norm -out=../Ha_resultat
+stack r_Ha_pp_brute rej 3 3 -norm=addscale -output_norm -out=results_00001
+
+# et retournement si nécessaire
+mirrorx_single results_00001
 
 #alignement des brutes OIII
 register OIII_pp_brute
 
 #empilement des brutes OIII calibrées
-stack r_OIII_pp_brute rej 3 3 -norm=addscale -output_norm -out=../OIII_resultat
+stack r_OIII_pp_brute rej 3 3 -norm=addscale -output_norm -out=results_00002
 
-#linear match pour ajuster les niveaux de l'image OIII avec l'image Ha
-cd ..
-load OIII_resultat
-linear_match Ha_resultat 0 0.92
-save OIII_resultat
+# et retournement si nécessaire
+mirrorx_single results_00002
+
+# Alignement des images
+register results -transf=shift -interp=none
+
+#Renormalisation de l'image OIII avec l'image Ha par PixelMath
+pm $r_results_00002$*mad($r_results_00001$)/mad($r_results_00002$)-mad($r_results_00001$)/mad($r_results_00002$)*median($r_results_00002$)+median($r_results_00001$)
+save ../results/resultat_OIII_$LIVETIME:%d$s
+
+#Enregistrement de l'image finale Ha
+load r_results_00001
+save ../results/resultat_Ha_$LIVETIME:%d$s
+
 close
