@@ -4355,9 +4355,6 @@ int process_split(int nb){
 		return CMD_ALLOC_ERROR;
 	}
 
-	args->type = EXTRACT_RGB;
-	args->str_type = _("RGB");
-
 	args->channel[0] = g_strdup_printf("%s%s", word[1], com.pref.ext);
 	args->channel[1] = g_strdup_printf("%s%s", word[2], com.pref.ext);
 	args->channel[2] = g_strdup_printf("%s%s", word[3], com.pref.ext);
@@ -4371,6 +4368,25 @@ int process_split(int nb){
 		free(args->channel[2]);
 		free(args);
 		return CMD_ALLOC_ERROR;
+	}
+
+	if (nb > 4) {
+		if (!g_ascii_strcasecmp(word[4], "-hsl")) {
+			args->type = EXTRACT_HSL;
+			args->str_type = _("HSL");
+		} else if (!g_ascii_strcasecmp(word[4], "-hsv")) {
+			args->type = EXTRACT_HSV;
+			args->str_type = _("HSV");
+		} else if (!g_ascii_strcasecmp(word[4], "-lab")) {
+			args->type = EXTRACT_CIELAB;
+			args->str_type = _("CieLAB");
+		} else {
+			args->type = EXTRACT_RGB;
+			args->str_type = _("RGB");
+		}
+	} else {
+		args->type = EXTRACT_RGB;
+		args->str_type = _("RGB");
 	}
 
 	copy_fits_metadata(&gfit, args->fit);
