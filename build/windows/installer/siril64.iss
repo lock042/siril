@@ -48,8 +48,8 @@ Source: "{#RootDir}\siril\bin\siril.exe"; DestDir: "{app}\bin"; Flags: ignorever
 Source: "{#RootDir}\siril\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#RootDir}\siril\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#RootDir}\siril\share\*"; DestDir: "{app}\share"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#RootDir}\scripts\*.ssf"; DestDir: "{app}\scripts"; Languages: en; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#RootDir}\3rdparty\scripts\en\*.ssf"; DestDir: "{app}\scripts"; Languages:  en; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#RootDir}\scripts\*.ssf"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#RootDir}\3rdparty\scripts\en\*.ssf"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
