@@ -36,20 +36,36 @@
 
 #include "scnr.h"
 
+static const char *type_to_string(scnr_type t) {
+	switch (t) {
+		default:
+		case SCNR_AVERAGE_NEUTRAL:
+			return _("average neutral");
+		case SCNR_MAXIMUM_NEUTRAL:
+			return _("maximum neutral");
+		case SCNR_MAXIMUM_MASK:
+			return _("maximum mask");
+		case SCNR_ADDITIVE_MASK:
+			return _("additive mask");
+	}
+}
 
 /* Subtractive Chromatic Noise Reduction */
 gpointer scnr(gpointer p) {
 	struct scnr_data *args = (struct scnr_data *) p;
 	size_t i, nbdata = args->fit->naxes[0] * args->fit->naxes[1];
 	struct timeval t_start, t_end;
+	double min_pix = DBL_MAX, max_pix = DBL_MIN;
 	double norm = get_normalized_value(args->fit);
 	double invnorm = 1.0 / norm;
 
-	siril_log_color_message(_("SCNR: processing...\n"), "green");
+	siril_log_color_message(_("SCNR: processing with %s algorithm%s...\n"),
+			"green", type_to_string(args->type),
+			args->preserve ? _(", preserving lightness") : "");
 	gettimeofday(&t_start, NULL);
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(min:min_pix) reduction(max:max_pix)
 #endif
 	for (i = 0; i < nbdata; i++) {
 		double red, green, blue;
@@ -71,19 +87,19 @@ gpointer scnr(gpointer p) {
 		}
 
 		switch (args->type) {
-			case 0:
+			case SCNR_AVERAGE_NEUTRAL:
 				m = 0.5 * (red + blue);
 				green = min(green, m);
 				break;
-			case 1:
+			case SCNR_MAXIMUM_NEUTRAL:
 				m = max(red, blue);
 				green = min(green, m);
 				break;
-			case 2:
+			case SCNR_MAXIMUM_MASK:
 				m = max(red, blue);
 				green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
 				break;
-			case 3:
+			case SCNR_ADDITIVE_MASK:
 				m = min(1.0, red + blue);
 				green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
 		}
@@ -94,6 +110,12 @@ gpointer scnr(gpointer p) {
 			xyz_to_LAB(x, y, z, &tmp, &a, &b);
 			LAB_to_xyz(L, a, b, &x, &y, &z);
 			xyz_to_rgb(x, y, z, &red, &green, &blue);
+			max_pix = max(max_pix, red);
+			max_pix = max(max_pix, green);
+			max_pix = max(max_pix, blue);
+			min_pix = min(min_pix, red);
+			min_pix = min(min_pix, green);
+			min_pix = min(min_pix, blue);
 		}
 
 		if (args->fit->type == DATA_USHORT) {
@@ -111,6 +133,45 @@ gpointer scnr(gpointer p) {
 			args->fit->fpdata[RLAYER][i] = (float)red;
 			args->fit->fpdata[GLAYER][i] = (float)green;
 			args->fit->fpdata[BLAYER][i] = (float)blue;
+		}
+	}
+
+	/* normalize in case of preserve, it can under/overshoot */
+	if (args->preserve) {
+		siril_debug_print("min = %f, max = %f\n", min_pix, max_pix);
+		max_pix = max(1.0, max_pix);
+		float a = 1.0f / (max_pix - min_pix);
+		float b = min_pix;
+		if (args->fit->type == DATA_USHORT) {
+			b *= norm;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+			for (i = 0; i < nbdata; i++) {
+				float red = args->fit->pdata[RLAYER][i],
+				green = args->fit->pdata[GLAYER][i], blue = args->fit->pdata[BLAYER][i];
+				if (args->fit->orig_bitpix == BYTE_IMG) {
+					args->fit->pdata[RLAYER][i] = round_to_BYTE(a * red + b);
+					args->fit->pdata[GLAYER][i] = round_to_BYTE(a * green + b);
+					args->fit->pdata[BLAYER][i] = round_to_BYTE(a * blue + b);
+				} else {
+					args->fit->pdata[RLAYER][i] = round_to_WORD(a * red + b);
+					args->fit->pdata[GLAYER][i] = round_to_WORD(a * green + b);
+					args->fit->pdata[BLAYER][i] = round_to_WORD(a * blue + b);
+				}
+			}
+		}
+		else if (args->fit->type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+			for (i = 0; i < nbdata; i++) {
+				float red = args->fit->fpdata[RLAYER][i],
+				green = args->fit->fpdata[GLAYER][i], blue = args->fit->fpdata[BLAYER][i];
+				args->fit->fpdata[RLAYER][i] = a * red + b;
+				args->fit->fpdata[GLAYER][i] = a * green + b;
+				args->fit->fpdata[BLAYER][i] = a * blue + b;
+			}
 		}
 	}
 
