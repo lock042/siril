@@ -1405,7 +1405,7 @@ artifacts may appear.</property>
               <object class="GtkSpinButton" id="spinbutton_extract_w">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">Number of wavelet layers. You can choose up to 6 layers for wavelets computing.</property>
+                <property name="tooltip-text" translatable="yes">Number of wavelet layers. You can choose up to 9 layers for wavelets computing.</property>
                 <property name="hexpand">True</property>
                 <property name="invisible-char">●</property>
                 <property name="max-width-chars">7</property>
