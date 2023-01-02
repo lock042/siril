@@ -200,5 +200,4 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(run_nlbayes_on_fit, args);
-	siril_close_dialog("denoise_dialog");
 }
