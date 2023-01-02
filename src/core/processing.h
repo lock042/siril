@@ -71,6 +71,8 @@ struct generic_seq_args {
 	int (*compute_mem_limits_hook)(struct generic_seq_args *, gboolean);
 	/** function called before iterating through the sequence */
 	int (*prepare_hook)(struct generic_seq_args *);
+	/** function called before reading an image to check that it needs to be loaded */
+	gboolean (*image_read_hook)(struct generic_seq_args *, int);
 	/** function called for each image with image index in sequence, number
 	 *  of image currently processed and the image, area if partial */
 	int (*image_hook)(struct generic_seq_args *, int, int, fits *, rectangle *, int);

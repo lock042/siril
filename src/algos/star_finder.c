@@ -759,19 +759,21 @@ float filtered_FWHM_average(psf_star **stars, int nb) {
 	return retval;
 }
 
-/* looks for the list file, tries to load it, returns 1 on success */
-static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
+/* looks for the list file, tries to load it, returns TRUE on success */
+static gboolean check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	FILE *fd = g_fopen(filename, "r");
 	if (!fd)
-		return 0;
+		return FALSE;
 	siril_debug_print("star list file %s found, checking...\n", filename);
 	char buffer[300];
 	gboolean params_ok = FALSE, read_failure = FALSE;
 	star_finder_params *sf = &com.pref.starfinder_conf;
 	int star = 0, nb_stars = -1;
 	while (fgets(buffer, 300, fd)) {
-		if (buffer[0] != '#' && !params_ok)
-			return 0;
+		if (buffer[0] != '#' && !params_ok) {
+			read_failure = TRUE;
+			break;
+		}
 		if (!strncmp(buffer, "# ", 2)) {
 			if (sscanf(buffer, "# %d stars found ", &nb_stars) == 1) {
 				siril_debug_print("nb stars: %d\n", nb_stars);
@@ -852,7 +854,35 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	return !read_failure;
 }
 
-int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+/* return FALSE to avoid reading image */
+static gboolean findstar_image_read_hook(struct generic_seq_args *args, int index) {
+	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
+
+	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
+	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
+	curr_findstar_args->im.index_in_seq = index;
+	curr_findstar_args->im.fit = NULL;
+	if (findstar_args->stars && findstar_args->nb_stars) {
+		curr_findstar_args->stars = findstar_args->stars + index;
+		curr_findstar_args->nb_stars = findstar_args->nb_stars + index;
+	}
+	curr_findstar_args->threading = SINGLE_THREADED;
+
+	// build the star list file name in all cases to try reading it
+	char root[256];
+	if (!fit_sequence_get_image_filename(args->seq, index, root, FALSE)) {
+		free(curr_findstar_args);
+		return FALSE;
+	}
+	gchar *star_filename = g_strdup_printf("%s.lst", root);
+
+	if (findstar_args->save_to_file)
+		curr_findstar_args->starfile = star_filename;
+
+	return !check_star_list(star_filename, curr_findstar_args);
+}
+
+static int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
 	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
@@ -891,6 +921,7 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = args->seq->selnum;
 	}
+	args->image_read_hook = findstar_image_read_hook;
 	args->image_hook = findstar_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("FindStar");

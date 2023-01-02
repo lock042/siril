@@ -202,6 +202,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		nb_subthreads = threads_per_image[thread_id];
 #endif
 
+		gboolean read_image = args->image_read_hook ? args->image_read_hook(args, input_idx) : TRUE;
 		if (args->partial_image) {
 			if (args->regdata_for_partial && (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][input_idx].H) > -2)
 			&& (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H) > -2)) { // do not try to transform area if img matrix is null
@@ -216,9 +217,11 @@ gpointer generic_sequence_worker(gpointer p) {
 			 */
 			gboolean has_crossed = enforce_area_in_image(&area, args->seq, input_idx) && args->regdata_for_partial;
 
-			if (has_crossed || seq_read_frame_part(args->seq, args->layer_for_partial,
-						input_idx, fit, &area,
-						args->get_photometry_data_for_partial, thread_id))
+			if (has_crossed ||
+					(read_image && seq_read_frame_part(args->seq, args->layer_for_partial,
+									   input_idx, fit, &area,
+									   args->get_photometry_data_for_partial,
+									   thread_id)))
 			{
 				if (args->stop_on_error)
 					abort = 1;
@@ -238,7 +241,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			  savefits(tmpfn, fit);*/
 		} else {
 			// image is read bottom-up here, while it's top-down for partial images
-			if (seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
+			if (read_image && seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
 				abort = 1;
 				clearfits(fit);
 				free(fit);
