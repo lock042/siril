@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-12-05 16:11+0100\n"
-"PO-Revision-Date: 2022-12-19 06:40+0100\n"
-"Last-Translator: Stefan Beck <astro@cometchaser.de>\n"
+"PO-Revision-Date: 2023-01-02 18:15+0100\n"
+"Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: \n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.4.2\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.2.2\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:6172
 #: src/filters/cosmetic_correction.c:424 src/filters/cosmetic_correction.c:595
@@ -524,9 +524,8 @@ msgstr ""
 "vollständigen Entfernung gewünscht ist."
 
 #: src/gui/siril3.glade:2595
-#, fuzzy
 msgid "Upsample x2"
-msgstr "Resample"
+msgstr "Resample 2x"
 
 #: src/gui/siril3.glade:2600
 msgid ""
@@ -896,7 +895,7 @@ msgstr "ICC Profil"
 
 #: src/gui/siril3.glade:4781
 msgid "Embed sRGB ICC profile in the image"
-msgstr "sRGB-ICC-Profil in das Bild einbetten"
+msgstr "Farbprofil sRGB-ICC in das Bild einbetten"
 
 #: src/gui/siril3.glade:4793
 msgid "<b>Embedded Data</b>"
@@ -1084,7 +1083,7 @@ msgstr "Bildentrauschung"
 
 #: src/gui/siril3.glade:6157
 msgid "Remove salt and pepper noise"
-msgstr ""
+msgstr "Salz-und-Pfeffer-Rauschen entfernen"
 
 #: src/gui/siril3.glade:6161
 msgid ""
@@ -1092,6 +1091,9 @@ msgid ""
 "the primary denoising algorithm. This is generally a good thing and the "
 "setting defaults to active."
 msgstr ""
+"Diese Option wendet eine kosmetische Korrektur an um Salz-und-Pfeffer-Rauschen "
+"vor dem primären Entrauschungsalgorithmus zu entfernen. Das ist im Allgemeinen "
+"hilfreich und daher ist die Defaulteinstellung \"aktiv\"."
 
 #: src/gui/siril3.glade:6193
 msgid "Independant Channels"
@@ -1105,6 +1107,11 @@ msgid ""
 "default and should only be enabled in the rare event that you see artefacts "
 "when denoising a colour image."
 msgstr ""
+"Unterdrückt blockige Farbartefakte die gelegentlich in Farbbildern auftreten. "
+"Diese Option behandelt jeden Kanal einzeln und eliminiert Artefakte auf Kosten "
+"von etwas Geschwindigkeit. Meist ist diese Zeit nicht notwendig, daher ist die "
+"Defaulteinstellung \"inaktiv\". Diese Option sollte in den seltenen Fällen "
+"aktiviert werden wenn man Artefakte bei der Entrauschung von Farbbildern sieht."
 
 #: src/gui/siril3.glade:6206
 msgid "Color Denoising"
@@ -1112,17 +1119,20 @@ msgstr "Farbentrauschung"
 
 #: src/gui/siril3.glade:6234
 msgid "No secondary denoising stage"
-msgstr ""
+msgstr "Keine zweite Stufe der Entrauschung"
 
 #: src/gui/siril3.glade:6238
 msgid ""
 "No secondary denoising process will be used. The primary algorithm by itself "
 "usually performs well so this is the default."
 msgstr ""
+"Es wird kein zweiter Entrauschungsprozess benutzt. Der primäre "
+"Entrauschungsprozess arbeitet normalerweise gut, daher ist diese Einstellung "
+"der Default."
 
 #: src/gui/siril3.glade:6252
 msgid "Anscombe VST with exact unbiased inverse"
-msgstr ""
+msgstr "Anscombe VST mit exakter unverzerrter Invertierung"
 
 #: src/gui/siril3.glade:6256
 msgid ""
@@ -1131,10 +1141,15 @@ msgid ""
 "Gaussian mix. It cannot be used in conjunction with DA3D or SOS. Ref: https://"
 "ieeexplore.ieee.org/document/5278406"
 msgstr ""
+"Die Anscombe VST ist nützlich um photonenlimitierte Bilder zu entrauschen wenn "
+"die Charakteristik des Rauschens keiner Gaußverteilung entspricht sondern "
+"hauptsächlich eine Mischung aus Poisson- und Poisson-Gauß-Verteilung ist. Die "
+"Funktion kann nicht in Verbindung mit DA3D oder SOS verwendet werden. "
+"Referenz: https://ieeexplore.ieee.org/document/5278406"
 
 #: src/gui/siril3.glade:6271
 msgid "Data Adaptive Dual Domain Denoising"
-msgstr ""
+msgstr "Datenadaptive Dual-Domain-Entrauschung"
 
 #: src/gui/siril3.glade:6275
 msgid ""
@@ -1144,10 +1159,17 @@ msgid ""
 "than the primary algorithm and may improve detail retention and reduce "
 "staircasing artefacts. Ref: https://ieeexplore.ieee.org/document/7350835"
 msgstr ""
+"Verwenden Sie DA3D als letzten Schritt der Rauschunterdrückung. Dieser "
+"Algorithmus verwendet die Ergebnisse des ersten Rauschunterdrückungsverfahrens "
+"als Grundlage um eine Verkleinerung des Frequenzraums an form- und "
+"datenadaptiven Patches durchzuführen. Er erzeugt niemals schlechter e "
+"Ergebnisse als der primäre Algorithmus und kann die Detailwiedergabe "
+"verbessern und Treppenartefakte reduzieren. Referenz: https://ieeexplore.ieee."
+"org/document/7350835"
 
 #: src/gui/siril3.glade:6289
 msgid "Strengthen Operate Subtract iterator"
-msgstr ""
+msgstr "Iterator \"Operate Subtract\" stärken"
 
 #: src/gui/siril3.glade:6293
 msgid ""
@@ -1156,14 +1178,20 @@ msgid ""
 "denoising performance and reduce staircasing artefacts. Ref: https://arxiv.org/"
 "abs/1502.06220"
 msgstr ""
+"SOS arbeitet, indem der primäre Rauschunterdrückungsalgorithmus mehrmals "
+"wieder holt wird, wobei jedes Mal ein Bruchteil des verrauschten Bildes "
+"zurückgemischt wird. Dies kann die Rauschunterdrückung verbessern und "
+"Treppenartefakte reduzieren. Referenz: https://arxiv.org/abs/1502.06220"
 
 #: src/gui/siril3.glade:6311
 msgid "Secondary Denoising Algorithm"
-msgstr ""
+msgstr "Zweiter Entrauschungsprozess"
 
 #: src/gui/siril3.glade:6342
 msgid "Sets the number of SOS iterations. 3-5 is usually a good starting point."
 msgstr ""
+"Stellt die Anzahl der SOS-Iterationen ein. 3-5 ist üblicherweise ein guter "
+"Startpunkt."
 
 #: src/gui/siril3.glade:6344
 msgid "SOS iterations"
@@ -1178,6 +1206,13 @@ msgid ""
 "next iteration, so the final output noise level is substantially lower than "
 "the intermediate values shown between iterations.)"
 msgstr ""
+"Stellt die Anzahl der SOS-Iterationen ein. 3-5 Wiederholungen führen "
+"üblicherweise zu einer guten Konvergenz. Die Konvergenz kann mit Hilfe der "
+"aktualisierten Schätzung des Bildrauschens untersucht werden die im Log-"
+"Fenster nach jeder Iteration angezeigt wird. (Diese Rauschwerte werden "
+"gemessen nachdem das Rauschen aus dem Originalbild wieder hinzugemischt wurde, "
+"um die nächste Iteration vorzubereiten. Der endgültige Ergebnis-Rauschpegel "
+"ist wesentlich niedriger als die Zwischenwerte zwischen den Iterationen)."
 
 #: src/gui/siril3.glade:6371
 msgid ""
@@ -1186,6 +1221,12 @@ msgid ""
 "kept. Values close to 0 or 1 may result in a need for more iterations to "
 "achieve convergence at the maximum improvement SOS can produce."
 msgstr ""
+"Rho legt den Anteil des ursprünglichen, verrauschten Bildes fest der zwischen "
+"den Iterationen hinzugemischt wird. Ein höherer Wert bedeutet, dass weniger "
+"Rauschen eingemischt wird und mehr vom Zwischenergebnis erhalten bleibt. Werte "
+"nahe 0 oder 1 können dazu führen, dass mehr Iterationen erforderlich sind um "
+"eine Konvergenz bei der maximalen Qualität zu erreichen die mit SOS erzielbar "
+"ist."
 
 #: src/gui/siril3.glade:6373
 msgid "rho"
@@ -1198,6 +1239,11 @@ msgid ""
 "but beyond a certain point the algorithm will fail to converge. The default of "
 "0.2 is often a good starting point."
 msgstr ""
+"Rho legt den Anteil des ursprünglichen, verrauschten Bildes fest der zwischen "
+"den Iterationen hinzugemischt wird. Bis zu einem gewissen Punkt führen größere "
+"Werte zu einer größeren Effektivität, aber ab einem bestimmten Punkt "
+"konvergiert der Algorithmus nicht mehr. Der Standardwert 0,2 ist häufig ein "
+"guter Ausgangspunkt."
 
 #: src/gui/siril3.glade:6403
 msgid "SOS Advanced Options"
@@ -1211,6 +1257,12 @@ msgid ""
 "none of the noisy image added. Modulation is performed at the end of the "
 "process, after primary and secondary denoising stages have both completed."
 msgstr ""
+"Modulation erlaubt es einen Teil des verrauschten Bildes in das entrauschte "
+"Ergebnis zu mischen. Das kann nützlich sein um eine Mikrotextur hinzuzufügen "
+"falls das Ergebnis zu glatt aussieht. Ein Wert von 1 bedeutet, dass die "
+"Ausgabe zu 100% entrauscht wird ohne das verrauschte Bild hinzuzumischen. Die "
+"Modulation wird am Ende des Prozesses durchgeführt, nachdem sowohl die primäre "
+"als auch die sekundäre Entrauschungsstufe abgeschlossen sind."
 
 #: src/gui/siril3.glade:6442 src/gui/siril3.glade:6468
 msgid ""
@@ -1219,6 +1271,11 @@ msgid ""
 "value. Modulation reduces the denoising performance, but a little modulation "
 "can be useful to add back microtexture to flat regions of the image."
 msgstr ""
+"Stellt die Modulation ein. Der Wert der Pixel wird berechnet als m * b + (1-m) "
+"* orig, wobei m die Modulation ist, b ist der entrauschte Wert und orig ist "
+"der Wert des Original-Pixels. Modulation reduziert die Performance der "
+"Entrauschung, aber eine kleine Modulation kann hilfreich sein um Mikrotexturen "
+"in sehr glatte Regionen des Bildes wieder herzustellen."
 
 #: src/gui/siril3.glade:6488
 msgid "Channel Extraction"
@@ -2460,6 +2517,8 @@ msgid ""
 "Compute statistics on pixels that have the same filter as the corresponding "
 "channel, for CFA (non-demosaiced) images."
 msgstr ""
+"Berechnet Statistiken zu Pixeln, die denselben Filter haben wie der "
+"entsprechende Kanal. Für CFA-Bilder (nicht debayerte Bilder)."
 
 #: src/gui/siril3.glade:10776
 msgid "No Selection"
@@ -2527,6 +2586,9 @@ msgid ""
 "current zoom level will not be altered. This does not apply to stars selected "
 "by clicking their PSF in the main display."
 msgstr ""
+"Wenn aktiviert wird ein Stern der aus der Liste ausgewählt wird in der Anzeige "
+"zentriert. Die aktuelle Zoomstufe wird nicht verändert. Dies gilt nicht für "
+"Sterne, die durch Klicken auf ihre PSD in der Hauptanzeige ausgewählt wurden."
 
 #: src/gui/siril3.glade:11269 src/gui/siril3.glade:11321
 #: src/gui/siril3.glade:11334 src/gui/siril3.glade:11347
@@ -2650,6 +2712,8 @@ msgid ""
 "Minimum value for Moffat beta parameter. This can be used to avoid galaxies "
 "being modelled as stars with excessively low beta."
 msgstr ""
+"Mindestwert für den Moffat beta Parameter. Dies kann genutzt werden um zu "
+"vermeiden, dass Galaxien als Sterne mit zu niedrigem Beta modelliert werden."
 
 #: src/gui/siril3.glade:11487
 msgid "Resets all parameters to defaults."
@@ -2697,6 +2761,10 @@ msgid ""
 "unchecked for alt-az or heavily drifting mounts. This makes one image "
 "processing much faster."
 msgstr ""
+"Verschiebt die Bilder lediglich anstatt die Drehung bei der Registrierung zu "
+"verwenden. Dies sollte für Alt-Az oder schlecht eingenordete Montierungen "
+"deaktiviert werden. Die Einstellung macht die Bildverarbeitung deutlich "
+"schneller."
 
 #: src/gui/siril3.glade:11802
 msgid "remove gradient"
@@ -2705,6 +2773,8 @@ msgstr "Gradient entfernen"
 #: src/gui/siril3.glade:11807
 msgid "Apply a linear background gradient removal on calibrated input frames."
 msgstr ""
+"Wendet eine lineare Hintergrund-Gradientenentfernung auf kalibrierte "
+"Eingabebilder an."
 
 #: src/gui/siril3.glade:11818
 msgid "use 32 bits"
@@ -2715,6 +2785,8 @@ msgid ""
 "Use 32 bits for image processing. This is slower and generally useless in "
 "terms of quality for live stacking."
 msgstr ""
+"Benutze 32 Bit für die Bildverarbeitung. Das ist generell langsamer und für "
+"das Live-Stacking irrelevant für die Bildqualität."
 
 #: src/gui/siril3.glade:11896
 msgid "waiting for input files"
@@ -2882,6 +2954,8 @@ msgid ""
 "Search and display solar system objects with mag<20.0.\n"
 "This research has made use of IMCCE's SkyBoT VO tool."
 msgstr ""
+"Objekte des Sonnensystems mit mag<20.0 suchen und anzeigen.\n"
+"Diese  Forschung nutzt das IMCCE SkyBoT VO Tool."
 
 #: src/gui/siril3.glade:12600
 msgid "Solar System Objects"
@@ -2993,35 +3067,45 @@ msgid ""
 "Select the image containing the CFA0 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA0 prefix."
 msgstr ""
+"Wählen Sie das Bild welches das CFA0 Bayer-Teilmuster enthält. Wenn es mit "
+"Sirils \"Split CFA\"-Funktion erstellt wurde, hat es das Präfix CFA0."
 
 #: src/gui/siril3.glade:13052
 msgid ""
 "Select the image containing the CFA1 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA1 prefix."
 msgstr ""
+"Wählen Sie das Bild welches das CFA1 Bayer-Teilmuster enthält. Wenn es mit "
+"Sirils \"Split CFA\"-Funktion erstellt wurde, hat es das Präfix CFA1."
 
 #: src/gui/siril3.glade:13066
 msgid ""
 "Select the image containing the CFA2 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA2 prefix."
 msgstr ""
+"Wählen Sie das Bild welches das CFA2 Bayer-Teilmuster enthält. Wenn es mit "
+"Sirils \"Split CFA\"-Funktion erstellt wurde, hat es das Präfix CFA2."
 
 #: src/gui/siril3.glade:13080
 msgid ""
 "Select the image containing the CFA3 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA3 prefix."
 msgstr ""
+"Wählen Sie das Bild welches das CFA3 Bayer-Teilmuster enthält. Wenn es mit "
+"Sirils \"Split CFA\"-Funktion erstellt wurde, hat es das Präfix CFA3."
 
 #: src/gui/siril3.glade:13097
-#, fuzzy
 msgid "Input Files"
-msgstr "Dateien hinzufügen"
+msgstr "Eingabedateien"
 
 #: src/gui/siril3.glade:13126
 msgid ""
 "Sets the Bayer pattern header to be applied to the result. This must match the "
 "Bayer pattern of the image that the original Bayer subchannels were split from."
 msgstr ""
+"Legt den Header des Bayer-Musters fest, der auf das Ergebnis angewendet werden "
+"soll. Dies muss mit dem Bayer-Muster des Ursprungsbildes übereinstimmen von "
+"dem die Bayer-Teilkanäle erzeugt wurden."
 
 #: src/gui/siril3.glade:13130
 msgid "RGGB"
@@ -3049,6 +3133,9 @@ msgid ""
 "CFA0 loaded to start with, and ensure filenames are consistent across images "
 "for all CFA channels."
 msgstr ""
+"Führt einzelne CFA-Bilder zu einer Sequenz zusammen. Die Sequenz für CFA0 "
+"sollte als Ausgangspunkt geladen sein und es muss sichergestellt sein, dass "
+"die Dateinamen für alle CFA-Kanäle in allen Bildern konsistent sind."
 
 #: src/gui/siril3.glade:13194
 msgid "Sequence input marker"
@@ -3064,6 +3151,9 @@ msgid ""
 "images. This should be set to whatever sequence prefix was used when the "
 "split_cfa process was run (default: CFA_)."
 msgstr ""
+"Präfix für die CFA-Nummern in den aufgetrennten CFA-Kanalbildern. Dies sollte "
+"auf das Präfix gesetzt werden welches genutzt wurde um den Split-CFA-Prozess "
+"auszuführen. (Standard: CFA_)"
 
 #: src/gui/siril3.glade:13233
 msgid "Prefix of the image names resulting from the merge CFA process."
@@ -3090,6 +3180,25 @@ msgid ""
 "remaining CFA channels for that image. All sequence filtering should be done "
 "either before split_cfa or after merge_cfa."
 msgstr ""
+"Sie müssen die CFA0-Sequenz im Tab \"Seqzenz\" des Hauptfensters ausgewählt "
+"haben.\n"
+"\n"
+"Die getrennten CFA-Untersequenzen müssen auf die exakt gleiche Weise "
+"verarbeitet worden sein.\n"
+"\n"
+"Die Dateien <b>müssen</b> im selben Verzeichnis liegen und dürfen sich nur "
+"durch den Namen des CFA-Kanals unterscheiden. Das heißt, wenn ein CFA0-Bild "
+"<i>r_pp_CFA_0_Light_0001.fit</i> heißt, müssen die entsprechenden Bilder für "
+"die anderen CFA-Kanäle <i>r_pp_CFA_1_Light_0001.fit</i>, "
+"<i>r_pp_CFA_2_Light_0001.fit</i> und <i>r_pp_CFA_3_Light_0001.fit\" heißen.\n"
+"\n"
+"Jedes Bild in der Sequenz wird nur verarbeitet, wenn die entsprechenden Bilder "
+"für die anderen 3 CFA-Kanäle gefunden werden können. Sowohl G1 als auch G2 "
+"sind erforderlich. Beachten Sie, dass, wenn Sie ein Bild mit einem CFA-Kanal "
+"eines Bildes zwischen split_cfa und merge_cfa verwerfen, merge_cfa die "
+"verbleibenden CFA-Kanäle für dieses Bild nicht mehr zusammenführen kann. Die "
+"gesamte Sequenzfilterund sollte entweder vor split_cfa oder nach merge_cfa "
+"erfolgen."
 
 #: src/gui/siril3.glade:13300
 msgid "Sequences"
@@ -3365,18 +3474,21 @@ msgid ""
 "Check this option to rescale the pixel values of the resulting image to the "
 "specified output range (see the lower range and upper range parameters below)"
 msgstr ""
+"Aktivieren Sie dies Option, um die Pixelwerte des resultierenden Bildes auf "
+"den angegebenen Ausgabebereich neu zu skalieren (siehe die Parameter Untere "
+"Begrenzung und Obere Begrenzung  weiter unten)."
 
 #: src/gui/siril3.glade:15161
 msgid ""
 "When the rescale option is enabled, this is the lower bound of the output "
 "rescaling range."
-msgstr ""
+msgstr "Untere Begrenzung, wenn die Neuskalierungsoption aktiviert ist."
 
 #: src/gui/siril3.glade:15180
 msgid ""
 "When the rescale option is enabled, this is the upper bound of the output "
 "rescaling range."
-msgstr ""
+msgstr "Obere Begrenzung, wenn die Neuskalierungsoption aktiviert ist."
 
 #: src/gui/siril3.glade:15201
 msgid "Output"
@@ -3419,27 +3531,25 @@ msgid "32 bits"
 msgstr "32 Bit"
 
 #: src/gui/siril3.glade:15420
-#, fuzzy
 msgid "Open the inverse hyperbolic sine dialog"
-msgstr "Dialog astrometrische Lösung öffnen"
+msgstr "Dialog asinh-Transformation öffnen"
 
 #: src/gui/siril3.glade:15422
 msgid "Asinh Transformation..."
 msgstr "Asinh Transformation..."
 
 #: src/gui/siril3.glade:15435
-#, fuzzy
 msgid "Open the generalized hyperbolic transform dialog"
-msgstr "Inverse verallgemeinerte hyperbolische Transformation"
+msgstr ""
+"Dialog zur verallgemeinerten hyperbolischen Streckungstransformationen öffnen"
 
 #: src/gui/siril3.glade:15437
 msgid "Generalised Hyperbolic Stretch Transformations..."
 msgstr "Verallgemeinerte hyperbolische Streckungstransformationen..."
 
 #: src/gui/siril3.glade:15450
-#, fuzzy
 msgid "Open the hystogram transform dialog"
-msgstr "Histogramm Transformation anwenden"
+msgstr "Dialog zur Histogramm Transformation öffnen"
 
 #: src/gui/siril3.glade:15452
 msgid "Histogram Transformation..."
@@ -3459,9 +3569,8 @@ msgid "Color Saturation..."
 msgstr "Farbsättigung..."
 
 #: src/gui/siril3.glade:15505
-#, fuzzy
 msgid "Open the subtractive chromatic noise reduction dialog"
-msgstr "Subtraktiv chromatische Grün-Rauschen Reduktion"
+msgstr "Dialog zur Entfernung des Grünrauschens öffnen"
 
 #: src/gui/siril3.glade:15507
 msgid "Remove Green Noise..."
@@ -3477,14 +3586,13 @@ msgstr "Negative Transformation"
 
 # unschön, genaue Beschreibung erforderlich
 #: src/gui/siril3.glade:15546
-#, fuzzy
 msgid "Open the À Trou wavelet transform dialog"
-msgstr "Wavelet-Transformation \"auf Lücke\"..."
+msgstr "Dialog Wavelet-Transformation \"À Trou\" öffnen"
 
 # unschön, genaue Beschreibung erforderlich
 #: src/gui/siril3.glade:15548
 msgid "À trous Wavelets Transform..."
-msgstr "Wavelet-Transformation \"auf Lücke\"..."
+msgstr "Wavelet-Transformation \"À Trou\"..."
 
 #: src/gui/siril3.glade:15561
 msgid "Open the remove banding dialog"
@@ -3495,9 +3603,8 @@ msgid "Banding Reduction..."
 msgstr "Banding Reduzierung..."
 
 #: src/gui/siril3.glade:15576
-#, fuzzy
 msgid "Open the contrast limited adaptive histogram Equalization dialog"
-msgstr "Kontrastbegrenzte adaptive Histogrammausgleichung….."
+msgstr "Dialog Kontrastbegrenzte adaptive Histogrammausgleichung öffnen"
 
 #: src/gui/siril3.glade:15591
 msgid "Open the cosmectic correction dialog"
@@ -3613,6 +3720,8 @@ msgstr "Starnet++ Sterne entfernen..."
 msgid ""
 "Blends a starless image and star mask, each with separate stretches applied"
 msgstr ""
+"Mischt ein sternloses Bild und eine Sternmaske mit getrennt einstellbarem "
+"Stretching"
 
 #: src/gui/siril3.glade:15877
 msgid "Star Recomposition..."
@@ -3624,10 +3733,14 @@ msgid ""
 "maximum 16-bit or 32-bit pixel range. Should be applied <i>before</i> "
 "<b>stretching</b> to achieve the best result."
 msgstr ""
+"Entsättigt ausgebrannte Sternprofile und skaliert die Ausgabe so, dass der "
+"maximale 16-Bit- oder 32-Bit-ADU-Bereich nicht überschritten wird. Sollte "
+"<i>vor</i> auf ungestreckte Bilder angewendet werden um das beste Ergebnis zu "
+"erzielen."
 
 #: src/gui/siril3.glade:15892
 msgid "Desaturate Stars"
-msgstr ""
+msgstr "Sterne entsättigen"
 
 #: src/gui/siril3.glade:15909
 msgid ""
@@ -3638,10 +3751,18 @@ msgid ""
 "Star synthesis should be applied <i>before</i> <b>stretching</b>.\n"
 "Star selection can be manually fine-tuned using the Dynamic PSF tool."
 msgstr ""
+"Erstellt eine synthetische Gauß/Moffat-Sternmaske mit perfekten Profilen für "
+"jeden Stern, der von Sirils Sternerkennungsroutine erkannt wird, indem "
+"Parameter verwendet werden, die in den Originaldaten gemessen wurden.  Die "
+"Sternmaske kann mit einem sternlosen Bild neu kombiniert werden um "
+"Aberrationen/Verzerrungen zu korrigieren.\n"
+"Die Sternsynthese sollte <i>vor</i> auf ungestreckte Bilder angewendet werden "
+"um das beste Ergebnis zu erzielen.\n"
+"Die Auswahl der Sterne kann mit dem PSF-Tool manuell feinabgestimmt werden."
 
 #: src/gui/siril3.glade:15913
 msgid "Full Resynthesis"
-msgstr ""
+msgstr "Vollständige Resynthese"
 
 #: src/gui/siril3.glade:15926
 msgid "Open Dynamic PSF dialog."
@@ -3758,15 +3879,16 @@ msgstr "Lanczos-4"
 
 #: src/gui/siril3.glade:16508 src/gui/siril3.glade:16738
 #: src/gui/siril3.glade:21104
-#, fuzzy
 msgid "Interpolation clamping"
-msgstr "Interpolation "
+msgstr "Interpolation"
 
 #: src/gui/siril3.glade:16512 src/gui/siril3.glade:16742
 msgid ""
 "Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to "
 "prevent ringing artefacts"
 msgstr ""
+"Verwenden Sie einen Begrenzungsfaktor mit Bikubischen- und Lanczos-4-"
+"Interpolationen um Ringartefakte zu vermeiden"
 
 #: src/gui/siril3.glade:16616
 msgid "Angle (°)"
@@ -3799,6 +3921,15 @@ msgid ""
 "will be added with a date in their name, with no duplicate check. Purge the "
 "User Catalogue to remove previous searches."
 msgstr ""
+"Geben Sie den Objektnamen ein, den Sie in der Online-Datenbank SIMBAD oder der "
+"Minor Planet Center Datenbank suchen möchten.\n"
+"Auf Objekte des Sonnensystems kann entweder mit ihrer Nummer oder ihrem Namen "
+"verwiesen werden, jedoch mit einem Präfix je nach Typ, z.B. „a:1“ oder „a:"
+"Ceres“, „p:mars“ oder „c:C/2017 T2“.\n"
+"Gefundene Objekte werden dem Benutzerkatalog hinzugefügt. Objekte des "
+"Sonnensystems werden mit einem Datum im Namen ohne Duplikatprüfung "
+"hinzugefügt. Bearbeiten Sie den Benutzerkatalog um frühere Suchergebnisse zu "
+"entfernen."
 
 #: src/gui/siril3.glade:16785
 msgid "Save as unique file"
@@ -3842,7 +3973,7 @@ msgstr "Grün extrahieren"
 
 #: src/gui/siril3.glade:16946
 msgid "Ha/OIII Resampling"
-msgstr ""
+msgstr "Ha/OIII Resampling"
 
 #: src/gui/siril3.glade:16958
 msgid ""
@@ -3851,18 +3982,24 @@ msgid ""
 "the Ha image by a factor of 2 to match the OIII image; downsample OIII "
 "downsamples the OIII image by a factor of 2 to match the Ha image."
 msgstr ""
+"Umgang mit der Ausgabe der Funktion \"Ha/OIII extrahieren\": Ohne Resampling "
+"wird ein OIII-Bild mit voller Auflösung und ein Ha-Bild mit halber Auflösung "
+"erzeugt. Mit \"Ha hochskalieren\" wird das Ha-Bild mit dem Faktor 2 "
+"hochskaliert um es an das OIII-Bild anzupassen. Mit \"OIII herungerskalieren\" "
+"wird das Bild mit dem Faktor 2 herunterskaliert um es an das Ha-Bild "
+"anzupassen."
 
 #: src/gui/siril3.glade:16961
 msgid "No resampling"
-msgstr ""
+msgstr "Keine Neuskalierung"
 
 #: src/gui/siril3.glade:16962
 msgid "Upsample Ha"
-msgstr "Upsampling Ha"
+msgstr "Ha hochskalieren"
 
 #: src/gui/siril3.glade:16963
 msgid "Downsample OIII"
-msgstr "OIII herunterrechnen"
+msgstr "OIII herunterskalieren"
 
 #: src/gui/siril3.glade:17032
 msgid "current red file"
@@ -4621,6 +4758,9 @@ msgid ""
 "Use this option to compute only shifts (so no rotation) even if more than one "
 "star is selected. When only one star is selected, this is activated by default."
 msgstr ""
+"Verwenden Sie diese Option um nur Verschiebungen (also keine Rotation) zu "
+"berechnen, auch wenn mehr als ein Stern ausgewählt ist. Wenn nur ein Stern "
+"ausgewählt ist, ist diese Option standardmäßig aktiviert."
 
 #: src/gui/siril3.glade:19750
 msgid "Match stars in selection"
@@ -5024,6 +5164,9 @@ msgid ""
 "Choose between % and k-σ to keep given percentage of images or to compute the "
 "allowable threshold using k-σ clipping."
 msgstr ""
+"Wählen Sie zwischen  % and k-σ , um einen bestimmten Teil der Bilder "
+"beizubehalten odern den zulässigen Schwellenwert des k-σ Clippings beim "
+"anzugeben."
 
 #: src/gui/siril3.glade:20631 src/gui/siril3.glade:20758
 #: src/gui/siril3.glade:22570 src/gui/siril3.glade:22697
@@ -5172,6 +5315,18 @@ msgid ""
 "In current Siril implementations, we have included a clamping mechanism that "
 "prevents negative interpolated values and ringing artifacts for most images."
 msgstr ""
+"Aktiviert die Begrenzung der Bikubischen- und Lacsoz4-"
+"Interpolationsverfahren.\n"
+"\n"
+"Das Hauptproblem der Lanczos- und bikubischen Interpolationsverfahren ist die "
+"Erzeugung starker Ringartefakte (Ringing). Diese Artefakte werden durch "
+"negative Ergebnisse der Interpolationsfunktion verursacht, die auf Kanten mit "
+"hohem Kontrast und isolierte helle Pixel (wie bei Sternen) entfallen. Dies "
+"tritt normalerweise nur bei linearen Daten auf.\n"
+"\n"
+"In der aktuellen Siril-Implementierung haben wir einen Begrenzungsmechanismus "
+"eingebaut mit dem negative Ergebnisse und Ringartefakte bei den meisten "
+"Bildern verhindert werden."
 
 #: src/gui/siril3.glade:21126
 msgid "Accumulate reg. data"
@@ -5384,7 +5539,7 @@ msgstr "Wählen Sie die angezeigten Photometriedaten aus."
 
 #: src/gui/siril3.glade:21737
 msgid "NINA exoplanet"
-msgstr ""
+msgstr "NINA Exoplanet"
 
 #: src/gui/siril3.glade:21741
 msgid ""
@@ -5748,6 +5903,8 @@ msgstr "Linear Fit Clipping"
 #: src/gui/siril3.glade:22217
 msgid "Generalized Extreme Studentized Deviate Test"
 msgstr ""
+"Generalisierter extrem studentisierter Abweichungstest (Extreme Studentized "
+"Deviate Test)"
 
 #: src/gui/siril3.glade:22230
 msgid ""
@@ -5800,7 +5957,7 @@ msgstr "Gewichtung:"
 
 #: src/gui/siril3.glade:22274
 msgid "Create rejection maps"
-msgstr "Rejection-Karte erstellen"
+msgstr "Ausschlusskarte (Rejection Map) erstellen"
 
 #: src/gui/siril3.glade:22278
 msgid ""
@@ -5808,6 +5965,10 @@ msgid ""
 "how many images were rejected for each pixel of the result image, divided by "
 "the number of stacked images."
 msgstr ""
+"Berechnen und erzeugen Sie Ausschlusskarten (Rejection Maps) während des "
+"Stackings. Diese Bilder zeigen, wie viele Bilder für jedes Pixel des "
+"Ergebnisbildes zurückgewiesen wurden dividiert durch die Anzahl der gestackten "
+"Bildern."
 
 #: src/gui/siril3.glade:22290
 msgid "Merge L+H"
@@ -5817,6 +5978,8 @@ msgstr "L+H zusammenführen"
 msgid ""
 "Create only one rejection map that will be the sum of the low and high maps"
 msgstr ""
+"Erzeugt nur eine Ausschlusskarte (Rejection Map) mit der Summe der niedrigen "
+"und hohen Kartenwerte"
 
 #: src/gui/siril3.glade:22326
 msgid "Pixel rejection:"
@@ -6427,7 +6590,7 @@ msgstr "AHD"
 
 #: src/gui/siril3.glade:25729
 msgid "AMaZE"
-msgstr ""
+msgstr "AMaZE"
 
 #: src/gui/siril3.glade:25730
 msgid "DCB"
@@ -6471,6 +6634,8 @@ msgid ""
 "Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better "
 "but slower."
 msgstr ""
+"Anzahl der Durchgänge für den X-Trans Markesteijn Demosiak-Algorithmus. 1 ist "
+"die Standardeinstellung, 3 kann etwas besser, aber langsamer sein."
 
 #: src/gui/siril3.glade:25803
 msgid "X-Trans demosaicing quality"
@@ -6966,6 +7131,15 @@ msgid ""
 "specicified).\n"
 "If sequence name does not have the suffix \"_\", it is automatically added"
 msgstr ""
+"Der Standardname, der zum Benennen des Stacking-Ergebnisses verwendet werden "
+"soll.\n"
+"Dies kann ein Ausruck sein, der das Schlüsselwort $seqname$ verwendet, das am "
+"Ende des Stackingvorgangs den aktuelle Sequenznamen einsetzt.\n"
+"Beispiel: $seqname$stacked würde \"r_pp_light_stacked\" für eine Sequenz "
+"namens \"r_pp_light_\" erzeugen (dies ist das Standardverhalten, wenn nichts "
+"angegeben wurde).\n"
+"Wenn der Sequenzname nicht auf \"_\" endet, wird das Zeichen automatisch "
+"hinzugefügt"
 
 #: src/gui/siril3.glade:26988
 msgid "Use this name as default in the Stacking tab"
@@ -7363,6 +7537,13 @@ msgid ""
 "the next viewer mode change, and can be applied now using the button to the "
 "right."
 msgstr ""
+"Legt die Standardbittiefe für den Anzeigemodus \"HD Autostretch\" fest. Höhere "
+"Bittifeen erfordern exponentiell mehr Speicher für die LUT (Look Up Table) und "
+"dauern länger, um sie neu zu berechnen, leisten aber einen viel besseren Job "
+"beim Glätten von Quantisierungsartefakten. bei der Anzeige von Bildern mit "
+"sehr schmalen Histogrammspitzen. Die Standard-Bittiefe gilt ab der nächsten "
+"Änderung des Anzeigemodus und kann jetzt mit der Schaltfläche rechts "
+"angewendet werden."
 
 #: src/gui/siril3.glade:28643
 msgid "Apply bit depth"
@@ -7874,7 +8055,7 @@ msgstr "Suche nach dem Sonnensystemobjekt %s am Beobachtungsdatum %s\n"
 
 #: src/algos/astrometry_solver.c:456
 msgid "No topocentric data available. Set to geocentric\n"
-msgstr ""
+msgstr "Keine topozentrischen Daten verfügbar. Geozentrisch aktiviert.\n"
 
 #: src/algos/astrometry_solver.c:458
 #, c-format
@@ -7981,8 +8162,8 @@ msgstr "Abgebrochen"
 #: src/algos/astrometry_solver.c:1224
 #, c-format
 msgid ""
-"Plate solving image from local catalogues for a field of view of %.2f degrees"
-"%s, using a limit magnitude of %.2f\n"
+"Plate solving image from local catalogues for a field of view of %.2f "
+"degrees%s, using a limit magnitude of %.2f\n"
 msgstr ""
 "Plattenlösungsbild aus einem lokalen Sternkatalog für ein Sichtfeld von %.2f "
 "Grad%s, unter Verwendung einer Grenzgröße von %.2f\n"
@@ -8045,6 +8226,8 @@ msgstr "Astrometrie / Plate Solving"
 msgid ""
 "This operation (PCC) relies on the missing WCSLIB software, cannot continue.\n"
 msgstr ""
+"Dieser Vorgang (PCC) benötigt die fehlende Software WCSLIB und kann nicht "
+"fortgesetzt werden.\n"
 
 #. for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
 #: src/algos/astrometry_solver.c:1552
@@ -8160,8 +8343,8 @@ msgid ""
 "Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-"
 "axis aberration[FWHM]: %.2f\n"
 msgstr ""
-"Sterne: %d, Abgeschnittener Mittelwert[FWHM]: %.2lf, Sensorneigung[FWHM]: %.2f "
-"(%.0f%%), Achsabweichung[FWHM]: %.2lf\n"
+"Sterne: %d, Abgeschnittener Mittelwert[FWHM]: %.2f, Sensorverkippung[FWHM]: "
+"%.2f (%.0f%%), Achsabweichung[FWHM]: %.2f\n"
 
 #: src/algos/ccd-inspector.c:283
 msgid "Tilt evaluation"
@@ -8218,7 +8401,7 @@ msgstr ""
 #: src/algos/demosaicing.c:964
 #, c-format
 msgid "Invalid character in X-Trans filter pattern: %c\n"
-msgstr ""
+msgstr "Ungültiges Zeichen im X-Trans-Filtermuster: %c\n"
 
 #: src/algos/demosaicing.c:1224
 msgid "Cannot perform debayering on image with more than one channel\n"
@@ -8255,17 +8438,17 @@ msgstr "Kann De-Bayerung nicht durchführen\n"
 #: src/algos/demosaicing.c:1338
 #, c-format
 msgid "Image %d: error identifying CFA1 filename\n"
-msgstr ""
+msgstr "Bild %d: Fehler bei der Identifizierung des CFA1 Dateinamens\n"
 
 #: src/algos/demosaicing.c:1343
 #, c-format
 msgid "Image %d: error identifying CFA2 filename\n"
-msgstr ""
+msgstr "Bild %d: Fehler bei der Identifizierung des CFA2 Dateinamens\n"
 
 #: src/algos/demosaicing.c:1348
 #, c-format
 msgid "Image %d: error identifying CFA3 filename\n"
-msgstr ""
+msgstr "Bild %d: Fehler bei der Identifizierung des CFA3 Dateinamens\n"
 
 #: src/algos/demosaicing.c:1359
 #, c-format
@@ -8293,14 +8476,16 @@ msgid ""
 "Input files are incompatible (all must be mono with the same size and bit "
 "depth). Aborting...\n"
 msgstr ""
+"Eingabedateien sind nicht kompatibel (alle Bilder müssen monochrom mit den "
+"selben Abmessungen und Bittiefen sein). Abbruch...\n"
 
 #: src/algos/demosaicing.c:1431
 msgid "X dimensions incompatible\n"
-msgstr ""
+msgstr "Bildbreite inkompatibel\n"
 
 #: src/algos/demosaicing.c:1433
 msgid "Y dimensions incompatible\n"
-msgstr ""
+msgstr "Bildhöhe inkompatibel\n"
 
 #: src/algos/demosaicing.c:1435
 msgid "Channels not all mono\n"
@@ -8422,7 +8607,7 @@ msgstr "Rauschen Standard-Abweichung: berechne...\n"
 #: src/algos/noise.c:73 src/algos/noise.c:77
 #, c-format
 msgid "Background noise value (channel: #%d): %0.3f (%.3e)\n"
-msgstr "Wert Hintergrund-Rauschen (Kanal: #%d): %0.3lf(%.3e)\n"
+msgstr "Wert Hintergrund-Rauschen (Kanal: #%d): %0.3f(%.3e)\n"
 
 #. Translator note: radii is plural for radius
 #: src/algos/photometry.c:135
@@ -8693,7 +8878,7 @@ msgstr "%s an den Koordinaten; %s, %s mit Helligkeit: %0.1lf\n"
 #: src/algos/search_objects.c:263
 #, c-format
 msgid "Found %d Solar System Objects with mag < %0.1lf\n"
-msgstr ""
+msgstr "%d Objekte des Sonnensystems mit mag < %0.1lf gefunden\n"
 
 #: src/algos/search_objects.c:295
 #, c-format
@@ -8734,7 +8919,7 @@ msgstr ""
 
 #: src/algos/star_finder.c:894
 msgid "FindStar"
-msgstr ""
+msgstr "FindStar"
 
 #: src/algos/star_finder.c:938
 #, c-format
@@ -8973,7 +9158,7 @@ msgstr "Anwendung der Sättigungserhöhung von %d%%, ab Stufe %g * sigma.\n"
 #: src/core/command.c:314 src/core/command.c:316
 #, c-format
 msgid "NL-Bayes denoise (mod=%.3f"
-msgstr ""
+msgstr "NL-Bayes entrauschen (mod=%.3f"
 
 #: src/core/command.c:318 src/core/command.c:320
 #, c-format
@@ -8983,7 +9168,7 @@ msgstr ", DA3D aktiviert"
 #: src/core/command.c:322 src/core/command.c:324
 #, c-format
 msgid ", SOS enabled (iters=%d, rho=%.3f)"
-msgstr ""
+msgstr ", SOS aktiviert (Wiederholungen=%d, rho=%.3f)"
 
 #: src/core/command.c:326 src/core/command.c:328
 #, c-format
@@ -8998,7 +9183,7 @@ msgstr ", CC aktiviert"
 #: src/core/command.c:337
 #, c-format
 msgid ")"
-msgstr ""
+msgstr ")"
 
 #: src/core/command.c:349
 #, c-format
@@ -9007,7 +9192,7 @@ msgstr "Fehler, das darf nicht passieren!"
 
 #: src/core/command.c:357
 msgid "Colour artefact suppression active.\n"
-msgstr ""
+msgstr "Unterdrückung der Farbartefakte aktiv\n"
 
 #: src/core/command.c:360
 msgid "Starting NL-Bayes denoising..."
@@ -9025,7 +9210,7 @@ msgstr ""
 
 #: src/core/command.c:457
 msgid "Modulation is zero: doing nothing.\n"
-msgstr ""
+msgstr "Modulation is Null: Nicht tun.\n"
 
 #: src/core/command.c:465
 msgid "Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"
@@ -9035,21 +9220,25 @@ msgstr ""
 
 #: src/core/command.c:477
 msgid "Error: SOS iterations must be >= 1. Defaulting to 1.\n"
-msgstr ""
+msgstr "Fehler: SOS Wiederholungen müssen >=1 sein.  Setze Default 1.\n"
 
 #: src/core/command.c:480
 msgid "Note: high number of SOS iterations. Processing time may be lengthy...\n"
 msgstr ""
+"Anmerkung: Hohe Zahl an SOS-Iterationen. Bearbeitungszeit kann länger sein...\n"
 
 #: src/core/command.c:487
 msgid ""
 "Error: will not carry out DA3D or SOS iterations with Anscombe transform VST "
 "selected. aborting.\n"
 msgstr ""
+"Fehler: DA3D oder SOS-Iterationen werden nicht durchgeführt, wenn Anscombe "
+"Transformation VST ausgewählt ist. Abbruch.\n"
 
 #: src/core/command.c:491
 msgid "Will apply generalised Anscombe variance stabilising transform.\n"
 msgstr ""
+"Wendet eine verallgemeinerte Anscombe Varianzstabilisierungsfunktion an.\n"
 
 #: src/core/command.c:493
 msgid "Will carry out final stage DA3D denoising.\n"
@@ -9058,6 +9247,8 @@ msgstr "Werde die letzte Stufe der DA3D-Entrauschung durchführen.\n"
 #: src/core/command.c:495
 msgid "Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"
 msgstr ""
+"DA3D und SOS können nicht gleichzeitig angewendet werden. SOS-Iterationen "
+"werden auf 1 gesetzt.\n"
 
 #: src/core/command.c:532
 msgid ""
@@ -9079,7 +9270,7 @@ msgstr ""
 
 #: src/core/command.c:671
 msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
-msgstr ""
+msgstr "Fehler: Benötigt mindestens 4 Argumente um 4 Dateien anzugeben.\n"
 
 #: src/core/command.c:694
 msgid "Error loading files!\n"
@@ -9335,11 +9526,12 @@ msgstr ""
 
 #: src/core/command.c:1902
 msgid "Image data is already bottom-up\n"
-msgstr ""
+msgstr "Bilddaten sind bereits \"von-unten-nach-oben\"\n"
 
 #: src/core/command.c:1905
 msgid "Mirroring image to convert to bottom-up data\n"
 msgstr ""
+"Bild wird gespiegelt um es nach \"von-unten-nach-oben\" zu konvertieren.\n"
 
 #: src/core/command.c:1930 src/core/command.c:1975 src/core/command.c:2992
 #: src/core/command.c:2999 src/core/command.c:3004 src/core/command.c:4095
@@ -9400,12 +9592,12 @@ msgstr ""
 
 #: src/core/command.c:2105
 msgid "Scale is 1.0. Not doing anything.\n"
-msgstr ""
+msgstr "Skalierung ist 1.0. Tue nichts.\n"
 
 #: src/core/command.c:2111
 #, c-format
 msgid "Resampling to %d x %d pixels\n"
-msgstr ""
+msgstr "Neuskalierung auf %d x %d Pixel\n"
 
 #: src/core/command.c:2141 src/core/command.c:2237 src/core/command.c:5446
 #: src/core/command.c:5533 src/core/command.c:5815
@@ -9448,7 +9640,7 @@ msgstr ""
 
 #: src/core/command.c:2253
 msgid "Angle is 0.0 or 360.0 degrees. Doing nothing...\n"
-msgstr ""
+msgstr "Der Winkel beträgt 0.0 oder 360.0 Grad. Tue nichts...\n"
 
 #: src/core/command.c:2330 src/core/command.c:2556
 msgid "Wrong magnitude value.\n"
@@ -9914,7 +10106,7 @@ msgstr ""
 #: src/core/command.c:4900
 #, c-format
 msgid "No image appears to be loaded, reloading from '%s'\n"
-msgstr ""
+msgstr "Es scheint kein Bild geladen zu sein, Neuladen von '%s'\n"
 
 #: src/core/command.c:5003
 #, c-format
@@ -9926,7 +10118,7 @@ msgstr ""
 #: src/core/command.c:5006
 #, c-format
 msgid "Save metadata to the JSON file '%s'\n"
-msgstr ""
+msgstr "Speichere Metadaten in die JSON-Datei '%s'\n"
 
 #: src/core/command.c:5019
 msgid ""
@@ -10064,6 +10256,8 @@ msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "upscaling can be applied. Aborting\n"
 msgstr ""
+"Wenn die Interpolation auf \"Nicht\" gesetzt ist, müssen die Bilder die selbe "
+"Größe haben und es kann keine Hochskalierung angewendet werden. Abbruch\n"
 
 #. don't load it for command line execution
 #. to avoid problems with com.stars later on in the process
@@ -10074,9 +10268,8 @@ msgstr "Registrierung mit folgender Methode: %s\n"
 
 #: src/core/command.c:5599 src/core/command.c:5876
 #: src/registration/registration.c:1510
-#, fuzzy
 msgid "Interpolation clamping active\n"
-msgstr "Interpolations Algorithmus:"
+msgstr "Interpolationsbegrenzung aktiv\n"
 
 #: src/core/command.c:5621 src/core/command.c:5639 src/core/command.c:5658
 #: src/core/command.c:5677 src/core/command.c:5696 src/core/command.c:5714
@@ -10175,16 +10368,16 @@ msgstr ""
 #: src/core/command.c:5983
 msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
 msgstr ""
-"Rejection-Karten können nur mit Rejection-Stacks erstellt werden, Auswahl wird "
-"ignoriert.\n"
+"Ausschlusskarten (Rejection Maps) können nur mit einem Stackingverfahren mit "
+"Ausschluss (Rejection) erstellt werden, Auswahl wird ignoriert.\n"
 "\n"
 
 #: src/core/command.c:5985
 msgid ""
 "Rejection maps can only be created if rejection has been activated, ignoring.\n"
 msgstr ""
-"Rejection-Karten können nur erstellt werden, wenn Rejection aktiviert wurde. "
-"Auswahl wird ignoriert.\n"
+"Ausschlusskarten (RejectionMaps) können nur erstellt werden, wenn Rejection "
+"aktiviert wurde. Auswahl wird ignoriert.\n"
 "\n"
 
 #: src/core/command.c:5993
@@ -10207,6 +10400,9 @@ msgid ""
 "Stacking has detected registration data on layer %d with more than simple "
 "shifts. You should apply existing registration before stacking\n"
 msgstr ""
+"Das Stacking hat Registrierungsdaten für die Datenebene %d mit mehr als "
+"einfachen Verschiebungen gefunden. Sie sollten die vorhandene Registrierung "
+"vor dem Stacking anwenden\n"
 
 #: src/core/command.c:6112
 #, c-format
@@ -10215,7 +10411,7 @@ msgstr "Konnte das Stacking-Ergebnis nicht speichern %s\n"
 
 #: src/core/command.c:6119 src/stacking/stacking.c:632
 msgid "Saving rejection maps\n"
-msgstr "Rejection Karte speichern\n"
+msgstr "Ausschlusskarte (Rejection Map) speichern\n"
 
 #: src/core/command.c:6148 src/stacking/stacking.c:685
 msgid "Stacking failed, please check the log to fix your issue.\n"
@@ -10724,6 +10920,10 @@ msgid ""
 "sum</b> is passed, then the sum of pixels is computed, while it is the average "
 "when no optional argument is provided"
 msgstr ""
+"Berechnet das numerische Binning des Bildes im Speicher (Summe der Pixel 2x2, "
+"3x3... wie das analoge Binning einer CCD-Kamera). Wenn das optionale Argument "
+"<b>sum</b> übergeben wird, wird die Summe der Pixel berechnet, ohne Argument "
+"wird der Durchschnitt berechnet"
 
 #: src/core/command_def.h:13
 msgid ""
@@ -10860,7 +11060,6 @@ msgid "Same function as COSME but applying to RAW CFA images"
 msgstr "Gleiche Funktion wie COSME, aber für RAW-CFA-Bilder gedacht (Farbe)"
 
 #: src/core/command_def.h:26
-#, fuzzy
 msgid ""
 "Crops to a selected area of the loaded image.\n"
 "\n"
@@ -10870,12 +11069,13 @@ msgid ""
 "size of the selection. Alternatively, the selection can be made using the "
 "BOXSELECT command"
 msgstr ""
-"Beschneidet eine Auswahl des geladenen Bildes.\n"
+"Beschneidet das aktuell geladene Bild auf den ausgewählten Bereich\n"
 "\n"
-"In der GUI, wenn eine Auswahl aktiv ist, werden keine weiteren Argumente "
-"benötigt. Andernfalls, oder in Skripten, müssen Argumente angegeben werden, "
-"wobei <b>x</b> und <b>y</b> die Koordinaten der linken oberen Ecke und "
-"<b>Breite</b> und <b>Höhe</b> die Größe der Auswahl sind"
+"Wenn eine Auswahl aktiv ist, sind keine weiteren Argumente erforderlich. "
+"Andernfalls oder in Skripten müssen Argumente angegeben werden. Dabei sind "
+"<b>x</b> und <b>y</b> die Koordinaten der oberen linken Ecke und <b>width</b> "
+"und <b>height</b> bestimmen die Größe der Auswahl. Alternativ kann die Auswahl "
+"auch über den BOXSELECT-Befehl erfolgen."
 
 #: src/core/command_def.h:28
 msgid ""
@@ -10899,8 +11099,8 @@ msgstr ""
 
 #: src/core/command_def.h:29
 msgid ""
-"Denoises the image using the non-local Bayesian algorithm described by <a href="
-"\"https://www.ipol.im/pub/art/2013/16\">Lebrun, Buades and Morel</a>.\n"
+"Denoises the image using the non-local Bayesian algorithm described by <a "
+"href=\"https://www.ipol.im/pub/art/2013/16\">Lebrun, Buades and Morel</a>.\n"
 "\n"
 "It is strongly recommended to apply cosmetic correction to remove salt and "
 "pepper noise before running denoise, and by default this command will apply "
@@ -10946,6 +11146,56 @@ msgid ""
 "prevent this by denoising each channel separately. This is slower but will "
 "eliminate artefacts"
 msgstr ""
+"Entrauscht das Bild mit Hilfe des nicht-lokalen Bayes'schen Algorithmus, der "
+"von <a href=\"https://www.ipol.im/pub/art/2013/16\">Lebrun, Buades and Morel</"
+"a> beschrieben wurde.\n"
+"\n"
+"Es wird dringend empfohlen, eine kosmetische Korrektur anzuwenden, um Salz- "
+"und Pfefferrauschen zu entfernen, bevor die Entrauschung ausgeführt wird. "
+"Standardmäßig wendet dieser Befehl eine kosmetische Korrektur automatisch an. "
+"Wenn dies jedoch bereits früher im Arbeitsablauf erfolgt ist, kann es hier mit "
+"dem optionalen Befehl <b>-nocosmetic</b> deaktiviert werden.\n"
+"\n"
+"Ein optionales Argument <b>-mod=m</b> kann angegeben werden, wobei 0 &lt;= m &/"
+"lt;=1. Das Ausgabepixel wird berechnet als <i>out=m x d + (1 - m) x in</i>, "
+"wobei <i>d</i> der entrauschte Pixelwert ist. Bei einem Modulationswert von 1 "
+"findet keine Modulation statt. Wird der Parameter nicht angegeben, wird er "
+"standardmäßig auf 1 gesetzt.\n"
+"\n"
+"Das optionale Argument <b>-vst</b> kann verwendet werden, um die "
+"verallgemeinerte varianzstabilisiernde Anscombe-Transformation vor NL-Bayes "
+"anzuwenden. Dies ist nützlich bei photonenarmen Bildern, wie z.B. einzelnen "
+"Lights/Subs, bei denen das Rauschen einer Poisson- oder Poisson-Gauß-"
+"Verteilung folgt und nicht primär gaußförmig ist. Es kann nicht in Verbindung "
+"mit DA3D oder SOS verwendet werden und für die Entrauschung von gestackten "
+"Summebildern ist es in der Regel nicht von Vorteil.\n"
+"\n"
+"Mit dem optionalen Argument <b>-da3d</b> kann die datenadaptive Dual-Domain-"
+"Entrauschung (DA3D) als letzter Entrauschungsalgorithmus aktiviert werden. "
+"Dabei wird die Ausgabe von BM3D als Vorlage verwendet, um die Entrauschung zu "
+"verfeinern. Das verbessert die Details und reduziert Treppenartefakte.\n"
+"Das optionale Argument <b>-sos=n</b> kann verwendet werden um die iterative "
+"Entrauschungsverstärkung (SOS, iterative Strengthen-Operate-Subtract denoise "
+"boosting) zu aktivieren, wobei die Anzahl der Iterationen durch <i>n</i> "
+"festgelegt wird. Dieser Booster kann insbesondere dann bessere Ergebnisse "
+"liefern, wenn der NL-Bayes-Algorithmus ohne Booster im Bildhintergrund "
+"Artefakte erzeugt. Wenn sowohl -da3d als auch -sos=n angegeben werden, gilt "
+"die zuletzt angegebene Option.\n"
+"\n"
+"Das optionale Argument <b>-rho=r</b> kann angegeben werden, wobei 0 &lt; r "
+"&lt; 1. Dies wird vom SOS-Booster verwendet, um den Anteil des verrauschten "
+"Bildes zu bestimmen, der dem Zwischenergebnis zwischen jeder Iteration "
+"hinzugefügt wird. Wenn -sos=n nicht angegeben wird, wird der Parameter "
+"ignoriert.\n"
+"\n"
+"Standardmäßig werden DA3D oder SOS nicht angewendet, da die Verbesserung der "
+"Rauschunterdrückung in der Regel relativ gering ist und diese Techniken "
+"zusätzliche Verarbeitungszeit erfordern.\n"
+"\n"
+"In sehr seltenen Fällen können bei der Entrauschung von Farbbildern "
+"blockartige Farbartefakte in der Ausgabe entstehen. Das optionale Argument <b>-"
+"indep</b> kann verwendet werden um dies zu verhindern, indem jeder Kanal "
+"separat entrauscht wird. Dies ist zwar langsamer, beseitigt aber Artefakte"
 
 #: src/core/command_def.h:30
 msgid "Dumps the FITS header"
@@ -10988,6 +11238,13 @@ msgid ""
 "resampling will be carried out and the OIII image will have twice the height "
 "and width of the Ha image"
 msgstr ""
+"Extrahiert Ha- und OIII-Signale aus einem CFA-Bild. Die Ausgabedateinamen "
+"beginnen mit dem Präfix \"Ha_\" und \"OIII_\".\n"
+"\n"
+"Das optionale Argument <b>-resample={ha|oiii}</b> legt fest, ob das Ha-Bild "
+"hoch- oder das OIII-Bild herunterskaliert werden soll. Wenn dieses Argument "
+"nicht angegeben wird, wird keine Neuskalierung durchgeführt und das OIII-Bild "
+"hat die doppelte Höhe und Breite des Ha-Bildes"
 
 #: src/core/command_def.h:37
 msgid ""
@@ -11470,6 +11727,14 @@ msgid ""
 "created with default file name '$(FITS_file_without_ext).json' and can be "
 "changed with the <b>-out=</b> option"
 msgstr ""
+"Gibt Metadaten und Statistiken des aktuell geladenen Bildes in JSON-Form aus. "
+"Der Dateiname ist erforderlich, auch wenn das Bild bereits geladen wurde. "
+"Bilddaten werden nicht aus der Datei gelesen, wenn es sich um das aktuell "
+"geladene Bild handelt und wenn die Option <b>-stats_from_loaded</b> angegeben "
+"wird. Die Statistik kann mit der Option <b>-nostats</b> deaktiviert werden. "
+"Eine Datei, die JSON-Daten enthält, wird mit dem Standard-"
+"Dateinamen'$(FITS_file_without_ext).json'  erstellt und kann mit der Option "
+"<b>-out=</b> geändert werden"
 
 #: src/core/command_def.h:80
 msgid "Merges several sequences into one"
@@ -11480,6 +11745,8 @@ msgid ""
 "Flips the image about the vertical axis. Option <b>-bottomup</b> will only "
 "flip it if it's not already bottom-up"
 msgstr ""
+"Spiegelt das Bild um die vertikale Achse. Option <b>-bottomup</b>spiegelt das "
+"Bild nur, wenn es nicht bereits \"von-unten-nach-oben\" ist"
 
 #: src/core/command_def.h:82
 msgid "Flips the image about the horizontal axis"
@@ -11554,6 +11821,9 @@ msgid ""
 "value for 32 bits, 65535-value for 16 bits. This does not change the display "
 "mode"
 msgstr ""
+"Ändert die Pixelwerte des aktuell geladenen Bildes in eine negative Ansicht. "
+"Beispielsweise \"1-value\" für 32-Bit, \"65535-value\" für 16-Bit. Dies ändert "
+"nicht den Anzeigemodus"
 
 #: src/core/command_def.h:87
 msgid ""
@@ -11586,6 +11856,12 @@ msgid ""
 "This research has made use of IMCCE's <a href=\"https://ui.adsabs.harvard.edu/"
 "abs/2006ASPC..351..367B/abstract\">SkyBoT VO tool</a>"
 msgstr ""
+"Suchen und Anzeigen von Objekten des Sonnensystems im aktuell geladenen und "
+"astrometrisch gelösten Bild. Verwenden Sie <b>-mag=</b> um die Grenzgröße zu "
+"ändern, der standardmäßig 20 beträgt.\n"
+"\n"
+"Für diese Untersuchung verwendet Daten des Tools <a href=\"https://ui.adsabs."
+"harvard.edu/abs/2006ASPC..351..367B/abstract\">SkyBoT VO tool</a> der IMCCE"
 
 #: src/core/command_def.h:90
 msgid ""
@@ -11621,11 +11897,29 @@ msgid ""
 "\n"
 "If <b>str</b> starts with <i>$def</i> prefix, it will be recognized as a "
 "reserved keyword and looked for in the strings stored in gui_prepro.dark_lib, "
-"gui_prepro.flat_lib, gui_prepro.bias_lib or gui_prepro.stack_default for <i>"
-"$defdark</i>, <i>$defflat</i>, <i>$defbias</i> or <i>$defstack</i> "
+"gui_prepro.flat_lib, gui_prepro.bias_lib or gui_prepro.stack_default for "
+"<i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> or <i>$defstack</i> "
 "respectively.\n"
 "The keyword <i>$seqname$</i> can also be used when a sequence is loaded"
 msgstr ""
+"Analysiert die Zeichenkette <b>str</b> anhand der im Header des aktuell "
+"geladenen Bildes enthaltenen Informationen. Der Hauptzweck dieses Befehls ist "
+"es, das Parsen des Pfades von Header-Schlüsseln zu debuggen die in anderen "
+"Befehlen verwendet werden können.\n"
+"Option <b>-r</b> gibt an, dass die Zeichenkette im Lesemodus interpretiert "
+"werden soll. Im Lesemodus werden alle in der Zeichenkette <b>str</b> "
+"definierten Wildcards verwendet, um einen Dateinamen zu finden, der dem Muster "
+"entspricht. Andernfalls ist der Standardmodus der Schreibmodus und die "
+"Platzhalter werden, falls vorhanden, aus der zu parsenden Zeichenkette "
+"entfernt.\n"
+"\n"
+"Wenn <b>str</b> mit dem Präfix <i>$def</i> beginnt, wird es als reserviertes "
+"Schlüsselwort erkannt und in den in gui_prepro.dark_lib, gui_propro.flat_lib, "
+"gui_prepro.bias_lib oder gui_prepro.stack_default gespeicherten Strings nach "
+"<i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> oder <i>$defstack</"
+"i>entsprechend gesucht.\n"
+"Das Schlüsselword <i>$seqname$</i> kann ebenfalls benutzt werden wenn eine "
+"Sequenz geladen ist"
 
 #: src/core/command_def.h:95
 msgid ""
@@ -11661,7 +11955,6 @@ msgstr ""
 "alle anderen Quellen (Bild und Einstellungen) außer Kraft setzen würde"
 
 #: src/core/command_def.h:96
-#, fuzzy
 msgid ""
 "This command evaluates the expression given in argument as in PixelMath tool. "
 "The full expression must be between double quotes and variables (that are "
@@ -11673,11 +11966,14 @@ msgid ""
 "set to 0 and 1"
 msgstr ""
 "Dieser Befehl wertet den im Argument angegebenen Ausdruck wie im PixelMath-"
-"Tool aus. Der vollständige Ausdruck muss in Anführungszeichen stehen und "
-"Variablen (das sind Bildnamen ohne Erweiterung, die sich in diesem Fall im "
-"Arbeitsverzeichnis befinden) müssen von dem Token $ umgeben sein, z.B. "
+"Tool aus. Der vollständige Ausdruck muss zwischen doppelten Anführungszeichen "
+"stehen und Variablen (das sind in diesem Fall Bildnamen ohne Erweiterung, die "
+"sich im Arbeitsverzeichnis befinden) müssen von dem Token $ umgeben sein, z.B. "
 "\"$image1$ * 0.5 + $image2$ * 0.5\". Es können maximal 10 Bilder in dem "
-"Ausdruck verwendet werden"
+"Ausdruck verwendet werden. Das Bild kann mit der Option <b>-rescale</b>neu "
+"skaliert werden, gefolgt von Werten für <b>Niedrig</b> und <b>Hoch> im Bereich "
+"[0-1]. Falls keine Werte für Niedrig und Hoch angegeben werden, wird der "
+"Default 0 und 1 genutzt"
 
 #: src/core/command_def.h:97
 msgid ""
@@ -11685,8 +11981,8 @@ msgid ""
 "in argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering a "
-"quoted expression starting with an = sign, such as -bias=\"=256\" or -bias="
-"\"=64*$OFFSET\".\n"
+"quoted expression starting with an = sign, such as -bias=\"=256\" or -"
+"bias=\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -11739,8 +12035,8 @@ msgid ""
 "argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering a "
-"quoted expression starting with an = sign, such as -bias=\"=256\" or -bias="
-"\"=64*$OFFSET\".\n"
+"quoted expression starting with an = sign, such as -bias=\"=256\" or -"
+"bias=\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -11806,9 +12102,16 @@ msgid ""
 "<b><i>bayerpattern</i></b> specifies the Bayer matrix pattern to recreate: "
 "<i>bayerpattern</i> should be one of 'RGGB', 'BGGR', 'GRBG' or 'GBRG'"
 msgstr ""
+"Erstellt ein Bild mit einer Bayer-Matrix aus 4 separaten Bildern, die die "
+"Daten der Bayer-Unterkanäle CFA0, CFA1, CFA2 und CFA3 enthalten. (Der "
+"entsprechende Befehl zum Aufteilen des CFA-Musters in Unterkanäle ist "
+"<b>split_cfa</b>.) Diese Funktion kann als Teil eines Arbeitsablaufes "
+"verwendet werden, der vor dem Demosaicing eine Verarbeitung auf den einzelnen "
+"Bayer-Unterkanälen durchführt. Der fünfte Parameter <b><i>bayerpattern</i></b> "
+"gibt die neu zu erstellende Bayer-Matrix an: <i>bayerpattern</i> sollte "
+"entweder 'RGGB', 'BGGR', 'GRBG' oder 'GBRG' sein"
 
 #: src/core/command_def.h:101
-#, fuzzy
 msgid ""
 "Finds and optionally performs geometric transforms on images of the sequence "
 "given in argument so that they may be superimposed on the reference image. "
@@ -11850,26 +12153,19 @@ msgid ""
 "otherwise specified with <b>-prefix=</b> option"
 msgstr ""
 "Führt geometrische Transformationen an Bildern der im Argument angegebenen "
-"Sequenz durch, so dass sie dem Referenzbild überlagert werden können. Da "
-"dieser Algorithmus Sterne für die Registrierung verwendet, funktioniert er nur "
-"mit Deep-Sky-Bildern.\n"
-"\n"
-"Die Sternerkennungsoptionen können mit <b>SETFINDSTAR</b> oder dem Dialog "
-"<i>Dynamischer PSF</i> geändert werden. Die Erkennung erfolgt bei Farbbildern "
+"Sequenz durch und optimiert diese optional, so dass sie dem Referenzbild "
+"überlagert werden können. Da dieser Algorithmus Sterne für die Registrierung "
+"verwendet, funktioniert er nur mit Deep-Sky-Bildern. Die "
+"Sternerkennungsoptionen können mit <b>SETFINDSTAR</b> oder dem Dialog "
+"<i>Dynamische PSF</i> geändert werden. Die Erkennung erfolgt bei Farbbildern "
 "auf der grünen Ebene, es sei denn, sie wird mit der Option <b>-layer=</b> mit "
 "einem Argument von 0 bis 2 für Rot bis Blau angegeben.\n"
-"\n"
-"Die Optionen <b>-2pass</b> und <b>-noout</b> berechnen nur die "
-"Transformationen, erzeugen aber nicht die transformierten Bilder. <b>-2pass</"
-"b> fügt dem Algorithmus einen Vorlauf hinzu, um ein gutes Referenzbild zu "
-"finden, bevor die Transformationen berechnet werden. <b>-nostarlist</b> "
-"deaktiviert das Speichern der Sternlisten auf der Festplatte.\n"
 "\n"
 "Die Option <b>-transf=</b> legt fest, dass entweder <b>Shift-</b>, "
 "<b>Ähnlichkeits-</b>, <b>Affine-</b> oder <b>Homographie-</b>Transformationen "
 "(Standard) verwendet werden.\n"
 "Die Option <b>-drizzle</b> aktiviert das Subpixel-Stacking durch "
-"Hochskalierung der erzeugten Bilder um 2.\n"
+"Hochskalierung der erzeugten Bilder um den Faktor 2.\n"
 "Die Option <b>-minpairs=</b> gibt die minimale Anzahl von Sternpaaren an, die "
 "ein Bild mit dem Referenzbild haben muss, sonst wird das Bild verworfen.\n"
 "Die Option <b>-maxstars=</b> gibt die maximale Anzahl der Sterne an, die in "
@@ -11879,10 +12175,12 @@ msgstr ""
 "\n"
 "Die Interpolationsmethode kann mit dem <b>-interp=</b> Schlüsselwort gefolgt "
 "von einer der Methoden aus der Liste <b>no</b>[ne], <b>ne</b>[arest], <b>cu</"
-"b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</b>[ea]. Wenn <b>keine</b> "
-"übergeben wird, wird die Transformation gezwungen, sich zu verschieben und "
-"eine pixelweise Verschiebung wird auf jedes Bild ohne jegliche Interpolation "
-"angewendet.\n"
+"b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</b>[ea] gewält werde. Wenn "
+"<b>none</b> übergeben wird, wird eine pixelweise Verschiebung ohne jede "
+"Interpolation erzwungen.\n"
+"Eine Begrenzung der bikubischen and lanczos4-Interpolation ist der Default um "
+"Artefakte zu vermeiden, kann aber mit dem Argument <b>-noclamp</b> deaktiviert "
+"werden.\n"
 "\n"
 "Alle Bilder der Sequenz werden registriert, es sei denn, die Option <b>-"
 "selected</b> wird übergeben, in diesem Fall werden die ausgeschlossenen Bilder "
@@ -11919,6 +12217,21 @@ msgid ""
 "Clamping of the bicubic and lanczos4 interpolation methods is the default, to "
 "avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 msgstr ""
+"Neuskalierung des Bildes, entweder mit einem Faktor <b>factor</b> oder für die "
+"Zielbreite oder -höhe, die entweder durch <b>-width=</b> oder <b>-height=</b> "
+"bereitgestellt wird. Dies wird im Allgemeinen verwendet, um die Größe von "
+"Bildern zu ändern, ein Faktor von 0,5 teilt die Größe durch 2. In der "
+"grafischen Benutzeroberfläche sieht man, dass mehrere Interpolationsverfahren "
+"vorschlagen werden.\n"
+"\n"
+"Die Pixel-Interpolationsmethode kann mit dem Argument <b>-interp=</b> "
+"angegeben werden, gefolgt von einer der Methoden in der Liste <b>no</b>[ne], "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</"
+"b>[ea]}. Wenn <b>none</b> übergeben wird, wird eine pixelweise Verschiebung "
+"ohne jede Interpolation erzwungen.\n"
+"Eine Begrenzung der bikubischen and lanczos4-Interpolation ist der Default um "
+"Artefakte zu vermeiden, kann aber mit dem Argument <b>-noclamp</b> deaktiviert "
+"werden"
 
 #: src/core/command_def.h:105
 msgid ""
@@ -12004,6 +12317,22 @@ msgid ""
 "Clamping of the bicubic and lanczos4 interpolation methods is the default, to "
 "avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 msgstr ""
+"Dreht das Bild um einen Winkel von <b>degree</b> Grad. Die Option <b>-nocrop</"
+"b> kann hinzugefügt werden um einen Beschnitt des Bildes zu vermeiden "
+"(schwarze Ränder werden dann hinzugefügt).\n"
+"\n"
+"Hinweis: Wenn eine Auswahl aktiv ist, d.h. durch Verwendung des Befehls "
+"\"boxselect\" vor \"rotate\", ist das resultierende Bild der gedrehte "
+"Ausschnitt. In diesem speziellen Fall wird die Option <b>-nocrop</b> "
+"ignoriert.}\n"
+"\n"
+"Die Pixel-Interpolationsmethode kann mit dem Argument <b>-interp=</b> "
+"angegeben werden, gefolgt von einer der Methoden in der Liste <b>no</b>[ne], "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</"
+"b>[ea]}. Wenn <b>none</b> übergeben wird, wird eine pixelweise Verschiebung "
+"ohne jede Interpolation erzwungen.\n"
+"Clamping of the bicubic and lanczos4 interpolation methods is the default, to "
+"avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 
 #: src/core/command_def.h:110
 msgid ""
@@ -12132,7 +12461,6 @@ msgstr ""
 "Sequenz (von <b>from</b> bis <b>\"to</b>"
 
 #: src/core/command_def.h:122
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using registration data "
@@ -12181,17 +12509,17 @@ msgstr ""
 "Die Option <b>-drizzle</b> aktiviert die Hochskalierung um 2 der in der "
 "transformierten Sequenz erzeugten Bilder.\n"
 "\n"
-"Die Interpolationsmethode kann mit dem Schlüsselwort <b>-interp=</b> angegeben "
-"werden, gefolgt von einer der Methoden aus der Liste { no[ne] | ne[arest] | "
-"cu[bic] | la[nczos4] | li[near] | ar[ea]}.  Wenn <b>keine</b> übergeben wird, "
-"wird die Transformation gezwungen, sich zu verschieben, und eine pixelweise "
-"Verschiebung wird auf jedes Bild ohne jegliche Interpolation angewendet.\n"
+"Die Pixel-Interpolationsmethode kann mit dem Argument <b>-interp=</b> "
+"angegeben werden, gefolgt von einer der Methoden in der Liste <b>no</b>[ne], "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</"
+"b>[ea]}. Wenn <b>none</b> übergeben wird, wird eine pixelweise Verschiebung "
+"ohne jede Interpolation erzwungen.\n"
 "\n"
 "Die Registrierung erfolgt auf der grünen Ebene für RGB-Bilder, es sei denn, "
 "sie wird durch die Option <b>-layer=</b> (0, 1 oder 2 für R, G bzw. B) "
 "festgelegt.\n"
 "\n"
-"Die automatische Rahmung der Ausgabesequenz kann mit dem Schlüsselwort <b>-"
+"Der automatische Beschnitt der Ausgabesequenz kann mit dem Schlüsselwort <b>-"
 "framing=</b>, gefolgt von einer der Methoden in der Liste { current | min | "
 "max | cog } angegeben werden:\n"
 "<b>-framing=max</b> (bounding box) fügt bei Bedarf einen schwarzen Rand um "
@@ -12300,6 +12628,16 @@ msgid ""
 "resampling will be carried out and the OIII image will have twice the height "
 "and width of the Ha image"
 msgstr ""
+"Der selbe Befehl wie EXTRACT_HAOIII, aber für die Sequenz <b>sequencename</"
+"b>.\n"
+"\n"
+"Die Namen der Ausgabesequenzen beginnen mit den Präfixen \"Ha_\" und "
+"\"OIII_\".\n"
+"\n"
+"Das optionale Argument <b>-resample={ha|oiii}</b> definiert ob das Ha-Bild "
+"hochskaliert oder das OIII-Bild herunterskaliert werden soll. Wenn das "
+"Argument nicht angegeben wird, erfolgt keine Neuskalierung und das OIII-Bild "
+"wird dann in der Höhe und Breite doppelt so groß wie das Ha-Bild sein"
 
 #: src/core/command_def.h:130
 msgid ""
@@ -12402,6 +12740,21 @@ msgid ""
 "The output sequence name starts with the prefix \"mCFA_\" and a number unless "
 "otherwise specified with <b>-prefix=</b> option"
 msgstr ""
+"Der selbe Befehl wie MERGA_CFA, aber für die Sequenz <b>sequencename</b>.\n"
+"\n"
+"Die zu rekonstruierende Bayer-Matrix muss als zweites Argument angegeben "
+"werden und einen der Werte RGGB, BGGR, GBRG oder GRBG haben.\n"
+"\n"
+"Die Dateinamen der Eingabedateien enthalten den identifizierenden Präfix "
+"\"CFA_\" und eine Zahl so lange es nicht mit der Option <b>-prefix=</b> anders "
+"angegeben wird.\n"
+"\n"
+"Hinweis: Alle 4 Sätze von Eingabedateien <b>müssen</b> existieren und "
+"<b>müssen</b> konsistent benannt sein, der einzige erlaubte Unterschied ist "
+"die Ziffer nach dem identifizierenden Präfix.\n"
+"\n"
+"Der Name der Ausgabesequenz beginnt mit dem Präfix \"mCFA_\" und einer Zahl, "
+"solange es nicht mit der Option <b>-prefix=</b> anders angegeben wird"
 
 #: src/core/command_def.h:137
 msgid ""
@@ -12529,7 +12882,6 @@ msgstr ""
 "Das Argument <b>extension</b> kann \"fit\", \"fts\" oder \"fits\" sein."
 
 #: src/core/command_def.h:147
-#, fuzzy
 msgid ""
 "Defines stars detection parameters for FINDSTAR and REGISTER commands.\n"
 "\n"
@@ -12561,9 +12913,8 @@ msgstr ""
 "REGISTER.\n"
 "\n"
 "Wird kein Parameter übergeben, werden die aktuellen Werte aufgelistet.\n"
-"Die Übergabe von <b>reset</b> setzt alle Werte auf die Standardwerte zurück.\n"
-"\n"
-"Sie können dann immer noch Werte nach diesem Schlüsselwort übergeben.\n"
+"Die Übergabe von <b>reset</b> setzt alle Werte auf die Standardwerte zurück. "
+"Sie können dann trotzdem Werte nach diesem Schlüsselwort übergeben.\n"
 "\n"
 "<b>-radius=</b> definiert den Radius des anfänglichen Suchfeldes und muss "
 "zwischen 3 und 50 liegen.\n"
@@ -12571,13 +12922,13 @@ msgstr ""
 "oder gleich 0,05 sein.\n"
 "<b>-roundness=</b> definiert die minimale Rundheit des Sterns und muss "
 "zwischen 0 und 0,95 liegen\n"
-"<b>-auto=</b> wird verwendet, wenn sie auf \"An\" gesetzt ist; in diesem Fall "
-"wird die <b>radius</b> Auswahl korrigiert, um die tatsächliche Probenahme zu "
-"berücksichtigen, die durch die <b>focal</b> und <b>pixelsize</b> Auswahl "
-"definiert ist (sofern nicht bereits in der Kopfzeile des Bildes definiert). "
-"Diese Option kann durch die Einstellung <b>-auto=</b>Aus deaktiviert werden.\n"
 "<b>-focal=</b> definiert die Brennweite des Teleskopes.\n"
 "<b>-pixelsize=</b> definiert die Pixelgröße des Sensors.\n"
+"<b>-gaussian</b> and <b>-moffat</b> definieren das Solver-Modell welches "
+"verwendet werden soll (Gauß'sches Modell ist der Default).\n"
+"Wenn Moffat ausgewählt wird, definiert <b>-minbeta=</b> den Mindestwert von "
+"Beta, für den Sternkandidaten akzeptiert werden und muss größer oder gleich "
+"0.0 und kleiner als 10.0 sein.\n"
 "<b>-convergence=</b> definiert die Anzahl der Iterationen, die zur Anpassung "
 "der PSF durchgeführt werden und sollte zwischen 1 und 3 (toleranter) "
 "eingestellt werden.\n"
@@ -12690,7 +13041,6 @@ msgstr ""
 "speichert sie in Dateien"
 
 #: src/core/command_def.h:155
-#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -12748,15 +13098,19 @@ msgstr ""
 "Die erlaubten Typen sind: \"sum\", \"max\", \"min\", \"med\" (oder \"median\") "
 "und \"rej\" (oder \"mean\"). Wird kein anderes Argument als der Name der "
 "Sequenz angegeben, wird der Summenstack angenommen.\n"
-"Stapeln mit Ausschluss:\n"
+"\n"
+"Stapeln mit Ausschluss (Rejection):\n"
 "Die Typen rej oder mean erfordern die Verwendung zusätzlicher Argumente für "
-"Ablehnungstyp und -werte. Der Zurückweisungstyp ist einer von {p[ercentile] | "
-"s[igma] | m[edian] | w[insorized] | l[inear] | g[eneralized] | [m]a[d]} für "
-"Percentile, Sigma, Median, Winsorized, Linear-Fit, Generalized Extreme "
-"Studentized Deviate Test oder k-MAD Clipping. Wird dies nicht angegeben, wird "
-"die Standardeinstellung (Winsorized) verwendet.\n"
+"Ablehnungstyp und -werte. Der Zurückweisungstyp ist einer von { n[one] | "
+"p[ercentile] | s[igma] | m[edian] | w[insorized] | l[inear] | g[eneralized] | "
+"[m]a[d]} für Percentile, Sigma, Median, Winsorized, Linear-Fit, Generalized "
+"Extreme Studentized Deviate Test oder k-MAD Clipping. Wird dies nicht "
+"angegeben, wird die Standardeinstellung (Winsorized) verwendet.\n"
 "Die Parameter <b>sigma low</b> und <b>sigma high</b> der Zurückweisung sind "
-"obligatorisch solange <b>none</b> ausgewählt ist.\n"
+"obligatorisch solange nicht <b>none</b> ausgewählt wird.\n"
+"Optional können Ausschlusskarten erzeugt werden die zeigen wo Pixel in einer "
+"(<b>-rejmap</b>) oder zwei (<b>-rejmaps</b>) durch niedrige und hohe "
+"Grenzwerte ausgeschlossen werden.\n"
 "\n"
 "Normalisierung der Eingabebilder:\n"
 "Für die Stapeltypen med|median und rej|mean sind verschiedene Arten der "
@@ -12767,22 +13121,27 @@ msgstr ""
 "standardmäßig die additive Methode mit Skalierung angewendet.\n"
 "Die Option <b>-fastnorm</b> legt fest, dass schnellere Schätzungen für Ort und "
 "Maßstab als der Standard-IKSS verwendet werden sollen.\n"
+"Die Option <b>-rgb_equal</b> verwendet die Normalisierung, um farbige "
+"Bildhintergründe auszugleichen, was nützlich ist, wenn PCC und unverknüpftes "
+"Autostretch nicht verwendet werden.\n"
 "\n"
 "Weitere Optionen für das Stacking mit Ausschluss:\n"
-"<b>-weighted_from_nose</b> ist eine Option, um Bildern mit geringerem "
+"<b>-weighted_from_noise</b> ist eine Option, um Bildern mit geringerem "
 "Hintergrundrauschen eine höhere Gewichtung zu geben.\n"
-"<b>-weight_from_nbstack</b> gewichtet Bilder anhand der Anzahl wieviele Bilder "
+"<b>-weight_from_nbstack</b> gewichtet Bilder anhand der Anzahl der Bilder die "
 "zur Erstellung genutzt wurden, nützlich für Live Stacking.\n"
-"<b>-output_norm</b> wendet eine Normalisierung am Ende des Stackings an, um "
-"das Ergebnis im Bereich [0, 1] neu zu skalieren.\n"
-"<b>-rgb_equal</b> gewichtet die RGB-Kanäle des gestackten Bildes (nur für "
-"Farbe).\n"
+"<b>-weight_from_nbstars</b> or <b>-weight_from_wfwhm</b> gewichtet Bilder "
+"basierend auf der Anzahl der erkannten Sterne oder dem berechneten wFWHM-Wert "
+"bei der Registrierung.\n"
+"\n"
 "\n"
 "Ausgabe:\n"
 "Der Name des Ergebnisbildes kann mit der Option <b>-out=</b> festgelegt "
 "werden. Andernfalls wird es als <b>sequencename</b>_stacked.fit benannt.\n"
+"<b>-output_norm</b> wendet eine Normalisierung am Ende des Stackings an, um "
+"das Ergebnis im Bereich [0, 1] neu zu skalieren.\n"
 "\n"
-"Herausfiltern von Bildern:\n"
+"Filtern von Bildern:\n"
 "Bilder, die gestapelt werden sollen, können auf der Grundlage einiger Filter, "
 "wie manuelle Auswahl oder beste FWHM, mit einigen der <b>-filter-*</b> "
 "Optionen ausgewählt werden.\n"
@@ -12906,12 +13265,33 @@ msgid ""
 "\n"
 "No parameters are required for this command"
 msgstr ""
+"Synthstar korrigiert schlechte Sterne. Unabhängig wie stark Koma, Tracking-"
+"Abweichung oder Verzerrung sind, wenn Siril's Star-Such-Algorithmus einen "
+"Stern erkennen kann, wird synthstar ihn reparieren. Um es intensiv zu "
+"verwenden, möchten Sie möglicherweise alle Sterne, die Sie reparieren möchten, "
+"manuell auswählen. Dies kann mit dem Konsolenbefehl findstar oder dem "
+"dynamischen PSF-Dialog erfolgen. Wenn Sie die Sternerkennung nicht ausgeführt "
+"haben, wird sie automatisch mit den Standardeinstellungen ausgeführt.\n"
+"\n"
+"Für beste Ergebnisse sollte synthstar vor dem Stretching ausgeführt werden.\n"
+"\n"
+"Die Ausgabe von synthstar ist eine vollständig korrigierte synthetische "
+"Sternmaske, die perfekt runde Stern-PSFs (Moffat- oder Gauß'sches Profil, je "
+"nach Sternsättigung) umfasst, die so berechnet werden, dass sie der "
+"Intensität, dem FWHM-Werk, dem Farbton und der Sättigung entsprechen, die für "
+"jeden im Eingabebild erkannten Stern ermittelt wurden. Dieses kann dann mit "
+"dem sternlosen Bild rekombiniert werden, um ein Bild mit perfekten Sternen zu "
+"erzeugen.\n"
+"\n"
+"Der Befehl erfordert keine Argumente"
 
 #: src/core/command_def.h:161
 msgid ""
 "Re-profiles clipped stars to desaturate them, scaling the output so that all "
 "pixel values are <= 1.0"
 msgstr ""
+"Berechnet überstrahlte Sterne neu um die Sättigung zu vermindern und skaliert "
+"die Ausgabe so, dass alle Pixelwerte <= 1,0 sind"
 
 #: src/core/command_def.h:162
 msgid "Replaces values below <b>level</b> with <b>level</b>"
@@ -13011,7 +13391,7 @@ msgstr ""
 "LIVESTACK bereitgestellt werden, bis STOP_LS aufgerufen wird. Standardmäßig "
 "wird die Registrierung nur mit Verschiebung und 16-Bit-Verarbeitung "
 "durchgeführt, da dies schneller ist. Dies kann auf <b>-rotate</b> und <b>-32-"
-"Bit</b> geändert werden."
+"Bit</b> geändert werden"
 
 #: src/core/command_def.h:178
 msgid ""
@@ -13030,7 +13410,7 @@ msgstr "unbekannter Befehlsname"
 
 #: src/core/command_line_processor.c:51
 msgid "non-blocking command, no error"
-msgstr ""
+msgstr "Nichtblockierender Befehl - kein Fehler"
 
 #: src/core/command_line_processor.c:53
 msgid "current working directory is invalid"
@@ -13062,7 +13442,7 @@ msgstr "allgemeiner Fehler"
 
 #: src/core/command_line_processor.c:68
 msgid "input image not found"
-msgstr ""
+msgstr "Eingabebild nicht gefunden"
 
 #: src/core/command_line_processor.c:70
 msgid "invalid input sequence"
@@ -13082,7 +13462,7 @@ msgstr "Dieser Befehl funktioniert nur mit einem einzelnen geladenen Bild"
 
 #: src/core/command_line_processor.c:78
 msgid "command is only for a sequence"
-msgstr ""
+msgstr "Befehl kann nur mit einer Sequenz verwendet werden"
 
 #: src/core/command_line_processor.c:80
 msgid "command is not for monochrome images"
@@ -13106,7 +13486,7 @@ msgstr "Dieser Befehl funktioniert nur mit astrometrisch gelösten Bildern"
 
 #: src/core/command_line_processor.c:90
 msgid "command requires a preliminary step"
-msgstr ""
+msgstr "Der Befehl benötigt einen vorbereitenden Schritt"
 
 #: src/core/command_line_processor.c:92
 msgid "memory allocation error"
@@ -13918,7 +14298,7 @@ msgstr "Bayer-Matrix-Offset Y"
 
 #: src/core/settings.c:236
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
-msgstr ""
+msgstr "Anzahl der Durchgänge für den X-Trans-Markesteijn Algorithmus"
 
 #: src/core/settings.c:238
 msgid "electrons per ADU for noise estimation"
@@ -14033,7 +14413,7 @@ msgstr "Index der gewählten Interpolationsmethode"
 
 #: src/core/settings.c:277
 msgid "use clamping method with Lanczos and Cubic interpolation"
-msgstr ""
+msgstr "benutzte Begrenzungsmethode mit Lanczos und kubischer Interpolation"
 
 #: src/core/settings.c:279
 msgid "index of the selected method"
@@ -14464,7 +14844,7 @@ msgstr "Kosmetische Korrektur: cosme-Datei Format-Fehler in Zeile %d: %s\n"
 #: src/filters/deconv.c:60
 #, c-format
 msgid "Deconv. (iter=%d, sig=%.3f)"
-msgstr ""
+msgstr "Dekonv. (Wdh=%d, Sig=%.3f)"
 
 #: src/filters/fft.c:443
 msgid "Fourier Transform: processing...\n"
@@ -14552,7 +14932,7 @@ msgstr ""
 #: src/filters/rgradient.c:256
 #, c-format
 msgid "RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"
-msgstr ""
+msgstr "RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"
 
 #: src/filters/rgradient.c:275
 msgid "Center coordinate selection error"
@@ -14734,11 +15114,12 @@ msgstr "Erzeuge %d Sterne...\n"
 #: src/filters/synthstar.c:525
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
 msgstr ""
+"Sternsynthese (Entsättigung ausgebrannter Sternprofile): Wird durchgeführt...\n"
 
 #: src/filters/synthstar.c:582
 #, c-format
 msgid "Star synthesis: desaturating stars in channel %u...\n"
-msgstr ""
+msgstr "Sternsynthese: Entsättige Sterne im Kanal %u...\n"
 
 #: src/filters/synthstar.c:619
 #, c-format
@@ -14948,7 +15329,7 @@ msgstr "Der AutoStretch-Anzeigemodus verwendet eine 16-Bit-LUT\n"
 #: src/gui/callbacks.c:365
 #, c-format
 msgid "Setting HD AutoStretch display mode bit depth to %d...\n"
-msgstr ""
+msgstr "Setze die Bittiefe des HD-AutoStretch Anzeigemodus auf %d...\n"
 
 #: src/gui/callbacks.c:444
 #, c-format
@@ -15819,7 +16200,7 @@ msgstr "Zeige Bild %d"
 
 #: src/gui/plot.c:1904
 msgid "Zoom to selection"
-msgstr ""
+msgstr "Auf Auswahl zoomen"
 
 #: src/gui/plot.c:1905
 msgid "Only keep points within selection"
@@ -15827,7 +16208,7 @@ msgstr "Nur Punkte innerhalb der Auswahl behalten"
 
 #: src/gui/plot.c:1910
 msgid "Exclude selected points"
-msgstr ""
+msgstr "Ausgewählte Punkte ausschließen"
 
 #: src/gui/preferences.c:337 src/gui/preferences.c:355
 #, c-format
@@ -16414,8 +16795,8 @@ msgstr ""
 msgid ""
 "You can get more scripts by clicking to the \"Get scripts\" item in the menu"
 msgstr ""
-"Sie können weitere Skripte erhalten, indem Sie auf den Punkt \"Skripte abrufen"
-"\" im Menü klicken"
+"Sie können weitere Skripte erhalten, indem Sie auf den Punkt \"Skripte "
+"abrufen\" im Menü klicken"
 
 #: src/gui/siril_intro.c:41
 msgid ""
@@ -16506,6 +16887,7 @@ msgstr "Fehler: Sequenz ist SER"
 #: src/gui/split_cfa.c:49
 msgid "Only FITS format is supported for sequence CFA splitting"
 msgstr ""
+"CFA-Splitting für Sequenzen kann nur mit FITS-Bildern durchgeführt werden"
 
 #: src/gui/statistics_list.c:47
 msgid "mean"
@@ -17054,7 +17436,7 @@ msgstr ""
 #: src/io/image_formats_libraries.c:1468
 #, c-format
 msgid "Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"
-msgstr "Dekodiere %s %s Datei (ISO=%g, Belichtungszeit=1/%gs)\n"
+msgstr "Dekodiere %s %s Datei (ISO=%g, Belichtungszeit=1/%0.1f s)\n"
 
 #: src/io/image_formats_libraries.c:1471
 #, c-format
@@ -17270,7 +17652,7 @@ msgstr "Falsches reserviertes Schlüsselwort: "
 
 #: src/io/path_parse.c:51
 msgid "Library not defined in preferences: "
-msgstr ""
+msgstr "Bibliothek in den Einstellungen nicht definiert: "
 
 #: src/io/path_parse.c:55
 msgid "Key not found: "
@@ -17290,15 +17672,15 @@ msgstr "Bildformat nicht unterstützt: "
 
 #: src/io/path_parse.c:74
 msgid "More than one match for: "
-msgstr ""
+msgstr "Mehr als ein Treffer für: "
 
 #: src/io/path_parse.c:77
 msgid "No match found for: "
-msgstr ""
+msgstr "Kein Treffer gefunden für: "
 
 #: src/io/path_parse.c:80
 msgid "Problem with path: "
-msgstr ""
+msgstr "Problem mit dem Pfad: "
 
 #: src/io/path_parse.c:83
 msgid "Could not create temp FITS for header update: "
@@ -17585,8 +17967,8 @@ msgid ""
 "MP4 output is not supported because siril was not compiled with ffmpeg "
 "support.\n"
 msgstr ""
-"Die MP4-Ausgabe wird nicht unterstützt, weil SIRIL nicht mit \"ffmpeg support"
-"\" compiliert wurde.\n"
+"Die MP4-Ausgabe wird nicht unterstützt, weil SIRIL nicht mit \"ffmpeg "
+"support\" compiliert wurde.\n"
 
 #: src/io/sequence_export.c:216
 msgid ""
@@ -17843,7 +18225,7 @@ msgstr ""
 
 #: src/livestacking/gui.c:136
 msgid "Paused ..."
-msgstr ""
+msgstr "Pausiert ..."
 
 #: src/livestacking/gui.c:255
 msgid ""
@@ -18107,6 +18489,8 @@ msgid ""
 "Midtones Transfer Function (MTF) of x for a midtones balance parameter m in "
 "the [0, 1] range."
 msgstr ""
+"Mitteltonübertragungsfunktion (MTF) von x für einen Mittelton-Balanceparameter "
+"im Bereich [0-1]."
 
 #: src/pixelMath/pixel_math_runner.c:92
 msgid "Combinations function."
@@ -18132,6 +18516,11 @@ msgid ""
 "\t −1 if x &lt; 0\n"
 "\t  0 if x = 0."
 msgstr ""
+"Vorzeichen von x:\n"
+"\n"
+"\t +1 wenn x &gt; 0\n"
+"\t −1 wenn x &lt; 0\n"
+"\t  0 wenn x = 0."
 
 #: src/pixelMath/pixel_math_runner.c:100
 msgid "Sine of x."
@@ -18159,7 +18548,7 @@ msgstr "Abgeschnittener ganzzahliger Teil von x."
 
 #: src/pixelMath/pixel_math_runner.c:109
 msgid "Average absolute deviation of the image."
-msgstr ""
+msgstr "Durchschnittliche absolute Abweichung (absolute Deviation) des Bildes."
 
 #: src/pixelMath/pixel_math_runner.c:110
 msgid "Biweight midvariance of the image."
@@ -18191,7 +18580,7 @@ msgstr "Pixel Minimum des Bildes."
 
 #: src/pixelMath/pixel_math_runner.c:119
 msgid "Estimation of Gaussian noise in the image."
-msgstr ""
+msgstr "Abschätzung des Gauß'schen Rauschens im Bild."
 
 #: src/pixelMath/pixel_math_runner.c:120
 msgid "Standard deviation of the image."
@@ -18886,6 +19275,15 @@ msgid ""
 "If rotation is also computed, then the aligned images need to be exported "
 "using Apply Existing Registration."
 msgstr ""
+"<b>1-2-3 Sternregistrierung</b>: Dies ist die einfachste Methode zur "
+"Registrierung von Deep-Sky-Bildern. Die Bilder werden mit Hilfe von "
+"Verschiebungen ausgerichtet, wenn Sie einen Stern auswählen oder mit "
+"Verschiebung und Drehung, wenn 2 oder 3 Sterne ausgewählt werden.\n"
+"Wenn nur Verschiebungen berechnet werden, werden diese in der Sequenzdatei "
+"gespeichert und die ausgerichtete Sequenz muss nicht exportiert werden. Die "
+"Bilder werden während des Stackings pixelweise verschoben.\n"
+"Wenn auch die Drehung berechnet wird, müssen die ausgerichteten Bilder mit "
+"\"Vorhandene Registrierung anwenden\" exportiert werden."
 
 #: src/registration/registration.c:70
 msgid ""
@@ -18971,6 +19369,8 @@ msgid ""
 "Number of standard deviations for rejection of worst images by k-sigma "
 "clipping algorithm."
 msgstr ""
+"Anzahl der Standardabweichung für die Ablehnung der schlechtesten Bilder durch "
+"den k-Sigma Clipping-Algorithmus."
 
 #: src/registration/registration.c:142
 msgid "1-2-3 Stars Registration (deep-sky)"
@@ -18990,7 +19390,7 @@ msgstr "Kometen-/Asteroiden-Registrierung"
 
 #: src/registration/registration.c:154
 msgid "Apply Existing Registration"
-msgstr "Vorhandene Registrierung wird angewendet"
+msgstr "Vorhandene Registrierung anwenden"
 
 #: src/registration/registration.c:174
 #, c-format
@@ -19163,11 +19563,11 @@ msgstr "Stacken mit Ausschluss - Fehler: Sequenz nicht initialisiert\n"
 #: src/stacking/median_and_mean.c:1032
 #, c-format
 msgid ""
-"Rejection stack error: sequence has wrong image size (%dx%d for sequence, %ldx"
-"%ld for images)\n"
+"Rejection stack error: sequence has wrong image size (%dx%d for sequence, "
+"%ldx%ld for images)\n"
 msgstr ""
-"Ausschluss-Stack-Fehler: Sequenz hat falsche Bildgröße (%dx%d für Sequenz, %ldx"
-"%ld für Bilder)\n"
+"Ausschluss-Stack-Fehler: Sequenz hat falsche Bildgröße (%dx%d für Sequenz, "
+"%ldx%ld für Bilder)\n"
 "\n"
 
 #: src/stacking/median_and_mean.c:1037
@@ -19331,6 +19731,10 @@ msgid ""
 "Stacking has detected registration data with more than simple shifts.\n"
 "Normally, you should apply existing registration before stacking."
 msgstr ""
+"Das Stacking hat Registrierungsdaten mit mehr als \"einfachen Verschiebungen "
+"gefunden.\n"
+"Normalerweise sollten Sie die vorhandene Registrierung vor dem Stacking "
+"anwenden."
 
 #: src/stacking/stacking.c:280
 msgid "Stack anyway"
@@ -19392,7 +19796,7 @@ msgstr "multiplikativ + skalierend"
 
 #: src/stacking/stacking.c:345
 msgid " (fast)"
-msgstr ""
+msgstr " (schnell)"
 
 #: src/stacking/stacking.c:347
 #, c-format
@@ -19454,15 +19858,15 @@ msgstr "Ausschluss-Parameter ...... low=%.3f high=%.3f\n"
 
 #: src/stacking/stacking.c:395
 msgid "Creating rejection maps ... no\n"
-msgstr ""
+msgstr "Erzeuge Ausschlußkarte … no\n"
 
 #: src/stacking/stacking.c:398
 msgid "Creating rejection maps ... yes (merged)\n"
-msgstr ""
+msgstr "Erzeuge Ausschlußkarte … yes (zusammengeführt)\n"
 
 #: src/stacking/stacking.c:399
 msgid "Creating rejection maps ... yes\n"
-msgstr ""
+msgstr "Erzeuge Ausschlußkarte … yes\n"
 
 #: src/stacking/stacking.c:405
 msgid "Image weighting ........... from noise\n"
@@ -19470,15 +19874,15 @@ msgstr "Bildgewichtung ........... vom Rauschen\n"
 
 #: src/stacking/stacking.c:407
 msgid "Image weighting ........... from image count\n"
-msgstr ""
+msgstr "Bildgewichtung ........... auf Grund der Bildanzahl\n"
 
 #: src/stacking/stacking.c:409
 msgid "Image weighting ........... from weighted FWHM\n"
-msgstr ""
+msgstr "Bildgewichtung ........... auf Grund der gewichteten FWHM-Werte\n"
 
 #: src/stacking/stacking.c:411
 msgid "Image weighting ........... from star count\n"
-msgstr ""
+msgstr "Bildgewichtung ........... auf Grund der Anzahl der Sterne\n"
 
 #: src/stacking/stacking.c:412
 msgid "Image weighting ........... disabled\n"
@@ -21314,12 +21718,13 @@ msgstr "Das Stacken erfolgt ohne Hochskalierung (ohne 'Drizzle')\n"
 
 #~ msgid ""
 #~ "Restores an image using the Richardson-Lucy method. \"Iterations\" is the "
-#~ "number of iterations to be performed (typically between 10 and 50). \"Sigma"
-#~ "\" is the size of the kernel to be applied"
+#~ "number of iterations to be performed (typically between 10 and 50). "
+#~ "\"Sigma\" is the size of the kernel to be applied"
 #~ msgstr ""
-#~ "Stellt ein Bild wieder her anhand der Richardson-Lucy-Methode. \"Iterationen"
-#~ "\" ist dabei die Anzahl der durchzuführenden Iterationensschritte (typisch "
-#~ "Werte von 10..50). \"Sigma\" ist dabei die Größe des Kernels"
+#~ "Stellt ein Bild wieder her anhand der Richardson-Lucy-Methode. "
+#~ "\"Iterationen\" ist dabei die Anzahl der durchzuführenden "
+#~ "Iterationensschritte (typisch Werte von 10..50). \"Sigma\" ist dabei die "
+#~ "Größe des Kernels"
 
 #~ msgid "Lucy-Richardson deconvolution: processing...\n"
 #~ msgstr "Lucy-Richardson Dekonvolutierung: in Bearbeitung...\n"
