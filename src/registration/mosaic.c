@@ -145,8 +145,6 @@ int register_mosaic(struct registration_args *regargs) {
 	for (int i = 0; i < n; i++) {
 		double rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
 		double ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
-		// double x[4] = {0., rx, rx, 0.};
-		// double y[4] = {0., 0., ry, ry};
 		double x[4] = {0., rx, rx, 0.};
 		double y[4] = {0., 0., ry, ry};
 		double phi, theta;
@@ -176,16 +174,6 @@ int register_mosaic(struct registration_args *regargs) {
 			gchar *rap = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
 			gchar *decp = siril_world_cs_delta_format(world_cs, "%c%02dd%02d\'%02d\"");
 			siril_debug_print("x0=%8.1f px, y0=%8.1f px, x1=%8.1f px, y1=%8.1f px (%s , %s)\n", x[j], y[j], X[i * 4 + j], Y[i * 4 + j], rap, decp);
-
-			// siril_world_cs_unref(world_cs);
-			// //ra2hms(double ra, int *h, int *m, double *s)
-			// //dec2dms(double dec, int *sign, int *d, int *m, double *s)
-			// int rah, ram, decsign, decd, decm;
-			// double ras, decs;
-			// ra2hms(world[0], &rah, &ram, &ras);
-			// dec2dms(world[1], &decsign, &decd, &decm, &decs);
-			// printf("%8.1f, %8.1f,", X[i * 4 + j], Y[i * 4 + j]);
-			// printf("RA: %d.%d.%.0f DEC:%s%d.%d.%.0f\n", rah, ram, ras, (decsign==1 ? "+":"-"), decd, decm, decs);
 		}
 	}
 
@@ -210,6 +198,51 @@ int register_mosaic(struct registration_args *regargs) {
 		regargs->seq->imgparam[i].incl = TRUE;
 	}
 
+	// Refine by finding stars in overlaps
+	struct starfinder_data *sf_args = calloc(1, sizeof(struct starfinder_data));
+	sf_args->im.from_seq = regargs->seq;
+	sf_args->layer = regargs->layer;
+	sf_args->max_stars_fitted = regargs->max_stars_candidates;
+	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
+	sf_args->nb_stars = calloc(regargs->seq->number, sizeof(int));
+	sf_args->update_GUI = FALSE;
+	sf_args->already_in_thread = TRUE;
+	sf_args->process_all_images = !regargs->filters.filter_included;
+	sf_args->save_to_file = TRUE; //TODO check if we want this
+
+	if (!sf_args->stars || !sf_args->nb_stars) {
+		PRINT_ALLOC_ERR;
+		retval = 1;
+		goto free_all;
+	}
+	if (apply_findstar_to_sequence(sf_args)) {
+		siril_debug_print("finding stars failed\n");	// aborted probably
+		retval = 1;
+		goto free_all;
+	}
+
+	int nbpairs = (n - 1) * (n - 2);
+	Homography *Hs =  calloc(nbpairs, sizeof(Homography));
+
+	for (int i = 0; i < n; i++) {
+		double rxi = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
+		double ryi = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
+		for (int j = i + 1; j < n; j++) {
+			double rxj = (regargs->seq->is_variable) ? regargs->seq->imgparam[j].rx : regargs->seq->rx;
+			double ryj = (regargs->seq->is_variable) ? regargs->seq->imgparam[j].ry : regargs->seq->ry;
+			double xi[4] = {0., rxi, rxi, 0.};
+			double yi[4] = {0., 0., ryi, ryi};
+			double xj[4] = {0., rxj, rxj, 0.};
+			double yj[4] = {0., 0., ryj, ryj};
+			Homography Hinit = { 0 };
+			cvTransfH(current_regdata[i].H, current_regdata[j].H, &Hinit); // composing transforms
+			for (int k = 0; k < 4; k++) {
+				cvTransfPoint(xi + k, yi + k, current_regdata[i].H, current_regdata[j].H);
+				cvTransfPoint(xj + k, yj + k, current_regdata[j].H, current_regdata[i].H);
+				siril_debug_print("x%d%d=%8.1f px, y%d%d=%8.1f px, x%d%d=%8.1f px, y%d%d=%8.1f px\n", i + 1, k + 1, xi[k], i + 1, k + 1, yi[k], j + 1, k + 1, xj[k], j + 1, k + 1, yj[k]);
+			}
+		}
+	}
 
 	// images may have been excluded but selnum wasn't updated
 	regargs->seq->reference_image = refindex;
@@ -220,20 +253,7 @@ int register_mosaic(struct registration_args *regargs) {
 
 
 free_all:
-// 	for (int i = 0; i < regargs->seq->number; i++)
-// 		free_fitted_stars(mosaic_args->stars[i]);
-// 	free(mosaic_args->stars);
-// 	free(mosaic_args->nb_stars);
-// 	free(mosaic_args);
-// 	free(fwhm);
-// 	free(roundness);
-// 	free(B);
-// 	free(A);
-// 	free(Acut);
-// 	free(included);
-// 	free(tmp_included);
-// 	free(meaningful);
-// 	free(scores);
+
 	free(RA);
 	free(DEC);
   	free(dist);
