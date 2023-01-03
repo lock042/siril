@@ -30,7 +30,7 @@ static gchar **authors = (gchar *[] ) {
 				"Vincent Hourdin <vh@free-astro.vinvin.tf>",
 				"Cyril Richard <cyril@free-astro.org>",
 				"Cécile Melis <cissou8@gmail.com>",
-				"Adrian Knagg-Baugh <aje.baugh@gmail.com >"
+				"Adrian Knagg-Baugh <aje.baugh@gmail.com>"
 				"François Meyer",
 				NULL
 };
