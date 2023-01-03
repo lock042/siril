@@ -1348,6 +1348,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 	g_signal_connect(selection, "changed", G_CALLBACK(on_treeview_selection_convert_changed), NULL);
 
+	selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+
 	siril_drag_single_image_set_dest();
 
 	set_GUI_CWD();

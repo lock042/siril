@@ -379,20 +379,47 @@ void set_iter_of_clicked_psf(double x, double y) {
 	return;
 }
 
+//static void remove_selected_star(int index) {
+//	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
+//	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")));
+//	GtkTreeIter iter;
+//
+//	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+//		gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
+//		gtk_tree_selection_unselect_all(selection);
+//
+//		remove_star(index);
+//
+//		gui.selected_star = -1;
+//		display_status();
+//	}
+//}
+
 static void remove_selected_star(int index) {
-	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
-	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")));
-	GtkTreeIter iter;
+	GtkTreeSelection *selection;
+	GList *references, *list;
 
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-		gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
-		gtk_tree_selection_unselect_all(selection);
+	GtkTreeView *treeView = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
+	GtkTreeModel *treeModel = gtk_tree_view_get_model(treeView);
 
-		remove_star(index);
-
-		gui.selected_star = -1;
-		display_status();
+	selection = gtk_tree_view_get_selection(treeView);
+	references = get_row_references_of_selected_rows(selection, treeModel);
+	for (list = references; list; list = list->next) {
+		GtkTreeIter iter;
+		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
+		if (path) {
+			if (gtk_tree_model_get_iter(treeModel, &iter, path)) {
+				gtk_list_store_remove(liststore_stars, &iter);
+				remove_star(index);
+			}
+			gtk_tree_path_free(path);
+		}
 	}
+	g_list_free(references);
+	gtk_tree_selection_unselect_all(selection);
+
+	gui.selected_star = -1;
+	display_status();
 }
 
 static void remove_all_stars(){
@@ -728,19 +755,22 @@ void popup_psf_result(psf_star *result, rectangle *area, fits *fit) {
 
 /***************** callbacks ****************/
 
-void on_treeview_cursor_changed(GtkTreeView *tree_view,
-		gpointer user_data) {
-	GtkTreeModel *treeModel = gtk_tree_view_get_model(tree_view);
-	GtkTreeSelection *selection = gtk_tree_view_get_selection (tree_view);
+void on_treeview_selection_changed(GtkTreeSelection *selection, gpointer user_data) {
 	GtkTreeIter iter;
 	GValue value_x = G_VALUE_INIT;
 	GValue value_y = G_VALUE_INIT;
 	const gchar *area[] = {"drawingarear", "drawingareag", "drawingareab", "drawingareargb" };
 	GtkWidget *widget = lookup_widget(area[gui.cvport]);
 
+	GtkTreeView *treeView = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored"));
+	GtkTreeModel *treeModel = gtk_tree_view_get_model(treeView);
+
 	if (gtk_tree_model_get_iter_first(treeModel, &iter) == FALSE)
 		return;	//The tree is empty
-	if (gtk_tree_selection_get_selected(selection, &treeModel, &iter)) { //get selected item
+
+	GList *list = gtk_tree_selection_get_selected_rows(selection, &treeModel);
+	if (g_list_length(list) == 1) {
+		gtk_tree_model_get_iter(treeModel, &iter, (GtkTreePath*) list->data);
 		gdouble x0, y0;
 
 		gtk_tree_model_get_value(treeModel, &iter, COLUMN_X0, &value_x);
