@@ -225,7 +225,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	return star_align_prepare_results(args);
 }
 
-static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
+int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
 	double scale_min = 0.9;
 	double scale_max = 1.1;
 	int attempt = 1;

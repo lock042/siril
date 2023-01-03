@@ -31,6 +31,7 @@
 #include "core/siril_world_cs.h"
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
+#include "algos/sorting.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
@@ -76,6 +77,54 @@ static double compute_haversine_distance(double ra1, double dec1, double ra2, do
 	return 2 * asin(pow(h, 0.5));
 }
 
+// sorts an existing star list
+// and creates a new one with only the stars within a given area
+// the list is allocated here but needs to be freed by the caller
+// the function returns the number of stars found
+static psf_star **prune_stars(psf_star **stars, int nbstars, rectangle area, int *nbstarsout) {
+	int i = 0;
+	int n = 0;
+	*nbstarsout = 0;
+	double xmin = (double)area.x;
+	double ymin = (double)area.y;
+	double xmax = (double)(area.x + area.w);
+	double ymax = (double)(area.y + area.h);
+	gboolean *is_inside = calloc(nbstars, sizeof(gboolean));
+	// counting stars to allocate
+	while (i < nbstars && stars[i]) {
+		if (stars[i]->xpos >= xmin && stars[i]->xpos <= xmax && stars[i]->ypos >= ymin && stars[i]->ypos <= ymax) {
+			n++;
+			is_inside[i] = TRUE;
+		}
+		i++;
+	}
+	if (n == 0) {
+		siril_log_message(_("No stars found in the overlap area\n"));
+		return NULL;
+	}
+	psf_star **starsout = new_fitted_stars(n); // allocates the list
+	i = 0;
+	n = 0;
+	while (i < nbstars && stars[i]) {
+		if (is_inside[i]) {
+			psf_star *tmp = new_psf_star();
+			if (!tmp) {
+				PRINT_ALLOC_ERR;
+				starsout[n] = NULL;
+				starsout[++n] = NULL;
+				break;
+			}
+			memcpy(tmp, stars[i], sizeof(psf_star));
+			starsout[n] = tmp;
+			starsout[++n] = NULL;
+		}
+		i++;
+	}
+	g_free(is_inside);
+	*nbstarsout = n;
+	return starsout;
+}
+
 int register_mosaic(struct registration_args *regargs) {
 #ifndef HAVE_WCSLIB
 	siril_log_color_message(_("Mosaic registration requires to have wcslib dependency installed, aborting\n"), "red");
@@ -87,6 +136,7 @@ int register_mosaic(struct registration_args *regargs) {
 
 	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata) return -1;
+	regargs->type = HOMOGRAPHY_TRANSFORMATION; // forcing homography calc
 
 	gettimeofday(&t_start, NULL);
 	fits fit = { 0 };
@@ -221,8 +271,10 @@ int register_mosaic(struct registration_args *regargs) {
 		goto free_all;
 	}
 
-	int nbpairs = (n - 1) * (n - 2);
+	int nbpairs = n * n;
+	// TODO: should check allocation success
 	Homography *Hs =  calloc(nbpairs, sizeof(Homography));
+	guint64 *surface = calloc(nbpairs, sizeof(guint64));
 
 	for (int i = 0; i < n; i++) {
 		double rxi = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
@@ -234,15 +286,106 @@ int register_mosaic(struct registration_args *regargs) {
 			double yi[4] = {0., 0., ryi, ryi};
 			double xj[4] = {0., rxj, rxj, 0.};
 			double yj[4] = {0., 0., ryj, ryj};
-			Homography Hinit = { 0 };
-			cvTransfH(current_regdata[i].H, current_regdata[j].H, &Hinit); // composing transforms
+			Homography Hij = { 0 }, Hji = { 0 };
+			siril_debug_print("Matching images %d (%d x %d) and %d (%d x %d)\n", i + 1, (int)rxi, (int)ryi, j + 1, (int)rxj, (int)ryj);
+			gboolean i_is_j = FALSE, j_is_i = FALSE;
+			// TODO: we should probably recompute the matrices using WCS here for each pair i,j as the further we are from the ref image, the more the transforms become inaccurate
 			for (int k = 0; k < 4; k++) {
-				cvTransfPoint(xi + k, yi + k, current_regdata[i].H, current_regdata[j].H);
-				cvTransfPoint(xj + k, yj + k, current_regdata[j].H, current_regdata[i].H);
+				cvTransfPoint(xi + k, yi + k, current_regdata[i].H, current_regdata[j].H); // corners of ith image projected on jth image
+				cvTransfPoint(xj + k, yj + k, current_regdata[j].H, current_regdata[i].H); // corners of jth image projected on ith image
 				siril_debug_print("x%d%d=%8.1f px, y%d%d=%8.1f px, x%d%d=%8.1f px, y%d%d=%8.1f px\n", i + 1, k + 1, xi[k], i + 1, k + 1, yi[k], j + 1, k + 1, xj[k], j + 1, k + 1, yj[k]);
+				if (!i_is_j) i_is_j = ((int)xi[k] >= 0) && ((int)xi[k] <= rxj) && ((int)yi[k] >= 0) && ((int)yi[k] <= ryj);
+				if (!j_is_i) j_is_i = ((int)xj[k] >= 0) && ((int)xj[k] <= rxi) && ((int)yj[k] >= 0) && ((int)yj[k] <= ryi);
 			}
+			// finding minimum intersection
+			if (!i_is_j && !j_is_i) {
+				siril_debug_print("No overlap found\n");
+				continue;
+			}
+			quicksort_d(xi, 4);
+			quicksort_d(yi, 4);
+			quicksort_d(xj, 4);
+			quicksort_d(yj, 4);
+			int minxi = max(xi[1],   0);
+			int maxxi = min(xi[2], rxj);
+			int minyi = max(yi[1],   0);
+			int maxyi = min(yi[2], ryj);
+			int minxj = max(xj[1],   0);
+			int maxxj = min(xj[2], rxi);
+			int minyj = max(yj[1],   0);
+			int maxyj = min(yj[2], ryi);
+
+			rectangle rectj = (rectangle) { minxi, minyi, maxxi - minxi, maxyi - minyi };
+			rectangle recti = (rectangle) { minxj, minyj, maxxj - minxj, maxyj - minyj };
+			siril_debug_print("Image %8d : boxselect %8d %8d %8d %8d\n", i + 1, recti.x, recti.y, recti.w, recti.h);
+			siril_debug_print("Image %8d : boxselect %8d %8d %8d %8d\n", j + 1, rectj.x, rectj.y, rectj.w, rectj.h);
+			surface[i * n + j] = (recti.w * recti.h + rectj.w * rectj.h) / 2; // mean overlapping surface
+			surface[j * n + i] = surface[i * n + j];
+			
+			// prune the starlists for each image
+			int nbstarsi, nbstarsj;
+			psf_star **starsi = prune_stars(sf_args->stars[i], sf_args->nb_stars[i], recti, &nbstarsi);
+			psf_star **starsj = prune_stars(sf_args->stars[j], sf_args->nb_stars[j], rectj, &nbstarsj);
+			if (!nbstarsi || !nbstarsj) {
+				free_fitted_stars(starsi);
+				free_fitted_stars(starsj);
+				// TODO add a more explicit message stating that only WCS homography will be used
+				// copy the H matrices obtained with WCS info
+				continue; 
+			}
+			int fail_matchij = star_match_and_checks(starsi, starsj, min(nbstarsi, nbstarsj), regargs, i, &Hij);
+			int fail_matchji = star_match_and_checks(starsj, starsi, min(nbstarsi, nbstarsj), regargs, j, &Hji);
+			if (fail_matchij || fail_matchji) {
+				free_fitted_stars(starsi);
+				free_fitted_stars(starsj);
+				continue; // TODO add a more explicit message stating that only WCS homography will be used
+			}
+			// keeping the match which gave most inliers and inverting the other
+			if (Hij.Inliers > Hji.Inliers) {
+				memcpy(Hs + i * n + j, &Hij, sizeof(Homography));
+				memcpy(Hs + j * n + i, &Hij, sizeof(Homography));
+				cvInvertH(Hs + j * n + i);
+			} else {
+				memcpy(Hs + i * n + j, &Hji, sizeof(Homography));
+				memcpy(Hs + j * n + i, &Hji, sizeof(Homography));
+				cvInvertH(Hs + i * n + j);
+			}
+			free_fitted_stars(starsi);
+			free_fitted_stars(starsj);
 		}
 	}
+
+	//writing outputs to *.smo file, a.k.a Siril MOsaic file
+	char *filename;
+	FILE *mscfile;
+	if (!regargs->seq->seqname || regargs->seq->seqname[0] == '\0') {
+		retval = 1;
+		goto free_all;
+	}
+	filename = malloc(strlen(regargs->seq->seqname)+5);
+	sprintf(filename, "%s.smo", regargs->seq->seqname);
+	mscfile = g_fopen(filename, "w+t");
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			fprintf(mscfile, "%d %d %"G_GUINT64_FORMAT" %d %d H %g %g %g %g %g %g %g %g %g\n",
+			i + 1,
+			j + 1,
+			surface[i * n + j],
+			Hs[i * n + j].pair_matched,
+			Hs[i * n + j].Inliers,
+			Hs[i * n + j].h00,
+			Hs[i * n + j].h01,
+			Hs[i * n + j].h02,
+			Hs[i * n + j].h10,
+			Hs[i * n + j].h11,
+			Hs[i * n + j].h12,
+			Hs[i * n + j].h20,
+			Hs[i * n + j].h21,
+			Hs[i * n + j].h22
+			);
+		}
+	}
+	fclose(mscfile);
 
 	// images may have been excluded but selnum wasn't updated
 	regargs->seq->reference_image = refindex;
@@ -260,6 +403,7 @@ free_all:
 	free(X);
 	free(Y);
 	// TODO: properly free WCS array
+	// TODO: properly free Hs array
 	return retval;
 #endif
 }
