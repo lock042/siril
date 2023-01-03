@@ -380,16 +380,28 @@ void set_iter_of_clicked_psf(double x, double y) {
 	return;
 }
 
-static void update_column_index(GtkTreeModel *treeModel, int removed) {
+static int compare(void const *a, void const *b) {
+	guint const *pa = a;
+	guint const *pb = b;
+
+	return *pa - *pb;
+}
+
+static void update_column_index(GtkTreeModel *treeModel, guint *sel, guint size) {
 	GtkTreeIter iter;
 	gboolean valid = gtk_tree_model_get_iter_first(treeModel, &iter);
 
 	while (valid) {
 		gint idx;
 		gtk_tree_model_get(treeModel, &iter, COLUMN_INDEX, &idx, -1);
-		if (idx > removed) {
-			gtk_list_store_set(liststore_stars, &iter, COLUMN_INDEX, idx - 1, -1);
+
+		int i = size - 1;
+		while(i >= 0 && idx < sel[i]) {
+			i--;
 		}
+		if (i < 0) continue;
+
+		gtk_list_store_set(liststore_stars, &iter, COLUMN_INDEX, idx - i - 1, -1);
 		valid = gtk_tree_model_iter_next (treeModel, &iter);
 	}
 }
@@ -403,6 +415,11 @@ static void remove_selected_star() {
 
 	selection = gtk_tree_view_get_selection(treeView);
 	references = get_row_references_of_selected_rows(selection, treeModel);
+
+	guint size = g_list_length(references);
+	guint *sel = calloc(size, sizeof(guint));
+
+	int i = 0;
 	for (list = references; list; list = list->next) {
 		GtkTreeIter iter;
 		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
@@ -411,15 +428,21 @@ static void remove_selected_star() {
 				GValue g_idx = G_VALUE_INIT;
 				gtk_tree_model_get_value(treeModel, &iter, COLUMN_INDEX, &g_idx);
 				int idx = g_value_get_int(&g_idx);
+				sel[i++] = idx;
 
 				gtk_list_store_remove(liststore_stars, &iter);
-				update_column_index(treeModel, idx);
-
-				remove_star(idx - 1);
 			}
 			gtk_tree_path_free(path);
 		}
 	}
+	qsort (sel, size, sizeof *sel, compare);
+
+	for(int i = size - 1; i >= 0; i--) {
+		remove_star(sel[i] - 1);
+	}
+
+	update_column_index(treeModel, sel, size);
+
 	g_list_free(references);
 	gtk_tree_selection_unselect_all(selection);
 
