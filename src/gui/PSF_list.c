@@ -56,6 +56,7 @@ enum {
 	COLUMN_ROUNDNESS,	// gdouble
 	COLUMN_ANGLE,		// gdouble
 	COLUMN_RMSE,		// gdouble
+	COLUMN_INDEX,       // gint
 	N_COLUMNS
 };
 
@@ -379,23 +380,21 @@ void set_iter_of_clicked_psf(double x, double y) {
 	return;
 }
 
-//static void remove_selected_star(int index) {
-//	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
-//	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")));
-//	GtkTreeIter iter;
-//
-//	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-//		gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
-//		gtk_tree_selection_unselect_all(selection);
-//
-//		remove_star(index);
-//
-//		gui.selected_star = -1;
-//		display_status();
-//	}
-//}
+static void update_column_index(GtkTreeModel *treeModel, int removed) {
+	GtkTreeIter iter;
+	gboolean valid = gtk_tree_model_get_iter_first(treeModel, &iter);
 
-static void remove_selected_star(int index) {
+	while (valid) {
+		gint idx;
+		gtk_tree_model_get(treeModel, &iter, COLUMN_INDEX, &idx, -1);
+		if (idx > removed) {
+			gtk_list_store_set(liststore_stars, &iter, COLUMN_INDEX, idx - 1, -1);
+		}
+		valid = gtk_tree_model_iter_next (treeModel, &iter);
+	}
+}
+
+static void remove_selected_star() {
 	GtkTreeSelection *selection;
 	GList *references, *list;
 
@@ -409,8 +408,14 @@ static void remove_selected_star(int index) {
 		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
 		if (path) {
 			if (gtk_tree_model_get_iter(treeModel, &iter, path)) {
+				GValue g_idx = G_VALUE_INIT;
+				gtk_tree_model_get_value(treeModel, &iter, COLUMN_INDEX, &g_idx);
+				int idx = g_value_get_int(&g_idx);
+
 				gtk_list_store_remove(liststore_stars, &iter);
-				remove_star(index);
+				update_column_index(treeModel, idx);
+
+				remove_star(idx - 1);
 			}
 			gtk_tree_path_free(path);
 		}
@@ -539,7 +544,7 @@ static void save_stars_dialog() {
 	siril_widget_destroy(widgetdialog);
 }
 
-static void add_star_to_list(psf_star *star) {
+static void add_star_to_list(psf_star *star, int i) {
 	static GtkTreeSelection *selection = NULL;
 	GtkTreeIter iter;
 
@@ -566,8 +571,9 @@ static void add_star_to_list(psf_star *star) {
 			COLUMN_MAG, star->mag + com.magOffset,
 			COLUMN_BETA, star->beta,
 			COLUMN_ROUNDNESS, fwhmy / fwhmx,
-			COLUMN_ANGLE, -star->angle, // the image had been flipped befor the findstar
+			COLUMN_ANGLE, -star->angle, // the image had been flipped before the findstar
 			COLUMN_RMSE, star->rmse,
+			COLUMN_INDEX, i + 1,
 			-1);
 
 	units = star->units;
@@ -577,12 +583,12 @@ static void fill_stars_list(fits *fit, psf_star **stars) {
 	int i = 0;
 	if (stars == NULL)
 		return;
-	add_star_to_list(NULL);	// clear
+	add_star_to_list(NULL, 0);	// clear
 
 	while (stars[i]) {
 		/* update units if needed */
 		fwhm_to_arcsec_if_needed(fit, stars[i]);
-		add_star_to_list(stars[i]);
+		add_star_to_list(stars[i], i);
 		i++;
 	}
 	gui.selected_star = -1;
@@ -625,6 +631,13 @@ void clear_stars_list(gboolean refresh_GUI) {
 		display_status();
 }
 
+static int get_comstar_count() {
+	int i = 0;
+	while (com.stars[i])
+		i++;
+	return i;
+}
+
 void pick_a_star() {
 	int layer = match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
 	if (layer != -1) {
@@ -638,7 +651,7 @@ void pick_a_star() {
 		int new_index;
 		psf_star *new_star = add_star(&gfit, layer, &new_index);
 		if (new_star) {
-			add_star_to_list(new_star);
+			add_star_to_list(new_star, get_comstar_count() - 1);
 			display_status();
 			siril_open_dialog("stars_list_window");
 		} else
@@ -802,7 +815,7 @@ void on_Stars_stored_key_release_event(GtkWidget *widget, GdkEventKey *event,
 	if (event->keyval == GDK_KEY_Delete || event->keyval == GDK_KEY_KP_Delete
 			|| event->keyval == GDK_KEY_BackSpace) {
 
-		remove_selected_star(gui.selected_star);
+		remove_selected_star();
 	}
 }
 
@@ -819,13 +832,13 @@ void on_add_button_clicked(GtkButton *button, gpointer user_data) {
 	int index;
 	add_star(&gfit, layer, &index);
 	if (index > -1)
-		add_star_to_list(com.stars[index]);
+		add_star_to_list(com.stars[index], index);
 	display_status();
 	refresh_star_list(com.stars);
 }
 
 void on_remove_button_clicked(GtkButton *button, gpointer user_data) {
-	remove_selected_star(gui.selected_star);
+	remove_selected_star();
 }
 
 void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
