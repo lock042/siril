@@ -395,11 +395,9 @@ static void update_column_index(GtkTreeModel *treeModel, guint *sel, guint size)
 		gint idx;
 		gtk_tree_model_get(treeModel, &iter, COLUMN_INDEX, &idx, -1);
 
-		int i = size - 1;
-		while(i >= 0 && idx < sel[i]) {
-			i--;
-		}
-		if (i < 0) continue;
+		/* find the index we need to update */
+		int i;
+		for (i = size - 1; i >= 0 && idx < sel[i]; i--) ;
 
 		gtk_list_store_set(liststore_stars, &iter, COLUMN_INDEX, idx - i - 1, -1);
 		valid = gtk_tree_model_iter_next (treeModel, &iter);

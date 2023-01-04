@@ -11243,6 +11243,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 </child>
                 <child>
                   <object class="GtkTreeViewColumn">
+                    <property name="visible">False</property>
                     <property name="title" translatable="yes">index</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_index"/>
