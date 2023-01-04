@@ -821,8 +821,8 @@ void on_treeview_selection_changed(GtkTreeSelection *selection, gpointer user_da
 		GtkToggleButton *toggle = GTK_TOGGLE_BUTTON(lookup_widget("toggle_star_centered"));
 		if (gtk_toggle_button_get_active(toggle)) {
 			double z = get_zoom_val();
-			gui.display_offset.x = (gtk_widget_get_allocated_width(widget)/2 - x0 * z);
-			gui.display_offset.y = (gtk_widget_get_allocated_height(widget)/2 - y0 * z);
+			gui.display_offset.x = (gtk_widget_get_allocated_width(widget) / 2 - x0 * z);
+			gui.display_offset.y = (gtk_widget_get_allocated_height(widget) / 2 - y0 * z);
 			adjust_vport_size_to_image();
 		}
 
