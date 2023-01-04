@@ -620,7 +620,9 @@ void siril_check_updates(gboolean verbose) {
 	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
 	if (args->verbose)
 		set_cursor_waiting(TRUE);
-	start_in_new_thread(fetch_url, args);
+
+	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
+	g_thread_new("siril-update", fetch_url, args);
 }
 
 #else
