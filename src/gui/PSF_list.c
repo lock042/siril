@@ -370,6 +370,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
 			gtk_tree_path_free(path);
 			gui.selected_star = get_index_of_selected_star(xpos, ypos);
+			gtk_window_present(GTK_WINDOW(lookup_widget("stars_list_window")));
 			display_status();
 			redraw(REDRAW_OVERLAY);
 			return;
