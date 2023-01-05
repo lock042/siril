@@ -13787,6 +13787,7 @@ Each image in the sequence will only be processed if the corresponding images fo
                             <property name="text">0.5000000</property>
                             <property name="input-purpose">number</property>
                             <signal name="activate" handler="on_histoMidEntry_activate" swapped="no"/>
+                            <signal name="focus-out-event" handler="on_histoMidEntry_focus_out_event" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -13804,6 +13805,7 @@ Each image in the sequence will only be processed if the corresponding images fo
                             <property name="text">0.0000000</property>
                             <property name="input-purpose">number</property>
                             <signal name="activate" handler="on_histoShadEntry_activate" swapped="no"/>
+                            <signal name="focus-out-event" handler="on_histoShadEntry_focus_out_event" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -13821,6 +13823,7 @@ Each image in the sequence will only be processed if the corresponding images fo
                             <property name="text">1.0000000</property>
                             <property name="input-purpose">number</property>
                             <signal name="activate" handler="on_histoHighEntry_activate" swapped="no"/>
+                            <signal name="focus-out-event" handler="on_histoHighEntry_focus_out_event" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
