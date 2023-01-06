@@ -57,41 +57,13 @@
 #define pclose(f) _pclose(f)
 #endif /*pclose*/
 
-static const gchar *possible_path[] = { "C:\\PROGRA~1\\gnuplot\\bin\\gnuplot.exe", "C:\\msys64\\mingw64\\bin\\gnuplot.exe" };
-static const gchar *gnuplot_path = NULL;
-
 #endif /*_WIN32*/
 
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_path() {
-#ifdef _WIN32
-	gchar *str = g_strdup_printf("\"%s -persist\"", gnuplot_path);
-	return str;
-#else
-	return g_strdup("gnuplot");
-#endif
+	return g_strdup(com.pref.gnuplot_bin);
 }
 
-#ifdef _WIN32
-
-/* returns true if the gnuplot.exe exists in the wanted folder */
-gboolean gnuplot_is_available() {
-	size_t size, i = 0;
-	gboolean found = FALSE;
-
-	size = sizeof(possible_path) / sizeof(gchar*);
-	do {
-		found = g_file_test(possible_path[i], G_FILE_TEST_EXISTS);
-		i++;
-	} while (i < size && !found);
-
-	if (found)
-		gnuplot_path = possible_path[i - 1];
-
-	return found;
-}
-#else
-/* returns true if the command gnuplot is available */
 gboolean gnuplot_is_available() {
 	gchar *path = siril_get_gnuplot_path();
 	gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", path);
@@ -103,7 +75,6 @@ gboolean gnuplot_is_available() {
 		return 0 == WEXITSTATUS(retval);
 	return FALSE;
 }
-#endif
 
 /*---------------------------------------------------------------------------
                                 Defines

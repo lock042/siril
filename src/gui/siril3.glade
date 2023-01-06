@@ -28930,10 +28930,12 @@ Configuring a memory amount larger than what is available on your system may res
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <object class="GtkBox">
+                          <!-- n-columns=2 n-rows=2 -->
+                          <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">6</property>
                             <child>
                               <object class="GtkFileChooserButton" id="filechooser_starnet">
                                 <property name="visible">True</property>
@@ -28944,9 +28946,8 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="title" translatable="yes">Select Starnet++ installation directory</property>
                               </object>
                               <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
                               </packing>
                             </child>
                             <child>
@@ -28960,9 +28961,36 @@ Configuring a memory amount larger than what is available on your system may res
                                 </attributes>
                               </object>
                               <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="xpad">10</property>
+                                <property name="label" translatable="yes">Must point to a valid gnuplot binary.</property>
+                                <attributes>
+                                  <attribute name="style" value="italic"/>
+                                </attributes>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFileChooserButton" id="filechooser_gnuplot">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Select gnuplot binary location.</property>
+                                <property name="valign">center</property>
+                                <property name="title" translatable="yes">Select gnuplot installation directory</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
                               </packing>
                             </child>
                           </object>
@@ -28974,7 +29002,7 @@ Configuring a memory amount larger than what is available on your system may res
                             <property name="margin-top">10</property>
                             <property name="margin-bottom">10</property>
                             <property name="ypad">8</property>
-                            <property name="label" translatable="yes">Starnet++ Installation Directory</property>
+                            <property name="label" translatable="yes">Software Location</property>
                             <attributes>
                               <attribute name="weight" value="bold"/>
                             </attributes>
