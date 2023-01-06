@@ -203,6 +203,7 @@ deps-win64:
       - apt-cache
   before_script:
     - git clone --depth=${GIT_DEPTH} git://git.tuxfamily.org/gitroot/crossroad/crossroad.git
+    - cp build/windows/crossbuild-gitlab-ci/setup.py crossroad/
     - cd crossroad
     - ./setup.py install --prefix=`pwd`/../.local
     - cd ..
