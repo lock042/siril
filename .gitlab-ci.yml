@@ -197,6 +197,8 @@ deps-win64:
   variables:
     XDG_CACHE_HOME: "$CI_PROJECT_DIR/.cache/"
     XDG_DATA_HOME: "$CI_PROJECT_DIR/.local/share/"
+# fix from Jehan see https://gitlab.gnome.org/GNOME/gimp/-/commit/6378f3af8dcae896d9bc93b45bc8e651fb55805a
+    DEB_PYTHON_INSTALL_LAYOUT: "deb"
   cache:
     paths:
       - .cache/crossroad/
