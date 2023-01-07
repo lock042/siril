@@ -57,6 +57,12 @@
 #define pclose(f) _pclose(f)
 #endif /*pclose*/
 
+#define GNUPLOT_BIN "gnuplot.exe"
+
+#else
+
+#define GNUPLOT_BIN "gnuplot"
+
 #endif /*_WIN32*/
 
 /*********************** finding gnuplot first **********************/
@@ -68,7 +74,7 @@ gboolean gnuplot_is_available() {
 	gchar *path = siril_get_gnuplot_path();
 	if (!path) return FALSE;
 
-	gchar *filename = g_build_filename(path, "gnuplot", NULL);
+	gchar *filename = g_build_filename(path, GNUPLOT_BIN, NULL);
 
 	gboolean is_available = g_file_test(filename, G_FILE_TEST_EXISTS);
 	g_free(path);
@@ -171,7 +177,7 @@ gnuplot_ctrl * gnuplot_init(void)
     handle->ntmp = 0 ;
 
     gchar *path = siril_get_gnuplot_path();
-	gchar *filename = g_build_filename(path, "gnuplot", NULL);
+	gchar *filename = g_build_filename(path, GNUPLOT_BIN, NULL);
 
     handle->gnucmd = siril_popen(filename, "w");
     g_free(path);
