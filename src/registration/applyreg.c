@@ -484,6 +484,7 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.type = args->seq->type;
 	seq.current = -1;
 	seq.is_variable = FALSE;
+	seq.fz = com.pref.comp.fits_enabled;
 	// update with the new numbering
 	seq.reference_image = new_ref_index;
 	seq.needs_saving = TRUE;

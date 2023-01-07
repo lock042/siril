@@ -660,6 +660,7 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	seq.type = args->seq->type;
 	seq.current = -1;
 	seq.is_variable = FALSE;
+	seq.fz = com.pref.comp.fits_enabled;
 	// don't copy from old sequence, it may not be the same image
 	seq.reference_image = sequence_find_refimage(&seq);
 	seq.needs_saving = TRUE;
