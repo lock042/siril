@@ -28954,7 +28954,7 @@ Configuring a memory amount larger than what is available on your system may res
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">end</property>
+                                <property name="halign">start</property>
                                 <property name="xpad">10</property>
                                 <property name="label" translatable="yes">Must point to a valid Starnet++ installation directory.</property>
                                 <attributes>
@@ -28970,9 +28970,10 @@ Configuring a memory amount larger than what is available on your system may res
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">end</property>
+                                <property name="halign">start</property>
                                 <property name="xpad">10</property>
-                                <property name="label" translatable="yes">Must point to a valid gnuplot installation directory.</property>
+                                <property name="label" translatable="yes">Must point to a valid gnuplot installation directory.
+Not necessary if the path of gnuplot is stored in the PATH variable.</property>
                                 <attributes>
                                   <attribute name="style" value="italic"/>
                                 </attributes>

@@ -63,13 +63,17 @@
 
 #define GNUPLOT_BIN "gnuplot"
 
+static gboolean gnuplot_path = FALSE;
+
 #endif /*_WIN32*/
 
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_path() {
-	return g_strdup(com.pref.gnuplot_dir);
+	if (gnuplot_path) return g_strdup(GNUPLOT_BIN);
+	else return g_strdup(com.pref.gnuplot_dir);
 }
 
+#if defined (_WIN32) || defined(OS_OSX)
 gboolean gnuplot_is_available() {
 	gchar *path = siril_get_gnuplot_path();
 	if (!path) return FALSE;
@@ -82,6 +86,26 @@ gboolean gnuplot_is_available() {
 
 	return is_available;
 }
+
+#else
+/* returns true if the command gnuplot is available */
+gboolean gnuplot_is_available() {
+	gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", GNUPLOT_BIN);
+
+	int retval = system(str);
+	g_free(str);
+	if (WIFEXITED(retval)) {
+		gnuplot_path = TRUE;
+		return 0 == WEXITSTATUS(retval);
+	}
+
+	gchar *path = siril_get_gnuplot_path();
+	gboolean is_available = g_file_test(path, G_FILE_TEST_EXISTS);
+	g_free(path);
+
+	return is_available;
+}
+#endif
 
 /*---------------------------------------------------------------------------
                                 Defines
@@ -177,11 +201,9 @@ gnuplot_ctrl * gnuplot_init(void)
     handle->ntmp = 0 ;
 
     gchar *path = siril_get_gnuplot_path();
-	gchar *filename = g_build_filename(path, GNUPLOT_BIN, NULL);
 
-    handle->gnucmd = siril_popen(filename, "w");
+    handle->gnucmd = siril_popen(path, "w");
     g_free(path);
-    g_free(filename);
     if (handle->gnucmd == NULL) {
         fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
         free(handle);
