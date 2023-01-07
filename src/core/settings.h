@@ -240,7 +240,7 @@ struct pref_struct {
 	gchar *copyright;	// User copyright when saving image as TIFF
 
 	gchar *starnet_dir;	// Location of starnet++ installation (requires v2.0.2 or greater)
-	gchar *gnuplot_bin; //lovation of gnuplot binary
+	gchar *gnuplot_bin;	// Location of gnuplot binary
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;
