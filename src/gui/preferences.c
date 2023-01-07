@@ -282,8 +282,6 @@ void initialize_starnet_directory(const gchar *path) {
 	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (starnet_dir, path);
-	} else {
-		gtk_file_chooser_set_filename (starnet_dir, g_get_tmp_dir());
 	}
 }
 
@@ -291,8 +289,6 @@ void initialize_gnuplot_directory(const gchar *path) {
 	GtkFileChooser *gnuplot_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_gnuplot"));
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (gnuplot_dir, path);
-	} else {
-		gtk_file_chooser_set_filename (gnuplot_dir, g_get_tmp_dir());
 	}
 }
 

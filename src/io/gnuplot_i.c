@@ -66,14 +66,12 @@ static gchar *siril_get_gnuplot_path() {
 
 gboolean gnuplot_is_available() {
 	gchar *path = siril_get_gnuplot_path();
-	gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", path);
+	if (!path) return FALSE;
+
+	gboolean is_available = g_file_test(path, G_FILE_TEST_EXISTS);
 	g_free(path);
 
-	int retval = system(str);
-	g_free(str);
-	if (WIFEXITED(retval))
-		return 0 == WEXITSTATUS(retval);
-	return FALSE;
+	return is_available;
 }
 
 /*---------------------------------------------------------------------------
