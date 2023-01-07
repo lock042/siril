@@ -68,8 +68,11 @@ gboolean gnuplot_is_available() {
 	gchar *path = siril_get_gnuplot_path();
 	if (!path) return FALSE;
 
-	gboolean is_available = g_file_test(path, G_FILE_TEST_EXISTS);
+	gchar *filename = g_build_filename(path, "gnuplot", NULL);
+
+	gboolean is_available = g_file_test(filename, G_FILE_TEST_EXISTS);
 	g_free(path);
+	g_free(filename);
 
 	return is_available;
 }
@@ -168,8 +171,11 @@ gnuplot_ctrl * gnuplot_init(void)
     handle->ntmp = 0 ;
 
     gchar *path = siril_get_gnuplot_path();
-    handle->gnucmd = siril_popen(path, "w");
+	gchar *filename = g_build_filename(path, "gnuplot", NULL);
+
+    handle->gnucmd = siril_popen(filename, "w");
     g_free(path);
+    g_free(filename);
     if (handle->gnucmd == NULL) {
         fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
         free(handle);

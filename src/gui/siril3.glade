@@ -28972,7 +28972,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="can-focus">False</property>
                                 <property name="halign">end</property>
                                 <property name="xpad">10</property>
-                                <property name="label" translatable="yes">Must point to a valid gnuplot binary.</property>
+                                <property name="label" translatable="yes">Must point to a valid gnuplot installation directory.</property>
                                 <attributes>
                                   <attribute name="style" value="italic"/>
                                 </attributes>
@@ -28988,6 +28988,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="can-focus">False</property>
                                 <property name="tooltip-text" translatable="yes">Select gnuplot binary location.</property>
                                 <property name="valign">center</property>
+                                <property name="action">select-folder</property>
                                 <property name="title" translatable="yes">Select gnuplot installation directory</property>
                               </object>
                               <packing>
