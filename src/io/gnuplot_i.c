@@ -61,7 +61,7 @@
 
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_path() {
-	return g_strdup(com.pref.gnuplot_bin);
+	return g_strdup(com.pref.gnuplot_dir);
 }
 
 gboolean gnuplot_is_available() {

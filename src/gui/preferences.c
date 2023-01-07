@@ -242,7 +242,7 @@ static void update_misc_preferences() {
 	com.pref.swap_dir = gtk_file_chooser_get_filename(swap_dir);
 
 	com.pref.starnet_dir = gtk_file_chooser_get_filename(starnet_dir);
-	com.pref.gnuplot_bin = gtk_file_chooser_get_filename(gnuplot_bin);
+	com.pref.gnuplot_dir = gtk_file_chooser_get_filename(gnuplot_bin);
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.gui.silent_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")));
@@ -545,7 +545,7 @@ void update_preferences_from_model() {
 	/* tab 10 */
 	initialize_path_directory(pref->swap_dir);
 	initialize_starnet_directory(pref->starnet_dir);
-	initialize_gnuplot_directory(pref->gnuplot_bin);
+	initialize_gnuplot_directory(pref->gnuplot_dir);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
