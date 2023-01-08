@@ -63,9 +63,8 @@
 
 #define GNUPLOT_BIN "gnuplot"
 
-static gboolean gnuplot_path = FALSE;
-
 #endif /*_WIN32*/
+static gboolean gnuplot_path = FALSE;
 
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_path() {
