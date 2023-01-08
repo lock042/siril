@@ -200,8 +200,16 @@ gnuplot_ctrl * gnuplot_init(void)
     handle->ntmp = 0 ;
 
     gchar *path = siril_get_gnuplot_path();
-
+#ifdef _WIN32 // quoting to deal with the space in C:\Program Files
+    gchar* path2 = g_shell_quote(path);
+    path2[0] = '\"'; // replacing with " as we can't be sure if g_shell_quote use single or double
+    path2[strlen(path2) - 1] = '\"';
+    printf("%s\n",path2);
+    handle->gnucmd = siril_popen(path2, "w");
+    g_free(path2);
+#else
     handle->gnucmd = siril_popen(path, "w");
+#endif
     g_free(path);
     if (handle->gnucmd == NULL) {
         fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
