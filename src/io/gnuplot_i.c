@@ -79,11 +79,8 @@ gboolean gnuplot_is_available() {
 	gchar *bin = siril_get_gnuplot_bin();
 	if (!bin) return FALSE;
 
-	gchar *filename = g_build_filename(bin, GNUPLOT_BIN, NULL);
-
-	gboolean is_available = g_file_test(filename, G_FILE_TEST_EXISTS);
+	gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
 	g_free(bin);
-	g_free(filename);
 
 	return is_available;
 }
