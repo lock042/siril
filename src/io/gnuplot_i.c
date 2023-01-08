@@ -67,20 +67,22 @@
 static gboolean gnuplot_path = FALSE;
 
 /*********************** finding gnuplot first **********************/
-static gchar *siril_get_gnuplot_path() {
+static gchar *siril_get_gnuplot_bin() {
 	if (gnuplot_path) return g_strdup(GNUPLOT_BIN);
-	else return g_strdup(com.pref.gnuplot_dir);
+	else {
+		return g_build_filename(com.pref.gnuplot_dir, GNUPLOT_BIN, NULL);
+	}
 }
 
 #if defined (_WIN32) || defined(OS_OSX)
 gboolean gnuplot_is_available() {
-	gchar *path = siril_get_gnuplot_path();
-	if (!path) return FALSE;
+	gchar *bin = siril_get_gnuplot_bin();
+	if (!bin) return FALSE;
 
-	gchar *filename = g_build_filename(path, GNUPLOT_BIN, NULL);
+	gchar *filename = g_build_filename(bin, GNUPLOT_BIN, NULL);
 
 	gboolean is_available = g_file_test(filename, G_FILE_TEST_EXISTS);
-	g_free(path);
+	g_free(bin);
 	g_free(filename);
 
 	return is_available;
@@ -98,9 +100,9 @@ gboolean gnuplot_is_available() {
 		return 0 == WEXITSTATUS(retval);
 	}
 
-	gchar *path = siril_get_gnuplot_path();
-	gboolean is_available = g_file_test(path, G_FILE_TEST_EXISTS);
-	g_free(path);
+	gchar *bin = siril_get_gnuplot_bin();
+	gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
+	g_free(bin);
 
 	return is_available;
 }
@@ -199,18 +201,18 @@ gnuplot_ctrl * gnuplot_init(void)
     gnuplot_setstyle(handle, "points") ;
     handle->ntmp = 0 ;
 
-    gchar *path = siril_get_gnuplot_path();
+    gchar *bin = siril_get_gnuplot_bin();
 #ifdef _WIN32 // quoting to deal with the space in C:\Program Files
-    gchar* path2 = g_shell_quote(path);
-    path2[0] = '\"'; // replacing with " as we can't be sure if g_shell_quote use single or double
-    path2[strlen(path2) - 1] = '\"';
-    printf("%s\n",path2);
-    handle->gnucmd = siril_popen(path2, "w");
-    g_free(path2);
+    gchar* bin2 = g_shell_quote(bin);
+    bin2[0] = '\"'; // replacing with " as we can't be sure if g_shell_quote use single or double
+    bin2[strlen(bin2) - 1] = '\"';
+    printf("%s\n",bin2);
+    handle->gnucmd = siril_popen(bin2, "w");
+    g_free(bin2);
 #else
-    handle->gnucmd = siril_popen(path, "w");
+    handle->gnucmd = siril_popen(bin, "w");
 #endif
-    g_free(path);
+    g_free(bin);
     if (handle->gnucmd == NULL) {
         fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
         free(handle);
