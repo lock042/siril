@@ -193,31 +193,26 @@ int register_mosaic(struct registration_args *regargs) {
 	// The "framing" angle is obtained by making the PC matrix a true rotation matrix (averaging of CROTAi)
 
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
-	double framing0;
+
 
 	for (int i = 0; i < n; i++) {
 		double angles[3];
 		angles[0] = 90. + RA[i]; 
 		angles[1] = 90. - DEC[i];
-		if (!get_focs_and_framing(WCSDATA + 1, focx + i, focy + i, angles + 2)) {
+		if (!get_focs_and_framing(WCSDATA + i, focx + i, focy + i, angles + 2)) {
 			siril_log_message(_("Could not compute camera parameters of image %d from sequence %s\n"),
 			i + 1, regargs->seq->seqname);
 			retval = 1;
 			goto free_all;
 		}
 		cvRotMat3(angles, rottypes, TRUE, Rs + i);
-		if (i == refindex) {
-			framing0 = angles[2];
-		}
 	}
-	// computing the matrix for mosaic center
-	// framing angle is that of ref image
-	double angles0[3] = {90. + ra0, 90. - dec0, framing0};
-	Homography R0 = { 0 };
-	cvRotMat3(angles0, rottypes, TRUE, &R0);
-	// computing relative rotations
+
+	// computing relative rotations wrt to ref image
+	Homography Rref = { 0 };
+	memcpy(&Rref, Rs + refindex, sizeof(Homography));
 	for (int i = 0; i < n; i++) {
-		cvRelRot(&R0, Rs + i);
+		cvRelRot(&Rref, Rs + i);
 	}
 
 	// now we store the relative rotations matrices and focals
@@ -232,22 +227,20 @@ int register_mosaic(struct registration_args *regargs) {
 	sprintf(filename, "%s.smf", regargs->seq->seqname);
 	mscfile = g_fopen(filename, "w+t");
 	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < n; j++) {
-			fprintf(mscfile, "%2d %12.1f %12.1f R %g %g %g %g %g %g %g %g %g\n",
-			i + 1,
-			focx[i],
-			focy[i],
-			Rs[i].h00,
-			Rs[i].h01,
-			Rs[i].h02,
-			Rs[i].h10,
-			Rs[i].h11,
-			Rs[i].h12,
-			Rs[i].h20,
-			Rs[i].h21,
-			Rs[i].h22
-			);
-		}
+		fprintf(mscfile, "%2d %12.1f %12.1f R %g %g %g %g %g %g %g %g %g\n",
+		i + 1,
+		focx[i],
+		focy[i],
+		Rs[i].h00,
+		Rs[i].h01,
+		Rs[i].h02,
+		Rs[i].h10,
+		Rs[i].h11,
+		Rs[i].h12,
+		Rs[i].h20,
+		Rs[i].h21,
+		Rs[i].h22
+		);
 	}
 	fclose(mscfile);
 
@@ -255,7 +248,6 @@ int register_mosaic(struct registration_args *regargs) {
 	for (int i = 0; i < n; i++) {
 		Homography H = { 0 };
 		if (i != refindex) {
-			Homography H ={ 0 };
 			cvcalcH_fromKR(Rs[i], focx, focy, refindex, i, &H);
 		} else {
 			cvGetEye(&H);
