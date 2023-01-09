@@ -1042,7 +1042,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		}
 	} else {
 		close_single_image();
-		close_sequence(0);
+		close_sequence(FALSE);
 		clearfits(&gfit);
 		copyfits(&fit_left, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 		initialise_image();
@@ -1097,7 +1097,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		}
 	} else {
 		close_single_image();
-		close_sequence(0);
+		close_sequence(FALSE);
 		clearfits(&gfit);
 		copyfits(&fit_right, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 		initialise_image();
