@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -620,7 +620,9 @@ void siril_check_updates(gboolean verbose) {
 	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
 	if (args->verbose)
 		set_cursor_waiting(TRUE);
-	start_in_new_thread(fetch_url, args);
+
+	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
+	g_thread_new("siril-update", fetch_url, args);
 }
 
 #else

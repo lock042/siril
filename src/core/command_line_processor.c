@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -413,13 +413,23 @@ static void show_command_help_popup(GtkEntry *entry) {
 			if (!g_ascii_strcasecmp(current->name, command_line[0])) {
 				gchar **token;
 
-				token = g_strsplit_set(current->usage, " ", -1);
+				token = g_strsplit_set(current->usage, " \n", -1);
 				GString *str = g_string_new(token[0]);
 				str = g_string_prepend(str, "<span foreground=\"red\" size=\"larger\"><b>");
 				str = g_string_append(str, "</b>");
 				if (token[1] != NULL) {
-					str = g_string_append(str,
-							current->usage + strlen(token[0]));
+					int i = 1;
+					while (token[i]) {
+						str = g_string_append(str, " ");
+						if (!g_ascii_strcasecmp(current->name, token[i])) {
+							str = g_string_append(str, "\n<b>");
+						}
+						str = g_string_append(str, token[i]);
+						if (!g_ascii_strcasecmp(current->name, token[i])) {
+							str = g_string_append(str, "</b>");
+						}
+						i++;
+					}
 				}
 				str = g_string_append(str, "</span>\n\n\t");
 				str = g_string_append(str, _(current->definition));

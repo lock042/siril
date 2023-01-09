@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@
 #include <string.h>
 #include <locale.h>
 #include <unistd.h>
+#include <fftw3.h>
 #ifdef OS_OSX
 #import <AppKit/AppKit.h>
 #if defined(ENABLE_RELOCATABLE_RESOURCES)
@@ -148,6 +149,8 @@ static void global_initialization() {
 	com.tilt = NULL;
 	com.uniq = NULL;
 	com.child_is_running = FALSE;
+	com.kernel = NULL;
+	com.kernelsize = 0;
 #ifdef _WIN32
 	com.childhandle = NULL;
 #else
@@ -168,6 +171,9 @@ static void global_initialization() {
 		gui.hd_remap_index[i] = NULL;
 
 	initialize_default_settings();	// com.pref
+#ifdef HAVE_FFTW3F_OMP
+	fftwf_init_threads(); // Should really only be called once so do it at startup
+#endif
 
 }
 

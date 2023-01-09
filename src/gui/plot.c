@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -710,7 +710,9 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	double *vmag, *err, *x, *real_x;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
-		siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but no image will be created.\n"), filename);
+		siril_log_color_message(_("Gnuplot was not found, the light curve data will be "
+				"produced in %s but no image will be created. "
+				"You can specify the path to gnuplot in the Siril preferences.\n"), "red", filename);
 	}
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -1593,13 +1595,33 @@ void notify_new_photometry() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 }
 
-/* copied from subprojects/kplot/draw.c, in which the max is 7, not MAX_SEQPSF.
- * We assign the same color to all others */
+static const int color_tab[][3] = {
+		{0x94, 0x04, 0xd3},
+		{0x00, 0x9e, 0x73},
+		{0x56, 0xb4, 0xe9},
+		{0xe6, 0x9f, 0x00},
+		{0xf0, 0xe4, 0x42},
+		{0x00, 0x72, 0xb2},
+		{0xe5, 0x1e, 0x10},
+		{0xe8, 0x5e, 0xbe},
+		{0x00, 0x9b, 0xff},
+		{0xff, 0xb1, 0x67},
+		{0xa5, 0xff, 0xd2},
+		{0xa7, 0x57, 0x40},
+		{0x5f, 0xad, 0x4e},
+		{0x6b, 0x68, 0x82},
+		{0xff, 0x6e, 0x41},
+		{0x00, 0x5f, 0x39},
+		{0x00, 0xff, 0x78},
+		{0xb5, 0x00, 0xff},
+		{0x75, 0x44, 0xb1},
+		{0x98, 0xff, 0x52}
+};
+
 static void set_colors(struct kplotcfg *cfg) {
-	int i;
 	cfg->clrsz = MAX_SEQPSF;
 	cfg->clrs = calloc(cfg->clrsz, sizeof(struct kplotccfg));
-	for (i = 0; i < cfg->clrsz; i++) {
+	for (int i = 0; i < cfg->clrsz; i++) {
 		cfg->clrs[i].type = KPLOTCTYPE_RGBA;
 		cfg->clrs[i].rgba[3] = 1.0;
 		if (i > 6) {
@@ -1608,27 +1630,12 @@ static void set_colors(struct kplotcfg *cfg) {
 			cfg->clrs[i].rgba[2] = 0xbb;
 		}
 	}
-	cfg->clrs[0].rgba[0] = 0x94 / 255.0;
-	cfg->clrs[0].rgba[1] = 0x04 / 255.0;
-	cfg->clrs[0].rgba[2] = 0xd3 / 255.0;
-	cfg->clrs[1].rgba[0] = 0x00 / 255.0;
-	cfg->clrs[1].rgba[1] = 0x9e / 255.0;
-	cfg->clrs[1].rgba[2] = 0x73 / 255.0;
-	cfg->clrs[2].rgba[0] = 0x56 / 255.0;
-	cfg->clrs[2].rgba[1] = 0xb4 / 255.0;
-	cfg->clrs[2].rgba[2] = 0xe9 / 255.0;
-	cfg->clrs[3].rgba[0] = 0xe6 / 255.0;
-	cfg->clrs[3].rgba[1] = 0x9f / 255.0;
-	cfg->clrs[3].rgba[2] = 0x00 / 255.0;
-	cfg->clrs[4].rgba[0] = 0xf0 / 255.0;
-	cfg->clrs[4].rgba[1] = 0xe4 / 255.0;
-	cfg->clrs[4].rgba[2] = 0x42 / 255.0;
-	cfg->clrs[5].rgba[0] = 0x00 / 255.0;
-	cfg->clrs[5].rgba[1] = 0x72 / 255.0;
-	cfg->clrs[5].rgba[2] = 0xb2 / 255.0;
-	cfg->clrs[6].rgba[0] = 0xe5 / 255.0;
-	cfg->clrs[6].rgba[1] = 0x1e / 255.0;
-	cfg->clrs[6].rgba[2] = 0x10 / 255.0;
+
+	for (int i = 0; i < MAX_SEQPSF; i++) {
+		cfg->clrs[i].rgba[0] = color_tab[i][0] / 255.0;
+		cfg->clrs[i].rgba[1] = color_tab[i][1] / 255.0;
+		cfg->clrs[i].rgba[2] = color_tab[i][2] / 255.0;
+	}
 }
 
 static void free_colors(struct kplotcfg *cfg) {

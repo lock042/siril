@@ -53,6 +53,7 @@ v1.2.0 mmm dd, 2022
 * Added CFA merge process for reconstructing a Bayer pattern previously split out with extraction
 * Added binning and binxy command
 * Added rejection maps creation on rejection stacking
+* Added astro-tiff option in the command savetif with -astro
 * Allowed area selection (and much more) to be done on RGB display tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
@@ -78,6 +79,7 @@ v1.2.0 mmm dd, 2022
 * Fixed possible FITSEQ infinite loop and inconsistent numbering caused by hidden files in conversion
 * Fixed sequence closing in script processing after each command
 * Fixed opening of scientific FITS cube files
+* Fixed gnuplot call for macOS/AppImage, by making its path configurable
 
 v1.0.7 xx xx, 2022
 

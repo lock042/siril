@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -51,6 +51,7 @@
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "io/Astro-TIFF.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
@@ -67,6 +68,7 @@
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/linear_match.h"
+#include "gui/newdeconv.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
 #include "gui/registration_preview.h"
@@ -78,7 +80,7 @@
 #include "filters/nlbayes/call_nlbayes.h"
 #include "filters/clahe.h"
 #include "filters/cosmetic_correction.h"
-#include "filters/deconv.h"
+#include "filters/deconvolution/deconvolution.h"
 #include "filters/median.h"
 #include "filters/mtf.h"
 #include "filters/fft.h"
@@ -442,20 +444,10 @@ int process_denoise(int nb){
 			args->do_cosme = FALSE;
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
-			arg += 5;
-			float mod = (float) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((mod < 0.f) || (mod > 1.f)) {
-				siril_log_message(_("Error in mod parameter: must be between 0 and 1, aborting.\n"));
-				return CMD_ARG_ERROR;
+			if (args->modulation == 0.f) {
+				siril_log_message(_("Modulation is zero: doing nothing.\n"));
+				return CMD_OK;
 			}
-			if (!error) {
-				args->modulation = mod;
-			}
-		}
-		if (args->modulation == 0.f) {
-			siril_log_message(_("Modulation is zero: doing nothing.\n"));
-			return CMD_OK;
 		}
 		else if (g_str_has_prefix(arg, "-rho=")) {
 			arg += 5;
@@ -607,11 +599,16 @@ int process_savepng(int nb){
 #ifdef HAVE_LIBTIFF
 int process_savetif(int nb){
 	uint16_t bitspersample = 16;
+	gchar *astro_tiff = NULL;
 
 	if (strcasecmp(word[0], "savetif8") == 0)
 		bitspersample = 8;
 	else if (strcasecmp(word[0], "savetif32") == 0)
 		bitspersample = 32;
+	if (word[2] && !g_strcmp0(word[2], "-astro")) {
+		astro_tiff = AstroTiff_build_header(&gfit);
+	}
+
 	gchar *filename = g_strdup_printf("%s.tif", word[1]);
 	int status, retval;
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
@@ -619,9 +616,10 @@ int process_savetif(int nb){
 		retval = 1;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savetif(filename, &gfit, bitspersample, NULL, com.pref.copyright, TRUE);
+		retval = savetif(filename, &gfit, bitspersample, astro_tiff, com.pref.copyright, TRUE);
 		set_cursor_waiting(FALSE);
 	}
+	g_free(astro_tiff);
 	g_free(filename);
 	g_free(savename);
 	return retval;
@@ -863,46 +861,485 @@ int process_grey_flat(int nb) {
 	return CMD_OK;
 }
 
-int process_rl(int nb) {
-	double sigma, corner;
-	int iter;
-	gchar *end;
+int process_makepsf(int nb) {
+	gboolean error = FALSE;
+	estk_data* data = malloc(sizeof(estk_data));
+	reset_conv_args(data);
 
-	sigma = g_ascii_strtod(word[1], &end);
-	if (end == word[1] || sigma < 0.4 || sigma > 2.0) {
-		siril_log_message(_("Sigma must be between [0.4, 2.0]\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	corner = g_ascii_strtod(word[2], &end);
-	if (end == word[2] || corner < -0.5 || corner > 0.5) {
-		siril_log_message(_("Corner radius boost must be between [-0.5, 0.5]\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	iter = g_ascii_strtoull(word[3], &end, 10);
-	if (end == word[3] || iter <= 0) {
-		siril_log_message(_("Number of iterations must be > 0.\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	struct deconv_data *args = malloc(sizeof(struct deconv_data));
-
-	args->fit = &gfit;
-	if (args->fit->type == DATA_USHORT) {
-		args->clip = (args->fit->maxi <= 0) ? USHRT_MAX_DOUBLE : args->fit->maxi;
+	char *arg = word[1];
+	if (!word[1])
+		return CMD_WRONG_N_ARG;
+	if (g_str_has_prefix(arg, "clear")) {
+		if (com.kernel) {
+			free(com.kernel);
+			com.kernel = NULL;
+			com.kernelsize = 0;
+		}
+		siril_log_color_message(_("Deconvolution kernel cleared\n"), "green");
+		free(data);
+		return CMD_OK;
 	} else {
-		args->clip = (args->fit->maxi <= 0) ? USHRT_MAX_DOUBLE : args->fit->maxi * USHRT_MAX_DOUBLE;
+		if (com.kernel) {
+			free(com.kernel);
+			com.kernel = NULL;
+			com.kernelsize = 0;
+		}
+		if (g_str_has_prefix(arg, "blind")) {
+			if (!(single_image_is_loaded() || sequence_is_loaded())) {
+				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
+				return CMD_GENERIC_ERROR;
+			}
+			data->psftype = 0;
+			siril_log_message(_("Blind kernel estimation:\n"));
+			for (int i = 2; i < nb; i++) {
+				char *arg = word[i], *end;
+				if (!word[i])
+					break;
+				if (g_str_has_prefix(arg, "-l0")) {
+					siril_log_message(_("l0 descent prior method\n"));
+					data->blindtype = 1;
+				}
+				else if (g_str_has_prefix(arg, "-si")) {
+					siril_log_message(_("spectral irregularity method\n"));
+					data->blindtype = 0;
+				}
+				else if (g_str_has_prefix(arg, "-multiscale")) {
+					siril_log_message(_("multiscale estimation\n"));
+					data->multiscale = TRUE;
+				}
+				else if (g_str_has_prefix(arg, "-lambda=")) {
+					arg += 8;
+					float lambda = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((lambda < 0.f) || (lambda > 100000.f)) {
+						siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->lambda = lambda;
+						data->finaldeconvolutionweight = lambda;
+						data->intermediatedeconvolutionweight = lambda;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-comp=")) {
+					arg += 6;
+					float comp = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((comp < 1.f) || (comp > 100000.f)) {
+						siril_log_message(_("Error in compensation factor parameter: must be between 1 and 1e5, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->compensationfactor = comp;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-ks=")) {
+					arg += 4;
+					int ks = (int) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
+						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->ks = ks;
+					}
+				}
+			}
+		} else if (g_str_has_prefix(arg, "stars")) {
+			if (!(single_image_is_loaded() || sequence_is_loaded())) {
+				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
+				return CMD_GENERIC_ERROR;
+			}
+			if (!(com.stars && com.stars[0])) {
+				siril_log_message(_("Error: requested to generate PSF from stars but no stars have been selected. Run findstar first.\n"));
+				return CMD_ARG_ERROR;
+			} else {
+				data->psftype = 2;
+				for (int i = 2; i < nb; i++) {
+					char *arg = word[i], *end;
+					if (!word[i])
+						break;
+					if (g_str_has_prefix(arg, "-sym")) {
+					siril_log_message(_("symmetric kernel\n"));
+						data->symkern = TRUE;
+					}
+					else if (g_str_has_prefix(arg, "-ks=")) {
+						arg += 4;
+						int ks = (int) g_ascii_strtod(arg, &end);
+						if (arg == end) error = TRUE;
+						else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
+							siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
+							return CMD_ARG_ERROR;
+						}
+						if (!error) {
+							data->ks = ks;
+						}
+					}
+				}
+			}
+		} else if (g_str_has_prefix(arg, "manual")) {
+			siril_log_message(_("Manual PSF generation:\n"));
+			data->psftype = 3;
+			for (int i = 2; i < nb; i++) {
+				char *arg = word[i], *end;
+				if (!word[i])
+					break;
+				if (g_str_has_prefix(arg, "-gaussian")) {
+					siril_log_message(_("Gaussian PSF\n"));
+					data->profile = 0;
+				}
+				else if (g_str_has_prefix(arg, "-moffat")) {
+					siril_log_message(_("Moffat PSF\n"));
+					data->profile = 1;
+				}
+				else if (g_str_has_prefix(arg, "-disc")) {
+					siril_log_message(_("Disc PSF\n"));
+					data->profile = 2;
+				}
+				else if (g_str_has_prefix(arg, "-airy")) {
+					siril_log_message(_("Airy disc PSF\n"));
+					data->profile = 3;
+				}
+				else if (g_str_has_prefix(arg, "-ks=")) {
+					arg += 4;
+					int ks = (int) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
+						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->ks = ks;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-fwhm=")) {
+					arg += 6;
+					float val = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((val <= 0.f) || (val > 100.f)) {
+						siril_log_message(_("Error in fwhm parameter: must be between 0 and 100, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->psf_fwhm = val;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-angle=")) {
+					arg += 7;
+					float val = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((val <= -360.f) || (val > 360.f)) {
+						siril_log_message(_("Error in ratio parameter: must be between -360 and +360, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->psf_angle = val;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-ratio=")) {
+					arg += 7;
+					float val = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((val < 1.f) || (val > 5.f)) {
+						siril_log_message(_("Error in ratio parameter: must be between 0 and 5, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->psf_ratio = val;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-beta=")) {
+					arg += 6;
+					float val = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((val <= 0.f) || (val > 10.f)) {
+						siril_log_message(_("Error in beta parameter: must be between 0 and 10, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->psf_beta = val;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-dia=")) {
+					arg += 5;
+					float val = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((val <= 0.f) || (val > 5000.f)) {
+						siril_log_message(_("Error in dia parameter: must be between 0 and 5000, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->airy_diameter = val;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-fl=")) {
+					arg += 4;
+					float val = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((val <= 0.f) || (val > 60000.f)) {
+						siril_log_message(_("Error in fl parameter: must be between 0 and 60000, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->airy_fl = val;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-wl=")) {
+					arg += 4;
+					float val = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((val <= 100.f) || (val > 30000.f)) {
+						siril_log_message(_("Error in wl parameter: must be between 100 and 30000, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->airy_wl = val;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-pixelsize=")) {
+					arg += 11;
+					float val = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((val < 1.f) || (val > 30.f)) {
+						siril_log_message(_("Error in fwhm parameter: must be between 1 and 30, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->airy_pixelsize = val;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-obstruct=")) {
+					arg += 10;
+					float val = (float) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((val < 0.f) || (val >= 100.f)) {
+						siril_log_message(_("Error in fwhm parameter: must be between 0 and 100, aborting.\n"));
+						return CMD_ARG_ERROR;
+					}
+					if (!error) {
+						data->airy_obstruction = val;
+					}
+				}
+			}
+		}
 	}
-	args->auto_contrast_threshold = TRUE;
-	args->sigma = sigma;
-	args->corner_radius = corner;
-	args->iterations = (size_t)iter;
-	args->auto_limit = TRUE;
+	start_in_new_thread(estimate_only,data);
+	return CMD_OK;
+}
 
-	start_in_new_thread(RTdeconv, args);
+int process_deconvolve(int nb, nonblind_t type) {
+	gboolean error = FALSE;
+	estk_data* data = malloc(sizeof(estk_data));
+	reset_conv_args(data);
+	data->regtype = REG_NONE_GRAD;
+	if (type == 0)
+		data->finaliters = 1;
+	if (type == 2)
+		data->alpha = 1.f / 500.f;
+	for (int i = 1; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(arg, "-alpha=")) {
+			arg += 7;
+			float alpha = (float) g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((alpha < 0.f) || (alpha > 100000.f)) {
+				siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				data->alpha = alpha;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-iters=")) {
+			arg += 7;
+			float iters = (int) g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((iters < 1) || (iters > 100000)) {
+				siril_log_message(_("Error in iterations parameter: must be between 1 and 1e5, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				data->finaliters = iters;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-stop=")) {
+			arg += 6;
+			float stopcriterion = (float) g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((stopcriterion < 0.f) || (stopcriterion > 1.f)) {
+				siril_log_message(_("Error in stop parameter: must be between 0 and 1, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				data->stopcriterion = stopcriterion;
+				data->stopcriterion_active = TRUE;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-gdstep=")) {
+			arg += 8;
+			float stepsize = (float) g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((stepsize < 0.f) || (stepsize > 1.f)) {
+				siril_log_message(_("Error in step size parameter: must be between 0 and 1, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				data->stepsize = stepsize;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-tv")) {
+			 data->regtype = REG_TV_GRAD;
+		}
+		else if (g_str_has_prefix(arg, "-mul")) {
+			data->rl_method = RL_MULT;
+		}
+		else if (g_str_has_prefix(arg, "-fh")) {
+			data->regtype = REG_FH_GRAD;
+		}
+	}
+
+	// Guess the user's intentions for a kernel:
+	// Order of preference is: if com.stars is populated, assume the user wants to make
+	// PSF from stars. If not, if com.kernel is already populated then use it. If not,
+	// do a blind deconvolution using the default parameters (and default l0 method).
+	// A manual PSF, if required, must be created using the makepsf command and then rl
+	// will detect it as an existing kernel and use it.
+
+	if (com.stars && com.stars[0])
+		data->psftype = PSF_STARS; // PSF from stars
+	else if (com.kernel && (com.kernelsize != 0))
+		data->psftype = PSF_PREVIOUS; // use existing kernel
+	else data->psftype = PSF_BLIND; // blind deconvolve
+
+	data->nonblindtype = type;
+
+	start_in_new_thread(deconvolve, data);
 
 	return CMD_OK;
+}
+
+int process_seqdeconvolve(int nb, nonblind_t type) {
+	gboolean error = FALSE;
+	estk_data* data = malloc(sizeof(estk_data));
+	sequence* seq = NULL;
+	reset_conv_args(data);
+	data->regtype = REG_NONE_GRAD;
+	if (type == 0)
+		data->finaliters = 1;
+	if (type == 2)
+		data->alpha = 1.f / 500.f;
+	if (word[1] && word[1][0] != '\0') {
+		seq = load_sequence(word[1], NULL);
+	}
+	for (int i = 2; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(arg, "-alpha=")) {
+			arg += 7;
+			float alpha = (float) g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((alpha < 0.f) || (alpha > 100000.f)) {
+				siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				data->alpha = alpha;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-iters=")) {
+			arg += 7;
+			float iters = (int) g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((iters < 1) || (iters > 100000)) {
+				siril_log_message(_("Error in iterations parameter: must be between 1 and 1e5, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				data->finaliters = iters;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-stop=")) {
+			arg += 6;
+			float stopcriterion = (float) g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((stopcriterion < 0.f) || (stopcriterion > 1.f)) {
+				siril_log_message(_("Error in stop parameter: must be between 0 and 1, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				data->stopcriterion = stopcriterion;
+				data->stopcriterion_active = TRUE;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-gdstep=")) {
+			arg += 8;
+			float stepsize = (float) g_ascii_strtod(arg, &end);
+			if (arg == end) error = TRUE;
+			else if ((stepsize < 0.f) || (stepsize > 1.f)) {
+				siril_log_message(_("Error in step size parameter: must be between 0 and 1, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				data->stepsize = stepsize;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-tv")) {
+			 data->regtype = REG_TV_GRAD;
+		}
+		else if (g_str_has_prefix(arg, "-mul")) {
+			data->rl_method = RL_MULT;
+		}
+		else if (g_str_has_prefix(arg, "-fh")) {
+			data->regtype = REG_FH_GRAD;
+		}
+	}
+
+	// Guess the user's intentions for a kernel:
+	// Order of preference is: if com.stars is populated, assume the user wants to make
+	// PSF from stars. If not, if com.kernel is already populated then use it. If not,
+	// do a blind deconvolution using the default parameters (and default l0 method).
+	// A manual PSF, if required, must be created using the makepsf command and then rl
+	// will detect it as an existing kernel and use it.
+
+	if (com.stars && com.stars[0])
+		data->psftype = PSF_STARS; // PSF from stars
+	else if (com.kernel && (com.kernelsize != 0))
+		data->psftype = PSF_PREVIOUS; // use existing kernel
+	else data->psftype = PSF_BLIND; // blind deconvolve
+
+	data->nonblindtype = type;
+
+	deconvolve_sequence_command(data, seq);
+
+	return CMD_OK;
+}
+
+int process_sb(int nb) {
+	return process_deconvolve(nb, DECONV_SB);
+}
+
+int process_rl(int nb) {
+	return process_deconvolve(nb, DECONV_RL);
+}
+
+int process_wiener(int nb) {
+	return process_deconvolve(nb, DECONV_WIENER);
+}
+
+int process_seq_sb(int nb) {
+	return process_seqdeconvolve(nb, DECONV_SB);
+}
+
+int process_seq_rl(int nb) {
+	return process_seqdeconvolve(nb, DECONV_RL);
+}
+
+int process_seq_wiener(int nb) {
+	return process_seqdeconvolve(nb, DECONV_WIENER);
 }
 
 int process_unsharp(int nb) {
@@ -3561,7 +3998,7 @@ int process_visu(int nb) {
 	return CMD_OK;
 }
 
-int process_fill2(int nb) {
+int process_ffill(int nb) {
 	gchar *end;
 	rectangle area;
 	int level = g_ascii_strtoull(word[1], &end, 10);
@@ -4390,9 +4827,6 @@ int process_split(int nb){
 		return CMD_ALLOC_ERROR;
 	}
 
-	args->type = EXTRACT_RGB;
-	args->str_type = _("RGB");
-
 	args->channel[0] = g_strdup_printf("%s%s", word[1], com.pref.ext);
 	args->channel[1] = g_strdup_printf("%s%s", word[2], com.pref.ext);
 	args->channel[2] = g_strdup_printf("%s%s", word[3], com.pref.ext);
@@ -4406,6 +4840,25 @@ int process_split(int nb){
 		free(args->channel[2]);
 		free(args);
 		return CMD_ALLOC_ERROR;
+	}
+
+	if (nb > 4) {
+		if (!g_ascii_strcasecmp(word[4], "-hsl")) {
+			args->type = EXTRACT_HSL;
+			args->str_type = _("HSL");
+		} else if (!g_ascii_strcasecmp(word[4], "-hsv")) {
+			args->type = EXTRACT_HSV;
+			args->str_type = _("HSV");
+		} else if (!g_ascii_strcasecmp(word[4], "-lab")) {
+			args->type = EXTRACT_CIELAB;
+			args->str_type = _("CieLAB");
+		} else {
+			args->type = EXTRACT_RGB;
+			args->str_type = _("RGB");
+		}
+	} else {
+		args->type = EXTRACT_RGB;
+		args->str_type = _("RGB");
 	}
 
 	copy_fits_metadata(&gfit, args->fit);
@@ -4538,7 +4991,7 @@ int process_extractHa(int nb) {
 int process_extractHaOIII(int nb) {
 	char *filename = NULL;
 	int ret = 1;
-	int scaling = 0;
+	extraction_scaling scaling = SCALING_NONE;
 
 	fits f_Ha = { 0 }, f_OIII = { 0 };
 
@@ -4560,9 +5013,9 @@ int process_extractHaOIII(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
 				return CMD_ARG_ERROR;
 			} else if (!strcasecmp(value, "ha")) {
-				scaling = 1;
+				scaling = SCALING_HA_UP;
 			} else if (!strcasecmp(value, "oiii")) {
-				scaling = 2;
+				scaling = SCALING_OIII_DOWN;
 			}
 		}
 	}
@@ -4860,7 +5313,7 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
-	args->scaling = 0;
+	args->scaling = SCALING_NONE;
 
 	if (word[2]) {
 		if (g_str_has_prefix(word[2], "-resample=")) {
@@ -4871,9 +5324,9 @@ int process_seq_extractHaOIII(int nb) {
 				free(args);
 				return CMD_ARG_ERROR;
 			} else if (!strcmp(value, "ha")) {
-				args->scaling = 1;
+				args->scaling = SCALING_HA_UP;
 			} else if (!strcmp(value, "oiii")) {
-				args->scaling = 2;
+				args->scaling = SCALING_OIII_DOWN;
 			}
 		}
 	}

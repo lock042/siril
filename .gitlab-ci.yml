@@ -129,7 +129,7 @@ deps-debian:
   script:
     - cd _Criterion
     - patch --binary -p1 < ../build/windows/criterion.patch
-    - meson _build --prefix ${INSTALL_PREFIX}
+    - meson setup _build --prefix ${INSTALL_PREFIX}
     - ninja -C _build install
   needs: ["build-image"]
 
@@ -171,7 +171,7 @@ siril-deb-autotools:
 siril-deb-meson:
   extends: .siril-debian/testing-base
   script:
-    - meson --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Denable-libcurl=yes -Dlibconfig=true -Dcriterion=true
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Denable-libcurl=yes -Dlibconfig=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
     - cd ${BUILD_DIR}
@@ -197,6 +197,8 @@ deps-win64:
   variables:
     XDG_CACHE_HOME: "$CI_PROJECT_DIR/.cache/"
     XDG_DATA_HOME: "$CI_PROJECT_DIR/.local/share/"
+# fix from Jehan see https://gitlab.gnome.org/GNOME/gimp/-/commit/6378f3af8dcae896d9bc93b45bc8e651fb55805a
+    DEB_PYTHON_INSTALL_LAYOUT: "deb"
   cache:
     paths:
       - .cache/crossroad/
@@ -233,8 +235,6 @@ siril-win64:
       - .cache/crossroad/
       - apt-cache
   script:
-    - update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
-    - update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - export PATH="`pwd`/.local/bin:$PATH"
     - mkdir _build && cd _build
     - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" -Denable-libcurl=yes -Dlibconfig=true .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
