@@ -1129,7 +1129,6 @@ int process_makepsf(int nb) {
 }
 
 int process_deconvolve(int nb, nonblind_t type) {
-	gboolean mul = FALSE, tv = FALSE, fh = FALSE;
 	gboolean error = FALSE;
 	estk_data* data = malloc(sizeof(estk_data));
 	reset_conv_args(data);
@@ -1189,7 +1188,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			}
 			if (!error) {
 				data->stepsize = stepsize;
-				mul = FALSE;
 			}
 		}
 		else if (g_str_has_prefix(arg, "-tv")) {
@@ -1224,7 +1222,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 }
 
 int process_seqdeconvolve(int nb, nonblind_t type) {
-	gboolean mul = FALSE, tv = FALSE, fh = FALSE;
 	gboolean error = FALSE;
 	estk_data* data = malloc(sizeof(estk_data));
 	sequence* seq = NULL;
@@ -1288,7 +1285,6 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 			}
 			if (!error) {
 				data->stepsize = stepsize;
-				mul = FALSE;
 			}
 		}
 		else if (g_str_has_prefix(arg, "-tv")) {
