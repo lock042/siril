@@ -957,3 +957,98 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
 	H = F2.inv() * H * F1;
 	convert_MatH_to_H(H, Hom);
 }
+
+/*
+Takes an angle in degrees and a rotationtype (X, Y or Z)
+Fills the 3D rotation matrix
+Returns FALSE on error
+*/
+static gboolean cvRotMat1(double angle, rotation_type rottype, Mat &R) {
+	angle *= G_PI / 180.;
+	double ca = cos(angle);
+	double sa = sin(angle);
+	gboolean retval = TRUE;
+
+	switch (rottype) {
+		case ROTX:
+			R.at<double>(1,1) = ca;
+			R.at<double>(2,2) = ca;
+			R.at<double>(1,2) = -sa;
+			R.at<double>(2,1) = sa;
+			break;
+		case ROTY:
+			R.at<double>(0,0) = ca;
+			R.at<double>(2,2) = ca;
+			R.at<double>(2,0) = -sa;
+			R.at<double>(0,2) = sa;
+			break;
+		case ROTZ:
+			R.at<double>(0,0) = ca;
+			R.at<double>(1,1) = ca;
+			R.at<double>(0,1) = -sa;
+			R.at<double>(1,0) = sa;
+			break;
+		default:
+			retval = FALSE;
+			break;
+	}
+	return retval;
+}
+
+
+/*
+Takes an angle array[3] in degrees and a rotationtype vector[3] (X, Y or Z)
+Fills the 3D rotation matrix
+The angles are applied in the input order
+The flag W2C specifies if the matrix out is World-to-Camera or Camera-to-World
+Returns FALSE on error
+*/
+gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Homography *R) {
+	Mat _R = Mat::eye(3, 3, CV_64FC1);
+	gboolean retval = TRUE;
+	for (int i = 0; i < 3; i++) {
+		Mat M = Mat::eye(3, 3, CV_64FC1);
+		if (!cvRotMat1(angles[i], rottype[i], M)) {
+			retval = FALSE;
+			break;
+		}
+		_R = M * _R; // left-multiply as the full matrix is R3*R2*R1
+	}
+	if (W2C)
+		_R = _R.t(); // if we need W2C, we need to invert (i.e. transpose for R mats)
+	convert_MatH_to_H(_R, R);
+	std::cout << R << std::endl;
+	return retval;
+}
+
+// Computes the relative rotation matrix between Rref and R
+// R is updated inplace
+void cvRelRot(Homography *Ref, Homography *R) {
+	Mat _Ref = Mat(3, 3, CV_64FC1);
+	Mat _R = Mat(3, 3, CV_64FC1);
+	Mat _H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Ref, _Ref);
+	convert_H_to_MatH(R, _R);
+	_R = _Ref.t() * _R;
+	convert_MatH_to_H(_R, R);
+}
+
+// Computes Homography from cameras R and K
+void cvcalcH_fromKR(Homography R, double *focx, double *focy, int ref, int ind, Homography *H) {
+	Mat _R = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(&R, _R);
+	Mat Kref = Mat::eye(3, 3, CV_64FC1);
+	Mat Kimg = Mat::eye(3, 3, CV_64FC1);
+	Mat _H = Mat(3, 3, CV_64FC1);
+	std::cout << _R << std::endl;
+
+	// preparing the intrisic matrices
+	Kref.at<double>(0,0) = focx[ref];
+	Kref.at<double>(1,1) = focy[ref];
+	Kimg.at<double>(0,0) = focx[ind];
+	Kimg.at<double>(1,1) = focy[ind];
+
+	//Compute H and returning
+	_H = Kimg * _R * Kref.inv();
+	convert_MatH_to_H(_H, H);
+}

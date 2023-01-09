@@ -30,6 +30,7 @@
 #include "core/proto.h"
 #include "core/siril_world_cs.h"
 #include "core/siril_log.h"
+#include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
 #include "io/sequence.h"
@@ -77,6 +78,39 @@ static double compute_haversine_distance(double ra1, double dec1, double ra2, do
 	return 2 * asin(pow(h, 0.5));
 }
 
+static gboolean get_focs_and_framing(struct wcsprm *WCSDATA, double *focx, double *focy, double *framing) {
+#ifndef HAVE_WCSLIB
+	siril_log_color_message(_("Mosaic registration requires to have wcslib dependency installed, aborting\n"), "red");
+	*focx = -1;
+	*focy = -1;
+	*framing = -1;
+	return FALSE;
+#endif
+	*focx = -1;
+	*focy = -1;
+	*framing = -1;
+	double cd[2][2], pc[2][2];
+	double cdelt[2];
+	double *pcij = WCSDATA->pc;
+	double *cdij = WCSDATA->cd;
+	for (int i = 0; i < 2; i++) {
+		cdelt[i] = WCSDATA->cdelt[i];
+		for (int j = 0; j <2; j++) {
+			pc[i][j] = *(pcij++);
+			cd[i][j] = *(cdij++);
+		}
+	}
+	if (cdelt[0] == 1. && cdelt[1] == 1.)// CD formalism
+		wcs_cd_to_pc(cd, pc, cdelt);
+
+	*focx = RADTODEG / cdelt[0];
+	*focy = RADTODEG / cdelt[1];
+	double rotation1 = atan2(pc[0][1], pc[0][0]);
+	double rotation2 = atan2(-pc[1][0], pc[1][1]);
+	*framing = 0.5 * (rotation1 + rotation2) * RADTODEG;
+	return TRUE;
+}
+
 int register_mosaic(struct registration_args *regargs) {
 #ifndef HAVE_WCSLIB
 	siril_log_color_message(_("Mosaic registration requires to have wcslib dependency installed, aborting\n"), "red");
@@ -98,8 +132,6 @@ int register_mosaic(struct registration_args *regargs) {
 	double *DEC = malloc(n * sizeof(double));
 	double *dist = malloc(n * sizeof(double));
 	struct wcsprm *WCSDATA = malloc(n * sizeof(struct wcsprm));
-	double *X = malloc(2 * n * sizeof(double));
-	double *Y = malloc(2 * n * sizeof(double));
 	int failed = 0, nb_aligned = 0;
 
 	if (!RA || !DEC || !dist || !WCSDATA) {
@@ -121,8 +153,6 @@ int register_mosaic(struct registration_args *regargs) {
 			goto free_all;
 		}
 		center2wcs(&fit, RA + i, DEC + i);
-		RA[i] = fit.wcsdata.ra;
-		DEC[i] = fit.wcsdata.dec;
 		WCSDATA[i].flag = -1;
 		wcssub(1, fit.wcslib, NULL, NULL, WCSDATA + i); // copying wcsprm structure for each fit to avoid reopening
 		clearfits(&fit);
@@ -143,104 +173,55 @@ int register_mosaic(struct registration_args *regargs) {
 	}
 	siril_debug_print("Closest image  is #%d - RA:%.3f - DEC:%.3f\n", refindex + 1, RA[refindex], DEC[refindex]);
 
-	// for (int i = 0; i < n; i++) {
-	// 	Homography H = { 0 };
-	// 	if (i != refindex) {
-	// 		if (cvCalculH_exact(X, Y, refindex, i, &H)) {
-	// 			failed++;
-	// 			regargs->seq->imgparam[i].incl = FALSE;
-	// 			continue;
-	// 		}
-	// 	} else {
-	// 		cvGetEye(&H);
-	// 	}
-	// 	nb_aligned++;
-	// 	current_regdata[i].roundness = 1.;
-	// 	current_regdata[i].fwhm = 0.;
-	// 	current_regdata[i].weighted_fwhm = 0.;
-	// 	current_regdata[i].background_lvl = 0.;
-	// 	current_regdata[i].number_of_stars = 4;
-	// 	current_regdata[i].H = H;
-	// 	regargs->seq->imgparam[i].incl = TRUE;
-	// }
-
-	int nbpairs = n * n;
 	// TODO: should check allocation success
-	Homography *Hs =  calloc(nbpairs, sizeof(Homography));
-	double *distance = calloc(nbpairs, sizeof(double));
-	// gboolean j_crosses_i = FALSE;
+	Homography *Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
+	double *focx = calloc(n, sizeof(double)); // camera focal length on x
+	double *focy = calloc(n, sizeof(double)); // camera focal length on y
+
+	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
+	// ##################################################################
+	// We will define the rotations made by the camera wrt World:
+	// - We start with the camera pointing towards North Pole, X (sensor width) aligned with RA = 0deg
+	// - We first make a rotation around cam Z axis of 90 + RA degrees
+	// - We then make a rotation around cam X axis of 90 - DEC degrees (0 to 180 from N to S pole)
+	// - We finally rotate the camera around its Z axis to get the correct framing (called "framing" angle below)
+	// We repeat this calc for each image and for the cog of the sequence
+	// We can then compute the relative rotation matrix between the image and the cog
+	// This is made by computing Rref.t()*Rimg, this is the extrinsic matrix for a pure rotation wrt. mosaic center
+	// The intrisic camera matrix is obtained thanks to the CDij or PCij+CDELTi WCS values:
+	// The focal length is 180 / pi / average of abs(CDELTi) - Note: CDELTi * 3600 = image sampling in "/px
+	// The "framing" angle is obtained by making the PC matrix a true rotation matrix (averaging of CROTAi)
+
+	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
+	double framing0;
 
 	for (int i = 0; i < n; i++) {
-		double rxi = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
-		double ryi = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
-		double imgcrd0[NWCSFIX], phi0, pixcrd[NWCSFIX], theta0, world0[NWCSFIX];
-		double pixcrd0[NWCSFIX];
-		int status0, stat[NWCSFIX];
-		pixcrd[0] = rxi * 0.5 - 0.5 + 1;
-		pixcrd[1] = ryi * 0.5 - 0.5;
-		status0 = wcsp2s(WCSDATA + i, 1, 2, pixcrd, imgcrd0, &phi0, &theta0, world0, stat);
-
-		for (int j = i + 1; j < n; j++) {
-			double rxj = (regargs->seq->is_variable) ? regargs->seq->imgparam[j].rx : regargs->seq->rx;
-			double ryj = (regargs->seq->is_variable) ? regargs->seq->imgparam[j].ry : regargs->seq->ry;
-			double xi[4] = {0., rxj, rxj, 0.};
-			double yi[4] = {0., 0., ryj, ryj};
-			double xj[4] = {0., rxj, rxj, 0.};
-			double yj[4] = {0., 0., ryj, ryj};
-			for (int k = 0; k < 4; k++) {
-				int status, stat[NWCSFIX];
-				double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
-				pixcrd[0] = xj[k];
-				pixcrd[1] = yj[k];
-				// converting corners of jth image to ra/dec
-				status = wcsp2s(WCSDATA + j, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
-				if (status) {
-					siril_log_color_message(_("Mosaic: Error when projecting point #%d of image #%d to celestial coordinates, aborting\n"), "red", k, j + 1);
-					retval = 1;
-					goto free_all;
-				}
-				// converting ra/dec to pixels in ith image
-				status = wcss2p(WCSDATA + i, 1, 0, world, &phi, &theta, imgcrd, pixcrd, stat);
-				if (status) {
-					siril_log_color_message(_("Mosaic: Error when re-projecting point #%d of image #%d onto image #%d, aborting\n"), "red", k, j + 1, i + 1);
-					retval = 1;
-					goto free_all;
-				}
-				// storing pixels coords to compute H matrices
-				// original corners in jth image axes
-				X[    k] = xi[k];
-				Y[    k] = ryj - yi[k];
-				// now projected to ith image axes
-				X[4 + k] = pixcrd[0];
-				Y[4 + k] = ryi - pixcrd[1];
-				SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(world[0], world[1]);
-				gchar *rap = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
-				gchar *decp = siril_world_cs_delta_format(world_cs, "%c%02dd%02d\'%02d\"");
-				siril_debug_print("x0=%8.1f px, y0=%8.1f px, x1=%8.1f px, y1=%8.1f px (%s , %s)\n", X[k], Y[k], X[4 + k], Y[4 + k], rap, decp);
-				// if (!j_crosses_i) j_crosses_i = ((int)X[4 + k] >= 0) && ((int)X[4 + k] <= rxi) && ((int)Y[4 + k] >= 0) && ((int)Y[4 + k] <= ryi);
-			}
-			// if (!j_crosses_i) { // TODO:shouldn't we compute projection anyway? with lower confidence?
-			// 	siril_debug_print("No overlap found\n");
-			// 	continue;
-			// }
-			distance[i * n + j] = compute_haversine_distance(RA[i], DEC[i], RA[j], DEC[j]);
-			distance[j * n + i] = distance[i * n + j];
-			Homography Hij = { 0 };
-			siril_debug_print("Matching images %d (%d x %d) and %d (%d x %d)\n", i + 1, (int)rxi, (int)ryi, j + 1, (int)rxj, (int)ryj);
-			if (cvCalculH_exact(X, Y, 0, 1, &Hij)) {
-				siril_log_message(_("Images %d and %d could not be paired, aborting\n"), i + 1, j + 1);
-				retval = 1;
-				goto free_all;
-			}
-			Hij.pair_matched = 4;
-			Hij.Inliers = 4;
-			memcpy(Hs + i * n + j, &Hij, sizeof(Homography));
-			memcpy(Hs + j * n + i, &Hij, sizeof(Homography));
-			cvInvertH(Hs + j * n + i);
+		double angles[3];
+		angles[0] = 90. + RA[i]; 
+		angles[1] = 90. - DEC[i];
+		if (!get_focs_and_framing(WCSDATA + 1, focx + i, focy + i, angles + 2)) {
+			siril_log_message(_("Could not compute camera parameters of image %d from sequence %s\n"),
+			i + 1, regargs->seq->seqname);
+			retval = 1;
+			goto free_all;
+		}
+		cvRotMat3(angles, rottypes, TRUE, Rs + i);
+		if (i == refindex) {
+			framing0 = angles[2];
 		}
 	}
+	// computing the matrix for mosaic center
+	// framing angle is that of ref image
+	double angles0[3] = {90. + ra0, 90. - dec0, framing0};
+	Homography R0 = { 0 };
+	cvRotMat3(angles0, rottypes, TRUE, &R0);
+	// computing relative rotations
+	for (int i = 0; i < n; i++) {
+		cvRelRot(&R0, Rs + i);
+	}
 
-	//writing outputs to *.smo file, a.k.a Siril MOsaic file
+	// now we store the relative rotations matrices and focals
+	//writing outputs to *.smf file, a.k.a Siril Mosaic File
 	char *filename;
 	FILE *mscfile;
 	if (!regargs->seq->seqname || regargs->seq->seqname[0] == '\0') {
@@ -248,25 +229,23 @@ int register_mosaic(struct registration_args *regargs) {
 		goto free_all;
 	}
 	filename = malloc(strlen(regargs->seq->seqname)+5);
-	sprintf(filename, "%s.smo", regargs->seq->seqname);
+	sprintf(filename, "%s.smf", regargs->seq->seqname);
 	mscfile = g_fopen(filename, "w+t");
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
-			fprintf(mscfile, "%d %d %g %d %d H %g %g %g %g %g %g %g %g %g\n",
+			fprintf(mscfile, "%2d %12.1f %12.1f R %g %g %g %g %g %g %g %g %g\n",
 			i + 1,
-			j + 1,
-			distance[i * n + j],
-			Hs[i * n + j].pair_matched,
-			Hs[i * n + j].Inliers,
-			Hs[i * n + j].h00,
-			Hs[i * n + j].h01,
-			Hs[i * n + j].h02,
-			Hs[i * n + j].h10,
-			Hs[i * n + j].h11,
-			Hs[i * n + j].h12,
-			Hs[i * n + j].h20,
-			Hs[i * n + j].h21,
-			Hs[i * n + j].h22
+			focx[i],
+			focy[i],
+			Rs[i].h00,
+			Rs[i].h01,
+			Rs[i].h02,
+			Rs[i].h10,
+			Rs[i].h11,
+			Rs[i].h12,
+			Rs[i].h20,
+			Rs[i].h21,
+			Rs[i].h22
 			);
 		}
 	}
@@ -276,8 +255,8 @@ int register_mosaic(struct registration_args *regargs) {
 	for (int i = 0; i < n; i++) {
 		Homography H = { 0 };
 		if (i != refindex) {
-			memcpy(&H, Hs + i * n + refindex, sizeof(Homography));
-			cvInvertH(&H);
+			Homography H ={ 0 };
+			cvcalcH_fromKR(Rs[i], focx, focy, refindex, i, &H);
 		} else {
 			cvGetEye(&H);
 		}
@@ -286,7 +265,7 @@ int register_mosaic(struct registration_args *regargs) {
 		current_regdata[i].fwhm = 0.;
 		current_regdata[i].weighted_fwhm = 0.;
 		current_regdata[i].background_lvl = 0.;
-		current_regdata[i].number_of_stars = 4;
+		current_regdata[i].number_of_stars = 1;
 		current_regdata[i].H = H;
 		regargs->seq->imgparam[i].incl = TRUE;
 	}
@@ -303,11 +282,10 @@ free_all:
 
 	free(RA);
 	free(DEC);
-  	free(dist);
-	free(X);
-	free(Y);
+	free(dist);
 	// TODO: properly free WCS array
 	// TODO: properly free Hs array
+	// TODO: properly free Rs array
 	return retval;
 #endif
 }
