@@ -54,7 +54,10 @@ if test "x$remember_set_CFLAGS" = "x"; then
 fi
 
 CFLAGS="-D_FILE_OFFSET_BITS=64 -Werror=unknown-pragmas -Werror=unused-label -fno-common -ftree-vectorize -fno-math-errno $CFLAGS $OPENMP_CFLAGS"
-CXXFLAGS="$CFLAGS"
+CXXFLAGS="$CFLAGS -std=c++14"
+
+m4_include([m4/ax_cxx_compile_stdcxx.m4])
+AX_CXX_COMPILE_STDCXX(14, noext, mandatory)
 
 if test "x$SIRIL_UNSTABLE" = "xyes"; then
   AC_DEFINE(SIRIL_UNSTABLE, 1,
@@ -155,9 +158,9 @@ if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
 	(test "X$CXX" != "Xg++"))) ; then
 	AC_PROG_CXXCPP
 
-	dnl check for C++11 support
+	dnl check for C++14 support
 	m4_include([m4/ax_cxx_compile_stdcxx.m4])
-	AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
+	AX_CXX_COMPILE_STDCXX(14, noext, mandatory)
 
 	PKG_CHECK_MODULES([OPENCV], [opencv4 >= 4.4.0],
 			  [AC_DEFINE([HAVE_CV44], [1], [Using OpenCV4.4])]
