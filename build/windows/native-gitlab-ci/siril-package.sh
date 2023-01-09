@@ -1,4 +1,5 @@
 # Package shared ressources
+cp -fr ${W64_OUT}/ssl ${INSTALL_PREFIX}
 cp -fr ${W64_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
 cp -fr ${W64_OUT}/share/icons/ ${INSTALL_PREFIX}/share
 cp -fr ${W64_OUT}/share/locale/ ${INSTALL_PREFIX}/share
