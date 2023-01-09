@@ -3,6 +3,11 @@
 
 gpointer do_synthstar();
 gpointer fix_saturated_stars();
+void makeairy(float *psf, const int size, const float lum, const float xoff, const float yoff, const float wavelength, const float aperture, const float focal_length, const float pixel_scale, const float obstruction);
+
+void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, float yoffset, float ratio, float angle);
+void makemoffat(float *psf, const int size, const float fwhm, const float lum, const float xoff, const float yoff, const float beta, float ratio, float angle);
+void makedisc(float *psf, int size, float radius, float lum, float xoffset, float yoffset);
 
 
 #define SYNTHESIZE_GAUSSIAN 0

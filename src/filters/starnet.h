@@ -13,6 +13,11 @@
 #define STARNET_MONO "mono_starnet++"
 #endif
 
+
+#ifndef _WIN32
+long get_pathmax(void);
+#endif
+
 gboolean starnet_executablecheck();
 gpointer do_starnet(gpointer p);
 

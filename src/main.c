@@ -28,6 +28,7 @@
 #include <string.h>
 #include <locale.h>
 #include <unistd.h>
+#include <fftw3.h>
 #ifdef OS_OSX
 #import <AppKit/AppKit.h>
 #if defined(ENABLE_RELOCATABLE_RESOURCES)
@@ -148,6 +149,8 @@ static void global_initialization() {
 	com.tilt = NULL;
 	com.uniq = NULL;
 	com.child_is_running = FALSE;
+	com.kernel = NULL;
+	com.kernelsize = 0;
 #ifdef _WIN32
 	com.childhandle = NULL;
 #else
@@ -168,6 +171,9 @@ static void global_initialization() {
 		gui.hd_remap_index[i] = NULL;
 
 	initialize_default_settings();	// com.pref
+#ifdef HAVE_FFTW3F_OMP
+	fftwf_init_threads(); // Should really only be called once so do it at startup
+#endif
 
 }
 

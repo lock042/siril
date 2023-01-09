@@ -24,7 +24,6 @@
 #include "gui/histogram.h"
 #include "algos/background_extraction.h"
 #include "filters/asinh.h"
-#include "filters/deconv.h"
 #include "filters/clahe.h"
 #include "filters/saturation.h"
 #include "filters/wavelets.h"
@@ -44,7 +43,7 @@ static const SirilDialogEntry entries[] =
 	{"color_calibration", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cosmetic_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"crop_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"deconvolution_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_deconv_cancel},
+	{"bdeconv_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"dialog_FFT", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"dialog_star_remix", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"edge_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},

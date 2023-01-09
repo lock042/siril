@@ -229,6 +229,10 @@ static void update_performances_preferences() {
 
 	com.pref.memory_ratio = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")));
 	com.pref.memory_amount = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount")));
+	com.pref.fftw_conf.timelimit = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_fftw_plan_timelimit")));
+	com.pref.fftw_conf.strategy = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_fftw_plan_strategy")));
+	com.pref.fftw_conf.multithreaded = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_fftw_multithreaded")));
+	set_wisdom_file();
 
 	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
 	com.pref.hd_bitdepth = bitdepth;
@@ -541,6 +545,9 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_ratio")), pref->memory_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_mem_amount")), pref->memory_amount);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")), pref->hd_bitdepth);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_fftw_plan_timelimit")), pref->fftw_conf.timelimit);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_fftw_plan_strategy")), pref->fftw_conf.strategy);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_fftw_multithreaded")), pref->fftw_conf.multithreaded);
 
 	/* tab 10 */
 	initialize_path_directory(pref->swap_dir);
@@ -619,7 +626,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		free_preferences(&com.pref);
 		dump_ui_to_global_var();
-
+		set_wisdom_file();
 		initialize_FITS_name_entries(); // To update UI with new preferences
 		refresh_star_list(com.stars); // To update star list with new preferences
 		if (com.found_object)
