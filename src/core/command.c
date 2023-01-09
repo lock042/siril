@@ -238,7 +238,7 @@ int process_satu(int nb){
 	args->input = &gfit;
 	args->output = &gfit;
 	args->for_preview = FALSE;
-	siril_log_message(_("Applying saturation enhancement of %d%%, from level %g * sigma.\n"), round_to_int(args->coeff * 100.0), args->background_factor);
+	siril_log_message(_("Applying saturation enhancement of %d%%, from level %g times (median + sigma).\n"), round_to_int(args->coeff * 100.0), args->background_factor);
 
 	set_cursor_waiting(TRUE);
 	return GPOINTER_TO_INT(enhance_saturation(args));
@@ -1504,24 +1504,25 @@ int process_linear_match(int nb) {
 int process_asinh(int nb) {
 	gboolean human_luminance = FALSE;
 	gchar *end;
-	int arg_offset = 0;
+	int arg_offset = 1;
 	if (!strcmp(word[1], "-human")) {
 		human_luminance = TRUE;
-		arg_offset = 1;
+		arg_offset++;
 	}
-	if (nb <= arg_offset + 1)
+	if (nb <= arg_offset)
 		return CMD_WRONG_N_ARG;
-	double beta = g_ascii_strtod(word[arg_offset + 1], &end);
-	if (end == word[arg_offset + 1] || beta < 1.0) {
+	double beta = g_ascii_strtod(word[arg_offset], &end);
+	if (end == word[arg_offset] || beta < 1.0) {
 		siril_log_message(_("Stretch must be greater than or equal to 1\n"));
 		return CMD_ARG_ERROR;
 	}
+	arg_offset++;
 
 	double offset = 0.0;
-	if (nb > 2 + arg_offset) {
-		offset = g_ascii_strtod(word[2 + arg_offset], &end);
-		if (end == word[2 + arg_offset]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2 + arg_offset]);
+	if (nb > arg_offset) {
+		offset = g_ascii_strtod(word[arg_offset], &end);
+		if (end == word[arg_offset]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_offset]);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -2049,38 +2050,38 @@ int process_invmtf(int nb) {
 }
 
 int process_autoghs(int nb) {
-       gchar *end = NULL;
-       float shadows_clipping;
-       shadows_clipping = g_ascii_strtod(word[1], &end);
-       if (end == word[1]) {
-               siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
-               return CMD_ARG_ERROR;
-       }
+	gchar *end = NULL;
+	float shadows_clipping;
+	shadows_clipping = g_ascii_strtod(word[1], &end);
+	if (end == word[1]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
 
-       float amount = g_ascii_strtod(word[2], &end);
-       if (end == word[2]) {
-               siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
-               return CMD_ARG_ERROR;
-       }
+	float amount = g_ascii_strtod(word[2], &end);
+	if (end == word[2]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+		return CMD_ARG_ERROR;
+	}
 
-       int nb_channels = (int)gfit.naxes[2];
-       imstats *stats[3];
-       int ret = compute_all_channels_statistics_single_image(&gfit, STATS_BASIC, MULTI_THREADED, stats);
-       for (int i = 0; i < nb_channels; ++i) {
-               gboolean do_red = i == 0, do_green = i == 1, do_blue = i == 2;
-               if (stats[i]) {
-                       float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
-                       siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
+	int nb_channels = (int)gfit.naxes[2];
+	imstats *stats[3];
+	int ret = compute_all_channels_statistics_single_image(&gfit, STATS_BASIC, MULTI_THREADED, stats);
+	for (int i = 0; i < nb_channels; ++i) {
+		gboolean do_red = i == 0, do_green = i == 1, do_blue = i == 2;
+		if (stats[i]) {
+			float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
+			siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
 
-                       ght_params params = { .B = 13.0f, .D = amount, . LP = 0.0f, .SP = SP, .HP = 0.7f,
-			       .BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
-                       apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+			ght_params params = { .B = 13.0f, .D = amount, . LP = 0.0f, .SP = SP, .HP = 0.7f,
+				.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
+			apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
-                       free_stats(stats[i]);
-               }
-       }
-       notify_gfit_modified();
-       return ret ? CMD_GENERIC_ERROR : CMD_OK;
+			free_stats(stats[i]);
+		}
+	}
+	notify_gfit_modified();
+	return ret ? CMD_GENERIC_ERROR : CMD_OK;
 }
 
 int process_autostretch(int nb) {
@@ -4001,7 +4002,7 @@ int process_fill(int nb){
 int process_offset(int nb) {
 	gchar *end;
 
-	int level = g_ascii_strtod(word[1], &end);
+	int level = g_ascii_strtoull(word[1], &end, 10);
 	if (end == word[1]) {
 		siril_log_message(_("Wrong parameters.\n"));
 		return CMD_ARG_ERROR;
@@ -4018,20 +4019,36 @@ int process_offset(int nb) {
  * then we always preserve the lightness */
 int process_scnr(int nb){
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
-
-	args->type = 0;
+	args->type = SCNR_AVERAGE_NEUTRAL;
+	args->amount = 0.0;
+	args->fit = &gfit;
+	args->preserve = TRUE;
 	if (nb > 1) {
+		int argidx = 1;
+		if (!g_strcmp0(word[1], "-nopreserve")) {
+			args->preserve = FALSE;
+			argidx++;
+		}
 		gchar *end;
-		args->type = g_ascii_strtoull(word[1], &end, 10);
-		if (end == word[1] || args->type > 1) {
-			siril_log_message(_("Type can either be 0 (average) or 1 (maximum) neutral protection\n"));
+		args->type = g_ascii_strtoull(word[argidx], &end, 10);
+		if (end == word[argidx] || args->type > 3) {
+			siril_log_message(_("Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum mask) or 3 (additive mask)\n"));
 			free(args);
 			return CMD_ARG_ERROR;
 		}
+		argidx++;
+
+		if (args->type == SCNR_MAXIMUM_MASK ||
+				args->type == SCNR_ADDITIVE_MASK) {
+			if (nb == 3) {
+				args->amount = g_ascii_strtod(word[argidx], &end);
+				if (end == word[argidx] || args->amount < 0.0 || args->amount > 1.0) {
+					siril_log_message(_("Amount can only be [0, 1]\n"));
+					return CMD_ARG_ERROR;
+				}
+			}
+		}
 	}
-	args->fit = &gfit;
-	args->amount = 0.0;
-	args->preserve = TRUE;
 
 	start_in_new_thread(scnr, args);
 	return CMD_OK;
@@ -4915,12 +4932,14 @@ int process_stat(int nb){
 					stat->avgDev, stat->min, stat->max);
 		} else {
 			siril_log_message(
-					_("%s layer: Mean: %0.1lf, Median: %0.1lf, Sigma: %0.1lf, "
-							"AvgDev: %0.1lf, Min: %0.1lf, Max: %0.1lf\n"),
+					_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+							"AvgDev: %0.1f, MAD: %0.1f, k of k.mad+med=mean: %0.1f, Min: %0.1f, Max: %0.1f\n"),
 					layername, stat->mean * USHRT_MAX_DOUBLE,
 					stat->median * USHRT_MAX_DOUBLE,
 					stat->sigma * USHRT_MAX_DOUBLE,
 					stat->avgDev * USHRT_MAX_DOUBLE,
+					stat->mad * USHRT_MAX_DOUBLE,
+					(stat->mean - stat->median) / stat->mad,
 					stat->min * USHRT_MAX_DOUBLE, stat->max * USHRT_MAX_DOUBLE);
 		}
 		free_stats(stat);
@@ -5688,7 +5707,11 @@ int process_register(int nb) {
 	free(method);
 	msg[strlen(msg) - 1] = '\0';
 
-	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE || reg_args->no_output)
+	if (reg_args->interpolation == OPENCV_AREA ||
+			reg_args->interpolation == OPENCV_LINEAR ||
+			reg_args->interpolation == OPENCV_NEAREST ||
+			reg_args->interpolation == OPENCV_NONE ||
+			reg_args->no_output)
 		reg_args->clamp = FALSE;
 	if (reg_args->clamp)
 		siril_log_message(_("Interpolation clamping active\n"));

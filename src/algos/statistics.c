@@ -1158,3 +1158,47 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 	}
 	return retval;
 }
+
+WORD siril_stats_ushort_find_almost_max(const WORD data[], const size_t n, int nth_to_max) {
+	WORD *maxs = calloc(nth_to_max, sizeof(WORD));
+	for (size_t i = 0; i < n; i++) {
+		WORD p = data[i];
+		if (p > maxs[0]) {
+			// insert in the sorted array
+			int m = 0;
+			while (m < nth_to_max-1 && p > maxs[m+1]) {
+				maxs[m] = maxs[m+1];
+				m++;
+			}
+			maxs[m] = p;
+		}
+	}
+
+	for (int m = 0; m < nth_to_max; m++)
+		siril_log_message("max[%d]: %d\n", m, maxs[m]);
+	WORD retval = maxs[0];
+	free(maxs);
+	return retval;
+}
+
+float siril_stats_float_find_almost_max(const float data[], const size_t n, int nth_to_max) {
+	float *maxs = calloc(nth_to_max, sizeof(float));
+	for (size_t i = 0; i < n; i++) {
+		float p = data[i];
+		if (p > maxs[0]) {
+			// insert in the sorted array
+			int m = 0;
+			while (m < nth_to_max-1 && p > maxs[m+1]) {
+				maxs[m] = maxs[m+1];
+				m++;
+			}
+			maxs[m] = p;
+		}
+	}
+
+	for (int m = 0; m < nth_to_max; m++)
+		siril_log_message("max[%d]: %f\n", m, maxs[m]);
+	float retval = maxs[0];
+	free(maxs);
+	return retval;
+}

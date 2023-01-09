@@ -54,8 +54,9 @@ static const char *type_to_string(scnr_type t) {
 gpointer scnr(gpointer p) {
 	struct scnr_data *args = (struct scnr_data *) p;
 	size_t i, nbdata = args->fit->naxes[0] * args->fit->naxes[1];
+	gint nb_above_1 = 0;
 	struct timeval t_start, t_end;
-	double min_pix = DBL_MAX, max_pix = DBL_MIN;
+	double min_pix = 0.0, max_pix = DBL_MIN;
 	double norm = get_normalized_value(args->fit);
 	double invnorm = 1.0 / norm;
 
@@ -65,7 +66,8 @@ gpointer scnr(gpointer p) {
 	gettimeofday(&t_start, NULL);
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(min:min_pix) reduction(max:max_pix)
+//#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(min:min_pix) reduction(max:max_pix)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (i = 0; i < nbdata; i++) {
 		double red, green, blue;
@@ -110,12 +112,14 @@ gpointer scnr(gpointer p) {
 			xyz_to_LAB(x, y, z, &tmp, &a, &b);
 			LAB_to_xyz(L, a, b, &x, &y, &z);
 			xyz_to_rgb(x, y, z, &red, &green, &blue);
-			max_pix = max(max_pix, red);
+			/*max_pix = max(max_pix, red);
 			max_pix = max(max_pix, green);
 			max_pix = max(max_pix, blue);
 			min_pix = min(min_pix, red);
 			min_pix = min(min_pix, green);
-			min_pix = min(min_pix, blue);
+			min_pix = min(min_pix, blue);*/
+			if (red > 1.000001 || green > 1.000001 || blue > 1.000001)
+				g_atomic_int_inc(&nb_above_1);
 		}
 
 		if (args->fit->type == DATA_USHORT) {
@@ -137,8 +141,19 @@ gpointer scnr(gpointer p) {
 	}
 
 	/* normalize in case of preserve, it can under/overshoot */
-	if (args->preserve) {
-		siril_debug_print("min = %f, max = %f\n", min_pix, max_pix);
+	if (args->preserve)
+		siril_log_message("%d pixels above 1\n", nb_above_1);
+	if (args->preserve && nb_above_1) {
+		if (args->fit->type == DATA_USHORT) {
+			max_pix = siril_stats_ushort_find_almost_max(args->fit->data,
+					nbdata * args->fit->naxes[2], 20) * invnorm;
+		}
+		else if (args->fit->type == DATA_FLOAT) {
+			max_pix = siril_stats_float_find_almost_max(args->fit->fdata,
+					nbdata * args->fit->naxes[2], 20);
+		}
+		siril_log_message("min = %f, max = %f\n", min_pix, max_pix);
+
 		max_pix = max(1.0, max_pix);
 		float a = 1.0f / (max_pix - min_pix);
 		float b = min_pix;
