@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -1283,6 +1283,24 @@ void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
+gboolean on_histoMidEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+
+	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoMidEntry"));
+	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+	if (mid <= _shadows) mid = _shadows;
+	if (mid >= _highlights) mid = _highlights;
+	_midtones = mid;
+	set_cursor_waiting(TRUE);
+	histo_update_preview();
+	gchar *str = g_strdup_printf("%8.7f", mid);
+	gtk_entry_set_text(entry, str);
+	g_free(str);
+	set_cursor_waiting(FALSE);
+
+	return FALSE;
+}
+
 void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
 	_D = (float) expm1(gtk_spin_button_get_value(button));
 	update_histo_mtf();
@@ -1435,6 +1453,23 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 	set_cursor_waiting(FALSE);
 }
 
+gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoShadEntry"));
+	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+	if (lo <= 0.f) lo = 0.f;
+	if (lo >= _highlights) lo = _highlights;
+	_shadows = lo;
+	set_cursor_waiting(TRUE);
+	histo_update_preview();
+	gchar *str = g_strdup_printf("%8.7f", lo);
+	gtk_entry_set_text(entry, str);
+	g_free(str);
+	set_cursor_waiting(FALSE);
+
+	return FALSE;
+}
+
 void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (lo <= 0.f) lo = 0.f;
@@ -1446,6 +1481,23 @@ void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 	gtk_entry_set_text(entry, str);
 	g_free(str);
 	set_cursor_waiting(FALSE);
+}
+
+gboolean on_histoHighEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoHighEntry"));
+	float hi = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+	if (hi <= _shadows) hi = _shadows;
+	if (hi >= 1.f) hi = 1.f;
+	_highlights = hi;
+	set_cursor_waiting(TRUE);
+	histo_update_preview();
+	gchar *str = g_strdup_printf("%8.7f", hi);
+	gtk_entry_set_text(entry, str);
+	g_free(str);
+	set_cursor_waiting(FALSE);
+
+	return FALSE;
 }
 
 void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {

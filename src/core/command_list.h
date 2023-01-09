@@ -71,10 +71,10 @@ static command commands[] = {
 	{"extract_HaOIII", 0, "extract_HaOIII [-resample=]", process_extractHaOIII, STR_EXTRACTHAOIII, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
 
 	{"fdiv", 2, "fdiv filename scalar", process_fdiv, STR_FDIV, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"ffill", 1, "ffill value [x y width height]", process_ffill, STR_FFILL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"fftd", 2, "fftd modulus phase", process_fft, STR_FFTD, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"ffti", 2, "ffti modulus phase", process_fft, STR_FFTI, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"fill", 1, "fill value [x y width height]", process_fill, STR_FILL, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"fill2", 1, "fill2 value [x y width height]", process_fill2, STR_FILL2, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"find_cosme", 2, "find_cosme cold_sigma hot_sigma", process_findcosme, STR_FIND_COSME, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"find_cosme_cfa", 2, "find_cosme_cfa cold_sigma hot_sigma", process_findcosme, STR_FIND_COSME_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA | REQ_CMD_NO_THREAD},
 	{"find_hot", 3, "find_hot filename cold_sigma hot_sigma", process_findhot, STR_FIND_HOT, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -117,7 +117,10 @@ static command commands[] = {
 #ifndef _WIN32
 	{"ls", 0, "ls", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
 #endif
-
+	{"makepsf", 1, "makepsf clear [-ks=]\n"
+				"makepsf blind [-l0] [-si] [-multiscale] [-lambda=] [-comp=] [-ks=]\n"
+				"makepsf stars [-sym] [-ks=]\n"
+				"makepsf manual { -gaussian | -moffat | -disc | -airy } [-fwhm=] [-angle=] [-ratio=] [-beta=] [-dia=] [-fl=] [-wl=] [-pixelsize=] [-obstruct=] [-ks=]", process_makepsf, STR_MAKEPSF, TRUE, REQ_CMD_NONE},
 	{"merge", 3, "merge sequence1 sequence2 [sequence3 ...] output_sequence", process_merge, STR_MERGE, TRUE, REQ_CMD_NONE},
 	{"merge_cfa", 5, "merge_cfa file_CFA0 file_CFA1 file_CFA2 file_CFA3 bayerpattern", process_rebayer, STR_REBAYER, TRUE, REQ_CMD_NONE},
 	{"mirrorx", 0, "mirrorx [-bottomup]", process_mirrorx, STR_MIRRORX, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -146,7 +149,7 @@ static command commands[] = {
 	{"resample", 1, "resample { factor | -width= | -height= } [-interp=] [-noclamp]", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"rgbcomp", 2, "rgbcomp [-lum=image [rgb_image]] [red green blue] [-out=result_filename]", process_rgbcomp, STR_RGBCOMP, TRUE, REQ_CMD_NONE},
 	{"rgradient", 4, "rgradient xc yc dR dalpha", process_rgradient, STR_RGRADIENT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
-	{"rl", 3, "rl sigma corner_radius_boost iterations", process_rl, STR_RL, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
+	{"rl", 0, "rl [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul] [-seq]", process_rl, STR_RL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"rmgreen", 0, "rmgreen [type]", process_scnr, STR_RMGREEN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"rotate", 1, "rotate degree [-nocrop] [-interp=] [-noclamp]", process_rotate, STR_ROTATE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"rotatePi", 0, "rotatePi", process_rotatepi, STR_ROTATEPI, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -166,6 +169,7 @@ static command commands[] = {
 	{"savetif32", 1, "savetif32 filename [-astro]", process_savetif, STR_SAVETIF32, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"savetif8", 1, "savetif8 filename [-astro]", process_savetif, STR_SAVETIF8, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
+	{"sb", 0, "sb [-alpha=] [-iters=]", process_sb, STR_SB, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"select", 2, "select from to", process_select, STR_SELECT, FALSE, REQ_CMD_SEQUENCE},
 	{"seqapplyreg", 1, "seqapplyreg sequencename [-drizzle] [-interp=] [-noclamp] [-layer=] [-framing=] [-prefix=] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},
 	{"seqclean", 1, "seqclean sequencename [-reg] [-stat] [-sel]", process_seq_clean, STR_SEQCLEAN, TRUE, REQ_CMD_NONE},
@@ -183,10 +187,13 @@ static command commands[] = {
 	{"seqmtf", 4, "seqmtf sequencename low mid high [channels] [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE, REQ_CMD_NONE},
 	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
 	{"seqmerge_cfa", 1, "seqmerge_cfa sequencename bayerpattern [-prefixin=] [-prefixout=]", process_seq_merge_cfa, STR_SEQMERGE_CFA, TRUE, REQ_CMD_NO_THREAD},
+	{"seqrl", 1, "seqrl sequence [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul] [-seq]", process_seq_rl, STR_SEQ_RL, TRUE, REQ_CMD_NONE},
+	{"seqsb", 1, "sb sequence [-alpha=] [-iters=]", process_seq_sb, STR_SEQ_SB, TRUE, REQ_CMD_NONE},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqstat", 2, "seqstat sequencename output [option] [-cfa]", process_seq_stat, STR_SEQSTAT, TRUE, REQ_CMD_NO_THREAD},
 	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree } [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE, REQ_CMD_NONE},
 	{"seqtilt", 0, "seqtilt [sequencename]", process_seq_tilt, STR_SEQTILT, TRUE, REQ_CMD_NO_THREAD},
+	{"seqwiener", 1, "wiener sequence [-alpha=]", process_seq_wiener, STR_SEQ_WIENER, TRUE, REQ_CMD_NONE},
 	{"set", 1, "set { -import=inifilepath | variable=value }", process_set, STR_SET, TRUE, REQ_CMD_NONE},
 	{"set16bits", 0, "set16bits", process_set_32bits, STR_SET16, TRUE, REQ_CMD_NONE},
 	{"set32bits", 0, "set32bits", process_set_32bits, STR_SET32, TRUE, REQ_CMD_NONE},
@@ -195,14 +202,14 @@ static command commands[] = {
 	{"setcpu", 1, "setcpu number", process_set_cpu, STR_SETCPU, TRUE, REQ_CMD_NONE},
 #endif
 	{"setext", 1, "setext extension", process_set_ext, STR_SETEXT, TRUE, REQ_CMD_NONE},
-	{"setfindstar", 0, "setfindstar [reset] [-radius=] [-sigma=] [-roundness=] [-focal=] [-pixelsize=] [-convergence=] [ [-gaussian] | [-moffat] ] [-minbeta=] [-relax=on|off]" , process_set_findstar, STR_SETFINDSTAR, TRUE, REQ_CMD_NONE},
+	{"setfindstar", 0, "setfindstar [reset] [-radius=] [-sigma=] [-roundness=] [-focal=] [-pixelsize=] [-convergence=] [ [-gaussian] | [-moffat] ] [-minbeta=] [-relax=on|off]", process_set_findstar, STR_SETFINDSTAR, TRUE, REQ_CMD_NONE},
 	{"setmag", 1, "setmag magnitude", process_set_mag, STR_SETMAG, FALSE, REQ_CMD_SINGLE_IMAGE},
 	{"setmagseq", 1, "setmagseq magnitude", process_set_mag_seq, STR_SETMAGSEQ, FALSE, REQ_CMD_SEQUENCE},
 	{"setmem", 1, "setmem ratio", process_set_mem, STR_SETMEM, TRUE, REQ_CMD_NONE},
 	{"setphot", 0, "setphot [-inner=20] [-outer=30] [-aperture=10] [-force_radius=no] [-gain=2.3] [-min_val=0] [-max_val=60000]", process_set_photometry, STR_SETPHOT, TRUE, REQ_CMD_NONE},
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE, REQ_CMD_NONE},
 	{"solsys", 0, "solsys [-mag=20.0]", process_sso, STR_SSO, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	{"split", 3, "split fileR fileG fileB", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
+	{"split", 3, "split file1 file2 file3 [-hsl | -hsv | -lab]", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
 	{"stack", 1, "stack sequencename [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-rgb_equal] [-out=result_filename] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-weight_from_nbstars] [-weight_from_wfwhm] [-fastnorm] [-rejmap[s]]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
 	{"stackall", 0, "stackall [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackall, STR_STACKALL, TRUE, REQ_CMD_NONE},
@@ -214,13 +221,13 @@ static command commands[] = {
 	{"stop_ls", 0, "stop_ls", process_stop_ls, STR_STOP_LS, TRUE, REQ_CMD_NONE},
 	{"subsky", 1, "subsky { -rbf | degree } [-samples=20] [-tolerance=1.0] [-smooth=0.5]", process_subsky, STR_SUBSKY, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"synthstar", 0, "synthstar", process_synthstar, STR_SYNTHSTAR, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"unclipstars", 0, "unclipstars", process_unclip, STR_SYNTHSTARUNCLIP, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"threshlo", 1, "threshlo level", process_threshlo, STR_THRESHLO, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"threshhi", 1, "threshi level", process_threshhi, STR_THRESHHI, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"thresh", 2, "thresh lo hi", process_thresh, STR_THRESH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* threshes hi and lo */
 	{"tilt", 0, "tilt [clear]", process_tilt, STR_TILT, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
+	{"unclipstars", 0, "unclipstars", process_unclip, STR_SYNTHSTARUNCLIP, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"unselect", 2, "unselect from to", process_unselect, STR_UNSELECT, FALSE, REQ_CMD_SEQUENCE},
 	{"unsetmag", 0, "unsetmag", process_unset_mag, STR_UNSETMAG, FALSE, REQ_CMD_NONE},
 	{"unsetmagseq", 0, "unsetmagseq", process_unset_mag_seq, STR_UNSETMAGSEQ, FALSE, REQ_CMD_SINGLE_IMAGE},
@@ -230,6 +237,7 @@ static command commands[] = {
 
 	/* wavelet transform in nbr_plan plans */
 	{"wavelet", 1, "wavelet nbr_plan type", process_wavelet, STR_WAVELET, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"wiener", 0, "wiener [-alpha=]", process_wiener, STR_WIENER, TRUE, REQ_CMD_SINGLE_IMAGE},
 	/* reconstruct from wavelet transform and weighs plans with c1, c2, c3... */
 	{"wrecons", 2, "wrecons c1 c2 c3 ...", process_wrecons, STR_WRECONS, TRUE, REQ_CMD_SINGLE_IMAGE},
 

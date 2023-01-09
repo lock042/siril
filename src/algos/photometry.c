@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -337,8 +337,10 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 		}
 	}
 	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
-	if (nbImages < 1)
+	if (nbImages < 1) {
+		siril_log_color_message(_("There are not enough valid stars to make a photometric analysis.\n"), "red");
 		return -1;
+	}
 
 	int nb_ref_stars = 0;
 	// select reference stars that are only available at least 4/5 of the time

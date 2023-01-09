@@ -607,6 +607,9 @@ struct cominf {
 	sensor_tilt *tilt;		// computed tilt information
 
 	gboolean child_is_running;	// boolean to check if there is a child process running
+
+	float* kernel;			// float* to hold kernel for new deconvolution process
+	unsigned kernelsize;	// Holds size of kernel (kernel is square kernelsize * kernelsize)
 #ifdef _WIN32
 void* childhandle;			// For Windows, handle of a child process
 #else

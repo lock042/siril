@@ -43,7 +43,7 @@ int	process_extractHaOIII(int nb);
 int	process_fdiv(int nb);
 int	process_fft(int nb);
 int	process_fill(int nb);
-int	process_fill2(int nb);
+int	process_ffill(int nb);
 int	process_findcosme(int nb);
 int	process_findhot(int nb);
 int	process_findstar(int nb);
@@ -70,6 +70,7 @@ int	process_load(int nb);
 int	process_log(int nb);
 int	process_ls(int nb);
 
+int	process_makepsf(int nb);
 int	process_merge(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrorx_single(int nb);
@@ -123,6 +124,7 @@ int	process_savepnm(int nb);
 int	process_savetif(int nb);
 int	process_starnet(int nb);
 #endif
+int	process_sb(int nb);
 int	process_scnr(int nb);
 int	process_select(int nb);
 int	process_seq_applyreg(int nb);
@@ -138,9 +140,12 @@ int	process_seq_header(int nb);
 int	process_seq_merge_cfa(int nb);
 int	process_seq_mtf(int nb);
 int	process_seq_psf(int nb);
+int	process_seq_rl(int nb);
+int	process_seq_sb(int nb);
 int	process_seq_split_cfa(int nb);
 int	process_seq_stat(int nb);
 int	process_seq_tilt(int nb);
+int	process_seq_wiener(int nb);
 int	process_set(int nb);
 int	process_set_32bits(int nb);
 int	process_set_compress(int nb);
@@ -177,6 +182,7 @@ int	process_unsharp(int nb);
 int	process_visu(int nb);
 
 int	process_wavelet(int nb);
+int	process_wiener(int nb);
 int	process_wrecons(int nb);
 
 /* live stacking specials */

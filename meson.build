@@ -1,6 +1,6 @@
 # This file is part of Siril, an astronomy image processor.
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+# Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
 # Reference site is https://free-astro.org/index.php/Siril
 #
 # Siril is free software: you can redistribute it and/or modify
@@ -32,7 +32,7 @@ project('siril',
   meson_version: '>=0.56.0',
   default_options : [
     'c_std=gnu11',
-    'cpp_std=c++11',
+    'cpp_std=c++14',
     'buildtype=debugoptimized',
   ],
 )
@@ -144,7 +144,7 @@ siril_c_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFS
 siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 
 if platform_linux
-  siril_link_arg += '-rdynamic'
+  siril_link_arg += ['-rdynamic']
 elif platform_bsd
   siril_link_arg += '-Wl,--no-as-needed' # workaround for https://gitlab.com/free-astro/siril/-/issues/614 (Bug#251206)
   siril_link_arg += '-rdynamic'
@@ -275,6 +275,11 @@ endif
 
 openmp_dep = []
 if enable_openmp
+  if platform_linux
+    siril_c_flag += '-DHAVE_FFTW3F_OMP'
+    siril_cpp_flag += '-DHAVE_FFTW3F_OMP'
+    siril_link_arg += ['-lfftw3f_omp']
+  endif
   if platform_osx
     message('Set OpenMP flags for macOS')
     siril_link_arg += ['-lomp']

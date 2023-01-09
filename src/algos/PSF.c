@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -543,6 +543,15 @@ static psf_star *psf_minimiz_angle(gsl_matrix* z, double background, double sat,
 	psf->fwhmy = FWHM_from_s(psf->sy, psf->beta, profile);	//Set the real FWHMy with regards to the Sy parameter
 	psf->angle = -FIT(6) * 180.0 / M_PI;
 
+	/* In some cases convergence give crazy values
+	 * very high. Here we add a sanity check to avoid
+	 * pseudo infinite loop with the while.
+	 */
+	if (fabs(psf->angle) > 10000) {
+		free_psf(psf);
+		psf = NULL;
+		goto free_and_exit;
+	}
 	/* The angle must be => -90 and <= 90
 	 * Otherwise, the solution may be degenerate
 	 * and produce an angle > 90. So we're

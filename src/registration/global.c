@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -660,6 +660,7 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	seq.type = args->seq->type;
 	seq.current = -1;
 	seq.is_variable = FALSE;
+	seq.fz = com.pref.comp.fits_enabled;
 	// don't copy from old sequence, it may not be the same image
 	seq.reference_image = sequence_find_refimage(&seq);
 	seq.needs_saving = TRUE;

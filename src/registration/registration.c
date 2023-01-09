@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -295,8 +295,10 @@ int register_shift_dft(struct registration_args *args) {
 	out = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 	convol = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 
-	gchar* wisdomFile = g_build_filename(g_get_user_cache_dir(), "siril_fftw.wisdom", NULL);
-
+	gchar* wisdomFile = com.pref.fftw_conf.wisdom_file;
+#ifdef HAVE_FFTW3F_OMP
+	fftwf_plan_with_nthreads(com.max_thread);
+#endif
 	// test for available wisdom
 	p = fftwf_plan_dft_2d(size, size, ref, out, FFTW_FORWARD, FFTW_WISDOM_ONLY);
 	if (!p) {
@@ -325,7 +327,6 @@ int register_shift_dft(struct registration_args *args) {
 			fftwf_export_wisdom_to_filename(wisdomFile);
 		}
 	}
-	g_free(wisdomFile);
 	fftwf_free(out); // was needed to build the plan, can be freed now
 	fftwf_free(convol); // was needed to build the plan, can be freed now
 

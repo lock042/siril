@@ -80,6 +80,7 @@ xx/xx/22
 * Fixed possible FITSEQ infinite loop and inconsistent numbering caused by hidden files in conversion
 * Fixed sequence closing in script processing after each command
 * Fixed opening of scientific FITS cube files
+* Fixed gnuplot call for macOS/AppImage, by making its path configurable
 
 siril 1.0.7
 xx/xx/22

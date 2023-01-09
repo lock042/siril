@@ -135,8 +135,6 @@ siril_common_SOURCES = \
 	filters/clahe.h \
 	filters/cosmetic_correction.c \
 	filters/cosmetic_correction.h \
-	filters/deconv.c \
-	filters/deconv.h \
 	filters/fft.c \
 	filters/fft.h \
 	filters/median.c \
@@ -174,6 +172,41 @@ siril_common_SOURCES = \
 	filters/nlbayes/NlBayes.h \
 	filters/nlbayes/Utilities.cpp \
 	filters/nlbayes/Utilities.h \
+	filters/deconvolution/angleSet.cpp \
+	filters/decnvolution/angleSet.hpp \
+	filters/deconvolution/args.hxx \
+	filters/deconvolution/better_than_std.hpp \
+	filters/deconvolution/chelperfuncs.c \
+	filters/deconvolution/chelperfuncs.h \
+	filters/deconvolution/computeProjectionsAutocorrelation.cpp \
+	filters/deconvolution/computeProjectionsAutocorrelation.hpp \
+	filters/deconvolution/conjugate_gradient.hpp \
+	filters/deconvolution/deblur.cpp \
+	filters/deconvolution/deblur.hpp \
+	filters/deconvolution/deconvBregman.cpp \
+	filters/deconvolution/deconvBregman.hpp \
+	filters/deconvolution/deconvolution.h \
+	filters/deconvolution/edgetaper.hpp \
+	filters/deconvolution/estimate_kernel.cpp \
+	filters/deconvolution/estimate_kernel.hpp \
+	filters/deconvolution/fft.hpp \
+	filters/deconvolution/fftw_allocator.hpp \
+	filters/deconvolution/gf_estimate.cpp \
+	filters/deconvolution/gf_estimate.hpp \
+	filters/deconvolution/image.hpp \
+	filters/deconvolution/labeling.hpp \
+	filters/deconvolution/optimization.hpp \
+	filters/deconvolution/options.hpp \
+	filters/deconvolution/phaseRetrieval.hpp \
+	filters/deconvolution/projectImage.hpp \
+	filters/deconvolution/rl.cpp \
+	filters/deconvolution/rl.hpp \
+	filters/deconvolution/wiener.cpp \
+	filtes/deconvolution/wiener.hpp \
+	filters/deconvolution/utils.hpp \
+	filters/deconvolution/vec2.hpp \
+	filters/deconvolution/imscript/upsa.c \
+	filters/deconvolution/imscript/downscale.c \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
 	gui/annotations_pref.c \
@@ -208,6 +241,7 @@ siril_common_SOURCES = \
 	gui/merge_cfa.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
+	gui/newdeconv.c \
 	gui/nina_light_curve.c \
 	gui/nina_light_curve.h \
 	gui/open_dialog.c \
@@ -315,7 +349,6 @@ siril_common_SOURCES = \
 	stacking/sum.c \
 	stacking/sum.h \
 	stacking/upscaling.c \
-	rt/deconvolution.cc \
 	rt/rt_algo.cc \
 	rt/gauss.cc \
 	rt/boxblur.cc

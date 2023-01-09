@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -47,6 +47,8 @@ enum {
 	TYPE_CENTERED,
 	TYPE_REGULAR
 };
+
+static unsigned strategy;
 
 static void fft_to_spectra(fftwf_complex *frequency_repr, float *as, float *ps,
 		float *maxi, size_t nbdata) {
@@ -196,7 +198,7 @@ static void FFTD_ushort(fits *fit, fits *x, fits *y, int type_order, int layer) 
 
 	/* we run the Fourier Transform */
 	fftwf_plan p = fftwf_plan_dft_2d(height, width, spatial_repr, frequency_repr,
-			FFTW_FORWARD, FFTW_ESTIMATE);
+			FFTW_FORWARD, strategy);
 	fftwf_execute(p);
 
 	/* we compute modulus and phase */
@@ -254,7 +256,7 @@ static void FFTD_float(fits *fit, fits *x, fits *y, int type_order, int layer) {
 
 	/* we run the Fourier Transform */
 	fftwf_plan p = fftwf_plan_dft_2d(height, width, spatial_repr, frequency_repr,
-			FFTW_FORWARD, FFTW_ESTIMATE);
+			FFTW_FORWARD, strategy);
 	fftwf_execute(p);
 
 	/* we compute modulus and phase */
@@ -332,7 +334,7 @@ static void FFTI_ushort(fits *fit, fits *xfit, fits *yfit, int type_order, int l
 	fft_to_freq(frequency_repr, modul, phase, nbdata);
 
 	fftwf_plan p = fftwf_plan_dft_2d(height, width, frequency_repr, spatial_repr,
-			FFTW_BACKWARD, FFTW_ESTIMATE);
+			FFTW_BACKWARD, strategy);
 	fftwf_execute(p);
 
 	for (i = 0; i < nbdata; i++) {
@@ -391,7 +393,7 @@ static void FFTI_float(fits *fit, fits *xfit, fits *yfit, int type_order, int la
 	fft_to_freq(frequency_repr, modul, phase, nbdata);
 
 	fftwf_plan p = fftwf_plan_dft_2d(height, width, frequency_repr, spatial_repr,
-			FFTW_BACKWARD, FFTW_ESTIMATE);
+			FFTW_BACKWARD, strategy);
 	fftwf_execute(p);
 
 	for (i = 0; i < nbdata; i++) {
@@ -437,7 +439,34 @@ gpointer fourier_transform(gpointer p) {
 	int chan;
 	struct timeval t_start, t_end;
 	fits *tmp = NULL, *tmp1 = NULL, *tmp2 = NULL;
+#ifdef HAVE_FFTW3F_OMP
+// Change these lines to use fftw functions if double support is ever required
+		int n = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
+        fftwf_plan_with_nthreads(n);
+        fprintf(stdout, "fftwf initialized with %d threads\n", n);
+#endif
 
+	switch (com.pref.fftw_conf.strategy) {
+		case 1:
+			strategy = FFTW_MEASURE;
+			break;
+		case 2:
+			strategy = FFTW_PATIENT;
+			break;
+		case 3:
+			strategy = FFTW_EXHAUSTIVE;
+			break;
+		default:
+			strategy = FFTW_ESTIMATE;
+	}
+
+    if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
+        siril_log_message(_("Siril FFT wisdom imported successfully...\n"));
+	} else if (fftwf_import_system_wisdom() == 1) {
+        siril_log_message(_("System FFT wisdom imported successfully...\n"));
+	} else {
+        siril_log_message(_("No FFT wisdom found to import...\n"));
+	}
 	data_type type = args->fit->type;
 
 	siril_log_color_message(_("Fourier Transform: processing...\n"), "green");
@@ -516,6 +545,12 @@ gpointer fourier_transform(gpointer p) {
 	}
 
 end:
+	if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
+        siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
+	} else {
+        siril_log_message(_("Siril FFT wisdom update failed...\n"));
+	}
+
 	invalidate_stats_from_fit(args->fit);
 	if (tmp)  { clearfits(tmp);  free(tmp);  }
 	if (tmp1) { clearfits(tmp1); free(tmp1); }
