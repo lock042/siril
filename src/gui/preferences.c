@@ -237,10 +237,12 @@ static void update_performances_preferences() {
 static void update_misc_preferences() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	GtkFileChooser *gnuplot_bin = GTK_FILE_CHOOSER(lookup_widget("filechooser_gnuplot"));
 
 	com.pref.swap_dir = gtk_file_chooser_get_filename(swap_dir);
 
 	com.pref.starnet_dir = gtk_file_chooser_get_filename(starnet_dir);
+	com.pref.gnuplot_dir = gtk_file_chooser_get_filename(gnuplot_bin);
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.gui.silent_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")));
@@ -280,8 +282,13 @@ void initialize_starnet_directory(const gchar *path) {
 	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (starnet_dir, path);
-	} else {
-		gtk_file_chooser_set_filename (starnet_dir, g_get_tmp_dir());
+	}
+}
+
+void initialize_gnuplot_directory(const gchar *path) {
+	GtkFileChooser *gnuplot_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_gnuplot"));
+	if (path && path[0] != '\0') {
+		gtk_file_chooser_set_filename (gnuplot_dir, path);
 	}
 }
 
@@ -538,6 +545,7 @@ void update_preferences_from_model() {
 	/* tab 10 */
 	initialize_path_directory(pref->swap_dir);
 	initialize_starnet_directory(pref->starnet_dir);
+	initialize_gnuplot_directory(pref->gnuplot_dir);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
