@@ -78,7 +78,6 @@ typedef enum {
 	PSF_MOFFAT_BFIXED
 } starprofile;
 
-
 /***********************************************************************************************/
 
 
@@ -201,6 +200,14 @@ typedef struct {
 	double min_beta;
 } star_finder_params;
 
+typedef struct fftw_params {
+	double timelimit;
+	int strategy;
+	gboolean multithreaded;
+	gchar* wisdom_file;
+} fftw_params;
+
+
 /**
  * This is the preference structure.
  * WARNING!!
@@ -250,6 +257,7 @@ struct pref_struct {
 	struct analysis_config analysis;
 	struct stack_config stack;
 	struct comp_config comp;
+	fftw_params fftw_conf;
 };
 typedef struct pref_struct preferences;
 /**
@@ -294,6 +302,7 @@ int print_all_settings(gboolean with_details);
 
 void free_preferences(preferences *pref);	// TODO check if they're used
 void initialize_default_settings();
+void set_wisdom_file();
 
 void update_gain_from_gfit();
 

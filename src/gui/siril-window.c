@@ -95,6 +95,7 @@ static GActionEntry rgb_processing_entries[] = {
 
 static GActionEntry any_processing_entries[] = {
 	{ "negative-processing", negative_activate },
+	{ "deconvolution-processing", deconvolution_activate },
 	{ "histo-processing", histo_activate },
 	{ "payne-processing", payne_activate },
 	{ "fix-banding-processing", fix_banding_activate },
@@ -109,7 +110,6 @@ static GActionEntry any_mono_processing_entries[] = {
 static GActionEntry single_processing_entries[] = {
 	{ "asinh-processing", asinh_activate },
 	{ "denoise-processing", denoise_activate },
-	{ "deconvolution-processing", deconvolution_activate },
 	{ "binning-processing", binning_activate },
 	{ "resample-processing", resample_activate },
 	{ "rotation-processing", rotation_activate },
@@ -198,6 +198,7 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *any_processing_actions[] = {
 		"negative-processing",
+		"deconvolution-processing",
 		"histo-processing",
 		"payne-processing",
 		"fix-banding-processing",
@@ -220,7 +221,6 @@ void siril_window_enable_single_proc_actions(GtkApplicationWindow *window, gbool
 	static const gchar *single_processing_actions[] = {
 		"asinh-processing",
 		"denoise-processing",
-		"deconvolution-processing",
 		"resample-processing",
 		"binning-processing",
 		"rotation-processing",

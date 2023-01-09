@@ -526,7 +526,7 @@ void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	siril_open_dialog("starnet_dialog");
 }
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("deconvolution_dialog");
+	siril_open_dialog("bdeconv_dialog");
 }
 
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

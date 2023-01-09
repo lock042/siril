@@ -149,7 +149,6 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_float(stack_setting, "percentile_low", &com.pref.stack.percentile_low);
 		config_setting_lookup_float(stack_setting, "percentile_high", &com.pref.stack.percentile_high);
 
-
 		config_setting_lookup_int(stack_setting, "mem_mode", (int*)&com.pref.mem_mode);
 		config_setting_lookup_float(stack_setting, "maxmem", &com.pref.memory_ratio);
 		config_setting_lookup_float(stack_setting, "maxmem_gb",	&com.pref.memory_amount);
@@ -212,6 +211,11 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_int(misc_setting, "pan_position", &com.pref.gui.pan_position);
 		config_setting_lookup_int(misc_setting, "hd_bitdepth", &com.pref.hd_bitdepth);
 
+		config_setting_lookup_float(misc_setting, "fftw_timelimit", &com.pref.fftw_conf.timelimit);
+		config_setting_lookup_int(misc_setting, "fftw_strategy", &com.pref.fftw_conf.strategy);
+		if (config_setting_lookup_bool(misc_setting, "fftw_multithreaded", &com.pref.fftw_conf.multithreaded) == CONFIG_FALSE) {
+			com.pref.fftw_conf.multithreaded = TRUE;
+		}
 		if (config_setting_lookup_bool(misc_setting, "is_extended", &com.pref.gui.is_extended) == CONFIG_FALSE) {
 			com.pref.gui.is_extended = TRUE;
 		}
@@ -490,7 +494,7 @@ int checkinitfile() {
 		com.initfile = config_file;
 		retval = readinitfile(com.initfile);
 	}
-
+	set_wisdom_file();
 	g_free(pathname);
 	return retval;
 }
