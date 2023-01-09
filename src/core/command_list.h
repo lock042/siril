@@ -117,7 +117,6 @@ static command commands[] = {
 #ifndef _WIN32
 	{"ls", 0, "ls", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
 #endif
-
 	{"merge", 3, "merge sequence1 sequence2 [sequence3 ...] output_sequence", process_merge, STR_MERGE, TRUE, REQ_CMD_NONE},
 	{"merge_cfa", 5, "merge_cfa file_CFA0 file_CFA1 file_CFA2 file_CFA3 bayerpattern", process_rebayer, STR_REBAYER, TRUE, REQ_CMD_NONE},
 	{"mirrorx", 0, "mirrorx [-bottomup]", process_mirrorx, STR_MIRRORX, TRUE, REQ_CMD_SINGLE_IMAGE},
