@@ -24,8 +24,6 @@ typedef struct ght_compute_params {
 	float qlp, q0, qwp, q1, q, b1, a1, a2, b2, c2, d2, e2, a3, b3, c3, d3, e3, a4, b4, LPT, SPT, HPT;
 } ght_compute_params;
 
-GString *get_ght_history_string(struct ght_params *params);
-
 void describe_ght_for_history(struct ght_params *params, GSList **hist);
 
 int GHTsetup(ght_compute_params* compute_params, float B, float D, float LP, float SP, float HP, int stretchtype);

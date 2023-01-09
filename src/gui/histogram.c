@@ -954,7 +954,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		} else if (invocation == GHT_STRETCH) {
 			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3lf, B=%2.3lf, LP=%2.3lf, SP=%2.3lf, HP=%2.3lf", _D, _B, _LP, _SP, _HP);
 			ght_params params = { _D, _B, _LP, _SP, _HP, _BP, _stretchtype, _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
-			undo_save_state(get_preview_gfit_backup(), get_ght_history_string(&params)->str);
+			undo_save_state(get_preview_gfit_backup(), NULL);
+			describe_ght_for_history(&params, &gfit.history);
 		}
 		clear_backup();
 		clear_hist_backup();

@@ -373,7 +373,7 @@ int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float 
 	return 0;
 }
 
-GString *get_ght_history_string(struct ght_params *params) {
+void describe_ght_for_history(struct ght_params *params, GSList **hist) {
 	GString *str = g_string_new("Applied ");
 	switch (params->stretchtype) {
 		case STRETCH_PAYNE_NORMAL:
@@ -424,13 +424,7 @@ GString *get_ght_history_string(struct ght_params *params) {
 		case COL_EVENLUM:
 			g_string_append(str,"human-weighted luminance");
 			break;
-	}
-	return str;
-}
-
-void describe_ght_for_history(struct ght_params *params, GSList **hist) {
-	GString *str = get_ght_history_string(params);
-	*hist = g_slist_append(*hist, g_string_free(str, FALSE));
+	}	*hist = g_slist_append(*hist, g_string_free(str, FALSE));
 }
 
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct ght_compute_params compute_params, gboolean multithreaded) {
