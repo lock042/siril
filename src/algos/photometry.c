@@ -337,8 +337,10 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 		}
 	}
 	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
-	if (nbImages < 1)
+	if (nbImages < 1) {
+		siril_log_color_message(_("There are not enough valid stars to make a photometric analysis.\n"), "red");
 		return -1;
+	}
 
 	int nb_ref_stars = 0;
 	// select reference stars that are only available at least 4/5 of the time
