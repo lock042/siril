@@ -6620,6 +6620,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
+                                                <property name="tooltip-text" translatable="yes">For large PSFs the ℓ0 gradient prior may not collapse blurry edges into a single sharp edge. A multiscale PSF estimation procedure can therefore be used: it may not be necessary for small PSF.</property>
                                                 <property name="draw-indicator">True</property>
                                               </object>
                                               <packing>
