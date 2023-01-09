@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -6062,7 +6062,6 @@ enter a visible wavelength in nm</property>
                                         <property name="halign">start</property>
                                         <property name="draw-indicator">True</property>
                                         <property name="group">bdeconv_psfblind</property>
-                                        <signal name="toggled" handler="on_bdeconv_psfselection_toggled" swapped="no"/>
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
