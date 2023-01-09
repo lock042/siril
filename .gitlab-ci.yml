@@ -129,7 +129,7 @@ deps-debian:
   script:
     - cd _Criterion
     - patch --binary -p1 < ../build/windows/criterion.patch
-    - meson _build --prefix ${INSTALL_PREFIX}
+    - meson setup _build --prefix ${INSTALL_PREFIX}
     - ninja -C _build install
   needs: ["build-image"]
 
@@ -171,7 +171,7 @@ siril-deb-autotools:
 siril-deb-meson:
   extends: .siril-debian/testing-base
   script:
-    - meson --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Denable-libcurl=yes -Dlibconfig=true -Dcriterion=true
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Denable-libcurl=yes -Dlibconfig=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
     - cd ${BUILD_DIR}
@@ -237,7 +237,7 @@ siril-win64:
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
     - mkdir _build && cd _build
-    - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" -Denable-libcurl=yes -Dlibconfig=true .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
+    - echo 'crossroad meson setup --buildtype=release --prefix="${INSTALL_PREFIX}" -Denable-libcurl=yes -Dlibconfig=true .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
   needs: ["deps-win64"]
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
