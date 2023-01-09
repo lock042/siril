@@ -28943,6 +28943,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="tooltip-text" translatable="yes">Select Starnet++ installation directory. Works with both Starnet++ v1.0 and v2.0.2+ (Command Line Tool version, not GUI version for Windows users).</property>
                                 <property name="valign">center</property>
                                 <property name="action">select-folder</property>
+                                <property name="show-hidden">True</property>
                                 <property name="title" translatable="yes">Select Starnet++ installation directory</property>
                               </object>
                               <packing>
@@ -28973,7 +28974,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="halign">start</property>
                                 <property name="xpad">10</property>
                                 <property name="label" translatable="yes">Must point to a valid gnuplot installation directory.
-Not necessary if the path of gnuplot is stored in the PATH variable.</property>
+Not necessary if the path of gnuplot is stored in the PATH variable (UNIX-like).</property>
                                 <attributes>
                                   <attribute name="style" value="italic"/>
                                 </attributes>
@@ -28990,6 +28991,7 @@ Not necessary if the path of gnuplot is stored in the PATH variable.</property>
                                 <property name="tooltip-text" translatable="yes">Select gnuplot binary location.</property>
                                 <property name="valign">center</property>
                                 <property name="action">select-folder</property>
+                                <property name="show-hidden">True</property>
                                 <property name="title" translatable="yes">Select gnuplot installation directory</property>
                               </object>
                               <packing>
