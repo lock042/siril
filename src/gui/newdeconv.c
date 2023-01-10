@@ -862,7 +862,6 @@ gpointer deconvolve(gpointer p) {
 		retval = 1;
 		goto ENDDECONV;
 	}
-	DrawPSF();
 
 	if (get_thread_run() || sequence_is_running == 1) {
 		if (sequence_is_running == 0)
