@@ -54,6 +54,7 @@
 #include "io/ser.h"
 
 gboolean aperture_warning_given = FALSE;
+gboolean psf_preview_needs_updating = TRUE;
 
 estk_data args = { 0 };
 static GtkWidget *drawingPSF = NULL;
@@ -540,6 +541,7 @@ int load_kernel(gchar* filename) {
 			}
 		}
 	}
+	DrawPSF();
 	ENDSAVE:
 	clearfits(&fit);
 	if (filename)
@@ -590,7 +592,6 @@ void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_
 	}
 	args.psftype = PSF_PREVIOUS; // Set to use previous kernel
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
-	DrawPSF();
 	return;
 }
 
@@ -763,6 +764,9 @@ int get_kernel() {
 	}
 #endif
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
+	if (args.psftype != PSF_PREVIOUS) {
+		DrawPSF();
+	}
 END:
 	return retval;
 }
@@ -801,7 +805,6 @@ gpointer estimate_only(gpointer p) {
 
 	set_progress_bar_data(_("Starting kernel computation..."), PROGRESS_PULSATE);
 	get_kernel();
-
 	if (args.psftype == PSF_BLIND) {
 		if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 			siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
@@ -862,7 +865,6 @@ gpointer deconvolve(gpointer p) {
 		retval = 1;
 		goto ENDDECONV;
 	}
-	DrawPSF();
 
 	if (get_thread_run() || sequence_is_running == 1) {
 		if (sequence_is_running == 0)
@@ -978,7 +980,10 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 
 // Actual drawing function
 void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
+	static GMutex psf_preview_mutex;
 	if (!com.kernel || !com.kernelsize) return;
+	if (!(g_mutex_trylock(&psf_preview_mutex)))
+		return;
 	int width =  gtk_widget_get_allocated_width(widget);
 	int height = gtk_widget_get_allocated_height(widget);
 
@@ -1016,16 +1021,22 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 	cairo_paint(cr);
 	free(buf);
+	g_mutex_unlock(&psf_preview_mutex);
+	return;
 }
 
 // PSF drawing callback
 gboolean on_PSFkernel_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	if (!(psf_preview_needs_updating))
+		return FALSE;
 	drawing_the_PSF(widget, cr);
+	psf_preview_needs_updating = FALSE;
 	return FALSE;
 }
 
 // caller
 static void DrawPSF() {
+	psf_preview_needs_updating = TRUE;
 	if (!drawingPSF) {
 		drawingPSF = lookup_widget("bdeconv_drawingarea");
 	}
