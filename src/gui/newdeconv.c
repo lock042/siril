@@ -54,7 +54,6 @@
 #include "io/ser.h"
 
 gboolean aperture_warning_given = FALSE;
-gboolean psf_preview_needs_updating = TRUE;
 
 estk_data args = { 0 };
 static GtkWidget *drawingPSF = NULL;
@@ -1044,16 +1043,12 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 
 // PSF drawing callback
 gboolean on_PSFkernel_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	if (!(psf_preview_needs_updating))
-		return FALSE;
 	drawing_the_PSF(widget, cr);
-	psf_preview_needs_updating = FALSE;
 	return FALSE;
 }
 
 // caller
 static void DrawPSF() {
-	psf_preview_needs_updating = TRUE;
 	if (!drawingPSF) {
 		drawingPSF = lookup_widget("bdeconv_drawingarea");
 	}
