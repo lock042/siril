@@ -1034,7 +1034,7 @@ void cvRelRot(Homography *Ref, Homography *R) {
 }
 
 // Computes Homography from cameras R and K
-void cvcalcH_fromKR(Homography R, double *focx, double *focy, int ref, int ind, Homography *H) {
+void cvcalcH_fromKR(Homography R, double *focx, double *focy, double *ppx, double *ppy, int ref, int ind, Homography *H) {
 	Mat _R = Mat(3, 3, CV_64FC1);
 	convert_H_to_MatH(&R, _R);
 	Mat Kref = Mat::eye(3, 3, CV_64FC1);
@@ -1045,10 +1045,14 @@ void cvcalcH_fromKR(Homography R, double *focx, double *focy, int ref, int ind, 
 	// preparing the intrisic matrices
 	Kref.at<double>(0,0) = focx[ref];
 	Kref.at<double>(1,1) = focy[ref];
+	Kref.at<double>(0,2) = ppx[ref];
+	Kref.at<double>(1,2) = ppy[ref];
 	Kimg.at<double>(0,0) = focx[ind];
 	Kimg.at<double>(1,1) = focy[ind];
+	Kimg.at<double>(0,2) = ppx[ind];
+	Kimg.at<double>(1,2) = ppy[ind];
 
 	//Compute H and returning
-	_H = Kimg * _R * Kref.inv();
+	_H = Kref * _R * Kimg.inv();
 	convert_MatH_to_H(_H, H);
 }

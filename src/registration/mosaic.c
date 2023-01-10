@@ -177,6 +177,8 @@ int register_mosaic(struct registration_args *regargs) {
 	Homography *Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
 	double *focx = calloc(n, sizeof(double)); // camera focal length on x
 	double *focy = calloc(n, sizeof(double)); // camera focal length on y
+	double *ppx = calloc(n, sizeof(double)); // camera center on x
+	double *ppy = calloc(n, sizeof(double)); // camera center on y
 
 	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
 	// ##################################################################
@@ -206,6 +208,8 @@ int register_mosaic(struct registration_args *regargs) {
 			goto free_all;
 		}
 		cvRotMat3(angles, rottypes, TRUE, Rs + i);
+		ppx[i] = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx);
+		ppy[i] = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry);
 	}
 
 	// computing relative rotations wrt to ref image
@@ -244,11 +248,13 @@ int register_mosaic(struct registration_args *regargs) {
 	}
 	fclose(mscfile);
 
-	// and adding to the seq in order to display some kind of alignment
+	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
+	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
+	// We add to the seq in order to display some kind of alignment
 	for (int i = 0; i < n; i++) {
 		Homography H = { 0 };
 		if (i != refindex) {
-			cvcalcH_fromKR(Rs[i], focx, focy, refindex, i, &H);
+			cvcalcH_fromKR(Rs[i], focx, focy, ppx, ppy, refindex, i, &H);
 		} else {
 			cvGetEye(&H);
 		}
