@@ -120,7 +120,7 @@ void reset_conv_args(estk_data* args) {
 	args->finaliters = 10;
 	args->alpha = 1.f / 3000.f;
 	args->stopcriterion = 0.002f;
-	args->rl_method = 1;
+	args->rl_method = RL_GD;
 	args->stepsize = 0.0003f;
 	args->regtype = REG_TV_GRAD;
 }
@@ -136,7 +136,10 @@ void reset_conv_controls() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_profile")), args.profile);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_blindtype")), args.blindtype);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_nonblindtype")), args.nonblindtype);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_regularization")), args.regtype);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_method")), args.rl_method);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")), args.multiscale);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfblind")), TRUE);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdaratio")), args.lambda_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdamin")), args.lambda_min);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gamma")), args.gamma);
@@ -151,10 +154,17 @@ void reset_conv_controls() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfwhm")), args.psf_fwhm);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfbeta")), args.psf_beta);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfratio")), args.psf_ratio);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_diameter")), args.airy_diameter);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_fl")), args.airy_fl);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_wl")), args.airy_wl);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_pixelsize")), args.airy_pixelsize);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_obstruction")), args.airy_obstruction);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ninner")), args.ninner);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")), args.ntries);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_nouter")), args.nouter);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), args.finaliters);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stopcriterion")), args.stopcriterion);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stepsize")), args.stepsize);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ncomp")), args.compensationfactor);
 }
 
