@@ -994,7 +994,11 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	guchar *buf = calloc(com.kernelsize * com.kernelsize * 4, sizeof(guchar));
 	for (int i = 0; i <com.kernelsize; i++) {
 		for (int j = 0; j < com.kernelsize; j++) {
-			float val = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
+			float val;
+			if (sequence_is_loaded() && com.seq.type == SEQ_SER)
+				val = pow((com.kernel[i * com.kernelsize + j] - minval) * invrange, 0.5f);
+			else
+				val = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
 			buf[i * stride + 4 * j + 0] = float_to_uchar_range(val);
 			buf[i * stride + 4 * j + 1] = buf[i * stride + 4 * j];
 			buf[i * stride + 4 * j + 2] = buf[i * stride + 4 * j];
