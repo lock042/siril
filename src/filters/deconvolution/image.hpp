@@ -223,6 +223,35 @@ public:
             data[i] = o[i];
     }
 
+    template <typename T2, typename T3>
+    void conv2(const img_t<T2>& x, const img_t<T3>& k) {
+        assert(k.w / 2 && k.w == k.h); // Ensure kernel is square and odd
+        assert(x.similar(*this));
+
+        img_t<T> out(x.w, x.h, x.d);
+        const int ix = (k.w-1)/2;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads) //if(size > 1000 && cppmaxthreads > 1)
+#endif
+// Not asking OMP to vectorize the inner loop with simd: relying on GCC for this, as it is reportedly better at it.
+        for (int c = 0 ; c < d ; c++) {
+            for (int i = ix ; i < x.w-ix-1 ; i++) {
+                for (int j = ix ; j < x.h-ix-1 ; j++) {
+                    T val = 0;
+                    for (int m = -ix ; m < ix+1 ; m++) {
+                        for (int n = -ix ; n < ix+1 ; n++) {
+//                            printf("i %d, j %d, m %d, n %d\n", i, j, m, n);
+                            val += x(i+m, j+n, c) * k(m+ix, n+ix, 0);
+                        }
+                    }
+                    out(i, j, c) = val;
+                }
+            }
+        }
+        (*this).map(out);
+    }
+
+
 // Don't use this - it causes problems for the MacOS build
 /*
     void mapf(const std::function<T(T)>& f) {

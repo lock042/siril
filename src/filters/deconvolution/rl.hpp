@@ -127,7 +127,28 @@ namespace richardsonlucy {
         x.map(std::real(est)); // x needs to be real
     }
 
+    template <typename T>
+    void rl_deconvolve_naive(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion, int regtype, float stepsize, int stopcriterion_active) {
+        assert(K.w % 2);
+        assert(K.h % 2);
+        x = f;
+        img_t<T> w(f.w, f.h, f.d);
 
+        // Flip K and generate OTF
+        img_t<T> Kf(K.w, K.h, K.d);
+        Kf.flip(K);
+        img_t<T> ratio(f.w, f.h, f.d);
+        for (int iter = 0 ; iter < maxiter ; iter++) {
+            if (is_thread_stopped())
+                continue;
+            // Richardson-Lucy iteration
+            ratio.conv2(x, K); // convolve with kernel to get denominator
+            ratio.map(f / ratio); // divide f by denominator
+            ratio.conv2(ratio, Kf); // convolve by flipped kernel
+            x.map(ratio * x); // multiply up
+            updateprogress(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+        }
+    }
 
 /*
         template <typename T>
