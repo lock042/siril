@@ -171,7 +171,8 @@ void reset_conv_controls() {
 void reset_conv_controls_and_args() {
 	if (!get_thread_run())
 		reset_conv_args(&args);
-	reset_conv_controls();
+	if (!(com.headless))
+		reset_conv_controls();
 }
 
 void on_bdeconv_psfblind_toggled(GtkToggleButton *button, gpointer user_data) {
