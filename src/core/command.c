@@ -870,12 +870,16 @@ int process_makepsf(int nb) {
 	if (!word[1])
 		return CMD_WRONG_N_ARG;
 	if (g_str_has_prefix(arg, "clear")) {
+		if (sequence_is_running()) {
+			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
+			return CMD_GENERIC_ERROR;
+		}
 		if (com.kernel) {
 			free(com.kernel);
 			com.kernel = NULL;
 			com.kernelsize = 0;
 		}
-		siril_log_color_message(_("Deconvolution kernel cleared\n"), "green");
+		siril_log_color_message(_("Deconvolution kernel cleared.\n"), "green");
 		free(data);
 		return CMD_OK;
 	} else {
