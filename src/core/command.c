@@ -1234,6 +1234,10 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	if (word[1] && word[1][0] != '\0') {
 		seq = load_sequence(word[1], NULL);
 	}
+	if (seq == NULL) {
+		siril_log_message(_("Error: cannot open sequence\n"));
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
 	for (int i = 2; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
