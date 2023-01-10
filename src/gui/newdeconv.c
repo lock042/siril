@@ -834,8 +834,13 @@ gpointer deconvolve(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
-
 	int retval = 0;
+	if (args.psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
+	// Refuse to process the image using previous PSF if there is no previous PSF defined
+		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");
+		retval = 1;
+		goto ENDDECONV;
+	}
 	int fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 	cppmaxthreads = fftw_max_thread;
 	cppfftwflags = com.pref.fftw_conf.strategy;
@@ -870,7 +875,8 @@ gpointer deconvolve(gpointer p) {
 	if (sequence_is_running == 0)
 		set_progress_bar_data("Starting kernel estimation...", PROGRESS_PULSATE);
 	siril_debug_print("Starting kernel estimation\n");
-	get_kernel();
+	if (args.psftype != PSF_PREVIOUS)
+		get_kernel();
 	if (!com.kernel) {
 		siril_debug_print("Kernel missing!\n");
 		retval = 1;
@@ -1093,6 +1099,51 @@ int deconvolution_image_hook(struct generic_seq_args *seqargs, int o, int i, fit
 	return ret;
 }
 
+int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
+	if (args.psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
+	// Refuse to process the sequence using previous PSF if there is no previous PSF defined
+		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");
+		return 1;
+	}
+	int retval = 0;
+	g_assert(seqargs->has_output); // don't call this hook otherwise
+	if (seqargs->force_ser_output || (seqargs->seq->type == SEQ_SER && !seqargs->force_fitseq_output)) {
+		gchar *dest;
+		const char *ptr = strrchr(seqargs->seq->seqname, G_DIR_SEPARATOR);
+		if (ptr)
+			dest = g_strdup_printf("%s%s.ser", seqargs->new_seq_prefix, ptr + 1);
+		else dest = g_strdup_printf("%s%s.ser", seqargs->new_seq_prefix, seqargs->seq->seqname);
+
+		seqargs->new_ser = malloc(sizeof(struct ser_struct));
+		if (ser_create_file(dest, seqargs->new_ser, TRUE, seqargs->seq->ser_file)) {
+			free(seqargs->new_ser);
+			seqargs->new_ser = NULL;
+			retval = 1;
+		}
+		g_free(dest);
+	}
+	else if (seqargs->force_fitseq_output || (seqargs->seq->type == SEQ_FITSEQ && !seqargs->force_ser_output)) {
+		gchar *dest;
+		const char *ptr = strrchr(seqargs->seq->seqname, G_DIR_SEPARATOR);
+		if (ptr)
+			dest = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, ptr + 1, com.pref.ext);
+		else dest = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, seqargs->seq->seqname, com.pref.ext);
+
+		seqargs->new_fitseq = malloc(sizeof(fitseq));
+		if (fitseq_create_file(dest, seqargs->new_fitseq, seqargs->nb_filtered_images)) {
+			free(seqargs->new_fitseq);
+			seqargs->new_fitseq = NULL;
+			retval = 1;
+		}
+		g_free(dest);
+	}
+	else return 0;
+
+	if (!retval)
+		retval = seq_prepare_writer(seqargs);
+	return retval;
+}
+
 void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 	sequence_is_running = 1;
 	struct generic_seq_args *seqargs = create_default_seqargs(seqdata->seq);
@@ -1100,7 +1151,7 @@ void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = seqdata->seq->selnum;
 	seqargs->compute_mem_limits_hook = deconvolution_compute_mem_limits;
-	seqargs->prepare_hook = seq_prepare_hook;
+	seqargs->prepare_hook = deconvolution_prepare_hook;
 	seqargs->finalize_hook = deconvolution_finalize_hook;
 	seqargs->image_hook = deconvolution_image_hook;
 	seqargs->description = _("Deconvolution");
