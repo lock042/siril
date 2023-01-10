@@ -870,7 +870,7 @@ int process_makepsf(int nb) {
 	if (!word[1])
 		return CMD_WRONG_N_ARG;
 	if (g_str_has_prefix(arg, "clear")) {
-		if (sequence_is_running()) {
+		if (get_thread_run()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
 			return CMD_GENERIC_ERROR;
 		}
