@@ -883,6 +883,11 @@ int process_makepsf(int nb) {
 		free(data);
 		return CMD_OK;
 	} else {
+		if (g_str_has_prefix(arg, "save")) {
+			siril_log_message(_("Save PSF to file:\n"));
+			on_bdeconv_savekernel_clicked(NULL, NULL);
+			return CMD_OK;
+		}
 		if (com.kernel) {
 			free(com.kernel);
 			com.kernel = NULL;
@@ -893,7 +898,7 @@ int process_makepsf(int nb) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
 				return CMD_GENERIC_ERROR;
 			}
-			data->psftype = 0;
+			data->psftype = PSF_BLIND;
 			siril_log_message(_("Blind kernel estimation:\n"));
 			for (int i = 2; i < nb; i++) {
 				char *arg = word[i], *end;
@@ -950,6 +955,8 @@ int process_makepsf(int nb) {
 					}
 				}
 			}
+			start_in_new_thread(estimate_only, data);
+			return CMD_OK;
 		} else if (g_str_has_prefix(arg, "stars")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
@@ -959,7 +966,7 @@ int process_makepsf(int nb) {
 				siril_log_message(_("Error: requested to generate PSF from stars but no stars have been selected. Run findstar first.\n"));
 				return CMD_ARG_ERROR;
 			} else {
-				data->psftype = 2;
+				data->psftype = PSF_STARS;
 				for (int i = 2; i < nb; i++) {
 					char *arg = word[i], *end;
 					if (!word[i])
@@ -981,10 +988,12 @@ int process_makepsf(int nb) {
 						}
 					}
 				}
+				start_in_new_thread(estimate_only,data);
+				return CMD_OK;
 			}
 		} else if (g_str_has_prefix(arg, "manual")) {
 			siril_log_message(_("Manual PSF generation:\n"));
-			data->psftype = 3;
+			data->psftype = PSF_MANUAL;
 			for (int i = 2; i < nb; i++) {
 				char *arg = word[i], *end;
 				if (!word[i])
@@ -1125,11 +1134,22 @@ int process_makepsf(int nb) {
 						data->airy_obstruction = val;
 					}
 				}
+				start_in_new_thread(estimate_only,data);
+				return CMD_OK;
 			}
+		} else if (g_str_has_prefix(arg, "load")) {
+			siril_log_message(_("Load PSF from file:\n"));
+			if (word[2] && word[2][0] != '\0') {
+				if (load_kernel(word[2])) {
+					siril_log_message(_("Error loading PSF.\n"));
+					return CMD_FILE_NOT_FOUND;
+				}
+			}
+			data->psftype = PSF_PREVIOUS;
+			return CMD_OK;
 		}
 	}
-	start_in_new_thread(estimate_only,data);
-	return CMD_OK;
+	return CMD_ARG_ERROR;
 }
 
 int process_deconvolve(int nb, nonblind_t type) {

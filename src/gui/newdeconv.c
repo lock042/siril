@@ -493,6 +493,10 @@ void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	reset_conv_controls_and_args();
+	if (com.kernel && com.kernelsize > 0) {
+		args.psftype = PSF_PREVIOUS;
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
+	}
 	calculate_parameters();
 	initialize_airy_parameters();
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -502,12 +506,12 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 int save_kernel(gchar* filename) {
 	int retval = 0;
 	fits *fit = NULL;
-	if ((retval = new_fit_image_with_data(&fit, args.ks, args.ks, 1, DATA_FLOAT, com.kernel)))
+	if ((retval = new_fit_image_with_data(&fit, com.kernelsize, com.kernelsize, 1, DATA_FLOAT, com.kernel)))
 		return retval;
 #ifdef HAVE_LIBTIFF
 	retval = savetif(filename, fit, 32, "Saved Siril deconvolution kernel", NULL, FALSE);
 #else
-	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving kernel at reduced precision as a 16-bit greyscale PGM file.\n"), "red");
+	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving kernel at reduced precision as a 16-bit greyscale PGM file.\n"), "salmon");
 	retval = saveNetPBM(filename, fit);
 #endif
 	return retval;
@@ -519,6 +523,7 @@ int load_kernel(gchar* filename) {
 	fits fit = { 0 };
 	if ((retval = read_single_image(filename, &fit, NULL, FALSE, NULL, FALSE, TRUE)))
 		goto ENDSAVE;
+	printf("retval %d\n", retval);
 	if (fit.rx != fit.ry){
 		retval = 1;
 		char *msg = siril_log_color_message(_("Error: kernel file does not contain a square kernel. Cannot load this file.\n"), "red");
@@ -552,10 +557,8 @@ int load_kernel(gchar* filename) {
 		}
 	}
 	DrawPSF();
-	ENDSAVE:
 	clearfits(&fit);
-	if (filename)
-		g_free(filename);
+	ENDSAVE:
 	return retval;
 }
 
@@ -574,13 +577,18 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	// Initialise the filename strings as empty strings
 	memset(filename, 0, sizeof(filename));
 	// Set up paths and filenames
-	imagenoextorig = g_path_get_basename(com.uniq->filename);
-	imagenoext = g_path_get_basename(com.uniq->filename);
+	if (single_image_is_loaded())
+		imagenoextorig = g_path_get_basename(com.uniq->filename);
+	else if (sequence_is_loaded())
+		imagenoextorig = g_strdup(com.seq.seqname);
+	else
+		imagenoextorig = g_strdup_printf("deconvolution");
+	imagenoext = g_strdup(imagenoextorig);
 	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
         *q = *c == ' ' ? '_' : *c;
 	if (g_strcmp0(imagenoext, imagenoextorig))
 		siril_log_color_message(_("Deconvolution: spaces detected in filename. These have been replaced by underscores.\n"), "salmon");
-	free(imagenoextorig);
+	g_free(imagenoextorig);
 	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
 	imagenoext = remove_ext_from_filename(imagenoext);
 	strncat(filename, imagenoext, sizeof(filename) - strlen(imagenoext));
@@ -591,6 +599,8 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	strncat(filename, ".pgm", 5);
 #endif
 	save_kernel(filename);
+	g_free(imagenoext);
+	return;
 }
 
 void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_data) {
@@ -600,6 +610,8 @@ void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_
 	} else {
 		load_kernel(filename);
 	}
+	if (filename)
+		g_free(filename);
 	args.psftype = PSF_PREVIOUS; // Set to use previous kernel
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
 	return;
