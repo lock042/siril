@@ -26,46 +26,46 @@ namespace richardsonlucy {
         K_otf.fft(K_otf);
 
         // Flip K and generate OTF
-        img_t<T> Kf(K.w, K.h, K.d);
-        Kf.flip(K);
         img_t<std::complex<T>> Kflip_otf(f.w, f.h, f.d);
-        Kflip_otf.padcirc(Kf);
-        Kflip_otf.map(Kflip_otf * std::complex<T>(Kf.d) / Kf.sum());
-        Kflip_otf.fft(Kflip_otf);
+        {
+            img_t<T> Kf(K.w, K.h, K.d);
+            Kf.flip(K);
+            Kflip_otf.padcirc(Kf);
+            Kflip_otf.map(Kflip_otf * std::complex<T>(Kf.d) / Kf.sum());
+            Kflip_otf.fft(Kflip_otf);
+        }
         img_t<std::complex<T>> est(f.w, f.h, f.d);
         est.map(f);
-//        est.set_value(T(0.001));
         img_t<std::complex<T>> ratio(f.w, f.h, f.d);
         ratio.map(est);
         float reallambda = 1.f / lambda; // For consistency with other algorithms
         img_t<T> gxx(f.w, f.h, f.d);
+        img_t<T> gxy(f.w, f.h, f.d);
         img_t<T> gyy(f.w, f.h, f.d);
+        img_t<T> stop(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
             if (is_thread_stopped())
                 continue;
             w.map(std::real(est));
             if (regtype == 0 || regtype == 3) {
                 // Calculate TV regularization weighting
-                img_t<T> gx(f.w, f.h, f.d);
-                gx.gradientx(w);
-                gx.map(std::max(1.e-6f, gx)); // Avoid div/0
-                for (int i = 0 ; i < gx.size; i++)
-                    gx[i] = std::max(1.e-6f, gx[i]);
-                img_t<T> gy(f.w, f.h, f.d);
-                gy.gradienty(w);
-                for (int i = 0 ; i < gy.size; i++)
-                    gy[i] = std::max(1.e-6f, gy[i]); // Avoid div/0
-                w.map(std::hypot(gx, gy)); // |grad(w)|
-                gx.map(gx / w); // Together these 2 lines make gx, gy hold the
-                gy.map(gy / w); // components of grad(est)
-                w.divergence(gx, gy); // w now holds div(grad(est) / |grad(est)|)
+                gxx.gradientx(w);
+                gxx.map(std::max(1.e-6f, gxx)); // Avoid div/0
+                for (int i = 0 ; i < gxx.size; i++)
+                    gxx[i] = std::max(1.e-6f, gxx[i]);
+                gyy.gradienty(w);
+                for (int i = 0 ; i < gyy.size; i++)
+                    gyy[i] = std::max(1.e-6f, gyy[i]); // Avoid div/0
+                w.map(std::hypot(gxx, gyy)); // |grad(w)|
+                gxx.map(gxx / w); // Together these 2 lines make gx, gy hold the
+                gyy.map(gyy / w); // components of grad(est)
+                w.divergence(gxx, gyy); // w now holds div(grad(est) / |grad(est)|)
             } else if (regtype == 1 || regtype == 4) {
                 // Calculate Frobenius-Hessian weighting
-                img_t<T> gxy(f.w, f.h, f.d);
                 gxx.gradientxx(w);
                 gxx.map(std::max(1.e-6f, gxx)); // Avoid div/0
                 gxx.map(gxx * gxx);
-                gxy.gradientyy(w);
+                gxy.gradientxy(w);
                 gxy.map(std::max(1.e-6f, gxy));
                 gxy.map(gxy * gxy);
                 gxy.map(gxy * T(2));
@@ -85,8 +85,7 @@ namespace richardsonlucy {
             ratio.fft(ratio);
             ratio.map(ratio * Kflip_otf); // correlate (convolve with flip)
             ratio.ifft(ratio);
-            img_t<std::complex<T>> stop(f.w, f.h, f.d);
-            stop.map(est);
+            gxy.map(std::real(est)); // From here on, gxy gets used for the stopping criterion
             T dt = T(stepsize);
             switch (regtype) {
                 case 5: // 5 and 4 are multiplicative RL with FH and TV reg
@@ -112,10 +111,8 @@ namespace richardsonlucy {
                 updateprogress(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
             if (stopcriterion_active == 1) {
                 // Stopping criterion?
-                stop.map((std::abs(std::real(est) - std::real(stop))) / std::abs(std::real(stop)));
-                gxx.map(std::real(stop));
-                T stopping = gxx.sum() / gxx.size;
-//                printf("stopping: %f\n", stopping);
+                gxy.map((std::abs(std::real(est) - gxy)) / std::abs(gxy));
+                T stopping = gxy.sum() / gxy.size;
                 if (stopping < stopcriterion) {
                     char msg[100];
                     sprintf(msg, "%s %d\n", msg_earlystop, iter+1);
@@ -126,8 +123,6 @@ namespace richardsonlucy {
         }
         x.map(std::real(est)); // x needs to be real
     }
-
-
 
 /*
         template <typename T>
