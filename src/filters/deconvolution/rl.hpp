@@ -42,7 +42,6 @@ namespace richardsonlucy {
         img_t<T> gxx(f.w, f.h, f.d);
         img_t<T> gxy(f.w, f.h, f.d);
         img_t<T> gyy(f.w, f.h, f.d);
-        img_t<T> stop(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
             if (is_thread_stopped())
                 continue;
@@ -52,10 +51,10 @@ namespace richardsonlucy {
                 gxx.gradientx(w);
                 gxx.map(std::max(1.e-6f, gxx)); // Avoid div/0
                 for (int i = 0 ; i < gxx.size; i++)
-                    gxx[i] = std::max(1.e-6f, gxx[i]);
+                    gxx[i] = std::max(1.e-9f, gxx[i]);
                 gyy.gradienty(w);
                 for (int i = 0 ; i < gyy.size; i++)
-                    gyy[i] = std::max(1.e-6f, gyy[i]); // Avoid div/0
+                    gyy[i] = std::max(1.e-9f, gyy[i]); // Avoid div/0
                 w.map(std::hypot(gxx, gyy)); // |grad(w)|
                 gxx.map(gxx / w); // Together these 2 lines make gx, gy hold the
                 gyy.map(gyy / w); // components of grad(est)
@@ -63,14 +62,14 @@ namespace richardsonlucy {
             } else if (regtype == 1 || regtype == 4) {
                 // Calculate Frobenius-Hessian weighting
                 gxx.gradientxx(w);
-                gxx.map(std::max(1.e-6f, gxx)); // Avoid div/0
+                gxx.map(std::max(1.e-9f, gxx)); // Avoid div/0
                 gxx.map(gxx * gxx);
                 gxy.gradientxy(w);
-                gxy.map(std::max(1.e-6f, gxy));
+                gxy.map(std::max(1.e-9f, gxy));
                 gxy.map(gxy * gxy);
                 gxy.map(gxy * T(2));
                 gyy.gradientyy(w);
-                gyy.map(std::max(1.e-6f, gyy));
+                gyy.map(std::max(1.e-9f, gyy));
                 gyy.map(gyy * gyy);
                 w.map(gxy + gyy);
                 w.map(gxx + w);
