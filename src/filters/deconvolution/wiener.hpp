@@ -21,21 +21,22 @@ namespace wiener {
         assert(K.h % 2);
         x = f;
 
-        // Generate OTF of kernel
+        // Initialize img_ts
         img_t<std::complex<T>> H(f.w, f.h, f.d);
+        img_t<std::complex<T>> denom(f.w, f.h, f.d);
+        img_t<std::complex<T>> G(f.w, f.h, f.d);
+
+        // Generate OTF of kernel
         H.padcirc(K);
         H.map(H * std::complex<T>(K.d) / K.sum());
         H.fft(H);
 
         // Generate |H^2| = H * complex conjugate of H
-        img_t<std::complex<T>> H_abs_sq(H.w, H.h, H.d);
-        H_abs_sq.map(std::conj(H) * H);
-        img_t<std::complex<T>> denom(f.w, f.h, f.d);
-        denom.map(H_abs_sq + sigma);
+        denom.map(std::conj(H) * H);
+        denom.map(denom + sigma);
         denom.sanitize(); // Avoid NaNs and zeros in the denominator
 
         // Take the FFT of the image f, call this G
-        img_t<std::complex<T>> G(f.w, f.h, f.d);
         G.map(f);
         G.fft(G);
 

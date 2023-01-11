@@ -12,6 +12,8 @@ typedef struct deconvolution_sequence_data {
 
 void reset_conv_args(estk_data* args);
 
+int load_kernel(gchar* filename);
+void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data);
 gpointer deconvolve(gpointer p);
 gpointer estimate_only(gpointer p);
 gpointer deconvolve_sequence_command(gpointer p, sequence* seqname);
