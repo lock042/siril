@@ -55,6 +55,8 @@ siril_common_SOURCES = \
 	algos/pave.c \
 	algos/photometry.c \
 	algos/photometry.h \
+	algos/photometric_cc.c \
+	algos/photometric_cc.h \
 	algos/PSF.c \
 	algos/PSF.h \
 	algos/quality.c \

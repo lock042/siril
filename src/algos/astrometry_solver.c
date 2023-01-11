@@ -44,6 +44,8 @@
 #include "algos/star_finder.h"
 #include "algos/search_objects.h"
 #include "algos/annotate.h"
+#include "algos/photometry.h"
+#include "algos/photometric_cc.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
@@ -57,7 +59,6 @@
 #include "registration/matching/atpmatch.h"
 #include "registration/matching/project_coords.h"
 #include "gui/message_dialog.h"
-#include "gui/photometric_cc.h"
 
 #include "astrometry_solver.h"
 
@@ -134,10 +135,14 @@ double compute_mag_limit_from_fov(double fov_degrees) {
 	return round(100.0 * min(20.0, max(7.0, m))) / 100;
 }
 
-static void compute_mag_limit(struct astrometry_data *args) {
-	if (args->auto_magnitude)
+static void compute_limit_mag(struct astrometry_data *args) {
+	if (args->mag_mode == LIMIT_MAG_ABSOLUTE)
+		args->limit_mag = args->magnitude_arg;
+	else {
 		args->limit_mag = compute_mag_limit_from_fov(args->used_fov / 60.0);
-	else args->limit_mag = args->forced_magnitude;
+		if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
+			args->limit_mag += args->magnitude_arg;
+	}
 	siril_debug_print("using limit magnitude %f\n", args->limit_mag);
 }
 
@@ -153,7 +158,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 
 	url = g_string_new("http://vizier.u-strasbg.fr/viz-bin/asu-tsv?-source=");
 	switch (type) {
-	case NOMAD:
+	case CAT_NOMAD:
 		url = g_string_append(url, "NOMAD&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Vmag%20Bmag");
 		url = g_string_append(url, "&-out.max=200000");
@@ -165,7 +170,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, mag);
 		break;
 	default:
-	case TYCHO2:
+	case CAT_TYCHO2:
 		url = g_string_append(url, "I/259/tyc2&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out=%20RAmdeg%20DEmdeg%20VTmag%20BTmag");
 		url = g_string_append(url, "&-out.max=200000");
@@ -176,7 +181,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, "&VTmag=<");
 		url = g_string_append(url, mag);
 		break;
-	case GAIADR3:
+	case CAT_GAIADR3:
 		url = g_string_append(url, "I/355/gaiadr3&-out.meta=-h-u-D&-out.add=_r");
 		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Gmag%20BPmag");
 		url = g_string_append(url, "&-out.max=200000");
@@ -187,7 +192,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, "&Gmag=<");
 		url = g_string_append(url, mag);
 		break;
-	case PPMXL:
+	case CAT_PPMXL:
 		url = g_string_append(url, "I/317&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Jmag");
 		url = g_string_append(url, "&-out.max=200000");
@@ -198,7 +203,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, "&Jmag=<");
 		url = g_string_append(url, mag);
 		break;
-	case BRIGHT_STARS:
+	case CAT_BRIGHT_STARS:
 		url = g_string_append(url, "V/50/catalog&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out.add=_RAJ,_DEJ&-out=Vmag&-out=B-V");
 		url = g_string_append(url, "&-out.max=200000");
@@ -209,7 +214,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 		url = g_string_append(url, "&Vmag=<");
 		url = g_string_append(url, mag);
 		break;
-	case APASS: // for photometry only
+	case CAT_APASS: // for photometry only
 		url = g_string_append(url, "APASS&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
 		url = g_string_append(url, "&-out=%20RAJ2000%20DEJ2000%20Vmag%20Bmag");
 		url = g_string_append(url, "&-out.max=200000");
@@ -378,7 +383,7 @@ gchar *search_in_online_conesearch(struct astrometry_data *args) {
 	string_url = g_string_append(string_url, "&-dec=");		// DEC
 	g_string_append_printf(string_url, "%lf", dec);
 	string_url = g_string_append(string_url, "&-rm=");		// FOV
-	g_string_append_printf(string_url, "%lf", 1.0 * get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry));
+	g_string_append_printf(string_url, "%lf", get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry));
 	string_url = g_string_append(string_url, "&-mime=text");
 	string_url = g_string_append(string_url, "&-output=object");
 	string_url = g_string_append(string_url, "&-loc=500");
@@ -1004,20 +1009,20 @@ static int read_APASS_catalog(GInputStream *stream, psf_star **cstars) {
 
 static int read_catalog(GInputStream *stream, psf_star **cstars, int type) {
 	switch (type) {
-	case TYCHO2:
+	case CAT_TYCHO2:
 		return read_TYCHO2_catalog(stream, cstars);
 	default:
-	case LOCAL:
+	case CAT_LOCAL:
 		return read_LOCAL_catalog(stream, cstars);
-	case NOMAD:
+	case CAT_NOMAD:
 		return read_NOMAD_catalog(stream, cstars);
-	case GAIADR3:
+	case CAT_GAIADR3:
 		return read_GAIA_catalog(stream, cstars);
-	case PPMXL:
+	case CAT_PPMXL:
 		return read_PPMXL_catalog(stream, cstars);
-	case BRIGHT_STARS:
+	case CAT_BRIGHT_STARS:
 		return read_BRIGHT_STARS_catalog(stream, cstars);
-	case APASS:
+	case CAT_APASS:
 		return read_APASS_catalog(stream, cstars);
 	}
 }
@@ -1547,10 +1552,9 @@ gpointer match_catalog(gpointer p) {
 			double tdec = siril_world_cs_get_delta(solution.image_center);
 			double res = get_resolution(solution.focal, args->pixel_size);
 			double radius = get_radius_deg(res, args->fit->rx, args->fit->ry);
-			double mag = compute_mag_limit_from_fov(radius * 1.5);
 			// for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
-			siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), mag);
-			if (get_stars_from_local_catalogues(tra, tdec, radius, args->fit, mag, &pcc_stars, &nb_pcc_stars)) {
+			siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
+			if (get_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars)) {
 				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 				args->ret = 1;
 			}
@@ -1684,5 +1688,5 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	else siril_debug_print("reduced area for the solve: %d, %d, %d x %d%s\n", croparea.x, croparea.y, croparea.w, croparea.h, args->downsample ? " (down-sampled)" : "");
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
 
-	compute_mag_limit(args); // to call after having set args->used_fov
+	compute_limit_mag(args); // to call after having set args->used_fov
 }

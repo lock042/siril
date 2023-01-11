@@ -20,13 +20,14 @@
 
 
 typedef enum {
-	TYCHO2,
-	NOMAD,
-	GAIADR3,
-	PPMXL,
-	BRIGHT_STARS,
-	APASS,
-	LOCAL = 99
+	CAT_TYCHO2,
+	CAT_NOMAD,
+	CAT_GAIADR3,
+	CAT_PPMXL,
+	CAT_BRIGHT_STARS,
+	CAT_APASS,
+	CAT_AUTO = 98,
+	CAT_LOCAL = 99
 } online_catalog;
 
 typedef enum {
@@ -46,6 +47,12 @@ typedef enum {
 	QUERY_SERVER_SKYBOT,
 } query_server;
 
+typedef enum {
+	LIMIT_MAG_AUTO,
+	LIMIT_MAG_AUTO_WITH_OFFSET,
+	LIMIT_MAG_ABSOLUTE
+} limit_mag_mode;
+
 struct astrometry_data {
 	/* user input */
 	fits *fit;		// the image
@@ -57,8 +64,9 @@ struct astrometry_data {
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
 	gboolean flip_image;	// Flip at the end if detected mirrored
 	gboolean manual;	// use stars already detected by user, in com.stars
-	gboolean auto_magnitude;// automatically limit magnitude of the catalog
-	double forced_magnitude;// if not automatic, use this limit magnitude
+	limit_mag_mode mag_mode;// automatically limit magnitude of the catalog
+	double magnitude_arg;	// if not automatic, use this limit magnitude
+
 	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
 	struct photometric_cc_data *pcc;// PCC configuration
 

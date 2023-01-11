@@ -85,11 +85,14 @@ static void initialize_ips_dialog() {
 
 static void get_mag_from_GUI(struct astrometry_data *args) {
 	GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_Mag_Limit"));
-	args->auto_magnitude = gtk_toggle_button_get_active(autobutton);
-	if (!args->auto_magnitude) {
+	gboolean autob = gtk_toggle_button_get_active(autobutton);
+	if (autob)
+		args->mag_mode = LIMIT_MAG_AUTO;
+	else {
 		GtkSpinButton *magButton = GTK_SPIN_BUTTON(
 				lookup_widget("GtkSpinIPS_Mag_Limit"));
-		args->forced_magnitude = gtk_spin_button_get_value(magButton);
+		args->magnitude_arg = gtk_spin_button_get_value(magButton);
+		args->mag_mode = LIMIT_MAG_ABSOLUTE;
 	}
 }
 
@@ -118,17 +121,17 @@ static online_catalog get_astrometry_catalog(double fov, double mag, gboolean au
 
 	if (auto_cat) {
 		if (mag <= 6.5) {
-			ret = BRIGHT_STARS;
+			ret = CAT_BRIGHT_STARS;
 		} else if (fov > 180.0) {
-			ret = NOMAD;
+			ret = CAT_NOMAD;
 		} else {
-			ret = GAIADR3;
+			ret = CAT_GAIADR3;
 		}
 		return ret;
 	} else {
 		GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxIPSCatalog"));
 		ret = gtk_combo_box_get_active(box);
-		return (ret < 0 ? NOMAD : ret);
+		return (ret < 0 ? CAT_NOMAD : ret);
 	}
 }
 
@@ -556,7 +559,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	GtkToggleButton *auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
 	gboolean auto_cat = gtk_toggle_button_get_active(auto_button);
 
-	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() : get_astrometry_catalog(args->used_fov, args->limit_mag, auto_cat);
+	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog_from_GUI() : get_astrometry_catalog(args->used_fov, args->limit_mag, auto_cat);
 	gboolean has_local_cat = local_catalogues_available();
 	gboolean use_local = FALSE;
 
@@ -565,15 +568,15 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 			siril_debug_print("using local star catalogues\n");
 			args->use_local_cat = TRUE;
 			args->catalog_file = NULL;
-			args->onlineCatalog = LOCAL;
+			args->onlineCatalog = CAT_LOCAL;
 			use_local = TRUE;
 		}
 	} else {
-		if (has_local_cat && (args->onlineCatalog == NOMAD || args->onlineCatalog == BRIGHT_STARS || args->onlineCatalog == TYCHO2)) {
+		if (has_local_cat && (args->onlineCatalog == CAT_NOMAD || args->onlineCatalog == CAT_BRIGHT_STARS || args->onlineCatalog == CAT_TYCHO2)) {
 			siril_debug_print("using local star catalogues\n");
 			args->use_local_cat = TRUE;
 			args->catalog_file = NULL;
-			args->onlineCatalog = LOCAL;
+			args->onlineCatalog = CAT_LOCAL;
 			use_local = TRUE;
 		}
 	}

@@ -72,7 +72,6 @@
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
 #include "gui/registration_preview.h"
-#include "gui/photometric_cc.h"
 #include "gui/script_menu.h"
 #include "gui/preferences.h"
 #include "filters/asinh.h"
@@ -107,6 +106,7 @@
 #include "algos/sorting.h"
 #include "algos/siril_wcs.h"
 #include "algos/geometry.h"
+#include "algos/photometric_cc.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
@@ -7678,11 +7678,15 @@ int process_rgbcomp(int nb) {
 	return retval;
 }
 
+// used for plate solver and PCC commands
 int process_pcc(int nb) {
 	gboolean noflip = FALSE, plate_solve = !has_wcs(&gfit);
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
-	// parse args: [target_coords] [-noflip] [-platesolve] [-focal=len] [-pixelsize=ps]
+	double mag_offset = 0.0, target_mag = -1.0;
+	online_catalog cat = CAT_AUTO;
+	gboolean pcc_command = word[0][1] == 'c'; // not 'platesolve'
+	// parse args: [target_coords] [-noflip] [-platesolve] [-focal=len] [-pixelsize=ps] [-limitmag=[+-]mag] [-catalog=]
 
 	// check if we have target_coords
 	int next_arg = 1;
@@ -7728,9 +7732,47 @@ int process_pcc(int nb) {
 				return CMD_ARG_ERROR;
 			}
 		}
-		else {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+		else if (g_str_has_prefix(word[next_arg], "-limitmag=")) {
+			char *arg = word[next_arg] + 10;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 				siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+			if (arg[0] == '-' || arg[0] == '+')
+				mag_offset = value;
+			else target_mag = value;
+		}
+		else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
+			char *arg = word[next_arg] + 9;
+			if (!g_strcmp0(arg, "tycho2"))
+				cat = CAT_TYCHO2;
+			else if (!g_strcmp0(arg, "nomad"))
+				cat = CAT_NOMAD;
+			else if (!g_strcmp0(arg, "gaia"))
+				cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "ppmxl"))
+				cat = CAT_PPMXL;
+			else if (!g_strcmp0(arg, "brightstars"))
+				cat = CAT_BRIGHT_STARS;
+			else if (!g_strcmp0(arg, "apass"))
+				cat = CAT_APASS;
+			else {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+			if (pcc_command && cat != CAT_NOMAD && cat != CAT_APASS) {
+				siril_log_message(_("Catalog can only be NOMAD or APASS for photometric usage\n"));
+				siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+		} else {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+			siril_world_cs_unref(target_coords);
 			return CMD_ARG_ERROR;
 		}
 		next_arg++;
@@ -7746,19 +7788,32 @@ int process_pcc(int nb) {
 				siril_world_cs_get_alpha(target_coords), siril_world_cs_get_delta(target_coords));
 	}
 
-	if (plate_solve)
-		siril_log_message(_("Photometric color correction will use plate solving first\n"));
-	else siril_log_message(_("Photometric color correction will use WCS information and bypass internal plate solver\n"));
+	if (pcc_command) {
+		if (plate_solve)
+			siril_log_message(_("Photometric color correction will use plate solving first\n"));
+		else siril_log_message(_("Photometric color correction will use WCS information and bypass internal plate solver\n"));
+	} else if (!plate_solve) {
+		siril_log_message(_("Image is already plate solved. Nothing will be done.\n"));
+		return CMD_OK;
+	}
 
-	struct astrometry_data *args = NULL;
-	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
+	struct astrometry_data *args = NULL;	// filled only if running a plate solve
+	struct photometric_cc_data *pcc_args = NULL;	// filled only if pcc_command
+
 	if (plate_solve) {
 		args = calloc(1, sizeof(struct astrometry_data));
 		args->fit = &gfit;
 	}
+	if (pcc_command) {
+		pcc_args = calloc(1, sizeof(struct photometric_cc_data));
+		pcc_args->fit = &gfit;
+		pcc_args->bg_auto = TRUE;
+	}
+
+	/* populating plate solve arguments */
 	if (forced_pixsize > 0.0) {
 		if (!plate_solve)
-			siril_log_message(_("focal length and pixel size are only used for plate solving, ignored now\n"));
+			siril_log_message(_("Focal length and pixel size are only used for plate solving, ignored now\n"));
 		else {
 			args->pixel_size = forced_pixsize;
 			siril_log_message(_("Using provided pixel size: %f\n"), args->pixel_size);
@@ -7781,7 +7836,7 @@ int process_pcc(int nb) {
 	if (forced_focal > 0.0) {
 		if (!plate_solve) {
 			if (forced_pixsize <= 0.0)
-				siril_log_message(_("focal length and pixel size are only used for plate solving, ignored now\n"));
+				siril_log_message(_("Focal length and pixel size are only used for plate solving, ignored now\n"));
 		} else {
 			args->focal_length = forced_focal;
 			siril_log_message(_("Using provided focal length: %f\n"), args->focal_length);
@@ -7803,27 +7858,56 @@ int process_pcc(int nb) {
 		else siril_log_message(_("Using focal length from image: %f\n"), args->focal_length);
 	}
 
-	if (local_catalogues_available()) {
-		siril_debug_print("using local star catalogues\n");
-		pcc_args->use_local_cat = TRUE;
+	if (target_mag > -1.0) {
+		if (args) {
+			args->mag_mode = LIMIT_MAG_ABSOLUTE;
+			args->magnitude_arg = target_mag;
+		}
+		if (pcc_args) {
+			pcc_args->mag_mode = LIMIT_MAG_ABSOLUTE;
+			pcc_args->magnitude_arg = target_mag;
+		}
 	}
+	else if (mag_offset != 0.0) {
+		if (args) {
+			args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
+			args->magnitude_arg = mag_offset;
+		}
+		if (pcc_args) {
+			pcc_args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
+			pcc_args->magnitude_arg = mag_offset;
+		}
+	}
+	else {
+		if (args)
+			args->mag_mode = LIMIT_MAG_AUTO;
+		if (pcc_args)
+			pcc_args->mag_mode = LIMIT_MAG_AUTO;
+	}
+
+	gboolean local_cat = local_catalogues_available();
+	if (local_cat && cat != CAT_AUTO)
+		siril_debug_print("using local star catalogues\n");
+
 	if (plate_solve) {
-		args->use_local_cat = pcc_args->use_local_cat;
-		args->onlineCatalog = NOMAD;	// could also be APASS if !use_local_cat
-		args->for_photometry_cc = TRUE;
+		args->use_local_cat = local_cat;
+		args->onlineCatalog = local_cat ? CAT_NOMAD : cat;
 		args->cat_center = target_coords;
 		args->downsample = gfit.rx > 6000;
 		args->autocrop = TRUE;
 		args->flip_image = !noflip;
 		args->manual = FALSE;
-		args->auto_magnitude = TRUE;
-		args->pcc = pcc_args;
 		process_plate_solver_input(args);
 	}
 
-	pcc_args->fit = &gfit;
-	pcc_args->bg_auto = TRUE;
-	pcc_args->catalog = NOMAD;
+	if (pcc_command) {
+		pcc_args->use_local_cat = local_cat;
+		pcc_args->catalog = local_cat ? CAT_NOMAD : cat;
+		if (plate_solve) {
+			args->for_photometry_cc = TRUE;
+			args->pcc = pcc_args;
+		}
+	}
 
 	if (plate_solve)
 		start_in_new_thread(match_catalog, args);
