@@ -6036,7 +6036,7 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkImage">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
-                                                <property name="tooltip-text" translatable="yes">SAve PSF to a file</property>
+                                                <property name="tooltip-text" translatable="yes">Save PSF to a file</property>
                                                 <property name="icon-name">document-save</property>
                                               </object>
                                             </child>
@@ -6062,7 +6062,6 @@ enter a visible wavelength in nm</property>
                                         <property name="halign">start</property>
                                         <property name="draw-indicator">True</property>
                                         <property name="group">bdeconv_psfblind</property>
-                                        <signal name="toggled" handler="on_bdeconv_psfselection_toggled" swapped="no"/>
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
@@ -6456,7 +6455,7 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkSpinButton" id="airy_fl">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-text" translatable="yes">Telescope focal length</property>
+                                                <property name="tooltip-text" translatable="yes">Telescope focal length (this should account for any multiplication factor introduced by Barlows or field flatteners)</property>
                                                 <property name="text" translatable="yes">750.0</property>
                                                 <property name="adjustment">adj_airy_fl</property>
                                                 <property name="digits">1</property>
@@ -6616,39 +6615,13 @@ enter a visible wavelength in nm</property>
                                             <property name="orientation">vertical</property>
                                             <property name="spacing">6</property>
                                             <child>
-                                              <!-- n-columns=2 n-rows=1 -->
-                                              <object class="GtkGrid">
+                                              <object class="GtkCheckButton" id="bdeconv_multiscale">
+                                                <property name="label" translatable="yes">Multiscale</property>
                                                 <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="row-spacing">6</property>
-                                                <property name="column-spacing">6</property>
-                                                <property name="column-homogeneous">True</property>
-                                                <child>
-                                                  <object class="GtkLabel">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="halign">start</property>
-                                                    <property name="label" translatable="yes">Multiscale</property>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="left-attach">0</property>
-                                                    <property name="top-attach">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkCheckButton" id="bdeconv_multiscale">
-                                                    <property name="label" translatable="yes"> </property>
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">False</property>
-                                                    <property name="tooltip-text" translatable="yes">For large PSFs the ℓ0 gradient prior may not collapse blurry edges into a single sharp edge. A multiscale PSF estimation procedure can therefore be used: it may not be necessary for small PSF.</property>
-                                                    <property name="draw-indicator">True</property>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="left-attach">1</property>
-                                                    <property name="top-attach">0</property>
-                                                  </packing>
-                                                </child>
+                                                <property name="can-focus">True</property>
+                                                <property name="receives-default">False</property>
+                                                <property name="tooltip-text" translatable="yes">For large PSFs the ℓ0 gradient prior may not collapse blurry edges into a single sharp edge. A multiscale PSF estimation procedure can therefore be used: it may not be necessary for small PSF.</property>
+                                                <property name="draw-indicator">True</property>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>

@@ -13,6 +13,8 @@ extern "C" int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned 
     int NORMALIZE_INPUT = 1;
     int EDGETAPER = 1;
 
+    printf("rx: %d, ry:%d\n", rx, ry);
+
     img_t<float>::use_threading(max_threads);
 
     img_t<float> f(rx, ry, nchans, fdata);

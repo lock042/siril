@@ -26,15 +26,16 @@ namespace richardsonlucy {
         K_otf.fft(K_otf);
 
         // Flip K and generate OTF
-        img_t<T> Kf(K.w, K.h, K.d);
-        Kf.flip(K);
         img_t<std::complex<T>> Kflip_otf(f.w, f.h, f.d);
-        Kflip_otf.padcirc(Kf);
-        Kflip_otf.map(Kflip_otf * std::complex<T>(Kf.d) / Kf.sum());
-        Kflip_otf.fft(Kflip_otf);
+        {
+            img_t<T> Kf(K.w, K.h, K.d);
+            Kf.flip(K);
+            Kflip_otf.padcirc(Kf);
+            Kflip_otf.map(Kflip_otf * std::complex<T>(Kf.d) / Kf.sum());
+            Kflip_otf.fft(Kflip_otf);
+        }
         img_t<std::complex<T>> est(f.w, f.h, f.d);
         est.map(f);
-//        est.set_value(T(0.001));
         img_t<std::complex<T>> ratio(f.w, f.h, f.d);
         ratio.map(est);
         float reallambda = 1.f / lambda; // For consistency with other algorithms
@@ -112,7 +113,6 @@ namespace richardsonlucy {
                 // Stopping criterion?
                 gxy.map((std::abs(std::real(est) - gxy)) / std::abs(gxy));
                 T stopping = gxy.sum() / gxy.size;
-//                printf("stopping: %f\n", stopping);
                 if (stopping < stopcriterion) {
                     char msg[100];
                     sprintf(msg, "%s %d\n", msg_earlystop, iter+1);
