@@ -523,7 +523,6 @@ int load_kernel(gchar* filename) {
 	fits fit = { 0 };
 	if ((retval = read_single_image(filename, &fit, NULL, FALSE, NULL, FALSE, TRUE)))
 		goto ENDSAVE;
-	printf("retval %d\n", retval);
 	if (fit.rx != fit.ry){
 		retval = 1;
 		char *msg = siril_log_color_message(_("Error: kernel file does not contain a square kernel. Cannot load this file.\n"), "red");
