@@ -844,6 +844,8 @@ gpointer deconvolve(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
+	args.rx = the_fit->rx;
+	args.ry = the_fit->ry;
 	int retval = 0;
 	if (args.psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
 	// Refuse to process the image using previous PSF if there is no previous PSF defined
