@@ -32,8 +32,16 @@
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
 
+// for mosaics
+#include "opencv2/stitching/detail/blenders.hpp"
+#include "opencv2/stitching/detail/exposure_compensate.hpp"
+#include "opencv2/stitching/detail/seam_finders.hpp"
+#include "opencv2/stitching/detail/warpers.hpp"
+#include "opencv2/stitching/warpers.hpp"
+
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/settings.h"
 #include "registration/registration.h"
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
@@ -1017,7 +1025,7 @@ gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Hom
 	if (W2C)
 		_R = _R.t(); // if we need W2C, we need to invert (i.e. transpose for R mats)
 	convert_MatH_to_H(_R, R);
-	std::cout << R << std::endl;
+	// std::cout << R << std::endl;
 	return retval;
 }
 
@@ -1034,25 +1042,68 @@ void cvRelRot(Homography *Ref, Homography *R) {
 }
 
 // Computes Homography from cameras R and K
-void cvcalcH_fromKR(Homography R, double *focx, double *focy, double *ppx, double *ppy, int ref, int ind, Homography *H) {
+void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H) {
+	Mat _Kref = Mat(3, 3, CV_64FC1);
+	Mat _K = Mat(3, 3, CV_64FC1);
 	Mat _R = Mat(3, 3, CV_64FC1);
-	convert_H_to_MatH(&R, _R);
-	Mat Kref = Mat::eye(3, 3, CV_64FC1);
-	Mat Kimg = Mat::eye(3, 3, CV_64FC1);
 	Mat _H = Mat(3, 3, CV_64FC1);
-	std::cout << _R << std::endl;
-
-	// preparing the intrisic matrices
-	Kref.at<double>(0,0) = focx[ref];
-	Kref.at<double>(1,1) = focy[ref];
-	Kref.at<double>(0,2) = ppx[ref];
-	Kref.at<double>(1,2) = ppy[ref];
-	Kimg.at<double>(0,0) = focx[ind];
-	Kimg.at<double>(1,1) = focy[ind];
-	Kimg.at<double>(0,2) = ppx[ind];
-	Kimg.at<double>(1,2) = ppy[ind];
+	convert_H_to_MatH(&Kref, _Kref);
+	convert_H_to_MatH(&K, _K);
+	convert_H_to_MatH(&R, _R);
 
 	//Compute H and returning
-	_H = Kref * _R * Kimg.inv();
+	_H = _Kref * _R * _K.inv();
 	convert_MatH_to_H(_H, H);
+}
+
+// TODO: Code below should be moved to a dedicated cvMosaic.cpp file
+
+int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale) {
+	Mat in, out;
+	void *bgr = NULL;
+
+	Mat _R = Mat(3, 3, CV_64FC1);
+	Mat _K = Mat(3, 3,CV_64FC1);
+	convert_H_to_MatH(&R, _R);
+	convert_H_to_MatH(&K, _K);
+
+	Point corners;
+	UMat masks_warped;
+	UMat images_warped;
+	Size sizes;
+	UMat masks;
+	Mat_<float> k, r;
+	_K.convertTo(k, CV_32F);
+	_R.convertTo(r, CV_32F);
+
+	// Prepare images masks
+	Size szin = Size(image->rx, image->ry);
+	// masks.create(szin, CV_8U);
+	// masks.setTo(Scalar::all(255));
+
+	// Warp images and their masks
+	Ptr<WarperCreator> warper_creator;
+	warper_creator = makePtr<cv::SphericalWarper>();
+
+	if (!warper_creator)
+	{
+		std::cout << "Can't create the warper" << "'\n";
+		return 1;
+	}
+	// std::cout << "K\n" << k << std::endl;
+	// std::cout << "R\n" << r << std::endl;
+	Ptr<detail::RotationWarper> warper = warper_creator->create(static_cast<float>(-scale));
+	Rect roi = warper->warpRoi(szin, k, r);
+	corners = roi.tl();
+	sizes = roi.size();
+	std::cout << corners << "\n" << sizes << "\n";
+
+	if (image_to_Mat(image, &in, &out, &bgr, sizes.width, sizes.height))
+		return 2;
+
+	// warper->warp(masks, _K, _R, INTER_NEAREST, BORDER_CONSTANT, masks_warped);
+	Mat out2;
+	warper->warp(in, k, r, INTER_NEAREST, BORDER_CONSTANT, out2);
+
+	return Mat_to_image(image, &in, &out2, bgr, sizes.width, sizes.height);
 }

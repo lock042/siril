@@ -78,16 +78,13 @@ static double compute_haversine_distance(double ra1, double dec1, double ra2, do
 	return 2 * asin(pow(h, 0.5));
 }
 
-static gboolean get_focs_and_framing(struct wcsprm *WCSDATA, double *focx, double *focy, double *framing) {
+static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, double *framing) {
 #ifndef HAVE_WCSLIB
 	siril_log_color_message(_("Mosaic registration requires to have wcslib dependency installed, aborting\n"), "red");
-	*focx = -1;
-	*focy = -1;
-	*framing = -1;
 	return FALSE;
 #endif
-	*focx = -1;
-	*focy = -1;
+	K->h00 = -1;
+	K->h11 = -1;
 	*framing = -1;
 	double cd[2][2], pc[2][2];
 	double cdelt[2];
@@ -103,8 +100,8 @@ static gboolean get_focs_and_framing(struct wcsprm *WCSDATA, double *focx, doubl
 	if (cdelt[0] == 1. && cdelt[1] == 1.)// CD formalism
 		wcs_cd_to_pc(cd, pc, cdelt);
 
-	*focx = RADTODEG / cdelt[0];
-	*focy = RADTODEG / cdelt[1];
+	K->h00 = RADTODEG / cdelt[0];
+	K->h11 = RADTODEG / cdelt[1];
 	double rotation1 = atan2(pc[0][1], pc[0][0]);
 	double rotation2 = atan2(-pc[1][0], pc[1][1]);
 	*framing = 0.5 * (rotation1 + rotation2) * RADTODEG;
@@ -175,10 +172,11 @@ int register_mosaic(struct registration_args *regargs) {
 
 	// TODO: should check allocation success
 	Homography *Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
-	double *focx = calloc(n, sizeof(double)); // camera focal length on x
-	double *focy = calloc(n, sizeof(double)); // camera focal length on y
-	double *ppx = calloc(n, sizeof(double)); // camera center on x
-	double *ppy = calloc(n, sizeof(double)); // camera center on y
+	Homography *Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
+	// double *focx = calloc(n, sizeof(double)); // camera focal length on x
+	// double *focy = calloc(n, sizeof(double)); // camera focal length on y
+	// double *ppx = calloc(n, sizeof(double)); // camera center on x
+	// double *ppy = calloc(n, sizeof(double)); // camera center on y
 
 	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
 	// ##################################################################
@@ -196,20 +194,21 @@ int register_mosaic(struct registration_args *regargs) {
 
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
 
-
 	for (int i = 0; i < n; i++) {
 		double angles[3];
 		angles[0] = 90. + RA[i]; 
 		angles[1] = 90. - DEC[i];
-		if (!get_focs_and_framing(WCSDATA + i, focx + i, focy + i, angles + 2)) {
+		// initializing K with center point
+		cvGetEye(Ks + i); // initializing to unity
+		Ks[i].h02 = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx);
+		Ks[i].h12 = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry);
+		if (!get_scales_and_framing(WCSDATA + i, Ks + i, angles + 2)) {
 			siril_log_message(_("Could not compute camera parameters of image %d from sequence %s\n"),
 			i + 1, regargs->seq->seqname);
 			retval = 1;
 			goto free_all;
 		}
 		cvRotMat3(angles, rottypes, TRUE, Rs + i);
-		ppx[i] = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx);
-		ppy[i] = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry);
 	}
 
 	// computing relative rotations wrt to ref image
@@ -231,10 +230,12 @@ int register_mosaic(struct registration_args *regargs) {
 	sprintf(filename, "%s.smf", regargs->seq->seqname);
 	mscfile = g_fopen(filename, "w+t");
 	for (int i = 0; i < n; i++) {
-		fprintf(mscfile, "%2d %12.1f %12.1f R %g %g %g %g %g %g %g %g %g\n",
+		fprintf(mscfile, "%2d K %12.1f %12.1f %8.1f %8.1f R %g %g %g %g %g %g %g %g %g\n",
 		i + 1,
-		focx[i],
-		focy[i],
+		Ks[i].h00,
+		Ks[i].h11,
+		Ks[i].h02,
+		Ks[i].h12,
 		Rs[i].h00,
 		Rs[i].h01,
 		Rs[i].h02,
@@ -254,7 +255,7 @@ int register_mosaic(struct registration_args *regargs) {
 	for (int i = 0; i < n; i++) {
 		Homography H = { 0 };
 		if (i != refindex) {
-			cvcalcH_fromKR(Rs[i], focx, focy, ppx, ppy, refindex, i, &H);
+			cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
 		} else {
 			cvGetEye(&H);
 		}
@@ -267,6 +268,12 @@ int register_mosaic(struct registration_args *regargs) {
 		current_regdata[i].H = H;
 		regargs->seq->imgparam[i].incl = TRUE;
 	}
+
+	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
+	seq_read_frame(regargs->seq, 0, &fit, FALSE, -1);
+	cvWarp_fromKR(&fit, Ks[0], Rs[0], scale);
+	savefits("warp1.fit", &fit);
+	clearfits(&fit);
 
 	// images may have been excluded but selnum wasn't updated
 	regargs->seq->reference_image = refindex;
