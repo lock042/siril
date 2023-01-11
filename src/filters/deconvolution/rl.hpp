@@ -41,7 +41,6 @@ namespace richardsonlucy {
         img_t<T> gxx(f.w, f.h, f.d);
         img_t<T> gxy(f.w, f.h, f.d);
         img_t<T> gyy(f.w, f.h, f.d);
-        img_t<T> stop(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
             if (is_thread_stopped())
                 continue;
@@ -50,12 +49,12 @@ namespace richardsonlucy {
                 // Calculate TV regularization weighting
                 gxx.gradientx(w); // Use gxx, the name isn't quite appropriate but it
                                  // saves having to make img_ts within the loop
-                gxx.map(std::max(1.e-6f, gxx)); // Avoid div/0
+                gxx.map(std::max(1.e-9f, gxx)); // Avoid div/0
                 for (int i = 0 ; i < gxx.size; i++)
-                    gxx[i] = std::max(1.e-6f, gxx[i]);
+                    gxx[i] = std::max(1.e-9f, gxx[i]);
                 gyy.gradienty(w);
                 for (int i = 0 ; i < gyy.size; i++)
-                    gyy[i] = std::max(1.e-6f, gyy[i]); // Avoid div/0
+                    gyy[i] = std::max(1.e-9f, gyy[i]); // Avoid div/0
                 w.map(std::hypot(gxx, gyy)); // |grad(w)|
                 gxx.map(gxx / w); // Together these 2 lines make gx, gy hold the
                 gyy.map(gyy / w); // components of grad(est)
@@ -63,14 +62,14 @@ namespace richardsonlucy {
             } else if (regtype == 1 || regtype == 4) {
                 // Calculate Frobenius-Hessian weighting
                 gxx.gradientxx(w);
-                gxx.map(std::max(1.e-6f, gxx)); // Avoid div/0
+                gxx.map(std::max(1.e-9f, gxx)); // Avoid div/0
                 gxx.map(gxx * gxx);
                 gxy.gradientxy(w);
-                gxy.map(std::max(1.e-6f, gxy));
+                gxy.map(std::max(1.e-9f, gxy));
                 gxy.map(gxy * gxy);
                 gxy.map(gxy * T(2));
                 gyy.gradientyy(w);
-                gyy.map(std::max(1.e-6f, gyy));
+                gyy.map(std::max(1.e-9f, gyy));
                 gyy.map(gyy * gyy);
                 w.map(gxy + gyy);
                 w.map(gxx + w);
@@ -85,7 +84,7 @@ namespace richardsonlucy {
             ratio.fft(ratio);
             ratio.map(ratio * Kflip_otf); // correlate (convolve with flip)
             ratio.ifft(ratio);
-            stop.map(std::real(est));
+            gxy.map(std::real(est)); // From here on, gxy is used for the stopping criterion
             T dt = T(stepsize);
             switch (regtype) {
                 case 5: // 5 and 4 are multiplicative RL with FH and TV reg
@@ -111,9 +110,8 @@ namespace richardsonlucy {
                 updateprogress(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
             if (stopcriterion_active == 1) {
                 // Stopping criterion?
-                stop.map((std::abs(std::real(est) - stop)) / std::abs(stop));
-                gxx.map(stop);
-                T stopping = gxx.sum() / gxx.size;
+                gxy.map((std::abs(std::real(est) - gxy)) / std::abs(gxy));
+                T stopping = gxy.sum() / gxy.size;
 //                printf("stopping: %f\n", stopping);
                 if (stopping < stopcriterion) {
                     char msg[100];
@@ -132,6 +130,7 @@ namespace richardsonlucy {
         assert(K.h % 2);
         x = f;
         img_t<T> w(f.w, f.h, f.d);
+        float reallambda = 1.f / lambda; // For consistency with other algorithms
 
         // Flip K and generate OTF
         img_t<T> Kf(K.w, K.h, K.d);
@@ -140,22 +139,22 @@ namespace richardsonlucy {
         img_t<T> gxx(f.w, f.h, f.d);
         img_t<T> gxy(f.w, f.h, f.d);
         img_t<T> gyy(f.w, f.h, f.d);
-        img_t<T> stop(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
             if (is_thread_stopped())
                 continue;
             // Regularization calcs
 
+            w.map(x);
             if (regtype == 0 || regtype == 3) {
                 // Calculate TV regularization weighting
                 gxx.gradientx(w); // Use gxx, the name isn't quite appropriate but it
                                  // saves having to make img_ts within the loop
-                gxx.map(std::max(1.e-6f, gxx)); // Avoid div/0
+                gxx.map(std::max(1.e-9f, gxx)); // Avoid div/0
                 for (int i = 0 ; i < gxx.size; i++)
-                    gxx[i] = std::max(1.e-6f, gxx[i]);
+                    gxx[i] = std::max(1.e-9f, gxx[i]);
                 gyy.gradienty(w);
                 for (int i = 0 ; i < gyy.size; i++)
-                    gyy[i] = std::max(1.e-6f, gyy[i]); // Avoid div/0
+                    gyy[i] = std::max(1.e-9f, gyy[i]); // Avoid div/0
                 w.map(std::hypot(gxx, gyy)); // |grad(w)|
                 gxx.map(gxx / w); // Together these 2 lines make gx, gy hold the
                 gyy.map(gyy / w); // components of grad(est)
@@ -163,14 +162,14 @@ namespace richardsonlucy {
             } else if (regtype == 1 || regtype == 4) {
                 // Calculate Frobenius-Hessian weighting
                 gxx.gradientxx(w);
-                gxx.map(std::max(1.e-6f, gxx)); // Avoid div/0
+                gxx.map(std::max(1.e-9f, gxx)); // Avoid div/0
                 gxx.map(gxx * gxx);
                 gxy.gradientxy(w);
-                gxy.map(std::max(1.e-6f, gxy));
+                gxy.map(std::max(1.e-9f, gxy));
                 gxy.map(gxy * gxy);
                 gxy.map(gxy * T(2));
                 gyy.gradientyy(w);
-                gyy.map(std::max(1.e-6f, gyy));
+                gyy.map(std::max(1.e-9f, gyy));
                 gyy.map(gyy * gyy);
                 w.map(gxy + gyy);
                 w.map(gxx + w);
@@ -181,7 +180,39 @@ namespace richardsonlucy {
             ratio.map(f / ratio); // divide f by denominator
             ratio.conv2(ratio, Kf); // convolve by flipped kernel
             x.map(ratio * x); // multiply up
-            updateprogress(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+            T dt = T(stepsize);
+            switch (regtype) {
+                case 5: // 5 and 4 are multiplicative RL with FH and TV reg
+                    x.map(ratio * x); // Basic multiplicative R-L: multiply old estimate by ratio and regularization factor to get new estimate
+                    break;
+                case 4:
+                case 3:
+                    x.map(ratio * x * (T(1) / (T(1) - reallambda * w))); // Multiply old estimate by ratio and regularization factor to get new estimate
+                    break;
+                case 2:
+                    x.map(x + dt * (T(-1) + ratio)); // Basic additive gradient-descent form, no regularization
+                    break;
+                case 1: // FH, additive gradient descent
+                case 0:
+                    x.map(x + dt * (T(-1) + (reallambda * w) + ratio)); // TV, additive gradient-descent form
+                    break;
+                default:
+                    break;
+            }
+            if (sequence_is_running == 0)
+                updateprogress(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+            if (stopcriterion_active == 1) {
+                // Stopping criterion?
+                gxy.map((std::abs(x - gxy)) / std::abs(gxy));
+                T stopping = gxy.sum() / gxy.size;
+//                printf("stopping: %f\n", stopping);
+                if (stopping < stopcriterion) {
+                    char msg[100];
+                    sprintf(msg, "%s %d\n", msg_earlystop, iter+1);
+                    sirillog(msg);
+                    iter = maxiter;
+                }
+            }
         }
     }
 
