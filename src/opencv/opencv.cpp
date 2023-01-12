@@ -1068,10 +1068,10 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale) {
 	convert_H_to_MatH(&K, _K);
 
 	Point corners;
-	UMat masks_warped;
+	// UMat masks_warped;
 	UMat images_warped;
 	Size sizes;
-	UMat masks;
+	// UMat masks;
 	Mat_<float> k, r;
 	_K.convertTo(k, CV_32F);
 	_R.convertTo(r, CV_32F);
@@ -1090,8 +1090,7 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale) {
 		std::cout << "Can't create the warper" << "'\n";
 		return 1;
 	}
-	// std::cout << "K\n" << k << std::endl;
-	// std::cout << "R\n" << r << std::endl;
+
 	Ptr<detail::RotationWarper> warper = warper_creator->create(static_cast<float>(-scale));
 	Rect roi = warper->warpRoi(szin, k, r);
 	corners = roi.tl();
@@ -1102,10 +1101,9 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale) {
 		return 2;
 
 	out.release();
-	// warper->warp(masks, _K, _R, INTER_NEAREST, BORDER_CONSTANT, masks_warped);
-	// Mat out2;
 	warper->warp(in, k, r, INTER_NEAREST, BORDER_CONSTANT, out);
 	std::cout << out.size() << "\n" << out.depth() << "\n";
+	// warper->warp(masks, _K, _R, INTER_NEAREST, BORDER_CONSTANT, masks_warped);
 
 	return Mat_to_image(image, &in, &out, bgr, sizes.width, sizes.height);
 }

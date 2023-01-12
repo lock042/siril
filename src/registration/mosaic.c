@@ -173,10 +173,6 @@ int register_mosaic(struct registration_args *regargs) {
 	// TODO: should check allocation success
 	Homography *Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
 	Homography *Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
-	// double *focx = calloc(n, sizeof(double)); // camera focal length on x
-	// double *focy = calloc(n, sizeof(double)); // camera focal length on y
-	// double *ppx = calloc(n, sizeof(double)); // camera center on x
-	// double *ppy = calloc(n, sizeof(double)); // camera center on y
 
 	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
 	// ##################################################################
@@ -185,9 +181,9 @@ int register_mosaic(struct registration_args *regargs) {
 	// - We first make a rotation around cam Z axis of 90 + RA degrees
 	// - We then make a rotation around cam X axis of 90 - DEC degrees (0 to 180 from N to S pole)
 	// - We finally rotate the camera around its Z axis to get the correct framing (called "framing" angle below)
-	// We repeat this calc for each image and for the cog of the sequence
-	// We can then compute the relative rotation matrix between the image and the cog
-	// This is made by computing Rref.t()*Rimg, this is the extrinsic matrix for a pure rotation wrt. mosaic center
+	// We repeat this calc for each image
+	// We can then compute the relative rotation matrix between the images and refimage
+	// This is made by computing Rref.t()*Rimg, this is the extrinsic matrix for a pure rotation wrt. mosaic ref
 	// The intrisic camera matrix is obtained thanks to the CDij or PCij+CDELTi WCS values:
 	// The focal length is 180 / pi / average of abs(CDELTi) - Note: CDELTi * 3600 = image sampling in "/px
 	// The "framing" angle is obtained by making the PC matrix a true rotation matrix (averaging of CROTAi)
@@ -218,8 +214,8 @@ int register_mosaic(struct registration_args *regargs) {
 		cvRelRot(&Rref, Rs + i);
 	}
 
-	// now we store the relative rotations matrices and focals
-	//writing outputs to *.smf file, a.k.a Siril Mosaic File
+	// now we store the relative Rs and cameras K
+	// writing outputs to *.smf file, a.k.a Siril Mosaic File
 	char *filename;
 	FILE *mscfile;
 	if (!regargs->seq->seqname || regargs->seq->seqname[0] == '\0') {
@@ -269,6 +265,7 @@ int register_mosaic(struct registration_args *regargs) {
 		regargs->seq->imgparam[i].incl = TRUE;
 	}
 
+	// Warping test
 	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
 	seq_read_frame(regargs->seq, 0, &fit, FALSE, -1);
 	cvWarp_fromKR(&fit, Ks[0], Rs[0], scale);
@@ -284,13 +281,15 @@ int register_mosaic(struct registration_args *regargs) {
 
 
 free_all:
-
 	free(RA);
 	free(DEC);
 	free(dist);
-	// TODO: properly free WCS array
-	// TODO: properly free Hs array
-	// TODO: properly free Rs array
+	free(Ks);
+	free(Rs);
+	for (int i = 0; i < n; i++) {
+		wcsfree(WCSDATA + i);
+	}
+	free(WCSDATA);
 	return retval;
 #endif
 }
