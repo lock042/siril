@@ -1101,9 +1101,11 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale) {
 	if (image_to_Mat(image, &in, &out, &bgr, sizes.width, sizes.height))
 		return 2;
 
+	out.release();
 	// warper->warp(masks, _K, _R, INTER_NEAREST, BORDER_CONSTANT, masks_warped);
-	Mat out2;
-	warper->warp(in, k, r, INTER_NEAREST, BORDER_CONSTANT, out2);
+	// Mat out2;
+	warper->warp(in, k, r, INTER_NEAREST, BORDER_CONSTANT, out);
+	std::cout << out.size() << "\n" << out.depth() << "\n";
 
-	return Mat_to_image(image, &in, &out2, bgr, sizes.width, sizes.height);
+	return Mat_to_image(image, &in, &out, bgr, sizes.width, sizes.height);
 }
