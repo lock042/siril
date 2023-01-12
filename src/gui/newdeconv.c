@@ -195,6 +195,10 @@ void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
 		args.ks++;
 		gtk_spin_button_set_value(button, args.ks);
 	}
+	free(com.kernel);
+	com.kernel = NULL;
+	com.kernelsize = 0;
+	DrawPSF();
 }
 
 void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
@@ -1083,8 +1087,6 @@ static void DrawPSF() {
 	if (!drawingPSF) {
 		drawingPSF = lookup_widget("bdeconv_drawingarea");
 	}
-	if (!com.kernelsize)
-		return;
 	gtk_widget_queue_draw(drawingPSF);
 }
 
