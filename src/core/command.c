@@ -2488,7 +2488,7 @@ int process_invmtf(int nb) {
 
 int process_autoghs(int nb) {
 	gchar *end = NULL;
-	float shadows_clipping;
+	float shadows_clipping, b = 13.0f, hp = 0.7f, lp = 0.0f;
 	shadows_clipping = g_ascii_strtod(word[1], &end);
 	if (end == word[1]) {
 		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
@@ -2501,16 +2501,48 @@ int process_autoghs(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
+	int argidx = 3;
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-b=")) {
+			char *arg = word[argidx] + 3;
+			b = g_ascii_strtod(arg, &end);
+			if (arg == end || b < -5.0f || b > 15.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-hp=")) {
+			char *arg = word[argidx] + 4;
+			hp = g_ascii_strtod(arg, &end);
+			if (arg == end || hp < 0.0f || hp > 1.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-lp=")) {
+			char *arg = word[argidx] + 4;
+			lp = g_ascii_strtod(arg, &end);
+			if (arg == end || lp < 0.0f || lp > 1.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		argidx++;
+	}
+
 	int nb_channels = (int)gfit.naxes[2];
-	imstats *stats[3];
+	imstats *stats[3] = { NULL };
 	int ret = compute_all_channels_statistics_single_image(&gfit, STATS_BASIC, MULTI_THREADED, stats);
+	// TODO: parallel for?
 	for (int i = 0; i < nb_channels; ++i) {
 		gboolean do_red = i == 0, do_green = i == 1, do_blue = i == 2;
 		if (stats[i]) {
 			float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
+			if (gfit.type == DATA_USHORT)
+				SP *= (gfit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
 			siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
 
-			ght_params params = { .B = 13.0f, .D = amount, . LP = 0.0f, .SP = SP, .HP = 0.7f,
+			ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
 				.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
 			apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
