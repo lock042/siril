@@ -118,6 +118,8 @@ static command commands[] = {
 	{"ls", 0, "ls", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
 #endif
 	{"makepsf", 1, "makepsf clear [-ks=]\n"
+				"makepsf load filename\n"
+				"makepsf save\n"
 				"makepsf blind [-l0] [-si] [-multiscale] [-lambda=] [-comp=] [-ks=]\n"
 				"makepsf stars [-sym] [-ks=]\n"
 				"makepsf manual { -gaussian | -moffat | -disc | -airy } [-fwhm=] [-angle=] [-ratio=] [-beta=] [-dia=] [-fl=] [-wl=] [-pixelsize=] [-obstruct=] [-ks=]", process_makepsf, STR_MAKEPSF, TRUE, REQ_CMD_NONE},

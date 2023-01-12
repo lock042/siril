@@ -303,6 +303,9 @@ win64-nightly:
   dependencies:
     - siril-win64
   script:
+    # Package ssl certificates
+    - cp -fr ${CROSSROAD_OUT}/ssl ${INSTALL_PREFIX}
+  
     # Package shared ressources
     - cp -fr ${CROSSROAD_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
     - cp -fr ${CROSSROAD_OUT}/share/icons/ ${INSTALL_PREFIX}/share
