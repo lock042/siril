@@ -217,33 +217,23 @@ namespace richardsonlucy {
         }
     }
 
-/*
         template <typename T>
     img_t<T> u_factor(img_t<T> lucy, img_t<T> raw_image, T multiplier=T(1)) {
-        lucy.replacenan(T(0));
-
+        lucy.sanitize();
         double doublenoise;
         updatenoise(raw_image.data.data(), raw_image.w, raw_image.h, raw_image.d, &doublenoise);
         T noise_T = static_cast<T>(doublenoise);
-
         T first = T(-2) / (noise_T * noise_T);
-
-        img_t<T> ratio(lucy.w, lucy.h, lucy.d);
-        ratio.map(lucy / raw_image);
-        printf("ratio mean: %f\n", ratio.mean());
-        ratio.replacenan(T(0));
-        ratio.map(std::log(ratio));
-        ratio.replacenan(T(0));
-
-        img_t<T> second(lucy.w, lucy.h, lucy.d);
-        second.map(raw_image * ratio - lucy + raw_image);
-
-        img_t<T> factor(lucy.w, lucy.h, lucy.d);
-        factor.map(first * second);
-        factor.replacenan(T(0));
-        factor.map(std::min(factor, T(1)));
-
-        return factor;
+        img_t<T> dest = lucy;
+        dest.map(dest / raw_image);
+        dest.sanitize();
+        dest.map(std::log(dest));
+        dest.sanitize();
+        dest.map((raw_image * dest) - lucy + raw_image);
+        dest.map(first * dest);
+        dest.sanitize();
+        dest.map(std::min(dest, T(1)));
+        return dest;
     }
 
     template <typename T>
@@ -251,104 +241,48 @@ namespace richardsonlucy {
         multiplier = T(1);
         img_t<T> first = u_factor(lucy, raw, multiplier);
         first.map(std::pow(first,T(N-1)));
-        first.replacenan(T(0));
-        printf("first.mean: %f\n", first.mean());
+        first.sanitize();
+        lucy.sanitize();
+        printf("first.mean: %f, ", first.mean());
 
         img_t<T> second = u_factor(lucy, raw, multiplier);
         second.map(T(N) - T(N-1) * second);
-        second.replacenan(T(0));
-        printf ("second.mean: %f\n", second.mean());
+        second.sanitize();
+        printf ("second.mean: %f, ", second.mean());
 
         img_t<T> third(lucy.w, lucy.h, lucy.d);
         third.map((raw - lucy) / lucy);
-        third.replacenan(T(0));
-        printf ("third.mean: %f\n", third.mean());
+        third.sanitize();
+        printf ("third.mean: %f, ", third.mean());
         third.map(T(1) + first * second * third);
+        printf ("result.mean: %f\n", third.mean());
         return third;
     }
 
     template <typename T>
-    void damped_rl_deconvolve(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion) {
-
-        assert(K.w % 2);
-        assert(K.h % 2);
-        int N = 10;
-        T multiplier = T(1);
+    void rl_deconvolve_damped(img_t<T>& lucy, const img_t<T>& input, const img_t<T>& psf, int maxiter) {
+        assert(psf.w % 2);
+        assert(psf.h % 2);
+        img_t<T> raw = input;
+        img_t<T> lucy_temp (lucy.w, lucy.h, lucy.d);
+        img_t<T> ratio (lucy.w, lucy.h, lucy.d);
+        img_t<T> top (lucy.w, lucy.h, lucy.d);
+        T N = T(3);
         T noise_T = T(0);
-        img_t<T> f_init(f);
-        img_t<T> lucy(f.w, f.h, f.d);
-        lucy.set_value(f_init.mean()); // Start with grey image estimate
-        x = f;
-        optimization::operators::gradient<T> gradient(f);
-        img_t<T> w(f.w, f.h, f.d);
-
-        // Generate OTF of kernel
-        img_t<std::complex<T>> K_otf(f.w, f.h, f.d);
-        K_otf.padcirc(K);
-        K_otf.map(K_otf * std::complex<T>(K.d) / K.sum());
-        K_otf.fft(K_otf);
-
-        // Flip K and generate OTF
-        img_t<T> Kf(K.w, K.h, K.d);
-        Kf.flip(K);
-        img_t<std::complex<T>> Kflip_otf(f.w, f.h, f.d);
-        Kflip_otf.padcirc(Kf);
-        Kflip_otf.map(Kflip_otf * std::complex<T>(Kf.d) / Kf.sum());
-        Kflip_otf.fft(Kflip_otf);
-        img_t<std::complex<T>> est(f.w, f.h, f.d);
-        // Initial estimate is the observed image
-        est.map(lucy);
-        img_t<std::complex<T>> temp_lucy(f.w, f.h, f.d);
-        img_t<std::complex<T>> ratio;
+        T multiplier = T(1);
+        T rawmean = raw.mean();
+        T conversion = rawmean / T(10);
+        raw.map(raw / T(conversion));
+        lucy.set_value(rawmean);
         for (int iter = 0 ; iter < maxiter ; iter++) {
-            // Breakout if the stop button has been pressed
-            if (is_thread_stopped())
-                continue;
-
-            // Richardson-Lucy iteration
-            // -------------------------
-
-            // Convolve the current estimate with the kernel
-            temp_lucy.fft(est);
-            temp_lucy.map(temp_lucy * K_otf);
-            temp_lucy.ifft(temp_lucy);
-
-            // Calculate damping ratio
-            ratio = dampen(lucy, f, N, noise_T, multiplier);
-
-            // Convolve damped ratio with the kernel
-            img_t<std::complex<T>> top(f.w, f.h, f.d);
-            {
-                img_t<std::complex<T>> complexratio(f.w, f.h, f.d);
-                complexratio.map(ratio);
-                top.fft(complexratio);
-            }
-            top.map(top * K_otf);
-            top.ifft(top);
-
-            est.map(est * (top / temp_lucy));
-
-            img_t<std::complex<T>> stop(f.w, f.h, f.d);
-            stop.map(est);
-
-            // New estimate is previous estimate * ratio
-            est.map(est * ratio);
-
-            // Stopping criterion
-            stop.map((std::abs(std::real(est) - std::real(stop))) / std::abs(std::real(stop)));
-            if (sequence_is_running == 0)
-                updateprogress("Richardson-Lucy deconvolution...", (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
-            T stopping = std::real(stop.sum()) / stop.size;
-            if (stopping < stopcriterion) {
-                sirillog("Richardson-Lucy halted early by the stopping criterion\n");
-                iter = maxiter;
-            }
-
+            lucy_temp.conv2(lucy, psf);
+            ratio = dampen(lucy_temp, raw, N, noise_T, multiplier);
+            top.conv2(ratio, psf);
+            lucy.map(top * lucy);
+            printf("Iteration: %d, lucy.mean: %f, raw man: %f\n", iter, lucy.mean(), rawmean);
         }
-
-
-        x.map(std::real(est)); // x needs to be real
+        lucy.map(lucy * conversion);
+        return;
     }
-*/
 
 };

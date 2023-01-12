@@ -265,7 +265,7 @@ public:
     }
 */
 
-/*
+
     template <typename T2>
     void pasteinto(const img_t<T2>&o, int xoff, int yoff, int width, int height) { // Could this be better optimised?
         assert (width <= o.w && height <= o.h);
@@ -279,7 +279,7 @@ public:
             }
         }
     }
-
+/*
     template <typename T2>
     void masktolist(const img_t<T>& in,
                     const img_t<T2>& mask) {
@@ -324,6 +324,7 @@ public:
         }
     }
 */
+
     template <typename T2, class F>
     void map(const img_t<T2>& o, const F& f) {
         assert(o.similar(*this));

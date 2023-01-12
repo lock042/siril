@@ -941,7 +941,8 @@ gpointer deconvolve(gpointer p) {
 						args.regtype = REG_FH_MULT;
 					else args.regtype = REG_NONE_MULT;
 				}
-				naive_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
+//				naive_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
+				richardson_lucy_damped(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.finaliters);
 				free(msg_rl);
 				msg_rl = NULL;
 				free(msg_earlystop);
