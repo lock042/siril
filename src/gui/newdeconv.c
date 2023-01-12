@@ -505,58 +505,71 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 
 int save_kernel(gchar* filename) {
 	int retval = 0;
-	fits *fit = NULL;
-	if ((retval = new_fit_image_with_data(&fit, com.kernelsize, com.kernelsize, 1, DATA_FLOAT, com.kernel)))
+	fits *save_fit = NULL;
+	//Check there is a PSF to save
+	if (com.kernel == NULL) {
+		retval = 1;
+		siril_log_color_message(_("Error: no PSF has been computed, nothing to save.\n"), "red");
 		return retval;
+	}
+	// Need to make a sacrificial copy of com.kernel as the save_fit data will be freed when we call clearfits
+	float* copy_kernel = malloc(com.kernelsize * com.kernelsize * sizeof(float));
+	memcpy(copy_kernel, com.kernel, com.kernelsize * com.kernelsize * sizeof(float));
+	if ((retval = new_fit_image_with_data(&save_fit, com.kernelsize, com.kernelsize, 1, DATA_FLOAT, copy_kernel))) {
+		siril_log_color_message(_("Error preparing PSF for save.\n"), "red");
+		return retval;
+	}
 #ifdef HAVE_LIBTIFF
-	retval = savetif(filename, fit, 32, "Saved Siril deconvolution kernel", NULL, FALSE);
+	retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution PSF", NULL, FALSE);
 #else
-	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving kernel at reduced precision as a 16-bit greyscale PGM file.\n"), "salmon");
-	retval = saveNetPBM(filename, fit);
+	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving PSF at reduced precision as a 16-bit greyscale PGM file.\n"), "salmon");
+	retval = saveNetPBM(filename, save_fit);
 #endif
+	clearfits(save_fit); // also frees copy_kernel
+	free(save_fit);
 	return retval;
 }
 
 int load_kernel(gchar* filename) {
 	int retval = 0;
 	int orig_size;
-	fits fit = { 0 };
-	if ((retval = read_single_image(filename, &fit, NULL, FALSE, NULL, FALSE, TRUE)))
+	fits load_fit = { 0 };
+	if ((retval = read_single_image(filename, &load_fit, NULL, FALSE, NULL, FALSE, TRUE)))
 		goto ENDSAVE;
-	if (fit.rx != fit.ry){
+	if (load_fit.rx != load_fit.ry){
 		retval = 1;
-		char *msg = siril_log_color_message(_("Error: kernel file does not contain a square kernel. Cannot load this file.\n"), "red");
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong kernel size"), msg);
+		char *msg = siril_log_color_message(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"), "red");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
 		goto ENDSAVE;
 	}
-	if (!(fit.rx % 2)) {
-		com.kernelsize = fit.rx - 1;
-		orig_size = fit.rx;
-		siril_log_color_message(_("Warning: kernel file is even (%d x %d). Kernels should always be odd. Cropping by 1 pixel in each direction. "
-				"This may not produce optimum results.\n"), "salmon", fit.rx, fit.rx);
+	if (!(load_fit.rx % 2)) {
+		com.kernelsize = load_fit.rx - 1;
+		orig_size = load_fit.rx;
+		siril_log_color_message(_("Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping by 1 pixel in each direction. "
+				"This may not produce optimum results.\n"), "salmon", load_fit.rx, load_fit.rx);
 	} else {
-		com.kernelsize = fit.rx;
+		com.kernelsize = load_fit.rx;
 		orig_size = com.kernelsize;
 	}
 	if (!com.headless)
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")), com.kernelsize);
 
 	com.kernel = (float*) malloc(com.kernelsize * com.kernelsize * sizeof(float));
-	if (fit.type == DATA_FLOAT) {
+	if (load_fit.type == DATA_FLOAT) {
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
-			com.kernel[i + j * com.kernelsize] = fit.fdata[i + j * orig_size];
+			com.kernel[i + j * com.kernelsize] = load_fit.fdata[i + j * orig_size];
 			}
 		}
 	} else {
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
-				com.kernel[i + j * com.kernelsize] = (float) fit.data[i + j * orig_size] / USHRT_MAX_SINGLE;
+				com.kernel[i + j * com.kernelsize] = (float) load_fit.data[i + j * orig_size] / USHRT_MAX_SINGLE;
 			}
 		}
 	}
 	DrawPSF();
-	clearfits(&fit);
+	clearfits(&load_fit);
 	ENDSAVE:
 	return retval;
 }
@@ -605,8 +618,13 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	gchar* filename = g_strdup(gtk_file_chooser_get_filename(filechooser));
 	if (filename == NULL) {
-		siril_log_color_message(_("No kernel file selected.\n"), "red");
+		siril_log_color_message(_("No PSF file selected.\n"), "red");
 	} else {
+		if (com.kernel) {
+			free(com.kernel);
+			com.kernel = NULL;
+			com.kernelsize = 0;
+		}
 		load_kernel(filename);
 	}
 	if (filename)
@@ -772,7 +790,7 @@ int get_kernel() {
 	}
 	if (com.kernel == NULL) {
 		com.kernelsize = 0;
-		siril_log_color_message(_("Error: no kernel defined. Select blind deconvolution or define a kernel from selection or psf parameters.\n"), "red");
+		siril_log_color_message(_("Error: no PSF defined. Select blind deconvolution or define a PSF from selection or psf parameters.\n"), "red");
 		retval = 1;
 		goto END;
 	}
@@ -824,7 +842,7 @@ gpointer estimate_only(gpointer p) {
 		}
 	}
 
-	set_progress_bar_data(_("Starting kernel computation..."), PROGRESS_PULSATE);
+	set_progress_bar_data(_("Starting PSF computation..."), PROGRESS_PULSATE);
 	get_kernel();
 	if (args.psftype == PSF_BLIND) {
 		if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
@@ -833,7 +851,7 @@ gpointer estimate_only(gpointer p) {
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 		}
 	}
-	siril_log_color_message(_("Deconvolution kernel generated.\n"), "green");
+	siril_log_color_message(_("Deconvolution PSF generated.\n"), "green");
 	siril_add_idle(estimate_idle, NULL);
 	return GINT_TO_POINTER(retval);
 }
@@ -885,8 +903,8 @@ gpointer deconvolve(gpointer p) {
 
 	// Get the kernel
 	if (sequence_is_running == 0)
-		set_progress_bar_data("Starting kernel estimation...", PROGRESS_PULSATE);
-	siril_debug_print("Starting kernel estimation\n");
+		set_progress_bar_data("Starting PSF estimation...", PROGRESS_PULSATE);
+	siril_debug_print("Starting PSF estimation\n");
 	if (args.psftype != PSF_PREVIOUS)
 		get_kernel();
 	if (!com.kernel) {
@@ -948,7 +966,7 @@ gpointer deconvolve(gpointer p) {
 		}
 	}
 ENDDECONV:
-	// Do not free the kernel here as it is populated into com.kernel
+	// Do not free the PSF here as it is populated into com.kernel
 	if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
