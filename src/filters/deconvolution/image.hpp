@@ -230,17 +230,21 @@ public:
 
         img_t<T> out(x.w, x.h, x.d);
         const int ix = (k.w-1)/2;
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads) //if(size > 1000 && cppmaxthreads > 1)
-#endif
 // Not asking OMP to vectorize the inner loop with simd: relying on GCC for this, as it is reportedly better at it.
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static,16) collapse(3) //num_threads(cppmaxthreads) //if(size > 1000 && cppmaxthreads > 1)
+#endif
         for (int c = 0 ; c < d ; c++) {
             for (int i = ix ; i < x.w-ix-1 ; i++) {
                 for (int j = ix ; j < x.h-ix-1 ; j++) {
                     T val = 0;
                     for (int m = -ix ; m < ix+1 ; m++) {
+//#if defined(__clang__)
+//        #pragma clang loop vectorize(assume_safety)
+//#elif defined(__GNUC__)
+//        #pragma GCC ivdep
+//#endif
                         for (int n = -ix ; n < ix+1 ; n++) {
-//                            printf("i %d, j %d, m %d, n %d\n", i, j, m, n);
                             val += x(i+m, j+n, c) * k(m+ix, n+ix, 0);
                         }
                     }

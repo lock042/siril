@@ -45,4 +45,5 @@ namespace wiener {
         G.ifft(G);
         x.map(std::real(G));
     }
+
 }

@@ -143,7 +143,6 @@ namespace richardsonlucy {
             if (is_thread_stopped())
                 continue;
             // Regularization calcs
-
             w.map(x);
             if (regtype == 0 || regtype == 3) {
                 // Calculate TV regularization weighting
@@ -175,11 +174,13 @@ namespace richardsonlucy {
                 w.map(gxx + w);
                 w.map(std::pow(w, T(0.5)));
             }
+
             // Richardson-Lucy iteration
             ratio.conv2(x, K); // convolve with kernel to get denominator
             ratio.map(f / ratio); // divide f by denominator
+            for (int i = 0 ; i < gxx.size; i++)
+                ratio[i] = std::max(1.e-9f, ratio[i]);
             ratio.conv2(ratio, Kf); // convolve by flipped kernel
-            x.map(ratio * x); // multiply up
             T dt = T(stepsize);
             switch (regtype) {
                 case 5: // 5 and 4 are multiplicative RL with FH and TV reg

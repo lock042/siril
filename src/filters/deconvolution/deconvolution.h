@@ -107,6 +107,11 @@ EXTERNC int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, f
 }
 #endif
 
+EXTERNC int naive_wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float sigma, int max_threads);
+#ifdef __cplusplus
+}
+#endif
+
 EXTERNC int spectral_pre_adaption(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kdata, int kernelsize, float lambda, int max_threads, int deconv_algo);
 #ifdef __cplusplus
 }
