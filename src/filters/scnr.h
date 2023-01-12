@@ -20,4 +20,6 @@ struct scnr_data {
 
 gpointer scnr(gpointer p);
 
+const char *scnr_type_to_string(scnr_type t);
+
 #endif /* SRC_FILTERS_SCNR_H_ */

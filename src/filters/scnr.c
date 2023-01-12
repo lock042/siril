@@ -36,7 +36,7 @@
 
 #include "scnr.h"
 
-static const char *type_to_string(scnr_type t) {
+const char *scnr_type_to_string(scnr_type t) {
 	switch (t) {
 		default:
 		case SCNR_AVERAGE_NEUTRAL:
@@ -61,7 +61,7 @@ gpointer scnr(gpointer p) {
 	double invnorm = 1.0 / norm;
 
 	siril_log_color_message(_("SCNR: processing with %s algorithm%s...\n"),
-			"green", type_to_string(args->type),
+			"green", scnr_type_to_string(args->type),
 			args->preserve ? _(", preserving lightness") : "");
 	gettimeofday(&t_start, NULL);
 
@@ -193,6 +193,7 @@ gpointer scnr(gpointer p) {
 	free(args);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
+
 	notify_gfit_modified();
 	return GINT_TO_POINTER(0);
 }
@@ -207,9 +208,6 @@ void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
-	/* Type 0: Average Neutral protection
-	 * Type 1: Maximum Neutral protection
-	 */
 	int type = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_scnr")));
 	GtkToggleButton *light_button = GTK_TOGGLE_BUTTON(
@@ -224,8 +222,8 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
-	undo_save_state(&gfit, _("SCNR (type=%d, amount=%0.2lf, preserve=%s)"),
-			type, amount, preserve ? "true" : "false");
+	undo_save_state(&gfit, _("SCNR (type=%s, amount=%0.2lf, preserve=%s)"),
+			scnr_type_to_string(type), amount, preserve ? "true" : "false");
 
 	args->fit = &gfit;
 	args->type = type;
@@ -249,5 +247,3 @@ void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {
 	gtk_widget_set_sensitive(GTK_WIDGET(label), type > 1);
 	gtk_widget_set_sensitive(GTK_WIDGET(spinButton), type > 1);
 }
-
-

@@ -269,8 +269,14 @@ gpointer enhance_saturation(gpointer p) {
 		retval = enhance_saturation_float(args);
 	}
 
-	if (!args->for_preview)
+	if (!args->for_preview) {
+		char log[90];
+		sprintf(log, "Color saturation %d%%, threshold %.2f",
+			round_to_int(args->coeff * 100.0), args->background_factor);
+		args->output->history = g_slist_append(args->output->history, strdup(log));
+
 		notify_gfit_modified();
+	}
 
 	free(args);
 	return GINT_TO_POINTER(retval);

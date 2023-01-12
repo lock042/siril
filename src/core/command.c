@@ -1967,6 +1967,10 @@ int process_asinh(int nb) {
 	set_cursor_waiting(TRUE);
 	asinhlut(&gfit, beta, offset, human_luminance);
 
+	char log[90];
+	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -2549,6 +2553,11 @@ int process_autoghs(int nb) {
 			free_stats(stats[i]);
 		}
 	}
+
+	char log[100];
+	sprintf(log, "AutoGHS (k.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])", shadows_clipping, amount, b, lp, hp);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	notify_gfit_modified();
 	return ret ? CMD_GENERIC_ERROR : CMD_OK;
 }
@@ -2594,6 +2603,11 @@ int process_autostretch(int nb) {
 		find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
 		apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
 	}
+
+	char log[90];
+	sprintf(log, "Autostretch (shadows: %.2f, target bg: %.2f, %s)",
+			shadows_clipping, target_bg, linked ? "linked" : "unlinked");
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -4518,6 +4532,15 @@ int process_scnr(int nb){
 			}
 		}
 	}
+
+	char log[90];
+	char amountstr[30] = "";
+	if (args->type == SCNR_MAXIMUM_MASK || args->type == SCNR_ADDITIVE_MASK)
+		sprintf(amountstr, "amount %.2f, ", args->amount);
+	sprintf(log, "SCNR green removal (%s, %s%spreserving lightness)",
+			scnr_type_to_string(args->type), amountstr,
+			args->preserve ? "" : "not ");
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	start_in_new_thread(scnr, args);
 	return CMD_OK;
