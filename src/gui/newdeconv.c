@@ -505,58 +505,63 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 
 int save_kernel(gchar* filename) {
 	int retval = 0;
-	fits *fit = NULL;
-	if ((retval = new_fit_image_with_data(&fit, com.kernelsize, com.kernelsize, 1, DATA_FLOAT, com.kernel)))
+	fits *save_fit = NULL;
+	// Need to make a sacrificial copy of com.kernel as the save_fit data will be freed when we call clearfits
+	float* copy_kernel = malloc(com.kernelsize * com.kernelsize * sizeof(float));
+	memcpy(copy_kernel, com.kernel, com.kernelsize * com.kernelsize * sizeof(float));
+	if ((retval = new_fit_image_with_data(&save_fit, com.kernelsize, com.kernelsize, 1, DATA_FLOAT, copy_kernel)))
 		return retval;
 #ifdef HAVE_LIBTIFF
-	retval = savetif(filename, fit, 32, "Saved Siril deconvolution kernel", NULL, FALSE);
+	retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution kernel", NULL, FALSE);
 #else
 	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving kernel at reduced precision as a 16-bit greyscale PGM file.\n"), "salmon");
-	retval = saveNetPBM(filename, fit);
+	retval = saveNetPBM(filename, save_fit);
 #endif
+	clearfits(save_fit); // also frees copy_kernel
+	free(save_fit);
 	return retval;
 }
 
 int load_kernel(gchar* filename) {
 	int retval = 0;
 	int orig_size;
-	fits fit = { 0 };
-	if ((retval = read_single_image(filename, &fit, NULL, FALSE, NULL, FALSE, TRUE)))
+	fits load_fit = { 0 };
+	if ((retval = read_single_image(filename, &load_fit, NULL, FALSE, NULL, FALSE, TRUE)))
 		goto ENDSAVE;
-	if (fit.rx != fit.ry){
+	if (load_fit.rx != load_fit.ry){
 		retval = 1;
 		char *msg = siril_log_color_message(_("Error: kernel file does not contain a square kernel. Cannot load this file.\n"), "red");
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong kernel size"), msg);
 		goto ENDSAVE;
 	}
-	if (!(fit.rx % 2)) {
-		com.kernelsize = fit.rx - 1;
-		orig_size = fit.rx;
+	if (!(load_fit.rx % 2)) {
+		com.kernelsize = load_fit.rx - 1;
+		orig_size = load_fit.rx;
 		siril_log_color_message(_("Warning: kernel file is even (%d x %d). Kernels should always be odd. Cropping by 1 pixel in each direction. "
-				"This may not produce optimum results.\n"), "salmon", fit.rx, fit.rx);
+				"This may not produce optimum results.\n"), "salmon", load_fit.rx, load_fit.rx);
 	} else {
-		com.kernelsize = fit.rx;
+		com.kernelsize = load_fit.rx;
 		orig_size = com.kernelsize;
 	}
 	if (!com.headless)
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")), com.kernelsize);
 
 	com.kernel = (float*) malloc(com.kernelsize * com.kernelsize * sizeof(float));
-	if (fit.type == DATA_FLOAT) {
+	if (load_fit.type == DATA_FLOAT) {
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
-			com.kernel[i + j * com.kernelsize] = fit.fdata[i + j * orig_size];
+			com.kernel[i + j * com.kernelsize] = load_fit.fdata[i + j * orig_size];
 			}
 		}
 	} else {
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
-				com.kernel[i + j * com.kernelsize] = (float) fit.data[i + j * orig_size] / USHRT_MAX_SINGLE;
+				com.kernel[i + j * com.kernelsize] = (float) load_fit.data[i + j * orig_size] / USHRT_MAX_SINGLE;
 			}
 		}
 	}
 	DrawPSF();
-	clearfits(&fit);
+	clearfits(&load_fit);
 	ENDSAVE:
 	return retval;
 }
@@ -607,6 +612,11 @@ void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_
 	if (filename == NULL) {
 		siril_log_color_message(_("No kernel file selected.\n"), "red");
 	} else {
+		if (com.kernel) {
+			free(com.kernel);
+			com.kernel = NULL;
+			com.kernelsize = 0;
+		}
 		load_kernel(filename);
 	}
 	if (filename)
