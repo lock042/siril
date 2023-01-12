@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -6115,6 +6115,7 @@ enter a visible wavelength in nm</property>
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="margin-top">5</property>
                                         <property name="spacing">6</property>
                                         <property name="homogeneous">True</property>
                                         <child>
@@ -6226,6 +6227,7 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkLabel">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
+                                                <property name="margin-top">5</property>
                                                 <property name="label" translatable="yes"> </property>
                                               </object>
                                               <packing>
@@ -6621,6 +6623,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">For large PSFs the ℓ0 gradient prior may not collapse blurry edges into a single sharp edge. A multiscale PSF estimation procedure can therefore be used: it may not be necessary for small PSF.</property>
+                                                <property name="margin-top">5</property>
                                                 <property name="draw-indicator">True</property>
                                               </object>
                                               <packing>
@@ -6638,6 +6641,7 @@ enter a visible wavelength in nm</property>
                                                   <object class="GtkGrid">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
+                                                    <property name="margin-top">5</property>
                                                     <property name="row-spacing">6</property>
                                                     <property name="column-homogeneous">True</property>
                                                     <child>
@@ -6960,6 +6964,7 @@ enter a visible wavelength in nm</property>
                                           <object class="GtkBox">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
+                                            <property name="margin-top">5</property>
                                             <property name="spacing">6</property>
                                             <property name="homogeneous">True</property>
                                             <child>
@@ -7139,6 +7144,7 @@ enter a visible wavelength in nm</property>
                                           <object class="GtkGrid">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
+                                            <property name="margin-top">5</property>
                                             <property name="row-spacing">6</property>
                                             <property name="column-homogeneous">True</property>
                                             <child>
@@ -7332,19 +7338,6 @@ enter a visible wavelength in nm</property>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="margin-bottom">5</property>
-                        <property name="label" translatable="yes"> </property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">&lt;b&gt;PSF Preview&lt;/b&gt;</property>
                         <property name="use-markup">True</property>
@@ -7364,6 +7357,7 @@ enter a visible wavelength in nm</property>
                         <property name="tooltip-text" translatable="yes">Shows a preview of the PSF, if one has been calculated.</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
+                        <property name="margin-top">5</property>
                         <signal name="draw" handler="on_PSFkernel_draw" swapped="no"/>
                       </object>
                       <packing>
