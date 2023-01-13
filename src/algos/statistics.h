@@ -68,7 +68,4 @@ int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels);
 
 int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *noise);
 
-WORD siril_stats_ushort_find_almost_max(const WORD data[], const size_t n, int nth_to_max);
-float siril_stats_float_find_almost_max(const float data[], const size_t n, int nth_to_max);
-
 #endif

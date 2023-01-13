@@ -942,7 +942,7 @@ gpointer findstar_worker(gpointer p) {
 		clear_stars_list(FALSE); // with FALSE it's not a GUI call
 		com.stars = stars;
 	}
-	siril_log_message(_("Found %d %s profile stars in %s, channel #%d (FWHM %f\n"), nbstars,
+	siril_log_message(_("Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"), nbstars,
 			com.pref.starfinder_conf.profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
 			selection ? _("selection") : _("image"), args->layer, fwhm);
 	if (args->starfile &&

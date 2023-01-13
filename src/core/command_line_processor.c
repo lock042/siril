@@ -572,9 +572,7 @@ int processcommand(const char *line) {
 			g_object_unref(file);
 			return 1;
 		}
-		/* ensure that everything is closed */
-		//process_close(0);
-		/* Then, run script */
+		/* Run the script */
 		siril_log_message(_("Starting script %s\n"), filename);
 		com.script_thread = g_thread_new("script", execute_script, input_stream);
 		g_object_unref(file);

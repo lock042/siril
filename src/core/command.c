@@ -4588,21 +4588,20 @@ int process_offset(int nb) {
 	return CMD_OK;
 }
 
-/* The version in command line is a minimal version
- * Only neutral type are available (no amount needed),
- * then we always preserve the lightness */
 int process_scnr(int nb){
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
 	args->type = SCNR_AVERAGE_NEUTRAL;
 	args->amount = 0.0;
 	args->fit = &gfit;
 	args->preserve = TRUE;
-	if (nb > 1) {
-		int argidx = 1;
-		if (!g_strcmp0(word[1], "-nopreserve")) {
-			args->preserve = FALSE;
-			argidx++;
-		}
+
+	int argidx = 1;
+	if (argidx < nb && !g_strcmp0(word[1], "-nopreserve")) {
+		args->preserve = FALSE;
+		argidx++;
+	}
+
+	if (argidx < nb) {
 		gchar *end;
 		args->type = g_ascii_strtoull(word[argidx], &end, 10);
 		if (end == word[argidx] || args->type > 3) {
@@ -4611,16 +4610,15 @@ int process_scnr(int nb){
 			return CMD_ARG_ERROR;
 		}
 		argidx++;
+	}
 
-		if (args->type == SCNR_MAXIMUM_MASK ||
-				args->type == SCNR_ADDITIVE_MASK) {
-			if (nb == 3) {
-				args->amount = g_ascii_strtod(word[argidx], &end);
-				if (end == word[argidx] || args->amount < 0.0 || args->amount > 1.0) {
-					siril_log_message(_("Amount can only be [0, 1]\n"));
-					return CMD_ARG_ERROR;
-				}
-			}
+	if (argidx < nb && (args->type == SCNR_MAXIMUM_MASK || args->type == SCNR_ADDITIVE_MASK)) {
+		gchar *end;
+		args->amount = g_ascii_strtod(word[argidx], &end);
+		if (end == word[argidx] || args->amount < 0.0 || args->amount > 1.0) {
+			siril_log_message(_("Amount can only be [0, 1]\n"));
+			free(args);
+			return CMD_ARG_ERROR;
 		}
 	}
 
