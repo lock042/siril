@@ -24,10 +24,10 @@ struct stat_data {
 
 #define STATS_FOR_CFA	(1 << 7)    // work on CFA channels
 
-#define STATS_MAIN	STATS_BASIC | STATS_AVGDEV | STATS_MAD | STATS_BWMV
-#define STATS_EXTRA	STATS_MAIN | STATS_IKSS
-#define STATS_NORM	STATS_BASIC | STATS_MAD | STATS_IKSS   // IKSSlite needs ngoodpix, median, mad and IKSS
-#define STATS_LITENORM	STATS_BASIC | STATS_MAD // For faster normalization
+#define STATS_MAIN	(STATS_BASIC | STATS_AVGDEV | STATS_MAD | STATS_BWMV)
+#define STATS_EXTRA	(STATS_MAIN | STATS_IKSS)
+#define STATS_NORM	(STATS_BASIC | STATS_MAD | STATS_IKSS)   // IKSSlite needs ngoodpix, median, mad and IKSS
+#define STATS_LITENORM	(STATS_BASIC | STATS_MAD) // for faster normalization
 
 #include "core/siril.h"
 

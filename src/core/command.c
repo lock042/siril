@@ -5421,17 +5421,20 @@ int process_seq_extractHaOIII(int nb) {
 }
 
 int process_stat(int nb){
-	int nplane;
-	int layer;
+	int nplane, layer, option = STATS_BASIC;
 	char layername[6];
 
 	nplane = gfit.naxes[2];
 	gboolean cfa = FALSE;
-	if (nb == 2 && !strcmp(word[1], "-cfa") && nplane == 1 && gfit.bayer_pattern[0] != '\0') {
+	int argidx = 1;
+	if (nb == 2 && !g_strcmp0(word[1], "-cfa") && nplane == 1 && gfit.bayer_pattern[0] != '\0') {
 		siril_debug_print("Running stats on CFA\n");
 		nplane = 3;
 		cfa = TRUE;
+		argidx++;
 	}
+	if (nb == argidx + 1 && !g_strcmp0(word[argidx], "main"))
+		option = STATS_MAIN;
 
 	for (layer = 0; layer < nplane; layer++) {
 		int super_layer = layer;
@@ -5458,23 +5461,46 @@ int process_stat(int nb){
 				break;
 		}
 
-		if (gfit.type == DATA_USHORT) {
-			siril_log_message(
-					_("%s layer: Mean: %0.1lf, Median: %0.1lf, Sigma: %0.1lf, "
-							"AvgDev: %0.1lf, Min: %0.1lf, Max: %0.1lf\n"),
-					layername, stat->mean, stat->median, stat->sigma,
-					stat->avgDev, stat->min, stat->max);
-		} else {
-			siril_log_message(
-					_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
-							"AvgDev: %0.1f, MAD: %0.1f, k of k.mad+med=mean: %0.1f, Min: %0.1f, Max: %0.1f\n"),
-					layername, stat->mean * USHRT_MAX_DOUBLE,
-					stat->median * USHRT_MAX_DOUBLE,
-					stat->sigma * USHRT_MAX_DOUBLE,
-					stat->avgDev * USHRT_MAX_DOUBLE,
-					stat->mad * USHRT_MAX_DOUBLE,
-					(stat->mean - stat->median) / stat->mad,
-					stat->min * USHRT_MAX_DOUBLE, stat->max * USHRT_MAX_DOUBLE);
+		if (option == STATS_BASIC) {
+			if (gfit.type == DATA_USHORT) {
+				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f\n"),
+						layername, stat->mean, stat->median, stat->sigma,
+						stat->min, stat->max, stat->bgnoise);
+			} else {
+				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f\n"),
+						layername, stat->mean * USHRT_MAX_DOUBLE,
+						stat->median * USHRT_MAX_DOUBLE,
+						stat->sigma * USHRT_MAX_DOUBLE,
+						stat->min * USHRT_MAX_DOUBLE,
+						stat->max * USHRT_MAX_DOUBLE,
+						stat->bgnoise * USHRT_MAX_DOUBLE);
+			}
+
+		} else if (option == STATS_MAIN) {
+			//"mean\tmedian\tsigma\tmin\tmax\tnoise\tavgDev\tmad\tsqrtbwmv\n";
+			if (gfit.type == DATA_USHORT) {
+				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
+							"avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"),
+						layername, stat->mean, stat->median, stat->sigma,
+						stat->min, stat->max, stat->bgnoise, stat->avgDev,
+						stat->mad, stat->sqrtbwmv);
+			} else {
+				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
+							"avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"),
+						layername, stat->mean * USHRT_MAX_DOUBLE,
+						stat->median * USHRT_MAX_DOUBLE,
+						stat->sigma * USHRT_MAX_DOUBLE,
+						stat->min * USHRT_MAX_DOUBLE,
+						stat->max * USHRT_MAX_DOUBLE,
+						stat->bgnoise * USHRT_MAX_DOUBLE,
+						stat->avgDev * USHRT_MAX_DOUBLE,
+						stat->mad * USHRT_MAX_DOUBLE,
+						stat->sqrtbwmv * USHRT_MAX_DOUBLE);
+			}
 		}
 		free_stats(stat);
 	}
