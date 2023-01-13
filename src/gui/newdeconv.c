@@ -28,6 +28,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_date.h"
 #include "core/command.h"
+#include "algos/colors.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "gui/callbacks.h"
@@ -542,6 +543,8 @@ int save_kernel(gchar* filename) {
 int load_kernel(gchar* filename) {
 	int retval = 0;
 	int orig_size;
+	gboolean original_debayer_setting = com.pref.debayer.open_debayer;
+	com.pref.debayer.open_debayer = FALSE;
 	bad_load = FALSE;
 	args.nchans = the_fit->naxes[2];
 	fits load_fit = { 0 };
@@ -608,7 +611,7 @@ int load_kernel(gchar* filename) {
 		com.kernelchannels = 1;
 		args.kchans = 1;
 	}
-
+	com.pref.debayer.open_debayer = original_debayer_setting;
 	DrawPSF();
 	clearfits(&load_fit);
 	ENDSAVE:
@@ -963,12 +966,28 @@ gpointer deconvolve(gpointer p) {
 		goto ENDDECONV;
 	}
 
+	float *xyzdata = NULL;
+	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
+		printf("doing luminance only\n");
+		// Convert the fit to XYZ and only deconvolve Y
+		int npixels = the_fit->rx * the_fit->ry;
+		xyzdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
+		for (int i = 0 ; i < npixels ; i++) {
+			rgb_to_xyzf(args.fdata[i], args.fdata[i + npixels], args.fdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
+			xyz_to_LABf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
+		}
+		args.nchans = 1;
+		free(args.fdata);
+		args.fdata = xyzdata; // fdata now points to the L part of xyzdata
+	}
+
 	if (get_thread_run() || sequence_is_running == 1) {
 		if (sequence_is_running == 0)
 			set_progress_bar_data("Starting non-blind deconvolution...", 0);
 		siril_debug_print("Starting non-blind deconvolution\n");
 		// Normalize the kernel
-		float ksum = 0.f;
+		// Think this is unnecessary as the deconvolution routines each do this anyway
+/*		float ksum = 0.f;
 		int kpixels = args.ks * args.ks;
 		for (int c = 0 ; c < args.kchans ; c++) { // Normalize each channel of a multichannel kernel separately
 			for (unsigned i = 0 ; i < kpixels ; i++)
@@ -976,17 +995,16 @@ gpointer deconvolve(gpointer p) {
 			for (unsigned i = 0 ; i < kpixels ; i++)
 				com.kernel[i + c * kpixels] /= ksum;
 		}
-
+*/
 		// Non-blind deconvolution stage
 		switch (args.nonblindtype) {
 			case DECONV_SB: // Split Bregman only works with mono kernels for now: internally it converts color images to YCbCr and deconvolves Y so there's no point providing a color kernel
 				split_bregman(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.alpha, args.finaliters, fftw_max_thread);
 				break;
 			case DECONV_RL:
-				msg_earlystop = malloc(100*sizeof(BYTE));
-				msg_rl = malloc(50*sizeof(BYTE));
-				snprintf(msg_earlystop, 99, _("Richardson-Lucy halted early by the stopping criterion after iteration"));
-				snprintf(msg_rl, 49, _("Richardson-Lucy deconvolution..."));
+				msg_wiener = g_strdup_printf("%s", _("Wiener deconvolution..."));
+				msg_earlystop = g_strdup_printf("%s", _("Richardson-Lucy halted early by the stopping criterion after iteration"));
+				msg_rl = g_strdup_printf("%s", _("Richardson-Lucy deconvolution..."));
 				if (args.rl_method == RL_MULT) {
 					if (args.regtype == REG_TV_GRAD)
 						args.regtype = REG_TV_MULT;
@@ -995,18 +1013,31 @@ gpointer deconvolve(gpointer p) {
 					else args.regtype = REG_NONE_MULT;
 				}
 				if (args.ks < fft_cutoff)
-					naive_richardson_lucy(args.fdata, args.rx,args.ry, the_fit->naxes[2], com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
+					naive_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
 				else
-					richardson_lucy(args.fdata, args.rx,args.ry, the_fit->naxes[2], com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
+					richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
 
 				free(msg_rl);
 				msg_rl = NULL;
+				free(msg_wiener);
+				msg_wiener = NULL;
 				free(msg_earlystop);
 				msg_earlystop = NULL;
 				break;
 			case DECONV_WIENER:
 				wienerdec(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, fftw_max_thread);
 				break;
+		}
+	}
+
+	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
+		// Put things back as they were
+		int npixels = the_fit->rx * the_fit->ry;
+		args.nchans = 3;
+		args.fdata = malloc(npixels * args.nchans * sizeof(float));
+		for (int i = 0 ; i < npixels ; i++) {
+			LAB_to_xyzf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &xyzdata[i], &xyzdata[i + npixels], &xyzdata[i + 2 * npixels]);
+			xyz_to_rgbf(xyzdata[i], xyzdata[i + npixels], xyzdata[i + 2 * npixels], &args.fdata[i], &args.fdata[i + npixels], &args.fdata[i + 2 * npixels]);
 		}
 	}
 

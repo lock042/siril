@@ -48,7 +48,7 @@ extern "C" int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned 
     return 0;
 }
 
-extern "C" int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, int kchans, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active) {
+extern "C" int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active) {
 
     // These replace smart parameters from the original implementation
     // No need for smapa in Siril as we don't need to be able to overwrite options using

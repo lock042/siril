@@ -11,6 +11,7 @@
 
 EXTERN char* msg_earlystop;
 EXTERN char* msg_rl;
+EXTERN char* msg_wiener;
 EXTERN int sequence_is_running;
 
 #endif // CPLUSPLUS_HELPER_FUNCTIONS_H

@@ -35,14 +35,18 @@ namespace wiener {
         denom.map(std::conj(H) * H);
         denom.map(denom + sigma);
         denom.sanitize(); // Avoid NaNs and zeros in the denominator
+        updateprogress(msg_wiener, 0.33);
 
         // Take the FFT of the image f, call this G
         G.map(f);
         G.fft(G);
+        updateprogress(msg_wiener, 0.66);
 
         // Apply the Wiener filter
         G.map((G * std::conj(H)) / denom);
         G.ifft(G);
+        updateprogress(msg_wiener, 1.0);
+
         x.map(std::real(G));
     }
 
