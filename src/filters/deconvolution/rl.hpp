@@ -216,7 +216,7 @@ namespace richardsonlucy {
             }
         }
     }
-
+/*
         template <typename T>
     img_t<T> u_factor(img_t<T> lucy, img_t<T> raw_image, T multiplier=T(1)) {
         lucy.sanitize();
@@ -278,11 +278,12 @@ namespace richardsonlucy {
             lucy_temp.conv2(lucy, psf);
             ratio = dampen(lucy_temp, raw, N, noise_T, multiplier);
             top.conv2(ratio, psf);
+            top.sanitize();
             lucy.map(top * lucy);
             printf("Iteration: %d, lucy.mean: %f, raw man: %f\n", iter, lucy.mean(), rawmean);
         }
         lucy.map(lucy * conversion);
         return;
     }
-
+*/
 };

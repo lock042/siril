@@ -26,6 +26,7 @@
 #include <gdk/gdk.h>
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
+#include "core/siril_date.h"
 #include "core/command.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -53,7 +54,10 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 
+int fft_cutoff = 13; // Random value, I need to do some timings or expose this as a performance preference
+// Below this value, naive convolutions are used for Richardson-Lucy; above this value, FFT-based convolutions are used.
 gboolean aperture_warning_given = FALSE;
+gboolean bad_load = FALSE;
 
 estk_data args = { 0 };
 static GtkWidget *drawingPSF = NULL;
@@ -72,8 +76,8 @@ void reset_conv_args(estk_data* args) {
 	args->fdata = NULL;
 	args->rx = 0;
 	args->ry = 0;
-	args->nchans = 1;
 	args->ks = 15;
+	args->kchans = 1;
 
 	// Process parameters
 	args->blindtype = BLIND_L0;
@@ -128,6 +132,8 @@ void reset_conv_kernel() {
 	if (com.kernel != NULL) {
 		free(com.kernel);
 		com.kernel = NULL;
+		com.kernelchannels = 1;
+		com.kernelsize = 0;
 	}
 }
 
@@ -195,9 +201,7 @@ void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
 		args.ks++;
 		gtk_spin_button_set_value(button, args.ks);
 	}
-	free(com.kernel);
-	com.kernel = NULL;
-	com.kernelsize = 0;
+	reset_conv_kernel();
 	DrawPSF();
 }
 
@@ -517,17 +521,18 @@ int save_kernel(gchar* filename) {
 		return retval;
 	}
 	// Need to make a sacrificial copy of com.kernel as the save_fit data will be freed when we call clearfits
-	float* copy_kernel = malloc(com.kernelsize * com.kernelsize * sizeof(float));
-	memcpy(copy_kernel, com.kernel, com.kernelsize * com.kernelsize * sizeof(float));
-	if ((retval = new_fit_image_with_data(&save_fit, com.kernelsize, com.kernelsize, 1, DATA_FLOAT, copy_kernel))) {
+	float* copy_kernel = malloc(com.kernelsize * com.kernelsize * com.kernelchannels * sizeof(float));
+	memcpy(copy_kernel, com.kernel, com.kernelsize * com.kernelsize * com.kernelchannels * sizeof(float));
+	if ((retval = new_fit_image_with_data(&save_fit, com.kernelsize, com.kernelsize, com.kernelchannels, DATA_FLOAT, copy_kernel))) {
 		siril_log_color_message(_("Error preparing PSF for save.\n"), "red");
 		return retval;
 	}
 #ifdef HAVE_LIBTIFF
 	retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution PSF", NULL, FALSE);
 #else
-	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving PSF at reduced precision as a 16-bit greyscale PGM file.\n"), "salmon");
-	retval = saveNetPBM(filename, save_fit);
+	// This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
+	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving PSF in FITS format.\n"), "salmon");
+	retval = savefits(filename, save_fit);
 #endif
 	clearfits(save_fit); // also frees copy_kernel
 	free(save_fit);
@@ -537,13 +542,18 @@ int save_kernel(gchar* filename) {
 int load_kernel(gchar* filename) {
 	int retval = 0;
 	int orig_size;
+	bad_load = FALSE;
+	args.nchans = the_fit->naxes[2];
 	fits load_fit = { 0 };
-	if ((retval = read_single_image(filename, &load_fit, NULL, FALSE, NULL, FALSE, TRUE)))
+	if ((retval = read_single_image(filename, &load_fit, NULL, FALSE, NULL, FALSE, TRUE))) {
+		bad_load = TRUE;
 		goto ENDSAVE;
+	}
 	if (load_fit.rx != load_fit.ry){
 		retval = 1;
 		char *msg = siril_log_color_message(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"), "red");
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
+		bad_load = TRUE;
 		goto ENDSAVE;
 	}
 	if (!(load_fit.rx % 2)) {
@@ -553,25 +563,52 @@ int load_kernel(gchar* filename) {
 				"This may not produce optimum results.\n"), "salmon", load_fit.rx, load_fit.rx);
 	} else {
 		com.kernelsize = load_fit.rx;
+		com.kernelchannels = load_fit.naxes[2];
+		args.kchans = com.kernelchannels;
 		orig_size = com.kernelsize;
 	}
 	if (!com.headless)
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")), com.kernelsize);
 
-	com.kernel = (float*) malloc(com.kernelsize * com.kernelsize * sizeof(float));
+	int npixels = com.kernelsize * com.kernelsize;
+	int orig_pixels = orig_size * orig_size;
+	int ndata = npixels * com.kernelchannels;
+	com.kernel = (float*) malloc(ndata * sizeof(float));
 	if (load_fit.type == DATA_FLOAT) {
-		for (int i = 0 ; i < com.kernelsize ; i++) {
-			for (int j = 0 ; j < com.kernelsize ; j++) {
-			com.kernel[i + j * com.kernelsize] = load_fit.fdata[i + j * orig_size];
+		for (int c = 0 ; c < com.kernelchannels ; c++) {
+			for (int i = 0 ; i < com.kernelsize ; i++) {
+				for (int j = 0 ; j < com.kernelsize ; j++) {
+				com.kernel[i + j * com.kernelsize + c * npixels] = load_fit.fdata[i + j * orig_size + c * orig_pixels];
+				}
 			}
 		}
 	} else {
-		for (int i = 0 ; i < com.kernelsize ; i++) {
-			for (int j = 0 ; j < com.kernelsize ; j++) {
-				com.kernel[i + j * com.kernelsize] = (float) load_fit.data[i + j * orig_size] / USHRT_MAX_SINGLE;
+		for (int c = 0 ; c < com.kernelchannels ; c++) {
+			for (int i = 0 ; i < com.kernelsize ; i++) {
+				for (int j = 0 ; j < com.kernelsize ; j++) {
+					com.kernel[i + j * com.kernelsize + c * npixels] = (float) load_fit.data[i + j * orig_size + c * orig_pixels] / USHRT_MAX_SINGLE;
+				}
 			}
 		}
 	}
+	if (com.kernelchannels > args.nchans) { // If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
+		siril_log_message(_("The selected PSF is RGB but the loaded image is monochrome. The PSF will be converted to monochrome (luminance).\n"));
+		float* desatkernel = malloc(com.kernelsize * com.kernelsize * sizeof(float));
+		for (int i = 0 ; i < com.kernelsize ; i++) {
+			for (int j = 0 ; j < com.kernelsize ; j++) {
+				float val = 0.f;
+				for (int c = 0 ; c < com.kernelchannels ; c++) {
+					val += com.kernel[i + j * com.kernelsize + c * com.kernelsize * com.kernelsize];
+				}
+				desatkernel[i + j * com.kernelsize] = val / com.kernelchannels;
+			}
+		}
+		free(com.kernel);
+		com.kernel = desatkernel;
+		com.kernelchannels = 1;
+		args.kchans = 1;
+	}
+
 	DrawPSF();
 	clearfits(&load_fit);
 	ENDSAVE:
@@ -605,6 +642,7 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	if (g_strcmp0(imagenoext, imagenoextorig))
 		siril_log_color_message(_("Deconvolution: spaces detected in filename. These have been replaced by underscores.\n"), "salmon");
 	g_free(imagenoextorig);
+	imagenoext = g_strdup_printf("%s_%s", build_timestamp_filename(), imagenoext);
 	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
 	imagenoext = remove_ext_from_filename(imagenoext);
 	strncat(filename, imagenoext, sizeof(filename) - strlen(imagenoext));
@@ -612,7 +650,7 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 #ifdef HAVE_LIBTIFF
 	strncat(filename, ".tif", 5);
 #else
-	strncat(filename, ".pgm", 5);
+	strncat(filename, ".fit", 5);
 #endif
 	save_kernel(filename);
 	g_free(imagenoext);
@@ -623,16 +661,17 @@ void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_
 	gchar* filename = g_strdup(gtk_file_chooser_get_filename(filechooser));
 	if (filename == NULL) {
 		siril_log_color_message(_("No PSF file selected.\n"), "red");
+		gtk_file_chooser_unselect_all(filechooser);
 	} else {
-		if (com.kernel) {
-			free(com.kernel);
-			com.kernel = NULL;
-			com.kernelsize = 0;
-		}
+		reset_conv_kernel();
 		load_kernel(filename);
 	}
 	if (filename)
 		g_free(filename);
+	if (bad_load) {
+		gtk_file_chooser_unselect_all(filechooser);
+		bad_load = FALSE;
+	}
 	args.psftype = PSF_PREVIOUS; // Set to use previous kernel
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
 	return;
@@ -719,6 +758,8 @@ int get_kernel() {
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;
 	args.nchans = the_fit->naxes[2];
+	args.kchans = 1;
+	com.kernelchannels = 1;
 	int fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 	switch (args.psftype) {
 		case PSF_BLIND: // Blind deconvolution
@@ -752,7 +793,7 @@ int get_kernel() {
 			}
 			reset_conv_kernel();
 			calculate_parameters();
-			com.kernel = (float*) calloc(args.ks * args.ks, sizeof(float));
+			com.kernel = (float*) calloc(args.ks * args.ks * args.kchans, sizeof(float));
 			if (com.stars[0]->profile == PSF_GAUSSIAN)
 				makegaussian(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f,args.psf_ratio, args.psf_angle);
 			else
@@ -761,7 +802,7 @@ int get_kernel() {
 			break;
 		case PSF_MANUAL: // Kernel from provided parameters
 			reset_conv_kernel();
-			com.kernel = (float*) calloc(args.ks * args.ks, sizeof(float));
+			com.kernel = (float*) calloc(args.ks * args.ks * args.kchans, sizeof(float));
 			switch (args.profile) {
 				case PROFILE_GAUSSIAN:
 					makegaussian(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_ratio, args.psf_angle);
@@ -794,11 +835,13 @@ int get_kernel() {
 	}
 	if (com.kernel == NULL) {
 		com.kernelsize = 0;
+		com.kernelchannels = 1;
 		siril_log_color_message(_("Error: no PSF defined. Select blind deconvolution or define a PSF from selection or psf parameters.\n"), "red");
 		retval = 1;
 		goto END;
 	}
 #if DEBUG_PSF
+// Ignoring the possibility of multichannel kernels here for readability: only the first channel will be shown
 	for (int i = 0; i < args.ks; i++) {
 		for (int j = 0; j < args.ks; j++) {
 			siril_debug_print("%0.2f\t", com.kernel[i * args.ks + j]);
@@ -807,6 +850,7 @@ int get_kernel() {
 	}
 #endif
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
+	com.kernelchannels = (!com.kernel) ? 0 : args.kchans;
 	if (args.psftype != PSF_PREVIOUS) {
 		DrawPSF();
 	}
@@ -821,6 +865,7 @@ gpointer estimate_only(gpointer p) {
 		free(command_data);
 	}
 	int retval = 0;
+	args.nchans = the_fit->naxes[2];
 	cppmaxthreads = com.max_thread;
 	cppfftwflags = com.pref.fftw_conf.strategy;
 	cppfftwtimelimit = com.pref.fftw_conf.timelimit;
@@ -866,6 +911,7 @@ gpointer deconvolve(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
+	args.nchans = the_fit->naxes[2];
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;
 	int retval = 0;
@@ -923,14 +969,17 @@ gpointer deconvolve(gpointer p) {
 		siril_debug_print("Starting non-blind deconvolution\n");
 		// Normalize the kernel
 		float ksum = 0.f;
-		for (unsigned i = 0 ; i < args.ks * args.ks ; i++)
-			ksum += com.kernel[i];
-		for (unsigned i = 0 ; i < args.ks * args.ks ; i++)
-			com.kernel[i] /= ksum;
+		int kpixels = args.ks * args.ks;
+		for (int c = 0 ; c < args.kchans ; c++) { // Normalize each channel of a multichannel kernel separately
+			for (unsigned i = 0 ; i < kpixels ; i++)
+				ksum += com.kernel[i + c * kpixels];
+			for (unsigned i = 0 ; i < kpixels ; i++)
+				com.kernel[i + c * kpixels] /= ksum;
+		}
 
 		// Non-blind deconvolution stage
 		switch (args.nonblindtype) {
-			case DECONV_SB:
+			case DECONV_SB: // Split Bregman only works with mono kernels for now: internally it converts color images to YCbCr and deconvolves Y so there's no point providing a color kernel
 				split_bregman(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.alpha, args.finaliters, fftw_max_thread);
 				break;
 			case DECONV_RL:
@@ -945,15 +994,18 @@ gpointer deconvolve(gpointer p) {
 						args.regtype = REG_FH_MULT;
 					else args.regtype = REG_NONE_MULT;
 				}
-//				naive_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
-				richardson_lucy_damped(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.finaliters);
+				if (args.ks < fft_cutoff)
+					naive_richardson_lucy(args.fdata, args.rx,args.ry, the_fit->naxes[2], com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
+				else
+					richardson_lucy(args.fdata, args.rx,args.ry, the_fit->naxes[2], com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
+
 				free(msg_rl);
 				msg_rl = NULL;
 				free(msg_earlystop);
 				msg_earlystop = NULL;
 				break;
 			case DECONV_WIENER:
-				wienerdec(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.alpha, fftw_max_thread);
+				wienerdec(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, fftw_max_thread);
 				break;
 		}
 	}
@@ -1003,6 +1055,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* seq = GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_seqapply"));
 	deconvolution_sequence_data* seqargs = NULL;
 	GtkEntry* deconvolutionSeqEntry = GTK_ENTRY(lookup_widget("bdeconv_seq_prefix"));
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("bdeconv_filechooser")));
 	set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	set_deconvolve_params();
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
@@ -1023,6 +1076,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 	sequence_is_running = 0;
 	control_window_switch_to_tab(OUTPUT_LOGS);
+	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("bdeconv_filechooser")));
 	if(!sequence_is_loaded())
 		the_fit = &gfit;
 	if(!com.headless)
@@ -1042,23 +1096,41 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, com.kernelsize);
 
 	float minval = FLT_MAX, maxval = -FLT_MAX;
-	for (int i = 0; i < com.kernelsize * com.kernelsize; i++) {
+	for (int i = 0; i < com.kernelsize * com.kernelsize * com.kernelchannels; i++) {
 		if (maxval < com.kernel[i]) maxval = com.kernel[i];
 		if (minval > com.kernel[i]) minval = com.kernel[i];
 	}
 	float invrange = (maxval == minval) ? 1.f : 1.f / (maxval - minval);
+	int kpixels = com.kernelsize * com.kernelsize;
 
 	guchar *buf = calloc(com.kernelsize * com.kernelsize * 4, sizeof(guchar));
-	for (int i = 0; i <com.kernelsize; i++) {
+	for (int i = 0; i < com.kernelsize; i++) {
 		for (int j = 0; j < com.kernelsize; j++) {
-			float val;
-			if (sequence_is_loaded() && com.seq.type == SEQ_SER)
-				val = pow((com.kernel[i * com.kernelsize + j] - minval) * invrange, 0.5f);
-			else
-				val = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
-			buf[i * stride + 4 * j + 0] = float_to_uchar_range(val);
-			buf[i * stride + 4 * j + 1] = buf[i * stride + 4 * j];
-			buf[i * stride + 4 * j + 2] = buf[i * stride + 4 * j];
+			float val[3] = { 0.f };
+			if (sequence_is_loaded() && com.seq.type == SEQ_SER) {
+				if (com.kernelchannels == 1) {
+					val[0] = pow((com.kernel[i * com.kernelsize + j] - minval) * invrange, 0.5f);
+					val[1] = val[0];
+					val[2] = val[0];
+				} else  if (com.kernelchannels == 3) {
+					val[0] = pow((com.kernel[2 * kpixels + i * com.kernelsize + j] - minval) * invrange, 0.5f);
+					val[1] = pow((com.kernel[kpixels + i * com.kernelsize + j] - minval) * invrange, 0.5f);
+					val[2] = pow((com.kernel[i * com.kernelsize + j] - minval) * invrange, 0.5f);
+				}
+			} else {
+				if (com.kernelchannels == 1) {
+					val[0] = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
+					val[1] = val[0];
+					val[2] = val[0];
+				} else if (com.kernelchannels == 3) {
+					val[0] = pow((com.kernel[2 * kpixels + (com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
+					val[1] = pow((com.kernel[kpixels + (com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
+					val[2] = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
+				}
+			}
+			buf[i * stride + 4 * j + 0] = float_to_uchar_range(val[0]);
+			buf[i * stride + 4 * j + 1] = float_to_uchar_range(val[1]);
+			buf[i * stride + 4 * j + 2] = float_to_uchar_range(val[2]);
 		}
 	}
 

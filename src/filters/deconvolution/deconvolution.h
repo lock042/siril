@@ -27,6 +27,7 @@ EXTERNC typedef struct estk_data {
 	psftype_t psftype;
 	psftype_t oldpsftype;
 	int ks; // Kernel size
+	int kchans; // Kernel channels
 	blind_t blindtype;
 	// Anger-Delbracio-Facciolo l0 Descent
 	float lambda;// = 4e-3f; // Lambda
@@ -92,32 +93,28 @@ EXTERNC int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchan
 }
 #endif
 
-EXTERNC int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
+EXTERNC int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, int kchans, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
 #ifdef __cplusplus
 }
 #endif
 
-EXTERNC int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
+EXTERNC int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, int kchans, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
 #ifdef __cplusplus
 }
 #endif
-
+/*
 EXTERNC int richardson_lucy_damped(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, int maxiter);
 #ifdef __cplusplus
 }
 #endif
-
-EXTERNC int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float sigma, int max_threads);
+*/
+EXTERNC int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float sigma, int max_threads);
 #ifdef __cplusplus
 }
 #endif
-
-EXTERNC int naive_wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float sigma, int max_threads);
-#ifdef __cplusplus
-}
-#endif
-
+/*
 EXTERNC int spectral_pre_adaption(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kdata, int kernelsize, float lambda, int max_threads, int deconv_algo);
 #ifdef __cplusplus
 }
 #endif
+*/

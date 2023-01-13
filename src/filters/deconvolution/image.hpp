@@ -239,11 +239,6 @@ public:
                 for (int j = ix ; j < x.h-ix-1 ; j++) {
                     T val = 0;
                     for (int m = -ix ; m < ix+1 ; m++) {
-//#if defined(__clang__)
-//        #pragma clang loop vectorize(assume_safety)
-//#elif defined(__GNUC__)
-//        #pragma GCC ivdep
-//#endif
                         for (int n = -ix ; n < ix+1 ; n++) {
                             val += x(i+m, j+n, c) * k(m+ix, n+ix, 0);
                         }
@@ -265,7 +260,7 @@ public:
     }
 */
 
-
+/*
     template <typename T2>
     void pasteinto(const img_t<T2>&o, int xoff, int yoff, int width, int height) { // Could this be better optimised?
         assert (width <= o.w && height <= o.h);
@@ -279,7 +274,7 @@ public:
             }
         }
     }
-/*
+
     template <typename T2>
     void masktolist(const img_t<T>& in,
                     const img_t<T2>& mask) {
@@ -691,8 +686,10 @@ public:
                 od = dd;
             else if (o.d == 1)
                 od = 0;
-            else
+            else {
+                printf("Error: depths are %d and %d\n", d, o.d);
                 assert(false);
+            }
 #ifdef _OPENMP
 #pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
 #endif
@@ -779,6 +776,22 @@ public:
             (*this)[i] = val / color.d;
         }
     }
+
+    void desaturate() {
+        for (int i = 0 ; i < w ; i++) {
+            for (int j = 0 ; j < h ; j++) {
+                T val = T(0);
+                for (int c = 0 ; c < d ; c++) {
+                    val += (*this)(i, j, c);
+                }
+                (*this)(i,j,0) = val / d;
+            }
+        }
+        d = 1;
+        data.resize(w * h);
+    }
+
+
 
     void transpose() {
         img_t<T> o(*this);
