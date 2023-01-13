@@ -119,7 +119,7 @@ void reset_conv_args(estk_data* args) {
 	args->finaliters = 10;
 	args->alpha = 1.f / 3000.f;
 	args->stopcriterion = 0.002f;
-	args->rl_method = 1;
+	args->rl_method = RL_GD;
 	args->stepsize = 0.0003f;
 	args->regtype = REG_TV_GRAD;
 }
@@ -135,7 +135,10 @@ void reset_conv_controls() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_profile")), args.profile);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_blindtype")), args.blindtype);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_nonblindtype")), args.nonblindtype);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_regularization")), args.regtype);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_method")), args.rl_method);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")), args.multiscale);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfblind")), TRUE);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdaratio")), args.lambda_ratio);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdamin")), args.lambda_min);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gamma")), args.gamma);
@@ -150,17 +153,25 @@ void reset_conv_controls() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfwhm")), args.psf_fwhm);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfbeta")), args.psf_beta);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfratio")), args.psf_ratio);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_diameter")), args.airy_diameter);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_fl")), args.airy_fl);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_wl")), args.airy_wl);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_pixelsize")), args.airy_pixelsize);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_obstruction")), args.airy_obstruction);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ninner")), args.ninner);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")), args.ntries);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_nouter")), args.nouter);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), args.finaliters);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stopcriterion")), args.stopcriterion);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stepsize")), args.stepsize);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ncomp")), args.compensationfactor);
 }
 
 void reset_conv_controls_and_args() {
 	if (!get_thread_run())
 		reset_conv_args(&args);
-	reset_conv_controls();
+	if (!(com.headless))
+		reset_conv_controls();
 }
 
 void on_bdeconv_psfblind_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -184,6 +195,10 @@ void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
 		args.ks++;
 		gtk_spin_button_set_value(button, args.ks);
 	}
+	free(com.kernel);
+	com.kernel = NULL;
+	com.kernelsize = 0;
+	DrawPSF();
 }
 
 void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
@@ -482,6 +497,10 @@ void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	reset_conv_controls_and_args();
+	if (com.kernel && com.kernelsize > 0) {
+		args.psftype = PSF_PREVIOUS;
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
+	}
 	calculate_parameters();
 	initialize_airy_parameters();
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -490,60 +509,72 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 
 int save_kernel(gchar* filename) {
 	int retval = 0;
-	fits *fit = NULL;
-	if ((retval = new_fit_image_with_data(&fit, args.ks, args.ks, 1, DATA_FLOAT, com.kernel)))
+	fits *save_fit = NULL;
+	//Check there is a PSF to save
+	if (com.kernel == NULL) {
+		retval = 1;
+		siril_log_color_message(_("Error: no PSF has been computed, nothing to save.\n"), "red");
 		return retval;
+	}
+	// Need to make a sacrificial copy of com.kernel as the save_fit data will be freed when we call clearfits
+	float* copy_kernel = malloc(com.kernelsize * com.kernelsize * sizeof(float));
+	memcpy(copy_kernel, com.kernel, com.kernelsize * com.kernelsize * sizeof(float));
+	if ((retval = new_fit_image_with_data(&save_fit, com.kernelsize, com.kernelsize, 1, DATA_FLOAT, copy_kernel))) {
+		siril_log_color_message(_("Error preparing PSF for save.\n"), "red");
+		return retval;
+	}
 #ifdef HAVE_LIBTIFF
-	retval = savetif(filename, fit, 32, "Saved Siril deconvolution kernel", NULL, FALSE);
+	retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution PSF", NULL, FALSE);
 #else
-	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving kernel at reduced precision as a 16-bit greyscale PGM file.\n"), "red");
-	retval = saveNetPBM(filename, fit);
+	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving PSF at reduced precision as a 16-bit greyscale PGM file.\n"), "salmon");
+	retval = saveNetPBM(filename, save_fit);
 #endif
+	clearfits(save_fit); // also frees copy_kernel
+	free(save_fit);
 	return retval;
 }
 
 int load_kernel(gchar* filename) {
 	int retval = 0;
 	int orig_size;
-	fits fit = { 0 };
-	if ((retval = read_single_image(filename, &fit, NULL, FALSE, NULL, FALSE, TRUE)))
+	fits load_fit = { 0 };
+	if ((retval = read_single_image(filename, &load_fit, NULL, FALSE, NULL, FALSE, TRUE)))
 		goto ENDSAVE;
-	if (fit.rx != fit.ry){
+	if (load_fit.rx != load_fit.ry){
 		retval = 1;
-		char *msg = siril_log_color_message(_("Error: kernel file does not contain a square kernel. Cannot load this file.\n"), "red");
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong kernel size"), msg);
+		char *msg = siril_log_color_message(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"), "red");
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
 		goto ENDSAVE;
 	}
-	if (!(fit.rx % 2)) {
-		com.kernelsize = fit.rx - 1;
-		orig_size = fit.rx;
-		siril_log_color_message(_("Warning: kernel file is even (%d x %d). Kernels should always be odd. Cropping by 1 pixel in each direction. "
-				"This may not produce optimum results.\n"), "salmon", fit.rx, fit.rx);
+	if (!(load_fit.rx % 2)) {
+		com.kernelsize = load_fit.rx - 1;
+		orig_size = load_fit.rx;
+		siril_log_color_message(_("Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping by 1 pixel in each direction. "
+				"This may not produce optimum results.\n"), "salmon", load_fit.rx, load_fit.rx);
 	} else {
-		com.kernelsize = fit.rx;
+		com.kernelsize = load_fit.rx;
 		orig_size = com.kernelsize;
 	}
 	if (!com.headless)
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")), com.kernelsize);
 
 	com.kernel = (float*) malloc(com.kernelsize * com.kernelsize * sizeof(float));
-	if (fit.type == DATA_FLOAT) {
+	if (load_fit.type == DATA_FLOAT) {
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
-			com.kernel[i + j * com.kernelsize] = fit.fdata[i + j * orig_size];
+			com.kernel[i + j * com.kernelsize] = load_fit.fdata[i + j * orig_size];
 			}
 		}
 	} else {
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
-				com.kernel[i + j * com.kernelsize] = (float) fit.data[i + j * orig_size] / USHRT_MAX_SINGLE;
+				com.kernel[i + j * com.kernelsize] = (float) load_fit.data[i + j * orig_size] / USHRT_MAX_SINGLE;
 			}
 		}
 	}
+	DrawPSF();
+	clearfits(&load_fit);
 	ENDSAVE:
-	clearfits(&fit);
-	if (filename)
-		g_free(filename);
 	return retval;
 }
 
@@ -562,13 +593,18 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	// Initialise the filename strings as empty strings
 	memset(filename, 0, sizeof(filename));
 	// Set up paths and filenames
-	imagenoextorig = g_path_get_basename(com.uniq->filename);
-	imagenoext = g_path_get_basename(com.uniq->filename);
+	if (single_image_is_loaded())
+		imagenoextorig = g_path_get_basename(com.uniq->filename);
+	else if (sequence_is_loaded())
+		imagenoextorig = g_strdup(com.seq.seqname);
+	else
+		imagenoextorig = g_strdup_printf("deconvolution");
+	imagenoext = g_strdup(imagenoextorig);
 	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
         *q = *c == ' ' ? '_' : *c;
 	if (g_strcmp0(imagenoext, imagenoextorig))
 		siril_log_color_message(_("Deconvolution: spaces detected in filename. These have been replaced by underscores.\n"), "salmon");
-	free(imagenoextorig);
+	g_free(imagenoextorig);
 	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
 	imagenoext = remove_ext_from_filename(imagenoext);
 	strncat(filename, imagenoext, sizeof(filename) - strlen(imagenoext));
@@ -579,18 +615,26 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	strncat(filename, ".pgm", 5);
 #endif
 	save_kernel(filename);
+	g_free(imagenoext);
+	return;
 }
 
 void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	gchar* filename = g_strdup(gtk_file_chooser_get_filename(filechooser));
 	if (filename == NULL) {
-		siril_log_color_message(_("No kernel file selected.\n"), "red");
+		siril_log_color_message(_("No PSF file selected.\n"), "red");
 	} else {
+		if (com.kernel) {
+			free(com.kernel);
+			com.kernel = NULL;
+			com.kernelsize = 0;
+		}
 		load_kernel(filename);
 	}
+	if (filename)
+		g_free(filename);
 	args.psftype = PSF_PREVIOUS; // Set to use previous kernel
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
-	DrawPSF();
 	return;
 }
 
@@ -750,7 +794,7 @@ int get_kernel() {
 	}
 	if (com.kernel == NULL) {
 		com.kernelsize = 0;
-		siril_log_color_message(_("Error: no kernel defined. Select blind deconvolution or define a kernel from selection or psf parameters.\n"), "red");
+		siril_log_color_message(_("Error: no PSF defined. Select blind deconvolution or define a PSF from selection or psf parameters.\n"), "red");
 		retval = 1;
 		goto END;
 	}
@@ -763,6 +807,9 @@ int get_kernel() {
 	}
 #endif
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
+	if (args.psftype != PSF_PREVIOUS) {
+		DrawPSF();
+	}
 END:
 	return retval;
 }
@@ -799,9 +846,8 @@ gpointer estimate_only(gpointer p) {
 		}
 	}
 
-	set_progress_bar_data(_("Starting kernel computation..."), PROGRESS_PULSATE);
+	set_progress_bar_data(_("Starting PSF computation..."), PROGRESS_PULSATE);
 	get_kernel();
-
 	if (args.psftype == PSF_BLIND) {
 		if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 			siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
@@ -809,7 +855,7 @@ gpointer estimate_only(gpointer p) {
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 		}
 	}
-	siril_log_color_message(_("Deconvolution kernel generated.\n"), "green");
+	siril_log_color_message(_("Deconvolution PSF generated.\n"), "green");
 	siril_add_idle(estimate_idle, NULL);
 	return GINT_TO_POINTER(retval);
 }
@@ -820,8 +866,15 @@ gpointer deconvolve(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
-
+	args.rx = the_fit->rx;
+	args.ry = the_fit->ry;
 	int retval = 0;
+	if (args.psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
+	// Refuse to process the image using previous PSF if there is no previous PSF defined
+		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");
+		retval = 1;
+		goto ENDDECONV;
+	}
 	int fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 	cppmaxthreads = fftw_max_thread;
 	cppfftwflags = com.pref.fftw_conf.strategy;
@@ -854,15 +907,15 @@ gpointer deconvolve(gpointer p) {
 
 	// Get the kernel
 	if (sequence_is_running == 0)
-		set_progress_bar_data("Starting kernel estimation...", PROGRESS_PULSATE);
-	siril_debug_print("Starting kernel estimation\n");
-	get_kernel();
+		set_progress_bar_data("Starting PSF estimation...", PROGRESS_PULSATE);
+	siril_debug_print("Starting PSF estimation\n");
+	if (args.psftype != PSF_PREVIOUS)
+		get_kernel();
 	if (!com.kernel) {
 		siril_debug_print("Kernel missing!\n");
 		retval = 1;
 		goto ENDDECONV;
 	}
-	DrawPSF();
 
 	if (get_thread_run() || sequence_is_running == 1) {
 		if (sequence_is_running == 0)
@@ -917,7 +970,7 @@ gpointer deconvolve(gpointer p) {
 		}
 	}
 ENDDECONV:
-	// Do not free the kernel here as it is populated into com.kernel
+	// Do not free the PSF here as it is populated into com.kernel
 	if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
@@ -978,7 +1031,10 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 
 // Actual drawing function
 void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
+	static GMutex psf_preview_mutex;
 	if (!com.kernel || !com.kernelsize) return;
+	if (!(g_mutex_trylock(&psf_preview_mutex)))
+		return;
 	int width =  gtk_widget_get_allocated_width(widget);
 	int height = gtk_widget_get_allocated_height(widget);
 
@@ -994,7 +1050,11 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	guchar *buf = calloc(com.kernelsize * com.kernelsize * 4, sizeof(guchar));
 	for (int i = 0; i <com.kernelsize; i++) {
 		for (int j = 0; j < com.kernelsize; j++) {
-			float val = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
+			float val;
+			if (sequence_is_loaded() && com.seq.type == SEQ_SER)
+				val = pow((com.kernel[i * com.kernelsize + j] - minval) * invrange, 0.5f);
+			else
+				val = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
 			buf[i * stride + 4 * j + 0] = float_to_uchar_range(val);
 			buf[i * stride + 4 * j + 1] = buf[i * stride + 4 * j];
 			buf[i * stride + 4 * j + 2] = buf[i * stride + 4 * j];
@@ -1012,6 +1072,8 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_FAST);
 	cairo_paint(cr);
 	free(buf);
+	g_mutex_unlock(&psf_preview_mutex);
+	return;
 }
 
 // PSF drawing callback
@@ -1025,8 +1087,6 @@ static void DrawPSF() {
 	if (!drawingPSF) {
 		drawingPSF = lookup_widget("bdeconv_drawingarea");
 	}
-	if (!com.kernelsize)
-		return;
 	gtk_widget_queue_draw(drawingPSF);
 }
 
@@ -1067,6 +1127,51 @@ int deconvolution_image_hook(struct generic_seq_args *seqargs, int o, int i, fit
 	return ret;
 }
 
+int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
+	if (args.psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
+	// Refuse to process the sequence using previous PSF if there is no previous PSF defined
+		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");
+		return 1;
+	}
+	int retval = 0;
+	g_assert(seqargs->has_output); // don't call this hook otherwise
+	if (seqargs->force_ser_output || (seqargs->seq->type == SEQ_SER && !seqargs->force_fitseq_output)) {
+		gchar *dest;
+		const char *ptr = strrchr(seqargs->seq->seqname, G_DIR_SEPARATOR);
+		if (ptr)
+			dest = g_strdup_printf("%s%s.ser", seqargs->new_seq_prefix, ptr + 1);
+		else dest = g_strdup_printf("%s%s.ser", seqargs->new_seq_prefix, seqargs->seq->seqname);
+
+		seqargs->new_ser = malloc(sizeof(struct ser_struct));
+		if (ser_create_file(dest, seqargs->new_ser, TRUE, seqargs->seq->ser_file)) {
+			free(seqargs->new_ser);
+			seqargs->new_ser = NULL;
+			retval = 1;
+		}
+		g_free(dest);
+	}
+	else if (seqargs->force_fitseq_output || (seqargs->seq->type == SEQ_FITSEQ && !seqargs->force_ser_output)) {
+		gchar *dest;
+		const char *ptr = strrchr(seqargs->seq->seqname, G_DIR_SEPARATOR);
+		if (ptr)
+			dest = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, ptr + 1, com.pref.ext);
+		else dest = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, seqargs->seq->seqname, com.pref.ext);
+
+		seqargs->new_fitseq = malloc(sizeof(fitseq));
+		if (fitseq_create_file(dest, seqargs->new_fitseq, seqargs->nb_filtered_images)) {
+			free(seqargs->new_fitseq);
+			seqargs->new_fitseq = NULL;
+			retval = 1;
+		}
+		g_free(dest);
+	}
+	else return 0;
+
+	if (!retval)
+		retval = seq_prepare_writer(seqargs);
+	return retval;
+}
+
 void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 	sequence_is_running = 1;
 	struct generic_seq_args *seqargs = create_default_seqargs(seqdata->seq);
@@ -1074,7 +1179,7 @@ void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata) {
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = seqdata->seq->selnum;
 	seqargs->compute_mem_limits_hook = deconvolution_compute_mem_limits;
-	seqargs->prepare_hook = seq_prepare_hook;
+	seqargs->prepare_hook = deconvolution_prepare_hook;
 	seqargs->finalize_hook = deconvolution_finalize_hook;
 	seqargs->image_hook = deconvolution_image_hook;
 	seqargs->description = _("Deconvolution");
