@@ -21261,9 +21261,7 @@ The next action for DSLR images would be to debayer the preprocessed images, go 
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Check this option if you want to apply a demosaicing algorithm to your FITS images right after they were preprocessed. By doing this, you skip one manual step which can take some time.
-
-WARNING: this option is only available for FITS images as SER sequence can be demosaiced on-the-fly.</property>
+                                                        <property name="tooltip-text" translatable="yes">Check this option if you want to apply a demosaicing algorithm to your FITS images right after they were preprocessed. By doing this, you skip one manual step which can take some time.</property>
                                                         <property name="halign">start</property>
                                                         <property name="draw-indicator">True</property>
                                                       </object>
