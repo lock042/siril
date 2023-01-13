@@ -1091,7 +1091,8 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale) {
 		return 1;
 	}
 
-	Ptr<detail::RotationWarper> warper = warper_creator->create(static_cast<float>(-scale));
+	Ptr<detail::RotationWarper> warper = warper_creator->create(static_cast<float>(scale));
+	k.at<float>(0,0) *= -1.f; // flip bottom up
 	Rect roi = warper->warpRoi(szin, k, r);
 	corners = roi.tl();
 	sizes = roi.size();
