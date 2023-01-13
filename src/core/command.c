@@ -2491,21 +2491,30 @@ int process_mtf(int nb) {
 }
 
 int process_autoghs(int nb) {
-	gchar *end = NULL;
+	int argidx = 1;
+	gboolean linked = FALSE;
 	float shadows_clipping, b = 13.0f, hp = 0.7f, lp = 0.0f;
-	shadows_clipping = g_ascii_strtod(word[1], &end);
-	if (end == word[1]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
-		return CMD_ARG_ERROR;
+
+	if (!g_strcmp0(word[1], "-linked")) {
+		linked = TRUE;
+		argidx++;
 	}
 
-	float amount = g_ascii_strtod(word[2], &end);
-	if (end == word[2]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
+	gchar *end = NULL;
+	shadows_clipping = g_ascii_strtod(word[argidx], &end);
+	if (end == word[argidx]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
 		return CMD_ARG_ERROR;
 	}
+	argidx++;
 
-	int argidx = 3;
+	float amount = g_ascii_strtod(word[argidx], &end);
+	if (end == word[argidx]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+		return CMD_ARG_ERROR;
+	}
+	argidx++;
+
 	while (argidx < nb) {
 		if (g_str_has_prefix(word[argidx], "-b=")) {
 			char *arg = word[argidx] + 3;
@@ -2537,29 +2546,57 @@ int process_autoghs(int nb) {
 	int nb_channels = (int)gfit.naxes[2];
 	imstats *stats[3] = { NULL };
 	int ret = compute_all_channels_statistics_single_image(&gfit, STATS_BASIC, MULTI_THREADED, stats);
-	// TODO: parallel for?
-	for (int i = 0; i < nb_channels; ++i) {
-		gboolean do_red = i == 0, do_green = i == 1, do_blue = i == 2;
-		if (stats[i]) {
-			float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
-			if (gfit.type == DATA_USHORT)
-				SP *= (gfit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
-			siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
-
-			ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
-				.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
-			apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-
+	if (ret) {
+		for (int i = 0; i < nb_channels; ++i) {
 			free_stats(stats[i]);
+		}
+		return CMD_GENERIC_ERROR;
+	}
+	if (linked) {
+		double median = 0.0, sigma = 0.0;
+		for (int i = 0; i < nb_channels; ++i) {
+			median += stats[i]->median;
+			sigma += stats[i]->sigma;
+			free_stats(stats[i]);
+		}
+		median /= nb_channels;
+		sigma /= nb_channels;
+		float SP = median + shadows_clipping * sigma;
+		if (gfit.type == DATA_USHORT)
+			SP *= (gfit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
+		siril_log_message(_("Symmetry point SP=%f\n"), SP);
+
+		ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
+			.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE };
+		apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
+#endif
+		for (int i = 0; i < nb_channels; ++i) {
+			gboolean do_red = i == 0, do_green = i == 1, do_blue = i == 2;
+			if (stats[i]) {
+				float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
+				if (gfit.type == DATA_USHORT)
+					SP *= (gfit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
+				siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
+
+				ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
+					.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
+				apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+				free_stats(stats[i]);
+			}
 		}
 	}
 
 	char log[100];
-	sprintf(log, "AutoGHS (k.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])", shadows_clipping, amount, b, lp, hp);
+	sprintf(log, "AutoGHS (%sk.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
-	return ret ? CMD_GENERIC_ERROR : CMD_OK;
+	return CMD_OK;
 }
 
 int process_autostretch(int nb) {
