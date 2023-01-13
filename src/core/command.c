@@ -5723,19 +5723,19 @@ int process_seq_header(int nb) {
 }
 
 int process_convertraw(int nb) {
-	GDir *dir;
-	GError *error = NULL;
-	const gchar *file;
-	GList *list = NULL;
-	int idx = 1;
-	gchar *destroot = g_strdup(word[1]);
-	sequence_type output = SEQ_REGULAR;
-	gboolean debayer = FALSE;
-
 	if (!com.wd) {
 		siril_log_message(_("Conversion: no working directory set.\n"));
 		return CMD_NO_CWD;
 	}
+
+	if (word[1][0] == '-') {
+		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
+		return CMD_ARG_ERROR;
+	}
+	gchar *destroot = g_strdup(word[1]);
+	int idx = 1;
+	gboolean debayer = FALSE;
+	sequence_type output = SEQ_REGULAR;
 
 	for (int i = 2; i < nb; i++) {
 		char *current = word[i], *value;
@@ -5779,6 +5779,8 @@ int process_convertraw(int nb) {
 		}
 	}
 
+	GDir *dir;
+	GError *error = NULL;
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Conversion: %s\n", error->message);
@@ -5787,6 +5789,8 @@ int process_convertraw(int nb) {
 	}
 
 	int count = 0;
+	const gchar *file;
+	GList *list = NULL;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
 		if (!ext || file[0] == '.')
@@ -5835,12 +5839,12 @@ int process_convertraw(int nb) {
 }
 
 int process_link(int nb) {
-	GDir *dir;
-	GError *error = NULL;
-	const gchar *file;
-	GList *list = NULL;
-	int idx = 1;
+	if (word[1][0] == '-') {
+		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
+		return CMD_ARG_ERROR;
+	}
 	gchar *destroot = g_strdup(word[1]);
+	int idx = 1;
 
 	for (int i = 2; i < nb; i++) {
 		char *current = word[i], *value;
@@ -5874,6 +5878,8 @@ int process_link(int nb) {
 		}
 	}
 
+	GDir *dir;
+	GError *error = NULL;
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Link: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Link: %s\n", error->message);
@@ -5883,6 +5889,8 @@ int process_link(int nb) {
 	}
 
 	int count = 0;
+	const gchar *file;
+	GList *list = NULL;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
 		if (!ext || file[0] == '.')
@@ -5931,15 +5939,15 @@ int process_link(int nb) {
 }
 
 int process_convert(int nb) {
-	GDir *dir;
-	GError *error = NULL;
-	const gchar *file;
-	GList *list = NULL;
+	if (word[1][0] == '-') {
+		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
+		return CMD_ARG_ERROR;
+	}
+	gchar *destroot = g_strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	gboolean make_link = TRUE;
 	sequence_type output = SEQ_REGULAR;
-	gchar *destroot = g_strdup(word[1]);
 
 	for (int i = 2; i < nb; i++) {
 		char *current = word[i], *value;
@@ -5984,6 +5992,8 @@ int process_convert(int nb) {
 		}
 	}
 
+	GDir *dir;
+	GError *error = NULL;
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Convert: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Convert: %s\n", error->message);
@@ -5993,6 +6003,8 @@ int process_convert(int nb) {
 	}
 
 	int count = 0;
+	const gchar *file;
+	GList *list = NULL;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
 		if (!ext || file[0] == '.')
