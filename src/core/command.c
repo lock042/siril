@@ -844,6 +844,10 @@ int process_gauss(int nb){
 	}
 	unsharp(&gfit, sigma, 0.0, TRUE);
 	//gaussian_blur_RT(&gfit, sigma, com.max_thread);
+
+	char log[90];
+	sprintf(log, "Gaussian filtering, sigma: %.2f", sigma);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -1355,6 +1359,10 @@ int process_unsharp(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	unsharp(&(gfit), sigma, multi, TRUE);
+
+	char log[90];
+	sprintf(log, "Unsharp filtering, sigma: %.2f, coefficient: %.2f", sigma, multi);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -1405,9 +1413,12 @@ int process_crop(int nb) {
 	}
 
 	crop(&gfit, &area);
-	gfit.history = g_slist_append(gfit.history,
-			g_strdup_printf(_("Crop (x=%d, y=%d, w=%d, h=%d)"),
-					area.x, area.y, area.w, area.h));
+
+	char log[90];
+	sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
+					area.x, area.y, area.w, area.h);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	notify_gfit_modified();
 	siril_add_idle(crop_command_idle, NULL);
 
@@ -1469,6 +1480,7 @@ int process_wrecons(int nb) {
 	redraw_previews();
 	return CMD_OK;
 }
+
 int process_linstretch(int nb) {
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
@@ -1509,6 +1521,10 @@ int process_linstretch(int nb) {
 	set_cursor_waiting(TRUE);
 	ght_params params = {0.0, 0.0, 0.0, 0.0, 0.0, BP, STRETCH_LINEAR, COL_INDEP, do_red, do_green, do_blue};
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+	char log[90];
+	sprintf(log, "Linear stretch to black point %.3f", BP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1595,6 +1611,10 @@ int process_ght(int nb) {
 	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_NORMAL, stretch_colourmodel, do_red, do_green, do_blue};
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
+	char log[100];
+	sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", SP, D, B, LP, HP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -1678,8 +1698,14 @@ int process_invght(int nb) {
 	}
 
 	set_cursor_waiting(TRUE);
-	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE, stretch_colourmodel, do_red, do_green, do_blue};
+	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE,
+		stretch_colourmodel, do_red, do_green, do_blue};
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+	char log[100];
+	sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+			SP, D, B, LP, HP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1760,6 +1786,11 @@ int process_modasinh(int nb) {
 	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_ASINH, stretch_colourmodel, do_red, do_green, do_blue};
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
+	char log[100];
+	sprintf(log, "Modified asinh (pivot: %.3f, amount: %.2f, [%.2f, %.2f])",
+			SP, D, LP, HP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -1838,6 +1869,11 @@ int process_invmodasinh(int nb) {
 	set_cursor_waiting(TRUE);
 	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_INVASINH, stretch_colourmodel, do_red, do_green, do_blue};
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+	char log[100];
+	sprintf(log, "Inverted modified asinh (pivot: %.3f, amount: %.2f, [%.2f, %.2f])",
+			SP, D, LP, HP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -2402,6 +2438,7 @@ int process_mirrory(int nb){
 
 int process_mtf(int nb) {
 	struct mtf_params params;
+	gboolean inverse = word[0][0] == 'i' || word[0][0] == 'I';
 	gchar *end1, *end2, *end3;
 	params.shadows = g_ascii_strtod(word[1], &end1);
 	params.midtones = g_ascii_strtod(word[2], &end2);
@@ -2439,52 +2476,15 @@ int process_mtf(int nb) {
 		}
 	}
 
-	apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
+	if (inverse)
+		apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
+	else apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
 
-	notify_gfit_modified();
-	return CMD_OK;
-}
-
-int process_invmtf(int nb) {
-	struct mtf_params params;
-	gchar *end1, *end2, *end3;
-	params.shadows = g_ascii_strtod(word[1], &end1);
-	params.midtones = g_ascii_strtod(word[2], &end2);
-	params.highlights = g_ascii_strtod(word[3], &end3);
-	params.do_red = TRUE;
-	params.do_green = TRUE;
-	params.do_blue = TRUE;
-	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
-			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
-			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
-		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
-		return CMD_ARG_ERROR;
-	}
-	if (word[4]) {
-		if (!strcmp(word[4], "R")) {
-			params.do_green = FALSE;
-			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "G")) {
-			params.do_red = FALSE;
-			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "B")) {
-			params.do_green = FALSE;
-			params.do_red = FALSE;
-		}
-		if (!strcmp(word[4], "RG")) {
-			params.do_blue = FALSE;
-		}
-		if (!strcmp(word[4], "RB")) {
-			params.do_green = FALSE;
-		}
-		if (!strcmp(word[4], "GB")) {
-			params.do_red = FALSE;
-		}
-	}
-
-	apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
+	char log[90];
+	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
+			inverse ? "Inverse midtones" : "Midtones",
+			params.shadows, params.midtones, params.highlights);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -2635,7 +2635,7 @@ int process_binxy(int nb) {
 int process_resample(int nb) {
 	gchar *end;
 	gboolean clamp = TRUE;
-	int interpolation = OPENCV_LANCZOS4;
+	opencv_interpolation interpolation = OPENCV_LANCZOS4;
 	int toX, toY;
 
 	if (word[1][0] == '-') {
@@ -2670,7 +2670,6 @@ int process_resample(int nb) {
 		toX = round_to_int(factor * gfit.rx);
 		toY = round_to_int(factor * gfit.ry);
 	}
-	siril_log_message(_("Resampling to %d x %d pixels\n"), toX, toY);
 
 	for (int i = 2; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-interp=")) {
@@ -2709,9 +2708,18 @@ int process_resample(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
+	siril_log_message(_("Resampling to %d x %d pixels with %s interpolation\n"),
+			toX, toY, interp_to_str(interpolation));
+	int fromX = gfit.rx, fromY = gfit.ry;
 
 	set_cursor_waiting(TRUE);
 	verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
+
+	char log[90];
+	sprintf(log, "Resampled from %d x %d, %s interp%s", fromX, fromY, interp_to_str(interpolation),
+			((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) ?
+			", clamped" : "");
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	if (!com.script) update_MenuItem();
@@ -2840,9 +2848,10 @@ int process_rotatepi(int nb){
 }
 
 int process_set(int nb) {
+	gboolean is_get = word[0][0] == 'g' || word[0][0] == 'G';
 	char *input = word[1];
 	if (input[0] == '-') {
-		if (word[0][0] == 'g') {
+		if (is_get) {
 			if (!strcmp(input, "-a"))
 				return print_all_settings(FALSE);
 			if (!strcmp(input, "-A"))
@@ -2872,7 +2881,7 @@ int process_set(int nb) {
 		return 1;
 	}
 	input[sep] = '\0';
-	if (word[0][0] == 'g') {
+	if (is_get) {
 		print_settings_key(input, input+sep+1, FALSE);
 	} else {
 		/* set */
@@ -3930,6 +3939,10 @@ int process_thresh(int nb){
 	}
 	threshlo(&gfit, lo);
 	threshhi(&gfit, hi);
+
+	char log[90];
+	sprintf(log, "Image clamped to [%d, %d]", lo, hi);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -3943,6 +3956,10 @@ int process_threshlo(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	threshlo(&gfit, lo);
+
+	char log[90];
+	sprintf(log, "Image clamped to [%d, max]", lo);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -3956,6 +3973,10 @@ int process_threshhi(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	threshhi(&gfit, hi);
+
+	char log[90];
+	sprintf(log, "Image clamped to [min, %d]", hi);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -3963,6 +3984,7 @@ int process_threshhi(int nb) {
 int process_neg(int nb) {
 	set_cursor_waiting(TRUE);
 	pos_to_neg(&gfit);
+	gfit.history = g_slist_append(gfit.history, strdup("Image made negative"));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -3976,6 +3998,10 @@ int process_nozero(int nb){
 		return CMD_ARG_ERROR;
 	}
 	nozero(&gfit, (WORD)level);
+
+	char log[90];
+	sprintf(log, "Replaced zeros with %d", level);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
