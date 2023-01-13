@@ -164,10 +164,10 @@ if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
 
 	PKG_CHECK_MODULES([OPENCV], [opencv4 >= 4.4.0],
 			  [AC_DEFINE([HAVE_CV44], [1], [Using OpenCV4.4])]
-			  [OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
+			  [OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d -lopencv_stitching"],
 			  [PKG_CHECK_MODULES([OPENCV], [opencv4 >= 4.2.0],
 					     [AC_MSG_WARN([OpenCV 4.2 found, translation-only registration will be disabled - requires 4.4])]
-					     [OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d"],
+					     [OPENCV_LIBS="-lopencv_core -lopencv_imgproc -lopencv_calib3d -lopencv_stitching"],
 					     AC_MSG_ERROR([opencv not found.]))])
 else
 	AC_MSG_ERROR([no C++ compiler found])
