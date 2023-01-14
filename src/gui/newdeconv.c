@@ -560,6 +560,8 @@ int load_kernel(gchar* filename) {
 		bad_load = TRUE;
 		goto ENDSAVE;
 	}
+	if (com.kernel)
+		reset_conv_kernel();
 	if (!(load_fit.rx % 2)) {
 		com.kernelsize = load_fit.rx - 1;
 		orig_size = load_fit.rx;
@@ -567,10 +569,10 @@ int load_kernel(gchar* filename) {
 				"This may not produce optimum results.\n"), "salmon", load_fit.rx, load_fit.rx);
 	} else {
 		com.kernelsize = load_fit.rx;
-		com.kernelchannels = load_fit.naxes[2];
-		args.kchans = com.kernelchannels;
 		orig_size = com.kernelsize;
 	}
+	com.kernelchannels = load_fit.naxes[2];
+	args.kchans = com.kernelchannels;
 	if (!com.headless)
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")), com.kernelsize);
 
@@ -613,9 +615,9 @@ int load_kernel(gchar* filename) {
 		args.kchans = 1;
 	}
 	com.pref.debayer.open_debayer = original_debayer_setting;
-	DrawPSF();
 	clearfits(&load_fit);
 	ENDSAVE:
+	DrawPSF();
 	return retval;
 }
 
@@ -675,9 +677,10 @@ void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_
 	if (bad_load) {
 		gtk_file_chooser_unselect_all(filechooser);
 		bad_load = FALSE;
+	} else {
+		args.psftype = PSF_PREVIOUS; // Set to use previous kernel
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
 	}
-	args.psftype = PSF_PREVIOUS; // Set to use previous kernel
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
 	return;
 }
 
