@@ -380,8 +380,8 @@ void on_bdeconv_profile_changed(GtkComboBox *combo, gpointer user_data) {
 	if (profile != PROFILE_AIRY) {
 		gtk_widget_set_visible(lookup_widget("bdeconv_manual_stars"), TRUE);
 		gtk_widget_set_visible(lookup_widget("bdeconv_manual_airy"), FALSE);
-		gtk_widget_set_sensitive(lookup_widget("bdeconv_psfangle"), (profile != PROFILE_MOFFAT && profile!= PROFILE_GAUSSIAN));
-		gtk_widget_set_sensitive(lookup_widget("bdeconv_psfratio"), (profile != PROFILE_MOFFAT && profile != PROFILE_GAUSSIAN));
+		gtk_widget_set_sensitive(lookup_widget("bdeconv_psfangle"), (profile == PROFILE_MOFFAT || profile == PROFILE_GAUSSIAN));
+		gtk_widget_set_sensitive(lookup_widget("bdeconv_psfratio"), (profile == PROFILE_MOFFAT || profile == PROFILE_GAUSSIAN));
 		gtk_widget_set_sensitive(lookup_widget("bdeconv_psfbeta"), profile == PROFILE_MOFFAT);
 	} else {
 		gtk_widget_set_visible(lookup_widget("bdeconv_manual_stars"), FALSE);
