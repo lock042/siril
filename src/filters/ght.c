@@ -373,60 +373,6 @@ int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float 
 	return 0;
 }
 
-void describe_ght_for_history(struct ght_params *params, GSList **hist) {
-	GString *str = g_string_new("Applied ");
-	switch (params->stretchtype) {
-		case STRETCH_PAYNE_NORMAL:
-			g_string_append(str, "generalized hyperbolic ");
-			break;
-		case STRETCH_PAYNE_INVERSE:
-			g_string_append(str,"inverse generalized hyperbolic ");
-			break;
-		case STRETCH_ASINH:
-			g_string_append(str,"modified arcsinh ");
-			break;
-		case STRETCH_INVASINH:
-			g_string_append(str,"inverse modified arcsinh ");
-			break;
-		case STRETCH_LINEAR:
-			g_string_append(str,"linear (blackpoint shift) ");
-			break;
-	}
-	g_string_append(str, "stretch\nto channel(s) ");
-	if (params->do_red)
-			g_string_append(str,"R ");
-	if (params->do_green)
-			g_string_append(str,"G ");
-	if (params->do_blue)
-			g_string_append(str,"B ");
-	g_string_append(str,"with parameters:\n");
-	switch (params->stretchtype) {
-		case STRETCH_PAYNE_NORMAL:
-		case STRETCH_PAYNE_INVERSE:
-			g_string_append_printf(str,"B = %f, D = %f, LP = %f, SP = %f, HP = %f,\n", params->B, params->D, params->LP, params->SP, params->HP);
-			break;
-		case STRETCH_ASINH:
-		case STRETCH_INVASINH:
-			g_string_append_printf(str,"B = %f, LP = %f, SP = %f, HP = %f,\n", params->B, params->LP, params->SP, params->HP);
-			break;
-		case STRETCH_LINEAR:
-			g_string_append_printf(str,"BP = %f,\n", params->BP);
-			break;
-	}
-	g_string_append(str,"color model = ");
-	switch (params->payne_colourstretchmodel) {
-		case COL_INDEP:
-			g_string_append(str,"independent channels");
-			break;
-		case COL_HUMANLUM:
-			g_string_append(str,"even-weighted luminance");
-			break;
-		case COL_EVENLUM:
-			g_string_append(str,"human-weighted luminance");
-			break;
-	}	*hist = g_slist_append(*hist, g_string_free(str, FALSE));
-}
-
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct ght_compute_params compute_params, gboolean multithreaded) {
 	const gboolean do_channel[3] = {params.do_red, params.do_green, params.do_blue};
 	int active_channels = 3;

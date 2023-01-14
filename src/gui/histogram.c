@@ -798,8 +798,6 @@ static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 		rectangle *_, int threads) {
 	struct ght_data *m_args = (struct ght_data*) args->user;
 	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, m_args->compute_params, FALSE);
-	describe_ght_for_history(&m_args->params_ght, &fit->history);
-
 	return 0;
 }
 
@@ -952,10 +950,24 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 				_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
 				_midtones, _shadows, _highlights);
 		} else if (invocation == GHT_STRETCH) {
-			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3lf, B=%2.3lf, LP=%2.3lf, SP=%2.3lf, HP=%2.3lf", _D, _B, _LP, _SP, _HP);
-			ght_params params = { _D, _B, _LP, _SP, _HP, _BP, _stretchtype, _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
-			undo_save_state(get_preview_gfit_backup(), NULL);
-			describe_ght_for_history(&params, &gfit.history);
+			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f", _D, _B, _LP, _SP, _HP);
+			switch (_stretchtype) {
+				case STRETCH_PAYNE_NORMAL:
+					undo_save_state(get_preview_gfit_backup(), _("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+					break;
+				case STRETCH_PAYNE_INVERSE:
+					undo_save_state(get_preview_gfit_backup(), _("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+					break;
+				case STRETCH_ASINH:
+					undo_save_state(get_preview_gfit_backup(), _("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+					break;
+				case STRETCH_INVASINH:
+					undo_save_state(get_preview_gfit_backup(), _("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+					break;
+				case STRETCH_LINEAR:
+					undo_save_state(get_preview_gfit_backup(), _("GHS LINEAR BP: %.2f"), _BP);
+					break;
+			}
 		}
 		clear_backup();
 		clear_hist_backup();
