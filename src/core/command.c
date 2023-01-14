@@ -1134,9 +1134,9 @@ int process_makepsf(int nb) {
 						data->airy_obstruction = val;
 					}
 				}
-				start_in_new_thread(estimate_only,data);
-				return CMD_OK;
 			}
+			start_in_new_thread(estimate_only,data);
+			return CMD_OK;
 		} else if (g_str_has_prefix(arg, "load")) {
 			siril_log_message(_("Load PSF from file:\n"));
 			if (word[2] && word[2][0] != '\0') {

@@ -815,7 +815,7 @@ int get_kernel() {
 					makemoffat(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_beta, args.psf_ratio, args.psf_angle);
 					break;
 				case PROFILE_DISK:
-					makedisc(com.kernel, args.ks, (args.psf_fwhm / 2.f), 1.f, +0.5f, -0.5f);
+					makedisc(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f);
 					break;
 				case PROFILE_AIRY:
 					if (args.airy_fl == 1.f)
@@ -1120,8 +1120,7 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	static GMutex psf_preview_mutex;
 	if (!com.kernel || !com.kernelsize) return;
-	if (!(g_mutex_trylock(&psf_preview_mutex)))
-		return;
+	g_mutex_lock(&psf_preview_mutex);
 	int width =  gtk_widget_get_allocated_width(widget);
 	int height = gtk_widget_get_allocated_height(widget);
 
