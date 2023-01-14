@@ -88,7 +88,7 @@ EXTERNC float *gf_estimate_kernel(estk_data *args, int max_threads);
 }
 #endif
 
-EXTERNC int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int iters, int max_threads);
+EXTERNC int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int iters, int max_threads);
 #ifdef __cplusplus
 }
 #endif

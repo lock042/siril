@@ -78,7 +78,8 @@ void reset_conv_args(estk_data* args) {
 	args->rx = 0;
 	args->ry = 0;
 	args->ks = 15;
-	args->kchans = 1;
+	if (!com.kernel)
+		args->kchans = 1;
 
 	// Process parameters
 	args->blindtype = BLIND_L0;
@@ -998,8 +999,8 @@ gpointer deconvolve(gpointer p) {
 */
 		// Non-blind deconvolution stage
 		switch (args.nonblindtype) {
-			case DECONV_SB: // Split Bregman only works with mono kernels for now: internally it converts color images to YCbCr and deconvolves Y so there's no point providing a color kernel
-				split_bregman(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.alpha, args.finaliters, fftw_max_thread);
+			case DECONV_SB:
+				split_bregman(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, fftw_max_thread);
 				break;
 			case DECONV_RL:
 				msg_wiener = g_strdup_printf("%s", _("Wiener deconvolution..."));
