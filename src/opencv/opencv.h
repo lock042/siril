@@ -59,7 +59,7 @@ void cvRelRot(Homography *Ref, Homography *R);
 void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H);
 
 // TODO: move to cvMosaic.h
-int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale);
+int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout);
 
 #ifdef __cplusplus
 }

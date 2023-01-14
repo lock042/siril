@@ -107,6 +107,11 @@ typedef enum {
 	ROTZ
 } rotation_type;
 
+/* same as rectangle but avoids conflicts with rectangle defined in opencv namespace */
+typedef struct {
+	int x, y, w, h;
+} mosaic_roi;
+
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t); // for compositing
 void initialize_registration_methods();

@@ -128,9 +128,10 @@ int register_mosaic(struct registration_args *regargs) {
 	double *DEC = malloc(n * sizeof(double));
 	double *dist = malloc(n * sizeof(double));
 	struct wcsprm *WCSDATA = malloc(n * sizeof(struct wcsprm));
+	mosaic_roi *rois = malloc(n * sizeof(mosaic_roi));
 	int failed = 0, nb_aligned = 0;
 
-	if (!RA || !DEC || !dist || !WCSDATA) {
+	if (!RA || !DEC || !dist || !WCSDATA || !rois) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
@@ -152,12 +153,13 @@ int register_mosaic(struct registration_args *regargs) {
 		WCSDATA[i].flag = -1;
 		wcssub(1, fit.wcslib, NULL, NULL, WCSDATA + i); // copying wcsprm structure for each fit to avoid reopening
 		clearfits(&fit);
-		siril_debug_print("Image #%d - RA:%.3f - DEC:%.3f\n", i, RA[i], DEC[i]);
+		siril_log_message("Image #%2d - RA:%.3f - DEC:%.3f\n", i + 1, RA[i], DEC[i]);
 	}
 
 	// find sequence cog and closes image to use as projection point
 	compute_center_cog(RA, DEC, n, &ra0, &dec0);
-	siril_debug_print("Sequence COG - RA:%.3f - DEC:%.3f\n", ra0, dec0);
+	ra0 = (ra0 < 0) ? ra0 + 360. : ra0;
+	siril_log_message("Sequence COG - RA:%.3f - DEC:%.3f\n", ra0, dec0);
 	int refindex = -1;
 	double mindist = DBL_MAX;
 	for (int i = 0; i < n; i++) {
@@ -223,7 +225,7 @@ int register_mosaic(struct registration_args *regargs) {
 	}
 	filename = malloc(strlen(regargs->seq->seqname)+5);
 	sprintf(filename, "%s.smf", regargs->seq->seqname);
-	mscfile = g_fopen(filename, "w+t");
+	mscfile = g_fopen(filename, "w+t"); // TODO deal with errors
 	for (int i = 0; i < n; i++) {
 		fprintf(mscfile, "%2d K %12.1f %12.1f %8.1f %8.1f R %g %g %g %g %g %g %g %g %g\n",
 		i + 1,
@@ -265,11 +267,37 @@ int register_mosaic(struct registration_args *regargs) {
 	}
 
 	// Warping test
+	// float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
+	// seq_read_frame(regargs->seq, 0, &fit, FALSE, -1);
+	// cvWarp_fromKR(&fit, Ks[0], Rs[0], scale);
+	// savefits("warp1.fit", &fit);
+	// clearfits(&fit);
+
+	// Give the full mosaic output size
 	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
-	seq_read_frame(regargs->seq, 0, &fit, FALSE, -1);
-	cvWarp_fromKR(&fit, Ks[0], Rs[0], scale);
-	savefits("warp1.fit", &fit);
-	clearfits(&fit);
+	pointi tl = { INT_MAX, INT_MAX }, br = { INT_MIN, INT_MIN }; // top left and bottom-right
+	for (int i = 0; i < n; i++) {
+		seq_read_frame_metadata(regargs->seq, i, &fit);
+		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i);
+		clearfits(&fit);
+		// first determine the corners
+		if (rois[i].x < tl.x) tl.x = rois[i].x;
+		if (rois[i].y < tl.y) tl.y = rois[i].y;
+		if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
+		if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
+	}
+	// then compute the roi size and full mosaic space requirement
+	int mosaicw = br.x - tl.x;
+	int mosaich = br.y - tl.y;
+	siril_log_message(_("Full size output mosaic: %d x %d pixels (assuming spherical projection)\n"), mosaicw, mosaich);
+	int64_t frame_size = mosaicw * mosaich * regargs->seq->nb_layers;
+	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
+	frame_size += 5760; // FITS double HDU size
+	gchar *mem = g_format_size_full(frame_size, G_FORMAT_SIZE_IEC_UNITS);
+	siril_log_message(_("Space required for full size storage: %s\n"), mem);
+	g_free(mem);
+
+
 
 	// images may have been excluded but selnum wasn't updated
 	regargs->seq->reference_image = refindex;

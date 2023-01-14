@@ -1058,7 +1058,7 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 
 // TODO: Code below should be moved to a dedicated cvMosaic.cpp file
 
-int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale) {
+int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1097,13 +1097,16 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale) {
 	corners = roi.tl();
 	sizes = roi.size();
 	std::cout << corners << "\n" << sizes << "\n";
+	*roiout = (mosaic_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
 
-	if (image_to_Mat(image, &in, &out, &bgr, sizes.width, sizes.height))
-		return 2;
-
-	warper->warp(in, k, r, INTER_NEAREST, BORDER_CONSTANT, out);
-	std::cout << out.size() << "\n" << out.depth() << "\n";
-	// warper->warp(masks, _K, _R, INTER_NEAREST, BORDER_CONSTANT, masks_warped);
-
-	return Mat_to_image(image, &in, &out, bgr, sizes.width, sizes.height);
+	// in case we just want to assess final size, we skip warping the image
+	// we just import metadata so that the buffers are NULL
+	if (image->data || image->fdata) { 
+		if (image_to_Mat(image, &in, &out, &bgr, sizes.width, sizes.height))
+			return 2;
+		warper->warp(in, k, r, INTER_NEAREST, BORDER_CONSTANT, out);
+		// warper->warp(masks, _K, _R, INTER_NEAREST, BORDER_CONSTANT, masks_warped);
+		return Mat_to_image(image, &in, &out, bgr, sizes.width, sizes.height);
+	}
+	return 0;
 }
