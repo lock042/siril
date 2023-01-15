@@ -802,9 +802,9 @@ int get_kernel() {
 			calculate_parameters();
 			com.kernel = (float*) calloc(args.ks * args.ks * args.kchans, sizeof(float));
 			if (com.stars[0]->profile == PSF_GAUSSIAN)
-				makegaussian(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f,args.psf_ratio, args.psf_angle);
+				makegaussian(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f,args.psf_ratio, -args.psf_angle);
 			else
-				makemoffat(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_beta, args.psf_ratio, args.psf_angle);
+				makemoffat(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_beta, args.psf_ratio, -args.psf_angle);
 
 			break;
 		case PSF_MANUAL: // Kernel from provided parameters
