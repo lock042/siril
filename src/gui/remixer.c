@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,6 +26,7 @@
 #include "algos/colors.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
 #include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
@@ -1041,6 +1042,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		}
 	} else {
 		close_single_image();
+		close_sequence(FALSE);
 		clearfits(&gfit);
 		copyfits(&fit_left, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 		initialise_image();
@@ -1095,6 +1097,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		}
 	} else {
 		close_single_image();
+		close_sequence(FALSE);
 		clearfits(&gfit);
 		copyfits(&fit_right, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 		initialise_image();

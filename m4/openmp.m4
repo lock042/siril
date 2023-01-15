@@ -24,8 +24,8 @@ AC_DEFUN([AC_OPENMP],
 	 [ac_cv_prog_[]_AC_LANG_ABBREV[]_openmp='none needed'],
 	 [ac_cv_prog_[]_AC_LANG_ABBREV[]_openmp='unsupported'
 	  dnl Try these flags:
-	  dnl   GCC >= 4.2           -fopenmp
-	  dnl   apple clang	     -Xpreprocessor -fopenmp -lomp
+	  dnl   GCC >= 4.2           -fopenmp -lfftw3f_omp
+	  dnl   apple clang	     -Xpreprocessor -fopenmp -lomp -lfftw3f_omp
 	  dnl   SunPRO C             -xopenmp
 	  dnl   Intel C              -openmp
 	  dnl   SGI C, PGI C         -mp
@@ -39,7 +39,7 @@ AC_DEFUN([AC_OPENMP],
 	  dnl will fail (since we know that it failed without the option),
 	  dnl therefore the loop will continue searching for an option, and
 	  dnl no output file called 'penmp' or 'mp' is created.
-	  for ac_option in -fopenmp "-Xpreprocessor -fopenmp -lomp" -xopenmp -openmp -mp -omp -qsmp=omp -homp \
+	  for ac_option in "-fopenmp -lfftw3f_omp" "-Xpreprocessor -fopenmp -lomp" -xopenmp -openmp -mp -omp -qsmp=omp -homp \
                            -Popenmp --openmp; do
 	    ac_save_[]_AC_LANG_PREFIX[]FLAGS=$[]_AC_LANG_PREFIX[]FLAGS
 	    _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS $ac_option"

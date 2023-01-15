@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -526,7 +526,7 @@ void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	siril_open_dialog("starnet_dialog");
 }
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("deconvolution_dialog");
+	siril_open_dialog("bdeconv_dialog");
 }
 
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -200,5 +200,4 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(run_nlbayes_on_fit, args);
-	siril_close_dialog("denoise_dialog");
 }

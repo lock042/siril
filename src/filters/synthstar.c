@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@
  */
 
 #include <assert.h>
+#include <math.h>
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/arithm.h"
@@ -52,44 +53,117 @@
 int generate_synthstars(fits *fit);
 int reprofile_saturated_stars(fits *fit);
 
-void makemoffat(float *psf, const int size, const float fwhm, const float lum, const float xoff, const float yoff, const float beta) {
-	const float alpha = 0.6667f * fwhm;
+void makeairy(float *psf, const int size, const float lum, const float xoff, const float yoff, float wavelength, float aperture, float focal_length, float pixel_size, float obstruction) {
+	// wavelength is given in nm; pixel size in microns; aperture and focal length are given in mm. Convert all to metres for consistency
+	// obstruction is central obstruction ratio given between [0, 1[
+	wavelength *= 1.e-9f;
+	aperture *= 1.e-3f;
+	focal_length *= 1.e-3f;
+	pixel_size *= 1.e-6f;
 	const int halfpsfdim = (size - 1) / 2;
+	// obstruction = 0.5; // for testing purposes - can be removed
+	float obscorr = (obstruction > 0.f) ? 1.f / pow(1 - obstruction * obstruction, 2.f) : 1.f;
+
+	// Following the formulae at the Wikipedia "Airy disk" article
+	const float constant = (2.f * M_PI * (aperture / 2.f) / wavelength) * (1.f / focal_length);
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#pragma omp simd
 #endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
-			float xf = x - xoff + 0.5f;
-			float yf = y - yoff - 0.5f;
+			float xf = (x - xoff + 0.5f) * pixel_size;
+			float yf = (y - yoff - 0.5f) * pixel_size;
+			float q = constant * sqrtf(xf * xf + yf * yf);
+			float bessel = j1(q);
+			if (obstruction == 0.f) {
+				psf[(x + halfpsfdim) + (y + halfpsfdim) * size] = (q != 0.f) ? lum * pow(2.f * bessel / q, 2.f) : lum;
+			} else {
+				psf[(x + halfpsfdim) + (y + halfpsfdim) * size] = (q != 0.f) ? lum * obscorr * pow(2.f / q * (bessel - obstruction * j1(obstruction * q)), 2.f) : lum;
+			}
+		}
+	}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+	return;
+}
+
+void makemoffat(float *psf, const int size, const float fwhm, const float lum, const float xoff, const float yoff, const float beta, const float ratio, const float angle) {
+	float anglerad = angle * M_PI / 180.f;
+	const float alpha = 0.6667f * fwhm;
+	const float alphax = alpha;
+	const float alphay = alpha / ratio;
+	const int halfpsfdim = (size - 1) / 2;
+	float a = powf(cosf(anglerad)/alphax, 2.f) + powf(sinf(anglerad)/alphay, 2.f);
+	float b = powf(sinf(anglerad)/alphax, 2.f) + powf(cosf(anglerad)/alphay, 2.f);
+	float c = 2.f * sinf(anglerad) * cosf(anglerad) * (1.f/(alphax * alphax) - 1.f/(alphay * alphay));
+#ifdef _OPENMP
+#pragma omp simd
+#endif
+	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
+		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
+			float xf = (x - xoff + 0.5f);
+			float yf = (y - yoff - 0.5f);
 			psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = lum
-					* powf(1.0f + ((xf * xf + yf * yf) / (alpha * alpha)),
+					* powf(1.0f + (a * xf * xf) + (b * yf * yf) + (c * xf * yf),
 							-beta);
 		}
 	}
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
-	// Check for erroneous fits, such as where a galaxy is modelled as a star and
-	// produces a silly psf
-//	if (psf[size * halfpsfdim] > 0.00001)
-//		memset(psf, 0, size * size * sizeof(float)); // Zero out the whole psf
 	return;
 }
 
-void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, float yoffset) {
+void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, float yoffset, float ratio, float angle) {
 	int halfpsfdim = (size - 1) / 2;
-	float sigma = fwhm / _2_SQRT_2_LOG2;
-	float tss = 2 * sigma * sigma;
+	float anglerad = angle * M_PI / 180.f;
+	float sigmax = fwhm / _2_SQRT_2_LOG2;
+	float sigmay = fwhm / (ratio * _2_SQRT_2_LOG2);
+	float tssx = 2 * sigmax * sigmax;
+	float tssy = 2 * sigmay * sigmay;
+	float a = powf(cosf(anglerad), 2.f) / tssx + powf(sinf(anglerad), 2.f) / tssy;
+	float b = sinf(2 * anglerad) / (2 * tssx) - sinf(2 * anglerad) / (2 * tssy);
+	float c = powf(sinf(anglerad), 2.f) / tssx + powf(cosf(anglerad), 2.f) / tssy;
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#pragma omp simd
 #endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
-			float xf = x - xoffset + 0.5f;
-			float yf = y - yoffset - 0.5f;
+			float xf = (x - xoffset + 0.5f);
+			float yf = (y - yoffset - 0.5f);
 			psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = lum
-					* expf(-(((xf * xf) / tss) + ((yf * yf) / tss)));
+					* expf(-(a * xf * xf + 2 * b * xf * yf + c * yf * yf));
+		}
+	}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+	return;
+}
+
+void makedisc(float *psf, int size, float radius, float lum, float xoffset, float yoffset) {
+	int halfpsfdim = (size - 1) / 2;
+	// maxranditer big enough to get a good random survey of each pixel,
+	// not enough to cause slowness with large kernels.
+	const int maxranditer = 10000;
+	float radiussq = radius * radius;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#endif
+	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
+		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
+			int count = 0;
+			for (int randiter = 0 ; randiter < maxranditer; randiter++) {
+				// Not aiming for cryptographic levels of randomness, rand() will do.
+				float xrandoff = (float) ((float)rand()/(float)(RAND_MAX)) - 0.5f;
+				float yrandoff = (float) ((float)rand()/(float)(RAND_MAX)) - 0.5f;
+				float xf = x - xoffset + xrandoff + 0.5f;
+				float yf = y - yoffset + yrandoff - 0.5f;
+				if ((xf * xf + yf * yf) < radiussq)
+					count++;
+			}
+			psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = (lum * count) / maxranditer;
 		}
 	}
 #ifdef _OPENMP
@@ -368,9 +442,9 @@ int generate_synthstars(fits *fit) {
 					beta = avg_moffat_beta;
 			}
 			if (stars[n]->has_saturated || gaussian)
-				makegaussian(psfL, size, minfwhm, lum, xoff, yoff);
+				makegaussian(psfL, size, minfwhm, lum, xoff, yoff, 1.f, 0.f);
 			else
-				makemoffat(psfL, size, minfwhm, lum, xoff, yoff, beta);
+				makemoffat(psfL, size, minfwhm, lum, xoff, yoff, beta, 1.f, 0.f);
 			if (is_RGB)
 				add_star_to_rgb_buffer(H, S, psfL, size, Hsynth, Ssynth, Lsynth,
 						(float) stars[n]->xpos, (float) stars[n]->ypos, dimx, dimy);
@@ -602,10 +676,12 @@ int reprofile_saturated_stars(fits *fit) {
 				int size = 5.f * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that it should cover the saturated parts of the star
 				if (!(size % 2))
 					size++;
-				float maxfwhm = (float) max(stars[n]->fwhmx, stars[n]->fwhmy);
+//				float maxfwhm = (float) max(stars[n]->fwhmx, stars[n]->fwhmy);
+				float ratio = stars[n]->fwhmx / stars[n]->fwhmy;
+				float angle = (float) stars[n]->angle;
 
 				float *psfL = (float*) calloc(size * size, sizeof(float));
-				makegaussian(psfL, size, maxfwhm, (lum - bg), xoff, yoff);
+				makegaussian(psfL, size, stars[n]->fwhmx, (lum - bg), xoff, yoff, ratio, angle);
 
 				// Replace the part of the profile above the sat threshold
 				replace_sat_star_in_buffer(psfL, size, buf[chan],
