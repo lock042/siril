@@ -55,7 +55,7 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 
-int fft_cutoff = 13; // Random value, I need to do some timings or expose this as a performance preference
+int fft_cutoff = 15; // Based on timing test on an 8-core Ryzen 2 with 16GB RAM.
 // Below this value, naive convolutions are used for Richardson-Lucy; above this value, FFT-based convolutions are used.
 gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
@@ -989,17 +989,7 @@ gpointer deconvolve(gpointer p) {
 		if (sequence_is_running == 0)
 			set_progress_bar_data("Starting non-blind deconvolution...", 0);
 		siril_debug_print("Starting non-blind deconvolution\n");
-		// Normalize the kernel
-		// Think this is unnecessary as the deconvolution routines each do this anyway
-/*		float ksum = 0.f;
-		int kpixels = args.ks * args.ks;
-		for (int c = 0 ; c < args.kchans ; c++) { // Normalize each channel of a multichannel kernel separately
-			for (unsigned i = 0 ; i < kpixels ; i++)
-				ksum += com.kernel[i + c * kpixels];
-			for (unsigned i = 0 ; i < kpixels ; i++)
-				com.kernel[i + c * kpixels] /= ksum;
-		}
-*/
+
 		// Non-blind deconvolution stage
 		switch (args.nonblindtype) {
 			case DECONV_SB:
@@ -1016,10 +1006,15 @@ gpointer deconvolve(gpointer p) {
 						args.regtype = REG_FH_MULT;
 					else args.regtype = REG_NONE_MULT;
 				}
+				struct timeval t_start, t_end;
+				gettimeofday(&t_start, NULL);
+
 				if (args.ks < fft_cutoff)
 					naive_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
 				else
 					richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
+				gettimeofday(&t_end, NULL);
+				show_time(t_start, t_end);
 
 				free(msg_rl);
 				msg_rl = NULL;
