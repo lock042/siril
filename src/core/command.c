@@ -725,10 +725,6 @@ int process_rebayer(int nb){
 }
 
 int process_imoper(int nb){
-	fits fit = { 0 };
-
-	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
-
 	image_operator oper;
 	switch (word[0][1]) {
 		case 'a':
@@ -749,15 +745,16 @@ int process_imoper(int nb){
 			break;
 		default:
 			siril_log_color_message(_("Could not understand the requested operator\n"), "red");
-			clearfits(&fit);
 			return CMD_ARG_ERROR;
 	}
+
+	fits fit = { 0 };
+	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
+
 	int retval = imoper(&gfit, &fit, oper, !com.pref.force_16bit);
 
 	clearfits(&fit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return retval;
 }
 
