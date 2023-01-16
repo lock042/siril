@@ -22,14 +22,12 @@
 #include "core/siril.h"
 #include "core/proto.h"
 
-#include "algos/PSF.h"
 #include "core/command.h"
 #include "io/sequence.h"
 #include "gui/message_dialog.h"
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
-#include "gui/PSF_list.h"
 
 static void set_selection_ratio(double ratio) {
 	gui.ratio = ratio;
