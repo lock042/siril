@@ -8166,6 +8166,45 @@ int process_sso() {
 	return CMD_OK;
 }
 
+static gboolean end_process_catsearch(gpointer p) {
+	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+	force_to_refresh_catalogue_list();
+	if (!gtk_toggle_tool_button_get_active(button)) {
+		gtk_toggle_tool_button_set_active(button, TRUE);
+	} else {
+		redraw(REDRAW_OVERLAY);
+	}
+	return end_generic(NULL);
+}
+
+int process_catsearch(int nb){
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	set_cursor_waiting(TRUE);
+
+	gchar *result;
+	if (nb > 2) {
+		GString *str = g_string_new(word[1]);
+		int i = 2;
+		while (i < nb && word[i]) {
+			g_string_append_printf(str, " %s", word[i]);
+			i++;
+		}
+		gchar *name = g_string_free(str, FALSE);
+		result = search_object(name);
+		g_free(name);
+	} else {
+		result = search_object(word[1]);
+	}
+
+	if (result && !parse_buffer(result, 20.0)) {
+		siril_add_idle(end_process_catsearch, NULL);
+	}
+	return CMD_OK;
+}
+
 int process_start_ls(int nb) {
 	// start_ls [-dark=filename] [-flat=filename] [-rotate] [-32bits] [-gradient_removal] [-watch_files]"
 	gchar *dark_file = NULL, *flat_file = NULL;
