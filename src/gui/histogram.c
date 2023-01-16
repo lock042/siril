@@ -1010,6 +1010,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 		_midtones = params.midtones;
 		_highlights = 1.0f;
 		_update_entry_text();
+		update_histo_mtf();
 		histo_update_preview();
 	} else {
 		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
@@ -1291,6 +1292,7 @@ void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
 	if (mid >= _highlights) mid = _highlights;
 	_midtones = mid;
 	set_cursor_waiting(TRUE);
+	update_histo_mtf();
 	histo_update_preview();
 	gchar *str = g_strdup_printf("%8.7f", mid);
 	gtk_entry_set_text(entry, str);
@@ -1307,6 +1309,7 @@ gboolean on_histoMidEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 	if (mid >= _highlights) mid = _highlights;
 	_midtones = mid;
 	set_cursor_waiting(TRUE);
+	update_histo_mtf();
 	histo_update_preview();
 	gchar *str = g_strdup_printf("%8.7f", mid);
 	gtk_entry_set_text(entry, str);
@@ -1476,6 +1479,7 @@ gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 	if (lo >= _highlights) lo = _highlights;
 	_shadows = lo;
 	set_cursor_waiting(TRUE);
+	update_histo_mtf();
 	histo_update_preview();
 	gchar *str = g_strdup_printf("%8.7f", lo);
 	gtk_entry_set_text(entry, str);
@@ -1491,6 +1495,7 @@ void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 	if (lo >= _highlights) lo = _highlights;
 	_shadows = lo;
 	set_cursor_waiting(TRUE);
+	update_histo_mtf();
 	histo_update_preview();
 	gchar *str = g_strdup_printf("%8.7f", lo);
 	gtk_entry_set_text(entry, str);
@@ -1506,6 +1511,7 @@ gboolean on_histoHighEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 	if (hi >= 1.f) hi = 1.f;
 	_highlights = hi;
 	set_cursor_waiting(TRUE);
+	update_histo_mtf();
 	histo_update_preview();
 	gchar *str = g_strdup_printf("%8.7f", hi);
 	gtk_entry_set_text(entry, str);
@@ -1521,6 +1527,7 @@ void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
 	if (hi >= 1.f) hi = 1.f;
 	_highlights = hi;
 	set_cursor_waiting(TRUE);
+	update_histo_mtf();
 	histo_update_preview();
 	gchar *str = g_strdup_printf("%8.7f", hi);
 	gtk_entry_set_text(entry, str);
