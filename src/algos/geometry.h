@@ -13,7 +13,7 @@ struct crop_sequence_data {
 
 int fits_binning(fits *fit, int factor, gboolean mean);
 
-int verbose_resize_gaussian(fits *, int, int, int, gboolean);
+int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp);
 
 int verbose_rotate_image(fits *, rectangle, double, int, int, gboolean);
 int verbose_rotate_fast(fits *image, int angle);
@@ -23,5 +23,7 @@ void mirrory(fits *fit, gboolean verbose);
 
 int crop(fits *fit, rectangle *bounds);
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data);
+
+const char *interp_to_str(opencv_interpolation interpolation);
 
 #endif /* SRC_ALGOS_GEOMETRY_H_ */

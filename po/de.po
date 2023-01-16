@@ -13541,7 +13541,6 @@ msgstr ""
 msgid "Error in line %d ('%s'): %s.\n"
 msgstr ""
 "Fehler in Zeile %d ('%s'): %s.\n"
-"\n"
 
 #: src/core/command_line_processor.c:359
 msgid "Exiting batch processing.\n"
@@ -13641,7 +13640,6 @@ msgstr "Einstellungen konnten nicht von %s geladen werden: %s\n"
 msgid "Reading configuration file %s\n"
 msgstr ""
 "Lese Konfigurationsdatei %s\n"
-"\n"
 
 #: src/core/initfile.c:460
 msgid ""
@@ -13671,7 +13669,6 @@ msgstr "Neue Einstellung in %s gespeichert\n"
 msgid "Failed to create config dir %s\n"
 msgstr ""
 "Konfigurationsverzeichnis %s konnte nicht erstellt werden\n"
-"\n"
 
 #: src/core/initfile.c:481
 msgid "Continuing without configuration file\n"
@@ -13682,7 +13679,6 @@ msgstr "Weiter ohne Konfigurationsdatei\n"
 msgid "Could not save the settings in %s: %s\n"
 msgstr ""
 "Die Einstellungen in %s konnten nicht gespeichert werden: %s\n"
-"\n"
 
 #: src/core/OS_utils.c:224
 msgid "Error while computing available free disk space.\n"
@@ -14961,7 +14957,6 @@ msgstr "SCNR (Typ=%d, Menge=%0.2lf, keine Änderung=%s)"
 msgid "Error: external command %s failed...\n"
 msgstr ""
 "Fehler: Externer Befehl %s fehlgeschlagen...\n"
-"\n"
 
 #: src/filters/starnet.c:280
 msgid ""
@@ -15713,7 +15708,6 @@ msgid "Shadow preservation point cannot be set higher than stretch focal point\n
 msgstr ""
 "Der Schatten-Erhaltungspunkt kann nicht höher als der Stretch-Fokuspunkt "
 "eingestellt werden.\n"
-"\n"
 
 #: src/gui/histogram.c:1349 src/gui/remixer.c:1131 src/gui/remixer.c:1174
 msgid "Make a selection of the point or area to set SP"
@@ -16031,7 +16025,6 @@ msgstr ""
 msgid "White balance factors:\n"
 msgstr ""
 "Weißabgleich Faktoren:\n"
-"\n"
 
 #: src/gui/photometric_cc.c:419
 msgid "Photometric color correction will do nothing for monochrome images\n"
@@ -16984,7 +16977,6 @@ msgstr "Lesen des lokalen NOMAD Katalogs ist fehlgeschlagen\n"
 msgid "Can't open temporary file %s for output. [%s]\n"
 msgstr ""
 "Die temporäre Datei %s kann nicht für die Ausgabe geöffnet werden. [%s]\n"
-"\n"
 
 #: src/io/conversion.c:157
 msgid "BMP images, "
@@ -17126,7 +17118,6 @@ msgstr ""
 msgid "Creating the SER file `%s' failed, aborting.\n"
 msgstr ""
 "Das Erstellen der SER-Datei `%s' ist fehlgeschlagen und wurde abgebrochen.\n"
-"\n"
 
 #: src/io/conversion.c:1035 src/io/conversion.c:1098
 #, c-format
@@ -17167,7 +17158,6 @@ msgstr "Fehler bei der Konvertierung zu SER (zu wenig Speicherplatz?)\n"
 msgid "Error while converting to FITSEQ (no space left?)\n"
 msgstr ""
 "Fehler beim Konvertieren nach FITSEQ (zu wenig Speicherplatz?)\n"
-"\n"
 
 #: src/io/conversion.c:1236
 msgid "Error while converting to FITS (no space left?)\n"
@@ -17562,7 +17552,6 @@ msgstr "FITS-Datei %s teilweise geladen\n"
 msgid "FITSIO error getting image parameters.\n"
 msgstr ""
 "FITSIO Fehler beim Lesen der Bildparameter.\n"
-"\n"
 
 #: src/io/image_format_fits.c:1992
 #, c-format
@@ -17887,7 +17876,6 @@ msgid ""
 msgstr ""
 "Dieser Bereich liegt außerhalb des Referenzbildes. Bitte wählen Sie das "
 "Referenzbild, um einen anderen Stern auszuwählen.\n"
-"\n"
 
 #: src/io/sequence.c:1868
 msgid ""
@@ -18090,7 +18078,6 @@ msgstr "SER-Datei wiederhergestellt...\n"
 msgid "Writing a 32-bit image to SER files is not supported.\n"
 msgstr ""
 "Ein 32-bit Bild in SER Dateien zu schreiben wird nicht unterstützt.\n"
-"\n"
 
 #: src/io/ser.c:515
 msgid "Warning: no timestamps stored in the SER file.\n"
@@ -18384,7 +18371,6 @@ msgstr "Stacking Ergebnis %d"
 msgid "Time to process the last image for live stacking: %s\n"
 msgstr ""
 "Zeit für die Verarbeitung des letzten Bildes für Live-Stacking: %s\n"
-"\n"
 
 #: src/opencv/opencv.cpp:105
 #, c-format
@@ -18972,7 +18958,6 @@ msgstr ""
 msgid "Unknown framing method, aborting\n"
 msgstr ""
 "Unbekannte Framing-Methode, Abbruch\n"
-"\n"
 
 #: src/registration/comet.c:131 src/registration/comet.c:168
 msgid "There is no timestamp stored in the file"
@@ -19549,7 +19534,6 @@ msgid ""
 msgstr ""
 "Der Generalized Extreme Studentized Deviate Test benötigt mindestens 3 Bilder "
 "zum Stackn. Abbruch.\n"
-"\n"
 
 #: src/stacking/median_and_mean.c:1011
 msgid "No registration layer passed, ignoring registration data!\n"
@@ -19568,7 +19552,6 @@ msgid ""
 msgstr ""
 "Ausschluss-Stack-Fehler: Sequenz hat falsche Bildgröße (%dx%d für Sequenz, "
 "%ldx%ld für Bilder)\n"
-"\n"
 
 #: src/stacking/median_and_mean.c:1037
 msgid "Processing the sequence as RGB\n"
@@ -19803,7 +19786,6 @@ msgstr " (schnell)"
 msgid "Input normalization ....... %s%s\n"
 msgstr ""
 "Normalisierung ............. %s%s\n"
-"\n"
 
 #: src/stacking/stacking.c:350
 msgid "Output normalization ...... enabled\n"

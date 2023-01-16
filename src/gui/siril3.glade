@@ -6036,7 +6036,7 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkImage">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
-                                                <property name="tooltip-text" translatable="yes">SAve PSF to a file</property>
+                                                <property name="tooltip-text" translatable="yes">Save PSF to a file</property>
                                                 <property name="icon-name">document-save</property>
                                               </object>
                                             </child>
@@ -6115,6 +6115,7 @@ enter a visible wavelength in nm</property>
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="margin-top">5</property>
                                         <property name="spacing">6</property>
                                         <property name="homogeneous">True</property>
                                         <child>
@@ -6135,7 +6136,7 @@ enter a visible wavelength in nm</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="tooltip-text" translatable="yes">This parameter sets the PSF full width and height.</property>
-                                            <property name="text" translatable="yes">15</property>
+                                            <property name="text">15</property>
                                             <property name="adjustment">bdeconv_kernelsize</property>
                                             <property name="value">15</property>
                                             <signal name="value-changed" handler="on_bdeconv_ks_value_changed" swapped="no"/>
@@ -6215,7 +6216,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="halign">end</property>
-                                                <property name="label" translatable="yes"> </property>
+                                                <property name="label"> </property>
                                               </object>
                                               <packing>
                                                 <property name="left-attach">3</property>
@@ -6226,7 +6227,8 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkLabel">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
-                                                <property name="label" translatable="yes"> </property>
+                                                <property name="margin-top">5</property>
+                                                <property name="label"> </property>
                                               </object>
                                               <packing>
                                                 <property name="left-attach">2</property>
@@ -6266,7 +6268,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">For elliptical PSFs, this gives the ratio of the shorter and longer dimensions.</property>
-                                                <property name="text" translatable="yes">1.00</property>
+                                                <property name="text">1.00</property>
                                                 <property name="adjustment">convpsfratio</property>
                                                 <property name="digits">2</property>
                                                 <property name="value">1</property>
@@ -6293,7 +6295,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">Full width at half maximum. For disc profiles this is just the diameter of the disc. For elliptical PSFs this is the longer PSF dimenson.</property>
-                                                <property name="text" translatable="yes">3.00</property>
+                                                <property name="text">3.00</property>
                                                 <property name="adjustment">convpsfwhm</property>
                                                 <property name="digits">2</property>
                                                 <property name="value">3</property>
@@ -6320,7 +6322,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">For elliptical PSFs, the angle from the x axis in degrees.</property>
-                                                <property name="text" translatable="yes">0.00</property>
+                                                <property name="text">0.00</property>
                                                 <property name="adjustment">convpsfangle</property>
                                                 <property name="digits">2</property>
                                               </object>
@@ -6347,7 +6349,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="sensitive">False</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">For Moffat profiles, this sets the value of beta</property>
-                                                <property name="text" translatable="yes">4.50</property>
+                                                <property name="text">4.50</property>
                                                 <property name="adjustment">convpsfbeta</property>
                                                 <property name="digits">2</property>
                                                 <property name="value">4.5</property>
@@ -6425,7 +6427,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">Sensor pixel size in microns</property>
-                                                <property name="text" translatable="yes">0.1</property>
+                                                <property name="text">0.1</property>
                                                 <property name="adjustment">adj_pixelsize</property>
                                                 <property name="digits">2</property>
                                                 <property name="value">0.10</property>
@@ -6441,7 +6443,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">Wavelength. May be specified exactly for narrowband filters, or for broadband / OSC / luminance filters just use a representative central wavelength.</property>
-                                                <property name="text" translatable="yes">525.0</property>
+                                                <property name="text">525.0</property>
                                                 <property name="adjustment">adj_airy_wl</property>
                                                 <property name="digits">1</property>
                                                 <property name="value">525</property>
@@ -6455,8 +6457,8 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkSpinButton" id="airy_fl">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-text" translatable="yes">Telescope focal length</property>
-                                                <property name="text" translatable="yes">750.0</property>
+                                                <property name="tooltip-text" translatable="yes">Telescope focal length (this should account for any multiplication factor introduced by Barlows or field flatteners)</property>
+                                                <property name="text">750.0</property>
                                                 <property name="adjustment">adj_airy_fl</property>
                                                 <property name="digits">1</property>
                                                 <property name="value">750</property>
@@ -6472,7 +6474,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">Diameter of the telescope primary aperture</property>
-                                                <property name="text" translatable="yes">150.0</property>
+                                                <property name="text">150.0</property>
                                                 <property name="adjustment">adj_diameter</property>
                                                 <property name="digits">1</property>
                                                 <property name="value">150</property>
@@ -6500,7 +6502,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">Sets the central obstruction as a percentage of the total aperture area. This is zero for refractors, typically around 20% for fast Newtonians and may be as much as 40% for a Corrected Dall-Kirkham.</property>
-                                                <property name="text" translatable="yes">0.0</property>
+                                                <property name="text">0.0</property>
                                                 <property name="adjustment">adj_airy_obstruction</property>
                                                 <property name="digits">1</property>
                                               </object>
@@ -6555,7 +6557,7 @@ enter a visible wavelength in nm</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="tooltip-text" translatable="yes">If using the Goldstein-Fattal PSF estimator, lambda may require decreasing for particularly noisy images.</property>
-                                            <property name="text" translatable="yes">3000</property>
+                                            <property name="text">3000</property>
                                             <property name="adjustment">convgflambda</property>
                                             <property name="value">3000</property>
                                           </object>
@@ -6621,6 +6623,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">For large PSFs the ℓ0 gradient prior may not collapse blurry edges into a single sharp edge. A multiscale PSF estimation procedure can therefore be used: it may not be necessary for small PSF.</property>
+                                                <property name="margin-top">5</property>
                                                 <property name="draw-indicator">True</property>
                                               </object>
                                               <packing>
@@ -6638,6 +6641,7 @@ enter a visible wavelength in nm</property>
                                                   <object class="GtkGrid">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
+                                                    <property name="margin-top">5</property>
                                                     <property name="row-spacing">6</property>
                                                     <property name="column-homogeneous">True</property>
                                                     <child>
@@ -6657,7 +6661,7 @@ enter a visible wavelength in nm</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">PSF estimation regularisation parameter</property>
-                                                        <property name="text" translatable="yes">20</property>
+                                                        <property name="text">20</property>
                                                         <property name="adjustment">convgamma</property>
                                                         <property name="value">20</property>
                                                       </object>
@@ -6683,7 +6687,7 @@ enter a visible wavelength in nm</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Number of iterations for PSF estimation</property>
-                                                        <property name="text" translatable="yes">2</property>
+                                                        <property name="text">2</property>
                                                         <property name="adjustment">conviter</property>
                                                         <property name="value">2</property>
                                                       </object>
@@ -6709,7 +6713,7 @@ enter a visible wavelength in nm</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Ratio of lambda at successive scales for multiscale PSF estimation</property>
-                                                        <property name="text" translatable="yes">0.9091</property>
+                                                        <property name="text">0.9091</property>
                                                         <property name="adjustment">convlambdaratio</property>
                                                         <property name="digits">4</property>
                                                         <property name="value">0.9091</property>
@@ -6736,7 +6740,7 @@ enter a visible wavelength in nm</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Minimum value of lambda for multiscale PSF estimation</property>
-                                                        <property name="text" translatable="yes">0.0001</property>
+                                                        <property name="text">0.0001</property>
                                                         <property name="adjustment">convlambdamin</property>
                                                         <property name="digits">4</property>
                                                         <property name="value">0.0001</property>
@@ -6763,7 +6767,7 @@ enter a visible wavelength in nm</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Scale factor between successive scales of multiscale PSF estimation</property>
-                                                        <property name="text" translatable="yes">0.50</property>
+                                                        <property name="text">0.50</property>
                                                         <property name="adjustment">convscalefactor</property>
                                                         <property name="digits">2</property>
                                                         <property name="value">0.5</property>
@@ -6778,7 +6782,7 @@ enter a visible wavelength in nm</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Amount of bur to use for upsampling during PSF estimation</property>
-                                                        <property name="text" translatable="yes">0.00</property>
+                                                        <property name="text">0.00</property>
                                                         <property name="adjustment">convupsampleblur</property>
                                                         <property name="digits">2</property>
                                                       </object>
@@ -6853,7 +6857,7 @@ enter a visible wavelength in nm</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Amount of blur to use for downsampling during PSF estimation</property>
-                                                        <property name="text" translatable="yes">1.60</property>
+                                                        <property name="text">1.60</property>
                                                         <property name="adjustment">convdownsampleblur</property>
                                                         <property name="digits">2</property>
                                                         <property name="value">1.60</property>
@@ -6868,7 +6872,7 @@ enter a visible wavelength in nm</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Sets a minimum pixel value for the PSF. PSF pixels with values less than this will be set to zero.</property>
-                                                        <property name="text" translatable="yes">0.0000</property>
+                                                        <property name="text">0.0000</property>
                                                         <property name="adjustment">convkernelthreshold</property>
                                                         <property name="digits">4</property>
                                                       </object>
@@ -6879,7 +6883,7 @@ enter a visible wavelength in nm</property>
                                                     </child>
                                                     <child>
                                                       <object class="GtkCheckButton" id="bdeconv_betterkernel">
-                                                        <property name="label" translatable="yes"> </property>
+                                                        <property name="label"> </property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
@@ -6897,7 +6901,7 @@ enter a visible wavelength in nm</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-markup" translatable="yes">&lt;i&gt;l&lt;/i&gt;1 gradient parameter</property>
-                                                        <property name="text" translatable="yes">0.50</property>
+                                                        <property name="text">0.50</property>
                                                         <property name="adjustment">convkernl1</property>
                                                         <property name="digits">2</property>
                                                         <property name="value">0.5</property>
@@ -6960,6 +6964,7 @@ enter a visible wavelength in nm</property>
                                           <object class="GtkBox">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
+                                            <property name="margin-top">5</property>
                                             <property name="spacing">6</property>
                                             <property name="homogeneous">True</property>
                                             <child>
@@ -6980,7 +6985,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">This parameter controls the sharpness of the estimated PSF. If the underlying image is sharp, this parameter should be set to a large value to avoid artefacts in the estimated PSF. On the other hand, if the underlying image contains a small amount of intrinsic blur (i.e. as a result of being oversampled) this parameter should be reduced to close to unity in order to obtain sufficient sharpness in the PSF.</property>
-                                                <property name="text" translatable="yes">2.10</property>
+                                                <property name="text">2.10</property>
                                                 <property name="adjustment">convcompensation</property>
                                                 <property name="digits">2</property>
                                                 <property name="value">2.10</property>
@@ -7040,7 +7045,7 @@ enter a visible wavelength in nm</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="tooltip-text" translatable="yes">This parameter sets the number of samples per outer loop. Sufficient samples must be chosen to ensure the PSF estimate converges: for low noise images a fairly small number of samples will suffice. For noisy images, the value may require increasing to as much as around 250.</property>
-                                                    <property name="text" translatable="yes">30</property>
+                                                    <property name="text">30</property>
                                                     <property name="adjustment">convntries</property>
                                                     <property name="value">30</property>
                                                   </object>
@@ -7054,7 +7059,7 @@ enter a visible wavelength in nm</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="tooltip-text" translatable="yes">Outer loop iterations. This parameter should not generally require adjustment.</property>
-                                                    <property name="text" translatable="yes">3</property>
+                                                    <property name="text">3</property>
                                                     <property name="adjustment">convnouter</property>
                                                     <property name="value">3</property>
                                                   </object>
@@ -7080,7 +7085,7 @@ enter a visible wavelength in nm</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="tooltip-text" translatable="yes">This parameter sets the number of iterations in the algorithm inner loop. It should not usually require adjustment.</property>
-                                                    <property name="text" translatable="yes">300</property>
+                                                    <property name="text">300</property>
                                                     <property name="adjustment">convninner</property>
                                                     <property name="value">300</property>
                                                   </object>
@@ -7139,6 +7144,7 @@ enter a visible wavelength in nm</property>
                                           <object class="GtkGrid">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
+                                            <property name="margin-top">5</property>
                                             <property name="row-spacing">6</property>
                                             <property name="column-homogeneous">True</property>
                                             <child>
@@ -7332,19 +7338,6 @@ enter a visible wavelength in nm</property>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="margin-bottom">5</property>
-                        <property name="label" translatable="yes"> </property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">&lt;b&gt;PSF Preview&lt;/b&gt;</property>
                         <property name="use-markup">True</property>
@@ -7364,6 +7357,7 @@ enter a visible wavelength in nm</property>
                         <property name="tooltip-text" translatable="yes">Shows a preview of the PSF, if one has been calculated.</property>
                         <property name="halign">start</property>
                         <property name="valign">start</property>
+                        <property name="margin-top">5</property>
                         <signal name="draw" handler="on_PSFkernel_draw" swapped="no"/>
                       </object>
                       <packing>
@@ -7417,9 +7411,9 @@ enter a visible wavelength in nm</property>
                       <object class="GtkComboBoxText" id="bdeconv_nonblindtype">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Once the PSF is estimated or provided the image is finally deconvolved using the selected algorithm.&#13;
-The Split Bregman method is a common method used to solve a very broad class of L1-regularized problems. It is used internally within the blind PSF estimation processes and may also be used as a final deconvolution method. It is Total Variation (TV) regularized using the Rudemi-Osher-Fattal method.&#13;
-The Richardson-Lucy algorithm is an iterative deconvolution technique well known for its use in deconvolving early Hubble images to correct the initial flawed optics. A number of variants and regularization techniques are available.&#13;
+                        <property name="tooltip-text" translatable="yes">Once the PSF is estimated or provided the image is finally deconvolved using the selected algorithm.\n;
+The Split Bregman method is a common method used to solve a very broad class of L1-regularized problems. It is used internally within the blind PSF estimation processes and may also be used as a final deconvolution method. It is Total Variation (TV) regularized using the Rudemi-Osher-Fattal method.\n;
+The Richardson-Lucy algorithm is an iterative deconvolution technique well known for its use in deconvolving early Hubble images to correct the initial flawed optics. A number of variants and regularization techniques are available.\n;
 The Wiener method is a non-iterative deconvolution process that assumes a Gaussian noise distribution. It works poorly on deep space images but can be a good algorithm for deconvolving lunar /planetary images.</property>
                         <property name="active">1</property>
                         <items>
@@ -7452,7 +7446,7 @@ The Wiener method is a non-iterative deconvolution process that assumes a Gaussi
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Number of iterations for final deconvolution if using an iterative method</property>
-                        <property name="text" translatable="yes">10</property>
+                        <property name="text">10</property>
                         <property name="adjustment">bdeconv_rliters</property>
                         <property name="value">10</property>
                       </object>
@@ -7466,7 +7460,7 @@ The Wiener method is a non-iterative deconvolution process that assumes a Gaussi
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Regularisation parameter for the final non-blind stage deconvolution</property>
-                        <property name="text" translatable="yes">3000.00</property>
+                        <property name="text">3000.00</property>
                         <property name="adjustment">convalpha</property>
                         <property name="digits">2</property>
                         <property name="value">3000</property>
@@ -7481,7 +7475,7 @@ The Wiener method is a non-iterative deconvolution process that assumes a Gaussi
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Sets an early stop criterion for the Richardson-Lucy algorithm to prevent noise amplification. Deconvolution will stop early if the average pixel difference ratio between subsequent iterations is less than this value.</property>
-                        <property name="text" translatable="yes">0.00100</property>
+                        <property name="text">0.00100</property>
                         <property name="adjustment">bdeconv_stopadjustment</property>
                         <property name="digits">5</property>
                         <property name="value">0.001</property>
@@ -7593,7 +7587,7 @@ Frobenius norm of the Hessian uses a non-linear regularization term. It is more 
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Gradient descent step size. The larger the step size, the greater the effect of each step. Large values will give quicker convergence but smaller values will offer better control over artefact formation.</property>
-                        <property name="text" translatable="yes">0.0005</property>
+                        <property name="text">0.0005</property>
                         <property name="adjustment">bdeconv_stepsiz</property>
                         <property name="digits">4</property>
                         <property name="value">0.0005</property>
@@ -7671,7 +7665,7 @@ Frobenius norm of the Hessian uses a non-linear regularization term. It is more 
                 <property name="tooltip-text" translatable="yes">Provides a custom prefix to use when deconvolving a sequence.</property>
                 <property name="max-length">10</property>
                 <property name="width-chars">10</property>
-                <property name="text" translatable="yes">dec_</property>
+                <property name="text">dec_</property>
                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
               </object>
               <packing>
@@ -21267,9 +21261,7 @@ The next action for DSLR images would be to debayer the preprocessed images, go 
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Check this option if you want to apply a demosaicing algorithm to your FITS images right after they were preprocessed. By doing this, you skip one manual step which can take some time.
-
-WARNING: this option is only available for FITS images as SER sequence can be demosaiced on-the-fly.</property>
+                                                        <property name="tooltip-text" translatable="yes">Check this option if you want to apply a demosaicing algorithm to your FITS images right after they were preprocessed. By doing this, you skip one manual step which can take some time.</property>
                                                         <property name="halign">start</property>
                                                         <property name="draw-indicator">True</property>
                                                       </object>

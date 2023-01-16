@@ -19,7 +19,6 @@ struct ght_data {
 	fits *fit;
 	sequence *seq;
 	struct ght_params params_ght;
-	struct ght_compute_params compute_params;
 	const gchar *seqEntry;
 };
 

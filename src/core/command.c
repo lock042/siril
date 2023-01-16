@@ -240,7 +240,7 @@ int process_satu(int nb){
 	args->input = &gfit;
 	args->output = &gfit;
 	args->for_preview = FALSE;
-	siril_log_message(_("Applying saturation enhancement of %d%%, from level %g * sigma.\n"), round_to_int(args->coeff * 100.0), args->background_factor);
+	siril_log_message(_("Applying saturation enhancement of %d%%, from level %g times (median + sigma).\n"), round_to_int(args->coeff * 100.0), args->background_factor);
 
 	set_cursor_waiting(TRUE);
 	return GPOINTER_TO_INT(enhance_saturation(args));
@@ -725,10 +725,6 @@ int process_rebayer(int nb){
 }
 
 int process_imoper(int nb){
-	fits fit = { 0 };
-
-	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
-
 	image_operator oper;
 	switch (word[0][1]) {
 		case 'a':
@@ -749,15 +745,16 @@ int process_imoper(int nb){
 			break;
 		default:
 			siril_log_color_message(_("Could not understand the requested operator\n"), "red");
-			clearfits(&fit);
 			return CMD_ARG_ERROR;
 	}
+
+	fits fit = { 0 };
+	if (readfits(word[1], &fit, NULL, !com.pref.force_16bit)) return CMD_INVALID_IMAGE;
+
 	int retval = imoper(&gfit, &fit, oper, !com.pref.force_16bit);
 
 	clearfits(&fit);
-	adjust_cutoff_from_updated_gfit();
-	redraw(REMAP_ALL);
-	redraw_previews();
+	notify_gfit_modified();
 	return retval;
 }
 
@@ -844,6 +841,10 @@ int process_gauss(int nb){
 	}
 	unsharp(&gfit, sigma, 0.0, TRUE);
 	//gaussian_blur_RT(&gfit, sigma, com.max_thread);
+
+	char log[90];
+	sprintf(log, "Gaussian filtering, sigma: %.2f", sigma);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -870,15 +871,24 @@ int process_makepsf(int nb) {
 	if (!word[1])
 		return CMD_WRONG_N_ARG;
 	if (g_str_has_prefix(arg, "clear")) {
+		if (get_thread_run()) {
+			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
+			return CMD_GENERIC_ERROR;
+		}
 		if (com.kernel) {
 			free(com.kernel);
 			com.kernel = NULL;
 			com.kernelsize = 0;
 		}
-		siril_log_color_message(_("Deconvolution kernel cleared\n"), "green");
+		siril_log_color_message(_("Deconvolution kernel cleared.\n"), "green");
 		free(data);
 		return CMD_OK;
 	} else {
+		if (g_str_has_prefix(arg, "save")) {
+			siril_log_message(_("Save PSF to file:\n"));
+			on_bdeconv_savekernel_clicked(NULL, NULL);
+			return CMD_OK;
+		}
 		if (com.kernel) {
 			free(com.kernel);
 			com.kernel = NULL;
@@ -889,7 +899,7 @@ int process_makepsf(int nb) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
 				return CMD_GENERIC_ERROR;
 			}
-			data->psftype = 0;
+			data->psftype = PSF_BLIND;
 			siril_log_message(_("Blind kernel estimation:\n"));
 			for (int i = 2; i < nb; i++) {
 				char *arg = word[i], *end;
@@ -946,6 +956,8 @@ int process_makepsf(int nb) {
 					}
 				}
 			}
+			start_in_new_thread(estimate_only, data);
+			return CMD_OK;
 		} else if (g_str_has_prefix(arg, "stars")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
@@ -955,7 +967,7 @@ int process_makepsf(int nb) {
 				siril_log_message(_("Error: requested to generate PSF from stars but no stars have been selected. Run findstar first.\n"));
 				return CMD_ARG_ERROR;
 			} else {
-				data->psftype = 2;
+				data->psftype = PSF_STARS;
 				for (int i = 2; i < nb; i++) {
 					char *arg = word[i], *end;
 					if (!word[i])
@@ -977,10 +989,12 @@ int process_makepsf(int nb) {
 						}
 					}
 				}
+				start_in_new_thread(estimate_only,data);
+				return CMD_OK;
 			}
 		} else if (g_str_has_prefix(arg, "manual")) {
 			siril_log_message(_("Manual PSF generation:\n"));
-			data->psftype = 3;
+			data->psftype = PSF_MANUAL;
 			for (int i = 2; i < nb; i++) {
 				char *arg = word[i], *end;
 				if (!word[i])
@@ -1121,11 +1135,22 @@ int process_makepsf(int nb) {
 						data->airy_obstruction = val;
 					}
 				}
+				start_in_new_thread(estimate_only,data);
+				return CMD_OK;
 			}
+		} else if (g_str_has_prefix(arg, "load")) {
+			siril_log_message(_("Load PSF from file:\n"));
+			if (word[2] && word[2][0] != '\0') {
+				if (load_kernel(word[2])) {
+					siril_log_message(_("Error loading PSF.\n"));
+					return CMD_FILE_NOT_FOUND;
+				}
+			}
+			data->psftype = PSF_PREVIOUS;
+			return CMD_OK;
 		}
 	}
-	start_in_new_thread(estimate_only,data);
-	return CMD_OK;
+	return CMD_ARG_ERROR;
 }
 
 int process_deconvolve(int nb, nonblind_t type) {
@@ -1233,6 +1258,10 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 		data->alpha = 1.f / 500.f;
 	if (word[1] && word[1][0] != '\0') {
 		seq = load_sequence(word[1], NULL);
+	}
+	if (seq == NULL) {
+		siril_log_message(_("Error: cannot open sequence\n"));
+		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	for (int i = 2; i < nb; i++) {
 		char *arg = word[i], *end;
@@ -1355,6 +1384,10 @@ int process_unsharp(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	unsharp(&(gfit), sigma, multi, TRUE);
+
+	char log[90];
+	sprintf(log, "Unsharp filtering, sigma: %.2f, coefficient: %.2f", sigma, multi);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -1405,9 +1438,12 @@ int process_crop(int nb) {
 	}
 
 	crop(&gfit, &area);
-	gfit.history = g_slist_append(gfit.history,
-			g_strdup_printf(_("Crop (x=%d, y=%d, w=%d, h=%d)"),
-					area.x, area.y, area.w, area.h));
+
+	char log[90];
+	sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
+					area.x, area.y, area.w, area.h);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	notify_gfit_modified();
 	siril_add_idle(crop_command_idle, NULL);
 
@@ -1469,6 +1505,7 @@ int process_wrecons(int nb) {
 	redraw_previews();
 	return CMD_OK;
 }
+
 int process_linstretch(int nb) {
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
@@ -1508,9 +1545,11 @@ int process_linstretch(int nb) {
 	}
 	set_cursor_waiting(TRUE);
 	ght_params params = {0.0, 0.0, 0.0, 0.0, 0.0, BP, STRETCH_LINEAR, COL_INDEP, do_red, do_green, do_blue};
-	ght_compute_params compute_params;
-	GHTsetup(&compute_params, 0.0, 0.0, 0.0, 0.0, 0.0, STRETCH_LINEAR);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+	char log[90];
+	sprintf(log, "Linear stretch to black point %.3f", BP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1595,9 +1634,11 @@ int process_ght(int nb) {
 	}
 	set_cursor_waiting(TRUE);
 	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_NORMAL, stretch_colourmodel, do_red, do_green, do_blue};
-	ght_compute_params compute_params;
-	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_NORMAL);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+	char log[100];
+	sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", SP, D, B, LP, HP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1682,10 +1723,14 @@ int process_invght(int nb) {
 	}
 
 	set_cursor_waiting(TRUE);
-	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE, stretch_colourmodel, do_red, do_green, do_blue};
-	ght_compute_params compute_params;
-	GHTsetup(&compute_params, B, D, LP, SP, HP, STRETCH_PAYNE_INVERSE);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
+	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE,
+		stretch_colourmodel, do_red, do_green, do_blue};
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+	char log[100];
+	sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+			SP, D, B, LP, HP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1764,9 +1809,12 @@ int process_modasinh(int nb) {
 
 	set_cursor_waiting(TRUE);
 	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_ASINH, stretch_colourmodel, do_red, do_green, do_blue};
-	ght_compute_params compute_params;
-	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_ASINH);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+	char log[100];
+	sprintf(log, "Modified asinh (pivot: %.3f, amount: %.2f, [%.2f, %.2f])",
+			SP, D, LP, HP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1845,9 +1893,12 @@ int process_invmodasinh(int nb) {
 
 	set_cursor_waiting(TRUE);
 	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_INVASINH, stretch_colourmodel, do_red, do_green, do_blue};
-	ght_compute_params compute_params;
-	GHTsetup(&compute_params, 0.0, D, LP, SP, HP, STRETCH_INVASINH);
-	apply_linked_ght_to_fits(&gfit, &gfit, params, compute_params, TRUE);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+	char log[100];
+	sprintf(log, "Inverse modified asinh (pivot: %.3f, amount: %.2f, [%.2f, %.2f])",
+			SP, D, LP, HP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -1951,30 +2002,35 @@ int process_linear_match(int nb) {
 int process_asinh(int nb) {
 	gboolean human_luminance = FALSE;
 	gchar *end;
-	int arg_offset = 0;
+	int arg_offset = 1;
 	if (!strcmp(word[1], "-human")) {
 		human_luminance = TRUE;
-		arg_offset = 1;
+		arg_offset++;
 	}
-	if (nb <= arg_offset + 1)
+	if (nb <= arg_offset)
 		return CMD_WRONG_N_ARG;
-	double beta = g_ascii_strtod(word[arg_offset + 1], &end);
-	if (end == word[arg_offset + 1] || beta < 1.0) {
+	double beta = g_ascii_strtod(word[arg_offset], &end);
+	if (end == word[arg_offset] || beta < 1.0) {
 		siril_log_message(_("Stretch must be greater than or equal to 1\n"));
 		return CMD_ARG_ERROR;
 	}
+	arg_offset++;
 
 	double offset = 0.0;
-	if (nb > 2 + arg_offset) {
-		offset = g_ascii_strtod(word[2 + arg_offset], &end);
-		if (end == word[2 + arg_offset]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[2 + arg_offset]);
+	if (nb > arg_offset) {
+		offset = g_ascii_strtod(word[arg_offset], &end);
+		if (end == word[arg_offset]) {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_offset]);
 			return CMD_ARG_ERROR;
 		}
 	}
 
 	set_cursor_waiting(TRUE);
 	asinhlut(&gfit, beta, offset, human_luminance);
+
+	char log[90];
+	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -2407,6 +2463,7 @@ int process_mirrory(int nb){
 
 int process_mtf(int nb) {
 	struct mtf_params params;
+	gboolean inverse = word[0][0] == 'i' || word[0][0] == 'I';
 	gchar *end1, *end2, *end3;
 	params.shadows = g_ascii_strtod(word[1], &end1);
 	params.midtones = g_ascii_strtod(word[2], &end2);
@@ -2444,52 +2501,124 @@ int process_mtf(int nb) {
 		}
 	}
 
-	apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
+	if (inverse)
+		apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
+	else apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
+
+	char log[90];
+	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
+			inverse ? "Inverse midtones" : "Midtones",
+			params.shadows, params.midtones, params.highlights);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
 }
 
-int process_invmtf(int nb) {
-	struct mtf_params params;
-	gchar *end1, *end2, *end3;
-	params.shadows = g_ascii_strtod(word[1], &end1);
-	params.midtones = g_ascii_strtod(word[2], &end2);
-	params.highlights = g_ascii_strtod(word[3], &end3);
-	params.do_red = TRUE;
-	params.do_green = TRUE;
-	params.do_blue = TRUE;
-	if (end1 == word[1] || end2 == word[2] || end3 == word[3] ||
-			params.shadows < 0.0 || params.midtones <= 0.0 || params.highlights <= 0.0 ||
-			params.shadows >= 1.0 || params.midtones >= 1.0 || params.highlights > 1.0) {
-		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+int process_autoghs(int nb) {
+	int argidx = 1;
+	gboolean linked = FALSE;
+	float shadows_clipping, b = 13.0f, hp = 0.7f, lp = 0.0f;
+
+	if (!g_strcmp0(word[1], "-linked")) {
+		linked = TRUE;
+		argidx++;
+	}
+
+	gchar *end = NULL;
+	shadows_clipping = g_ascii_strtod(word[argidx], &end);
+	if (end == word[argidx]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
 		return CMD_ARG_ERROR;
 	}
-	if (word[4]) {
-		if (!strcmp(word[4], "R")) {
-			params.do_green = FALSE;
-			params.do_blue = FALSE;
+	argidx++;
+
+	float amount = g_ascii_strtod(word[argidx], &end);
+	if (end == word[argidx]) {
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+		return CMD_ARG_ERROR;
+	}
+	argidx++;
+
+	while (argidx < nb) {
+		if (g_str_has_prefix(word[argidx], "-b=")) {
+			char *arg = word[argidx] + 3;
+			b = g_ascii_strtod(arg, &end);
+			if (arg == end || b < -5.0f || b > 15.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
 		}
-		if (!strcmp(word[4], "G")) {
-			params.do_red = FALSE;
-			params.do_blue = FALSE;
+		else if (g_str_has_prefix(word[argidx], "-hp=")) {
+			char *arg = word[argidx] + 4;
+			hp = g_ascii_strtod(arg, &end);
+			if (arg == end || hp < 0.0f || hp > 1.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
 		}
-		if (!strcmp(word[4], "B")) {
-			params.do_green = FALSE;
-			params.do_red = FALSE;
+		else if (g_str_has_prefix(word[argidx], "-lp=")) {
+			char *arg = word[argidx] + 4;
+			lp = g_ascii_strtod(arg, &end);
+			if (arg == end || lp < 0.0f || lp > 1.0f) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
 		}
-		if (!strcmp(word[4], "RG")) {
-			params.do_blue = FALSE;
+		argidx++;
+	}
+
+	int nb_channels = (int)gfit.naxes[2];
+	imstats *stats[3] = { NULL };
+	int ret = compute_all_channels_statistics_single_image(&gfit, STATS_BASIC, MULTI_THREADED, stats);
+	if (ret) {
+		for (int i = 0; i < nb_channels; ++i) {
+			free_stats(stats[i]);
 		}
-		if (!strcmp(word[4], "RB")) {
-			params.do_green = FALSE;
+		return CMD_GENERIC_ERROR;
+	}
+	if (linked) {
+		double median = 0.0, sigma = 0.0;
+		for (int i = 0; i < nb_channels; ++i) {
+			median += stats[i]->median;
+			sigma += stats[i]->sigma;
+			free_stats(stats[i]);
 		}
-		if (!strcmp(word[4], "GB")) {
-			params.do_red = FALSE;
+		median /= nb_channels;
+		sigma /= nb_channels;
+		float SP = median + shadows_clipping * sigma;
+		if (gfit.type == DATA_USHORT)
+			SP *= (gfit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
+		siril_log_message(_("Symmetry point SP=%f\n"), SP);
+
+		ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
+			.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE };
+		apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
+#endif
+		for (int i = 0; i < nb_channels; ++i) {
+			gboolean do_red = i == 0, do_green = i == 1, do_blue = i == 2;
+			if (stats[i]) {
+				float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
+				if (gfit.type == DATA_USHORT)
+					SP *= (gfit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE;
+				siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
+
+				ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
+					.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
+				apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+
+				free_stats(stats[i]);
+			}
 		}
 	}
 
-	apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
+	char log[100];
+	sprintf(log, "AutoGHS (%sk.sigma: %.2f, amount: %.2f, local: %.1f [%.2f, %.2f])",
+			linked ? "linked, " : "", shadows_clipping, amount, b, lp, hp);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -2537,6 +2666,11 @@ int process_autostretch(int nb) {
 		apply_unlinked_mtf_to_fits(&gfit, &gfit, params);
 	}
 
+	char log[90];
+	sprintf(log, "Autostretch (shadows: %.2f, target bg: %.2f, %s)",
+			shadows_clipping, target_bg, linked ? "linked" : "unlinked");
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -2563,7 +2697,7 @@ int process_binxy(int nb) {
 int process_resample(int nb) {
 	gchar *end;
 	gboolean clamp = TRUE;
-	int interpolation = OPENCV_LANCZOS4;
+	opencv_interpolation interpolation = OPENCV_LANCZOS4;
 	int toX, toY;
 
 	if (word[1][0] == '-') {
@@ -2598,7 +2732,6 @@ int process_resample(int nb) {
 		toX = round_to_int(factor * gfit.rx);
 		toY = round_to_int(factor * gfit.ry);
 	}
-	siril_log_message(_("Resampling to %d x %d pixels\n"), toX, toY);
 
 	for (int i = 2; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-interp=")) {
@@ -2637,9 +2770,18 @@ int process_resample(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
+	siril_log_message(_("Resampling to %d x %d pixels with %s interpolation\n"),
+			toX, toY, interp_to_str(interpolation));
+	int fromX = gfit.rx, fromY = gfit.ry;
 
 	set_cursor_waiting(TRUE);
 	verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
+
+	char log[90];
+	sprintf(log, "Resampled from %d x %d, %s interp%s", fromX, fromY, interp_to_str(interpolation),
+			((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) ?
+			", clamped" : "");
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	notify_gfit_modified();
 	if (!com.script) update_MenuItem();
@@ -2768,9 +2910,10 @@ int process_rotatepi(int nb){
 }
 
 int process_set(int nb) {
+	gboolean is_get = word[0][0] == 'g' || word[0][0] == 'G';
 	char *input = word[1];
 	if (input[0] == '-') {
-		if (word[0][0] == 'g') {
+		if (is_get) {
 			if (!strcmp(input, "-a"))
 				return print_all_settings(FALSE);
 			if (!strcmp(input, "-A"))
@@ -2800,7 +2943,7 @@ int process_set(int nb) {
 		return 1;
 	}
 	input[sep] = '\0';
-	if (word[0][0] == 'g') {
+	if (is_get) {
 		print_settings_key(input, input+sep+1, FALSE);
 	} else {
 		/* set */
@@ -3858,6 +4001,10 @@ int process_thresh(int nb){
 	}
 	threshlo(&gfit, lo);
 	threshhi(&gfit, hi);
+
+	char log[90];
+	sprintf(log, "Image clamped to [%d, %d]", lo, hi);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -3871,6 +4018,10 @@ int process_threshlo(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	threshlo(&gfit, lo);
+
+	char log[90];
+	sprintf(log, "Image clamped to [%d, max]", lo);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -3884,6 +4035,10 @@ int process_threshhi(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	threshhi(&gfit, hi);
+
+	char log[90];
+	sprintf(log, "Image clamped to [min, %d]", hi);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -3891,6 +4046,7 @@ int process_threshhi(int nb) {
 int process_neg(int nb) {
 	set_cursor_waiting(TRUE);
 	pos_to_neg(&gfit);
+	gfit.history = g_slist_append(gfit.history, strdup("Image made negative"));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -3904,6 +4060,10 @@ int process_nozero(int nb){
 		return CMD_ARG_ERROR;
 	}
 	nozero(&gfit, (WORD)level);
+
+	char log[90];
+	sprintf(log, "Replaced zeros with %d", level);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	notify_gfit_modified();
 	return CMD_OK;
 }
@@ -4413,7 +4573,7 @@ int process_fill(int nb){
 int process_offset(int nb) {
 	gchar *end;
 
-	int level = g_ascii_strtod(word[1], &end);
+	int level = g_ascii_strtoull(word[1], &end, 10);
 	if (end == word[1]) {
 		siril_log_message(_("Wrong parameters.\n"));
 		return CMD_ARG_ERROR;
@@ -4425,25 +4585,48 @@ int process_offset(int nb) {
 	return CMD_OK;
 }
 
-/* The version in command line is a minimal version
- * Only neutral type are available (no amount needed),
- * then we always preserve the lightness */
 int process_scnr(int nb){
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
+	args->type = SCNR_AVERAGE_NEUTRAL;
+	args->amount = 0.0;
+	args->fit = &gfit;
+	args->preserve = TRUE;
 
-	args->type = 0;
-	if (nb > 1) {
+	int argidx = 1;
+	if (argidx < nb && !g_strcmp0(word[1], "-nopreserve")) {
+		args->preserve = FALSE;
+		argidx++;
+	}
+
+	if (argidx < nb) {
 		gchar *end;
-		args->type = g_ascii_strtoull(word[1], &end, 10);
-		if (end == word[1] || args->type > 1) {
-			siril_log_message(_("Type can either be 0 (average) or 1 (maximum) neutral protection\n"));
+		args->type = g_ascii_strtoull(word[argidx], &end, 10);
+		if (end == word[argidx] || args->type > 3) {
+			siril_log_message(_("Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum mask) or 3 (additive mask)\n"));
+			free(args);
+			return CMD_ARG_ERROR;
+		}
+		argidx++;
+	}
+
+	if (argidx < nb && (args->type == SCNR_MAXIMUM_MASK || args->type == SCNR_ADDITIVE_MASK)) {
+		gchar *end;
+		args->amount = g_ascii_strtod(word[argidx], &end);
+		if (end == word[argidx] || args->amount < 0.0 || args->amount > 1.0) {
+			siril_log_message(_("Amount can only be [0, 1]\n"));
 			free(args);
 			return CMD_ARG_ERROR;
 		}
 	}
-	args->fit = &gfit;
-	args->amount = 0.0;
-	args->preserve = TRUE;
+
+	char log[90];
+	char amountstr[30] = "";
+	if (args->type == SCNR_MAXIMUM_MASK || args->type == SCNR_ADDITIVE_MASK)
+		sprintf(amountstr, "amount %.2f, ", args->amount);
+	sprintf(log, "SCNR green removal (%s, %s%spreserving lightness)",
+			scnr_type_to_string(args->type), amountstr,
+			args->preserve ? "" : "not ");
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 
 	start_in_new_thread(scnr, args);
 	return CMD_OK;
@@ -5298,17 +5481,20 @@ int process_seq_extractHaOIII(int nb) {
 }
 
 int process_stat(int nb){
-	int nplane;
-	int layer;
+	int nplane, layer, option = STATS_BASIC;
 	char layername[6];
 
 	nplane = gfit.naxes[2];
 	gboolean cfa = FALSE;
-	if (nb == 2 && !strcmp(word[1], "-cfa") && nplane == 1 && gfit.bayer_pattern[0] != '\0') {
+	int argidx = 1;
+	if (nb == 2 && !g_strcmp0(word[1], "-cfa") && nplane == 1 && gfit.bayer_pattern[0] != '\0') {
 		siril_debug_print("Running stats on CFA\n");
 		nplane = 3;
 		cfa = TRUE;
+		argidx++;
 	}
+	if (nb == argidx + 1 && !g_strcmp0(word[argidx], "main"))
+		option = STATS_MAIN;
 
 	for (layer = 0; layer < nplane; layer++) {
 		int super_layer = layer;
@@ -5335,21 +5521,45 @@ int process_stat(int nb){
 				break;
 		}
 
-		if (gfit.type == DATA_USHORT) {
-			siril_log_message(
-					_("%s layer: Mean: %0.1lf, Median: %0.1lf, Sigma: %0.1lf, "
-							"AvgDev: %0.1lf, Min: %0.1lf, Max: %0.1lf\n"),
-					layername, stat->mean, stat->median, stat->sigma,
-					stat->avgDev, stat->min, stat->max);
-		} else {
-			siril_log_message(
-					_("%s layer: Mean: %0.1lf, Median: %0.1lf, Sigma: %0.1lf, "
-							"AvgDev: %0.1lf, Min: %0.1lf, Max: %0.1lf\n"),
-					layername, stat->mean * USHRT_MAX_DOUBLE,
-					stat->median * USHRT_MAX_DOUBLE,
-					stat->sigma * USHRT_MAX_DOUBLE,
-					stat->avgDev * USHRT_MAX_DOUBLE,
-					stat->min * USHRT_MAX_DOUBLE, stat->max * USHRT_MAX_DOUBLE);
+		if (option == STATS_BASIC) {
+			if (gfit.type == DATA_USHORT) {
+				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f\n"),
+						layername, stat->mean, stat->median, stat->sigma,
+						stat->min, stat->max, stat->bgnoise);
+			} else {
+				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f\n"),
+						layername, stat->mean * USHRT_MAX_DOUBLE,
+						stat->median * USHRT_MAX_DOUBLE,
+						stat->sigma * USHRT_MAX_DOUBLE,
+						stat->min * USHRT_MAX_DOUBLE,
+						stat->max * USHRT_MAX_DOUBLE,
+						stat->bgnoise * USHRT_MAX_DOUBLE);
+			}
+
+		} else if (option == STATS_MAIN) {
+			if (gfit.type == DATA_USHORT) {
+				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
+							"avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"),
+						layername, stat->mean, stat->median, stat->sigma,
+						stat->min, stat->max, stat->bgnoise, stat->avgDev,
+						stat->mad, stat->sqrtbwmv);
+			} else {
+				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
+							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
+							"avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"),
+						layername, stat->mean * USHRT_MAX_DOUBLE,
+						stat->median * USHRT_MAX_DOUBLE,
+						stat->sigma * USHRT_MAX_DOUBLE,
+						stat->min * USHRT_MAX_DOUBLE,
+						stat->max * USHRT_MAX_DOUBLE,
+						stat->bgnoise * USHRT_MAX_DOUBLE,
+						stat->avgDev * USHRT_MAX_DOUBLE,
+						stat->mad * USHRT_MAX_DOUBLE,
+						stat->sqrtbwmv * USHRT_MAX_DOUBLE);
+			}
 		}
 		free_stats(stat);
 	}
@@ -5572,19 +5782,19 @@ int process_seq_header(int nb) {
 }
 
 int process_convertraw(int nb) {
-	GDir *dir;
-	GError *error = NULL;
-	const gchar *file;
-	GList *list = NULL;
-	int idx = 1;
-	gchar *destroot = g_strdup(word[1]);
-	sequence_type output = SEQ_REGULAR;
-	gboolean debayer = FALSE;
-
 	if (!com.wd) {
 		siril_log_message(_("Conversion: no working directory set.\n"));
 		return CMD_NO_CWD;
 	}
+
+	if (word[1][0] == '-') {
+		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
+		return CMD_ARG_ERROR;
+	}
+	gchar *destroot = g_strdup(word[1]);
+	int idx = 1;
+	gboolean debayer = FALSE;
+	sequence_type output = SEQ_REGULAR;
 
 	for (int i = 2; i < nb; i++) {
 		char *current = word[i], *value;
@@ -5628,6 +5838,8 @@ int process_convertraw(int nb) {
 		}
 	}
 
+	GDir *dir;
+	GError *error = NULL;
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Conversion: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Conversion: %s\n", error->message);
@@ -5636,6 +5848,8 @@ int process_convertraw(int nb) {
 	}
 
 	int count = 0;
+	const gchar *file;
+	GList *list = NULL;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
 		if (!ext || file[0] == '.')
@@ -5684,12 +5898,12 @@ int process_convertraw(int nb) {
 }
 
 int process_link(int nb) {
-	GDir *dir;
-	GError *error = NULL;
-	const gchar *file;
-	GList *list = NULL;
-	int idx = 1;
+	if (word[1][0] == '-') {
+		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
+		return CMD_ARG_ERROR;
+	}
 	gchar *destroot = g_strdup(word[1]);
+	int idx = 1;
 
 	for (int i = 2; i < nb; i++) {
 		char *current = word[i], *value;
@@ -5723,6 +5937,8 @@ int process_link(int nb) {
 		}
 	}
 
+	GDir *dir;
+	GError *error = NULL;
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Link: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Link: %s\n", error->message);
@@ -5732,6 +5948,8 @@ int process_link(int nb) {
 	}
 
 	int count = 0;
+	const gchar *file;
+	GList *list = NULL;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
 		if (!ext || file[0] == '.')
@@ -5780,15 +5998,15 @@ int process_link(int nb) {
 }
 
 int process_convert(int nb) {
-	GDir *dir;
-	GError *error = NULL;
-	const gchar *file;
-	GList *list = NULL;
+	if (word[1][0] == '-') {
+		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
+		return CMD_ARG_ERROR;
+	}
+	gchar *destroot = g_strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	gboolean make_link = TRUE;
 	sequence_type output = SEQ_REGULAR;
-	gchar *destroot = g_strdup(word[1]);
 
 	for (int i = 2; i < nb; i++) {
 		char *current = word[i], *value;
@@ -5833,6 +6051,8 @@ int process_convert(int nb) {
 		}
 	}
 
+	GDir *dir;
+	GError *error = NULL;
 	if ((dir = g_dir_open(com.wd, 0, &error)) == NULL){
 		siril_log_message(_("Convert: error opening working directory %s.\n"), com.wd);
 		fprintf (stderr, "Convert: %s\n", error->message);
@@ -5842,6 +6062,8 @@ int process_convert(int nb) {
 	}
 
 	int count = 0;
+	const gchar *file;
+	GList *list = NULL;
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		const char *ext = get_filename_ext(file);
 		if (!ext || file[0] == '.')
@@ -6116,7 +6338,11 @@ int process_register(int nb) {
 	free(method);
 	msg[strlen(msg) - 1] = '\0';
 
-	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE || reg_args->no_output)
+	if (reg_args->interpolation == OPENCV_AREA ||
+			reg_args->interpolation == OPENCV_LINEAR ||
+			reg_args->interpolation == OPENCV_NEAREST ||
+			reg_args->interpolation == OPENCV_NONE ||
+			reg_args->no_output)
 		reg_args->clamp = FALSE;
 	if (reg_args->clamp)
 		siril_log_message(_("Interpolation clamping active\n"));
@@ -8020,6 +8246,45 @@ int process_sso() {
 		siril_add_idle(end_process_sso, NULL);
 	}
 	free(args);
+	return CMD_OK;
+}
+
+static gboolean end_process_catsearch(gpointer p) {
+	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+	force_to_refresh_catalogue_list();
+	if (!gtk_toggle_tool_button_get_active(button)) {
+		gtk_toggle_tool_button_set_active(button, TRUE);
+	} else {
+		redraw(REDRAW_OVERLAY);
+	}
+	return end_generic(NULL);
+}
+
+int process_catsearch(int nb){
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	set_cursor_waiting(TRUE);
+
+	gchar *result;
+	if (nb > 2) {
+		GString *str = g_string_new(word[1]);
+		int i = 2;
+		while (i < nb && word[i]) {
+			g_string_append_printf(str, " %s", word[i]);
+			i++;
+		}
+		gchar *name = g_string_free(str, FALSE);
+		result = search_object(name);
+		g_free(name);
+	} else {
+		result = search_object(word[1]);
+	}
+
+	if (result && !parse_buffer(result, 20.0)) {
+		siril_add_idle(end_process_catsearch, NULL);
+	}
 	return CMD_OK;
 }
 

@@ -85,6 +85,7 @@ namespace utils {
     template <typename T>
     img_t<T> add_padding(const img_t<T>& f, const img_t<T>& K)
     {
+//        printf("Kernel width %d and height %d\n", K.w, K.h);
         return add_padding(f, K.w/2, K.h/2);
     }
 
