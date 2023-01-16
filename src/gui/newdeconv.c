@@ -72,6 +72,7 @@ void reset_conv_args(estk_data* args) {
 	siril_debug_print("Resetting deconvolution args\n");
 
 	// Basic image and kernel parameters
+	args->made_in_SER_orientation = (sequence_is_loaded() && com.seq.type == SEQ_SER);
 	args->psftype = PSF_BLIND;
 	the_fit = &gfit;
 	args->fdata = NULL;
@@ -513,6 +514,21 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 
 }
 
+void check_orientation() {
+	int ndata = com.kernelsize * com.kernelsize;
+	if ((sequence_is_loaded() && com.seq.type == SEQ_SER) != args.made_in_SER_orientation) {
+		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
+		for (int i = 0 ; i < com.kernelsize ; i++) {
+			for (int j = 0 ; j < com.kernelsize ; j++) {
+				flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize] = com.kernel[i + com.kernelsize * j];
+			}
+		}
+		free(com.kernel);
+		com.kernel = flip_the_kernel;
+		args.made_in_SER_orientation = !args.made_in_SER_orientation;
+	}
+}
+
 int save_kernel(gchar* filename) {
 	int retval = 0;
 	fits *save_fit = NULL;
@@ -623,6 +639,8 @@ int load_kernel(gchar* filename) {
 		com.kernel = flip_the_kernel;
 		args.made_in_SER_orientation = TRUE; // The kernel is always saved in FITS orientation, it has been loaded and flipped to SER orientation
 											 // therefore this needs to be TRUE so it gets flipped back if re-saved.
+	} else {
+		args.made_in_SER_orientation = FALSE;
 	}
 	if (com.kernelchannels > args.nchans) { // If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
 		siril_log_message(_("The selected PSF is RGB but the loaded image is monochrome. The PSF will be converted to monochrome (luminance).\n"));
@@ -951,6 +969,7 @@ gpointer deconvolve(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
+	check_orientation();
 	args.nchans = the_fit->naxes[2];
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;
@@ -1213,6 +1232,7 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 
 // PSF drawing callback
 gboolean on_PSFkernel_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+	check_orientation();
 	drawing_the_PSF(widget, cr);
 	return FALSE;
 }
