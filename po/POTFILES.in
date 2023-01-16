@@ -50,6 +50,7 @@ src/filters/asinh.c
 src/filters/banding.c
 src/filters/clahe.c
 src/filters/cosmetic_correction.c
+src/filters/deconvolution/chelperfuncs.c
 src/filters/fft.c
 src/filters/ght.c
 src/filters/median.c
