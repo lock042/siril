@@ -155,8 +155,7 @@ static void histo_recompute() {
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
-		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
-		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, compute_params, TRUE);
+		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, TRUE);
 	}
 	notify_gfit_modified();
 }
@@ -797,7 +796,7 @@ static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct ght_data *m_args = (struct ght_data*) args->user;
-	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, m_args->compute_params, FALSE);
+	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
 	return 0;
 }
 
@@ -923,7 +922,6 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			struct ght_data *args = malloc(sizeof(struct ght_data));
 			struct ght_params params = { .B = _B, .D = _D, .LP = _LP, .SP = _SP, .HP = _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 			args->params_ght = params;
-			args->compute_params = compute_params;
 			args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
 			if (args->seqEntry && args->seqEntry[0] == '\0')
 				args->seqEntry = "ght_";

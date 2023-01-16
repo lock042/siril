@@ -925,21 +925,26 @@ gpointer findstar_worker(gpointer p) {
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
 			selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
 
+	double fwhm = 0.0;
 	if (stars) {
 		int i = 0;
+		double sum = 0.0;
 		while (stars[i]) {
+			sum += stars[i]->fwhmx;
 			fwhm_to_arcsec_if_needed(args->im.fit, stars[i++]);
 		}
-
+		if (i > 0)
+			fwhm = sum / i;
+		else fwhm = 0.0;
 	}
 
 	if (args->update_GUI) {
 		clear_stars_list(FALSE); // with FALSE it's not a GUI call
 		com.stars = stars;
 	}
-	siril_log_message(_("Found %d %s profile stars in %s, channel #%d\n"), nbstars,
+	siril_log_message(_("Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"), nbstars,
 			com.pref.starfinder_conf.profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
-			selection ? _("selection") : _("image"), args->layer);
+			selection ? _("selection") : _("image"), args->layer, fwhm);
 	if (args->starfile &&
 			save_list(args->starfile, args->max_stars_fitted, stars, nbstars,
 				&com.pref.starfinder_conf, args->layer, args->update_GUI)) {
