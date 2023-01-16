@@ -1498,6 +1498,12 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 			unreserve_thread();
 			return;
 		}
+		if (reg_args->interpolation == OPENCV_NONE && (reg_args->type > SHIFT_TRANSFORMATION)) {
+			siril_log_color_message(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"), "red");
+			free(reg_args);
+			unreserve_thread();
+			return;
+		}
 	}
 	if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg) &&
 		(reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)) ||
