@@ -402,9 +402,8 @@ gchar *search_in_online_conesearch(struct astrometry_data *args) {
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 	GString *string_url;
 	gchar *name = g_utf8_strdown(object, -1);
-
 	switch(server) {
-	case 0:
+	case QUERY_SERVER_CDS:
 		string_url = g_string_new(name);
 		g_string_replace(string_url, "+", "%2B", 0);
 		g_string_replace(string_url, "-", "%2D", 0);
@@ -412,7 +411,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_prepend(string_url, CDSSESAME);
 		siril_log_message(_("Searching %s in CDSESAME...\n"), name);
 		break;
-	case 1:
+	case QUERY_SERVER_VIZIER:
 		string_url = g_string_new(name);
 		g_string_replace(string_url, "+", "%2B", 0);
 		g_string_replace(string_url, "-", "%2D", 0);
@@ -421,7 +420,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		siril_log_message(_("Searching %s in VIZIER...\n"), name);
 		break;
 	default:
-	case 2:
+	case QUERY_SERVER_SIMBAD:
 		string_url = g_string_new(name);
 		g_string_replace(string_url, "+", "%2B", 0);
 		g_string_replace(string_url, "-", "%2D", 0);
@@ -429,7 +428,7 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		string_url = g_string_append(string_url, "';");
 		siril_log_message(_("Searching %s in SIMBAD...\n"), name);
 		break;
-	case 3:
+	case QUERY_SERVER_EPHEMCC:
 		// see https://ssp.imcce.fr/webservices/miriade/api/ephemcc/
 		string_url = g_string_new(EPHEMCC);
 		string_url = g_string_append(string_url, "-name=");
@@ -459,6 +458,14 @@ gchar *search_in_online_catalogs(const gchar *object, query_server server) {
 		}
 		g_free(formatted_site);
 		g_free(formatted_date);
+		break;
+	case QUERY_SERVER_SIMBAD_PHOTO:  // SIMBAD request to get the magnitudes (BVRIJ) for a particular star
+		string_url = g_string_new(name);
+		g_string_replace(string_url, "+", "%2B", 0);
+		g_string_replace(string_url, "-", "%2D", 0);
+		string_url = g_string_prepend(string_url, SIMBADPHOTO);
+		string_url = g_string_append(string_url, "';");
+		siril_log_message(_("Searching %s in SIMBAD(photo)...\n"), name);
 		break;
 	}
 
