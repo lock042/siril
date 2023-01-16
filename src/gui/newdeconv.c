@@ -885,6 +885,10 @@ int get_kernel() {
 #endif
 
 	args.made_in_SER_orientation = ((sequence_is_loaded() && com.seq.type == SEQ_SER));
+	if (args.made_in_SER_orientation)
+		siril_log_message(_("PSF made in top-down (SER) orientation.\n"));
+	else
+		siril_log_message(_("PSF made in bottom-up (FITS) orientation.\n"));
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
 	com.kernelchannels = (!com.kernel) ? 0 : args.kchans;
 	if (args.psftype != PSF_PREVIOUS) {
@@ -1165,7 +1169,7 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	for (int i = 0; i < com.kernelsize; i++) {
 		for (int j = 0; j < com.kernelsize; j++) {
 			float val[3] = { 0.f };
-			if (sequence_is_loaded() && com.seq.type == SEQ_SER && args.made_in_SER_orientation) {
+			if ((sequence_is_loaded() && com.seq.type == SEQ_SER && !args.made_in_SER_orientation) || (sequence_is_loaded() && com.seq.type != SEQ_SER && args.made_in_SER_orientation)) {
 				if (com.kernelchannels == 1) {
 					val[0] = pow((com.kernel[i * com.kernelsize + j] - minval) * invrange, 0.5f);
 					val[1] = val[0];
