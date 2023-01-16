@@ -50,7 +50,6 @@ src/filters/asinh.c
 src/filters/banding.c
 src/filters/clahe.c
 src/filters/cosmetic_correction.c
-src/filters/deconv.c
 src/filters/fft.c
 src/filters/ght.c
 src/filters/median.c
@@ -75,6 +74,7 @@ src/gui/image_interactions.c
 src/gui/linear_match.c
 src/gui/menu_gray_geometry.c
 src/gui/message_dialog.c
+src/gui/newdeconv.c
 src/gui/nina_light_curve.c
 src/gui/open_dialog.c
 src/gui/photometric_cc.c
