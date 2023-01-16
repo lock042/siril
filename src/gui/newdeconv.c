@@ -522,9 +522,23 @@ int save_kernel(gchar* filename) {
 		siril_log_color_message(_("Error: no PSF has been computed, nothing to save.\n"), "red");
 		return retval;
 	}
+	int ndata = com.kernelsize * com.kernelsize;
 	// Need to make a sacrificial copy of com.kernel as the save_fit data will be freed when we call clearfits
-	float* copy_kernel = malloc(com.kernelsize * com.kernelsize * com.kernelchannels * sizeof(float));
-	memcpy(copy_kernel, com.kernel, com.kernelsize * com.kernelsize * com.kernelchannels * sizeof(float));
+	float* copy_kernel = malloc(ndata * com.kernelchannels * sizeof(float));
+	memcpy(copy_kernel, com.kernel, ndata * com.kernelchannels * sizeof(float));
+
+	// Handle SER orientation issues, if a SER is loaded we need to turn the kernel upside-down so it consistently gets saved in FITS orientation
+	if (sequence_is_loaded() && com.seq.type == SEQ_SER) {
+		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
+		for (int i = 0 ; i < com.kernelsize ; i++) {
+			for (int j = 0 ; j < com.kernelsize ; j++) {
+				flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize] = copy_kernel[i + com.kernelsize * j];
+			}
+		}
+		free(copy_kernel);
+		copy_kernel = flip_the_kernel;
+	}
+
 	if ((retval = new_fit_image_with_data(&save_fit, com.kernelsize, com.kernelsize, com.kernelchannels, DATA_FLOAT, copy_kernel))) {
 		siril_log_color_message(_("Error preparing PSF for save.\n"), "red");
 		return retval;
@@ -596,6 +610,19 @@ int load_kernel(gchar* filename) {
 				}
 			}
 		}
+	}
+	// Handle SER orientation issues, if a SER is loaded we need to turn the kernel upside-down
+	if (sequence_is_loaded() && com.seq.type == SEQ_SER) {
+		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
+		for (int i = 0 ; i < com.kernelsize ; i++) {
+			for (int j = 0 ; j < com.kernelsize ; j++) {
+				flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize] = com.kernel[i + com.kernelsize * j];
+			}
+		}
+		free(com.kernel);
+		com.kernel = flip_the_kernel;
+		args.made_in_SER_orientation = TRUE; // The kernel is always saved in FITS orientation, it has been loaded and flipped to SER orientation
+											 // therefore this needs to be TRUE so it gets flipped back if re-saved.
 	}
 	if (com.kernelchannels > args.nchans) { // If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
 		siril_log_message(_("The selected PSF is RGB but the loaded image is monochrome. The PSF will be converted to monochrome (luminance).\n"));
@@ -856,6 +883,8 @@ int get_kernel() {
 		siril_debug_print("\n");
 	}
 #endif
+
+	args.made_in_SER_orientation = ((sequence_is_loaded() && com.seq.type == SEQ_SER));
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
 	com.kernelchannels = (!com.kernel) ? 0 : args.kchans;
 	if (args.psftype != PSF_PREVIOUS) {
@@ -1136,7 +1165,7 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	for (int i = 0; i < com.kernelsize; i++) {
 		for (int j = 0; j < com.kernelsize; j++) {
 			float val[3] = { 0.f };
-			if (sequence_is_loaded() && com.seq.type == SEQ_SER) {
+			if (sequence_is_loaded() && com.seq.type == SEQ_SER && args.made_in_SER_orientation) {
 				if (com.kernelchannels == 1) {
 					val[0] = pow((com.kernel[i * com.kernelsize + j] - minval) * invrange, 0.5f);
 					val[1] = val[0];

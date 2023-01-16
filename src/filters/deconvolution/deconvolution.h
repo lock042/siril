@@ -17,6 +17,7 @@ typedef enum { REG_TV_GRAD, REG_FH_GRAD, REG_NONE_GRAD, REG_TV_MULT, REG_FH_MULT
 
 
 EXTERNC typedef struct estk_data {
+	gboolean made_in_SER_orientation;
 	char* wisdom_file;
 	float* fdata;
 	unsigned rx;
