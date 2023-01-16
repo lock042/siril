@@ -1896,7 +1896,7 @@ int process_invmodasinh(int nb) {
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 
 	char log[100];
-	sprintf(log, "Inverted modified asinh (pivot: %.3f, amount: %.2f, [%.2f, %.2f])",
+	sprintf(log, "Inverse modified asinh (pivot: %.3f, amount: %.2f, [%.2f, %.2f])",
 			SP, D, LP, HP);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
@@ -5539,7 +5539,6 @@ int process_stat(int nb){
 			}
 
 		} else if (option == STATS_MAIN) {
-			//"mean\tmedian\tsigma\tmin\tmax\tnoise\tavgDev\tmad\tsqrtbwmv\n";
 			if (gfit.type == DATA_USHORT) {
 				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
 							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f, "
