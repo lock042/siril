@@ -56,9 +56,6 @@ fi
 CFLAGS="-D_FILE_OFFSET_BITS=64 -Werror=unknown-pragmas -Werror=unused-label -fno-common -ftree-vectorize -fno-math-errno $CFLAGS $OPENMP_CFLAGS"
 CXXFLAGS="$CFLAGS -std=c++14"
 
-m4_include([m4/ax_cxx_compile_stdcxx.m4])
-AX_CXX_COMPILE_STDCXX(14, noext, mandatory)
-
 if test "x$SIRIL_UNSTABLE" = "xyes"; then
   AC_DEFINE(SIRIL_UNSTABLE, 1,
             [Define to 1 if this is an unstable version of Siril])
