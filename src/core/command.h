@@ -19,6 +19,7 @@ gpointer run_bm3d_on_fit(gpointer p);
 int	process_boxselect(int nb);
 
 int	process_capabilities(int nb);
+int	process_catsearch(int nb);
 int	process_cd(int nb);
 int	process_cdg(int nb);
 int	process_crop(int nb);

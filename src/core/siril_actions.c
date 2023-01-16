@@ -385,7 +385,6 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 		}
 	} else {
 		purge_temp_user_catalogue();
-		force_to_refresh_catalogue_list();
 		g_slist_free_full(com.found_object, (GDestroyNotify) free_catalogue_object);
 		com.found_object = NULL;
 	}
