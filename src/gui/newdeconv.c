@@ -86,7 +86,6 @@ orientation_t get_imageorientation() {
 	} else {
 		result = UNDEFINED;
 	}
-	siril_log_message("Image orientation %d, kernel orientation %d\n", result, args.kernelorientation);
 	return result;
 }
 
@@ -539,6 +538,7 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 void check_orientation() {
 	int ndata = com.kernelsize * com.kernelsize;
 	if (get_imageorientation() != args.kernelorientation) {
+		siril_log_message(_("The current image row order is different to that of the image the kernel was made for. Flipping row order...\n"));
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
@@ -993,6 +993,7 @@ gpointer deconvolve(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
+	check_orientation();
 	args.nchans = the_fit->naxes[2];
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;

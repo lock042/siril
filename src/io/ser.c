@@ -903,6 +903,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
+	g_strdup_printf(fit->row_order, "BOTTOM-UP");
 
 	return 0;
 }
@@ -1177,7 +1178,10 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		return 1;
 	}
 
-	fits_flip_top_to_bottom(fit);
+	if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+		fits_flip_top_to_bottom(fit);
+		siril_log_message(_("Converting row order to top down.\n"));
+	}
 	frame_size = ser_file->image_width * ser_file->image_height *
 		ser_file->number_of_planes;
 
