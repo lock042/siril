@@ -59,6 +59,7 @@
 gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
 orientation_t imageorientation;
+gboolean showtime = TRUE; // Sequence processing will set this to FALSE, so as not to clutter the log
 
 estk_data args = { 0 };
 static GtkWidget *drawingPSF = NULL;
@@ -993,6 +994,7 @@ gboolean deconvolve_idle(gpointer arg) {
 }
 
 gpointer deconvolve(gpointer p) {
+	struct timeval t_start, t_end;
 	if (p != NULL) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
@@ -1070,7 +1072,7 @@ gpointer deconvolve(gpointer p) {
 		if (sequence_is_running == 0)
 			set_progress_bar_data("Starting non-blind deconvolution...", 0);
 		siril_debug_print("Starting non-blind deconvolution\n");
-
+		gettimeofday(&t_start, NULL);
 		// Non-blind deconvolution stage
 		switch (args.nonblindtype) {
 			case DECONV_SB:
@@ -1087,15 +1089,11 @@ gpointer deconvolve(gpointer p) {
 						args.regtype = REG_FH_MULT;
 					else args.regtype = REG_NONE_MULT;
 				}
-				struct timeval t_start, t_end;
-				gettimeofday(&t_start, NULL);
 
 				if (args.ks < com.pref.fftw_conf.fft_cutoff)
 					naive_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
 				else
 					richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
-				gettimeofday(&t_end, NULL);
-				show_time(t_start, t_end);
 
 				free(msg_rl);
 				msg_rl = NULL;
@@ -1107,6 +1105,10 @@ gpointer deconvolve(gpointer p) {
 			case DECONV_WIENER:
 				wienerdec(args.fdata, args.rx, args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, fftw_max_thread);
 				break;
+		}
+		gettimeofday(&t_end, NULL);
+		if (sequence_is_running == 0) {
+			show_time(t_start, t_end);
 		}
 	}
 
@@ -1296,6 +1298,7 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	}
 	args.psftype = args.oldpsftype; // Restore consistency
 	sequence_is_running = 0;
+	showtime = TRUE;
 	return retval;
 }
 
@@ -1350,7 +1353,7 @@ int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 		g_free(dest);
 	}
 	else return 0;
-
+	showtime = FALSE;
 	if (!retval)
 		retval = seq_prepare_writer(seqargs);
 	return retval;
