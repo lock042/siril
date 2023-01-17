@@ -801,7 +801,6 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	}
 	if (pattern) {
 		strcpy(fit->bayer_pattern, pattern);
-		strncpy(fit->row_order, "BOTTOM-UP", FLEN_VALUE - 1);
 	}
 
 	switch (type_ser) {
@@ -1180,7 +1179,6 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 
 	if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
 		fits_flip_top_to_bottom(fit);
-		siril_log_message(_("Converting row order to top down.\n"));
 	}
 	frame_size = ser_file->image_width * ser_file->image_height *
 		ser_file->number_of_planes;
