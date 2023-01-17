@@ -153,7 +153,6 @@ void free_image_data() {
 	 * shouldn't it be used here instead of gfit? */
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
-	clearfits(&gfit);
 
 	invalidate_gfit_histogram();
 
@@ -167,6 +166,8 @@ void free_image_data() {
 
 	if (!com.headless)
 		free_image_data_gui();
+
+	clearfits(&gfit);
 }
 
 static gboolean end_read_single_image(gpointer p) {

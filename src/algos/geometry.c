@@ -271,41 +271,42 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
+	char log[90];
+	sprintf(log, "Binned x%d (%s)", factor, mean ? "mean" : "sum");
+	fit->history = g_slist_append(fit->history, strdup(log));
+
 	siril_log_message(_("New image size: %dx%d pixels.\n"), fit->rx, fit->ry);
 
 	return 0;
 }
 
+const char *interp_to_str(opencv_interpolation interpolation) {
+	switch (interpolation) {
+		case OPENCV_NEAREST:
+			return _("Nearest-Neighbor");
+		default:
+		case OPENCV_LINEAR:
+			return _("Bilinear");
+		case OPENCV_AREA:
+			return _("Pixel Area Relation");
+		case OPENCV_CUBIC:
+			return _("Bicubic");
+		case OPENCV_LANCZOS4:
+			return _("Lanczos4");
+	}
+}
+
 /* These functions do not more than resize_gaussian and rotate_image
  * except for console outputs.
  * Indeed, siril_log_message seems not working in a cpp file */
-int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
+int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp) {
 	int retvalue;
-	const char *str_inter;
 	struct timeval t_start, t_end;
 	float factor_X = (float)image->rx / (float)toX;
 	float factor_Y = (float)image->ry / (float)toY;
 
-	switch (interpolation) {
-		case OPENCV_NEAREST:
-			str_inter = _("Nearest-Neighbor");
-			break;
-		default:
-		case OPENCV_LINEAR:
-			str_inter = _("Bilinear");
-			break;
-		case OPENCV_AREA:
-			str_inter = _("Pixel Area Relation");
-			break;
-		case OPENCV_CUBIC:
-			str_inter = _("Bicubic");
-			break;
-		case OPENCV_LANCZOS4:
-			str_inter = _("Lanczos4");
-			break;
-	}
-
-	siril_log_color_message(_("Resample (%s interpolation): processing...\n"), "green", str_inter);
+	siril_log_color_message(_("Resample (%s interpolation): processing...\n"),
+			"green", interp_to_str(interpolation));
 
 	gettimeofday(&t_start, NULL);
 
@@ -529,6 +530,7 @@ void mirrory(fits *fit, gboolean verbose) {
 		show_time(t_start, t_end);
 	}
 
+	fit->history = g_slist_append(fit->history, strdup("Left-right mirror"));
 #ifdef HAVE_WCSLIB
 	if (has_wcs(fit)) {
 		Homography H = { 0 };

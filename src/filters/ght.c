@@ -373,7 +373,7 @@ int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float 
 	return 0;
 }
 
-void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct ght_compute_params compute_params, gboolean multithreaded) {
+void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, gboolean multithreaded) {
 	const gboolean do_channel[3] = {params.do_red, params.do_green, params.do_blue};
 	int active_channels = 3;
 	for (size_t i=0;i<3;i++)
@@ -382,6 +382,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);
+	struct ght_compute_params compute_params;
 	float factor_red = 0.2126f;
 	float factor_green = 0.7152f;
 	float factor_blue = 0.0722f;
