@@ -18,4 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-int parse_buffer(char *buffer, double lim_mag);
+#ifndef _SEARCH_OBJECTS_H
+#define _SEARCH_OBJECTS_H
+
+int parse_buffer(const gchar *buffer, double lim_mag);
+gchar *search_object(const gchar *name);
+
+#endif

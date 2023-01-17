@@ -30,42 +30,53 @@
 #include "algos/search_objects.h"
 #include "astrometry_solver.h"
 
-int parse_buffer(char *buffer, double lim_mag) {
+/* parse results from online catalogue searches and store them in the local annotation catalogues */
+int parse_buffer(const gchar *buffer, double lim_mag) {
 	gchar **token, **part, *realname = NULL;
 	int nargs;
 	gboolean is_solar_system = FALSE;
 	gboolean is_in_field = FALSE;
 	SirilWorldCS *world_cs = NULL;
 	gchar *objname = NULL;
+	if (!buffer || buffer[0] == '\0')
+		return 1;
 
 	token = g_strsplit(buffer, "\n", -1);
 	nargs = g_strv_length(token);
-	gboolean conesearch = FALSE;
 
-	// The goal here is to determine if a consearch has been performed or not, by searching the (valid) answer for paricular "word"
-	if (g_str_has_prefix(buffer, "# Flag:")) {
-		// Header of the answer to be tested.
+	/* The goal here is to determine if a cone search has been performed or
+	 * not, by searching the (valid) answer for paricular "word" */
+	gboolean conesearch = FALSE;
+	if (g_str_has_prefix(buffer, "# Flag:") && nargs >= 3) {
+		// Header of the answer to be tested
 		if (g_str_has_prefix(buffer, "# Flag: 0")) {
 			siril_log_message("No Solar System object found in this FOV \n");
+			g_strfreev(token);
 			return 1;
 		}
 
 		// Is the answer valid for conesearch?
 		// Extract the first word of the third line, surrounded by ("#" + space) and ("space + "|")
-		gchar *Num_key = NULL;
+		// We are looking for "Num", which is typical for a consearch request
 		char *start = strchr(token[2], '#');
-		if (start && *(start+1) != '\0') {
-			start += 2; // remove the space
-			char *end = strchr(start, '|');
-			if (end) {
-				end -= 2; // remove the space
-				Num_key = g_strndup(start, end-start+1);
+		if (start && !strncmp(start, "# Num |", 7))
+			conesearch = TRUE;
+	}
+
+	// This is for a request to SIMBAD but in photometry style
+	if (g_str_has_prefix(buffer, "B	V	R	I	J")) {
+		gchar **fields = g_strsplit(token[1], "\t", -1);
+		guint n = g_strv_length(fields);
+		if (n > 4) {
+			double Bmag, Vmag; //	Rmag, Imag and Jmag are not used but are available, in case...
+			if (sscanf(fields[0], "%lf", &Bmag) && sscanf(fields[1], "%lf", &Vmag)) {
+				//For now, do nothing. Bmag and Vmag are aimed at beeing saved in a cstars, as target data. See the next MR...
+				siril_log_message(_("Bmag= %lf  , Vmag= %lf\n"), Bmag, Vmag);
 			}
 		}
-		// We are looking for "Num", which is typical for a consearch request
-		if (!g_strcmp0(Num_key, "Num"))
-			conesearch = TRUE;
-		g_free (Num_key);
+		g_strfreev(fields);
+		g_strfreev(token);
+		return 1;
 	}
 
 	if (g_str_has_prefix(buffer, "oid")) {
@@ -230,10 +241,10 @@ int parse_buffer(char *buffer, double lim_mag) {
 				// Then, retrieve the magnitude, used to sort the objects to be displayed
 				if (valid) {
 					if (fields[5]) sscanf(fields[5], "%lf", &mag);	// Get the magnitude
-					else valid = FALSE;	
+					else valid = FALSE;
 
 					// Is mag enought to be shown? Intentionaly hard-limited to 20
-					if (mag < lim_mag && is_inside(&gfit, ra, dec)) nbr_a+=1;	
+					if (mag < lim_mag && is_inside(&gfit, ra, dec)) nbr_a+=1;
 					else valid = FALSE;
 				}
 				if (valid) {
@@ -260,9 +271,8 @@ int parse_buffer(char *buffer, double lim_mag) {
 			rank+=1;
 		}
 		g_free(objname);
+		g_strfreev(token);
 		siril_log_message(_("Found %d Solar System Objects with mag < %0.1lf\n"), nbr_a, lim_mag);
-
-		//////////
 		return 0;
 
 	} else {
@@ -306,15 +316,26 @@ int parse_buffer(char *buffer, double lim_mag) {
 	return 1;
 }
 
+gchar *search_object(const gchar *name) {
+	gboolean solarsystem = g_str_has_prefix(name, "a:") ||
+		g_str_has_prefix(name, "c:") ||	g_str_has_prefix(name, "p:");
+	if (!solarsystem) {
+		gchar *result = search_in_online_catalogs(name, QUERY_SERVER_SIMBAD_PHOTO);
+		parse_buffer(result, 20.0);
+		// TODO: avoid doing the second request
+		return search_in_online_catalogs(name, QUERY_SERVER_SIMBAD);
+	}
+	return search_in_online_catalogs(name, QUERY_SERVER_EPHEMCC);
+}
+
 void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
 	if (!has_wcs(&gfit)) return;
 	// TODO: search in local annotation catalogues first
 	const gchar *name = gtk_entry_get_text(GTK_ENTRY(entry));
-	gboolean solarsystem = g_str_has_prefix(name, "a:") || g_str_has_prefix(name, "c:") ||
-		g_str_has_prefix(name, "p:");
 
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	gchar *result = search_in_online_catalogs(name, solarsystem ? QUERY_SERVER_EPHEMCC : QUERY_SERVER_SIMBAD);
+
+	gchar *result = search_object(name);
 
 	if (result && !parse_buffer(result, 20.0)) {
 		GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
