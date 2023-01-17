@@ -536,13 +536,15 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void check_orientation() {
-	int ndata = com.kernelsize * com.kernelsize;
+	int ndata = com.kernelsize * com.kernelsize * com.kernelchannels;
 	if (get_imageorientation() != args.kernelorientation) {
 		siril_log_message(_("The current image row order is different to that of the image the kernel was made for. Flipping row order...\n"));
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
-		for (int i = 0 ; i < com.kernelsize ; i++) {
-			for (int j = 0 ; j < com.kernelsize ; j++) {
-				flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize] = com.kernel[i + com.kernelsize * j];
+		for (int c = 0 ; c < com.kernelchannels; c++) {
+			for (int i = 0 ; i < com.kernelsize ; i++) {
+				for (int j = 0 ; j < com.kernelsize ; j++) {
+					flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize + ndata * c] = com.kernel[i + com.kernelsize * j + ndata *c];
+				}
 			}
 		}
 		free(com.kernel);
@@ -571,9 +573,11 @@ int save_kernel(gchar* filename) {
 	if (get_imageorientation() == TOP_DOWN) {
 		siril_log_message("kernel flipped on saving\n");
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
-		for (int i = 0 ; i < com.kernelsize ; i++) {
-			for (int j = 0 ; j < com.kernelsize ; j++) {
-				flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize] = copy_kernel[i + com.kernelsize * j];
+		for (int c = 0 ; c < com.kernelchannels ; c++) {
+			for (int i = 0 ; i < com.kernelsize ; i++) {
+				for (int j = 0 ; j < com.kernelsize ; j++) {
+					flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize + c * ndata] = copy_kernel[i + com.kernelsize * j + c * ndata];
+				}
 			}
 		}
 		free(copy_kernel);
@@ -699,9 +703,11 @@ int load_kernel(gchar* filename) {
 	if (get_imageorientation() == TOP_DOWN) {
 		siril_log_message("flipping kernel on load, to match image top down orientation.\n");
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
-		for (int i = 0 ; i < com.kernelsize ; i++) {
-			for (int j = 0 ; j < com.kernelsize ; j++) {
-				flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize] = com.kernel[i + com.kernelsize * j];
+		for (int c = 0 ; c < com.kernelchannels ; c++) {
+			for (int i = 0 ; i < com.kernelsize ; i++) {
+				for (int j = 0 ; j < com.kernelsize ; j++) {
+					flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize + c * npixels] = com.kernel[i + com.kernelsize * j + c * npixels];
+				}
 			}
 		}
 		free(com.kernel);
