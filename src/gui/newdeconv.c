@@ -59,7 +59,6 @@
 gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
 orientation_t imageorientation;
-gboolean showtime = TRUE; // Sequence processing will set this to FALSE, so as not to clutter the log
 
 estk_data args = { 0 };
 static GtkWidget *drawingPSF = NULL;
@@ -571,7 +570,6 @@ int save_kernel(gchar* filename) {
 	// kernel in BOTTOM_UP orientation. Note that we don't actually change args->kernelorientation here as we are only flipping
 	// the sacrificial copy.
 	if (get_imageorientation() == TOP_DOWN) {
-		siril_log_message("kernel flipped on saving\n");
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int c = 0 ; c < com.kernelchannels ; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
@@ -701,7 +699,6 @@ int load_kernel(gchar* filename) {
 	}
 	// Handle SER orientation issues, if the image orientation is TOP_DOWN we need to match it
 	if (get_imageorientation() == TOP_DOWN) {
-		siril_log_message("flipping kernel on load, to match image top down orientation.\n");
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int c = 0 ; c < com.kernelchannels ; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
@@ -857,10 +854,12 @@ int get_kernel() {
 #endif
 
 	args.kernelorientation = get_imageorientation();
+#ifdef DEBUG
 	if (args.kernelorientation == BOTTOM_UP)
 		siril_log_message(_("PSF made in bottom up orientation.\n"));
 	else
 		siril_log_message(_("PSF made in top down orientation.\n"));
+#endif
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
 	com.kernelchannels = (!com.kernel) ? 0 : args.kchans;
 	if (args.psftype != PSF_PREVIOUS) {
@@ -1043,8 +1042,7 @@ gpointer deconvolve(gpointer p) {
 
 	// Get the kernel
 	if (sequence_is_running == 0)
-		set_progress_bar_data("Starting PSF estimation...", PROGRESS_PULSATE);
-	siril_debug_print("Starting PSF estimation\n");
+		set_progress_bar_data(_("Starting PSF estimation..."), PROGRESS_PULSATE);
 	if (args.psftype != PSF_PREVIOUS)
 		get_kernel();
 	if (!com.kernel) {
@@ -1055,7 +1053,6 @@ gpointer deconvolve(gpointer p) {
 
 	float *xyzdata = NULL;
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
-		printf("doing luminance only\n");
 		// Convert the fit to XYZ and only deconvolve Y
 		int npixels = the_fit->rx * the_fit->ry;
 		xyzdata = malloc(npixels * the_fit->naxes[2] * sizeof(float));
@@ -1070,8 +1067,7 @@ gpointer deconvolve(gpointer p) {
 
 	if (get_thread_run() || sequence_is_running == 1) {
 		if (sequence_is_running == 0)
-			set_progress_bar_data("Starting non-blind deconvolution...", 0);
-		siril_debug_print("Starting non-blind deconvolution\n");
+			set_progress_bar_data(_("Starting non-blind deconvolution..."), 0);
 		gettimeofday(&t_start, NULL);
 		// Non-blind deconvolution stage
 		switch (args.nonblindtype) {
@@ -1296,9 +1292,10 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 		retval = fitseq_close_file(seqargs->new_fitseq);
 		free(seqargs->new_fitseq);
 	}
+	set_progress_bar_data(_("Ready."), 0.);
+
 	args.psftype = args.oldpsftype; // Restore consistency
 	sequence_is_running = 0;
-	showtime = TRUE;
 	return retval;
 }
 
@@ -1315,6 +1312,7 @@ int deconvolution_image_hook(struct generic_seq_args *seqargs, int o, int i, fit
 }
 
 int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
+	set_progress_bar_data(_("Deconvolution. Processing sequence..."), 0.);
 	if (args.psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
 	// Refuse to process the sequence using previous PSF if there is no previous PSF defined
 		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");
@@ -1353,7 +1351,6 @@ int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 		g_free(dest);
 	}
 	else return 0;
-	showtime = FALSE;
 	if (!retval)
 		retval = seq_prepare_writer(seqargs);
 	return retval;
