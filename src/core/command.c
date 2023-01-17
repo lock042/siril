@@ -7911,21 +7911,37 @@ int process_pcc(int nb) {
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0;
 	online_catalog cat = CAT_AUTO;
-	gboolean pcc_command = word[0][1] == 'c'; // not 'platesolve'
+	gboolean pcc_command = word[0][1] == 'c'; // not 'platesolve' or 'seqplatesolve'
+	gboolean seqps = word[0][0] == 's';
+	sequence *seq = NULL;
 	// parse args: [target_coords] [-noflip] [-platesolve] [-focal=len] [-pixelsize=ps] [-limitmag=[+-]mag] [-catalog=]
+	gboolean local_cat = local_catalogues_available();
+	int next_arg = 1;
+	if (seqps) {
+		if (!local_cat) {
+			siril_log_message(_("This feature is only available with local catalogues installed\n"));
+			return CMD_GENERIC_ERROR;;
+		}
+		if (!(seq = load_sequence(word[1], NULL)))
+			return CMD_SEQUENCE_NOT_FOUND;
+		next_arg++;
+	}
 
 	// check if we have target_coords
-	int next_arg = 1;
-	if (nb > 1 && (word[1][0] != '-' || (word[1][1] >= '0' && word[1][1] <= '9'))) {
-		char *sep = strchr(word[1], ',');
-		next_arg = 2;
+	if (nb > next_arg && (word[next_arg][0] != '-' || (word[next_arg][1] >= '0' && word[next_arg][1] <= '9'))) {
+		char *sep = strchr(word[next_arg], ',');
+		next_arg++;
 		if (!sep) {
-			target_coords = siril_world_cs_new_from_objct_ra_dec(word[1], word[2]);
-			next_arg = 3;
+			if (nb == 2) {
+				siril_log_message(_("Could not parse target coordinates\n"));
+				return CMD_ARG_ERROR;
+			}
+			target_coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg+1]);
+			next_arg++;
 		}
 		else {
 			*sep++ = '\0';
-			target_coords = siril_world_cs_new_from_objct_ra_dec(word[1], sep);
+			target_coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], sep);
 		}
 		if (!target_coords) {
 			siril_log_message(_("Could not parse target coordinates\n"));
@@ -8002,6 +8018,34 @@ int process_pcc(int nb) {
 			return CMD_ARG_ERROR;
 		}
 		next_arg++;
+	}
+
+	if (seqps) {
+		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+		args->pixel_size = forced_pixsize;
+		args->focal_length = forced_focal;
+		args->use_local_cat = local_cat;
+		args->onlineCatalog = cat;
+		args->cat_center = target_coords;
+		args->downsample = FALSE;
+		args->autocrop = TRUE;
+		args->flip_image = !noflip;
+		args->manual = FALSE;
+		if (target_mag > -1.0) {
+			args->mag_mode = LIMIT_MAG_ABSOLUTE;
+			args->magnitude_arg = target_mag;
+		}
+		else if (mag_offset != 0.0) {
+			args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
+			args->magnitude_arg = mag_offset;
+		}
+		else args->mag_mode = LIMIT_MAG_AUTO;
+		args->for_sequence = TRUE;
+		args->verbose = FALSE;
+		args->for_photometry_cc = FALSE;
+
+		start_sequence_astrometry(seq, args);
+		return CMD_OK;
 	}
 
 	if (plate_solve && !target_coords) {
@@ -8111,7 +8155,6 @@ int process_pcc(int nb) {
 			pcc_args->mag_mode = LIMIT_MAG_AUTO;
 	}
 
-	gboolean local_cat = local_catalogues_available();
 	if (local_cat && cat != CAT_AUTO)
 		siril_debug_print("using local star catalogues\n");
 

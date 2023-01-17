@@ -60,6 +60,7 @@ struct astrometry_data {
 	fits *fit;		// the image
 	double pixel_size;	// pixel size in µm
 	double focal_length;	// focal length in mm
+	gboolean use_local_cat;	// use local catalogues if installed
 	online_catalog onlineCatalog;	// choice of catalog for the plate solve
 	SirilWorldCS *cat_center;	// starting point for the search
 	gboolean downsample;	// downsample mage before solving
@@ -68,6 +69,8 @@ struct astrometry_data {
 	gboolean manual;	// use stars already detected by user, in com.stars
 	limit_mag_mode mag_mode;// automatically limit magnitude of the catalog
 	double magnitude_arg;	// if not automatic, use this limit magnitude
+	gboolean verbose;	// display all information
+	gboolean for_sequence;	// sequence operation, don't free everything
 
 	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
 	struct photometric_cc_data *pcc;// PCC configuration
@@ -76,7 +79,6 @@ struct astrometry_data {
 	double limit_mag;	// limit magnitude to sear for in the catalog
 	double scale;		// scale (resolution) in arcsec per pixel
 	double used_fov;	// field of view for the solved image region (arcmin)
-	gboolean use_local_cat;	// use local catalogues if installed
 	GFile *catalog_file;	// downloaded file containing raw catalog data
 	gchar *catalogStars;	// file name of the projected catalog
 	rectangle solvearea;	// area in case of manual selection or autocrop
@@ -112,6 +114,8 @@ void flip_bottom_up_astrometry_data(fits *fit);
 void reframe_astrometry_data(fits *fit, Homography H);
 
 void set_focal_and_pixel_pitch();
+
+void start_sequence_astrometry(sequence *seq, struct astrometry_data *args);
 
 /* for the GUI */
 double get_resolution(double focal, double pixel);

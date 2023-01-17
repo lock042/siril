@@ -692,7 +692,6 @@ static void extract_cdelt_from_cd(double cd1_1, double cd1_2, double cd2_1,
 static void print_platesolving_results(solve_results *image, gboolean downsample) {
 	double rotation, det, scaleX, scaleY, resolution;
 	double inliers;
-	gchar *alpha, *delta;
 	char field_x[256] = { 0 };
 	char field_y[256] = { 0 };
 
@@ -732,9 +731,11 @@ static void print_platesolving_results(solve_results *image, gboolean downsample
 	fov_in_DHMS(resolution * image->size.x / 3600.0, field_x);
 	fov_in_DHMS(resolution * image->size.y / 3600.0, field_y);
 	siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
+}
 
-	alpha = siril_world_cs_alpha_format(image->image_center, " %02dh%02dm%02ds");
-	delta = siril_world_cs_delta_format(image->image_center, "%c%02d°%02d\'%02d\"");
+static void print_image_center(solve_results *image) {
+	gchar *alpha = siril_world_cs_alpha_format(image->image_center, " %02dh%02dm%02ds");
+	gchar *delta = siril_world_cs_delta_format(image->image_center, "%c%02d°%02d\'%02d\"");
 	siril_log_message(_("Image center: alpha: %s, delta: %s\n"), alpha, delta);
 	g_free(alpha);
 	g_free(delta);
@@ -1232,16 +1233,18 @@ gpointer match_catalog(gpointer p) {
 	args->ret = 1;
 	args->message = NULL;
 
-	if (args->use_local_cat) {
-		siril_log_message(_("Plate solving image from local catalogues for a field of view of %.2f"
-					" degrees%s, using a limit magnitude of %.2f\n"),
-				args->used_fov / 60.0,
-				args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
-	} else {
-		siril_log_message(_("Plate solving image from an online catalogue for a field of view of %.2f"
-					" degrees%s, using a limit magnitude of %.2f\n"),
-				args->used_fov / 60.0,
-				args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
+	if (args->verbose) {
+		if (args->use_local_cat) {
+			siril_log_message(_("Plate solving image from local catalogues for a field of view of %.2f"
+						" degrees%s, using a limit magnitude of %.2f\n"),
+					args->used_fov / 60.0,
+					args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
+		} else {
+			siril_log_message(_("Plate solving image from an online catalogue for a field of view of %.2f"
+						" degrees%s, using a limit magnitude of %.2f\n"),
+					args->used_fov / 60.0,
+					args->uncentered ? _(" (uncentered)") : "", args->limit_mag);
+		}
 	}
 
 	if (!args->catalog_file && !args->use_local_cat) {
@@ -1316,7 +1319,8 @@ gpointer match_catalog(gpointer p) {
 				"At least %d stars are needed."), AT_MATCH_STARTN_LINEAR);
 		goto clearup;
 	}
-	siril_log_message(_("Using %d detected stars from image.\n"), n_fit);
+	if (args->verbose)
+		siril_log_message(_("Using %d detected stars from image.\n"), n_fit);
 	if (args->uncentered)
 		max_trials = 20; //retry to converge if solve is done at an offset from the center
 
@@ -1545,7 +1549,9 @@ gpointer match_catalog(gpointer p) {
 	siril_debug_print("******************************************\n");
 
 	load_WCS_from_memory(args->fit);
-	print_platesolving_results(&solution, args->downsample);
+	if (args->verbose)
+		print_platesolving_results(&solution, args->downsample);
+	print_image_center(&solution);
 	if (args->for_photometry_cc) {
 		pcc_star *pcc_stars = NULL;
 		int nb_pcc_stars;
@@ -1560,7 +1566,8 @@ gpointer match_catalog(gpointer p) {
 			double res = get_resolution(solution.focal, args->pixel_size);
 			double radius = get_radius_deg(res, args->fit->rx, args->fit->ry);
 			// for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
-			siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
+			if (args->verbose)
+				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
 			if (get_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars)) {
 				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 				args->ret = 1;
@@ -1590,7 +1597,8 @@ gpointer match_catalog(gpointer p) {
 		}
 	}
 	if (args->flip_image && image_is_flipped(H)) {
-		siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
+		if (args->verbose)
+			siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 		fits_flip_top_to_bottom(args->fit);
 		flip_bottom_up_astrometry_data(args->fit);
 		load_WCS_from_memory(args->fit);
@@ -1602,7 +1610,7 @@ gpointer match_catalog(gpointer p) {
 	args->new_center = solution.image_center;
 
 clearup:
-	if (fit_backup.rx != 0) {
+	if (fit_backup.rx != 0) {	// downsampled image
 		clearfits(args->fit);
 		memcpy(args->fit, &fit_backup, sizeof(fits));
 	}
@@ -1613,7 +1621,8 @@ clearup:
 	}
 	free_stars(&star_list_A);
 	free_stars(&star_list_B);
-	siril_world_cs_unref(args->cat_center);
+	if (!args->for_sequence)
+		siril_world_cs_unref(args->cat_center);
 	if (cstars)
 		free_fitted_stars(cstars);
 	if (input_stream)
@@ -1624,12 +1633,14 @@ clearup:
 		g_object_unref(args->catalog_file);
 	g_free(args->catalogStars);
 
-	siril_add_idle(end_plate_solver, args);
+	if (!args->for_sequence)
+		siril_add_idle(end_plate_solver, args);
 	int retval = args->ret;
 	if (com.script) {
 		if (args->ret)
 			siril_log_message(_("Plate solving failed: %s\n"), args->message);
-		free(args);
+		if (!args->for_sequence)
+			free(args);
 	}
 	return GINT_TO_POINTER(retval);
 }
@@ -1697,3 +1708,67 @@ void process_plate_solver_input(struct astrometry_data *args) {
 
 	compute_limit_mag(args); // to call after having set args->used_fov
 }
+
+static int astrometry_prepare_hook(struct generic_seq_args *arg) {
+	struct astrometry_data *args = (struct astrometry_data *)arg->user;
+	fits fit = { 0 };
+	// load ref metadata in fit
+	if (seq_read_frame_metadata(arg->seq, sequence_find_refimage(arg->seq), &fit))
+		return 1;
+	if (!args->cat_center)
+		args->cat_center = get_eqs_from_header(&fit);
+	if (args->pixel_size <= 0.0) {
+		args->pixel_size = max(fit.pixel_size_x, fit.pixel_size_y);
+		if (args->pixel_size <= 0.0) {
+			args->pixel_size = com.pref.starfinder_conf.pixel_size_x;
+			if (args->pixel_size <= 0.0) {
+				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
+				return 1;
+			}
+		}
+	}
+	if (args->focal_length <= 0.0) {
+		args->focal_length = fit.focal_length;
+		if (args->focal_length <= 0.0) {
+			// TODO: which one should we use here?
+			args->focal_length = com.pref.starfinder_conf.focal_length;
+			//args->focal_length = com.pref.focal;
+			if (args->focal_length <= 0.0) {
+				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
+				return 1;
+			}
+		}
+	}
+
+	clearfits(&fit);
+	return 0;
+}
+
+static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
+	struct astrometry_data *args = (struct astrometry_data *)arg->user;
+	args->fit = fit;	// not reentrant because of that and other fields of the struct
+	process_plate_solver_input(args);
+	return GPOINTER_TO_INT(match_catalog(args));
+}
+
+/* TODO:
+ * improvements:
+ * - reuse the same catalog data, which will also allow parallelism
+ * - write only image header
+ */
+void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
+	struct generic_seq_args *seqargs = create_default_seqargs(seq);
+	seqargs->filtering_criterion = seq_filter_included;
+	seqargs->nb_filtered_images = seq->selnum;
+	seqargs->stop_on_error = FALSE;
+	seqargs->parallel = FALSE;		// I don't think local catalogues are reentrant
+	seqargs->prepare_hook = astrometry_prepare_hook;
+	seqargs->image_hook = astrometry_image_hook;
+	seqargs->has_output = TRUE;
+	seqargs->new_seq_prefix = "ps_";
+	seqargs->description = "plate solving";
+	seqargs->user = args;
+
+	start_in_new_thread(generic_sequence_worker, seqargs);
+}
+
