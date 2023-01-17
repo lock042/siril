@@ -59,6 +59,7 @@ int fft_cutoff = 15; // Based on timing test on an 8-core Ryzen 2 with 16GB RAM.
 // Below this value, naive convolutions are used for Richardson-Lucy; above this value, FFT-based convolutions are used.
 gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
+orientation_t imageorientation;
 
 estk_data args = { 0 };
 static GtkWidget *drawingPSF = NULL;
@@ -68,13 +69,34 @@ static cairo_surface_t *surface = NULL;
 //set below flag to zero to avoid kernel printout to stdout
 #define DEBUG_PSF 1
 
+orientation_t get_imageorientation() {
+	orientation_t result;
+	if (sequence_is_loaded() && com.seq.type == SEQ_SER) {
+		result = TOP_DOWN;
+	} else if (sequence_is_loaded()) {
+		result = BOTTOM_UP; // All other sequences should be BOTTOM_UP
+	} else if (single_image_is_loaded()) {
+		if (!g_strcmp0(the_fit->row_order, "TOP-DOWN")) {
+			result = TOP_DOWN;
+		} else if (!g_strcmp0(the_fit->row_order, "BOTTOM-UP")) {
+			result = BOTTOM_UP;
+	} else {
+			result = UNDEFINED;
+		}
+	} else {
+		result = UNDEFINED;
+	}
+	siril_log_message("Image orientation %d, kernel orientation %d\n", result, args.kernelorientation);
+	return result;
+}
+
 void reset_conv_args(estk_data* args) {
 	siril_debug_print("Resetting deconvolution args\n");
 
 	// Basic image and kernel parameters
-	args->made_in_SER_orientation = (sequence_is_loaded() && com.seq.type == SEQ_SER);
 	args->psftype = PSF_BLIND;
 	the_fit = &gfit;
+	imageorientation = get_imageorientation();
 	args->fdata = NULL;
 	args->rx = 0;
 	args->ry = 0;
@@ -516,7 +538,7 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 
 void check_orientation() {
 	int ndata = com.kernelsize * com.kernelsize;
-	if ((sequence_is_loaded() && com.seq.type == SEQ_SER) != args.made_in_SER_orientation) {
+	if (get_imageorientation() != args.kernelorientation) {
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
@@ -525,7 +547,7 @@ void check_orientation() {
 		}
 		free(com.kernel);
 		com.kernel = flip_the_kernel;
-		args.made_in_SER_orientation = !args.made_in_SER_orientation;
+		args.kernelorientation = (args.kernelorientation == BOTTOM_UP) ? TOP_DOWN : BOTTOM_UP;
 	}
 }
 
@@ -543,8 +565,11 @@ int save_kernel(gchar* filename) {
 	float* copy_kernel = malloc(ndata * com.kernelchannels * sizeof(float));
 	memcpy(copy_kernel, com.kernel, ndata * com.kernelchannels * sizeof(float));
 
-	// Handle SER orientation issues, if a SER is loaded we need to turn the kernel upside-down so it consistently gets saved in FITS orientation
-	if (sequence_is_loaded() && com.seq.type == SEQ_SER) {
+	// Handle SER orientation issues, if the kernel orientation is TOP_DOWN then we need to reverse it: we always save the
+	// kernel in BOTTOM_UP orientation. Note that we don't actually change args->kernelorientation here as we are only flipping
+	// the sacrificial copy.
+	if (get_imageorientation() == TOP_DOWN) {
+		siril_log_message("kernel flipped on saving\n");
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
@@ -571,9 +596,52 @@ int save_kernel(gchar* filename) {
 	return retval;
 }
 
+void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
+	// Only allocate as much space for filenames as required - we determine the max pathlength
+#ifndef _WIN32
+	long pathmax = get_pathmax();
+#else
+	long pathmax = MAX_PATH;	// On Windows use of MAX_PATH is fine as it is not
+								// a configurable item
+#endif
+	gchar filename[pathmax];
+	char *imagenoext;
+	char *imagenoextorig;
+	gchar kernelsuffix[10] = "_PSF";
+	// Initialise the filename strings as empty strings
+	memset(filename, 0, sizeof(filename));
+	// Set up paths and filenames
+	if (single_image_is_loaded())
+		imagenoextorig = g_path_get_basename(com.uniq->filename);
+	else if (sequence_is_loaded())
+		imagenoextorig = g_strdup(com.seq.seqname);
+	else
+		imagenoextorig = g_strdup_printf("deconvolution");
+	imagenoext = g_strdup(imagenoextorig);
+	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
+        *q = *c == ' ' ? '_' : *c;
+	if (g_strcmp0(imagenoext, imagenoextorig))
+		siril_log_color_message(_("Deconvolution: spaces detected in filename. These have been replaced by underscores.\n"), "salmon");
+	g_free(imagenoextorig);
+	imagenoext = g_strdup_printf("%s_%s", build_timestamp_filename(), imagenoext);
+	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
+	imagenoext = remove_ext_from_filename(imagenoext);
+	strncat(filename, imagenoext, sizeof(filename) - strlen(imagenoext));
+	strncat(filename, kernelsuffix, 10);
+#ifdef HAVE_LIBTIFF
+	strncat(filename, ".tif", 5);
+#else
+	strncat(filename, ".fit", 5);
+#endif
+	save_kernel(filename);
+	g_free(imagenoext);
+	return;
+}
+
 int load_kernel(gchar* filename) {
 	int retval = 0;
 	int orig_size;
+	args.kernelorientation = BOTTOM_UP; // PSFs are always BOTTOM_UP when saved
 	gboolean original_debayer_setting = com.pref.debayer.open_debayer;
 	com.pref.debayer.open_debayer = FALSE;
 	bad_load = FALSE;
@@ -627,8 +695,9 @@ int load_kernel(gchar* filename) {
 			}
 		}
 	}
-	// Handle SER orientation issues, if a SER is loaded we need to turn the kernel upside-down
-	if (sequence_is_loaded() && com.seq.type == SEQ_SER) {
+	// Handle SER orientation issues, if the image orientation is TOP_DOWN we need to match it
+	if (get_imageorientation() == TOP_DOWN) {
+		siril_log_message("flipping kernel on load, to match image top down orientation.\n");
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int i = 0 ; i < com.kernelsize ; i++) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
@@ -637,10 +706,7 @@ int load_kernel(gchar* filename) {
 		}
 		free(com.kernel);
 		com.kernel = flip_the_kernel;
-		args.made_in_SER_orientation = TRUE; // The kernel is always saved in FITS orientation, it has been loaded and flipped to SER orientation
-											 // therefore this needs to be TRUE so it gets flipped back if re-saved.
-	} else {
-		args.made_in_SER_orientation = FALSE;
+		args.kernelorientation = (args.kernelorientation == BOTTOM_UP) ? TOP_DOWN : BOTTOM_UP;
 	}
 	if (com.kernelchannels > args.nchans) { // If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
 		siril_log_message(_("The selected PSF is RGB but the loaded image is monochrome. The PSF will be converted to monochrome (luminance).\n"));
@@ -666,48 +732,6 @@ int load_kernel(gchar* filename) {
 	return retval;
 }
 
-void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
-	// Only allocate as much space for filenames as required - we determine the max pathlength
-#ifndef _WIN32
-	long pathmax = get_pathmax();
-#else
-	long pathmax = MAX_PATH;	// On Windows use of MAX_PATH is fine as it is not
-								// a configurable item
-#endif
-	gchar filename[pathmax];
-	char *imagenoext;
-	char *imagenoextorig;
-	gchar kernelsuffix[10] = "_PSF";
-	// Initialise the filename strings as empty strings
-	memset(filename, 0, sizeof(filename));
-	// Set up paths and filenames
-	if (single_image_is_loaded())
-		imagenoextorig = g_path_get_basename(com.uniq->filename);
-	else if (sequence_is_loaded())
-		imagenoextorig = g_strdup(com.seq.seqname);
-	else
-		imagenoextorig = g_strdup_printf("deconvolution");
-	imagenoext = g_strdup(imagenoextorig);
-	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
-        *q = *c == ' ' ? '_' : *c;
-	if (g_strcmp0(imagenoext, imagenoextorig))
-		siril_log_color_message(_("Deconvolution: spaces detected in filename. These have been replaced by underscores.\n"), "salmon");
-	g_free(imagenoextorig);
-	imagenoext = g_strdup_printf("%s_%s", build_timestamp_filename(), imagenoext);
-	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
-	imagenoext = remove_ext_from_filename(imagenoext);
-	strncat(filename, imagenoext, sizeof(filename) - strlen(imagenoext));
-	strncat(filename, kernelsuffix, 10);
-#ifdef HAVE_LIBTIFF
-	strncat(filename, ".tif", 5);
-#else
-	strncat(filename, ".fit", 5);
-#endif
-	save_kernel(filename);
-	g_free(imagenoext);
-	return;
-}
-
 void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	gchar* filename = g_strdup(gtk_file_chooser_get_filename(filechooser));
 	if (filename == NULL) {
@@ -727,82 +751,6 @@ void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
 	}
 	return;
-}
-
-gboolean deconvolve_idle(gpointer arg) {
-	set_progress_bar_data("Ready.", 0.);
-	if (args.fdata) {
-		free(args.fdata);
-		args.fdata = NULL;
-	}
-	update_zoom_label();
-	redraw(REMAP_ALL);
-	redraw_previews();
-	set_cursor_waiting(FALSE);
-	siril_debug_print("Deconvolve idle stopping processing thread\n");
-	stop_processing_thread();
-	return FALSE;
-}
-
-gboolean estimate_idle(gpointer arg) {
-	if (args.psftype == PSF_BLIND || args.psftype == PSF_STARS) {
-		args.psftype = PSF_PREVIOUS; // If a blind estimate is done, switch to previous kernel in order to avoid recalculating it when Apply is clicked
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
-	}
-	set_progress_bar_data("Ready.", 0.);
-	set_cursor_waiting(FALSE);
-	siril_debug_print("Estimate idle stopping processing thread\n");
-	stop_processing_thread();
-	free(args.fdata);
-	args.fdata = NULL;
-	DrawPSF();
-	return FALSE;
-}
-
-void set_estimate_params() {
-	if (com.headless)
-		return;
-	args.ks = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")));
-	args.gamma = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gamma")));
-	args.iterations = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_iters")));
-	args.lambda_ratio = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdaratio")));
-	args.lambda_min = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdamin")));
-	args.scalefactor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_scalefactor")));
-	args.upscaleblur = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_upsampleblur")));
-	args.downscaleblur = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_downsampleblur")));
-	args.kernel_threshold_max = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kthresh")));
-	args.k_l1 = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kl1")));
-	args.ninner = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ninner")));
-	args.ntries = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")));
-	args.nouter = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")));
-	args.compensationfactor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")));
-	args.intermediatedeconvolutionweight = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gflambda")));
-	args.finaldeconvolutionweight = args.intermediatedeconvolutionweight;
-	args.lambda = 1.f / args.intermediatedeconvolutionweight;
-	args.profile = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("bdeconv_profile")));
-	args.psf_fwhm = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfwhm")));
-	args.psf_ratio = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfratio")));
-	args.psf_beta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfbeta")));
-	args.psf_angle = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfangle")));
-	args.airy_diameter = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_diameter")));
-	args.airy_fl = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_fl")));
-	args.airy_wl = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_wl")));
-	args.airy_pixelsize = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_pixelsize")));
-	args.airy_obstruction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_obstruction"))) / 100.f;
-	args.better_kernel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_betterkernel")));
-	args.multiscale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")));
-}
-
-void set_deconvolve_params() {
-	if (com.headless)
-		return;
-	args.finaliters = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")));
-	args.alpha = 1.f / gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")));
-	args.stopcriterion = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stopcriterion")));
-	args.stopcriterion_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_stopping_toggle"))) ? 1 : 0;
-	args.rl_method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_method")));
-	args.stepsize = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stepsize")));
-	args.regtype = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_regularization")));
 }
 
 int get_kernel() {
@@ -857,10 +805,10 @@ int get_kernel() {
 			com.kernel = (float*) calloc(args.ks * args.ks * args.kchans, sizeof(float));
 			switch (args.profile) {
 				case PROFILE_GAUSSIAN:
-					makegaussian(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_ratio, args.psf_angle);
+					makegaussian(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_ratio, -args.psf_angle);
 					break;
 				case PROFILE_MOFFAT:
-					makemoffat(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_beta, args.psf_ratio, args.psf_angle);
+					makemoffat(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f, args.psf_beta, args.psf_ratio, -args.psf_angle);
 					break;
 				case PROFILE_DISK:
 					makedisc(com.kernel, args.ks, args.psf_fwhm, 1.f, +0.5f, -0.5f);
@@ -902,11 +850,11 @@ int get_kernel() {
 	}
 #endif
 
-	args.made_in_SER_orientation = ((sequence_is_loaded() && com.seq.type == SEQ_SER));
-	if (args.made_in_SER_orientation)
-		siril_log_message(_("PSF made in top-down (SER) orientation.\n"));
+	args.kernelorientation = get_imageorientation();
+	if (args.kernelorientation == BOTTOM_UP)
+		siril_log_message(_("PSF made in bottom up orientation.\n"));
 	else
-		siril_log_message(_("PSF made in bottom-up (FITS) orientation.\n"));
+		siril_log_message(_("PSF made in top down orientation.\n"));
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
 	com.kernelchannels = (!com.kernel) ? 0 : args.kchans;
 	if (args.psftype != PSF_PREVIOUS) {
@@ -914,6 +862,55 @@ int get_kernel() {
 	}
 END:
 	return retval;
+}
+
+void set_estimate_params() {
+	if (com.headless)
+		return;
+	args.ks = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")));
+	args.gamma = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gamma")));
+	args.iterations = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_iters")));
+	args.lambda_ratio = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdaratio")));
+	args.lambda_min = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdamin")));
+	args.scalefactor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_scalefactor")));
+	args.upscaleblur = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_upsampleblur")));
+	args.downscaleblur = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_downsampleblur")));
+	args.kernel_threshold_max = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kthresh")));
+	args.k_l1 = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kl1")));
+	args.ninner = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ninner")));
+	args.ntries = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")));
+	args.nouter = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")));
+	args.compensationfactor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")));
+	args.intermediatedeconvolutionweight = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gflambda")));
+	args.finaldeconvolutionweight = args.intermediatedeconvolutionweight;
+	args.lambda = 1.f / args.intermediatedeconvolutionweight;
+	args.profile = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("bdeconv_profile")));
+	args.psf_fwhm = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfwhm")));
+	args.psf_ratio = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfratio")));
+	args.psf_beta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfbeta")));
+	args.psf_angle = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfangle")));
+	args.airy_diameter = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_diameter")));
+	args.airy_fl = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_fl")));
+	args.airy_wl = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_wl")));
+	args.airy_pixelsize = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_pixelsize")));
+	args.airy_obstruction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_obstruction"))) / 100.f;
+	args.better_kernel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_betterkernel")));
+	args.multiscale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")));
+}
+
+gboolean estimate_idle(gpointer arg) {
+	if (args.psftype == PSF_BLIND || args.psftype == PSF_STARS) {
+		args.psftype = PSF_PREVIOUS; // If a blind estimate is done, switch to previous kernel in order to avoid recalculating it when Apply is clicked
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
+	}
+	set_progress_bar_data("Ready.", 0.);
+	set_cursor_waiting(FALSE);
+	siril_debug_print("Estimate idle stopping processing thread\n");
+	stop_processing_thread();
+	free(args.fdata);
+	args.fdata = NULL;
+	DrawPSF();
+	return FALSE;
 }
 
 gpointer estimate_only(gpointer p) {
@@ -963,13 +960,39 @@ gpointer estimate_only(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
+void set_deconvolve_params() {
+	if (com.headless)
+		return;
+	args.finaliters = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")));
+	args.alpha = 1.f / gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")));
+	args.stopcriterion = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stopcriterion")));
+	args.stopcriterion_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_stopping_toggle"))) ? 1 : 0;
+	args.rl_method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_method")));
+	args.stepsize = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stepsize")));
+	args.regtype = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_regularization")));
+}
+
+gboolean deconvolve_idle(gpointer arg) {
+	set_progress_bar_data("Ready.", 0.);
+	if (args.fdata) {
+		free(args.fdata);
+		args.fdata = NULL;
+	}
+	update_zoom_label();
+	redraw(REMAP_ALL);
+	redraw_previews();
+	set_cursor_waiting(FALSE);
+	siril_debug_print("Deconvolve idle stopping processing thread\n");
+	stop_processing_thread();
+	return FALSE;
+}
+
 gpointer deconvolve(gpointer p) {
 	if (p != NULL) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
-	check_orientation();
 	args.nchans = the_fit->naxes[2];
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;
@@ -1188,7 +1211,7 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	for (int i = 0; i < com.kernelsize; i++) {
 		for (int j = 0; j < com.kernelsize; j++) {
 			float val[3] = { 0.f };
-			if ((sequence_is_loaded() && com.seq.type == SEQ_SER && !args.made_in_SER_orientation) || (sequence_is_loaded() && com.seq.type != SEQ_SER && args.made_in_SER_orientation)) {
+			if (single_image_is_loaded() && get_imageorientation() != args.kernelorientation) {
 				if (com.kernelchannels == 1) {
 					val[0] = pow((com.kernel[i * com.kernelsize + j] - minval) * invrange, 0.5f);
 					val[1] = val[0];

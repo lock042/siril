@@ -14,10 +14,10 @@ typedef enum { BLIND_SI, BLIND_L0 } blind_t;
 typedef enum { RL_MULT, RL_GD } rl_method_t;
 typedef enum { PROFILE_GAUSSIAN, PROFILE_MOFFAT, PROFILE_DISK, PROFILE_AIRY } profile_t;
 typedef enum { REG_TV_GRAD, REG_FH_GRAD, REG_NONE_GRAD, REG_TV_MULT, REG_FH_MULT, REG_NONE_MULT } regtype_t;
-
+typedef enum { BOTTOM_UP, TOP_DOWN, UNDEFINED } orientation_t;
 
 EXTERNC typedef struct estk_data {
-	gboolean made_in_SER_orientation;
+	orientation_t kernelorientation;
 	char* wisdom_file;
 	float* fdata;
 	unsigned rx;
