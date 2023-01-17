@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -1725,6 +1725,13 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="value">1.5</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_min_rl_fft">
+    <property name="lower">3</property>
+    <property name="upper">999</property>
+    <property name="value">11</property>
+    <property name="step-increment">2</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_pixelsize">
     <property name="lower">0.10</property>
@@ -30445,7 +30452,7 @@ Configuring a memory amount larger than what is available on your system may res
                             <property name="can-focus">False</property>
                             <property name="left-padding">12</property>
                             <child>
-                              <!-- n-columns=2 n-rows=3 -->
+                              <!-- n-columns=2 n-rows=4 -->
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -30520,6 +30527,33 @@ Configuring a memory amount larger than what is available on your system may res
                                   <packing>
                                     <property name="left-attach">1</property>
                                     <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Minimum PSF size to use FFT convolutions</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="pref_conv_min_fft">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Siril can calculate convolutions either by summing over the kernel at every pixel or by using Fourier Transforms. The former becomes very inefficient for large kernel sizes, while the latter involves some setup time. Therefore Fourier Transforms are faster for larger kernels, summing is faster for smaller kernels. The exact crossover point will depend on your hardware and is therefore configurable. This parameter sets the minimum size for which Fourier Transforms will be used.</property>
+                                    <property name="halign">start</property>
+                                    <property name="text" translatable="yes">30</property>
+                                    <property name="adjustment">adj_min_rl_fft</property>
+                                    <property name="value">30</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">3</property>
                                   </packing>
                                 </child>
                                 <child>

@@ -212,6 +212,7 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_int(misc_setting, "hd_bitdepth", &com.pref.hd_bitdepth);
 
 		config_setting_lookup_float(misc_setting, "fftw_timelimit", &com.pref.fftw_conf.timelimit);
+		config_setting_lookup_float(misc_setting, "fftw_conv_fft_cutoff", &com.pref.fftw_conf.fft_cutoff);
 		config_setting_lookup_int(misc_setting, "fftw_strategy", &com.pref.fftw_conf.strategy);
 		if (config_setting_lookup_bool(misc_setting, "fftw_multithreaded", &com.pref.fftw_conf.multithreaded) == CONFIG_FALSE) {
 			com.pref.fftw_conf.multithreaded = TRUE;

@@ -55,7 +55,6 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 
-int fft_cutoff = 15; // Based on timing test on an 8-core Ryzen 2 with 16GB RAM.
 // Below this value, naive convolutions are used for Richardson-Lucy; above this value, FFT-based convolutions are used.
 gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
@@ -1091,7 +1090,7 @@ gpointer deconvolve(gpointer p) {
 				struct timeval t_start, t_end;
 				gettimeofday(&t_start, NULL);
 
-				if (args.ks < fft_cutoff)
+				if (args.ks < com.pref.fftw_conf.fft_cutoff)
 					naive_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
 				else
 					richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
