@@ -103,19 +103,8 @@ EXTERNC int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsign
 #ifdef __cplusplus
 }
 #endif
-/*
-EXTERNC int richardson_lucy_damped(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, int maxiter);
-#ifdef __cplusplus
-}
-#endif
-*/
+
 EXTERNC int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float sigma, int max_threads);
 #ifdef __cplusplus
 }
 #endif
-/*
-EXTERNC int spectral_pre_adaption(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kdata, int kernelsize, float lambda, int max_threads, int deconv_algo);
-#ifdef __cplusplus
-}
-#endif
-*/
