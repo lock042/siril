@@ -39,6 +39,7 @@
 #include "photometric_cc.h"
 
 static rectangle get_bkg_selection();
+void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
 
 static void start_photometric_cc() {
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
@@ -57,9 +58,14 @@ static void start_photometric_cc() {
 
 	struct astrometry_data *args = NULL;
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
+	pcc_args->catalog = get_photometry_catalog_from_GUI();
+	pcc_args->use_local_cat = FALSE;
 	if (local_catalogues_available()) {
-		siril_debug_print("using local star catalogues\n");
-		pcc_args->use_local_cat = TRUE;
+		if (pcc_args->catalog == CAT_NOMAD) {
+			siril_debug_print("using local star catalogues\n");
+			pcc_args->use_local_cat = TRUE;
+		}
+		else siril_log_message(_("Using remote APASS instead of local NOMAD catalogue\n"));
 	}
 	if (plate_solve) {
 		args = calloc(1, sizeof(struct astrometry_data));
@@ -76,7 +82,6 @@ static void start_photometric_cc() {
 
 	pcc_args->fit = &gfit;
 	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
-	pcc_args->catalog = pcc_args->use_local_cat ? CAT_NOMAD : get_photometry_catalog_from_GUI();
 	pcc_args->mag_mode = LIMIT_MAG_AUTO;
 
 	set_cursor_waiting(TRUE);
@@ -166,6 +171,8 @@ void initialize_photometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
+	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
+
 	// not sure about this one. Fails for a lot of images
 	//gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("downsample_ips_button")), gfit.rx > 6000);
 }
@@ -224,3 +231,16 @@ void on_button_cc_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 
 	delete_selected_area(); // needed because we don't want the selection being used for astrometry
 }
+
+void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
+	static gboolean have_local_cat = FALSE;
+	static GtkLabel *photocat_label = NULL;
+	if (!photocat_label) {
+		photocat_label = GTK_LABEL(lookup_widget("photometric_catalog_label"));
+		have_local_cat = local_catalogues_available();
+	}
+	if (gtk_combo_box_get_active(combo) == 1 || !have_local_cat)
+		gtk_label_set_text(photocat_label, _("(online catalogue)"));
+	else gtk_label_set_text(photocat_label, _("(local catalogue)"));
+}
+
