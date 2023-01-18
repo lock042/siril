@@ -487,9 +487,9 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 	}
 
 	char buffer[320];
-	char gausstr[9] = "Gaussian";
-	char moffstr[7] = "Moffat";
-	char starprof[9];
+	char gausstr[] = "Gaussian";
+	char moffstr[] = "Moffat";
+	char *starprof;
 	gdouble beta;
 	int len = snprintf(buffer, 320, "# %d stars found using the following parameters:%s", nbstars, SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
@@ -501,7 +501,7 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 		HANDLE_WRITE_ERR;
 	}
 	len = snprintf(buffer, 320,
-			"# star#\tlayer\tB\tA\tbeta\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag\tProfile%s",
+			"# star#\tlayer\tB\tA\tbeta\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag\tProfile\tRA\tDec%s",
 			SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
@@ -510,17 +510,18 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 		while (stars[i]) {
 			if (stars[i]->profile == PSF_GAUSSIAN) {
 				beta = -1;
-				len = snprintf(starprof, 9, "%s", gausstr);
+				starprof = gausstr;
 			} else {
 				beta = stars[i]->beta;
-				len = snprintf(starprof, 7, "%s", moffstr);
+				starprof = moffstr;
 			}
 			len = snprintf(buffer, 320,
-					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%s%s",
+					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%s\t%f\t%f%s",
 					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A, beta,
 					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
 					stars[i]->fwhmy, stars[i]->fwhmx_arcsec ,stars[i]->fwhmy_arcsec,
-					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, starprof, SIRIL_EOL);
+					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset,
+					starprof, stars[i]->ra, stars[i]->dec, SIRIL_EOL);
 		if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 			HANDLE_WRITE_ERR;
 		}

@@ -217,22 +217,31 @@ gboolean load_WCS_from_file(fits* fit) {
 #endif
 }
 
-void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
-	*r = -1.0;
-	*d = -1.0;
 #ifdef HAVE_WCSLIB
+void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d) {
+	*r = 0.0;
+	*d = 0.0;
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
 	pixcrd[0] = x;
 	pixcrd[1] = y;
 
-	status = wcsp2s(fit->wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
+	status = wcsp2s(wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
 	if (status != 0)
 		return;
 
 	*r = world[0];
 	*d = world[1];
+}
+#endif
+
+void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
+	*r = 0.0;
+	*d = 0.0;
+#ifdef HAVE_WCSLIB
+	if (fit->wcslib)
+		pix2wcs2(fit->wcslib, x, y, r, d);
 #endif
 }
 

@@ -35,10 +35,13 @@
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
+#include "algos/siril_wcs.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/PSF_list.h"
+#include "registration/registration.h"
+#include "opencv/opencv.h"
 
 #define _SQRT_EXP1 1.6487212707
 #define KERNEL_SIZE 2.  // sigma of the gaussian smoothing kernel
@@ -899,6 +902,33 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	args->user = findstar_args;
 	args->already_in_a_thread = findstar_args->already_in_thread;
 
+	if (findstar_args->save_to_file && findstar_args->save_eqcoords) {
+		/* saving equatorial coordinates is possible if all images are
+		 * plate solved or if the reference is plate solved and
+		 * transformation matrices H from registration are available */
+		fits ref = { 0 };
+		int refidx = sequence_find_refimage(args->seq);
+		// or use sequence_has_wcs(args->seq
+		if (seq_read_frame_metadata(args->seq, refidx, &ref)) {
+			siril_log_message(_("Could not load reference image\n"));
+			free(args);
+			return 1;
+		}
+		if (!has_wcs(&ref))
+			findstar_args->save_eqcoords = FALSE;
+		else {
+			findstar_args->reference_image = refidx;
+#ifdef HAVE_WCSLIB
+			findstar_args->ref_wcs = ref.wcslib;
+#endif
+			if (args->seq->regparam[findstar_args->layer] &&
+					guess_transform_from_H(args->seq->regparam[findstar_args->layer][refidx].H) != NULL_TRANSFORMATION) {
+				findstar_args->reference_H = args->seq->regparam[findstar_args->layer][refidx].H;
+			}
+		}
+		ref.wcslib = NULL;	// don't free it
+		clearfits(&ref);
+	}
 	if (findstar_args->already_in_thread) {
 		int retval = GPOINTER_TO_INT(generic_sequence_worker(args));
 		free(args);
@@ -931,7 +961,37 @@ gpointer findstar_worker(gpointer p) {
 		double sum = 0.0;
 		while (stars[i]) {
 			sum += stars[i]->fwhmx;
-			fwhm_to_arcsec_if_needed(args->im.fit, stars[i++]);
+			fwhm_to_arcsec_if_needed(args->im.fit, stars[i]);
+
+			if (args->starfile && args->save_eqcoords) {
+				sequence *seq = args->im.from_seq;
+				double x = stars[i]->xpos, y = stars[i]->ypos;
+				if (has_wcs(args->im.fit)) {
+					double ra = 0.0, dec = 0.0;
+#ifdef HAVE_WCSLIB
+					pix2wcs2(args->ref_wcs, x, y, &ra, &dec);
+#endif
+					// ra and dec = -1 is the error code
+					// XXX is this the best way to pass the coords?
+					stars[i]->ra = ra;
+					stars[i]->dec = dec;
+				}
+				else if (!seq->regparam[args->layer] ||
+						guess_transform_from_H(seq->regparam[args->layer][args->im.index_in_seq].H) == NULL_TRANSFORMATION) {
+					// image was not registered, ignore
+				}
+				else {
+					cvTransfPoint(&x, &y, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H);
+					double ra = 0.0, dec = 0.0;
+#ifdef HAVE_WCSLIB
+					pix2wcs2(args->ref_wcs, x, y, &ra, &dec);
+#endif
+					// ra and dec = -1 is the error code
+					stars[i]->ra = ra;
+					stars[i]->dec = dec;
+				}
+			}
+			i++;
 		}
 		if (i > 0)
 			fwhm = sum / i;

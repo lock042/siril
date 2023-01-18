@@ -4293,6 +4293,11 @@ int process_seq_findstar(int nb) {
 	args->max_stars_fitted = 0;
 	args->update_GUI = FALSE;
 	args->save_to_file = TRUE;
+#ifdef HAVE_WCSLIB
+	args->save_eqcoords = TRUE;	// managed in apply_findstar_to_sequence()
+#else
+	args->save_eqcoords = FALSE;
+#endif
 	args->starfile = NULL;
 	cmd_errors argparsing = parse_findstar(args, 2, nb);
 
@@ -4307,8 +4312,7 @@ int process_seq_findstar(int nb) {
 		args->starfile = NULL;
 	}
 
-	apply_findstar_to_sequence(args);
-	return 0;
+	return apply_findstar_to_sequence(args);
 }
 
 int process_findhot(int nb){

@@ -16,6 +16,14 @@ struct starfinder_data {
 	int layer;
 	int max_stars_fitted;
 	gboolean save_to_file;	// generate starfile if TRUE and in sequence
+	/******* saving the star list with equatorial coordinates *******/
+	int reference_image;	// index of the image in the sequence
+	gboolean save_eqcoords;	// save equatorial coordinates in it
+	Homography reference_H;	// homography for the plate solved frame
+#ifdef HAVE_WCSLIB
+	struct wcsprm *ref_wcs;	// reference astrometry
+#endif
+	/****************************************************************/
 	gchar *starfile;	// save to file if not NULL
 	psf_star ***stars;	// save to pointer if not NULL
 	int *nb_stars;		// number of stars in stars if not NULL
