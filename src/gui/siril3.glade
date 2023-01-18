@@ -2450,7 +2450,7 @@ If the parameters is null, so no filter is apply at all.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">end</property>
-                            <property name="label" translatable="yes">Nb of plans:</property>
+                            <property name="label" translatable="yes">Nb of layers:</property>
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
@@ -2561,7 +2561,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">1st Plan</property>
+                                <property name="label" translatable="yes">Layer 1</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -2631,7 +2631,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">2nd Plan</property>
+                                <property name="label" translatable="yes">Layer 2</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -2701,7 +2701,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">3th Plan</property>
+                                <property name="label" translatable="yes">Layer 3</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -2771,7 +2771,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">4th Plan</property>
+                                <property name="label" translatable="yes">Layer 4</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -2841,7 +2841,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">5th Plan</property>
+                                <property name="label" translatable="yes">Layer 5</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -2911,7 +2911,7 @@ If the parameters is null, so no filter is apply at all.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">6th Plan</property>
+                                <property name="label" translatable="yes">Layer 6</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
