@@ -537,7 +537,6 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 void check_orientation() {
 	int ndata = com.kernelsize * com.kernelsize * com.kernelchannels;
 	if (get_imageorientation() != args.kernelorientation) {
-		siril_log_message(_("The current image row order is different to that of the image the kernel was made for. Flipping row order...\n"));
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int c = 0 ; c < com.kernelchannels; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
@@ -1259,7 +1258,7 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 
 // PSF drawing callback
 gboolean on_PSFkernel_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	check_orientation();
+    check_orientation();
 	drawing_the_PSF(widget, cr);
 	return FALSE;
 }
