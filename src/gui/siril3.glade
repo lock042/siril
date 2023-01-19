@@ -5940,7 +5940,7 @@ enter a visible wavelength in nm</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
-                                        <property name="tooltip-text" translatable="yes">Use a manually defined PSF based on the parameters below.</property>
+                                        <property name="tooltip-text" translatable="yes">Use a manually defined PSF based on the parameters chosen.</property>
                                         <property name="halign">start</property>
                                         <property name="draw-indicator">True</property>
                                         <property name="group">bdeconv_psfblind</property>
@@ -5955,7 +5955,7 @@ enter a visible wavelength in nm</property>
                                       <object class="GtkComboBoxText" id="bdeconv_blindtype">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="tooltip-text" translatable="yes">Select the blind PSF estimation mthod to use</property>
+                                        <property name="tooltip-text" translatable="yes">Select the blind PSF estimation method to use. ℓ0 descent is the default and usually the best option.</property>
                                         <property name="active">1</property>
                                         <items>
                                           <item translatable="yes">Spectral Irregularity</item>
@@ -6142,7 +6142,7 @@ enter a visible wavelength in nm</property>
                                           <object class="GtkSpinButton" id="bdeconv_ks">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
-                                            <property name="tooltip-text" translatable="yes">This parameter sets the PSF full width and height.</property>
+                                            <property name="tooltip-text" translatable="yes">Make sure the size is big enough not to crop off any significant parts of the PSF.</property>
                                             <property name="text">15</property>
                                             <property name="adjustment">bdeconv_kernelsize</property>
                                             <property name="value">15</property>
@@ -6203,7 +6203,7 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkComboBoxText" id="bdeconv_profile">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
-                                                <property name="tooltip-text" translatable="yes">Select the type of function to use to synthesize the PSF</property>
+                                                <property name="tooltip-text" translatable="yes">Gaussian and Moffat profiles are good models for star shapes. Disc profiles can be used to improve out-of-focus issues. Airy disc models the inherent diffraction of your telescope.</property>
                                                 <property name="active">0</property>
                                                 <items>
                                                   <item translatable="yes">Gaussian</item>
@@ -6355,7 +6355,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="sensitive">False</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-text" translatable="yes">For Moffat profiles, this sets the value of beta</property>
+                                                <property name="tooltip-text" translatable="yes">For Moffat profiles, this sets the value of beta. See the astrometry documentation for information on this parameter.</property>
                                                 <property name="text">4.50</property>
                                                 <property name="adjustment">convpsfbeta</property>
                                                 <property name="digits">2</property>
@@ -6449,7 +6449,7 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkSpinButton" id="airy_wl">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-text" translatable="yes">Wavelength. May be specified exactly for narrowband filters, or for broadband / OSC / luminance filters just use a representative central wavelength.</property>
+                                                <property name="tooltip-text" translatable="yes">Wavelength to calculate the diffraction pattern for. May be specified exactly for narrowband filters, or for broadband / OSC / luminance filters just use a representative central wavelength.</property>
                                                 <property name="text">525.0</property>
                                                 <property name="adjustment">adj_airy_wl</property>
                                                 <property name="digits">1</property>
@@ -6508,7 +6508,7 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkSpinButton" id="airy_obstruction">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-text" translatable="yes">Sets the central obstruction as a percentage of the total aperture area. This is zero for refractors, typically around 20% for fast Newtonians and may be as much as 40% for a Corrected Dall-Kirkham.</property>
+                                                <property name="tooltip-text" translatable="yes">Sets the central obstruction as a percentage of the total aperture area. This is zero for refractors, typically around 10-20% for fast Newtonians and may be as much as 40% for a Corrected Dall-Kirkham.</property>
                                                 <property name="text">0.0</property>
                                                 <property name="adjustment">adj_airy_obstruction</property>
                                                 <property name="digits">1</property>
@@ -6563,7 +6563,7 @@ enter a visible wavelength in nm</property>
                                           <object class="GtkSpinButton" id="bdeconv_gflambda">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
-                                            <property name="tooltip-text" translatable="yes">If using the Goldstein-Fattal PSF estimator, lambda may require decreasing for particularly noisy images.</property>
+                                            <property name="tooltip-text" translatable="yes">Regularization parameter for PSF estimation. Try decreasing this value for noisy images.</property>
                                             <property name="text">3000</property>
                                             <property name="adjustment">convgflambda</property>
                                             <property name="value">3000</property>
@@ -6629,7 +6629,7 @@ enter a visible wavelength in nm</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">For large PSFs the ℓ0 gradient prior may not collapse blurry edges into a single sharp edge. A multiscale PSF estimation procedure can therefore be used: it may not be necessary for small PSF.</property>
+                                                <property name="tooltip-text" translatable="yes">This improves ℓ0 PSF estimation for large PSFs. It is not required for small PSFs and takes longer to compute. Consider using it for PSF sizes above 20.</property>
                                                 <property name="margin-top">5</property>
                                                 <property name="draw-indicator">True</property>
                                               </object>
@@ -6643,6 +6643,7 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkExpander" id="bdeconv_expander">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
+                                                <property name="tooltip-text" translatable="yes">These settings can be left alone in the vast majority of cases. </property>
                                                 <child>
                                                   <!-- n-columns=2 n-rows=10 -->
                                                   <object class="GtkGrid">
@@ -6693,7 +6694,7 @@ enter a visible wavelength in nm</property>
                                                       <object class="GtkSpinButton" id="bdeconv_iters">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">Number of iterations for PSF estimation</property>
+                                                        <property name="tooltip-text" translatable="yes">Number of iterations for PSF estimation. Do not reduce this below 2. There is negligible benefit in increasing it beyond 3.</property>
                                                         <property name="text">2</property>
                                                         <property name="adjustment">conviter</property>
                                                         <property name="value">2</property>
@@ -6719,7 +6720,7 @@ enter a visible wavelength in nm</property>
                                                       <object class="GtkSpinButton" id="bdeconv_lambdaratio">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">Ratio of lambda at successive scales for multiscale PSF estimation</property>
+                                                        <property name="tooltip-text" translatable="yes">Ratio of lambda at successive scales for multiscale PSF estimation.</property>
                                                         <property name="text">0.9091</property>
                                                         <property name="adjustment">convlambdaratio</property>
                                                         <property name="digits">4</property>
@@ -6788,7 +6789,7 @@ enter a visible wavelength in nm</property>
                                                       <object class="GtkSpinButton" id="bdeconv_upsampleblur">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">Amount of bur to use for upsampling during PSF estimation</property>
+                                                        <property name="tooltip-text" translatable="yes">Amount of blur to use for upsampling during PSF estimation</property>
                                                         <property name="text">0.00</property>
                                                         <property name="adjustment">convupsampleblur</property>
                                                         <property name="digits">2</property>
@@ -6894,7 +6895,7 @@ enter a visible wavelength in nm</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Uses a refinement technique to improve subsequent iterations of the PSF estimator.</property>
+                                                        <property name="tooltip-text" translatable="yes">Uses a refinement technique to improve subsequent iterations of the PSF estimator. This should essentially always be enabled.</property>
                                                         <property name="active">True</property>
                                                         <property name="draw-indicator">True</property>
                                                       </object>
@@ -6943,7 +6944,7 @@ enter a visible wavelength in nm</property>
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="label" translatable="yes">Anger-Delbracio-Facciolo ℓ0 Descent Method</property>
+                                        <property name="label" translatable="yes">ℓ0 Descent Method</property>
                                         <attributes>
                                           <attribute name="weight" value="bold"/>
                                         </attributes>
@@ -7123,7 +7124,7 @@ enter a visible wavelength in nm</property>
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="label" translatable="yes">Goldstein-Fattal Spectral Irregularity Method</property>
+                                        <property name="label" translatable="yes">Spectral Irregularity Method</property>
                                         <attributes>
                                           <attribute name="weight" value="bold"/>
                                         </attributes>
@@ -7352,7 +7353,7 @@ enter a visible wavelength in nm</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">1</property>
+                        <property name="position">0</property>
                       </packing>
                     </child>
                     <child>
@@ -7366,6 +7367,21 @@ enter a visible wavelength in nm</property>
                         <property name="valign">start</property>
                         <property name="margin-top">5</property>
                         <signal name="draw" handler="on_PSFkernel_draw" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="bdeconv_advice_button">
+                        <property name="label" translatable="yes">Usage tips</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Opens a page in the online Siril documentation with usage tips and examples of settngs that can work for different types of image.</property>
+                        <signal name="clicked" handler="on_bdeconv_advice_button_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -7418,10 +7434,8 @@ enter a visible wavelength in nm</property>
                       <object class="GtkComboBoxText" id="bdeconv_nonblindtype">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Once the PSF is estimated or provided the image is finally deconvolved using the selected algorithm.\n;
-The Split Bregman method is a common method used to solve a very broad class of L1-regularized problems. It is used internally within the blind PSF estimation processes and may also be used as a final deconvolution method. It is Total Variation (TV) regularized using the Rudemi-Osher-Fattal method.\n;
-The Richardson-Lucy algorithm is an iterative deconvolution technique well known for its use in deconvolving early Hubble images to correct the initial flawed optics. A number of variants and regularization techniques are available.\n;
-The Wiener method is a non-iterative deconvolution process that assumes a Gaussian noise distribution. It works poorly on deep space images but can be a good algorithm for deconvolving lunar /planetary images.</property>
+                        <property name="tooltip-text" translatable="yes">Once the PSF is estimated or provided the image is finally deconvolved using the selected algorithm.
+Choose Richardson-Lucy for deep space images; choose either Split Bregman or Wiener filtering for lunar and planetary images.</property>
                         <property name="active">1</property>
                         <items>
                           <item translatable="yes">Split Bregman method with TV regularization</item>
@@ -7466,7 +7480,7 @@ The Wiener method is a non-iterative deconvolution process that assumes a Gaussi
                       <object class="GtkSpinButton" id="bdeconv_alpha">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Regularisation parameter for the final non-blind stage deconvolution</property>
+                        <property name="tooltip-text" translatable="yes">Regularization parameter for the final non-blind stage deconvolution</property>
                         <property name="text">3000.00</property>
                         <property name="adjustment">convalpha</property>
                         <property name="digits">2</property>
@@ -7496,8 +7510,8 @@ The Wiener method is a non-iterative deconvolution process that assumes a Gaussi
                       <object class="GtkComboBoxText" id="bdeconv_rl_regularization">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Total Variation regularization preserves sharp edges in the image well, but can have a tendency to produce a "staircase effect" in large uniform areas.
-Frobenius norm of the Hessian uses a non-linear regularization term. It is more often used in regularizing denoising algorithms but can perform well when deconvolving a star mask produced by Siril's Starnet++ interface.</property>
+                        <property name="tooltip-text" translatable="yes">Total Variation regularization preserves sharp edges in the image well. If in doubt, stick with Total Variation. However it can have a tendency to produce a "staircase effect" in large uniform areas.
+Frobenius norm of the Hessian uses a second order regularization term. It is more often used in regularizing denoising algorithms but can perform well when deconvolving a star mask produced by Siril's Starnet++ interface.</property>
                         <property name="active">0</property>
                         <items>
                           <item translatable="yes">Total Variation</item>
@@ -7576,7 +7590,7 @@ Frobenius norm of the Hessian uses a non-linear regularization term. It is more 
                       <object class="GtkComboBoxText" id="bdeconv_rl_method">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Selects whether to run Richardson-Lucy as a gradient descent or multiplicative process. Multiplicative can be quicker, but offers less control over the process and may easily result in ringing around stars that can be better controlled using the gradient descent methods.</property>
+                        <property name="tooltip-text" translatable="yes">If in doubt, use Gradient Descent. It is more gradual and has a controllable step size that can help to avoid ringing artefacts around stars. For stretched images Mulitiplicative may give good results and require fewer iterations.</property>
                         <property name="active">1</property>
                         <items>
                           <item translatable="yes">Multiplicative</item>
