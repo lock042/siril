@@ -23,6 +23,7 @@
 #endif
 #include <fftw3.h>
 #include <math.h>
+#include <locale.h>
 #include <gdk/gdk.h>
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
@@ -59,6 +60,7 @@
 gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
 orientation_t imageorientation;
+gboolean next_psf_is_previous = FALSE;
 
 estk_data args = { 0 };
 static GtkWidget *drawingPSF = NULL;
@@ -229,6 +231,9 @@ void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
+	// Copypasta from documentation.c but with a specific URL to point to the deconvolution tips page
+	#define GET_DOCUMENTATION_URL "https://siril.readthedocs.io"
+
 	gboolean ret;
 	const char *locale;
 	const char *supported_languages[] = { NULL }; // en is NULL: default language
@@ -1018,6 +1023,10 @@ gboolean deconvolve_idle(gpointer arg) {
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
+	if (next_psf_is_previous && !com.headless && !com.script) {
+		args.psftype = PSF_PREVIOUS;
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
+	}
 	set_cursor_waiting(FALSE);
 	siril_debug_print("Deconvolve idle stopping processing thread\n");
 	stop_processing_thread();
@@ -1084,6 +1093,8 @@ gpointer deconvolve(gpointer p) {
 		retval = 1;
 		goto ENDDECONV;
 	}
+
+	next_psf_is_previous = (args.psftype == PSF_BLIND) ? TRUE : FALSE;
 
 	float *xyzdata = NULL;
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
