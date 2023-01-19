@@ -1763,29 +1763,23 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 }
 
 struct checkSeq_filter_data {
-//	int force;
 	int retvalue;
 };
 
 static gboolean end_checkSeq(gpointer p) {
 	struct checkSeq_filter_data *args = (struct checkSeq_filter_data *) p;
-	stop_processing_thread();
-
-	/* it's better to uncheck the force button each time it is used */
-	if (args->retvalue)
+	end_generic(NULL);
+	if (!args->retvalue)
 		update_sequences_list(NULL);
+	else control_window_switch_to_tab(OUTPUT_LOGS);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	set_cursor_waiting(FALSE);
 	free(args);
-
 	return FALSE;
 }
 
 static gpointer checkSeq(gpointer p) {
 	struct checkSeq_filter_data *args = (struct checkSeq_filter_data *) p;
-
-	if (!check_seq())
-		args->retvalue = 1;
+	args->retvalue = check_seq();
 	siril_add_idle(end_checkSeq, args);
 	return GINT_TO_POINTER(0);
 }
