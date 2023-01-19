@@ -400,16 +400,6 @@ auto slice(img_t<T>& i, slice_t w, slice_t h, slice_t d=_)
     return mappable_slice_img_expr_t<T>(&i, w, h, d);
 }
 
-// Following not used in SB, RL or either blind deconv method.
-
-/*
-enum {
-    AXIS_D=1,
-    AXIS_X=2,
-    AXIS_Y=4,
-} axis_e;
-*/
-
 #define REDUCE_HEAD(name) \
 template <typename E> \
 class name : public img_expr_t<typename E::value_type> { \

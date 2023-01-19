@@ -4,27 +4,22 @@
 #include "image_expr.hpp"
 #include "labeling.hpp"
 #include "vec2.hpp"
+#include "chelperfuncs.h"
 
 namespace utils {
-    extern "C" {
-        // these are defined in imscript/upsa.c and imscript/downscale.c
-        void zoom2(float *y, const float *x, int W, int H, int pd, int w, int h, float n, int zt);
-        void downscale_image(float *y, float *x, int outw, int outh, int inw, int inh, float scale, float sigma);
-        void gblur_gray(float*, float*, int, int, float);
-    }
 
     inline void blur(img_t<float>& out, const img_t<float>& in, float sigma) {
         assert(in.d == 1);
         out.resize(in.w, in.h);
-        gblur_gray(&out[0], (float*) &in[0], in.w, in.h, sigma);
+        gaussblur(&out[0], (float*) &in[0], in.w, in.h, sigma);
     }
 
     // upsample an image
     inline void upsample(img_t<float>& out, const img_t<float>& _in, float factor,
-                         int targetw, int targeth, int interp=2) { // Bilinear
+                         int targetw, int targeth) {
         img_t<float> in = _in; // copy input
         out.resize(targetw, targeth, in.d);
-        zoom2(&out[0], &in[0], out.w, out.h, out.d, in.w, in.h, factor, interp);
+        magnify(&out[0], &in[0], out.w, out.h, out.d, in.w, in.h, factor);
     }
 
     template <typename T>

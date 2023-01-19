@@ -1,7 +1,7 @@
 #include <array>
 
 #include "image.hpp"
-#include "deblur.hpp"
+#include "deconvolve.hpp"
 
 /// pad an image using constant boundaries
 template <typename T>
@@ -121,7 +121,7 @@ void deconvBregman(img_t<T>& u, const img_t<T>& f, const img_t<T>& K,
     }
 
     // deconvolve
-    deblur::rof::split_continuation(deconv_planar, f_planar, K, 2.f / lambda, beta, 2.f * std::sqrt(2.f), std::pow(2.f, 8.f), 1);
+    deconvolve::sb_deconvolve(deconv_planar, f_planar, K, 2.f / lambda, beta, 2.f * std::sqrt(2.f), std::pow(2.f, 8.f), 1);
 
     // reorder to interleaved
     u.ensure_size(deconv_planar.w, deconv_planar.h, deconv_planar.d);

@@ -102,12 +102,8 @@ src_files = [
 
   'filters/deconvolution/args.hxx',
   'filters/deconvolution/better_than_std.hpp',
-  'filters/deconvolution/deblur.cpp',
-  'filters/deconvolution/deblur.hpp',
-  'filters/deconvolution/rl.cpp',
-  'filters/deconvolution/rl.hpp',
-  'filters/deconvolution/wiener.cpp',
-  'filters/deconvolution/wiener.hpp',
+  'filters/deconvolution/deconvolve.cpp',
+  'filters/deconvolution/deconvolve.hpp',
   'filters/deconvolution/edgetaper.hpp',
   'filters/deconvolution/estimate_kernel.cpp',
   'filters/deconvolution/fft.hpp',
@@ -124,8 +120,6 @@ src_files = [
   'filters/deconvolution/utils.hpp',
   'filters/deconvolution/chelperfuncs.c',
   'filters/deconvolution/vec2.hpp',
-  'filters/deconvolution/imscript/upsa.c',
-  'filters/deconvolution/imscript/downscale.c',
 
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
