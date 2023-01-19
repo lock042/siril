@@ -30,13 +30,6 @@ free-astro 2022-2023.
 */
 #pragma once
 
-// include ceres before anything
-// FIXME FIXME FIXME
-// FIXME ..... FIXME
-// FIXME FIXME FIXME
-#ifdef HAS_CERES
-#include <ceres/ceres.h>
-#endif
 #include <unordered_map>
 
 #include <cassert>
@@ -47,18 +40,11 @@ free-astro 2022-2023.
 #include <numeric>
 #include "chelperfuncs.h"
 
-#ifndef IMG_NO_FFTW
 #include <fftw3.h>
 #include "fftw_allocator.hpp"
-#endif
 
-#ifndef IMG_NO_OMP
+#ifdef _OPENMP
 #include <omp.h>
-#endif
-
-#define IMG_NO_IIO
-#ifndef _OPENMP
-#define IMG_NO_OMP
 #endif
 
 template <typename T>
@@ -77,15 +63,11 @@ public:
 
     typedef T value_type;
     int size, w, h, d;
-#ifndef IMG_NO_FFTW
     std::vector<T, fftw_alloc<T>> data;
     fftw_plan forwardplan = nullptr;
     fftw_plan backwardplan = nullptr;
     fftwf_plan forwardplanf = nullptr;
     fftwf_plan backwardplanf = nullptr;
-#else
-    std::vector<T> data;
-#endif
 
     auto begin() {
         return data.begin();
@@ -125,18 +107,6 @@ public:
     }
 
     ~img_t() {
-#ifndef IMG_NO_FFTW
-/*        if (forwardplan)
-#ifdef _OPENMP
-#pragma omp critical (fftw)
-#endif
-            fftw_destroy_plan(forwardplan);
-        if (backwardplan)
-#ifdef _OPENMP
-#pragma omp critical (fftw)
-#endif
-            fftw_destroy_plan(backwardplan);
-*/
         if (forwardplanf)
 #ifdef _OPENMP
 #pragma omp critical (fftw)
@@ -147,7 +117,6 @@ public:
 #pragma omp critical (fftw)
 #endif
             fftwf_destroy_plan(backwardplanf);
-#endif
     }
 
     // indexing
@@ -203,18 +172,6 @@ public:
 
     void resize(int w, int h, int d=1) {
         if (this->w != w || this->h != h || this->d != d) {
-#ifndef IMG_NO_FFTW
-/*            if (forwardplan)
-#ifdef _OPENMP
-#pragma omp critical (fftw)
-#endif
-                fftw_destroy_plan(forwardplan);
-            if (backwardplan)
-#ifdef _OPENMP
-#pragma omp critical (fftw)
-#endif
-                fftw_destroy_plan(backwardplan);
-*/
             if (forwardplanf)
 #ifdef _OPENMP
 #pragma omp critical (fftw)
@@ -230,7 +187,6 @@ public:
             backwardplan = nullptr;
             forwardplanf = nullptr;
             backwardplanf = nullptr;
-#endif
             this->w = w;
             this->h = h;
             this->d = d;
@@ -262,7 +218,7 @@ public:
         const int ix = (k.w-1)/2;
 // Not asking OMP to vectorize the inner loop with simd: relying on GCC for this, as it is reportedly better at it.
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static,16) collapse(3) //num_threads(cppmaxthreads) //if(size > 1000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static,16) collapse(3) num_threads(cppmaxthreads)
 #endif
         for (int c = 0 ; c < d ; c++) {
             for (int i = ix ; i < x.w-ix-1 ; i++) {
@@ -291,6 +247,7 @@ public:
 */
 
 /*
+// Keeping these functions for later work, not needed yet
     template <typename T2>
     void pasteinto(const img_t<T2>&o, int xoff, int yoff, int width, int height) { // Could this be better optimised?
         assert (width <= o.w && height <= o.h);
@@ -363,7 +320,7 @@ public:
         assert(o.similar(*this));
 
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
        for (int y = 0; y < o.h; y++) {
             for (int x = 0; x < o.w; x++) {
@@ -395,7 +352,7 @@ public:
         const img_t<typename T::value_type>& u = *static_cast<const img_t<typename T::value_type>*>(&u_);
         for (int l = 0; l < d; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < h; y++)
             for (int x = 0; x < w-1; x++)
@@ -404,7 +361,7 @@ public:
                 (*this)(w-1, y, l)[0] = 0;
 
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < h-1; y++)
             for (int x = 0; x < w; x++)
@@ -419,14 +376,14 @@ public:
         const img_t<typename T::value_type>& u = *static_cast<const img_t<typename T::value_type>*>(&u_);
         for (int l = 0; l < d; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < h; y++)
                 for (int x = 0; x < w; x++)
                     (*this)(x, y, l)[0] = u((x+1)%w, y, l) - u(x, y, l);
 
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < h; y++)
                 for (int x = 0; x < w; x++)
@@ -437,7 +394,7 @@ public:
     void gradientx(const img_t<T>& u) {
         for (int l = 0; l < d; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < h; y++)
             for (int x = 0; x < w-1; x++)
@@ -449,7 +406,7 @@ public:
     void gradienty(const img_t<T>& u) {
         for (int l = 0; l < d; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < h-1; y++)
             for (int x = 0; x < w; x++)
@@ -462,7 +419,7 @@ public:
     void gradientxx(const img_t<T>&u) {
         for (int l = 0 ; l < d ; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0 ; y < h ; y++)
                 for (int x = 1 ; x < w-1 ; x++)
@@ -477,7 +434,7 @@ public:
     void gradientyy(const img_t<T>&u) {
         for (int l = 0 ; l < d ; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 1 ; y < h-1 ; y++)
                 for (int x = 0 ; x < w ; x++)
@@ -492,7 +449,7 @@ public:
     void gradientxy(const img_t<T>&u) {
         for (int l = 0 ; l < d ; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 1 ; y < h-1 ; y++)
                 for (int x = 0 ; x < w-1 ; x++)
@@ -509,7 +466,7 @@ public:
         for (int l = 0; l < d; l++) {
             // center
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 1; y < h-1; y++)
             for (int x = 1; x < w-1; x++)
@@ -546,7 +503,7 @@ public:
         for (int l = 0; l < d; l++) {
             // center
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 1; y < h-1; y++)
             for (int x = 1; x < w-1; x++)
@@ -569,8 +526,6 @@ public:
                 (*this)(x, h-1, l) = gx(x, h-1, l) - gx(x-1, h-1, l) - gy(x, h-2, l);
         }
     }
-
-#ifndef IMG_NO_FFTW
 
     void fft(const img_t<std::complex<float> >& o) {
         static_assert(std::is_same<T, std::complex<float>>::value, "T must be complex float");
@@ -611,7 +566,6 @@ public:
         this->map(o, [norm](T x){ return x / norm; });
         fftwf_execute(backwardplanf);
     }
-#endif
 
     void fftshift() {
         img_t<T> out;
@@ -623,7 +577,7 @@ public:
         int ohalfh = this->h - halfh;
         for (int l = 0; l < this->d; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
@@ -631,7 +585,7 @@ public:
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < halfw; x++) {
@@ -639,7 +593,7 @@ public:
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
@@ -647,7 +601,7 @@ public:
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < halfw; x++) {
@@ -669,7 +623,7 @@ public:
         int ohalfh = this->h - halfh;
         for (int l = 0; l < this->d; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < halfw; x++) {
@@ -677,7 +631,7 @@ public:
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
@@ -685,7 +639,7 @@ public:
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < halfw; x++) {
@@ -693,7 +647,7 @@ public:
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
@@ -721,7 +675,7 @@ public:
                 assert(false);
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = 0; y < hh; y++) {
                 for (int x = 0; x < ww; x++) {
@@ -732,7 +686,7 @@ public:
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
             for (int y = hh; y < o.h; y++) {
                 for (int x = 0; x < ww; x++) {
@@ -786,7 +740,7 @@ public:
 
     void sanitize() {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
         for (int i = 0 ; i < size ; i++) {
             if (((*this)[i] != (*this)[i]) || (*this)[i] == T(0))
@@ -828,7 +782,7 @@ public:
         this->w = o.h;
         this->h = o.w;
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
         for (int y = 0; y < o.h; y++) {
             for (int x = 0; x < o.w; x++) {
@@ -842,7 +796,7 @@ public:
     void transposeToMatlab() {
         img_t<T> o(*this);
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
@@ -856,7 +810,7 @@ public:
     void transposeFromMatlab() {
         img_t<T> o(*this);
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
@@ -867,29 +821,14 @@ public:
         }
     }
 
-#ifndef IMG_NO_IIO
-    static img_t<T> load(const std::string& filename);
-    void save(const std::string& filename) const;
-#endif
 };
-
-// from http://stackoverflow.com/a/26221725
-#include <memory>
-template<typename ... Args>
-std::string string_format(const std::string& format, Args ... args )
-{
-    size_t size = std::snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
-    std::unique_ptr<char[]> buf(new char[size]);
-    std::snprintf(buf.get(), size, format.c_str(), args...);
-    return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
-}
 
 namespace img {
     template <typename T, typename E>
     T sum(const E& img) {
         T a(0);
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(img.size > 10000 && cppmaxthreads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
 #endif
         for (int i = 0; i < img.size; i++) {
             a += img[i];
@@ -909,7 +848,6 @@ namespace img {
     }
 
     // convert an image to YCbCr colorspace (from RGB)
-
     template <typename T>
     void rgb2ycbcr(img_t<T>& out, const img_t<T>& in)
     {
@@ -917,6 +855,9 @@ namespace img {
 
         out.ensure_size(in.w, in.h, in.d);
 
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static, 16) num_threads(cppmaxthreads)
+#endif
         for (int i = 0; i < out.w*out.h; i++) {
             T r = in[i*3+0];
             T g = in[i*3+1];
@@ -935,6 +876,9 @@ namespace img {
 
         out.ensure_size(in.w, in.h, in.d);
 
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static, 16) num_threads(cppmaxthreads)
+#endif
         for (int i = 0; i < out.w*out.h; i++) {
             T y = in[i*3+0];
             T cb = in[i*3+1];

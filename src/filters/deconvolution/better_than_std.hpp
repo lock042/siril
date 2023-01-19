@@ -31,8 +31,6 @@ namespace std {
 }
 
 namespace std {
-    // TODO: find a way to fix that
-
     template<typename T> constexpr
     T min_noref(const T& a, const T& b) {
         return a > b ? b : a;

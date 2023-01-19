@@ -30,28 +30,28 @@ SOFTWARE.
 #include "edgetaper.hpp"
 #include "chelperfuncs.h"
 
-namespace utils {
-    // downsample an image with Gaussian filtering
-    void gaussian_downsample(img_t<float>& out, const img_t<float>& _in, float factor, float sigma=1.6f) {
-        img_t<float> in = _in; // copy input
-        if (factor == 1) {
-            out = in;
-            return;
+extern "C" void shrink(float *y, float *x, int outw, int outh, int inw, int inh, float scale, float sigma);
+
+// downsample an image with Gaussian filtering
+void gaussian_downsample(img_t<float>& out, const img_t<float>& _in, float factor, float sigma=1.6f) {
+    img_t<float> in = _in; // copy input
+    if (factor == 1) {
+        out = in;
+        return;
+    }
+
+    out.resize(std::ceil(in.w/factor), std::ceil(in.h/factor), in.d);
+
+    img_t<float> tmpout(out.w, out.h, 1);
+    img_t<float> tmpin(in.w, in.h, 1);
+    // process channel by channel
+    for (int d = 0; d < in.d; d++) {
+        for (int i = 0; i < in.w * in.h; i++) {
+            tmpin[i] = in[i*in.d+d];
         }
-
-        out.resize(std::ceil(in.w/factor), std::ceil(in.h/factor), in.d);
-
-        img_t<float> tmpout(out.w, out.h, 1);
-        img_t<float> tmpin(in.w, in.h, 1);
-        // process channel by channel since downscale_image accepts only grayscale images
-        for (int d = 0; d < in.d; d++) {
-            for (int i = 0; i < in.w * in.h; i++) {
-                tmpin[i] = in[i*in.d+d];
-            }
-            downscale_image(&tmpout[0], &tmpin[0], tmpout.w, tmpout.h, tmpin.w, tmpin.h, factor, sigma);
-            for (int i = 0; i < out.w * out.h; i++) {
-                out[i*in.d+d] = tmpout[i];
-            }
+        shrink((float*) &tmpout[0], (float*) &tmpin[0], (int) tmpout.w, (int) tmpout.h, (int) tmpin.w, (int) tmpin.h, (float) factor, (float) sigma);
+        for (int i = 0; i < out.w * out.h; i++) {
+            out[i*in.d+d] = tmpout[i];
         }
     }
 }
@@ -478,7 +478,7 @@ void multiscale_l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v
         kernelSizes.push_back(ks);
 
         // downsample blurry image
-        utils::gaussian_downsample(vv, vv, 1/opts.scalefactor, opts.downscaleblur);
+        gaussian_downsample(vv, vv, 1/opts.scalefactor, opts.downscaleblur);
 
         ks = ks * opts.scalefactor;
         // make the kernel odd-sized
@@ -502,7 +502,7 @@ void multiscale_l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v
 
         if (s > 0) {
             img_t<T>& nextv = vs[s-1];
-            utils::upsample(u, u, 1/opts.scalefactor, nextv.w, nextv.h, 3);
+            utils::upsample(u, u, 1/opts.scalefactor, nextv.w, nextv.h);
             if (opts.upscaleblur > 0.f) {
                 img_t<T> c(u);
                 utils::blur(u, c, opts.upscaleblur);

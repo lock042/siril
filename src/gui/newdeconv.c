@@ -1001,6 +1001,8 @@ gpointer deconvolve(gpointer p) {
 		free(command_data);
 	}
 	check_orientation();
+	if (sequence_is_running == 0)
+		DrawPSF();
 	args.nchans = the_fit->naxes[2];
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;
@@ -1090,7 +1092,7 @@ gpointer deconvolve(gpointer p) {
 				if (args.ks < com.pref.fftw_conf.fft_cutoff)
 					naive_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
 				else
-					richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
+					fft_richardson_lucy(args.fdata, args.rx,args.ry, args.nchans, com.kernel, args.ks, args.kchans, args.alpha, args.finaliters, args.stopcriterion, fftw_max_thread, args.regtype, args.stepsize, args.stopcriterion_active);
 
 				free(msg_rl);
 				msg_rl = NULL;
@@ -1216,26 +1218,14 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 	for (int i = 0; i < com.kernelsize; i++) {
 		for (int j = 0; j < com.kernelsize; j++) {
 			float val[3] = { 0.f };
-			if (single_image_is_loaded() && get_imageorientation() != args.kernelorientation) {
-				if (com.kernelchannels == 1) {
-					val[0] = pow((com.kernel[i * com.kernelsize + j] - minval) * invrange, 0.5f);
-					val[1] = val[0];
-					val[2] = val[0];
-				} else  if (com.kernelchannels == 3) {
-					val[0] = pow((com.kernel[2 * kpixels + i * com.kernelsize + j] - minval) * invrange, 0.5f);
-					val[1] = pow((com.kernel[kpixels + i * com.kernelsize + j] - minval) * invrange, 0.5f);
-					val[2] = pow((com.kernel[i * com.kernelsize + j] - minval) * invrange, 0.5f);
-				}
-			} else {
-				if (com.kernelchannels == 1) {
-					val[0] = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
-					val[1] = val[0];
-					val[2] = val[0];
-				} else if (com.kernelchannels == 3) {
-					val[0] = pow((com.kernel[2 * kpixels + (com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
-					val[1] = pow((com.kernel[kpixels + (com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
-					val[2] = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
-				}
+			if (com.kernelchannels == 1) {
+				val[0] = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
+				val[1] = val[0];
+				val[2] = val[0];
+			} else if (com.kernelchannels == 3) {
+				val[0] = pow((com.kernel[2 * kpixels + (com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
+				val[1] = pow((com.kernel[kpixels + (com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
+				val[2] = pow((com.kernel[(com.kernelsize - i - 1) * com.kernelsize + j] - minval) * invrange, 0.5f);
 			}
 			buf[i * stride + 4 * j + 0] = float_to_uchar_range(val[0]);
 			buf[i * stride + 4 * j + 1] = float_to_uchar_range(val[1]);
@@ -1260,7 +1250,11 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 
 // PSF drawing callback
 gboolean on_PSFkernel_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-    check_orientation();
+	if (get_imageorientation() != args.kernelorientation) {
+		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("bdeconv_drawingarea")), _("Image row order has changed since PSF was generated. The PSF orientation will be updated to match before applying to this image."));
+	} else {
+		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("bdeconv_drawingarea")), _(""));
+	}
 	drawing_the_PSF(widget, cr);
 	return FALSE;
 }

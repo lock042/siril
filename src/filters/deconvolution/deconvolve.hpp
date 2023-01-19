@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
+
 #pragma once
 
 #include <cstdio>
@@ -28,10 +29,49 @@
 #include "chelperfuncs.h"
 #include "rlstrings.h"
 
-namespace richardsonlucy {
-
+namespace deconvolve {
     template <typename T>
-    void rl_deconvolve(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion, int regtype, float stepsize, int stopcriterion_active) {
+    void wiener_deconvolve(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T sigma) {
+
+        // sigma is the noise modelling parameter. This assumes the noise is Gaussian i.e. its power spectrum is
+        // constant. To extend this to other noise models, if needed, replace T sigma by const
+        // img_t<std::complex<T>> sigma where the img_t contains the 2D noise power spectrum.
+
+        assert(K.w % 2); // kernel must be odd in both dimensions
+        assert(K.h % 2);
+        x = f;
+
+        // Initialize img_ts
+        img_t<std::complex<T>> H(f.w, f.h, f.d);
+        img_t<std::complex<T>> denom(f.w, f.h, f.d);
+        img_t<std::complex<T>> G(f.w, f.h, f.d);
+
+        // Generate OTF of kernel
+        H.padcirc(K);
+        H.map(H * std::complex<T>(K.d) / K.sum());
+        H.fft(H);
+
+        // Generate |H^2| = H * complex conjugate of H
+        denom.map(std::conj(H) * H);
+        denom.map(denom + sigma);
+        denom.sanitize(); // Avoid NaNs and zeros in the denominator
+        updateprogress(msg_wiener, 0.33);
+
+        // Take the FFT of the image f, call this G
+        G.map(f);
+        G.fft(G);
+        updateprogress(msg_wiener, 0.66);
+
+        // Apply the Wiener filter
+        G.map((G * std::conj(H)) / denom);
+        G.ifft(G);
+        updateprogress(msg_wiener, 1.0);
+
+        x.map(std::real(G));
+    }
+
+        template <typename T>
+    void rl_deconvolve_fft(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion, int regtype, float stepsize, int stopcriterion_active) {
         assert(K.w % 2);
         assert(K.h % 2);
         x = f;
@@ -222,10 +262,8 @@ namespace richardsonlucy {
             if (sequence_is_running == 0)
                 updateprogress(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
             if (stopcriterion_active == 1) {
-                // Stopping criterion?
                 gxy.map((std::abs(x - gxy)) / std::abs(gxy));
                 T stopping = gxy.sum() / gxy.size;
-//                printf("stopping: %f\n", stopping);
                 if (stopping < stopcriterion) {
                     char msg[100];
                     sprintf(msg, "%s %d\n", msg_earlystop, iter+1);
@@ -235,4 +273,91 @@ namespace richardsonlucy {
             }
         }
     }
+
+    template <typename T>
+    void sb_deconvolve(img_t<T>& x, const img_t<T>& f, const img_t<T>& K,
+                            T lambda, T b_0, T b_factor, T max_beta, const int iters) {
+        assert(K.w % 2);
+        assert(K.h % 2);
+        optimization::operators::gradient<T> gradient(f);
+        using gradtype = typename decltype(gradient)::out_type;
+        img_t<gradtype> w(f.w, f.h, f.d);
+        img_t<std::complex<T>> f_ft(f.w, f.h, f.d);
+        f_ft.map(f);
+        f_ft.fft(f_ft);
+
+        if (is_thread_stopped())
+            return;
+
+        img_t<std::complex<T>> dx_otf(f.w, f.h, f.d);
+        {
+            img_t<T> dx(3, 3, f.d);
+            for (int c = 0; c < f.d; c++) {
+                dx(0, 1, c) = 0; dx(1, 1, c) = -1; dx(2, 1, c) = 1;
+            }
+            dx_otf.padcirc(dx);
+        }
+        dx_otf.fft(dx_otf);
+
+        if (is_thread_stopped())
+            return;
+
+        img_t<std::complex<T>> dy_otf(f.w, f.h, f.d);
+        {
+            img_t<T> dy(3, 3, f.d);
+            for (int c = 0; c < f.d; c++) {
+                dy(1, 0, c) = 0; dy(1, 1, c) = -1; dy(1, 2, c) = 1;
+            }
+            dy_otf.padcirc(dy);
+        }
+        dy_otf.fft(dy_otf);
+
+        if (is_thread_stopped())
+            return;
+
+        img_t<std::complex<T>> K_otf(f.w, f.h, f.d);
+        K_otf.padcirc(K);
+        K_otf.map(K_otf * std::complex<T>(K.d) / K.sum());
+        K_otf.fft(K_otf);
+
+        if (is_thread_stopped())
+            return;
+
+        auto Kf = std::conj(K_otf) * f_ft;
+
+        img_t<T> ksq(f.w, f.h, f.d);
+        ksq.map(std::pow(std::abs(K_otf), T(2)));
+
+        img_t<T> dxdysq(f.w, f.h, f.d);
+        dxdysq.map(std::pow(std::abs(dx_otf), T(2)) + std::pow(std::abs(dy_otf), T(2)));
+
+        T beta = b_0;
+        x = f;
+        img_t<std::complex<T>> w1_ft(f.w, f.h, f.d);
+        img_t<std::complex<T>> x_ft(f.w, f.h, f.d);
+        while (beta < max_beta) {
+            if (is_thread_stopped())
+                break;
+            if (sequence_is_running == 0)
+                updateprogress("Split Bregman deconvolution...", ((beta - b_0) / (max_beta - b_0)));
+            T gamma = beta / lambda;
+            auto denom = ksq + gamma * dxdysq;
+
+            for (int inner = 0; inner < iters; inner++) {
+                if (is_thread_stopped())
+                    break;
+                auto grad = gradient.direct(x);
+                w.map(grad * (T(1) - T(1) / (std::max(T(1), beta * std::hypot(grad)))));
+
+                w1_ft.map(gradient.adjoint(w));
+                w1_ft.fft(w1_ft);
+                auto num = Kf + gamma * w1_ft;
+                x_ft.map(num / denom);
+                x_ft.ifft(x_ft);
+                x.map(std::real(x_ft));
+            }
+            beta *= b_factor;
+        }
+    }
+
 }

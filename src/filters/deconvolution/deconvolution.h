@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
+
 #pragma once
 
 #include <glib.h>
@@ -113,7 +114,7 @@ EXTERNC int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchan
 }
 #endif
 
-EXTERNC int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
+EXTERNC int fft_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
 #ifdef __cplusplus
 }
 #endif
