@@ -306,49 +306,38 @@ void on_bdeconv_nonblindtype_changed(GtkComboBox *combo, gpointer user_data) {
 }
 
 void on_bdeconv_expander_activate(GtkExpander *expander, gpointer user_data) {
-		gtk_window_resize(GTK_WINDOW(lookup_widget("bdeconv_dialog")), 1, 1);
-// This callback is just to prevent excessive blank space after shrinking the expander
+	gtk_window_resize(GTK_WINDOW(lookup_widget("bdeconv_dialog")), 1, 1);
+	// This callback is just to prevent excessive blank space after shrinking the expander
 }
-
-// This type of PSF generation doesn't exist yet. Maybe don't need it with PSF from stars working well.
-/*void on_bdeconv_psfselection_toggled(GtkToggleButton *button, gpointer user_data) {
-	args.psftype = PSF_SELECTION;
-	gtk_widget_set_visible(lookup_widget("bdeconv_psfcontrols"), TRUE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_blindcontrols"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_starpsf_details"), FALSE);
-}
-*/
 
 void on_airy_diameter_value_changed(GtkSpinButton *button, gpointer user_data) {
-		GtkWidget *the_button = lookup_widget("airy_diameter");
-		GtkCssProvider *css = gtk_css_provider_new();
-		gtk_css_provider_load_from_data(css, "* { background-image:none; color:@theme_color;}",-1,NULL);
-		GtkStyleContext * context = gtk_widget_get_style_context(the_button);
+	GtkWidget *the_button = lookup_widget("airy_diameter");
+	GtkCssProvider *css = gtk_css_provider_new();
+	gtk_css_provider_load_from_data(css, "* { background-image:none; color:@theme_color;}",-1,NULL);
+	GtkStyleContext * context = gtk_widget_get_style_context(the_button);
 
-		gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
-		g_object_unref(css);
+	gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
+	g_object_unref(css);
 }
 
 void on_airy_fl_value_changed(GtkSpinButton *button, gpointer user_data) {
-		GtkWidget *the_button = lookup_widget("airy_fl");
-		GtkCssProvider *css = gtk_css_provider_new();
-		gtk_css_provider_load_from_data(css, "* { background-image:none; color:@theme_color;}",-1,NULL);
-		GtkStyleContext * context = gtk_widget_get_style_context(the_button);
+	GtkWidget *the_button = lookup_widget("airy_fl");
+	GtkCssProvider *css = gtk_css_provider_new();
+	gtk_css_provider_load_from_data(css, "* { background-image:none; color:@theme_color;}",-1,NULL);
+	GtkStyleContext * context = gtk_widget_get_style_context(the_button);
 
-		gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
-		g_object_unref(css);
+	gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
+	g_object_unref(css);
 }
 
 void on_airy_pixelsize_value_changed(GtkSpinButton *button, gpointer user_data) {
-		GtkWidget *the_button = lookup_widget("airy_pixelsize");
-		GtkCssProvider *css = gtk_css_provider_new();
-		gtk_css_provider_load_from_data(css, "* { background-image:none; color:@theme_color;}",-1,NULL);
-		GtkStyleContext * context = gtk_widget_get_style_context(the_button);
+	GtkWidget *the_button = lookup_widget("airy_pixelsize");
+	GtkCssProvider *css = gtk_css_provider_new();
+	gtk_css_provider_load_from_data(css, "* { background-image:none; color:@theme_color;}",-1,NULL);
+	GtkStyleContext * context = gtk_widget_get_style_context(the_button);
 
-		gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
-		g_object_unref(css);
+	gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
+	g_object_unref(css);
 }
 
 static void initialize_airy_parameters() {
