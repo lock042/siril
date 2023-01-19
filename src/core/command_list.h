@@ -217,8 +217,14 @@ static command commands[] = {
 	{"solsys", 0, "solsys [-mag=20.0]", process_sso, STR_SSO, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"split", 3, "split file1 file2 file3 [-hsl | -hsv | -lab]", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
-	{"stack", 1, "stack sequencename [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-rgb_equal] [-out=result_filename] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-weight_from_nbstars] [-weight_from_wfwhm] [-fastnorm] [-rejmap[s]]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
-	{"stackall", 0, "stackall [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackall, STR_STACKALL, TRUE, REQ_CMD_NONE},
+	{"stack", 1, "stack seqfilename\n"
+			"stack seqfilename { sum | min | max } [filtering] [-output_norm] [-out=filename]\n"
+			"stack seqfilename { med | median } [-nonorm, -norm=] [filtering] [-fastnorm] [-rgb_equal] [-output_norm] [-out=filename]\n"
+			"stack seqfilename { rej | mean } [rejection type] [sigma_low sigma_high]  [-rejmap[s]] [-nonorm, -norm=] [filtering] [-fastnorm] [ -weight_from_noise | -weight_from_nbstack | -weight_from_wfwhm | -weight_from_nbstars ] [-rgb_equal] [-output_norm] [-out=filename]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
+	{"stackall", 0, "stackall\n"
+			"stackall { sum | min | max } [filtering]\n"
+			"stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]\n"
+			"stackall { rej | mean } [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [filtering] [ -weight_from_noise | -weight_from_wfwhm | -weight_from_nbstars | -weight_from_nbstack ] [-rgb_equal] [-out=filename]", process_stackall, STR_STACKALL, TRUE, REQ_CMD_NONE},
 #ifdef HAVE_LIBTIFF
 	{"starnet", 0, "starnet [-stretch] [-upscale] [-stride=value] [-nostarmask]", process_starnet, STR_STARNET, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
