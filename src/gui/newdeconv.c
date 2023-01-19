@@ -228,6 +228,48 @@ void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
 	DrawPSF();
 }
 
+void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
+	gboolean ret;
+	const char *locale;
+	const char *supported_languages[] = { NULL }; // en is NULL: default language
+	gchar *lang = NULL;
+	int i = 0;
+
+	if (!com.pref.lang || !g_strcmp0(com.pref.lang, "")) {
+		locale = setlocale(LC_MESSAGES, NULL);
+	} else {
+		locale = com.pref.lang;
+	}
+
+	if (locale) {
+		while (supported_languages[i]) {
+			if (!strncmp(locale, supported_languages[i], 2)) {
+				lang = g_strndup(locale, 2);
+				break;
+			}
+			i++;
+		}
+	}
+	/* Use the tag when documentation will be tagged */
+	gchar *url = g_build_path("/", GET_DOCUMENTATION_URL, "/", lang, "/latest/processing/deconvolution-tips.html", NULL);
+
+#if GTK_CHECK_VERSION(3, 22, 0)
+	GtkWidget* win = lookup_widget("control_window");
+	ret = gtk_show_uri_on_window(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), url,
+			gtk_get_current_event_time(), NULL);
+#else
+	ret = gtk_show_uri(gdk_screen_get_default(), url,
+			gtk_get_current_event_time(), NULL);
+#endif
+	if (!ret) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Could not show link"),
+				_("Please go to <a href=\""GET_DOCUMENTATION_URL"\">"GET_DOCUMENTATION_URL"</a> "
+								"by copying the link."));
+	}
+	g_free(url);
+	g_free(lang);
+}
+
 void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
 	args.blindtype = gtk_combo_box_get_active(combo);
 	if (args.psftype == PSF_BLIND) {

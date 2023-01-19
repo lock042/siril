@@ -1,11 +1,3 @@
-/*
-
-From https://ipolcore.ipol.im/demo/clientApp/demo.html?id=77777000086
-Anger, Jérémy, Mauricio Delbracio, and Gabriele Facciolo. "Efficient Blind Deblurring under High Noise Levels.", Published at International Symposium on Image and Signal Processing and Analysis (ISPA 2019).
-
-Licenced under the GNU AFFERO GENERAL PUBLIC LICENSE, Version 3, 19 November 2007
-
-*/
 
 #pragma once
 
