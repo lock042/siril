@@ -7833,7 +7833,7 @@ Frobenius norm of the Hessian uses a non-linear regularization term. It is more 
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="denoise_cancel">
-                <property name="label" translatable="yes">Cancel</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
