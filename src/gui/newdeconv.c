@@ -535,13 +535,14 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void check_orientation() {
-	int ndata = com.kernelsize * com.kernelsize * com.kernelchannels;
+	int npixels = com.kernelsize * com.kernelsize;
+	int ndata = npixels * com.kernelchannels;
 	if (get_imageorientation() != args.kernelorientation) {
 		float *flip_the_kernel = (float*) malloc(ndata * sizeof(float));
 		for (int c = 0 ; c < com.kernelchannels; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
 				for (int j = 0 ; j < com.kernelsize ; j++) {
-					flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize + ndata * c] = com.kernel[i + com.kernelsize * j + ndata *c];
+					flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize + npixels * c] = com.kernel[i + com.kernelsize * j + npixels *c];
 				}
 			}
 		}
@@ -560,7 +561,8 @@ int save_kernel(gchar* filename) {
 		siril_log_color_message(_("Error: no PSF has been computed, nothing to save.\n"), "red");
 		return retval;
 	}
-	int ndata = com.kernelsize * com.kernelsize;
+	int npixels = com.kernelsize * com.kernelsize;
+	int ndata = npixels * com.kernelchannels;
 	// Need to make a sacrificial copy of com.kernel as the save_fit data will be freed when we call clearfits
 	float* copy_kernel = malloc(ndata * com.kernelchannels * sizeof(float));
 	memcpy(copy_kernel, com.kernel, ndata * com.kernelchannels * sizeof(float));
@@ -573,7 +575,7 @@ int save_kernel(gchar* filename) {
 		for (int c = 0 ; c < com.kernelchannels ; c++) {
 			for (int i = 0 ; i < com.kernelsize ; i++) {
 				for (int j = 0 ; j < com.kernelsize ; j++) {
-					flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize + c * ndata] = copy_kernel[i + com.kernelsize * j + c * ndata];
+					flip_the_kernel[i + (com.kernelsize - j - 1) * com.kernelsize + c * npixels] = copy_kernel[i + com.kernelsize * j + c * npixels];
 				}
 			}
 		}
@@ -717,7 +719,7 @@ int load_kernel(gchar* filename) {
 			for (int j = 0 ; j < com.kernelsize ; j++) {
 				float val = 0.f;
 				for (int c = 0 ; c < com.kernelchannels ; c++) {
-					val += com.kernel[i + j * com.kernelsize + c * com.kernelsize * com.kernelsize];
+					val += com.kernel[i + j * com.kernelsize + c * npixels];
 				}
 				desatkernel[i + j * com.kernelsize] = val / com.kernelchannels;
 			}
