@@ -849,6 +849,31 @@ int process_gauss(int nb){
 	return CMD_OK;
 }
 
+int process_getref(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		siril_log_message(_("Error: cannot open sequence\n"));
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	int ref_image = seq->reference_image;
+	if (seq->reference_image < 0) {
+		siril_log_message(_("Reference image is undefined, the following would be used:\n"));
+		ref_image = sequence_find_refimage(seq);
+	}
+
+	if (seq->type == SEQ_REGULAR) {
+		char filename[256];
+		fit_sequence_get_image_filename(seq, ref_image, filename, TRUE);
+		siril_log_message(_("Image %d: '%s'\n"), ref_image, filename);
+	}
+	else siril_log_message(_("Image %d\n"), ref_image);
+
+	if (!seq->imgparam[ref_image].incl)
+		siril_log_message(_("Warning: this image is excluded from the sequence main processing list\n"));
+	return CMD_OK;
+}
+
 int process_grey_flat(int nb) {
 	if (isrgb(&gfit)) {
 		return CMD_FOR_CFA_IMAGE;

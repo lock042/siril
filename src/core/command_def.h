@@ -53,6 +53,7 @@
 
 #define STR_GAUSS N_("Performs a Gaussian filter with the given <b>sigma</b>")
 #define STR_GET N_("Get a setting value, using its variable name, or list all with <b>-a</b> (name and value list) or <b>-A</b> (detailed list)")
+#define STR_GETREF N_("Prints information about the reference image of the sequence given in argument. First image has index 0")
 #define STR_GHT N_("Generalised hyperbolic stretch based on the work of the ghsastro.co.uk team.\n\nAn optional argument (either <b>-human</b>, <b>-even</b> or <b>-independent</b>, can be passed to select either human-weighted or even-weighted luminance or independent colour channels for colour stretches. (The argument is ignored for mono images.))\nThere are a number of mandatory arguments:\n<b>D</b> defines the strength of the stretch, between 0 and 10;\n<b>B</b> defines the intensity of the stretch near the focal point, between -5 and 15;\n<b>LP</b> defines a shadow preserving range between 0 and SP where the stretch will be linear, preserving shadow detail;\n<b>SP</b> defines the symmetry point of the stretch, between 0 and 1, which is the point at which the stretch will be most intense;\n<b>HP</b> defines a region between HP and 1 where the stretch is linear, preserving highlight details and preventing star bloat.\nOptionally the parameter <b>[channels]</b> may be used to specify the channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The default is all channels")
 #define STR_GREY_FLAT N_("Equalizes the mean intensity of RGB layers in a CFA image")
 
