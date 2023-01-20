@@ -456,9 +456,9 @@ static int ser_alloc_ts(struct ser_struct *ser_file, int frame_no) {
  */
 
 gboolean ser_is_cfa(struct ser_struct *ser_file) {
-	return ser_file && (ser_file->color_id == SER_BAYER_RGGB || 
-			ser_file->color_id == SER_BAYER_GRBG || 
-			ser_file->color_id == SER_BAYER_GBRG || 
+	return ser_file && (ser_file->color_id == SER_BAYER_RGGB ||
+			ser_file->color_id == SER_BAYER_GRBG ||
+			ser_file->color_id == SER_BAYER_GBRG ||
 			ser_file->color_id == SER_BAYER_BGGR);
 	// SER_BAYER_CYYM SER_BAYER_YCMY SER_BAYER_YMCY SER_BAYER_MYYC are not
 	// supported yet so returning false for them here is good
@@ -801,7 +801,6 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	}
 	if (pattern) {
 		strcpy(fit->bayer_pattern, pattern);
-		strncpy(fit->row_order, "BOTTOM-UP", FLEN_VALUE - 1);
 	}
 
 	switch (type_ser) {
@@ -903,6 +902,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
+	g_strdup_printf(fit->row_order, "BOTTOM-UP");
 
 	return 0;
 }
@@ -1110,7 +1110,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
         const int nbpixels = debayer_area.w * debayer_area.h;
 		for (y = 0; y < area->h; y++) {
 			for (x = 0; x < area->w; x++) {
-				buffer[y*area->w + x] = demosaiced_buf[layer * nbpixels + (yoffset+y)*debayer_area.w + xoffset+x]; 
+				buffer[y*area->w + x] = demosaiced_buf[layer * nbpixels + (yoffset+y)*debayer_area.w + xoffset+x];
 			}
 		}
 
@@ -1177,7 +1177,9 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		return 1;
 	}
 
-	fits_flip_top_to_bottom(fit);
+	if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+		fits_flip_top_to_bottom(fit);
+	}
 	frame_size = ser_file->image_width * ser_file->image_height *
 		ser_file->number_of_planes;
 

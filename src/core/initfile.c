@@ -49,6 +49,10 @@ static const char *keywords[] = { "working-directory",
 		"stacking-settings", "astrometry-settings", "photometry-settings",
 		"misc-settings", "compression-settings" };
 
+
+/** DEPRECATED function. Do not add preferences in here,
+ * libconfig is not use anymore with new settings */
+
 static int readinitfile_libconfig(gchar *path) {
 	config_t config;
 	const char *dir = NULL;
@@ -206,16 +210,11 @@ static int readinitfile_libconfig(gchar *path) {
 	config_setting_t *misc_setting = config_lookup(&config, keywords[MISC]);
 	if (misc_setting) {
 		int type;
-		const char *swap_dir = NULL, *starnet_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
+		const char *swap_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
 
 		config_setting_lookup_int(misc_setting, "pan_position", &com.pref.gui.pan_position);
 		config_setting_lookup_int(misc_setting, "hd_bitdepth", &com.pref.hd_bitdepth);
 
-		config_setting_lookup_float(misc_setting, "fftw_timelimit", &com.pref.fftw_conf.timelimit);
-		config_setting_lookup_int(misc_setting, "fftw_strategy", &com.pref.fftw_conf.strategy);
-		if (config_setting_lookup_bool(misc_setting, "fftw_multithreaded", &com.pref.fftw_conf.multithreaded) == CONFIG_FALSE) {
-			com.pref.fftw_conf.multithreaded = TRUE;
-		}
 		if (config_setting_lookup_bool(misc_setting, "is_extended", &com.pref.gui.is_extended) == CONFIG_FALSE) {
 			com.pref.gui.is_extended = TRUE;
 		}
@@ -266,8 +265,6 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_bool(misc_setting, "is_maximized", &com.pref.gui.is_maximized);
 		config_setting_lookup_string(misc_setting, "swap_directory", &swap_dir);
 		com.pref.swap_dir = g_strdup(swap_dir);
-		config_setting_lookup_string(misc_setting, "starnet_directory", &starnet_dir);
-		com.pref.starnet_dir = g_strdup(starnet_dir);
 		config_setting_lookup_string(misc_setting, "extension", &extension);
 		com.pref.ext = g_strdup(extension);
 		config_setting_lookup_int(misc_setting, "FITS_type", &type);

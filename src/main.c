@@ -151,6 +151,7 @@ static void global_initialization() {
 	com.child_is_running = FALSE;
 	com.kernel = NULL;
 	com.kernelsize = 0;
+	com.kernelchannels = 0;
 #ifdef _WIN32
 	com.childhandle = NULL;
 #else

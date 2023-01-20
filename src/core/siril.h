@@ -610,6 +610,7 @@ struct cominf {
 
 	float* kernel;			// float* to hold kernel for new deconvolution process
 	unsigned kernelsize;	// Holds size of kernel (kernel is square kernelsize * kernelsize)
+	unsigned kernelchannels; // Holds number of channels for the kernel
 #ifdef _WIN32
 void* childhandle;			// For Windows, handle of a child process
 #else
