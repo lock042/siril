@@ -233,6 +233,7 @@ void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
 void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 	// Copypasta from documentation.c but with a specific URL to point to the deconvolution tips page
 	#define GET_DOCUMENTATION_URL "https://siril.readthedocs.io"
+	#define DECONVOLUTION_TIPS_URL "processing/deconvolution-tips.html"
 
 	gboolean ret;
 	const char *locale;
@@ -255,9 +256,12 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 			i++;
 		}
 	}
-	/* Use the tag when documentation will be tagged */
-	gchar *url = g_build_path("/", GET_DOCUMENTATION_URL, "/", lang, "/latest/processing/deconvolution-tips.html", NULL);
+	if (!lang) {
+		lang = g_strdup_printf("en"); // Last gasp fallback in case there is an error with the locale
 
+	/* Use the tag when documentation will be tagged */
+	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, "latest", DECONVOLUTION_TIPS_URL);
+	siril_debug_print("URL: %s\n", url);
 #if GTK_CHECK_VERSION(3, 22, 0)
 	GtkWidget* win = lookup_widget("control_window");
 	ret = gtk_show_uri_on_window(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), url,
