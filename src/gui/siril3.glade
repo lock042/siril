@@ -27761,15 +27761,47 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <object class="GtkCheckButton" id="check_button_aladin">
-                            <property name="label" translatable="yes">Enable Aladin compatibility (CTYPE3 = 'RGB ')</property>
+                          <object class="GtkBox">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="receives-default">False</property>
-                            <property name="tooltip-text" translatable="yes">Aladin considers a 3D FITS cube as a RGB image (Red, Blue and Green components) if the FITS keyword CTYPE3 = 'RGB ' is specified in the header. In this case any BITPIX value are supported. Without the FITS keyword CTYPE3 = 'RGB ' set, only FITS cube with 3 frames sharing the same dimension and with a BITPIX=8 will be automatically detected as RGB FITS.</property>
-                            <property name="halign">start</property>
-                            <property name="margin-start">12</property>
-                            <property name="draw-indicator">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">6</property>
+                            <child>
+                              <object class="GtkCheckButton" id="check_button_aladin">
+                                <property name="label" translatable="yes">Enable Aladin compatibility (CTYPE3 = 'RGB ')</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Aladin considers a 3D FITS cube as a RGB image (Red, Blue and Green components) if the FITS keyword CTYPE3 = 'RGB ' is specified in the header. In this case any BITPIX value are supported. Without the FITS keyword CTYPE3 = 'RGB ' set, only FITS cube with 3 frames sharing the same dimension and with a BITPIX=8 will be automatically detected as RGB FITS.</property>
+                                <property name="halign">start</property>
+                                <property name="margin-start">12</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="checkbutton_binned_update">
+                                <property name="label" translatable="yes">Update pixel size of binned image</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Used for image sampling computation, pixel size can be given in two different ways: the real pixel size is given but has to be multiplied by the binning (checked), the already multiplied pixel size is given (unchecked).
+It depends on the acquistion software used to create the FITS.</property>
+                                <property name="halign">start</property>
+                                <property name="margin-start">12</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
                         </child>
                         <child type="label">

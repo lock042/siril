@@ -199,7 +199,7 @@ static void update_pixel_size() {
 	float pixel;
 
 	pixel = gfit.pixel_size_x > gfit.pixel_size_y ? gfit.pixel_size_x : gfit.pixel_size_y;
-	if (gfit.binning_x != 0 && gfit.binning_x != 1) {
+	if (com.pref.binning_update && gfit.binning_x > 1) {
 		pixel *= gfit.binning_x;
 	}
 
