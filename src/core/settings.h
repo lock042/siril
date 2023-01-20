@@ -198,6 +198,7 @@ typedef struct {
 	gboolean relax_checks;
 	starprofile profile;
 	double min_beta;
+	double min_A, max_A;
 } star_finder_params;
 
 typedef struct fftw_params {

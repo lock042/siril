@@ -77,7 +77,7 @@ static float compute_threshold(image *image, double ksigma, int layer, rectangle
 	return threshold;
 }
 
-static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se, double dynrange, gchar *errmsg) {
+static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se, double dynrange, double minA, double maxA, gchar *errmsg) {
 	if (isnan(result->fwhmx) || isnan(result->fwhmy))
 		return SF_NO_FWHM; //crit 11
 	if (isnan(result->x0) || isnan(result->y0))
@@ -108,6 +108,10 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 	//  do not apply for saturated stars to keep them for alignement purposes
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE; //crit 3
+	}
+	if ((minA > 0.0 || maxA > 0.0) && (result->A < minA || result->A > maxA)) {
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "A: %4.3e, allowed [%4.3f, %4.3f]\n", result->A, minA, maxA);
+		return SF_AMPLITUDE_OUTSIDE_RANGE;
 	}
 	if ((result->profile != PSF_GAUSSIAN) && (result->beta <  sf->min_beta)) {
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "Beta: %4.3e\n", result->beta);
@@ -478,10 +482,13 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				float dSr = max(-srl,srr)/min(-srl,srr);
 				float dSc = max(-scu,scd)/min(-scu,scd);
 				if (!com.pref.starfinder_conf.relax_checks)
-					if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.) || (max(Ar,Ac) < locthreshold))  bingo = FALSE;
+					if (dA > 2. || dSr > 2. || dSc > 2. || max(Ar,Ac) < locthreshold)
+						bingo = FALSE;
 
 				if (bingo && nbstars < MAX_STARS) {
-					if (nbstars > 0 && candidates[nbstars - 1].x == xx && candidates[nbstars - 1].x == yy) continue; // avoid duplicates for large saturated stars
+					if (nbstars > 0 && candidates[nbstars - 1].x == xx &&
+							candidates[nbstars - 1].x == yy)
+						continue; // avoid duplicates for large saturated stars
 					candidates[nbstars].x = xx;
 					candidates[nbstars].y = yy;
 					candidates[nbstars].mag_est = meanhigh;
@@ -491,7 +498,9 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 					candidates[nbstars].sat = (has_saturated) ? sat : norm;
 					candidates[nbstars].has_saturated = (has_saturated);
 					nbstars++;
-					if (has_saturated && DEBUG_STAR_DETECTION) siril_debug_print("%d: %d - %d is saturated with R = %d\n", nbstars, xx, yy, R);
+					if (has_saturated && DEBUG_STAR_DETECTION)
+						siril_debug_print("%d: %d - %d is saturated with R = %d\n",
+								nbstars, xx, yy, R);
 					if (nbstars == MAX_STARS) break;
 				}
 			}
@@ -532,18 +541,30 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	sf_errors accepted_level = (com.pref.starfinder_conf.relax_checks) ? SF_RMSE_TOO_LARGE : SF_OK;
 	double bg = background(image, layer, NULL, SINGLE_THREADED);
 	int psf_failure = 0;
+	double minA = 0.0, maxA = 0.0;
+	if (sf->min_A > 0.0 || sf->max_A > 0.0) {
+		if (image->type == DATA_USHORT) {
+			double mult = (image->bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE;
+			minA = sf->min_A * mult;
+			maxA = sf->max_A * mult;
+		}
+		else if (image->type == DATA_FLOAT) {
+			minA = sf->min_A;
+			maxA = sf->max_A;
+		}
+		else return 0;
+	}
 
 	if (image->type == DATA_USHORT) {
 		image_ushort = malloc(ny * sizeof(WORD *));
 		for (int k = 0; k < ny; k++)
 			image_ushort[ny - k - 1] = image->pdata[layer] + k * nx;
 	}
-	else if (image->type == DATA_FLOAT) {
+	else {
 		image_float = malloc(ny * sizeof(float *));
 		for (int k = 0; k < ny; k++)
 			image_float[ny - k - 1] = image->fpdata[layer] + k * nx;
 	}
-	else return 0;
 
 	psf_star **results = new_fitted_stars(nb_candidates);
 	if (!results) {
@@ -595,7 +616,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			gsl_matrix_free(z);
 			if (cur_star) {
 				gchar errmsg[SF_ERRMSG_LEN] = "";
-				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], dynrange, (DEBUG_STAR_DETECTION) ? errmsg : NULL);
+				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], dynrange, minA, maxA, (DEBUG_STAR_DETECTION) ? errmsg : NULL);
 				if (error != PSF_ERR_DIVERGED && star_invalidated <= accepted_level) { // we don't return NULL on convergence errors so we need to catch that PSF has not diverged
 					cur_star->layer = layer;
 					cur_star->xpos = (x - R) + cur_star->x0;

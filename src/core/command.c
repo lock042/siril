@@ -3258,65 +3258,61 @@ int process_set_findstar(int nb) {
 	gboolean relax_checks = com.pref.starfinder_conf.relax_checks;
 	int convergence = com.pref.starfinder_conf.convergence;
 	starprofile profile = com.pref.starfinder_conf.profile;
+	double minA = com.pref.starfinder_conf.min_A;
+	double maxA = com.pref.starfinder_conf.max_A;
 	gchar *end;
 
 	if (nb > startoptargs) {
 		for (int i = startoptargs; i < nb; i++) {
-			if (word[i]) {
-				if (g_str_has_prefix(word[i], "-radius=")) {
-					char *current = word[i], *value;
+			char *current = word[i], *value;
+			if (current) {
+				if (g_str_has_prefix(current, "-radius=")) {
 					value = current + 8;
 					radius = g_ascii_strtoull(value, &end, 10);
 					if (end == value || radius < 3 || radius > 50) {
 						siril_log_message(_("Wrong parameter values. Radius must be between 3 and 50, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
-				} else if (g_str_has_prefix(word[i], "-sigma=")) {
-					char *current = word[i], *value;
+				} else if (g_str_has_prefix(current, "-sigma=")) {
 					value = current + 7;
 					sigma = g_ascii_strtod(value, &end);
 					if (end == value || sigma < 0.05) {
 						siril_log_message(_("Wrong parameter values. Sigma must be greater than 0.05, aborting\n"));
 						return CMD_ARG_ERROR;
 					}
-				} else if (g_str_has_prefix(word[i], "-minbeta=")) {
-					char *current = word[i], *value;
+				} else if (g_str_has_prefix(current, "-minbeta=")) {
 					value = current + 9;
 					minbeta = g_ascii_strtod(value, &end);
 					if (end == value || minbeta < 0.0 || minbeta >= MOFFAT_BETA_UBOUND) {
 						siril_log_message(_("Wrong parameter values. Minimum beta must be greater than or equal to 0.0 and less than %.0f, aborting\n"), MOFFAT_BETA_UBOUND);
 						return CMD_ARG_ERROR;
 					}
-				} else if (g_str_has_prefix(word[i], "-gaussian")) {
+				} else if (g_str_has_prefix(current, "-gaussian")) {
 					profile = PSF_GAUSSIAN;
-				} else if (g_str_has_prefix(word[i], "-moffat")) {
+				} else if (g_str_has_prefix(current, "-moffat")) {
 					profile = PSF_MOFFAT_BFREE;
-				} else if (g_str_has_prefix(word[i], "-roundness=")) {
-					char *current = word[i], *value;
+				} else if (g_str_has_prefix(current, "-roundness=")) {
 					value = current + 11;
 					roundness = g_ascii_strtod(value, &end);
 					if (end == value || roundness < 0.0 || roundness > 0.95) {
 						siril_log_message(_("Wrong parameter values. Roundness must be between 0 and 0.95, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
-				} else if (g_str_has_prefix(word[i], "-focal=")) {
-					char *current = word[i], *value;
+				} else if (g_str_has_prefix(current, "-focal=")) {
 					value = current + 7;
 					focal_length = g_ascii_strtod(value, &end);
 					if (end == value || focal_length < 0) {
 						siril_log_message(_("Wrong parameter values. Focal length must be greater than 0, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
-				} else if (g_str_has_prefix(word[i], "-pixelsize=")) {
-					char *current = word[i], *value;
+				} else if (g_str_has_prefix(current, "-pixelsize=")) {
 					value = current + 11;
 					pixel_size_x = g_ascii_strtod(value, &end);
 					if (end == value || pixel_size_x < 0) {
 						siril_log_message(_("Wrong parameter values. Pixel size must be greater than 0, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
-				} else if (g_str_has_prefix(word[i], "-relax=")) {
-					char *current = word[i], *value;
+				} else if (g_str_has_prefix(current, "-relax=")) {
 					value = current + 7;
 					if (!(g_ascii_strcasecmp(value, "on"))) relax_checks = TRUE;
 					else if (!(g_ascii_strcasecmp(value, "off"))) relax_checks = FALSE;
@@ -3324,15 +3320,28 @@ int process_set_findstar(int nb) {
 						siril_log_message(_("Wrong parameter values. Auto must be set to on or off, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
-				} else if (g_str_has_prefix(word[i], "-convergence=")) {
-					char *current = word[i], *value;
+				} else if (g_str_has_prefix(current, "-convergence=")) {
 					value = current + 13;
 					convergence = g_ascii_strtoull(value, &end, 10);
 					if (end == value || convergence < 1 || convergence > 3) {
 						siril_log_message(_("Wrong parameter values. Convergence must be between 1 and 3, aborting.\n"));
 						return CMD_ARG_ERROR;
 					}
-				} else if (!g_ascii_strcasecmp(word[i], "reset")) {
+				} else if (g_str_has_prefix(current, "-minA=")) {
+					value = current + 6;
+					minA = g_ascii_strtod(value, &end);
+					if (end == value) {
+						siril_log_message(_("Wrong parameter value %s.\n"), current);
+						return CMD_ARG_ERROR;
+					}
+				} else if (g_str_has_prefix(current, "-maxA=")) {
+					value = current + 6;
+					maxA = g_ascii_strtod(value, &end);
+					if (end == value) {
+						siril_log_message(_("Wrong parameter value %s.\n"), current);
+						return CMD_ARG_ERROR;
+					}
+				} else if (!g_ascii_strcasecmp(current, "reset")) {
 					siril_log_message(_("Resetting findstar parameters to default values.\n"));
 					sigma = 1.;
 					roundness = 0.5;
@@ -3344,7 +3353,7 @@ int process_set_findstar(int nb) {
 					profile = PSF_GAUSSIAN;
 					minbeta = 1.5;
 				} else {
-					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+					siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
 					return CMD_ARG_ERROR;
 				}
 			}
@@ -3357,6 +3366,14 @@ int process_set_findstar(int nb) {
 	com.pref.starfinder_conf.roundness = roundness;
 	siril_log_message(_("radius = %d\n"), radius);
 	com.pref.starfinder_conf.radius = radius;
+	if ((minA > 0.0 || maxA > 0.0) && minA < maxA)
+		siril_log_message(_("amplitude range = [%f, %f]\n"), minA, maxA);
+	else {
+		siril_log_message(_("amplitude range unlimited\n"), minA, maxA);
+		minA = 0.0; maxA = 0.0;
+	}
+	com.pref.starfinder_conf.min_A = minA;
+	com.pref.starfinder_conf.max_A = maxA;
 	siril_log_message(_("convergence = %d\n"), convergence);
 	com.pref.starfinder_conf.convergence = convergence;
 	siril_log_message(_("focal = %3.1f\n"), focal_length);
