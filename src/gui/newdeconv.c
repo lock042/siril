@@ -233,7 +233,7 @@ void on_bdeconv_ks_value_changed(GtkSpinButton *button, gpointer user_data) {
 void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 	// Copypasta from documentation.c but with a specific URL to point to the deconvolution tips page
 	#define GET_DOCUMENTATION_URL "https://siril.readthedocs.io"
-	#define DECONVOLUTION_TIPS_URL "processing/deconvolution-tips.html"
+	#define DECONVOLUTION_TIPS_URL "processing/deconvolution.html#deconvolution-usage-tips"
 
 	gboolean ret;
 	const char *locale;
