@@ -6109,8 +6109,10 @@ enter a visible wavelength in nm</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="halign">start</property>
-                                        <property name="label" translatable="yes">&lt;b&gt;General PSF Parameters&lt;/b&gt;</property>
-                                        <property name="use-markup">True</property>
+                                        <property name="label" translatable="yes">General PSF Parameters</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"/>
+                                        </attributes>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -6908,7 +6910,7 @@ enter a visible wavelength in nm</property>
                                                       <object class="GtkSpinButton" id="bdeconv_kl1">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
-                                                        <property name="tooltip-markup" translatable="yes">&lt;i&gt;l&lt;/i&gt;1 gradient parameter</property>
+                                                        <property name="tooltip-markup" translatable="yes">ℓ1 gradient parameter</property>
                                                         <property name="text">0.50</property>
                                                         <property name="adjustment">convkernl1</property>
                                                         <property name="digits">2</property>
@@ -7347,8 +7349,10 @@ enter a visible wavelength in nm</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
-                        <property name="label" translatable="yes">&lt;b&gt;PSF Preview&lt;/b&gt;</property>
-                        <property name="use-markup">True</property>
+                        <property name="label" translatable="yes">PSF Preview</property>
+                        <attributes>
+                          <attribute name="weight" value="bold"/>
+                        </attributes>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -30564,7 +30568,7 @@ Configuring a memory amount larger than what is available on your system may res
                                     <property name="can-focus">True</property>
                                     <property name="tooltip-text" translatable="yes">Siril can calculate convolutions either by summing over the kernel at every pixel or by using Fourier Transforms. The former becomes very inefficient for large kernel sizes, while the latter involves some setup time. Therefore Fourier Transforms are faster for larger kernels, summing is faster for smaller kernels. The exact crossover point will depend on your hardware and is therefore configurable. This parameter sets the minimum size for which Fourier Transforms will be used.</property>
                                     <property name="halign">start</property>
-                                    <property name="text" translatable="yes">30</property>
+                                    <property name="text">30</property>
                                     <property name="adjustment">adj_min_rl_fft</property>
                                     <property name="value">30</property>
                                   </object>

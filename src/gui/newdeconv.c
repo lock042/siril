@@ -1299,7 +1299,7 @@ gboolean on_PSFkernel_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	if (get_imageorientation() != args.kernelorientation) {
 		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("bdeconv_drawingarea")), _("Image row order has changed since PSF was generated. The PSF orientation will be updated to match before applying to this image."));
 	} else {
-		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("bdeconv_drawingarea")), _(""));
+		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("bdeconv_drawingarea")), "");
 	}
 	drawing_the_PSF(widget, cr);
 	return FALSE;

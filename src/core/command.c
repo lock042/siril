@@ -906,7 +906,7 @@ int process_makepsf(int nb) {
 				if (!word[i])
 					break;
 				if (g_str_has_prefix(arg, "-l0")) {
-					siril_log_message(_("l0 descent prior method\n"));
+					siril_log_message(_("ℓ0 descent prior method\n"));
 					data->blindtype = 1;
 				}
 				else if (g_str_has_prefix(arg, "-si")) {
