@@ -142,8 +142,9 @@ void makegaussian(float *psf, int size, float fwhm, float lum, float xoffset, fl
 	return;
 }
 
-void makedisc(float *psf, int size, float radius, float lum, float xoffset, float yoffset) {
+void makedisc(float *psf, int size, float width, float lum, float xoffset, float yoffset) {
 	int halfpsfdim = (size - 1) / 2;
+	float radius = width / 2.f;
 	// maxranditer big enough to get a good random survey of each pixel,
 	// not enough to cause slowness with large kernels.
 	const int maxranditer = 10000;

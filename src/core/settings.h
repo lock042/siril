@@ -205,6 +205,7 @@ typedef struct fftw_params {
 	int strategy;
 	gboolean multithreaded;
 	gchar* wisdom_file;
+	int fft_cutoff;
 } fftw_params;
 
 

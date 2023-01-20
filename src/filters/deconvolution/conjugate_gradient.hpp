@@ -1,6 +1,3 @@
-// from imscript (https://github.com/mnhrdt/imscript)
-// a matrix-free linear solver
-
 #pragma once
 
 #include <cmath>
@@ -42,7 +39,6 @@ static void fancy_conjugate_gradient(T *x,
 		FOR(i,n) x[i]   = x[i] + alpha * p[i];
 		FOR(i,n) r[i]   = r[i] - alpha * Ap[i];
 		T   rr_new = scalar_product(r, r, n);
-		/*fprintf(stderr, "iter=%d, rr_new=%g\n", iter, rr_new);*/
 		if (sqrt(rr_new) < min_residual)
 			break;
 		T   beta   = rr_new / rr_old;
