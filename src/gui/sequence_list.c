@@ -196,7 +196,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			switch (selected_source) {
 				case r_FWHM:
 					if (is_arcsec) {
-						bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+						bin = gfit.unbinned && com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].fwhm;
@@ -204,7 +204,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 					break;
 				case r_WFWHM:
 					if (is_arcsec) {
-						bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+						bin = gfit.unbinned && com.pref.binning_update ? (double) gfit.binning_y : 1.0;
 						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].weighted_fwhm;
