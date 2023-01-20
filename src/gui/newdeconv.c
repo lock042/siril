@@ -258,7 +258,7 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 	if (!lang) {
 		lang = g_strdup_printf("en"); // Last gasp fallback in case there is an error with the locale
-
+	}
 	/* Use the tag when documentation will be tagged */
 	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, "latest", DECONVOLUTION_TIPS_URL);
 	siril_debug_print("URL: %s\n", url);
