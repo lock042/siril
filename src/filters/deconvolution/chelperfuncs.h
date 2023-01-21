@@ -22,29 +22,23 @@
 #define CPLUSPLUS_HELPER_FUNCTIONS_H
 
 #ifdef __cplusplus
-#define EXTERNC1 extern "C"
-#else
-#define EXTERNC1
+extern "C" {
 #endif
+void magnify(float *y, const float *x, int W, int H, int pd, int w, int h, float n);
+void shrink(float *y, float *x, int outw, int outh, int inw, int inh, float scale, float sigma);
+void gaussblur(float*, float*, int, int, float);
 
-EXTERNC1 void magnify(float *y, const float *x, int W, int H, int pd, int w, int h, float n);
-EXTERNC1 void shrink(float *y, float *x, int outw, int outh, int inw, int inh, float scale, float sigma);
-EXTERNC1 void gaussblur(float*, float*, int, int, float);
-
-EXTERNC1 void updateprogress(const char *text, double percent);
-EXTERNC1 void sirillog(const char* text);
-EXTERNC1 int is_thread_stopped();
-EXTERNC1 int updatenoise(float *array, int nx, int ny, int nchans, double *noise);
-
+void updateprogress(const char *text, double percent);
+void sirillog(const char* text);
+int is_thread_stopped();
+int updatenoise(float *array, int nx, int ny, int nchans, double *noise);
 #ifdef __cplusplus
-#define EXTERN extern
-#else
-#define EXTERN
+}
 #endif
 
-EXTERN int cppmaxthreads;
-EXTERN unsigned cppfftwflags;
-EXTERN double cppfftwtimelimit;
-EXTERN int cppfftwmultithreaded;
+static int cppmaxthreads;
+static unsigned cppfftwflags;
+static double cppfftwtimelimit;
+static int cppfftwmultithreaded;
 
 #endif // CPLUSPLUS_HELPER_FUNCTIONS_H
