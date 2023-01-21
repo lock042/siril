@@ -103,6 +103,7 @@ src_files = [
   'filters/deconvolution/angleSet.cpp',
   'filters/deconvolution/better_than_std.hpp',
   'filters/deconvolution/chelperfuncs.c',
+  'filters/deconvolution/deconvolution.h',
   'filters/deconvolution/deconvolve.cpp',
   'filters/deconvolution/deconvolve.hpp',
   'filters/deconvolution/edgetaper.hpp',
