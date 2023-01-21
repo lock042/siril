@@ -21,9 +21,11 @@
 #include <iostream>
 #include <random>
 
+#define dontneedcppfftwmultithreaded
 #include "deconvolve.hpp"
 #include "utils.hpp"
 #include "edgetaper.hpp"
+#undef dontneedcppfftwmultithreaded
 
 extern "C" int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float sigma, int max_threads) {
     img_t<float>::use_threading(max_threads);

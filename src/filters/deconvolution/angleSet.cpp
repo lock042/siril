@@ -26,15 +26,24 @@ SOFTWARE.
 #include <cmath>
 #include <algorithm>
 
+#define dontneedcppfftwmultithreaded
+#define dontneedcppfftwflags
 #include "image.hpp"
 #include "angleSet.hpp"
+#undef dontneedcppfftwmultithreaded
+#undef dontneedcppfftwflags
+
 
 // greatest common factor
 static int gcd(int a, int b)
 {
     return b ? gcd(b, a % b) : a;
 }
-
+/*
+int touch_the_vars() {
+    return cppfftwmultithreaded * cppfftwflags;
+}
+*/
 /// compute the angle set that allows to reach each pixels in a square
 /// of size kernelSize*kernelSize and starting at position 0,0
 static void computeProjectionHalfAngleSet(std::vector<angle_t>& angles, int kernelSize)

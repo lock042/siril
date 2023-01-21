@@ -26,7 +26,13 @@
 #include <complex.h>
 #include <fftw3.h>
 
+#define dontneedcppfftwmultithreaded
+#define dontneedcppfftwtimelimit
+#define dontneedcppfftwflags
 #include "chelperfuncs.h"
+#undef dontneedcppfftwmultithreaded
+#undef dontneedcppfftwtimelimit
+#undef dontneedcppfftwflags
 #include "gui/progress_and_log.h"
 #include "core/processing.h"
 #include "algos/statistics.h"
