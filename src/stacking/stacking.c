@@ -584,7 +584,7 @@ static gboolean end_stacking(gpointer p) {
 		// and parse the name
 		int status = PATHPARSE_ERR_OK;
 		gchar *expression = g_strdup(args->output_filename);
-		gchar *parsedname = update_header_and_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+		gchar *parsedname = update_header_and_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 
 		if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
 			args->output_parsed_filename = g_strdup("unknown");
@@ -611,12 +611,7 @@ static gboolean end_stacking(gpointer p) {
 				}
 			}
 			else {
-				gchar *dirname = g_path_get_dirname(args->output_parsed_filename);
-				if (g_mkdir_with_parents(dirname, 0755) < 0) {
-					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
-					failed = 1;
-				}
-				g_free(dirname);
+				// output folder (if any) was already created by update_header_and_parse
 				if (!savefits(args->output_parsed_filename, &gfit)) {
 					com.uniq->filename = strdup(args->output_parsed_filename);
 					com.uniq->fileexist = TRUE;

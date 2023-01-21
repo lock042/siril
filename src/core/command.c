@@ -253,7 +253,7 @@ int process_save(int nb){
 		gfit.hi = gui.hi;
 	}
 	int status, retval;
-	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
 		retval = 1;
 	} else {
@@ -270,7 +270,7 @@ int process_save(int nb){
 int process_savebmp(int nb){
 	gchar *filename = g_strdup_printf("%s.bmp", word[1]);
 	int status, retval;
-	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
 		retval = 1;
 	} else {
@@ -563,7 +563,7 @@ int process_savejpg(int nb){
 
 	gchar *filename = g_strdup_printf("%s.jpg", word[1]);
 	int status, retval;
-	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
 		retval = 1;
 	} else {
@@ -581,7 +581,7 @@ int process_savejpg(int nb){
 int process_savepng(int nb){
 	gchar *filename = g_strdup_printf("%s.png", word[1]);
 	int status, retval;
-	gchar *savename =update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	gchar *savename =update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
 		retval = 1;
 	} else {
@@ -611,7 +611,7 @@ int process_savetif(int nb){
 
 	gchar *filename = g_strdup_printf("%s.tif", word[1]);
 	int status, retval;
-	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
 		retval = 1;
 	} else {
@@ -629,7 +629,7 @@ int process_savetif(int nb){
 int process_savepnm(int nb){
 	gchar *filename = g_strdup(word[1]);
 	int status, retval;
-	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
 		retval = 1;
 	} else {
@@ -6837,7 +6837,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		} else { // the name is to be parsed (including folder creation if required)
 			int status = PATHPARSE_ERR_OK;
 			gchar *expression = g_strdup(arg->result_file);
-			gchar *parsedname = update_header_and_parse(&args.result, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+			gchar *parsedname = update_header_and_parse(&args.result, expression, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 			char filename[256];
 			if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
 				snprintf(filename, 256, "unknown");
@@ -8283,7 +8283,7 @@ int process_parse(int nb) {
 	if (gfit.header) { // fits or astrotiff - do not update the header
 		expression = path_parse(&gfit, word[1], mode, &status);
 	} else {
-		expression = update_header_and_parse(&gfit, word[1], mode, &status);
+		expression = update_header_and_parse(&gfit, word[1], mode, FALSE, &status);
 	}
 	siril_log_message(_("String in: %s\n"), word[1]);
 	siril_log_message(_("String out: %s\n"), expression);
