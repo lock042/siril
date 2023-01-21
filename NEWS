@@ -80,6 +80,8 @@ v1.2.0 mmm dd, 2022
 * Fixed sequence closing in script processing after each command
 * Fixed opening of scientific FITS cube files
 * Fixed gnuplot call for macOS/AppImage, by making its path configurable
+* Added new deconvolution tool with RL, Split Bregman and Wiener algorithms and several PSF generation options (replaces old tool)
+* Fixed bug in roworder of SER sequence created from TOP-DOWN FITS images
 
 v1.0.7 xx xx, 2022
 

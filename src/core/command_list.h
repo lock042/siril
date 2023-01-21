@@ -36,6 +36,7 @@ static command commands[] = {
 	/* name, nbarg, usage, function pointer, description, scriptable */
 	{"addmax", 1, "addmax filename", process_addmax, STR_ADDMAX, FALSE, REQ_CMD_SINGLE_IMAGE},
 	{"asinh", 1, "asinh [-human] stretch [offset]", process_asinh, STR_ASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"autoghs", 1, "autoghs [-linked] shadowsclip stretchamount [-b=] [-hp=] [-lp=]", process_autoghs, STR_AUTOGHS, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"autostretch", 0, "autostretch [-linked] [shadowsclip [targetbg]]", process_autostretch, STR_AUTOSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 
 	{"bg", 0, "bg", process_bg, STR_BG, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
@@ -44,6 +45,7 @@ static command commands[] = {
 	{"boxselect", 0, "boxselect [-clear] [x y width height]", process_boxselect, STR_BOXSELECT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE | REQ_CMD_NO_THREAD},
 
 	{"capabilities", 0, "capabilities", process_capabilities, STR_CAPABILITIES, TRUE, REQ_CMD_NONE},
+	{"catsearch", 1, "catsearch star_name", process_catsearch, STR_CATSEARCH, TRUE, REQ_CMD_NONE},
 	{"cd", 1, "cd directory", process_cd, STR_CD, TRUE, REQ_CMD_NONE},
 	{"cdg", 0, "cdg", process_cdg, STR_CDG, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"clahe", 2, "clahe cliplimit tileSize", process_clahe, STR_CLAHE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
@@ -99,12 +101,13 @@ static command commands[] = {
 	{"inspector", 0, "inspector", process_inspector, STR_INSPECTOR, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"invght", 5, "invght [-human | -even | -independent] D B LP SP HP [channels]", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"invmodasinh", 4, "invmodasinh [-human | -even | -independent] D LP SP HP [channels]", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"invmtf", 3, "invmtf low mid high [channels]", process_invmtf, STR_INVMTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"invmtf", 3, "invmtf low mid high [channels]", process_mtf, STR_INVMTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"isub", 1, "isub filename", process_imoper, STR_ISUB, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"jsonmetadata", 1, "jsonmetadata FITS_file [-stats_from_loaded] [-nostats] [-out=]", process_jsonmetadata, STR_JSONMETADATA, TRUE, REQ_CMD_NONE},
 
-	{"light_curve", 3, "light_curve sequencename channel { -ninastars=file | { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...}", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
+	{"light_curve", 3, "light_curve sequencename channel { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...\n"
+				"light_curve sequencename channel -ninastars=file", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* logarifies current image */
 	{"link", 1, "link basename [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
 	{"linstretch", 1, "linstretch BP [channels]", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -149,10 +152,11 @@ static command commands[] = {
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires version", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},
 	{"resample", 1, "resample { factor | -width= | -height= } [-interp=] [-noclamp]", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"rgbcomp", 2, "rgbcomp [-lum=image [rgb_image]] [red green blue] [-out=result_filename]", process_rgbcomp, STR_RGBCOMP, TRUE, REQ_CMD_NONE},
+	{"rgbcomp", 2, "rgbcomp red green blue [-out=result_filename]\n"
+				"rgbcomp -lum=image { rgb_image | red green blue } [-out=result_filename]", process_rgbcomp, STR_RGBCOMP, TRUE, REQ_CMD_NONE},
 	{"rgradient", 4, "rgradient xc yc dR dalpha", process_rgradient, STR_RGRADIENT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"rl", 0, "rl [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul] [-seq]", process_rl, STR_RL, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"rmgreen", 0, "rmgreen [type]", process_scnr, STR_RMGREEN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
+	{"rmgreen", 0, "rmgreen [-nopreserve] [type] [amount]", process_scnr, STR_RMGREEN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"rotate", 1, "rotate degree [-nocrop] [-interp=] [-noclamp]", process_rotate, STR_ROTATE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"rotatePi", 0, "rotatePi", process_rotatepi, STR_ROTATEPI, TRUE, REQ_CMD_SINGLE_IMAGE},
 
@@ -213,13 +217,19 @@ static command commands[] = {
 	{"solsys", 0, "solsys [-mag=20.0]", process_sso, STR_SSO, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"split", 3, "split file1 file2 file3 [-hsl | -hsv | -lab]", process_split, STR_SPLIT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
 	{"split_cfa", 0, "split_cfa", process_split_cfa, STR_SPLIT_CFA, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_CFA},
-	{"stack", 1, "stack sequencename [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-rgb_equal] [-out=result_filename] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-weight_from_nbstars] [-weight_from_wfwhm] [-fastnorm] [-rejmap[s]]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
-	{"stackall", 0, "stackall [type] [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [-output_norm] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]] [-weight_from_noise] [-weight_from_nbstack] [-fastnorm]", process_stackall, STR_STACKALL, TRUE, REQ_CMD_NONE},
+	{"stack", 1, "stack seqfilename\n"
+			"stack seqfilename { sum | min | max } [filtering] [-output_norm] [-out=filename]\n"
+			"stack seqfilename { med | median } [-nonorm, -norm=] [filtering] [-fastnorm] [-rgb_equal] [-output_norm] [-out=filename]\n"
+			"stack seqfilename { rej | mean } [rejection type] [sigma_low sigma_high]  [-rejmap[s]] [-nonorm, -norm=] [filtering] [-fastnorm] [ -weight_from_noise | -weight_from_nbstack | -weight_from_wfwhm | -weight_from_nbstars ] [-rgb_equal] [-output_norm] [-out=filename]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
+	{"stackall", 0, "stackall\n"
+			"stackall { sum | min | max } [filtering]\n"
+			"stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]\n"
+			"stackall { rej | mean } [rejection type] [sigma_low sigma_high] [-nonorm, norm=] [filtering] [ -weight_from_noise | -weight_from_wfwhm | -weight_from_nbstars | -weight_from_nbstack ] [-rgb_equal] [-out=filename]", process_stackall, STR_STACKALL, TRUE, REQ_CMD_NONE},
 #ifdef HAVE_LIBTIFF
 	{"starnet", 0, "starnet [-stretch] [-upscale] [-stride=value] [-nostarmask]", process_starnet, STR_STARNET, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
 	{"start_ls", 0, "start_ls [-dark=filename] [-flat=filename] [-rotate] [-32bits]", process_start_ls, STR_START_LS, TRUE, REQ_CMD_NO_THREAD},
-	{"stat", 0, "stat [-cfa]", process_stat, STR_STAT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"stat", 0, "stat [-cfa] [main]", process_stat, STR_STAT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"stop_ls", 0, "stop_ls", process_stop_ls, STR_STOP_LS, TRUE, REQ_CMD_NONE},
 	{"subsky", 1, "subsky { -rbf | degree } [-samples=20] [-tolerance=1.0] [-smooth=0.5]", process_subsky, STR_SUBSKY, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"synthstar", 0, "synthstar", process_synthstar, STR_SYNTHSTAR, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -238,7 +248,7 @@ static command commands[] = {
 	{"visu", 2, "visu low high", process_visu, STR_VISU, FALSE, REQ_CMD_SINGLE_IMAGE},
 
 	/* wavelet transform in nbr_plan plans */
-	{"wavelet", 1, "wavelet nbr_plan type", process_wavelet, STR_WAVELET, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"wavelet", 1, "wavelet nbr_layers type", process_wavelet, STR_WAVELET, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"wiener", 0, "wiener [-alpha=]", process_wiener, STR_WIENER, TRUE, REQ_CMD_SINGLE_IMAGE},
 	/* reconstruct from wavelet transform and weighs plans with c1, c2, c3... */
 	{"wrecons", 2, "wrecons c1 c2 c3 ...", process_wrecons, STR_WRECONS, TRUE, REQ_CMD_SINGLE_IMAGE},

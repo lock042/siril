@@ -292,6 +292,11 @@ int ddp(fits *a, int level, float coeff, float sigma) {
 	if (!ret) ret = soper(a, coeff, OPER_MUL, TRUE);
 	clearfits(&fit);
 	invalidate_stats_from_fit(a);
+	if (!ret) {
+		char log[90];
+		sprintf(log, "DDP stretch, threshold: %d, multiplier: %.2f, sigma: %.1f", level, coeff, sigma);
+		a->history = g_slist_append(a->history, strdup(log));
+	}
 	return ret;
 }
 

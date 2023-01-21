@@ -1,3 +1,23 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 
 #include <glib.h>
@@ -14,9 +34,10 @@ typedef enum { BLIND_SI, BLIND_L0 } blind_t;
 typedef enum { RL_MULT, RL_GD } rl_method_t;
 typedef enum { PROFILE_GAUSSIAN, PROFILE_MOFFAT, PROFILE_DISK, PROFILE_AIRY } profile_t;
 typedef enum { REG_TV_GRAD, REG_FH_GRAD, REG_NONE_GRAD, REG_TV_MULT, REG_FH_MULT, REG_NONE_MULT } regtype_t;
-
+typedef enum { BOTTOM_UP, TOP_DOWN, UNDEFINED } orientation_t;
 
 EXTERNC typedef struct estk_data {
+	orientation_t kernelorientation;
 	char* wisdom_file;
 	float* fdata;
 	unsigned rx;
@@ -27,6 +48,7 @@ EXTERNC typedef struct estk_data {
 	psftype_t psftype;
 	psftype_t oldpsftype;
 	int ks; // Kernel size
+	int kchans; // Kernel channels
 	blind_t blindtype;
 	// Anger-Delbracio-Facciolo l0 Descent
 	float lambda;// = 4e-3f; // Lambda
@@ -87,22 +109,22 @@ EXTERNC float *gf_estimate_kernel(estk_data *args, int max_threads);
 }
 #endif
 
-EXTERNC int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int iters, int max_threads);
+EXTERNC int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int iters, int max_threads);
 #ifdef __cplusplus
 }
 #endif
 
-EXTERNC int richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
+EXTERNC int fft_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
 #ifdef __cplusplus
 }
 #endif
 
-EXTERNC int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, float sigma, int max_threads);
+EXTERNC int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
 #ifdef __cplusplus
 }
 #endif
 
-EXTERNC int spectral_pre_adaption(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kdata, int kernelsize, float lambda, int max_threads, int deconv_algo);
+EXTERNC int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float sigma, int max_threads);
 #ifdef __cplusplus
 }
 #endif

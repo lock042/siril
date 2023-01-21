@@ -739,7 +739,8 @@ static void free_stat_list(gchar **list, int nb) {
 
 static int stat_prepare_hook(struct generic_seq_args *args) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
-	if (s_args->option != (STATS_BASIC) && s_args->option != (STATS_MAIN) && s_args->option != (STATS_NORM | STATS_MAIN)) {
+	if (s_args->option != STATS_BASIC && s_args->option != STATS_MAIN &&
+			s_args->option != (STATS_NORM | STATS_MAIN)) {
 		siril_log_color_message(_("Bad argument to stats option\n"), "red");
 		return 1;
 	}
@@ -773,7 +774,7 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 		}
 
 		int new_index = o * nb_data_layers;
-		if (s_args->option == (STATS_BASIC)) {
+		if (s_args->option == STATS_BASIC) {
 			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
 					i + 1,
 					layer,
@@ -784,7 +785,7 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 					stat->max,
 					stat->bgnoise
 			);
-		} else if (s_args->option == (STATS_MAIN)){
+		} else if (s_args->option == STATS_MAIN){
 			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
 					i + 1,
 					layer,
@@ -845,9 +846,9 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 		return 1;
 	}
 	const gchar *header;
-	if (s_args->option == (STATS_BASIC)) {
+	if (s_args->option == STATS_BASIC) {
 		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\n";
-	} else if (s_args->option == (STATS_MAIN)){
+	} else if (s_args->option == STATS_MAIN){
 		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\tavgDev\tmad\tsqrtbwmv\n";
 	} else {
 		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\tavgDev\tmad\tsqrtbwmv\tlocation\tscale\n";

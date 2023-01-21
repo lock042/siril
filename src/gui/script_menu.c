@@ -164,9 +164,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 			g_object_unref(file);
 			return;
 		}
-		/* ensure that everything is closed */
-		process_close(0);
-		/* Then, run script */
+		/* Run the script */
 		siril_log_message(_("Starting script %s\n"), script_file);
 		com.script_thread = g_thread_new("script", execute_script, input_stream);
 	}
@@ -182,7 +180,7 @@ int initialize_script_menu() {
 
 	if (!menuscript)
 		menuscript = lookup_widget("header_scripts_button");
-	
+
 	script_paths = set_list_to_preferences_dialog(com.pref.gui.script_path);
 
 	GtkWidget *menu = gtk_menu_new();
