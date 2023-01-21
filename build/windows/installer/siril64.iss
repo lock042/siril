@@ -143,6 +143,7 @@ begin
       end;
       Button2.OnClick := @GetNewsGenericURL;
     end;
+end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 var
