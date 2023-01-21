@@ -48,14 +48,19 @@
 #include "gui/newdeconv_fit.h"
 #include "filters/deconvolution/deconvolution.h"
 #include "filters/deconvolution/rlstrings.h"
+#define non_externs
 #include "filters/deconvolution/chelperfuncs.h"
+#undef non_externs
 #include "filters/synthstar.h"
 #include "filters/starnet.h"
 #include "algos/statistics.h"
 #include "algos/PSF.h"
 #include "io/sequence.h"
 #include "io/ser.h"
-
+int cppmaxthreads;
+unsigned cppfftwflags;
+double cppfftwtimelimit;
+int cppfftwmultithreaded;
 // Below this value, naive convolutions are used for Richardson-Lucy; above this value, FFT-based convolutions are used.
 gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
