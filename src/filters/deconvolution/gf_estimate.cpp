@@ -21,7 +21,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#define dontneedcppfftwmultithreaded
 #include <vector>
 #include "image.hpp"
 
@@ -32,7 +31,6 @@ SOFTWARE.
 #include "projectImage.hpp"
 #include "gf_estimate.hpp"
 #include "deconvolution.h"
-#undef dontneedcppfftwmultithreaded
 
 /// search a patch with high variance in the greyscale blurred image
 template <typename T>

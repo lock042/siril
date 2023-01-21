@@ -26,13 +26,8 @@ SOFTWARE.
 #include <cmath>
 #include <algorithm>
 
-#define dontneedcppfftwmultithreaded
-#define dontneedcppfftwflags
 #include "image.hpp"
 #include "angleSet.hpp"
-#undef dontneedcppfftwmultithreaded
-#undef dontneedcppfftwflags
-
 
 // greatest common factor
 static int gcd(int a, int b)
