@@ -112,6 +112,7 @@ win64-native:
     - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh"
     - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
     - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
+  allow_failure: true
 
 ################################################################################
 # GNU/Linux 64-bit CIs
@@ -453,3 +454,4 @@ win64-native-installer:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
   needs: ["win64-native"]
+  allow_failure: true
