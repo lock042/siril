@@ -34,7 +34,11 @@ static int gcd(int a, int b)
 {
     return b ? gcd(b, a % b) : a;
 }
-
+/*
+int touch_the_vars() {
+    return cppfftwmultithreaded * cppfftwflags;
+}
+*/
 /// compute the angle set that allows to reach each pixels in a square
 /// of size kernelSize*kernelSize and starting at position 0,0
 static void computeProjectionHalfAngleSet(std::vector<angle_t>& angles, int kernelSize)

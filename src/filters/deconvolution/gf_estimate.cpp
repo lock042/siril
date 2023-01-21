@@ -31,7 +31,6 @@ SOFTWARE.
 #include "projectImage.hpp"
 #include "gf_estimate.hpp"
 #include "deconvolution.h"
-#include "chelperfuncs.h"
 
 /// search a patch with high variance in the greyscale blurred image
 template <typename T>

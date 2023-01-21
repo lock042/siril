@@ -26,7 +26,9 @@
 #include <complex.h>
 #include <fftw3.h>
 
+#define dontneedthevars
 #include "chelperfuncs.h"
+#undef dontneedthevars
 #include "gui/progress_and_log.h"
 #include "core/processing.h"
 #include "algos/statistics.h"
