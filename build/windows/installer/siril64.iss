@@ -11,7 +11,7 @@
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{ADA3C347-68C3-4EAA-92B3-C1BDBD836EDB}
+AppId={ADA3C347-68C3-4EAA-92B3-C1BDBD836EDB}
 AppName=Siril
 AppVersion={#MAJOR}.{#MINOR}.{#MICRO}
 AppPublisher=Free-Astro
@@ -142,6 +142,19 @@ begin
           'fr' : Button2.Caption := 'News';
       end;
       Button2.OnClick := @GetNewsGenericURL;
+    end;
 
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+  Uninstall: String;
+begin
+  if (CurStep = ssInstall) then
+    begin
+      if RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppId}_is1', 'UninstallString', Uninstall) then
+        begin
+          MsgBox('Warning: an old version of {#AppName} is installed! Now the old one will be removed and the new one installed!', mbInformation, MB_OK);
+          Exec(RemoveQuotes(Uninstall), ' /SILENT', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode);
+        end;
     end;
 end;
