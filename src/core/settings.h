@@ -92,6 +92,17 @@ struct libraw_config {
 	double gamm[3];						// Gamma correction
 };
 
+struct astrometry_config {
+	/* for local astrometry.net, there could be other sections */
+	// path to solve-field like for gnuplot and starnet?
+	int percent_scale_range;	// percent below and above the expected sampling to allow
+	int sip_correction_order;	// degrees of the polynomial correction
+	double radius_degrees;		// radius around the target coordinates (degrees)
+	gboolean keep_xyls_files;	// do not delete .xyls FITS tables
+	gboolean keep_wcs_files;	// do not delete .wcs result files
+};
+
+
 /* This structure is used for storing all parameters used in photometry module */
 struct phot_config {
 	double gain;		// A/D converter gain in electrons per ADU
@@ -254,6 +265,7 @@ struct pref_struct {
 	struct gui_config gui;
 	struct debayer_config debayer;
 	struct phot_config phot_set;
+	struct astrometry_config astrometry;
 	struct analysis_config analysis;
 	struct stack_config stack;
 	struct comp_config comp;

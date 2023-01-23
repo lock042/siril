@@ -1706,8 +1706,9 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	}
 
 	char low_scale[16], high_scale[16];
-	sprintf(low_scale, "%f", args->scale * 0.8);
-	sprintf(high_scale, "%f", args->scale * 1.2);
+	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
+	sprintf(low_scale, "%f", args->scale / a);
+	sprintf(high_scale, "%f", args->scale * a);
 
 	char *sfargs[50] = {
 #ifdef _WIN32
@@ -1716,14 +1717,25 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 		"solve-field",
 #endif
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
-		"-U", "none", "--temp-axy", "-S", "none", "--crpix-center", "-T",
+		"-U", "none", "--temp-axy", "-S", "none", "--crpix-center",
 		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
 
+	if (com.pref.astrometry.sip_correction_order > 1) {
+		char order[12];
+		sprintf(order, "%d", com.pref.astrometry.sip_correction_order);
+		char *tweak_args[] = { "-t", order, NULL };
+		append_elements_to_array(sfargs, tweak_args);
+	} else {
+		char *tweak_args[] = { "-T", NULL };
+		append_elements_to_array(sfargs, tweak_args);
+	}
+
 	if (args->cat_center) {
-		char start_ra[16], start_dec[16];
+		char start_ra[16], start_dec[16], radius[16];
 		sprintf(start_ra, "%f", siril_world_cs_get_alpha(args->cat_center));
 		sprintf(start_dec, "%f", siril_world_cs_get_delta(args->cat_center));
-		char *additional_args[] = { "--ra", start_ra, "--dec", start_dec, "--radius", "10", (char*)table_filename, NULL };
+		sprintf(radius, "%f", com.pref.astrometry.radius_degrees);
+		char *additional_args[] = { "--ra", start_ra, "--dec", start_dec, "--radius", radius, (char*)table_filename, NULL };
 		append_elements_to_array(sfargs, additional_args);
 	} else {
 		char *additional_args[] = { (char*)table_filename, NULL };
@@ -1798,13 +1810,17 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 		result.wcslib = NULL;
 #endif
 		clearfits(&result);
-		g_unlink(table_filename);
-		g_unlink(wcs_filename);
+		if (!com.pref.astrometry.keep_xyls_files)
+			g_unlink(table_filename);
+		if (!com.pref.astrometry.keep_wcs_files)
+			g_unlink(wcs_filename);
 		g_free(table_filename);
 		g_free(wcs_filename);
 
 		args->fit->wcsdata.pltsolvd = TRUE;
 		strcpy(args->fit->wcsdata.pltsolvd_comment, "This is a WCS header was created by Astrometry.net.");
+		if (args->verbose)
+			siril_log_color_message(_("Local astrometry.net solve succeeded.\n"), "green");
 
 		// asnet puts more info in the HISTORY and the console log in COMMENT fields
 		solution->image_center = siril_world_cs_new_from_a_d(
@@ -1812,16 +1828,18 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 				args->fit->wcsdata.crval[1]);
 		// TODO: handle args->downsample
 		/* print results from WCS data */
-		double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
-		siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
-		//siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
-		siril_log_message(_("Focal length:%*.2lf mm\n"), 8, RADCONV * args->pixel_size / resolution);
-		siril_log_message(_("Pixel size:%*.2lf µm\n"), 10, args->pixel_size);
-		char field_x[256] = "";
-		char field_y[256] = "";
-		fov_in_DHMS(resolution * solution->size.x / 3600.0, field_x);
-		fov_in_DHMS(resolution * solution->size.y / 3600.0, field_y);
-		siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
+		if (args->verbose) {
+			double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
+			siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
+			//siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
+			siril_log_message(_("Focal length:%*.2lf mm\n"), 8, RADCONV * args->pixel_size / resolution);
+			siril_log_message(_("Pixel size:%*.2lf µm\n"), 10, args->pixel_size);
+			char field_x[256] = "";
+			char field_y[256] = "";
+			fov_in_DHMS(resolution * solution->size.x / 3600.0, field_x);
+			fov_in_DHMS(resolution * solution->size.y / 3600.0, field_y);
+			siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
+		}
 
 		return 0;
 	}
