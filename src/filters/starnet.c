@@ -133,7 +133,7 @@ static int exec_prog(const char **argv)
 				} else {
 					double value = g_ascii_strtod(buf, NULL);
 					if (value != 0.0 && value == value) { //
-						set_progress_bar_data("Running Starnet++", (value / 100));
+						set_progress_bar_data(_("Running Starnet++"), (value / 100));
 					}
 				}
 			}

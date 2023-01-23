@@ -188,8 +188,8 @@
 
 #define STR_VISU N_("Displays an image with <b>low</b> and <b>high</b> as the low and high threshold")
 
-#define STR_WAVELET N_("Computes the wavelet transform on <b>nbr_plan</b> plans using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version of the 'à trous' algorithm. The result is stored in a file as a structure containing the planes, ready for weighted reconstruction with WRECONS")
+#define STR_WAVELET N_("Computes the wavelet transform on (<b>nbr_layers</b>=1...6) layer(s) using linear (<b>type</b>=1) or bspline (<b>type</b>=2) version of the 'à trous' algorithm. The result is stored in a file as a structure containing the layers, ready for weighted reconstruction with WRECONS")
 #define STR_WIENER N_("Restores an image using the Wiener deconvolution method.\n\nThe parameter <b>-alpha=</b> provides the Gaussian noise modelled regularization factor.\n\nBy default the command applies to a single image, but it may be applied to the current sequence with the argument <b>-seq</b>")
-#define STR_WRECONS N_("Reconstructs to current image from the planes previously computed with wavelets and weighted with coefficients <b>c1</b>, <b>c2</b>, ..., <b>cn</b> according to the number of planes used for wavelet transform")
+#define STR_WRECONS N_("Reconstructs to current image from the layers previously computed with wavelets and weighted with coefficients <b>c1</b>, <b>c2</b>, ..., <b>cn</b> according to the number of layers used for wavelet transform")
 
 #endif /* SRC_CORE_COMMAND_DEF_H_ */

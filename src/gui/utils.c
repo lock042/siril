@@ -106,18 +106,16 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbu
 	if (pixbuf) {
 		float ratio = 1.0 * gdk_pixbuf_get_height(pixbuf) / gdk_pixbuf_get_width(pixbuf);
 		int width = 128, height = 128 * ratio;
-		GdkPixbuf *new_pixbuf = gdk_pixbuf_scale_simple(pixbuf, width, height,
-				GDK_INTERP_BILINEAR);
+		GdkPixbuf *new_pixbuf = gdk_pixbuf_scale_simple(pixbuf, width, height, GDK_INTERP_BILINEAR);
 		image = gtk_image_new_from_pixbuf(new_pixbuf);
 		g_object_unref(new_pixbuf);
 	} else {
-		image = gtk_image_new_from_icon_name("dialog-information-symbolic",
-					GTK_ICON_SIZE_DIALOG);
+		image = gtk_image_new_from_icon_name("dialog-information-symbolic", GTK_ICON_SIZE_DIALOG);
 	}
 
 	gtk_label_set_markup(GTK_LABEL(label), text);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_label_set_max_width_chars(GTK_LABEL(label), 80);
+	gtk_label_set_max_width_chars(GTK_LABEL(label), 100);
 
 	gtk_box_pack_start(GTK_BOX(box), image, FALSE, FALSE, 10);
 	gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 10);

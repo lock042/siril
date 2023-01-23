@@ -165,6 +165,28 @@ siril_common_SOURCES = \
 	filters/da3d/Utils.hpp \
 	filters/da3d/WeightMap.cpp \
 	filters/da3d/WeightMap.hpp \
+	filters/deconvolution/angleSet.cpp \
+	filters/deconvolution/angleSet.hpp \
+	filters/deconvolution/better_than_std.hpp \
+	filters/deconvolution/chelperfuncs.c \
+	filters/deconvolution/chelperfuncs.h \
+	filters/deconvolution/deconvolution.h \
+	filters/deconvolution/deconvolve.cpp \
+	filters/deconvolution/deconvolve.hpp \
+	filters/deconvolution/edgetaper.hpp \
+	filters/deconvolution/estimate_kernel.cpp \
+	filters/deconvolution/estimate_kernel.hpp \
+	filters/deconvolution/fft.hpp \
+	filters/deconvolution/fftw_allocator.hpp \
+	filters/deconvolution/gf_estimate.cpp \
+	filters/deconvolution/gf_estimate.hpp \
+	filters/deconvolution/image_expr.hpp \
+	filters/deconvolution/image.hpp \
+	filters/deconvolution/labeling.hpp \
+	filters/deconvolution/optimization.hpp \
+	filters/deconvolution/options.hpp \
+	filters/deconvolution/utils.hpp \
+	filters/deconvolution/vec2.hpp \
 	filters/nlbayes/call_nlbayes.cpp \
 	filters/nlbayes/call_nlbayes.h \
 	filters/nlbayes/LibImages.cpp \
@@ -174,41 +196,6 @@ siril_common_SOURCES = \
 	filters/nlbayes/NlBayes.h \
 	filters/nlbayes/Utilities.cpp \
 	filters/nlbayes/Utilities.h \
-	filters/deconvolution/angleSet.cpp \
-	filters/decnvolution/angleSet.hpp \
-	filters/deconvolution/args.hxx \
-	filters/deconvolution/better_than_std.hpp \
-	filters/deconvolution/chelperfuncs.c \
-	filters/deconvolution/chelperfuncs.h \
-	filters/deconvolution/computeProjectionsAutocorrelation.cpp \
-	filters/deconvolution/computeProjectionsAutocorrelation.hpp \
-	filters/deconvolution/conjugate_gradient.hpp \
-	filters/deconvolution/deblur.cpp \
-	filters/deconvolution/deblur.hpp \
-	filters/deconvolution/deconvBregman.cpp \
-	filters/deconvolution/deconvBregman.hpp \
-	filters/deconvolution/deconvolution.h \
-	filters/deconvolution/edgetaper.hpp \
-	filters/deconvolution/estimate_kernel.cpp \
-	filters/deconvolution/estimate_kernel.hpp \
-	filters/deconvolution/fft.hpp \
-	filters/deconvolution/fftw_allocator.hpp \
-	filters/deconvolution/gf_estimate.cpp \
-	filters/deconvolution/gf_estimate.hpp \
-	filters/deconvolution/image.hpp \
-	filters/deconvolution/labeling.hpp \
-	filters/deconvolution/optimization.hpp \
-	filters/deconvolution/options.hpp \
-	filters/deconvolution/phaseRetrieval.hpp \
-	filters/deconvolution/projectImage.hpp \
-	filters/deconvolution/rl.cpp \
-	filters/deconvolution/rl.hpp \
-	filters/deconvolution/wiener.cpp \
-	filtes/deconvolution/wiener.hpp \
-	filters/deconvolution/utils.hpp \
-	filters/deconvolution/vec2.hpp \
-	filters/deconvolution/imscript/upsa.c \
-	filters/deconvolution/imscript/downscale.c \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
 	gui/annotations_pref.c \
