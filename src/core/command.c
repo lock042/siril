@@ -3369,7 +3369,7 @@ int process_set_findstar(int nb) {
 	if ((minA > 0.0 || maxA > 0.0) && minA < maxA)
 		siril_log_message(_("amplitude range = [%f, %f]\n"), minA, maxA);
 	else {
-		siril_log_message(_("amplitude range unlimited\n"), minA, maxA);
+		siril_log_message(_("amplitude range unlimited\n"));
 		minA = 0.0; maxA = 0.0;
 	}
 	com.pref.starfinder_conf.min_A = minA;
