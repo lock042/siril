@@ -322,7 +322,8 @@ double get_wcs_image_resolution(fits *fit) {
 #endif
 	if (resolution <= 0.0) {
 		if (fit->focal_length >= 0.0 && fit->pixel_size_x >= 0.0 && fit->pixel_size_y == fit->pixel_size_x)
-			resolution = (RADCONV / fit->focal_length * fit->pixel_size_x) / 3600;
+			resolution = (RADCONV / fit->focal_length * fit->pixel_size_x) / 3600.0;
+		// what about pix size x != y?
 	}
 	return resolution;
 }

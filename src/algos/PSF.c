@@ -829,8 +829,8 @@ void fwhm_to_arcsec_if_needed(fits* fit, psf_star *result) {
 
 	double bin_X, bin_Y;
 
-	bin_X = fit->unbinned && com.pref.binning_update ? (double) fit->binning_x : 1.0;
-	bin_Y = fit->unbinned && com.pref.binning_update ? (double) fit->binning_y : 1.0;
+	bin_X = com.pref.binning_update ? (double) fit->binning_x : 1.0;
+	bin_Y = com.pref.binning_update ? (double) fit->binning_y : 1.0;
 
 	result->fwhmx_arcsec = result->fwhmx * (radian_conversion * (double)fit->pixel_size_x / fit->focal_length) * bin_X;
 	result->fwhmy_arcsec = result->fwhmy * (radian_conversion * (double)fit->pixel_size_y / fit->focal_length) * bin_Y;

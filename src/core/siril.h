@@ -55,7 +55,7 @@
 
 #define SQR(x) ((x)*(x))
 #endif
-#define RADCONV ((3600.0 * 180.0) / M_PI) / 1.0E3
+#define RADCONV (((3600.0 * 180.0) / M_PI) / 1.0E3)
 
 #define USHRT_MAX_DOUBLE ((double)USHRT_MAX)
 #define SHRT_MAX_DOUBLE ((double)SHRT_MAX)
@@ -409,7 +409,6 @@ struct ffit {
 	double data_min;	// used to check if 32b float is in the [0, 1] range
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
 	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
-	gboolean unbinned;
 	char row_order[FLEN_VALUE];
 	GDateTime *date, *date_obs;
 	double expstart, expend;

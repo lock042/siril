@@ -8448,7 +8448,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
       <object class="GtkBox">
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
+        <property name="spacing">12</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
             <property name="can-focus">False</property>
@@ -8475,6 +8475,23 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
           </packing>
         </child>
         <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="label" translatable="yes">Information related to the image, extracted from the file if
+available, from the preferences otherwise.
+Modified data can be saved in a FITS file.</property>
+            <property name="justify">center</property>
+            <property name="wrap">True</property>
+            <property name="track-visited-links">False</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
           <!-- n-columns=3 n-rows=5 -->
           <object class="GtkGrid" id="grid4">
             <property name="visible">True</property>
@@ -8483,72 +8500,16 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
             <property name="column-spacing">10</property>
             <property name="column-homogeneous">True</property>
             <child>
-              <object class="GtkLabel" id="label63">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Focal length (mm): </property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel" id="label64">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Non-square pixels can be entered but will not be used in most cases.</property>
                 <property name="halign">start</property>
-                <property name="label" translatable="yes">Pixel X dim. (micron): </property>
+                <property name="label" translatable="yes">Pixel size (micron): </property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_clear_sample">
-                <property name="label" translatable="yes">Clear</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Clear all the fields. If you save your image after, the header will not contain any data about the focal or sensor size.</property>
-                <property name="halign">start</property>
-                <signal name="clicked" handler="on_button_clear_sample_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">4</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="pitchY_entry">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">If the Pixel Y size is not automatically loaded, using file's header, you can update the field by yourself.</property>
-                <property name="hexpand">True</property>
-                <property name="invisible-char">●</property>
-                <property name="width-chars">10</property>
-                <property name="input-purpose">number</property>
-                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                <signal name="changed" handler="on_pitchY_entry_changed" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">2</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label43">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="label" translatable="yes">Pixel Y dim. (micron): </property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
@@ -8584,19 +8545,58 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">1</property>
-                <property name="width">2</property>
               </packing>
             </child>
             <child>
-              <object class="GtkCheckButton" id="toggleButtonUnbinned">
-                <property name="label" translatable="yes">No binning in pixel size value</property>
+              <object class="GtkLabel" id="label63">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Focal length (mm): </property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="pitchY_entry">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Check this button if binning is not taken into account in the pixel size value. In this case, the binning value in the combo box below will be used.</property>
+                <property name="tooltip-text" translatable="yes">If the Pixel Y size is not automatically loaded, using file's header, you can update the field by yourself.</property>
+                <property name="hexpand">True</property>
+                <property name="invisible-char">●</property>
+                <property name="width-chars">10</property>
+                <property name="input-purpose">number</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                <signal name="changed" handler="on_pitchY_entry_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_clear_sample">
+                <property name="label" translatable="yes">Clear</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Clear all the fields. If you save your image after, the header will not contain any data about the focal length or sensor size.</property>
                 <property name="halign">start</property>
-                <property name="draw-indicator">True</property>
-                <signal name="toggled" handler="on_toggleButtonUnbinned_toggled" object="box_binning_info" swapped="no"/>
+                <signal name="clicked" handler="on_button_clear_sample_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Computed sampling (arcsec/pixel):</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
@@ -8605,48 +8605,62 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               </packing>
             </child>
             <child>
-              <object class="GtkBox" id="box_binning_info">
+              <object class="GtkLabel" id="label67">
                 <property name="visible">True</property>
-                <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
-                <child>
-                  <object class="GtkLabel" id="label67">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="halign">end</property>
-                    <property name="label" translatable="yes">Binning: </property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkComboBoxText" id="combobinning">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">If the binning is not automatically loaded, using file's header, you can update this combo box.</property>
-                    <property name="halign">start</property>
-                    <property name="active">0</property>
-                    <items>
-                      <item>1x1</item>
-                      <item>2x2</item>
-                      <item>3x3</item>
-                      <item>4x4</item>
-                      <item>1x2</item>
-                      <item>1x3</item>
-                      <item>2x1</item>
-                      <item>3x1</item>
-                    </items>
-                    <signal name="changed" handler="on_combobinning_changed" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Binning: </property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="combobinning">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">If the binning is not automatically loaded, using file's header, you can update this combo box.</property>
+                <property name="halign">start</property>
+                <property name="active">0</property>
+                <items>
+                  <item>1x1</item>
+                  <item>2x2</item>
+                  <item>3x3</item>
+                  <item>4x4</item>
+                  <item>1x2</item>
+                  <item>1x3</item>
+                  <item>2x1</item>
+                  <item>3x1</item>
+                </items>
+                <signal name="changed" handler="on_combobinning_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="toggleButtonUnbinned">
+                <property name="label" translatable="yes">Real pixel size</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Check this button if binning is not taken into account in the pixel size value. In this case, the binning value will be used to compute the sampling.
+WARNING: checking this stores it as a preference, also available in the FITS option preferences section.</property>
+                <property name="halign">start</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_toggleButtonUnbinned_toggled" object="box_binning_info" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="info_sampling_label">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
               </object>
               <packing>
                 <property name="left-attach">2</property>
@@ -8663,7 +8677,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">0</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </object>
@@ -11907,7 +11921,6 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       <packing>
                         <property name="left-attach">0</property>
                         <property name="top-attach">8</property>
-                        <property name="width">5</property>
                       </packing>
                     </child>
                     <child>
@@ -11968,6 +11981,22 @@ If coordinates are already filled when clicking on the Get Metadata From Image b
                       <packing>
                         <property name="left-attach">2</property>
                         <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="localasnet_check_button">
+                        <property name="label" translatable="yes">Use local astrometry.net solver</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Use the solve-field command to find the astrometric solution instead of Siril's plate solver</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_localasnet_check_button_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">8</property>
+                        <property name="width">4</property>
                       </packing>
                     </child>
                     <child>
@@ -30422,7 +30451,7 @@ Configuring a memory amount larger than what is available on your system may res
                             <property name="can-focus">False</property>
                             <property name="margin-start">12</property>
                             <property name="row-spacing">6</property>
-                            <property name="column-spacing">20</property>
+                            <property name="column-spacing">6</property>
                             <property name="row-homogeneous">True</property>
                             <property name="column-homogeneous">True</property>
                             <child>
@@ -30510,119 +30539,114 @@ Configuring a memory amount larger than what is available on your system may res
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <object class="GtkAlignment">
+                          <!-- n-columns=2 n-rows=4 -->
+                          <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="left-padding">12</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">6</property>
+                            <property name="row-homogeneous">True</property>
+                            <property name="column-homogeneous">True</property>
                             <child>
-                              <!-- n-columns=2 n-rows=4 -->
-                              <object class="GtkGrid">
+                              <object class="GtkCheckButton" id="pref_fftw_multithreaded">
+                                <property name="label" translatable="yes">Multithreaded FFTW</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">If selected, FFTW will use multiple threads. This is usually a speedup on large images, but will increase initial planning time the first time FFTW operates on an image of a given size.</property>
+                                <property name="halign">start</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="row-spacing">6</property>
-                                <property name="column-spacing">6</property>
-                                <property name="column-homogeneous">True</property>
-                                <child>
-                                  <object class="GtkCheckButton" id="pref_fftw_multithreaded">
-                                    <property name="label" translatable="yes">Multithreaded FFTW</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">If selected, FFTW will use multiple threads. This is usually a speedup on large images, but will increase initial planning time the first time FFTW operates on an image of a given size.</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">FFTW planning strategy</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkComboBoxText" id="pref_fftw_plan_strategy">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it optimise FFT calculations of given sizes. For each successive level of planning strategy, more work will be done to find the optimum calculation strategy the first time an unknown FFT size is encountered. The first-time calculation will be progressively slower, but the wisdom is stored and will make subsequent runs faster. For most users the default Patient strategy is fine. If you regularly deal with images of many different sizes, Estimate or Measure may be better; if all your images are always exactly the same size, you may wish to try Exhaustive. Note that the initial plan for a given size and planning level takes longer to generate if you have selected multithreaded FFTW.</property>
-                                    <property name="active">2</property>
-                                    <items>
-                                      <item translatable="yes">Estimate</item>
-                                      <item translatable="yes">Measure</item>
-                                      <item translatable="yes">Patient</item>
-                                      <item translatable="yes">Exhaustive</item>
-                                    </items>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">FFTW planning time limit (seconds)</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkSpinButton" id="pref_fftw_plan_timelimit">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">Instructs FFTW to spend at most this amount of seconds planning a FFT. In practice this may be exceeded slightly if the time limit is reached when FFTW is in the middle of an uninterruptible operation. If set to 0, a minimum planning level of Estimate will always be completed.</property>
-                                    <property name="halign">start</property>
-                                    <property name="adjustment">adj_fftw_tme</property>
-                                    <property name="value">30</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Minimum PSF size to use FFT convolutions</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkSpinButton" id="pref_conv_min_fft">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">Siril can calculate convolutions either by summing over the kernel at every pixel or by using Fourier Transforms. The former becomes very inefficient for large kernel sizes, while the latter involves some setup time. Therefore Fourier Transforms are faster for larger kernels, summing is faster for smaller kernels. The exact crossover point will depend on your hardware and is therefore configurable. This parameter sets the minimum size for which Fourier Transforms will be used.</property>
-                                    <property name="halign">start</property>
-                                    <property name="text">30</property>
-                                    <property name="adjustment">adj_min_rl_fft</property>
-                                    <property name="value">30</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">3</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">FFTW planning strategy</property>
                               </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBoxText" id="pref_fftw_plan_strategy">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it optimise FFT calculations of given sizes. For each successive level of planning strategy, more work will be done to find the optimum calculation strategy the first time an unknown FFT size is encountered. The first-time calculation will be progressively slower, but the wisdom is stored and will make subsequent runs faster. For most users the default Patient strategy is fine. If you regularly deal with images of many different sizes, Estimate or Measure may be better; if all your images are always exactly the same size, you may wish to try Exhaustive. Note that the initial plan for a given size and planning level takes longer to generate if you have selected multithreaded FFTW.</property>
+                                <property name="active">2</property>
+                                <items>
+                                  <item translatable="yes">Estimate</item>
+                                  <item translatable="yes">Measure</item>
+                                  <item translatable="yes">Patient</item>
+                                  <item translatable="yes">Exhaustive</item>
+                                </items>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">FFTW planning time limit (seconds)</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="pref_fftw_plan_timelimit">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Instructs FFTW to spend at most this amount of seconds planning a FFT. In practice this may be exceeded slightly if the time limit is reached when FFTW is in the middle of an uninterruptible operation. If set to 0, a minimum planning level of Estimate will always be completed.</property>
+                                <property name="halign">start</property>
+                                <property name="adjustment">adj_fftw_tme</property>
+                                <property name="value">30</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Minimum PSF size to use FFT convolutions</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="pref_conv_min_fft">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Siril can calculate convolutions either by summing over the kernel at every pixel or by using Fourier Transforms. The former becomes very inefficient for large kernel sizes, while the latter involves some setup time. Therefore Fourier Transforms are faster for larger kernels, summing is faster for smaller kernels. The exact crossover point will depend on your hardware and is therefore configurable. This parameter sets the minimum size for which Fourier Transforms will be used.</property>
+                                <property name="halign">start</property>
+                                <property name="text">30</property>
+                                <property name="adjustment">adj_min_rl_fft</property>
+                                <property name="value">30</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
                             </child>
                           </object>
                         </child>
@@ -30630,6 +30654,8 @@ Configuring a memory amount larger than what is available on your system may res
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
                             <property name="label" translatable="yes">&lt;b&gt;FFTW Options&lt;/b&gt;</property>
                             <property name="use-markup">True</property>
                           </object>

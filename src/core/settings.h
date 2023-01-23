@@ -238,9 +238,6 @@ struct pref_struct {
 
 	gchar *swap_dir;	// swap directory
 
-	// TODO: do we actually need these two?
-	gdouble focal;		// focal length saved in config file
-	gdouble pitch;		// pixel pitch saved in config file
 	gboolean binning_update;// update pixel size of binned images
 
 	int wcs_formalism;	// formalism used in FITS header

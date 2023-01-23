@@ -410,12 +410,12 @@ static void add_object_in_tree_view(const gchar *object) {
 
 void on_GtkEntry_IPS_focal_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
-	com.pref.focal = g_ascii_strtod(gtk_editable_get_chars(editable, 0, -1), NULL);
+	com.pref.starfinder_conf.focal_length = g_ascii_strtod(gtk_editable_get_chars(editable, 0, -1), NULL);
 }
 
 void on_GtkEntry_IPS_pixels_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
-	com.pref.pitch = g_ascii_strtod(gtk_editable_get_chars(editable, 0, -1), NULL);
+	com.pref.starfinder_conf.pixel_size_x = g_ascii_strtod(gtk_editable_get_chars(editable, 0, -1), NULL);
 }
 
 void on_GtkEntry_IPS_insert_text(GtkEntry *entry, const gchar *text, gint length,
@@ -610,19 +610,12 @@ gboolean confirm_delete_wcs_keywords(fits *fit) {
 }
 
 void set_focal_and_pixel_pitch() {
-	GtkEntry *focal, *pitch;
-	gchar *f_str, *p_str;
-
-	focal = GTK_ENTRY(lookup_widget("GtkEntry_IPS_focal"));
-	pitch = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
-
-	f_str = g_strdup_printf("%.1lf", com.pref.focal);
-	p_str = g_strdup_printf("%.2lf", com.pref.pitch);
-
-	gtk_entry_set_text(focal, f_str);
-	gtk_entry_set_text(pitch, p_str);
-
-	g_free(f_str);
-	g_free(p_str);
+	GtkEntry *focal = GTK_ENTRY(lookup_widget("GtkEntry_IPS_focal"));
+	GtkEntry *pitch = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
+	char buf[20];
+	sprintf(buf, "%.1f", com.pref.starfinder_conf.focal_length);
+	gtk_entry_set_text(focal, buf);
+	sprintf(buf, "%.2f", com.pref.starfinder_conf.pixel_size_x);
+	gtk_entry_set_text(pitch, buf);
 }
 

@@ -48,8 +48,6 @@ preferences pref_init = {
 #endif
 	.lang = 0,
 	.swap_dir = NULL,
-	.focal = 1000,
-	.pitch = 5,
 	.binning_update = TRUE,
 	.wcs_formalism = WCS_FORMALISM_1,
 	.catalogue_paths[0] = NULL,
