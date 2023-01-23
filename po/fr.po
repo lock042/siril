@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-01-23 11:34+0100\n"
-"PO-Revision-Date: 2023-01-23 11:54+0100\n"
+"PO-Revision-Date: 2023-01-23 13:45+0100\n"
 "Last-Translator: Cyril Richard\n"
 "Language-Team: French <cyril@free-astro.fr>\n"
 "Language: fr\n"
@@ -7398,7 +7398,6 @@ msgid "Enabled"
 msgstr "Activé"
 
 #: src/gui/siril3.glade:27863
-#, fuzzy
 msgid ""
 "While floating-point format images may be losslessly compressed (using gzip, "
 "since Rice only compresses integer arrays), these images often do not compress "
@@ -7410,20 +7409,19 @@ msgid ""
 "the image. If it is too small, however, it preserves too much of the noise (or "
 "even amplifies the noise) in the pixel values, resulting in poor compression."
 msgstr ""
-"Alors que les images au format virgule flottante peuvent être compressées sans "
-"perte (en utilisant gzip, puisque Rice et Hcompress compressent uniquement les "
-"tableaux d'entiers), ces images ne sont souvent pas très bien compressées car "
-"les valeurs des pixels contiennent trop de bruit ; les bits les moins "
-"significatifs dans la mantisse des valeurs de pixels contiennent effectivement "
-"des motifs de bits aléatoires incompressibles. Afin d'obtenir une compression "
-"plus élevée, il faut supprimer une partie de ce bruit, mais sans perdre le "
-"contenu des informations utiles. S'il est trop grand, on sous-échantillonne "
-"les valeurs des pixels entraînant une perte d'informations dans l'image. S'il "
-"est trop petit, cependant, il préserve trop de bruit (ou même amplifie le "
-"bruit) dans les valeurs de pixels, ce qui entraîne une mauvaise compression."
+"Bien que les images en virgule flottante puissent être compressées sans perte "
+"(à l'aide de gzip, puisque Rice ne compresse que les tableaux d'entiers), ces "
+"images ne sont souvent pas très bien compressées parce que les valeurs des "
+"pixels sont trop bruitées ; les bits les moins significatifs de la mantisse "
+"des valeurs des pixels contiennent effectivement des motifs de bits aléatoires "
+"incompressibles. Pour obtenir une meilleure compression, il faut supprimer une "
+"partie de ce bruit, mais sans perdre le contenu informatif utile. Si elle est "
+"trop grande, on sous-échantillonne les valeurs des pixels, ce qui entraîne une "
+"perte d'informations dans l'image. En revanche, s'il est trop petit, il "
+"préserve une trop grande partie du bruit (ou même amplifie le bruit) dans les "
+"valeurs des pixels, ce qui entraîne une mauvaise compression."
 
 #: src/gui/siril3.glade:27885
-#, fuzzy
 msgid ""
 "Select an algorithm method for FITS compression:\n"
 "\n"
@@ -7445,19 +7443,7 @@ msgstr ""
 "* <b>GZIP 2</b>: les octets du tableau de valeurs de pixels d'image sont "
 "mélangés dans un ordre décroissant d'importance avant d'être compressés avec "
 "l'algorithme gzip. Cela est généralement particulièrement efficace lors de la "
-"compression de tableaux à virgule flottante.\n"
-"* <b> Hcompress </b>: Brièvement, la méthode utilisée est:\n"
-"\t- 1. une transformée en ondelettes appelée H-transform (une transformation "
-"de Haar généralisée à deux dimensions), suivie de\n"
-"\t- 2. quantification qui élimine le bruit dans l'image tout en conservant le "
-"signal à toutes les échelles, suivie par\n"
-"\t- 3. codage en quadtre des coefficients quantifiés.\n"
-"La technique donne une très bonne compression pour les images astronomiques et "
-"est relativement rapide. Les calculs sont effectués en utilisant "
-"l'arithmétique entière et sont entièrement réversibles. Par conséquent, le "
-"programme peut être utilisé pour la compression avec ou sans perte, sans "
-"approche particulière requise pour le cas sans perte (par exemple, il n'est "
-"pas nécessaire d'avoir un fichier de résidus.)"
+"compression de tableaux à virgule flottante."
 
 #: src/gui/siril3.glade:27897
 msgid "GZIP1"
@@ -8315,9 +8301,8 @@ msgstr ""
 "taille minimale pour laquelle les transformations de Fourier seront utilisées."
 
 #: src/gui/siril3.glade:30591
-#, fuzzy
 msgid "<b>FFTW Options</b>"
-msgstr "<b>Compression FITS</b>"
+msgstr "<b>Options FFTW</b>"
 
 #: src/gui/siril3.glade:30619 src/gui/siril3.glade:30986
 msgid "Miscellaneous"
@@ -8400,14 +8385,12 @@ msgid "Select gnuplot binary location."
 msgstr "Sélectionnez l'emplacement du binaire de gnuplot."
 
 #: src/gui/siril3.glade:30880
-#, fuzzy
 msgid "Select gnuplot installation directory"
-msgstr "Sélectionnez le répertoire d'installation de Starnet++"
+msgstr "Sélectionnez le répertoire d'installation de gnuplot"
 
 #: src/gui/siril3.glade:30896
-#, fuzzy
 msgid "Software Location"
-msgstr "Mise À Jour Logiciel"
+msgstr "Emplacement des logiciels"
 
 #: src/gui/siril3.glade:30919
 msgid "Copyright when saving image as TIFF"
@@ -8846,9 +8829,9 @@ msgid "at LAT: %f, LONG: %f\n"
 msgstr "à LAT: %f, LONG: %f\n"
 
 #: src/algos/astrometry_solver.c:468
-#, fuzzy, c-format
+#, c-format
 msgid "Searching %s in SIMBAD(photo)...\n"
-msgstr "Recherche de %s dans SIMBAD...\n"
+msgstr "Recherche de %s dans SIMBAD (photo)...\n"
 
 #: src/algos/astrometry_solver.c:589
 msgid "Using already downloaded star catalogue\n"
@@ -9503,11 +9486,9 @@ msgid "No photometry data found, error\n"
 msgstr "Aucune donnée photométrique trouvée, erreur\n"
 
 #: src/algos/photometry.c:341
-#, fuzzy
 msgid "There are not enough valid stars to make a photometric analysis.\n"
 msgstr ""
-"Il n'y a pas assez d'étoiles dans l'image de référence pour procéder à un "
-"alignement\n"
+"Il n'y a pas assez d'étoiles valides pour faire une analyse photométrique.\n"
 
 #: src/algos/photometry.c:355 src/gui/plot.c:748
 msgid ""
@@ -9634,7 +9615,7 @@ msgstr ""
 "beta=%0.2f\n"
 
 #: src/algos/PSF.c:788
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "PSF fit Result (%s):\n"
 "%s\n"
@@ -9652,9 +9633,9 @@ msgstr ""
 "r=%0.2f%sAngle=%0.2f deg\n"
 "Valeur du FDC=%0.6f\n"
 "Inensité Maximale=%0.6f\n"
-"Magnitude (%s)=%0.2f\n"
+"Magnitude (%s)=%0.4f±%.4f\n"
 "RSB=%.1fdB\n"
-"RMSE=%.3e"
+"RMSE=%.3e\n"
 
 #: src/algos/quality.c:349 src/algos/quality.c:400
 #, c-format
@@ -9739,9 +9720,9 @@ msgid "FindStar"
 msgstr "FindStar"
 
 #: src/algos/star_finder.c:945
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"
-msgstr "%d étoiles de profil %s trouvées dans %s, canal #%d\n"
+msgstr "Trouvé %d %s profils d'étoiles in %s, canal #%d (FWHM %f)\n"
 
 #: src/algos/star_finder.c:947
 msgid "selection"
@@ -9966,13 +9947,13 @@ msgid "Hue range must be [0, 6]\n"
 msgstr "La gamme de teintes doit être [0, 6].\n"
 
 #: src/core/command.c:243
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Applying saturation enhancement of %d%%, from level %g times (median + "
 "sigma).\n"
 msgstr ""
-"Application d'une amélioration de la saturation de %d%%, à partir du niveau %g "
-"* sigma.\n"
+"Application d'un renforcement de la saturation de %d%%, à partir du niveau %g "
+"fois (médiane + sigma).\n"
 
 #: src/core/command.c:316 src/core/command.c:318
 #, c-format
@@ -10138,9 +10119,8 @@ msgid "Error: will not clear the PSF while a sequence is running.\n"
 msgstr "Erreur : n'efface pas la PSF pendant qu'une séquence est en cours.\n"
 
 #: src/core/command.c:883
-#, fuzzy
 msgid "Deconvolution kernel cleared.\n"
-msgstr "Déconvolution appliquée"
+msgstr "Noyau de déconvolution effacé.\n"
 
 #: src/core/command.c:888
 msgid "Save PSF to file:\n"
@@ -10167,30 +10147,28 @@ msgid "spectral irregularity method\n"
 msgstr "méthode d'irrégularité spectrale\n"
 
 #: src/core/command.c:917
-#, fuzzy
 msgid "multiscale estimation\n"
-msgstr "Estimation du bruit"
+msgstr "estimation multi-échelle\n"
 
 #: src/core/command.c:925 src/core/command.c:1174 src/core/command.c:1275
-#, fuzzy
 msgid "Error in alpha parameter: must be between 0 and 1e5, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre alpha : doit être compris entre 0 et 1e5, abandon.\n"
 
 #: src/core/command.c:939
-#, fuzzy
 msgid ""
 "Error in compensation factor parameter: must be between 1 and 1e5, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre du facteur de compensation : doit être compris entre "
+"1 et 1e5, abandon.\n"
 
 #: src/core/command.c:951 src/core/command.c:984 src/core/command.c:1023
-#, fuzzy
 msgid ""
 "Error in ks parameter: must be odd and between 3 and minimum of (image height, "
 "image width): aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre ks : doit être impair et compris entre 3 et le "
+"minimum de (hauteur d'image, largeur d'image) : abandon.\n"
 
 #: src/core/command.c:967
 msgid ""
@@ -10205,9 +10183,8 @@ msgid "symmetric kernel\n"
 msgstr "noyau symétrique\n"
 
 #: src/core/command.c:996
-#, fuzzy
 msgid "Manual PSF generation:\n"
-msgstr "Alignement manuel"
+msgstr "Génération manuelle de PSF :\n"
 
 #: src/core/command.c:1003
 msgid "Gaussian PSF\n"
@@ -10226,84 +10203,74 @@ msgid "Airy disc PSF\n"
 msgstr "PSF en disque d'Airy\n"
 
 #: src/core/command.c:1035 src/core/command.c:1131
-#, fuzzy
 msgid "Error in fwhm parameter: must be between 0 and 100, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre fwhm : doit être compris entre 0 et 100, abandon.\n"
 
 #: src/core/command.c:1047
-#, fuzzy
 msgid "Error in ratio parameter: must be between -360 and +360, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre de rapport : doit être compris entre -360 et +360, "
+"abandon.\n"
 
 #: src/core/command.c:1059
-#, fuzzy
 msgid "Error in ratio parameter: must be between 0 and 5, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre ratio : doit être compris entre 0 et 5, abandon.\n"
 
 #: src/core/command.c:1071
-#, fuzzy
 msgid "Error in beta parameter: must be between 0 and 10, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre beta : doit être compris entre 0 et 10, abandon.\n"
 
 #: src/core/command.c:1083
-#, fuzzy
 msgid "Error in dia parameter: must be between 0 and 5000, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre dia : doit être compris entre 0 et 5000, abandon.\n"
 
 #: src/core/command.c:1095
-#, fuzzy
 msgid "Error in fl parameter: must be between 0 and 60000, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre fl : doit être compris entre 0 et 60000, abandon.\n"
 
 #: src/core/command.c:1107
-#, fuzzy
 msgid "Error in wl parameter: must be between 100 and 30000, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre wl : doit être compris entre 100 et 30000, abandon.\n"
 
 #: src/core/command.c:1119
-#, fuzzy
 msgid "Error in fwhm parameter: must be between 1 and 30, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre fwhm : doit être compris entre 1 et 30, abandon.\n"
 
 #: src/core/command.c:1142
 msgid "Load PSF from file:\n"
 msgstr "Chargement du PSF à partir d'un fichier :\n"
 
 #: src/core/command.c:1145
-#, fuzzy
 msgid "Error loading PSF.\n"
-msgstr "Erreur lors du chargement du fichier !\n"
+msgstr "Erreur de chargement de la PSF.\n"
 
 #: src/core/command.c:1186 src/core/command.c:1287
-#, fuzzy
 msgid "Error in iterations parameter: must be between 1 and 1e5, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre itérations : doit être compris entre 1 et 1e5, "
+"abandon.\n"
 
 #: src/core/command.c:1198 src/core/command.c:1299
-#, fuzzy
 msgid "Error in stop parameter: must be between 0 and 1, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre stop : doit être compris entre 0 et 1, abandon.\n"
 
 #: src/core/command.c:1211 src/core/command.c:1312
-#, fuzzy
 msgid "Error in step size parameter: must be between 0 and 1, aborting.\n"
 msgstr ""
-"Erreur dans le paramètre mod : doit être compris entre 0 et 1, abandon.\n"
+"Erreur dans le paramètre de taille de pas : doit être compris entre 0 et 1, "
+"abandon.\n"
 
 #: src/core/command.c:1263
-#, fuzzy
 msgid "Error: cannot open sequence\n"
-msgstr "Impossible de charger la séquence\n"
+msgstr "Erreur : Impossible d'ouvrir la séquence\n"
 
 #: src/core/command.c:1406
 msgid ""
@@ -10542,9 +10509,9 @@ msgid "Mirroring image to convert to bottom-up data\n"
 msgstr "Appliquer un retournement miroir pour convertir en données ascendantes\n"
 
 #: src/core/command.c:2437
-#, fuzzy, c-format
+#, c-format
 msgid "Could not save mirrored image: %s\n"
-msgstr "Impossible d'ouvrir le fichier : %s\n"
+msgstr "Impossible de sauvegarder l'image miroir : %s\n"
 
 #: src/core/command.c:2477 src/core/command.c:3625 src/core/command.c:3632
 #: src/core/command.c:3637 src/core/command.c:4783 src/core/command.c:4791
@@ -10561,9 +10528,9 @@ msgid "Symmetry point SP=%f\n"
 msgstr "Point de symétrie SP=%f\n"
 
 #: src/core/command.c:2607
-#, fuzzy, c-format
+#, c-format
 msgid "Symmetry point for channel %d: SP=%f\n"
-msgstr "Point de symétrie (SP)"
+msgstr "Point de symétrie pour le canal %d : SP=%f\n"
 
 #: src/core/command.c:2649
 msgid "The target background value must be in the [0, 1] range\n"
@@ -10620,9 +10587,9 @@ msgid "Unknown transformation type %s, aborting.\n"
 msgstr "Type de transformation %s inconnu, abandon.\n"
 
 #: src/core/command.c:2773
-#, fuzzy, c-format
+#, c-format
 msgid "Resampling to %d x %d pixels with %s interpolation\n"
-msgstr "Rééchantillonnage à %d x %d pixels\n"
+msgstr "Rééchantillonnage à %d x %d pixels avec interpolation %s\n"
 
 #: src/core/command.c:2793 src/core/siril.c:278 src/filters/rgradient.c:238
 msgid "This process cannot be applied to 8b images\n"
@@ -11018,11 +10985,8 @@ msgstr ""
 "%d.\n"
 
 #: src/core/command.c:4305
-#, fuzzy
 msgid "Option -out= is not available for sequences, ignoring\n"
-msgstr ""
-"L'option de nom de fichier en sortie n'est pas autorisée dans ce contexte, "
-"elle est ignorée.\n"
+msgstr "L'option -out= n'est pas disponible pour les séquences, en ignorant\n"
 
 #: src/core/command.c:4316
 msgid "find_hot must be applied on an one-channel master-dark frame"
@@ -11058,11 +11022,12 @@ msgid "Center of gravity coordinates are (%.3lf, %.3lf)\n"
 msgstr "Les coordonnées du centre de gravité sont (%.3lf, %.3lf)\n"
 
 #: src/core/command.c:4605
-#, fuzzy
 msgid ""
 "Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum "
 "mask) or 3 (additive mask)\n"
-msgstr "Le type peut être 0 (moyenne), ou 1 (protection neutre maximale).\n"
+msgstr ""
+"Le type peut être 0 (neutre moyen) ou 1 (neutre maximum), 2 (masque maximum) "
+"ou 3 (masque additif).\n"
 
 #: src/core/command.c:4616
 msgid "Amount can only be [0, 1]\n"
@@ -11128,22 +11093,22 @@ msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr "Le calcul des statistiques a échoué pour le canal %d (tout nul ?).\n"
 
 #: src/core/command.c:5526 src/core/command.c:5531
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f\n"
 msgstr ""
-"Canal %s : Moyenne : %0.1lf, Médiane : %0.1lf, Sigma : %0.1lf, AvgDev : "
-"%0.1lf, Min : %0.1lf, Max : %0.1lf\n"
+"Canal %s : Moyenne : %0.1lf, Médiane : %0.1lf, Sigma : %0.1lf, Min : %0.1lf, "
+"Max : %0.1lf, bgnoise: %0.1f\n"
 
 #: src/core/command.c:5543 src/core/command.c:5550
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 msgstr ""
-"Canal %s : Moyenne : %0.1lf, Médiane : %0.1lf, Sigma : %0.1lf, AvgDev : "
-"%0.1lf, Min : %0.1lf, Max : %0.1lf\n"
+"Canal %s : Moyenne : %0.1lf, Médiane : %0.1lf, Sigma : %0.1lf, Min : %0.1lf, "
+"Max : %0.1lf, bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 
 #: src/core/command.c:5633
 #, c-format
@@ -11882,11 +11847,11 @@ msgstr ""
 "Cette commande ne fonctionne que sur les images résolues par astrométrie\n"
 
 #: src/core/command.c:8132
-#, fuzzy
 msgid ""
 "This command only works on images that have observation date information\n"
 msgstr ""
-"Cette commande ne fonctionne que sur les images résolues par astrométrie\n"
+"Cette commande ne fonctionne que sur les images qui ont des informations sur "
+"la date d'observation.\n"
 
 #: src/core/command.c:8231
 #, c-format
@@ -11925,7 +11890,6 @@ msgstr ""
 "b>"
 
 #: src/core/command_def.h:7
-#, fuzzy
 msgid ""
 "Stretches the image to show faint objects using an hyperbolic arcsin "
 "transformation. The mandatory argument <b>stretch</b>, typically between 1 and "
@@ -11938,12 +11902,13 @@ msgid ""
 msgstr ""
 "Étire l'image pour afficher les objets faibles à l'aide d'une transformation "
 "arcsin hyperbolique. L'argument obligatoire <b>stretch</b>, généralement "
-"compris entre 1 et 1000, donne la force de l'étirement. Le point noir peut "
+"compris entre 1 et 1000, donnera la force de l'étirement. Le point noir peut "
 "être décalé en fournissant un argument facultatif <b>offset</b> dans la valeur "
 "de pixel normalisée de [0, 1]. Enfin, l'option <b>-human</b> permet d'utiliser "
-"les poids d'efficacité lumineuse de l'œil humain pour calculer la luminance "
+"les poids d'efficacité lumineuse de l'œil humain pour obtenir la luminance "
 "utilisée pour calculer la valeur d'étirement pour chaque pixel, au lieu de la "
-"simple moyenne des valeurs de pixel des canaux"
+"simple moyenne des valeurs de pixel des canaux. Cette méthode d'étirement "
+"préserve la luminosité de l'espace colorimétrique L*a*b*"
 
 #: src/core/command_def.h:8
 msgid ""
@@ -12564,21 +12529,22 @@ msgstr ""
 "histo_[nom du canal].dat dans le répertoire de travail"
 
 #: src/core/command_def.h:62
-#, fuzzy
 msgid ""
 "Adds the image in memory to the image <b>filename</b> given in argument.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
-msgstr "Ajoute l'image en mémoire par l'image <b>filename</b> donnée en argument"
+msgstr ""
+"Ajoute l'image en mémoire à l'image <b>filename</b> donnée en argument.\n"
+"Le résultat sera en 32 bits par canal si cela est autorisé dans les préférences"
 
 #: src/core/command_def.h:63
-#, fuzzy
 msgid ""
 "Divides the image in memory by the image <b>filename</b> given in argument.\n"
 "Result will be in 32 bits per channel if allowed in the preferences. See also "
 "FDIV"
 msgstr ""
-"Divise l'image en mémoire par l'image <b>filename</b> donnée en argument. Voir "
-"aussi FDIV"
+"Divise l'image en mémoire par l'image <b>filename</b> donnée en argument.\n"
+"Le résultat sera en 32 bits par canal si cela est autorisé dans les "
+"préférences. Voir aussi FDIV"
 
 #: src/core/command_def.h:64
 msgid ""
@@ -12682,13 +12648,13 @@ msgstr ""
 "GB. La valeur par défaut est tous les canaux"
 
 #: src/core/command_def.h:68
-#, fuzzy
 msgid ""
 "Multiplies the image in memory by the image <b>filename</b> given in "
 "argument.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
 msgstr ""
-"Multiplie l'image en mémoire par l'image <b>filename</b> donnée en argument"
+"Multiplie l'image en mémoire par l'image <b>filename</b> donnée en argument.\n"
+"Le résultat sera en 32 bits par canal si cela est autorisé dans les préférences"
 
 #: src/core/command_def.h:69
 msgid ""
@@ -12836,7 +12802,6 @@ msgstr ""
 "peut être modifié avec l'option <b>-out=</b>"
 
 #: src/core/command_def.h:82
-#, fuzzy
 msgid ""
 "Generates a PSF for use with deconvolution. One of the following must be given "
 "as the first argument: <b>clear</b> (clears the existing PSF), <b>load</b> "
@@ -12933,8 +12898,9 @@ msgstr ""
 "autres à partir de l'image ouverte, mais certains logiciels d'imagerie peuvent "
 "ne pas tous les fournir, auquel cas vous obtiendrez de mauvais résultats, et "
 "notez que les métadonnées peuvent ne pas être renseignées pour les vidéos au "
-"format SER. Vous apprendrez de l'expérience qu'il est prudent d'omettre pour "
-"votre configuration d'imagerie particulière.\n"
+"format SER. L'expérience vous apprendra quels sont les éléments que vous "
+"pouvez omettre en toute sécurité pour votre configuration d'imagerie "
+"particulière.\n"
 "\n"
 "Pour toutes les options de génération de PSF ci-dessus, l'argument facultatif "
 "<b>-ks=</b> peut être fourni pour définir la dimension PSF"
@@ -13512,7 +13478,6 @@ msgstr ""
 "processus est également appelé filtre Larson Sekanina"
 
 #: src/core/command_def.h:111
-#, fuzzy
 msgid ""
 "Restores an image using the Richardson-Lucy method.\n"
 "\n"
@@ -13572,7 +13537,6 @@ msgstr ""
 "être spécifiée comme premier argument"
 
 #: src/core/command_def.h:115 src/core/command_def.h:130
-#, fuzzy
 msgid ""
 "Restores an image using the Split Bregman method.\n"
 "\n"
@@ -13605,7 +13569,6 @@ msgstr ""
 "le bruit gaussien"
 
 #: src/core/command_def.h:117
-#, fuzzy
 msgid ""
 "Applies a chromatic noise reduction filter. It removes green tint in the "
 "current image. This filter is based on PixInsight's SCNR and it is also the "
@@ -13617,17 +13580,16 @@ msgid ""
 "for maximum mask, 3 for additive mask, defaulting to 0. The last two can take "
 "an <b>amount</b> argument, a value between 0 and 1, defaulting to 1"
 msgstr ""
-"Applique un filtre de réduction du bruit chromatique. Il supprime le bruit "
-"vert dans l'image actuelle. Ce filtre est basé sur l'algorithme SCNR Average "
-"Neutral de PixInsight et c'est le même filtre utilisé par le plugin HLVG dans "
-"Photoshop.\n"
-"Avec la commande, la luminosité est toujours préservée. Pour un traitement "
-"d'image sans préservation de L*, utilisez l'outil graphique et décochez la "
-"case correspondante.\n"
-" \n"
+"Applique un filtre de réduction de bruit chromatique. Il supprime la teinte "
+"verte de l'image actuelle. Ce filtre est basé sur le SCNR de PixInsight et "
+"c'est également le même filtre utilisé par le plugin HLVG dans Photoshop.\n"
+"La luminosité est préservée par défaut mais cela peut être désactivé avec "
+"l'option <b>-nopreserve</b>.\n"
 "\n"
-"<b>Type</b> peut prendre les valeurs 0 pour la protection neutre moyenne ou 1 "
-"pour la protection neutre maximale, par défaut le paramètre est à 0"
+"<b>Type</b> peut prendre les valeurs 0 pour neutre moyen, 1 pour neutre "
+"maximum, 2 pour masque maximum, 3 pour masque additif, par défaut à 0. Les "
+"deux derniers peuvent prendre un argument <b>amount</b> , une valeur comprise "
+"entre 0 et 1, la valeur par défaut étant 1"
 
 #: src/core/command_def.h:118
 msgid ""
@@ -13759,34 +13721,34 @@ msgstr ""
 "<b>nom de fichier</b>.pgm pour l'image en niveaux de gris"
 
 #: src/core/command_def.h:127
-#, fuzzy
 msgid ""
 "Saves current image under the form of a uncompressed TIFF file with 16-bit per "
 "channel: <b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-"
 "tiff format"
 msgstr ""
-"Enregistre l'image courante au format TIF non compressé, avec 16 bits par "
-"canal : <b>filename</b>.tif"
+"Enregistre l'image courante sous la forme d'un fichier TIFF non compressé avec "
+"16 bits par canal : <b>filename</b>.tif. L'option <b>-astro</b> permet "
+"d'enregistrer au format Astro-tiff"
 
 #: src/core/command_def.h:128
-#, fuzzy
 msgid ""
 "Same command as SAVETIF but the output file is saved in 32-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
 "format"
 msgstr ""
-"Même commande que SAVE_TIF mais le fichier de sortie est en 32 bits par "
-"canal : <b>filename</b>.tif"
+"Même commande que SAVETIF mais le fichier de sortie est enregistré en 32 bits "
+"par canal : <b>filename</b>.tif. L'option <b>-astro</b> permet d'enregistrer "
+"au format Astro-tiff"
 
 #: src/core/command_def.h:129
-#, fuzzy
 msgid ""
 "Same command as SAVETIF but the output file is saved in 8-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
 "format"
 msgstr ""
-"Même commande que SAVE_TIF mais le fichier de sortie est en 8 bits par canal : "
-"<b>filename</b>.tif"
+"Même commande que SAVETIF mais le fichier de sortie est enregistré en 8 bits "
+"par canal : <b>filename</b>.tif. L'option <b>-astro</b> permet d'enregistrer "
+"au format Astro-tiff"
 
 #: src/core/command_def.h:131
 msgid ""
@@ -14085,7 +14047,6 @@ msgstr ""
 "<b>-at=</b>"
 
 #: src/core/command_def.h:148
-#, fuzzy
 msgid ""
 "Same command as MERGE_CFA but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -14384,7 +14345,6 @@ msgid "Sets the reference image of the sequence given in first argument"
 msgstr "Définit l'image de référence de la séquence donnée en premier argument"
 
 #: src/core/command_def.h:165
-#, fuzzy
 msgid ""
 "Splits the color image into three distinct files (one for each color) and save "
 "them in <b>file1</b>.fit, <b>file2</b>.fit and <b>file3</b>.fit files. A last "
@@ -14393,8 +14353,10 @@ msgid ""
 "extraction is of RGB type"
 msgstr ""
 "Divise l'image couleur en trois fichiers distincts (un pour chaque couleur) et "
-"les enregistre dans les fichiers<b>fileR</b>.fit, <b>fileG</b>.fit et "
-"<b>fileB</b>.fit"
+"les enregistre dans <b>file1</b>.fit, <b>file2</b>.fit et <b>file3</b>.fit des "
+"dossiers. Un dernier argument peut éventuellement être fourni, <b>-hsl</b>, "
+"<b>-hsv</b> ou <b>lab</b> pour effectuer une extraction HSL, HSV ou CieLAB. Si "
+"aucune option n'est fournie, l'extraction est de type RVB"
 
 #: src/core/command_def.h:166
 msgid ""
