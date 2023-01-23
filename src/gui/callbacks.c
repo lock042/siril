@@ -1548,7 +1548,6 @@ void on_file_information_close_clicked(GtkButton *button, gpointer user_data) {
 
 void on_toggleButtonUnbinned_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.binning_update = gtk_toggle_button_get_active(button);
-	siril_debug_print("binning update: %d\n", com.pref.binning_update);
 	update_sampling_in_information();
 }
 

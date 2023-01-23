@@ -117,7 +117,7 @@ double get_resolution(double focal, double pixel) {
 }
 
 /* get diagonal field of view in arcmin, resolution in arcsec/px */
-static double get_fov_arcmin(double resolution, int rx, int ry) {
+double get_fov_arcmin(double resolution, int rx, int ry) {
 	uint64_t sqr_radius = rx * rx + ry * ry;
 	double radius = resolution * sqrt((double)sqr_radius);	// in arcsec
 	return radius / 60.0;	// in arcminutes

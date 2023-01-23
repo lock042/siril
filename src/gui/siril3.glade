@@ -8650,7 +8650,7 @@ Modified data can be saved in a FITS file.</property>
 WARNING: checking this stores it as a preference, also available in the FITS option preferences section.</property>
                 <property name="halign">start</property>
                 <property name="draw-indicator">True</property>
-                <signal name="toggled" handler="on_toggleButtonUnbinned_toggled" object="box_binning_info" swapped="no"/>
+                <signal name="toggled" handler="on_toggleButtonUnbinned_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">2</property>

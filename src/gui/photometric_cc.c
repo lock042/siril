@@ -128,7 +128,7 @@ static gboolean is_selection_ok() {
 void initialize_photometric_cc_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg,
-			*catalog_label_pcc, *force_platesolve;
+			*catalog_label_pcc, *force_platesolve, *lasnet;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
@@ -141,6 +141,7 @@ void initialize_photometric_cc_dialog() {
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	force_platesolve = lookup_widget("force_astrometry_button");
+	lasnet = lookup_widget("localasnet_check_button");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -158,6 +159,8 @@ void initialize_photometric_cc_dialog() {
 	gtk_widget_set_visible(catalog_auto, FALSE);
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
 	gtk_widget_set_visible(force_platesolve, TRUE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lasnet), FALSE);
+	gtk_widget_set_visible(lasnet, FALSE);
 	gtk_widget_grab_focus(button_cc_ok);
 
 	gtk_window_set_title(parent, _("Photometric Color Calibration"));

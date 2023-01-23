@@ -129,6 +129,7 @@ gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius, double mag);
 gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type);
+double get_fov_arcmin(double resolution, int rx, int ry);
 
 /* from the GUI */
 void update_coords();
