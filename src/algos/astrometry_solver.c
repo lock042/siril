@@ -696,8 +696,8 @@ static void extract_cdelt_from_cd(double cd1_1, double cd1_2, double cd2_1,
 static void print_platesolving_results(solve_results *image, gboolean downsample) {
 	double rotation, det, scaleX, scaleY, resolution;
 	double inliers;
-	char field_x[256] = { 0 };
-	char field_y[256] = { 0 };
+	char field_x[256] = "";
+	char field_y[256] = "";
 
 	float factor = (downsample) ? DOWNSAMPLE_FACTOR : 1.0;
 	Homography H = image->H;
@@ -738,7 +738,7 @@ static void print_platesolving_results(solve_results *image, gboolean downsample
 }
 
 static void print_image_center(solve_results *image) {
-	gchar *alpha = siril_world_cs_alpha_format(image->image_center, " %02dh%02dm%02ds");
+	gchar *alpha = siril_world_cs_alpha_format(image->image_center, "%02dh%02dm%02ds");
 	gchar *delta = siril_world_cs_delta_format(image->image_center, "%c%02d°%02d\'%02d\"");
 	siril_log_message(_("Image center: alpha: %s, delta: %s\n"), alpha, delta);
 	g_free(alpha);
@@ -1350,8 +1350,6 @@ gpointer plate_solver(gpointer p) {
 		goto clearup;
 
 	/* 4. Print results */
-	if (args->verbose && args->onlineCatalog != CAT_ASNET)
-		print_platesolving_results(&solution, args->downsample);
 	print_image_center(&solution);
 
 	/* 5. Run photometric color correction, if enabled */
@@ -1667,6 +1665,9 @@ static int match_catalog(psf_star **stars, int n_fit, psf_star **cstars, int n_c
 	siril_debug_print("******************************************\n");
 
 	load_WCS_from_memory(args->fit);
+
+	if (args->verbose)
+		print_platesolving_results(solution, args->downsample);
 clearup:
 	free_stars(&star_list_A);
 	free_stars(&star_list_B);
@@ -1780,16 +1781,24 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 
 		args->fit->wcsdata.pltsolvd = TRUE;
 		strcpy(args->fit->wcsdata.pltsolvd_comment, "This is a WCS header was created by Astrometry.net.");
+
 		// asnet puts more info in the HISTORY and the console log in COMMENT fields
-		/* populate the solution structure */
-		//solution->px_cat_center = siril_world_cs_ref(args->cat_center);
-		//solution->crpix[0] = args->fit->wcsdata.crpix[0];
-		//solution->crpix[1] = args->fit->wcsdata.crpix[1];
-		//solution->H ?
 		solution->image_center = siril_world_cs_new_from_a_d(
 				args->fit->wcsdata.crval[0],
 				args->fit->wcsdata.crval[1]);
 		// TODO: handle args->downsample
+		/* print results from WCS data */
+		double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
+		siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
+		//siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
+		siril_log_message(_("Focal length:%*.2lf mm\n"), 8, RADCONV * args->pixel_size / resolution);
+		siril_log_message(_("Pixel size:%*.2lf µm\n"), 10, args->pixel_size);
+		char field_x[256] = "";
+		char field_y[256] = "";
+		fov_in_DHMS(resolution * solution->size.x / 3600.0, field_x);
+		fov_in_DHMS(resolution * solution->size.y / 3600.0, field_y);
+		siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
+
 		return 0;
 	}
 	return 0;
