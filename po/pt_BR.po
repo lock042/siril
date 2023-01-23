@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-20 22:32+0100\n"
+"POT-Creation-Date: 2023-01-23 11:34+0100\n"
 "PO-Revision-Date: 2021-01-13 22:17+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1030,7 +1030,7 @@ msgstr ""
 "selecione um filtro da lista ou\n"
 "introduza um comprimento de onda visível em nanómetros"
 
-#: src/gui/siril3.glade:5809 src/gui/newdeconv.c:1078 src/gui/newdeconv.c:1410
+#: src/gui/siril3.glade:5809 src/gui/newdeconv.c:1083 src/gui/newdeconv.c:1415
 #, fuzzy
 msgid "Deconvolution"
 msgstr "Desvio: "
@@ -1158,12 +1158,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:6211 src/gui/siril3.glade:13212
-#: src/algos/star_finder.c:946 src/gui/newdeconv.c:537
+#: src/algos/star_finder.c:946 src/gui/newdeconv.c:542
 msgid "Gaussian"
 msgstr ""
 
 #: src/gui/siril3.glade:6212 src/gui/siril3.glade:13213
-#: src/algos/star_finder.c:946 src/gui/newdeconv.c:539
+#: src/algos/star_finder.c:946 src/gui/newdeconv.c:544
 msgid "Moffat"
 msgstr ""
 
@@ -1193,7 +1193,7 @@ msgstr ""
 #: src/gui/siril3.glade:6306
 msgid ""
 "Full width at half maximum. For disc profiles this is just the diameter of "
-"the disc. For elliptical PSFs this is the longer PSF dimenson."
+"the disc. For elliptical PSFs this is the longer PSF dimension."
 msgstr ""
 
 #: src/gui/siril3.glade:6322 src/gui/siril3.glade:7201
@@ -1489,7 +1489,7 @@ msgstr ""
 #: src/gui/siril3.glade:7387
 msgid ""
 "Opens a page in the online Siril documentation with usage tips and examples "
-"of settngs that can work for different types of image."
+"of settings that can work for different types of image."
 msgstr ""
 
 #: src/gui/siril3.glade:7443
@@ -5862,11 +5862,11 @@ msgstr ""
 msgid "Normalisation:"
 msgstr "Extração de Canal"
 
-#: src/gui/siril3.glade:23930 src/stacking/stacking.c:861
+#: src/gui/siril3.glade:23930 src/stacking/stacking.c:856
 msgid "Sigma low: "
 msgstr ""
 
-#: src/gui/siril3.glade:23964 src/stacking/stacking.c:862
+#: src/gui/siril3.glade:23964 src/stacking/stacking.c:857
 msgid "Sigma high: "
 msgstr ""
 
@@ -6135,7 +6135,7 @@ msgstr ""
 msgid "Command line"
 msgstr ""
 
-#: src/gui/siril3.glade:25107 src/core/command.c:413 src/gui/newdeconv.c:1336
+#: src/gui/siril3.glade:25107 src/core/command.c:413 src/gui/newdeconv.c:1341
 #: src/gui/progress_and_log.c:47
 msgid "Ready."
 msgstr ""
@@ -7868,7 +7868,7 @@ msgstr ""
 
 #: src/algos/annotate.c:323 src/core/command.c:4189 src/core/command.c:5827
 #: src/core/command.c:5926 src/core/command.c:6040 src/core/command.c:6855
-#: src/stacking/stacking.c:616
+#: src/io/path_parse.c:483
 #, c-format
 msgid "Cannot create output folder: %s\n"
 msgstr ""
@@ -10346,12 +10346,12 @@ msgstr ""
 msgid "Could not save the stacking result %s\n"
 msgstr ""
 
-#: src/core/command.c:6868 src/stacking/stacking.c:632
+#: src/core/command.c:6868 src/stacking/stacking.c:627
 #, fuzzy
 msgid "Saving rejection maps\n"
 msgstr "Matriz de Interpolação de Imagem"
 
-#: src/core/command.c:6897 src/stacking/stacking.c:685
+#: src/core/command.c:6897 src/stacking/stacking.c:680
 msgid "Stacking failed, please check the log to fix your issue.\n"
 msgstr ""
 
@@ -10395,7 +10395,7 @@ msgstr ""
 msgid "Stacking method type '%s' is invalid\n"
 msgstr ""
 
-#: src/core/command.c:7051 src/stacking/stacking.c:687
+#: src/core/command.c:7051 src/stacking/stacking.c:682
 msgid ""
 "It looks like there is a memory allocation error, change memory settings and "
 "try to fix it.\n"
@@ -11343,7 +11343,7 @@ msgstr ""
 msgid ""
 "Generates a PSF for use with deconvolution. One of the following must be "
 "given as the first argument: <b>clear</b> (clears the existing PSF), "
-"<b>load</b> (loads a PSF from a file), <save> (saves the current PSF), "
+"<b>load</b> (loads a PSF from a file), <b>save</b> (saves the current PSF), "
 "<b>blind</b> (blind estimate of tke PSF), <b>stars</b> (generates a PSF "
 "based on measured stars from the image) or <b>manual</b> (generates a PSF "
 "manually based on a function and parameters).\n"
@@ -11732,10 +11732,7 @@ msgid ""
 "b>.\n"
 "\n"
 "The stopping criterion may be activated by specifying a stopping limit with "
-"<b>-stop=</b>.\n"
-"\n"
-"By default the command applies to a single image, but it may be applied to "
-"the current sequence with the argument <b>-seq</b>"
+"<b>-stop=</b>"
 msgstr ""
 
 #: src/core/command_def.h:112
@@ -11763,10 +11760,7 @@ msgid ""
 "The number of iterations is provide by <b>-iters</b> (the default is 1).\n"
 "\n"
 "The regularization factor <b>-alpha=</b> provides the regularization "
-"strength (lower value = more regularization, default = 3000).\n"
-"\n"
-"By default the command applies to a single image, but it may be applied to "
-"the current sequence with the argument <b>-seq</b>"
+"strength (lower value = more regularization, default = 3000)"
 msgstr ""
 
 #: src/core/command_def.h:116 src/core/command_def.h:189
@@ -11774,10 +11768,7 @@ msgid ""
 "Restores an image using the Wiener deconvolution method.\n"
 "\n"
 "The parameter <b>-alpha=</b> provides the Gaussian noise modelled "
-"regularization factor.\n"
-"\n"
-"By default the command applies to a single image, but it may be applied to "
-"the current sequence with the argument <b>-seq</b>"
+"regularization factor"
 msgstr ""
 
 #: src/core/command_def.h:117
@@ -13903,15 +13894,15 @@ msgstr ""
 msgid "cosmetic correction: cosme file format error at line %d: %s\n"
 msgstr ""
 
-#: src/filters/fft.c:464 src/gui/newdeconv.c:977 src/gui/newdeconv.c:1069
+#: src/filters/fft.c:464 src/gui/newdeconv.c:982 src/gui/newdeconv.c:1074
 msgid "Siril FFT wisdom imported successfully...\n"
 msgstr ""
 
-#: src/filters/fft.c:466 src/gui/newdeconv.c:979 src/gui/newdeconv.c:1072
+#: src/filters/fft.c:466 src/gui/newdeconv.c:984 src/gui/newdeconv.c:1077
 msgid "System FFT wisdom imported successfully...\n"
 msgstr ""
 
-#: src/filters/fft.c:468 src/gui/newdeconv.c:981 src/gui/newdeconv.c:1075
+#: src/filters/fft.c:468 src/gui/newdeconv.c:986 src/gui/newdeconv.c:1080
 msgid "No FFT wisdom found to import...\n"
 msgstr ""
 
@@ -13923,11 +13914,11 @@ msgstr ""
 msgid "There is something wrong in your files\n"
 msgstr ""
 
-#: src/filters/fft.c:549 src/gui/newdeconv.c:999 src/gui/newdeconv.c:1187
+#: src/filters/fft.c:549 src/gui/newdeconv.c:1004 src/gui/newdeconv.c:1192
 msgid "Siril FFT wisdom updated successfully...\n"
 msgstr ""
 
-#: src/filters/fft.c:551 src/gui/newdeconv.c:1001 src/gui/newdeconv.c:1190
+#: src/filters/fft.c:551 src/gui/newdeconv.c:1006 src/gui/newdeconv.c:1195
 msgid "Siril FFT wisdom update failed...\n"
 msgstr ""
 
@@ -13937,7 +13928,7 @@ msgstr ""
 
 #. fail
 #: src/filters/fft.c:592 src/filters/fft.c:598 src/filters/fft.c:619
-#: src/gui/newdeconv.c:501 src/gui/newdeconv.c:506 src/gui/newdeconv.c:511
+#: src/gui/newdeconv.c:506 src/gui/newdeconv.c:511 src/gui/newdeconv.c:516
 #: src/gui/nina_light_curve.c:82 src/gui/nina_light_curve.c:116
 #: src/gui/open_dialog.c:385 src/gui/plot.c:828 src/gui/preferences.c:350
 #: src/gui/preferences.c:368 src/gui/PSF_list.c:247 src/gui/PSF_list.c:252
@@ -14715,11 +14706,11 @@ msgstr ""
 msgid "Folder"
 msgstr ""
 
-#: src/gui/documentation.c:68 src/gui/newdeconv.c:274 src/gui/script_menu.c:321
+#: src/gui/documentation.c:68 src/gui/newdeconv.c:279 src/gui/script_menu.c:321
 msgid "Could not show link"
 msgstr ""
 
-#: src/gui/documentation.c:69 src/gui/newdeconv.c:275 src/gui/script_menu.c:322
+#: src/gui/documentation.c:69 src/gui/newdeconv.c:280 src/gui/script_menu.c:322
 msgid "Please go to <a href=\""
 msgstr ""
 
@@ -14903,70 +14894,70 @@ msgstr ""
 msgid "_Do not show this dialog again"
 msgstr ""
 
-#: src/gui/newdeconv.c:453
+#: src/gui/newdeconv.c:458
 msgid ""
 "Warning: telescope aperture obtained from FITS header data may be "
 "incorrect.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:456
+#: src/gui/newdeconv.c:461
 msgid ""
 "Warning: telescope focal length obtained from FITS header data may be "
 "incorrect.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:459
+#: src/gui/newdeconv.c:464
 msgid ""
 "Warning: sensor pixel size obtained from FITS header data may be incorrect.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:502 src/gui/PSF_list.c:248
+#: src/gui/newdeconv.c:507 src/gui/PSF_list.c:248
 msgid "Stars FWHM must have the same units."
 msgstr ""
 
-#: src/gui/newdeconv.c:507 src/gui/PSF_list.c:253
+#: src/gui/newdeconv.c:512 src/gui/PSF_list.c:253
 msgid "Stars properties must all be computed on the same layer"
 msgstr ""
 
-#: src/gui/newdeconv.c:512 src/gui/PSF_list.c:258
+#: src/gui/newdeconv.c:517 src/gui/PSF_list.c:258
 msgid "Stars must all be modeled with the same profile type"
 msgstr ""
 
-#: src/gui/newdeconv.c:551
+#: src/gui/newdeconv.c:556
 #, fuzzy
 msgid "No stars selected"
 msgstr "Selecionar Fase"
 
-#: src/gui/newdeconv.c:601
+#: src/gui/newdeconv.c:606
 msgid "Error: no PSF has been computed, nothing to save.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:627
+#: src/gui/newdeconv.c:632
 msgid "Error preparing PSF for save.\n"
 msgstr ""
 
 #. This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
-#: src/gui/newdeconv.c:634
+#: src/gui/newdeconv.c:639
 msgid ""
 "This copy of Siril was compiled without libtiff support: saving PSF in FITS "
 "format.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:667
+#: src/gui/newdeconv.c:672
 msgid ""
 "Deconvolution: spaces detected in filename. These have been replaced by "
 "underscores.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:699
+#: src/gui/newdeconv.c:704
 msgid "Error: PSF file does not contain a square PSF. Cannot load this file.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:700
+#: src/gui/newdeconv.c:705
 msgid "Wrong PSF size"
 msgstr ""
 
-#: src/gui/newdeconv.c:709
+#: src/gui/newdeconv.c:714
 #, c-format
 msgid ""
 "Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping by "
@@ -14974,113 +14965,113 @@ msgid ""
 msgstr ""
 
 #. If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
-#: src/gui/newdeconv.c:756
+#: src/gui/newdeconv.c:761
 msgid ""
 "The selected PSF is RGB but the loaded image is monochrome. The PSF will be "
 "converted to monochrome (luminance).\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:782
+#: src/gui/newdeconv.c:787
 #, fuzzy
 msgid "No PSF file selected.\n"
 msgstr "Nenhuma sequência selecionada"
 
-#: src/gui/newdeconv.c:820
+#: src/gui/newdeconv.c:825
 #, fuzzy
 msgid "Kernel estimation complete.\n"
 msgstr "Método de Proteção: "
 
-#: src/gui/newdeconv.c:834
+#: src/gui/newdeconv.c:839
 msgid ""
 "Error: no stars detected. Run findstar or select stars using Dynamic PSF "
 "dialog first.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:862
+#: src/gui/newdeconv.c:867
 msgid ""
 "Warning: focal length appears likely to be incorrect. Continuing anyway...\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:864
+#: src/gui/newdeconv.c:869
 msgid ""
 "Warning: diameter appears likely to be incorrect. Continuing anyway...\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:866
+#: src/gui/newdeconv.c:871
 msgid ""
 "Warning: sensor pixel size appears likely to be incorrect. Continuing "
 "anyway...\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:874
+#: src/gui/newdeconv.c:879
 msgid ""
 "Error: no previous PSF found. A blind PSF estimator or calculation of PSF "
 "from stars or manual parameters must already have been done to use the "
 "Previous PSF option.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:883
+#: src/gui/newdeconv.c:888
 msgid ""
 "Error: no PSF defined. Select blind deconvolution or define a PSF from "
 "selection or psf parameters.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:900
+#: src/gui/newdeconv.c:905
 msgid "PSF made in bottom up orientation.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:902
+#: src/gui/newdeconv.c:907
 msgid "PSF made in top down orientation.\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:995
+#: src/gui/newdeconv.c:1000
 #, fuzzy
 msgid "Starting PSF computation..."
 msgstr "Composição HSL"
 
-#: src/gui/newdeconv.c:1004
+#: src/gui/newdeconv.c:1009
 #, fuzzy
 msgid "Deconvolution PSF generated.\n"
 msgstr "Rotação..."
 
 #. Refuse to process the image using previous PSF if there is no previous PSF defined
 #. Refuse to process the sequence using previous PSF if there is no previous PSF defined
-#: src/gui/newdeconv.c:1056 src/gui/newdeconv.c:1359
+#: src/gui/newdeconv.c:1061 src/gui/newdeconv.c:1364
 msgid ""
 "Error: trying to use previous PSF but no PSF has been generated. "
 "Aborting...\n"
 msgstr ""
 
-#: src/gui/newdeconv.c:1092
+#: src/gui/newdeconv.c:1097
 #, fuzzy
 msgid "Starting PSF estimation..."
 msgstr "Composição HSL"
 
-#: src/gui/newdeconv.c:1119
+#: src/gui/newdeconv.c:1124
 msgid "Starting non-blind deconvolution..."
 msgstr ""
 
-#: src/gui/newdeconv.c:1127
+#: src/gui/newdeconv.c:1132
 #, fuzzy
 msgid "Wiener deconvolution..."
 msgstr "Rotação..."
 
-#: src/gui/newdeconv.c:1128
+#: src/gui/newdeconv.c:1133
 msgid "Richardson-Lucy halted early by the stopping criterion after iteration"
 msgstr ""
 
-#: src/gui/newdeconv.c:1129
+#: src/gui/newdeconv.c:1134
 #, fuzzy
 msgid "Richardson-Lucy deconvolution..."
 msgstr "Rotação..."
 
-#: src/gui/newdeconv.c:1300
+#: src/gui/newdeconv.c:1305
 msgid ""
 "Image row order has changed since PSF was generated. The PSF orientation "
 "will be updated to match before applying to this image."
 msgstr ""
 
-#: src/gui/newdeconv.c:1356
+#: src/gui/newdeconv.c:1361
 #, fuzzy
 msgid "Deconvolution. Processing sequence..."
 msgstr "Rotação..."
@@ -18802,79 +18793,79 @@ msgstr "Extrair o fundo"
 msgid "Stacking result image"
 msgstr ""
 
-#: src/stacking/stacking.c:628
+#: src/stacking/stacking.c:623
 msgid "Unsaved stacking result"
 msgstr ""
 
-#: src/stacking/stacking.c:819
+#: src/stacking/stacking.c:814
 msgid "Low clipping factor for the percentile clipping rejection algorithm."
 msgstr ""
 
-#: src/stacking/stacking.c:820
+#: src/stacking/stacking.c:815
 msgid "High clipping factor for the percentile clipping rejection algorithm."
 msgstr ""
 
-#: src/stacking/stacking.c:825
+#: src/stacking/stacking.c:820
 msgid "Percentile low: "
 msgstr ""
 
-#: src/stacking/stacking.c:826
+#: src/stacking/stacking.c:821
 msgid "Percentile high: "
 msgstr ""
 
-#: src/stacking/stacking.c:835
+#: src/stacking/stacking.c:830
 #, fuzzy
 msgid ""
 "Tolerance for low pixel values of the linear fit clipping algorithm, in "
 "sigma units."
 msgstr "Tolerância da rejeição global de amostras, em unidades sigma."
 
-#: src/stacking/stacking.c:836
+#: src/stacking/stacking.c:831
 msgid ""
 "Tolerance for high pixel values of the linear fit clipping algorithm, in "
 "sigma units."
 msgstr ""
 
-#: src/stacking/stacking.c:841
+#: src/stacking/stacking.c:836
 #, fuzzy
 msgid "Linear low: "
 msgstr "Linear"
 
-#: src/stacking/stacking.c:842
+#: src/stacking/stacking.c:837
 #, fuzzy
 msgid "Linear high: "
 msgstr "Linear"
 
-#: src/stacking/stacking.c:855
+#: src/stacking/stacking.c:850
 msgid "Low clipping factor for the sigma clipping rejection algorithm."
 msgstr ""
 
-#: src/stacking/stacking.c:856
+#: src/stacking/stacking.c:851
 msgid "High clipping factor for the sigma clipping rejection algorithm."
 msgstr ""
 
-#: src/stacking/stacking.c:871
+#: src/stacking/stacking.c:866
 msgid ""
 "Expected fraction of maximum outliers for the Generalized Extreme "
 "Studentized Deviate Test algorithm."
 msgstr ""
 
-#: src/stacking/stacking.c:872
+#: src/stacking/stacking.c:867
 msgid ""
 "Probability of making a false positive for the Generalized Extreme "
 "Studentized Deviate Test algorithm. Increasing this value will reject more "
 "pixels."
 msgstr ""
 
-#: src/stacking/stacking.c:878
+#: src/stacking/stacking.c:873
 msgid "ESD Outliers: "
 msgstr ""
 
-#: src/stacking/stacking.c:879
+#: src/stacking/stacking.c:874
 msgid "ESD Significance: "
 msgstr ""
 
-#: src/stacking/stacking.c:1247
+#: src/stacking/stacking.c:1242
 #, c-format
 msgid "Stacking %d images of the %d of the sequence"
 msgstr ""

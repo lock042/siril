@@ -6303,7 +6303,7 @@ enter a visible wavelength in nm</property>
                                               <object class="GtkSpinButton" id="bdeconv_psfwhm">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-text" translatable="yes">Full width at half maximum. For disc profiles this is just the diameter of the disc. For elliptical PSFs this is the longer PSF dimenson.</property>
+                                                <property name="tooltip-text" translatable="yes">Full width at half maximum. For disc profiles this is just the diameter of the disc. For elliptical PSFs this is the longer PSF dimension.</property>
                                                 <property name="text">3.00</property>
                                                 <property name="adjustment">convpsfwhm</property>
                                                 <property name="digits">2</property>
@@ -7384,7 +7384,7 @@ enter a visible wavelength in nm</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Opens a page in the online Siril documentation with usage tips and examples of settngs that can work for different types of image.</property>
+                        <property name="tooltip-text" translatable="yes">Opens a page in the online Siril documentation with usage tips and examples of settings that can work for different types of image.</property>
                         <property name="valign">start</property>
                         <signal name="clicked" handler="on_bdeconv_advice_button_clicked" swapped="no"/>
                       </object>
