@@ -118,7 +118,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 int fitseq_is_fitseq(const char *filename, int *frames) {
 	fitsfile *fptr;
 	int status = 0;
-	if (siril_fits_open_diskfile(&fptr, filename, READONLY, &status))
+	if (siril_fits_open_diskfile_img(&fptr, filename, READONLY, &status))
 		return 0;
 
 	int nb_images;
@@ -151,7 +151,7 @@ int fitseq_open(const char *filename, fitseq *fitseq) {
 	}
 
 	int status = 0;
-	siril_fits_open_diskfile(&(fitseq->fptr), filename, READONLY, &status);
+	siril_fits_open_diskfile_img(&(fitseq->fptr), filename, READONLY, &status);
 	if (status) {
 		report_fits_error(status);
 		siril_log_color_message(_("Cannot open FITS file %s\n"), "red", filename);
@@ -404,7 +404,7 @@ static int fitseq_prepare_for_multiple_read(fitseq *fitseq) {
 	fitseq->thread_fptr = malloc(fitseq->num_threads * sizeof(fitsfile *));
 	for (guint i = 0; i < fitseq->num_threads; i++) {
 		int status = 0;
-		if (siril_fits_open_diskfile(&fitseq->thread_fptr[i], fitseq->filename, READONLY, &status)) {
+		if (siril_fits_open_diskfile_img(&fitseq->thread_fptr[i], fitseq->filename, READONLY, &status)) {
 			report_fits_error(status);
 			return -1;
 		}

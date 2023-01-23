@@ -1763,7 +1763,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		strcpy(realname, name);
 
 	status = 0;
-	siril_fits_open_diskfile(&(fit->fptr), name, READONLY, &status);
+	siril_fits_open_diskfile_img(&(fit->fptr), name, READONLY, &status);
 	if (status) {
 		report_fits_error(status);
 		free(name);
@@ -1796,11 +1796,18 @@ close_readfits:
 	return retval;
 }
 
-int siril_fits_open_diskfile(fitsfile **fptr, const char *filename, int iomode, int *status) {
+static int siril_fits_open_diskfile(fitsfile **fptr, const char *filename, int iomode, int *status) {
+	gchar *localefilename = get_locale_filename(filename);
+	fits_open_diskfile(fptr, localefilename, iomode, status);
+	g_free(localefilename);
+	return *status;
+}
+
+int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomode, int *status) {
 	gchar *localefilename = get_locale_filename(filename);
 	fits_open_diskfile(fptr, localefilename, iomode, status);
 	if (!(*status)) {
-		siril_fits_move_first_image(*fptr);
+		*status = siril_fits_move_first_image(*fptr);
 	}
 	g_free(localefilename);
 	return *status;
@@ -1841,7 +1848,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	double data_max = 0.0;
 
 	status = 0;
-	if (siril_fits_open_diskfile(&(fit->fptr), filename, READONLY, &status)) {
+	if (siril_fits_open_diskfile_img(&(fit->fptr), filename, READONLY, &status)) {
 		report_fits_error(status);
 		return status;
 	}
@@ -2003,9 +2010,11 @@ int read_fits_metadata(fits *fit) {
 	return 0;
 }
 
-int read_fits_metadata_from_path(const char *filename, fits *fit) {
+static int read_fits_metadata_from_path_internal(const char *filename, fits *fit, gboolean image_file) {
 	int status = 0;
-	siril_fits_open_diskfile(&(fit->fptr), filename, READONLY, &status);
+	if (image_file)
+		siril_fits_open_diskfile_img(&(fit->fptr), filename, READONLY, &status);
+	else siril_fits_open_diskfile(&(fit->fptr), filename, READONLY, &status);
 	if (status) {
 		report_fits_error(status);
 		return status;
@@ -2017,6 +2026,16 @@ int read_fits_metadata_from_path(const char *filename, fits *fit) {
 	status = 0;
 	fits_close_file(fit->fptr, &status);
 	return status;
+}
+
+// for an image
+int read_fits_metadata_from_path(const char *filename, fits *fit) {
+	return read_fits_metadata_from_path_internal(filename, fit, TRUE);
+}
+
+// for any type of FITS
+int read_fits_metadata_from_path_first_HDU(const char *filename, fits *fit) {
+	return read_fits_metadata_from_path_internal(filename, fit, FALSE);
 }
 
 void flip_buffer(int bitpix, void *buffer, const rectangle *area) {
@@ -2615,7 +2634,7 @@ int copy_fits_from_file(char *source, char *destination) {
 	int status = 0; /* status must always be initialized = 0  */
 
 	/* Open the input file */
-	if (!siril_fits_open_diskfile(&infptr, source, READONLY, &status)) {
+	if (!siril_fits_open_diskfile_img(&infptr, source, READONLY, &status)) {
 		/* Create the output file */
 		if (!siril_fits_create_diskfile(&outfptr, destination, &status)) {
 

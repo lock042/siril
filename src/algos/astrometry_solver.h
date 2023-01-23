@@ -72,6 +72,7 @@ struct astrometry_data {
 	double magnitude_arg;	// if not automatic, use this limit magnitude
 	gboolean verbose;	// display all information
 	gboolean for_sequence;	// sequence operation, don't free everything
+	gchar *filename;	// the name of the file being processed
 
 	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
 	struct photometric_cc_data *pcc;// PCC configuration
@@ -89,7 +90,7 @@ struct astrometry_data {
 	int ret;		// return value
 	gchar *message;		// error message
 	gboolean image_flipped;	// image has been flipped
-	SirilWorldCS *new_center;	// the image center found by the solve
+	SirilWorldCS *new_center; // the image center found by the solve, for GUI update
 };
 
 struct sky_object {

@@ -5691,7 +5691,7 @@ int process_jsonmetadata(int nb) {
 
 	int status = 0;
 	fitsfile *fptr;
-	if (siril_fits_open_diskfile(&fptr, input_filename, READONLY, &status)) {
+	if (siril_fits_open_diskfile_img(&fptr, input_filename, READONLY, &status)) {
 		report_fits_error(status);
 		return CMD_GENERIC_ERROR;
 	}
@@ -8225,8 +8225,10 @@ int process_pcc(int nb) {
 
 	if (plate_solve) {
 		args->use_local_cat = local_cat;
-		if (cat == CAT_ASNET)
+		if (cat == CAT_ASNET) {
 			args->onlineCatalog = CAT_ASNET;
+			args->filename = g_strdup(com.uniq->filename);
+		}
 		else args->onlineCatalog = local_cat ? CAT_NOMAD : cat;
 		args->cat_center = target_coords;
 		args->downsample = FALSE;//gfit.rx > 6000;	// TODO: implement for asnet

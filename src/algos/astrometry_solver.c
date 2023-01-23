@@ -82,6 +82,18 @@ typedef struct {
 
 struct sky_object platedObject[RESOLVER_NUMBER];
 
+static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args) {
+	struct astrometry_data *ret = malloc(sizeof(struct astrometry_data));
+	if (!ret)
+		return NULL;
+	memcpy(ret, args, sizeof(struct astrometry_data));
+	ret->cat_center = siril_world_cs_ref(args->cat_center);
+	ret->fit = NULL;
+	ret->filename = NULL;
+	/* assuming catalog stays the same */
+	return ret;
+}
+
 static void fov_in_DHMS(double var, gchar *fov) {
 	int deg, decM;
 	double decS;
@@ -1426,6 +1438,7 @@ clearup:
 	if (args->catalog_file)
 		g_object_unref(args->catalog_file);
 	g_free(args->catalogStars);
+	g_free(args->filename);
 
 	if (!args->for_sequence)
 		siril_add_idle(end_plate_solver, args);
@@ -1677,7 +1690,7 @@ clearup:
 static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution) {
 	// command to run:
 	// solve-field -p -N none -R none -M none -B none -U none --temp-axy -S none --crpix-center -T -H 0.2 -u app -X XIMAGE -Y YIMAGE sources.xyls
-	const char *table_filename = "temp_sources.xyls";	// not reentrant because of this
+	gchar *table_filename = replace_ext(args->filename, ".xyls");
 	if (save_list_as_FITS_table(table_filename, stars, n_fit, args->fit->rx, args->fit->ry)) {
 		siril_log_message(_("Failed to create the input data for solve-field\n"));
 		return 1;
@@ -1762,9 +1775,9 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 			return 1;
 
 		/* get the results from the .wcs file */
-		const char *wcs_filename = "temp_sources.wcs";
+		gchar *wcs_filename = replace_ext(args->filename, ".wcs");
 		fits result = { 0 };
-		if (read_fits_metadata_from_path(wcs_filename, &result)) {
+		if (read_fits_metadata_from_path_first_HDU(wcs_filename, &result)) {
 			siril_log_color_message(_("Could not read the solution from solve-field (expected in file %s)\n"), "red", wcs_filename);
 			return 1;
 		}
@@ -1778,6 +1791,8 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 		clearfits(&result);
 		g_unlink(table_filename);
 		g_unlink(wcs_filename);
+		g_free(table_filename);
+		g_free(wcs_filename);
 
 		args->fit->wcsdata.pltsolvd = TRUE;
 		strcpy(args->fit->wcsdata.pltsolvd_comment, "This is a WCS header was created by Astrometry.net.");
@@ -1904,10 +1919,23 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 }
 
 static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
-	struct astrometry_data *args = (struct astrometry_data *)arg->user;
-	args->fit = fit;	// not reentrant because of that and other fields of the struct
-	process_plate_solver_input(args);
-	return GPOINTER_TO_INT(plate_solver(args));
+	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
+	aargs = copy_astrometry_args(aargs);
+	aargs->fit = fit;
+
+	char root[256];
+	if (!fit_sequence_get_image_filename(arg->seq, i, root, FALSE)) {
+		free(aargs);
+		return 1;
+	}
+	aargs->filename = g_strdup(root);
+	process_plate_solver_input(aargs); // depends on args->fit
+	int retval = GPOINTER_TO_INT(plate_solver(aargs));
+
+	siril_world_cs_unref(aargs->cat_center);
+	g_free(aargs->filename);
+	free(aargs);
+	return retval;
 }
 
 /* TODO:

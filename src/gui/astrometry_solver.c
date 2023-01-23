@@ -584,6 +584,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->use_local_cat = TRUE;
 		args->catalog_file = NULL;
 		args->onlineCatalog = CAT_ASNET;
+		args->filename = g_strdup(com.uniq->filename);
 		return 0;
 	}
 
