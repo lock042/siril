@@ -28,8 +28,9 @@ typedef enum {
 	CAT_BRIGHT_STARS,
 	CAT_APASS,
 	CAT_AUTO = 98,
-	CAT_LOCAL = 99
-} online_catalog;
+	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
+	CAT_ASNET = 100,	// solve-field local (astrometry.net)
+} online_catalog;	// TODO: rename
 
 typedef enum {
 	RESOLVER_UNSET = -1,
@@ -76,7 +77,7 @@ struct astrometry_data {
 	struct photometric_cc_data *pcc;// PCC configuration
 
 	/* program-processed input, by process_plate_solver_input() */
-	double limit_mag;	// limit magnitude to sear for in the catalog
+	double limit_mag;	// limit magnitude to search for in the catalog
 	double scale;		// scale (resolution) in arcsec per pixel
 	double used_fov;	// field of view for the solved image region (arcmin)
 	GFile *catalog_file;	// downloaded file containing raw catalog data
@@ -88,7 +89,7 @@ struct astrometry_data {
 	int ret;		// return value
 	gchar *message;		// error message
 	gboolean image_flipped;	// image has been flipped
-	SirilWorldCS *new_center; // the image center found by the solve
+	SirilWorldCS *new_center;	// the image center found by the solve
 };
 
 struct sky_object {
@@ -106,7 +107,7 @@ void process_plate_solver_input(struct astrometry_data *args);
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
 void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
-gpointer match_catalog(gpointer p);
+gpointer plate_solver(gpointer p);
 double compute_mag_limit_from_fov(double fov_degrees);
 
 gboolean confirm_delete_wcs_keywords(fits *fit);

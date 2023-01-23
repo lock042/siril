@@ -319,9 +319,10 @@ static void start_image_plate_solve() {
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 
 	args->for_photometry_cc = FALSE;
+	args->verbose = TRUE;
 	if (!fill_plate_solver_structure_from_GUI(args)) {
 		set_cursor_waiting(TRUE);
-		start_in_new_thread(match_catalog, args);
+		start_in_new_thread(plate_solver, args);
 	}
 }
 

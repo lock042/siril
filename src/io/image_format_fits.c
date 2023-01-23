@@ -1771,11 +1771,6 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	}
 	free(name);
 
-	if (siril_fits_move_first_image(fit->fptr)) {
-		siril_log_message(_("Selecting the primary header failed, is the FITS file '%s' malformed?\n"), filename);
-		goto close_readfits;
-	}
-
 	status = read_fits_metadata(fit);
 	if (status)
 		goto close_readfits;
@@ -1849,11 +1844,6 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 	if (siril_fits_open_diskfile(&(fit->fptr), filename, READONLY, &status)) {
 		report_fits_error(status);
 		return status;
-	}
-
-	if (siril_fits_move_first_image(fit->fptr)) {
-		siril_log_message(_("Selecting the primary header failed, is the FITS file '%s' malformed?\n"), filename);
-		return -1;
 	}
 
 	status = 0;
@@ -2019,11 +2009,6 @@ int read_fits_metadata_from_path(const char *filename, fits *fit) {
 	if (status) {
 		report_fits_error(status);
 		return status;
-	}
-
-	if (siril_fits_move_first_image(fit->fptr)) {
-		siril_log_message(_("Selecting the primary header failed, is the FITS file '%s' malformed?\n"), filename);
-		return -1;
 	}
 
 	read_fits_metadata(fit);

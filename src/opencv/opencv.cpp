@@ -241,13 +241,13 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean 
 
 	// OpenCV function
 	resize(in, out, out.size(), 0, 0, interpolation);
+
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 		Mat guide, tmp1;
 		// Create guide image
 		resize(in, guide, out.size(), 0, 0, OPENCV_AREA);
 		tmp1 = (out < CLAMPING_FACTOR * guide);
-		Mat element = getStructuringElement( MORPH_ELLIPSE,
-                       Size(3, 3), Point(1,1));
+		Mat element = getStructuringElement(MORPH_ELLIPSE, Size(3, 3), Point(1,1));
 		dilate(tmp1, tmp1, element);
 
 		copyTo(guide, out, tmp1); // Guide copied to the clamped pixels

@@ -7960,10 +7960,11 @@ int process_pcc(int nb) {
 	gboolean pcc_command = word[0][1] == 'c'; // not 'platesolve' or 'seqplatesolve'
 	gboolean seqps = word[0][0] == 's';
 	sequence *seq = NULL;
-	// parse args: [target_coords] [-noflip] [-platesolve] [-focal=len] [-pixelsize=ps] [-limitmag=[+-]mag] [-catalog=]
+
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
 	if (seqps) {
+		// TODO: allow it for solve-field too
 		if (!local_cat) {
 			siril_log_message(_("This feature is only available with local catalogues installed\n"));
 			return CMD_GENERIC_ERROR;;
@@ -7976,18 +7977,18 @@ int process_pcc(int nb) {
 	// check if we have target_coords
 	if (nb > next_arg && (word[next_arg][0] != '-' || (word[next_arg][1] >= '0' && word[next_arg][1] <= '9'))) {
 		char *sep = strchr(word[next_arg], ',');
-		next_arg++;
 		if (!sep) {
 			if (nb == 2) {
 				siril_log_message(_("Could not parse target coordinates\n"));
 				return CMD_ARG_ERROR;
 			}
 			target_coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg+1]);
-			next_arg++;
+			next_arg += 2;
 		}
 		else {
 			*sep++ = '\0';
 			target_coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], sep);
+			next_arg++;
 		}
 		if (!target_coords) {
 			siril_log_message(_("Could not parse target coordinates\n"));
@@ -8058,6 +8059,17 @@ int process_pcc(int nb) {
 				siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
+		}
+		else if (!pcc_command && !g_ascii_strcasecmp(word[next_arg], "-localasnet")) {
+			if (cat != CAT_AUTO)
+				siril_log_message(_("Specifying a catalog has no effect for astrometry.net solving\n"));
+#ifndef HAVE_WCSLIB
+			siril_log_color_message(_("Astrometry.net interaction relies on the missing WCSLIB software, cannot continue.\n"), "red");
+			return CMD_ARG_ERROR;
+#else
+			cat = CAT_ASNET;
+			local_cat = TRUE;
+#endif
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 			siril_world_cs_unref(target_coords);
@@ -8096,12 +8108,14 @@ int process_pcc(int nb) {
 
 	if (plate_solve && !target_coords) {
 		target_coords = get_eqs_from_header(&gfit);
-		if (!target_coords) {
-			siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
-			return CMD_INVALID_IMAGE;
+		if (cat != CAT_ASNET) {
+			if (!target_coords) {
+				siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
+				return CMD_INVALID_IMAGE;
+			}
+			siril_log_message(_("Using target coordinate from image header: %f, %f\n"),
+					siril_world_cs_get_alpha(target_coords), siril_world_cs_get_delta(target_coords));
 		}
-		siril_log_message(_("Using target coordinate from image header: %f, %f\n"),
-				siril_world_cs_get_alpha(target_coords), siril_world_cs_get_delta(target_coords));
 	}
 
 	if (pcc_command) {
@@ -8119,6 +8133,7 @@ int process_pcc(int nb) {
 	if (plate_solve) {
 		args = calloc(1, sizeof(struct astrometry_data));
 		args->fit = &gfit;
+		args->verbose = TRUE;
 	}
 	if (pcc_command) {
 		pcc_args = calloc(1, sizeof(struct photometric_cc_data));
@@ -8175,6 +8190,8 @@ int process_pcc(int nb) {
 	}
 
 	if (target_mag > -1.0) {
+		if (cat == CAT_ASNET)
+			siril_log_message(_("Magnitude alteration arguments are useless for astrometry.net plate solving\n"));
 		if (args) {
 			args->mag_mode = LIMIT_MAG_ABSOLUTE;
 			args->magnitude_arg = target_mag;
@@ -8185,6 +8202,8 @@ int process_pcc(int nb) {
 		}
 	}
 	else if (mag_offset != 0.0) {
+		if (cat == CAT_ASNET)
+			siril_log_message(_("Magnitude alteration arguments are useless for astrometry.net plate solving\n"));
 		if (args) {
 			args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
 			args->magnitude_arg = mag_offset;
@@ -8201,14 +8220,16 @@ int process_pcc(int nb) {
 			pcc_args->mag_mode = LIMIT_MAG_AUTO;
 	}
 
-	if (local_cat && cat != CAT_AUTO)
-		siril_debug_print("using local star catalogues\n");
+	if (local_cat && cat != CAT_AUTO && cat != CAT_ASNET)
+		siril_log_color_message(_("Local star catalogues were found, not using the specified catalogue\n"), "salmon");
 
 	if (plate_solve) {
 		args->use_local_cat = local_cat;
-		args->onlineCatalog = local_cat ? CAT_NOMAD : cat;
+		if (cat == CAT_ASNET)
+			args->onlineCatalog = CAT_ASNET;
+		else args->onlineCatalog = local_cat ? CAT_NOMAD : cat;
 		args->cat_center = target_coords;
-		args->downsample = gfit.rx > 6000;
+		args->downsample = FALSE;//gfit.rx > 6000;	// TODO: implement for asnet
 		args->autocrop = TRUE;
 		args->flip_image = !noflip;
 		args->manual = FALSE;
@@ -8225,7 +8246,7 @@ int process_pcc(int nb) {
 	}
 
 	if (plate_solve)
-		start_in_new_thread(match_catalog, args);
+		start_in_new_thread(plate_solver, args);
 	else {
 		start_in_new_thread(photometric_cc_standalone, pcc_args);
 	}
@@ -8358,6 +8379,7 @@ int process_catsearch(int nb){
 
 	gchar *result;
 	if (nb > 2) {
+		// replace with build_string_from_words(word+1);
 		GString *str = g_string_new(word[1]);
 		int i = 2;
 		while (i < nb && word[i]) {

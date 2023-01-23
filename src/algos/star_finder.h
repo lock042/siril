@@ -24,7 +24,8 @@ struct starfinder_data {
 	struct wcsprm *ref_wcs;	// reference astrometry
 #endif
 	/****************************************************************/
-	gchar *starfile;	// save to file if not NULL
+	gchar *starfile;	// save to lst file if not NULL
+	gchar *startable;	// save to FITS table if not NULL
 	psf_star ***stars;	// save to pointer if not NULL
 	int *nb_stars;		// number of stars in stars if not NULL
 	threading_type threading;
@@ -73,5 +74,7 @@ psf_star **filter_stars_by_amplitude(psf_star **stars, float threshold, int *nbf
 float filtered_FWHM_average(psf_star **stars, int nb);
 int apply_findstar_to_sequence(struct starfinder_data *findstar_args);
 gpointer findstar_worker(gpointer p);
+int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, int layer, gboolean verbose);
+int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars, int rx, int ry);
 
 #endif

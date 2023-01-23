@@ -90,7 +90,7 @@ static void start_photometric_cc() {
 		if (!fill_plate_solver_structure_from_GUI(args)) {
 			pcc_args->mag_mode = args->mag_mode;
 			pcc_args->magnitude_arg = args->magnitude_arg;
-			start_in_new_thread(match_catalog, args);
+			start_in_new_thread(plate_solver, args);
 		}
 	} else {
 		// XXX no magnitude override in this case?

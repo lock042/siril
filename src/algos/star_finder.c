@@ -766,7 +766,6 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 	}
 }
 
-
 float filtered_FWHM_average(psf_star **stars, int nb) {
 	if (!stars || !stars[0])
 		return 0.0f;
@@ -874,6 +873,146 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	}
 	fclose(fd);
 	return !read_failure;
+}
+
+#define HANDLE_WRITE_ERR \
+	g_warning("%s\n", error->message); \
+	g_clear_error(&error); \
+	g_object_unref(output_stream); \
+	g_object_unref(file); \
+	return 1
+
+int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, int layer, gboolean verbose) {
+	int i = 0;
+	GError *error = NULL;
+
+	GFile *file = g_file_new_for_path(filename);
+	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
+			G_FILE_CREATE_NONE, NULL, &error);
+
+	if (!output_stream) {
+		if (error) {
+			siril_log_message(_("Cannot save star list %s: %s\n"), filename, error->message);
+			g_clear_error(&error);
+		}
+		g_object_unref(file);
+		return 1;
+	}
+	if (nbstars <= 0) {
+		// unknown by caller
+		nbstars = 0;
+		if (stars)
+			while (stars[nbstars++]);
+	}
+
+	char buffer[320];
+	char gausstr[] = "Gaussian";
+	char moffstr[] = "Moffat";
+	char *starprof;
+	gdouble beta;
+	int len = snprintf(buffer, 320, "# %d stars found using the following parameters:%s", nbstars, SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
+	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d relax=%d profile=%d minbeta=%3.1f max_stars=%d layer=%d%s",
+			sf->sigma, sf->roundness, sf->radius, sf->relax_checks,sf->profile, sf->min_beta, max_stars_fitted, layer, SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
+	len = snprintf(buffer, 320,
+			"# star#\tlayer\tB\tA\tbeta\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag\tProfile\tRA\tDec%s",
+			SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
+	if (stars) {
+		while (stars[i]) {
+			if (stars[i]->profile == PSF_GAUSSIAN) {
+				beta = -1;
+				starprof = gausstr;
+			} else {
+				beta = stars[i]->beta;
+				starprof = moffstr;
+			}
+			len = snprintf(buffer, 320,
+					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%s\t%f\t%f%s",
+					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A, beta,
+					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
+					stars[i]->fwhmy, stars[i]->fwhmx_arcsec ,stars[i]->fwhmy_arcsec,
+					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset,
+					starprof, stars[i]->ra, stars[i]->dec, SIRIL_EOL);
+		if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+			HANDLE_WRITE_ERR;
+		}
+		i++;
+	}
+	}
+	if (verbose) siril_log_message(_("The file %s has been created.\n"), filename);
+	g_object_unref(output_stream);
+	g_object_unref(file);
+
+	return 0;
+}
+
+/* saving a list of sources to the input format of solve-field, the astrometry.net
+ * plate solver, as described here:
+ * http://astrometry.net/doc/readme.html#source-lists-xylists
+ * Convention is to have the columns for pixel coordinates named IMAGEX and IMAGEY and
+ * having in the header the keywords IMAGEW and IMAGEH giving rx and ry.
+ */
+int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars, int rx, int ry) {
+	g_unlink(filename); /* Delete old file if it already exists */
+
+	fitsfile *fptr = NULL;
+	int status = 0;
+	if (siril_fits_create_diskfile(&fptr, filename, &status)) { /* create new FITS file */
+		report_fits_error(status);
+		return 1;
+	}
+
+	char* rownames[] = { "X", "Y" };
+	char* rowtypes[] = { "1E", "1E" };	// rE is float, rD is double
+	if (fits_create_tbl(fptr, BINARY_TBL, nbstars, 2, rownames, rowtypes, NULL, NULL, &status)) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fptr, &status);
+		return 1;
+	}
+
+	fits_update_key(fptr, TINT, "IMAGEW", &rx, "Image width in pixels", &status);
+	fits_update_key(fptr, TINT, "IMAGEH", &ry, "Image height in pixels", &status);
+	if (status)
+		siril_debug_print("Failed to write the IMAGEW and IMAGEH headers to the FITS table\n");
+
+	/* reorganize data per row for saving */
+	float *data = malloc(nbstars * sizeof(float));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		fits_close_file(fptr, &status);
+		return 1;
+	}
+
+	status = 0;
+	for (int i = 0; i < nbstars; i++)
+		data[i] = stars[i]->xpos;
+	if (fits_write_col(fptr, TFLOAT, 1, 1, 1, nbstars, data, &status)) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fptr, &status);
+		free(data);
+		return 1;
+	}
+
+	for (int i = 0; i < nbstars; i++)
+		data[i] = ry - stars[i]->ypos - 1;
+	if (fits_write_col(fptr, TFLOAT, 2, 1, 1, nbstars, data, &status))
+		report_fits_error(status);
+
+	int retval = status;
+	status = 0;
+	fits_close_file(fptr, &status);
+	free(data);
+	return retval;
 }
 
 int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
@@ -1029,6 +1168,13 @@ gpointer findstar_worker(gpointer p) {
 	if (args->starfile &&
 			save_list(args->starfile, args->max_stars_fitted, stars, nbstars,
 				&com.pref.starfinder_conf, args->layer, args->update_GUI)) {
+		retval = 1;
+	}
+
+	if (args->startable &&
+			save_list_as_FITS_table(args->startable, stars, nbstars,
+				args->im.fit->rx, args->im.fit->ry)) {
+		siril_debug_print("saving list as FITS table failed\n");
 		retval = 1;
 	}
 
