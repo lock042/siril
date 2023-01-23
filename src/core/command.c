@@ -8277,7 +8277,7 @@ int process_nomad(int nb) {
 	uint64_t sqr_radius = (gfit.rx * gfit.rx + gfit.ry * gfit.ry) / 4;
 	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	siril_debug_print("centre coords: %f, %f, radius: %f\n", ra, dec, radius);
-	if (get_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
+	if (get_photo_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
 		siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 		return CMD_GENERIC_ERROR;
 	}

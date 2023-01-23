@@ -82,9 +82,13 @@ struct astrometry_data {
 	double scale;		// scale (resolution) in arcsec per pixel
 	double used_fov;	// field of view for the solved image region (arcmin)
 	GFile *catalog_file;	// downloaded file containing raw catalog data
-	gchar *catalogStars;	// file name of the projected catalog
+	//gchar *catalogStars;	// file name of the projected catalog
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
+
+	/* runtime data */
+	psf_star **cstars;	// catalogue stars
+	int n_cat;		// number of catalogue stars
 
 	/* results */
 	int ret;		// return value

@@ -1223,8 +1223,62 @@ void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
 	cd[1][1] = pc[1][1] * cdelt[1];
 }
 
-static int match_catalog(psf_star **stars, int n_fit, psf_star **cstars, int n_cat, struct astrometry_data *args, solve_results *solution);
+static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution);
 static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution);
+
+#define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->message = g_strdup(_("Cancelled")); args->ret = 1; return 1; }
+static int get_catalog_stars(struct astrometry_data *args) {
+	if (args->onlineCatalog == CAT_ASNET)
+		return 0;
+
+	/* obtaining a star catalogue */
+	if (!args->catalog_file && !args->use_local_cat) {
+		args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
+				args->used_fov * 0.5, args->limit_mag);
+		if (!args->catalog_file) {
+			args->message = g_strdup(_("Could not download the online star catalogue."));
+			return 1;
+		}
+	}
+	CHECK_FOR_CANCELLATION_RET;
+
+	args->cstars = new_fitted_stars(MAX_STARS);
+	if (!args->cstars) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+
+	/* project and open the file */
+	gchar *catalogStars;	// file name of the projected catalog
+	if (args->use_local_cat) {
+		catalogStars = get_and_project_local_catalog(args->cat_center,
+				args->used_fov / 120.0, args->limit_mag, FALSE);
+	} else {
+		catalogStars = project_catalog(args->catalog_file, args->cat_center);
+		if (!catalogStars) {
+			args->message = g_strdup(_("Cannot project the star catalog."));
+			return 1;
+		}
+	}
+	CHECK_FOR_CANCELLATION_RET;
+	GFile *catalog = g_file_new_for_path(catalogStars);
+	GError *error = NULL;
+	GInputStream *input_stream = (GInputStream*) g_file_read(catalog, NULL, &error);
+	if (!input_stream) {
+		if (error != NULL) {
+			args->message = g_strdup_printf(_("Could not load the star catalog (%s)."), error->message);
+			g_clear_error(&error);
+		}
+		args->message = g_strdup_printf(_("Could not load the star catalog (%s)."), "generic error");
+		return 1;
+	}
+
+	args->n_cat = read_catalog(input_stream, args->cstars, args->onlineCatalog);
+	g_object_unref(input_stream);
+	g_object_unref(catalog);
+	g_free(catalogStars);
+	return 0;
+}
 
 #define CHECK_FOR_CANCELLATION if (!get_thread_run()) { args->message = g_strdup(_("Cancelled")); args->ret = 1; goto clearup; }
 
@@ -1232,8 +1286,7 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 gpointer plate_solver(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	psf_star **stars = NULL;	// image stars
-	psf_star **cstars = NULL;	// catalogue stars
-	int n_fit = 0, n_cat = 0;	// number of image and catalogue stars
+	int n_fit = 0;	// number of image and catalogue stars
 
 	args->ret = 1;
 	args->message = NULL;
@@ -1255,53 +1308,10 @@ gpointer plate_solver(gpointer p) {
 	}
 
 	/* 1. Get catalogue stars for the field of view */
-	if (args->onlineCatalog != CAT_ASNET) {
-		/* obtaining a star catalogue */
-		if (!args->catalog_file && !args->use_local_cat) {
-			args->catalog_file = download_catalog(args->onlineCatalog, args->cat_center,
-					args->used_fov * 0.5, args->limit_mag);
-			if (!args->catalog_file) {
-				args->message = g_strdup(_("Could not download the online star catalogue."));
-				goto clearup;
-			}
-		}
-		CHECK_FOR_CANCELLATION;
-
-		cstars = new_fitted_stars(MAX_STARS);
-		if (!cstars) {
-			PRINT_ALLOC_ERR;
-			goto clearup;
-		}
-
-		/* project and open the file */
-		if (args->use_local_cat) {
-			args->catalogStars = get_and_project_local_catalog(args->cat_center,
-					args->used_fov / 120.0, args->limit_mag, FALSE);
-		} else {
-			args->catalogStars = project_catalog(args->catalog_file, args->cat_center);
-			if (!args->catalogStars) {
-				args->message = g_strdup(_("Cannot project the star catalog."));
-				goto clearup;
-			}
-		}
-		CHECK_FOR_CANCELLATION;
-		GFile *catalog = g_file_new_for_path(args->catalogStars);
-		GError *error = NULL;
-		GInputStream *input_stream = (GInputStream*) g_file_read(catalog, NULL, &error);
-		if (!input_stream) {
-			if (error != NULL) {
-				args->message = g_strdup_printf(_("Could not load the star catalog (%s)."), error->message);
-				g_clear_error(&error);
-			}
-			args->message = g_strdup_printf(_("Could not load the star catalog (%s)."), "generic error");
-			goto clearup;
-		}
-
-		n_cat = read_catalog(input_stream, cstars, args->onlineCatalog);
-		g_object_unref(input_stream);
-		g_object_unref(catalog);
-		CHECK_FOR_CANCELLATION;
+	if (!args->for_sequence && get_catalog_stars(args)) {
+		goto clearup;
 	}
+	CHECK_FOR_CANCELLATION;
 
 	/* 2. Get image stars */
 	if (!args->manual) {
@@ -1320,7 +1330,7 @@ gpointer plate_solver(gpointer p) {
 
 		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
 		// capping the detection to max usable number of stars
-		int max_stars = args->for_photometry_cc ? n_cat : min(n_cat, BRIGHTEST_STARS);
+		int max_stars = args->for_photometry_cc ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
 
 		// TODO: use good layer
 		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE,
@@ -1357,7 +1367,7 @@ gpointer plate_solver(gpointer p) {
 
 	if (args->onlineCatalog == CAT_ASNET)
 		args->ret = local_asnet_platesolve(stars, n_fit, args, &solution);
-	else match_catalog(stars, n_fit, cstars, n_cat, args, &solution);
+	else match_catalog(stars, n_fit, args, &solution);
 	if (args->ret)
 		goto clearup;
 
@@ -1381,7 +1391,7 @@ gpointer plate_solver(gpointer p) {
 			// for photometry, we can use fainter stars, 1.5 seems ok above instead of 2.0
 			if (args->verbose)
 				siril_log_message(_("Getting stars from local catalogues for PCC, limit magnitude %.2f\n"), args->limit_mag);
-			if (get_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars)) {
+			if (get_photo_stars_from_local_catalogues(tra, tdec, radius, args->fit, args->limit_mag, &pcc_stars, &nb_pcc_stars)) {
 				siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 				args->ret = 1;
 			}
@@ -1431,29 +1441,28 @@ clearup:
 			free_psf(stars[i]);
 		free(stars);
 	}
-	if (!args->for_sequence)
-		siril_world_cs_unref(args->cat_center);
-	if (cstars)
-		free_fitted_stars(cstars);
-	if (args->catalog_file)
-		g_object_unref(args->catalog_file);
-	g_free(args->catalogStars);
+	siril_world_cs_unref(args->cat_center);
+	if (!args->for_sequence) {
+		if (args->cstars)
+			free_fitted_stars(args->cstars);
+		if (args->catalog_file)
+			g_object_unref(args->catalog_file);
+	}
 	g_free(args->filename);
 
+	int retval = args->ret;
+	if (com.script && retval) {
+		siril_log_message(_("Plate solving failed: %s\n"), args->message);
+		g_free(args->message);
+	}
 	if (!args->for_sequence)
 		siril_add_idle(end_plate_solver, args);
-	int retval = args->ret;
-	if (com.script) {
-		if (args->ret)
-			siril_log_message(_("Plate solving failed: %s\n"), args->message);
-		if (!args->for_sequence)
-			free(args);
-	}
+	else free(args);
 	return GINT_TO_POINTER(retval);
 }
 
 /* entry point for siril's plate solver based on catalogue matching */
-static int match_catalog(psf_star **stars, int n_fit, psf_star **cstars, int n_cat, struct astrometry_data *args, solve_results *solution) {
+static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution) {
 	Homography H = { 0 };
 	int nobj = AT_MATCH_CATALOG_NBRIGHT;
 	int max_trials = 0;
@@ -1464,7 +1473,7 @@ static int match_catalog(psf_star **stars, int n_fit, psf_star **cstars, int n_c
 
 	/* make sure that arrays are not too small
 	 * make sure that the max of stars is BRIGHTEST_STARS */
-	int n = min(min(n_fit, n_cat), BRIGHTEST_STARS);
+	int n = min(min(n_fit, args->n_cat), BRIGHTEST_STARS);
 
 	double scale_min = args->scale - 0.2;
 	double scale_max = args->scale + 0.2;
@@ -1472,7 +1481,7 @@ static int match_catalog(psf_star **stars, int n_fit, psf_star **cstars, int n_c
 	while (args->ret && attempt <= 3) {
 		free_stars(&star_list_A);
 		free_stars(&star_list_B);
-		args->ret = new_star_match(stars, cstars, n, nobj,
+		args->ret = new_star_match(stars, args->cstars, n, nobj,
 				scale_min, scale_max, &H,
 				FALSE, NULL, NULL,
 				AFFINE_TRANSFORMATION, &star_list_A, &star_list_B);
@@ -1914,8 +1923,10 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		}
 	}
 
+	args->fit = &fit;
+	process_plate_solver_input(args); // compute required data to get the catalog
 	clearfits(&fit);
-	return 0;
+	return get_catalog_stars(args);
 }
 
 static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
@@ -1932,10 +1943,16 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	process_plate_solver_input(aargs); // depends on args->fit
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 
-	siril_world_cs_unref(aargs->cat_center);
-	g_free(aargs->filename);
-	free(aargs);
 	return retval;
+}
+
+static int astrometry_finalize_hook(struct generic_seq_args *arg) {
+	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
+	if (aargs->cstars)
+		free_fitted_stars(aargs->cstars);
+	if (aargs->catalog_file)
+		g_object_unref(aargs->catalog_file);
+	return 0;
 }
 
 /* TODO:
@@ -1948,9 +1965,10 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = seq->selnum;
 	seqargs->stop_on_error = FALSE;
-	seqargs->parallel = FALSE;		// I don't think local catalogues are reentrant
+	seqargs->parallel = TRUE;		// I don't think local catalogues are reentrant
 	seqargs->prepare_hook = astrometry_prepare_hook;
 	seqargs->image_hook = astrometry_image_hook;
+	seqargs->finalize_hook = astrometry_finalize_hook;
 	seqargs->has_output = TRUE;
 	seqargs->new_seq_prefix = "ps_";
 	seqargs->description = "plate solving";
