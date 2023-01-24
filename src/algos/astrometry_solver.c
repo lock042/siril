@@ -27,8 +27,13 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
+#ifndef _WIN32
 #include <sys/types.h> // for waitpid(2)
 #include <sys/wait.h> // for waitpid(2)
+#include <gio/gunixinputstream.h>
+#else
+#include <gio/gwin32inputstream.h>
+#endif
 
 #ifdef HAVE_LIBCURL
 #include <curl/curl.h>
@@ -1696,6 +1701,12 @@ clearup:
 	return args->ret;
 }
 
+static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
+	siril_debug_print("Child %" G_PID_FORMAT " exited %s\n", pid,
+			g_spawn_check_wait_status (status, NULL) ? "normally" : "abnormally");
+	g_spawn_close_pid(pid);
+}
+
 static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution) {
 	// command to run:
 	// solve-field -p -N none -R none -M none -B none -U none --temp-axy -S none --crpix-center -T -H 0.2 -u app -X XIMAGE -Y YIMAGE sources.xyls
@@ -1746,6 +1757,7 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	g_free(command);
 
 	/* call solve-field */
+#if 0
 	int pipefd[2];
 	if (pipe(pipefd)) {
 		perror("failed to create pipe for solve-field");
@@ -1795,54 +1807,100 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 		if (!success)
 			return 1;
 
-		/* get the results from the .wcs file */
-		gchar *wcs_filename = replace_ext(args->filename, ".wcs");
-		fits result = { 0 };
-		if (read_fits_metadata_from_path_first_HDU(wcs_filename, &result)) {
-			siril_log_color_message(_("Could not read the solution from solve-field (expected in file %s)\n"), "red", wcs_filename);
-			return 1;
-		}
+#else
+	gint child_stdout, child_stderr;
+	GPid child_pid;
+	g_autoptr(GError) error = NULL;
 
-		memcpy(&args->fit->wcsdata, &result.wcsdata, sizeof(wcs_info));
-		memset(&result.wcsdata, 0, sizeof(wcs_info));
-#ifdef HAVE_WCSLIB
-		args->fit->wcslib = result.wcslib;
-		result.wcslib = NULL;
-#endif
-		clearfits(&result);
-		if (!com.pref.astrometry.keep_xyls_files)
-			g_unlink(table_filename);
-		if (!com.pref.astrometry.keep_wcs_files)
-			g_unlink(wcs_filename);
-		g_free(table_filename);
-		g_free(wcs_filename);
-
-		args->fit->wcsdata.pltsolvd = TRUE;
-		strcpy(args->fit->wcsdata.pltsolvd_comment, "This is a WCS header was created by Astrometry.net.");
-		if (args->verbose)
-			siril_log_color_message(_("Local astrometry.net solve succeeded.\n"), "green");
-
-		// asnet puts more info in the HISTORY and the console log in COMMENT fields
-		solution->image_center = siril_world_cs_new_from_a_d(
-				args->fit->wcsdata.crval[0],
-				args->fit->wcsdata.crval[1]);
-		// TODO: handle args->downsample
-		/* print results from WCS data */
-		if (args->verbose) {
-			double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
-			siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
-			//siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
-			siril_log_message(_("Focal length:%*.2lf mm\n"), 8, RADCONV * args->pixel_size / resolution);
-			siril_log_message(_("Pixel size:%*.2lf µm\n"), 10, args->pixel_size);
-			char field_x[256] = "";
-			char field_y[256] = "";
-			fov_in_DHMS(resolution * solution->size.x / 3600.0, field_x);
-			fov_in_DHMS(resolution * solution->size.y / 3600.0, field_y);
-			siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
-		}
-
-		return 0;
+	g_spawn_async_with_pipes(NULL, sfargs, NULL,
+			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
+			NULL, NULL, &child_pid, NULL, &child_stdout,
+			&child_stderr, &error);
+	if (error != NULL) {
+		g_error("Spawning child failed: %s", error->message);
+		return 1;
 	}
+
+	// Add a child watch function which will be called when the child process exits.
+	g_child_watch_add(child_pid, child_watch_cb, NULL);
+
+	// You could watch for output on @child_stdout and @child_stderr using
+	// #GUnixInputStream or #GIOChannel here.
+	GInputStream *stream = NULL;
+#ifdef _WIN32
+	HANDLE handle = GetStdHandle(STD_INPUT_HANDLE);
+	stream = g_win32_input_stream_new(child_stdout, FALSE);
+#else
+	stream = g_unix_input_stream_new(child_stdout, FALSE);
+#endif
+	gboolean success = FALSE;
+	gchar *buffer;
+	gsize length = 0;
+	GDataInputStream *data_input = g_data_input_stream_new(stream);
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
+					NULL, NULL))) {
+		siril_debug_print("solver: %s\n", buffer);
+		if (!strncmp(buffer, "Did not solve", strlen("Did not solve"))) {
+			siril_log_color_message(_("No astrometric solution found\n"), "red");
+			break;
+		}
+		if (!strncmp(buffer, "Field center: (RA,Dec)", 22)) {
+			siril_debug_print("Found a solution, waiting for EOF and exit\n");
+			success = TRUE;
+		}
+	}
+	g_object_unref(data_input);
+	g_object_unref(stream);
+	if (!success)
+		return 1;
+#endif
+
+	/* get the results from the .wcs file */
+	gchar *wcs_filename = replace_ext(args->filename, ".wcs");
+	fits result = { 0 };
+	if (read_fits_metadata_from_path_first_HDU(wcs_filename, &result)) {
+		siril_log_color_message(_("Could not read the solution from solve-field (expected in file %s)\n"), "red", wcs_filename);
+		return 1;
+	}
+
+	memcpy(&args->fit->wcsdata, &result.wcsdata, sizeof(wcs_info));
+	memset(&result.wcsdata, 0, sizeof(wcs_info));
+#ifdef HAVE_WCSLIB
+	args->fit->wcslib = result.wcslib;
+	result.wcslib = NULL;
+#endif
+	clearfits(&result);
+	if (!com.pref.astrometry.keep_xyls_files)
+		g_unlink(table_filename);
+	if (!com.pref.astrometry.keep_wcs_files)
+		g_unlink(wcs_filename);
+	g_free(table_filename);
+	g_free(wcs_filename);
+
+	args->fit->wcsdata.pltsolvd = TRUE;
+	strcpy(args->fit->wcsdata.pltsolvd_comment, "This is a WCS header was created by Astrometry.net.");
+	if (args->verbose)
+		siril_log_color_message(_("Local astrometry.net solve succeeded.\n"), "green");
+
+	// asnet puts more info in the HISTORY and the console log in COMMENT fields
+	solution->image_center = siril_world_cs_new_from_a_d(
+			args->fit->wcsdata.crval[0],
+			args->fit->wcsdata.crval[1]);
+	// TODO: handle args->downsample
+	/* print results from WCS data */
+	if (args->verbose) {
+		double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
+		siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
+		//siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
+		siril_log_message(_("Focal length:%*.2lf mm\n"), 8, RADCONV * args->pixel_size / resolution);
+		siril_log_message(_("Pixel size:%*.2lf µm\n"), 10, args->pixel_size);
+		char field_x[256] = "";
+		char field_y[256] = "";
+		fov_in_DHMS(resolution * solution->size.x / 3600.0, field_x);
+		fov_in_DHMS(resolution * solution->size.y / 3600.0, field_y);
+		siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
+	}
+
 	return 0;
 }
 
