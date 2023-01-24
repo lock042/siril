@@ -58,6 +58,7 @@ preferences pref_init = {
 	.copyright = NULL,
 	.starnet_dir = NULL,
 	.gnuplot_dir = NULL,
+	.cygwin_dir = NULL,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -199,6 +200,8 @@ void free_preferences(preferences *pref) {
 	pref->starnet_dir = NULL;
 	g_free(pref->gnuplot_dir);
 	pref->gnuplot_dir = NULL;
+	g_free(pref->cygwin_dir);
+	pref->cygwin_dir = NULL;
 	g_free(pref->lang);
 	pref->lang = NULL;
 	g_slist_free_full(pref->gui.script_path, g_free);
@@ -253,6 +256,7 @@ struct settings_access all_settings[] = {
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
 	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
+	{ "core", "cygwin_dir", STYPE_STR, N_("directory of the cygwin_ansvr installation (for Windows only)"), &com.pref.cygwin_dir },
 	{ "core", "fftw_timelimit", STYPE_DOUBLE, N_("FFTW planning timelimit"), &com.pref.fftw_conf.timelimit },
 	{ "core", "fftw_conv_fft_cutoff", STYPE_DOUBLE, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
 	{ "core", "fftw_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },

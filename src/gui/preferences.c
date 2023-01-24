@@ -249,6 +249,7 @@ static void update_misc_preferences() {
 
 	com.pref.starnet_dir = gtk_file_chooser_get_filename(starnet_dir);
 	com.pref.gnuplot_dir = gtk_file_chooser_get_filename(gnuplot_bin);
+	// TODO add cygwin_dir
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.gui.silent_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")));

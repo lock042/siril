@@ -32,6 +32,8 @@
 #include <sys/wait.h> // for waitpid(2)
 #include <gio/gunixinputstream.h>
 #else
+#include <winsock2.h>
+#include <windows.h>
 #include <gio/gwin32inputstream.h>
 #endif
 
@@ -1726,6 +1728,18 @@ clearup:
 	return args->ret;
 }
 
+#ifdef _WIN32
+/*********************** finding cygwin bash first **********************/
+static gchar *siril_get_cygwin_bash() {
+	if (com.pref.cygwin_dir) {
+		return g_build_filename(com.pref.cygwin_dir, "bin", "bash", NULL);
+	} else {
+		return NULL;
+	}
+}
+#endif
+
+
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	//#if GLIB_CHECK_VERSION(2,70,0)
 	//siril_debug_print("Child %" G_PID_FORMAT " exited %s\n", pid,
@@ -1751,15 +1765,27 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	sprintf(low_scale, "%f", args->scale / a);
 	sprintf(high_scale, "%f", args->scale * a);
 
+#ifdef _WIN32
+	gchar *cygwin_shell = siril_get_cygwin_bash();
+	if (!cygwin_shell) {
+		siril_log_color_message(_("cygwin_ansvr directory is not set - aborting\n"), "red");
+		return 1;
+	}
+#endif
+	
 	char *sfargs[50] = {
 #ifdef _WIN32
-		"solve-field.exe",
-#else
-		"solve-field",
+		cygwin_shell, "--login", "-i", 
 #endif
+		"solve-field",
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
-		"-U", "none", "--temp-axy", "-S", "none", "--crpix-center",
+		"-U", "none", "-S", "none", "--crpix-center",
 		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
+
+#ifndef _WIN32
+		char *tweak_args[] = { "--temp-axy", NULL };
+		append_elements_to_array(sfargs, tweak_args);
+#endif
 
 	if (com.pref.astrometry.sip_correction_order > 1) {
 		char order[12];
@@ -1847,7 +1873,7 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			&child_stderr, &error);
 	if (error != NULL) {
-		g_error("Spawning child failed: %s", error->message);
+		siril_log_message("Spawning child failed: %s\n", error->message);
 		return 1;
 	}
 
@@ -1858,8 +1884,7 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	// #GUnixInputStream or #GIOChannel here.
 	GInputStream *stream = NULL;
 #ifdef _WIN32
-	HANDLE handle = GetStdHandle(STD_INPUT_HANDLE);
-	stream = g_win32_input_stream_new(child_stdout, FALSE);
+	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stdout), FALSE);
 #else
 	stream = g_unix_input_stream_new(child_stdout, FALSE);
 #endif
