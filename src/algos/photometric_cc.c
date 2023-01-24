@@ -123,6 +123,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	g_free(str);
 
 	struct phot_config *ps = phot_set_adjusted_for_image(fit);
+	siril_debug_print("aperture: %2.1f%s\tinner: %2.1f\touter: %2.1f\n", ps->aperture, ps->force_radius?"":" (auto)", ps->inner, ps->outer);
 	gint ngood = 0, progress = 0;
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
@@ -228,15 +229,13 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	}
 
 	if (ngood < 20)
-		siril_log_color_message(_("The photometric color correction has found a solution which may not be perfect because it did not rely on many stars\n"), "salmon");
+		siril_log_color_message(_("The photometric color correction has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
 	else if (deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1)
-		siril_log_message(_("The photometric color correction seem to have found an imprecise solution, consider correcting the image gradient first\n"));
+		siril_log_message(_("The photometric color correction seems to have found an imprecise solution, consider correcting the image gradient first\n"));
 	free(data[RED]);
 	free(data[GREEN]);
 	free(data[BLUE]);
-
-	return
-	0;
+	return 0;
 }
 
 static int cmp_coeff(const void *a, const void *b) {
@@ -375,7 +374,8 @@ int photometric_cc(struct photometric_cc_data *args) {
 	com.pref.phot_set.force_radius = FALSE;
 	com.pref.phot_set.inner = max(7.0, 3.0 * args->fwhm);
 	com.pref.phot_set.outer = com.pref.phot_set.inner + 10;
-	siril_debug_print("set photometry inner radius to %.2f\n", com.pref.phot_set.inner);
+	siril_log_message(_("Photometry radii set to %.1f for inner and %.1f for outer\n"),
+			com.pref.phot_set.inner, com.pref.phot_set.outer);
 
 	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
 	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, norm_channel);
@@ -452,7 +452,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	double ra, dec;
 	center2wcs(args->fit, &ra, &dec);
 	double resolution = get_wcs_image_resolution(args->fit);
-	if ((ra == -1.0 && dec == -1.0) || resolution == -1.0) {
+	if ((ra == -1.0 && dec == -1.0) || resolution <= 0.0) {
 		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
@@ -462,7 +462,8 @@ gpointer photometric_cc_standalone(gpointer p) {
 	int nb_stars = 0;
 	gboolean image_is_gfit = args->fit == &gfit;
 
-	double radius = get_radius_deg(resolution / 3600.0, args->fit->rx, args->fit->ry);
+	uint64_t sqr_radius = (gfit.rx * gfit.rx + gfit.ry * gfit.ry) / 4;
+	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	double mag = args->mag_mode == LIMIT_MAG_ABSOLUTE ?
 		args->magnitude_arg : compute_mag_limit_from_fov(radius * 2.0);
 	if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
@@ -470,6 +471,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 
 	int retval = 0;
 	if (args->use_local_cat) {
+		siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), radius * 2.0, mag);
 		if (get_photo_stars_from_local_catalogues(ra, dec, radius, args->fit, mag, &stars, &nb_stars)) {
 			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 			retval = 1;

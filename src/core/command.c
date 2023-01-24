@@ -7964,11 +7964,6 @@ int process_pcc(int nb) {
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
 	if (seqps) {
-		// TODO: allow it for solve-field too
-		if (!local_cat) {
-			siril_log_message(_("This feature is only available with local catalogues installed\n"));
-			return CMD_GENERIC_ERROR;;
-		}
 		if (!(seq = load_sequence(word[1], NULL)))
 			return CMD_SEQUENCE_NOT_FOUND;
 		next_arg++;
@@ -8079,6 +8074,10 @@ int process_pcc(int nb) {
 	}
 
 	if (seqps) {
+		if (!local_cat || cat != CAT_ASNET) {
+			siril_log_message(_("This feature is only available with local catalogues installed\n"));
+			return CMD_GENERIC_ERROR;
+		}
 		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
@@ -8220,8 +8219,11 @@ int process_pcc(int nb) {
 			pcc_args->mag_mode = LIMIT_MAG_AUTO;
 	}
 
-	if (local_cat && cat != CAT_AUTO && cat != CAT_ASNET)
-		siril_log_color_message(_("Local star catalogues were found, not using the specified catalogue\n"), "salmon");
+	if (local_cat && cat != CAT_AUTO && cat != CAT_ASNET) {
+		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
+				"salmon", catalog_to_str(cat));
+		local_cat = FALSE;
+	}
 
 	if (plate_solve) {
 		args->use_local_cat = local_cat;

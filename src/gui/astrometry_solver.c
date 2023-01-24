@@ -85,16 +85,16 @@ static void initialize_ips_dialog() {
 	gtk_window_set_title(parent, _("Image Plate Solver"));
 }
 
-static void get_mag_from_GUI(struct astrometry_data *args) {
+void get_limit_mag_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
 	GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_Mag_Limit"));
 	gboolean autob = gtk_toggle_button_get_active(autobutton);
 	if (autob)
-		args->mag_mode = LIMIT_MAG_AUTO;
+		*mag_mode = LIMIT_MAG_AUTO;
 	else {
 		GtkSpinButton *magButton = GTK_SPIN_BUTTON(
 				lookup_widget("GtkSpinIPS_Mag_Limit"));
-		args->magnitude_arg = gtk_spin_button_get_value(magButton);
-		args->mag_mode = LIMIT_MAG_ABSOLUTE;
+		*magnitude_arg = gtk_spin_button_get_value(magButton);
+		*mag_mode = LIMIT_MAG_ABSOLUTE;
 	}
 }
 
@@ -588,7 +588,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		return 0;
 	}
 
-	get_mag_from_GUI(args);
+	get_limit_mag_from_GUI(&args->mag_mode, &args->magnitude_arg);
 	process_plate_solver_input(args);
 
 	GtkToggleButton *auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));

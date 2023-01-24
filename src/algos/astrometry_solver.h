@@ -106,6 +106,7 @@ struct sky_object {
 	gboolean south;
 };
 
+const char *catalog_to_str(online_catalog cat);
 void open_astrometry_dialog();
 gchar *search_in_online_catalogs(const gchar *object, query_server server);
 void process_plate_solver_input(struct astrometry_data *args);
@@ -141,5 +142,6 @@ void update_coords();
 gboolean end_plate_solver(gpointer p);
 
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
+void get_limit_mag_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg);
 
 #endif /* SRC_ALGOS_ASTROMETRY_SOLVER_H_ */

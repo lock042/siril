@@ -12255,7 +12255,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Uncheck this button if you want to select the background reference by yourself. It could be useful when nebulae almost cover the whole image.</property>
+                        <property name="tooltip-text" translatable="yes">Uncheck this button if you want to select the background reference by yourself. It can be useful when nebulae cover a large portion of the image.</property>
                         <property name="halign">start</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>

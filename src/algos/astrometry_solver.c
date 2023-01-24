@@ -87,6 +87,31 @@ typedef struct {
 
 struct sky_object platedObject[RESOLVER_NUMBER];
 
+const char *catalog_to_str(online_catalog cat) {
+	switch (cat) {
+		case CAT_TYCHO2:
+			return _("Tycho-2");
+		case CAT_NOMAD:
+			return _("NOMAD");
+		case CAT_GAIADR3:
+			return _("Gaia DR3");
+		case CAT_PPMXL:
+			return _("PPMXL");
+		case CAT_BRIGHT_STARS:
+			return _("bright stars");
+		case CAT_APASS:
+			return _("APASS");
+		//case CAT_AAVSO:
+		//	return _("AAVSO");
+		case CAT_LOCAL:
+			return _("local Tycho-2+NOMAD");
+		case CAT_ASNET:
+			return _("local astrometry.net");
+		default:
+			return _("unknown");
+	}
+}
+
 static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args) {
 	struct astrometry_data *ret = malloc(sizeof(struct astrometry_data));
 	if (!ret)
@@ -1702,8 +1727,13 @@ clearup:
 }
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
-	siril_debug_print("Child %" G_PID_FORMAT " exited %s\n", pid,
-			g_spawn_check_wait_status (status, NULL) ? "normally" : "abnormally");
+	//#if GLIB_CHECK_VERSION(2,70,0)
+	//siril_debug_print("Child %" G_PID_FORMAT " exited %s\n", pid,
+	//		g_spawn_check_wait_status (status, NULL) ? "normally" : "abnormally");
+	//#else
+	//siril_debug_print("Child %" G_PID_FORMAT " exited %s\n", pid,
+	//		g_spawn_check_exit_status (status, NULL) ? "normally" : "abnormally");
+	//#endif
 	g_spawn_close_pid(pid);
 }
 
