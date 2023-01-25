@@ -12,6 +12,7 @@ crossroad install lcms2 \
                   libheif \
                   ffms2 \
                   cfitsio \
+                  p11-kit \
 # need to uninstall crt-git
 # probably same root cause as https://github.com/msys2/MINGW-packages/issues/10837
 # otherwise, it's messing up all the subsequent builds 
