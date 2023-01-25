@@ -1757,35 +1757,38 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	gchar *table_filename = replace_ext(args->filename, ".xyls");
 	if (save_list_as_FITS_table(table_filename, stars, n_fit, args->fit->rx, args->fit->ry)) {
 		siril_log_message(_("Failed to create the input data for solve-field\n"));
+		g_free(table_filename);
 		return 1;
 	}
 
-	char low_scale[16], high_scale[16];
+	char low_scale[16], high_scale[16], time_limit[16];
 	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
 	sprintf(low_scale, "%f", args->scale / a);
 	sprintf(high_scale, "%f", args->scale * a);
+	sprintf(time_limit, "%d", com.pref.astrometry.max_seconds_run);
 
 #ifdef _WIN32
 	gchar *cygwin_shell = siril_get_cygwin_bash();
 	if (!cygwin_shell) {
 		siril_log_color_message(_("cygwin_ansvr directory is not set - aborting\n"), "red");
+		if (!com.pref.astrometry.keep_xyls_files)
+			g_unlink(table_filename);
+		g_free(table_filename);
 		return 1;
 	}
 #endif
-	
+
 	char *sfargs[50] = {
 #ifdef _WIN32
-		cygwin_shell, "--login", "-i", 
+		cygwin_shell, "--login", "-i",
 #endif
 		"solve-field",
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
-		"-U", "none", "-S", "none", "--crpix-center",
-		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
-
+		"-U", "none", "-S", "none", "--crpix-center", "-l", time_limit,
 #ifndef _WIN32
-		char *tweak_args[] = { "--temp-axy", NULL };
-		append_elements_to_array(sfargs, tweak_args);
+		"--temp-axy",	// not available in the old version of ansvr
 #endif
+		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
 
 	if (com.pref.astrometry.sip_correction_order > 1) {
 		char order[12];
@@ -1802,7 +1805,8 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 		sprintf(start_ra, "%f", siril_world_cs_get_alpha(args->cat_center));
 		sprintf(start_dec, "%f", siril_world_cs_get_delta(args->cat_center));
 		sprintf(radius, "%f", com.pref.astrometry.radius_degrees);
-		char *additional_args[] = { "--ra", start_ra, "--dec", start_dec, "--radius", radius, (char*)table_filename, NULL };
+		char *additional_args[] = { "--ra", start_ra, "--dec", start_dec,
+			"--radius", radius, (char*)table_filename, NULL };
 		append_elements_to_array(sfargs, additional_args);
 	} else {
 		char *additional_args[] = { (char*)table_filename, NULL };
@@ -1813,57 +1817,6 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	g_free(command);
 
 	/* call solve-field */
-#if 0
-	int pipefd[2];
-	if (pipe(pipefd)) {
-		perror("failed to create pipe for solve-field");
-		return -1;
-	}
-	int pid = fork();
-	if (pid == -1) {
-		perror("failed to fork for solve-field");
-		return -1;
-	}
-	if (pid == 0) {
-		close(pipefd[0]);
-		dup2(pipefd[1], 1);
-		dup2(pipefd[1], 2);
-		close(pipefd[1]);
-		if (execvp(sfargs[0], sfargs)) {
-			perror("could not execute solve-field");
-			return -1;
-		}
-	}
-	else {
-		char buffer[1024];
-		close(pipefd[1]);
-		FILE *file = fdopen(pipefd[0], "r");
-		if (!file) {
-			perror("fdopen");
-			waitpid(pid, NULL, 0);
-			close(pipefd[0]);
-			return -1;
-		}
-		gboolean success = FALSE;
-		while (fgets(buffer, 1024, file)) {
-			siril_debug_print("solver: %s", buffer);
-			if (!strncmp(buffer, "Did not solve", strlen("Did not solve"))) {
-				siril_log_color_message(_("No astrometric solution found\n"), "red");
-				break;
-			}
-			if (!strncmp(buffer, "Field center: (RA,Dec)", 22)) {
-				siril_debug_print("Found a solution, waiting for EOF and exit\n");
-				success = TRUE;
-			}
-		}
-		waitpid(pid, NULL, 0);
-		siril_debug_print("solver exited\n");
-		fclose(file);
-		close(pipefd[0]);
-		if (!success)
-			return 1;
-
-#else
 	gint child_stdout, child_stderr;
 	GPid child_pid;
 	g_autoptr(GError) error = NULL;
@@ -1873,15 +1826,16 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			&child_stderr, &error);
 	if (error != NULL) {
-		siril_log_message("Spawning child failed: %s\n", error->message);
+		siril_log_color_message("Spawning solve-field failed: %s\n", "red", error->message);
+		if (!com.pref.astrometry.keep_xyls_files)
+			g_unlink(table_filename);
+		g_free(table_filename);
 		return 1;
 	}
 
 	// Add a child watch function which will be called when the child process exits.
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
 
-	// You could watch for output on @child_stdout and @child_stderr using
-	// #GUnixInputStream or #GIOChannel here.
 	GInputStream *stream = NULL;
 #ifdef _WIN32
 	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stdout), FALSE);
@@ -1895,20 +1849,23 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
 		siril_debug_print("solver: %s\n", buffer);
-		if (!strncmp(buffer, "Did not solve", strlen("Did not solve"))) {
+		if (g_str_has_prefix(buffer, "Did not solve")) {
 			siril_log_color_message(_("No astrometric solution found\n"), "red");
 			break;
 		}
-		if (!strncmp(buffer, "Field center: (RA,Dec)", 22)) {
+		if (g_str_has_prefix(buffer, "Field center: (RA,Dec)")) {
 			siril_debug_print("Found a solution, waiting for EOF and exit\n");
 			success = TRUE;
 		}
 	}
 	g_object_unref(data_input);
 	g_object_unref(stream);
-	if (!success)
+	if (!com.pref.astrometry.keep_xyls_files)
+		g_unlink(table_filename);
+	g_free(table_filename);
+	if (!success) {
 		return 1;
-#endif
+	}
 
 	/* get the results from the .wcs file */
 	gchar *wcs_filename = replace_ext(args->filename, ".wcs");
@@ -1925,11 +1882,8 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	result.wcslib = NULL;
 #endif
 	clearfits(&result);
-	if (!com.pref.astrometry.keep_xyls_files)
-		g_unlink(table_filename);
 	if (!com.pref.astrometry.keep_wcs_files)
 		g_unlink(wcs_filename);
-	g_free(table_filename);
 	g_free(wcs_filename);
 
 	args->fit->wcsdata.pltsolvd = TRUE;

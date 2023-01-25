@@ -100,6 +100,7 @@ struct astrometry_config {
 	double radius_degrees;		// radius around the target coordinates (degrees)
 	gboolean keep_xyls_files;	// do not delete .xyls FITS tables
 	gboolean keep_wcs_files;	// do not delete .wcs result files
+	int max_seconds_run;		// maximum seconds of CPU time to try solving
 };
 
 
