@@ -136,7 +136,7 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 		rectangle area = { 0 };
 		float flux[3] = { 0.f, 0.f, 0.f };
 		float r, g, b, bv;
-		if (!(i % 16))	// every 16 iterations
+		if (!(g_atomic_int_get(&progress) % 16))	// every 16 iterations
 			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
 		g_atomic_int_inc(&progress);
 
@@ -471,7 +471,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 
 	int retval = 0;
 	if (args->use_local_cat) {
-		siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), radius * 2.0, mag);
+		siril_log_message(_("Getting stars from local catalogues for PCC, with a radius of %.2f degrees and limit magnitude %.2f\n"), radius * 2.0,  mag);
 		if (get_photo_stars_from_local_catalogues(ra, dec, radius, args->fit, mag, &stars, &nb_stars)) {
 			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
 			retval = 1;
@@ -518,8 +518,10 @@ gpointer photometric_cc_standalone(gpointer p) {
 	free(stars);
 	args = NULL;
 
-	if (!retval && image_is_gfit)
+	if (!retval && image_is_gfit) {
+		set_progress_bar_data(_("Photometric Color Calibration succeeded"), PROGRESS_DONE);
 		notify_gfit_modified();
+	}
 	else siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
