@@ -678,17 +678,14 @@ gchar *get_starnet_dir() {
 
 void on_cosmCFACheck_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.prepro.cfa = gtk_toggle_button_get_active(button);
-	writeinitfile();
 }
 
 void on_checkbutton_equalize_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.prepro.equalize_cfa = gtk_toggle_button_get_active(button);
-	writeinitfile();
 }
 
 void on_fix_xtrans_af_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.prepro.fix_xtrans = gtk_toggle_button_get_active(button);
-	writeinitfile();
 }
 
 /* ********************************** */

@@ -8002,7 +8002,8 @@ int process_pcc(int nb) {
 			forced_focal = g_ascii_strtod(arg, &end);
 			if (end == arg || forced_focal <= 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				siril_world_cs_unref(target_coords);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -8012,7 +8013,8 @@ int process_pcc(int nb) {
 			forced_pixsize = g_ascii_strtod(arg, &end);
 			if (end == arg || forced_pixsize <= 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				siril_world_cs_unref(target_coords);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -8023,7 +8025,8 @@ int process_pcc(int nb) {
 			value = g_ascii_strtod(arg, &end);
 			if (end == arg) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				siril_world_cs_unref(target_coords);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
 			if (arg[0] == '-' || arg[0] == '+')
@@ -8046,12 +8049,14 @@ int process_pcc(int nb) {
 				cat = CAT_APASS;
 			else {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				siril_world_cs_unref(target_coords);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
 			if (pcc_command && cat != CAT_NOMAD && cat != CAT_APASS) {
 				siril_log_message(_("Catalog can only be NOMAD or APASS for photometric usage\n"));
-				siril_world_cs_unref(target_coords);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -8067,7 +8072,8 @@ int process_pcc(int nb) {
 #endif
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
-			siril_world_cs_unref(target_coords);
+			if (target_coords)
+				siril_world_cs_unref(target_coords);
 			return CMD_ARG_ERROR;
 		}
 		next_arg++;
@@ -8112,8 +8118,11 @@ int process_pcc(int nb) {
 				siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
 				return CMD_INVALID_IMAGE;
 			}
+		}
+		if (target_coords) {
 			siril_log_message(_("Using target coordinate from image header: %f, %f\n"),
-					siril_world_cs_get_alpha(target_coords), siril_world_cs_get_delta(target_coords));
+					siril_world_cs_get_alpha(target_coords),
+					siril_world_cs_get_delta(target_coords));
 		}
 	}
 
@@ -8146,7 +8155,7 @@ int process_pcc(int nb) {
 			siril_log_message(_("Focal length and pixel size are only used for plate solving, ignored now\n"));
 		else {
 			args->pixel_size = forced_pixsize;
-			siril_log_message(_("Using provided pixel size: %f\n"), args->pixel_size);
+			siril_log_message(_("Using provided pixel size: %.2f\n"), args->pixel_size);
 		}
 	} else if (plate_solve) {
 		args->pixel_size = max(gfit.pixel_size_x, gfit.pixel_size_y);
@@ -8155,13 +8164,14 @@ int process_pcc(int nb) {
 			//args->pixel_size = com.pref.pitch;
 			if (args->pixel_size <= 0.0) {
 				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
-				siril_world_cs_unref(target_coords);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
 				free(args);
 				return CMD_INVALID_IMAGE;
 			}
-			siril_log_message(_("Using pixel size from preferences: %f\n"), args->pixel_size);
+			siril_log_message(_("Using pixel size from preferences: %.2f\n"), args->pixel_size);
 		}
-		else siril_log_message(_("Using pixel size from image: %f\n"), args->pixel_size);
+		else siril_log_message(_("Using pixel size from image: %.2f\n"), args->pixel_size);
 	}
 	if (forced_focal > 0.0) {
 		if (!plate_solve) {
@@ -8169,7 +8179,7 @@ int process_pcc(int nb) {
 				siril_log_message(_("Focal length and pixel size are only used for plate solving, ignored now\n"));
 		} else {
 			args->focal_length = forced_focal;
-			siril_log_message(_("Using provided focal length: %f\n"), args->focal_length);
+			siril_log_message(_("Using provided focal length: %.2f\n"), args->focal_length);
 		}
 	} else if (plate_solve) {
 		args->focal_length = gfit.focal_length;
@@ -8179,13 +8189,14 @@ int process_pcc(int nb) {
 			//args->focal_length = com.pref.focal;
 			if (args->focal_length <= 0.0) {
 				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
-				siril_world_cs_unref(target_coords);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
 				free(args);
 				return CMD_INVALID_IMAGE;
 			}
-			siril_log_message(_("Using focal length from preferences: %f\n"), args->focal_length);
+			siril_log_message(_("Using focal length from preferences: %.2f\n"), args->focal_length);
 		}
-		else siril_log_message(_("Using focal length from image: %f\n"), args->focal_length);
+		else siril_log_message(_("Using focal length from image: %.2f\n"), args->focal_length);
 	}
 
 	if (target_mag > -1.0) {

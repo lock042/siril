@@ -1779,11 +1779,6 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	fit->top_down = FALSE;
 
 	if (!retval) {
-		// copy the entire header in memory
-		if (fit->header)
-			free(fit->header);
-		fit->header = copy_header(fit);
-
 		basename = g_path_get_basename(filename);
 		siril_log_message(_("Reading FITS: file %s, %ld layer(s), %ux%u pixels\n"),
 				basename, fit->naxes[2], fit->rx, fit->ry) ;

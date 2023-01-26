@@ -142,6 +142,6 @@ void update_coords();
 gboolean end_plate_solver(gpointer p);
 
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
-void get_limit_mag_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg);
+void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg);
 
 #endif /* SRC_ALGOS_ASTROMETRY_SOLVER_H_ */

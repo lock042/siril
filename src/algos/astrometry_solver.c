@@ -1463,8 +1463,6 @@ gpointer plate_solver(gpointer p) {
 	}
 
 	/* 7. Clean-up */
-	if (solution.px_cat_center)
-		siril_world_cs_unref(solution.px_cat_center);
 	args->new_center = solution.image_center;
 
 clearup:
@@ -1473,7 +1471,10 @@ clearup:
 			free_psf(stars[i]);
 		free(stars);
 	}
-	siril_world_cs_unref(args->cat_center);
+	if (solution.px_cat_center)
+		siril_world_cs_unref(solution.px_cat_center);
+	if (args->cat_center)
+		siril_world_cs_unref(args->cat_center);
 	if (!args->for_sequence) {
 		if (args->cstars)
 			free_fitted_stars(args->cstars);
@@ -1763,8 +1764,8 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 
 	char low_scale[16], high_scale[16], time_limit[16];
 	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
-	sprintf(low_scale, "%f", args->scale / a);
-	sprintf(high_scale, "%f", args->scale * a);
+	sprintf(low_scale, "%.3f", args->scale / a);
+	sprintf(high_scale, "%.3f", args->scale * a);
 	sprintf(time_limit, "%d", com.pref.astrometry.max_seconds_run);
 
 #ifdef _WIN32
@@ -1804,13 +1805,18 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 		char start_ra[16], start_dec[16], radius[16];
 		sprintf(start_ra, "%f", siril_world_cs_get_alpha(args->cat_center));
 		sprintf(start_dec, "%f", siril_world_cs_get_delta(args->cat_center));
-		sprintf(radius, "%f", com.pref.astrometry.radius_degrees);
+		sprintf(radius, "%.1f", com.pref.astrometry.radius_degrees);
 		char *additional_args[] = { "--ra", start_ra, "--dec", start_dec,
 			"--radius", radius, (char*)table_filename, NULL };
 		append_elements_to_array(sfargs, additional_args);
+		siril_log_message(_("Astrometry.net solving with a search field at RA: %s, Dec: %s,"
+				       " within a %s degrees radius for scales [%s, %s]\n"),
+				start_ra, start_dec, radius, low_scale, high_scale);
 	} else {
 		char *additional_args[] = { (char*)table_filename, NULL };
 		append_elements_to_array(sfargs, additional_args);
+		siril_log_message(_("Astrometry.net solving blindly for scales [%s, %s]\n"),
+				low_scale, high_scale);
 	}
 	gchar *command = build_string_from_words(sfargs);
 	siril_debug_print("Calling solve-field:\n%s\n", command);
@@ -1913,6 +1919,8 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	return 0;
 }
 
+// inputs: focal length, pixel size, manual, fit, autocrop, downsample, mag_mode and mag_arg
+// outputs: scale, used_fov, uncentered, solvearea, limit_mag
 void process_plate_solver_input(struct astrometry_data *args) {
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
 
@@ -1971,7 +1979,9 @@ void process_plate_solver_input(struct astrometry_data *args) {
 
 	if (croparea.w == args->fit->rx && croparea.h == args->fit->ry)
 		memset(&croparea, 0, sizeof(rectangle));
-	else siril_debug_print("reduced area for the solve: %d, %d, %d x %d%s\n", croparea.x, croparea.y, croparea.w, croparea.h, args->downsample ? " (down-sampled)" : "");
+	else siril_debug_print("reduced area for the solve: %d, %d, %d x %d%s\n",
+			croparea.x, croparea.y, croparea.w, croparea.h,
+			args->downsample ? " (down-sampled)" : "");
 	memcpy(&(args->solvearea), &croparea, sizeof(rectangle));
 
 	compute_limit_mag(args); // to call after having set args->used_fov

@@ -85,7 +85,7 @@ static void initialize_ips_dialog() {
 	gtk_window_set_title(parent, _("Image Plate Solver"));
 }
 
-void get_limit_mag_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
+void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
 	GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_Mag_Limit"));
 	gboolean autob = gtk_toggle_button_get_active(autobutton);
 	if (autob)
@@ -555,32 +555,37 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->fit = &gfit;
 	args->pixel_size = get_pixel();
 	args->focal_length = get_focal();
+	args->manual = is_detection_manual();
+	args->downsample = is_downsample_activated();
+	args->autocrop = is_autocrop_activated();
+	args->flip_image = flip_image_after_ps();
+	get_mag_settings_from_GUI(&args->mag_mode, &args->magnitude_arg);
+
+	process_plate_solver_input(args);
 
 	GtkToggleButton *lasnet = GTK_TOGGLE_BUTTON(lookup_widget("localasnet_check_button"));
 	gboolean use_local_asnet = gtk_toggle_button_get_active(lasnet);
 
 	SirilWorldCS *catalog_center = get_center_of_catalog();
-	if (siril_world_cs_get_alpha(catalog_center) == 0.0 && siril_world_cs_get_delta(catalog_center) == 0.0) {
+	if (siril_world_cs_get_alpha(catalog_center) == 0.0 &&
+			siril_world_cs_get_delta(catalog_center) == 0.0) {
 		if (use_local_asnet) {
 			args->cat_center = NULL;
 		} else {
-			siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"), _("Please enter object coordinates."));
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"),
+					_("Please enter object coordinates."));
+			siril_world_cs_unref(catalog_center);
 			return 1;
 		}
 	}
 	else args->cat_center = catalog_center;
 
-	args->downsample = is_downsample_activated();
-	args->autocrop = is_autocrop_activated();
-	args->flip_image = flip_image_after_ps();
-	args->manual = is_detection_manual();
-
 	if (!args->for_photometry_cc && use_local_asnet) {
+		// non-cropped version of the fov
 		args->used_fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);
 		args->uncentered = FALSE;
 		if (com.selection.w != 0 && com.selection.h != 0)
-			siril_log_message(_("Selection is not used in manual star selection mode\n"));
-		siril_debug_print("using solve-field\n");
+			siril_log_message(_("Selection is not used with the astrometry.net solver\n"));
 		args->use_local_cat = TRUE;
 		args->catalog_file = NULL;
 		args->onlineCatalog = CAT_ASNET;
@@ -588,13 +593,12 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		return 0;
 	}
 
-	get_limit_mag_from_GUI(&args->mag_mode, &args->magnitude_arg);
-	process_plate_solver_input(args);
-
 	GtkToggleButton *auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
 	gboolean auto_cat = gtk_toggle_button_get_active(auto_button);
 
-	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog_from_GUI() : get_astrometry_catalog(args->used_fov, args->limit_mag, auto_cat);
+	args->onlineCatalog = args->for_photometry_cc ?
+		get_photometry_catalog_from_GUI() :
+		get_astrometry_catalog(args->used_fov, args->limit_mag, auto_cat);
 	gboolean has_local_cat = local_catalogues_available();
 	gboolean use_local = FALSE;
 
@@ -618,7 +622,8 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	if (!use_local) {
 		/* currently the GUI version downloads the catalog here, because
 		 * siril_message_dialog() doesn't use idle function, we could change that */
-		GFile *catalog_file = download_catalog(args->onlineCatalog, catalog_center, args->used_fov * 0.5, args->limit_mag);
+		GFile *catalog_file = download_catalog(args->onlineCatalog,
+				catalog_center, args->used_fov * 0.5, args->limit_mag);
 		if (!catalog_file) {
 			siril_world_cs_unref(catalog_center);
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
