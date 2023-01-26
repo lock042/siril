@@ -70,7 +70,7 @@ preferences pref_init = {
 		.profile = PSF_GAUSSIAN,
 		.min_beta = 1.5,
 		.min_A = 0.0,
-		.max_A = 0.0
+		.max_A = 1.0
 	},
 	.prepro = {
 		.cfa = FALSE,

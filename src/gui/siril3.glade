@@ -3036,6 +3036,18 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjstarfinder_maxA">
+    <property name="lower">0.01</property>
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjstarfinder_minA">
+    <property name="upper">0.98999999999999999</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkAdjustment" id="adjstarfinder_radius">
     <property name="lower">3</property>
     <property name="upper">50</property>
@@ -13076,7 +13088,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <property name="tooltip-text" translatable="yes">Changes of these four values should be tested on one representative image before using them for registration.</property>
                 <property name="left-padding">12</property>
                 <child>
-                  <!-- n-columns=4 n-rows=5 -->
+                  <!-- n-columns=5 n-rows=5 -->
                   <object class="GtkGrid" id="grid35">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -13303,9 +13315,75 @@ This should normally be the case only for stacked images. Increasing this value 
                         </child>
                       </object>
                       <packing>
+                        <property name="left-attach">4</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="xpad">8</property>
+                        <property name="label" translatable="yes">Min Amplitude:</property>
+                      </object>
+                      <packing>
                         <property name="left-attach">2</property>
                         <property name="top-attach">0</property>
                       </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="xpad">8</property>
+                        <property name="label" translatable="yes">Max Amplitude:</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_minA">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Mininum star amplitude threshold (stars with smaller amplitudes will not be detected).</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_minA</property>
+                        <property name="digits">2</property>
+                        <property name="numeric">True</property>
+                        <signal name="value-changed" handler="on_spin_sf_minA_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_maxA">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Maximum star amplitude threshold (stars with larger amplitudes will not be detected).</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_maxA</property>
+                        <property name="digits">2</property>
+                        <property name="numeric">True</property>
+                        <property name="value">1</property>
+                        <signal name="value-changed" handler="on_spin_sf_maxA_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
