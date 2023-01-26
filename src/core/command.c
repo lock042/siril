@@ -8079,18 +8079,20 @@ int process_pcc(int nb) {
 		next_arg++;
 	}
 
+	if (local_cat && cat != CAT_AUTO && cat != CAT_ASNET) {
+		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
+				"salmon", catalog_to_str(cat));
+		local_cat = FALSE;
+	}
+
 	if (seqps) {
-		if (!local_cat || cat != CAT_ASNET) {
-			siril_log_message(_("This feature is only available with local catalogues installed\n"));
-			return CMD_GENERIC_ERROR;
-		}
 		struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
 		args->pixel_size = forced_pixsize;
 		args->focal_length = forced_focal;
 		args->use_local_cat = local_cat;
 		args->onlineCatalog = cat;
 		args->cat_center = target_coords;
-		args->downsample = FALSE;
+		args->downsample = FALSE;	// TODO: could depend on image size
 		args->autocrop = TRUE;
 		args->flip_image = !noflip;
 		args->manual = FALSE;
@@ -8228,12 +8230,6 @@ int process_pcc(int nb) {
 			args->mag_mode = LIMIT_MAG_AUTO;
 		if (pcc_args)
 			pcc_args->mag_mode = LIMIT_MAG_AUTO;
-	}
-
-	if (local_cat && cat != CAT_AUTO && cat != CAT_ASNET) {
-		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
-				"salmon", catalog_to_str(cat));
-		local_cat = FALSE;
 	}
 
 	if (plate_solve) {
