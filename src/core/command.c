@@ -8163,7 +8163,6 @@ int process_pcc(int nb) {
 		args->pixel_size = max(gfit.pixel_size_x, gfit.pixel_size_y);
 		if (args->pixel_size <= 0.0) {
 			args->pixel_size = com.pref.starfinder_conf.pixel_size_x;
-			//args->pixel_size = com.pref.pitch;
 			if (args->pixel_size <= 0.0) {
 				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
 				if (target_coords)
@@ -8186,9 +8185,7 @@ int process_pcc(int nb) {
 	} else if (plate_solve) {
 		args->focal_length = gfit.focal_length;
 		if (args->focal_length <= 0.0) {
-			// TODO: which one should we use here?
 			args->focal_length = com.pref.starfinder_conf.focal_length;
-			//args->focal_length = com.pref.focal;
 			if (args->focal_length <= 0.0) {
 				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
 				if (target_coords)

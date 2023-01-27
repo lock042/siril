@@ -8680,10 +8680,19 @@ WARNING: checking this stores it as a preference, also available in the FITS opt
               </packing>
             </child>
             <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
+              <object class="GtkCheckButton" id="saveinfo_toggle">
+                <property name="label" translatable="yes">Save as default values</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Save focal length and pixel size as default values in the settings to be used for images that do not contain these metadata</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">4</property>
+                <property name="width">2</property>
+              </packing>
             </child>
           </object>
           <packing>

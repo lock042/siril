@@ -1403,7 +1403,14 @@ gpointer plate_solver(gpointer p) {
 	if (args->ret)
 		goto clearup;
 
-	/* 4. Print results */
+	/* 4. Print and store some results */
+	args->fit->focal_length = solution.focal_length;
+	args->fit->pixel_size_x = args->fit->pixel_size_y = solution.pixel_size;
+	if (com.pref.astrometry.update_default_scale) {
+		com.pref.starfinder_conf.focal_length = solution.focal_length;
+		com.pref.starfinder_conf.pixel_size_x = solution.pixel_size;
+		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), solution.focal_length, solution.pixel_size);
+	}
 	print_image_center(&solution);
 
 	/* 5. Run photometric color correction, if enabled */
@@ -1662,8 +1669,6 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 
 	/**** Fill wcsdata fit structure ***/
 	args->fit->wcsdata.equinox = 2000.0;
-	args->fit->focal_length = solution->focal_length;
-	args->fit->pixel_size_x = args->fit->pixel_size_y = solution->pixel_size;
 
 	solution->crpix[0] *= scalefactor;
 	solution->crpix[1] *= scalefactor;
@@ -1911,7 +1916,8 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 		double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
 		siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
 		//siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
-		siril_log_message(_("Focal length:%*.2lf mm\n"), 8, RADCONV * args->pixel_size / resolution);
+		solution->focal_length = RADCONV * args->pixel_size / resolution;
+		siril_log_message(_("Focal length:%*.2lf mm\n"), 8, solution->focal_length);
 		siril_log_message(_("Pixel size:%*.2lf µm\n"), 10, args->pixel_size);
 		char field_x[256] = "";
 		char field_y[256] = "";
@@ -2012,9 +2018,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	if (args->focal_length <= 0.0) {
 		args->focal_length = fit.focal_length;
 		if (args->focal_length <= 0.0) {
-			// TODO: which one should we use here?
 			args->focal_length = com.pref.starfinder_conf.focal_length;
-			//args->focal_length = com.pref.focal;
 			if (args->focal_length <= 0.0) {
 				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
 				return 1;

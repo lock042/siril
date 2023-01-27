@@ -1543,6 +1543,12 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 void on_file_information_close_clicked(GtkButton *button, gpointer user_data) {
+	GtkToggleButton *save_as_prefs_button = GTK_TOGGLE_BUTTON(lookup_widget("saveinfo_toggle"));
+	if (gtk_toggle_button_get_active(save_as_prefs_button)) {
+		com.pref.starfinder_conf.focal_length = gfit.focal_length;
+		com.pref.starfinder_conf.pixel_size_x = gfit.pixel_size_x;
+		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), gfit.focal_length, gfit.pixel_size_x);
+	}
 	gtk_widget_hide(lookup_widget("file_information"));
 }
 

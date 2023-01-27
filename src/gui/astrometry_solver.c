@@ -98,19 +98,18 @@ void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) 
 	}
 }
 
+/* effective focal length in mm */
 static double get_focal() {
 	GtkEntry *focal_entry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_focal"));
 	const gchar *value = gtk_entry_get_text(focal_entry);
-
-	return g_ascii_strtod(value, NULL);
+	return g_ascii_strtod(value, NULL);	// 0 is parse error
 }
 
 /* get pixel in µm */
 static double get_pixel() {
 	GtkEntry *pixel_entry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
 	const gchar *value = gtk_entry_get_text(pixel_entry);
-
-	return g_ascii_strtod(value, NULL);
+	return g_ascii_strtod(value, NULL);	// 0 is parse error
 }
 
 static int get_server_from_combobox() {
@@ -241,8 +240,13 @@ static void update_coordinates(SirilWorldCS *world_cs) {
 	gint dec_deg, dec_m;
 	gdouble ra_s, dec_s;
 
-	siril_world_cs_get_ra_hour_min_sec(world_cs, &ra_h, &ra_m, &ra_s);
-	siril_world_cs_get_dec_deg_min_sec(world_cs, &dec_deg, &dec_m, &dec_s);
+	if (world_cs) {
+		siril_world_cs_get_ra_hour_min_sec(world_cs, &ra_h, &ra_m, &ra_s);
+		siril_world_cs_get_dec_deg_min_sec(world_cs, &dec_deg, &dec_m, &dec_s);
+	} else {
+		ra_h = 0; ra_m = 0; ra_s = 0.0;
+		dec_deg = 0; dec_m = 0; dec_s = 0.0;
+	}
 
 	RA_sec = g_strdup_printf("%6.4lf", ra_s);
 	Dec_sec = g_strdup_printf("%6.4lf", dec_s);
@@ -263,8 +267,8 @@ static void update_coordinates(SirilWorldCS *world_cs) {
 
 void update_coords() {
 	SirilWorldCS *world_cs = get_eqs_from_header(&gfit);
+	update_coordinates(world_cs);
 	if (world_cs) {
-		update_coordinates(world_cs);
 		unselect_all_items();
 		siril_world_cs_unref(world_cs);
 	}
@@ -414,12 +418,10 @@ static void add_object_in_tree_view(const gchar *object) {
 
 void on_GtkEntry_IPS_focal_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
-	com.pref.starfinder_conf.focal_length = g_ascii_strtod(gtk_editable_get_chars(editable, 0, -1), NULL);
 }
 
 void on_GtkEntry_IPS_pixels_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
-	com.pref.starfinder_conf.pixel_size_x = g_ascii_strtod(gtk_editable_get_chars(editable, 0, -1), NULL);
 }
 
 void on_GtkEntry_IPS_insert_text(GtkEntry *entry, const gchar *text, gint length,
@@ -650,9 +652,12 @@ void set_focal_and_pixel_pitch() {
 	GtkEntry *focal = GTK_ENTRY(lookup_widget("GtkEntry_IPS_focal"));
 	GtkEntry *pitch = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
 	char buf[20];
-	sprintf(buf, "%.1f", com.pref.starfinder_conf.focal_length);
+	double fl = gfit.focal_length > 0.0 ? gfit.focal_length : com.pref.starfinder_conf.focal_length;
+	sprintf(buf, "%.1f", fl);
 	gtk_entry_set_text(focal, buf);
-	sprintf(buf, "%.2f", com.pref.starfinder_conf.pixel_size_x);
+
+	double pixsz = gfit.pixel_size_x > 0.0 ? gfit.pixel_size_x: com.pref.starfinder_conf.pixel_size_x;
+	sprintf(buf, "%.2f", pixsz);
 	gtk_entry_set_text(pitch, buf);
 }
 
