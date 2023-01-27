@@ -1253,6 +1253,7 @@ void set_GUI_CAMERA() {
 	}
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggleButtonUnbinned")), com.pref.binning_update);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("saveinfo_toggle")), com.pref.astrometry.update_default_scale);
 }
 
 static GtkTargetEntry drop_types[] = {
