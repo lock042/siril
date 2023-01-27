@@ -1608,6 +1608,10 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 		siril_debug_print("Converged to: alpha: %0.8f, delta: %0.8f at iteration #%d\n", ra0, dec0, trial);
 	}
 
+	double scalefactor = (args->downsample) ? 1.0 / DOWNSAMPLE_FACTOR : 1.0;
+	if (args->downsample)
+		solution->focal_length *= scalefactor;
+
 	solution->image_is_flipped = image_is_flipped(H);
 
 	/* compute cd matrix */
@@ -1618,7 +1622,7 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 	ra0 *= DEGTORAD;
 
 	/* make 1 step in direction crpix1 */
-	double crpix1[] = { solution->crpix[0] + DOWNSAMPLE_FACTOR, solution->crpix[1] };
+	double crpix1[] = { solution->crpix[0] + 1.0 / scalefactor, solution->crpix[1] };
 	apply_match(solution->px_cat_center, crpix1, trans, &ra7, &dec7);
 
 	dec7 *= DEGTORAD;
@@ -1634,7 +1638,7 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 
 	/* make 1 step in direction crpix2
 	 * WARNING: we use -1 because of the Y axis reversing */
-	double crpix2[] = { solution->crpix[0], solution->crpix[1] - DOWNSAMPLE_FACTOR };
+	double crpix2[] = { solution->crpix[0], solution->crpix[1] - 1.0 / scalefactor };
 	apply_match(solution->px_cat_center, crpix2, trans, &ra7, &dec7);
 
 	dec7 *= DEGTORAD;
@@ -1648,9 +1652,6 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 	double cd1_2 = (delta_ra) * cos(dec0) * RADTODEG;
 	double cd2_2 = (dec7 - dec0) * RADTODEG;
 
-	if (args->downsample)
-		solution->focal_length /= DOWNSAMPLE_FACTOR;
-
 	CHECK_FOR_CANCELLATION;
 
 	// saving state for undo before modifying fit structure
@@ -1663,8 +1664,9 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 	args->fit->wcsdata.equinox = 2000.0;
 	args->fit->focal_length = solution->focal_length;
 	args->fit->pixel_size_x = args->fit->pixel_size_y = solution->pixel_size;
-	solution->crpix[0] /= DOWNSAMPLE_FACTOR;
-	solution->crpix[1] /= DOWNSAMPLE_FACTOR;
+
+	solution->crpix[0] *= scalefactor;
+	solution->crpix[1] *= scalefactor;
 
 	args->fit->wcsdata.ra = siril_world_cs_get_alpha(solution->image_center);
 	args->fit->wcsdata.dec = siril_world_cs_get_delta(solution->image_center);
@@ -1903,6 +1905,8 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 			args->fit->wcsdata.crval[1]);
 	// TODO: handle args->downsample
 	/* print results from WCS data */
+	print_updated_wcs_data(args->fit);
+
 	if (args->verbose) {
 		double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
 		siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
