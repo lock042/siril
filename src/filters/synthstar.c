@@ -150,7 +150,7 @@ void makedisc(float *psf, int size, float width, float lum, float xoffset, float
 	const int maxranditer = 10000;
 	float radiussq = radius * radius;
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static) collapse(2) num_threads(com.max_thread) if(com.max_thread > 1)
+#pragma omp simd
 #endif
 	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
 		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
