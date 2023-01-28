@@ -1637,7 +1637,6 @@ void siril_quit() {
 	gboolean quit = siril_confirm_dialog_and_remember(_("Closing application"),
 			_("Are you sure you want to quit?"), _("Exit"), &com.pref.gui.silent_quit);
 	if (quit) {
-		writeinitfile();
 		gtk_main_quit();
 	} else {
 		fprintf(stdout, "Staying on the application.\n");

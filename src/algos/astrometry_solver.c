@@ -1760,15 +1760,6 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 }
 
 static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution) {
-	// command to run:
-	// solve-field -p -N none -R none -M none -B none -U none --temp-axy -S none --crpix-center -T -H 0.2 -u app -X XIMAGE -Y YIMAGE sources.xyls
-	gchar *table_filename = replace_ext(args->filename, ".xyls");
-	if (save_list_as_FITS_table(table_filename, stars, n_fit, args->fit->rx, args->fit->ry)) {
-		siril_log_message(_("Failed to create the input data for solve-field\n"));
-		g_free(table_filename);
-		return 1;
-	}
-
 	char low_scale[16], high_scale[16], time_limit[16];
 	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
 	sprintf(low_scale, "%.3f", args->scale / a);
@@ -1779,9 +1770,6 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	gchar *cygwin_shell = siril_get_cygwin_bash();
 	if (!cygwin_shell) {
 		siril_log_color_message(_("cygwin_ansvr directory is not set - aborting\n"), "red");
-		if (!com.pref.astrometry.keep_xyls_files)
-			g_unlink(table_filename);
-		g_free(table_filename);
 		return 1;
 	}
 #endif
@@ -1798,8 +1786,8 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 #endif
 		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
 
+	char order[12];	// referenced in sfargs, needs the same scope
 	if (com.pref.astrometry.sip_correction_order > 1) {
-		char order[12];
 		sprintf(order, "%d", com.pref.astrometry.sip_correction_order);
 		char *tweak_args[] = { "-t", order, NULL };
 		append_elements_to_array(sfargs, tweak_args);
@@ -1808,8 +1796,15 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 		append_elements_to_array(sfargs, tweak_args);
 	}
 
+	gchar *table_filename = replace_ext(args->filename, ".xyls");
+	if (save_list_as_FITS_table(table_filename, stars, n_fit, args->fit->rx, args->fit->ry)) {
+		siril_log_message(_("Failed to create the input data for solve-field\n"));
+		g_free(table_filename);
+		return 1;
+	}
+
+	char start_ra[16], start_dec[16], radius[16];
 	if (args->cat_center) {
-		char start_ra[16], start_dec[16], radius[16];
 		sprintf(start_ra, "%f", siril_world_cs_get_alpha(args->cat_center));
 		sprintf(start_dec, "%f", siril_world_cs_get_delta(args->cat_center));
 		sprintf(radius, "%.1f", com.pref.astrometry.radius_degrees);
@@ -1864,12 +1859,14 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 		siril_debug_print("solver: %s\n", buffer);
 		if (g_str_has_prefix(buffer, "Did not solve")) {
 			siril_log_color_message(_("No astrometric solution found\n"), "red");
+			g_free(buffer);
 			break;
 		}
 		if (g_str_has_prefix(buffer, "Field center: (RA,Dec)")) {
 			siril_debug_print("Found a solution, waiting for EOF and exit\n");
 			success = TRUE;
 		}
+		g_free(buffer);
 	}
 	g_object_unref(data_input);
 	g_object_unref(stream);
