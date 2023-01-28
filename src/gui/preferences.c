@@ -96,6 +96,15 @@ static void update_astrometry_preferences() {
 		g_free(com.pref.catalogue_paths[3]);
 		com.pref.catalogue_paths[3] = newpath;
 	}
+
+	com.pref.astrometry.sip_correction_order = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_box_astrometry_sip_order")));
+	com.pref.astrometry.percent_scale_range = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sampling")));
+	com.pref.astrometry.radius_degrees = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_radius")));
+	com.pref.astrometry.keep_xyls_files = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_xyls")));
+	com.pref.astrometry.keep_wcs_files = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_wcs")));
+	com.pref.astrometry.max_seconds_run = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_max_sec")));
+
+	com.pref.astrometry.update_default_scale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")));
 }
 
 static void update_prepro_preferences() {
@@ -468,6 +477,15 @@ void update_preferences_from_model() {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4"));
 		gtk_file_chooser_set_filename(button, pref->catalogue_paths[3]);
 	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_box_astrometry_sip_order")), pref->astrometry.sip_correction_order);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sampling")), pref->astrometry.percent_scale_range);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_radius")), pref->astrometry.radius_degrees);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_xyls")), pref->astrometry.keep_xyls_files);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_wcs")), pref->astrometry.keep_wcs_files);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_max_sec")), pref->astrometry.max_seconds_run);
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")), pref->astrometry.update_default_scale);
+
 
 	/* tab 4 */
 	if (pref->prepro.bias_lib) {

@@ -515,6 +515,25 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_asnet_max_sec">
+    <property name="upper">100000</property>
+    <property name="value">30</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_asnet_radius">
+    <property name="lower">0.01</property>
+    <property name="upper">180</property>
+    <property name="value">10</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_asnet_sampling">
+    <property name="upper">10000</property>
+    <property name="value">15</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_background_smoothing">
     <property name="upper">1</property>
     <property name="value">0.5</property>
@@ -28232,88 +28251,29 @@ It depends on the acquistion software used to create the FITS.</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">10</property>
+                    <property name="can-focus">True</property>
+                    <property name="shadow-type">in</property>
                     <child>
-                      <object class="GtkLabel" id="label101">
+                      <object class="GtkViewport">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Astrometry</property>
-                        <property name="xalign">0</property>
-                        <style>
-                          <class name="title"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame" id="frame28">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
                         <child>
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
                             <property name="orientation">vertical</property>
-                            <property name="spacing">5</property>
+                            <property name="spacing">10</property>
                             <child>
-                              <object class="GtkScrolledWindow">
-                                <property name="height-request">150</property>
+                              <object class="GtkLabel" id="label101">
                                 <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="shadow-type">in</property>
-                                <child>
-                                  <object class="GtkTreeView" id="pref_astro_tree_view">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="has-tooltip">True</property>
-                                    <property name="vexpand">True</property>
-                                    <property name="model">liststore_astrometry</property>
-                                    <property name="headers-clickable">False</property>
-                                    <property name="reorderable">True</property>
-                                    <property name="search-column">0</property>
-                                    <property name="enable-grid-lines">both</property>
-                                    <child internal-child="selection">
-                                      <object class="GtkTreeSelection"/>
-                                    </child>
-                                    <child>
-                                      <object class="GtkTreeViewColumn">
-                                        <child>
-                                          <object class="GtkCellRendererToggle" id="cellrendeur_catalog_use">
-                                            <signal name="toggled" handler="on_cellrendeur_catalog_use_toggled" swapped="no"/>
-                                          </object>
-                                          <attributes>
-                                            <attribute name="active">0</attribute>
-                                          </attributes>
-                                        </child>
-                                      </object>
-                                    </child>
-                                    <child>
-                                      <object class="GtkTreeViewColumn" id="treeviewcolumn28">
-                                        <property name="title" translatable="yes">Catalogue</property>
-                                        <property name="clickable">True</property>
-                                        <property name="sort-indicator">True</property>
-                                        <property name="sort-column-id">0</property>
-                                        <child>
-                                          <object class="GtkCellRendererText" id="cellrenderer_catalog"/>
-                                          <attributes>
-                                            <attribute name="text">1</attribute>
-                                          </attributes>
-                                        </child>
-                                      </object>
-                                    </child>
-                                  </object>
-                                </child>
+                                <property name="can-focus">False</property>
+                                <property name="label" translatable="yes">Astrometry</property>
+                                <property name="xalign">0</property>
+                                <style>
+                                  <class name="title"/>
+                                </style>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -28322,43 +28282,178 @@ It depends on the acquistion software used to create the FITS.</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkBox">
+                              <object class="GtkFrame" id="frame28">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="spacing">5</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
                                 <child>
-                                  <object class="GtkButton" id="purge_SSO_user_catalogue">
-                                    <property name="label" translatable="yes">Purge Solar Sys
-user Catalog</property>
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Purge the SOLAR SYSTEM user catalog by deleting the file. The operation cannot be undone</property>
-                                    <signal name="clicked" handler="on_purge_SSO_user_catalogue_clicked" swapped="no"/>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-left">12</property>
+                                    <property name="margin-start">12</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">5</property>
+                                    <child>
+                                      <object class="GtkScrolledWindow">
+                                        <property name="height-request">150</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="shadow-type">in</property>
+                                        <child>
+                                          <object class="GtkTreeView" id="pref_astro_tree_view">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="has-tooltip">True</property>
+                                            <property name="vexpand">True</property>
+                                            <property name="model">liststore_astrometry</property>
+                                            <property name="headers-clickable">False</property>
+                                            <property name="reorderable">True</property>
+                                            <property name="search-column">0</property>
+                                            <property name="enable-grid-lines">both</property>
+                                            <child internal-child="selection">
+                                              <object class="GtkTreeSelection"/>
+                                            </child>
+                                            <child>
+                                              <object class="GtkTreeViewColumn">
+                                                <child>
+                                                  <object class="GtkCellRendererToggle" id="cellrendeur_catalog_use">
+                                                    <signal name="toggled" handler="on_cellrendeur_catalog_use_toggled" swapped="no"/>
+                                                  </object>
+                                                  <attributes>
+                                                    <attribute name="active">0</attribute>
+                                                  </attributes>
+                                                </child>
+                                              </object>
+                                            </child>
+                                            <child>
+                                              <object class="GtkTreeViewColumn" id="treeviewcolumn28">
+                                                <property name="title" translatable="yes">Catalogue</property>
+                                                <property name="clickable">True</property>
+                                                <property name="sort-indicator">True</property>
+                                                <property name="sort-column-id">0</property>
+                                                <child>
+                                                  <object class="GtkCellRendererText" id="cellrenderer_catalog"/>
+                                                  <attributes>
+                                                    <attribute name="text">1</attribute>
+                                                  </attributes>
+                                                </child>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="spacing">5</property>
+                                        <child>
+                                          <object class="GtkButton" id="purge_SSO_user_catalogue">
+                                            <property name="label" translatable="yes">Purge Solar Sys
+user Catalog</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Purge the SOLAR SYSTEM user catalog by deleting the file. The operation cannot be undone</property>
+                                            <signal name="clicked" handler="on_purge_SSO_user_catalogue_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="pack-type">end</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="purge_DSO_user_catalogue">
+                                            <property name="label" translatable="yes">Purge Deep Sky
+user Catalog</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Purge the DEEP SKY user catalog by deleting the file. The operation cannot be undone</property>
+                                            <signal name="clicked" handler="on_purge_DSO_user_catalogue_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="pack-type">end</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">2</property>
+                                      </packing>
+                                    </child>
                                   </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="pack-type">end</property>
-                                    <property name="position">0</property>
-                                  </packing>
                                 </child>
-                                <child>
-                                  <object class="GtkButton" id="purge_DSO_user_catalogue">
-                                    <property name="label" translatable="yes">Purge Deep Sky
-user Catalog</property>
+                                <child type="label">
+                                  <object class="GtkLabel" id="label107">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Purge the DEEP SKY user catalog by deleting the file. The operation cannot be undone</property>
-                                    <signal name="clicked" handler="on_purge_DSO_user_catalogue_clicked" swapped="no"/>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-top">10</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="label" translatable="yes">Annotations</property>
+                                    <property name="single-line-mode">True</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
                                   </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="pack-type">end</property>
-                                    <property name="position">1</property>
-                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame" id="frame30">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <object class="GtkComboBoxText" id="compass_combobox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-markup" translatable="yes">Choose the position of the compass being displayed with the celestial grid.</property>
+                                    <property name="margin-left">12</property>
+                                    <property name="margin-start">12</property>
+                                    <property name="active">0</property>
+                                    <items>
+                                      <item translatable="yes">None</item>
+                                      <item translatable="yes">Center</item>
+                                      <item translatable="yes">Top-left</item>
+                                      <item translatable="yes">Top-right</item>
+                                      <item translatable="yes">Bottom-left</item>
+                                      <item translatable="yes">Bottom-right</item>
+                                    </items>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel" id="label109">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-top">10</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="label" translatable="yes">Compass</property>
+                                    <property name="single-line-mode">True</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
                                 </child>
                               </object>
                               <packing>
@@ -28367,264 +28462,420 @@ user Catalog</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel" id="label107">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-top">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">Annotations</property>
-                            <property name="single-line-mode">True</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame" id="frame30">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <object class="GtkComboBoxText" id="compass_combobox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-markup" translatable="yes">Choose the position of the compass being displayed with the celestial grid.</property>
-                            <property name="margin-start">12</property>
-                            <property name="active">0</property>
-                            <items>
-                              <item translatable="yes">None</item>
-                              <item translatable="yes">Center</item>
-                              <item translatable="yes">Top-left</item>
-                              <item translatable="yes">Top-right</item>
-                              <item translatable="yes">Bottom-left</item>
-                              <item translatable="yes">Bottom-right</item>
-                            </items>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel" id="label109">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-top">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">Compass</property>
-                            <property name="single-line-mode">True</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame" id="frame29">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <object class="GtkComboBoxText" id="wcs_formalism_combobox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-markup" translatable="yes">&lt;b&gt;Formalism 1&lt;/b&gt;: It encodes Mij in so called PCi_j keywords and scale factor Si are the values of the CDELTi keywords from the FITS header. It is obvious that the value of CDELT should not be 0.0.
+                            <child>
+                              <object class="GtkFrame" id="frame29">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <object class="GtkComboBoxText" id="wcs_formalism_combobox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-markup" translatable="yes">&lt;b&gt;Formalism 1&lt;/b&gt;: It encodes Mij in so called PCi_j keywords and scale factor Si are the values of the CDELTi keywords from the FITS header. It is obvious that the value of CDELT should not be 0.0.
 
 &lt;b&gt;Formalism 2&lt;/b&gt;: If the matrix and scaling are combined we get for the intermediate WORLD COORDINATE Xi:
 
                Xi = Sigma_j=1^N (Si*Mij)(Pj-Rj)
 
 FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FITS keyword CTYPEi.</property>
-                            <property name="margin-start">12</property>
-                            <property name="active">0</property>
-                            <items>
-                              <item translatable="yes">Formalism 2 (CD keywords)</item>
-                              <item id="&lt;Saisir un identifiant&gt;" translatable="yes">Formalism 1 (PC keywords)</item>
-                            </items>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel" id="label108">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-top">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">World Coordinate System</property>
-                            <property name="single-line-mode">True</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkFrame">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <!-- n-columns=4 n-rows=2 -->
-                          <object class="GtkGrid">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
-                            <property name="row-spacing">6</property>
-                            <property name="column-spacing">6</property>
+                                    <property name="margin-left">12</property>
+                                    <property name="margin-start">12</property>
+                                    <property name="active">0</property>
+                                    <items>
+                                      <item translatable="yes">Formalism 2 (CD keywords)</item>
+                                      <item id="&lt;Saisir un identifiant&gt;" translatable="yes">Formalism 1 (PC keywords)</item>
+                                    </items>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel" id="label108">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-top">10</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="label" translatable="yes">World Coordinate System</property>
+                                    <property name="single-line-mode">True</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">3</property>
+                              </packing>
+                            </child>
                             <child>
-                              <object class="GtkLabel">
+                              <object class="GtkFrame">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <!-- n-columns=4 n-rows=2 -->
+                                  <object class="GtkGrid">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-left">12</property>
+                                    <property name="margin-start">12</property>
+                                    <property name="row-spacing">6</property>
+                                    <property name="column-spacing">6</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
 
 &lt;b&gt;namedstars.dat&lt;/b&gt;: the brightest stars, all of them have names.</property>
-                                <property name="halign">start</property>
-                                <property name="label">namedstars.dat: </property>
-                                <property name="single-line-mode">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
+                                        <property name="halign">start</property>
+                                        <property name="label">namedstars.dat: </property>
+                                        <property name="single-line-mode">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
 
 &lt;b&gt;unnamedstars.dat&lt;/b&gt;: also bright stars, but down to magnitude 8</property>
-                                <property name="halign">start</property>
-                                <property name="label">unnamedstars.dat: </property>
-                                <property name="single-line-mode">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFileChooserButton" id="localcatalogue_path1">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Specify the location of the namedstars.dat star catalogue on your system.</property>
-                                <property name="filter">filter_namedstars</property>
-                                <property name="title">namedstars.dat</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFileChooserButton" id="localcatalogue_path2">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Specify the location of the unnamedstars.dat star catalogue on your system.</property>
-                                <property name="filter">filter_unnamedstars</property>
-                                <property name="title">unnamedstars.dat</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFileChooserButton" id="localcatalogue_path3">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Specify the location of the deepstars.dat star catalogue on your system.</property>
-                                <property name="filter">filter_deepstars</property>
-                                <property name="title">deepstars.dat</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">3</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
+                                        <property name="halign">start</property>
+                                        <property name="label">unnamedstars.dat: </property>
+                                        <property name="single-line-mode">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="localcatalogue_path1">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the location of the namedstars.dat star catalogue on your system.</property>
+                                        <property name="filter">filter_namedstars</property>
+                                        <property name="title">namedstars.dat</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="localcatalogue_path2">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the location of the unnamedstars.dat star catalogue on your system.</property>
+                                        <property name="filter">filter_unnamedstars</property>
+                                        <property name="title">unnamedstars.dat</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="localcatalogue_path3">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the location of the deepstars.dat star catalogue on your system.</property>
+                                        <property name="filter">filter_deepstars</property>
+                                        <property name="title">deepstars.dat</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">3</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
 
 &lt;b&gt;deepstars.dat&lt;/b&gt;: fainter stars extracted from The Tycho-2 Catalogue of the 2.5 Million Brightest Stars, down to magnitude 12.5</property>
-                                <property name="halign">start</property>
-                                <property name="label">deepstars.dat: </property>
-                                <property name="single-line-mode">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">2</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFileChooserButton" id="localcatalogue_path4">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Specify the location of the USNO-NOMAD-1e8.dat star catalogue on your system.</property>
-                                <property name="filter">filter_USNO-NOMAD-1e8</property>
-                                <property name="title">USNO-NOMAD-1e8.dat</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">3</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
+                                        <property name="halign">start</property>
+                                        <property name="label">deepstars.dat: </property>
+                                        <property name="single-line-mode">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="localcatalogue_path4">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Specify the location of the USNO-NOMAD-1e8.dat star catalogue on your system.</property>
+                                        <property name="filter">filter_USNO-NOMAD-1e8</property>
+                                        <property name="title">USNO-NOMAD-1e8.dat</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">3</property>
+                                        <property name="top-attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-markup" translatable="yes">These four catalogues from KStars are used for plate solving and astrometry.
 
 &lt;b&gt;USNO-NOMAD-1e8.dat&lt;/b&gt;: an extract of the huge NOMAD catalogue limited to B-V photometric information and star proper motion in a compact binary form, down to magnitude 18.</property>
-                                <property name="halign">start</property>
-                                <property name="label">USNO-NOMAD-1e8.dat: </property>
+                                        <property name="halign">start</property>
+                                        <property name="label">USNO-NOMAD-1e8.dat: </property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="margin-top">10</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;Local star catalogues&lt;/b&gt; (&lt;a href="https://free-astro.org/index.php?title=Siril:Star_Catalogues"&gt;more info&lt;/a&gt;)</property>
+                                    <property name="use-markup">True</property>
+                                    <property name="single-line-mode">True</property>
+                                  </object>
+                                </child>
                               </object>
                               <packing>
-                                <property name="left-attach">2</property>
-                                <property name="top-attach">1</property>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">4</property>
                               </packing>
                             </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-top">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">&lt;b&gt;Local star catalogues&lt;/b&gt; (&lt;a href="https://free-astro.org/index.php?title=Siril:Star_Catalogues"&gt;more info&lt;/a&gt;)</property>
-                            <property name="use-markup">True</property>
-                            <property name="single-line-mode">True</property>
+                            <child>
+                              <object class="GtkFrame" id="frame3">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <object class="GtkCheckButton" id="astrometry_update_fields">
+                                    <property name="label" translatable="yes">Update default focal length and pixel size from the result</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Update default focal length and pixel size from the result</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel" id="label25">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-top">10</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="label" translatable="yes">General platesolving</property>
+                                    <property name="single-line-mode">True</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">5</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <!-- n-columns=2 n-rows=6 -->
+                                  <object class="GtkGrid">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-left">12</property>
+                                    <property name="margin-start">12</property>
+                                    <property name="row-spacing">6</property>
+                                    <property name="column-spacing">6</property>
+                                    <property name="column-homogeneous">True</property>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Degrees of the polynomial correction:</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkComboBoxText" id="combo_box_astrometry_sip_order">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="active">0</property>
+                                        <items>
+                                          <item translatable="yes">0</item>
+                                          <item translatable="yes">1</item>
+                                          <item translatable="yes">2</item>
+                                          <item translatable="yes">3</item>
+                                          <item translatable="yes">4</item>
+                                          <item translatable="yes">5</item>
+                                          <item translatable="yes">6</item>
+                                        </items>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Sampling tolerance (%):</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_asnet_sampling">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">Percent below and above the expected sampling to allow.</property>
+                                        <property name="halign">start</property>
+                                        <property name="width-chars">9</property>
+                                        <property name="adjustment">adj_asnet_sampling</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_asnet_radius">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">Radius around the target coordinates (degrees)</property>
+                                        <property name="halign">start</property>
+                                        <property name="width-chars">9</property>
+                                        <property name="adjustment">adj_asnet_radius</property>
+                                        <property name="digits">2</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Target radius (degree)</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCheckButton" id="check_button_asnet_xyls">
+                                        <property name="label" translatable="yes">Do not delete .xyls FITS tables</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="draw-indicator">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">3</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCheckButton" id="check_button_asnet_wcs">
+                                        <property name="label" translatable="yes">Do not delete .wcs result files</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="draw-indicator">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">4</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Maximum seconds to try solving:</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">5</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSpinButton" id="spin_asnet_max_sec">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="halign">start</property>
+                                        <property name="width-chars">9</property>
+                                        <property name="adjustment">adj_asnet_max_sec</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">5</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="margin-top">10</property>
+                                    <property name="margin-bottom">10</property>
+                                    <property name="label" translatable="yes">Astrometry.net platesolving</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">7</property>
+                              </packing>
+                            </child>
                           </object>
                         </child>
                       </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">4</property>
-                      </packing>
                     </child>
                   </object>
                   <packing>
