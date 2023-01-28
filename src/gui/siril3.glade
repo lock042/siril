@@ -8664,10 +8664,6 @@ Modified data can be saved in a FITS file.</property>
                   <item>2x2</item>
                   <item>3x3</item>
                   <item>4x4</item>
-                  <item>1x2</item>
-                  <item>1x3</item>
-                  <item>2x1</item>
-                  <item>3x1</item>
                 </items>
                 <signal name="changed" handler="on_combobinning_changed" swapped="no"/>
               </object>
