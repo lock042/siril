@@ -28651,7 +28651,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="can-focus">True</property>
                                     <property name="margin-top">10</property>
                                     <property name="margin-bottom">10</property>
-                                    <property name="label" translatable="yes">&lt;b&gt;Local star catalogues&lt;/b&gt; (&lt;a href="https://free-astro.org/index.php?title=Siril:Star_Catalogues"&gt;more info&lt;/a&gt;)</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;Local Star Catalogues&lt;/b&gt; (&lt;a href="https://free-astro.org/index.php?title=Siril:Star_Catalogues"&gt;more info&lt;/a&gt;)</property>
                                     <property name="use-markup">True</property>
                                     <property name="single-line-mode">True</property>
                                   </object>
@@ -28685,7 +28685,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="can-focus">False</property>
                                     <property name="margin-top">10</property>
                                     <property name="margin-bottom">10</property>
-                                    <property name="label" translatable="yes">General platesolving</property>
+                                    <property name="label" translatable="yes">General Platesolving</property>
                                     <property name="single-line-mode">True</property>
                                     <attributes>
                                       <attribute name="weight" value="bold"/>
@@ -28862,7 +28862,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="can-focus">False</property>
                                     <property name="margin-top">10</property>
                                     <property name="margin-bottom">10</property>
-                                    <property name="label" translatable="yes">Astrometry.net platesolving</property>
+                                    <property name="label" translatable="yes">Astrometry.net Platesolving</property>
                                     <attributes>
                                       <attribute name="weight" value="bold"/>
                                     </attributes>
