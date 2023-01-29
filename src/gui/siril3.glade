@@ -28671,7 +28671,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Update default focal length and pixel size from the result</property>
+                                    <property name="tooltip-text" translatable="yes">When an astrometric solution is found, the computed focal length and input pixel size are stored in the settings as default values for images that don't have the corresponding medatada.</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
                                 </child>
@@ -28739,7 +28739,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkSpinButton" id="spin_asnet_sampling">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Percent below and above the expected sampling to allow.</property>
+                                        <property name="tooltip-text" translatable="yes">Percent below and above the expected sampling to allow. Given sampling is multiplied or divided by 1 + this / 100.</property>
                                         <property name="halign">start</property>
                                         <property name="width-chars">9</property>
                                         <property name="input-purpose">digits</property>
@@ -28754,7 +28754,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkSpinButton" id="spin_asnet_radius">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Radius around the target coordinates (degrees)</property>
+                                        <property name="tooltip-text" translatable="yes">Allowed search radius around the target coordinates for the solve (degrees). Unused for blind (no target passed) solves.</property>
                                         <property name="halign">start</property>
                                         <property name="width-chars">9</property>
                                         <property name="input-purpose">number</property>
@@ -28784,6 +28784,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">The list of stars is passed to solve-field as a FITS table, check this to keep the file in the working directory.</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -28797,6 +28798,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">The results from solve-field are stored in a FITS header with a file name ending in .wcs. Check this to not remove this file.</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -28820,6 +28822,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkSpinButton" id="spin_asnet_max_sec">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">Allowed time for the solve for each catalog file. It can be used as the total solve time only if solve-field is configured to do so in its configuration file.</property>
                                         <property name="halign">start</property>
                                         <property name="width-chars">9</property>
                                         <property name="input-purpose">digits</property>
@@ -28834,6 +28837,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkSpinButton" id="spin_asnet_sip_order">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">Astrometry.net can use a polynomial correction (SIP) to work with optical aberrations, this is the order of the polynomial model. 0 disables it.</property>
                                         <property name="halign">start</property>
                                         <property name="width-chars">9</property>
                                         <property name="input-purpose">digits</property>
