@@ -149,22 +149,31 @@ void makedisc(float *psf, int size, float width, float lum, float xoffset, float
 	// not enough to cause slowness with large kernels.
 	const int maxranditer = 10000;
 	float radiussq = radius * radius;
+	float solidradsq = powf(radius - 0.5f, 2.f); // radius less than which pixel value is 1.f
+	float zeroradsq =powf(radius + 0.5f, 2.f); // radius greater than which pixel value is 0.f
+	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
+		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
+			float pixradsq = powf((x - xoffset + 0.5f), 2.f) + powf((y - yoffset - 0.5f), 2.f);
+			if (pixradsq < solidradsq) {
+				psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = 1.f;
+			} else if (pixradsq > zeroradsq) {
+				psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = 0.f;
+			} else {
+				int count = 0;
 #ifdef _OPENMP
 #pragma omp simd
 #endif
-	for (int x = -halfpsfdim; x <= halfpsfdim; x++) {
-		for (int y = -halfpsfdim; y <= halfpsfdim; y++) {
-			int count = 0;
-			for (int randiter = 0 ; randiter < maxranditer; randiter++) {
-				// Not aiming for cryptographic levels of randomness, rand() will do.
-				float xrandoff = (float) ((float)rand()/(float)(RAND_MAX)) - 0.5f;
-				float yrandoff = (float) ((float)rand()/(float)(RAND_MAX)) - 0.5f;
-				float xf = x - xoffset + xrandoff + 0.5f;
-				float yf = y - yoffset + yrandoff - 0.5f;
-				if ((xf * xf + yf * yf) < radiussq)
-					count++;
+				for (int randiter = 0 ; randiter < maxranditer; randiter++) {
+					// Not aiming for cryptographic levels of randomness, rand() will do.
+					float xrandoff = (float) ((float)rand()/(float)(RAND_MAX)) - 0.5f;
+					float yrandoff = (float) ((float)rand()/(float)(RAND_MAX)) - 0.5f;
+					float xf = x - xoffset + xrandoff + 0.5f;
+					float yf = y - yoffset + yrandoff - 0.5f;
+					if ((xf * xf + yf * yf) < radiussq)
+						count++;
+				}
+				psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = (lum * count) / maxranditer;
 			}
-			psf[(x + halfpsfdim) + ((y + halfpsfdim) * size)] = (lum * count) / maxranditer;
 		}
 	}
 #ifdef _OPENMP
