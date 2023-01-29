@@ -204,7 +204,7 @@ void reset_conv_controls() {
 }
 
 void reset_conv_controls_and_args() {
-	if (!get_thread_run())
+	if (!get_thread_run() || (the_fit == NULL))
 		reset_conv_args(&args);
 	if (!(com.headless))
 		reset_conv_controls();
