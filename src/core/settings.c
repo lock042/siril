@@ -260,7 +260,7 @@ struct settings_access all_settings[] = {
 	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
 	{ "core", "cygwin_dir", STYPE_STR, N_("directory of the cygwin_ansvr installation (for Windows only)"), &com.pref.cygwin_dir },
 	{ "core", "fftw_timelimit", STYPE_DOUBLE, N_("FFTW planning timelimit"), &com.pref.fftw_conf.timelimit },
-	{ "core", "fftw_conv_fft_cutoff", STYPE_DOUBLE, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
+	{ "core", "fftw_conv_fft_cutoff", STYPE_INT, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
 	{ "core", "fftw_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
 	{ "core", "fftw_timeout", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
 
