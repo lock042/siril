@@ -287,6 +287,7 @@ gboolean end_plate_solver(gpointer p) {
 	stop_processing_thread();
 
 	set_cursor_waiting(FALSE);
+	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	if (args->ret) {
 		char *title = siril_log_color_message(_("Plate Solving failed. "
@@ -307,7 +308,6 @@ gboolean end_plate_solver(gpointer p) {
 		delete_selected_area();
 		/* ****** */
 
-		control_window_switch_to_tab(OUTPUT_LOGS);
 		if (args->flip_image || args->for_photometry_cc)
 			redraw(REMAP_ALL);
 		else redraw(REDRAW_OVERLAY);

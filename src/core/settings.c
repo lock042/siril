@@ -70,7 +70,7 @@ preferences pref_init = {
 		.profile = PSF_GAUSSIAN,
 		.min_beta = 1.5,
 		.min_A = 0.0,
-		.max_A = 1.0
+		.max_A = 0.0
 	},
 	.prepro = {
 		.cfa = FALSE,
@@ -156,13 +156,14 @@ preferences pref_init = {
 		.maxval = 60000.0,
 	},
 	.astrometry = {
-		.percent_scale_range = 15,
+		.update_default_scale = TRUE,
+		.percent_scale_range = 20,
 		.sip_correction_order = 0,
 		.radius_degrees = 10.0,
 		.keep_xyls_files = FALSE,
 		.keep_wcs_files = FALSE,
-		.max_seconds_run = 30,
-		.update_default_scale = TRUE,
+		.max_seconds_run = 10,
+		.show_asnet_output = FALSE,
 	},
 	.analysis = {
 		.mosaic_panel = 256,
@@ -289,6 +290,7 @@ struct settings_access all_settings[] = {
 	{ "astrometry", "asnet_keep_xyls", STYPE_BOOL, N_("do not delete .xyls FITS tables"), &com.pref.astrometry.keep_xyls_files },
 	{ "astrometry", "asnet_keep_wcs", STYPE_BOOL, N_("do not delete .wcs result files"), &com.pref.astrometry.keep_wcs_files },
 	{ "astrometry", "asnet_max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
+	{ "astrometry", "asnet_show_output", STYPE_BOOL, N_("show solve-field output in main log"), &com.pref.astrometry.show_asnet_output },
 
 	{ "astrometry", "update_default_scale", STYPE_BOOL, N_("update default focal length and pixel size from the result"), &com.pref.astrometry.update_default_scale },
 

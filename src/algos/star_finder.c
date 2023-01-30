@@ -553,6 +553,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 			maxA = sf->max_A;
 		}
 		else return 0;
+		siril_debug_print("using the amplitude range [%f, %f]\n", minA, maxA);
 	}
 
 	if (image->type == DATA_USHORT) {
@@ -1136,7 +1137,6 @@ gpointer findstar_worker(gpointer p) {
 					pix2wcs2(args->ref_wcs, x, y, &ra, &dec);
 #endif
 					// ra and dec = -1 is the error code
-					// XXX is this the best way to pass the coords?
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;
 				}

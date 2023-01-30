@@ -93,15 +93,16 @@ struct libraw_config {
 };
 
 struct astrometry_config {
-	/* for local astrometry.net, there could be other sections */
-	// path to solve-field like for gnuplot and starnet?
+	gboolean update_default_scale;	// update default focal length and pixel size from the result
+
+	/* for local astrometry.net */
 	int percent_scale_range;	// percent below and above the expected sampling to allow
 	int sip_correction_order;	// degrees of the polynomial correction
 	double radius_degrees;		// radius around the target coordinates (degrees)
 	gboolean keep_xyls_files;	// do not delete .xyls FITS tables
 	gboolean keep_wcs_files;	// do not delete .wcs result files
 	int max_seconds_run;		// maximum seconds of CPU time to try solving
-	gboolean update_default_scale;	// update default focal length and pixel size from the result
+	gboolean show_asnet_output;	// show solve-field output in main log
 };
 
 

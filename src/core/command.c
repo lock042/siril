@@ -7952,7 +7952,7 @@ int process_rgbcomp(int nb) {
 
 // used for plate solver and PCC commands
 int process_pcc(int nb) {
-	gboolean noflip = FALSE, plate_solve = !has_wcs(&gfit);
+	gboolean noflip = FALSE, plate_solve = !has_wcs(&gfit), downsample = FALSE;
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
 	double mag_offset = 0.0, target_mag = -1.0;
@@ -7996,6 +7996,8 @@ int process_pcc(int nb) {
 			noflip = TRUE;
 		else if (!strcmp(word[next_arg], "-platesolve"))
 			plate_solve = TRUE;
+		else if (!strcmp(word[next_arg], "-downscale"))
+			downsample = TRUE;
 		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
 			char *arg = word[next_arg] + 7;
 			gchar *end;
@@ -8092,7 +8094,7 @@ int process_pcc(int nb) {
 		args->use_local_cat = local_cat;
 		args->onlineCatalog = cat;
 		args->cat_center = target_coords;
-		args->downsample = FALSE;	// TODO: could depend on image size
+		args->downsample = downsample;
 		args->autocrop = TRUE;
 		args->flip_image = !noflip;
 		args->manual = FALSE;
@@ -8237,7 +8239,7 @@ int process_pcc(int nb) {
 		}
 		else args->onlineCatalog = local_cat ? CAT_NOMAD : cat;
 		args->cat_center = target_coords;
-		args->downsample = FALSE;//gfit.rx > 6000;	// TODO: implement for asnet
+		args->downsample = downsample;
 		args->autocrop = TRUE;
 		args->flip_image = !noflip;
 		args->manual = FALSE;

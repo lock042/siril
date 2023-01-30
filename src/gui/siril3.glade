@@ -13349,52 +13349,9 @@ This should normally be the case only for stacked images. Increasing this value 
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="xpad">8</property>
-                        <property name="label" translatable="yes">Min Amplitude:</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="xpad">8</property>
-                        <property name="label" translatable="yes">Max Amplitude:</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="spinstarfinder_minA">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Mininum star amplitude threshold (stars with smaller amplitudes will not be detected).</property>
-                        <property name="width-chars">5</property>
-                        <property name="input-purpose">number</property>
-                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                        <property name="adjustment">adjstarfinder_minA</property>
-                        <property name="digits">2</property>
-                        <property name="numeric">True</property>
-                        <signal name="value-changed" handler="on_spin_sf_minA_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">3</property>
-                        <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkSpinButton" id="spinstarfinder_maxA">
                         <property name="visible">True</property>
+                        <property name="sensitive">False</property>
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Maximum star amplitude threshold (stars with larger amplitudes will not be detected).</property>
                         <property name="width-chars">5</property>
@@ -13407,9 +13364,47 @@ This should normally be the case only for stacked images. Increasing this value 
                         <signal name="value-changed" handler="on_spin_sf_maxA_changed" swapped="no"/>
                       </object>
                       <packing>
+                        <property name="left-attach">4</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spinstarfinder_minA">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Mininum star amplitude threshold (stars with smaller amplitudes will not be detected).</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_minA</property>
+                        <property name="digits">2</property>
+                        <property name="numeric">True</property>
+                        <signal name="value-changed" handler="on_spin_sf_minA_changed" swapped="no"/>
+                      </object>
+                      <packing>
                         <property name="left-attach">3</property>
                         <property name="top-attach">1</property>
                       </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="psf_amplitude_range_check_button">
+                        <property name="label" translatable="yes">Amplitude range</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Enable amplitude range (only stars with an amplitude in this range will be kept from the detection).
+Note: excluding saturated stars from the list will probably make registration or astrometry fail.</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_psf_amplitude_range_check_button_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
@@ -28672,6 +28667,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
                                     <property name="tooltip-text" translatable="yes">When an astrometric solution is found, the computed focal length and input pixel size are stored in the settings as default values for images that don't have the corresponding medatada.</property>
+                                    <property name="margin-start">12</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
                                 </child>
@@ -28702,7 +28698,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
-                                  <!-- n-columns=2 n-rows=7 -->
+                                  <!-- n-columns=2 n-rows=8 -->
                                   <object class="GtkGrid">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -28877,6 +28873,23 @@ On Windows, you must point to the location of cygwin_ansvr folder.</property>
                                         <property name="left-attach">1</property>
                                         <property name="top-attach">6</property>
                                       </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCheckButton" id="check_button_asnet_show_output">
+                                        <property name="label" translatable="yes">Show solve-field output</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip-text" translatable="yes">Show the output of solve-field, the astrometry.net local solver, in the main Siril log.</property>
+                                        <property name="draw-indicator">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">7</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <placeholder/>
                                     </child>
                                     <child>
                                       <placeholder/>

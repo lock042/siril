@@ -737,50 +737,6 @@ static void extract_cdelt_from_cd(double cd1_1, double cd1_2, double cd2_1,
 	*cdelt2 = sqrt((cd1_2 * cd1_2) + (cd2_2 * cd2_2));
 }
 
-static void print_platesolving_results(solve_results *image, gboolean downsample) {
-	double rotation, det, scaleX, scaleY, resolution;
-	double inliers;
-	char field_x[256] = "";
-	char field_y[256] = "";
-
-	float factor = (downsample) ? DOWNSAMPLE_FACTOR : 1.0;
-	Homography H = image->H;
-
-	/* Matching information */
-	gchar *str = ngettext("%d pair match.\n", "%d pair matches.\n", H.pair_matched);
-	str = g_strdup_printf(str, H.pair_matched);
-	siril_log_message(str);
-	g_free(str);
-	inliers = 1.0 - (((double) H.pair_matched - (double) H.Inliers) / (double) H.pair_matched);
-	siril_log_message(_("Inliers:%*.3f\n"), 14, inliers);
-
-	/* Plate Solving */
-	scaleX = sqrt(H.h00 * H.h00 + H.h01 * H.h01);
-	scaleY = sqrt(H.h10 * H.h10 + H.h11 * H.h11);
-	resolution = (scaleX + scaleY) * 0.5 * factor; // we assume square pixels
-	siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
-
-	/* rotation */
-	rotation = atan2(H.h00 + H.h01, H.h10 + H.h11) * RADTODEG + 135.0;
-	det = (H.h00 * H.h11 - H.h01 * H.h10); // determinant of rotation matrix (ad - bc)
-	/* If the determinant of the top-left 2x2 rotation matrix is > 0
-	 * the transformation is orientation-preserving. */
-
-	if (det < 0)
-		rotation = -90.0 - rotation;
-	if (rotation < -180.0)
-		rotation += 360.0;
-	if (rotation > 180.0)
-		rotation -= 360.0;
-	siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
-
-	siril_log_message(_("Focal length:%*.2lf mm\n"), 8, RADCONV * image->pixel_size / resolution);
-	siril_log_message(_("Pixel size:%*.2lf µm\n"), 10, image->pixel_size);
-	fov_in_DHMS(resolution * image->size.x / 3600.0, field_x);
-	fov_in_DHMS(resolution * image->size.y / 3600.0, field_y);
-	siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
-}
-
 static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 	double rotationa, rotationb, rotation;
 	char field_x[256] = "";
@@ -809,7 +765,7 @@ static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 		rotation += 360.0;
 	if (rotation > 180.0)
 		rotation -= 360.0;
-	siril_log_message(_("Up is %+.2lf deg ClockWise wrt. N %s\n"), rotation, det > 0.0 ? _("(flipped)") : "");
+	siril_log_message(_("Up is %+.2lf deg ClockWise wrt. N%s\n"), rotation, det > 0.0 ? _(" (flipped)") : "");
 
 	/* Plate Solving */
 	double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
@@ -1401,33 +1357,44 @@ gpointer plate_solver(gpointer p) {
 	CHECK_FOR_CANCELLATION;
 
 	/* 2. Get image stars */
-	// store the size of the image being solved
-	// for later use in case of downscale
+	// store the size of the image being solved for later use in case of downscale
 	args->rx_solver = args->fit->rx;
 	args->ry_solver = args->fit->ry;
 	args->scalefactor = 1.;
 	if (!args->manual) {
+		int detection_layer = args->fit->naxes[2] == 1 ? 0 : 1;
 		fits fit_backup = { 0 };	// original image in case of downscale
 		gchar *header_backup = NULL;
 		if (args->downsample) {
+			int retval;
 			siril_log_message(_("Down-sampling image for faster star detection by a factor %.2f\n"), DOWNSAMPLE_FACTOR);
-			copyfits(args->fit, &fit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-			copy_fits_metadata(args->fit, &fit_backup);
-			header_backup = g_strdup(args->fit->header);
-			cvResizeGaussian(args->fit, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA, FALSE);
-			// update with data of the downscaled image
-			args->scalefactor = (double)args->rx_solver / (double)args->fit->rx; // TODO: should we average x/y or even better separate scales on x and y
-			args->rx_solver = args->fit->rx;
-			args->ry_solver = args->fit->ry;
+			retval = extract_fits(args->fit, &fit_backup, detection_layer, FALSE);
+			if (!retval) {
+				copy_fits_metadata(args->fit, &fit_backup);
+				header_backup = g_strdup(args->fit->header);
+				args->rx_solver = round_to_int(DOWNSAMPLE_FACTOR * args->fit->rx);
+				args->ry_solver = round_to_int(DOWNSAMPLE_FACTOR * args->fit->ry);
+				retval = cvResizeGaussian(args->fit, args->rx_solver, args->ry_solver, OPENCV_AREA, FALSE);
+			}
+			if (retval) {
+				clearfits(&fit_backup);
+				siril_log_color_message(_("Failed to downsample image, aborting\n"), "red");
+				args->message = g_strdup(_("Not enough memory"));
+				args->ret = 1;
+				goto clearup;
+			}
+
+			// TODO: should we average x and y or even better separate scales on x and y?
+			args->scalefactor = (double)fit_backup.rx / (double)args->fit->rx;
 			args->scale *= args->scalefactor;
+			detection_layer = 0;
 		}
 
 		image im = { .fit = args->fit, .from_seq = NULL, .index_in_seq = -1 };
 		// capping the detection to max usable number of stars
 		int max_stars = args->for_photometry_cc ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
 
-		// TODO: use good layer
-		stars = peaker(&im, 0, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE,
+		stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE,
 				args->onlineCatalog != CAT_ASNET, max_stars,
 				com.pref.starfinder_conf.profile, com.max_thread);
 
@@ -1448,6 +1415,7 @@ gpointer plate_solver(gpointer p) {
 	if (!stars || n_fit < AT_MATCH_STARTN_LINEAR) {
 		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
 				"At least %d are needed."), AT_MATCH_STARTN_LINEAR);
+		args->ret = 1;
 		goto clearup;
 	}
 	if (args->verbose)
@@ -1919,7 +1887,9 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	GDataInputStream *data_input = g_data_input_stream_new(stream);
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
-		siril_debug_print("solver: %s\n", buffer);
+		if (com.pref.astrometry.show_asnet_output)
+			siril_log_message("solve-field: %s\n", buffer);
+		else siril_debug_print("solver: %s\n", buffer);
 		if (g_str_has_prefix(buffer, "Did not solve")) {
 			siril_log_color_message(_("No astrometric solution found\n"), "red");
 			g_free(buffer);
@@ -1967,16 +1937,20 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	args->fit->wcsdata.ra = args->fit->wcsdata.crval[0];
 	args->fit->wcsdata.dec = args->fit->wcsdata.crval[1];
 
+	double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
+	solution->focal_length = RADCONV * args->pixel_size / resolution;
+
 	if (args->downsample) {
 		Homography S;
-		cvGetMatrixResize(args->fit->wcsdata.crpix[0], args->fit->wcsdata.crpix[1], (double)args->fit->rx * 0.5, (double)args->fit->ry * 0.5, args->scalefactor, &S);
+		cvGetMatrixResize(args->fit->wcsdata.crpix[0], args->fit->wcsdata.crpix[1],
+				(double)args->fit->rx * 0.5, (double)args->fit->ry * 0.5, args->scalefactor, &S);
 		reframe_astrometry_data(args->fit, S);
 	}
 	// we need to reload here to make sure everything in fit->wcslib is updated
 	load_WCS_from_memory(args->fit);
 
 	args->fit->wcsdata.pltsolvd = TRUE;
-	strcpy(args->fit->wcsdata.pltsolvd_comment, "This is a WCS header was created by Astrometry.net.");
+	strcpy(args->fit->wcsdata.pltsolvd_comment, "This WCS header was created by Astrometry.net.");
 	if (args->verbose)
 		siril_log_color_message(_("Local astrometry.net solve succeeded.\n"), "green");
 
@@ -1984,25 +1958,11 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	solution->image_center = siril_world_cs_new_from_a_d(
 			args->fit->wcsdata.crval[0],
 			args->fit->wcsdata.crval[1]);
-	// TODO: handle args->downsample
 	/* print results from WCS data */
 	print_updated_wcs_data(args->fit);
 
-	if (args->verbose) {
+	if (args->verbose)
 		print_platesolving_results_from_wcs(args);
-		// double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
-		// siril_log_message(_("Resolution:%*.3lf arcsec/px\n"), 11, resolution);
-		// //siril_log_message(_("Rotation:%+*.2lf deg %s\n"), 12, rotation, det < 0.0 ? _("(flipped)") : "");
-		// solution->focal_length = RADCONV * args->pixel_size / resolution;
-		// siril_log_message(_("Focal length:%*.2lf mm\n"), 8, solution->focal_length);
-		// siril_log_message(_("Pixel size:%*.2lf µm\n"), 10, args->pixel_size);
-		// char field_x[256] = "";
-		// char field_y[256] = "";
-		// fov_in_DHMS(resolution * solution->size.x / 3600.0, field_x);
-		// fov_in_DHMS(resolution * solution->size.y / 3600.0, field_y);
-		// siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
-	}
-
 	return 0;
 }
 
