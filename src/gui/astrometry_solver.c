@@ -532,8 +532,8 @@ void on_localasnet_check_button_toggled(GtkToggleButton *button, gpointer user) 
 	GtkWidget *autocrop = lookup_widget("autocrop_ips_button");
 	GtkExpander *catalogues = GTK_EXPANDER(lookup_widget("labelIPSCatalogParameters"));
 	if (gtk_toggle_button_get_active(button)) {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(downsample), FALSE);
-		gtk_widget_set_sensitive(downsample, FALSE);
+		// gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(downsample), FALSE);
+		// gtk_widget_set_sensitive(downsample, FALSE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(autocrop), FALSE);
 		gtk_widget_set_sensitive(autocrop, FALSE);
 		gtk_expander_set_expanded(catalogues, FALSE);

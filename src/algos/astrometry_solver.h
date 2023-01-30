@@ -73,6 +73,9 @@ struct astrometry_data {
 	gboolean verbose;	// display all information
 	gboolean for_sequence;	// sequence operation, don't free everything
 	gchar *filename;	// the name of the file being processed
+	int rx_solver;  // width of the image being solved (accounting for downscale if any)
+	int ry_solver;  // height of the image being solved (accounting for downscale if any)
+	double scalefactor; // scale factor accounting for downscale if any
 
 	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
 	struct photometric_cc_data *pcc;// PCC configuration

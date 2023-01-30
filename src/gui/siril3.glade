@@ -28702,7 +28702,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
-                                  <!-- n-columns=2 n-rows=6 -->
+                                  <!-- n-columns=2 n-rows=7 -->
                                   <object class="GtkGrid">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -28846,6 +28846,36 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <packing>
                                         <property name="left-attach">1</property>
                                         <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="halign">start</property>
+                                        <property name="label" translatable="yes">Location of local astrometry.net solver</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">0</property>
+                                        <property name="top-attach">6</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFileChooserButton" id="filechooser_asnet">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Select astrometry.net location.
+On UNIX-based systems, it is generally in the PATH variable and not necessary.
+On Windows, you must point to the location of cygwin_ansvr folder.</property>
+                                        <property name="valign">center</property>
+                                        <property name="action">select-folder</property>
+                                        <property name="create-folders">False</property>
+                                        <property name="show-hidden">True</property>
+                                        <property name="title" translatable="yes">Select astrometry.net installation directory</property>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">1</property>
+                                        <property name="top-attach">6</property>
                                       </packing>
                                     </child>
                                     <child>

@@ -962,6 +962,7 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
  * http://astrometry.net/doc/readme.html#source-lists-xylists
  * Convention is to have the columns for pixel coordinates named IMAGEX and IMAGEY and
  * having in the header the keywords IMAGEW and IMAGEH giving rx and ry.
+ * Correction by 0.5 pixel to conform to asnet convention (compared to siril) is also added
  */
 int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars, int rx, int ry) {
 	g_unlink(filename); /* Delete old file if it already exists */
@@ -997,7 +998,7 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 
 	status = 0;
 	for (int i = 0; i < nbstars; i++)
-		data[i] = stars[i]->xpos;
+		data[i] = stars[i]->xpos + 0.5; // asnet convention
 	if (fits_write_col(fptr, TFLOAT, 1, 1, 1, nbstars, data, &status)) {
 		report_fits_error(status);
 		status = 0;
@@ -1007,7 +1008,7 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 	}
 
 	for (int i = 0; i < nbstars; i++)
-		data[i] = ry - stars[i]->ypos - 1;
+		data[i] = ry - stars[i]->ypos + 0.5; // asnet convention
 	if (fits_write_col(fptr, TFLOAT, 2, 1, 1, nbstars, data, &status))
 		report_fits_error(status);
 

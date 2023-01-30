@@ -103,8 +103,9 @@ static void update_astrometry_preferences() {
 	com.pref.astrometry.keep_xyls_files = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_xyls")));
 	com.pref.astrometry.keep_wcs_files = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_wcs")));
 	com.pref.astrometry.max_seconds_run = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_max_sec")));
-
 	com.pref.astrometry.update_default_scale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")));
+	// In the prefs structure, the dir is stored alongside starnet and gnuplot, not in astrometry
+	com.pref.asnet_dir = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet")));
 }
 
 static void update_prepro_preferences() {
@@ -258,7 +259,6 @@ static void update_misc_preferences() {
 
 	com.pref.starnet_dir = gtk_file_chooser_get_filename(starnet_dir);
 	com.pref.gnuplot_dir = gtk_file_chooser_get_filename(gnuplot_bin);
-	// TODO add cygwin_dir
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.gui.silent_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")));
@@ -305,6 +305,13 @@ void initialize_gnuplot_directory(const gchar *path) {
 	GtkFileChooser *gnuplot_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_gnuplot"));
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (gnuplot_dir, path);
+	}
+}
+
+void initialize_asnet_directory(const gchar *path) {
+	GtkFileChooser *asnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet"));
+	if (path && path[0] != '\0') {
+		gtk_file_chooser_set_filename (asnet_dir, path);
 	}
 }
 
@@ -576,6 +583,7 @@ void update_preferences_from_model() {
 	initialize_path_directory(pref->swap_dir);
 	initialize_starnet_directory(pref->starnet_dir);
 	initialize_gnuplot_directory(pref->gnuplot_dir);
+	initialize_asnet_directory(pref->asnet_dir);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
