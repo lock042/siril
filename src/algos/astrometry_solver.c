@@ -1941,6 +1941,8 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	solution->focal_length = RADCONV * args->pixel_size / resolution;
 
 	if (args->downsample) {
+		solution->focal_length *= args->scalefactor;
+
 		Homography S;
 		cvGetMatrixResize(args->fit->wcsdata.crpix[0], args->fit->wcsdata.crpix[1],
 				(double)args->fit->rx * 0.5, (double)args->fit->ry * 0.5, args->scalefactor, &S);
