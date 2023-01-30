@@ -1767,17 +1767,42 @@ clearup:
 	return args->ret;
 }
 
-#ifdef _WIN32
 /*********************** finding asnet bash first **********************/
+static gboolean solvefield_is_in_path = FALSE;
+
+#ifdef _WIN32
 static gchar *siril_get_asnet_bash() {
-	if (com.pref.asnet_dir) {
+	if (com.pref.asnet_dir)
 		return g_build_filename(com.pref.asnet_dir, "bin", "bash", NULL);
-	} else {
+	return NULL;
+}
+#else
+static gchar *siril_get_asnet_bin() {
+	if (solvefield_is_in_path)
+		return g_strdup("solve-field");
+	if (!com.pref.asnet_dir || com.pref.asnet_dir[0] == '\0')
 		return NULL;
+	return g_build_filename(com.pref.asnet_dir, "solve-field", NULL);
+}
+
+/* returns true if the command solve-field is available */
+gboolean asnet_is_available() {
+	const char *str = "solve-field --version > /dev/null 2>&1";
+	int retval = system(str);
+	if (WIFEXITED(retval) && (0 == WEXITSTATUS(retval))) {
+		solvefield_is_in_path = TRUE;
+		siril_debug_print("solve-field found in PATH\n");
+		return TRUE;
 	}
+	siril_debug_print("solve-field not found in PATH\n");
+	gchar *bin = siril_get_asnet_bin();
+	if (!bin) return FALSE;
+	gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
+	g_free(bin);
+
+	return is_available;
 }
 #endif
-
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	//#if GLIB_CHECK_VERSION(2,70,0)
@@ -1791,30 +1816,45 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 }
 
 static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution) {
-	char low_scale[16], high_scale[16], time_limit[16];
-	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
-	sprintf(low_scale, "%.3f", args->scale / a);
-	sprintf(high_scale, "%.3f", args->scale * a);
-	sprintf(time_limit, "%d", com.pref.astrometry.max_seconds_run);
-
 #ifdef _WIN32
 	gchar *asnet_shell = siril_get_asnet_bash();
 	if (!asnet_shell) {
 		siril_log_color_message(_("asnet_ansvr directory is not set - aborting\n"), "red");
 		return 1;
 	}
+#else
+	if (!asnet_is_available()) {
+		siril_log_color_message(_("solve-field was not found, set its path in the preferences\n"), "red");
+		return 1;
+	}
+#endif
+
+	gchar *table_filename = replace_ext(args->filename, ".xyls");
+	if (save_list_as_FITS_table(table_filename, stars, n_fit, args->rx_solver, args->ry_solver)) {
+		siril_log_message(_("Failed to create the input data for solve-field\n"));
+		g_free(table_filename);
+		return 1;
+	}
+
+	char low_scale[16], high_scale[16], time_limit[16];
+	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
+	sprintf(low_scale, "%.3f", args->scale / a);
+	sprintf(high_scale, "%.3f", args->scale * a);
+	sprintf(time_limit, "%d", com.pref.astrometry.max_seconds_run);
+#ifndef _WIN32
+	gchar *asnet_path = siril_get_asnet_bin();
+	g_assert(asnet_path);
 #endif
 
 	char *sfargs[50] = {
 #ifdef _WIN32
-		asnet_shell, "--login", "-i",
-#endif
-		"solve-field",
-		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
-		"-U", "none", "-S", "none", "--crpix-center", "-l", time_limit,
-#ifndef _WIN32
+		asnet_shell, "--login", "-i", "solve-field",
+#else
+		asnet_path,
 		"--temp-axy",	// not available in the old version of ansvr
 #endif
+		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
+		"-U", "none", "-S", "none", "--crpix-center", "-l", time_limit,
 		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
 
 	char order[12];	// referenced in sfargs, needs the same scope
@@ -1825,13 +1865,6 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	} else {
 		char *tweak_args[] = { "-T", NULL };
 		append_elements_to_array(sfargs, tweak_args);
-	}
-
-	gchar *table_filename = replace_ext(args->filename, ".xyls");
-	if (save_list_as_FITS_table(table_filename, stars, n_fit, args->rx_solver, args->ry_solver)) {
-		siril_log_message(_("Failed to create the input data for solve-field\n"));
-		g_free(table_filename);
-		return 1;
 	}
 
 	char start_ra[16], start_dec[16], radius[16];
@@ -1869,6 +1902,9 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 		if (!com.pref.astrometry.keep_xyls_files)
 			g_unlink(table_filename);
 		g_free(table_filename);
+#ifndef _WIN32
+		g_free(asnet_path);
+#endif
 		return 1;
 	}
 
@@ -1906,9 +1942,11 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	if (!com.pref.astrometry.keep_xyls_files)
 		g_unlink(table_filename);
 	g_free(table_filename);
-	if (!success) {
+#ifndef _WIN32
+	g_free(asnet_path);
+#endif
+	if (!success)
 		return 1;
-	}
 
 	/* get the results from the .wcs file */
 	gchar *wcs_filename = replace_ext(args->filename, ".wcs");

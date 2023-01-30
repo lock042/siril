@@ -259,7 +259,11 @@ struct settings_access all_settings[] = {
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
 	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
-	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation (for Windows only)"), &com.pref.asnet_dir },
+#ifdef _WIN32
+	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
+#else
+	{ "core", "asnet_dir", STYPE_STR, N_("directory containing the solve-field executable"), &com.pref.asnet_dir },
+#endif
 	{ "core", "fftw_timelimit", STYPE_DOUBLE, N_("FFTW planning timelimit"), &com.pref.fftw_conf.timelimit },
 	{ "core", "fftw_conv_fft_cutoff", STYPE_INT, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
 	{ "core", "fftw_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },

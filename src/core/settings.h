@@ -262,7 +262,7 @@ struct pref_struct {
 
 	gchar *starnet_dir;	// Location of starnet++ installation (requires v2.0.2 or greater)
 	gchar *gnuplot_dir;	// Location of gnuplot installation
-	gchar *asnet_dir;	// Location of asnet-ansvr installation (for Local Plate-solve with Windows)
+	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;
