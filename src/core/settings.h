@@ -92,6 +92,20 @@ struct libraw_config {
 	double gamm[3];						// Gamma correction
 };
 
+struct astrometry_config {
+	gboolean update_default_scale;	// update default focal length and pixel size from the result
+
+	/* for local astrometry.net */
+	int percent_scale_range;	// percent below and above the expected sampling to allow
+	int sip_correction_order;	// degrees of the polynomial correction
+	double radius_degrees;		// radius around the target coordinates (degrees)
+	gboolean keep_xyls_files;	// do not delete .xyls FITS tables
+	gboolean keep_wcs_files;	// do not delete .wcs result files
+	int max_seconds_run;		// maximum seconds of CPU time to try solving
+	gboolean show_asnet_output;	// show solve-field output in main log
+};
+
+
 /* This structure is used for storing all parameters used in photometry module */
 struct phot_config {
 	double gain;		// A/D converter gain in electrons per ADU
@@ -198,6 +212,7 @@ typedef struct {
 	gboolean relax_checks;
 	starprofile profile;
 	double min_beta;
+	double min_A, max_A;
 } star_finder_params;
 
 typedef struct fftw_params {
@@ -237,9 +252,7 @@ struct pref_struct {
 
 	gchar *swap_dir;	// swap directory
 
-	// TODO: do we actually need these two?
-	gdouble focal;		// focal length saved in config file
-	gdouble pitch;		// pixel pitch saved in config file
+	gboolean binning_update;// update pixel size of binned images
 
 	int wcs_formalism;	// formalism used in FITS header
 	gchar *catalogue_paths[4]; // local star catalogues for plate solving and PCC
@@ -249,12 +262,14 @@ struct pref_struct {
 
 	gchar *starnet_dir;	// Location of starnet++ installation (requires v2.0.2 or greater)
 	gchar *gnuplot_dir;	// Location of gnuplot installation
+	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;
 	struct gui_config gui;
 	struct debayer_config debayer;
 	struct phot_config phot_set;
+	struct astrometry_config astrometry;
 	struct analysis_config analysis;
 	struct stack_config stack;
 	struct comp_config comp;

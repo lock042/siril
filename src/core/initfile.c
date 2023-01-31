@@ -252,11 +252,11 @@ static int readinitfile_libconfig(gchar *path) {
 		if (config_setting_lookup_bool(misc_setting, "rgb_aladin", &com.pref.rgb_aladin) == CONFIG_FALSE) {
 			com.pref.rgb_aladin = FALSE;
 		}
-		if (config_setting_lookup_float(misc_setting, "focal", &com.pref.focal) == CONFIG_FALSE) {
-			com.pref.focal = 1000.0;
+		if (config_setting_lookup_float(misc_setting, "focal", &com.pref.starfinder_conf.focal_length) == CONFIG_FALSE) {
+			com.pref.starfinder_conf.focal_length = 1000.0;
 		}
-		if (config_setting_lookup_float(misc_setting, "pitch", &com.pref.pitch) == CONFIG_FALSE) {
-			com.pref.pitch = 5.0;
+		if (config_setting_lookup_float(misc_setting, "pitch", &com.pref.starfinder_conf.pixel_size_x) == CONFIG_FALSE) {
+			com.pref.starfinder_conf.pixel_size_x = 5.0;
 		}
 		config_setting_lookup_int(misc_setting, "thumbnail_size", &com.pref.gui.thumbnail_size);
 		config_setting_lookup_int(misc_setting, "theme", &com.pref.gui.combo_theme);

@@ -259,7 +259,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			return 1;
 		}
 	}
-	if (in_index == regargs->reference_image) new_ref_index = out_index; // keeping track of the new ref index in output sequence
+	if (in_index == regargs->reference_image)
+		new_ref_index = out_index; // keeping track of the new ref index in output sequence
 
 
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;

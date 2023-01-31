@@ -1194,31 +1194,47 @@ static void initialize_preprocessing() {
 	update_prepro_interface(FALSE);
 }
 
+void update_sampling_in_information() {
+	GtkLabel *sampling_label = GTK_LABEL(lookup_widget("info_sampling_label"));
+	// display sampling based on information displayed in the window
+	// otherwise, we could use get_wcs_image_resolution(fits *fit)
+	if (gfit.focal_length > 0.0 && gfit.pixel_size_x > 0.0) {
+		float pixel_size = gfit.pixel_size_x;
+		if (gfit.binning_x > 1 && com.pref.binning_update)
+			pixel_size *= gfit.binning_x;
+		double scale = get_resolution(gfit.focal_length, pixel_size);
+		char buf[20];
+		sprintf(buf, "%.4f", scale);
+		gtk_label_set_text(sampling_label, buf);
+	}
+	else gtk_label_set_text(sampling_label, _("unknown"));
+}
+
+/* update the Information window from gfit */
 void set_GUI_CAMERA() {
-	if (gfit.focal_length) {
-		gchar *focal = g_strdup_printf("%.3lf", gfit.focal_length);
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("focal_entry")), focal);
-		g_free(focal);
-	}
-	if (gfit.pixel_size_x) {
-		gchar *pitchX = g_strdup_printf("%.2lf", gfit.pixel_size_x);
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchX_entry")), pitchX);
-		g_free(pitchX);
-	}
-	if (gfit.pixel_size_y) {
-		gchar *pitchY = g_strdup_printf("%.2lf", gfit.pixel_size_y);
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchY_entry")), pitchY);
-		g_free(pitchY);
-	}
+	/* information will be taken from gfit or from the preferences and overwritten in
+	 * gfit by the callbacks */
+	char buf[20];
+	double fl = gfit.focal_length > 0.0 ? gfit.focal_length : com.pref.starfinder_conf.focal_length;
+	sprintf(buf, "%.3f", fl);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("focal_entry")), buf);
+
+	double pixsz = gfit.pixel_size_x > 0.0 ? gfit.pixel_size_x : com.pref.starfinder_conf.pixel_size_x;
+	sprintf(buf, "%.2f", pixsz);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchX_entry")), buf);
+
+	pixsz = gfit.pixel_size_y > 0.0 ? gfit.pixel_size_y : com.pref.starfinder_conf.pixel_size_x;
+	sprintf(buf, "%.2f", pixsz);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchY_entry")), buf);
 
 	GtkComboBox *binning = GTK_COMBO_BOX(lookup_widget("combobinning"));
 	if (!gfit.binning_x || !gfit.binning_y) {
 		gtk_combo_box_set_active(binning, 0);
 	}
-	/* squared binning */
-	else if (gfit.binning_x == gfit.binning_y)
+	else if (gfit.binning_x == gfit.binning_y) {
+		/* squared binning */
 		gtk_combo_box_set_active(binning, (gint) gfit.binning_x - 1);
-	else {
+	} else {
 		short coeff =
 			gfit.binning_x > gfit.binning_y ?
 			gfit.binning_x / gfit.binning_y :
@@ -1231,10 +1247,13 @@ void set_GUI_CAMERA() {
 				gtk_combo_box_set_active(binning, 5);
 				break;
 			default:
-				siril_log_message(_("This binning %d x %d is not handled yet\n"),
+				siril_log_message(_("Binning %d x %d is not supported\n"),
 						gfit.binning_x, gfit.binning_y);
 		}
 	}
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggleButtonUnbinned")), com.pref.binning_update);
+	//gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("saveinfo_toggle")), com.pref.astrometry.update_default_scale);
 }
 
 static GtkTargetEntry drop_types[] = {
@@ -1481,18 +1500,21 @@ void on_cosmEnabledCheck_toggled(GtkToggleButton *button, gpointer user_data) {
 void on_focal_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* focal_entry = gtk_entry_get_text(GTK_ENTRY(editable));
 	gfit.focal_length = g_ascii_strtod(focal_entry, NULL);
+	update_sampling_in_information();
 	drawPlot();
 }
 
 void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchX_entry = gtk_entry_get_text(GTK_ENTRY(editable));
 	gfit.pixel_size_x = (float) g_ascii_strtod(pitchX_entry, NULL);
+	update_sampling_in_information();
 	drawPlot();
 }
 
 void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchY_entry = gtk_entry_get_text(GTK_ENTRY(editable));
 	gfit.pixel_size_y = (float) g_ascii_strtod(pitchY_entry, NULL);
+	update_sampling_in_information();
 	drawPlot();
 }
 
@@ -1504,7 +1526,7 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 		case 1:
 		case 2:
 		case 3:
-			gfit.binning_x = gfit.binning_y = (short) index + 1;
+			gfit.binning_x = gfit.binning_y = (unsigned int) index + 1;
 			break;
 		case 4:
 			gfit.binning_x = 1;
@@ -1517,21 +1539,23 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 		default:
 			fprintf(stderr, "Should not happen\n");
 	}
+	update_sampling_in_information();
 	drawPlot();
 }
 
 void on_file_information_close_clicked(GtkButton *button, gpointer user_data) {
+	GtkToggleButton *save_as_prefs_button = GTK_TOGGLE_BUTTON(lookup_widget("saveinfo_toggle"));
+	if (gtk_toggle_button_get_active(save_as_prefs_button)) {
+		com.pref.starfinder_conf.focal_length = gfit.focal_length;
+		com.pref.starfinder_conf.pixel_size_x = gfit.pixel_size_x;
+		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), gfit.focal_length, gfit.pixel_size_x);
+	}
 	gtk_widget_hide(lookup_widget("file_information"));
 }
 
-
 void on_toggleButtonUnbinned_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkWidget *box;
-
-	box = (GtkWidget *)user_data;
-
-	gfit.unbinned = gtk_toggle_button_get_active(button);
-	gtk_widget_set_sensitive(box, gfit.unbinned);
+	com.pref.binning_update = gtk_toggle_button_get_active(button);
+	update_sampling_in_information();
 }
 
 void on_button_clear_sample_clicked(GtkButton *button, gpointer user_data) {
@@ -1613,7 +1637,6 @@ void siril_quit() {
 	gboolean quit = siril_confirm_dialog_and_remember(_("Closing application"),
 			_("Are you sure you want to quit?"), _("Exit"), &com.pref.gui.silent_quit);
 	if (quit) {
-		writeinitfile();
 		gtk_main_quit();
 	} else {
 		fprintf(stdout, "Staying on the application.\n");
@@ -1763,29 +1786,23 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 }
 
 struct checkSeq_filter_data {
-//	int force;
 	int retvalue;
 };
 
 static gboolean end_checkSeq(gpointer p) {
 	struct checkSeq_filter_data *args = (struct checkSeq_filter_data *) p;
-	stop_processing_thread();
-
-	/* it's better to uncheck the force button each time it is used */
-	if (args->retvalue)
+	end_generic(NULL);
+	if (!args->retvalue)
 		update_sequences_list(NULL);
+	else control_window_switch_to_tab(OUTPUT_LOGS);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	set_cursor_waiting(FALSE);
 	free(args);
-
 	return FALSE;
 }
 
 static gpointer checkSeq(gpointer p) {
 	struct checkSeq_filter_data *args = (struct checkSeq_filter_data *) p;
-
-	if (!check_seq())
-		args->retvalue = 1;
+	args->retvalue = check_seq();
 	siril_add_idle(end_checkSeq, args);
 	return GINT_TO_POINTER(0);
 }

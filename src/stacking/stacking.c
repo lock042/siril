@@ -718,7 +718,6 @@ void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
 
 	gtk_notebook_set_current_page(notebook, com.pref.stack.method);
 	update_stack_interface(TRUE);
-	writeinitfile();
 }
 
 void on_combonormalize_changed (GtkComboBox *box, gpointer user_data) {
@@ -750,7 +749,6 @@ void on_stack_siglow_button_value_changed(GtkSpinButton *button, gpointer user_d
 	default:
 		return;
 	}
-	writeinitfile();
 }
 
 void on_stack_sighigh_button_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -774,7 +772,6 @@ void on_stack_sighigh_button_value_changed(GtkSpinButton *button, gpointer user_
 	default:
 		return;
 	}
-	writeinitfile();
 }
 
 void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
@@ -878,7 +875,6 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	g_signal_handlers_unblock_by_func(GTK_SPIN_BUTTON(sighigh), on_stack_sighigh_button_value_changed, NULL);
 
 	com.pref.stack.rej_method = gtk_combo_box_get_active(box);
-	writeinitfile();
 }
 
 void on_rejmaps_toggled(GtkToggleButton *button, gpointer user_data) {

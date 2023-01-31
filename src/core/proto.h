@@ -148,6 +148,8 @@ guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
 #endif
 char *str_replace(char *orig, char *rep, char *with);
 void replace_spaces_from_str(gchar *s, char c);
+gchar *build_string_from_words(char **words);
+void append_elements_to_array(char **array, char **elements);
 const gchar *get_com_ext(gboolean fz);
 
 /****************** quantize.h ***************/

@@ -96,6 +96,17 @@ static void update_astrometry_preferences() {
 		g_free(com.pref.catalogue_paths[3]);
 		com.pref.catalogue_paths[3] = newpath;
 	}
+
+	com.pref.astrometry.sip_correction_order = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")));
+	com.pref.astrometry.percent_scale_range = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sampling")));
+	com.pref.astrometry.radius_degrees = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_radius")));
+	com.pref.astrometry.keep_xyls_files = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_xyls")));
+	com.pref.astrometry.keep_wcs_files = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_wcs")));
+	com.pref.astrometry.max_seconds_run = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_max_sec")));
+	com.pref.astrometry.update_default_scale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")));
+	com.pref.astrometry.show_asnet_output = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_show_output")));
+	// In the prefs structure, the dir is stored alongside starnet and gnuplot, not in astrometry
+	com.pref.asnet_dir = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet")));
 }
 
 static void update_prepro_preferences() {
@@ -195,6 +206,7 @@ static void update_FITS_options_preferences() {
 	com.pref.comp.fits_hcompress_scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_comp_fits_hcompress_scale")));
 
 	com.pref.rgb_aladin = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_aladin")));
+	com.pref.binning_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_binned_update")));
 
 	const gchar *ext = gtk_combo_box_get_active_id(GTK_COMBO_BOX(lookup_widget("combobox_ext")));
 	com.pref.ext = g_strdup(ext);
@@ -294,6 +306,13 @@ void initialize_gnuplot_directory(const gchar *path) {
 	GtkFileChooser *gnuplot_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_gnuplot"));
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (gnuplot_dir, path);
+	}
+}
+
+void initialize_asnet_directory(const gchar *path) {
+	GtkFileChooser *asnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet"));
+	if (path && path[0] != '\0') {
+		gtk_file_chooser_set_filename (asnet_dir, path);
 	}
 }
 
@@ -435,6 +454,7 @@ void update_preferences_from_model() {
 
 	/* tab 2*/
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_aladin")), pref->rgb_aladin);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_binned_update")), pref->binning_update);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio")), !pref->comp.fits_enabled);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_enabled_radio")), pref->comp.fits_enabled);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_comp_fits_method")), pref->comp.fits_method);
@@ -465,6 +485,15 @@ void update_preferences_from_model() {
 		GtkFileChooser *button = GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4"));
 		gtk_file_chooser_set_filename(button, pref->catalogue_paths[3]);
 	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sip_order")), pref->astrometry.sip_correction_order);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_sampling")), pref->astrometry.percent_scale_range);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_radius")), pref->astrometry.radius_degrees);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_xyls")), pref->astrometry.keep_xyls_files);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_wcs")), pref->astrometry.keep_wcs_files);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_max_sec")), pref->astrometry.max_seconds_run);
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")), pref->astrometry.update_default_scale);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_show_output")), pref->astrometry.show_asnet_output);
 
 	/* tab 4 */
 	if (pref->prepro.bias_lib) {
@@ -555,6 +584,7 @@ void update_preferences_from_model() {
 	initialize_path_directory(pref->swap_dir);
 	initialize_starnet_directory(pref->starnet_dir);
 	initialize_gnuplot_directory(pref->gnuplot_dir);
+	initialize_asnet_directory(pref->asnet_dir);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
@@ -675,17 +705,14 @@ gchar *get_starnet_dir() {
 
 void on_cosmCFACheck_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.prepro.cfa = gtk_toggle_button_get_active(button);
-	writeinitfile();
 }
 
 void on_checkbutton_equalize_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.prepro.equalize_cfa = gtk_toggle_button_get_active(button);
-	writeinitfile();
 }
 
 void on_fix_xtrans_af_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.pref.prepro.fix_xtrans = gtk_toggle_button_get_active(button);
-	writeinitfile();
 }
 
 /* ********************************** */

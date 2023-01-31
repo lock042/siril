@@ -244,7 +244,7 @@ static int update_coords_with_proper_motion(double *ra, double *dec, double dRA,
 /* get stars with coordinates projected on image (pcc_star), only those that
  * have B-V photometric information, up to the max_mag magnitude.
  * fit must have WCS inforation */
-int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
+int get_photo_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
 	if (!has_wcs(fit))
 		return 1;
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
