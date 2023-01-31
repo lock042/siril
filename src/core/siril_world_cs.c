@@ -136,7 +136,7 @@ SirilWorldCS* siril_world_cs_new_from_objct_ra_dec(gchar *objctra, gchar *objctd
 		}
 	}
 
-	if (isnan(ra) || isnan(dec))
+	if (isnan(ra) || isnan(dec) || (ra == 0.0 && dec == 0.0))
 		return NULL;
 	return siril_world_cs_new_from_a_d(ra, dec);
 }

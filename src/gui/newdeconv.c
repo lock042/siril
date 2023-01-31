@@ -533,7 +533,7 @@ static void calculate_parameters() {
 		args.psf_beta = (float) beta / (float) n;
 		args.psf_ratio = args.symkern ? 1.f : args.psf_fwhm / FWHMy;
 		if (unit_is_arcsec) {
-			double bin_X = the_fit->unbinned ? (double) the_fit->binning_x : 1.0;
+			double bin_X = com.pref.binning_update ? (double) the_fit->binning_x : 1.0;
 			double conversionfactor = (((3600.0 * 180.0) / G_PI) / 1.0E3 * (double)the_fit->pixel_size_x / the_fit->focal_length) * bin_X;
 			args.psf_fwhm /= (float) conversionfactor;
 		}

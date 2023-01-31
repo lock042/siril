@@ -50,6 +50,8 @@ struct fwhm_struct {
 
 	int layer;
 	char* units;
+
+	double ra, dec;
 };
 
 struct PSF_data {

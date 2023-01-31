@@ -839,6 +839,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->already_in_thread = TRUE;
 	sf_args->process_all_images = !regargs->filters.filter_included;
 	sf_args->save_to_file = !regargs->no_starlist;
+	sf_args->save_eqcoords = FALSE;
 	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL, *scores = NULL;
 	float *dist = NULL;
 	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
