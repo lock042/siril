@@ -344,7 +344,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 	gboolean is_as;
 	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 	double invpixscalex = 1.0;
-	double bin_X = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+	double bin_X = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
 		is_as = (strcmp(com.stars[0]->units,"px"));
 	} else {
@@ -454,84 +454,6 @@ static void remove_all_stars(){
 	gui.selected_star = -1;
 	display_status();
 	redraw(REDRAW_OVERLAY);
-}
-
-#define HANDLE_WRITE_ERR \
-	g_warning("%s\n", error->message); \
-	g_clear_error(&error); \
-	g_object_unref(output_stream); \
-	g_object_unref(file); \
-	return 1
-
-int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, int layer, gboolean verbose) {
-	int i = 0;
-	GError *error = NULL;
-
-	GFile *file = g_file_new_for_path(filename);
-	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
-			G_FILE_CREATE_NONE, NULL, &error);
-
-	if (!output_stream) {
-		if (error) {
-			siril_log_message(_("Cannot save star list %s: %s\n"), filename, error->message);
-			g_clear_error(&error);
-		}
-		g_object_unref(file);
-		return 1;
-	}
-	if (nbstars <= 0) {
-		// unknown by caller
-		nbstars = 0;
-		if (stars)
-			while (stars[nbstars++]);
-	}
-
-	char buffer[320];
-	char gausstr[9] = "Gaussian";
-	char moffstr[7] = "Moffat";
-	char starprof[9];
-	gdouble beta;
-	int len = snprintf(buffer, 320, "# %d stars found using the following parameters:%s", nbstars, SIRIL_EOL);
-	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
-		HANDLE_WRITE_ERR;
-	}
-	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d relax=%d profile=%d minbeta=%3.1f max_stars=%d layer=%d%s",
-			sf->sigma, sf->roundness, sf->radius, sf->relax_checks,sf->profile, sf->min_beta, max_stars_fitted, layer, SIRIL_EOL);
-	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
-		HANDLE_WRITE_ERR;
-	}
-	len = snprintf(buffer, 320,
-			"# star#\tlayer\tB\tA\tbeta\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag\tProfile%s",
-			SIRIL_EOL);
-	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
-		HANDLE_WRITE_ERR;
-	}
-	if (stars) {
-		while (stars[i]) {
-			if (stars[i]->profile == PSF_GAUSSIAN) {
-				beta = -1;
-				len = snprintf(starprof, 9, "%s", gausstr);
-			} else {
-				beta = stars[i]->beta;
-				len = snprintf(starprof, 7, "%s", moffstr);
-			}
-			len = snprintf(buffer, 320,
-					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%s%s",
-					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A, beta,
-					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
-					stars[i]->fwhmy, stars[i]->fwhmx_arcsec ,stars[i]->fwhmy_arcsec,
-					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset, starprof, SIRIL_EOL);
-		if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
-			HANDLE_WRITE_ERR;
-		}
-		i++;
-	}
-	}
-	if (verbose) siril_log_message(_("The file %s has been created.\n"), filename);
-	g_object_unref(output_stream);
-	g_object_unref(file);
-
-	return 0;
 }
 
 static void set_filter(GtkFileChooser *dialog) {

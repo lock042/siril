@@ -25,6 +25,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		const rectangle *area, gboolean read_date);
 int read_fits_metadata(fits *fit);
 int read_fits_metadata_from_path(const char *filename, fits *fit);
+int read_fits_metadata_from_path_first_HDU(const char *filename, fits *fit);
 void flip_buffer(int bitpix, void *buffer, const rectangle *area);
 int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 		const rectangle *area);
@@ -37,8 +38,7 @@ void copy_fits_metadata(fits *from, fits *to);
 int copy_fits_from_file(char *source, char *destination);
 int save1fits16(const char *filename, fits *fit, int layer);
 int save1fits32(const char *filename, fits *fit, int layer);
-int siril_fits_open_diskfile(fitsfile **fptr, const char *filename, int iomode,
-		int *status);
+int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomode, int *status);
 
 void rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted);
 void rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit);

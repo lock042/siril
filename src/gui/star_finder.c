@@ -58,6 +58,41 @@ void on_spin_sf_convergence_changed(GtkSpinButton *spinbutton, gpointer user_dat
 	com.pref.starfinder_conf.convergence = (int)gtk_spin_button_get_value(spinbutton);
 }
 
+void on_spin_sf_minA_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	double maxA = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_maxA")));
+	double minA = gtk_spin_button_get_value(spinbutton);
+	if (minA >= maxA - 0.01) {
+		gtk_spin_button_set_value(spinbutton, maxA - 0.01);
+	}
+	com.pref.starfinder_conf.min_A = gtk_spin_button_get_value(spinbutton);
+	siril_debug_print("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
+}
+
+void on_spin_sf_maxA_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	double minA = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_minA")));
+	double maxA = gtk_spin_button_get_value(spinbutton);
+	if (maxA <= minA + 0.01) {
+		gtk_spin_button_set_value(spinbutton, minA + 0.01);
+	}
+	com.pref.starfinder_conf.max_A = gtk_spin_button_get_value(spinbutton);
+	siril_debug_print("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
+}
+
+void on_psf_amplitude_range_check_button_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	GtkWidget *minw = lookup_widget("spinstarfinder_minA"), *maxw = lookup_widget("spinstarfinder_maxA");
+	gboolean enabled = gtk_toggle_button_get_active(togglebutton);
+	if (enabled) {
+		com.pref.starfinder_conf.min_A = gtk_spin_button_get_value(GTK_SPIN_BUTTON(minw));
+		com.pref.starfinder_conf.max_A = gtk_spin_button_get_value(GTK_SPIN_BUTTON(maxw));
+	} else {
+		com.pref.starfinder_conf.min_A = 0.0;
+		com.pref.starfinder_conf.max_A = 0.0;
+	}
+	gtk_widget_set_sensitive(minw, enabled);
+	gtk_widget_set_sensitive(maxw, enabled);
+	siril_debug_print("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
+}
+
 void on_combostarfinder_profile_changed(GtkComboBox *combo, gpointer user_data) {
 	GtkWidget *beta_control_label = GTK_WIDGET(lookup_widget("beta_control_label"));
 	GtkWidget *beta_control_spin = GTK_WIDGET(lookup_widget("spin_minbeta"));
@@ -68,15 +103,17 @@ void on_combostarfinder_profile_changed(GtkComboBox *combo, gpointer user_data) 
 }
 
 void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {
-	//TODO: do we want to keep focal and pixel_size as they are not exposed?
-	com.pref.starfinder_conf = (star_finder_params){.radius = DEF_BOX_RADIUS, .sigma = 1.,
-			.roundness = 0.5, .convergence = 1, .relax_checks = FALSE, .profile = PSF_GAUSSIAN, .min_beta = 1.5};
+	com.pref.starfinder_conf = (star_finder_params) {
+		.radius = DEF_BOX_RADIUS, .sigma = 1., .roundness = 0.5,
+			.convergence = 1, .relax_checks = FALSE, .profile = PSF_GAUSSIAN,
+			.min_beta = 1.5, .min_A = 0.0, .max_A = 0.0 };
 	update_peaker_GUI();
 }
 
 void update_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
 			*spin_roundness = NULL, *spin_convergence = NULL, *spin_minbeta = NULL;
+			//*spin_minA = NULL, *spin_maxA = NULL;
 	static GtkToggleButton *toggle_checks = NULL;
 	static GtkComboBox *combostarfinder_profile;
 
@@ -86,6 +123,8 @@ void update_peaker_GUI() {
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
 		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
 		spin_minbeta = GTK_SPIN_BUTTON(lookup_widget("spin_minbeta"));
+		//spin_minA = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_minA"));
+		//spin_maxA = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_maxA"));
 		toggle_checks = GTK_TOGGLE_BUTTON(lookup_widget("toggle_relax_checks"));
 		combostarfinder_profile = GTK_COMBO_BOX(lookup_widget("combostarfinder_profile"));
 	}
@@ -94,13 +133,17 @@ void update_peaker_GUI() {
 	gtk_spin_button_set_value(spin_roundness, com.pref.starfinder_conf.roundness);
 	gtk_spin_button_set_value(spin_convergence, com.pref.starfinder_conf.convergence);
 	gtk_spin_button_set_value(spin_minbeta, com.pref.starfinder_conf.min_beta);
+	//gtk_spin_button_set_value(spin_minA, com.pref.starfinder_conf.min_A);
+	//gtk_spin_button_set_value(spin_maxA, com.pref.starfinder_conf.max_A);
 	gtk_toggle_button_set_active(toggle_checks, com.pref.starfinder_conf.relax_checks);
 	gtk_combo_box_set_active(combostarfinder_profile, com.pref.starfinder_conf.profile);
+
 }
 
 void confirm_peaker_GUI() {
 	static GtkSpinButton *spin_radius = NULL, *spin_sigma = NULL,
-			*spin_roundness = NULL, *spin_convergence = NULL, *spin_minbeta = NULL;
+			*spin_roundness = NULL, *spin_convergence = NULL, *spin_minbeta = NULL,
+			*spin_minA = NULL, *spin_maxA = NULL;
 
 	if (spin_radius == NULL) {
 		spin_radius = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_radius"));
@@ -108,12 +151,16 @@ void confirm_peaker_GUI() {
 		spin_roundness = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round"));
 		spin_convergence = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_convergence"));
 		spin_minbeta = GTK_SPIN_BUTTON(lookup_widget("spin_minbeta"));
+		spin_minA = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_minA"));
+		spin_maxA = GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_maxA"));
 	}
 	gtk_spin_button_update(spin_radius);
 	gtk_spin_button_update(spin_sigma);
 	gtk_spin_button_update(spin_roundness);
 	gtk_spin_button_update(spin_convergence);
 	gtk_spin_button_update(spin_minbeta);
+	gtk_spin_button_update(spin_minA);
+	gtk_spin_button_update(spin_maxA);
 }
 
 void on_process_starfinder_button_clicked(GtkButton *button, gpointer user_data) {

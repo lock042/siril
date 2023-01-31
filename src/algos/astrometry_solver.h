@@ -21,14 +21,16 @@
 
 
 typedef enum {
-	TYCHO2,
-	NOMAD,
-	GAIADR3,
-	PPMXL,
-	BRIGHT_STARS,
-	APASS,
-	LOCAL = 99
-} online_catalog;
+	CAT_TYCHO2,
+	CAT_NOMAD,
+	CAT_GAIADR3,
+	CAT_PPMXL,
+	CAT_BRIGHT_STARS,
+	CAT_APASS,
+	CAT_AUTO = 98,
+	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
+	CAT_ASNET = 100,	// solve-field local (astrometry.net)
+} online_catalog;	// TODO: rename
 
 typedef enum {
 	RESOLVER_UNSET = -1,
@@ -48,37 +50,54 @@ typedef enum {
 	QUERY_SERVER_SKYBOT, // In case of adding other items, leave this one at the end of the list
 } query_server;
 
+typedef enum {
+	LIMIT_MAG_AUTO,
+	LIMIT_MAG_AUTO_WITH_OFFSET,
+	LIMIT_MAG_ABSOLUTE
+} limit_mag_mode;
+
 struct astrometry_data {
 	/* user input */
 	fits *fit;		// the image
 	double pixel_size;	// pixel size in µm
 	double focal_length;	// focal length in mm
+	gboolean use_local_cat;	// use local catalogues if installed
 	online_catalog onlineCatalog;	// choice of catalog for the plate solve
 	SirilWorldCS *cat_center;	// starting point for the search
-	gboolean downsample;	// downsample mage before solving
+	gboolean downsample;	// downsample image before solving
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
 	gboolean flip_image;	// Flip at the end if detected mirrored
 	gboolean manual;	// use stars already detected by user, in com.stars
-	gboolean auto_magnitude;// automatically limit magnitude of the catalog
-	double forced_magnitude;// if not automatic, use this limit magnitude
+	limit_mag_mode mag_mode;// automatically limit magnitude of the catalog
+	double magnitude_arg;	// if not automatic, use this limit magnitude
+	gboolean verbose;	// display all information
+	gboolean for_sequence;	// sequence operation, don't free everything
+	gchar *filename;	// the name of the file being processed
+	int rx_solver;		// width of the image being solved (accounting for downscale if any)
+	int ry_solver;		// height of the image being solved (accounting for downscale if any)
+	double scalefactor;	// scale factor accounting for downscale if any
+
 	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
 	struct photometric_cc_data *pcc;// PCC configuration
 
 	/* program-processed input, by process_plate_solver_input() */
-	double limit_mag;	// limit magnitude to sear for in the catalog
+	double limit_mag;	// limit magnitude to search for in the catalog
 	double scale;		// scale (resolution) in arcsec per pixel
 	double used_fov;	// field of view for the solved image region (arcmin)
-	gboolean use_local_cat;	// use local catalogues if installed
 	GFile *catalog_file;	// downloaded file containing raw catalog data
-	gchar *catalogStars;	// file name of the projected catalog
+	//gchar *catalogStars;	// file name of the projected catalog
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
+
+	/* runtime data */
+	psf_star **cstars;	// catalogue stars
+	int n_cat;		// number of catalogue stars
 
 	/* results */
 	int ret;		// return value
 	gchar *message;		// error message
 	gboolean image_flipped;	// image has been flipped
-	SirilWorldCS *new_center; // the image center found by the solve
+	SirilWorldCS *new_center; // the image center found by the solve, for GUI update
 };
 
 struct sky_object {
@@ -90,13 +109,14 @@ struct sky_object {
 	gboolean south;
 };
 
+const char *catalog_to_str(online_catalog cat);
 void open_astrometry_dialog();
 gchar *search_in_online_catalogs(const gchar *object, query_server server);
 void process_plate_solver_input(struct astrometry_data *args);
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
 void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
-gpointer match_catalog(gpointer p);
+gpointer plate_solver(gpointer p);
 double compute_mag_limit_from_fov(double fov_degrees);
 
 gboolean confirm_delete_wcs_keywords(fits *fit);
@@ -104,6 +124,8 @@ void flip_bottom_up_astrometry_data(fits *fit);
 void reframe_astrometry_data(fits *fit, Homography H);
 
 void set_focal_and_pixel_pitch();
+
+void start_sequence_astrometry(sequence *seq, struct astrometry_data *args);
 
 /* for the GUI */
 double get_resolution(double focal, double pixel);
@@ -116,11 +138,13 @@ gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);
 GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius, double mag);
 gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type);
+double get_fov_arcmin(double resolution, int rx, int ry);
 
 /* from the GUI */
 void update_coords();
 gboolean end_plate_solver(gpointer p);
 
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
+void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg);
 
 #endif /* SRC_ALGOS_ASTROMETRY_SOLVER_H_ */
