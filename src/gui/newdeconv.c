@@ -242,7 +242,7 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 
 	gboolean ret;
 	const char *locale;
-	const char *supported_languages[] = { "de", NULL }; // en is NULL: default language
+	const char *supported_languages[] = { "de", "fr", NULL }; // en is NULL: default language
 	gchar *lang = NULL;
 	int i = 0;
 
