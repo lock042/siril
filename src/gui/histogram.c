@@ -32,6 +32,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/image_display.h"
+#include "gui/callbacks.h"
 #include "gui/utils.h"	// for lookup_widget()
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
@@ -53,6 +54,7 @@
 
 // Type of invocation - HISTO_STRETCH or GHT_STRETCH (maybe others in future?)
 static int invocation = NO_STRETCH_SET_YET;
+static gboolean pedestal_warning_given = FALSE;
 
 // Parameters for use in calculations
 static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0f;
@@ -800,6 +802,26 @@ static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 	return 0;
 }
 
+gboolean check_pedestal() {
+	imstats *stats[3];
+	double min_val = USHRT_MAX_DOUBLE;
+	GtkAdjustment *adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
+	double max_val = (gfit.type == DATA_FLOAT ? 1.0 : USHRT_MAX_DOUBLE);
+	for (int chan = 0; chan < get_preview_gfit_backup()->naxes[2]; chan++) {
+		stats[chan] = statistics(NULL, -1, &gfit, chan, &com.selection, STATS_BASIC, MULTI_THREADED);
+		if (!stats[chan]) {
+			siril_log_message(_("Error: statistics computation failed.\n"));
+			return FALSE;
+		}
+		free_stats(stats[chan]);
+		float lo_val = stats[chan]->median - 3. * stats[chan]->sigma;
+		if (lo_val < min_val)
+			min_val = lo_val;
+	}
+	return ((gui.rendering_mode == LINEAR_DISPLAY) && (gtk_adjustment_get_value(adjmin) > 0.0) && (min_val > (max_val / 20.))); // If min_val > 5% of max then the user
+										// may wish to correct their pedestal
+}
+
 /* Callback functions */
 
 gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
@@ -863,6 +885,7 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
+	pedestal_warning_given = FALSE;
 	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
@@ -941,31 +964,48 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		// the apply button resets everything after recomputing with the current values
 		histo_recompute();
 		// partial cleanup
+		gboolean warn_pedestal = FALSE;
 		if (invocation == HISTO_STRETCH) {
 			siril_debug_print("Applying histogram (mid=%.3f, lo=%.3f, hi=%.3f)\n",
 				_midtones, _shadows, _highlights);
 			undo_save_state(get_preview_gfit_backup(),
 				_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
 				_midtones, _shadows, _highlights);
+			warn_pedestal = check_pedestal();
 		} else if (invocation == GHT_STRETCH) {
 			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f", _D, _B, _LP, _SP, _HP);
 			switch (_stretchtype) {
 				case STRETCH_PAYNE_NORMAL:
 					undo_save_state(get_preview_gfit_backup(), _("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+					warn_pedestal = check_pedestal();
 					break;
 				case STRETCH_PAYNE_INVERSE:
 					undo_save_state(get_preview_gfit_backup(), _("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+					warn_pedestal = check_pedestal();
 					break;
 				case STRETCH_ASINH:
 					undo_save_state(get_preview_gfit_backup(), _("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+					warn_pedestal = check_pedestal();
 					break;
 				case STRETCH_INVASINH:
 					undo_save_state(get_preview_gfit_backup(), _("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+					warn_pedestal = check_pedestal();
 					break;
 				case STRETCH_LINEAR:
 					undo_save_state(get_preview_gfit_backup(), _("GHS LINEAR BP: %.2f"), _BP);
 					break;
 			}
+		}
+		if (warn_pedestal && !(pedestal_warning_given)) {
+			siril_message_dialog(GTK_MESSAGE_INFO, _("Information"),
+								 _("Stretched pedestal detected. Setting preview sliders to maximum contrast to show how the image will look in a typical viewer: you may wish to apply a linear stretch to shift the black point."));
+			GtkAdjustment *adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
+			gtk_adjustment_set_value(adj1, 0.0);
+			GtkAdjustment *adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));
+			double maxval = gtk_adjustment_get_upper(adj2);
+			gtk_adjustment_set_value(adj2, maxval);
+
+			pedestal_warning_given = TRUE;
 		}
 		clear_backup();
 		clear_hist_backup();

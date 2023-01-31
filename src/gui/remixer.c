@@ -384,6 +384,11 @@ void initialise_image() {
 	sliders_mode_set_state(gui.sliders);
 	set_cutoff_sliders_max_values();
 	set_cutoff_sliders_values();
+	GtkAdjustment *adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+	GtkAdjustment *adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
+	gtk_adjustment_set_value(adj2, 0.0); // Set preview range min to 0.0
+	double maxval = gtk_adjustment_get_upper(adj2); // Set preview range max to max
+	gtk_adjustment_set_value(adj1, maxval);
 	set_display_mode();
 	update_prepro_interface(TRUE);
 	adjust_sellabel();
