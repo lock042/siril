@@ -1,27 +1,27 @@
 /* @(#)pave.c	19.1 (ES0-DMD) 02/25/03 13:34:39 */
 /*===========================================================================
   Copyright (C) 1995 European Southern Observatory (ESO)
- 
-  This program is free software; you can redistribute it and/or 
-  modify it under the terms of the GNU General Public License as 
-  published by the Free Software Foundation; either version 2 of 
+
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License as
+  published by the Free Software Foundation; either version 2 of
   the License, or (at your option) any later version.
- 
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
- 
-  You should have received a copy of the GNU General Public 
+
+  You should have received a copy of the GNU General Public
   License along with this program;
   If not, see <http://www.gnu.org/licenses/>.
- 
+
   Corresponding concerning ESO-MIDAS should be addressed as follows:
 	Internet e-mail: midas@eso.org
 	Postal address: European Southern Observatory
-			Data Management Division 
+			Data Management Division
 			Karl-Schwarzschild-Strasse 2
-			D 85748 Garching bei Muenchen 
+			D 85748 Garching bei Muenchen
 			GERMANY
 ===========================================================================*/
 
@@ -36,7 +36,7 @@
 **    Author: Jean-Luc Starck
 **
 **    Date:  03/02/25
-**    
+**
 **    File:  pave.c
 **
 *******************************************************************************
@@ -51,7 +51,7 @@
 ** int Type_To;
 **
 ** computes the wavelet transform without reduction of the sampling
-** 
+**
 ** Type_To = TO_PAVE_LINEAR for a linear scaling function
 ** Type_To = TO_PAVE_BSPLINE for a b3-spline scaling function
 **
@@ -71,7 +71,7 @@
 **
 ** extracts a plan from the wavelet transform
 **
-******************************************************************************/ 
+******************************************************************************/
 
 #include <stdio.h>
 #include <math.h>
@@ -104,25 +104,27 @@ int static test_ind(int ind, int N) {
 int pave_2d_linear_smooth(const float *Imag, float *Smooth, int Nl, int Nc,
 		int Num_Plan) {
 	int i, j, Step;
-	int indi1, indj1, indi2, indj2;
 
-    Step = pow(2., (float) Num_Plan) + 0.5;
-
+    Step = pow(2.f, (float) Num_Plan) + 0.5f;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) collapse(2)
+#endif
 	for (i = 0; i < Nl; i++) {
 		for (j = 0; j < Nc; j++) {
+			int indi1, indj1, indi2, indj2;
             indi1 = test_ind (i - Step, Nl);
             indj1 = test_ind (j - Step, Nc);
             indi2 = test_ind (i + Step, Nl);
             indj2 = test_ind (j + Step,Nc);
-            Smooth [i * Nc + j] = 1./16. * (   Imag [indi1 * Nc + indj1]
+            Smooth [i * Nc + j] = 1.f/16.f * (   Imag [indi1 * Nc + indj1]
                                            + Imag [indi1 * Nc + indj2]
                                            + Imag [indi2 * Nc + indj1]
                                            + Imag [indi2 * Nc + indj2])
-                               + 1./8. * (   Imag [indi1 * Nc + j]
+                               + 1.f/8.f * (   Imag [indi1 * Nc + j]
                                            + Imag [i * Nc + indj1]
                                            + Imag [i * Nc + indj2]
                                            + Imag [indi2 * Nc + j])
-                               + 1./4. * Imag [i * Nc + j];
+                               + 1.f/4.f * Imag [i * Nc + j];
 
         }
     }
@@ -164,6 +166,9 @@ int pave_2d_tfo(float *Pict, float *Pave, int Nl, int Nc, int Nbr_Plan,
 		}
 
 		/* computes the wavelet transform */
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
 		for (i = 0; i < Nl * Nc; i++)
 			Plan[i] -= Imag[i];
 	}
@@ -190,6 +195,9 @@ int pave_2d_build(float *Pave, float *Imag, int Nl, int Nc, int Nbr_Plan,
 		float *Plan = Pave + Pos;
 
 		int i;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
 		for (i = 0; i < Nl * Nc; i++)
 			Imag[i] += coef[Num_Plan] * Plan[i];
 	}
@@ -215,9 +223,12 @@ int pave_2d_extract_plan(float *Pave, float *Imag, int Nl, int Nc, int Num_Plan)
 int pave_2d_bspline_smooth(const float *Imag, float *Smooth, int Nl, int Nc,
 		int Num_Plan) {
 	int i, j, Step;
-	
+
 	Step = pow(2., (float) Num_Plan) + 0.5;
 
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) collapse(2)
+#endif
 	for (i = 0; i < Nl; i++) {
 		for (j = 0; j < Nc; j++) {
 			int indi1 = test_ind(i - Step, Nl);
@@ -228,8 +239,8 @@ int pave_2d_bspline_smooth(const float *Imag, float *Smooth, int Nl, int Nc,
 			int indj3 = test_ind (j - 2 * Step,Nc);
 			int indi4 = test_ind (i + 2 * Step, Nl);
 			int indj4 = test_ind (j + 2 * Step,Nc);
-	
-	
+
+
 			Smooth [i * Nc + j] = 0.00390625 * ( Imag [indi3 * Nc + indj3]
 										+ Imag [indi3 * Nc + indj4]
 										+ Imag [indi4 * Nc + indj3]
@@ -238,29 +249,29 @@ int pave_2d_bspline_smooth(const float *Imag, float *Smooth, int Nl, int Nc,
 										+ Imag [indi3 * Nc + indj2]
 										+ Imag [indi4 * Nc + indj1]
 										+ Imag [indi3 * Nc + indj1]
-	
+
 										+ Imag [indi2 * Nc + indj3]
 										+ Imag [indi2 * Nc + indj4]
 										+ Imag [indi1 * Nc + indj3]
 										+ Imag [indi1 * Nc + indj4])
-	
+
 							+ 0.0234375 * ( Imag [indi3 * Nc + j]
 										+ Imag [indi4 * Nc + j]
 										+ Imag [i * Nc + indj3]
 										+ Imag [i * Nc + indj4])
-	
+
 							+ 0.06250 * ( Imag [indi1 * Nc + indj1]
 										+ Imag [indi1 * Nc + indj2]
 										+ Imag [indi2 * Nc + indj1]
 										+ Imag [indi2* Nc + indj2])
-	
+
 							+ 0.09375 * ( Imag [indi1 * Nc + j]
 										+ Imag [indi2 * Nc + j]
 										+ Imag [i * Nc + indj1]
 										+ Imag [i * Nc + indj2])
-	
+
 							+ 0.140625 * Imag [i * Nc + j];
-	
+
 		}
 	}
 	return 0;
