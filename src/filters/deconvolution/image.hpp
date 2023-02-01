@@ -313,6 +313,9 @@ public:
     template <typename T2, class F>
     void map(const img_t<T2>& o, const F& f) {
         assert(o.similar(*this));
+#ifdef _OPENMP
+#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
+#endif
         for (int i = 0; i < size; i++) {
             (*this)[i] = f(o[i]);
         }

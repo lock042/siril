@@ -52,8 +52,7 @@ namespace deconvolve {
         H.fft(H);
 
         // Generate |H^2| = H * complex conjugate of H
-        denom.map(img::conj(H) * H);
-        denom.map(denom + sigma);
+        denom.map((img::conj(H) * H) + sigma);
         denom.sanitize(); // Avoid NaNs and zeros in the denominator
         updateprogress(msg_wiener, 0.33);
 
@@ -120,16 +119,15 @@ namespace deconvolve {
                 // Calculate Frobenius-Hessian weighting
                 gxx.gradientxx(w);
                 gxx.sanitize(); // Avoid div/0
-                gxx.map(gxx * gxx);
+                auto gxxsq = gxx * gxx;
                 gxy.gradientxy(w);
                 gxy.sanitize();
-                gxy.map(T(2) * (gxy * gxy));
+                auto twogxysq = T(2) * (gxy * gxy);
                 gyy.gradientyy(w);
                 gyy.sanitize();
-                gyy.map(gyy * gyy);
-                w.map(gxy + gyy);
-                w.map(gxx + w);
-                w.map(img::pow(w, T(0.5)));
+                auto gyysq = gyy * gyy;
+                auto gsum = gxxsq + (twogxysq + gyysq);
+                w.map(img::pow(gsum, T(0.5)));
             }
 
             // Richardson-Lucy iteration
