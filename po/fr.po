@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-01 10:00+0100\n"
-"PO-Revision-Date: 2023-02-01 10:54+0100\n"
+"PO-Revision-Date: 2023-02-01 10:55+0100\n"
 "Last-Translator: Cyril Richard\n"
 "Language-Team: French <cyril@free-astro.fr>\n"
 "Language: fr\n"
@@ -9113,7 +9113,8 @@ msgstr "Impossible de créer le fichier catalogue %s pour l'astrométrie (%s)\n"
 #, c-format
 msgid "Up is %+.2lf deg ClockWise wrt. N%s\n"
 msgstr ""
-"Haut est %+.2lf deg (sens des aiguilles d'une montre) par rapport à N%s\n"
+"Le haut est à %+.2lf deg (sens des aiguilles d'une montre) par rapport au "
+"Nord%s\n"
 
 #: src/algos/astrometry_solver.c:768
 msgid " (flipped)"
