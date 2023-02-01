@@ -747,7 +747,7 @@ public:
 #endif
         for (int i = 0 ; i < size ; i++) {
             if (((*this)[i] != (*this)[i]) || (*this)[i] == T(0))
-                (*this)[i] = T(1.e-12);
+                (*this)[i] = T(1.e-9);
         }
     }
 

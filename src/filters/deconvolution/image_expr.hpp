@@ -228,6 +228,8 @@ name<decltype(to_expr(std::declval<E1>())), decltype(to_expr(std::declval<E2>())
 }; \
 
 DEFINE_EXPR_1(minus_img_expr_t, -)
+DEFINE_EXPR_1(plus_img_expr_t, +)
+DEFINE_EXPR_1(not_img_expr_t, !)
 DEFINE_EXPR_2(add_img_expr_t, +)
 DEFINE_EXPR_2(sub_img_expr_t, -)
 DEFINE_EXPR_2(div_img_expr_t, /)
@@ -263,9 +265,18 @@ DEFINE_EXPR_2(mul_img_expr_t, *)
 #include "better_than_std.hpp"
 #include "vec2.hpp"
 
+namespace std {
+    template <typename E1, typename E2, typename E3>
+    auto ternary(const E1& e1, const E2& e2, const E3& e3) {
+        return (e1 ? e2 : e3);
+    }
+}
+
 namespace img {
     // Validation
     DEFINE_FUNC_1(isnormal, std::isnormal)
+    DEFINE_FUNC_1(isnan, std::isnan)
+    DEFINE_FUNC_1(isinf, std::isinf)
     // Complex numbers
     DEFINE_FUNC_1(conj, std::conj)
     DEFINE_FUNC_1(real, std::real)
@@ -305,6 +316,10 @@ namespace img {
     // Fast Multiply & Add
     DEFINE_FUNC_3(fma, std::fma) // Note: std::fma() doesn't work with complex arguments, so
                                  // this mapping doesn't work with img_t<std::complex<T>>
+    DEFINE_FUNC_3(ternary, std::ternary)
+                                 // Note: img::ternary isn't as useful yet as it would be if I
+                                 // could get boolean operators to work as elementwise image
+                                 // operators using DEFINE_EXPR_2 or similar
 }
 
 template <typename T, typename E>

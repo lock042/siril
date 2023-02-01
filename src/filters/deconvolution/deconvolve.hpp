@@ -109,9 +109,9 @@ namespace deconvolve {
                 // Calculate TV regularization weighting
                 gxx.gradientx(w); // Use gxx, the name isn't quite appropriate but it
                                  // saves having to make img_ts within the loop
-                gxx.map(img::max(T(1.e-9), gxx)); // Avoid div/0
+                gxx.sanitize(); // Avoid div/0
                 gyy.gradienty(w);
-                gyy.map(img::max(T(1.e-9), gyy)); // Avoid div/0
+                gyy.sanitize(); // Avoid div/0
                 w.map(img::hypot(gxx, gyy)); // |grad(w)|
                 gxx.map(gxx / w); // Together these 2 lines make gx, gy hold the
                 gyy.map(gyy / w); // components of grad(est)
@@ -119,14 +119,13 @@ namespace deconvolve {
             } else if (regtype == 1 || regtype == 4) {
                 // Calculate Frobenius-Hessian weighting
                 gxx.gradientxx(w);
-                gxx.map(img::max(1.e-9f, gxx)); // Avoid div/0
+                gxx.sanitize(); // Avoid div/0
                 gxx.map(gxx * gxx);
                 gxy.gradientxy(w);
-                gxy.map(img::max(1.e-9f, gxy));
-                gxy.map(gxy * gxy);
-                gxy.map(gxy * T(2));
+                gxy.sanitize();
+                gxy.map(T(2) * (gxy * gxy));
                 gyy.gradientyy(w);
-                gyy.map(img::max(1.e-9f, gyy));
+                gyy.sanitize();
                 gyy.map(gyy * gyy);
                 w.map(gxy + gyy);
                 w.map(gxx + w);
@@ -204,9 +203,9 @@ namespace deconvolve {
                 // Calculate TV regularization weighting
                 gxx.gradientx(w); // Use gxx, the name isn't quite appropriate but it
                                  // saves having to make img_ts within the loop
-                gxx.map(img::max(T(1.e-9), gxx)); // Avoid div/0
+                gxx.sanitize(); // Avoid div/0
                 gyy.gradienty(w);
-                gyy.map(img::max(T(1.e-9), gyy)); // Avoid div/0
+                gyy.sanitize(); // Avoid div/0
                 w.map(img::hypot(gxx, gyy)); // |grad(w)|
                 gxx.map(gxx / w); // Together these 2 lines make gx, gy hold the
                 gyy.map(gyy / w); // components of grad(est)
@@ -214,18 +213,13 @@ namespace deconvolve {
             } else if (regtype == 1 || regtype == 4) {
                 // Calculate Frobenius-Hessian weighting
                 gxx.gradientxx(w);
-                gxx.map(img::max(1.e-9f, gxx)); // Avoid div/0
-                gxx.map(gxx * gxx);
+                auto sanitizexxsq = img::pow(img::max(1.e-9f, gxx), T(2)); // Avoid div/0
                 gxy.gradientxy(w);
-                gxy.map(img::max(1.e-9f, gxy));
-                gxy.map(gxy * gxy);
-                gxy.map(gxy * T(2));
+                auto twosanitizexysq = T(2) * (img::pow(img::max(1.e-9f, gxy), T(2)));
                 gyy.gradientyy(w);
-                gyy.map(img::max(1.e-9f, gyy));
-                gyy.map(gyy * gyy);
-                w.map(gxy + gyy);
-                w.map(gxx + w);
-                w.map(img::pow(w, T(0.5)));
+                auto sanitizeyysq = img::pow(img::max(1.e-9f, gyy), T(2));
+                auto sumgrads = (sanitizexxsq + (twosanitizexysq + sanitizeyysq));
+                w.map(img::pow(sumgrads, T(0.5)));
             }
 
             // Richardson-Lucy iteration
