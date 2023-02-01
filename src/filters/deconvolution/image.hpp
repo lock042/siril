@@ -64,8 +64,6 @@ public:
     typedef T value_type;
     int size, w, h, d;
     std::vector<T, fftw_alloc<T>> data;
-    fftw_plan forwardplan = nullptr;
-    fftw_plan backwardplan = nullptr;
     fftwf_plan forwardplanf = nullptr;
     fftwf_plan backwardplanf = nullptr;
 
@@ -93,13 +91,20 @@ public:
         : size(o.size), w(o.w), h(o.h), d(o.d), data(o.data) {
     }
 
+    template <typename T2>
+    img_t(img_t<T2>&& o) noexcept : w(o.w), h(o.h), d(o.d), data(std::move(o.data)), forwardplanf(std::move(o.forwardplanf)), backwardplanf(std::move(o.backwardplanf)) {
+        o.w = 0;
+        o.h = 0;
+        o.d = 0;
+        o.forwardplanf = nullptr;
+        o.backwardplanf = nullptr;
+    }
+
     img_t operator=(const img_t<T>& o) {
         w = o.w;
         h = o.h;
         d = o.d;
         size = w*d*h;
-        forwardplan = o.forwardplan;
-        backwardplan = o.backwardplan;
         forwardplanf = o.forwardplanf;
         backwardplanf = o.backwardplanf;
         data = o.data;
@@ -183,8 +188,6 @@ public:
 #endif
                 fftwf_destroy_plan(backwardplanf);
 
-            forwardplan = nullptr;
-            backwardplan = nullptr;
             forwardplanf = nullptr;
             backwardplanf = nullptr;
             this->w = w;
@@ -713,12 +716,12 @@ public:
             if (forwardplanf) {
 #pragma omp critical (fftw)
                 fftwf_destroy_plan(forwardplanf);
-                forwardplan = nullptr;
+                forwardplanf = nullptr;
             }
             if (backwardplanf) {
 #pragma omp critical (fftw)
                 fftwf_destroy_plan(backwardplanf);
-                backwardplan = nullptr;
+                backwardplanf = nullptr;
             }
         }
     }

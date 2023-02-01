@@ -84,13 +84,13 @@ to_expr(T t) {
 template <typename T>
 class func0_img_expr_t : public img_expr_t<T> {
 public:
-    std::function<T(int)> f;
+    T(*f)(int);
     int size = 0;
     int w = 0;
     int h = 0;
     int d = 0;
 
-    explicit func0_img_expr_t(std::function<T(int i)> f) : f(f) {
+    func0_img_expr_t(T(*f)(int i)) : f(f) {
     }
 
     T operator[](int i) const {
@@ -106,11 +106,11 @@ public:
 template <typename T, typename E>
 class func1_img_expr_t : public img_expr_t<T> {
 public:
-    std::function<T(typename E::value_type)> f;
+    T(*f)(typename E::value_type);
     E e;
     int size, w, h, d;
 
-    func1_img_expr_t(std::function<T(typename E::value_type)> f, const E& e)
+    func1_img_expr_t(T(*f)(typename E::value_type), const E& e)
         : f(f), e(e), size(e.size), w(e.w), h(e.h), d(e.d) {
     }
 
@@ -127,12 +127,12 @@ public:
 template <typename T, typename E1, typename E2>
 class func2_img_expr_t : public img_expr_t<T> {
 public:
-    std::function<T(typename E1::value_type, typename E2::value_type)> f;
+    T(*f)(typename E1::value_type, typename E2::value_type);
     E1 e1;
     E2 e2;
     int size, w, h, d;
 
-    func2_img_expr_t(std::function<T(typename E1::value_type, typename E2::value_type)> f,
+    func2_img_expr_t(T(*f)(typename E1::value_type, typename E2::value_type),
                      const E1& e1, const E2& e2) : f(f), e1(e1), e2(e2), size(e1.size | e2.size),
                                                    w(e1.w | e2.w), h(e1.h | e2.h), d(e1.d | e2.d) {
     }
