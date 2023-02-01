@@ -229,7 +229,6 @@ name<decltype(to_expr(std::declval<E1>())), decltype(to_expr(std::declval<E2>())
 
 DEFINE_EXPR_1(minus_img_expr_t, -)
 DEFINE_EXPR_1(plus_img_expr_t, +)
-DEFINE_EXPR_1(not_img_expr_t, !)
 DEFINE_EXPR_2(add_img_expr_t, +)
 DEFINE_EXPR_2(sub_img_expr_t, -)
 DEFINE_EXPR_2(div_img_expr_t, /)
