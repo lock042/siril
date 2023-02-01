@@ -1772,9 +1772,17 @@ static gboolean solvefield_is_in_path = FALSE;
 
 #ifdef _WIN32
 static gchar *siril_get_asnet_bash() {
-	if (com.pref.asnet_dir)
-		return g_build_filename(com.pref.asnet_dir, "bin", "bash", NULL);
-	return NULL;
+	const gchar *localappdata = g_get_user_data_dir();
+	gchar *testdir = g_build_filename(localappdata, "cygwin_ansvr", NULL);
+	if (g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
+		siril_debug_print("cygwin_ansvr found at %s\n", testdir);
+		g_free(testdir);
+		return g_build_filename(localappdata, "cygwin_ansvr", "bin", "bash", NULL);;
+	}
+	g_free(testdir);
+	if (!com.pref.asnet_dir || com.pref.asnet_dir[0] == '\0')
+		return NULL;
+	return g_build_filename(com.pref.asnet_dir, "bin", "bash", NULL);
 }
 #else
 static gchar *siril_get_asnet_bin() {

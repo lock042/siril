@@ -8514,8 +8514,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
           <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">Information related to the image, extracted from the file if
-available, from the preferences otherwise.
+            <property name="label" translatable="yes">Information related to the image, extracted from the file if available, from the preferences otherwise.
 Modified data can be saved in a FITS file.</property>
             <property name="justify">center</property>
             <property name="wrap">True</property>
