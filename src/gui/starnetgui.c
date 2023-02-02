@@ -112,6 +112,7 @@ void on_starnet_cancel_clicked(GtkButton *button, gpointer user_data) {
 void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_starnet_stride = GTK_SPIN_BUTTON(lookup_widget("spin_starnet_stride"));
 	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
+	GtkToggleButton *toggle_starnet_sequence = GTK_TOGGLE_BUTTON(lookup_widget("starnet_sequence_toggle"));
 	GtkToggleButton *toggle_starnet_upsample = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_upsample"));
 	GtkToggleButton *toggle_starnet_starmask = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask"));
 	GtkToggleButton *toggle_starnet_customstride = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_customstride"));
@@ -130,6 +131,9 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	starnet_data *starnet_args;
 	starnet_args = malloc(sizeof(starnet_data));
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
+	starnet_args->seqname = NULL;
+	starnet_args->starnet_fit = &gfit;
+	starnet_args->imgnumber = -1;
 	starnet_args->customstride = sgui_customstride;
 	starnet_args->upscale = sgui_upscale;
 	starnet_args->linear = sgui_linear;
@@ -138,7 +142,18 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	starnet_args->follow_on = sgui_follow_on;
-	start_in_new_thread(do_starnet, starnet_args);
+	if (gtk_toggle_button_get_active(toggle_starnet_sequence) == FALSE) {
+		start_in_new_thread(do_starnet, starnet_args);
+	} else {
+		starnet_args->seq = &com.seq;
+		starnet_args->seqEntry = g_strdup(gtk_entry_get_text(GTK_ENTRY(lookup_widget("starnet_sequence_prefix"))));
+		if (starnet_args->seqEntry != NULL) {
+			starnet_args->seqname = g_strdup_printf("%s%s", starnet_args->seqEntry, starnet_args->seq->seqname);
+		} else {
+			starnet_args->seqname = g_strdup_printf("%s%s", "s_", starnet_args->seq->seqname);
+		}
+		apply_starnet_to_sequence(starnet_args);
+	}
 	siril_close_dialog("starnet_dialog");
 }
 #endif

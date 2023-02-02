@@ -502,6 +502,7 @@ int process_starnet(int nb){
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
 	starnet_args->follow_on = FALSE;
+	starnet_args->starnet_fit = &gfit;
 	gboolean error = FALSE;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;

@@ -158,6 +158,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	if (have_seqwriter)
 		omp_set_schedule(omp_sched_dynamic, 1);
 	else omp_set_schedule(omp_sched_guided, 0);
+	printf("number of frames: %d\n", nb_frames);
 #ifdef HAVE_FFMS2
 	// we don't want to enable parallel processing for films, as ffms2 is not thread-safe
 #pragma omp parallel for num_threads(args->max_parallel_images) private(input_idx) schedule(runtime) \
@@ -275,12 +276,15 @@ gpointer generic_sequence_worker(gpointer p) {
 			if (args->save_hook)
 				retval = args->save_hook(args, frame, input_idx, fit);
 			else retval = generic_save(args, frame, input_idx, fit);
+			printf("retval from save hook: %d\n", retval);
 			if (retval) {
 				abort = 1;
 				clearfits(fit);
 				free(fit);
 				continue;
 			}
+			printf("cleared the retval check\n");
+
 		} else {
 			/* save stats that may have been computed for the first
 			 * time, but if fit has been modified for the new
