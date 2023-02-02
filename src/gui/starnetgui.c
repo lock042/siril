@@ -146,12 +146,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 		start_in_new_thread(do_starnet, starnet_args);
 	} else {
 		starnet_args->seq = &com.seq;
-		starnet_args->seqEntry = g_strdup(gtk_entry_get_text(GTK_ENTRY(lookup_widget("starnet_sequence_prefix"))));
-		if (starnet_args->seqEntry != NULL) {
-			starnet_args->seqname = g_strdup_printf("%s%s", starnet_args->seqEntry, starnet_args->seq->seqname);
-		} else {
-			starnet_args->seqname = g_strdup_printf("%s%s", "s_", starnet_args->seq->seqname);
-		}
+		starnet_args->seqname = g_strdup_printf("starless_%s", starnet_args->seq->seqname);
 		apply_starnet_to_sequence(starnet_args);
 	}
 	siril_close_dialog("starnet_dialog");

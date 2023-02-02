@@ -313,30 +313,32 @@ gpointer do_starnet(gpointer p) {
 #endif
 	gchar *currentdir;
 	gchar starnetcommand[19] = "starnet++";
-	gchar temptif[pathmax];
-	gchar starlesstif[pathmax];
-	gchar starlessfit[pathmax];
-	gchar starmaskfit[pathmax];
+	gchar *temptif = NULL;
+	gchar *starlesstif = NULL;
+	gchar *starlessfit = NULL;
+	gchar *starmaskfit = NULL;
 #ifdef _WIN32
 	gchar qtemptif[pathmax];
 	gchar qstarlesstif[pathmax];
 #endif
-	char *imagenoext;
-	char *imagenoextorig;
-	gchar starnetsuffix[10] = "_starnet";
-	gchar starlesssuffix[10] = "_starless";
-	gchar starmasksuffix[10] = "_starmask";
+	char *imagenoext = NULL;
+	char *starlessnoext = NULL;
+	char *starmasknoext = NULL;
+	char *imagenoextorig = NULL;
+	gchar starnetprefix[10] = "starnet_";
+	gchar starlessprefix[10] = "starless_";
+	gchar starmaskprefix[10] = "starmask_";
 	// Initialise the filename strings as empty strings
-	memset(temptif, 0, sizeof(temptif));
-	memset(starlesstif, 0, sizeof(starlesstif));
-	memset(starlessfit, 0, sizeof(starlessfit));
-	memset(starmaskfit, 0, sizeof(starmaskfit));
+//	memset(temptif, 0, sizeof(temptif));
+//	memset(starlesstif, 0, sizeof(starlesstif));
+//	memset(starlessfit, 0, sizeof(starlessfit));
+//	memset(starmaskfit, 0, sizeof(starmaskfit));
 	memset(starnetcommand, 0, sizeof(starnetcommand));
 	// Set up paths and filenames
 	if (single_image_is_loaded()) {
-		imagenoextorig = g_path_get_basename(com.uniq->filename);
+		imagenoextorig = g_strdup_printf("%s", g_path_get_basename(com.uniq->filename));
 	} else if (sequence_is_loaded()) {
-		imagenoextorig = g_strdup_printf("%s%.3d", args->seq->seqname, args->imgnumber + 1);
+		imagenoextorig = g_strdup_printf("%s%.5d", args->seq->seqname, args->imgnumber + 1);
 		// If we are processing a sequence, this is only used for a filename for the temporary tiffs
 		// that get deleted when no longer needed, and for the star mask images which are saved
 		// from here as the output sequence will comprise the starless images.
@@ -349,23 +351,24 @@ gpointer do_starnet(gpointer p) {
 	if (g_strcmp0(imagenoext, imagenoextorig) && verbose)
 		siril_log_color_message(_("Starnet++: spaces detected in filename. Starnet++ can't handle these so they have been replaced by underscores.\n"), "salmon");
 	free(imagenoextorig);
-	fprintf(stdout, "%s\n", imagenoext);
+	starlessnoext = g_strdup_printf("%s%s", starlessprefix, imagenoext);
+	starmasknoext = g_strdup_printf("%s%s", starmaskprefix, imagenoext);
+	imagenoext = g_strdup_printf("%s%s", starnetprefix, imagenoext);
 	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
-	fprintf(stdout, "%s\n", imagenoext);
 	imagenoext = remove_ext_from_filename(imagenoext);
-	fprintf(stdout, "%s\n", imagenoext);
-	strncat(temptif, imagenoext, sizeof(temptif) - strlen(imagenoext));
-	strncat(temptif, starnetsuffix, 10);
-	strncat(temptif, ".tif", 5);
-	strncat(starlesstif, imagenoext, sizeof(starlesstif) - strlen(imagenoext));
-	strncat(starlesstif, starlesssuffix, 10);
-	strncat(starlesstif, ".tif", 5);
-	strncat(starlessfit, imagenoext, sizeof(starlessfit) - strlen(imagenoext));
-	strncat(starlessfit, starlesssuffix, 10);
-	strncat(starlessfit, com.pref.ext, 5);
-	strncat(starmaskfit, imagenoext, sizeof(starmaskfit) - strlen(imagenoext));
-	strncat(starmaskfit, starmasksuffix, 10);
-	strncat(starmaskfit, com.pref.ext, 5);
+	temptif = g_strdup_printf("%s.tif", imagenoext);
+	starlesstif = g_build_filename(com.wd, starlessnoext, NULL);
+	starlesstif = remove_ext_from_filename(starlesstif);
+	starlessfit = g_strdup(starlesstif);
+	starlesstif = g_strdup_printf("%s.tif", starlesstif);
+	starlessfit = g_strdup_printf("%s%s", starlessfit, com.pref.ext);
+	starmaskfit = g_build_filename(com.wd, starmasknoext, NULL);
+	starmaskfit = remove_ext_from_filename(starmaskfit);
+	starmaskfit = g_strdup_printf("%s%s", starmaskfit, com.pref.ext);
+	printf("temptif %s\n", temptif);
+	printf("starlesstif %s\n", starlesstif);
+	printf("starlessfit %s\n", starlessfit);
+	printf("starmasktif %s\n", starmaskfit);
 
 	// ok, let's start
 	if (verbose)
@@ -680,6 +683,7 @@ void apply_starnet_to_sequence(struct starnet_data *seqdata) {
 	seqargs->description = _("Starnet++");
 	seqargs->has_output = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
+	seqdata->seqEntry = g_strdup_printf("starless_");
 	seqargs->new_seq_prefix = seqdata->seqEntry;
 	seqargs->load_new_sequence = TRUE;
 	seqargs->user = seqdata;
