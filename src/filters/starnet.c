@@ -386,10 +386,6 @@ gpointer do_starnet(gpointer p) {
 	starmasknoext = NULL;
 	starmaskfit = remove_ext_from_filename(starmaskfit);
 	starmaskfit = g_strdup_printf("%s%s", starmaskfit, com.pref.ext);
-	printf("temptif %s\n", temptif);
-	printf("starlesstif %s\n", starlesstif);
-	printf("starlessfit %s\n", starlessfit);
-	printf("starmasktif %s\n", starmaskfit);
 
 	// ok, let's start
 	if (verbose)
