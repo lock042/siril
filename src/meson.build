@@ -33,6 +33,7 @@ src_files = [
   'algos/noise.c',
   'algos/pave.c',
   'algos/photometry.c',
+  'algos/photometric_cc.c',
   'algos/PSF.c',
   'algos/quality.c',
   'algos/quality_float.c',

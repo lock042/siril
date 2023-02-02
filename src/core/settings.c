@@ -48,8 +48,7 @@ preferences pref_init = {
 #endif
 	.lang = 0,
 	.swap_dir = NULL,
-	.focal = 1000,
-	.pitch = 5,
+	.binning_update = TRUE,
 	.wcs_formalism = WCS_FORMALISM_1,
 	.catalogue_paths[0] = NULL,
 	.catalogue_paths[1] = NULL,
@@ -59,6 +58,7 @@ preferences pref_init = {
 	.copyright = NULL,
 	.starnet_dir = NULL,
 	.gnuplot_dir = NULL,
+	.asnet_dir = NULL,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -68,7 +68,9 @@ preferences pref_init = {
 		.convergence = 1,
 		.relax_checks = FALSE,
 		.profile = PSF_GAUSSIAN,
-		.min_beta = 1.5
+		.min_beta = 1.5,
+		.min_A = 0.0,
+		.max_A = 0.0
 	},
 	.prepro = {
 		.cfa = FALSE,
@@ -153,6 +155,16 @@ preferences pref_init = {
 		.minval = -500.0,
 		.maxval = 60000.0,
 	},
+	.astrometry = {
+		.update_default_scale = TRUE,
+		.percent_scale_range = 20,
+		.sip_correction_order = 0,
+		.radius_degrees = 10.0,
+		.keep_xyls_files = FALSE,
+		.keep_wcs_files = FALSE,
+		.max_seconds_run = 10,
+		.show_asnet_output = FALSE,
+	},
 	.analysis = {
 		.mosaic_panel = 256,
 		.mosaic_window = 381,
@@ -191,6 +203,8 @@ void free_preferences(preferences *pref) {
 	pref->starnet_dir = NULL;
 	g_free(pref->gnuplot_dir);
 	pref->gnuplot_dir = NULL;
+	g_free(pref->asnet_dir);
+	pref->asnet_dir = NULL;
 	g_free(pref->lang);
 	pref->lang = NULL;
 	g_slist_free_full(pref->gui.script_path, g_free);
@@ -235,6 +249,7 @@ struct settings_access all_settings[] = {
 	{ "core", "check_updates", STYPE_BOOL, N_("check update at start-up"), &com.pref.check_update },
 	{ "core", "lang", STYPE_STR, N_("active siril language"), &com.pref.lang },
 	{ "core", "swap_dir", STYPE_STRDIR, N_("swap directory"), &com.pref.swap_dir },
+	{ "core", "binning_update", STYPE_BOOL, N_("update pixel size of binned images"), &com.pref.binning_update },
 	{ "core", "wcs_formalism", STYPE_INT, N_("WCS formalism used in FITS header"), &com.pref.wcs_formalism, { .range_int = { 0, 1 } } },
 	{ "core", "catalogue_namedstars", STYPE_STR, N_("Path of the namedstars.dat catalogue"), &com.pref.catalogue_paths[0] },
 	{ "core", "catalogue_unnamedstars", STYPE_STR, N_("Path of the unnamedstars.dat catalogue"), &com.pref.catalogue_paths[1] },
@@ -244,8 +259,13 @@ struct settings_access all_settings[] = {
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
 	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
+#ifdef _WIN32
+	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
+#else
+	{ "core", "asnet_dir", STYPE_STR, N_("directory containing the solve-field executable"), &com.pref.asnet_dir },
+#endif
 	{ "core", "fftw_timelimit", STYPE_DOUBLE, N_("FFTW planning timelimit"), &com.pref.fftw_conf.timelimit },
-	{ "core", "fftw_conv_fft_cutoff", STYPE_DOUBLE, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
+	{ "core", "fftw_conv_fft_cutoff", STYPE_INT, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
 	{ "core", "fftw_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
 	{ "core", "fftw_timeout", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
 
@@ -267,6 +287,16 @@ struct settings_access all_settings[] = {
 	{ "photometry", "aperture", STYPE_DOUBLE, N_("forced aperture for flux computation"), &com.pref.phot_set.aperture, { .range_double = { 1., 100. } } },
 	{ "photometry", "minval", STYPE_DOUBLE, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_double = { -65536.0, 65534.0 } } },
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
+
+	{ "astrometry", "asnet_percent_scale_range", STYPE_INT, N_("percent below and above the expected sampling to allow"), &com.pref.astrometry.percent_scale_range, { .range_int = { 0, 10000 } } },
+	{ "astrometry", "asnet_sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 0, 6 } } },
+	{ "astrometry", "asnet_radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 180.0 } } },
+	{ "astrometry", "asnet_keep_xyls", STYPE_BOOL, N_("do not delete .xyls FITS tables"), &com.pref.astrometry.keep_xyls_files },
+	{ "astrometry", "asnet_keep_wcs", STYPE_BOOL, N_("do not delete .wcs result files"), &com.pref.astrometry.keep_wcs_files },
+	{ "astrometry", "asnet_max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
+	{ "astrometry", "asnet_show_output", STYPE_BOOL, N_("show solve-field output in main log"), &com.pref.astrometry.show_asnet_output },
+
+	{ "astrometry", "update_default_scale", STYPE_BOOL, N_("update default focal length and pixel size from the result"), &com.pref.astrometry.update_default_scale },
 
 	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
 	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 1600 } } },

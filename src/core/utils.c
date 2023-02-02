@@ -1441,6 +1441,35 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 }
 
 /**
+ * Recomposes a string from words, with a space between each.
+ * @param words a NULL-terminated array of words
+ * @return a string to be freed with g_free()
+ */
+gchar *build_string_from_words(char **words) {
+	GString *str = g_string_new(words[0]);
+	int i = 1;
+	while (words[i]) {
+		g_string_append_printf(str, " %s", words[i]);
+		i++;
+	}
+	return g_string_free(str, FALSE);
+}
+
+/**
+ * Appends elements to an existing array.
+ * @param array an NULL-terminated array sufficiently allocated to contain the
+ * extra elements at its end. It will be NULL-terminated after append.
+ * @param elements a NULL-terminated array of elements to add to array
+ */
+void append_elements_to_array(char **array, char **elements) {
+	int i = 0, j = 0;
+	while (array[i]) i++;
+	while (elements[j])
+		array[i++] = elements[j++];
+	array[i] = NULL;
+}
+
+/**
  * Get the file extension following the fz flag. If the file is
  * compressed, fz is appended to the file extension.
  * @param fz flag to know if the fz extension must be appended.

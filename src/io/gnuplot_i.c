@@ -64,14 +64,14 @@
 #define GNUPLOT_BIN "gnuplot"
 
 #endif /*_WIN32*/
-static gboolean gnuplot_path = FALSE;
+
+static gboolean gnuplot_is_in_path = FALSE;
 
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_bin() {
-	if (gnuplot_path) return g_strdup(GNUPLOT_BIN);
-	else {
-		return g_build_filename(com.pref.gnuplot_dir, GNUPLOT_BIN, NULL);
-	}
+	if (gnuplot_is_in_path)
+		return g_strdup(GNUPLOT_BIN);
+	return g_build_filename(com.pref.gnuplot_dir, GNUPLOT_BIN, NULL);
 }
 
 #if defined (_WIN32) || defined(OS_OSX)
@@ -93,7 +93,7 @@ gboolean gnuplot_is_available() {
 	int retval = system(str);
 	g_free(str);
 	if (WIFEXITED(retval)) {
-		gnuplot_path = TRUE;
+		gnuplot_is_in_path = TRUE;
 		return 0 == WEXITSTATUS(retval);
 	}
 

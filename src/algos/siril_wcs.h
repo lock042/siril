@@ -26,6 +26,10 @@ gboolean has_wcsdata(fits *fit);
 void free_wcs(fits *fit, gboolean keep_RADEC);
 gboolean load_WCS_from_file(fits* fit);
 gboolean load_WCS_from_memory(fits *fit);
+#ifdef HAVE_WCSLIB
+// this one directly uses the WCSLIB struct
+void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d);
+#endif
 void pix2wcs(fits *fit, double pixel_x, double pixel_y, double *world_x, double *world_y);
 int wcs2pix(fits *fit, double world_x, double world_y, double *pixel_x, double *pixel_y);
 void center2wcs(fits *fit, double *r, double *d);

@@ -88,6 +88,7 @@ static command commands[] = {
 
 	{"gauss", 1, "gauss sigma", process_gauss, STR_GAUSS, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"get", 1, "get { -a | -A | variable }", process_set, STR_GET, TRUE, REQ_CMD_NONE},
+	{"getref", 1, "getref seqname", process_getref, STR_GETREF, TRUE, REQ_CMD_NONE},
 	{"ght", 5, "ght [-human | -even | -independent] D B LP SP HP [channels]", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
@@ -142,7 +143,8 @@ static command commands[] = {
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"parse", 1, "parse str [-r]", process_parse, STR_PARSE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	{"pcc", 0, "pcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"pcc", 0, "pcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-downscale]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB },
+	{"platesolve", 0, "platesolve [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-localasnet] [-downscale]", process_pcc, STR_PLATESOLVE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"pm", 1, "pm \"expression\" [-rescale [low] [high]]", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]", process_preprocess, STR_PREPROCESS, TRUE, REQ_CMD_NONE},
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_PREPROCESS_SINGLE, TRUE, REQ_CMD_NONE},
@@ -190,9 +192,10 @@ static command commands[] = {
 	{"seqfind_cosme_cfa", 3, "seqfind_cosme_cfa sequencename cold_sigma hot_sigma [-prefix=]", process_findcosme, STR_SEQFIND_COSME_CFA, TRUE, REQ_CMD_NONE},
 	{"seqfindstar", 1, "seqfindstar sequencename [-layer=] [-maxstars=]", process_seq_findstar, STR_SEQFINDSTAR, TRUE, REQ_CMD_NONE},
 	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vertical]", process_seq_fixbanding, STR_SEQFIXBANDING, TRUE, REQ_CMD_NONE},
+	{"seqmerge_cfa", 1, "seqmerge_cfa sequencename bayerpattern [-prefixin=] [-prefixout=]", process_seq_merge_cfa, STR_SEQMERGE_CFA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [channels] [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE, REQ_CMD_NONE},
 	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
-	{"seqmerge_cfa", 1, "seqmerge_cfa sequencename bayerpattern [-prefixin=] [-prefixout=]", process_seq_merge_cfa, STR_SEQMERGE_CFA, TRUE, REQ_CMD_NO_THREAD},
+	{"seqplatesolve", 0, "seqplatesolve sequencename [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-downscale]", process_pcc, STR_SEQPLATESOLVE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqrl", 1, "seqrl sequence [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul] [-seq]", process_seq_rl, STR_SEQ_RL, TRUE, REQ_CMD_NONE},
 	{"seqsb", 1, "sb sequence [-alpha=] [-iters=]", process_seq_sb, STR_SEQ_SB, TRUE, REQ_CMD_NONE},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA, TRUE, REQ_CMD_NO_THREAD},
@@ -208,7 +211,7 @@ static command commands[] = {
 	{"setcpu", 1, "setcpu number", process_set_cpu, STR_SETCPU, TRUE, REQ_CMD_NONE},
 #endif
 	{"setext", 1, "setext extension", process_set_ext, STR_SETEXT, TRUE, REQ_CMD_NONE},
-	{"setfindstar", 0, "setfindstar [reset] [-radius=] [-sigma=] [-roundness=] [-focal=] [-pixelsize=] [-convergence=] [ [-gaussian] | [-moffat] ] [-minbeta=] [-relax=on|off]", process_set_findstar, STR_SETFINDSTAR, TRUE, REQ_CMD_NONE},
+	{"setfindstar", 0, "setfindstar [reset] [-radius=] [-sigma=] [-roundness=] [-focal=] [-pixelsize=] [-convergence=] [ [-gaussian] | [-moffat] ] [-minbeta=] [-relax=on|off] [-minA=] [-maxA=]", process_set_findstar, STR_SETFINDSTAR, TRUE, REQ_CMD_NONE},
 	{"setmag", 1, "setmag magnitude", process_set_mag, STR_SETMAG, FALSE, REQ_CMD_SINGLE_IMAGE},
 	{"setmagseq", 1, "setmagseq magnitude", process_set_mag_seq, STR_SETMAGSEQ, FALSE, REQ_CMD_SEQUENCE},
 	{"setmem", 1, "setmem ratio", process_set_mem, STR_SETMEM, TRUE, REQ_CMD_NONE},

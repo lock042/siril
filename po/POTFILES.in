@@ -16,6 +16,7 @@ src/algos/fix_xtrans_af.c
 src/algos/geometry.c
 src/algos/noise.c
 src/algos/photometry.c
+src/algos/photometric_cc.c
 src/algos/PSF.c
 src/algos/quality.c
 src/algos/reconstr.c

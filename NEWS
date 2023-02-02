@@ -7,8 +7,9 @@ v1.2.0 mmm dd, 2022
 * Added Starnet++ integration in GUI and command and mask creation
 * Added Star Recomposition tool to mix and stretch starless and starmask images
 * Added star intensive care to unsaturate stars
+* Added new deconvolution tool with RL, Split Bregman and Wiener algorithms and several PSF generation options (replaces old tool)
 * Added pcc command for headless PCC and plate solving
-* Added local KStars star catalogue support for plate solving and PCC (NOMAD)
+* Added local KStars star catalogue support for offline astrometry and PCC (NOMAD)
 * Added a new framing assistant with several modes and image framing preview
 * Added specifying max number of stars for registration
 * Added bad pixel map option for preprocess, both in GUI and command
@@ -62,6 +63,7 @@ v1.2.0 mmm dd, 2022
 * Replaced generalized hyperbolic transform stretch method by more general algorithms and optimised for speed
 * Optimised asinh code for speed
 * Improved Ha-OIII extraction to offer full resolution O-III output and improve star roundness
+* Improved management of focal length, pixel size and binning, in settings and images
 * Refactored global registration and added 2pass and Apply Existing methods
 * Refactored 3-star registration to run the 3 stars analysis successively
 * Refactored 1- and 2/3-stars registration into one single registration method
@@ -70,6 +72,7 @@ v1.2.0 mmm dd, 2022
 * Refactored commands error handling
 * Refactored light curve creation, filtering the reference stars to valid only
 * Refactored PSF fitting to solve for the angle in all cases
+* Refactored astrometry for command and sequence operation, astrometry.net interop.
 * Fixed comet registration when registration was accumulated over existing data
 * Fixed star detection for images with very large stars
 * Fixed cancellation of seqpsf or seqcrop
@@ -80,7 +83,6 @@ v1.2.0 mmm dd, 2022
 * Fixed sequence closing in script processing after each command
 * Fixed opening of scientific FITS cube files
 * Fixed gnuplot call for macOS/AppImage, by making its path configurable
-* Added new deconvolution tool with RL, Split Bregman and Wiener algorithms and several PSF generation options (replaces old tool)
 * Fixed bug in roworder of SER sequence created from TOP-DOWN FITS images
 
 v1.0.7 xx xx, 2022

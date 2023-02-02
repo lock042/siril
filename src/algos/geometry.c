@@ -178,6 +178,10 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, in
 		fit->binning_x *= bin_factor;
 		fit->binning_y *= bin_factor;
 	}
+	if (!com.pref.binning_update) {
+		fit->pixel_size_x *= bin_factor;
+		fit->pixel_size_y *= bin_factor;
+	}
 }
 
 static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {

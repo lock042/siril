@@ -204,7 +204,7 @@ void reset_conv_controls() {
 }
 
 void reset_conv_controls_and_args() {
-	if (!get_thread_run())
+	if (!get_thread_run() || (the_fit == NULL))
 		reset_conv_args(&args);
 	if (!(com.headless))
 		reset_conv_controls();
@@ -242,7 +242,7 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 
 	gboolean ret;
 	const char *locale;
-	const char *supported_languages[] = { NULL }; // en is NULL: default language
+	const char *supported_languages[] = { "de", "fr", NULL }; // en is NULL: default language
 	gchar *lang = NULL;
 	int i = 0;
 
@@ -533,7 +533,7 @@ static void calculate_parameters() {
 		args.psf_beta = (float) beta / (float) n;
 		args.psf_ratio = args.symkern ? 1.f : args.psf_fwhm / FWHMy;
 		if (unit_is_arcsec) {
-			double bin_X = the_fit->unbinned ? (double) the_fit->binning_x : 1.0;
+			double bin_X = com.pref.binning_update ? (double) the_fit->binning_x : 1.0;
 			double conversionfactor = (((3600.0 * 180.0) / G_PI) / 1.0E3 * (double)the_fit->pixel_size_x / the_fit->focal_length) * bin_X;
 			args.psf_fwhm /= (float) conversionfactor;
 		}
