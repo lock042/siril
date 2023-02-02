@@ -328,20 +328,12 @@ gpointer do_starnet(gpointer p) {
 	gchar starnetprefix[10] = "starnet_";
 	gchar starlessprefix[10] = "starless_";
 	gchar starmaskprefix[10] = "starmask_";
-	// Initialise the filename strings as empty strings
-//	memset(temptif, 0, sizeof(temptif));
-//	memset(starlesstif, 0, sizeof(starlesstif));
-//	memset(starlessfit, 0, sizeof(starlessfit));
-//	memset(starmaskfit, 0, sizeof(starmaskfit));
 	memset(starnetcommand, 0, sizeof(starnetcommand));
 	// Set up paths and filenames
 	if (single_image_is_loaded()) {
 		imagenoextorig = g_strdup_printf("%s", g_path_get_basename(com.uniq->filename));
 	} else if (sequence_is_loaded()) {
 		imagenoextorig = g_strdup_printf("%s%.5d", args->seq->seqname, args->imgnumber + 1);
-		// If we are processing a sequence, this is only used for a filename for the temporary tiffs
-		// that get deleted when no longer needed, and for the star mask images which are saved
-		// from here as the output sequence will comprise the starless images.
 	} else {
 		imagenoextorig = g_strdup_printf("image");
 	}
@@ -350,19 +342,48 @@ gpointer do_starnet(gpointer p) {
         *q = *c == ' ' ? '_' : *c;
 	if (g_strcmp0(imagenoext, imagenoextorig) && verbose)
 		siril_log_color_message(_("Starnet++: spaces detected in filename. Starnet++ can't handle these so they have been replaced by underscores.\n"), "salmon");
-	free(imagenoextorig);
+	g_free(imagenoextorig);
+	imagenoextorig = NULL;
 	starlessnoext = g_strdup_printf("%s%s", starlessprefix, imagenoext);
 	starmasknoext = g_strdup_printf("%s%s", starmaskprefix, imagenoext);
 	imagenoext = g_strdup_printf("%s%s", starnetprefix, imagenoext);
 	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
 	imagenoext = remove_ext_from_filename(imagenoext);
 	temptif = g_strdup_printf("%s.tif", imagenoext);
+	if (strlen(temptif) > pathmax) {
+		retval = 1;
+		siril_log_color_message(_("Error: file path too long!\n"), "red");
+		goto CLEANUP3;
+	}
+	g_free(imagenoext);
+	imagenoext = NULL;
 	starlesstif = g_build_filename(com.wd, starlessnoext, NULL);
+	g_free(starlessnoext);
+	starlessnoext = NULL;
 	starlesstif = remove_ext_from_filename(starlesstif);
 	starlessfit = g_strdup(starlesstif);
 	starlesstif = g_strdup_printf("%s.tif", starlesstif);
+		if (strlen(starlesstif) > pathmax) {
+		retval = 1;
+		siril_log_color_message(_("Error: file path too long!\n"), "red");
+		goto CLEANUP3;
+	}
+
 	starlessfit = g_strdup_printf("%s%s", starlessfit, com.pref.ext);
+	if (strlen(starlessfit) > pathmax) {
+		retval = 1;
+		siril_log_color_message(_("Error: file path too long!\n"), "red");
+		goto CLEANUP3;
+	}
 	starmaskfit = g_build_filename(com.wd, starmasknoext, NULL);
+	if (strlen(starmaskfit) > pathmax) {
+		retval = 1;
+		siril_log_color_message(_("Error: file path too long!\n"), "red");
+		goto CLEANUP3;
+	}
+
+	g_free(starmasknoext);
+	starmasknoext = NULL;
 	starmaskfit = remove_ext_from_filename(starmaskfit);
 	starmaskfit = g_strdup_printf("%s%s", starmaskfit, com.pref.ext);
 	printf("temptif %s\n", temptif);
@@ -420,8 +441,9 @@ gpointer do_starnet(gpointer p) {
 		double max = 0.0;
 		for (int layer = 0; layer < nplane; layer++) {
 			imstats* stat = statistics(NULL, -1, the_fit, layer, &com.selection, STATS_MAIN, MULTI_THREADED);
-			if (stat->max> max)
+			if (stat->max > max)
 				max = stat->max;
+			free_stats(stat);
 		}
 		if (max > 1.0 && verbose) {
 			siril_log_message(_("Starnet++: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"));
@@ -643,8 +665,11 @@ gpointer do_starnet(gpointer p) {
 		com.child_is_running = FALSE;
 	if (verbose)
 		set_progress_bar_data("Ready.", PROGRESS_RESET);
-	free(imagenoext);
-	free(currentdir);
+	g_free(currentdir);
+	g_free(starlesstif);
+	g_free(starlessfit);
+	g_free(starmaskfit);
+	g_free(temptif);
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
