@@ -582,24 +582,16 @@ gboolean local_catalogues_available() {
 	return TRUE;
 }
 
+// Haversine formula on unit sphere
+// https://en.wikipedia.org/wiki/Haversine_formula
+// dec is phi, ra is lambda
 // in degrees
 static double compute_coords_distance(double ra1, double dec1, double ra2, double dec2) {
-	double ra1minra2 = ra1 - ra2;
-	double ra_diff;
-	if (ra1 > ra2) {
-		double ra1o = ra1 - 360.0;
-		if (ra1minra2 < fabs(ra1o - ra2))
-			ra_diff = ra1minra2;
-		else ra_diff = ra1o - ra2;
-	} else {
-		double ra2o = ra2 - 360.0;
-		if (fabs(ra1minra2) < fabs(ra1 - ra2o))
-			ra_diff = ra1minra2;
-		else ra_diff = ra1 - ra2o;
-	}
-
-	double dec_diff = dec1 - dec2;
-	return sqrt(ra_diff * ra_diff + dec_diff * dec_diff);
+	double dra_2 = 0.5 * (ra2 - ra1) * DEGTORAD;
+	double ddec_2 = 0.5 * (dec2 - dec1) * DEGTORAD;
+	double h = pow(sin(ddec_2), 2.) + cos(dec1 * DEGTORAD) * cos(dec2 * DEGTORAD) * pow(sin(dra_2), 2.);
+	if (h > 1.) h = 1.;
+	return 2 * asin(pow(h, 0.5)) * RADTODEG;
 }
 
 /* similar to get_stars_from_local_catalogues except it doesn't project the
