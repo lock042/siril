@@ -19,8 +19,14 @@ long get_pathmax(void);
 #endif
 
 typedef struct starnet_data {
+	struct ser_struct *new_ser_starless;
+	fitseq *new_fitseq_starless;
+	struct ser_struct *new_ser_starmask;
+	fitseq *new_fitseq_starmask;
+	GList *processed_images;
 	sequence *seq;
 	fits *starnet_fit;
+	fits *starmask_fit;
 	struct timeval t_start;
 	gchar stride[6];
 	gboolean linear;

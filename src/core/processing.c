@@ -281,7 +281,6 @@ gpointer generic_sequence_worker(gpointer p) {
 				free(fit);
 				continue;
 			}
-
 		} else {
 			/* save stats that may have been computed for the first
 			 * time, but if fit has been modified for the new
