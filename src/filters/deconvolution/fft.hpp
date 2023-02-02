@@ -258,7 +258,7 @@ namespace ifft {
 
     template <typename E>
     auto c2r(const E& o, bool fast=true) {
-        return to_img(std::real(c2c(to_img(o), fast)));
+        return to_img(img::real(c2c(to_img(o), fast)));
     }
 
     template <typename E>
