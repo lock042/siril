@@ -42,7 +42,11 @@ preferences pref_init = {
 	.script_check_requires = TRUE,
 	.pipe_check_requires = FALSE,
 #ifdef HAVE_JSON_GLIB
-	.check_update = !SIRIL_UNSTABLE,
+ #ifdef SIRIL_UNSTABLE
+	.check_update = FALSE,
+ #else
+	.check_update = TRUE,
+ #endif
 #else
 	.check_update = FALSE,
 #endif

@@ -90,7 +90,32 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
-      <release version="1.0.6" type="stable" date="2022-10-18">
+    <release version="1.2.0~beta" date="2023-02-24">
+      <url type="details">https://www.siril.org/download/1.2.0-beta</url>
+      <description>
+        <p>
+          First beta release, of the 1.2.0 series. Many improvement, bug fixes
+          and new features have been implemented in this version. GUI has been
+          redrawn at some points for a better user experience.
+          The most outstanding changes are:
+        </p>
+        <ul>
+          <li>
+          Refactoring of the Generalized Hyperbolic Transformation tool
+          </li>
+          <li>
+          Refactoring of the deconvolution tool
+          </li>
+          <li>
+          Addition of a lot of star processing tools
+          </li>
+          <li>
+          Astrometry was greatly improved
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.0.6" type="stable" date="2022-10-18">
       <url type="details">https://www.siril.org/download/1.0.6</url>
       <description>
         <p>
