@@ -290,7 +290,7 @@ gpointer do_starnet(gpointer p) {
 	imagenoext = g_strdup(imagenoextorig);
 	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
         *q = *c == ' ' ? '_' : *c;
-	if (g_strcmp0(imagenoext, imagenoextorig))
+	if (g_strcmp0(imagenoext, imagenoextorig) && verbose)
 		siril_log_color_message(_("Starnet++: spaces detected in filename. Starnet++ can't handle these so they have been replaced by underscores.\n"), "salmon");
 	free(imagenoextorig);
 	fprintf(stdout, "%s\n", imagenoext);
@@ -393,14 +393,16 @@ gpointer do_starnet(gpointer p) {
 	params.do_green = TRUE;
 	params.do_blue = TRUE;
 	find_linked_midtones_balance_default(&workingfit, &params);
-	if (args->linear && verbose) {
-		siril_log_message(_("Starnet++: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
+	if (args->linear) {
+		if (verbose)
+			siril_log_message(_("Starnet++: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
 		apply_linked_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
 	// Upscale if needed
-	if (args->upscale && verbose) {
-		siril_log_message(_("Starnet++: 2x upscaling selected. Upscaling image...\n"));
+	if (args->upscale) {
+		if (verbose)
+			siril_log_message(_("Starnet++: 2x upscaling selected. Upscaling image...\n"));
 		retval = cvResizeGaussian(&workingfit, round_to_int(2*orig_x), round_to_int(2*orig_y), OPENCV_AREA, FALSE);
 		if (retval) {
 			siril_log_color_message(_("Error: image resize failed...\n"), "red");
@@ -472,8 +474,9 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Downscale again if needed
-	if (args->upscale && verbose) {
-		siril_log_message(_("Starnet++: 2x upscaling selected. Re-scaling starless image to original size...\n"));
+	if (args->upscale) {
+		if (verbose)
+			siril_log_message(_("Starnet++: 2x upscaling selected. Re-scaling starless image to original size...\n"));
 		retval = cvResizeGaussian(&workingfit, orig_x, orig_y, OPENCV_AREA, FALSE);
 		if (retval) {
 			siril_log_color_message(_("Error: image resize failed...\n"), "red");
@@ -483,8 +486,9 @@ gpointer do_starnet(gpointer p) {
 
 	// If we are doing a pseudo-linear stretch we need to apply the inverse
 	// stretch to the starless version and re-save the final result
-	if (args->linear && verbose) {
-		siril_log_message(_("Starnet++: linear mode. Applying inverse MTF stretch to starless image.\n"));
+	if (args->linear) {
+		if (verbose)
+			siril_log_message(_("Starnet++: linear mode. Applying inverse MTF stretch to starless image.\n"));
 		apply_linked_pseudoinverse_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
@@ -583,7 +587,8 @@ gpointer do_starnet(gpointer p) {
 	free(imagenoext);
 	free(currentdir);
 	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
+	if (verbose)
+		show_time(t_start, t_end);
 	if (single_image_is_loaded()) {
 		if (!args->follow_on)
 			notify_gfit_modified();
