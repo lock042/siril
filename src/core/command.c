@@ -550,6 +550,68 @@ int process_starnet(int nb){
 	return CMD_OK;
 }
 
+int process_seq_starnet(int nb){
+#ifdef HAVE_LIBTIFF
+	starnet_data *starnet_args = malloc(sizeof(starnet_data));
+	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
+	starnet_args->linear = FALSE;
+	starnet_args->customstride = FALSE;
+	starnet_args->upscale = FALSE;
+	starnet_args->starmask = TRUE;
+	starnet_args->follow_on = FALSE;
+	starnet_args->starnet_fit = &gfit;
+	gboolean error = FALSE;
+	starnet_args->seq = load_sequence(word[1], NULL);
+	if (!starnet_args->seq) {
+		siril_log_message(_("Error: cannot open sequence\n"));
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	for (int i = 2; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(arg, "-stretch")) {
+			starnet_args->linear = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-upscale")) {
+			starnet_args->upscale = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-nostarmask")) {
+			starnet_args->starmask = FALSE;
+		}
+		else if (g_str_has_prefix(arg, "-stride=")) {
+			arg += 8;
+			double stride = g_ascii_strtod(arg, &end);
+			int intstride = stride;
+			if (arg == end) error = TRUE;
+			else if ((intstride < 2.0) || (intstride > 256) || (intstride % 2)) {
+				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (!error) {
+				sprintf(starnet_args->stride, "%d", intstride);
+				starnet_args->customstride = TRUE;
+			}
+		}
+		else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
+		}
+		if (error) {
+			siril_log_message(_("Error parsing arguments, aborting.\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+	set_cursor_waiting(TRUE);
+	apply_starnet_to_sequence(starnet_args);
+
+#else
+	siril_log_message(_("starnet command unavailable as Siril has not been compiled with libtiff.\n"));
+#endif
+	return CMD_OK;
+}
+
 #ifdef HAVE_LIBJPEG
 int process_savejpg(int nb){
 	int quality = 100;
