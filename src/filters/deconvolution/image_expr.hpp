@@ -84,13 +84,13 @@ to_expr(T t) {
 template <typename T>
 class func0_img_expr_t : public img_expr_t<T> {
 public:
-    std::function<T(int)> f;
+    T(*f)(int);
     int size = 0;
     int w = 0;
     int h = 0;
     int d = 0;
 
-    explicit func0_img_expr_t(std::function<T(int i)> f) : f(f) {
+    func0_img_expr_t(T(*f)(int i)) : f(f) {
     }
 
     T operator[](int i) const {
@@ -106,11 +106,11 @@ public:
 template <typename T, typename E>
 class func1_img_expr_t : public img_expr_t<T> {
 public:
-    std::function<T(typename E::value_type)> f;
+    T(*f)(typename E::value_type);
     E e;
     int size, w, h, d;
 
-    func1_img_expr_t(std::function<T(typename E::value_type)> f, const E& e)
+    func1_img_expr_t(T(*f)(typename E::value_type), const E& e)
         : f(f), e(e), size(e.size), w(e.w), h(e.h), d(e.d) {
     }
 
@@ -127,12 +127,12 @@ public:
 template <typename T, typename E1, typename E2>
 class func2_img_expr_t : public img_expr_t<T> {
 public:
-    std::function<T(typename E1::value_type, typename E2::value_type)> f;
+    T(*f)(typename E1::value_type, typename E2::value_type);
     E1 e1;
     E2 e2;
     int size, w, h, d;
 
-    func2_img_expr_t(std::function<T(typename E1::value_type, typename E2::value_type)> f,
+    func2_img_expr_t(T(*f)(typename E1::value_type, typename E2::value_type),
                      const E1& e1, const E2& e2) : f(f), e1(e1), e2(e2), size(e1.size | e2.size),
                                                    w(e1.w | e2.w), h(e1.h | e2.h), d(e1.d | e2.d) {
     }
@@ -144,6 +144,30 @@ public:
     template <typename E3>
     bool similar(const E3& o) const {
         return e1.similar(o) && e2.similar(o);
+    }
+};
+
+template <typename T, typename E1, typename E2, typename E3>
+class func3_img_expr_t : public img_expr_t<T> {
+public:
+    T(*f)(typename E1::value_type, typename E2::value_type, typename E3::value_type);
+    E1 e1;
+    E2 e2;
+    E3 e3;
+    int size, w, h, d;
+
+    func3_img_expr_t(T(*f)(typename E1::value_type, typename E2::value_type, typename E3::value_type),
+                     const E1& e1, const E2& e2, const E3& e3) : f(f), e1(e1), e2(e2), e3(e3), size((e1.size | e2.size) | e3.size),
+                                                   w((e1.w | e2.w) | e3.w), h((e1.h | e2.h) | e3.h), d((e1.d | e2.d) | e3.d) {
+    }
+
+    T operator[](int i) const {
+        return f(e1[i], e2[i], e3[i]);
+    }
+
+    template <typename E4>
+    bool similar(const E4& o) const {
+        return e1.similar(o) && e2.similar(o) && e3.similar(o);
     }
 };
 
@@ -204,6 +228,7 @@ name<decltype(to_expr(std::declval<E1>())), decltype(to_expr(std::declval<E2>())
 }; \
 
 DEFINE_EXPR_1(minus_img_expr_t, -)
+DEFINE_EXPR_1(plus_img_expr_t, +)
 DEFINE_EXPR_2(add_img_expr_t, +)
 DEFINE_EXPR_2(sub_img_expr_t, -)
 DEFINE_EXPR_2(div_img_expr_t, /)
@@ -226,26 +251,74 @@ DEFINE_EXPR_2(mul_img_expr_t, *)
             ([](auto e1, auto e2) { return call(e1, e2); }, to_expr(e1), to_expr(e2)); \
     } \
 
+#define DEFINE_FUNC_3(name, call) \
+    template <typename E1, typename E2, typename E3> \
+    auto name(const E1& e1, const E2& e2, const E3& e3) { \
+        return func3_img_expr_t<decltype(call(std::declval<typename decltype(to_expr(e1))::value_type>(), \
+                                              std::declval<typename decltype(to_expr(e2))::value_type>(), \
+                                              std::declval<typename decltype(to_expr(e3))::value_type>())), \
+                                decltype(to_expr(e1)), decltype(to_expr(e2)), decltype(to_expr(e3))> \
+            ([](auto e1, auto e2, auto e3) { return call(e1, e2, e3); }, to_expr(e1), to_expr(e2), to_expr(e3)); \
+    } \
+
 #include "better_than_std.hpp"
 #include "vec2.hpp"
 
 namespace std {
+    template <typename E1, typename E2, typename E3>
+    auto ternary(const E1& e1, const E2& e2, const E3& e3) {
+        return (e1 ? e2 : e3);
+    }
+}
+
+namespace img {
+    // Validation
+    DEFINE_FUNC_1(isnormal, std::isnormal)
+    DEFINE_FUNC_1(isnan, std::isnan)
+    DEFINE_FUNC_1(isinf, std::isinf)
+    // Complex numbers
     DEFINE_FUNC_1(conj, std::conj)
     DEFINE_FUNC_1(real, std::real)
-    DEFINE_FUNC_1(hypot, std::hypot)
-    DEFINE_FUNC_1(log, std::log)
+    DEFINE_FUNC_1(imag, std::imag)
     DEFINE_FUNC_1(abs, std::abs)
     DEFINE_FUNC_1(arg, std::arg)
+    // Logs, exponents and powers
+    DEFINE_FUNC_1(log, std::log)
+    DEFINE_FUNC_1(log1p, std::log1p)
     DEFINE_FUNC_1(exp, std::exp)
+    DEFINE_FUNC_1(expm1, std::expm1)
+    DEFINE_FUNC_2(pow, std::pow)
+    // Rounding, comparison etc.
+    DEFINE_FUNC_1(ceil, std::ceil)
     DEFINE_FUNC_1(floor, std::floor)
     DEFINE_FUNC_1(round, std::round)
-
+    DEFINE_FUNC_1(sgn, std::sgn)
     DEFINE_FUNC_2(max, std::max_noref)
     DEFINE_FUNC_2(min, std::min_noref)
+    DEFINE_FUNC_2(fmod, std::fmod)
+    // Trig and hyperbolic trig
+    DEFINE_FUNC_1(sin, std::sin)
+    DEFINE_FUNC_1(cos, std::cos)
+    DEFINE_FUNC_1(tan, std::tan)
+    DEFINE_FUNC_1(asin, std::asin)
+    DEFINE_FUNC_1(acos, std::acos)
+    DEFINE_FUNC_1(atan, std::atan)
+    DEFINE_FUNC_1(sinh, std::sinh)
+    DEFINE_FUNC_1(cosh, std::cosh)
+    DEFINE_FUNC_1(tanh, std::tanh)
+    DEFINE_FUNC_1(asinh, std::asinh)
+    DEFINE_FUNC_1(acosh, std::acosh)
+    DEFINE_FUNC_1(atanh, std::atanh)
+    // Norms
+    DEFINE_FUNC_1(hypot, std::hypot)
     DEFINE_FUNC_2(hypot, std::hypot)
-    DEFINE_FUNC_2(pow, std::pow)
-
-    DEFINE_FUNC_1(sign, std::sgn)
+    // Fast Multiply & Add
+    DEFINE_FUNC_3(fma, std::fma) // Note: std::fma() doesn't work with complex arguments, so
+                                 // this mapping doesn't work with img_t<std::complex<T>>
+    DEFINE_FUNC_3(ternary, std::ternary)
+                                 // Note: img::ternary isn't as useful yet as it would be if I
+                                 // could get boolean operators to work as elementwise image
+                                 // operators using DEFINE_EXPR_2 or similar
 }
 
 template <typename T, typename E>
