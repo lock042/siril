@@ -300,6 +300,7 @@ gpointer do_starnet(gpointer p) {
 	int retval = 0;
 	fits workingfit, fit;
 	starnet_data *args = (starnet_data *) p;
+	args->follow_on = single_image_is_loaded() ? args->follow_on : FALSE;
 	the_fit = args->starnet_fit;
 	int orig_x = the_fit->rx, orig_y = the_fit->ry;
 	struct timeval t_start, t_end;

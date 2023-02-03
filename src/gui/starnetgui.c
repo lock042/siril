@@ -34,6 +34,7 @@
 #include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "gui/message_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/remixer.h"
 #include "gui/siril_preview.h"
@@ -144,12 +145,16 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	starnet_args->follow_on = sgui_follow_on;
 	if (gtk_toggle_button_get_active(toggle_starnet_sequence) == FALSE) {
 		start_in_new_thread(do_starnet, starnet_args);
-	} else {
+		siril_close_dialog("starnet_dialog");
+	} else if (sequence_is_loaded()) {
 		starnet_args->seq = &com.seq;
 		starnet_args->seqname = g_strdup_printf("starless_%s", starnet_args->seq->seqname);
 		apply_starnet_to_sequence(starnet_args);
+		siril_close_dialog("starnet_dialog");
+	} else {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"), _("Starnet++ is unable to apply to sequence as none is loaded"));
+		set_cursor_waiting(FALSE);
 	}
-	siril_close_dialog("starnet_dialog");
 }
 #endif
 

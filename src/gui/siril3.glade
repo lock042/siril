@@ -2255,7 +2255,8 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If selected, on completion of the star removal process the star recomposition tool will open, providing an interface for independently stretching and blending the background and the stars if star reduction, rather than total removal, is desired.</property>
+                <property name="tooltip-text" translatable="yes">If selected, on completion of the star removal process the star recomposition tool will open, providing an interface for independently stretching and blending the background and the stars if star reduction, rather than total removal, is desired.
+This option has no effect if processing a sequence.</property>
                 <property name="halign">start</property>
                 <property name="valign">start</property>
                 <property name="hexpand">True</property>
@@ -2291,6 +2292,7 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Apply Starnet++ to all images in the current sequence. Starless and, if selected, star mask, sequences will be generated.</property>
                 <property name="halign">start</property>
                 <property name="draw-indicator">True</property>
               </object>
