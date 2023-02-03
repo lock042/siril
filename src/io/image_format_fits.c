@@ -149,7 +149,7 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 			}
 		}
 	}    /* end of loop over planes */
-	free(pix);
+	g_free(pix);
 
 	if (status) {
 		report_fits_error(status); /* print any error message */
@@ -770,7 +770,7 @@ static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int
 	int nkeys, status = 0;
 	fits_get_hdrspace(fptr, &nkeys, NULL, &status);
 	if (status || nkeys < 0) {
-		free(*header);
+		g_free(*header);
 		return 1;
 	}
 	for (int i = 1; i <= nkeys; i++) {
@@ -785,7 +785,7 @@ static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int
 			newstr = realloc(*header, *strsize);
 			if (!newstr) {
 				PRINT_ALLOC_ERR;
-				free(*header);
+				g_free(*header);
 				return 1;
 			}
 			*header = newstr;
@@ -800,7 +800,7 @@ static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int
 		char *newstr = realloc(*header, *strsize);
 		if (!newstr) {
 			PRINT_ALLOC_ERR;
-			free(*header);
+			g_free(*header);
 			return 1;
 		}
 		*header = newstr;
@@ -852,7 +852,7 @@ char *copy_header(fits *fit) {
 	}
 
 	if (header[0] == '\0') {
-		free(header);
+		g_free(header);
 		header = NULL;
 	}
 	if (!header)
@@ -862,7 +862,7 @@ char *copy_header(fits *fit) {
 	 * indeed some header are not */
 	if (!g_utf8_validate(header, -1, NULL)) {
 		gchar *str = g_utf8_make_valid(header, -1);
-		free(header);
+		g_free(header);
 		header = strdup(str);
 		g_free(str);
 	}
@@ -1148,7 +1148,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		fits_read_img(fit->fptr, datatype, 1, nbdata, &zero, data8, &zero, &status);
 		if (status) break;
 		convert_data_ushort(fit->bitpix, data8, fit->data, nbdata, FALSE);
-		free(data8);
+		g_free(data8);
 		break;
 	case SHORT_IMG:
 		fits_read_img(fit->fptr, TSHORT, 1, nbdata, &zero, fit->data, &zero, &status);
@@ -1182,7 +1182,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		fits_read_img(fit->fptr, datatype, 1, nbdata, &zero, pixels_long, &zero, &status);
 		if (status) break;
 		convert_data_float(fit->bitpix, pixels_long, fit->fdata, nbdata);
-		free(pixels_long);
+		g_free(pixels_long);
 		fit->bitpix = FLOAT_IMG;
 		break;
 	case FLOAT_IMG:		// 32-bit floating point pixels
@@ -1242,7 +1242,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 					&zero, &status);
 			if (status) break;
 			convert_data_ushort(bitpix, data8, dest, nbdata, FALSE);
-			free(data8);
+			g_free(data8);
 			break;
 		case SHORT_IMG:
 			fits_read_subset(fptr, TSHORT, fpixel, lpixel, inc, &zero, dest,
@@ -1265,7 +1265,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 					pixels_long, &zero, &status);
 			if (status) break;
 			convert_data_float(bitpix, pixels_long, dest, nbdata);
-			free(pixels_long);
+			g_free(pixels_long);
 			break;
 		case DOUBLE_IMG:	// 64-bit floating point pixels
 		case FLOAT_IMG:		// 32-bit floating point pixels
@@ -1748,14 +1748,14 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	if (stat_file(filename, &imagetype, &name)) {
 		siril_log_message(_("%s.[any_allowed_extension] not found.\n"),
 				filename);
-		free(name);
+		g_free(name);
 		return 1;
 	}
 	if (imagetype != TYPEFITS) {
 		siril_log_message(
 				_("The file %s is not a FITS file or doesn't exists with FITS extensions.\n"),
 						filename);
-		free(name);
+		g_free(name);
 		return 1;
 	}
 
@@ -1766,10 +1766,10 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	siril_fits_open_diskfile_img(&(fit->fptr), name, READONLY, &status);
 	if (status) {
 		report_fits_error(status);
-		free(name);
+		g_free(name);
 		return status;
 	}
-	free(name);
+	g_free(name);
 
 	status = read_fits_metadata(fit);
 	if (status)
@@ -1813,11 +1813,11 @@ void clearfits(fits *fit) {
 	if (fit == NULL)
 		return;
 	if (fit->data)
-		free(fit->data);
+		g_free(fit->data);
 	if (fit->fdata)
-		free(fit->fdata);
+		g_free(fit->fdata);
 	if (fit->header)
-		free(fit->header);
+		g_free(fit->header);
 	if (fit->history)
 		g_slist_free_full(fit->history, g_free);
 	if (fit->date_obs)
@@ -1827,7 +1827,7 @@ void clearfits(fits *fit) {
 	if (fit->stats) {
 		for (int i = 0; i < fit->naxes[2]; i++)
 			free_stats(fit->stats[i]);
-		free(fit->stats);
+		g_free(fit->stats);
 	}
 	free_wcs(fit, FALSE);
 	memset(fit, 0, sizeof(fits));
@@ -1897,7 +1897,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 			status = 0;
 			fits_close_file(fit->fptr, &status);
 			if (olddata)
-				free(olddata);
+				g_free(olddata);
 			return -1;
 		}
 		fit->pdata[RLAYER] = fit->data;
@@ -1932,7 +1932,7 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 			status = 0;
 			fits_close_file(fit->fptr, &status);
 			if (olddata)
-				free(olddata);
+				g_free(olddata);
 			return -1;
 		}
 		fit->fpdata[RLAYER] = fit->fdata;
@@ -2045,7 +2045,7 @@ void flip_buffer(int bitpix, void *buffer, const rectangle *area) {
 			memcpy(buf + i*area->w, buf + (area->h - i - 1)*area->w, line_size);
 			memcpy(buf + (area->h - i - 1)*area->w, swap, line_size);
 		}
-		free(swap);
+		g_free(swap);
 	} else {
 		int line_size = area->w * sizeof(WORD);
 		void *swap = malloc(line_size);
@@ -2056,7 +2056,7 @@ void flip_buffer(int bitpix, void *buffer, const rectangle *area) {
 			memcpy(buf + i*area->w, buf + (area->h - i - 1)*area->w, line_size);
 			memcpy(buf + (area->h - i - 1)*area->w, swap, line_size);
 		}
-		free(swap);
+		g_free(swap);
 	}
 }
 
@@ -2282,12 +2282,12 @@ int save_opened_fits(fits *f) {
 		}
 		if (fits_write_pix(f->fptr, TBYTE, orig, pixel_count, data8, &status)) {
 			report_fits_error(status);
-			free(data8);
+			g_free(data8);
 			return 1;
 		}
 		f->lo >>= 8;
 		f->hi >>= 8;
-		free(data8);
+		g_free(data8);
 		break;
 	case SHORT_IMG:
 		if (f->type == DATA_FLOAT) {
@@ -2300,20 +2300,20 @@ int save_opened_fits(fits *f) {
 		}
 		if (fits_write_pix(f->fptr, TSHORT, orig, pixel_count, data, &status)) {
 			report_fits_error(status);
-			free(data);
+			g_free(data);
 			return 1;
 		}
-		free(data);
+		g_free(data);
 		break;
 	case USHORT_IMG:
 		if (f->type == DATA_FLOAT) {
 			WORD *data = float_buffer_to_ushort(f->fdata, f->naxes[0] * f->naxes[1] * f->naxes[2]);
 			if (fits_write_pix(f->fptr, TUSHORT, orig, pixel_count, data, &status)) {
 				report_fits_error(status);
-				free(data);
+				g_free(data);
 				return 1;
 			}
-			free(data);
+			g_free(data);
 		} else {
 			if (f->orig_bitpix == BYTE_IMG) {
 				conv_8_to_16(f->data, pixel_count);
@@ -2351,7 +2351,7 @@ int save_opened_fits(fits *f) {
 	if (!status) {
 		// copy the entire header in memory
 		if (f->header)
-			free(f->header);
+			g_free(f->header);
 		f->header = copy_header(f);
 	}
 
@@ -2421,7 +2421,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 			if (!(to->data = realloc(to->data, nbdata * depth * sizeof(WORD)))) {
 				PRINT_ALLOC_ERR;
 				if (olddata)
-					free(olddata);
+					g_free(olddata);
 				return -1;
 			}
 			to->type = DATA_USHORT;
@@ -2444,7 +2444,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 			if (!(to->fdata = realloc(to->fdata, nbdata * depth * sizeof(float)))) {
 				PRINT_ALLOC_ERR;
 				if (olddata)
-					free(olddata);
+					g_free(olddata);
 				return -1;
 			}
 			to->type = DATA_FLOAT;
@@ -2758,7 +2758,7 @@ static void fits_flip_top_to_bottom_ushort(fits *fit) {
 			memcpy(dst, swapline, line_size);
 		}
 	}
-	free(swapline);
+	g_free(swapline);
 }
 
 static void fits_flip_top_to_bottom_float(fits *fit) {
@@ -2778,7 +2778,7 @@ static void fits_flip_top_to_bottom_float(fits *fit) {
 			memcpy(dst, swapline, line_size);
 		}
 	}
-	free(swapline);
+	g_free(swapline);
 }
 
 void fits_flip_top_to_bottom(fits *fit) {
@@ -2888,7 +2888,7 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 		if (!*fit) {
 			PRINT_ALLOC_ERR;
 			if (data_is_local)
-				free(data);
+				g_free(data);
 			return -1;
 		}
 	}
@@ -2950,7 +2950,7 @@ void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 			fit->pdata[BLAYER] = fit->data;
 		}
 		if (fit->fdata) {
-			free(fit->fdata);
+			g_free(fit->fdata);
 			fit->fdata = NULL;
 		}
 		fit->fpdata[0] = NULL;
@@ -2970,7 +2970,7 @@ void fit_replace_buffer(fits *fit, void *newbuf, data_type newtype) {
 			fit->fpdata[BLAYER] = fit->fdata;
 		}
 		if (fit->data) {
-			free(fit->data);
+			g_free(fit->data);
 			fit->data = NULL;
 		}
 		fit->pdata[0] = NULL;
@@ -2991,7 +2991,7 @@ void fit_debayer_buffer(fits *fit, void *newbuf) {
 	fit->naxes[2] = 3;
 	if (fit->type == DATA_USHORT) {
 		if (fit->data)
-			free(fit->data);
+			g_free(fit->data);
 		fit->data = (WORD *)newbuf;
 		fit->pdata[RLAYER] = fit->data;
 		fit->pdata[GLAYER] = fit->data + nbdata;
@@ -2999,7 +2999,7 @@ void fit_debayer_buffer(fits *fit, void *newbuf) {
 	}
 	else if (fit->type == DATA_FLOAT) {
 		if (fit->fdata)
-			free(fit->fdata);
+			g_free(fit->fdata);
 		fit->fdata = (float *)newbuf;
 		fit->fpdata[RLAYER] = fit->fdata;
 		fit->fpdata[GLAYER] = fit->fdata + nbdata;
@@ -3014,8 +3014,8 @@ static void gray2rgb(float gray, guchar *rgb) {
 }
 
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
-	free(pixels);
-	free(data);
+	g_free(pixels);
+	g_free(data);
 	return FALSE;
 }
 
@@ -3028,7 +3028,7 @@ static double logviz(double arg) {
 		status = FALSE; \
 		f(__VA_ARGS__, &status); \
 		if(status){ \
-			free(ima_data); \
+			g_free(ima_data); \
 			fits_close_file(fp, &status); \
 			return NULL; \
 		} \
@@ -3177,7 +3177,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 		}
 	}
 	fits_close_file(fp, &status);
-	free(ima_data);
+	g_free(ima_data);
 	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(pixbuf_data,	// guchar* data
 			GDK_COLORSPACE_RGB,	// only this supported
 			FALSE,				// no alpha
@@ -3335,5 +3335,5 @@ void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
 	array[i] = NULL;
 
 	merge_fits_headers_to_result2(result, array);
-	free(array);
+	g_free(array);
 }

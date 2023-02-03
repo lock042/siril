@@ -545,7 +545,8 @@ gpointer do_starnet(gpointer p) {
 
 	// Increase bit depth of starless image to 32 bit to improve precision
 	// for subsequent processing. Only if !force_16bit otherwise there is an error on subtraction
-	if (!com.pref.force_16bit) {
+	gboolean force_16bit = com.pref.force_16bit || (sequence_is_loaded() && args->seq && (args->seq->type == SEQ_SER || args->force_ser));
+	if (!force_16bit) {
 		const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 		fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);
 	}
@@ -591,7 +592,7 @@ gpointer do_starnet(gpointer p) {
 
 	if (args->starmask) {
 		// Subtract starless stretched from original stretched
-		retval = imoper(&fit, &workingfit, OPER_SUB, !com.pref.force_16bit);
+		retval = imoper(&fit, &workingfit, OPER_SUB, !force_16bit);
 		if (retval) {
 			siril_log_color_message(_("Error: image subtraction failed...\n"), "red");
 			goto CLEANUP;
@@ -713,11 +714,6 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 		if (seqdata->starmask)
 			retval2 = ser_write_frame_from_fit(seqdata->new_ser_starmask, seqdata->starmask_fit, out_index);
 		// the two fits are freed by the writing thread
-		if (!retval1 && !retval2) {
-			/* special case because it's not done in the generic */
-			clearfits(fit);
-			g_free(fit);
-		}
 	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
 		retval1 = fitseq_write_image(seqdata->new_fitseq_starless, seqdata->starnet_fit, out_index);
 		if (seqdata->starmask)
@@ -727,6 +723,7 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 			/* special case because it's not done in the generic */
 			clearfits(fit);
 			g_free(fit);
+			fit = NULL;
 		}
 	} else {
 		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, "starless_", in_index);
@@ -746,6 +743,7 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 			}
 			g_free(dest);
 			clearfits(seqdata->starmask_fit);
+			seqdata->starmask_fit = NULL;
 		}
 	}
 	return retval1 || retval2;
@@ -754,7 +752,7 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 0;
 	starnet_data *seqdata = (starnet_data *) args->user;
-
+	seqdata->force_ser = args->force_ser_output;
 	seqdata->starnet_fit = fit;
 	seqdata->starmask_fit = calloc(1, sizeof(fits));
 	seqdata->imgnumber = o;

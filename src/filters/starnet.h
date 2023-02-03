@@ -23,7 +23,7 @@ typedef struct starnet_data {
 	fitseq *new_fitseq_starless;
 	struct ser_struct *new_ser_starmask;
 	fitseq *new_fitseq_starmask;
-	GList *processed_images;
+	gboolean force_ser;
 	sequence *seq;
 	fits *starnet_fit;
 	fits *starmask_fit;
