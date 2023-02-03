@@ -927,7 +927,6 @@ static int stat_compute_mem_limit(struct generic_seq_args *args, gboolean for_wr
 
 void apply_stats_to_sequence(struct stat_data *stat_args) {
 	struct generic_seq_args *args = create_default_seqargs(stat_args->seq);
-	args->seq = stat_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = stat_args->seq->selnum;
 	args->compute_mem_limits_hook = stat_compute_mem_limit;
@@ -936,7 +935,6 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 	args->image_hook = stat_image_hook;
 	args->description = _("Statistics");
 	args->has_output = FALSE;
-	args->output_type = get_data_type(args->seq->bitpix);
 	args->new_seq_prefix = NULL;
 	args->user = stat_args;
 

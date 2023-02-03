@@ -130,12 +130,14 @@ static int star_cmp_by_mag_est(const void *a, const void *b) {
 	return 0;
 }
 
-/*
- This is an implementation of a simple peak detector algorithm which
- identifies any pixel that is greater than any of its eight neighbors.
-
- Original algorithm come from:
- Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
+/* peaker is the function that searches for stars in an image.
+ * It is based on two old implementations that have been refined here over time:
+ * 1. Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
+ * 2. DAOFIND by Peter Stetson, 1987.
+ * This is a peak detector on a smoother image (now using Gaussian blur) which
+ * identifies any pixel greater than its eight neighbors. The candidates are
+ * then checked for consistency before being fitted to Gaussian or Moffat star
+ * profiles (PSF).
  */
 
 static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads);

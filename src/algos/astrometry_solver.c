@@ -415,11 +415,13 @@ static gchar *fetch_url(const gchar *url) {
 }
 #endif
 
-gchar *search_in_online_conesearch(struct astrometry_data *args) {
+gpointer search_in_online_conesearch(gpointer p) {
+	struct astrometry_data *args = (struct astrometry_data *) p;
 	if (!args->fit->date_obs)
 		return NULL;
 	double ra, dec;
 	center2wcs(args->fit, &ra, &dec);
+	int retval = 0;
 
 	// https://vo.imcce.fr/webservices/skybot/?conesearch
 	GString *string_url = g_string_new(SKYBOT);
@@ -449,7 +451,18 @@ gchar *search_in_online_conesearch(struct astrometry_data *args) {
 	g_free(url);
 	g_free(formatted_date);
 
-	return result;
+	if (result) {
+		retval = parse_buffer(result, args->limit_mag);
+	}
+	g_free(result);
+	if (!retval) {
+		siril_add_idle(end_process_sso, NULL);
+	} else {
+		siril_add_idle(end_generic, NULL);
+		free(args);
+	}
+
+	return GINT_TO_POINTER(retval);
 }
 
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {
@@ -1350,7 +1363,7 @@ gpointer plate_solver(gpointer p) {
 		}
 	}
 
-	/* 1. Get catalogue stars for the field of view */
+	/* 1. Get catalogue stars for the field of view (for sequences, see the prepare hook) */
 	if (!args->for_sequence && get_catalog_stars(args)) {
 		goto clearup;
 	}
@@ -1367,14 +1380,16 @@ gpointer plate_solver(gpointer p) {
 		gchar *header_backup = NULL;
 		if (args->downsample) {
 			int retval;
-			siril_log_message(_("Down-sampling image for faster star detection by a factor %.2f\n"), DOWNSAMPLE_FACTOR);
+			siril_log_message(_("Down-sampling image for faster star detection by a factor %.2f\n"),
+					DOWNSAMPLE_FACTOR);
 			retval = extract_fits(args->fit, &fit_backup, detection_layer, FALSE);
 			if (!retval) {
 				copy_fits_metadata(args->fit, &fit_backup);
 				header_backup = g_strdup(args->fit->header);
 				args->rx_solver = round_to_int(DOWNSAMPLE_FACTOR * args->fit->rx);
 				args->ry_solver = round_to_int(DOWNSAMPLE_FACTOR * args->fit->ry);
-				retval = cvResizeGaussian(args->fit, args->rx_solver, args->ry_solver, OPENCV_AREA, FALSE);
+				retval = cvResizeGaussian(args->fit, args->rx_solver, args->ry_solver,
+						OPENCV_AREA, FALSE);
 			}
 			if (retval) {
 				clearfits(&fit_backup);

@@ -27,6 +27,7 @@ typedef struct {
 	guint minor_version;
 	guint micro_version;
 	guint patched_version;
+	gboolean beta_version;
 	gboolean rc_version;
 } version_number;
 

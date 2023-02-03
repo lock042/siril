@@ -22,6 +22,7 @@
 #include <gtk/gtk.h>
 #include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
+#include "algos/annotate.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
@@ -280,6 +281,19 @@ static void update_image_parameters_GUI() {
 	update_focal();
 	update_pixel_size();
 	update_coords();
+}
+
+gboolean end_process_sso(gpointer p) {
+	struct astrometry_data *args = (struct astrometry_data *) p;
+	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+	force_to_refresh_catalogue_list();
+	if (!gtk_toggle_tool_button_get_active(button)) {
+		gtk_toggle_tool_button_set_active(button, TRUE);
+	} else {
+		redraw(REDRAW_OVERLAY);
+	}
+	free(args);
+	return end_generic(NULL);
 }
 
 gboolean end_plate_solver(gpointer p) {

@@ -8379,17 +8379,6 @@ int process_nomad(int nb) {
 	return CMD_OK;
 }
 
-static gboolean end_process_sso(gpointer p) {
-	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	force_to_refresh_catalogue_list();
-	if (!gtk_toggle_tool_button_get_active(button)) {
-		gtk_toggle_tool_button_set_active(button, TRUE);
-	} else {
-		redraw(REDRAW_OVERLAY);
-	}
-	return end_generic(NULL);
-}
-
 int process_sso() {
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -8403,7 +8392,6 @@ int process_sso() {
 
 	purge_temp_user_catalogue();
 	force_to_refresh_catalogue_list();
-	redraw(REDRAW_OVERLAY);
 
 	double lim_mag = 20.0;
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
@@ -8424,12 +8412,9 @@ int process_sso() {
 	args->focal_length = gfit.focal_length;
 	args->pixel_size = gfit.pixel_size_x;
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
-	gchar *result = search_in_online_conesearch(args);
 
-	if (result && !parse_buffer(result, args->limit_mag)) {
-		siril_add_idle(end_process_sso, NULL);
-	}
-	free(args);
+	start_in_new_thread(search_in_online_conesearch, args);
+
 	return CMD_OK;
 }
 

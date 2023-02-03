@@ -103,38 +103,48 @@ SirilWorldCS* siril_world_cs_new_from_ra_dec(gdouble ra_h, gdouble ra_m, gdouble
 	return world_cs;
 }
 
+/* parse RA 'hours minutes seconds' or 'hours:minutes:seconds' to degrees */
+double parse_ra_hms(const char *objctra) {
+	double ra = NAN;
+	int ra_h, ra_m;
+	gdouble ra_s;
+	if (sscanf(objctra, "%d %d %lf", &ra_h, &ra_m, &ra_s) == 3 ||
+			sscanf(objctra, "%d:%d:%lf", &ra_h, &ra_m, &ra_s) == 3)
+		ra = ra_h * 15.0 + ra_m * 15.0 / 60.0 + ra_s * 15.0 / 3600.0;
+	return ra;
+}
+
+/* parse Dec 'degrees minutes seconds' or 'degrees:minutes:seconds' to degrees */
+double parse_dec_dms(const char *objctdec) {
+	double dec = NAN;
+	int dec_deg, dec_m;
+	gdouble dec_s;
+	gboolean south = objctdec[0] == '-';
+	if (sscanf(objctdec, "%d %d %lf", &dec_deg, &dec_m, &dec_s) == 3 ||
+			sscanf(objctdec, "%d:%d:%lf", &dec_deg, &dec_m, &dec_s) == 3) {
+		if ((dec_deg == 0 && !south) || dec_deg > 0)
+			dec = ((dec_s / 3600.0) + (dec_m / 60.0) + dec_deg);
+		else dec = (-(dec_s / 3600.0) - (dec_m / 60.0) + dec_deg);
+	}
+	return dec;
+}
+
 /* parses RA and DEC as strings to create a new world_cs object
  * Format of the strings can be decimal values in degrees or
- * 'hours minutes seconds' for RA and 'degrees minutes seconds' for DEC or 
+ * 'hours minutes seconds' for RA and 'degrees minutes seconds' for DEC or
  * 'hours:minutes:seconds' for RA and 'degrees:minutes:seconds' for DEC
  */
 SirilWorldCS* siril_world_cs_new_from_objct_ra_dec(gchar *objctra, gchar *objctdec) {
-	int ra_h, ra_m, dec_deg, dec_m;
-	gdouble ra_s, dec_s;
-	gboolean south;
-
 	if (!objctra || objctra[0] == '\0' || !objctdec || objctdec[0] == '\0')
 		return NULL;
 	gchar *end;
 	double ra = g_ascii_strtod(objctra, &end);
-	if (end - objctra != strlen(objctra)) {
-		ra = NAN;
-		if (sscanf(objctra, "%d %d %lf", &ra_h, &ra_m, &ra_s) == 3 ||
-				sscanf(objctra, "%d:%d:%lf", &ra_h, &ra_m, &ra_s) == 3)
-			ra = ra_h * 15.0 + ra_m * 15.0 / 60.0 + ra_s * 15.0 / 3600.0;
-	}
+	if (end - objctra != strlen(objctra))
+		ra = parse_ra_hms(objctra);
 
-	south = objctdec[0] == '-';
 	double dec = g_ascii_strtod(objctdec, &end);
-	if (end - objctdec != strlen(objctdec)) {
-		dec = NAN;
-		if (sscanf(objctdec, "%d %d %lf", &dec_deg, &dec_m, &dec_s) == 3 ||
-				sscanf(objctdec, "%d:%d:%lf", &dec_deg, &dec_m, &dec_s) == 3) {
-			if ((dec_deg == 0 && !south) || dec_deg > 0)
-				dec = ((dec_s / 3600.0) + (dec_m / 60.0) + dec_deg);
-			else dec = (-(dec_s / 3600.0) - (dec_m / 60.0) + dec_deg);
-		}
-	}
+	if (end - objctdec != strlen(objctdec))
+		dec = parse_dec_dms(objctdec);
 
 	if (isnan(ra) || isnan(dec) || (ra == 0.0 && dec == 0.0))
 		return NULL;
@@ -196,9 +206,9 @@ gchar* siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) 
 
 	gdouble dec = world_cs->delta;
 
-    int degree, min, sign;
-    double sec;
-    dec2dms(dec, &sign, &degree, &min, &sec);
+	int degree, min, sign;
+	double sec;
+	dec2dms(dec, &sign, &degree, &min, &sec);
 
 	gchar *ptr = g_strrstr(format, "lf");
 	if (ptr) { // floating point for second
@@ -224,9 +234,9 @@ gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) 
 
 	gdouble ra = world_cs->alpha;
 
-    int hour, min;
-    double sec;
-    ra2hms(ra, &hour, &min, &sec);
+	int hour, min;
+	double sec;
+	ra2hms(ra, &hour, &min, &sec);
 
 	gchar *ptr = g_strrstr(format, "lf");
 	if (ptr) { // floating point for second
