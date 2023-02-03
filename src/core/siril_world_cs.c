@@ -206,9 +206,9 @@ gchar* siril_world_cs_delta_format(SirilWorldCS *world_cs, const gchar *format) 
 
 	gdouble dec = world_cs->delta;
 
-    int degree, min, sign;
-    double sec;
-    dec2dms(dec, &sign, &degree, &min, &sec);
+	int degree, min, sign;
+	double sec;
+	dec2dms(dec, &sign, &degree, &min, &sec);
 
 	gchar *ptr = g_strrstr(format, "lf");
 	if (ptr) { // floating point for second
@@ -234,9 +234,9 @@ gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format) 
 
 	gdouble ra = world_cs->alpha;
 
-    int hour, min;
-    double sec;
-    ra2hms(ra, &hour, &min, &sec);
+	int hour, min;
+	double sec;
+	ra2hms(ra, &hour, &min, &sec);
 
 	gchar *ptr = g_strrstr(format, "lf");
 	if (ptr) { // floating point for second

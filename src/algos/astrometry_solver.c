@@ -1363,7 +1363,7 @@ gpointer plate_solver(gpointer p) {
 		}
 	}
 
-	/* 1. Get catalogue stars for the field of view */
+	/* 1. Get catalogue stars for the field of view (for sequences, see the prepare hook) */
 	if (!args->for_sequence && get_catalog_stars(args)) {
 		goto clearup;
 	}
@@ -1380,14 +1380,16 @@ gpointer plate_solver(gpointer p) {
 		gchar *header_backup = NULL;
 		if (args->downsample) {
 			int retval;
-			siril_log_message(_("Down-sampling image for faster star detection by a factor %.2f\n"), DOWNSAMPLE_FACTOR);
+			siril_log_message(_("Down-sampling image for faster star detection by a factor %.2f\n"),
+					DOWNSAMPLE_FACTOR);
 			retval = extract_fits(args->fit, &fit_backup, detection_layer, FALSE);
 			if (!retval) {
 				copy_fits_metadata(args->fit, &fit_backup);
 				header_backup = g_strdup(args->fit->header);
 				args->rx_solver = round_to_int(DOWNSAMPLE_FACTOR * args->fit->rx);
 				args->ry_solver = round_to_int(DOWNSAMPLE_FACTOR * args->fit->ry);
-				retval = cvResizeGaussian(args->fit, args->rx_solver, args->ry_solver, OPENCV_AREA, FALSE);
+				retval = cvResizeGaussian(args->fit, args->rx_solver, args->ry_solver,
+						OPENCV_AREA, FALSE);
 			}
 			if (retval) {
 				clearfits(&fit_backup);
