@@ -587,9 +587,9 @@ gpointer do_starnet(gpointer p) {
 			siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
 			goto CLEANUP;
 		}
+		if (verbose)
+			siril_log_color_message(_("Starnet++: starless image generated\n"), "green");
 	}
-	if (verbose)
-		siril_log_color_message(_("Starnet++: starless image generated\n"), "green");
 
 	if (args->starmask) {
 		// Subtract starless stretched from original stretched
@@ -642,7 +642,7 @@ gpointer do_starnet(gpointer p) {
 
 	if (single_image_is_loaded()) {
 		free(com.uniq->filename);
-		com.uniq->filename = strdup(_(starlessfit));
+		com.uniq->filename = strdup(starlessfit);
 		if (args->follow_on) {
 			struct remixargs *blendargs;
 			blendargs = calloc(1, sizeof(struct remixargs));
@@ -791,7 +791,8 @@ static int starnet_prepare_hook(struct generic_seq_args *args) {
 	starnet_args->new_ser_starmask = args->new_ser;
 	starnet_args->new_fitseq_starmask = args->new_fitseq;
 
-	args->new_seq_prefix = NULL;
+	args->new_seq_prefix = "starless_"; // Set the prefix for the sequence we want
+										// loaded afterwards
 	args->new_ser = NULL;
 	args->new_fitseq = NULL;
 
