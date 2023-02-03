@@ -415,11 +415,13 @@ static gchar *fetch_url(const gchar *url) {
 }
 #endif
 
-gchar *search_in_online_conesearch(struct astrometry_data *args) {
+gpointer search_in_online_conesearch(gpointer p) {
+	struct astrometry_data *args = (struct astrometry_data *) p;
 	if (!args->fit->date_obs)
 		return NULL;
 	double ra, dec;
 	center2wcs(args->fit, &ra, &dec);
+	int retval = 0;
 
 	// https://vo.imcce.fr/webservices/skybot/?conesearch
 	GString *string_url = g_string_new(SKYBOT);
@@ -449,7 +451,18 @@ gchar *search_in_online_conesearch(struct astrometry_data *args) {
 	g_free(url);
 	g_free(formatted_date);
 
-	return result;
+	if (result) {
+		retval = parse_buffer(result, args->limit_mag);
+	}
+	g_free(result);
+	if (!retval) {
+		siril_add_idle(end_process_sso, NULL);
+	} else {
+		siril_add_idle(end_generic, NULL);
+		free(args);
+	}
+
+	return GINT_TO_POINTER(retval);
 }
 
 gchar *search_in_online_catalogs(const gchar *object, query_server server) {

@@ -132,7 +132,7 @@ double get_resolution(double focal, double pixel);
 double get_radius_deg(double resolution, int rx, int ry);
 void free_Platedobject();
 int parse_content_buffer(char *buffer, struct sky_object *obj);
-gchar *search_in_online_conesearch(struct astrometry_data *args);
+gpointer search_in_online_conesearch(gpointer p);
 gboolean has_nonzero_coords();
 gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);
@@ -141,6 +141,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int 
 double get_fov_arcmin(double resolution, int rx, int ry);
 
 /* from the GUI */
+gboolean end_process_sso(gpointer p);
 void update_coords();
 gboolean end_plate_solver(gpointer p);
 

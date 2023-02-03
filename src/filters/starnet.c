@@ -65,8 +65,7 @@
 
 // Check maximum path length - OSes except for Windows
 #ifndef _WIN32
-long get_pathmax(void)
-{
+long get_pathmax(void) {
 	long pathmax = -1;
 
 	errno = 0;
@@ -76,10 +75,11 @@ long get_pathmax(void)
 #define PATHMAX_INFINITE_GUESS 4096
 			pathmax = PATHMAX_INFINITE_GUESS;
 		} else {
-			fprintf (stderr, "pathconf() FAILED, %d, %s\n", errno, strerror(errno));
+			fprintf(stderr, "pathconf() FAILED, %d, %s\n", errno,
+					strerror(errno));
 		}
 	}
-  return pathmax;
+	return pathmax;
 }
 #endif
 
@@ -90,8 +90,7 @@ static int forkerrors = 0;
 #ifndef _WIN32
 static pid_t child_pid;
 
-static int exec_prog(const char **argv)
-{
+static int exec_prog(const char **argv) {
 	pid_t my_pid;
 	int status;
 	forkerrors = 0;
@@ -99,7 +98,7 @@ static int exec_prog(const char **argv)
 	int n;
 	char buf[0x100] = {0};
 
-	if (pipe (pipe_fds)) {
+	if (pipe(pipe_fds)) {
 		perror("pipe creation error");
 		forkerrors = 1;
 		return 0;
@@ -149,28 +148,85 @@ static int exec_prog(const char **argv)
 	return 0;
 }
 #else
- static int exec_prog_win32(const char **argv) {
+static gboolean
+utf8_charv_to_wcharv(const gchar *const*utf8_charv,
+		wchar_t ***wcharv, int *error_index, GError **error) {
+	wchar_t **retval = NULL;
+
+	*wcharv = NULL;
+	if (utf8_charv != NULL) {
+		int n = 0, i;
+
+		while (utf8_charv[n])
+			n++;
+		retval = g_new(wchar_t*, n + 1);
+
+		for (i = 0; i < n; i++) {
+			retval[i] = g_utf8_to_utf16(utf8_charv[i], -1, NULL, NULL, error);
+			if (retval[i] == NULL) {
+				if (error_index)
+					*error_index = i;
+				while (i)
+					g_free(retval[--i]);
+				g_free(retval);
+				return FALSE;
+			}
+		}
+
+		retval[n] = NULL;
+	}
+	*wcharv = retval;
+	return TRUE;
+}
+
+static int exec_prog_win32(const char **argv) {
 	forkerrors = 0;
 	int pipe_fds[2];
 	int n;
-	char buf[256] = {0};
+	char buf[256] = { 0 };
 	HANDLE hProcess;
 	int nExitCode = STILL_ACTIVE;
 	int fdStdOut;
 	gboolean has_started = FALSE;
+	wchar_t *wargv0, **wargv;
+	GError *conv_error = NULL;
+	GError *error = NULL;
+	gint conv_error_index;
 
 	if (_pipe(pipe_fds, 0x100, O_TEXT)) {
 		perror("pipe creation error");
 		forkerrors = 1;
 		return 0;
 	}
+
+	wargv0 = g_utf8_to_utf16 (argv[0], -1, NULL, NULL, &conv_error);
+	if (wargv0 == NULL) {
+		g_set_error (&error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED, _("Invalid program name: %s"), conv_error->message);
+		g_error_free (conv_error);
+		return 0;
+	}
+
+	if (!utf8_charv_to_wcharv(argv, &wargv, &conv_error_index, &conv_error)) {
+		g_set_error(&error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+				_("Invalid string in argument vector at %d: %s"),
+				conv_error_index, conv_error->message);
+		g_error_free(conv_error);
+		g_free(wargv0);
+
+		return 0;
+	}
+
 	//from https://docs.microsoft.com/fr-fr/cpp/c-runtime-library/reference/pipe?view=msvc-170
 	fdStdOut = _dup(_fileno(stdout));
 	if(_dup2(pipe_fds[1], _fileno(stdout)) != 0) return -1;
 	_close(pipe_fds[1]);
-	hProcess = (HANDLE)_spawnve(P_NOWAIT, argv[0], argv, NULL);
+	hProcess = (HANDLE)_wspawnve(P_NOWAIT, wargv0, (const wchar_t **) wargv, NULL);
 	if(_dup2(fdStdOut, _fileno(stdout)) != 0) return -1;
 	_close(fdStdOut);
+
+	g_free(wargv0);
+	g_strfreev((gchar**) wargv);
+
 	if (hProcess) {
 		com.child_is_running = TRUE;
 		com.childhandle = (void*) hProcess;
@@ -508,13 +564,13 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Remove working files, they are no longer required
-	retval = remove(starlesstif);
+	retval = g_remove(starlesstif);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to remove working file...\n"), "red");
 		// No goto here as even if it fails we want to try to remove the other TIFF
 	}
 
-	retval |= remove(temptif);
+	retval |= g_remove(temptif);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to remove working file...\n"), "red");
 		goto CLEANUP;
