@@ -719,7 +719,7 @@ public:
         int ww = o.w / 2;
         int hh = o.h / 2;
         for (int dd = 0; dd < d; dd++) {
-            int od;
+            int od = 0;
             if (d == o.d)
                 od = dd;
             else if (o.d == 1)

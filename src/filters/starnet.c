@@ -211,7 +211,7 @@ static int exec_prog_win32(const char **argv) {
 	}
 
 	if (!utf8_charv_to_wcharv(argv, &wargv, &conv_error_index, &conv_error)) {
-		g_set_error(error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+		g_set_error(&error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
 				_("Invalid string in argument vector at %d: %s"),
 				conv_error_index, conv_error->message);
 		g_error_free(conv_error);
