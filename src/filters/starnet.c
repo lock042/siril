@@ -331,7 +331,7 @@ gpointer do_starnet(gpointer p) {
 	gchar starmaskprefix[10] = "starmask_";
 	memset(starnetcommand, 0, sizeof(starnetcommand));
 	// Set up paths and filenames
-	if (single_image_is_loaded()) {
+	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 		imagenoextorig = g_strdup_printf("%s", g_path_get_basename(com.uniq->filename));
 	} else if (sequence_is_loaded()) {
 		imagenoextorig = g_strdup_printf("%s%.5d", args->seq->seqname, args->imgnumber + 1);
@@ -581,7 +581,7 @@ gpointer do_starnet(gpointer p) {
 
 	// Save workingfit as starless stretched image fits
 	update_filter_information(&workingfit, "Starless", TRUE);
-	if (single_image_is_loaded()) { // sequence worker will handle saving this in the sequence
+	if (single_image_is_loaded() && get_thread_run()) { // sequence worker will handle saving this in the sequence
 		retval = savefits(starlessfit, &workingfit);
 		if (retval) {
 			siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
@@ -601,17 +601,19 @@ gpointer do_starnet(gpointer p) {
 		update_filter_information(&fit, "StarMask", TRUE);
 
 		// Save fit as starmask fits
-		if (single_image_is_loaded()) {
-			retval = savefits(starmaskfit, &fit);
-			if (retval) {
-				siril_log_color_message(_("Error: unable to save starmask image as FITS...\n"), "red");
-				goto CLEANUP;
+		if (get_thread_run()) {
+			if (single_image_is_loaded()) {
+				retval = savefits(starmaskfit, &fit);
+				if (retval) {
+					siril_log_color_message(_("Error: unable to save starmask image as FITS...\n"), "red");
+					goto CLEANUP;
+				}
+			} else {
+				copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 			}
-		} else {
-			copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
+			if (verbose)
+				siril_log_color_message(_("Starnet++: star mask generated\n"), "green");
 		}
-		if (verbose)
-			siril_log_color_message(_("Starnet++: star mask generated\n"), "green");
 	}
 
 	// Remove working files, they are no longer required
@@ -708,7 +710,9 @@ static int starnet_finalize_hook(struct generic_seq_args *args) {
 
 static int starnet_save_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
 	starnet_data *seqdata = (starnet_data *) args->user;
-
+	if (!get_thread_run()) {
+		return 1;
+	}
 	int retval1, retval2 = 0;
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
 		retval1 = ser_write_frame_from_fit(seqdata->new_ser_starless, seqdata->starnet_fit, out_index);
