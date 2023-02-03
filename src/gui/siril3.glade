@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -5959,7 +5959,7 @@ enter a visible wavelength in nm</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
-                                        <property name="tooltip-text" translatable="yes">Models a PSF based on the average PSF parameters of the identified stars.</property>
+                                        <property name="tooltip-text" translatable="yes">Models a PSF based on the average PSF parameters of the identified stars. If no stars have been detected, an attempt will be made to detect stars in the image within a suitable range of peak brightness.</property>
                                         <property name="halign">start</property>
                                         <property name="draw-indicator">True</property>
                                         <property name="group">bdeconv_psfblind</property>

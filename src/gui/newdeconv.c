@@ -970,6 +970,33 @@ gpointer estimate_only(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
+	gboolean stars_need_clearing = FALSE;
+	if (args.psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
+		// User wants PSF from stars but has not selected any stars
+		siril_log_message(_("No stars detected. Finding suitable non-saturated stars...\n"));
+		star_finder_params sfpar;
+		memcpy(&sfpar, &com.pref.starfinder_conf, sizeof(star_finder_params));
+		sfpar.min_A = 0.07;
+		sfpar.max_A = 0.7;
+		sfpar.profile = PSF_MOFFAT_BFREE;
+		image *input_image = NULL;
+		input_image = calloc(1, sizeof(image));
+		input_image->fit = the_fit;
+		input_image->from_seq = NULL;
+		input_image->index_in_seq = -1;
+
+		int nb_stars;
+		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
+		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
+
+		if (!com.stars || nb_stars == 0) {
+			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
+			goto ENDEST;
+		} else {
+			stars_need_clearing = TRUE;
+		}
+	}
+
 	int retval = 0;
 	args.nchans = the_fit->naxes[2];
 	cppmaxthreads = com.max_thread;
@@ -1005,6 +1032,12 @@ gpointer estimate_only(gpointer p) {
 		} else {
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 		}
+	}
+ENDEST:
+	if (stars_need_clearing) {
+		g_free(com.stars);
+		com.stars = NULL;
+		stars_need_clearing = FALSE;
 	}
 	siril_log_color_message(_("Deconvolution PSF generated.\n"), "green");
 	siril_add_idle(estimate_idle, NULL);
@@ -1049,6 +1082,7 @@ gpointer deconvolve(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
+	gboolean stars_need_clearing = FALSE;
 	check_orientation();
 	if (sequence_is_running == 0)
 		DrawPSF();
@@ -1056,12 +1090,37 @@ gpointer deconvolve(gpointer p) {
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;
 	int retval = 0;
-	if (args.psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
+	if (args.psftype == PSF_PREVIOUS && ((!com.kernel) || com.kernelsize == 0)) {
 	// Refuse to process the image using previous PSF if there is no previous PSF defined
 		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");
 		retval = 1;
 		goto ENDDECONV;
 	}
+	if (args.psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
+		// User wants PSF from stars but has not selected any stars
+		siril_log_message(_("No stars detected. Finding suitable non-saturated stars...\n"));
+		star_finder_params sfpar;
+		memcpy(&sfpar, &com.pref.starfinder_conf, sizeof(star_finder_params));
+		sfpar.min_A = 0.07;
+		sfpar.max_A = 0.7;
+		sfpar.profile = PSF_MOFFAT_BFREE;
+		image *input_image = NULL;
+		input_image = calloc(1, sizeof(image));
+		input_image->fit = the_fit;
+		input_image->from_seq = NULL;
+		input_image->index_in_seq = -1;
+
+		int nb_stars;
+		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
+		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
+
+		if (retval || nb_stars == 0) {
+			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
+			goto ENDDECONV;
+		} else
+			stars_need_clearing = TRUE;
+	}
+
 	int fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 	cppmaxthreads = fftw_max_thread;
 	cppfftwflags = com.pref.fftw_conf.strategy;
@@ -1103,7 +1162,7 @@ gpointer deconvolve(gpointer p) {
 		goto ENDDECONV;
 	}
 
-	next_psf_is_previous = (args.psftype == PSF_BLIND) ? TRUE : FALSE;
+	next_psf_is_previous = (args.psftype == PSF_BLIND || args.psftype == PSF_STARS) ? TRUE : FALSE;
 
 	float *xyzdata = NULL;
 	if (the_fit->naxes[2] == 3 && com.kernelchannels == 1) {
@@ -1194,7 +1253,11 @@ ENDDECONV:
 		if (sequence_is_running == 0)
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 	}
-
+	if (stars_need_clearing) {
+		g_free(com.stars);
+		com.stars = NULL;
+		stars_need_clearing = FALSE;
+	}
 	if (sequence_is_running == 0)
 		siril_add_idle(deconvolve_idle, NULL);
 	else {
