@@ -85,6 +85,7 @@ xx/xx/22
 * Fixed opening of scientific FITS cube files
 * Fixed gnuplot call for macOS/AppImage, by making its path configurable
 * Fixed bug in roworder of SER sequence created from TOP-DOWN FITS images
+* Added ability to use Starnet++ on sequences
 
 siril 1.0.7
 xx/xx/22
