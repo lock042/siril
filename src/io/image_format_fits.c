@@ -60,7 +60,7 @@ static char *PIXELSIZEY[] = { "YPIXSZ", "YPIXELSZ", "PIXSIZE2", "PIXSIZEY", "YPI
 static char *BINX[] = { "XBINNING", "BINX", NULL };
 static char *BINY[] = { "YBINNING", "BINY", NULL };
 static char *FOCAL[] = { "FOCAL", "FOCALLEN", NULL };
-static char *CCD_TEMP[] = { "CCD-TEMP", "CCD_TEMP", "CCDTEMP", "TEMPERAT", NULL };
+static char *CCD_TEMP[] = { "CCD-TEMP", "CCD_TEMP", "CCDTEMP", "TEMPERAT", "CAMTCCD", NULL };
 static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
 static char *FILTER[] = {"FILTER", "FILT-1", NULL };
 static char *CVF[] = { "CVF", "EGAIN", NULL };
@@ -254,14 +254,35 @@ static void load_wcs_keywords(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->wcsdata.objctra), NULL, &status);
 
+	// RA and DEC can have values either in double or in string
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "RA", &(fit->wcsdata.ra), NULL, &status);
+	if (status) {
+		status = 0;
+		char hms[FLEN_VALUE];
+		fits_read_key(fit->fptr, TSTRING, "RA", hms, NULL, &status);
+		if (!status) {
+			fit->wcsdata.ra = parse_ra_hms(hms);
+			if (isnan(fit->wcsdata.ra)) fit->wcsdata.ra = 0.0;
+			else siril_debug_print("read RA as HMS\n");
+		}
+	}
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->wcsdata.objctdec), NULL, &status);
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "DEC", &(fit->wcsdata.dec), NULL, &status);
+	if (status) {
+		status = 0;
+		char dms[FLEN_VALUE];
+		fits_read_key(fit->fptr, TSTRING, "DEC", dms, NULL, &status);
+		if (!status) {
+			fit->wcsdata.dec = parse_dec_dms(dms);
+			if (isnan(fit->wcsdata.dec)) fit->wcsdata.dec = 0.0;
+			else siril_debug_print("read DEC as DMS\n");
+		}
+	}
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "CRPIX1", &(fit->wcsdata.crpix[0]), NULL, &status);
