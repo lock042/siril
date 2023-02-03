@@ -64,7 +64,7 @@
 
 #ifdef HAVE_LIBTIFF
 
-fits *the_fit = NULL;
+fits *current_fit = NULL;
 gboolean verbose = TRUE;
 
 // Check maximum path length - OSes except for Windows
@@ -270,13 +270,13 @@ gboolean starnet_executablecheck() {
 		return TRUE;
 	} else
 		g_free(fullpath);
-	if ((the_fit->naxes[2] == 3) && (g_file_test(rgbpath, G_FILE_TEST_IS_EXECUTABLE))) {
+	if ((current_fit->naxes[2] == 3) && (g_file_test(rgbpath, G_FILE_TEST_IS_EXECUTABLE))) {
 		g_free(rgbpath);
 		g_free(monopath);
 		return TRUE;
 	} else
 		g_free(rgbpath);
-	if ((the_fit->naxes[2] == 1 ) && (g_file_test(monopath, G_FILE_TEST_IS_EXECUTABLE))) {
+	if ((current_fit->naxes[2] == 1 ) && (g_file_test(monopath, G_FILE_TEST_IS_EXECUTABLE))) {
 		g_free(monopath);
 		return TRUE;
 	}
@@ -301,8 +301,8 @@ gpointer do_starnet(gpointer p) {
 	fits workingfit, fit;
 	starnet_data *args = (starnet_data *) p;
 	args->follow_on = single_image_is_loaded() ? args->follow_on : FALSE;
-	the_fit = args->starnet_fit;
-	int orig_x = the_fit->rx, orig_y = the_fit->ry;
+	current_fit = args->starnet_fit;
+	int orig_x = current_fit->rx, orig_y = current_fit->ry;
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
 	// Only allocate as much space for filenames as required - we determine the max pathlength
@@ -425,7 +425,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Create a working copy of the image.
-	retval = copyfits(the_fit, &workingfit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
+	retval = copyfits(current_fit, &workingfit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 	if (retval) {
 		siril_log_color_message(_("Error: image copy failed...\n"), "red");
 		goto CLEANUP3;
@@ -433,11 +433,11 @@ gpointer do_starnet(gpointer p) {
 
 	// If workingfit is type DATA_FLOAT, check maximum value of gfit, if > 1.0 renormalize
 	// in order to avoid cropping brightness peaks on saving to 16 bit TIFF
-	if (the_fit->type == DATA_FLOAT) {
-		int nplane = the_fit->naxes[2];
+	if (current_fit->type == DATA_FLOAT) {
+		int nplane = current_fit->naxes[2];
 		double max = 0.0;
 		for (int layer = 0; layer < nplane; layer++) {
-			imstats* stat = statistics(NULL, -1, the_fit, layer, &com.selection, STATS_MAIN, MULTI_THREADED);
+			imstats* stat = statistics(NULL, -1, current_fit, layer, &com.selection, STATS_MAIN, MULTI_THREADED);
 			if (stat->max > max)
 				max = stat->max;
 			free_stats(stat);
@@ -497,9 +497,9 @@ gpointer do_starnet(gpointer p) {
 	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
 	if (g_file_test(STARNET_BIN, G_FILE_TEST_IS_EXECUTABLE)) {
 		snprintf(starnetcommand, 19, STARNET_BIN);
-	} else if ((the_fit->naxes[2] == 3) && (g_file_test(STARNET_RGB, G_FILE_TEST_IS_EXECUTABLE))) {
+	} else if ((current_fit->naxes[2] == 3) && (g_file_test(STARNET_RGB, G_FILE_TEST_IS_EXECUTABLE))) {
 		snprintf(starnetcommand, 19, STARNET_RGB);
-	} else if ((the_fit->naxes[2] == 1 ) && (g_file_test(STARNET_MONO, G_FILE_TEST_IS_EXECUTABLE))) {
+	} else if ((current_fit->naxes[2] == 1 ) && (g_file_test(STARNET_MONO, G_FILE_TEST_IS_EXECUTABLE))) {
 		snprintf(starnetcommand, 19, STARNET_MONO);
 	}
 	else {
@@ -542,7 +542,7 @@ gpointer do_starnet(gpointer p) {
 		goto CLEANUP;
 	}
 	/* we need to copy metadata as they have been removed with readtif     */
-	copy_fits_metadata(the_fit, &workingfit);
+	copy_fits_metadata(current_fit, &workingfit);
 
 	// Increase bit depth of starless image to 32 bit to improve precision
 	// for subsequent processing. Only if !force_16bit otherwise there is an error on subtraction
@@ -628,7 +628,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// All done, now copy the working image back into gfit
-	retval = copyfits(&workingfit, the_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
+	retval = copyfits(&workingfit, current_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 	if (retval) {
 		siril_log_color_message(_("Error: image copy failed...\n"), "red");
 		goto CLEANUP;
