@@ -96,6 +96,7 @@ public:
         o.w = 0;
         o.h = 0;
         o.d = 0;
+        o.size = 0;
         o.forwardplanf = nullptr;
         o.backwardplanf = nullptr;
     }

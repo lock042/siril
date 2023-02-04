@@ -351,7 +351,7 @@ the_end:
 			// some generic cleanup for scripts
 			// should we check for seq = com.seq?
 			free_sequence(args->seq, TRUE);
-			free(args);
+			g_free(args);
 		}
 	}
 	return GINT_TO_POINTER(retval);
