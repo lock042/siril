@@ -333,7 +333,9 @@ gpointer do_starnet(gpointer p) {
 	memset(starnetcommand, 0, sizeof(starnetcommand));
 	// Set up paths and filenames
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
-		imagenoextorig = g_strdup_printf("%s", g_path_get_basename(com.uniq->filename));
+		temp = g_path_get_basename(com.uniq->filename);
+		imagenoextorig = g_strdup_printf("%s", temp);
+		g_free(temp);
 	} else if (sequence_is_loaded()) {
 		imagenoextorig = g_strdup_printf("%s%.5d", args->seq->seqname, args->imgnumber + 1);
 	} else {
