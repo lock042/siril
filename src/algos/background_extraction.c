@@ -144,12 +144,12 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	int scaling_factor = 4;
 	int width_scaled = round_to_int(width / scaling_factor);
 	int height_scaled = round_to_int(height / scaling_factor);
-	
+
 	double *background_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double *kernel_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double x_scaling = (double)height_scaled / (double)height;
 	double y_scaling = (double)width_scaled / (double)width;
-	
+
 	/* Copy linked list into array */
 	list_array = malloc(n * sizeof(double[3]));
 	l_i = list;
@@ -190,7 +190,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 
 	/* Smoothing */
 	smoothing = 1e-4 * pow(10.0, (smoothing-0.5) * 3);
-	
+
 	for (int i = 0; i < n; i++) {
 		gsl_matrix_set(K, i, i, smoothing * mean);
 	}
@@ -504,14 +504,14 @@ static double get_background_mean(GSList *list, int num_channels) {
 	GSList *l;
 	guint n = g_slist_length(list);
 	double mean = 0.0;
-	
+
 	for (int channel = 0; channel < num_channels; channel++) {
 		for (l = list; l; l = l->next) {
 			background_sample *sample = (background_sample *) l->data;
 			mean += sample->median[channel];
 		}
 	}
-	
+
 	return mean / n / num_channels;
 }
 
@@ -643,6 +643,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 	if (median <= 0.0f) {
 		if (error)
 			*error = "removing the gradient on negative images is not supported";
+		g_free(image);
 		return NULL;
 	}
 
@@ -844,7 +845,7 @@ gboolean end_background(gpointer p);	// in gui/background_extraction.c
 /* uses samples from com.grad_samples */
 gpointer remove_gradient_from_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
-	gchar *error;
+	gchar *error = NULL;
 	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
 
 	if (!background && !com.script) {

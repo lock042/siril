@@ -4517,7 +4517,8 @@ int process_cosme(int nb) {
 	retval = apply_cosme_to_image(&gfit, file, is_cfa);
 
 	g_free(filename);
-	g_object_unref(file);
+	if (file)
+		g_object_unref(file);
 	if (retval)
 		siril_log_color_message(_("There were some errors, please check your input file.\n"), "salmon");
 
