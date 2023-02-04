@@ -690,7 +690,7 @@ gpointer do_starnet(gpointer p) {
 	if (single_image_is_loaded()) {
 		if (!args->follow_on)
 			notify_gfit_modified();
-		siril_add_idle(end_generic, p);
+		siril_add_idle(end_generic, args);
 	}
 	return GINT_TO_POINTER(retval);
 }

@@ -151,10 +151,9 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 	imstats *stat[3];
 
 	int nb_channels = (int)fit->naxes[2];
-
 	int retval = compute_all_channels_statistics_single_image(fit,
 			STATS_BASIC | STATS_MAD, MULTI_THREADED, stat);
-	for (i = 0; i < nb_channels; ++i) {
+	for (i = 0; i < nb_channels; i++) {
 		if (stat[i]) {
 			if (retval)
 				free_stats(stat[i]);
@@ -208,7 +207,7 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		result->highlights = c1;
 
 	}
-	for (i = 0; i < nb_channels; ++i)
+	for (i = 0; i < nb_channels; i++)
 		free_stats(stat[i]);
 	return 0;
 }
