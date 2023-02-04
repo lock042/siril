@@ -8311,6 +8311,7 @@ int process_nomad(int nb) {
 	}
 	if (j > 0)
 		com.stars[j] = NULL;
+	free(stars);
 	siril_log_message("%d stars from local catalogues found with valid photometry data in the image (mag limit %.2f)\n", j, limit_mag);
 	redraw(REDRAW_OVERLAY);
 	return CMD_OK;

@@ -531,9 +531,9 @@ struct guiinf {
 	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY or default_rendering_mode if set in preferences
 	gboolean unlink_channels;	// only for autostretch
 	BYTE remap_index[3][USHRT_MAX];	// abstracted here so it can be used for previews and is easier to change the bit depth
-	BYTE *hd_remap_index[3]; // HD remap indexes for the high precision LUTs.
+	BYTE *hd_remap_index[3];	// HD remap indexes for the high precision LUTs.
 	guint hd_remap_max;		// the maximum index value to use for the HD LUT. Default is 2^22
-	gboolean use_hd_remap; // Boolean set by the menu check box to indicate whether HD LUT should be used for AutoStretch
+	gboolean use_hd_remap;		// use high definition LUT for auto-stretch
 
 	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
@@ -608,12 +608,12 @@ struct cominf {
 	gboolean child_is_running;	// boolean to check if there is a child process running
 
 	float* kernel;			// float* to hold kernel for new deconvolution process
-	unsigned kernelsize;	// Holds size of kernel (kernel is square kernelsize * kernelsize)
-	unsigned kernelchannels; // Holds number of channels for the kernel
+	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
+	unsigned kernelchannels;	// Holds number of channels for the kernel
 #ifdef _WIN32
-void* childhandle;			// For Windows, handle of a child process
+	void* childhandle;		// For Windows, handle of a child process
 #else
-pid_t childpid;				// For other OSes, PID of a child process
+	pid_t childpid;			// For other OSes, PID of a child process
 #endif
 };
 
