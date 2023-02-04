@@ -162,14 +162,14 @@ double get_resolution(double focal, double pixel) {
 
 /* get diagonal field of view in arcmin, resolution in arcsec/px */
 double get_fov_arcmin(double resolution, int rx, int ry) {
-	uint64_t sqr_radius = rx * rx + ry * ry;
+	uint64_t sqr_radius = (uint64_t) rx * (uint64_t) rx + (uint64_t) ry * (uint64_t) ry;
 	double radius = resolution * sqrt((double)sqr_radius);	// in arcsec
 	return radius / 60.0;	// in arcminutes
 }
 
 /* get half field of view in arcmin, or angle from image centre, resolution in arcsec/px */
 double get_radius_deg(double resolution, int rx, int ry) {
-	uint64_t sqr_radius = (rx * rx + ry * ry) / 4;
+	uint64_t sqr_radius = ((uint64_t) rx * (uint64_t) rx + (uint64_t) ry * (uint64_t) ry) / 4;
 	double radius = resolution * sqrt((double)sqr_radius);	// in arcsec
 	return radius / 3600.0;	// in degrees
 }
@@ -1108,9 +1108,9 @@ static TRANS H_to_linear_TRANS(Homography H) {
 	return trans;
 }
 
-static gboolean check_affine_TRANS_sanity(TRANS trans) {
-	double var1 = fabs(trans.b) - fabs(trans.f);
-	double var2 = fabs(trans.c) - fabs(trans.e);
+static gboolean check_affine_TRANS_sanity(TRANS *trans) {
+	double var1 = fabs(trans->b) - fabs(trans->f);
+	double var2 = fabs(trans->c) - fabs(trans->e);
 	siril_debug_print("abs(b+f)=%f et abs(c+e)=%f\n", var1, var2);
 
 	return ((fabs(var1) < 0.3) && fabs(var2) < 0.3);
@@ -1589,7 +1589,7 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 	 * Maybe one day we will apply match with homography matrix
 	 */
 	TRANS trans = H_to_linear_TRANS(H);
-	if (!check_affine_TRANS_sanity(trans)) {
+	if (!check_affine_TRANS_sanity(&trans)) {
 		args->message = g_strdup(_("Transformation matrix is invalid, solve failed"));
 		args->ret = 1;
 		goto clearup;
@@ -1923,7 +1923,8 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	if (error != NULL) {
 		siril_log_color_message("Spawning solve-field failed: %s\n", "red", error->message);
 		if (!com.pref.astrometry.keep_xyls_files)
-			g_unlink(table_filename);
+			if (g_unlink(table_filename))
+				siril_debug_print("Error unlinking table_filename\n");
 		g_free(table_filename);
 #ifndef _WIN32
 		g_free(asnet_path);

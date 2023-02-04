@@ -1,21 +1,21 @@
 /* @(#)io_wave.c	19.1 (ES0-DMD) 02/25/03 13:34:39 */
 /*===========================================================================
  Copyright (C) 1995 European Southern Observatory (ESO)
- 
+
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License as
  published by the Free Software Foundation; either version 2 of
  the License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public
  License along with this program;
  If not, see <http://www.gnu.org/licenses/>.
- 
+
  Corresponding concerning ESO-MIDAS should be addressed as follows:
  Internet e-mail: midas@eso.org
  Postal address: European Southern Observatory
@@ -134,7 +134,7 @@ int wave_io_size_data(int Nl, int Nc, int Nbr_Plan, int Type_Wave_Transform) {
 int static wave_io_name(char *File_Name_In, char *File_Name_Out) {
 	int L;
 
-	strcpy(File_Name_Out, File_Name_In);
+	strncpy(File_Name_Out, File_Name_In, STRING_SIZE);
 
 	L = strlen(File_Name_In);
 	if ((L < 5) || (File_Name_In[L - 1] != 'e') || (File_Name_In[L - 2] != 'v')

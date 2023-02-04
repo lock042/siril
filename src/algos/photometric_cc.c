@@ -422,6 +422,7 @@ float measure_image_FWHM(fits *fit) {
 		else failed = TRUE;
 	}
 	// clearfits(&downsampled);
+	g_free(threads);
 	if (failed)
 		return 0.0f;
 	return max(fwhm[0], max(fwhm[1], fwhm[2]));
@@ -462,7 +463,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	int nb_stars = 0;
 	gboolean image_is_gfit = args->fit == &gfit;
 
-	uint64_t sqr_radius = (gfit.rx * gfit.rx + gfit.ry * gfit.ry) / 4;
+	uint64_t sqr_radius = ((uint64_t) gfit.rx * (uint64_t) gfit.rx + (uint64_t) gfit.ry * (uint64_t) gfit.ry) / 4;
 	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	double mag = args->mag_mode == LIMIT_MAG_ABSOLUTE ?
 		args->magnitude_arg : compute_mag_limit_from_fov(radius * 2.0);

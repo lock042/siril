@@ -658,6 +658,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 	if (nb_per_column == 0) {
 		if (error)
 			*error = "image is smaller than the sample size of the background extraction";
+		g_free(image);
 		return NULL;
 	}
 
@@ -848,10 +849,12 @@ gpointer remove_gradient_from_image(gpointer p) {
 	gchar *error = NULL;
 	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
 
-	if (!background && !com.script) {
+	if (!background) {
 		PRINT_ALLOC_ERR;
-		set_cursor_waiting(FALSE);
-		return GINT_TO_POINTER(1);
+		if (!com.script) {
+			set_cursor_waiting(FALSE);
+			return GINT_TO_POINTER(1);
+		}
 	}
 
 	const size_t n = gfit.naxes[0] * gfit.naxes[1];
