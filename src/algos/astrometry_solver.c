@@ -1480,7 +1480,7 @@ gpointer plate_solver(gpointer p) {
 				args->ret = 1;
 			}
 		} else {
-			args->ret = project_catalog_with_WCS(args->catalog_file, args->fit,
+			args->ret = project_catalog_with_WCS(args->catalog_file, args->fit, TRUE,
 					&pcc_stars, &nb_pcc_stars);
 		}
 		if (args->ret) {

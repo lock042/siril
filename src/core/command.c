@@ -8265,33 +8265,77 @@ int process_pcc(int nb) {
 }
 
 int process_nomad(int nb) {
-	pcc_star *stars;
-	int nb_stars;
-	double ra, dec;
 	float limit_mag = 13.0f;
+	gboolean photometric = FALSE;
+	online_catalog cat = CAT_AUTO;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
 	}
-	if (nb == 2) {
-		gchar *end;
-		limit_mag = g_ascii_strtod(word[1], &end);
-		if (end == word[1]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
-			return CMD_ARG_ERROR;
+	int arg_idx = 1;
+	while (arg_idx < nb) {
+		if (g_str_has_prefix(word[arg_idx], "-catalog=")) {
+			char *arg = word[arg_idx] + 9;
+			if (!g_strcmp0(arg, "tycho2"))
+				cat = CAT_TYCHO2;
+			else if (!g_strcmp0(arg, "nomad"))
+				cat = CAT_NOMAD;
+			else if (!g_strcmp0(arg, "gaia"))
+				cat = CAT_GAIADR3;
+			else if (!g_strcmp0(arg, "ppmxl"))
+				cat = CAT_PPMXL;
+			else if (!g_strcmp0(arg, "brightstars"))
+				cat = CAT_BRIGHT_STARS;
+			else if (!g_strcmp0(arg, "apass"))
+				cat = CAT_APASS;
+			else {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
 		}
+		else if (g_str_has_prefix(word[arg_idx], "-phot")) {
+			photometric = TRUE;
+		} else {
+			gchar *end;
+			limit_mag = g_ascii_strtod(word[arg_idx], &end);
+			if (end == word[arg_idx]) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		arg_idx++;
 	}
+
+	pcc_star *stars;
+	int nb_stars;
+	double ra, dec;
 	center2wcs(&gfit, &ra, &dec);
 	double resolution = get_wcs_image_resolution(&gfit);
 	uint64_t sqr_radius = (gfit.rx * gfit.rx + gfit.ry * gfit.ry) / 4;
 	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	siril_debug_print("centre coords: %f, %f, radius: %f\n", ra, dec, radius);
-	if (get_photo_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
-		siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-		return CMD_GENERIC_ERROR;
+
+	if (cat == CAT_AUTO) {
+		if (get_photo_stars_from_local_catalogues(ra, dec, radius, &gfit, limit_mag, &stars, &nb_stars)) {
+			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
+			return CMD_GENERIC_ERROR;
+		}
+		siril_debug_print("Got %d stars from the trixels of this target (mag limit %.2f)\n", nb_stars, limit_mag);
+	} else {
+		SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
+		GFile *catalog_file = download_catalog(cat, center, radius * 60.0, limit_mag);
+		siril_world_cs_unref(center);
+		if (!catalog_file) {
+			siril_log_message(_("Could not download the online star catalog.\n"));
+			return CMD_GENERIC_ERROR;
+		}
+		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), catalog_to_str(cat));
+
+		/* project using WCS */
+		if (project_catalog_with_WCS(catalog_file, &gfit, photometric, &stars, &nb_stars))
+			return CMD_GENERIC_ERROR;
 	}
 
-	siril_debug_print("Got %d stars from the trixels of this target (mag limit %.2f)\n", nb_stars, limit_mag);
 	clear_stars_list(FALSE);
 	int j = 0;
 	for (int i = 0; i < nb_stars && j < MAX_STARS; i++) {
@@ -8312,7 +8356,8 @@ int process_nomad(int nb) {
 	if (j > 0)
 		com.stars[j] = NULL;
 	free(stars);
-	siril_log_message("%d stars from local catalogues found with valid photometry data in the image (mag limit %.2f)\n", j, limit_mag);
+	siril_log_message("%d stars found%s in the image (mag limit %.2f)\n", j,
+			photometric ? " with valid photometry data" : "", limit_mag);
 	redraw(REDRAW_OVERLAY);
 	return CMD_OK;
 }

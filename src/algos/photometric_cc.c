@@ -504,7 +504,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), cat);
 
 		/* project using WCS */
-		retval = project_catalog_with_WCS(catalog_file, args->fit, &stars, &nb_stars);
+		retval = project_catalog_with_WCS(catalog_file, args->fit, TRUE, &stars, &nb_stars);
 	}
 
 	if (!retval) {
@@ -526,7 +526,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
-int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars) {
+int project_catalog_with_WCS(GFile *catalog_file, fits *fit, gboolean phot, pcc_star **ret_stars, int *ret_nb_stars) {
 	GError *error = NULL;
 	GInputStream *input_stream = NULL;
 	/* catalog format should be 5 columns: distance from centre, RA, Dec, V, B */
@@ -555,7 +555,8 @@ int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_star
 		double r = 0.0, ra = 0.0, dec = 0.0, Vmag = 0.0, Bmag = 0.0;
 		int n = sscanf(line, "%lf %lf %lf %lf %lf", &r, &ra, &dec, &Vmag, &Bmag);
 		g_free(line);
-		if (n == 5 && Bmag < 30.0) {	// 30 sometimes means not available in NOMAD
+		if ((phot && n == 5 && Bmag < 30.0) ||	// 30 sometimes means not available in NOMAD
+				(!phot && n >= 4)) {
 			if (nb_stars >= nb_alloc) {
 				nb_alloc *= 2;
 				pcc_star *new_array = realloc(stars, nb_alloc * sizeof(pcc_star));
@@ -575,7 +576,9 @@ int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_star
 				stars[nb_stars].x = x;
 				stars[nb_stars].y = fit->ry - y - 1;
 				stars[nb_stars].mag = Vmag;
-				stars[nb_stars].BV = Bmag - Vmag;
+				if (phot)
+					stars[nb_stars].BV = Bmag - Vmag;
+				else stars[nb_stars].BV = -99.9;
 				nb_stars++;
 			}
 		}
