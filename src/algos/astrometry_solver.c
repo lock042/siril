@@ -1810,7 +1810,7 @@ static gchar *siril_get_asnet_bin() {
 
 /* returns true if the command solve-field is available */
 gboolean asnet_is_available() {
-	const char *str = "solve-field --version > /dev/null 2>&1";
+	const char *str = "solve-field -h > /dev/null 2>&1";
 	int retval = system(str);
 	if (WIFEXITED(retval) && (0 == WEXITSTATUS(retval))) {
 		solvefield_is_in_path = TRUE;
