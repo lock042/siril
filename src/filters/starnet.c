@@ -326,6 +326,7 @@ gpointer do_starnet(gpointer p) {
 	char *starlessnoext = NULL;
 	char *starmasknoext = NULL;
 	char *imagenoextorig = NULL;
+	char *temp = NULL;
 	gchar starnetprefix[10] = "starnet_";
 	gchar starlessprefix[10] = "starless_";
 	gchar starmaskprefix[10] = "starmask_";
@@ -343,8 +344,6 @@ gpointer do_starnet(gpointer p) {
         *q = *c == ' ' ? '_' : *c;
 	if (g_strcmp0(imagenoext, imagenoextorig) && verbose)
 		siril_log_color_message(_("Starnet++: spaces detected in filename. Starnet++ can't handle these so they have been replaced by underscores.\n"), "salmon");
-	g_free(imagenoextorig);
-	imagenoextorig = NULL;
 	starlessnoext = g_strdup_printf("%s%s", starlessprefix, imagenoext);
 	starmasknoext = g_strdup_printf("%s%s", starmaskprefix, imagenoext);
 	imagenoext = g_strdup_printf("%s%s", starnetprefix, imagenoext);
@@ -356,21 +355,26 @@ gpointer do_starnet(gpointer p) {
 		siril_log_color_message(_("Error: file path too long!\n"), "red");
 		goto CLEANUP3;
 	}
-	g_free(imagenoext);
-	imagenoext = NULL;
 	starlesstif = g_build_filename(com.wd, starlessnoext, NULL);
-	g_free(starlessnoext);
-	starlessnoext = NULL;
-	starlesstif = remove_ext_from_filename(starlesstif);
+	temp = remove_ext_from_filename(starlesstif);
+	g_free(starlesstif);
+	starlesstif = g_strdup(temp);
+	g_free(temp);
 	starlessfit = g_strdup(starlesstif);
-	starlesstif = g_strdup_printf("%s.tif", starlesstif);
+	temp = g_strdup_printf("%s.tif", starlesstif);
+	g_free(starlesstif);
+	starlesstif = g_strdup(temp);
+	g_free(temp);
 		if (strlen(starlesstif) > pathmax) {
 		retval = 1;
 		siril_log_color_message(_("Error: file path too long!\n"), "red");
 		goto CLEANUP3;
 	}
 
-	starlessfit = g_strdup_printf("%s%s", starlessfit, com.pref.ext);
+	temp = g_strdup_printf("%s%s", starlessfit, com.pref.ext);
+	g_free(starlessfit);
+	starlessfit = g_strdup(temp);
+	g_free(temp);
 	if (strlen(starlessfit) > pathmax) {
 		retval = 1;
 		siril_log_color_message(_("Error: file path too long!\n"), "red");
@@ -382,12 +386,14 @@ gpointer do_starnet(gpointer p) {
 		siril_log_color_message(_("Error: file path too long!\n"), "red");
 		goto CLEANUP3;
 	}
-
-	g_free(starmasknoext);
-	starmasknoext = NULL;
-	starmaskfit = remove_ext_from_filename(starmaskfit);
-	starmaskfit = g_strdup_printf("%s%s", starmaskfit, com.pref.ext);
-
+	temp = remove_ext_from_filename(starmaskfit);
+	g_free(starmaskfit);
+	starmaskfit = g_strdup(temp);
+	g_free(temp);
+	temp = g_strdup_printf("%s%s", starmaskfit, com.pref.ext);
+	g_free(starmaskfit);
+	starmaskfit = g_strdup(temp);
+	g_free(temp);
 	// ok, let's start
 	if (verbose)
 		set_progress_bar_data(_("Starting Starnet++"), PROGRESS_NONE);
@@ -503,7 +509,6 @@ gpointer do_starnet(gpointer p) {
 		snprintf(starnetcommand, 19, STARNET_MONO);
 	}
 	else {
-		retval = 1;
 		siril_log_color_message(_("No valid executable found in the Starnet++ directory\n"), "red");
 		goto CLEANUP;
 	}
@@ -530,7 +535,6 @@ gpointer do_starnet(gpointer p) {
 #endif
 	if (retval || forkerrors) {
 		if (!retval && forkerrors)
-			retval = forkerrors;
 		siril_log_color_message(_("Error: Starnet++ did not execute correctly...\n"), "red");
 		goto CLEANUP;
 	}
@@ -673,6 +677,10 @@ gpointer do_starnet(gpointer p) {
 	g_free(starlesstif);
 	g_free(starlessfit);
 	g_free(starmaskfit);
+	g_free(starlessnoext);
+	g_free(starmasknoext);
+	g_free(imagenoext);
+	g_free(imagenoextorig);
 	g_free(temptif);
 	gettimeofday(&t_end, NULL);
 	if (verbose)
