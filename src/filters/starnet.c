@@ -312,7 +312,7 @@ gpointer do_starnet(gpointer p) {
 	long pathmax = MAX_PATH;	// On Windows use of MAX_PATH is fine as it is not
 								// a configurable item
 #endif
-	gchar *currentdir;
+	gchar *currentdir = NULL;
 	gchar starnetcommand[19] = "starnet++";
 	gchar *temptif = NULL;
 	gchar *starlesstif = NULL;
