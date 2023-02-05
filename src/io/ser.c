@@ -104,7 +104,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 			!ser_file->number_of_planes)
 		return 0;
 
-	frame_size = ser_file->image_width *
+	frame_size = (gint64) ser_file->image_width *
 		ser_file->image_height * ser_file->number_of_planes;
 	gint64 offset = SER_HEADER_LEN + frame_size *
 		(gint64)ser_file->byte_pixel_depth * (gint64)ser_file->frame_count;
@@ -902,7 +902,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
-	g_strdup_printf(fit->row_order, "BOTTOM-UP");
+	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM_UP");
 
 	return 0;
 }
@@ -1180,7 +1180,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
 		fits_flip_top_to_bottom(fit);
 	}
-	frame_size = ser_file->image_width * ser_file->image_height *
+	frame_size = (gint64) ser_file->image_width * ser_file->image_height *
 		ser_file->number_of_planes;
 
 	offset = SER_HEADER_LEN	+ frame_size *

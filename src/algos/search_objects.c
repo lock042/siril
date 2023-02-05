@@ -263,9 +263,9 @@ int parse_buffer(const gchar *buffer, double lim_mag) {
 				if (!com.script && !com.headless) {	// Write in catalogue only if in GUI mode, not in script-mode or headless-mode
 					com.pref.gui.catalog[6] = TRUE;	// enabling the user catalog in which it will be added
 					add_object_in_catalogue(realname, world_cs, is_solar_system, is_in_field);
-					g_strfreev(display_name);
 					siril_world_cs_unref(world_cs);
 				}
+				g_strfreev(display_name);
 			}
 			g_free(realname);
 			rank+=1;

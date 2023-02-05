@@ -197,7 +197,7 @@ static gpointer update_preview(gpointer p) {
 			args->description = siril_get_file_info(args->filename, pixbuf);
 		}
 	}
-
+	g_free(mime_type);
 	args->pixbuf = pixbuf;
 	siril_add_idle(end_update_preview_cb, args);
 	return GINT_TO_POINTER(0);

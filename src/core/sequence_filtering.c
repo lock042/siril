@@ -430,7 +430,10 @@ static double generic_compute_accepted_value_with_rejection(sequence *seq, int l
 		if (data > 0.0f)
 			val[n++] = data * factor;
 	}
-	if (!n) return 0.0;
+	if (!n) {
+		g_free(val);
+		return 0.0;
+	}
 	if (n < seq->number) {
 		siril_log_message(_("Warning: some images don't have information available for best "
 				"images selection, using only available data (%d images on %d).\n"),
@@ -456,10 +459,13 @@ static double generic_compute_accepted_value_with_rejection(sequence *seq, int l
 		n -= j;
 	} while (j > 0);
 
-	if (n < 0) return 0.0;
-	
+	if (n < 0) {
+		g_free(val);
+		return 0.0;
+	}
+
 	threshold = factor * val[n - 1]; // we return a positive value
-	free(val);
+	g_free(val);
 	return threshold;
 }
 
@@ -499,7 +505,7 @@ double compute_highest_accepted_background(sequence *seq, int layer, double crit
 }
 
 double compute_lowest_accepted_nbstars(sequence *seq, int layer, double criterion, gboolean is_ksigma) {
-	if (!is_ksigma) 
+	if (!is_ksigma)
 		return generic_compute_accepted_value(seq, layer, criterion, FALSE, regdata_nbstars);
 	else
 		return generic_compute_accepted_value_with_rejection(seq, layer, criterion, FALSE, regdata_nbstars);

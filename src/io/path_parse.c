@@ -101,7 +101,7 @@ static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, d
 			gchar **subs = g_strsplit(headers[i], "=", 2);
 			gchar **valsubs = g_strsplit(subs[1], "/", 2);
 			if (numvalue) {
-				*numvalue = g_ascii_strtod(valsubs[0], NULL); 
+				*numvalue = g_ascii_strtod(valsubs[0], NULL);
 			} else if (strvalue) {
 				gchar *currstr = g_strdup(valsubs[0]);
 				currstr = g_shell_unquote(currstr, NULL);
@@ -181,6 +181,7 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 		*status = PATHPARSE_ERR_NO_HIT_FOUND;
 		display_path_parse_error(*status, expression);
 	}
+	g_free(dir);
 	g_free(dirname);
 	g_free(basename);
 	g_free(currfile);
@@ -215,7 +216,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			display_path_parse_error(*status, NULL);
 			return out;
 		}
-	} 
+	}
 	if (g_str_has_prefix(expression, "$def")) { // using reserved keywords $defbias, $defdark, $defflat, $defstack
 		if (!g_strcmp0(expression + 4, "bias")) {
 			localexpression = g_strdup(com.pref.prepro.bias_lib);
@@ -253,7 +254,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			continue;
 		gchar **subs = g_strsplit(tokens[i], ":", 2);
 		gchar buf[FLEN_VALUE];
-		gchar key[9];
+		gchar key[9] = "";
 		buf[0] = '\0';
 		if (g_strv_length(subs) == 1) {
 			if (!g_strcmp0(subs[0], "seqname")) { // reserved keyword $seqname$

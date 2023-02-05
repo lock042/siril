@@ -1442,7 +1442,11 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 	int datatype = cfa0->type;
 
 	// Create output fits twice the width and height of the cfa fits files
-	new_fit_image(&out, cfa0->rx << 1, cfa0->ry << 1, 1, datatype);
+	if (new_fit_image(&out, cfa0->rx << 1, cfa0->ry << 1, 1, datatype)) {
+		siril_log_color_message(_("Error creating output image\n"), "red");
+		return NULL;
+	}
+
 //	out->header = copy_header(cfa0);
 	copy_fits_metadata(cfa0, out);
 	if (out->header)

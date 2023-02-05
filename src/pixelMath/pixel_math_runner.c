@@ -580,7 +580,7 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 									expression = g_string_free(string, FALSE);
 									total_len = strlen(expression);
 									pos = pos + strlen(replace);
-
+									g_free(replace);
 									siril_debug_print("Expression%d: %s\n", c, expression);
 								}
 							}
@@ -1080,8 +1080,9 @@ static void select_image(int nb) {
 			if (filename) {
 				gchar filter[FLEN_VALUE] = { 0 };
 				fits f = { 0 };
-				read_fits_metadata_from_path(filename, &f);
-				if (check_files_dimensions(&width, &height, &channel)) {
+				if (read_fits_metadata_from_path(filename, &f)) {
+					siril_log_color_message(_("Could not open file: %s\n"), "red", filename);
+				} else if (check_files_dimensions(&width, &height, &channel)) {
 					if (width != 0 && (channel != f.naxes[2] ||
 							width != f.naxes[0] ||
 							height != f.naxes[1])) {
