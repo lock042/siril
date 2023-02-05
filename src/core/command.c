@@ -4971,16 +4971,14 @@ int select_unselect(gboolean select) {
 		siril_log_color_message(_("The third argument is larger than the number of images.\n"), "salmon");
 		siril_log_message(_("Re-adjusting to %d.\n"), "salmon", seq->number);
 	}
-	gboolean current_updated = FALSE;
 	for (int i = from - 1; i <= to - 1; i++) { // use real index
 		if (i >= seq->number) break;
 		if (seq->imgparam[i].incl != select) {
 			seq->imgparam[i].incl = select;
 			if (select)
 				seq->selnum++;
-			else	seq->selnum--;
-			if (i + 1 == seq->current)
-				current_updated = TRUE;
+			else
+				seq->selnum--;
 		}
 		if (!select && seq->reference_image == i) {
 			seq->reference_image = -1;
