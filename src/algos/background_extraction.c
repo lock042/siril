@@ -853,8 +853,8 @@ gpointer remove_gradient_from_image(gpointer p) {
 		PRINT_ALLOC_ERR;
 		if (!com.script) {
 			set_cursor_waiting(FALSE);
-			return GINT_TO_POINTER(1);
 		}
+		return GINT_TO_POINTER(1);
 	}
 
 	const size_t n = gfit.naxes[0] * gfit.naxes[1];

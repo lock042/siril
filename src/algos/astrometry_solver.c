@@ -1964,7 +1964,9 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	if (!com.pref.astrometry.keep_xyls_files)
-		g_unlink(table_filename);
+		if (g_unlink(table_filename)) {
+			siril_debug_print("Error unlinking table_filename\n");
+		}
 	g_free(table_filename);
 #ifndef _WIN32
 	g_free(asnet_path);
