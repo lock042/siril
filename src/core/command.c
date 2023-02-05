@@ -4952,49 +4952,50 @@ int process_findcosme(int nb) {
 
 int select_unselect(gboolean select) {
 	char *end1, *end2;
-	int from = g_ascii_strtoull(word[1], &end1, 10);
-	int to = g_ascii_strtoull(word[2], &end2, 10);
-	if (end1 == word[1] || from < 1 || from >= com.seq.number) {
-		siril_log_message(_("The first argument must be between 1 and the number of images.\n"));
+	int from = g_ascii_strtoull(word[2], &end1, 10);
+	int to = g_ascii_strtoull(word[3], &end2, 10);
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+	if (end1 == word[2] || from < 1 || from > seq->number) {
+		siril_log_message(_("The second argument must be between 1 and the number of images.\n"));
 		return CMD_ARG_ERROR;
 	}
 
-	if (end2 == word[2] || to <= from || to >= com.seq.number) {
-		siril_log_message(_("The second argument must be between from and the number of images.\n"));
-		return CMD_ARG_ERROR;
+	if (end2 == word[3] || to > seq->number) {
+		siril_log_color_message(_("The third argument is larger than the number of images.\n"), "salmon");
+		siril_log_message(_("Re-adjusting to %d.\n"), "salmon", seq->number);
 	}
 	gboolean current_updated = FALSE;
 	for (int i = from - 1; i <= to - 1; i++) { // use real index
-		if (i >= com.seq.number) break;
-		if (com.seq.imgparam[i].incl != select) {
-			com.seq.imgparam[i].incl = select;
-			if (!com.headless)
-				sequence_list_change_selection_index(i, i);
+		if (i >= seq->number) break;
+		if (seq->imgparam[i].incl != select) {
+			seq->imgparam[i].incl = select;
 			if (select)
-				com.seq.selnum++;
-			else	com.seq.selnum--;
-			if (i + 1 == com.seq.current)
+				seq->selnum++;
+			else	seq->selnum--;
+			if (i + 1 == seq->current)
 				current_updated = TRUE;
 		}
-		if (!select && com.seq.reference_image == i) {
-			com.seq.reference_image = -1;
-			if (!com.headless) {
-				sequence_list_change_reference();
-				adjust_refimage(com.seq.current);
-			}
+		if (!select && seq->reference_image == i) {
+			seq->reference_image = -1;
 		}
 	}
-
-	if (!com.headless) {
-		if (current_updated) {
-			redraw(REDRAW_OVERLAY);
-			adjust_sellabel();
-		}
-		drawPlot();
+	writeseqfile(seq);
+	if (check_seq_is_comseq(seq)) {
+		fix_selnum(&com.seq, FALSE);
+		update_stack_interface(TRUE);
 		update_reg_interface(FALSE);
 		adjust_sellabel();
+		drawPlot();
+	} else {
+		free_sequence(seq, FALSE);
 	}
-	writeseqfile(&com.seq);
 	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), com.seq.selnum);
 
 	return CMD_OK;
