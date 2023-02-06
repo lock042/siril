@@ -126,6 +126,8 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 			markup = g_markup_printf_escaped (format_white, "Image: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
+		g_free(filename);
+		filename = NULL;
 	}
 
 
@@ -138,6 +140,7 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 			markup = g_markup_printf_escaped (format_white, "Sequence: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
+		g_free(seq_basename);
 	}
 
 }

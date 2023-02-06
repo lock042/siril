@@ -5266,7 +5266,12 @@ int process_extractGreen(int nb) {
 		if (!(ret = extractGreen_float(&gfit, &f_green, pattern))) {
 			ret = save1fits32(green, &f_green, 0);
 		}
-	} else return CMD_INVALID_IMAGE;
+	} else {
+		g_free(filename);
+		g_free(green);
+		clearfits(&f_green);
+		return CMD_INVALID_IMAGE;
+	}
 
 	g_free(green);
 	clearfits(&f_green);
@@ -5577,12 +5582,14 @@ int process_seq_extractHa(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						g_free(args);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+					g_free(args);
 					return CMD_ARG_ERROR;
 				}
 			}

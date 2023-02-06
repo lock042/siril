@@ -1066,7 +1066,7 @@ char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffe
 		sprintf(format, "%%s%%.%dd", seq->fixed);
 	}
 	if (add_fits_ext)
-		strncat(format, com_ext, 20);
+		strncat(format, com_ext, 19); // static char* length 20, leave 1 char for the NULL termination
 	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
 	name_buffer[255] = '\0';
 

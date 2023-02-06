@@ -492,7 +492,6 @@ int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa) {
 			siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
 		}
 
-		g_object_unref(file);
 		return 1;
 	}
 
@@ -575,7 +574,9 @@ int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
 
-	return apply_cosme_to_image(fit, c_args->file, c_args->is_cfa);
+	int retval = apply_cosme_to_image(fit, c_args->file, c_args->is_cfa);
+	g_object_unref(c_args->file);
+	return retval;
 }
 
 static int cosme_finalize_hook(struct generic_seq_args *args) {

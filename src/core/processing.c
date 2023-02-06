@@ -177,6 +177,8 @@ gpointer generic_sequence_worker(gpointer p) {
 
 		if (!get_thread_run()) {
 			abort = 1;
+			clearfits(fit);
+			g_free(fit);
 			continue;
 		}
 		if (index_mapping)
@@ -185,6 +187,8 @@ gpointer generic_sequence_worker(gpointer p) {
 
 		if (!seq_get_image_filename(args->seq, input_idx, filename)) {
 			abort = 1;
+			clearfits(fit);
+			g_free(fit);
 			continue;
 		}
 
@@ -196,6 +200,8 @@ gpointer generic_sequence_worker(gpointer p) {
 			seqwriter_wait_for_memory();
 			if (abort) {
 				seqwriter_release_memory();
+				clearfits(fit);
+				g_free(fit);
 				continue;
 			}
 		}
@@ -229,7 +235,7 @@ gpointer generic_sequence_worker(gpointer p) {
 					excluded_frames++;
 				}
 				clearfits(fit);
-				free(fit);
+				g_free(fit);
 				// TODO: for seqwriter, we need to notify the failed frame
 				continue;
 			}
@@ -241,7 +247,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			if (seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
 				abort = 1;
 				clearfits(fit);
-				free(fit);
+				g_free(fit);
 				continue;
 			}
 			// TODO: for seqwriter, we need to notify the failed frame

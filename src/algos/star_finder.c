@@ -227,6 +227,8 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 
 	candidates = malloc(MAX_STARS * sizeof(starc));
 	if (!candidates) {
+		g_free(image_ushort);
+		g_free(image_float);
 		clearfits(&smooth_fit);
 		free(smooth_image);
 		PRINT_ALLOC_ERR;
@@ -799,8 +801,10 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	star_finder_params *sf = &com.pref.starfinder_conf;
 	int star = 0, nb_stars = -1;
 	while (fgets(buffer, 300, fd)) {
-		if (buffer[0] != '#' && !params_ok)
+		if (buffer[0] != '#' && !params_ok) {
+			g_free(fd);
 			return 0;
+		}
 		if (!strncmp(buffer, "# ", 2)) {
 			if (sscanf(buffer, "# %d stars found ", &nb_stars) == 1) { // nbstars tainted as based on data from file, needs extra checking
 				siril_debug_print("nb stars: %d\n", nb_stars);

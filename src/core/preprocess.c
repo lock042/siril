@@ -418,6 +418,7 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 
 	if (prepro->use_cosmetic_correction && !prepro->cc_from_dark && prepro->bad_pixel_map_file) {
 		apply_cosme_to_image(fit, prepro->bad_pixel_map_file, prepro->is_cfa);
+		g_object_unref(prepro->bad_pixel_map_file);
 	}
 
 	if (prepro->debayer) {
@@ -635,6 +636,8 @@ gboolean check_for_cosme_file_sanity(GFile *file) {
 		}
 		g_free(line);
 	}
+	g_object_unref(data_input);
+	g_object_unref(input_stream);
 	return TRUE;
 }
 

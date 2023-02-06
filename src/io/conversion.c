@@ -1119,14 +1119,20 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 	image_type imagetype = get_type_for_extension(src_ext);
 	if (imagetype == TYPEUNDEF) {
 		g_free(name);
+		name = NULL;
 		return OPEN_ERROR;
 	}
 #ifdef HAVE_FFMS2
 	if (imagetype == TYPEAVI) {
-		if (test_only) return OPEN_SEQ;
+		if (test_only) {
+			g_free(name);
+			name = NULL;
+			return OPEN_SEQ;
+		}
 		if (convert->current_film) {
 			siril_debug_print("error: opening a film while the previous was still here\n");
 			g_free(name);
+			name = NULL;
 			return OPEN_ERROR;
 		}
 		convert->current_film = calloc(1, sizeof(struct film_struct));
@@ -1136,9 +1142,12 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			free(convert->current_film);
 			convert->current_film = NULL;
 			g_free(name);
+			name = NULL;
 			return OPEN_ERROR;
 		}
 		convert->readseq_count = get_new_read_counter();
+		g_free(name);
+		name = NULL;
 		return OPEN_OK;
 	}
 #endif
@@ -1147,6 +1156,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		if (convert->current_ser) {
 			siril_debug_print("error: opening a SER while the previous was still here\n");
 			g_free(name);
+			name = NULL;
 			return OPEN_ERROR;
 		}
 		convert->current_ser = malloc(sizeof(struct ser_struct));
@@ -1157,9 +1167,11 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			free(convert->current_ser);
 			convert->current_ser = NULL;
 			g_free(name);
+			name = NULL;
 			return OPEN_ERROR;
 		}
 		convert->readseq_count = get_new_read_counter();
+		g_free(name);
 		return OPEN_OK;
 	}
 	else if (imagetype == TYPEFITS && fitseq_is_fitseq(name, NULL)) {
@@ -1167,6 +1179,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		if (convert->current_fitseq) {
 			siril_debug_print("error: opening a FITSEQ while the previous was still here\n");
 			g_free(name);
+			name = NULL;
 			return OPEN_ERROR;
 		}
 		convert->current_fitseq = malloc(sizeof(fitseq));
@@ -1177,9 +1190,11 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			free(convert->current_fitseq);
 			convert->current_fitseq = NULL;
 			g_free(name);
+			name = NULL;
 			return OPEN_ERROR;
 		}
 		g_free(name);
+		name = NULL;
 
 		if (!convert->allow_32bits && get_data_type(convert->current_fitseq->bitpix) == DATA_FLOAT) {
 			siril_log_color_message(_("Converting 32 bits images (from %s) to 16 bits is not supported, ignoring file.\n"), "salmon", src_filename);
@@ -1191,6 +1206,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		convert->readseq_count = get_new_read_counter();
 		return OPEN_OK;
 	}
+	g_free(name);
 	return OPEN_NOT_A_SEQ;
 }
 
@@ -1212,6 +1228,7 @@ static gchar *create_sequence_filename(sequence_type output_type, const char *de
 		default:
 			siril_log_color_message(_("output sequence type unknown, aborting\n"), "red");
 	}
+	g_free(destroot_noext);
 	return output;
 }
 

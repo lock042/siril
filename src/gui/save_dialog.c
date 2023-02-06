@@ -677,8 +677,9 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	if (initialize_data(args)) {
-		start_in_new_thread(mini_save_dialog, args);
+		start_in_new_thread(mini_save_dialog, NULL);
 	} else {
+		g_free(args);
 		siril_add_idle(end_generic, NULL);
 	}
 }
@@ -690,6 +691,7 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 	if (initialize_data(args)) {
 		start_in_new_thread(mini_save_dialog, args);
 	} else {
+		g_free(args);
 		siril_add_idle(end_generic, NULL);
 	}
 }
@@ -711,7 +713,7 @@ void on_header_save_as_button_clicked() {
 				if (initialize_data(args)) {
 					start_in_new_thread(mini_save_dialog, args);
 				} else {
-					siril_add_idle(end_generic, NULL);
+					siril_add_idle(end_generic, args);
 				}
 			} else {
 				close_dialog();

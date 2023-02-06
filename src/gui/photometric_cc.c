@@ -93,6 +93,7 @@ static void start_photometric_cc() {
 			start_in_new_thread(plate_solver, args);
 		}
 	} else {
+		g_free(args); // not needed any more
 		get_mag_settings_from_GUI(&pcc_args->mag_mode, &pcc_args->magnitude_arg);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		start_in_new_thread(photometric_cc_standalone, pcc_args);
