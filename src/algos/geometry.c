@@ -185,6 +185,8 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, in
 }
 
 static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
+	if (bin_factor == 0) // Bin 0 would be nonsensical.
+		return;
 	int width = fit->rx;
 	int height = fit->ry;
 	int new_width = width / bin_factor;
@@ -218,9 +220,12 @@ static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
 		}
 	}
 	fit_update_buffer(fit, newbuf, new_width, new_height, bin_factor);
+	return;
 }
 
 static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
+	if (bin_factor == 0) // Bin 0 would be nonsensical.
+		return;
 	int width = fit->rx;
 	int height = fit->ry;
 	int new_width = width / bin_factor;

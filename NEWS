@@ -84,6 +84,7 @@ v1.2.0 mmm dd, 2022
 * Fixed opening of scientific FITS cube files
 * Fixed gnuplot call for macOS/AppImage, by making its path configurable
 * Fixed bug in roworder of SER sequence created from TOP-DOWN FITS images
+* Added ability to use Starnet++ on sequences
 
 v1.0.7 xx xx, 2022
 

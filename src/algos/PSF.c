@@ -706,13 +706,13 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 		gboolean from_peaker, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
 		starprofile profile, psf_error *error) {
 	if (error) *error = PSF_NO_ERR;
-	gboolean photometry_computed = FALSE;
+//	gboolean photometry_computed = FALSE; // This is never used except in the dead code commented out later
 
 	psf_star *psf = NULL;
 	if (!(psf = psf_minimiz_angle(z, bg, sat, convergence, from_peaker, for_photometry, phot_set, verbose, profile, error))) {
 		return NULL;
 	}
-	photometry_computed = TRUE;
+//	photometry_computed = TRUE;
 
 	/* We quickly test the result. If it is bad we return NULL */
 	if (!isfinite(psf->fwhmx) || !isfinite(psf->fwhmy) ||
@@ -723,7 +723,8 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 		return NULL;
 	}
 
-	// Photometry
+/* This code is logically dead. Commenting out prior to removal.
+ *	// Photometry
 	if (for_photometry && !photometry_computed &&
 			(!error || *error == PSF_NO_ERR || *error == PSF_ERR_DIVERGED)) {
 		psf->phot = getPhotometryData(z, psf, phot_set, verbose, error);
@@ -739,7 +740,7 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 			psf->SNR = 0;
 		}
 	}
-
+*/
 	return psf;
 }
 

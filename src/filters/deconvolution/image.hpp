@@ -91,11 +91,11 @@ public:
         : size(o.size), w(o.w), h(o.h), d(o.d), data(o.data) {
     }
 
-    template <typename T2>
-    img_t(img_t<T2>&& o) noexcept : w(o.w), h(o.h), d(o.d), data(std::move(o.data)), forwardplanf(std::move(o.forwardplanf)), backwardplanf(std::move(o.backwardplanf)) {
+    img_t(img_t<T>&& o) noexcept : size(o.size), w(o.w), h(o.h), d(o.d), data(std::move(o.data)), forwardplanf(std::move(o.forwardplanf)), backwardplanf(std::move(o.backwardplanf)) {
         o.w = 0;
         o.h = 0;
         o.d = 0;
+        o.size = 0;
         o.forwardplanf = nullptr;
         o.backwardplanf = nullptr;
     }

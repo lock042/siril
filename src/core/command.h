@@ -145,6 +145,7 @@ int	process_seq_psf(int nb);
 int	process_seq_rl(int nb);
 int	process_seq_sb(int nb);
 int	process_seq_split_cfa(int nb);
+int	process_seq_starnet(int nb);
 int	process_seq_stat(int nb);
 int	process_seq_tilt(int nb);
 int	process_seq_wiener(int nb);

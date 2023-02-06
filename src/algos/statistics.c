@@ -287,6 +287,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		stat->total = nx * ny;
 		if (stat->total == 0L) {
 			if (stat_is_local) free(stat);
+			if (free_data) g_free(data);
 			return NULL;
 		}
 	}

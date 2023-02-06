@@ -127,7 +127,7 @@ double QualityEstimate_float(fits *fit, int layer) {
 
 		double q = Gradient(buf, x_samples, y_samples);
 
-		dval += (q * ((QSUBSAMPLE_MIN * QSUBSAMPLE_MIN)
+		dval += (q * ((double)(QSUBSAMPLE_MIN * QSUBSAMPLE_MIN)
 					/ (subsample * subsample)));
 		//printf("dval val : %f\n", dval);
 

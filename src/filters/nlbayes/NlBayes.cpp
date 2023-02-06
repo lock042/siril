@@ -418,6 +418,7 @@ int processNlBayes(
 			else {
 				nSimP = estimateSimilarPatchesStep2(i_imNoisy, io_imBasic, group3dNoisy,
 					group3dBasic, index, ij, p_imSize, p_params);
+				nSimP = (nSimP < 1 ? 1 : nSimP);
 			}
 
 			//! Initialization

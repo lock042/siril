@@ -979,8 +979,7 @@ gpointer estimate_only(gpointer p) {
 		sfpar.min_A = 0.07;
 		sfpar.max_A = 0.7;
 		sfpar.profile = PSF_MOFFAT_BFREE;
-		image *input_image = NULL;
-		input_image = calloc(1, sizeof(image));
+		image *input_image = calloc(1, sizeof(image));
 		input_image->fit = the_fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
@@ -988,7 +987,7 @@ gpointer estimate_only(gpointer p) {
 		int nb_stars;
 		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
-
+		g_free(input_image);
 		if (!com.stars || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
 			goto ENDEST;
@@ -1104,8 +1103,7 @@ gpointer deconvolve(gpointer p) {
 		sfpar.min_A = 0.07;
 		sfpar.max_A = 0.7;
 		sfpar.profile = PSF_MOFFAT_BFREE;
-		image *input_image = NULL;
-		input_image = calloc(1, sizeof(image));
+		image *input_image = calloc(1, sizeof(image));
 		input_image->fit = the_fit;
 		input_image->from_seq = NULL;
 		input_image->index_in_seq = -1;
@@ -1113,7 +1111,7 @@ gpointer deconvolve(gpointer p) {
 		int nb_stars;
 		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
-
+		g_free(input_image);
 		if (retval || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
 			goto ENDDECONV;

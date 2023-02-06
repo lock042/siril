@@ -10,14 +10,14 @@
 **    Author: Jean-Luc Starck
 **
 **    Date:  03/02/25
-**    
+**
 **    File:  Def_Wavelet.h
 **
 *******************************************************************************
 **
 **    DESCRIPTION  Data structures definitions for the wavelet package
-**    -----------   
-******************************************************************************/ 
+**    -----------
+******************************************************************************/
 
 /* Wavelet transform algorithm number  */
 #define TO_PAVE_LINEAR   1
@@ -48,7 +48,7 @@ typedef struct 	{
 	int Size;
 	float Freq_Coup;
 	float *Data;
-	        } pyramid_f_des;
+} pyramid_f_des;
 
 /* Complex pyramid data structure */
 typedef struct 	{
@@ -105,7 +105,7 @@ typedef struct {
 /* Filtering */
 
 /* Thresholding */
-#define FILTER_TRESHOLD 1     
+#define FILTER_TRESHOLD 1
 
 /* Adaptative thresholding */
 #define FILTER_HIERARCHICAL_TRESHOLD 2
