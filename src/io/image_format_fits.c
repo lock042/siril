@@ -87,6 +87,22 @@ static void read_fits_date_obs_header(fits *fit) {
 
 	fits_read_key(fit->fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status);
 
+	/* In some cases, date is divided in two:
+	 * - DATE-OBS
+	 * - TIME-OBS
+	 * We need to check if we find the "T" inside DATE-OBS.
+	 * If not, then try to check for TIME-OBS to get the time
+	 */
+	if (!g_strstr_len(date_obs, -1, "T")) {
+		status = 0;
+		char time_obs[FLEN_VALUE] = { 0 };
+		fits_read_key(fit->fptr, TSTRING, "TIME-OBS", &time_obs, NULL, &status);
+		if (!status) {
+			strcat(date_obs, "T");
+			strcat(date_obs, time_obs);
+		}
+	}
+
 	/** Case seen in some FITS files. Needed to get date back in SER conversion **/
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "UT-START", &ut_start, NULL, &status);
