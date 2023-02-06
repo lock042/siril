@@ -40,6 +40,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef fseek64
+#ifdef _WIN32
+#define fseek64 _fseeki64
+#else
+#define fseek64 fseeko
+#endif
+#endif
+
 #define NAMEDSTARS_DAT "~/.local/share/kstars/namedstars.dat"
 #define UNNAMEDSTARS_DAT "~/.local/share/kstars/unnamedstars.dat"
 #define TYCHOSTARS_DAT "~/.local/share/kstars/deepstars.dat"
@@ -48,7 +56,7 @@ const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYC
 
 struct catalogue_index {
 	uint32_t trixelID;
-	uint32_t offset;
+	uint32_t offset;	// file size is < 4G, it's fine
 	uint32_t nrecs;
 };
 
@@ -496,14 +504,7 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 	}
 
 	//siril_debug_print("offset for trixel %u: %u\n", trixel, index->offset);
-	int fseek_retval;
-	/* If offset > 2^31 - 1, do the fseek in two steps */
-	if (index->offset > INT_MAX) {
-		if ((fseek_retval = fseek(cat->f, INT_MAX, SEEK_SET)))
-			fseek_retval = fseek(cat->f, index->offset - ((uint32_t)1 << 31) + 1, SEEK_CUR);
-	}
-	else fseek_retval = fseek(cat->f, index->offset, SEEK_SET);
-        if (fseek_retval) {
+	if (fseek64(cat->f, index->offset, SEEK_SET)) {
 		siril_debug_print("failed to seek to the trixel offset %u\n", index->offset);
 		return 1;
 	}

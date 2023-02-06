@@ -1483,7 +1483,7 @@ gpointer plate_solver(gpointer p) {
 				args->ret = 1;
 			}
 		} else {
-			args->ret = project_catalog_with_WCS(args->catalog_file, args->fit,
+			args->ret = project_catalog_with_WCS(args->catalog_file, args->fit, TRUE,
 					&pcc_stars, &nb_pcc_stars);
 		}
 		if (args->ret) {
@@ -1813,7 +1813,7 @@ static gchar *siril_get_asnet_bin() {
 
 /* returns true if the command solve-field is available */
 gboolean asnet_is_available() {
-	const char *str = "solve-field --version > /dev/null 2>&1";
+	const char *str = "solve-field -h > /dev/null 2>&1";
 	int retval = system(str);
 	if (WIFEXITED(retval) && (0 == WEXITSTATUS(retval))) {
 		solvefield_is_in_path = TRUE;

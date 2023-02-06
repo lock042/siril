@@ -1097,7 +1097,9 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 				findstar_args->reference_H = args->seq->regparam[findstar_args->layer][refidx].H;
 			}
 		}
+#ifdef HAVE_WCSLIB
 		ref.wcslib = NULL;	// don't free it
+#endif
 		clearfits(&ref);
 	}
 	if (findstar_args->already_in_thread) {

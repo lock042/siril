@@ -39,7 +39,7 @@ struct photometric_cc_data {
 
 int photometric_cc(struct photometric_cc_data *args);
 gpointer photometric_cc_standalone(gpointer p);
-int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars);
+int project_catalog_with_WCS(GFile *catalog_file, fits *fit, gboolean phot, pcc_star **ret_stars, int *ret_nb_stars);
 
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */
 
