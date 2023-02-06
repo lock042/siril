@@ -4851,11 +4851,12 @@ int process_seq_fixbanding(int nb) {
 	gchar *end1, *end2;
 
 	if (word[1] && word[1][0] != '\0') {
-		args->seq = load_sequence(word[1], NULL);
-	}
-	if (args->seq == NULL) {
-		free(args);
-		return CMD_SEQUENCE_NOT_FOUND;
+		if (!(args->seq = load_sequence(word[1], NULL))) {
+			if (!args->seq) {
+				free(args);
+				return CMD_SEQUENCE_NOT_FOUND;
+			}
+		}
 	}
 	args->amount = g_ascii_strtod(word[2], &end1);
 	if (end1 == word[2] || args->amount < 0 || args->amount > 4) {
