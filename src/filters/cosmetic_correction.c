@@ -75,6 +75,7 @@ static float getMedian5x5_float(const float *buf, const int xx, const int yy, co
 
 static WORD* getAverage3x3Line(WORD *buf, const int yy, const int w,
 		const int h, gboolean is_cfa) {
+	g_assert(w > 0 && h > 0);
 	int step, radius, x, xx, y;
 	WORD *cpyline;
 
@@ -104,6 +105,7 @@ static WORD* getAverage3x3Line(WORD *buf, const int yy, const int w,
 
 static float* getAverage3x3Line_float(const float *buf, const int yy, const int w,
 		const int h, gboolean is_cfa) {
+	g_assert(w > 0 && h > 0);
 	int step, radius, x, xx, y;
 	float *cpyline;
 
@@ -133,6 +135,7 @@ static float* getAverage3x3Line_float(const float *buf, const int yy, const int 
 
 static float getAverage3x3_float(const float *buf, const int xx, const int yy,
 		const int w, const int h, gboolean is_cfa) {
+	g_assert(w > 0 && h > 0);
 
     const int step = is_cfa ? 2 : 1;
     const int radius = step;
@@ -154,6 +157,7 @@ static float getAverage3x3_float(const float *buf, const int xx, const int yy,
 
 static float getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
 		const int w, const int h, gboolean is_cfa) {
+	g_assert(w > 0 && h > 0);
 	int step, radius, x, y;
 	float value = 0.f;
 

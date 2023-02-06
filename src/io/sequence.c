@@ -1988,7 +1988,12 @@ gboolean sequence_has_wcs(sequence *seq, int *index) {
 }
 
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
-	if (!seq->regparam[reglayer]) {
+	gboolean error = FALSE;
+	if(!seq->regparam)
+		error = TRUE;
+	else if (!seq->regparam[reglayer])
+		error = TRUE;
+	if (error) {
 		siril_debug_print("Sequence drift could not be checked as sequence has no regdata on layer %d\n", reglayer);
 		return FALSE;
 	}

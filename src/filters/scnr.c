@@ -64,20 +64,29 @@ gpointer scnr(gpointer p) {
 			args->preserve ? _(", preserving lightness") : "");
 	gettimeofday(&t_start, NULL);
 
+	int error = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (i = 0; i < nbdata; i++) {
+		if (error)
+			continue;
 		double red, green, blue;
-		if (args->fit->type == DATA_USHORT) {
-			red = args->fit->pdata[RLAYER][i] * invnorm;
-			green = args->fit->pdata[GLAYER][i] * invnorm;
-			blue = args->fit->pdata[BLAYER][i] * invnorm;
-		}
-		else if (args->fit->type == DATA_FLOAT) {
-			red = (double)args->fit->fpdata[RLAYER][i];
-			green = (double)args->fit->fpdata[GLAYER][i];
-			blue = (double)args->fit->fpdata[BLAYER][i];
+		switch (args->fit->type) {
+			case DATA_USHORT:
+				red = args->fit->pdata[RLAYER][i] * invnorm;
+				green = args->fit->pdata[GLAYER][i] * invnorm;
+				blue = args->fit->pdata[BLAYER][i] * invnorm;
+				break;
+			case DATA_FLOAT:
+				red = (double)args->fit->fpdata[RLAYER][i];
+				green = (double)args->fit->fpdata[GLAYER][i];
+				blue = (double)args->fit->fpdata[BLAYER][i];
+				break;
+			default:
+				siril_log_color_message(_("Error: unsupported data format!\n"), "red");
+				error++;
+				continue;
 		}
 
 		double x, y, z, L, a, b, m;
@@ -132,6 +141,8 @@ gpointer scnr(gpointer p) {
 		}
 	}
 
+	if (error != 0)
+		error = 1;
 	/* normalize in case of preserve, it can under/overshoot */
 	if (args->preserve && nb_above_1)
 		siril_log_message("%d pixels were truncated to a maximum value of 1\n", nb_above_1);
@@ -141,7 +152,7 @@ gpointer scnr(gpointer p) {
 	show_time(t_start, t_end);
 
 	notify_gfit_modified();
-	return GINT_TO_POINTER(0);
+	return GINT_TO_POINTER(error);
 }
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {

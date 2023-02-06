@@ -423,7 +423,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 
 	// Retrieve the Date/Time as in the TIFF TAG
 	gchar *date_time = NULL;
-	int year, month, day, h, m, s;
+	int year = 1, month = 1, day = 1, h = 0, m = 0, s = 0;
 
 	if (TIFFGetField(tif, TIFFTAG_DATETIME, &date_time)) {
 		sscanf(date_time, "%04d:%02d:%02d %02d:%02d:%02d", &year, &month, &day, &h, &m, &s);
@@ -487,7 +487,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	clearfits(fit);
 	if (date_time) {
 		GTimeZone *tz = g_time_zone_new_utc();
-		fit->date_obs = g_date_time_new(tz, year, month, day, h, m, s);
+		fit->date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
 		g_time_zone_unref(tz);
 	}
 	fit->rx = width;
@@ -652,7 +652,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *des
 	const uint16_t nsamples = (uint16_t) fit->naxes[2];
 	const uint32_t width = (uint32_t) fit->rx;
 	const uint32_t height = (uint32_t) fit->ry;
-	
+
 
 	/*******************************************************************/
 
@@ -1292,9 +1292,10 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (png_bytep) ((uint16_t*) data + (size_t) samples_per_pixel * i * width);
 	} else {
-		uint8_t *data = convert_data8(fit);
+		uint8_t *data8 = convert_data8(fit);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
-			row_pointers[j--] = (uint8_t*) data + (size_t) samples_per_pixel * i * width;
+			row_pointers[j--] = (uint8_t*) data8 + (size_t) samples_per_pixel * i * width;
+		g_free(data8);
 	}
 
 	png_write_image(png_ptr, row_pointers);
@@ -1463,7 +1464,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 
 	float pitch = estimate_pixel_pitch(raw);
 	size_t npixels = width * height;
-	
+
 	if (raw->other.shutter > 0 && raw->other.shutter < 1)
 		siril_log_message(_("Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"),
 						raw->idata.make, raw->idata.model, raw->other.iso_speed, 1/raw->other.shutter);

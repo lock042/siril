@@ -171,7 +171,7 @@ static int ser_recompute_frame_count(struct ser_struct *ser_file) {
 	gint64 filesize = ser_file->filesize;
 
 	siril_log_message(_("Trying to fix broken SER file...\n"));
-	gint64 frame_size = ser_file->image_width * ser_file->image_height;
+	gint64 frame_size = (gint64) ser_file->image_width * ser_file->image_height;
 	if (frame_size == 0)
 		return 0;
 
@@ -191,15 +191,15 @@ static int ser_recompute_frame_count(struct ser_struct *ser_file) {
 
 static int ser_read_header(struct ser_struct *ser_file) {
 	char header[SER_HEADER_LEN];
-
+	int ret;
 	if (!ser_file || ser_file->file == NULL)
 		return -1;
 
 	/* Get file size */
-	fseek64(ser_file->file, 0, SEEK_END);
+	ret = fseek64(ser_file->file, 0, SEEK_END);
 	ser_file->filesize = ftell64(ser_file->file);
-	fseek64(ser_file->file, 0, SEEK_SET);
-	if (ser_file->filesize == -1) {
+	ret |= fseek64(ser_file->file, 0, SEEK_SET);
+	if (ser_file->filesize == -1 || ret == -1) {
 		perror("seek");
 		return -1;
 	}
@@ -1123,7 +1123,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		g_assert(ser_file->number_of_planes == 3);
 		if (read_area_from_image(ser_file, frame_no, buffer, area, layer))
 			return -1;
-		ser_manage_endianess_and_depth(ser_file, buffer, area->w * area->h);
+		ser_manage_endianess_and_depth(ser_file, buffer, (gint64) area->w * area->h);
 		break;
 	default:
 		siril_log_message(_("This type of Bayer pattern is not handled yet.\n"));
@@ -1333,7 +1333,11 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 	i = (int) ceil((float) w / MAX_SIZE);
 	j = (int) ceil((float) h / MAX_SIZE);
 	pixScale = (i > j) ? i : j;	// picture scale factor
-	if (pixScale == 0) return NULL;
+	if (pixScale == 0) {
+		g_free(ima_data);
+		g_free(pixbuf_data);
+		return NULL;
+	}
 	Ws = w / pixScale; 			// picture width in pixScale blocks
 	Hs = h / pixScale; 			// -//- height pixScale
 

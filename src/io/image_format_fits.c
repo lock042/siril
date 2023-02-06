@@ -2491,11 +2491,19 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 
 	if ((oper & CP_COPYA)) {
 		// copying data
-		if (to->type == DATA_USHORT)
+		if (to->type == DATA_USHORT) {
+			if (!(to->data)) {
+				fprintf(stderr, "error: data ptr unallocated\n");
+				return -1;
+			}
 			memcpy(to->data, from->data, nbdata * depth * sizeof(WORD));
-		else if (to->type == DATA_FLOAT)
+		} else if (to->type == DATA_FLOAT) {
+			if (!(to->fdata)) {
+				fprintf(stderr, "error: fdata ptr unallocated\n");
+				return -1;
+			}
 			memcpy(to->fdata, from->fdata, nbdata * depth * sizeof(float));
-		else {
+		} else {
 			fprintf(stderr, "unsupported copy\n");
 			return -1;
 		}
@@ -3081,6 +3089,9 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 
 	const int w = naxes[0];
 	const int h = naxes[1];
+	if (w == 0 || h == 0)
+		return(NULL);
+
 	size_t sz = w * h;
 	ima_data = malloc(sz * sizeof(float));
 

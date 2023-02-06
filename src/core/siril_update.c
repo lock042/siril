@@ -403,7 +403,8 @@ static void init() {
 		curl_global_init(CURL_GLOBAL_ALL);
 		curl = curl_easy_init();
 		if (g_getenv("CURL_CA_BUNDLE"))
-			curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE"));
+			if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
+				siril_debug_print("Error in curl_easy_setopt()\n");
 	}
 
 	if (!curl)
@@ -438,9 +439,12 @@ static gchar *get_changelog(gchar *str) {
 	url = g_string_append(url, "/ChangeLog");
 
 	changelog_url = g_string_free(url, FALSE);
-	curl_easy_setopt(curl, CURLOPT_URL, changelog_url);
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, changelog);
+	CURLcode ret;
+	ret = curl_easy_setopt(curl, CURLOPT_URL, changelog_url);
+	ret |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	ret |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, changelog);
+	if (ret)
+		siril_debug_print("Error in curl_easy_setopt()\n");
 	if (curl_easy_perform(curl) == CURLE_OK) {
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
 		if (code == 200) {
@@ -555,14 +559,17 @@ static gpointer fetch_url(gpointer p) {
 	content->data[0] = '\0';
 	content->len = 0;
 
-	curl_easy_setopt(curl, CURLOPT_URL, args->url);
-	curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	CURLcode retval;
+	retval = curl_easy_setopt(curl, CURLOPT_URL, args->url);
+	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
+	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
+	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	if (retval)
+		siril_debug_print("Error in curl_easy_setopt()\n");
 
-	CURLcode retval = curl_easy_perform(curl);
+	retval = curl_easy_perform(curl);
 	if (retval == CURLE_OK) {
 		if (retries == DEFAULT_FETCH_RETRIES) set_progress_bar_data(NULL, 0.4);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);

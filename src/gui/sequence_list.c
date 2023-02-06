@@ -489,28 +489,30 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	if (list_store) gtk_list_store_clear(list_store);
 	get_list_store();
 	if (!use_photometry) { // reporting registration data
-		if (args->seq->regparam && args->seq->regparam[args->layer]) {
-			switch (selected_source) {
-				case r_FWHM:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
-					break;
-				case r_WFWHM:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("wFWHM"));
-					break;
-				case r_ROUNDNESS:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
-					break;
-				case r_QUALITY:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Quality"));
-					break;
-				case r_BACKGROUND:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
-					break;
-				case r_NBSTARS:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("#Stars"));
-					break;
-				default: 
-					break;
+		if (args->seq) { // ensure we aren't dereferencing a NULL args->seq by checking args->seq->regparam
+			if (args->seq->regparam && args->seq->regparam[args->layer]) {
+				switch (selected_source) {
+					case r_FWHM:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
+						break;
+					case r_WFWHM:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("wFWHM"));
+						break;
+					case r_ROUNDNESS:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
+						break;
+					case r_QUALITY:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Quality"));
+						break;
+					case r_BACKGROUND:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
+						break;
+					case r_NBSTARS:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("#Stars"));
+						break;
+					default:
+						break;
+				}
 			}
 		} else {
 			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
@@ -640,7 +642,7 @@ void toggle_image_selection(int index_in_list, int real_index, gboolean initvalu
 	if (initvalue) {
 		com.seq.imgparam[real_index].incl = FALSE;
 		if (before_change != com.seq.imgparam[real_index].incl) { // decrement only on value change
-			--com.seq.selnum; 
+			--com.seq.selnum;
 			msg = g_strdup_printf(_("Image %d has been unselected from sequence\n"), real_index + 1);
 			if (com.seq.reference_image == real_index) {
 				com.seq.reference_image = -1;  // invalidate to trigger new reference search if ref frame is deselected

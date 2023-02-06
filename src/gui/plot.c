@@ -758,6 +758,9 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	real_x = calloc(nbImages, sizeof(double));
 	if (!vmag || !err || !x || !real_x) {
 		PRINT_ALLOC_ERR;
+		g_free(err); // g_free is safe to use here as it takes no action if the arg is NULL
+		g_free(x);
+		g_free(real_x);
 		return -1;
 	}
 	// i is index in dataset, j is index in output

@@ -433,8 +433,9 @@ void gnuplot_resetplot(gnuplot_ctrl * h)
 {
     if (h->ntmp) {
 		for (int i = 0; i < h->ntmp; i++) {
-            remove(h->tmp_filename_tbl[i]) ;
-            free(h->tmp_filename_tbl[i]);
+            if (g_remove(h->tmp_filename_tbl[i]) == -1)
+				siril_debug_print("g_remove() failed\n");
+            g_free(h->tmp_filename_tbl[i]);
             h->tmp_filename_tbl[i] = NULL;
 
         }

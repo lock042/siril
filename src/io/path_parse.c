@@ -319,8 +319,12 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			}
 		} else if (subs[1][0] == '%' && g_str_has_suffix(subs[1], "s")) { // case %s
 			char val[FLEN_VALUE];
-			*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
-			display_path_parse_error(*status, key);
+			if (!headerkeys) // ensure null pointer isn't passed to read_key_from_header_text()
+				*status = 1;
+			else {
+				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+				display_path_parse_error(*status, key);
+			}
 			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;

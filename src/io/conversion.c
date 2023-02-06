@@ -601,7 +601,8 @@ gpointer convert_thread_worker(gpointer p) {
 
 	/* remove the target .seq to avoid errors */
 	gchar *seqname = replace_ext(args->destroot, ".seq");
-	g_unlink(seqname);
+	if (g_unlink(seqname))
+		siril_debug_print("Error in g_unlink()\n");
 	g_free(seqname);
 
 	convert_status convert = { 0 };

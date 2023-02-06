@@ -520,7 +520,7 @@ int register_kombat(struct registration_args *args) {
 	double qual;
 	int frame;
 	int ref_idx;
-	int ret;
+	int ret, ret2;
 	int abort = 0;
 	rectangle full = { 0 };
 	int q_index = -1;
@@ -562,12 +562,12 @@ int register_kombat(struct registration_args *args) {
 
 	/* we load reference image just to get dimensions of images,
 	 in order to call seq_read_frame_part() and use only the desired layer, over each full image */
-	seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
+	ret2 = seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
 	full.x = full.y = 0;
 	full.w = fit_ref.rx;
 	full.h = fit_ref.ry;
 
-	if (ret || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
+	if (ret || ret2 || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
 		siril_log_message(
 				_("Register: could not load first image to register, aborting.\n"));
 		args->seq->regparam[args->layer] = NULL;

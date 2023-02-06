@@ -301,7 +301,8 @@ static void init() {
 		curl_global_init(CURL_GLOBAL_ALL);
 		curl = curl_easy_init();
 		if (g_getenv("CURL_CA_BUNDLE"))
-			curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE"));
+			if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
+				siril_debug_print("Error in curl_easy_setopt()\n");
 	}
 
 	if (!curl)
@@ -336,11 +337,13 @@ retrieve:
 	content->data[0] = '\0';
 	content->len = 0;
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_VERBOSE, 0);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, PACKAGE_STRING);
+	CURLcode ret = curl_easy_setopt(curl, CURLOPT_URL, url);
+	ret |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0);
+	ret |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
+	ret |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
+	ret |= curl_easy_setopt(curl, CURLOPT_USERAGENT, PACKAGE_STRING);
+	if (ret)
+		siril_debug_print("Error in curl_easy_setopt()\n");
 
 	siril_debug_print("fetch_url(): %s\n", url);
 	if (curl_easy_perform(curl) == CURLE_OK) {

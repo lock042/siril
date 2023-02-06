@@ -257,8 +257,12 @@ int parse_buffer(const gchar *buffer, double lim_mag) {
 
 			if (world_cs && realname && valid) {
 				gchar **display_name = g_strsplit(realname, "\\n", 2);
+				gchar* alpha = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+				gchar* delta = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
 				siril_log_message(_("Found %s at coordinates: %s, %s with magnitude: %0.1lf\n"),display_name[0],
-						siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds"), siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\""), mag);
+						alpha, delta, mag);
+				g_free(alpha);
+				g_free(delta);
 
 				if (!com.script && !com.headless) {	// Write in catalogue only if in GUI mode, not in script-mode or headless-mode
 					com.pref.gui.catalog[6] = TRUE;	// enabling the user catalog in which it will be added

@@ -350,6 +350,7 @@ static void filter_changed(gpointer user_data) {
 		g_free(new_filename);
 	}
 
+	g_free(file_no_ext);
 	g_free(filename);
 }
 
@@ -402,7 +403,7 @@ gboolean end_save(gpointer p) {
 	set_cursor_waiting(FALSE);
 	close_dialog();	// is this different from the hide above?
 	update_MenuItem();
-	
+
 	free(args);
 	return FALSE;
 }

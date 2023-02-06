@@ -734,7 +734,9 @@ static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, do
 			sprintf(line, "%f %12.5f %12.5f %f %f\n", stars[i].distance, xi, eta, Vmag, Bmag);
 		else 	sprintf(line, "%f %13.6e %13.6e %f %f\n", stars[i].distance, xi, eta, Vmag, Bmag);
 
-		g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, NULL);
+		if (g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, NULL) == FALSE) {
+			siril_log_color_message(_("Error writing output...\n"), "red");
+		}
 	}
 
 	return 0;

@@ -3726,6 +3726,8 @@ int process_seq_tilt(int nb) {
 		seq = &com.seq;
 		draw_polygon = TRUE;
 	}
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
 
 	struct tilt_data *args = calloc(sizeof(struct tilt_data), 1);
 	args->seq = seq;
@@ -5346,7 +5348,11 @@ int process_extractHaOIII(int nb) {
 			ret = save1fits32(Ha, &f_Ha, 0) ||
 					save1fits32(OIII, &f_OIII, 0);
 		}
-	} else return CMD_INVALID_IMAGE;
+	} else {
+		g_free(Ha);
+		g_free(OIII);
+		return CMD_INVALID_IMAGE;
+	}
 
 	g_free(Ha);
 	g_free(OIII);
@@ -6257,7 +6263,7 @@ int process_convert(int nb) {
 	/* sort list */
 	list = g_list_sort(list, (GCompareFunc) strcompare);
 	/* convert the list to an array for parallel processing */
-	char **files_to_link = glist_to_array(list, &count);
+	gchar **files_to_link = glist_to_array(list, &count);
 
 	gchar *str = ngettext("Convert: processing %d FITS file...\n", "Convert: processing %d FITS files...\n", count);
 	str = g_strdup_printf(str, count);
@@ -6266,6 +6272,7 @@ int process_convert(int nb) {
 
 	if (!com.wd) {
 		siril_log_message(_("Convert: no working directory set.\n"));
+		g_strfreev(files_to_link);
 		return CMD_NO_CWD;
 	}
 

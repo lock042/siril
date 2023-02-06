@@ -133,24 +133,24 @@ static void undo_add_item(fits *fit, char *filename, char *histo) {
 	com.hist_display = com.hist_current;
 }
 
-static int undo_get_data_ushort(fits *fit, historic hist) {
+static int undo_get_data_ushort(fits *fit, historic *hist) {
 	int fd;
 
-	if ((fd = g_open(hist.filename, O_RDONLY | O_BINARY, 0)) == -1) {
-		printf("Error opening swap file : %s\n", hist.filename);
+	if ((fd = g_open(hist->filename, O_RDONLY | O_BINARY, 0)) == -1) {
+		printf("Error opening swap file : %s\n", hist->filename);
 		return 1;
 	}
 
 	errno = 0;
-	fit->rx = fit->naxes[0] = hist.rx;
-	fit->ry = fit->naxes[1] = hist.ry;
+	fit->rx = fit->naxes[0] = hist->rx;
+	fit->ry = fit->naxes[1] = hist->ry;
 
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	size_t size = n * fit->naxes[2] * sizeof(WORD);
 	WORD *buf = calloc(1, size);
 	// read the data from temporary file
 	if ((read(fd, buf, size)) < size) {
-		printf("Undo Read of [%s], failed with error [%s]\n", hist.filename, strerror(errno));
+		printf("Undo Read of [%s], failed with error [%s]\n", hist->filename, strerror(errno));
 		free(buf);
 		g_close(fd, NULL);
 		return 1;
@@ -171,8 +171,8 @@ static int undo_get_data_ushort(fits *fit, historic hist) {
 		fit->pdata[GLAYER] = fit->data + n;
 		fit->pdata[BLAYER] = fit->data + n * 2;
 	}
-	memcpy(&fit->wcsdata, &hist.wcsdata, sizeof(wcs_info));
-	fit->focal_length = hist.focal_length;
+	memcpy(&fit->wcsdata, &hist->wcsdata, sizeof(wcs_info));
+	fit->focal_length = hist->focal_length;
 	if (!has_wcsdata(fit)) {
 		free_wcs(fit, FALSE);
 	} else {
@@ -186,24 +186,24 @@ static int undo_get_data_ushort(fits *fit, historic hist) {
 	return 0;
 }
 
-static int undo_get_data_float(fits *fit, historic hist) {
+static int undo_get_data_float(fits *fit, historic *hist) {
 	int fd;
 
-	if ((fd = g_open(hist.filename, O_RDONLY | O_BINARY, 0)) == -1) {
-		printf("Error opening swap file : %s\n", hist.filename);
+	if ((fd = g_open(hist->filename, O_RDONLY | O_BINARY, 0)) == -1) {
+		printf("Error opening swap file : %s\n", hist->filename);
 		return 1;
 	}
 
 	errno = 0;
-	fit->rx = fit->naxes[0] = hist.rx;
-	fit->ry = fit->naxes[1] = hist.ry;
+	fit->rx = fit->naxes[0] = hist->rx;
+	fit->ry = fit->naxes[1] = hist->ry;
 
 	size_t n = fit->naxes[0] * fit->naxes[1];
 	size_t size = n * fit->naxes[2] * sizeof(float);
 	float *buf = calloc(1, size);
 	// read the data from temporary file
 	if ((read(fd, buf, size) < size)) {
-		printf("Undo Read of [%s], failed with error [%s]\n", hist.filename, strerror(errno));
+		printf("Undo Read of [%s], failed with error [%s]\n", hist->filename, strerror(errno));
 		free(buf);
 		g_close(fd, NULL);
 		return 1;
@@ -224,8 +224,8 @@ static int undo_get_data_float(fits *fit, historic hist) {
 		fit->fpdata[GLAYER] = fit->fdata + n;
 		fit->fpdata[BLAYER] = fit->fdata + n * 2;
 	}
-	memcpy(&fit->wcsdata, &hist.wcsdata, sizeof(wcs_info));
-	fit->focal_length = hist.focal_length;
+	memcpy(&fit->wcsdata, &hist->wcsdata, sizeof(wcs_info));
+	fit->focal_length = hist->focal_length;
 	if (!has_wcsdata(fit)) {
 		free_wcs(fit, FALSE);
 	} else {
@@ -238,15 +238,15 @@ static int undo_get_data_float(fits *fit, historic hist) {
 	return 0;
 }
 
-static int undo_get_data(fits *fit, historic hist) {
-	if (hist.type == DATA_USHORT) {
+static int undo_get_data(fits *fit, historic *hist) {
+	if (hist->type == DATA_USHORT) {
 		if (gfit.type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 			set_precision_switch();
 		}
 		return undo_get_data_ushort(fit, hist);
-	} else if (hist.type == DATA_FLOAT) {
+	} else if (hist->type == DATA_FLOAT) {
 		if (gfit.type != DATA_FLOAT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 			fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
@@ -304,7 +304,7 @@ int undo_display_data(int dir) {
 			}
 			com.hist_display--;
 			siril_log_message(_("Undo: %s\n"), com.history[com.hist_display].history);
-			undo_get_data(&gfit, com.history[com.hist_display]);
+			undo_get_data(&gfit, &com.history[com.hist_display]);
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();
@@ -316,7 +316,7 @@ int undo_display_data(int dir) {
 		if (is_redo_available()) {
 			siril_log_message(_("Redo: %s\n"), com.history[com.hist_display].history);
 			com.hist_display++;
-			undo_get_data(&gfit, com.history[com.hist_display]);
+			undo_get_data(&gfit, &com.history[com.hist_display]);
 			invalidate_gfit_histogram();
 			invalidate_stats_from_fit(&gfit);
 			update_gfit_histogram_if_needed();

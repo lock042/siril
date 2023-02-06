@@ -572,6 +572,8 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	psf_star **results = new_fitted_stars(nb_candidates);
 	if (!results) {
 		PRINT_ALLOC_ERR;
+		g_free(image_float); // g_free() takes no action if the arg is NULL so no risk of a double free
+		g_free(image_ushort); // g_free() takes no action if the arg is NULL so no risk of a double free
 		return 0;
 	}
 
@@ -968,7 +970,9 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
  * Correction by 0.5 pixel to conform to asnet convention (compared to siril) is also added
  */
 int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars, int rx, int ry) {
-	g_unlink(filename); /* Delete old file if it already exists */
+	if (g_unlink(filename)) {
+		siril_debug_print("g_unlink failure\n");
+	} /* Delete old file if it already exists */
 
 	fitsfile *fptr = NULL;
 	int status = 0;
@@ -1162,6 +1166,8 @@ gpointer findstar_worker(gpointer p) {
 		if (i > 0)
 			fwhm = sum / i;
 		else fwhm = 0.0;
+	} else {
+		goto END;
 	}
 
 	if (args->update_GUI) {
@@ -1190,7 +1196,7 @@ gpointer findstar_worker(gpointer p) {
 	}
 	else if (!args->update_GUI)
 		free_fitted_stars(stars);
-
+END:
 	if (args->update_GUI)
 		siril_add_idle(end_findstar, args);
 	/*gettimeofday(&t_end, NULL);
