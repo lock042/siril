@@ -818,13 +818,15 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 		retval = 0;
 		break;
 	case XTRANS:
-		if (!xtrans)
+		if (!xtrans) {
+			g_free(newbuf);
 			return NULL;
+		}
 		retval = fast_xtrans_interpolate(buf, newbuf, *width, *height, xtrans);
 		break;
 	}
 	if (retval) {
-		free(newbuf);
+		g_free(newbuf);
 		return NULL;
 	}
 	return newbuf;

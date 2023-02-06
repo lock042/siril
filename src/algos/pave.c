@@ -103,19 +103,17 @@ int static test_ind(int ind, int N) {
 
 int pave_2d_linear_smooth(const float *Imag, float *Smooth, int Nl, int Nc,
 		int Num_Plan) {
-	int i, j, Step;
 
-    Step = pow(2.f, (float) Num_Plan) + 0.5f;
+    int Step = pow(2.f, (float) Num_Plan) + 0.5f;
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) collapse(2)
 #endif
-	for (i = 0; i < Nl; i++) {
-		for (j = 0; j < Nc; j++) {
-			int indi1, indj1, indi2, indj2;
-            indi1 = test_ind (i - Step, Nl);
-            indj1 = test_ind (j - Step, Nc);
-            indi2 = test_ind (i + Step, Nl);
-            indj2 = test_ind (j + Step,Nc);
+	for (int i = 0; i < Nl; i++) {
+		for (int j = 0; j < Nc; j++) {
+            int indi1 = test_ind (i - Step, Nl);
+            int indj1 = test_ind (j - Step, Nc);
+            int indi2 = test_ind (i + Step, Nl);
+            int indj2 = test_ind (j + Step,Nc);
             Smooth [i * Nc + j] = 1.f/16.f * (   Imag [indi1 * Nc + indj1]
                                            + Imag [indi1 * Nc + indj2]
                                            + Imag [indi2 * Nc + indj1]
@@ -222,15 +220,14 @@ int pave_2d_extract_plan(float *Pave, float *Imag, int Nl, int Nc, int Num_Plan)
 
 int pave_2d_bspline_smooth(const float *Imag, float *Smooth, int Nl, int Nc,
 		int Num_Plan) {
-	int i, j, Step;
 
-	Step = pow(2., (float) Num_Plan) + 0.5;
+	int Step = pow(2., (float) Num_Plan) + 0.5;
 
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) collapse(2)
 #endif
-	for (i = 0; i < Nl; i++) {
-		for (j = 0; j < Nc; j++) {
+	for (int i = 0; i < Nl; i++) {
+		for (int j = 0; j < Nc; j++) {
 			int indi1 = test_ind(i - Step, Nl);
 			int indj1 = test_ind (j - Step, Nc);
 			int indi2 = test_ind (i + Step, Nl);

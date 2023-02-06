@@ -351,7 +351,9 @@ static void write_in_user_catalogue(CatalogObjects *object, gboolean is_solar_sy
 	gchar sign = object->dec < 0 ? '-' : '+';
 	gchar *output_line = g_strdup_printf("%s;%lf;%c;%lf;;;;\n", object->code, object->ra / 15.0, sign, fabs(object->dec));
 
-	g_output_stream_write_all(output_stream, output_line, strlen(output_line), NULL, NULL, NULL);
+	if (g_output_stream_write_all(output_stream, output_line, strlen(output_line), NULL, NULL, NULL) == FALSE) {
+		siril_log_color_message(_("Error: failed to write output to user catalogue.\n"), "red");
+	}
 
 	g_free(output_line);
 	g_object_unref(output_stream);
@@ -415,7 +417,7 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_s
 	CatalogObjects *new_object = new_catalog_object(code,
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
 			NULL, NULL, cat_index);
-				
+
 
 
 	siril_catalogue_list = g_slist_append(siril_catalogue_list, new_object);

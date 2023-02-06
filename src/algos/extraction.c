@@ -50,6 +50,7 @@ void update_filter_information(fits *fit, char *filter, gboolean append) {
 		filtername = g_strdup(filter);
 	}
 	strncpy(fit->filter, filtername, FLEN_VALUE - 1);
+	g_free(filtername);
 }
 
 int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {

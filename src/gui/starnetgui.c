@@ -34,6 +34,7 @@
 #include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "gui/message_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/remixer.h"
 #include "gui/siril_preview.h"
@@ -112,6 +113,7 @@ void on_starnet_cancel_clicked(GtkButton *button, gpointer user_data) {
 void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_starnet_stride = GTK_SPIN_BUTTON(lookup_widget("spin_starnet_stride"));
 	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
+	GtkToggleButton *toggle_starnet_sequence = GTK_TOGGLE_BUTTON(lookup_widget("starnet_sequence_toggle"));
 	GtkToggleButton *toggle_starnet_upsample = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_upsample"));
 	GtkToggleButton *toggle_starnet_starmask = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask"));
 	GtkToggleButton *toggle_starnet_customstride = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_customstride"));
@@ -130,6 +132,9 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	starnet_data *starnet_args;
 	starnet_args = malloc(sizeof(starnet_data));
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
+	starnet_args->seqname = NULL;
+	starnet_args->starnet_fit = &gfit;
+	starnet_args->imgnumber = -1;
 	starnet_args->customstride = sgui_customstride;
 	starnet_args->upscale = sgui_upscale;
 	starnet_args->linear = sgui_linear;
@@ -138,8 +143,25 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	starnet_args->follow_on = sgui_follow_on;
-	start_in_new_thread(do_starnet, starnet_args);
-	siril_close_dialog("starnet_dialog");
+	if (gtk_toggle_button_get_active(toggle_starnet_sequence) == FALSE) {
+		if (single_image_is_loaded()) {
+			start_in_new_thread(do_starnet, starnet_args);
+			siril_close_dialog("starnet_dialog");
+		} else {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"), _("Unable to apply StarNet++ to a single image as no single image is loaded. Did you mean to apply to sequence?"));
+		}
+		set_cursor_waiting(FALSE);
+	} else if (gtk_toggle_button_get_active(toggle_starnet_sequence) == TRUE) {
+		if (sequence_is_loaded()) {
+			starnet_args->seq = &com.seq;
+			starnet_args->seqname = g_strdup_printf("starless_%s", starnet_args->seq->seqname);
+			apply_starnet_to_sequence(starnet_args);
+			siril_close_dialog("starnet_dialog");
+		} else {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"), _("Unable to apply StarNet++ to a sequence as no sequence is loaded. Did you mean to uncheck the apply to sequence option?"));
+		}
+		set_cursor_waiting(FALSE);
+	}
 }
 #endif
 
