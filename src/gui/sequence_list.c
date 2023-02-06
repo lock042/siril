@@ -558,9 +558,11 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	gtk_tree_sortable_get_sort_column_id(GTK_TREE_SORTABLE(list_store), &sort_column_id, &order);
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, GTK_SORT_ASCENDING);
 	gtk_tree_view_set_model(args->tview, NULL);
-	if (args->seq->number > 0) {
-		for (i = 0; i < args->seq->number; i++) {
-			add_image_to_sequence_list(args->seq, i, args->layer);
+	if (args->seq) {
+		if (args->seq->number > 0) {
+			for (i = 0; i < args->seq->number; i++) {
+				add_image_to_sequence_list(args->seq, i, args->layer);
+			}
 		}
 	}
 	gtk_tree_view_set_model(args->tview, GTK_TREE_MODEL(list_store));

@@ -345,8 +345,12 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
 			char val[FLEN_VALUE];
-			*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
-			display_path_parse_error(*status, key);
+			if (!headerkeys) {
+				*status = 1;
+			} else {
+				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+				display_path_parse_error(*status, key);
+			}
 			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
@@ -376,11 +380,21 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			SirilWorldCS *target_coords = NULL;
 			char val[FLEN_VALUE];
 			double valf;
-			if (is_float)
-				*status = nofail * read_key_from_header_text(headerkeys, key,&valf, NULL);
-			else
-				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
-			display_path_parse_error(*status, key);
+			if (is_float) {
+				if (!headerkeys) {
+					*status = 1;
+				} else {
+					*status = nofail * read_key_from_header_text(headerkeys, key,&valf, NULL);
+					display_path_parse_error(*status, key);
+				}
+			} else {
+				if (!headerkeys) {
+					*status = 1;
+				} else {
+					*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+					display_path_parse_error(*status, key);
+				}
+			}
 			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;

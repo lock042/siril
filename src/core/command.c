@@ -957,8 +957,10 @@ int process_makepsf(int nb) {
 	reset_conv_args(data);
 
 	char *arg = word[1];
-	if (!word[1])
+	if (!word[1]) {
+		g_free(data);
 		return CMD_WRONG_N_ARG;
+	}
 	if (g_str_has_prefix(arg, "clear")) {
 		if (get_thread_run()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
@@ -4850,7 +4852,8 @@ int process_fixbanding(int nb) {
 
 int process_seq_fixbanding(int nb) {
 	struct banding_data *args = malloc(sizeof(struct banding_data));
-	gchar *end1, *end2;
+	gchar *end1 = NULL, *end2 = NULL;
+	args->seq = NULL;
 
 	if (word[1] && word[1][0] != '\0') {
 		if (!(args->seq = load_sequence(word[1], NULL))) {
