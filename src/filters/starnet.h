@@ -13,11 +13,6 @@
 #define STARNET_MONO "mono_starnet++"
 #endif
 
-
-#ifndef _WIN32
-long get_pathmax(void);
-#endif
-
 typedef struct starnet_data {
 	struct ser_struct *new_ser_starless;
 	fitseq *new_fitseq_starless;

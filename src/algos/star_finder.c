@@ -753,6 +753,7 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 				n++;
 			}
 		}
+		n = (n == 0) ? 1 : n;
 		*FWHMx = (float)(fwhmx / (double)n);
 		*FWHMy = (float)(fwhmy / (double)n);
 		*B = (float)(b / (double)n);
@@ -801,9 +802,9 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		if (buffer[0] != '#' && !params_ok)
 			return 0;
 		if (!strncmp(buffer, "# ", 2)) {
-			if (sscanf(buffer, "# %d stars found ", &nb_stars) == 1) {
+			if (sscanf(buffer, "# %d stars found ", &nb_stars) == 1) { // nbstars tainted as based on data from file, needs extra checking
 				siril_debug_print("nb stars: %d\n", nb_stars);
-				if (nb_stars > 0 && sfargs->stars) {
+				if (nb_stars > 0 && nb_stars < MAX_STARS && sfargs->stars) { // check nbstars against lower and upper bounds
 					*sfargs->stars = malloc((nb_stars + 1) * sizeof(struct psf_star *));
 					if (!(*sfargs->stars)) {
 						PRINT_ALLOC_ERR;

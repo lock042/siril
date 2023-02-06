@@ -294,6 +294,7 @@ static gchar *get_filename_and_replace_ext() {
 		char *file_no_ext = remove_ext_from_filename(basename);
 		g_free(basename);
 		basename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
+		g_free(file_no_ext);
 	}
 
 	return basename;

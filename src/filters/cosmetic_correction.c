@@ -98,7 +98,7 @@ static WORD* getAverage3x3Line(WORD *buf, const int yy, const int w,
 				}
 			}
 		}
-		cpyline[xx] = round_to_WORD(value / n);
+		cpyline[xx] = n == 0 ? 0 : round_to_WORD(value / n);
 	}
 	return cpyline;
 }
@@ -128,7 +128,7 @@ static float* getAverage3x3Line_float(const float *buf, const int yy, const int 
 				}
 			}
 		}
-		cpyline[xx] = (value / n);
+		cpyline[xx] = n == 0 ? 0.f : (value / n);
 	}
 	return cpyline;
 }
@@ -152,7 +152,7 @@ static float getAverage3x3_float(const float *buf, const int xx, const int yy,
             }
         }
     }
-    return value / n;
+    return n == 0 ? 0.f : value / n;
 }
 
 static float getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
@@ -179,7 +179,7 @@ static float getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
 			}
 		}
 	}
-	return value / n;
+	return n == 0 ? 0 :value / n;
 }
 
 /* Gives a list of point p containing deviant pixel coordinates, to be freed by

@@ -481,6 +481,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	if (retval < 0) {
 		free(data);
 		free(fdata);
+		g_free(description);
 		return OPEN_IMAGE_ERROR;
 	}
 	/* We clear fits. Everything written above is erased */
@@ -1463,7 +1464,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	}
 
 	float pitch = estimate_pixel_pitch(raw);
-	size_t npixels = width * height;
+	size_t npixels = (size_t) width * (size_t) height;
 
 	if (raw->other.shutter > 0 && raw->other.shutter < 1)
 		siril_log_message(_("Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"),

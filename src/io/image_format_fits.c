@@ -1069,7 +1069,7 @@ static void convert_floats(int bitpix, float *data, size_t nbdata, double max, d
 }
 
 static int get_compression_type(int siril_compression_fits_method) {
-	if (siril_compression_fits_method > G_N_ELEMENTS(CompressionMethods)) {
+	if (siril_compression_fits_method >= G_N_ELEMENTS(CompressionMethods)) {
 		return -1;
 	} else {
 		return CompressionMethods[siril_compression_fits_method];
@@ -1274,7 +1274,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 	switch (bitpix) {
 		case BYTE_IMG:
 			data8 = malloc(nbdata * sizeof(BYTE));
-			datatype = bitpix == BYTE_IMG ? TBYTE : TSBYTE;
+			datatype = TBYTE;
 			fits_read_subset(fptr, datatype, fpixel, lpixel, inc, &zero, data8,
 					&zero, &status);
 			if (status) break;
@@ -2253,7 +2253,8 @@ int savefits(const char *name, fits *f) {
 	gchar *filename = set_right_extension(name);
 	if (!filename) return 1;
 
-	g_unlink(filename); /* Delete old file if it already exists */
+	if (g_unlink(filename))
+		siril_debug_print("g_unlink() failed\n"); /* Delete old file if it already exists */
 
 	status = 0;
 	if (siril_fits_create_diskfile(&(f->fptr), filename, &status)) { /* create new FITS file */
@@ -3105,7 +3106,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 
 	const int w = naxes[0];
 	const int h = naxes[1];
-	if (w == 0 || h == 0)
+	if (w <= 0 || h <= 0)
 		return(NULL);
 
 	size_t sz = w * h;

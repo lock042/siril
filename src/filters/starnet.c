@@ -67,26 +67,6 @@
 fits *current_fit = NULL;
 gboolean verbose = TRUE;
 
-// Check maximum path length - OSes except for Windows
-#ifndef _WIN32
-long get_pathmax(void) {
-	long pathmax = -1;
-
-	errno = 0;
-	pathmax = pathconf("/", _PC_PATH_MAX);
-	if (-1 == pathmax) {
-		if (0 == errno) {
-#define PATHMAX_INFINITE_GUESS 4096
-			pathmax = PATHMAX_INFINITE_GUESS;
-		} else {
-			fprintf(stderr, "pathconf() FAILED, %d, %s\n", errno,
-					strerror(errno));
-		}
-	}
-	return pathmax;
-}
-#endif
-
 // Wrapper for execve
 const char *my_argv[64];
 static int forkerrors = 0;

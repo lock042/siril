@@ -113,7 +113,7 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 
 	for (int i = 0; i < NAXIS; i++) {
-		strcpy(fit->wcslib->ctype[i], &CTYPE[i][0]);
+		strncpy(fit->wcslib->ctype[i], &CTYPE[i][0], 72);
 	}
 
 	fit->wcslib->equinox = fit->wcsdata.equinox;

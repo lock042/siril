@@ -611,7 +611,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
 	// rx_out/ry_out already account for 2x upscale if any
-	int64_t size = rx_out * ry_out * regargs->seq->nb_layers;
+	int64_t size = (int64_t) rx_out * ry_out * regargs->seq->nb_layers;
 	if (regargs->seq->type == SEQ_SER) {
 		size *= regargs->seq->ser_file->byte_pixel_depth;
 		size *= nb_frames;

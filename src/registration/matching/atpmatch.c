@@ -3574,7 +3574,8 @@ int *num_stars_M /* O: number of stars in output array M */
 
 		for (posB = 0; posB < num_stars_B; posB++) {
 
-			g_assert((sb = &(star_array_B[posB])) != NULL);
+			sb = &(star_array_B[posB]);
+			g_assert(sb != NULL);
 			Bx = sb->x;
 			By = sb->y;
 

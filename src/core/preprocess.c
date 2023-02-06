@@ -577,6 +577,8 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 	// If found -> Try to find $ sign to read the offset value and its multiplier
 
 	gchar *expressioncpy = g_strdup(expression);
+	if (!expressioncpy)
+		return 0;
 	gchar *end = NULL;
 	remove_spaces_from_str(expressioncpy);
 	gchar *mulsignpos = g_strrstr(expressioncpy, "*");

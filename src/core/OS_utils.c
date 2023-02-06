@@ -860,3 +860,25 @@ void log_used_mem(gchar *when) {
 	siril_debug_print("Used memory %s: %s\n", when, mem);
 	g_free(mem);
 }
+
+// Check maximum path length - OSes except for Windows have to work it out, on Windows it's always MAX_PATH
+long get_pathmax(void) {
+#ifndef _WIN32
+	long pathmax = -1;
+
+	errno = 0;
+	pathmax = pathconf("/", _PC_PATH_MAX);
+	if (-1 == pathmax) {
+		if (0 == errno) {
+#define PATHMAX_INFINITE_GUESS 4096
+			pathmax = PATHMAX_INFINITE_GUESS;
+		} else {
+			fprintf(stderr, "pathconf() FAILED, %d, %s\n", errno,
+					strerror(errno));
+		}
+	}
+	return pathmax;
+#else
+	return MAX_PATH;
+#endif
+}

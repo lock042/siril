@@ -220,7 +220,7 @@ seq_image_filter create_multiple_filter_from_list(struct filtering_tuple *filter
 int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq, seq_image_filter *criterion, double *param) {
 	int nb_filters = 0;
 	int layer = get_registration_layer(seq);
-	struct filtering_tuple filters[5] = { { NULL, 0.0 } };
+	struct filtering_tuple filters[6] = { { NULL, 0.0 } };
 
 	if ((arg->f_fwhm_p > 0.0f && arg->f_fwhm > 0.0f) ||
 			(arg->f_wfwhm_p > 0.0f && arg->f_wfwhm > 0.0f) ||
@@ -329,7 +329,7 @@ int stack_fill_list_of_unfiltered_images(struct stacking_args *args) {
 		}
 		args->image_indices = newptr;
 	} else {
-		args->image_indices = malloc(args->nb_images_to_stack * sizeof(int));
+		args->image_indices = calloc(args->nb_images_to_stack, sizeof(int));
 		if (!args->image_indices) {
 			PRINT_ALLOC_ERR;
 			return 1;
@@ -556,7 +556,8 @@ gchar *describe_filter(sequence *seq, seq_image_filter filtering_criterion, doub
 				descr[strlen(descr)-1] = '\0';	// remove the new line
 				if (f) descr[0] = tolower(descr[0]);
 			}
-			g_string_append(str, descr);
+			if (descr)
+				g_string_append(str, descr);
 			g_string_append(str, ", ");
 			g_free(descr);
 			f++;

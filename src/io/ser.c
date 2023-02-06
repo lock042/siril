@@ -541,7 +541,8 @@ int ser_close_and_delete_file(struct ser_struct *ser_file) {
 	ser_file->filename = NULL;
 	ser_close_file(ser_file); // closes, frees and zeroes
 	siril_log_message(_("Removing failed SER file: %s\n"), filename);
-	g_unlink(filename);
+	if (g_unlink(filename))
+		siril_debug_print("Error unlinking file\n");
 	free(filename);
 	return retval;
 }
@@ -732,8 +733,8 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 			!fit || frame_no < 0 || frame_no >= ser_file->frame_count)
 		return -1;
 
-	frame_size = ser_file->image_width * ser_file->image_height *
-			ser_file->number_of_planes;
+	frame_size = (gint64) ser_file->image_width * (gint64) ser_file->image_height *
+			(gint64) ser_file->number_of_planes;
 	read_size = frame_size * ser_file->byte_pixel_depth;
 
 	olddata = fit->data;
@@ -800,7 +801,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		type_ser = get_cfa_pattern_index_from_string(pattern) + 8;
 	}
 	if (pattern) {
-		strcpy(fit->bayer_pattern, pattern);
+		strncpy(fit->bayer_pattern, pattern, 71);
 	}
 
 	switch (type_ser) {
@@ -965,7 +966,7 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 	}
 	else read_buffer = outbuf;
 
-	frame_size = ser_file->image_width * ser_file->image_height *
+	frame_size = (gint64) ser_file->image_width * ser_file->image_height *
 		ser_file->number_of_planes * ser_file->byte_pixel_depth;
 
 #ifdef _OPENMP
@@ -1041,7 +1042,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 	case SER_MONO:
 		if (read_area_from_image(ser_file, frame_no, buffer, area, -1))
 			return -1;
-		ser_manage_endianess_and_depth(ser_file, buffer, area->w * area->h);
+		ser_manage_endianess_and_depth(ser_file, buffer, (gint64) area->w * area->h);
 		break;
 
 	case SER_BAYER_RGGB:

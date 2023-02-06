@@ -173,7 +173,9 @@ int parse_buffer(const gchar *buffer, double lim_mag) {
 			}
 		}
 		g_free(objname);
+		objname = NULL;
 		g_strfreev(fields);
+		fields = NULL;
 	}
 
 	/// Case of Solar System Objects in Conesearch mode

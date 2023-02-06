@@ -146,7 +146,7 @@ void launch_clipboard_survey() {
 	if (com.script)
 		return;
 	GtkClipboard *clipboard = NULL;
-	
+
 	/* Get the clipboard object */
 	clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 
@@ -1530,7 +1530,7 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 			break;
 		case 4:
 			gfit.binning_x = 1;
-			gfit.binning_x = 2;
+			gfit.binning_y = 2;
 			break;
 		case 5:
 			gfit.binning_x = 1;

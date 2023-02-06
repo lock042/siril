@@ -989,6 +989,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
 		rwdata->reader = NULL;
 		clearfits(fit);
+		g_free(fit);
 		handle_error(rwdata);
 		return;
 	}

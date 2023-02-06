@@ -361,7 +361,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	gettimeofday(&t_start, NULL);
 	set_progress_bar_data(_("Starting NL-Bayes denoising..."), 0.0);
 
-	int retval;
+	int retval = 0;
 
 	// Carry out cosmetic correction at the start, if selected
 	if (args->do_cosme)
@@ -369,40 +369,44 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 
 	if (args->fit == &gfit && args->fit->naxes[2] == 3 && args->suppress_artefacts) {
 		fits *loop = NULL;
-		new_fit_image(&loop, args->fit->rx, args->fit->ry, 1, args->fit->type);
+		if (new_fit_image(&loop, args->fit->rx, args->fit->ry, 1, args->fit->type)) {
+			retval = 1;
+		}
 		loop->naxis = 1;
 		loop->naxes[2] = 1;
 		size_t npixels = args->fit->naxes[0] * args->fit->naxes[1];
-		if (args->fit->type == DATA_FLOAT) {
-			for (size_t i = 0; i < 3; i++) {
-				float *loop_fdata = (float*) calloc(npixels, sizeof(float));
-				loop->fdata = loop_fdata;
-				for (size_t j = 0 ; j < npixels ; j++) {
-					loop_fdata[j] = args->fit->fpdata[i][j];
+		if (retval == 0) {
+			if (args->fit->type == DATA_FLOAT) {
+				for (size_t i = 0; i < 3; i++) {
+					float *loop_fdata = (float*) calloc(npixels, sizeof(float));
+					loop->fdata = loop_fdata;
+					for (size_t j = 0 ; j < npixels ; j++) {
+						loop_fdata[j] = args->fit->fpdata[i][j];
+					}
+					retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
+					for (size_t j = 0 ;j < npixels ; j++) {
+						args->fit->fpdata[i][j] = loop->fdata[j];
+					}
 				}
-				retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-				for (size_t j = 0 ;j < npixels ; j++) {
-					args->fit->fpdata[i][j] = loop->fdata[j];
+				free(loop->fdata);
+				loop->fdata = NULL;
+			} else {
+				for (size_t i = 0; i < 3; i++) {
+					WORD *loop_data = (WORD*) calloc(npixels, sizeof(WORD));
+					loop->data = loop_data;
+					for (size_t j = 0 ; j < npixels ; j++) {
+						loop_data[j] = args->fit->pdata[i][j];
+					}
+					retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
+					for (size_t j = 0 ;j < npixels ; j++) {
+						args->fit->pdata[i][j] = loop->data[j];
+					}
 				}
+				free(loop->data);
+				loop->fdata = NULL;
 			}
-			free(loop->fdata);
-			loop->fdata = NULL;
-		} else {
-			for (size_t i = 0; i < 3; i++) {
-				WORD *loop_data = (WORD*) calloc(npixels, sizeof(WORD));
-				loop->data = loop_data;
-				for (size_t j = 0 ; j < npixels ; j++) {
-					loop_data[j] = args->fit->pdata[i][j];
-				}
-				retval = do_nlbayes(loop, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
-				for (size_t j = 0 ;j < npixels ; j++) {
-					args->fit->pdata[i][j] = loop->data[j];
-				}
-			}
-			free(loop->data);
-			loop->fdata = NULL;
-		}
 		clearfits(loop);
+		}
 	} else {
 		retval = do_nlbayes(args->fit, args->modulation, args->sos, args->da3d, args->rho, args->do_anscombe);
 	}
@@ -446,6 +450,7 @@ int process_denoise(int nb){
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			if (args->modulation == 0.f) {
 				siril_log_message(_("Modulation is zero: doing nothing.\n"));
+				g_free(args);
 				return CMD_OK;
 			}
 		}
@@ -455,6 +460,7 @@ int process_denoise(int nb){
 			if (arg == end) error = TRUE;
 			else if ((rho <= 0.f) || (rho >= 1.f)) {
 				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
+				g_free(args);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -477,6 +483,7 @@ int process_denoise(int nb){
 	}
 	if (args->do_anscombe && (args->sos != 1 || args->da3d)) {
 		siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. aborting.\n"), "red");
+		g_free(args);
 		return CMD_ARG_ERROR;
 	}
 	if (args->do_anscombe)
@@ -3089,8 +3096,9 @@ int process_set(int nb) {
 		print_settings_key(input, input+sep+1, FALSE);
 	} else {
 		/* set */
-		char fakefile[1024];
-		int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
+		long pathmax = get_pathmax();
+		char fakefile[pathmax];
+		int filelen = snprintf(fakefile, pathmax, "[%s]\n%s\n", input, input+sep+1);
 		GKeyFile *kf = g_key_file_new();
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf);
@@ -3585,7 +3593,7 @@ int process_pm(int nb) {
 
 	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
 	args->nb_rows = count / 2; // this is the number of variable
-	args->varname = malloc(args->nb_rows * sizeof(gchar *));
+	args->varname = calloc(args->nb_rows, sizeof(gchar *));
 
 	cur = expression;
 
@@ -4502,7 +4510,6 @@ int process_findhot(int nb){
 
 	gchar *filename = g_strdup_printf("%s.lst", word[1]);
 	GFile *file = g_file_new_for_path(filename);
-	g_free(filename);
 
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
 			G_FILE_CREATE_NONE, NULL, &error);
@@ -4516,6 +4523,7 @@ int process_findhot(int nb){
 		g_object_unref(file);
 		return CMD_FILE_NOT_FOUND;
 	}
+	g_free(filename);
 
 	for (int i = 0; i < icold + ihot; i++) {
 		int y = gfit.ry - (int) dev[i].p.y - 1;  /* FITS is stored bottom to top */
@@ -5610,12 +5618,14 @@ int process_seq_extractGreen(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						g_free(args);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+					g_free(args);
 					return CMD_ARG_ERROR;
 				}
 			}
@@ -6161,6 +6171,7 @@ int process_link(int nb) {
 
 	if (!com.wd) {
 		siril_log_message(_("Link: no working directory set.\n"));
+		g_strfreev(files_to_link);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -7550,7 +7561,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				if (word[i + 1] && word[i + 1][0] != '\0') {
 					args->bad_pixel_map_file = g_file_new_for_path(word[i + 1]);
 					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-						g_object_unref(args->bad_pixel_map_file);
+//						g_object_unref(args->bad_pixel_map_file); // This is unreferenced in check_for_cosme_file_sanity
 						args->bad_pixel_map_file = NULL;
 						siril_log_message(_("Could not open file %s, aborting.\n"), word[i + 1]);
 						retvalue = 1;
@@ -8401,6 +8412,7 @@ int process_pcc(int nb) {
 	else {
 		start_in_new_thread(photometric_cc_standalone, pcc_args);
 	}
+
 	return CMD_OK;
 }
 

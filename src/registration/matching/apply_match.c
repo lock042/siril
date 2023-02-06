@@ -9,17 +9,17 @@
  *           Rochester, NY  14623-5603
  *           E-mail: mwrsps@rit.edu
  *
- *  
+ *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
  *  as published by the Free Software Foundation; either version 2
  *  of the License, or (at your option) any later version.
- *  
+ *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -31,14 +31,14 @@
  * FILE: apply_match.c
  *
  * <HTML>
- * Given 
+ * Given
  *    - an ASCII file consisting of a list of stars, with one line per
  *        star and multiple columns of information separated by white space
  *    - the numbers of the columns containing "X" and "Y" coords of stars
  *    - a central RA and Dec, each in decimal degrees
  *    - coefficients of a TRANS structure which convert "X" and "Y"
  *        coordinates from the ASCII file's system to plate coordinates
- *        (xi, eta), which are projections onto the tangent plane 
+ *        (xi, eta), which are projections onto the tangent plane
  *        centered on the central RA and Dec.
  *
  * run through the data file.  For each entry, calculate the (RA, Dec) of
@@ -52,12 +52,12 @@
  *     xi = A + Bx + Cy
  *    eta = D + Ex + Fy
  *
- * In the case of 'quadratic', 
+ * In the case of 'quadratic',
  *
  *     xi =  A + Bx + Cy + Dxx + Exy + Fyy
  *    eta =  G + Hx + Iy + Jxx + Kxy + Lyy
  *
- * In the case of 'cubic', 
+ * In the case of 'cubic',
  *
  *     xi =  A + Bx + Cy + Dxx + Exy + Fyy + Gx(xx+yy) + Hy(xx+yy)
  *    eta =  I + Jx + Ky + Lxx + Mxy + Nyy + Ox(xx+yy) + Py(xx+yy)
@@ -73,7 +73,7 @@
  * by the optional "outfile" command-line argument.
  *
  * Usage: apply_match starfile1 xcol ycol ra dec linear|quadratic|cubic
- *                    a b c d e f [g h i j k [l m n o ]] [outfile=] 
+ *                    a b c d e f [g h i j k [l m n o ]] [outfile=]
  *
  * </HTML>
  * </AUTO>
@@ -83,7 +83,7 @@
  *   MWR 5/24/2000
  *
  * modified to handle the three cases of linear, quadratic, or cubic
- *   TRANSformations. 
+ *   TRANSformations.
  *   MWR 6/11/2000
  *
  * fixed equations in proc_star_file() so that they handle properly
@@ -114,10 +114,10 @@
 
 static int proc_star_file(SirilWorldCS *px_cat_center, const double *crpix, TRANS *trans, double *a, double *d);
 
-int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS trans, double *alpha, double *delta) {
+int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS *trans, double *alpha, double *delta) {
 
 	/* now walk through the file and do the dirty work */
-	if (proc_star_file(px_cat_center, crpix, &trans, alpha, delta) != SH_SUCCESS) {
+	if (proc_star_file(px_cat_center, crpix, trans, alpha, delta) != SH_SUCCESS) {
 		shError("can't process data for platesolving");
 		return (1);
 	}
@@ -128,13 +128,13 @@ int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS trans, double 
 /****************************************************************************
  * ROUTINE: proc_star_file
  *
- * walk through the given file, one line at a time.  
+ * walk through the given file, one line at a time.
  *
  * If the line starts with COMMENT_CHAR, place it into the output stream.
  * If the line is completely blank, place it into the output stream.
  *
- * Otherwise, 
- *   - read in the entire line, 
+ * Otherwise,
+ *   - read in the entire line,
  *   - figure out the "X" and "Y" coords
  *   - transform the "X" and "Y" coords to be (RA, Dec) from the central
  *         "ra" and "dec", in units of arcseconds

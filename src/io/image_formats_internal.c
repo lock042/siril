@@ -600,6 +600,10 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 
 static int saveppm(const char *name, fits *fit) {
 	FILE *fp = g_fopen(name, "wb");
+	if (!fp) {
+		siril_log_color_message(_("Error opening file %s\n"), "red", name);
+		return 1;
+	}
 	size_t i, ndata = fit->rx * fit->ry;
 	double norm;
 	const char *comment = "# CREATOR : SIRIL";

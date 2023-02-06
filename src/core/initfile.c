@@ -379,15 +379,17 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			break;
 		case STYPE_STRLIST:
 			strs = g_key_file_get_string_list(kf, desc->group, desc->key, &len, NULL);
-			if (strs && len > 0) {
-				GSList *list = NULL;
-				for (gsize i = 0; i < len; i++)
-					list = g_slist_prepend(list, strs[i]);
-				GSList *old_list = *((GSList**)desc->data);
-				if (old_list)
-					g_slist_free_full(old_list, g_free);
-				*((GSList**)desc->data) = list;
-				g_free(strs);
+			if (strs) {
+				if (len > 0) {
+					GSList *list = NULL;
+					for (gsize i = 0; i < len; i++)
+						list = g_slist_prepend(list, strs[i]);
+					GSList *old_list = *((GSList**)desc->data);
+					if (old_list)
+						g_slist_free_full(old_list, g_free);
+					*((GSList**)desc->data) = list;
+				}
+				g_strfreev(strs);
 			}
 			break;
 	}
@@ -411,7 +413,9 @@ int read_keyfile(GKeyFile *kf) {
 			if (!get_key_data(kf, desc))
 				nb_keys_read++;
 		}
+		g_strfreev(keys);
 	}
+	g_strfreev(groups);
 	siril_debug_print("read %zd keys from key file\n", nb_keys_read);
 	return nb_keys_read == 0;
 }
