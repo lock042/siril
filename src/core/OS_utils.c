@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #ifdef _WIN32
 #include <windows.h>
