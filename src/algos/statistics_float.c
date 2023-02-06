@@ -338,6 +338,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 				data = extract_CFA_buffer_float(fit, -layer - 1, &newsz);
 				if (!data) {
 					siril_log_color_message(_("Failed to compute CFA statistics\n"), "red");
+					if (stat_is_local) free(stat);
 					return NULL;
 				}
 				nx = newsz;
@@ -348,6 +349,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 		stat->total = nx * ny;
 		if (stat->total == 0L) {
 			if (stat_is_local) free(stat);
+			if (free_data) g_free(data);
 			return NULL;
 		}
 	}

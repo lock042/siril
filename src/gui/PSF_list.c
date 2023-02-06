@@ -444,7 +444,7 @@ static void remove_selected_star() {
 
 	g_list_free(references);
 	gtk_tree_selection_unselect_all(selection);
-
+	g_free(sel);
 	gui.selected_star = -1;
 	display_status();
 }

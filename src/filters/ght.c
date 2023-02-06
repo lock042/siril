@@ -22,6 +22,7 @@
 #include "ght.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
+#include "core/siril_log.h"
 
 float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, ght_compute_params *c) {
 	float out;
@@ -379,6 +380,10 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, gboolean 
 	for (size_t i=0;i<3;i++)
 		if (!do_channel[i])
 			active_channels--;
+	if (active_channels == 0) {
+		siril_log_color_message(_("Error: no channels selected. Doing nothing.\n"), "red");
+		return;
+	}
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);

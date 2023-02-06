@@ -329,7 +329,7 @@ static void set_edge_square(gchar **panel) {
 		return;
 	}
 	int widget_size = com.pref.analysis.mosaic_window / 3;
-	double scale = com.pref.analysis.mosaic_panel / widget_size;
+	double scale = (double) com.pref.analysis.mosaic_panel / widget_size;
 	if (scale < 1.0) scale = 1.0;
 	cairo_surface_set_device_scale(edge_surface, scale, scale);
 	image_width = (int) ((double)image_width / scale);

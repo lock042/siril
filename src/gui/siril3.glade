@@ -2143,7 +2143,7 @@ If the parameters is null, so no filter is apply at all.</property>
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=3 -->
+          <!-- n-columns=2 n-rows=4 -->
           <object class="GtkGrid" id="grid2">
             <property name="name">label_starnet_stride</property>
             <property name="visible">True</property>
@@ -2255,7 +2255,8 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If selected, on completion of the star removal process the star recomposition tool will open, providing an interface for independently stretching and blending the background and the stars if star reduction, rather than total removal, is desired.</property>
+                <property name="tooltip-text" translatable="yes">If selected, on completion of the star removal process the star recomposition tool will open, providing an interface for independently stretching and blending the background and the stars if star reduction, rather than total removal, is desired.
+This option has no effect if processing a sequence.</property>
                 <property name="halign">start</property>
                 <property name="valign">start</property>
                 <property name="hexpand">True</property>
@@ -2284,6 +2285,24 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="left-attach">1</property>
                 <property name="top-attach">0</property>
               </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="starnet_sequence_toggle">
+                <property name="label" translatable="yes">Apply to sequence</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Apply Starnet++ to all images in the current sequence. Starless and, if selected, star mask, sequences will be generated.</property>
+                <property name="halign">start</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
