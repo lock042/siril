@@ -1336,22 +1336,18 @@ int process_deconvolve(int nb, nonblind_t type) {
 }
 
 int process_seqdeconvolve(int nb, nonblind_t type) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
 	gboolean error = FALSE;
 	estk_data* data = malloc(sizeof(estk_data));
-	sequence* seq = NULL;
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
 	if (type == 0)
 		data->finaliters = 1;
 	if (type == 2)
 		data->alpha = 1.f / 500.f;
-	if (word[1] && word[1][0] != '\0') {
-		seq = load_sequence(word[1], NULL);
-	}
-	if (seq == NULL) {
-		siril_log_message(_("Error: cannot open sequence\n"));
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
 	for (int i = 2; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
@@ -3665,7 +3661,7 @@ int process_seq_tilt(int nb) {
 	gboolean draw_polygon = FALSE;
 
 	sequence *seq;
-
+	//TODO: not sure how to handle that when no sequence is loaded
 	if (word[1] && word[1][0] != '\0') {
 		seq = load_sequence(word[1], NULL);
 	} else {
@@ -4798,9 +4794,11 @@ int process_seq_fixbanding(int nb) {
 	struct banding_data *args = malloc(sizeof(struct banding_data));
 	gchar *end1, *end2;
 
-	if (word[1] && word[1][0] != '\0') {
-		args->seq = load_sequence(word[1], NULL);
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
 	}
+	args->seq = seq;
 	args->amount = g_ascii_strtod(word[2], &end1);
 	if (end1 == word[2] || args->amount < 0 || args->amount > 4) {
 		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
