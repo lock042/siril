@@ -181,7 +181,7 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 		*status = PATHPARSE_ERR_NO_HIT_FOUND;
 		display_path_parse_error(*status, expression);
 	}
-	g_free(dir);
+	g_dir_close(dir);
 	g_free(dirname);
 	g_free(basename);
 	g_free(currfile);
