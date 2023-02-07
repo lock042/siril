@@ -131,16 +131,18 @@
 char *word[MAX_COMMAND_WORDS];	// NULL terminated
 
 int process_load(int nb){
-	char filename[256];
-
-	strncpy(filename, word[1], 250);
-	filename[250] = '\0';
+	long maxpath = get_pathmax();
+	char filename[maxpath];
+	size_t len = strlen(word[1]);
+	strncpy(filename, word[1], maxpath - 1);
+	filename[maxpath - 1] = '\0';
 
 	for (int i = 1; i < nb - 1; ++i) {
-		strcat(filename, " ");
-		strcat(filename, word[i + 1]);
+		strncat(filename, " ", maxpath - 1 - len);
+		len += 1;
+		strncat(filename, word[i + 1], len);
 	}
-	expand_home_in_filename(filename, 256);
+	expand_home_in_filename(filename, maxpath);
 
 	int retval = open_single_image(filename);
 	launch_clipboard_survey();
@@ -729,7 +731,8 @@ static gboolean merge_cfa_idle(gpointer arg) {
 }
 
 int process_rebayer(int nb){
-	char filename[256];
+	long maxpath = get_pathmax();
+	char filename[maxpath];
 	fits cfa0 = { 0 };
 	fits cfa1 = { 0 };
 	fits cfa2 = { 0 };
@@ -745,19 +748,19 @@ int process_rebayer(int nb){
 
 	strncpy(filename, word[1], 250);
 	filename[250] = '\0';
-	expand_home_in_filename(filename, 256);
+	expand_home_in_filename(filename, maxpath);
 	int retval = readfits(filename, &cfa0, NULL, FALSE);
 	strncpy(filename, word[2], 250);
 	filename[250] = '\0';
-	expand_home_in_filename(filename, 256);
+	expand_home_in_filename(filename, maxpath);
 	retval += readfits(filename, &cfa1, NULL, FALSE);
 	strncpy(filename, word[3], 250);
 	filename[250] = '\0';
-	expand_home_in_filename(filename, 256);
+	expand_home_in_filename(filename, maxpath);
 	retval += readfits(filename, &cfa2, NULL, FALSE);
 	strncpy(filename, word[4], 250);
 	filename[250] = '\0';
-	expand_home_in_filename(filename, 256);
+	expand_home_in_filename(filename, maxpath);
 	retval += readfits(filename, &cfa3, NULL, FALSE);
 	if (retval) {
 		siril_log_color_message(_("Error loading files!\n"), "red");
@@ -934,7 +937,8 @@ int process_getref(int nb) {
 	}
 
 	if (seq->type == SEQ_REGULAR) {
-		char filename[256];
+		long maxpath = get_pathmax();
+		char filename[maxpath];
 		fit_sequence_get_image_filename(seq, ref_image, filename, TRUE);
 		siril_log_message(_("Image %d: '%s'\n"), ref_image, filename);
 	}
@@ -1600,12 +1604,13 @@ int process_crop(int nb) {
 }
 
 int process_cd(int nb) {
-	char filename[256];
+	long maxpath = get_pathmax();
+	char filename[maxpath];
 	int retval;
 
-	g_strlcpy(filename, word[1], 250);
+	g_strlcpy(filename, word[1], maxpath - 1);
 
-	expand_home_in_filename(filename, 256);
+	expand_home_in_filename(filename, maxpath);
 	retval = siril_change_dir(filename, NULL);
 	if (!retval && !com.script) {
 		if (com.pref.wd)
@@ -2220,11 +2225,12 @@ int process_ls(int nb){
 		if (word[1][0] != '\0') {
 			/* Absolute path */
 			if (word[1][0] == G_DIR_SEPARATOR || word[1][0] == '~') {
-				char filename[256];
+				long maxpath = get_pathmax();
+				char filename[maxpath];
 
 				g_strlcpy(filename, word[1], 250);
-				filename[250] = '\0';
-				expand_home_in_filename(filename, 256);
+				filename[maxpath - 1] = '\0';
+				expand_home_in_filename(filename, maxpath);
 				path = g_build_filename(filename, NULL);
 			}
 			/* Relative path */
@@ -2411,7 +2417,8 @@ int process_merge(int nb) {
 
 		if (seqs[i]->type == SEQ_REGULAR) {
 			// we need to build the list of files
-			char filename[256];
+			long maxpath = get_pathmax();
+			char filename[maxpath];
 			for (int image = 0; image < seqs[i]->number; image++) {
 				fit_sequence_get_image_filename(seqs[i], image, filename, TRUE);
 				list = g_list_append(list, g_build_filename(dir, filename, NULL));
@@ -3098,7 +3105,7 @@ int process_set(int nb) {
 		/* set */
 		long pathmax = get_pathmax();
 		char fakefile[pathmax];
-		int filelen = snprintf(fakefile, pathmax, "[%s]\n%s\n", input, input+sep+1);
+		int filelen = snprintf(fakefile, pathmax - 1, "[%s]\n%s\n", input, input+sep+1);
 		GKeyFile *kf = g_key_file_new();
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf);
@@ -4521,6 +4528,7 @@ int process_findhot(int nb){
 			siril_log_message(_("Could not open file: %s\n"), filename);
 		}
 		g_object_unref(file);
+		g_free(filename);
 		return CMD_FILE_NOT_FOUND;
 	}
 	g_free(filename);
@@ -7031,21 +7039,22 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		// preparing the output filename
 		// needs to be done after stack is completed to have
 		// stack-specific keywords available for parsing if needed
+		long maxpath = get_pathmax();
 		if (!arg->result_file) {
-			char filename[256];
+			char filename[maxpath];
 			char *suffix = g_str_has_suffix(seq->seqname, "_") ||
 				g_str_has_suffix(seq->seqname, "-") ? "" : "_";
-			snprintf(filename, 256, "%s%sstacked%s", seq->seqname, suffix, com.pref.ext);
+			snprintf(filename, maxpath - 1, "%s%sstacked%s", seq->seqname, suffix, com.pref.ext);
 			arg->result_file = g_strdup(filename);
 		} else { // the name is to be parsed (including folder creation if required)
 			int status = PATHPARSE_ERR_OK;
 			gchar *expression = g_strdup(arg->result_file);
 			gchar *parsedname = update_header_and_parse(&args.result, expression, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
-			char filename[256];
+			char filename[maxpath];
 			if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
-				snprintf(filename, 256, "unknown");
+				snprintf(filename, maxpath - 1, "unknown");
 			} else {
-				snprintf(filename, 256, "%s", parsedname);
+				snprintf(filename, maxpath - 1, "%s", parsedname);
 			}
 			g_free(arg->result_file);
 			arg->result_file = g_strdup(filename);

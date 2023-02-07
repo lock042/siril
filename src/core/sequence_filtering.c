@@ -220,7 +220,7 @@ seq_image_filter create_multiple_filter_from_list(struct filtering_tuple *filter
 int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq, seq_image_filter *criterion, double *param) {
 	int nb_filters = 0;
 	int layer = get_registration_layer(seq);
-	struct filtering_tuple filters[6] = { { NULL, 0.0 } };
+	struct filtering_tuple filters[8] = { { NULL, 0.0 } };
 
 	if ((arg->f_fwhm_p > 0.0f && arg->f_fwhm > 0.0f) ||
 			(arg->f_wfwhm_p > 0.0f && arg->f_wfwhm > 0.0f) ||
@@ -242,7 +242,7 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 				compute_highest_accepted_fwhm(seq, layer, arg->f_fwhm_p, arg->f_fwhm_k);
 		siril_log_message(_("Using star FWHM images filter (below %f)\n"),
 					filters[nb_filters].param);
-				nb_filters++;
+		nb_filters++;
 	}
 	if (arg->f_wfwhm_p > 0.0f || arg->f_wfwhm > 0.0f) {
 		filters[nb_filters].filter = seq_filter_weighted_fwhm;
@@ -250,7 +250,7 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 				compute_highest_accepted_weighted_fwhm(seq, layer, arg->f_wfwhm_p, arg->f_wfwhm_k);
 		siril_log_message(_("Using star weighted FWHM images filter (below %f)\n"),
 					filters[nb_filters].param);
-				nb_filters++;
+		nb_filters++;
 	}
 	if (arg->f_round_p > 0.0f || arg->f_round > 0.0f) {
 		filters[nb_filters].filter = seq_filter_roundness;

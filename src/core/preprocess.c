@@ -632,6 +632,8 @@ gboolean check_for_cosme_file_sanity(GFile *file) {
 				&& !g_str_has_prefix(line, "C ")
 				&& !g_str_has_prefix(line, "#")) {
 			g_free(line);
+			g_object_unref(data_input);
+			g_object_unref(input_stream);
 			return FALSE;
 		}
 		g_free(line);

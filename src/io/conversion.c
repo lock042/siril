@@ -1152,7 +1152,11 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 	}
 #endif
 	else if (imagetype == TYPESER) {
-		if (test_only) return OPEN_SEQ;
+		if (test_only) {
+			g_free(name);
+			name = NULL;
+			return OPEN_SEQ;
+		}
 		if (convert->current_ser) {
 			siril_debug_print("error: opening a SER while the previous was still here\n");
 			g_free(name);

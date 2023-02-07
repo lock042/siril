@@ -332,7 +332,7 @@ void gnuplot_setstyle(gnuplot_ctrl * h, char * plot_style)
         fprintf(stderr, "warning: unknown requested style: using points\n") ;
         strcpy(h->pstyle, "points") ;
     } else {
-        strcpy(h->pstyle, plot_style) ;
+        strncpy(h->pstyle, plot_style, 31); // 32 char fixed buffer, 1 char for the NULL
     }
     return ;
 }
