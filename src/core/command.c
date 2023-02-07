@@ -2465,7 +2465,6 @@ int process_merge(int nb) {
 				retval = 1;
 				goto merge_clean_up;
 			}
-			free(outseq_name);
 			seqwriter_set_max_active_blocks(2);
 			int written_frames = 0;
 			for (int i = 0; i < nb_seq; i++) {

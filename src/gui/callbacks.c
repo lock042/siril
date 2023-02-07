@@ -822,7 +822,7 @@ void display_filename() {
 	g_free(base_name);
 	g_free(orig_filename);
 	g_free(orig_base_name);
-	g_free(concat_base_name);
+	g_string_free(concat_base_name, TRUE);
 }
 
 void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {

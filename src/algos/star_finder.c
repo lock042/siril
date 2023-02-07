@@ -802,7 +802,7 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	int star = 0, nb_stars = -1;
 	while (fgets(buffer, 300, fd)) {
 		if (buffer[0] != '#' && !params_ok) {
-			g_free(fd);
+			fclose(fd);
 			return 0;
 		}
 		if (!strncmp(buffer, "# ", 2)) {
