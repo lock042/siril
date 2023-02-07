@@ -802,7 +802,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		type_ser = get_cfa_pattern_index_from_string(pattern) + 8;
 	}
 	if (pattern) {
-		strncpy(fit->bayer_pattern, pattern, 70); // fixed char* length 71, leave 1 char for the NULL
+		strncpy(fit->bayer_pattern, pattern, FLEN - 1); // fixed char* length FLEN, leave 1 char for the NULL
 	}
 
 	switch (type_ser) {
