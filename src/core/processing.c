@@ -100,6 +100,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	if (args->prepare_hook && args->prepare_hook(args)) {
 		siril_log_message(_("Preparing sequence processing failed.\n"));
 		args->retval = 1;
+		g_free(threads_per_image);
 		goto the_end;
 	}
 

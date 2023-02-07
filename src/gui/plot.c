@@ -878,6 +878,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 				return 1;
 			}
 			g_free(buffer);
+			buffer = NULL;
 			while (x < MAX_SEQPSF && seq->photometry[x]) {
 				buffer = g_strdup_printf(", %g", tmp_plot->data[j].y);
 				if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {

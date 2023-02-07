@@ -189,6 +189,7 @@ int parse_buffer(const gchar *buffer, double lim_mag) {
 				char *end = strchr(start, '|');
 				if (end) {
 					end -= 2; // remove the space
+					g_free(objname); // in case it was set in a previous run through the loop
 					objname = g_strndup(start, end-start+1);
 				}
 			}

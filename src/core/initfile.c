@@ -322,9 +322,11 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 		case STYPE_INT:
 			intval = g_key_file_get_integer(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
+				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
 						desc->group, desc->key, error->message,
-						g_key_file_get_string(kf, desc->group, desc->key, NULL));
+						keystring);
+				g_free(keystring);
 				return 1;
 			}
 			if (desc->range_int.min != 0 || desc->range_int.max != 0) {
@@ -558,6 +560,7 @@ int writeinitfile() {
 		g_free(com.initfile);
 		com.initfile = NULL;
 		g_key_file_free(kf);
+		g_error_free(error);
 		return 1;
 	}
 	g_error_free(error);

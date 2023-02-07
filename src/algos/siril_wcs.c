@@ -90,7 +90,7 @@ gboolean load_WCS_from_memory(fits *fit) {
 	const char CUNIT[2][9] = { "deg", "deg" };
 
 	for (int i = 0; i < NAXIS; i++) {
-		strcpy(fit->wcslib->cunit[i], &CUNIT[i][0]);
+		strncpy(fit->wcslib->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
 	}
 
 	double *pcij = fit->wcslib->pc;

@@ -1019,6 +1019,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
+					g_free(dest);
 					return GOT_WRITE_ERROR;
 				}
 				g_free(dest);
