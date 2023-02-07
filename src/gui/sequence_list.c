@@ -518,38 +518,40 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
 		}
 	} else { //reporting photometry data for the reference star
-		psf_star **psfs = args->seq->photometry[0];
-		if (psfs && psfs[0]) {
-			switch (selected_source) {
-				case ROUNDNESS:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
-					break;
-				case FWHM:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
-					break;
-				case AMPLITUDE:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Amplitude"));
-					break;
-				case MAGNITUDE:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Magnitude"));
-					break;
-				case BACKGROUND:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
-					break;
-				case X_POSITION:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("X Position"));
-					break;
-				case Y_POSITION:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Y Position"));
-					break;
-				case SNR:
-					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("SNR"));
-					break;
-				default:
-					break;
+		if (args->seq) {
+			psf_star **psfs = args->seq->photometry[0];
+			if (psfs && psfs[0]) {
+				switch (selected_source) {
+					case ROUNDNESS:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
+						break;
+					case FWHM:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
+						break;
+					case AMPLITUDE:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Amplitude"));
+						break;
+					case MAGNITUDE:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Magnitude"));
+						break;
+					case BACKGROUND:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
+						break;
+					case X_POSITION:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("X Position"));
+						break;
+					case Y_POSITION:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Y Position"));
+						break;
+					case SNR:
+						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("SNR"));
+						break;
+					default:
+						break;
+				}
+			} else {
+				gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
 			}
-		} else {
-			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
 		}
 	}
 	gint sort_column_id;
