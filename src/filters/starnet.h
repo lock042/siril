@@ -18,6 +18,14 @@
 long get_pathmax(void);
 #endif
 
+typedef enum {
+	NIL = 0,
+	V2 = 1,
+	V1MONO = 2,
+	V1RGB = 4,
+	V1BOTH = 6
+} starnet_version;
+
 typedef struct starnet_data {
 	struct ser_struct *new_ser_starless;
 	fitseq *new_fitseq_starless;
@@ -44,7 +52,7 @@ typedef struct remixargs {
 	fits *fit2;
 } remixargs;
 
-gboolean starnet_executablecheck();
+starnet_version starnet_executablecheck();
 gpointer do_starnet(gpointer p);
 void apply_starnet_to_sequence(struct starnet_data *seqdata);
 
