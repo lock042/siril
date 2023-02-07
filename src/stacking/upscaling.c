@@ -78,7 +78,8 @@ void remove_tmp_drizzle_files(struct stacking_args *args) {
 		break;
 	case SEQ_FITSEQ:
 		siril_debug_print("Removing %s\n", args->seq->fitseq_file->filename);
-		g_unlink(args->seq->fitseq_file->filename);
+		if (g_unlink(args->seq->fitseq_file->filename))
+			siril_debug_print("g_unlink() failed\n");
 		fitseq_close_file(args->seq->fitseq_file);
 		break;
 	}
@@ -159,7 +160,8 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		gchar *basename = g_path_get_basename(stackargs->seq->seqname);
 		char *seqname = malloc(strlen(TMP_UPSCALED_PREFIX) + strlen(basename) + 5);
 		sprintf(seqname, "%s%s.seq", TMP_UPSCALED_PREFIX, basename);
-		g_unlink(seqname);
+		if (g_unlink(seqname))
+			siril_debug_print("g_unlink() failed\n");
 		g_free(basename);
 
 		// replace active sequence by upscaled

@@ -656,17 +656,11 @@ static gboolean on_match_selected(GtkEntryCompletion *widget, GtkTreeModel *mode
 	gint cur_pos = gtk_editable_get_position(e);
 	gint p = cur_pos;
 	gchar *end;
-	gint del_end_pos = -1;
 
 	gtk_tree_model_get(model, iter, COMPLETION_COLUMN, &cmd, -1);
 
 	end = s + cur_pos;
-
-	if (end) {
-		del_end_pos = end - s + 1;
-	} else {
-		del_end_pos = cur_pos;
-	}
+	gint del_end_pos = end - s + 1;
 
 	gtk_editable_delete_text(e, 0, del_end_pos);
 	gtk_editable_insert_text(e, cmd, -1, &p);

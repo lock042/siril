@@ -275,7 +275,7 @@ static int ser_write_timestamps(struct ser_struct *ser_file) {
 
 	if (ser_file->ts) {
 		// Seek to start of timestamps
-		frame_size = ser_file->image_width * ser_file->image_height
+		frame_size = (gint64) ser_file->image_width * ser_file->image_height
 			* ser_file->number_of_planes;
 		gint64 offset = SER_HEADER_LEN + frame_size *
 			(gint64)ser_file->byte_pixel_depth * (gint64)ser_file->frame_count;
@@ -566,7 +566,8 @@ int ser_write_and_close(struct ser_struct *ser_file) {
 int ser_create_file(const char *filename, struct ser_struct *ser_file,
 		gboolean overwrite, struct ser_struct *copy_from) {
 	if (overwrite)
-		g_unlink(filename);
+		if (g_unlink(filename))
+			siril_debug_print("g_unlink() failed\n");
 	if ((ser_file->file = g_fopen(filename, "w+b")) == NULL) {
 		perror("open SER file for creation");
 		return 1;

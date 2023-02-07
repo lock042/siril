@@ -176,6 +176,11 @@ int wave_io_read(char *File_Name_In, wave_transf_des *Wave_Trans) {
 	Nc = Wave_Trans->Nbr_Col;
 	Nbr_Plan = Wave_Trans->Nbr_Plan;
 
+	if (Nl < 1 || Nc | 1 || Nl > MAX_IMAGE_DIM || Nc > MAX_IMAGE_DIM) {
+		printf("wave_io_read: file metadata fails validity checking\n");
+		fclose(File_Des);
+		return 1;
+	}
 	switch (Wave_Trans->Type_Wave_Transform) {
 	case TO_PAVE_LINEAR:
 	case TO_PAVE_BSPLINE:

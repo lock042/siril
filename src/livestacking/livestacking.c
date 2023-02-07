@@ -197,7 +197,9 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		}
 
 		image_type type;
-		stat_file(filename, &type, NULL);
+		if (stat_file(filename, &type, NULL)) {
+			siril_debug_print("Filename is not canonical\n");
+		}
 		if (type != TYPEFITS) {
 			siril_log_message(_("File not supported for live stacking: %s\n"), filename);
 			g_free(filename);

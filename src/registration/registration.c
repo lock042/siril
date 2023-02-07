@@ -1121,7 +1121,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
 	int nb_images_reg; /* the number of images to register */
-	struct registration_method *method;
+	struct registration_method *method = NULL;
 	gboolean selection_is_done;
 	gboolean has_reg, ready;
 	int nbselstars = 0;
@@ -1157,6 +1157,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	/* getting the selected registration method */
 	method = get_selected_registration_method();
+	if (!method) {
+		siril_log_color_message(_("Failed to determine registration method...\n"), "red");
+		return;
+	}
 
 	/* show the appropriate frame selection widgets */
 	gboolean isapplyreg = method->method_ptr == &register_apply_reg;

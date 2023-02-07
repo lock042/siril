@@ -82,6 +82,10 @@ gboolean load_WCS_from_memory(fits *fit) {
 	int status;
 	if (!fit->wcslib) {
 		fit->wcslib = calloc(1, sizeof(struct wcsprm));
+		if(!fit->wcslib) {
+			PRINT_ALLOC_ERR;
+			return FALSE;
+		}
 		fit->wcslib->flag = -1;
 	}
 	wcsinit(1, NAXIS, fit->wcslib, 0, 0, 0);

@@ -309,7 +309,8 @@ int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, cons
 int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
 	gchar *new_filename = set_right_extension(filename);
 
-	g_unlink(new_filename); /* Delete old file if it already exists */
+	if (g_unlink(new_filename))
+		siril_log_message("g_unlink() failed\n");/* Delete old file if it already exists */
 	fitseq_init_struct(fitseq);
 
 	int status = 0;

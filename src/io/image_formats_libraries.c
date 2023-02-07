@@ -1007,6 +1007,10 @@ int readpng(const char *name, fits* fit) {
 		return OPEN_IMAGE_ERROR;
 
 	FILE *f = g_fopen(name, "rb");
+	if (!f) {
+		siril_log_color_message(_("Error opening the file %s\n"), "red", name);
+		return OPEN_IMAGE_ERROR;
+	}
 	png_init_io(png, f);
 
 	png_read_info(png, info);

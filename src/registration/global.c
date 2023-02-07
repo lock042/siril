@@ -777,8 +777,8 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 		cogy += currcenter.y;
 		n++;
 	}
-	cogx /= (double)n;
-	cogy /= (double)n;
+	cogx /= (n = 0 ? 1. : (double)n);
+	cogy /= (n = 0 ? 1. : (double)n);
 	x0 = (int)(cogx - (double)rx * 0.5);
 	y0 = (int)(cogy - (double)ry * 0.5);
 	Hshift.h02 = (double)x0;
@@ -849,7 +849,12 @@ int register_multi_step_global(struct registration_args *regargs) {
 	int retval = 0;
 	struct timeval t_start, t_end;
 
-	if (!sf_args->stars || !sf_args->nb_stars) {
+	if (!sf_args->stars) {
+		PRINT_ALLOC_ERR;
+		retval = 1;
+		goto free_all;
+	}
+	if (!sf_args->nb_stars) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
@@ -924,7 +929,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			char *units;
 			FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], regargs->seq->bitpix, &FWHMx, &FWHMy, &units, B + i, NULL, 0.);
 			// we only rank images with at least half the maximum number of stars (and we count them as meaningful)
-			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
+			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / (maxstars == 0 ? 1 : maxstars) + FWHMx : FLT_MAX;
 			if (sf_args->nb_stars[i] >= maxstars / 2) meaningful[i] = TRUE;
 			fwhm[i] = FWHMx;
 			roundness[i] = FWHMy/FWHMx;
@@ -936,7 +941,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			if (!included[i]) continue;
 			FWHMx = fwhm[i];
 			// we only rank images with at least half the maximum number of stars (and we count them as meaningful)
-			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
+			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / (maxstars == 0 ? 1 : maxstars) + FWHMx : FLT_MAX;
 			if (sf_args->nb_stars[i] >= maxstars / 2) meaningful[i] = TRUE;
 		}
 		best_index = minidx(scores, included, regargs->seq->number, NULL);
