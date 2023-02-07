@@ -52,6 +52,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	int *index_mapping = NULL;
 	int nb_frames, excluded_frames = 0, progress = 0;
 	int abort = 0;	// variable for breaking out of loop
+	int* threads_per_image = NULL;
 	gboolean have_seqwriter = FALSE;
 
 	assert(args);
@@ -94,7 +95,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			args->description, args->max_parallel_images);
 
 	// remaining threads distribution per image thread
-	int *threads_per_image = compute_thread_distribution(args->max_parallel_images, com.max_thread);
+	threads_per_image = compute_thread_distribution(args->max_parallel_images, com.max_thread);
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
