@@ -491,7 +491,6 @@ int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa) {
 			g_clear_error(&error);
 			siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
 		}
-
 		return 1;
 	}
 
@@ -564,7 +563,7 @@ int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa) {
 		}
 		g_free(line);
 	}
-
+	g_object_unref(data_input);
 	g_object_unref(input_stream);
 
 	return retval;

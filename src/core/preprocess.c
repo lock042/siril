@@ -785,8 +785,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				if (bad_pixel_f[0] != '\0') {
 					args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
 					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-						g_object_unref(args->bad_pixel_map_file);
-						args->bad_pixel_map_file = NULL;
+						siril_debug_print("cosme file sanity check failed...\n");
 					}
 				}
 			}
@@ -869,6 +868,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	if (test_for_master_files(args)) {
 		siril_log_color_message(_("Some errors have been detected, Please check the logs.\n"), "red");
+		free(args);
 		return;
 	}
 	if (!args->use_bias && !args->use_dark && !args->use_flat)

@@ -1021,6 +1021,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
 					return GOT_WRITE_ERROR;
 				}
+				g_free(dest);
 				conv->next_image_in_output = 0;
 				conv->writeseq_count = get_new_write_counter();
 			}

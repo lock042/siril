@@ -603,6 +603,7 @@ static gpointer live_stacker(gpointer arg) {
 		tv_tmp = tv_end;
 
 		if (target && symlink_uniq_file(filename, target, do_links)) {
+			g_free(target);
 			livestacking_display(_("Failed to rename or make a symbolic link to the input file"), FALSE);
 			break;
 		}

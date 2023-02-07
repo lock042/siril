@@ -891,10 +891,12 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 				tmp_plot = tmp_plot->next;
 				++x;
 				g_free(buffer);
+				buffer = NULL;
 			}
 			if (!g_output_stream_write_all(output_stream, "\n", 1, NULL, NULL, &error)) {
 				g_warning("%s\n", error->message);
 				g_free(buffer);
+				buffer = NULL;
 				g_clear_error(&error);
 				g_object_unref(output_stream);
 				g_object_unref(file);

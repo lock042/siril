@@ -677,7 +677,8 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	if (initialize_data(args)) {
-		start_in_new_thread(mini_save_dialog, NULL);
+		start_in_new_thread(mini_save_dialog, args); // Changed NULL to args
+		// while on bugfixing spree: NULL appears to be an error
 	} else {
 		g_free(args);
 		siril_add_idle(end_generic, NULL);

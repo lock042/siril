@@ -1595,7 +1595,7 @@ void translation_from_H(Homography H, double *dx, double *dy) {
 }
 
 Homography H_from_translation(double dx, double dy) {
-	Homography H;
+	Homography H = { 0 };
 	cvGetEye(&H);
 	H.h02 = dx;
 	H.h12 = -dy;

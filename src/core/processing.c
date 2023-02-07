@@ -334,8 +334,8 @@ gpointer generic_sequence_worker(gpointer p) {
 		show_time(t_start, t_end);
 	}
 
+	g_free(threads_per_image);
 #ifdef _OPENMP
-	free(threads_per_image);
 	omp_destroy_lock(&args->lock);
 #endif
 the_end:

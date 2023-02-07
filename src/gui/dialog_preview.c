@@ -81,6 +81,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	name_str = g_path_get_basename(args->filename);
 
 	if (!args->file_info) {
+		g_free(name_str);
 		set_cursor_waiting(FALSE);
 		return FALSE;
 	}

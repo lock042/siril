@@ -109,7 +109,7 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 		}
 	}
 
-	if (reqlayer < 0 || reqlayer > 3) {
+	if (reqlayer < 0 || reqlayer >= 3) {
 		start = 0;
 		end = fit->naxes[2];
 	}

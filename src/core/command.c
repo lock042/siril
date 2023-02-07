@@ -533,6 +533,7 @@ int process_starnet(int nb){
 			if (arg == end) error = TRUE;
 			else if ((intstride < 2.0) || (intstride > 256) || (intstride % 2)) {
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
+				g_free(starnet_args);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -542,10 +543,12 @@ int process_starnet(int nb){
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			g_free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 		if (error) {
 			siril_log_message(_("Error parsing arguments, aborting.\n"));
+			g_free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -596,6 +599,7 @@ int process_seq_starnet(int nb){
 			if (arg == end) error = TRUE;
 			else if ((intstride < 2.0) || (intstride > 256) || (intstride % 2)) {
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
+				g_free(starnet_args);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -605,10 +609,12 @@ int process_seq_starnet(int nb){
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			g_free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 		if (error) {
 			siril_log_message(_("Error parsing arguments, aborting.\n"));
+			g_free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -2376,6 +2382,7 @@ int process_merge(int nb) {
 		return CMD_NO_CWD;
 	}
 	char *dest_dir = strdup(com.wd);
+	char *outseq_name = NULL;
 	sequence **seqs = calloc(nb_seq, sizeof(sequence *));
 	GList *list = NULL;
 	for (int i = 0; i < nb_seq; i++) {
@@ -2428,9 +2435,8 @@ int process_merge(int nb) {
 		siril_change_dir(dest_dir, NULL);	// they're all relative to this one
 	}
 
-	char *outseq_name;
 	struct ser_struct out_ser;
-	struct _convert_data *args;
+	struct _convert_data *args = NULL;
 	fitseq out_fitseq;
 	switch (seqs[0]->type) {
 		case SEQ_REGULAR:
@@ -2540,6 +2546,7 @@ merge_clean_up:
 			free_sequence(seqs[i], TRUE);
 	}
 	free(seqs);
+	g_free(outseq_name);
 	siril_change_dir(dest_dir, NULL);
 	free(dest_dir);
 	return retval;
@@ -4054,6 +4061,7 @@ int process_seq_crop(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						g_free(args);
 						return CMD_ARG_ERROR;
 					}
 					args->prefix = strdup(value);
@@ -4962,6 +4970,7 @@ int process_subsky(int nb) {
 			char *value = arg + 8;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
+				g_free(prefix);
 				return CMD_ARG_ERROR;
 			}
 			prefix = strdup(value);
@@ -4972,6 +4981,7 @@ int process_subsky(int nb) {
 			samples = g_ascii_strtoull(value, &end, 10);
 			if (end == value || samples <= 1) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+				g_free(prefix);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -4980,6 +4990,7 @@ int process_subsky(int nb) {
 			tolerance = g_ascii_strtod(value, &next);
 			if (next == value || tolerance < 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+				g_free(prefix);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -4988,6 +4999,7 @@ int process_subsky(int nb) {
 			smooth = g_ascii_strtod(value, &next);
 			if (next == value || smooth < 0.0 || smooth > 1.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
+				g_free(prefix);
 				return CMD_ARG_ERROR;
 			}
 			if (interp != BACKGROUND_INTER_RBF)
@@ -4995,6 +5007,7 @@ int process_subsky(int nb) {
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			g_free(prefix);
 			return CMD_ARG_ERROR;
 		}
 		arg_index++;
@@ -5021,6 +5034,7 @@ int process_subsky(int nb) {
 		args->dither = FALSE;
 		args->seqEntry = NULL;
 		args->fit = &gfit;
+		g_free(prefix);
 
 		if (!generate_background_samples(samples, tolerance))
 			start_in_new_thread(remove_gradient_from_image, args);
@@ -5375,6 +5389,7 @@ int process_extractHaOIII(int nb) {
 	} else {
 		g_free(Ha);
 		g_free(OIII);
+		g_free(filename);
 		return CMD_INVALID_IMAGE;
 	}
 
@@ -5382,7 +5397,7 @@ int process_extractHaOIII(int nb) {
 	g_free(OIII);
 	clearfits(&f_Ha);
 	clearfits(&f_OIII);
-	free(filename);
+	g_free(filename);
 	return ret;
 }
 
@@ -8337,7 +8352,8 @@ int process_pcc(int nb) {
 				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
-				free(args);
+				g_free(args);
+				g_free(pcc_args);
 				return CMD_INVALID_IMAGE;
 			}
 			siril_log_message(_("Using pixel size from preferences: %.2f\n"), args->pixel_size);
@@ -8360,7 +8376,8 @@ int process_pcc(int nb) {
 				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
-				free(args);
+				g_free(args);
+				g_free(pcc_args);
 				return CMD_INVALID_IMAGE;
 			}
 			siril_log_message(_("Using focal length from preferences: %.2f\n"), args->focal_length);

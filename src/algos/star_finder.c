@@ -867,6 +867,8 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		if (tokens != 15) {
 			siril_debug_print("malformed line: %s", buffer);
 			read_failure = TRUE;
+			g_free(s);
+			s = NULL;
 			break;
 		}
 		if (fi != star + 1)

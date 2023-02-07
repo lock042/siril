@@ -442,7 +442,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 		}
 		g_free(tokens[i]);
 		tokens[i] = g_strdup(buf);
-//		g_strfreev(subs);
+		g_strfreev(subs);
 	}
 	out = g_strjoinv("", tokens);
 	siril_debug_print("String in: %s\n", expression);

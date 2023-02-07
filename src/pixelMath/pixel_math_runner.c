@@ -863,7 +863,7 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 }
 
 int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
-	if (index > MAX_IMAGES) {
+	if (index > MAX_IMAGES - 1) {
 		siril_log_message(_("A maximum of %d images can be used in a single expression.\n"), MAX_IMAGES);
 		return 1;
 	}
@@ -1255,8 +1255,10 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	char buffer[512];
 
 	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip,
-			&model, &path, &iter))
+			&model, &path, &iter)) {
+		g_free(all_functions);
 		return FALSE;
+	}
 
 	gint real_index = get_real_index_from_index_in_list(model, &iter);
 
@@ -1266,7 +1268,7 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
 
 	gtk_tree_path_free(path);
-	free(all_functions);
+	g_free(all_functions);
 
 	return TRUE;
 }
