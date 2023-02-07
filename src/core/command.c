@@ -8496,7 +8496,7 @@ int process_nomad(int nb) {
 	double ra, dec;
 	center2wcs(&gfit, &ra, &dec);
 	double resolution = get_wcs_image_resolution(&gfit);
-	uint64_t sqr_radius = (gfit.rx * gfit.rx + gfit.ry * gfit.ry) / 4;
+	uint64_t sqr_radius = ((uint64_t) gfit.rx * gfit.rx + (uint64_t) gfit.ry * gfit.ry) / 4;
 	double radius = resolution * sqrt((double)sqr_radius);	// in degrees
 	siril_debug_print("centre coords: %f, %f, radius: %f\n", ra, dec, radius);
 

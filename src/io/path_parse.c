@@ -92,6 +92,8 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 
 static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
 	pathparse_errors status = PATHPARSE_ERR_OK;
+	if (!headers)
+		return PATHPARSE_ERR_HEADER_NULL;
 	gboolean keyfound = FALSE;
 	char searchstr[10];
 	g_sprintf(searchstr, "%-8s=", key);

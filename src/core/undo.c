@@ -88,7 +88,8 @@ static int undo_build_swapfile(fits *fit, char **filename) {
 
 static int undo_remove_item(historic *histo, int index) {
 	if (histo[index].filename) {
-		g_unlink(histo[index].filename);
+		if (g_unlink(histo[index].filename))
+			siril_debug_print("g_unlink() failed\n");
 		g_free(histo[index].filename);
 		histo[index].filename = NULL;
 		memset(&histo[index].wcsdata, 0, sizeof(wcs_info));

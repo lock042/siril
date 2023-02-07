@@ -1397,7 +1397,8 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 			active_channels++;
 		}
 	}
-	ref /= active_channels;
+	if (active_channels != 0.f)
+		ref /= active_channels;
 	ref /= norm;
 	_SP = (float) ref;
 	if (_SP < _LP) {

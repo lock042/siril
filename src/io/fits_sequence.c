@@ -389,7 +389,8 @@ void fitseq_close_and_delete_file(fitseq *fitseq) {
 	fitseq->filename = NULL;
 	fitseq_destroy(fitseq, TRUE);
 	siril_log_message(_("Removing failed FITS sequence file: %s\n"), filename);
-	g_unlink(filename);
+	if (g_unlink(filename))
+		siril_debug_print("g_unlink() failed\n");
 }
 
 int fitseq_close_file(fitseq *fitseq) {

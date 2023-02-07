@@ -748,7 +748,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
 		return -1;
 	}
-	if (nb_ref_stars < 1)
+	if (nb_ref_stars == 1)
 		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
 	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
 

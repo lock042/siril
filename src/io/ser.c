@@ -382,7 +382,7 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 		memset(ser_file->observer, 0, 40);
 		memcpy(ser_file->observer, fit->observer, 40);
 	}
-	if (fit->instrume[0] != 0) {
+	if (fit->telescop[0] != 0) {
 		memset(ser_file->telescope, 0, 40);
 		memcpy(ser_file->telescope, fit->telescop, 40);
 	}
@@ -1093,7 +1093,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 			free(rawbuf);
 			return -1;
 		}
-		ser_manage_endianess_and_depth(ser_file, rawbuf, debayer_area.w * debayer_area.h);
+		ser_manage_endianess_and_depth(ser_file, rawbuf, (gint64) debayer_area.w * debayer_area.h);
 
 		/* for performance consideration (and many others) we force the interpolation algorithm
 		 * to be BAYER_BILINEAR

@@ -137,6 +137,9 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 				retval = 1;
 				break;
 			}
+		} else { // Unknown fit->type
+			retval = 1;
+			break;
 		}
 		Nl = wavelet[chan].Nbr_Ligne;
 		Nc = wavelet[chan].Nbr_Col;

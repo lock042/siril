@@ -1557,7 +1557,7 @@ void save_fits_header(fits *fit) {
 				"Active filter name", &status);
 
 	status = 0;
-	if (fit->filter[0] != '\0')
+	if (fit->image_type[0] != '\0')
 		fits_update_key(fit->fptr, TSTRING, "IMAGETYP", &(fit->image_type),
 				"Type of image", &status);
 

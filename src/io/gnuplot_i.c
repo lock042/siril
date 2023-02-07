@@ -246,7 +246,8 @@ void gnuplot_close(gnuplot_ctrl * handle)
     }
     if (handle->ntmp) {
 		for (int i = 0; i < handle->ntmp; i++) {
-            remove(handle->tmp_filename_tbl[i]) ;
+            if (g_remove(handle->tmp_filename_tbl[i]))
+				fprintf(stderr, "Error removing tmpfile\n");
             free(handle->tmp_filename_tbl[i]);
             handle->tmp_filename_tbl[i] = NULL;
 

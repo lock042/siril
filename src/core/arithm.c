@@ -82,6 +82,8 @@ static int soper_ushort_to_float(fits *a, float scalar, image_operator oper) {
 	float *result;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
+	if (!a) return 1;
+	if (!a->data) return 1;
 	data = a->data;
 	result = malloc(n * sizeof(float));
 	if (!result) {
@@ -284,8 +286,7 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 				case OPER_SUB:
 					abuf[i] = truncate_to_WORD(aval - bval);
 					break;
-				case OPER_MUL:	// handled above
-				case OPER_DIV:	// handled above
+				default:	// OPER_MUL and OPER_DIV handled above
 					break;
 				}
 				if (factor != 1.0f)

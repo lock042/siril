@@ -764,6 +764,7 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 			float *A = malloc(nb * sizeof(float));
 			if (!A) {
 				PRINT_ALLOC_ERR;
+				return;
 			}
 			for (int i = 0; i < nb; i++)
 				A[i] = stars[i]->A;

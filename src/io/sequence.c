@@ -1187,7 +1187,8 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 		seqname = malloc(len);
 		g_snprintf(seqname, len, "%s%s", prefix, basename);
 		siril_debug_print("Removing %s\n", seqname);
-		g_unlink(seqname);
+		if (g_unlink(seqname))
+			siril_debug_print("g_unlink() failed\n");
 		free(seqname);
 		break;
 	}
@@ -1998,8 +1999,8 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 		siril_debug_print("Sequence drift could not be checked as sequence has no regdata on layer %d\n", reglayer);
 		return FALSE;
 	}
-	double orig_x = (double)(seq->rx / 2);
-	double orig_y = (double)(seq->ry / 2);
+	double orig_x = (double)(seq->rx / 2.);
+	double orig_y = (double)(seq->ry / 2.);
 	for (int i = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl)
 			continue;

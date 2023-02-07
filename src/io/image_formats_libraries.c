@@ -808,7 +808,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *des
 	if (!write_ok) {
 		siril_log_color_message(_("Saving TIFF: Cannot write TIFF file.\n"), "red");
 		retval = OPEN_IMAGE_ERROR;
-		g_remove(filename);
+		if (g_remove(filename))
+			fprintf(stderr, "Error removing file\n");
 	} else {
 		siril_log_message(_("Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
 				bitspersample, filename, nsamples, width, height);
@@ -1508,6 +1509,11 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 
 	int offset = raw_width * top_margin + left_margin;
 
+	if (!raw->rawdata.raw_image) {
+		libraw_recycle(raw);
+		libraw_close(raw);
+		return OPEN_IMAGE_ERROR;
+	}
 	int i = 0;
 	for (int row = height - 1; row > -1; row--) {
 		for (int col = 0; col < width; col++) {
