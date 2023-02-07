@@ -777,8 +777,8 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 		cogy += currcenter.y;
 		n++;
 	}
-	cogx /= (n = 0 ? 1. : (double)n);
-	cogy /= (n = 0 ? 1. : (double)n);
+	cogx /= (n == 0 ? 1. : (double)n);
+	cogy /= (n == 0 ? 1. : (double)n);
 	x0 = (int)(cogx - (double)rx * 0.5);
 	y0 = (int)(cogy - (double)ry * 0.5);
 	Hshift.h02 = (double)x0;
@@ -1061,8 +1061,10 @@ int register_multi_step_global(struct registration_args *regargs) {
 	show_time(t_start, t_end);
 
 free_all:
-	for (int i = 0; i < regargs->seq->number; i++)
-		free_fitted_stars(sf_args->stars[i]);
+	if (sf_args->stars) {
+		for (int i = 0; i < regargs->seq->number; i++)
+			free_fitted_stars(sf_args->stars[i]);
+	}
 	free(sf_args->stars);
 	free(sf_args->nb_stars);
 	free(sf_args);

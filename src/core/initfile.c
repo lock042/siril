@@ -312,9 +312,10 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 		case STYPE_BOOL:
 			boolval = g_key_file_get_boolean(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
+				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
-						desc->group, desc->key, error->message,
-						g_key_file_get_string(kf, desc->group, desc->key, NULL));
+						desc->group, desc->key, error->message, keystring);
+				g_free(keystring);
 				return 1;
 			}
 			*((gboolean*)desc->data) = boolval;
@@ -324,8 +325,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
 				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
-						desc->group, desc->key, error->message,
-						keystring);
+						desc->group, desc->key, error->message, keystring);
 				g_free(keystring);
 				return 1;
 			}
@@ -393,8 +393,8 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 				if (old_list)
 					g_slist_free_full(old_list, g_free);
 				*((GSList**)desc->data) = list;
-				g_free(strs);
 			}
+			g_free(strs);
 			break;
 	}
 	return 0;

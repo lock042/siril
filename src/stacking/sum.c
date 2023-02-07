@@ -207,7 +207,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 				}
 			}
 		} else {
-			double ratio = 1.0 / max == 0 ? 1 : (double)max;
+			double ratio = 1.0 / (max == 0 ? 1 : (double)max);
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
 				guint64 *from = ssdata->sum[layer];
 				float *to = fit->fpdata[layer];

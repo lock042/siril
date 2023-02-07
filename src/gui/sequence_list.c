@@ -570,8 +570,10 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	gtk_tree_view_set_model(args->tview, GTK_TREE_MODEL(list_store));
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
 
-	//select and scroll to image already loaded as gfit
-	sequence_list_select_row_from_index(args->seq->current, FALSE);
+	if (args->seq) {
+		//select and scroll to image already loaded as gfit
+		sequence_list_select_row_from_index(args->seq->current, FALSE);
+	}
 	g_signal_handlers_unblock_by_func(args->tview, on_treeview1_cursor_changed, NULL);
 
 	free(args);

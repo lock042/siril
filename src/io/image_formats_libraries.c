@@ -1516,6 +1516,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	if (!raw->rawdata.raw_image) {
 		libraw_recycle(raw);
 		libraw_close(raw);
+		g_free(buf);
 		return OPEN_IMAGE_ERROR;
 	}
 	int i = 0;

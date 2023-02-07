@@ -322,7 +322,7 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 		gchar *tmpmsg = g_strdup_printf(_("Processing image %s"), filename);
-		set_progress_bar_data(tmpmsg, (double)cur_nb / nb_frames == 0 ? 1 : (double)nb_frames);
+		set_progress_bar_data(tmpmsg, (double)cur_nb / (nb_frames == 0 ? 1 : (double)nb_frames));
 		g_free(tmpmsg);
 
 		/* we read the full frame */

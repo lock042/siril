@@ -1160,7 +1160,8 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 	seqname = malloc(len);
 	g_snprintf(seqname, len, "%s%s.seq", prefix, basename);
 	siril_debug_print("Removing %s\n", seqname);
-	g_unlink(seqname); // removing the seqfile
+	if (g_unlink(seqname))
+		siril_debug_print("g_unlink() failed\n"); // removing the seqfile
 	free(seqname);
 	g_free(basename);
 

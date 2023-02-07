@@ -56,7 +56,8 @@ void remove_tmp_drizzle_files(struct stacking_args *args) {
 	seqname = malloc(len);
 	g_snprintf(seqname, len, "%s.seq", basename);
 	siril_debug_print("Removing %s\n", seqname);
-	g_unlink(seqname); // removing the seqfile
+	if (g_unlink(seqname))
+		siril_debug_print("g_unlink() failed\n"); // removing the seqfile
 	free(seqname);
 	g_free(basename);
 

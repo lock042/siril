@@ -2504,7 +2504,8 @@ int process_merge(int nb) {
 				retval = 1;
 				goto merge_clean_up;
 			}
-			free(outseq_name);
+			g_free(outseq_name);
+			outseq_name = NULL;
 			seqwriter_set_max_active_blocks(2);
 			written_frames = 0;
 			for (int i = 0; i < nb_seq; i++) {
@@ -5362,6 +5363,7 @@ int process_extractHaOIII(int nb) {
 			value = current + 10;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
+				g_free(filename);
 				return CMD_ARG_ERROR;
 			} else if (!strcasecmp(value, "ha")) {
 				scaling = SCALING_HA_UP;
