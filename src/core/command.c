@@ -4972,7 +4972,7 @@ int process_subsky(int nb) {
 				g_free(prefix);
 				return CMD_ARG_ERROR;
 			}
-			g_free_prefix);
+			g_free(prefix);
 			prefix = strdup(value);
 		}
 		else if (g_str_has_prefix(arg, "-samples=")) {
