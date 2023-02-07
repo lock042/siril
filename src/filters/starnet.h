@@ -21,6 +21,14 @@ typedef enum {
 	V1BOTH = 6
 } starnet_version;
 
+typedef enum {
+	NIL = 0,
+	V2 = 1,
+	V1MONO = 2,
+	V1RGB = 4,
+	V1BOTH = 6
+} starnet_version;
+
 typedef struct starnet_data {
 	struct ser_struct *new_ser_starless;
 	fitseq *new_fitseq_starless;
