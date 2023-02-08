@@ -553,7 +553,10 @@ gpointer do_starnet(gpointer p) {
 		if ((!(com.seq.current == RESULT_IMAGE || com.seq.current == UNRELATED_IMAGE)) && args->seq && (args->seq->type == SEQ_SER || args->force_ser)) {
 			force_16bit = TRUE;
 		}
+	} else if (args->seq && (args->seq->type == SEQ_SER || args->force_ser)) {
+		force_16bit = TRUE;
 	}
+
 	if (!force_16bit) {
 		const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 		fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);
