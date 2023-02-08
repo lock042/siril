@@ -558,10 +558,10 @@ int writeinitfile() {
 		g_free(com.initfile);
 		com.initfile = NULL;
 		g_key_file_free(kf);
-		g_error_free(error);
+		g_clear_error(&error);
 		return 1;
 	}
-	g_error_free(error);
+	g_clear_error(&error);
 	g_key_file_free(kf);
 	return 0;
 }
