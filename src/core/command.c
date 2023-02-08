@@ -186,6 +186,8 @@ int process_seq_clean(int nb) {
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
 					return CMD_ARG_ERROR;
 				}
 			}
@@ -599,6 +601,8 @@ int process_seq_starnet(int nb){
 			if (arg == end) error = TRUE;
 			else if ((intstride < 2.0) || (intstride > 256) || (intstride % 2)) {
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
+				if (!check_seq_is_comseq(starnet_args->seq))
+					free_sequence(starnet_args->seq, TRUE);
 				g_free(starnet_args);
 				return CMD_ARG_ERROR;
 			}
@@ -609,11 +613,15 @@ int process_seq_starnet(int nb){
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			g_free(starnet_args);
+				if (!check_seq_is_comseq(starnet_args->seq))
+					free_sequence(starnet_args->seq, TRUE);
+				g_free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 		if (error) {
 			siril_log_message(_("Error parsing arguments, aborting.\n"));
+			if (!check_seq_is_comseq(starnet_args->seq))
+				free_sequence(starnet_args->seq, TRUE);
 			g_free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
@@ -1412,6 +1420,9 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	if (seq == NULL) {
 		siril_log_message(_("Error: cannot open sequence\n"));
 		g_free(data);
+		if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
+
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	for (int i = 2; i < nb; i++) {
@@ -1425,6 +1436,8 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 			else if ((alpha < 0.f) || (alpha > 100000.f)) {
 				siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
 				g_free(data);
+				if (!check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1438,6 +1451,8 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 			else if ((iters < 1) || (iters > 100000)) {
 				siril_log_message(_("Error in iterations parameter: must be between 1 and 1e5, aborting.\n"));
 				g_free(data);
+				if (!check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1451,6 +1466,8 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 			else if ((stopcriterion < 0.f) || (stopcriterion > 1.f)) {
 				siril_log_message(_("Error in stop parameter: must be between 0 and 1, aborting.\n"));
 				g_free(data);
+				if (!check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1465,6 +1482,8 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 			else if ((stepsize < 0.f) || (stepsize > 1.f)) {
 				siril_log_message(_("Error in step size parameter: must be between 0 and 1, aborting.\n"));
 				g_free(data);
+				if (!check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1484,6 +1503,8 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 
 	if (error) {
 		g_free(data);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 	// Guess the user's intentions for a kernel:
@@ -3867,7 +3888,7 @@ int process_seq_psf(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	sequence *seq;
+	sequence *seq = NULL;
 	int layer;
 	if (nb < 4) {
 		seq = &com.seq;
@@ -4027,14 +4048,20 @@ int process_seq_crop(int nb) {
 
 		if (endx == word[2] || endy == word[3] || area.x < 0 || area.y < 0) {
 			siril_log_message(_("Crop: x and y must be positive values.\n"));
+			if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
 			return CMD_ARG_ERROR;
 		}
 		if (endw == word[4] || endh == word[5] || area.w <= 0 || area.h <= 0) {
 			siril_log_message(_("Crop: width and height must be greater than 0.\n"));
+			if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
 			return CMD_ARG_ERROR;
 		}
 	} else {
 		siril_log_message(_("Crop: select a region or provide x, y, width, height\n"));
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 	gchar *end1, *end2;
@@ -4044,6 +4071,8 @@ int process_seq_crop(int nb) {
 	if (end1 == word[4] || end2 == word[5] || rx > seq->rx || ry > seq->ry) {
 		siril_log_message(_("Crop: width and height, respectively, must be less than %d and %d.\n"),
 				seq->rx, seq->ry);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 
@@ -4062,6 +4091,8 @@ int process_seq_crop(int nb) {
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 						g_free(args);
+						if (!check_seq_is_comseq(seq))
+							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
 					}
 					args->prefix = strdup(value);
@@ -4488,6 +4519,8 @@ int process_seq_findstar(int nb) {
 	if (argparsing) {
 		if (args->starfile) g_free(args->starfile);
 		free(args);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		return argparsing;
 	}
 	if (args->starfile) {
@@ -4624,7 +4657,8 @@ int process_seq_cosme(int nb) {
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		siril_log_color_message(_("File [%s] does not exist.\n"), "red", filename);
-		free_sequence(seq, TRUE);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		g_free(filename);
 		return CMD_FILE_NOT_FOUND;
 	}
@@ -4640,6 +4674,8 @@ int process_seq_cosme(int nb) {
 		if (value[0] == '\0') {
 			free_sequence(seq, TRUE);
 			g_object_unref(file);
+			if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
 			free(args);
 			siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 			return CMD_ARG_ERROR;
@@ -4890,12 +4926,16 @@ int process_seq_fixbanding(int nb) {
 	args->amount = g_ascii_strtod(word[2], &end1);
 	if (end1 == word[2] || args->amount < 0 || args->amount > 4) {
 		siril_log_message(_("Amount value must be in the [0, 4] range.\n"));
+		if (!check_seq_is_comseq(args->seq))
+			free_sequence(args->seq, TRUE);
 		free(args);
 		return CMD_ARG_ERROR;
 	}
 	args->sigma = g_ascii_strtod(word[3], &end2);
 	if (end2 == word[3] || args->sigma < 0 || args->sigma > 5) {
 		siril_log_message(_("1/sigma value must be in the [0, 5] range.\n"));
+		if (!check_seq_is_comseq(args->seq))
+			free_sequence(args->seq, TRUE);
 		free(args);
 		return CMD_ARG_ERROR;
 	}
@@ -4913,6 +4953,8 @@ int process_seq_fixbanding(int nb) {
 				char *value = arg + 8;
 				if (value[0] == '\0') {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
+					if (!check_seq_is_comseq(args->seq))
+						free_sequence(args->seq, TRUE);
 					g_free(args);
 					return CMD_ARG_ERROR;
 				}
@@ -4921,6 +4963,8 @@ int process_seq_fixbanding(int nb) {
 				args->applyRotation = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+				if (!check_seq_is_comseq(args->seq))
+					free_sequence(args->seq, TRUE);
 				g_free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -5426,7 +5470,8 @@ int process_seq_mtf(int nb) {
 			args->params.shadows >= 1.0 || args->params.midtones >= 1.0 || args->params.highlights > 1.0) {
 		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
 		free(args);
-		free_sequence(seq, TRUE);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 
@@ -5460,6 +5505,8 @@ int process_seq_mtf(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+						if (!check_seq_is_comseq(seq))
+							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
@@ -5498,7 +5545,8 @@ int process_seq_split_cfa(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
-						free_sequence(seq, TRUE);
+						if (!check_seq_is_comseq(seq))
+							free_sequence(seq, TRUE);
 						g_free(args);
 						return CMD_ARG_ERROR;
 					}
@@ -5507,7 +5555,8 @@ int process_seq_split_cfa(int nb) {
 			}
 			else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-				free_sequence(seq, TRUE);
+				if (!check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
 				g_free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -5526,7 +5575,8 @@ int process_seq_merge_cfa(int nb) {
 	}
 
 	if (seq->nb_layers > 1) {
-		free_sequence(seq, TRUE);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		return CMD_FOR_CFA_IMAGE;
 	}
 
@@ -5542,7 +5592,8 @@ int process_seq_merge_cfa(int nb) {
 		args->pattern = BAYER_FILTER_GRBG;
 	} else {
 		siril_log_color_message(_("Invalid Bayer matrix specified!\n"), "red");
-		free_sequence(seq, TRUE);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		g_free(args);
 		return CMD_ARG_ERROR;
 	}
@@ -5561,6 +5612,8 @@ int process_seq_merge_cfa(int nb) {
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						g_free(args);
+						if (!check_seq_is_comseq(seq))
+							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntryIn = strdup(value);
@@ -5569,6 +5622,8 @@ int process_seq_merge_cfa(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						if (!check_seq_is_comseq(seq))
+							free_sequence(seq, TRUE);
 						g_free(args);
 						return CMD_ARG_ERROR;
 					}
@@ -5577,7 +5632,8 @@ int process_seq_merge_cfa(int nb) {
 			}
 			else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-				free_sequence(seq, TRUE);
+				if (!check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
 				g_free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -5615,13 +5671,16 @@ int process_seq_extractHa(int nb) {
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						g_free(args);
+						if (!check_seq_is_comseq(seq))
+							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-					free_sequence(seq, TRUE);
+						if (!check_seq_is_comseq(seq))
+							free_sequence(seq, TRUE);
 					g_free(args);
 					return CMD_ARG_ERROR;
 				}
@@ -5660,14 +5719,16 @@ int process_seq_extractGreen(int nb) {
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						g_free(args);
-						free_sequence(seq, TRUE);
+						if (!check_seq_is_comseq(seq))
+							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-					free_sequence(seq, TRUE);
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
 					g_free(args);
 					return CMD_ARG_ERROR;
 				}
@@ -5700,7 +5761,8 @@ int process_seq_extractHaOIII(int nb) {
 			value = current + 10;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[2]);
-				free_sequence(seq, TRUE);
+				if (!check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
 				free(args);
 				return CMD_ARG_ERROR;
 			} else if (!strcmp(value, "ha")) {
@@ -5834,7 +5896,8 @@ int process_seq_stat(int nb) {
 			args->cfa = TRUE;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[3]);
-			free_sequence(seq, TRUE);
+			if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
 			free(args);
 			return CMD_ARG_ERROR;
 		}
@@ -5843,7 +5906,8 @@ int process_seq_stat(int nb) {
 				args->cfa = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[4]);
-				free_sequence(seq, TRUE);
+				if (!check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -6011,7 +6075,8 @@ int process_seq_header(int nb) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	if (seq->type != SEQ_REGULAR && seq->type != SEQ_FITSEQ) {
 		siril_log_message(_("This command can only run for FITS images\n"));
-		free_sequence(seq, TRUE);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -6875,6 +6940,8 @@ int process_seq_applyreg(int nb) {
 	return CMD_OK;
 
 terminate_register_on_error:
+	if (!check_seq_is_comseq(seq))
+		free_sequence(seq, TRUE);
 	g_free(reg_args);
 	return CMD_ARG_ERROR;
 }
