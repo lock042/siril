@@ -1521,7 +1521,7 @@ static unsigned int compile_bayer_pattern(sensor_pattern pattern) {
 /* from the header description of the color filter array, we create a mask that
  * contains filter values for top-down reading */
 static int get_compiled_pattern(fits *fit, int layer, BYTE pattern[36], int *pattern_size) {
-	g_assert(layer >= 0 || layer < 3);
+	g_assert(layer >= 0 && layer < 3);
 	sensor_pattern idx = get_cfa_pattern_index_from_string(fit->bayer_pattern);
 
 	if (idx >= BAYER_FILTER_MIN && idx <= BAYER_FILTER_MAX) {
@@ -1576,7 +1576,14 @@ WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 		pattern_y = (pattern_y + 1) % pattern_size;
 	}
 
-	buf = realloc(buf, j * sizeof(WORD));
+	void * tmp = realloc(buf, j * sizeof(WORD));
+	if (!tmp) {
+		PRINT_ALLOC_ERR;
+		g_free(buf);
+		return NULL;
+	} else {
+		buf = tmp;
+	}
 	*newsize = j;
 	return buf;
 }
@@ -1613,7 +1620,14 @@ WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, si
 		pattern_y = (pattern_y + 1) % pattern_size;
 	}
 
-	buf = realloc(buf, j * sizeof(float));
+	void *tmp = realloc(buf, j * sizeof(WORD));
+	if (!tmp) {
+		g_free(buf);
+		PRINT_ALLOC_ERR;
+		return NULL;
+	} else {
+		buf = tmp;
+	}
 	*newsize = j;
 	return buf;
 }
@@ -1647,7 +1661,14 @@ float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
 		pattern_y = (pattern_y + 1) % pattern_size;
 	}
 
-	buf = realloc(buf, j * sizeof(float));
+	void *tmp = realloc(buf, j * sizeof(float));
+	if (!tmp) {
+		g_free(buf);
+		PRINT_ALLOC_ERR;
+		return NULL;
+	} else {
+		buf = tmp;
+	}
 	*newsize = j;
 	return buf;
 }

@@ -568,6 +568,8 @@ int process_starnet(int nb){
 int process_seq_starnet(int nb){
 #ifdef HAVE_LIBTIFF
 	starnet_data *starnet_args = malloc(sizeof(starnet_data));
+	if (!starnet_args)
+		return CMD_ALLOC_ERROR;
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->linear = FALSE;
 	starnet_args->customstride = FALSE;
@@ -579,6 +581,7 @@ int process_seq_starnet(int nb){
 	starnet_args->seq = load_sequence(word[1], NULL);
 	if (!starnet_args->seq) {
 		siril_log_message(_("Error: cannot open sequence\n"));
+		g_free(starnet_args);
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 

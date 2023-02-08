@@ -673,7 +673,7 @@ void on_savetxt_changed(GtkEditable *editable, gpointer user_data) {
 }
 
 void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
-	struct savedial_data *args = malloc(sizeof(struct savedial_data));
+	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
 	if (initialize_data(args)) {
@@ -686,7 +686,7 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
-	struct savedial_data *args = malloc(sizeof(struct savedial_data));
+	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
 	if (initialize_data(args)) {
@@ -708,7 +708,7 @@ void on_header_save_as_button_clicked() {
 		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
 			/* now it is not needed for some formats */
 			if (type_of_image & (TYPEBMP | TYPEPNG | TYPEPNM)) {
-				struct savedial_data *args = malloc(sizeof(struct savedial_data));
+				struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 				set_cursor_waiting(TRUE);
 				if (initialize_data(args)) {
