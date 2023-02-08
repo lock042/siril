@@ -148,6 +148,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	starnet_args = malloc(sizeof(starnet_data));
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->seqname = NULL;
+	starnet_args->seq = NULL;
 	starnet_args->starnet_fit = &gfit;
 	starnet_args->imgnumber = -1;
 	starnet_args->customstride = sgui_customstride;
