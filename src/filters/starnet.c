@@ -530,10 +530,19 @@ gpointer do_starnet(gpointer p) {
 	//force_16_bit needs to be generated carefully because of the stacking result corner case
 	gboolean force_16bit = com.pref.force_16bit;
 	if (sequence_is_loaded()) {
-		if ((!(com.seq.current == RESULT_IMAGE || com.seq.current == UNRELATED_IMAGE)) && args->seq && (args->seq->type == SEQ_SER || args->force_ser)) {
-			force_16bit = TRUE;
+		printf("seq loaded, ");
+		if ((!(com.seq.current == RESULT_IMAGE || com.seq.current == UNRELATED_IMAGE))) {
+			printf("not result or unrelated, ");
+			if (args->seq && (args->seq->type == SEQ_SER || args->force_ser)) {
+				printf("force 16bit\n");
+				force_16bit = TRUE;
+			}
 		}
+	} else if (args->seq && (args->seq->type == SEQ_SER || args->force_ser)) {
+		printf("force 16bit\n");
+		force_16bit = TRUE;
 	}
+
 	if (!force_16bit) {
 		const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 		fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);
