@@ -276,6 +276,7 @@ gpointer do_starnet(gpointer p) {
 	args->follow_on = single_image_is_loaded() ? args->follow_on : FALSE;
 	current_fit = args->starnet_fit;
 	int orig_x = current_fit->rx, orig_y = current_fit->ry;
+	struct remixargs *blendargs = NULL;
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
 	// Only allocate as much space for filenames as required - we determine the max pathlength
@@ -636,13 +637,11 @@ gpointer do_starnet(gpointer p) {
 		free(com.uniq->filename);
 		com.uniq->filename = strdup(starlessfit);
 		if (args->follow_on) {
-			struct remixargs *blendargs;
 			blendargs = calloc(1, sizeof(struct remixargs));
 			blendargs->fit1 = calloc(1, sizeof(fits));
 			blendargs->fit2 = calloc(1, sizeof(fits));
 			copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
 			copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
-			siril_add_idle(end_and_call_remixer, blendargs);
 		}
 	}
 
@@ -652,8 +651,9 @@ gpointer do_starnet(gpointer p) {
 		siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
 	}
 	CLEANUP1:
-	if (args->starmask)
+	if (args->starmask) {
 		clearfits(&fit);
+	}
 	CLEANUP2:
 	clearfits(&workingfit);
 	CLEANUP3:
@@ -674,9 +674,14 @@ gpointer do_starnet(gpointer p) {
 	if (verbose)
 		show_time(t_start, t_end);
 	if (single_image_is_loaded()) {
-		if (!args->follow_on)
+		if (args->follow_on) {
+			siril_add_idle(end_and_call_remixer, blendargs);
+			return GINT_TO_POINTER(retval);
+		} else {
 			notify_gfit_modified();
-		siril_add_idle(end_generic, args);
+			siril_add_idle(end_generic, args);
+			return GINT_TO_POINTER(retval);
+		}
 	}
 	return GINT_TO_POINTER(retval);
 }

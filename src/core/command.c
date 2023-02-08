@@ -1421,9 +1421,6 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	if (seq == NULL) {
 		siril_log_message(_("Error: cannot open sequence\n"));
 		g_free(data);
-		if (!check_seq_is_comseq(seq))
-				free_sequence(seq, TRUE);
-
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	for (int i = 2; i < nb; i++) {
@@ -4923,6 +4920,10 @@ int process_seq_fixbanding(int nb) {
 				return CMD_SEQUENCE_NOT_FOUND;
 			}
 		}
+	}
+	if (!args->seq) {
+		free(args);
+		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	args->amount = g_ascii_strtod(word[2], &end1);
 	if (end1 == word[2] || args->amount < 0 || args->amount > 4) {
