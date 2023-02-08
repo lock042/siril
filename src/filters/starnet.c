@@ -258,32 +258,24 @@ static int exec_prog_win32(const char **argv) {
 }
 #endif
 
-gboolean starnet_executablecheck() {
+starnet_version starnet_executablecheck() {
 	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
 	gchar* fullpath = g_build_filename(com.pref.starnet_dir, STARNET_BIN, NULL);
 	gchar* rgbpath = g_build_filename(com.pref.starnet_dir, STARNET_RGB, NULL);
 	gchar* monopath = g_build_filename(com.pref.starnet_dir, STARNET_MONO, NULL);
+	starnet_version retval = NIL;
 	if (g_file_test(fullpath, G_FILE_TEST_IS_EXECUTABLE)) {
-		g_free(fullpath);
-		g_free(rgbpath);
-		g_free(monopath);
-		return TRUE;
-	} else
-		g_free(fullpath);
-	if ((current_fit->naxes[2] == 3) && (g_file_test(rgbpath, G_FILE_TEST_IS_EXECUTABLE))) {
-		g_free(rgbpath);
-		g_free(monopath);
-		return TRUE;
-	} else
-		g_free(rgbpath);
-	if ((current_fit->naxes[2] == 1 ) && (g_file_test(monopath, G_FILE_TEST_IS_EXECUTABLE))) {
-		g_free(monopath);
-		return TRUE;
+		retval = V2;
+	} else {
+		if (g_file_test(rgbpath, G_FILE_TEST_IS_EXECUTABLE))
+			retval = V1RGB;
+		if (g_file_test(monopath, G_FILE_TEST_IS_EXECUTABLE))
+			retval |= V1MONO;
 	}
-	else {
-		g_free(monopath);
-		return FALSE;
-	}
+	g_free(fullpath);
+	g_free(rgbpath);
+	g_free(monopath);
+	return retval;
 }
 
 gboolean end_and_call_remixer(gpointer p)
@@ -293,10 +285,11 @@ gboolean end_and_call_remixer(gpointer p)
 	return end_generic(NULL);
 }
 
-/* Starnet++v2 star removal routine */
+/* Starnet++ star removal routine */
 
 gpointer do_starnet(gpointer p) {
 	verbose = single_image_is_loaded(); // To suppress log messages during seq working
+	starnet_version version = NIL;
 	int retval = 0;
 	fits workingfit, fit;
 	starnet_data *args = (starnet_data *) p;
@@ -503,15 +496,16 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
-	if (g_file_test(STARNET_BIN, G_FILE_TEST_IS_EXECUTABLE)) {
+	version = starnet_executablecheck();
+	if (version == V2) {
 		snprintf(starnetcommand, 19, STARNET_BIN);
-	} else if ((current_fit->naxes[2] == 3) && (g_file_test(STARNET_RGB, G_FILE_TEST_IS_EXECUTABLE))) {
+	} else if ((current_fit->naxes[2] == 3) && (version == V1RGB || version == V1BOTH)) {
 		snprintf(starnetcommand, 19, STARNET_RGB);
-	} else if ((current_fit->naxes[2] == 1 ) && (g_file_test(STARNET_MONO, G_FILE_TEST_IS_EXECUTABLE))) {
+	} else if ((current_fit->naxes[2] == 1) && (version == V1MONO || version == V1BOTH)) {
 		snprintf(starnetcommand, 19, STARNET_MONO);
 	}
 	else {
-		siril_log_color_message(_("No valid executable found in the Starnet++ directory\n"), "red");
+		siril_log_color_message(_("No suitable Starnet++ executable found in the installation directory\n"), "red");
 		goto CLEANUP;
 	}
 	my_argv[0] = starnetcommand;
@@ -559,7 +553,12 @@ gpointer do_starnet(gpointer p) {
 		if ((!(com.seq.current == RESULT_IMAGE || com.seq.current == UNRELATED_IMAGE)) && args->seq && (args->seq->type == SEQ_SER || args->force_ser)) {
 			force_16bit = TRUE;
 		}
+	} else if (args->seq) {
+		if (args->seq->type == SEQ_SER || args->force_ser) {
+			force_16bit = TRUE;
+		}
 	}
+
 	if (!force_16bit) {
 		const size_t ndata = workingfit.naxes[0] * workingfit.naxes[1] * workingfit.naxes[2];
 		fit_replace_buffer(&workingfit, ushort_buffer_to_float(workingfit.data, ndata), DATA_FLOAT);

@@ -1256,9 +1256,6 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 				PNG_FILTER_TYPE_DEFAULT);
 		profile = get_sRGB_profile_data(&profile_len);
 
-		if (profile_len > 0) {
-			png_set_iCCP(png_ptr, info_ptr, "icc", 0, (png_const_bytep) profile, profile_len);
-		}
 	} else {
 		png_set_IHDR(png_ptr, info_ptr, width, height, bytes_per_sample * 8,
 				PNG_COLOR_TYPE_GRAY,
@@ -1284,6 +1281,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	}
 
 	WORD *data = NULL;
+	uint8_t *data8 = NULL;
 
 	if (bytes_per_sample == 2) {
 		/* swap bytes of 16 bit files to most significant bit first */
@@ -1292,9 +1290,10 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (png_bytep) ((uint16_t*) data + (size_t) samples_per_pixel * i * width);
 	} else {
-		uint8_t *data = convert_data8(fit);
+		data8 = convert_data8(fit);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
-			row_pointers[j--] = (uint8_t*) data + (size_t) samples_per_pixel * i * width;
+			row_pointers[j--] = (uint8_t*) data8 + (size_t) samples_per_pixel * i * width;
+
 	}
 
 	png_write_image(png_ptr, row_pointers);
@@ -1309,6 +1308,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 	/* Close the file */
 	fclose(p_png_file);
 	if (data) free(data);
+	if (data8) free(data8);
 	free(row_pointers);
 	free(filename);
 	return 0;

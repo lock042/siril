@@ -81,12 +81,27 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_label_set_text(label_starnetinfo, "Starnet++ unavailable: requires Siril to be compiled with libtiff support.");
 #endif
 #ifdef HAVE_LIBTIFF
-	if (!starnet_executablecheck()) {
-		gtk_label_set_text(label_starnetinfo, "No valid Starnet++ executable found in the configured Starnet++ installation directory.\nCheck your Starnet++ installation and Siril configuration.");
-		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
-	} else {
-		gtk_label_set_text(label_starnetinfo, "");
-		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
+	switch (starnet_executablecheck()) {
+		case NIL:
+			gtk_label_set_text(label_starnetinfo, _("No valid Starnet++ executable found in the configured Starnet++ installation directory.\nCheck your Starnet++ installation and Siril configuration."));
+			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
+			break;
+		case V2:
+			gtk_label_set_text(label_starnetinfo, _("Valid Starnet++ v2 executable found in the configured Starnet++ installation directory.\nStarnet++ can process mono and RGB images."));
+			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
+			break;
+		case V1BOTH:
+			gtk_label_set_text(label_starnetinfo, _("Valid Starnet++ v1 mono and RGB executables found in the configured Starnet++ installation directory.\nStarnet++ can process mono and RGB images."));
+			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
+			break;
+		case V1MONO:
+			gtk_label_set_text(label_starnetinfo, _("Only the Starnet++ v1 mono executable was found in the configured Starnet++ installation directory.\nStarnet++ can process mono images only."));
+			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
+			break;
+		case V1RGB:
+			gtk_label_set_text(label_starnetinfo, _("Only the Starnet++ v1 RGB executable was found in the configured Starnet++ installation directory.\nStarnet++ can process RGB images only."));
+			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
+			break;
 	}
 #endif
 	starnet_startup();
@@ -133,6 +148,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	starnet_args = malloc(sizeof(starnet_data));
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->seqname = NULL;
+	starnet_args->seq = NULL;
 	starnet_args->starnet_fit = &gfit;
 	starnet_args->imgnumber = -1;
 	starnet_args->customstride = sgui_customstride;

@@ -498,6 +498,7 @@ int process_starnet(int nb){
 	starnet_data *starnet_args = malloc(sizeof(starnet_data));
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->linear = FALSE;
+	starnet_args->seq = NULL;
 	starnet_args->customstride = FALSE;
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
