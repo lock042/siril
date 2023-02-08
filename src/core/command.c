@@ -5426,6 +5426,7 @@ int process_seq_mtf(int nb) {
 			args->params.shadows >= 1.0 || args->params.midtones >= 1.0 || args->params.highlights > 1.0) {
 		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
 		free(args);
+		free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 
@@ -5497,6 +5498,7 @@ int process_seq_split_cfa(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						free_sequence(seq, TRUE);
 						g_free(args);
 						return CMD_ARG_ERROR;
 					}
@@ -5505,6 +5507,7 @@ int process_seq_split_cfa(int nb) {
 			}
 			else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+				free_sequence(seq, TRUE);
 				g_free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -5523,6 +5526,7 @@ int process_seq_merge_cfa(int nb) {
 	}
 
 	if (seq->nb_layers > 1) {
+		free_sequence(seq, TRUE);
 		return CMD_FOR_CFA_IMAGE;
 	}
 
@@ -5538,6 +5542,7 @@ int process_seq_merge_cfa(int nb) {
 		args->pattern = BAYER_FILTER_GRBG;
 	} else {
 		siril_log_color_message(_("Invalid Bayer matrix specified!\n"), "red");
+		free_sequence(seq, TRUE);
 		g_free(args);
 		return CMD_ARG_ERROR;
 	}
@@ -5572,6 +5577,7 @@ int process_seq_merge_cfa(int nb) {
 			}
 			else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+				free_sequence(seq, TRUE);
 				g_free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -5590,6 +5596,7 @@ int process_seq_extractHa(int nb) {
 	}
 
 	if (seq->nb_layers > 1) {
+		free_sequence(seq, TRUE);
 		return CMD_FOR_CFA_IMAGE;
 	}
 
@@ -5614,6 +5621,7 @@ int process_seq_extractHa(int nb) {
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+					free_sequence(seq, TRUE);
 					g_free(args);
 					return CMD_ARG_ERROR;
 				}
@@ -5633,6 +5641,7 @@ int process_seq_extractGreen(int nb) {
 	}
 
 	if (seq->nb_layers > 1) {
+		free_sequence(seq, TRUE);
 		return CMD_FOR_CFA_IMAGE;
 	}
 
@@ -5651,12 +5660,14 @@ int process_seq_extractGreen(int nb) {
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						g_free(args);
+						free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+					free_sequence(seq, TRUE);
 					g_free(args);
 					return CMD_ARG_ERROR;
 				}
@@ -5676,6 +5687,7 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	if (seq->nb_layers > 1) {
+		free_sequence(seq, TRUE);
 		return CMD_FOR_CFA_IMAGE;
 	}
 
@@ -5688,6 +5700,7 @@ int process_seq_extractHaOIII(int nb) {
 			value = current + 10;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[2]);
+				free_sequence(seq, TRUE);
 				free(args);
 				return CMD_ARG_ERROR;
 			} else if (!strcmp(value, "ha")) {
@@ -5821,6 +5834,7 @@ int process_seq_stat(int nb) {
 			args->cfa = TRUE;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[3]);
+			free_sequence(seq, TRUE);
 			free(args);
 			return CMD_ARG_ERROR;
 		}
@@ -5829,6 +5843,7 @@ int process_seq_stat(int nb) {
 				args->cfa = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[4]);
+				free_sequence(seq, TRUE);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -5996,6 +6011,7 @@ int process_seq_header(int nb) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	if (seq->type != SEQ_REGULAR && seq->type != SEQ_FITSEQ) {
 		siril_log_message(_("This command can only run for FITS images\n"));
+		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -6582,6 +6598,7 @@ int process_register(int nb) {
 
 terminate_register_on_error:
 	g_free(reg_args);
+	free_sequence(seq, TRUE);
 	free(method);
 	return CMD_ARG_ERROR;
 }

@@ -616,7 +616,7 @@ sequence *load_sequence(const char *name, char **get_filename) {
 		}
 	}
 
-	sequence *seq;
+	sequence *seq = NULL;
 	if ((seq = readseqfile(file))) {
 		if (get_filename) {
 			*get_filename = file;

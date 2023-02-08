@@ -69,7 +69,8 @@ void remove_tmp_drizzle_files(struct stacking_args *args) {
 			// FIXME: no preallocation of file name
 			fit_sequence_get_image_filename(args->seq, args->image_indices[i], filename, TRUE);
 			siril_debug_print("Removing %s\n", filename);
-			g_unlink(filename);
+			if (g_unlink(filename))
+				siril_debug_print("g_unlink() failed\n");
 		}
 		break;
 	case SEQ_SER:

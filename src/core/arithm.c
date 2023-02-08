@@ -34,11 +34,11 @@
  ****************************************************************************/
 
 static int soper_ushort_to_ushort(fits *a, float scalar, image_operator oper) {
-	if (!n) return 1;
 	if (!a) return 1;
 	if (!a->data) return 1;
 	WORD *data = NULL;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
+	if (!n) return 1;
 	data = a->data;
 	float invnorm = (a->bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : 1.f;
 	if (oper == OPER_DIV) {
@@ -80,12 +80,12 @@ static int soper_ushort_to_ushort(fits *a, float scalar, image_operator oper) {
 }
 
 static int soper_ushort_to_float(fits *a, float scalar, image_operator oper) {
-	if (!n) return 1;
 	if (!a) return 1;
 	if (!a->data) return 1;
 	WORD *data = NULL;
 	float *result= NULL;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
+	if (!n) return 1;
 	data = a->data;
 	result = malloc(n * sizeof(float));
 	if (!result) {
@@ -123,10 +123,10 @@ static int soper_ushort_to_float(fits *a, float scalar, image_operator oper) {
 }
 
 int soper_unscaled_div_ushort_to_float(fits *a, int scalar) {
-	if (!n) return 1;
 	if (!a) return 1;
 	if (!a->data) return 1;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
+	if (!n) return 1;
 	WORD *data = a->data;
 	float *result = malloc(n * sizeof(float));
 	if (!result) {
@@ -142,11 +142,11 @@ int soper_unscaled_div_ushort_to_float(fits *a, int scalar) {
 }
 
 static int soper_float(fits *a, float scalar, image_operator oper) {
-	if (!n) return 1;
 	if (!a) return 1;
 	if (!a->fdata) return 1;
 	float *data = a->fdata;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
+	if (!n) return 1;
 	if (oper == OPER_DIV) {
 		scalar = 1.0f / scalar;
 		oper = OPER_MUL;
@@ -198,7 +198,7 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 	if (!a->data) return 1;
 	if (!b) return 1;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
-
+	if (!n) return 1;
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
 		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
 		return 1;
@@ -312,6 +312,7 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 	if (!a) return 1;
 	if (!b) return 1;
 	size_t n = a->naxes[0] * a->naxes[1] * a->naxes[2];
+	if (!n) return 1;
 	float *result = NULL;
 
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
