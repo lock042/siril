@@ -17806,7 +17806,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Run Starnet++</property>
             <property name="action-name">win.starnet-processing</property>
-            <property name="text" translatable="yes">Starnet++ Star Removal...</property>
+            <property name="text" translatable="yes">StarNet Star Removal...</property>
           </object>
           <packing>
             <property name="expand">False</property>

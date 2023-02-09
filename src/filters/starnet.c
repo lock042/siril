@@ -116,7 +116,7 @@ static int exec_prog(const char **argv) {
 				} else {
 					double value = g_ascii_strtod(buf, NULL);
 					if (value != 0.0 && value == value && verbose) { //
-						set_progress_bar_data(_("Running Starnet++"), (value / 100));
+						set_progress_bar_data(_("Running StarNet"), (value / 100));
 					}
 				}
 			}
@@ -220,7 +220,7 @@ static int exec_prog_win32(const char **argv) {
 				buf[n - 1] = '\0';
 				double value = g_ascii_strtod(buf, NULL);
 				if (value != 0.0 && value == value && verbose) { //
-					set_progress_bar_data("Running Starnet++", (value / 100));
+					set_progress_bar_data("Running StarNet", (value / 100));
 					if (!has_started) has_started = TRUE;
 				}
 			}
@@ -300,7 +300,7 @@ gboolean end_and_call_remixer(gpointer p)
 	return end_generic(NULL);
 }
 
-/* Starnet++ star removal routine */
+/* StarNet star removal routine */
 
 gpointer do_starnet(gpointer p) {
 	verbose = single_image_is_loaded(); // To suppress log messages during seq working
@@ -354,7 +354,7 @@ gpointer do_starnet(gpointer p) {
 	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
         *q = *c == ' ' ? '_' : *c;
 	if (g_strcmp0(imagenoext, imagenoextorig) && verbose)
-		siril_log_color_message(_("Starnet++: spaces detected in filename. Starnet++ can't handle these so they have been replaced by underscores.\n"), "salmon");
+		siril_log_color_message(_("StarNet: spaces detected in filename. StarNet can't handle these so they have been replaced by underscores.\n"), "salmon");
 	starlessnoext = g_strdup_printf("%s%s", starlessprefix, imagenoext);
 	starmasknoext = g_strdup_printf("%s%s", starmaskprefix, imagenoext);
 	imagenoext = g_strdup_printf("%s%s", starnetprefix, imagenoext);
@@ -407,27 +407,27 @@ gpointer do_starnet(gpointer p) {
 	g_free(temp);
 	// ok, let's start
 	if (verbose)
-		set_progress_bar_data(_("Starting Starnet++"), PROGRESS_NONE);
+		set_progress_bar_data(_("Starting StarNet"), PROGRESS_NONE);
 
 	// Store current working directory
 	currentdir = g_get_current_dir();
 
 	if (verbose)
-		siril_log_color_message(_("Starnet++: running. Please wait...\n"), "green");
-	if (args->customstride && verbose) siril_log_message(_("Starnet++: stride = %s...\n"), args->stride);
-	if (!args->starmask && verbose) siril_log_message(_("Starnet++: -nostarmask invoked, star mask will not be generated...\n"));
+		siril_log_color_message(_("StarNet: running. Please wait...\n"), "green");
+	if (args->customstride && verbose) siril_log_message(_("StarNet: stride = %s...\n"), args->stride);
+	if (!args->starmask && verbose) siril_log_message(_("StarNet: -nostarmask invoked, star mask will not be generated...\n"));
 
 	// Check starnet directory is not NULL - can happen first time the new preference file is loaded
 	if (!com.pref.starnet_dir) {
 		retval = 1;
-		siril_log_color_message(_("Incorrect permissions on the Starnet++ directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
+		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
 		goto CLEANUP3;
 	}
 
 	// Check starnet directory is defined
 	retval = g_access(com.pref.starnet_dir, R_OK);
 	if (retval) {
-		siril_log_color_message(_("Incorrect permissions on the Starnet++ directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
+		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
 		goto CLEANUP3;
 		// Dijkstra might be spinning in his grave but one of the few legitimate uses
 		// of gotos is this type of error cleanup and return. Much more readable than a
@@ -437,7 +437,7 @@ gpointer do_starnet(gpointer p) {
 	// Change to starnet directory
 	retval = g_chdir(com.pref.starnet_dir);
 	if (retval) {
-		siril_log_color_message(_("Error: unable to change to Starnet++ directory.\nEnsure it is set in Preferences / Miscellaneous...\n"), "red");
+		siril_log_color_message(_("Error: unable to change to StarNet directory.\nEnsure it is set in Preferences / Miscellaneous...\n"), "red");
 		goto CLEANUP3;
 	}
 
@@ -461,7 +461,7 @@ gpointer do_starnet(gpointer p) {
 			free_stats(stat);
 		}
 		if (max > 1.0 && verbose) {
-			siril_log_message(_("Starnet++: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"));
+			siril_log_message(_("StarNet: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"));
 			soper(&workingfit, max, OPER_DIV, FALSE);
 		}
 	}
@@ -491,14 +491,14 @@ gpointer do_starnet(gpointer p) {
 	find_linked_midtones_balance_default(&workingfit, &params);
 	if (args->linear) {
 		if (verbose)
-			siril_log_message(_("Starnet++: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
+			siril_log_message(_("StarNet: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
 		apply_linked_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
 	// Upscale if needed
 	if (args->upscale) {
 		if (verbose)
-			siril_log_message(_("Starnet++: 2x upscaling selected. Upscaling image...\n"));
+			siril_log_message(_("StarNet: 2x upscaling selected. Upscaling image...\n"));
 		retval = cvResizeGaussian(&workingfit, round_to_int(2*orig_x), round_to_int(2*orig_y), OPENCV_AREA, FALSE);
 		if (retval) {
 			siril_log_color_message(_("Error: image resize failed...\n"), "red");
@@ -522,7 +522,7 @@ gpointer do_starnet(gpointer p) {
 		snprintf(starnetcommand, 19, STARNET_MONO);
 	}
 	else {
-		siril_log_color_message(_("No suitable Starnet++ executable found in the installation directory\n"), "red");
+		siril_log_color_message(_("No suitable StarNet executable found in the installation directory\n"), "red");
 		goto CLEANUP;
 	}
 	my_argv[0] = starnetcommand;
@@ -548,7 +548,7 @@ gpointer do_starnet(gpointer p) {
 #endif
 	if (retval || forkerrors) {
 		if (!retval && forkerrors)
-		siril_log_color_message(_("Error: Starnet++ did not execute correctly...\n"), "red");
+		siril_log_color_message(_("Error: StarNet did not execute correctly...\n"), "red");
 		goto CLEANUP;
 	}
 
@@ -585,7 +585,7 @@ gpointer do_starnet(gpointer p) {
 	// Downscale again if needed
 	if (args->upscale) {
 		if (verbose)
-			siril_log_message(_("Starnet++: 2x upscaling selected. Re-scaling starless image to original size...\n"));
+			siril_log_message(_("StarNet: 2x upscaling selected. Re-scaling starless image to original size...\n"));
 		retval = cvResizeGaussian(&workingfit, orig_x, orig_y, OPENCV_AREA, FALSE);
 		if (retval) {
 			siril_log_color_message(_("Error: image resize failed...\n"), "red");
@@ -597,7 +597,7 @@ gpointer do_starnet(gpointer p) {
 	// stretch to the starless version and re-save the final result
 	if (args->linear) {
 		if (verbose)
-			siril_log_message(_("Starnet++: linear mode. Applying inverse MTF stretch to starless image.\n"));
+			siril_log_message(_("StarNet: linear mode. Applying inverse MTF stretch to starless image.\n"));
 		apply_linked_pseudoinverse_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
@@ -618,7 +618,7 @@ gpointer do_starnet(gpointer p) {
 			goto CLEANUP;
 		}
 		if (verbose)
-			siril_log_color_message(_("Starnet++: starless image generated\n"), "green");
+			siril_log_color_message(_("StarNet: starless image generated\n"), "green");
 	}
 
 	if (args->starmask) {
@@ -644,7 +644,7 @@ gpointer do_starnet(gpointer p) {
 				copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 			}
 			if (verbose)
-				siril_log_color_message(_("Starnet++: star mask generated\n"), "green");
+				siril_log_color_message(_("StarNet: star mask generated\n"), "green");
 		}
 	}
 
@@ -671,7 +671,7 @@ gpointer do_starnet(gpointer p) {
 
 	// Before CLEANUP so that this doesn't print on failure.
 	if (verbose)
-		siril_log_color_message(_("Starnet++: job completed.\n"), "green");
+		siril_log_color_message(_("StarNet: job completed.\n"), "green");
 
 	if (single_image_is_loaded()) {
 		free(com.uniq->filename);
@@ -728,7 +728,7 @@ gpointer do_starnet(gpointer p) {
 }
 
 static int starnet_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-// Starnet cannot run in parallel as it fully utilizes the GPU. This function therefore
+// StarNet cannot run in parallel as it fully utilizes the GPU. This function therefore
 // returns 1 and all images will be processed in series.
 	return 1;
 }
@@ -857,7 +857,7 @@ void apply_starnet_to_sequence(struct starnet_data *seqdata) {
 	seqargs->save_hook = starnet_save_hook;
 	seqargs->image_hook = starnet_image_hook;
 	seqargs->prepare_hook = starnet_prepare_hook;
-	seqargs->description = _("Starnet++");
+	seqargs->description = _("StarNet");
 	seqargs->has_output = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
 	seqdata->seqEntry = g_strdup_printf("starless_");

@@ -72,34 +72,34 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("stride_control")), FALSE);
 	if (!com.pref.starnet_dir || g_access(com.pref.starnet_dir, R_OK)) {
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
-		gtk_label_set_text(label_starnetinfo, "Starnet++ installation directory not set.\nMust be configured in Preferences / Miscellaneous.");
+		gtk_label_set_text(label_starnetinfo, "StarNet installation directory not set.\nMust be configured in Preferences / Miscellaneous.");
 	} else
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 
 #ifndef HAVE_LIBTIFF
 	gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
-	gtk_label_set_text(label_starnetinfo, "Starnet++ unavailable: requires Siril to be compiled with libtiff support.");
+	gtk_label_set_text(label_starnetinfo, "StarNet unavailable: requires Siril to be compiled with libtiff support.");
 #endif
 #ifdef HAVE_LIBTIFF
 	switch (starnet_executablecheck()) {
 		case NIL:
-			gtk_label_set_text(label_starnetinfo, _("No valid Starnet++ executable found in the configured Starnet++ installation directory.\nCheck your Starnet++ installation and Siril configuration."));
+			gtk_label_set_text(label_starnetinfo, _("No valid StarNet executable found in the configured StarNet installation directory.\nCheck your StarNet installation and Siril configuration."));
 			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
 			break;
 		case V2:
-			gtk_label_set_text(label_starnetinfo, _("Valid Starnet++ v2 executable found in the configured Starnet++ installation directory.\nStarnet++ can process mono and RGB images."));
+			gtk_label_set_text(label_starnetinfo, _("Valid StarNet v2 executable found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
 			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 			break;
 		case V1BOTH:
-			gtk_label_set_text(label_starnetinfo, _("Valid Starnet++ v1 mono and RGB executables found in the configured Starnet++ installation directory.\nStarnet++ can process mono and RGB images."));
+			gtk_label_set_text(label_starnetinfo, _("Valid StarNet v1 mono and RGB executables found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
 			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 			break;
 		case V1MONO:
-			gtk_label_set_text(label_starnetinfo, _("Only the Starnet++ v1 mono executable was found in the configured Starnet++ installation directory.\nStarnet++ can process mono images only."));
+			gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 mono executable was found in the configured StarNet installation directory.\nStarNet can process mono images only."));
 			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 			break;
 		case V1RGB:
-			gtk_label_set_text(label_starnetinfo, _("Only the Starnet++ v1 RGB executable was found in the configured Starnet++ installation directory.\nStarnet++ can process RGB images only."));
+			gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 RGB executable was found in the configured StarNet installation directory.\nStarNet can process RGB images only."));
 			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 			break;
 	}
@@ -164,7 +164,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 			start_in_new_thread(do_starnet, starnet_args);
 			siril_close_dialog("starnet_dialog");
 		} else {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"), _("Unable to apply StarNet++ to a single image as no single image is loaded. Did you mean to apply to sequence?"));
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"), _("Unable to apply StarNet to a single image as no single image is loaded. Did you mean to apply to sequence?"));
 		}
 		set_cursor_waiting(FALSE);
 	} else if (gtk_toggle_button_get_active(toggle_starnet_sequence) == TRUE) {
@@ -174,7 +174,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 			apply_starnet_to_sequence(starnet_args);
 			siril_close_dialog("starnet_dialog");
 		} else {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"), _("Unable to apply StarNet++ to a sequence as no sequence is loaded. Did you mean to uncheck the apply to sequence option?"));
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"), _("Unable to apply StarNet to a sequence as no sequence is loaded. Did you mean to uncheck the apply to sequence option?"));
 		}
 		set_cursor_waiting(FALSE);
 	}
