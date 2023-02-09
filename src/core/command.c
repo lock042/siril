@@ -5029,10 +5029,14 @@ int select_unselect(gboolean select) {
 		siril_log_message(_("The second argument must be between 1 and the number of images.\n"));
 		return CMD_ARG_ERROR;
 	}
-
-	if (end2 == word[3] || to > seq->number) {
+	if (end2 == word[3] || to < from) {
+		siril_log_message(_("The third argument must be larger or equal than the \"from\" argument.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (to > seq->number) {
 		siril_log_color_message(_("The third argument is larger than the number of images.\n"), "salmon");
 		siril_log_message(_("Re-adjusting to %d.\n"), "salmon", seq->number);
+		to = seq->number;
 	}
 	for (int i = from - 1; i <= to - 1; i++) { // use real index
 		if (i >= seq->number) break;
