@@ -35,6 +35,7 @@ void	sequence_free_preprocessing_data(sequence *seq);
 void	close_sequence(int loading_another);
 gboolean check_seq_is_comseq(sequence *seq);
 gboolean sequence_is_loaded();
+gboolean check_starfile_date(sequence *seq, int index, gchar *star_filename) ;
 
 typedef enum {
 	ORIGINAL_FRAME,

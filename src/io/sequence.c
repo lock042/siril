@@ -2050,3 +2050,35 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 	seq->reference_image = -1;
 	writeseqfile(seq);
 }
+
+// returns TRUE ig star_filename is more recent than image (for FITS) or
+// sequence (for FITSEQ or SER)
+gboolean check_starfile_date(sequence *seq, int index, gchar *star_filename) {
+	if (!g_file_test(star_filename, G_FILE_TEST_EXISTS))
+		return FALSE;
+
+	struct stat imgfileInfo, starfileInfo;
+	// if sequence is FITS, we check individual img file date vs starfile date
+	if (seq->type == SEQ_REGULAR) { 
+		char img_filename[256];
+		if (!fit_sequence_get_image_filename(seq, index, img_filename, TRUE))
+			return FALSE;
+		if (!g_file_test(img_filename, G_FILE_TEST_EXISTS))
+			return FALSE;
+		stat(img_filename, &imgfileInfo);
+		stat(star_filename, &starfileInfo);
+		// TODO: remove when testing completed
+		if (starfileInfo.st_ctime < imgfileInfo.st_ctime)
+			printf("%s is older than %s, detecting again\n", star_filename, img_filename);
+		return (starfileInfo.st_ctime > imgfileInfo.st_ctime);
+	}
+	// ielse, we check the sequence date vs starfile date
+	gchar *seqname;
+	if (seq->type == SEQ_SER)
+		seqname = seq->ser_file->filename;
+	else
+		seqname = seq->fitseq_file->filename;
+	stat(seqname, &imgfileInfo);
+	stat(star_filename, &starfileInfo);
+	return (starfileInfo.st_ctime > imgfileInfo.st_ctime);
+}
