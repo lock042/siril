@@ -407,6 +407,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Create a working copy of the image.
+	// copyfits(from, to, oper, layer)
 	retval = copyfits(current_fit, &workingfit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 	if (retval) {
 		siril_log_color_message(_("Error: image copy failed...\n"), "red");
@@ -517,6 +518,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Read the starless stretched tiff. Successful return value of readtif() is nsamples
+	clearfits(&workingfit); // Clear it first to free the data
 	retval = readtif(starlesstif, &workingfit, FALSE);
 	if (retval < 1 || retval > 3) {
 		siril_log_color_message(_("Error: unable to read starless image from TIFF...\n"), "red");
@@ -602,6 +604,8 @@ gpointer do_starnet(gpointer p) {
 					goto CLEANUP;
 				}
 			} else {
+				if (args->starmask_fit)
+					clearfits(args->starmask_fit);
 				copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 			}
 			if (verbose)
@@ -623,6 +627,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// All done, now copy the working image back into gfit
+	clearfits(current_fit);
 	retval = copyfits(&workingfit, current_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 	if (retval) {
 		siril_log_color_message(_("Error: image copy failed...\n"), "red");
@@ -662,14 +667,14 @@ gpointer do_starnet(gpointer p) {
 	if (verbose)
 		set_progress_bar_data("Ready.", PROGRESS_RESET);
 	g_free(currentdir);
-	g_free(starlesstif);
-	g_free(starlessfit);
-	g_free(starmaskfit);
-	g_free(starlessnoext);
-	g_free(starmasknoext);
-	g_free(imagenoext);
-	g_free(imagenoextorig);
-	g_free(temptif);
+	g_free(starlesstif); // filename
+	g_free(starlessfit); // filename
+	g_free(starmaskfit); // filename
+	g_free(starlessnoext); // part filename
+	g_free(starmasknoext); // part filename
+	g_free(imagenoext); // part filename
+	g_free(imagenoextorig); // part filename
+	g_free(temptif); // part filename
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
