@@ -145,7 +145,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	if (sgui_starnet_stride > 256.0)
 		sgui_starnet_stride = 256.0;
 	starnet_data *starnet_args;
-	starnet_args = malloc(sizeof(starnet_data));
+	starnet_args = calloc(1, sizeof(starnet_data));
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->seqname = NULL;
 	starnet_args->seq = NULL;

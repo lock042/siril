@@ -258,35 +258,46 @@ starnet_version starnet_executablecheck() {
 	return retval;
 }
 
+void free_starnet_args(starnet_data *args) {
+	if (args->seqname)
+		g_free((void*)args->seqname);
+	if (args->seqEntry)
+		g_free((void*)args->seqEntry);
+	if (args->seq)
+		if (!check_seq_is_comseq(args->seq))
+			free_sequence(args->seq, TRUE);
+	g_free(args);
+	siril_debug_print("starnet_args freed\n");
+}
+
 gboolean end_starnet(gpointer p) {
 	starnet_data *args = (starnet_data *) p;
-	if (args->seqname)
-		free((void*)args->seqname);
-	if (args->seqEntry)
-		free((void*)args->seqname);
-
-	free(p);
+	free_starnet_args(args);
 	return end_generic(NULL);
 }
 
 gboolean seqstarnet_idle(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *) p;
-printf("hi\n");
 	starnet_data *starnet_args = (starnet_data *) args->user;
-	if (starnet_args->seqname)
-		free((void*)starnet_args->seqname);
-	if (starnet_args->seqEntry)
-		free((void*)starnet_args->seqEntry);
-
-	free(starnet_args);
-	return end_generic_sequence(p);
+	if (args->has_output && args->load_new_sequence &&
+			args->new_seq_prefix && !args->retval) {
+		gchar *basename = g_path_get_basename(args->seq->seqname);
+		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
+		check_seq();
+		update_sequences_list(seqname);
+		g_free(seqname);
+		g_free(basename);
+	}
+	free_starnet_args(starnet_args);
+	free(p);
+	return end_generic(NULL);
 }
 
 gboolean end_and_call_remixer(gpointer p)
 {
 	struct remixargs *blendargs = (remixargs *) p;
 	toggle_remixer_window_visibility(CALL_FROM_STARNET, blendargs->fit1, blendargs->fit2);
-	return end_starnet(NULL);
+	return end_generic(NULL);
 }
 
 /* Starnet++ star removal routine */
@@ -704,6 +715,7 @@ gpointer do_starnet(gpointer p) {
 		show_time(t_start, t_end);
 	if (single_image_is_loaded()) {
 		if (args->follow_on) {
+			free_starnet_args(args);
 			siril_add_idle(end_and_call_remixer, blendargs);
 			return GINT_TO_POINTER(retval);
 		} else {
@@ -798,7 +810,6 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	seqdata->imgnumber = o;
 
 	do_starnet(seqdata);
-	printf("1");
 	return ret;
 }
 

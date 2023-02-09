@@ -506,7 +506,7 @@ int process_denoise(int nb){
 
 int process_starnet(int nb){
 #ifdef HAVE_LIBTIFF
-	starnet_data *starnet_args = malloc(sizeof(starnet_data));
+	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->linear = FALSE;
 	starnet_args->seq = NULL;
