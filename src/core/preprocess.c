@@ -418,7 +418,6 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 
 	if (prepro->use_cosmetic_correction && !prepro->cc_from_dark && prepro->bad_pixel_map_file) {
 		apply_cosme_to_image(fit, prepro->bad_pixel_map_file, prepro->is_cfa);
-		g_object_unref(prepro->bad_pixel_map_file);
 	}
 
 	if (prepro->debayer) {
@@ -448,6 +447,8 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 }
 
 void clear_preprocessing_data(struct preprocessing_data *prepro) {
+	if (prepro->bad_pixel_map_file)
+		g_object_unref(prepro->bad_pixel_map_file);
 	if (prepro->use_bias && prepro->bias)
 		clearfits(prepro->bias);
 	if (prepro->use_dark && prepro->dark)
@@ -786,6 +787,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
 					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
 						siril_debug_print("cosme file sanity check failed...\n");
+						has_error = TRUE;
 					}
 				}
 			}

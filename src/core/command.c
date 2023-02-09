@@ -2257,7 +2257,6 @@ int process_ls(int nb){
 				char filename[maxpath];
 
 				g_strlcpy(filename, word[1], 250);
-				filename[maxpath - 1] = '\0';
 				expand_home_in_filename(filename, maxpath);
 				path = g_build_filename(filename, NULL);
 			}
@@ -3132,9 +3131,8 @@ int process_set(int nb) {
 		print_settings_key(input, input+sep+1, FALSE);
 	} else {
 		/* set */
-		long pathmax = get_pathmax();
-		char fakefile[pathmax];
-		int filelen = snprintf(fakefile, pathmax - 1, "[%s]\n%s\n", input, input+sep+1);
+		char fakefile[1024];
+		int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
 		GKeyFile *kf = g_key_file_new();
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
 		return read_keyfile(kf);

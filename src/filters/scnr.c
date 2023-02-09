@@ -53,6 +53,7 @@ const char *scnr_type_to_string(scnr_type t) {
 /* Subtractive Chromatic Noise Reduction */
 gpointer scnr(gpointer p) {
 	struct scnr_data *args = (struct scnr_data *) p;
+	g_assert(args->fit->type == DATA_USHORT || args->fit->type == DATA_FLOAT);
 	size_t i, nbdata = args->fit->naxes[0] * args->fit->naxes[1];
 	gint nb_above_1 = 0;
 	struct timeval t_start, t_end;
@@ -83,10 +84,8 @@ gpointer scnr(gpointer p) {
 				green = (double)args->fit->fpdata[GLAYER][i];
 				blue = (double)args->fit->fpdata[BLAYER][i];
 				break;
-			default:
-				siril_log_color_message(_("Error: unsupported data format!\n"), "red");
-				error++;
-				continue;
+			default: // Default needs to be included in the switch to avoid warning about omitting DATA_UNSUPPORTED
+				break;
 		}
 
 		double x, y, z, L, a, b, m;

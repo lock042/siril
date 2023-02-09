@@ -477,7 +477,12 @@ void fill_sequence_list(sequence *seq, int layer, gboolean as_idle) {
 static gboolean fill_sequence_list_idle(gpointer p) {
 	int i;
 	struct _seq_list *args = (struct _seq_list *)p;
-
+	if (!args)
+		return FALSE;
+	if (!args->seq) {
+		g_free(args);
+		return FALSE;
+	}
 	if (combo == NULL) combo = lookup_widget("plotCombo");
 	if (sourceCombo == NULL) sourceCombo = lookup_widget("plotSourceCombo");
 	if (arcsec == NULL) arcsec = lookup_widget("arcsecPhotometry");
@@ -489,69 +494,65 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	if (list_store) gtk_list_store_clear(list_store);
 	get_list_store();
 	if (!use_photometry) { // reporting registration data
-		if (args->seq) { // ensure we aren't dereferencing a NULL args->seq by checking args->seq->regparam
-			if (args->seq->regparam && args->seq->regparam[args->layer]) {
-				switch (selected_source) {
-					case r_FWHM:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
-						break;
-					case r_WFWHM:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("wFWHM"));
-						break;
-					case r_ROUNDNESS:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
-						break;
-					case r_QUALITY:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Quality"));
-						break;
-					case r_BACKGROUND:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
-						break;
-					case r_NBSTARS:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("#Stars"));
-						break;
-					default:
-						break;
-				}
+		if (args->seq->regparam && args->seq->regparam[args->layer]) {
+			switch (selected_source) {
+				case r_FWHM:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
+					break;
+				case r_WFWHM:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("wFWHM"));
+					break;
+				case r_ROUNDNESS:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
+					break;
+				case r_QUALITY:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Quality"));
+					break;
+				case r_BACKGROUND:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
+					break;
+				case r_NBSTARS:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("#Stars"));
+					break;
+				default:
+					break;
 			}
 		} else {
 			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
 		}
 	} else { //reporting photometry data for the reference star
-		if (args->seq) {
-			psf_star **psfs = args->seq->photometry[0];
-			if (psfs && psfs[0]) {
-				switch (selected_source) {
-					case ROUNDNESS:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
-						break;
-					case FWHM:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
-						break;
-					case AMPLITUDE:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Amplitude"));
-						break;
-					case MAGNITUDE:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Magnitude"));
-						break;
-					case BACKGROUND:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
-						break;
-					case X_POSITION:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("X Position"));
-						break;
-					case Y_POSITION:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Y Position"));
-						break;
-					case SNR:
-						gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("SNR"));
-						break;
-					default:
-						break;
-				}
-			} else {
-				gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
+		psf_star **psfs = args->seq->photometry[0];
+		if (psfs && psfs[0]) {
+			switch (selected_source) {
+				case ROUNDNESS:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Roundness"));
+					break;
+				case FWHM:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
+					break;
+				case AMPLITUDE:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Amplitude"));
+					break;
+				case MAGNITUDE:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Magnitude"));
+					break;
+				case BACKGROUND:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Background"));
+					break;
+				case X_POSITION:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("X Position"));
+					break;
+				case Y_POSITION:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("Y Position"));
+					break;
+				case SNR:
+					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("SNR"));
+					break;
+				default:
+					break;
 			}
+		} else {
+			gtk_tree_view_column_set_title (GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("FWHM"));
 		}
 	}
 	gint sort_column_id;
@@ -560,20 +561,16 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	gtk_tree_sortable_get_sort_column_id(GTK_TREE_SORTABLE(list_store), &sort_column_id, &order);
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, GTK_SORT_ASCENDING);
 	gtk_tree_view_set_model(args->tview, NULL);
-	if (args->seq) {
-		if (args->seq->number > 0) {
-			for (i = 0; i < args->seq->number; i++) {
-				add_image_to_sequence_list(args->seq, i, args->layer);
-			}
+	if (args->seq->number > 0) {
+		for (i = 0; i < args->seq->number; i++) {
+			add_image_to_sequence_list(args->seq, i, args->layer);
 		}
 	}
 	gtk_tree_view_set_model(args->tview, GTK_TREE_MODEL(list_store));
 	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
 
-	if (args->seq) {
-		//select and scroll to image already loaded as gfit
-		sequence_list_select_row_from_index(args->seq->current, FALSE);
-	}
+	//select and scroll to image already loaded as gfit
+	sequence_list_select_row_from_index(args->seq->current, FALSE);
 	g_signal_handlers_unblock_by_func(args->tview, on_treeview1_cursor_changed, NULL);
 
 	free(args);
