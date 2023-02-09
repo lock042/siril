@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -2086,7 +2086,7 @@ If the parameters is null, so no filter is apply at all.</property>
     <property name="height-request">200</property>
     <property name="can-focus">False</property>
     <property name="border-width">5</property>
-    <property name="title" translatable="yes">Starnet++ Star Removal</property>
+    <property name="title" translatable="yes">StarNet Star Removal</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
@@ -2122,7 +2122,7 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Apply Split CFA</property>
+                <property name="tooltip-text" translatable="yes">Apply StarNet</property>
                 <signal name="clicked" handler="on_starnet_execute_clicked" swapped="no"/>
                 <style>
                   <class name="suggested-action"/>
@@ -2157,7 +2157,7 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If selected, an optimised Midtone Transfer Function (MTF) stretch is applied to the image before running Starnet++, and the inverse stretch is applied on completion. This is necessary for using Starnet at the linear stage of processing.</property>
+                <property name="tooltip-text" translatable="yes">If selected, an optimised Midtone Transfer Function (MTF) stretch is applied to the image before running StarNet, and the inverse stretch is applied on completion. This is necessary for using StarNet at the linear stage of processing.</property>
                 <property name="halign">start</property>
                 <property name="hexpand">True</property>
                 <property name="draw-indicator">True</property>
@@ -2195,7 +2195,7 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If selected, a custom value may be entererd for the Starnet++ stride parameter. The default value is 256 and the starnet developer recommends not to change this.</property>
+                <property name="tooltip-text" translatable="yes">If selected, a custom value may be entererd for the StarNet stride parameter. The default value is 256 and the StarNet developer recommends not to change this.</property>
                 <property name="halign">end</property>
                 <property name="hexpand">True</property>
                 <property name="draw-indicator">True</property>
@@ -2227,7 +2227,7 @@ If the parameters is null, so no filter is apply at all.</property>
                   <object class="GtkSpinButton" id="spin_starnet_stride">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">Sets the size of tiles passed to the Starnet++ neural network for processing. It is strongly recommended to leave this at the default setting. Halving the stride setting quadruples the processing time. If altered, stride must be an even integer between 2-256.</property>
+                    <property name="tooltip-text" translatable="yes">Sets the size of tiles passed to the StarNet neural network for processing. It is strongly recommended to leave this at the default setting. Halving the stride setting quadruples the processing time. If altered, stride must be an even integer between 2-256.</property>
                     <property name="margin-start">8</property>
                     <property name="hexpand">True</property>
                     <property name="input-purpose">digits</property>
@@ -2255,7 +2255,7 @@ If the parameters is null, so no filter is apply at all.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If selected, on completion of the star removal process the star recomposition tool will open, providing an interface for independently stretching and blending the background and the stars if star reduction, rather than total removal, is desired.
+                <property name="tooltip-text" translatable="yes">If selected, on completion of the StarNet process the star recomposition tool will open, providing an interface for independently stretching and blending the background and the stars if star reduction, rather than total removal, is desired.
 This option has no effect if processing a sequence.</property>
                 <property name="halign">start</property>
                 <property name="valign">start</property>
@@ -2275,7 +2275,7 @@ This option has no effect if processing a sequence.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If selected, the image will be upsampled by a factor of 2 before running Starnet++. This improves performance on very tight stars but quadruples processing time and may impair performance on very large stars. The image is rescaled to the original size on completion.</property>
+                <property name="tooltip-text" translatable="yes">If selected, the image will be upsampled by a factor of 2 before running StarNet. This improves performance on very tight stars but quadruples processing time and may impair performance on very large stars. The image is rescaled to the original size on completion.</property>
                 <property name="halign">end</property>
                 <property name="hexpand">True</property>
                 <property name="draw-indicator">True</property>
@@ -2292,7 +2292,7 @@ This option has no effect if processing a sequence.</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Apply Starnet++ to all images in the current sequence. Starless and, if selected, star mask, sequences will be generated.</property>
+                <property name="tooltip-text" translatable="yes">Apply StarNet to all images in the current sequence. Starless and, if selected, star mask, sequences will be generated.</property>
                 <property name="halign">start</property>
                 <property name="draw-indicator">True</property>
               </object>
