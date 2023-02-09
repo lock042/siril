@@ -294,7 +294,7 @@ static gchar *get_filename_and_replace_ext() {
 		char *file_no_ext = remove_ext_from_filename(basename);
 		g_free(basename);
 		basename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
-		g_free(file_no_ext);
+		free(file_no_ext);
 	}
 
 	return basename;
@@ -677,8 +677,7 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 
 	set_cursor_waiting(TRUE);
 	if (initialize_data(args)) {
-		start_in_new_thread(mini_save_dialog, args); // Changed NULL to args
-		// while on bugfixing spree: NULL appears to be an error
+		start_in_new_thread(mini_save_dialog, args);
 	} else {
 		g_free(args);
 		siril_add_idle(end_generic, NULL);
@@ -692,7 +691,7 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 	if (initialize_data(args)) {
 		start_in_new_thread(mini_save_dialog, args);
 	} else {
-		g_free(args);
+		free(args);
 		siril_add_idle(end_generic, NULL);
 	}
 }
@@ -714,7 +713,7 @@ void on_header_save_as_button_clicked() {
 				if (initialize_data(args)) {
 					start_in_new_thread(mini_save_dialog, args);
 				} else {
-					g_free(args);
+					free(args);
 					siril_add_idle(end_generic, NULL);
 				}
 			} else {

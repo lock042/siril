@@ -134,7 +134,7 @@ int wave_io_size_data(int Nl, int Nc, int Nbr_Plan, int Type_Wave_Transform) {
 int static wave_io_name(char *File_Name_In, char *File_Name_Out) {
 	int L;
 
-	strncpy(File_Name_Out, File_Name_In, STRING_SIZE);
+	strlcpy(File_Name_Out, File_Name_In, STRING_SIZE);
 
 	L = strlen(File_Name_In);
 	if ((L < 5) || (File_Name_In[L - 1] != 'e') || (File_Name_In[L - 2] != 'v')

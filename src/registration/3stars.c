@@ -557,7 +557,7 @@ int register_3stars(struct registration_args *regargs) {
 	float *scores = calloc(regargs->seq->number, sizeof(float));
 	if (!scores) {
 		PRINT_ALLOC_ERR;
-		g_free(included);
+		free(included);
 		_3stars_free_results();
 		return 1;
 	}

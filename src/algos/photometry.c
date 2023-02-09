@@ -556,7 +556,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				if (ra_index < 1 || dec_index < 1) {
 					siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
 					fclose(fd);
-					g_free(areas);
+					free(areas);
 					return 1;
 				}
 				siril_debug_print("Found RA and Dec indices in file: %d and %d\n", ra_index, dec_index);
@@ -568,7 +568,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
 				g_strfreev(tokens);
 				fclose(fd);
-				g_free(areas);
+				free(areas);
 				return 1;
 			}
 		}
@@ -582,7 +582,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
 				g_strfreev(tokens);
 				fclose(fd);
-				g_free(areas);
+				free(areas);
 				return 1;
 			}
 
@@ -613,7 +613,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
 				g_strfreev(tokens);
 				fclose(fd);
-				g_free(areas);
+				free(areas);
 				return 1;
 			}
 			int index = target_acquired ? stars_count : stars_count + 1;
@@ -640,7 +640,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
 				g_strfreev(tokens);
 				fclose(fd);
-				g_free(areas);
+				free(areas);
 				return 1;
 			}
 			int index = target_acquired ? stars_count : stars_count + 1;
@@ -664,7 +664,7 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 		args->areas = areas;
 		args->nb = stars_count;
 	} else {
-		g_free(areas);
+		free(areas);
 	}
 	fclose(fd);
 	return !target_acquired;

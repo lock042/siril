@@ -904,7 +904,6 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
 	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
-
 	return 0;
 }
 
@@ -1313,7 +1312,7 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 		return NULL;
 	}
 	float *pix = malloc(MAX_SIZE * sizeof(float));
-	float *ima_data = NULL, *ptr, byte, n, max, min, wd, avr;
+	float *ima_data = NULL, *ptr = NULL, byte, n, max, min, wd, avr;
 	guchar *pixbuf_data = NULL;
 
 	w = ser.image_width;
@@ -1335,8 +1334,8 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 	j = (int) ceil((float) h / MAX_SIZE);
 	pixScale = (i > j) ? i : j;	// picture scale factor
 	if (pixScale == 0) {
-		g_free(ima_data);
-		g_free(pixbuf_data);
+		free(ima_data);
+		free(pixbuf_data);
 		return NULL;
 	}
 	Ws = w / pixScale; 			// picture width in pixScale blocks

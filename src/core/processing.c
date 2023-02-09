@@ -248,7 +248,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			if (seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
 				abort = 1;
 				clearfits(fit);
-				g_free(fit);
+				free(fit);
 				continue;
 			}
 			// TODO: for seqwriter, we need to notify the failed frame
@@ -361,7 +361,7 @@ the_end:
 			// some generic cleanup for scripts
 			// should we check for seq = com.seq?
 			free_sequence(args->seq, TRUE);
-			g_free(args);
+			free(args);
 		}
 	}
 	return GINT_TO_POINTER(retval);

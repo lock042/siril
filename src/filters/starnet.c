@@ -331,11 +331,11 @@ gpointer do_starnet(gpointer p) {
 	gchar qtemptif[pathmax];
 	gchar qstarlesstif[pathmax];
 #endif
-	char *imagenoext = NULL;
-	char *starlessnoext = NULL;
-	char *starmasknoext = NULL;
-	char *imagenoextorig = NULL;
-	char *temp = NULL;
+	gchar *imagenoext = NULL;
+	gchar *starlessnoext = NULL;
+	gchar *starmasknoext = NULL;
+	gchar *imagenoextorig = NULL;
+	gchar *temp = NULL;
 	gchar starnetprefix[10] = "starnet_";
 	gchar starlessprefix[10] = "starless_";
 	gchar starmaskprefix[10] = "starmask_";

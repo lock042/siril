@@ -416,7 +416,7 @@ static void remove_selected_star() {
 	references = get_row_references_of_selected_rows(selection, treeModel);
 
 	guint size = g_list_length(references);
-	guint *sel = calloc(size, sizeof(guint));
+	guint *sel = g_calloc(size, sizeof(guint));
 
 	int i = 0;
 	for (list = references; list; list = list->next) {

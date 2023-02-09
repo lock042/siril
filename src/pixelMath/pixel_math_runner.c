@@ -1256,7 +1256,7 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 
 	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip,
 			&model, &path, &iter)) {
-		g_free(all_functions);
+		free(all_functions);
 		return FALSE;
 	}
 
@@ -1268,7 +1268,7 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
 
 	gtk_tree_path_free(path);
-	g_free(all_functions);
+	free(all_functions);
 
 	return TRUE;
 }

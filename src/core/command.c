@@ -454,7 +454,7 @@ int process_denoise(int nb){
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			if (args->modulation == 0.f) {
 				siril_log_message(_("Modulation is zero: doing nothing.\n"));
-				g_free(args);
+				free(args);
 				return CMD_OK;
 			}
 		}
@@ -464,7 +464,7 @@ int process_denoise(int nb){
 			if (arg == end) error = TRUE;
 			else if ((rho <= 0.f) || (rho >= 1.f)) {
 				siril_log_message(_("Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"));
-				g_free(args);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -487,7 +487,7 @@ int process_denoise(int nb){
 	}
 	if (args->do_anscombe && (args->sos != 1 || args->da3d)) {
 		siril_log_color_message(_("Error: will not carry out DA3D or SOS iterations with Anscombe transform VST selected. aborting.\n"), "red");
-		g_free(args);
+		free(args);
 		return CMD_ARG_ERROR;
 	}
 	if (args->do_anscombe)
@@ -536,7 +536,7 @@ int process_starnet(int nb){
 			if (arg == end) error = TRUE;
 			else if ((intstride < 2.0) || (intstride > 256) || (intstride % 2)) {
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
-				g_free(starnet_args);
+				free(starnet_args);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -546,12 +546,12 @@ int process_starnet(int nb){
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			g_free(starnet_args);
+			free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 		if (error) {
 			siril_log_message(_("Error parsing arguments, aborting.\n"));
-			g_free(starnet_args);
+			free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -581,7 +581,7 @@ int process_seq_starnet(int nb){
 	starnet_args->seq = load_sequence(word[1], NULL);
 	if (!starnet_args->seq) {
 		siril_log_message(_("Error: cannot open sequence\n"));
-		g_free(starnet_args);
+		free(starnet_args);
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 
@@ -607,7 +607,7 @@ int process_seq_starnet(int nb){
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
 				if (!check_seq_is_comseq(starnet_args->seq))
 					free_sequence(starnet_args->seq, TRUE);
-				g_free(starnet_args);
+				free(starnet_args);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -619,14 +619,14 @@ int process_seq_starnet(int nb){
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 				if (!check_seq_is_comseq(starnet_args->seq))
 					free_sequence(starnet_args->seq, TRUE);
-				g_free(starnet_args);
+				free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 		if (error) {
 			siril_log_message(_("Error parsing arguments, aborting.\n"));
 			if (!check_seq_is_comseq(starnet_args->seq))
 				free_sequence(starnet_args->seq, TRUE);
-			g_free(starnet_args);
+			free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -987,13 +987,13 @@ int process_makepsf(int nb) {
 
 	char *arg = word[1];
 	if (!word[1]) {
-		g_free(data);
+		free(data);
 		return CMD_WRONG_N_ARG;
 	}
 	if (g_str_has_prefix(arg, "clear")) {
 		if (get_thread_run()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
-			g_free(data);
+			free(data);
 			return CMD_GENERIC_ERROR;
 		}
 		if (com.kernel) {
@@ -1002,13 +1002,13 @@ int process_makepsf(int nb) {
 			com.kernelsize = 0;
 		}
 		siril_log_color_message(_("Deconvolution kernel cleared.\n"), "green");
-		g_free(data);
+		free(data);
 		return CMD_OK;
 	} else {
 		if (g_str_has_prefix(arg, "save")) {
 			siril_log_message(_("Save PSF to file:\n"));
 			on_bdeconv_savekernel_clicked(NULL, NULL);
-			g_free(data);
+			free(data);
 			return CMD_OK;
 		}
 		if (com.kernel) {
@@ -1019,7 +1019,7 @@ int process_makepsf(int nb) {
 		if (g_str_has_prefix(arg, "blind")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
-				g_free(data);
+				free(data);
 				return CMD_GENERIC_ERROR;
 			}
 			data->psftype = PSF_BLIND;
@@ -1061,7 +1061,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((comp < 1.f) || (comp > 100000.f)) {
 						siril_log_message(_("Error in compensation factor parameter: must be between 1 and 1e5, aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1074,7 +1074,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
 						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1083,7 +1083,7 @@ int process_makepsf(int nb) {
 				}
 			}
 			if (error) {
-				g_free(data);
+				free(data);
 				return CMD_ARG_ERROR;
 			}
 			start_in_new_thread(estimate_only, data);
@@ -1091,12 +1091,12 @@ int process_makepsf(int nb) {
 		} else if (g_str_has_prefix(arg, "stars")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
-				g_free(data);
+				free(data);
 				return CMD_GENERIC_ERROR;
 			}
 			if (!(com.stars && com.stars[0])) {
 				siril_log_message(_("Error: requested to generate PSF from stars but no stars have been selected. Run findstar first.\n"));
-				g_free(data);
+				free(data);
 				return CMD_ARG_ERROR;
 			} else {
 				data->psftype = PSF_STARS;
@@ -1114,7 +1114,7 @@ int process_makepsf(int nb) {
 						if (arg == end) error = TRUE;
 						else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
 							siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
-							g_free(data);
+							free(data);
 							return CMD_ARG_ERROR;
 						}
 						if (!error) {
@@ -1123,7 +1123,7 @@ int process_makepsf(int nb) {
 					}
 				}
 				if (error) {
-					g_free(data);
+					free(data);
 					return CMD_ARG_ERROR;
 				}
 				start_in_new_thread(estimate_only,data);
@@ -1158,7 +1158,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
 						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1171,7 +1171,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((val <= 0.f) || (val > 100.f)) {
 						siril_log_message(_("Error in fwhm parameter: must be between 0 and 100, aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1184,7 +1184,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((val <= -360.f) || (val > 360.f)) {
 						siril_log_message(_("Error in ratio parameter: must be between -360 and +360, aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1197,7 +1197,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((val < 1.f) || (val > 5.f)) {
 						siril_log_message(_("Error in ratio parameter: must be between 0 and 5, aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1210,7 +1210,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((val <= 0.f) || (val > 10.f)) {
 						siril_log_message(_("Error in beta parameter: must be between 0 and 10, aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1223,7 +1223,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((val <= 0.f) || (val > 5000.f)) {
 						siril_log_message(_("Error in dia parameter: must be between 0 and 5000, aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1236,7 +1236,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((val <= 0.f) || (val > 60000.f)) {
 						siril_log_message(_("Error in fl parameter: must be between 0 and 60000, aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1249,7 +1249,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((val <= 100.f) || (val > 30000.f)) {
 						siril_log_message(_("Error in wl parameter: must be between 100 and 30000, aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1262,7 +1262,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((val < 1.f) || (val > 30.f)) {
 						siril_log_message(_("Error in fwhm parameter: must be between 1 and 30, aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1275,7 +1275,7 @@ int process_makepsf(int nb) {
 					if (arg == end) error = TRUE;
 					else if ((val < 0.f) || (val >= 100.f)) {
 						siril_log_message(_("Error in fwhm parameter: must be between 0 and 100, aborting.\n"));
-						g_free(data);
+						free(data);
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
@@ -1284,7 +1284,7 @@ int process_makepsf(int nb) {
 				}
 			}
 			if (error) {
-				g_free(data);
+				free(data);
 				return CMD_ARG_ERROR;
 			}
 			start_in_new_thread(estimate_only,data);
@@ -1294,16 +1294,16 @@ int process_makepsf(int nb) {
 			if (word[2] && word[2][0] != '\0') {
 				if (load_kernel(word[2])) {
 					siril_log_message(_("Error loading PSF.\n"));
-					g_free(data);
+					free(data);
 					return CMD_FILE_NOT_FOUND;
 				}
 			}
 			data->psftype = PSF_PREVIOUS;
-			g_free(data);
+			free(data);
 			return CMD_OK;
 		}
 	}
-	g_free(data);
+	free(data);
 	return CMD_ARG_ERROR;
 }
 
@@ -1326,7 +1326,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((alpha < 0.f) || (alpha > 100000.f)) {
 				siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
-				g_free(data);
+				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1339,7 +1339,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((iters < 1) || (iters > 100000)) {
 				siril_log_message(_("Error in iterations parameter: must be between 1 and 1e5, aborting.\n"));
-				g_free(data);
+				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1352,7 +1352,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((stopcriterion < 0.f) || (stopcriterion > 1.f)) {
 				siril_log_message(_("Error in stop parameter: must be between 0 and 1, aborting.\n"));
-				g_free(data);
+				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1366,7 +1366,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((stepsize < 0.f) || (stepsize > 1.f)) {
 				siril_log_message(_("Error in step size parameter: must be between 0 and 1, aborting.\n"));
-				g_free(data);
+				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1385,7 +1385,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 	}
 
 	if (error) {
-		g_free(data);
+		free(data);
 		return CMD_ARG_ERROR;
 	}
 	// Guess the user's intentions for a kernel:
@@ -1423,7 +1423,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	}
 	if (seq == NULL) {
 		siril_log_message(_("Error: cannot open sequence\n"));
-		g_free(data);
+		free(data);
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	for (int i = 2; i < nb; i++) {
@@ -1436,7 +1436,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((alpha < 0.f) || (alpha > 100000.f)) {
 				siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
-				g_free(data);
+				free(data);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
 				return CMD_ARG_ERROR;
@@ -1451,7 +1451,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((iters < 1) || (iters > 100000)) {
 				siril_log_message(_("Error in iterations parameter: must be between 1 and 1e5, aborting.\n"));
-				g_free(data);
+				free(data);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
 				return CMD_ARG_ERROR;
@@ -1466,7 +1466,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((stopcriterion < 0.f) || (stopcriterion > 1.f)) {
 				siril_log_message(_("Error in stop parameter: must be between 0 and 1, aborting.\n"));
-				g_free(data);
+				free(data);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
 				return CMD_ARG_ERROR;
@@ -1482,7 +1482,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((stepsize < 0.f) || (stepsize > 1.f)) {
 				siril_log_message(_("Error in step size parameter: must be between 0 and 1, aborting.\n"));
-				g_free(data);
+				free(data);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
 				return CMD_ARG_ERROR;
@@ -1503,7 +1503,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	}
 
 	if (error) {
-		g_free(data);
+		free(data);
 		if (!check_seq_is_comseq(seq))
 			free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
@@ -4089,7 +4089,7 @@ int process_seq_crop(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-						g_free(args);
+						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
@@ -4958,7 +4958,7 @@ int process_seq_fixbanding(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
 					if (!check_seq_is_comseq(args->seq))
 						free_sequence(args->seq, TRUE);
-					g_free(args);
+					free(args);
 					return CMD_ARG_ERROR;
 				}
 				args->seqEntry = g_strdup(value);
@@ -4968,7 +4968,7 @@ int process_seq_fixbanding(int nb) {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 				if (!check_seq_is_comseq(args->seq))
 					free_sequence(args->seq, TRUE);
-				g_free(args);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 			arg_index++;
@@ -5020,7 +5020,7 @@ int process_subsky(int nb) {
 				g_free(prefix);
 				return CMD_ARG_ERROR;
 			}
-			g_free(prefix);
+			g_free(prefix); // Required in case we have gone round the loop and prefix was also set in a previous arg
 			prefix = strdup(value);
 		}
 		else if (g_str_has_prefix(arg, "-samples=")) {
@@ -5388,7 +5388,7 @@ int process_extractHa(int nb) {
 }
 
 int process_extractHaOIII(int nb) {
-	char *filename = NULL;
+	gchar *filename = NULL;
 	int ret = 1;
 	extraction_scaling scaling = SCALING_NONE;
 
@@ -5550,7 +5550,7 @@ int process_seq_split_cfa(int nb) {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
-						g_free(args);
+						free(args);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
@@ -5560,7 +5560,7 @@ int process_seq_split_cfa(int nb) {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
-				g_free(args);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -5597,7 +5597,7 @@ int process_seq_merge_cfa(int nb) {
 		siril_log_color_message(_("Invalid Bayer matrix specified!\n"), "red");
 		if (!check_seq_is_comseq(seq))
 			free_sequence(seq, TRUE);
-		g_free(args);
+		free(args);
 		return CMD_ARG_ERROR;
 	}
 	siril_log_message(_("Reconstructing %s Bayer matrix.\n"), word[2]);
@@ -5614,7 +5614,7 @@ int process_seq_merge_cfa(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
-						g_free(args);
+						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
@@ -5627,7 +5627,7 @@ int process_seq_merge_cfa(int nb) {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
-						g_free(args);
+						free(args);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntryOut = strdup(value);
@@ -5637,7 +5637,7 @@ int process_seq_merge_cfa(int nb) {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
-				g_free(args);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -5673,7 +5673,7 @@ int process_seq_extractHa(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
-						g_free(args);
+						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
@@ -5684,7 +5684,7 @@ int process_seq_extractHa(int nb) {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
-					g_free(args);
+					free(args);
 					return CMD_ARG_ERROR;
 				}
 			}
@@ -5721,7 +5721,7 @@ int process_seq_extractGreen(int nb) {
 					value = current + 8;
 					if (value[0] == '\0') {
 						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
-						g_free(args);
+						free(args);
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
@@ -5732,7 +5732,7 @@ int process_seq_extractGreen(int nb) {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 					if (!check_seq_is_comseq(seq))
 						free_sequence(seq, TRUE);
-					g_free(args);
+					free(args);
 					return CMD_ARG_ERROR;
 				}
 			}
@@ -6665,7 +6665,7 @@ int process_register(int nb) {
 	return CMD_OK;
 
 terminate_register_on_error:
-	g_free(reg_args);
+	free(reg_args);
 	free_sequence(seq, TRUE);
 	free(method);
 	return CMD_ARG_ERROR;
@@ -6945,7 +6945,7 @@ int process_seq_applyreg(int nb) {
 terminate_register_on_error:
 	if (!check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
-	g_free(reg_args);
+	free(reg_args);
 	return CMD_ARG_ERROR;
 }
 
@@ -8441,8 +8441,8 @@ int process_pcc(int nb) {
 				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
-				g_free(args);
-				g_free(pcc_args);
+				free(args);
+				free(pcc_args);
 				return CMD_INVALID_IMAGE;
 			}
 			siril_log_message(_("Using pixel size from preferences: %.2f\n"), args->pixel_size);
@@ -8465,8 +8465,8 @@ int process_pcc(int nb) {
 				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
-				g_free(args);
-				g_free(pcc_args);
+				free(args);
+				free(pcc_args);
 				return CMD_INVALID_IMAGE;
 			}
 			siril_log_message(_("Using focal length from preferences: %.2f\n"), args->focal_length);

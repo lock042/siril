@@ -447,7 +447,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	// Retrieve Description field
 	char *desc = NULL;
 	if (TIFFGetField(tif, TIFFTAG_IMAGEDESCRIPTION, &desc)) {
-		description = strdup(desc);
+		description = g_strdup(desc);
 	}
 
 	size_t npixels = width * height;
@@ -1299,7 +1299,7 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		uint8_t *data8 = convert_data8(fit);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (uint8_t*) data8 + (size_t) samples_per_pixel * i * width;
-		g_free(data8);
+		free(data8);
 	}
 
 	png_write_image(png_ptr, row_pointers);
@@ -1515,7 +1515,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	if (!raw->rawdata.raw_image) {
 		libraw_recycle(raw);
 		libraw_close(raw);
-		g_free(buf);
+		free(buf);
 		return OPEN_IMAGE_ERROR;
 	}
 	int i = 0;

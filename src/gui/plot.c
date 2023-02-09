@@ -707,7 +707,7 @@ static double get_error_for_time(pldata *plot, double time) {
 // the first will be the target
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0;
-	double *vmag, *err, *x, *real_x;
+	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
 		siril_log_color_message(_("Gnuplot was not found, the light curve data will be "
@@ -758,10 +758,10 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	real_x = calloc(nbImages, sizeof(double));
 	if (!vmag || !err || !x || !real_x) {
 		PRINT_ALLOC_ERR;
-		g_free(vmag); // g_free is safe to use here as it takes no action if the arg is NULL
-		g_free(err);
-		g_free(x);
-		g_free(real_x);
+		free(vmag); // g_free is safe to use here as it takes no action if the arg is NULL
+		free(err);
+		free(x);
+		free(real_x);
 		return -1;
 	}
 	// i is index in dataset, j is index in output

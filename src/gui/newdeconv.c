@@ -979,7 +979,7 @@ gpointer estimate_only(gpointer p) {
 		int nb_stars;
 		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
-		g_free(input_image);
+		free(input_image);
 		if (!com.stars || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
 			goto ENDEST;
@@ -1026,7 +1026,7 @@ gpointer estimate_only(gpointer p) {
 	}
 ENDEST:
 	if (stars_need_clearing) {
-		g_free(com.stars);
+		free(com.stars);
 		com.stars = NULL;
 		stars_need_clearing = FALSE;
 	}
@@ -1103,7 +1103,7 @@ gpointer deconvolve(gpointer p) {
 		int nb_stars;
 		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
-		g_free(input_image);
+		free(input_image);
 		if (retval || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
 			goto ENDDECONV;
@@ -1244,7 +1244,7 @@ ENDDECONV:
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 	}
 	if (stars_need_clearing) {
-		g_free(com.stars);
+		free(com.stars);
 		com.stars = NULL;
 		stars_need_clearing = FALSE;
 	}

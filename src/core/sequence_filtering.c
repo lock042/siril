@@ -311,7 +311,7 @@ int setup_filtered_data(struct stacking_args *args) {
 		return 1;
 	}
 	if (args->image_indices) {
-		g_free(args->image_indices);
+		free(args->image_indices);
 		args->image_indices = NULL;
 	}
 	return stack_fill_list_of_unfiltered_images(args);
@@ -325,7 +325,7 @@ int stack_fill_list_of_unfiltered_images(struct stacking_args *args) {
 		int *newptr = realloc(args->image_indices, args->nb_images_to_stack * sizeof(int));
 		if (!newptr) {
 			PRINT_ALLOC_ERR;
-			g_free(args->image_indices);
+			free(args->image_indices);
 			args->image_indices = NULL;
 			return 1;
 		}
@@ -433,7 +433,7 @@ static double generic_compute_accepted_value_with_rejection(sequence *seq, int l
 			val[n++] = data * factor;
 	}
 	if (!n) {
-		g_free(val);
+		free(val);
 		return 0.0;
 	}
 	if (n < seq->number) {
@@ -462,12 +462,12 @@ static double generic_compute_accepted_value_with_rejection(sequence *seq, int l
 	} while (j > 0);
 
 	if (n < 0) {
-		g_free(val);
+		free(val);
 		return 0.0;
 	}
 
 	threshold = factor * val[n - 1]; // we return a positive value
-	g_free(val);
+	free(val);
 	return threshold;
 }
 

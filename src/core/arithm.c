@@ -333,9 +333,9 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 	}
 	else return 1;
 
-	if (b->type == DATA_USHORT && (!b->data)) { g_free(result); return 1; }
-	if (b->type == DATA_FLOAT && (!b->fdata)) { g_free(result); return 1; }
-	if (!(b->type == DATA_FLOAT || b->type == DATA_USHORT)) { g_free(result); return 1; }
+	if (b->type == DATA_USHORT && (!b->data)) { free(result); return 1; }
+	if (b->type == DATA_FLOAT && (!b->fdata)) { free(result); return 1; }
+	if (!(b->type == DATA_FLOAT || b->type == DATA_USHORT)) { free(result); return 1; }
 
 	size_t nb_negative = 0;
 	for (size_t i = 0; i < n; ++i) {

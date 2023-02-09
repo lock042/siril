@@ -570,7 +570,7 @@ void initialize_local_catalogues_paths() {
 				com.pref.catalogue_paths[catalogue][0] != '\0')
 			continue;
 		char path[maxpath];
-		g_strlcpy(path, default_catalogues_paths[catalogue], maxpath);
+		strlcpy(path, default_catalogues_paths[catalogue], maxpath);
 		expand_home_in_filename(path, maxpath);
 		com.pref.catalogue_paths[catalogue] = g_strdup(path);
 	}

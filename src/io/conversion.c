@@ -989,7 +989,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
 		rwdata->reader = NULL;
 		clearfits(fit);
-		g_free(fit);
+		free(fit);
 		handle_error(rwdata);
 		return;
 	}
@@ -1223,7 +1223,7 @@ static gchar *create_sequence_filename(sequence_type output_type, const char *de
 		default:
 			siril_log_color_message(_("output sequence type unknown, aborting\n"), "red");
 	}
-	g_free(destroot_noext);
+	free(destroot_noext);
 	return output;
 }
 

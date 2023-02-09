@@ -819,14 +819,14 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 		break;
 	case XTRANS:
 		if (!xtrans) {
-			g_free(newbuf);
+			free(newbuf);
 			return NULL;
 		}
 		retval = fast_xtrans_interpolate(buf, newbuf, *width, *height, xtrans);
 		break;
 	}
 	if (retval) {
-		g_free(newbuf);
+		free(newbuf);
 		return NULL;
 	}
 	return newbuf;
@@ -1579,7 +1579,7 @@ WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 	void * tmp = realloc(buf, j * sizeof(WORD));
 	if (!tmp) {
 		PRINT_ALLOC_ERR;
-		g_free(buf);
+		free(buf);
 		return NULL;
 	} else {
 		buf = tmp;
@@ -1622,7 +1622,7 @@ WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, si
 
 	void *tmp = realloc(buf, j * sizeof(WORD));
 	if (!tmp) {
-		g_free(buf);
+		free(buf);
 		PRINT_ALLOC_ERR;
 		return NULL;
 	} else {
@@ -1663,7 +1663,7 @@ float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
 
 	void *tmp = realloc(buf, j * sizeof(float));
 	if (!tmp) {
-		g_free(buf);
+		free(buf);
 		PRINT_ALLOC_ERR;
 		return NULL;
 	} else {

@@ -227,8 +227,8 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 
 	candidates = malloc(MAX_STARS * sizeof(starc));
 	if (!candidates) {
-		g_free(image_ushort);
-		g_free(image_float);
+		free(image_ushort);
+		free(image_float);
 		clearfits(&smooth_fit);
 		free(smooth_image);
 		PRINT_ALLOC_ERR;
@@ -574,8 +574,10 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	psf_star **results = new_fitted_stars(nb_candidates);
 	if (!results) {
 		PRINT_ALLOC_ERR;
-		g_free(image_float); // g_free() takes no action if the arg is NULL so no risk of a double free
-		g_free(image_ushort); // g_free() takes no action if the arg is NULL so no risk of a double free
+		if (image_float)
+			free(image_float);
+		if (image_ushort)
+			free(image_ushort);
 		return 0;
 	}
 
@@ -770,7 +772,7 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 				A[i] = stars[i]->A;
 			quicksort_f(A, nb);
 			*Acut = (float)gsl_stats_float_quantile_from_sorted_data(A, 1, nb, Acutp);
-			g_free(A);
+			free(A);
 		}
 	}
 }
@@ -868,7 +870,7 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		if (tokens != 15) {
 			siril_debug_print("malformed line: %s", buffer);
 			read_failure = TRUE;
-			g_free(s);
+			free(s);
 			s = NULL;
 			break;
 		}

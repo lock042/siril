@@ -146,7 +146,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	if (nb_threads == 0) {
 		siril_log_color_message(_("Stacking will be done without up-scaling (disabling 'drizzle')\n"), "red");
 		stackargs->seq->upscale_at_stacking = 1.0;
-		g_free(args);
+		free(args);
 		return 0;
 	}
 	args->max_parallel_images = nb_threads;
