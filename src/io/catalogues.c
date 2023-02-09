@@ -570,7 +570,7 @@ void initialize_local_catalogues_paths() {
 				com.pref.catalogue_paths[catalogue][0] != '\0')
 			continue;
 		char path[maxpath];
-		strncpy(path, default_catalogues_paths[catalogue], maxpath);
+		g_strlcpy(path, default_catalogues_paths[catalogue], maxpath);
 		expand_home_in_filename(path, maxpath);
 		com.pref.catalogue_paths[catalogue] = g_strdup(path);
 	}
@@ -739,6 +739,7 @@ static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, do
 
 		if (g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, NULL) == FALSE) {
 			siril_log_color_message(_("Error writing output...\n"), "red");
+			return 1;
 		}
 	}
 
