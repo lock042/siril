@@ -601,7 +601,7 @@ int processcommand(const char *line) {
 sequence *load_sequence(const char *name, char **get_filename) {
 	gchar *file = NULL;
 	gchar *altfile = NULL;
-	if (name[0] == '.' && g_utf8_strlen(name, -1) && sequence_is_loaded())
+	if (name[0] == '.' && g_utf8_strlen(name, -1) == 1 && sequence_is_loaded())
 		file = g_strdup(com.seq.seqname);
 	else {
 		file = g_strdup(name);

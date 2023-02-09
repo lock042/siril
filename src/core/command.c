@@ -3662,14 +3662,18 @@ int process_seq_tilt(int nb) {
 	gboolean draw_polygon = FALSE;
 
 	sequence *seq;
-	//TODO: not sure how to handle that when no sequence is loaded
-	if (word[1] && word[1][0] != '\0') {
-		seq = load_sequence(word[1], NULL);
-	} else {
-		if (!sequence_is_loaded()) {
-			return CMD_NOT_FOR_SINGLE;
-		}
+	seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
 		seq = &com.seq;
+		draw_polygon = TRUE;
+	}
+	// through GUI, in case the specified sequence is not the loaded sequence
+	// load it before running
+	if (!com.script && seq != &com.seq) {
+		set_seq(word[1]);
 		draw_polygon = TRUE;
 	}
 
