@@ -636,104 +636,95 @@ int writeseqfile(sequence *seq){
 	}
 
 	for (layer = 0; layer < seq->nb_layers; layer++) {
-		if (seq->regparam) {
-			if (seq->regparam[layer]) {
-				for (i=0; i < seq->number; ++i) {
-					fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
-							seq->cfa_opened_monochrome ? '*' : '0' + layer,
-							seq->regparam[layer][i].fwhm,
-							seq->regparam[layer][i].weighted_fwhm,
-							seq->regparam[layer][i].roundness,
-							seq->regparam[layer][i].quality,
-							seq->regparam[layer][i].background_lvl,
-							seq->regparam[layer][i].number_of_stars,
-							seq->regparam[layer][i].H.h00,
-							seq->regparam[layer][i].H.h01,
-							seq->regparam[layer][i].H.h02,
-							seq->regparam[layer][i].H.h10,
-							seq->regparam[layer][i].H.h11,
-							seq->regparam[layer][i].H.h12,
-							seq->regparam[layer][i].H.h20,
-							seq->regparam[layer][i].H.h21,
-							seq->regparam[layer][i].H.h22
-						);
-				}
+		if (seq->regparam && seq->regparam[layer]) {
+			for (i=0; i < seq->number; ++i) {
+				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
+						seq->cfa_opened_monochrome ? '*' : '0' + layer,
+						seq->regparam[layer][i].fwhm,
+						seq->regparam[layer][i].weighted_fwhm,
+						seq->regparam[layer][i].roundness,
+						seq->regparam[layer][i].quality,
+						seq->regparam[layer][i].background_lvl,
+						seq->regparam[layer][i].number_of_stars,
+						seq->regparam[layer][i].H.h00,
+						seq->regparam[layer][i].H.h01,
+						seq->regparam[layer][i].H.h02,
+						seq->regparam[layer][i].H.h10,
+						seq->regparam[layer][i].H.h11,
+						seq->regparam[layer][i].H.h12,
+						seq->regparam[layer][i].H.h20,
+						seq->regparam[layer][i].H.h21,
+						seq->regparam[layer][i].H.h22
+					);
 			}
 		}
-		if (seq->stats) {
-			if (seq->stats[layer]) {
-				for (i=0; i < seq->number; ++i) {
-					if (!seq->stats[layer][i]) continue;
+		if (seq->stats && seq->stats[layer]) {
+			for (i=0; i < seq->number; ++i) {
+				if (!seq->stats[layer][i]) continue;
 
-					fprintf(seqfile, "M%c-%d %ld %ld %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg\n",
-							seq->cfa_opened_monochrome ? '*' : '0' + layer, i,
-							seq->stats[layer][i]->total,
-							seq->stats[layer][i]->ngoodpix,
-							seq->stats[layer][i]->mean,
-							seq->stats[layer][i]->median,
-							seq->stats[layer][i]->sigma,
-							seq->stats[layer][i]->avgDev,
-							seq->stats[layer][i]->mad,
-							seq->stats[layer][i]->sqrtbwmv,
-							seq->stats[layer][i]->location,
-							seq->stats[layer][i]->scale,
-							seq->stats[layer][i]->min,
-							seq->stats[layer][i]->max,
-							seq->stats[layer][i]->normValue,
-							seq->stats[layer][i]->bgnoise);
+				fprintf(seqfile, "M%c-%d %ld %ld %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg\n",
+						seq->cfa_opened_monochrome ? '*' : '0' + layer, i,
+						seq->stats[layer][i]->total,
+						seq->stats[layer][i]->ngoodpix,
+						seq->stats[layer][i]->mean,
+						seq->stats[layer][i]->median,
+						seq->stats[layer][i]->sigma,
+						seq->stats[layer][i]->avgDev,
+						seq->stats[layer][i]->mad,
+						seq->stats[layer][i]->sqrtbwmv,
+						seq->stats[layer][i]->location,
+						seq->stats[layer][i]->scale,
+						seq->stats[layer][i]->min,
+						seq->stats[layer][i]->max,
+						seq->stats[layer][i]->normValue,
+						seq->stats[layer][i]->bgnoise);
 
-				}
 			}
 		}
 	}
 	for (layer = 0; layer < 3; layer++) {
-		if (seq->regparam_bkp) {
-				if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
-				for (i=0; i < seq->number; ++i) {
-					fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
-							seq->cfa_opened_monochrome ? '0' + layer : '*',
-							seq->regparam_bkp[layer][i].fwhm,
-							seq->regparam_bkp[layer][i].weighted_fwhm,
-							seq->regparam_bkp[layer][i].roundness,
-							seq->regparam_bkp[layer][i].quality,
-							seq->regparam_bkp[layer][i].background_lvl,
-							seq->regparam_bkp[layer][i].number_of_stars,
-							seq->regparam_bkp[layer][i].H.h00,
-							seq->regparam_bkp[layer][i].H.h01,
-							seq->regparam_bkp[layer][i].H.h02,
-							seq->regparam_bkp[layer][i].H.h10,
-							seq->regparam_bkp[layer][i].H.h11,
-							seq->regparam_bkp[layer][i].H.h12,
-							seq->regparam_bkp[layer][i].H.h20,
-							seq->regparam_bkp[layer][i].H.h21,
-							seq->regparam_bkp[layer][i].H.h22
-						);
-				}
+		if (seq->regparam_bkp && seq->regparam_bkp[layer]) {
+			for (i=0; i < seq->number; ++i) {
+				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
+						seq->cfa_opened_monochrome ? '0' + layer : '*',
+						seq->regparam_bkp[layer][i].fwhm,
+						seq->regparam_bkp[layer][i].weighted_fwhm,
+						seq->regparam_bkp[layer][i].roundness,
+						seq->regparam_bkp[layer][i].quality,
+						seq->regparam_bkp[layer][i].background_lvl,
+						seq->regparam_bkp[layer][i].number_of_stars,
+						seq->regparam_bkp[layer][i].H.h00,
+						seq->regparam_bkp[layer][i].H.h01,
+						seq->regparam_bkp[layer][i].H.h02,
+						seq->regparam_bkp[layer][i].H.h10,
+						seq->regparam_bkp[layer][i].H.h11,
+						seq->regparam_bkp[layer][i].H.h12,
+						seq->regparam_bkp[layer][i].H.h20,
+						seq->regparam_bkp[layer][i].H.h21,
+						seq->regparam_bkp[layer][i].H.h22
+					);
 			}
 		}
-		if (seq->stats_bkp) {
-			if (seq->stats_bkp[layer]) {
-				for (i=0; i < seq->number; ++i) {
-					if (!seq->stats_bkp[layer][i]) continue;
+		if (seq->stats_bkp && (seq->stats_bkp[layer]) {
+			for (i=0; i < seq->number; ++i) {
+				if (!seq->stats_bkp[layer][i]) continue;
 
-					fprintf(seqfile, "M%c-%d %ld %ld %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg\n",
-							seq->cfa_opened_monochrome ? '0' + layer : '*', i,
-							seq->stats_bkp[layer][i]->total,
-							seq->stats_bkp[layer][i]->ngoodpix,
-							seq->stats_bkp[layer][i]->mean,
-							seq->stats_bkp[layer][i]->median,
-							seq->stats_bkp[layer][i]->sigma,
-							seq->stats_bkp[layer][i]->avgDev,
-							seq->stats_bkp[layer][i]->mad,
-							seq->stats_bkp[layer][i]->sqrtbwmv,
-							seq->stats_bkp[layer][i]->location,
-							seq->stats_bkp[layer][i]->scale,
-							seq->stats_bkp[layer][i]->min,
-							seq->stats_bkp[layer][i]->max,
-							seq->stats_bkp[layer][i]->normValue,
-							seq->stats_bkp[layer][i]->bgnoise);
-
-				}
+				fprintf(seqfile, "M%c-%d %ld %ld %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg %lg\n",
+						seq->cfa_opened_monochrome ? '0' + layer : '*', i,
+						seq->stats_bkp[layer][i]->total,
+						seq->stats_bkp[layer][i]->ngoodpix,
+						seq->stats_bkp[layer][i]->mean,
+						seq->stats_bkp[layer][i]->median,
+						seq->stats_bkp[layer][i]->sigma,
+						seq->stats_bkp[layer][i]->avgDev,
+						seq->stats_bkp[layer][i]->mad,
+						seq->stats_bkp[layer][i]->sqrtbwmv,
+						seq->stats_bkp[layer][i]->location,
+						seq->stats_bkp[layer][i]->scale,
+						seq->stats_bkp[layer][i]->min,
+						seq->stats_bkp[layer][i]->max,
+						seq->stats_bkp[layer][i]->normValue,
+						seq->stats_bkp[layer][i]->bgnoise);
 			}
 		}
 	}

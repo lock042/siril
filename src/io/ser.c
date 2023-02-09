@@ -904,7 +904,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
-	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM_UP");
+	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
 
 	return 0;
 }
