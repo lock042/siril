@@ -705,7 +705,7 @@ int writeseqfile(sequence *seq){
 					);
 			}
 		}
-		if (seq->stats_bkp && (seq->stats_bkp[layer]) {
+		if (seq->stats_bkp && seq->stats_bkp[layer]) {
 			for (i=0; i < seq->number; ++i) {
 				if (!seq->stats_bkp[layer][i]) continue;
 

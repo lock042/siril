@@ -95,7 +95,6 @@ static const char *convert_color_id_to_char(ser_color color_id) {
 static int ser_read_timestamp(struct ser_struct *ser_file) {
 	gboolean timestamps_in_order = TRUE;
 	guint64 previous_ts = 0L;
-	gint64 frame_size;
 
 	ser_file->fps = -1.0;	// will be calculated from the timestamps
 
@@ -104,7 +103,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 			!ser_file->number_of_planes)
 		return 0;
 
-	frame_size = (gint64) ser_file->image_width *
+	gint64 frame_size = (gint64) ser_file->image_width *
 		ser_file->image_height * ser_file->number_of_planes;
 	gint64 offset = SER_HEADER_LEN + frame_size *
 		(gint64)ser_file->byte_pixel_depth * (gint64)ser_file->frame_count;

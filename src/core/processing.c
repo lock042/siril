@@ -171,15 +171,12 @@ gpointer generic_sequence_worker(gpointer p) {
 	for (frame = 0; frame < nb_frames; frame++) {
 		if (abort) continue;
 
-		fits *fit = calloc(1, sizeof(fits));
 		char filename[256];
 		rectangle area = { .x = args->area.x, .y = args->area.y,
 			.w = args->area.w, .h = args->area.h };
 
 		if (!get_thread_run()) {
 			abort = 1;
-			clearfits(fit);
-			g_free(fit);
 			continue;
 		}
 		if (index_mapping)
@@ -188,8 +185,6 @@ gpointer generic_sequence_worker(gpointer p) {
 
 		if (!seq_get_image_filename(args->seq, input_idx, filename)) {
 			abort = 1;
-			clearfits(fit);
-			g_free(fit);
 			continue;
 		}
 
@@ -201,13 +196,18 @@ gpointer generic_sequence_worker(gpointer p) {
 			seqwriter_wait_for_memory();
 			if (abort) {
 				seqwriter_release_memory();
-				clearfits(fit);
-				g_free(fit);
 				continue;
 			}
 		}
 		nb_subthreads = threads_per_image[thread_id];
 #endif
+
+		fits *fit = calloc(1, sizeof(fits));
+		if (!fit) {
+			PRINT_ALLOC_ERR;
+			abort = 1;
+			continue;
+		}
 
 		if (args->partial_image) {
 			if (args->regdata_for_partial && (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][input_idx].H) > -2)
@@ -339,7 +339,9 @@ gpointer generic_sequence_worker(gpointer p) {
 	omp_destroy_lock(&args->lock);
 #endif
 the_end:
-	g_free(threads_per_image);
+#ifdef _OPENMP
+	free(threads_per_image);
+#endif
 
 	if (index_mapping) free(index_mapping);
 	if (!have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
@@ -744,6 +746,10 @@ int limit_threading(threading_type *threads, int min_iterations_per_thread, size
  */
 int *compute_thread_distribution(int nb_workers, int max) {
 	int *threads = malloc(nb_workers * sizeof(int));
+	if (!threads) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	int base = max / nb_workers;
 	int rem = max % nb_workers;
 	siril_debug_print("distributing %d threads to %d workers\n", max, nb_workers);
