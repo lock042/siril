@@ -567,7 +567,7 @@ int process_starnet(int nb){
 
 int process_seq_starnet(int nb){
 #ifdef HAVE_LIBTIFF
-	starnet_data *starnet_args = malloc(sizeof(starnet_data));
+	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	if (!starnet_args)
 		return CMD_ALLOC_ERROR;
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));

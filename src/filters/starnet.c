@@ -258,11 +258,35 @@ starnet_version starnet_executablecheck() {
 	return retval;
 }
 
+gboolean end_starnet(gpointer p) {
+	starnet_data *args = (starnet_data *) p;
+	if (args->seqname)
+		free((void*)args->seqname);
+	if (args->seqEntry)
+		free((void*)args->seqname);
+
+	free(p);
+	return end_generic(NULL);
+}
+
+gboolean seqstarnet_idle(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+printf("hi\n");
+	starnet_data *starnet_args = (starnet_data *) args->user;
+	if (starnet_args->seqname)
+		free((void*)starnet_args->seqname);
+	if (starnet_args->seqEntry)
+		free((void*)starnet_args->seqEntry);
+
+	free(starnet_args);
+	return end_generic_sequence(p);
+}
+
 gboolean end_and_call_remixer(gpointer p)
 {
 	struct remixargs *blendargs = (remixargs *) p;
 	toggle_remixer_window_visibility(CALL_FROM_STARNET, blendargs->fit1, blendargs->fit2);
-	return end_generic(NULL);
+	return end_starnet(NULL);
 }
 
 /* Starnet++ star removal routine */
@@ -684,7 +708,7 @@ gpointer do_starnet(gpointer p) {
 			return GINT_TO_POINTER(retval);
 		} else {
 			notify_gfit_modified();
-			siril_add_idle(end_generic, args);
+			siril_add_idle(end_starnet, args);
 			return GINT_TO_POINTER(retval);
 		}
 	}
@@ -722,13 +746,17 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 	int retval1, retval2 = 0;
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
 		retval1 = ser_write_frame_from_fit(seqdata->new_ser_starless, seqdata->starnet_fit, out_index);
-		if (seqdata->starmask)
+		if (seqdata->starmask) {
 			retval2 = ser_write_frame_from_fit(seqdata->new_ser_starmask, seqdata->starmask_fit, out_index);
+			g_free(seqdata->starmask_fit);
+		}
 		// the two fits are freed by the writing thread
 	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
 		retval1 = fitseq_write_image(seqdata->new_fitseq_starless, seqdata->starnet_fit, out_index);
-		if (seqdata->starmask)
+		if (seqdata->starmask) {
 			retval2 = fitseq_write_image(seqdata->new_fitseq_starmask, seqdata->starmask_fit, out_index);
+			g_free(seqdata->starmask_fit);
+		}
 		// the two fits are freed by the writing thread
 		if (!retval1 && !retval2) {
 			/* special case because it's not done in the generic */
@@ -754,6 +782,7 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 			}
 			g_free(dest);
 			clearfits(seqdata->starmask_fit);
+			g_free(seqdata->starmask_fit);
 			seqdata->starmask_fit = NULL;
 		}
 	}
@@ -812,6 +841,7 @@ void apply_starnet_to_sequence(struct starnet_data *seqdata) {
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = seqdata->seq->selnum;
 	seqargs->compute_mem_limits_hook = starnet_compute_mem_limits;
+	seqargs->idle_function = seqstarnet_idle;
 	seqargs->finalize_hook = starnet_finalize_hook;
 	seqargs->save_hook = starnet_save_hook;
 	seqargs->image_hook = starnet_image_hook;
