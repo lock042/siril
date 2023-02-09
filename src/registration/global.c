@@ -834,7 +834,17 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->layer = regargs->layer;
 	sf_args->max_stars_fitted = regargs->max_stars_candidates;
 	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
+	if (!sf_args->stars) {
+		PRINT_ALLOC_ERR;
+		retval = 1;
+		goto free_all;
+	}
 	sf_args->nb_stars = calloc(regargs->seq->number, sizeof(int));
+	if (!sf_args->nb_stars) {
+		PRINT_ALLOC_ERR;
+		retval = 1;
+		goto free_all;
+	}
 	sf_args->update_GUI = FALSE;
 	sf_args->already_in_thread = TRUE;
 	sf_args->process_all_images = !regargs->filters.filter_included;
@@ -849,16 +859,6 @@ int register_multi_step_global(struct registration_args *regargs) {
 	int retval = 0;
 	struct timeval t_start, t_end;
 
-	if (!sf_args->stars) {
-		PRINT_ALLOC_ERR;
-		retval = 1;
-		goto free_all;
-	}
-	if (!sf_args->nb_stars) {
-		PRINT_ALLOC_ERR;
-		retval = 1;
-		goto free_all;
-	}
 	gettimeofday(&t_start, NULL);
 	if (apply_findstar_to_sequence(sf_args)) {
 		siril_debug_print("finding stars failed\n");	// aborted probably
