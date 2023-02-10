@@ -1424,10 +1424,11 @@ gpointer plate_solver(gpointer p) {
 			memset(&fit_backup, 0, sizeof(fits));
 		}
 	} else {
-		stars = com.stars;
-		if (com.stars)
-			while (com.stars[nb_stars])
+		stars = args->stars ? args->stars : com.stars;
+		if (stars)
+			while (stars[nb_stars])
 				nb_stars++;
+
 	}
 	CHECK_FOR_CANCELLATION;
 

@@ -41,6 +41,7 @@
 #include "io/ser.h"
 #include "livestacking/livestacking.h"
 
+#include "command.h"
 #include "command_line_processor.h"
 
 static const char *cmd_err_to_str(cmd_errors err) {
