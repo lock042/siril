@@ -1599,8 +1599,9 @@ void translation_from_H(Homography H, double *dx, double *dy) {
 }
 
 Homography H_from_translation(double dx, double dy) {
-	Homography H;
-	cvGetEye(&H); // cannot fail, so no need to initialize H above
+	Homography H = { 0 }; // cvGetEye() cannot fail, but doesn't initialize H.pair_matched,
+						  // hence it is initialized here before the call to cvGetEye()
+	cvGetEye(&H);
 	H.h02 = dx;
 	H.h12 = -dy;
 	return H;
