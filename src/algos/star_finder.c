@@ -96,16 +96,18 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_ROUNDNESS_BELOW_CRIT; //crit 16
 	}
-	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) { // if star center off from original candidate detection by more than sigma radius
+	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) {
+		// if star center off from original candidate detection by more than sigma radius
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
 		return SF_CENTER_OFF; //crit 10
 	}
-	if (result->fwhmx > max(se->sx, se->sy) * _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {// criteria gets looser as guessed fwhm gets larger than kernel
+	if (result->fwhmx > max(se->sx, se->sy) * _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {
+		// criteria gets looser as guessed fwhm gets larger than kernel
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
 		return SF_FWHM_TOO_LARGE; //crit 2
 	}
 	if (((result->rmse * sf->sigma / result->A) > 0.2) && (!(result->A > dynrange))) {
-	//  do not apply for saturated stars to keep them for alignement purposes
+		//  do not apply for saturated stars to keep them for alignement purposes
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE; //crit 3
 	}
@@ -1128,8 +1130,6 @@ gpointer findstar_worker(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *)p;
 	int retval = 0;
 	int nbstars = 0;
-	//struct timeval t_start, t_end;
-	//gettimeofday(&t_start, NULL);
 	rectangle *selection = NULL;
 	if (com.selection.w != 0 && com.selection.h != 0)
 		selection = &com.selection;
@@ -1182,10 +1182,9 @@ gpointer findstar_worker(gpointer p) {
 		goto END;
 	}
 
-	if (args->update_GUI) {
-		clear_stars_list(FALSE); // with FALSE it's not a GUI call
-		com.stars = stars;
-	}
+	if (args->update_GUI)
+		update_star_list(stars, TRUE);
+
 	siril_log_message(_("Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"), nbstars,
 			com.pref.starfinder_conf.profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
 			selection ? _("selection") : _("image"), args->layer, fwhm);

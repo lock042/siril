@@ -1555,6 +1555,7 @@ void on_file_information_close_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), gfit.focal_length, gfit.pixel_size_x);
 	}
 	gtk_widget_hide(lookup_widget("file_information"));
+	refresh_star_list();
 }
 
 void on_toggleButtonUnbinned_toggled(GtkToggleButton *button, gpointer user_data) {

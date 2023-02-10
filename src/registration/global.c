@@ -129,7 +129,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	float FWHMx, FWHMy, B;
 	char *units;
 	fits fit = { 0 };
-	int i, nb_stars = 0;
+	int nb_stars = 0;
 
 	sadata->current_regdata = star_align_get_current_regdata(regargs);
 	if (!sadata->current_regdata) return -2;
@@ -165,8 +165,6 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		clearfits(&fit);
 		return 1;
 	}
-	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image)
-		queue_redraw(REDRAW_OVERLAY); // draw stars
 
 	sadata->ref.x = fit.rx;
 	sadata->ref.y = fit.ry;
@@ -188,23 +186,22 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	/* copying refstars to com.stars for display */
-	if (sequence_is_loaded()) {
-		com.stars = new_fitted_stars(MAX_STARS);
-		if (com.stars) {
-			i = 0;
-			while (i < MAX_STARS && sadata->refstars[i]) {
+	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image) {
+		psf_star **stars = new_fitted_stars(MAX_STARS);
+		if (stars) {
+			for (int i = 0; i < nb_stars && sadata->refstars[i]; i++) {
 				psf_star *tmp = new_psf_star();
 				if (!tmp) {
 					PRINT_ALLOC_ERR;
-					com.stars[i] = NULL;
+					stars[i] = NULL;
 					break;
 				}
 				memcpy(tmp, sadata->refstars[i], sizeof(psf_star));
-				com.stars[i] = tmp;
-				com.stars[i+1] = NULL;
-				i++;
+				stars[i] = tmp;
+				stars[i+1] = NULL;
 			}
 		}
+		update_star_list(stars, FALSE);
 	}
 
 	if (nb_stars >= MAX_STARS_FITTED) {
