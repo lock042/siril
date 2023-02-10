@@ -779,13 +779,21 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 	} else {
 		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, "starless_", in_index);
 		retval1 = savefits(dest, seqdata->starnet_fit);
+<<<<<<< .merge_file_UeA6iC
 		free(dest);
+=======
+		g_free(dest);
+>>>>>>> .merge_file_FiGgyU
 		clearfits(seqdata->starnet_fit);
 		seqdata->starnet_fit = NULL;
 		if (seqdata->starmask) {
 			dest = fit_sequence_get_image_filename_prefixed(args->seq, "starmask_", in_index);
 			retval2 = savefits(dest, seqdata->starmask_fit);
+<<<<<<< .merge_file_UeA6iC
 			free(dest);
+=======
+			g_free(dest);
+>>>>>>> .merge_file_FiGgyU
 			clearfits(seqdata->starmask_fit);
 			free(seqdata->starmask_fit);
 			seqdata->starmask_fit = NULL;
