@@ -829,6 +829,7 @@ int minidx(const float *arr, const gboolean *mask, int nb, float *val) {
 
 int register_multi_step_global(struct registration_args *regargs) {
 	// 1. finding stars
+	int retval = 0;
 	struct starfinder_data *sf_args = calloc(1, sizeof(struct starfinder_data));
 	sf_args->im.from_seq = regargs->seq;
 	sf_args->layer = regargs->layer;
@@ -856,7 +857,6 @@ int register_multi_step_global(struct registration_args *regargs) {
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
 	gboolean *meaningful = NULL;
-	int retval = 0;
 	struct timeval t_start, t_end;
 
 	gettimeofday(&t_start, NULL);

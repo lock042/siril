@@ -416,7 +416,7 @@ static void remove_selected_star() {
 	references = get_row_references_of_selected_rows(selection, treeModel);
 
 	guint size = g_list_length(references);
-	guint *sel = g_calloc(size, sizeof(guint));
+	guint *sel = calloc(size, sizeof(guint));
 
 	int i = 0;
 	for (list = references; list; list = list->next) {
@@ -444,7 +444,7 @@ static void remove_selected_star() {
 
 	g_list_free(references);
 	gtk_tree_selection_unselect_all(selection);
-	g_free(sel);
+	free(sel);
 	gui.selected_star = -1;
 	display_status();
 }
