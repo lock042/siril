@@ -748,20 +748,12 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 		}
 	} else {
 		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, "starless_", in_index);
-		if (fit->type == DATA_USHORT) {
-			retval1 = save1fits16(dest, seqdata->starnet_fit, RLAYER);
-		} else {
-			retval1 = save1fits32(dest, seqdata->starnet_fit, RLAYER);
-		}
+		retval1 = savefits(dest, seqdata->starnet_fit);
 		g_free(dest);
 		clearfits(seqdata->starnet_fit);
 		if (seqdata->starmask) {
 			dest = fit_sequence_get_image_filename_prefixed(args->seq, "starmask_", in_index);
-			if (fit->type == DATA_USHORT) {
-				retval2 = save1fits16(dest, seqdata->starmask_fit, RLAYER);
-			} else {
-				retval2 = save1fits32(dest, seqdata->starmask_fit, RLAYER);
-			}
+			retval2 = savefits(dest, seqdata->starmask_fit);
 			g_free(dest);
 			clearfits(seqdata->starmask_fit);
 			seqdata->starmask_fit = NULL;
