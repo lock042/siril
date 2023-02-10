@@ -834,6 +834,12 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->im.from_seq = regargs->seq;
 	sf_args->layer = regargs->layer;
 	sf_args->max_stars_fitted = regargs->max_stars_candidates;
+	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL, *scores = NULL;
+	float *dist = NULL;
+	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
+	gboolean *included = NULL, *tmp_included = NULL;
+	// local flag to make checks only on frames that matter
+	gboolean *meaningful = NULL;
 	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
 	if (!sf_args->stars) {
 		PRINT_ALLOC_ERR;
@@ -851,12 +857,6 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->process_all_images = !regargs->filters.filter_included;
 	sf_args->save_to_file = !regargs->no_starlist;
 	sf_args->save_eqcoords = FALSE;
-	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL, *scores = NULL;
-	float *dist = NULL;
-	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
-	gboolean *included = NULL, *tmp_included = NULL;
-	// local flag to make checks only on frames that matter
-	gboolean *meaningful = NULL;
 	struct timeval t_start, t_end;
 
 	gettimeofday(&t_start, NULL);
