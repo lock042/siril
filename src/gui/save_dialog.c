@@ -294,6 +294,7 @@ static gchar *get_filename_and_replace_ext() {
 		char *file_no_ext = remove_ext_from_filename(basename);
 		g_free(basename);
 		basename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
+		free(file_no_ext);
 	}
 
 	return basename;
@@ -350,6 +351,7 @@ static void filter_changed(gpointer user_data) {
 		g_free(new_filename);
 	}
 
+	g_free(file_no_ext);
 	g_free(filename);
 }
 
@@ -402,7 +404,7 @@ gboolean end_save(gpointer p) {
 	set_cursor_waiting(FALSE);
 	close_dialog();	// is this different from the hide above?
 	update_MenuItem();
-	
+
 	free(args);
 	return FALSE;
 }
@@ -671,23 +673,25 @@ void on_savetxt_changed(GtkEditable *editable, gpointer user_data) {
 }
 
 void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
-	struct savedial_data *args = malloc(sizeof(struct savedial_data));
+	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
 	if (initialize_data(args)) {
 		start_in_new_thread(mini_save_dialog, args);
 	} else {
+		g_free(args);
 		siril_add_idle(end_generic, NULL);
 	}
 }
 
 void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
-	struct savedial_data *args = malloc(sizeof(struct savedial_data));
+	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
 	if (initialize_data(args)) {
 		start_in_new_thread(mini_save_dialog, args);
 	} else {
+		free(args);
 		siril_add_idle(end_generic, NULL);
 	}
 }
@@ -703,12 +707,13 @@ void on_header_save_as_button_clicked() {
 		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
 			/* now it is not needed for some formats */
 			if (type_of_image & (TYPEBMP | TYPEPNG | TYPEPNM)) {
-				struct savedial_data *args = malloc(sizeof(struct savedial_data));
+				struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 				set_cursor_waiting(TRUE);
 				if (initialize_data(args)) {
 					start_in_new_thread(mini_save_dialog, args);
 				} else {
+					free(args);
 					siril_add_idle(end_generic, NULL);
 				}
 			} else {

@@ -643,7 +643,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 	if (median <= 0.0f) {
 		if (error)
 			*error = "removing the gradient on negative images is not supported";
-		g_free(image);
+		free(image);
 		return NULL;
 	}
 
@@ -658,7 +658,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 	if (nb_per_column == 0) {
 		if (error)
 			*error = "image is smaller than the sample size of the background extraction";
-		g_free(image);
+		free(image);
 		return NULL;
 	}
 

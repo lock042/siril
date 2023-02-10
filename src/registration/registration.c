@@ -520,7 +520,7 @@ int register_kombat(struct registration_args *args) {
 	double qual;
 	int frame;
 	int ref_idx;
-	int ret;
+	int ret, ret2;
 	int abort = 0;
 	rectangle full = { 0 };
 	int q_index = -1;
@@ -562,12 +562,12 @@ int register_kombat(struct registration_args *args) {
 
 	/* we load reference image just to get dimensions of images,
 	 in order to call seq_read_frame_part() and use only the desired layer, over each full image */
-	seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
+	ret2 = seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
 	full.x = full.y = 0;
 	full.w = fit_ref.rx;
 	full.h = fit_ref.ry;
 
-	if (ret || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
+	if (ret || ret2 || seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_ref, &full, FALSE, -1)) {
 		siril_log_message(
 				_("Register: could not load first image to register, aborting.\n"));
 		args->seq->regparam[args->layer] = NULL;
@@ -1121,7 +1121,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
 	int nb_images_reg; /* the number of images to register */
-	struct registration_method *method;
+	struct registration_method *method = NULL;
 	gboolean selection_is_done;
 	gboolean has_reg, ready;
 	int nbselstars = 0;
@@ -1157,6 +1157,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	/* getting the selected registration method */
 	method = get_selected_registration_method();
+	if (!method) {
+		siril_log_color_message(_("Failed to determine registration method...\n"), "red");
+		return;
+	}
 
 	/* show the appropriate frame selection widgets */
 	gboolean isapplyreg = method->method_ptr == &register_apply_reg;
@@ -1595,7 +1599,8 @@ void translation_from_H(Homography H, double *dx, double *dy) {
 }
 
 Homography H_from_translation(double dx, double dy) {
-	Homography H;
+	Homography H = { 0 }; // cvGetEye() cannot fail, but doesn't initialize H.pair_matched,
+						  // hence it is initialized here before the call to cvGetEye()
 	cvGetEye(&H);
 	H.h02 = dx;
 	H.h12 = -dy;

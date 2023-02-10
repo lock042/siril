@@ -82,6 +82,10 @@ gboolean load_WCS_from_memory(fits *fit) {
 	int status;
 	if (!fit->wcslib) {
 		fit->wcslib = calloc(1, sizeof(struct wcsprm));
+		if(!fit->wcslib) {
+			PRINT_ALLOC_ERR;
+			return FALSE;
+		}
 		fit->wcslib->flag = -1;
 	}
 	wcsinit(1, NAXIS, fit->wcslib, 0, 0, 0);
@@ -90,7 +94,7 @@ gboolean load_WCS_from_memory(fits *fit) {
 	const char CUNIT[2][9] = { "deg", "deg" };
 
 	for (int i = 0; i < NAXIS; i++) {
-		strcpy(fit->wcslib->cunit[i], &CUNIT[i][0]);
+		strncpy(fit->wcslib->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
 	}
 
 	double *pcij = fit->wcslib->pc;
@@ -113,7 +117,7 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 
 	for (int i = 0; i < NAXIS; i++) {
-		strcpy(fit->wcslib->ctype[i], &CTYPE[i][0]);
+		strncpy(fit->wcslib->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
 	}
 
 	fit->wcslib->equinox = fit->wcsdata.equinox;

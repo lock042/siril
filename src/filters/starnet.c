@@ -67,26 +67,6 @@
 fits *current_fit = NULL;
 gboolean verbose = TRUE;
 
-// Check maximum path length - OSes except for Windows
-#ifndef _WIN32
-long get_pathmax(void) {
-	long pathmax = -1;
-
-	errno = 0;
-	pathmax = pathconf("/", _PC_PATH_MAX);
-	if (-1 == pathmax) {
-		if (0 == errno) {
-#define PATHMAX_INFINITE_GUESS 4096
-			pathmax = PATHMAX_INFINITE_GUESS;
-		} else {
-			fprintf(stderr, "pathconf() FAILED, %d, %s\n", errno,
-					strerror(errno));
-		}
-	}
-	return pathmax;
-}
-#endif
-
 // Wrapper for execve
 const char *my_argv[64];
 static int forkerrors = 0;
@@ -136,7 +116,7 @@ static int exec_prog(const char **argv) {
 				} else {
 					double value = g_ascii_strtod(buf, NULL);
 					if (value != 0.0 && value == value && verbose) { //
-						set_progress_bar_data(_("Running Starnet++"), (value / 100));
+						set_progress_bar_data(_("Running StarNet"), (value / 100));
 					}
 				}
 			}
@@ -206,7 +186,7 @@ static int exec_prog_win32(const char **argv) {
 	wargv0 = g_utf8_to_utf16 (argv[0], -1, NULL, NULL, &conv_error);
 	if (wargv0 == NULL) {
 		g_set_error (&error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED, _("Invalid program name: %s"), conv_error->message);
-		g_error_free (conv_error);
+		g_clear_error(&conv_error);
 		return 0;
 	}
 
@@ -214,7 +194,7 @@ static int exec_prog_win32(const char **argv) {
 		g_set_error(&error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
 				_("Invalid string in argument vector at %d: %s"),
 				conv_error_index, conv_error->message);
-		g_error_free(conv_error);
+		g_clear_error(&conv_error);
 		g_free(wargv0);
 
 		return 0;
@@ -240,7 +220,7 @@ static int exec_prog_win32(const char **argv) {
 				buf[n - 1] = '\0';
 				double value = g_ascii_strtod(buf, NULL);
 				if (value != 0.0 && value == value && verbose) { //
-					set_progress_bar_data("Running Starnet++", (value / 100));
+					set_progress_bar_data("Running StarNet", (value / 100));
 					if (!has_started) has_started = TRUE;
 				}
 			}
@@ -278,6 +258,41 @@ starnet_version starnet_executablecheck() {
 	return retval;
 }
 
+void free_starnet_args(starnet_data *args) {
+	if (args->seqname)
+		g_free((void*)args->seqname);
+	if (args->seqEntry)
+		g_free((void*)args->seqEntry);
+	if (args->seq)
+		if (!check_seq_is_comseq(args->seq))
+			free_sequence(args->seq, TRUE);
+	free(args);
+	siril_debug_print("starnet_args freed\n");
+}
+
+gboolean end_starnet(gpointer p) {
+	starnet_data *args = (starnet_data *) p;
+	free_starnet_args(args);
+	return end_generic(NULL);
+}
+
+gboolean seqstarnet_idle(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+	starnet_data *starnet_args = (starnet_data *) args->user;
+	if (args->has_output && args->load_new_sequence &&
+			args->new_seq_prefix && !args->retval) {
+		gchar *basename = g_path_get_basename(args->seq->seqname);
+		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
+		check_seq();
+		update_sequences_list(seqname);
+		g_free(seqname);
+		g_free(basename);
+	}
+	free_starnet_args(starnet_args);
+	free(p);
+	return end_generic(NULL);
+}
+
 gboolean end_and_call_remixer(gpointer p)
 {
 	struct remixargs *blendargs = (remixargs *) p;
@@ -285,7 +300,7 @@ gboolean end_and_call_remixer(gpointer p)
 	return end_generic(NULL);
 }
 
-/* Starnet++ star removal routine */
+/* StarNet star removal routine */
 
 gpointer do_starnet(gpointer p) {
 	verbose = single_image_is_loaded(); // To suppress log messages during seq working
@@ -296,6 +311,7 @@ gpointer do_starnet(gpointer p) {
 	args->follow_on = single_image_is_loaded() ? args->follow_on : FALSE;
 	current_fit = args->starnet_fit;
 	int orig_x = current_fit->rx, orig_y = current_fit->ry;
+	struct remixargs *blendargs = NULL;
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
 	// Only allocate as much space for filenames as required - we determine the max pathlength
@@ -315,11 +331,11 @@ gpointer do_starnet(gpointer p) {
 	gchar qtemptif[pathmax];
 	gchar qstarlesstif[pathmax];
 #endif
-	char *imagenoext = NULL;
-	char *starlessnoext = NULL;
-	char *starmasknoext = NULL;
-	char *imagenoextorig = NULL;
-	char *temp = NULL;
+	gchar *imagenoext = NULL;
+	gchar *starlessnoext = NULL;
+	gchar *starmasknoext = NULL;
+	gchar *imagenoextorig = NULL;
+	gchar *temp = NULL;
 	gchar starnetprefix[10] = "starnet_";
 	gchar starlessprefix[10] = "starless_";
 	gchar starmaskprefix[10] = "starmask_";
@@ -338,7 +354,7 @@ gpointer do_starnet(gpointer p) {
 	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
         *q = *c == ' ' ? '_' : *c;
 	if (g_strcmp0(imagenoext, imagenoextorig) && verbose)
-		siril_log_color_message(_("Starnet++: spaces detected in filename. Starnet++ can't handle these so they have been replaced by underscores.\n"), "salmon");
+		siril_log_color_message(_("StarNet: spaces detected in filename. StarNet can't handle these so they have been replaced by underscores.\n"), "salmon");
 	starlessnoext = g_strdup_printf("%s%s", starlessprefix, imagenoext);
 	starmasknoext = g_strdup_printf("%s%s", starmaskprefix, imagenoext);
 	imagenoext = g_strdup_printf("%s%s", starnetprefix, imagenoext);
@@ -391,27 +407,27 @@ gpointer do_starnet(gpointer p) {
 	g_free(temp);
 	// ok, let's start
 	if (verbose)
-		set_progress_bar_data(_("Starting Starnet++"), PROGRESS_NONE);
+		set_progress_bar_data(_("Starting StarNet"), PROGRESS_NONE);
 
 	// Store current working directory
 	currentdir = g_get_current_dir();
 
 	if (verbose)
-		siril_log_color_message(_("Starnet++: running. Please wait...\n"), "green");
-	if (args->customstride && verbose) siril_log_message(_("Starnet++: stride = %s...\n"), args->stride);
-	if (!args->starmask && verbose) siril_log_message(_("Starnet++: -nostarmask invoked, star mask will not be generated...\n"));
+		siril_log_color_message(_("StarNet: running. Please wait...\n"), "green");
+	if (args->customstride && verbose) siril_log_message(_("StarNet: stride = %s...\n"), args->stride);
+	if (!args->starmask && verbose) siril_log_message(_("StarNet: -nostarmask invoked, star mask will not be generated...\n"));
 
 	// Check starnet directory is not NULL - can happen first time the new preference file is loaded
 	if (!com.pref.starnet_dir) {
 		retval = 1;
-		siril_log_color_message(_("Incorrect permissions on the Starnet++ directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
+		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
 		goto CLEANUP3;
 	}
 
 	// Check starnet directory is defined
 	retval = g_access(com.pref.starnet_dir, R_OK);
 	if (retval) {
-		siril_log_color_message(_("Incorrect permissions on the Starnet++ directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
+		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
 		goto CLEANUP3;
 		// Dijkstra might be spinning in his grave but one of the few legitimate uses
 		// of gotos is this type of error cleanup and return. Much more readable than a
@@ -421,11 +437,12 @@ gpointer do_starnet(gpointer p) {
 	// Change to starnet directory
 	retval = g_chdir(com.pref.starnet_dir);
 	if (retval) {
-		siril_log_color_message(_("Error: unable to change to Starnet++ directory.\nEnsure it is set in Preferences / Miscellaneous...\n"), "red");
+		siril_log_color_message(_("Error: unable to change to StarNet directory.\nEnsure it is set in Preferences / Miscellaneous...\n"), "red");
 		goto CLEANUP3;
 	}
 
 	// Create a working copy of the image.
+	// copyfits(from, to, oper, layer)
 	retval = copyfits(current_fit, &workingfit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 	if (retval) {
 		siril_log_color_message(_("Error: image copy failed...\n"), "red");
@@ -444,7 +461,7 @@ gpointer do_starnet(gpointer p) {
 			free_stats(stat);
 		}
 		if (max > 1.0 && verbose) {
-			siril_log_message(_("Starnet++: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"));
+			siril_log_message(_("StarNet: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"));
 			soper(&workingfit, max, OPER_DIV, FALSE);
 		}
 	}
@@ -474,14 +491,14 @@ gpointer do_starnet(gpointer p) {
 	find_linked_midtones_balance_default(&workingfit, &params);
 	if (args->linear) {
 		if (verbose)
-			siril_log_message(_("Starnet++: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
+			siril_log_message(_("StarNet: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
 		apply_linked_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
 	// Upscale if needed
 	if (args->upscale) {
 		if (verbose)
-			siril_log_message(_("Starnet++: 2x upscaling selected. Upscaling image...\n"));
+			siril_log_message(_("StarNet: 2x upscaling selected. Upscaling image...\n"));
 		retval = cvResizeGaussian(&workingfit, round_to_int(2*orig_x), round_to_int(2*orig_y), OPENCV_AREA, FALSE);
 		if (retval) {
 			siril_log_color_message(_("Error: image resize failed...\n"), "red");
@@ -505,7 +522,7 @@ gpointer do_starnet(gpointer p) {
 		snprintf(starnetcommand, 19, STARNET_MONO);
 	}
 	else {
-		siril_log_color_message(_("No suitable Starnet++ executable found in the installation directory\n"), "red");
+		siril_log_color_message(_("No suitable StarNet executable found in the installation directory\n"), "red");
 		goto CLEANUP;
 	}
 	my_argv[0] = starnetcommand;
@@ -531,11 +548,12 @@ gpointer do_starnet(gpointer p) {
 #endif
 	if (retval || forkerrors) {
 		if (!retval && forkerrors)
-		siril_log_color_message(_("Error: Starnet++ did not execute correctly...\n"), "red");
+		siril_log_color_message(_("Error: StarNet did not execute correctly...\n"), "red");
 		goto CLEANUP;
 	}
 
 	// Read the starless stretched tiff. Successful return value of readtif() is nsamples
+	clearfits(&workingfit); // Clear it first to free the data
 	retval = readtif(starlesstif, &workingfit, FALSE);
 	if (retval < 1 || retval > 3) {
 		siril_log_color_message(_("Error: unable to read starless image from TIFF...\n"), "red");
@@ -567,7 +585,7 @@ gpointer do_starnet(gpointer p) {
 	// Downscale again if needed
 	if (args->upscale) {
 		if (verbose)
-			siril_log_message(_("Starnet++: 2x upscaling selected. Re-scaling starless image to original size...\n"));
+			siril_log_message(_("StarNet: 2x upscaling selected. Re-scaling starless image to original size...\n"));
 		retval = cvResizeGaussian(&workingfit, orig_x, orig_y, OPENCV_AREA, FALSE);
 		if (retval) {
 			siril_log_color_message(_("Error: image resize failed...\n"), "red");
@@ -579,7 +597,7 @@ gpointer do_starnet(gpointer p) {
 	// stretch to the starless version and re-save the final result
 	if (args->linear) {
 		if (verbose)
-			siril_log_message(_("Starnet++: linear mode. Applying inverse MTF stretch to starless image.\n"));
+			siril_log_message(_("StarNet: linear mode. Applying inverse MTF stretch to starless image.\n"));
 		apply_linked_pseudoinverse_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
 	}
 
@@ -600,7 +618,7 @@ gpointer do_starnet(gpointer p) {
 			goto CLEANUP;
 		}
 		if (verbose)
-			siril_log_color_message(_("Starnet++: starless image generated\n"), "green");
+			siril_log_color_message(_("StarNet: starless image generated\n"), "green");
 	}
 
 	if (args->starmask) {
@@ -621,10 +639,12 @@ gpointer do_starnet(gpointer p) {
 					goto CLEANUP;
 				}
 			} else {
+				if (args->starmask_fit)
+					clearfits(args->starmask_fit);
 				copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 			}
 			if (verbose)
-				siril_log_color_message(_("Starnet++: star mask generated\n"), "green");
+				siril_log_color_message(_("StarNet: star mask generated\n"), "green");
 		}
 	}
 
@@ -642,6 +662,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// All done, now copy the working image back into gfit
+	clearfits(current_fit);
 	retval = copyfits(&workingfit, current_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 	if (retval) {
 		siril_log_color_message(_("Error: image copy failed...\n"), "red");
@@ -650,19 +671,17 @@ gpointer do_starnet(gpointer p) {
 
 	// Before CLEANUP so that this doesn't print on failure.
 	if (verbose)
-		siril_log_color_message(_("Starnet++: job completed.\n"), "green");
+		siril_log_color_message(_("StarNet: job completed.\n"), "green");
 
 	if (single_image_is_loaded()) {
 		free(com.uniq->filename);
 		com.uniq->filename = strdup(starlessfit);
 		if (args->follow_on) {
-			struct remixargs *blendargs;
 			blendargs = calloc(1, sizeof(struct remixargs));
 			blendargs->fit1 = calloc(1, sizeof(fits));
 			blendargs->fit2 = calloc(1, sizeof(fits));
 			copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
 			copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
-			siril_add_idle(end_and_call_remixer, blendargs);
 		}
 	}
 
@@ -672,8 +691,9 @@ gpointer do_starnet(gpointer p) {
 		siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
 	}
 	CLEANUP1:
-	if (args->starmask)
+	if (args->starmask) {
 		clearfits(&fit);
+	}
 	CLEANUP2:
 	clearfits(&workingfit);
 	CLEANUP3:
@@ -682,27 +702,33 @@ gpointer do_starnet(gpointer p) {
 	if (verbose)
 		set_progress_bar_data("Ready.", PROGRESS_RESET);
 	g_free(currentdir);
-	g_free(starlesstif);
-	g_free(starlessfit);
-	g_free(starmaskfit);
-	g_free(starlessnoext);
-	g_free(starmasknoext);
-	g_free(imagenoext);
-	g_free(imagenoextorig);
-	g_free(temptif);
+	g_free(starlesstif); // filename
+	g_free(starlessfit); // filename
+	g_free(starmaskfit); // filename
+	g_free(starlessnoext); // part filename
+	g_free(starmasknoext); // part filename
+	g_free(imagenoext); // part filename
+	g_free(imagenoextorig); // part filename
+	g_free(temptif); // part filename
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
 	if (single_image_is_loaded()) {
-		if (!args->follow_on)
+		if (args->follow_on) {
+			free_starnet_args(args);
+			siril_add_idle(end_and_call_remixer, blendargs);
+			return GINT_TO_POINTER(retval);
+		} else {
 			notify_gfit_modified();
-		siril_add_idle(end_generic, args);
+			siril_add_idle(end_starnet, args);
+			return GINT_TO_POINTER(retval);
+		}
 	}
 	return GINT_TO_POINTER(retval);
 }
 
 static int starnet_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-// Starnet cannot run in parallel as it fully utilizes the GPU. This function therefore
+// StarNet cannot run in parallel as it fully utilizes the GPU. This function therefore
 // returns 1 and all images will be processed in series.
 	return 1;
 }
@@ -732,30 +758,36 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 	int retval1, retval2 = 0;
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
 		retval1 = ser_write_frame_from_fit(seqdata->new_ser_starless, seqdata->starnet_fit, out_index);
-		if (seqdata->starmask)
+		if (seqdata->starmask) {
 			retval2 = ser_write_frame_from_fit(seqdata->new_ser_starmask, seqdata->starmask_fit, out_index);
+			free(seqdata->starmask_fit);
+		}
 		// the two fits are freed by the writing thread
 	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
 		retval1 = fitseq_write_image(seqdata->new_fitseq_starless, seqdata->starnet_fit, out_index);
-		if (seqdata->starmask)
+		if (seqdata->starmask) {
 			retval2 = fitseq_write_image(seqdata->new_fitseq_starmask, seqdata->starmask_fit, out_index);
+			free(seqdata->starmask_fit);
+		}
 		// the two fits are freed by the writing thread
 		if (!retval1 && !retval2) {
 			/* special case because it's not done in the generic */
 			clearfits(fit);
-			g_free(fit);
+			free(fit);
 			fit = NULL;
 		}
 	} else {
 		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, "starless_", in_index);
 		retval1 = savefits(dest, seqdata->starnet_fit);
-		g_free(dest);
+		free(dest);
 		clearfits(seqdata->starnet_fit);
+		seqdata->starnet_fit = NULL;
 		if (seqdata->starmask) {
 			dest = fit_sequence_get_image_filename_prefixed(args->seq, "starmask_", in_index);
 			retval2 = savefits(dest, seqdata->starmask_fit);
-			g_free(dest);
+			free(dest);
 			clearfits(seqdata->starmask_fit);
+			free(seqdata->starmask_fit);
 			seqdata->starmask_fit = NULL;
 		}
 	}
@@ -771,7 +803,6 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	seqdata->imgnumber = o;
 
 	do_starnet(seqdata);
-	printf("1");
 	return ret;
 }
 
@@ -814,11 +845,12 @@ void apply_starnet_to_sequence(struct starnet_data *seqdata) {
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = seqdata->seq->selnum;
 	seqargs->compute_mem_limits_hook = starnet_compute_mem_limits;
+	seqargs->idle_function = seqstarnet_idle;
 	seqargs->finalize_hook = starnet_finalize_hook;
 	seqargs->save_hook = starnet_save_hook;
 	seqargs->image_hook = starnet_image_hook;
 	seqargs->prepare_hook = starnet_prepare_hook;
-	seqargs->description = _("Starnet++");
+	seqargs->description = _("StarNet");
 	seqargs->has_output = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
 	seqdata->seqEntry = g_strdup_printf("starless_");

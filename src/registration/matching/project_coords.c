@@ -9,17 +9,17 @@
  *           Rochester, NY  14623-5603
  *           E-mail: mwrsps@rit.edu
  *
- *  
+ *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
  *  as published by the Free Software Foundation; either version 2
  *  of the License, or (at your option) any later version.
- *  
+ *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *  
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -53,7 +53,9 @@ int convert_catalog_coords(GFile *fileA, SirilWorldCS *world_cs, GFile *out) {
 
 	/* now walk through the file and do the dirty work */
 	if (proc_star_file(fileA, RACOL, DECCOL, ra, dec, out, doASEC) != SH_SUCCESS) {
-		shError("can't process data from file %s", fileA);
+		gchar *name = g_file_get_basename(fileA);
+		shError("can't process data from file %s", name);
+		g_free(name);
 		return SH_GENERIC_ERROR;
 	}
 
@@ -63,13 +65,13 @@ int convert_catalog_coords(GFile *fileA, SirilWorldCS *world_cs, GFile *out) {
 /****************************************************************************
  * ROUTINE: proc_star_file
  *
- * walk through the given file, one line at a time.  
+ * walk through the given file, one line at a time.
  *
  * If the line starts with COMMENT_CHAR, place it into the output stream.
  * If the line is completely blank, place it into the output stream.
  *
- * Otherwise, 
- *   - read in the entire line, 
+ * Otherwise,
+ *   - read in the entire line,
  *   - figure out the RA and Dec coords of the star
  *   - calculate the (xi, eta) coords of the star projected onto the
  *         plane tangent to the sky at (central_ra, central_dec)
@@ -217,7 +219,7 @@ int doASEC /* I: if > 0, write offsets in arcsec */
 		/*
 		 * now build up the output line.  Note that we use slightly
 		 * different output formats for (xi, eta) if they are expressed
-		 * in radians or arcseconds.  
+		 * in radians or arcseconds.
 		 */
 
 		line = g_strstrip(line);

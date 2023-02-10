@@ -246,7 +246,8 @@ void gnuplot_close(gnuplot_ctrl * handle)
     }
     if (handle->ntmp) {
 		for (int i = 0; i < handle->ntmp; i++) {
-            remove(handle->tmp_filename_tbl[i]) ;
+            if (g_remove(handle->tmp_filename_tbl[i]))
+				fprintf(stderr, "Error removing tmpfile\n");
             free(handle->tmp_filename_tbl[i]);
             handle->tmp_filename_tbl[i] = NULL;
 
@@ -332,7 +333,7 @@ void gnuplot_setstyle(gnuplot_ctrl * h, char * plot_style)
         fprintf(stderr, "warning: unknown requested style: using points\n") ;
         strcpy(h->pstyle, "points") ;
     } else {
-        strcpy(h->pstyle, plot_style) ;
+        strncpy(h->pstyle, plot_style, 31); // 32 char fixed buffer, 1 char for the NULL
     }
     return ;
 }
@@ -433,7 +434,8 @@ void gnuplot_resetplot(gnuplot_ctrl * h)
 {
     if (h->ntmp) {
 		for (int i = 0; i < h->ntmp; i++) {
-            remove(h->tmp_filename_tbl[i]) ;
+            if (g_remove(h->tmp_filename_tbl[i]) == -1)
+				siril_debug_print("g_remove() failed\n");
             free(h->tmp_filename_tbl[i]);
             h->tmp_filename_tbl[i] = NULL;
 

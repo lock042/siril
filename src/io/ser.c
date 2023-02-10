@@ -95,7 +95,6 @@ static const char *convert_color_id_to_char(ser_color color_id) {
 static int ser_read_timestamp(struct ser_struct *ser_file) {
 	gboolean timestamps_in_order = TRUE;
 	guint64 previous_ts = 0L;
-	gint64 frame_size;
 
 	ser_file->fps = -1.0;	// will be calculated from the timestamps
 
@@ -104,7 +103,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 			!ser_file->number_of_planes)
 		return 0;
 
-	frame_size = ser_file->image_width *
+	gint64 frame_size = (gint64) ser_file->image_width *
 		ser_file->image_height * ser_file->number_of_planes;
 	gint64 offset = SER_HEADER_LEN + frame_size *
 		(gint64)ser_file->byte_pixel_depth * (gint64)ser_file->frame_count;
@@ -171,7 +170,7 @@ static int ser_recompute_frame_count(struct ser_struct *ser_file) {
 	gint64 filesize = ser_file->filesize;
 
 	siril_log_message(_("Trying to fix broken SER file...\n"));
-	gint64 frame_size = ser_file->image_width * ser_file->image_height;
+	gint64 frame_size = (gint64) ser_file->image_width * ser_file->image_height;
 	if (frame_size == 0)
 		return 0;
 
@@ -191,15 +190,15 @@ static int ser_recompute_frame_count(struct ser_struct *ser_file) {
 
 static int ser_read_header(struct ser_struct *ser_file) {
 	char header[SER_HEADER_LEN];
-
+	int ret;
 	if (!ser_file || ser_file->file == NULL)
 		return -1;
 
 	/* Get file size */
-	fseek64(ser_file->file, 0, SEEK_END);
+	ret = fseek64(ser_file->file, 0, SEEK_END);
 	ser_file->filesize = ftell64(ser_file->file);
-	fseek64(ser_file->file, 0, SEEK_SET);
-	if (ser_file->filesize == -1) {
+	ret |= fseek64(ser_file->file, 0, SEEK_SET);
+	if (ser_file->filesize == -1 || ret == -1) {
 		perror("seek");
 		return -1;
 	}
@@ -275,7 +274,7 @@ static int ser_write_timestamps(struct ser_struct *ser_file) {
 
 	if (ser_file->ts) {
 		// Seek to start of timestamps
-		frame_size = ser_file->image_width * ser_file->image_height
+		frame_size = (gint64) ser_file->image_width * ser_file->image_height
 			* ser_file->number_of_planes;
 		gint64 offset = SER_HEADER_LEN + frame_size *
 			(gint64)ser_file->byte_pixel_depth * (gint64)ser_file->frame_count;
@@ -382,7 +381,7 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 		memset(ser_file->observer, 0, 40);
 		memcpy(ser_file->observer, fit->observer, 40);
 	}
-	if (fit->instrume[0] != 0) {
+	if (fit->telescop[0] != 0) {
 		memset(ser_file->telescope, 0, 40);
 		memcpy(ser_file->telescope, fit->telescop, 40);
 	}
@@ -541,7 +540,8 @@ int ser_close_and_delete_file(struct ser_struct *ser_file) {
 	ser_file->filename = NULL;
 	ser_close_file(ser_file); // closes, frees and zeroes
 	siril_log_message(_("Removing failed SER file: %s\n"), filename);
-	g_unlink(filename);
+	if (g_unlink(filename))
+		siril_debug_print("Error unlinking file\n");
 	free(filename);
 	return retval;
 }
@@ -565,7 +565,8 @@ int ser_write_and_close(struct ser_struct *ser_file) {
 int ser_create_file(const char *filename, struct ser_struct *ser_file,
 		gboolean overwrite, struct ser_struct *copy_from) {
 	if (overwrite)
-		g_unlink(filename);
+		if (g_unlink(filename))
+			siril_debug_print("g_unlink() failed\n");
 	if ((ser_file->file = g_fopen(filename, "w+b")) == NULL) {
 		perror("open SER file for creation");
 		return 1;
@@ -732,8 +733,8 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 			!fit || frame_no < 0 || frame_no >= ser_file->frame_count)
 		return -1;
 
-	frame_size = ser_file->image_width * ser_file->image_height *
-			ser_file->number_of_planes;
+	frame_size = (gint64) ser_file->image_width * (gint64) ser_file->image_height *
+			(gint64) ser_file->number_of_planes;
 	read_size = frame_size * ser_file->byte_pixel_depth;
 
 	olddata = fit->data;
@@ -800,7 +801,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		type_ser = get_cfa_pattern_index_from_string(pattern) + 8;
 	}
 	if (pattern) {
-		strcpy(fit->bayer_pattern, pattern);
+		strncpy(fit->bayer_pattern, pattern, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
 	}
 
 	switch (type_ser) {
@@ -902,8 +903,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
-	g_strdup_printf(fit->row_order, "BOTTOM-UP");
-
+	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
 	return 0;
 }
 
@@ -965,7 +965,7 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 	}
 	else read_buffer = outbuf;
 
-	frame_size = ser_file->image_width * ser_file->image_height *
+	frame_size = (gint64) ser_file->image_width * ser_file->image_height *
 		ser_file->number_of_planes * ser_file->byte_pixel_depth;
 
 #ifdef _OPENMP
@@ -1041,7 +1041,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 	case SER_MONO:
 		if (read_area_from_image(ser_file, frame_no, buffer, area, -1))
 			return -1;
-		ser_manage_endianess_and_depth(ser_file, buffer, area->w * area->h);
+		ser_manage_endianess_and_depth(ser_file, buffer, (gint64) area->w * area->h);
 		break;
 
 	case SER_BAYER_RGGB:
@@ -1092,7 +1092,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 			free(rawbuf);
 			return -1;
 		}
-		ser_manage_endianess_and_depth(ser_file, rawbuf, debayer_area.w * debayer_area.h);
+		ser_manage_endianess_and_depth(ser_file, rawbuf, (gint64) debayer_area.w * debayer_area.h);
 
 		/* for performance consideration (and many others) we force the interpolation algorithm
 		 * to be BAYER_BILINEAR
@@ -1123,7 +1123,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		g_assert(ser_file->number_of_planes == 3);
 		if (read_area_from_image(ser_file, frame_no, buffer, area, layer))
 			return -1;
-		ser_manage_endianess_and_depth(ser_file, buffer, area->w * area->h);
+		ser_manage_endianess_and_depth(ser_file, buffer, (gint64) area->w * area->h);
 		break;
 	default:
 		siril_log_message(_("This type of Bayer pattern is not handled yet.\n"));
@@ -1180,7 +1180,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
 		fits_flip_top_to_bottom(fit);
 	}
-	frame_size = ser_file->image_width * ser_file->image_height *
+	frame_size = (gint64) ser_file->image_width * ser_file->image_height *
 		ser_file->number_of_planes;
 
 	offset = SER_HEADER_LEN	+ frame_size *
@@ -1312,7 +1312,7 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 		return NULL;
 	}
 	float *pix = malloc(MAX_SIZE * sizeof(float));
-	float *ima_data = NULL, *ptr, byte, n, max, min, wd, avr;
+	float *ima_data = NULL, *ptr = NULL, byte, n, max, min, wd, avr;
 	guchar *pixbuf_data = NULL;
 
 	w = ser.image_width;
@@ -1333,7 +1333,11 @@ GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
 	i = (int) ceil((float) w / MAX_SIZE);
 	j = (int) ceil((float) h / MAX_SIZE);
 	pixScale = (i > j) ? i : j;	// picture scale factor
-	if (pixScale == 0) return NULL;
+	if (pixScale == 0) {
+		free(ima_data);
+		free(pixbuf_data);
+		return NULL;
+	}
 	Ws = w / pixScale; 			// picture width in pixScale blocks
 	Hs = h / pixScale; 			// -//- height pixScale
 

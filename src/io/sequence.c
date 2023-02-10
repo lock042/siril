@@ -644,7 +644,7 @@ int64_t seq_compute_size(sequence *seq, int nb_frames, data_type depth) {
 		break;
 	case SEQ_REGULAR:
 	case SEQ_FITSEQ:
-		frame_size = seq->rx * seq->ry * seq->nb_layers;
+		frame_size = (int64_t) seq->rx * seq->ry * seq->nb_layers;
 		if (depth == DATA_USHORT)
 			frame_size *= sizeof(WORD);
 		else if (depth == DATA_FLOAT)
@@ -1066,7 +1066,7 @@ char *fit_sequence_get_image_filename(sequence *seq, int index, char *name_buffe
 		sprintf(format, "%%s%%.%dd", seq->fixed);
 	}
 	if (add_fits_ext)
-		strcat(format, com_ext);
+		strncat(format, com_ext, 19); // static char* length 20, leave 1 char for the NULL termination
 	snprintf(name_buffer, 255, format, seq->seqname, seq->imgparam[index].filenum);
 	name_buffer[255] = '\0';
 
@@ -1160,7 +1160,8 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 	seqname = malloc(len);
 	g_snprintf(seqname, len, "%s%s.seq", prefix, basename);
 	siril_debug_print("Removing %s\n", seqname);
-	g_unlink(seqname); // removing the seqfile
+	if (g_unlink(seqname))
+		siril_debug_print("g_unlink() failed\n"); // removing the seqfile
 	free(seqname);
 	g_free(basename);
 
@@ -1173,7 +1174,8 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 			char *filename = fit_sequence_get_image_filename_prefixed(
 					seq, prefix, i);
 			siril_debug_print("Removing %s\n", filename);
-			g_unlink(filename);
+			if (g_unlink(filename))
+				siril_debug_print("g_unlink() failed\n");
 			free(filename);
 		}
 		break;
@@ -1186,7 +1188,8 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 		seqname = malloc(len);
 		g_snprintf(seqname, len, "%s%s", prefix, basename);
 		siril_debug_print("Removing %s\n", seqname);
-		g_unlink(seqname);
+		if (g_unlink(seqname))
+			siril_debug_print("g_unlink() failed\n");
 		free(seqname);
 		break;
 	}
@@ -1918,7 +1921,7 @@ int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_fl
 	}
 	uint64_t newx = round_to_int((double)seq->rx * factor);
 	uint64_t newy = round_to_int((double)seq->ry * factor);
-	uint64_t memory_per_orig_image = seq->rx * seq->ry * seq->nb_layers;
+	uint64_t memory_per_orig_image = (uint64_t) seq->rx * seq->ry * seq->nb_layers;
 	uint64_t memory_per_scaled_image = newx * newy * seq->nb_layers;
 	if (force_float || get_data_type(seq->bitpix) == DATA_FLOAT) {
 		memory_per_orig_image *= sizeof(float);
@@ -1988,12 +1991,17 @@ gboolean sequence_has_wcs(sequence *seq, int *index) {
 }
 
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
-	if (!seq->regparam[reglayer]) {
+	gboolean error = FALSE;
+	if(!seq->regparam)
+		error = TRUE;
+	else if (!seq->regparam[reglayer])
+		error = TRUE;
+	if (error) {
 		siril_debug_print("Sequence drift could not be checked as sequence has no regdata on layer %d\n", reglayer);
 		return FALSE;
 	}
-	double orig_x = (double)(seq->rx / 2);
-	double orig_y = (double)(seq->ry / 2);
+	double orig_x = (double)(seq->rx / 2.);
+	double orig_y = (double)(seq->ry / 2.);
 	for (int i = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl)
 			continue;

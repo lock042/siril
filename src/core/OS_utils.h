@@ -35,6 +35,8 @@ int get_available_cpu_cgroups();
 
 void init_num_procs();
 
+long get_pathmax(void);
+
 GInputStream *siril_input_stream_from_stdin();
 
 #ifdef _WIN32

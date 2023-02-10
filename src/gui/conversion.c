@@ -77,7 +77,7 @@ int count_converted_files() {
 	init_widgets();
 	GtkTreeIter iter;
 	gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
-	
+
 	int count = 0;
 	while (valid) {
 		gtk_tree_model_get(model, &iter, -1);
@@ -97,9 +97,9 @@ static void initialize_convert() {
 	gchar *file_data;
 	GtkTreeIter iter;
 	GList *list = NULL;
-	
+
 	init_widgets();
-	
+
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
@@ -199,7 +199,7 @@ static void initialize_convert() {
 	}
 
 	siril_log_color_message(_("Conversion: processing %d files...\n"), "green", count);
-	
+
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
@@ -214,6 +214,7 @@ static void initialize_convert() {
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
+		g_strfreev(files_to_convert);
 		return;
 	}
 	if (output_type == SEQ_REGULAR) {

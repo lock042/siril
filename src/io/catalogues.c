@@ -31,6 +31,7 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/proto.h"
+#include "core/OS_utils.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
@@ -563,13 +564,14 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 
 void initialize_local_catalogues_paths() {
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	int maxpath = get_pathmax();
 	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 		if (com.pref.catalogue_paths[catalogue] &&
 				com.pref.catalogue_paths[catalogue][0] != '\0')
 			continue;
-		char path[1024];
-		strcpy(path, default_catalogues_paths[catalogue]);
-		expand_home_in_filename(path, 1024);
+		char path[maxpath];
+		strncpy(path, default_catalogues_paths[catalogue], maxpath - 1);
+		expand_home_in_filename(path, maxpath);
 		com.pref.catalogue_paths[catalogue] = g_strdup(path);
 	}
 }
@@ -735,7 +737,10 @@ static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, do
 			sprintf(line, "%f %12.5f %12.5f %f %f\n", stars[i].distance, xi, eta, Vmag, Bmag);
 		else 	sprintf(line, "%f %13.6e %13.6e %f %f\n", stars[i].distance, xi, eta, Vmag, Bmag);
 
-		g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, NULL);
+		if (g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, NULL) == FALSE) {
+			siril_log_color_message(_("Error writing output...\n"), "red");
+			return 1;
+		}
 	}
 
 	return 0;

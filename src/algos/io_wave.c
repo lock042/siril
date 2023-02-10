@@ -134,7 +134,7 @@ int wave_io_size_data(int Nl, int Nc, int Nbr_Plan, int Type_Wave_Transform) {
 int static wave_io_name(char *File_Name_In, char *File_Name_Out) {
 	int L;
 
-	strncpy(File_Name_Out, File_Name_In, STRING_SIZE);
+	strncpy(File_Name_Out, File_Name_In, STRING_SIZE - 1);
 
 	L = strlen(File_Name_In);
 	if ((L < 5) || (File_Name_In[L - 1] != 'e') || (File_Name_In[L - 2] != 'v')
@@ -176,6 +176,11 @@ int wave_io_read(char *File_Name_In, wave_transf_des *Wave_Trans) {
 	Nc = Wave_Trans->Nbr_Col;
 	Nbr_Plan = Wave_Trans->Nbr_Plan;
 
+	if (Nl < 1 || Nc < 1 || Nl > MAX_IMAGE_DIM || Nc > MAX_IMAGE_DIM) {
+		printf("wave_io_read: file metadata fails validity checking\n");
+		fclose(File_Des);
+		return 1;
+	}
 	switch (Wave_Trans->Type_Wave_Transform) {
 	case TO_PAVE_LINEAR:
 	case TO_PAVE_BSPLINE:

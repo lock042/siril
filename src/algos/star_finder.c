@@ -227,6 +227,8 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 
 	candidates = malloc(MAX_STARS * sizeof(starc));
 	if (!candidates) {
+		free(image_ushort);
+		free(image_float);
 		clearfits(&smooth_fit);
 		free(smooth_image);
 		PRINT_ALLOC_ERR;
@@ -572,6 +574,10 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	psf_star **results = new_fitted_stars(nb_candidates);
 	if (!results) {
 		PRINT_ALLOC_ERR;
+		if (image_float)
+			free(image_float);
+		if (image_ushort)
+			free(image_ushort);
 		return 0;
 	}
 
@@ -751,6 +757,7 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 				n++;
 			}
 		}
+		n = (n == 0) ? 1 : n;
 		*FWHMx = (float)(fwhmx / (double)n);
 		*FWHMy = (float)(fwhmy / (double)n);
 		*B = (float)(b / (double)n);
@@ -759,12 +766,13 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 			float *A = malloc(nb * sizeof(float));
 			if (!A) {
 				PRINT_ALLOC_ERR;
+				return;
 			}
 			for (int i = 0; i < nb; i++)
 				A[i] = stars[i]->A;
 			quicksort_f(A, nb);
 			*Acut = (float)gsl_stats_float_quantile_from_sorted_data(A, 1, nb, Acutp);
-			g_free(A);
+			free(A);
 		}
 	}
 }
@@ -796,12 +804,14 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	star_finder_params *sf = &com.pref.starfinder_conf;
 	int star = 0, nb_stars = -1;
 	while (fgets(buffer, 300, fd)) {
-		if (buffer[0] != '#' && !params_ok)
+		if (buffer[0] != '#' && !params_ok) {
+			fclose(fd);
 			return 0;
+		}
 		if (!strncmp(buffer, "# ", 2)) {
-			if (sscanf(buffer, "# %d stars found ", &nb_stars) == 1) {
+			if (sscanf(buffer, "# %d stars found ", &nb_stars) == 1) { // nbstars tainted as based on data from file, needs extra checking
 				siril_debug_print("nb stars: %d\n", nb_stars);
-				if (nb_stars > 0 && sfargs->stars) {
+				if (nb_stars > 0 && nb_stars < MAX_STARS && sfargs->stars) { // check nbstars against lower and upper bounds
 					*sfargs->stars = malloc((nb_stars + 1) * sizeof(struct psf_star *));
 					if (!(*sfargs->stars)) {
 						PRINT_ALLOC_ERR;
@@ -860,6 +870,8 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		if (tokens != 15) {
 			siril_debug_print("malformed line: %s", buffer);
 			read_failure = TRUE;
+			free(s);
+			s = NULL;
 			break;
 		}
 		if (fi != star + 1)
@@ -968,7 +980,9 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
  * Correction by 0.5 pixel to conform to asnet convention (compared to siril) is also added
  */
 int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars, int rx, int ry) {
-	g_unlink(filename); /* Delete old file if it already exists */
+	if (g_unlink(filename)) {
+		siril_debug_print("g_unlink failure\n");
+	} /* Delete old file if it already exists */
 
 	fitsfile *fptr = NULL;
 	int status = 0;
@@ -1164,6 +1178,8 @@ gpointer findstar_worker(gpointer p) {
 		if (i > 0)
 			fwhm = sum / i;
 		else fwhm = 0.0;
+	} else {
+		goto END;
 	}
 
 	if (args->update_GUI) {
@@ -1192,7 +1208,7 @@ gpointer findstar_worker(gpointer p) {
 	}
 	else if (!args->update_GUI)
 		free_fitted_stars(stars);
-
+END:
 	if (args->update_GUI)
 		siril_add_idle(end_findstar, args);
 	/*gettimeofday(&t_end, NULL);

@@ -91,7 +91,8 @@ int symlink_uniq_file(gchar *src_filename, gchar *dest_filename, gboolean allow_
 	/* remove already existing file to avoid error */
 	GStatBuf dest_stat;
 	if (g_lstat(dest_filename, &dest_stat) == 0) {
-		g_unlink(dest_filename);
+		if (g_unlink(dest_filename))
+			siril_debug_print("g_unlink() failed\n");
 	}
 
 #ifdef _WIN32

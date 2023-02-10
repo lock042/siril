@@ -447,6 +447,8 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 }
 
 void clear_preprocessing_data(struct preprocessing_data *prepro) {
+	if (prepro->bad_pixel_map_file)
+		g_object_unref(prepro->bad_pixel_map_file);
 	if (prepro->use_bias && prepro->bias)
 		clearfits(prepro->bias);
 	if (prepro->use_dark && prepro->dark)
@@ -577,6 +579,8 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 	// If found -> Try to find $ sign to read the offset value and its multiplier
 
 	gchar *expressioncpy = g_strdup(expression);
+	if (!expressioncpy)
+		return 0;
 	gchar *end = NULL;
 	remove_spaces_from_str(expressioncpy);
 	gchar *mulsignpos = g_strrstr(expressioncpy, "*");
@@ -629,10 +633,14 @@ gboolean check_for_cosme_file_sanity(GFile *file) {
 				&& !g_str_has_prefix(line, "C ")
 				&& !g_str_has_prefix(line, "#")) {
 			g_free(line);
+			g_object_unref(data_input);
+			g_object_unref(input_stream);
 			return FALSE;
 		}
 		g_free(line);
 	}
+	g_object_unref(data_input);
+	g_object_unref(input_stream);
 	return TRUE;
 }
 
@@ -778,8 +786,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				if (bad_pixel_f[0] != '\0') {
 					args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
 					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-						g_object_unref(args->bad_pixel_map_file);
-						args->bad_pixel_map_file = NULL;
+						siril_debug_print("cosme file sanity check failed...\n");
+						has_error = TRUE;
 					}
 				}
 			}
@@ -862,11 +870,13 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	if (test_for_master_files(args)) {
 		siril_log_color_message(_("Some errors have been detected, Please check the logs.\n"), "red");
+		free(args);
 		return;
 	}
-	if (!args->use_bias && !args->use_dark && !args->use_flat)
+	if (!args->use_bias && !args->use_dark && !args->use_flat) {
+		free(args);
 		return;
-
+	}
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 
 	// set output filename (preprocessed file name prefix)

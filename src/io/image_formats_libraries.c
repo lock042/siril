@@ -423,7 +423,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 
 	// Retrieve the Date/Time as in the TIFF TAG
 	gchar *date_time = NULL;
-	int year, month, day, h, m, s;
+	int year = 1, month = 1, day = 1, h = 0, m = 0, s = 0;
 
 	if (TIFFGetField(tif, TIFFTAG_DATETIME, &date_time)) {
 		sscanf(date_time, "%04d:%02d:%02d %02d:%02d:%02d", &year, &month, &day, &h, &m, &s);
@@ -447,7 +447,7 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	// Retrieve Description field
 	char *desc = NULL;
 	if (TIFFGetField(tif, TIFFTAG_IMAGEDESCRIPTION, &desc)) {
-		description = strdup(desc);
+		description = g_strdup(desc);
 	}
 
 	size_t npixels = width * height;
@@ -481,13 +481,14 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	if (retval < 0) {
 		free(data);
 		free(fdata);
+		g_free(description);
 		return OPEN_IMAGE_ERROR;
 	}
 	/* We clear fits. Everything written above is erased */
 	clearfits(fit);
 	if (date_time) {
 		GTimeZone *tz = g_time_zone_new_utc();
-		fit->date_obs = g_date_time_new(tz, year, month, day, h, m, s);
+		fit->date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
 		g_time_zone_unref(tz);
 	}
 	fit->rx = width;
@@ -652,7 +653,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *des
 	const uint16_t nsamples = (uint16_t) fit->naxes[2];
 	const uint32_t width = (uint32_t) fit->rx;
 	const uint32_t height = (uint32_t) fit->ry;
-	
+
 
 	/*******************************************************************/
 
@@ -807,7 +808,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *des
 	if (!write_ok) {
 		siril_log_color_message(_("Saving TIFF: Cannot write TIFF file.\n"), "red");
 		retval = OPEN_IMAGE_ERROR;
-		g_remove(filename);
+		if (g_remove(filename))
+			fprintf(stderr, "Error removing file\n");
 	} else {
 		siril_log_message(_("Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
 				bitspersample, filename, nsamples, width, height);
@@ -1005,6 +1007,10 @@ int readpng(const char *name, fits* fit) {
 		return OPEN_IMAGE_ERROR;
 
 	FILE *f = g_fopen(name, "rb");
+	if (!f) {
+		siril_log_color_message(_("Error opening the file %s\n"), "red", name);
+		return OPEN_IMAGE_ERROR;
+	}
 	png_init_io(png, f);
 
 	png_read_info(png, info);
@@ -1290,10 +1296,10 @@ int savepng(const char *name, fits *fit, uint32_t bytes_per_sample,
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (png_bytep) ((uint16_t*) data + (size_t) samples_per_pixel * i * width);
 	} else {
-		data8 = convert_data8(fit);
+		uint8_t *data8 = convert_data8(fit);
 		for (unsigned i = 0, j = height - 1; i < height; i++)
 			row_pointers[j--] = (uint8_t*) data8 + (size_t) samples_per_pixel * i * width;
-
+		free(data8);
 	}
 
 	png_write_image(png_ptr, row_pointers);
@@ -1462,8 +1468,8 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	}
 
 	float pitch = estimate_pixel_pitch(raw);
-	size_t npixels = width * height;
-	
+	size_t npixels = (size_t) width * (size_t) height;
+
 	if (raw->other.shutter > 0 && raw->other.shutter < 1)
 		siril_log_message(_("Decoding %s %s file (ISO=%g, Exposure=1/%0.1f sec)\n"),
 						raw->idata.make, raw->idata.model, raw->other.iso_speed, 1/raw->other.shutter);
@@ -1506,6 +1512,12 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 
 	int offset = raw_width * top_margin + left_margin;
 
+	if (!raw->rawdata.raw_image) {
+		libraw_recycle(raw);
+		libraw_close(raw);
+		free(buf);
+		return OPEN_IMAGE_ERROR;
+	}
 	int i = 0;
 	for (int row = height - 1; row > -1; row--) {
 		for (int col = 0; col < width; col++) {
