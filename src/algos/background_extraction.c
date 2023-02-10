@@ -433,7 +433,7 @@ static background_sample *get_sample(float *buf, const int xx,
 		const int yy, const int w, const int h) {
 	size_t size = SAMPLE_SIZE * SAMPLE_SIZE;
 	int radius = SAMPLE_SIZE / 2;
-	background_sample *sample = (background_sample *) g_malloc(sizeof(background_sample));
+	background_sample *sample = malloc(sizeof(background_sample));
 	if (!sample) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -691,7 +691,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 		/* Store next element's pointer before removing it */
 		GSList *next = g_slist_next(l);
 		if (sample->median[RLAYER] <= 0.0 || sample->median[RLAYER] >= threshold) {
-			g_free(sample);
+			free(sample);
 			list = g_slist_delete_link(list, l);
 		}
 		l = next;
@@ -766,7 +766,7 @@ int get_background_sample_radius() {
 
 void free_background_sample_list(GSList *list) {
 	if (list == NULL) return;
-	g_slist_free_full(list, g_free);
+	g_slist_free_full(list, free);
 }
 
 GSList *add_background_sample(GSList *orig, fits *fit, point pt) {
