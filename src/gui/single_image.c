@@ -101,5 +101,6 @@ void on_drawingarea_drag_data_received(GtkWidget *widget,
 			}
 		}
 		g_free(filename);
+		g_strfreev(uris);
 	}
 }

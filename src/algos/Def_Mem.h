@@ -9,32 +9,32 @@
 **    Author: Jean-Luc Starck
 **
 **    Date:  03/02/25
-**    
+**
 **    File:  Def_Mem.h
 **
 *******************************************************************************
 **
 **    DESCRIPTION  Memory and errors definition
-**    ---------- 
+**    ----------
 **
 ******************************************************************************/
 /*		Commented out by dulle who will alloc himself
-extern  float   *f_vector_alloc();            
-extern  double  *d_vector_alloc(); 
-extern  int  *i_vector_alloc();           
-extern  int     **i_matrix_alloc();           
-extern  void    i_matrix_free();               
-extern  float   **f_matrix_alloc();            
-extern  void    f_matrix_free();              
-extern  complex_float  *cf_vector_alloc();           
-extern  complex_float  **cf_matrix_alloc();        
-extern  void    cf_matrix_free();     
+extern  float   *f_vector_alloc();
+extern  double  *d_vector_alloc();
+extern  int  *i_vector_alloc();
+extern  int     **i_matrix_alloc();
+extern  void    i_matrix_free();
+extern  float   **f_matrix_alloc();
+extern  void    f_matrix_free();
+extern  complex_float  *cf_vector_alloc();
+extern  complex_float  **cf_matrix_alloc();
+extern  void    cf_matrix_free();
 */
 
 /* extern  char    *malloc(); */
 
 
-/* error definitions */ 
+/* error definitions */
 
 #define NUMBER_ERROR 13
 

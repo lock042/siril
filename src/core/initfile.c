@@ -305,16 +305,17 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 	gboolean boolval;
 	int intval;
 	double doubleval;
-	gchar *strval;
+	gchar *strval = NULL;
 	gsize len;
-	gchar **strs;
+	gchar **strs = NULL;
 	switch (desc->type) {
 		case STYPE_BOOL:
 			boolval = g_key_file_get_boolean(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
+				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
-						desc->group, desc->key, error->message,
-						g_key_file_get_string(kf, desc->group, desc->key, NULL));
+						desc->group, desc->key, error->message, keystring);
+				g_free(keystring);
 				return 1;
 			}
 			*((gboolean*)desc->data) = boolval;
@@ -322,9 +323,10 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 		case STYPE_INT:
 			intval = g_key_file_get_integer(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
+				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
-						desc->group, desc->key, error->message,
-						g_key_file_get_string(kf, desc->group, desc->key, NULL));
+						desc->group, desc->key, error->message, keystring);
+				g_free(keystring);
 				return 1;
 			}
 			if (desc->range_int.min != 0 || desc->range_int.max != 0) {
@@ -341,9 +343,10 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 		case STYPE_DOUBLE:
 			doubleval = g_key_file_get_double(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
+				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
-						desc->group, desc->key, error->message,
-						g_key_file_get_string(kf, desc->group, desc->key, NULL));
+						desc->group, desc->key, error->message, keystring);
+				g_free(keystring);
 				return 1;
 			}
 			if (desc->range_double.min != 0.0 || desc->range_double.max != 0.0) {
@@ -365,11 +368,14 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 						desc->group, desc->key);
 				return 1;
 			}
-			if (strval[0] == '\0')
+			if (strval[0] == '\0') {
+				g_free(strval);
 				return 1;
+			}
 			if (desc->type == STYPE_STRDIR && !g_file_test(strval, G_FILE_TEST_IS_DIR)) {
 				siril_log_color_message(_("directory `%s' for config key %s.%s doesn't exist, not using it.\n"),
 						"salmon", strval, desc->group, desc->key);
+				g_free(strval);
 				return 1;
 			}
 			gchar *old_value = *((gchar**)desc->data);
@@ -387,8 +393,8 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 				if (old_list)
 					g_slist_free_full(old_list, g_free);
 				*((GSList**)desc->data) = list;
-				g_free(strs);
 			}
+			g_free(strs);
 			break;
 	}
 	return 0;
@@ -411,7 +417,9 @@ int read_keyfile(GKeyFile *kf) {
 			if (!get_key_data(kf, desc))
 				nb_keys_read++;
 		}
+		g_strfreev(keys);
 	}
+	g_strfreev(groups);
 	siril_debug_print("read %zd keys from key file\n", nb_keys_read);
 	return nb_keys_read == 0;
 }
@@ -550,8 +558,10 @@ int writeinitfile() {
 		g_free(com.initfile);
 		com.initfile = NULL;
 		g_key_file_free(kf);
+		g_clear_error(&error);
 		return 1;
 	}
+	g_clear_error(&error);
 	g_key_file_free(kf);
 	return 0;
 }

@@ -349,7 +349,7 @@ imstats* statistics_internal_float(fits *fit, int layer, rectangle *selection, i
 		stat->total = nx * ny;
 		if (stat->total == 0L) {
 			if (stat_is_local) free(stat);
-			if (free_data) g_free(data);
+			if (free_data) free(data);
 			return NULL;
 		}
 	}

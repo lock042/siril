@@ -158,8 +158,10 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix 
 		}
 
 		// Show the average integer adjustment.  Should be close to the calculated fudge by a few decimal places.
-		siril_debug_print("XTRANS Integer Mean.... %.10lf\n", (double)total_fudgew/(double)total_pixels);
-
+		if (total_pixels != 0)
+			siril_debug_print("XTRANS Integer Mean.... %.10lf\n", (double)total_fudgew/(double)total_pixels);
+		else
+			siril_debug_print("XTRANS Integer Mean: div/0\n");
 
 	} else if (fit->type == DATA_FLOAT) {
 		float *buf = fit->fpdata[RLAYER];

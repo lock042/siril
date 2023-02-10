@@ -57,6 +57,10 @@
 #endif
 #define RADCONV (((3600.0 * 180.0) / M_PI) / 1.0E3)
 
+// Used for sanity checking reported sizes from image files.
+// Not a guarantee that the file will fit in memory
+#define MAX_IMAGE_DIM 100000
+
 #define USHRT_MAX_DOUBLE ((double)USHRT_MAX)
 #define SHRT_MAX_DOUBLE ((double)SHRT_MAX)
 #define USHRT_MAX_SINGLE ((float)USHRT_MAX)

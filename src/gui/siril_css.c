@@ -35,6 +35,7 @@ static gchar *get_buffer_from_css_file(gchar *css) {
 		printf("Error loading %s: %s\n", g_file_peek_path(file), error->message);
 		g_clear_error(&error);
 	}
+	g_object_unref(file);
 	return str;
 }
 

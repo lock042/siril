@@ -13,11 +13,6 @@
 #define STARNET_MONO "mono_starnet++"
 #endif
 
-
-#ifndef _WIN32
-long get_pathmax(void);
-#endif
-
 typedef enum {
 	NIL = 0,
 	V2 = 1,

@@ -394,7 +394,7 @@ sequence * readseqfile(const char *name){
 					seq->ext = get_com_ext(seq->fz) + 1;
 #endif
 					if (seq->fitseq_file) break;
-					seq->fitseq_file = malloc(sizeof(struct ser_struct));
+					seq->fitseq_file = malloc(sizeof(struct fits_sequence));
 					fitseq_init_struct(seq->fitseq_file);
 					GString *fileString = g_string_new(filename);
 					g_string_append(fileString, get_com_ext(seq->fz));
@@ -636,7 +636,7 @@ int writeseqfile(sequence *seq){
 	}
 
 	for (layer = 0; layer < seq->nb_layers; layer++) {
-		if (seq->regparam[layer]) {
+		if (seq->regparam && seq->regparam[layer]) {
 			for (i=0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '*' : '0' + layer,
@@ -655,7 +655,7 @@ int writeseqfile(sequence *seq){
 						seq->regparam[layer][i].H.h20,
 						seq->regparam[layer][i].H.h21,
 						seq->regparam[layer][i].H.h22
-				       );
+					);
 			}
 		}
 		if (seq->stats && seq->stats[layer]) {
@@ -702,7 +702,7 @@ int writeseqfile(sequence *seq){
 						seq->regparam_bkp[layer][i].H.h20,
 						seq->regparam_bkp[layer][i].H.h21,
 						seq->regparam_bkp[layer][i].H.h22
-				       );
+					);
 			}
 		}
 		if (seq->stats_bkp && seq->stats_bkp[layer]) {
@@ -725,7 +725,6 @@ int writeseqfile(sequence *seq){
 						seq->stats_bkp[layer][i]->max,
 						seq->stats_bkp[layer][i]->normValue,
 						seq->stats_bkp[layer][i]->bgnoise);
-
 			}
 		}
 	}

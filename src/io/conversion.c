@@ -601,7 +601,8 @@ gpointer convert_thread_worker(gpointer p) {
 
 	/* remove the target .seq to avoid errors */
 	gchar *seqname = replace_ext(args->destroot, ".seq");
-	g_unlink(seqname);
+	if (g_unlink(seqname))
+		siril_debug_print("Error in g_unlink()\n");
 	g_free(seqname);
 
 	convert_status convert = { 0 };
@@ -988,6 +989,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
 		rwdata->reader = NULL;
 		clearfits(fit);
+		free(fit);
 		handle_error(rwdata);
 		return;
 	}
@@ -1017,8 +1019,10 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
+					g_free(dest);
 					return GOT_WRITE_ERROR;
 				}
+				g_free(dest);
 				conv->next_image_in_output = 0;
 				conv->writeseq_count = get_new_write_counter();
 			}
@@ -1121,7 +1125,10 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 	}
 #ifdef HAVE_FFMS2
 	if (imagetype == TYPEAVI) {
-		if (test_only) return OPEN_SEQ;
+		if (test_only) {
+			g_free(name);
+			return OPEN_SEQ;
+		}
 		if (convert->current_film) {
 			siril_debug_print("error: opening a film while the previous was still here\n");
 			g_free(name);
@@ -1137,11 +1144,15 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			return OPEN_ERROR;
 		}
 		convert->readseq_count = get_new_read_counter();
+		g_free(name);
 		return OPEN_OK;
 	}
 #endif
 	else if (imagetype == TYPESER) {
-		if (test_only) return OPEN_SEQ;
+		if (test_only) {
+			g_free(name);
+			return OPEN_SEQ;
+		}
 		if (convert->current_ser) {
 			siril_debug_print("error: opening a SER while the previous was still here\n");
 			g_free(name);
@@ -1158,6 +1169,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			return OPEN_ERROR;
 		}
 		convert->readseq_count = get_new_read_counter();
+		g_free(name);
 		return OPEN_OK;
 	}
 	else if (imagetype == TYPEFITS && fitseq_is_fitseq(name, NULL)) {
@@ -1189,6 +1201,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		convert->readseq_count = get_new_read_counter();
 		return OPEN_OK;
 	}
+	g_free(name);
 	return OPEN_NOT_A_SEQ;
 }
 
@@ -1210,6 +1223,7 @@ static gchar *create_sequence_filename(sequence_type output_type, const char *de
 		default:
 			siril_log_color_message(_("output sequence type unknown, aborting\n"), "red");
 	}
+	free(destroot_noext);
 	return output;
 }
 

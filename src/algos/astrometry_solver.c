@@ -301,7 +301,8 @@ static void init() {
 		curl_global_init(CURL_GLOBAL_ALL);
 		curl = curl_easy_init();
 		if (g_getenv("CURL_CA_BUNDLE"))
-			curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE"));
+			if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
+				siril_debug_print("Error in curl_easy_setopt()\n");
 	}
 
 	if (!curl)
@@ -336,11 +337,13 @@ retrieve:
 	content->data[0] = '\0';
 	content->len = 0;
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_VERBOSE, 0);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, PACKAGE_STRING);
+	CURLcode ret = curl_easy_setopt(curl, CURLOPT_URL, url);
+	ret |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0);
+	ret |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
+	ret |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
+	ret |= curl_easy_setopt(curl, CURLOPT_USERAGENT, PACKAGE_STRING);
+	if (ret)
+		siril_debug_print("Error in curl_easy_setopt()\n");
 
 	siril_debug_print("fetch_url(): %s\n", url);
 	if (curl_easy_perform(curl) == CURLE_OK) {
@@ -1600,7 +1603,7 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 	solution->crpix[0] = args->rx_solver * 0.5;
 	solution->crpix[1] = args->ry_solver * 0.5;
 
-	apply_match(solution->px_cat_center, solution->crpix, trans, &ra0, &dec0);
+	apply_match(solution->px_cat_center, solution->crpix, &trans, &ra0, &dec0);
 	int num_matched = H.pair_matched;
 	int trial = 0;
 
@@ -1637,7 +1640,7 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 			break;
 		}
 		trans = H_to_linear_TRANS(H);
-		apply_match(solution->px_cat_center, solution->crpix, trans, &ra0, &dec0);
+		apply_match(solution->px_cat_center, solution->crpix, &trans, &ra0, &dec0);
 
 		conv = fabs((dec0 - orig_dec0) / orig_dec0) + fabs((ra0 - orig_ra0) / orig_ra0);
 
@@ -1675,7 +1678,7 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 
 	/* make 1 step in direction crpix1 */
 	double crpix1[] = { solution->crpix[0] + 1.0 / args->scalefactor, solution->crpix[1] };
-	apply_match(solution->px_cat_center, crpix1, trans, &ra7, &dec7);
+	apply_match(solution->px_cat_center, crpix1, &trans, &ra7, &dec7);
 
 	dec7 *= DEGTORAD;
 	ra7 *= DEGTORAD;
@@ -1691,7 +1694,7 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 	/* make 1 step in direction crpix2
 	 * WARNING: we use -1 because of the Y axis reversing */
 	double crpix2[] = { solution->crpix[0], solution->crpix[1] - 1.0 / args->scalefactor };
-	apply_match(solution->px_cat_center, crpix2, trans, &ra7, &dec7);
+	apply_match(solution->px_cat_center, crpix2, &trans, &ra7, &dec7);
 
 	dec7 *= DEGTORAD;
 	ra7 *= DEGTORAD;

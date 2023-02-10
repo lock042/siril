@@ -777,8 +777,8 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 		cogy += currcenter.y;
 		n++;
 	}
-	cogx /= (double)n;
-	cogy /= (double)n;
+	cogx /= (n == 0 ? 1. : (double)n);
+	cogy /= (n == 0 ? 1. : (double)n);
 	x0 = (int)(cogx - (double)rx * 0.5);
 	y0 = (int)(cogy - (double)ry * 0.5);
 	Hshift.h02 = (double)x0;
@@ -829,31 +829,36 @@ int minidx(const float *arr, const gboolean *mask, int nb, float *val) {
 
 int register_multi_step_global(struct registration_args *regargs) {
 	// 1. finding stars
+	int retval = 0;
 	struct starfinder_data *sf_args = calloc(1, sizeof(struct starfinder_data));
 	sf_args->im.from_seq = regargs->seq;
 	sf_args->layer = regargs->layer;
 	sf_args->max_stars_fitted = regargs->max_stars_candidates;
-	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
-	sf_args->nb_stars = calloc(regargs->seq->number, sizeof(int));
-	sf_args->update_GUI = FALSE;
-	sf_args->already_in_thread = TRUE;
-	sf_args->process_all_images = !regargs->filters.filter_included;
-	sf_args->save_to_file = !regargs->no_starlist;
-	sf_args->save_eqcoords = FALSE;
 	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL, *scores = NULL;
 	float *dist = NULL;
 	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
 	gboolean *meaningful = NULL;
-	int retval = 0;
-	struct timeval t_start, t_end;
-
-	if (!sf_args->stars || !sf_args->nb_stars) {
+	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
+	if (!sf_args->stars) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
 	}
+	sf_args->nb_stars = calloc(regargs->seq->number, sizeof(int));
+	if (!sf_args->nb_stars) {
+		PRINT_ALLOC_ERR;
+		retval = 1;
+		goto free_all;
+	}
+	sf_args->update_GUI = FALSE;
+	sf_args->already_in_thread = TRUE;
+	sf_args->process_all_images = !regargs->filters.filter_included;
+	sf_args->save_to_file = !regargs->no_starlist;
+	sf_args->save_eqcoords = FALSE;
+	struct timeval t_start, t_end;
+
 	gettimeofday(&t_start, NULL);
 	if (apply_findstar_to_sequence(sf_args)) {
 		siril_debug_print("finding stars failed\n");	// aborted probably
@@ -924,7 +929,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			char *units;
 			FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], regargs->seq->bitpix, &FWHMx, &FWHMy, &units, B + i, NULL, 0.);
 			// we only rank images with at least half the maximum number of stars (and we count them as meaningful)
-			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
+			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / (maxstars == 0 ? 1 : maxstars) + FWHMx : FLT_MAX;
 			if (sf_args->nb_stars[i] >= maxstars / 2) meaningful[i] = TRUE;
 			fwhm[i] = FWHMx;
 			roundness[i] = FWHMy/FWHMx;
@@ -936,7 +941,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			if (!included[i]) continue;
 			FWHMx = fwhm[i];
 			// we only rank images with at least half the maximum number of stars (and we count them as meaningful)
-			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
+			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / (maxstars == 0 ? 1 : maxstars) + FWHMx : FLT_MAX;
 			if (sf_args->nb_stars[i] >= maxstars / 2) meaningful[i] = TRUE;
 		}
 		best_index = minidx(scores, included, regargs->seq->number, NULL);
@@ -1056,8 +1061,10 @@ int register_multi_step_global(struct registration_args *regargs) {
 	show_time(t_start, t_end);
 
 free_all:
-	for (int i = 0; i < regargs->seq->number; i++)
-		free_fitted_stars(sf_args->stars[i]);
+	if (sf_args->stars) {
+		for (int i = 0; i < regargs->seq->number; i++)
+			free_fitted_stars(sf_args->stars[i]);
+	}
 	free(sf_args->stars);
 	free(sf_args->nb_stars);
 	free(sf_args);
