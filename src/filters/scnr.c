@@ -70,8 +70,6 @@ gpointer scnr(gpointer p) {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (i = 0; i < nbdata; i++) {
-		if (error)
-			continue;
 		double red, green, blue;
 		switch (args->fit->type) {
 			case DATA_USHORT:
@@ -140,8 +138,6 @@ gpointer scnr(gpointer p) {
 		}
 	}
 
-	if (error != 0)
-		error = 1;
 	/* normalize in case of preserve, it can under/overshoot */
 	if (args->preserve && nb_above_1)
 		siril_log_message("%d pixels were truncated to a maximum value of 1\n", nb_above_1);
