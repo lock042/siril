@@ -760,40 +760,32 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 		retval1 = ser_write_frame_from_fit(seqdata->new_ser_starless, seqdata->starnet_fit, out_index);
 		if (seqdata->starmask) {
 			retval2 = ser_write_frame_from_fit(seqdata->new_ser_starmask, seqdata->starmask_fit, out_index);
-			g_free(seqdata->starmask_fit);
+			free(seqdata->starmask_fit);
 		}
 		// the two fits are freed by the writing thread
 	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
 		retval1 = fitseq_write_image(seqdata->new_fitseq_starless, seqdata->starnet_fit, out_index);
 		if (seqdata->starmask) {
 			retval2 = fitseq_write_image(seqdata->new_fitseq_starmask, seqdata->starmask_fit, out_index);
-			g_free(seqdata->starmask_fit);
+			free(seqdata->starmask_fit);
 		}
 		// the two fits are freed by the writing thread
 		if (!retval1 && !retval2) {
 			/* special case because it's not done in the generic */
 			clearfits(fit);
-			g_free(fit);
+			free(fit);
 			fit = NULL;
 		}
 	} else {
 		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, "starless_", in_index);
 		retval1 = savefits(dest, seqdata->starnet_fit);
-<<<<<<< .merge_file_UeA6iC
 		free(dest);
-=======
-		g_free(dest);
->>>>>>> .merge_file_FiGgyU
 		clearfits(seqdata->starnet_fit);
 		seqdata->starnet_fit = NULL;
 		if (seqdata->starmask) {
 			dest = fit_sequence_get_image_filename_prefixed(args->seq, "starmask_", in_index);
 			retval2 = savefits(dest, seqdata->starmask_fit);
-<<<<<<< .merge_file_UeA6iC
 			free(dest);
-=======
-			g_free(dest);
->>>>>>> .merge_file_FiGgyU
 			clearfits(seqdata->starmask_fit);
 			free(seqdata->starmask_fit);
 			seqdata->starmask_fit = NULL;
