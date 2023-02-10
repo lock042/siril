@@ -1282,8 +1282,8 @@ void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
 	cd[1][1] = pc[1][1] * cdelt[1];
 }
 
-static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution);
-static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution);
+static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution);
+static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution);
 
 #define CHECK_FOR_CANCELLATION_RET if (!get_thread_run()) { args->message = g_strdup(_("Cancelled")); args->ret = 1; return 1; }
 static int get_catalog_stars(struct astrometry_data *args) {
@@ -1345,10 +1345,11 @@ static int get_catalog_stars(struct astrometry_data *args) {
 gpointer plate_solver(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	psf_star **stars = NULL;	// image stars
-	int n_fit = 0;	// number of image and catalogue stars
+	int nb_stars = 0;	// number of image and catalogue stars
 
 	args->ret = 1;
 	args->message = NULL;
+	solve_results solution = { 0 }; // used in the clean-up, init at the beginning
 
 	if (args->verbose) {
 		if (args->onlineCatalog == CAT_ASNET) {
@@ -1412,9 +1413,9 @@ gpointer plate_solver(gpointer p) {
 		// capping the detection to max usable number of stars
 		int max_stars = args->for_photometry_cc ? args->n_cat : min(args->n_cat, BRIGHTEST_STARS);
 
-		stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &n_fit, &(args->solvearea), FALSE,
-				args->onlineCatalog != CAT_ASNET, max_stars,
-				com.pref.starfinder_conf.profile, com.max_thread);
+		stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
+				&(args->solvearea), FALSE, args->onlineCatalog != CAT_ASNET,
+				max_stars, com.pref.starfinder_conf.profile, com.max_thread);
 
 		if (args->downsample) {
 			clearfits(args->fit);
@@ -1425,29 +1426,28 @@ gpointer plate_solver(gpointer p) {
 	} else {
 		stars = com.stars;
 		if (com.stars)
-			while (com.stars[n_fit])
-				n_fit++;
+			while (com.stars[nb_stars])
+				nb_stars++;
 	}
 	CHECK_FOR_CANCELLATION;
 
-	if (!stars || n_fit < AT_MATCH_STARTN_LINEAR) {
+	if (!stars || nb_stars < AT_MATCH_STARTN_LINEAR) {
 		args->message = g_strdup_printf(_("There are not enough stars picked in the image. "
 				"At least %d are needed."), AT_MATCH_STARTN_LINEAR);
 		args->ret = 1;
 		goto clearup;
 	}
 	if (args->verbose)
-		siril_log_message(_("Using %d detected stars from image.\n"), n_fit);
+		siril_log_message(_("Using %d detected stars from image.\n"), nb_stars);
 
 	/* 3. Plate solving */
-	solve_results solution = { 0 };
 	solution.size.x = args->fit->rx;
 	solution.size.y = args->fit->ry;
 	solution.pixel_size = args->pixel_size;
 
 	if (args->onlineCatalog == CAT_ASNET)
-		args->ret = local_asnet_platesolve(stars, n_fit, args, &solution);
-	else match_catalog(stars, n_fit, args, &solution);
+		args->ret = local_asnet_platesolve(stars, nb_stars, args, &solution);
+	else match_catalog(stars, nb_stars, args, &solution);
 	if (args->ret)
 		goto clearup;
 
@@ -1492,7 +1492,7 @@ gpointer plate_solver(gpointer p) {
 		}
 		args->pcc->stars = pcc_stars;
 		args->pcc->nb_stars = nb_pcc_stars;
-		args->pcc->fwhm = filtered_FWHM_average(stars, n_fit);
+		args->pcc->fwhm = filtered_FWHM_average(stars, nb_stars);
 		if (args->downsample)
 			args->pcc->fwhm /= DOWNSAMPLE_FACTOR;
 
@@ -1522,7 +1522,7 @@ gpointer plate_solver(gpointer p) {
 
 clearup:
 	if (stars && !args->manual) {
-		for (int i = 0; i < n_fit; i++)
+		for (int i = 0; i < nb_stars; i++)
 			free_psf(stars[i]);
 		free(stars);
 	}
@@ -1550,7 +1550,7 @@ clearup:
 }
 
 /* entry point for siril's plate solver based on catalogue matching */
-static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution) {
+static int match_catalog(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 	Homography H = { 0 };
 	int nobj = AT_MATCH_CATALOG_NBRIGHT;
 	int max_trials = 0;
@@ -1561,7 +1561,7 @@ static int match_catalog(psf_star **stars, int n_fit, struct astrometry_data *ar
 
 	/* make sure that arrays are not too small
 	 * make sure that the max of stars is BRIGHTEST_STARS */
-	int n = min(min(n_fit, args->n_cat), BRIGHTEST_STARS);
+	int n = min(min(nb_stars, args->n_cat), BRIGHTEST_STARS);
 
 	double scale_min = args->scale - 0.2;
 	double scale_max = args->scale + 0.2;
@@ -1841,7 +1841,7 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
 }
 
-static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry_data *args, solve_results *solution) {
+static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 #ifdef _WIN32
 	gchar *asnet_shell = siril_get_asnet_bash();
 	if (!asnet_shell) {
@@ -1856,7 +1856,7 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 #endif
 
 	gchar *table_filename = replace_ext(args->filename, ".xyls");
-	if (save_list_as_FITS_table(table_filename, stars, n_fit, args->rx_solver, args->ry_solver)) {
+	if (save_list_as_FITS_table(table_filename, stars, nb_stars, args->rx_solver, args->ry_solver)) {
 		siril_log_message(_("Failed to create the input data for solve-field\n"));
 		g_free(table_filename);
 		return 1;
@@ -1929,7 +1929,9 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 			if (g_unlink(table_filename))
 				siril_debug_print("Error unlinking table_filename\n");
 		g_free(table_filename);
-#ifndef _WIN32
+#ifdef _WIN32
+		g_free(asnet_shell);
+#else
 		g_free(asnet_path);
 #endif
 		return 1;
@@ -1971,7 +1973,9 @@ static int local_asnet_platesolve(psf_star **stars, int n_fit, struct astrometry
 			siril_debug_print("Error unlinking table_filename\n");
 		}
 	g_free(table_filename);
-#ifndef _WIN32
+#ifdef _WIN32
+	g_free(asnet_shell);
+#else
 	g_free(asnet_path);
 #endif
 	if (!success)
