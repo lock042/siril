@@ -46,7 +46,6 @@ void remove_tmp_drizzle_files(struct stacking_args *args) {
 	gchar *basename = g_path_get_basename(args->seq->seqname);
 	if (!g_str_has_prefix(basename, TMP_UPSCALED_PREFIX)) {
 		remove_prefixed_sequence_files(args->seq, TMP_UPSCALED_PREFIX);
-		remove_prefixed_star_files(args->seq, TMP_UPSCALED_PREFIX);
 		return;
 	}
 	// else means that we are removing files after processing and that

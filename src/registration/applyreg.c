@@ -320,14 +320,11 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
 			ser_close_and_delete_file(args->new_ser);
 			free(args->new_ser);
-			remove_prefixed_star_files(regargs->seq, regargs->prefix);
 		} else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
 			fitseq_close_and_delete_file(args->new_fitseq);
 			free(args->new_fitseq);
-			remove_prefixed_star_files(regargs->seq, regargs->prefix);
 		} else if (args->seq->type == SEQ_REGULAR) {
 			remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
-			remove_prefixed_star_files(regargs->seq, regargs->prefix);
 		}
 	}
 
@@ -608,10 +605,6 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		siril_log_color_message(_("Unknown framing method, aborting\n"), "red");
 		return FALSE;
 	}
-
-	// Remove the files that we are about to create
-	remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
-	remove_prefixed_star_files(regargs->seq, regargs->prefix);
 
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
 	// rx_out/ry_out already account for 2x upscale if any
