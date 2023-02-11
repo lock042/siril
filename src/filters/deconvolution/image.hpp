@@ -226,18 +226,23 @@ public:
 #pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
 #endif
         for (int c = 0 ; c < d ; c++) {
-            for (int i = ix ; i < x.w-ix-1 ; i++) {
-                for (int j = ix ; j < x.h-ix-1 ; j++) {
-                    T val = 0;
+            for (int i = 0 ; i < x.w-1 ; i++) {
+                for (int j = 0 ; j < x.h-1 ; j++) {
+                    T val = T(0);
+                    T norm = T(0);
 #ifdef _OPENMP
 #pragma omp simd collapse(2)
 #endif
                     for (int m = -ix ; m < ix+1 ; m++) {
                         for (int n = -ix ; n < ix+1 ; n++) {
-                            val += x(i+m, j+n, c) * k(m+ix, n+ix, 0);
+                            int im =i + m, jn = j+n;
+                            if (im >= ix && im < x.w - ix && jn >= ix && jn < x.h - ix) {
+                                val += x(im, jn, c) * k(m+ix, n+ix, 0);
+                                norm += k(m+ix, n+ix, 0);
+                            }
                         }
                     }
-                    out(i, j, c) = val;
+                    out(i, j, c) = val / norm;
                 }
             }
         }
