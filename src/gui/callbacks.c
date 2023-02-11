@@ -1278,27 +1278,32 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 
 static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	static gboolean first_resize = TRUE;
-	int position = gtk_paned_get_position(paned);
-	//printf("position updated to %d\n", position);
 	if (first_resize) {
 		if (com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
 			gtk_paned_set_position(paned, com.pref.gui.pan_position);
 		}
 		first_resize = FALSE;
-	} else {
-		if (com.pref.gui.remember_windows)
-			com.pref.gui.pan_position = position;
-		int max_position;
-		g_object_get(G_OBJECT(paned), "max-position", &max_position, NULL);
-		if (position == max_position) {
-			GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-			com.pref.gui.pan_position = -1;
-			// hide it
-			GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
-			g_action_activate(action_panel, NULL);
-			gtk_paned_set_position(paned, -1);	// reset to default
-		}
 	}
+}
+
+gboolean on_main_panel_button_release_event(GtkWidget *widget,
+		GdkEventButton *event, gpointer user_data) {
+	int position = gtk_paned_get_position((GtkPaned*) widget);
+	if (com.pref.gui.remember_windows) {
+		com.pref.gui.pan_position = position;
+	}
+	int max_position;
+	g_object_get(G_OBJECT(widget), "max-position", &max_position, NULL);
+	if (position == max_position) {
+		GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+		com.pref.gui.pan_position = -1;
+		// hide it
+		GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
+		g_action_activate(action_panel, NULL);
+		gtk_paned_set_position((GtkPaned*) widget, -1);	// reset to default
+	}
+
+	return FALSE;
 }
 
 void initialize_all_GUI(gchar *supported_files) {

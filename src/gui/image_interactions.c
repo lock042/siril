@@ -318,7 +318,6 @@ void enforce_ratio_and_clamp() {
 	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit.ry - com.selection.h);
 }
 
-
 gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 
