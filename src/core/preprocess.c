@@ -485,6 +485,8 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 		DATA_USHORT : DATA_FLOAT;
 
 	remove_prefixed_sequence_files(prepro->seq, prepro->ppprefix);
+	remove_prefixed_star_files(prepro->seq, prepro->ppprefix);
+
 
 	start_in_new_thread(generic_sequence_worker, args);
 }

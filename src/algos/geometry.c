@@ -685,6 +685,8 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->user = crop_sequence_data;
 
 	remove_prefixed_sequence_files(crop_sequence_data->seq, crop_sequence_data->prefix);
+	remove_prefixed_star_files(crop_sequence_data->seq, crop_sequence_data->prefix);
+
 	start_in_new_thread(generic_sequence_worker, args);
 
 	return 0;

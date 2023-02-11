@@ -6416,6 +6416,7 @@ int process_register(int nb) {
 	if (!reg_args->no_output) {
 		// first, remove the files that we are about to create
 		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
+		remove_prefixed_star_files(reg_args->seq, reg_args->prefix);
 
 		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
 		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));

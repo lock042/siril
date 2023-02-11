@@ -1192,6 +1192,17 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 	}
 }
 
+void remove_prefixed_star_files(sequence *seq, const char *prefix) {
+	for (int i = 0; i < seq->number; i++) {
+		char root[256];
+		fit_sequence_get_image_filename(seq, i, root, FALSE);
+		gchar *star_filename = g_strdup_printf("%s%s.lst", prefix, root);
+		siril_debug_print("Removing %s\n", star_filename);
+		g_unlink(star_filename);
+		g_free(star_filename);
+	}
+}
+
 /* sets default values for the sequence */
 void initialize_sequence(sequence *seq, gboolean is_zeroed) {
 	int i;
@@ -2018,6 +2029,7 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 				siril_log_message(_("Registration data cleared for layer %d\n"), i);
 			}
 		}
+		remove_prefixed_star_files(seq, "");
 	}
 	if (cleanreg && seq->regparam_bkp) {
 		for (int i = 0; i < seq->nb_layers; i++) {
