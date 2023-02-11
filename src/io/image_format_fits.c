@@ -1817,8 +1817,8 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 
 	if (!retval) {
 		basename = g_path_get_basename(filename);
-		siril_log_message(_("Reading FITS: file %s, %ld layer(s), %ux%u pixels\n"),
-				basename, fit->naxes[2], fit->rx, fit->ry) ;
+		siril_log_message(_("Reading FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"),
+				basename, fit->naxes[2], fit->rx, fit->ry, fit->type == DATA_USHORT ? 16 : 32) ;
 		g_free(basename);
 	}
 
