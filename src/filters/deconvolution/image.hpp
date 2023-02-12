@@ -215,6 +215,7 @@ public:
             data[i] = o[i];
     }
 
+    // naive convolution
     template <typename T2, typename T3>
     void conv2(const img_t<T2>& x, const img_t<T3>& k) {
         assert(k.w / 2 && k.w == k.h); // Ensure kernel is square and odd
@@ -222,12 +223,34 @@ public:
 
         img_t<T> out(x.w, x.h, x.d);
         const int ix = (k.w-1)/2;
+// Do all the inside
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
 #endif
         for (int c = 0 ; c < d ; c++) {
-            for (int i = 0 ; i < x.w-1 ; i++) {
-                for (int j = 0 ; j < x.h-1 ; j++) {
+            for (int i = ix ; i < x.w-ix ; i++) {
+                for (int j = ix ; j < x.h-ix ; j++) {
+                    T val = T(0);
+#ifdef _OPENMP
+#pragma omp simd collapse(2)
+#endif
+                    for (int m = -ix ; m < ix+1 ; m++) {
+                        for (int n = -ix ; n < ix+1 ; n++) {
+                            val += x(i+m, j+n, c) * k(m+ix, n+ix, 0);
+                        }
+                    }
+                    out(i, j, c) = val;// / norm;
+                }
+            }
+        }
+// Now do the borders
+// Left
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
+#endif
+        for (int c = 0 ; c < d ; c++) {
+            for (int i = 0 ; i < ix ; i++) {
+                for (int j = 0 ; j < x.h ; j++) {
                     T val = T(0);
                     T norm = T(0);
 #ifdef _OPENMP
@@ -242,13 +265,87 @@ public:
                             }
                         }
                     }
-                    out(i, j, c) = val / norm;
+                    out(i, j, c) = val;// / norm;
+                }
+            }
+        }
+// Right
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
+#endif
+        for (int c = 0 ; c < d ; c++) {
+            for (int i = x.w - ix ; i < x.w ; i++) {
+                for (int j = 0 ; j < x.h ; j++) {
+                    T val = T(0);
+                    T norm = T(0);
+#ifdef _OPENMP
+#pragma omp simd collapse(2)
+#endif
+                    for (int m = -ix ; m < ix+1 ; m++) {
+                        for (int n = -ix ; n < ix+1 ; n++) {
+                            int im =i + m, jn = j+n;
+                            if (im >= ix && im < x.w - ix && jn >= ix && jn < x.h - ix) {
+                                val += x(im, jn, c) * k(m+ix, n+ix, 0);
+                                norm += k(m+ix, n+ix, 0);
+                            }
+                        }
+                    }
+                    out(i, j, c) = val;// / norm;
+                }
+            }
+        }
+// Top
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
+#endif
+        for (int c = 0 ; c < d ; c++) {
+            for (int i = 0 ; i < x.w ; i++) {
+                for (int j = 0 ; j < ix ; j++) {
+                    T val = T(0);
+                    T norm = T(0);
+#ifdef _OPENMP
+#pragma omp simd collapse(2)
+#endif
+                    for (int m = -ix ; m < ix+1 ; m++) {
+                        for (int n = -ix ; n < ix+1 ; n++) {
+                            int im =i + m, jn = j+n;
+                            if (im >= ix && im < x.w - ix && jn >= ix && jn < x.h - ix) {
+                                val += x(im, jn, c) * k(m+ix, n+ix, 0);
+                                norm += k(m+ix, n+ix, 0);
+                            }
+                        }
+                    }
+                    out(i, j, c) = val;// / norm;
+                }
+            }
+        }
+// Bottom
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
+#endif
+        for (int c = 0 ; c < d ; c++) {
+            for (int i = 0 ; i < x.w ; i++) {
+                for (int j = x.h-ix ; j < x.h ; j++) {
+                    T val = T(0);
+                    T norm = T(0);
+#ifdef _OPENMP
+#pragma omp simd collapse(2)
+#endif
+                    for (int m = -ix ; m < ix+1 ; m++) {
+                        for (int n = -ix ; n < ix+1 ; n++) {
+                            int im =i + m, jn = j+n;
+                            if (im >= ix && im < x.w - ix && jn >= ix && jn < x.h - ix) {
+                                val += x(im, jn, c) * k(m+ix, n+ix, 0);
+                                norm += k(m+ix, n+ix, 0);
+                            }
+                        }
+                    }
+                    out(i, j, c) = val;// / norm;
                 }
             }
         }
         (*this).map(out);
     }
-
 
 // Don't use this - it causes problems for the MacOS build
 /*
