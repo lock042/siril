@@ -86,12 +86,12 @@ extern "C" int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, uns
         K.map(K / K.sum());
         float max = f.max();
         f.map(f / f.max());
-        f = utils::add_padding(f, 2*K.w, 2*K.w);
+        f = utils::add_padding(f, K);
         edgetaper(f, f, K, 3);
 
         deconvolve::rl_deconvolve_naive(u, f, K, 2.f / lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active);
 
-        u = utils::remove_padding(u, 2*K.w, 2*K.w);
+        u = utils::remove_padding(u, K);
         u.map(u * max);
         for (unsigned i = 0; i < rx * ry; i++) {
             fdata[i + c * rx * ry] = u.data[i];
