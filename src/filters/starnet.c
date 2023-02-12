@@ -221,8 +221,9 @@ static int exec_prog_win32(const char **argv) {
 				double value = g_ascii_strtod(buf, NULL);
 				if (value != 0.0 && value == value && verbose) { //
 					set_progress_bar_data("Running StarNet", (value / 100));
-					if (!has_started) has_started = TRUE;
 				}
+				if (value != 0.0 && value == value)
+					if (!has_started) has_started = TRUE;
 			}
 			if(!GetExitCodeProcess(hProcess,(unsigned long*)&nExitCode))
 				return -1;
@@ -462,8 +463,9 @@ gpointer do_starnet(gpointer p) {
 		}
 		if (max > 1.0 && verbose) {
 			siril_log_message(_("StarNet: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"));
-			soper(&workingfit, max, OPER_DIV, FALSE);
 		}
+		if (max > 1.0)
+			soper(&workingfit, max, OPER_DIV, FALSE);
 	}
 
 	// If needed, make a second copy for later use in making the star mask.
