@@ -1462,8 +1462,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	the registration method produces a new sequence
 	*/
 	if (!reg_args->no_output && method->method_ptr == register_star_alignment) {
-		// first, remove the files that we are about to create
-		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
 
 		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
 		gint64 size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));

@@ -2138,6 +2138,8 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	}
 
 	args->fit = &fit;
+	remove_prefixed_sequence_files(arg->seq, arg->new_seq_prefix);
+	remove_prefixed_star_files(arg->seq, arg->new_seq_prefix);
 	process_plate_solver_input(args); // compute required data to get the catalog
 	clearfits(&fit);
 	return get_catalog_stars(args);

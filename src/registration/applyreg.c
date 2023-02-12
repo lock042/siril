@@ -606,9 +606,6 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		return FALSE;
 	}
 
-	// Remove the files that we are about to create
-	remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
-
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
 	// rx_out/ry_out already account for 2x upscale if any
 	int64_t size = (int64_t) rx_out * ry_out * regargs->seq->nb_layers;
