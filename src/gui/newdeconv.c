@@ -1412,6 +1412,8 @@ int deconvolution_image_hook(struct generic_seq_args *seqargs, int o, int i, fit
 
 int deconvolution_prepare_hook(struct generic_seq_args *seqargs) {
 	set_progress_bar_data(_("Deconvolution. Processing sequence..."), 0.);
+	remove_prefixed_sequence_files(seqargs->seq, seqargs->new_seq_prefix);
+	remove_prefixed_star_files(seqargs->seq, seqargs->new_seq_prefix);
 	if (args.psftype == 4 && ((!com.kernel) || com.kernelsize == 0)) {
 	// Refuse to process the sequence using previous PSF if there is no previous PSF defined
 		siril_log_color_message(_("Error: trying to use previous PSF but no PSF has been generated. Aborting...\n"),"red");

@@ -6614,9 +6614,6 @@ int process_register(int nb) {
 
 	// testing free space
 	if (!reg_args->no_output) {
-		// first, remove the files that we are about to create
-		remove_prefixed_sequence_files(reg_args->seq, reg_args->prefix);
-
 		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
 		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));
 		if (reg_args->x2upscale)

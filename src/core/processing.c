@@ -433,6 +433,10 @@ int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 int seq_prepare_hook(struct generic_seq_args *args) {
 	int retval = 0;
 	g_assert(args->has_output); // don't call this hook otherwise
+	g_assert(args->new_seq_prefix); // don't call this hook otherwise
+	//removing existing files
+	remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
+	remove_prefixed_star_files(args->seq, args->new_seq_prefix);
 	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
 		gchar *dest;
 		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);

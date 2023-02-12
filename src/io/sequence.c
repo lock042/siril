@@ -1195,6 +1195,17 @@ void remove_prefixed_sequence_files(sequence *seq, const char *prefix) {
 	}
 }
 
+void remove_prefixed_star_files(sequence *seq, const char *prefix) {
+	for (int i = 0; i < seq->number; i++) {
+		char root[256];
+		fit_sequence_get_image_filename(seq, i, root, FALSE);
+		gchar *star_filename = g_strdup_printf("%s%s.lst", prefix, root);
+		siril_debug_print("Removing %s\n", star_filename);
+		g_unlink(star_filename);
+		g_free(star_filename);
+	}
+}
+
 /* sets default values for the sequence */
 void initialize_sequence(sequence *seq, gboolean is_zeroed) {
 	int i;
@@ -2026,6 +2037,7 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 				siril_log_message(_("Registration data cleared for layer %d\n"), i);
 			}
 		}
+		remove_prefixed_star_files(seq, "");
 	}
 	if (cleanreg && seq->regparam_bkp) {
 		for (int i = 0; i < seq->nb_layers; i++) {
@@ -2057,4 +2069,39 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 	// unsetting ref image
 	seq->reference_image = -1;
 	writeseqfile(seq);
+}
+
+// returns TRUE ig star_filename is more recent than image (for FITS) or
+// sequence (for FITSEQ or SER)
+gboolean check_starfile_date(sequence *seq, int index, gchar *star_filename) {
+	if (!g_file_test(star_filename, G_FILE_TEST_EXISTS))
+		return FALSE;
+
+	struct stat imgfileInfo, starfileInfo;
+	// if sequence is FITS, we check individual img file date vs starfile date
+	if (seq->type == SEQ_REGULAR) { 
+		char img_filename[256];
+		if (!fit_sequence_get_image_filename(seq, index, img_filename, TRUE))
+			return FALSE;
+		if (!g_file_test(img_filename, G_FILE_TEST_EXISTS))
+			return FALSE;
+		if (!stat(img_filename, &imgfileInfo))
+			return FALSE;
+		if (!stat(star_filename, &starfileInfo));
+		// TODO: remove when testing completed
+		if (starfileInfo.st_ctime < imgfileInfo.st_ctime)
+			printf("%s is older than %s, detecting again\n", star_filename, img_filename);
+		return (starfileInfo.st_ctime > imgfileInfo.st_ctime);
+	}
+	// else, we check the sequence date vs starfile date
+	gchar *seqname;
+	if (seq->type == SEQ_SER)
+		seqname = seq->ser_file->filename;
+	else
+		seqname = seq->fitseq_file->filename;
+	if (!stat(seqname, &imgfileInfo))
+		return FALSE;
+	if (!stat(star_filename, &starfileInfo))
+		return FALSE;
+	return (starfileInfo.st_ctime > imgfileInfo.st_ctime);
 }
