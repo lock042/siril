@@ -18,9 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef _WIN32
-#include <windows.h> // for MAX_PATH
-#endif
 #include <fftw3.h>
 #include <math.h>
 #include <locale.h>
@@ -42,6 +39,7 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
+#include "core/OS_utils.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/newdeconv.h"
@@ -52,7 +50,6 @@
 #include "filters/deconvolution/chelperfuncs.h"
 #undef non_externs
 #include "filters/synthstar.h"
-#include "filters/starnet.h"
 #include "algos/statistics.h"
 #include "algos/PSF.h"
 #include "io/sequence.h"
@@ -646,12 +643,7 @@ int save_kernel(gchar* filename) {
 
 void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	// Only allocate as much space for filenames as required - we determine the max pathlength
-#ifndef _WIN32
 	long pathmax = get_pathmax();
-#else
-	long pathmax = MAX_PATH;	// On Windows use of MAX_PATH is fine as it is not
-								// a configurable item
-#endif
 	gchar filename[pathmax];
 	char *imagenoext;
 	char *imagenoextorig;
@@ -987,7 +979,7 @@ gpointer estimate_only(gpointer p) {
 		int nb_stars;
 		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
-		g_free(input_image);
+		free(input_image);
 		if (!com.stars || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
 			goto ENDEST;
@@ -1034,7 +1026,7 @@ gpointer estimate_only(gpointer p) {
 	}
 ENDEST:
 	if (stars_need_clearing) {
-		g_free(com.stars);
+		free(com.stars);
 		com.stars = NULL;
 		stars_need_clearing = FALSE;
 	}
@@ -1111,7 +1103,7 @@ gpointer deconvolve(gpointer p) {
 		int nb_stars;
 		int chan = the_fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
 		com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
-		g_free(input_image);
+		free(input_image);
 		if (retval || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
 			goto ENDDECONV;
@@ -1252,7 +1244,7 @@ ENDDECONV:
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 	}
 	if (stars_need_clearing) {
-		g_free(com.stars);
+		free(com.stars);
 		com.stars = NULL;
 		stars_need_clearing = FALSE;
 	}

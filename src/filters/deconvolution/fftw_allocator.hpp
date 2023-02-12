@@ -86,11 +86,7 @@ class fftw_alloc {
 #ifdef _OPENMP
 #pragma omp critical (fftw)
 #endif
-// Replace the fftwf line with the fftw line if type double is required
-// Also requires linking against libfftw_3 as well as libfftw_3f
-//            fftw_free(p);
             fftwf_free(p);
-            num = num;
         }
 };
 

@@ -28,6 +28,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_world_cs.h"
 #include "core/siril_log.h"
+#include "core/processing.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
@@ -346,7 +347,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 	double invpixscalex = 1.0;
 	double bin_X = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
-		is_as = (strcmp(com.stars[0]->units,"px"));
+		is_as = (strcmp(com.stars[0]->units, "px"));
 	} else {
 		return; // If com.stars is empty there is no point carrying on
 	}
@@ -366,6 +367,7 @@ void set_iter_of_clicked_psf(double x, double y) {
 			GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
 			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
 			if (!path) return;
+			gtk_tree_selection_unselect_all(selection);
 			gtk_tree_selection_select_path(selection, path);
 			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
 			gtk_tree_path_free(path);
@@ -444,7 +446,7 @@ static void remove_selected_star() {
 
 	g_list_free(references);
 	gtk_tree_selection_unselect_all(selection);
-	g_free(sel);
+	free(sel);
 	gui.selected_star = -1;
 	display_status();
 }
@@ -525,10 +527,7 @@ static void add_star_to_list(psf_star *star, int i) {
 
 static void fill_stars_list(fits *fit, psf_star **stars) {
 	int i = 0;
-	if (stars == NULL)
-		return;
-	add_star_to_list(NULL, 0);	// clear
-
+	if (!stars) return;
 	while (stars[i]) {
 		/* update units if needed */
 		fwhm_to_arcsec_if_needed(fit, stars[i]);
@@ -541,38 +540,71 @@ static void fill_stars_list(fits *fit, psf_star **stars) {
 
 /********************* public ***********************/
 
-void refresh_star_list(psf_star **star){
+// consider using update_star_list instead
+void refresh_star_list(){
 	get_stars_list_store();
 	gtk_list_store_clear(liststore_stars);
 	fill_stars_list(&gfit, com.stars);
-	redraw(REDRAW_OVERLAY);
 }
 
+/* this can be called from any thread as long as refresh_GUI is false, it's
+ * synchronized with the main thread with a mutex */
 void clear_stars_list(gboolean refresh_GUI) {
 	if (com.stars) {
 		if (refresh_GUI && !com.headless) {
 			get_stars_list_store();
 			gtk_list_store_clear(liststore_stars);
 		}
-		g_mutex_lock(&com.mutex);
+		psf_star **stars = com.stars;
 
-		if (com.stars[0]) {
+		g_mutex_lock(&com.mutex); // also locked around the draw_stars() call
+		com.stars = NULL;
+		g_mutex_unlock(&com.mutex);
+
+		if (stars[0]) {
 			/* freeing found stars. It must not be done when the only star in
 			 * com.stars is the same as com.seq.imgparam[xxx].fwhm, as set in
 			 * set_fwhm_star_as_star_list(), because it will be reused */
-			if (com.stars[1] || !com.star_is_seqdata) {
+			if (stars[1] || !com.star_is_seqdata) {
 				int i = 0;
-				while (i < MAX_STARS && com.stars[i])
-					free_psf(com.stars[i++]);
+				while (i < MAX_STARS && stars[i])
+					free_psf(stars[i++]);
 			}
+			free(stars);
 		}
-		free(com.stars);
-		com.stars = NULL;
-		g_mutex_unlock(&com.mutex);
+
 	}
 	com.star_is_seqdata = FALSE;
+	gui.selected_star = -1;
 	if (refresh_GUI && !com.headless)
 		display_status();
+}
+
+struct star_update_s {
+	psf_star **stars;
+	gboolean update_GUI;
+};
+
+static gboolean update_stars_idle(gpointer p) {
+	struct star_update_s *args = (struct star_update_s *)p;
+	clear_stars_list(TRUE);
+	com.stars = args->stars;
+	if (args->update_GUI && !com.headless)
+		fill_stars_list(&gfit, com.stars);
+	redraw(REDRAW_OVERLAY);
+	free(args);
+	return FALSE;
+}
+
+/* Update the list of stars (com.stars) in a safe way.
+ * assuming stars to not be shared with a sequence (star_is_seqdata false)
+ * the PSF window's list will be cleared, only refilled if update_PSF_list is true
+ */
+void update_star_list(psf_star **new_stars, gboolean update_PSF_list) {
+	struct star_update_s *args = malloc(sizeof(struct star_update_s));
+	args->stars = new_stars;
+	args->update_GUI = update_PSF_list;
+	siril_add_idle(update_stars_idle, args);
 }
 
 static int get_comstar_count() {
@@ -778,7 +810,7 @@ void on_add_button_clicked(GtkButton *button, gpointer user_data) {
 	if (index > -1)
 		add_star_to_list(com.stars[index], index);
 	display_status();
-	refresh_star_list(com.stars);
+	refresh_star_list();
 }
 
 void on_remove_button_clicked(GtkButton *button, gpointer user_data) {

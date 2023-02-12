@@ -477,7 +477,12 @@ void fill_sequence_list(sequence *seq, int layer, gboolean as_idle) {
 static gboolean fill_sequence_list_idle(gpointer p) {
 	int i;
 	struct _seq_list *args = (struct _seq_list *)p;
-
+	if (!args)
+		return FALSE;
+	if (!args->seq) {
+		g_free(args);
+		return FALSE;
+	}
 	if (combo == NULL) combo = lookup_widget("plotCombo");
 	if (sourceCombo == NULL) sourceCombo = lookup_widget("plotSourceCombo");
 	if (arcsec == NULL) arcsec = lookup_widget("arcsecPhotometry");
@@ -509,7 +514,7 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 				case r_NBSTARS:
 					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("#Stars"));
 					break;
-				default: 
+				default:
 					break;
 			}
 		} else {
@@ -640,7 +645,7 @@ void toggle_image_selection(int index_in_list, int real_index, gboolean initvalu
 	if (initvalue) {
 		com.seq.imgparam[real_index].incl = FALSE;
 		if (before_change != com.seq.imgparam[real_index].incl) { // decrement only on value change
-			--com.seq.selnum; 
+			--com.seq.selnum;
 			msg = g_strdup_printf(_("Image %d has been unselected from sequence\n"), real_index + 1);
 			if (com.seq.reference_image == real_index) {
 				com.seq.reference_image = -1;  // invalidate to trigger new reference search if ref frame is deselected

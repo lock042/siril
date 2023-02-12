@@ -32,7 +32,7 @@ SOFTWARE.
 /// reconstruct the power spectrum from a set of autocorrelations of projections
 /// each projection is used to reconstruct one or more coefficients
 template <typename T>
-void reconstructPowerspectrum(img_t<T>& powerSpectrum, const img_t<T> acProjections,
+void reconstructPowerspectrum(img_t<T>& powerSpectrum, const img_t<T>& acProjections,
                               const std::vector<angle_t>& angleSet, int psSize)
 {
     powerSpectrum.ensure_size(psSize*2+1, psSize*2+1);

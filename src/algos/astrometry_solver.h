@@ -68,6 +68,7 @@ struct astrometry_data {
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
 	gboolean flip_image;	// Flip at the end if detected mirrored
 	gboolean manual;	// use stars already detected by user, in com.stars
+	psf_star **stars;	// alternate source for manual stars (vincent's special)
 	limit_mag_mode mag_mode;// automatically limit magnitude of the catalog
 	double magnitude_arg;	// if not automatic, use this limit magnitude
 	gboolean verbose;	// display all information
@@ -126,6 +127,8 @@ void reframe_astrometry_data(fits *fit, Homography H);
 void set_focal_and_pixel_pitch();
 
 void start_sequence_astrometry(sequence *seq, struct astrometry_data *args);
+
+gboolean asnet_is_available();
 
 /* for the GUI */
 double get_resolution(double focal, double pixel);

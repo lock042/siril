@@ -71,6 +71,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				break;
 			default:
 				fprintf(stderr, "unhandled case!\n");
+				free(args);
 		}
 	} else {
 		int scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));

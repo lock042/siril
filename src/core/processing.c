@@ -52,6 +52,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	int *index_mapping = NULL;
 	int nb_frames, excluded_frames = 0, progress = 0;
 	int abort = 0;	// variable for breaking out of loop
+	int* threads_per_image = NULL;
 	gboolean have_seqwriter = FALSE;
 
 	assert(args);
@@ -94,7 +95,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			args->description, args->max_parallel_images);
 
 	// remaining threads distribution per image thread
-	int *threads_per_image = compute_thread_distribution(args->max_parallel_images, com.max_thread);
+	threads_per_image = compute_thread_distribution(args->max_parallel_images, com.max_thread);
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
@@ -170,7 +171,6 @@ gpointer generic_sequence_worker(gpointer p) {
 	for (frame = 0; frame < nb_frames; frame++) {
 		if (abort) continue;
 
-		fits *fit = calloc(1, sizeof(fits));
 		char filename[256];
 		rectangle area = { .x = args->area.x, .y = args->area.y,
 			.w = args->area.w, .h = args->area.h };
@@ -202,6 +202,13 @@ gpointer generic_sequence_worker(gpointer p) {
 		nb_subthreads = threads_per_image[thread_id];
 #endif
 
+		fits *fit = calloc(1, sizeof(fits));
+		if (!fit) {
+			PRINT_ALLOC_ERR;
+			abort = 1;
+			continue;
+		}
+
 		if (args->partial_image) {
 			if (args->regdata_for_partial && (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][input_idx].H) > -2)
 			&& (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H) > -2)) { // do not try to transform area if img matrix is null
@@ -229,7 +236,7 @@ gpointer generic_sequence_worker(gpointer p) {
 					excluded_frames++;
 				}
 				clearfits(fit);
-				free(fit);
+				g_free(fit);
 				// TODO: for seqwriter, we need to notify the failed frame
 				continue;
 			}
@@ -329,10 +336,13 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 
 #ifdef _OPENMP
-	free(threads_per_image);
 	omp_destroy_lock(&args->lock);
 #endif
 the_end:
+#ifdef _OPENMP
+	free(threads_per_image);
+#endif
+
 	if (index_mapping) free(index_mapping);
 	if (!have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
 		siril_log_message(_("Finalizing sequence processing failed.\n"));
@@ -351,7 +361,7 @@ the_end:
 			// some generic cleanup for scripts
 			// should we check for seq = com.seq?
 			free_sequence(args->seq, TRUE);
-			g_free(args);
+			free(args);
 		}
 	}
 	return GINT_TO_POINTER(retval);
@@ -740,6 +750,10 @@ int limit_threading(threading_type *threads, int min_iterations_per_thread, size
  */
 int *compute_thread_distribution(int nb_workers, int max) {
 	int *threads = malloc(nb_workers * sizeof(int));
+	if (!threads) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	int base = max / nb_workers;
 	int rem = max % nb_workers;
 	siril_debug_print("distributing %d threads to %d workers\n", max, nb_workers);

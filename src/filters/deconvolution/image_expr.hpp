@@ -1,6 +1,6 @@
 
 #pragma once
-
+#include <memory>
 #include <type_traits>
 
 template <typename T>
@@ -333,10 +333,13 @@ const img_t<T>& to_img(const img_t<T>& img)
 {
     return img;
 }
+
 template <typename T, typename T2>
-const img_t<T2>& to_img(const img_t<T>& img)
+std::unique_ptr<img_t<T2>> to_img(const img_t<T>& img)
 {
-    img_t<T2> img2; img2.resize(img); img2.map(img);
+    auto img2 = std::make_unique<img_t<T2>>();
+    img2->resize(img);
+    img2->map(img);
     return img2;
 }
 

@@ -422,7 +422,7 @@ float measure_image_FWHM(fits *fit) {
 		else failed = TRUE;
 	}
 	// clearfits(&downsampled);
-	g_free(threads);
+	free(threads);
 	if (failed)
 		return 0.0f;
 	return max(fwhm[0], max(fwhm[1], fwhm[2]));

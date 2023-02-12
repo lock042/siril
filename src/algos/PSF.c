@@ -870,7 +870,7 @@ gboolean convert_single_fwhm_to_arcsec_if_possible(double fwhm, double bin, doub
 psf_star *new_psf_star() {
 	psf_star *star = calloc(1, sizeof(psf_star));
 	star->phot = NULL;
-
+	star->units = "px";
 	return star;
 }
 

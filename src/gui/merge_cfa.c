@@ -189,7 +189,7 @@ void apply_to_img() {
 			close_single_image();
 			copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 			clearfits(out);
-			g_free(out);
+			free(out);
 			clear_stars_list(TRUE);
 			com.seq.current = UNRELATED_IMAGE;
 			if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))
