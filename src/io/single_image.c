@@ -256,7 +256,7 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
  */
 int open_single_image(const char* filename) {
 	int retval = 0;
-	char *realname;
+	char *realname = NULL;
 	gboolean is_single_sequence;
 
 	/* Check we aren't running a processing thread otherwise it will clobber gfit
@@ -278,6 +278,7 @@ int open_single_image(const char* filename) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
+		g_free(realname);
 		return 1;
 	}
 

@@ -81,6 +81,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	name_str = g_path_get_basename(args->filename);
 
 	if (!args->file_info) {
+		g_free(name_str);
 		set_cursor_waiting(FALSE);
 		return FALSE;
 	}
@@ -179,7 +180,6 @@ static gpointer update_preview(gpointer p) {
 			args->description = siril_get_file_info(args->filename, pixbuf);
 
 			cleanup: gdk_pixbuf_loader_close(loader, NULL);
-			free(mime_type);
 			free(buffer);
 			g_object_unref(loader); // This should clean up tmp as well
 		}
@@ -197,7 +197,7 @@ static gpointer update_preview(gpointer p) {
 			args->description = siril_get_file_info(args->filename, pixbuf);
 		}
 	}
-
+	free(mime_type);
 	args->pixbuf = pixbuf;
 	siril_add_idle(end_update_preview_cb, args);
 	return GINT_TO_POINTER(0);

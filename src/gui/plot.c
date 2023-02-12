@@ -707,7 +707,7 @@ static double get_error_for_time(pldata *plot, double time) {
 // the first will be the target
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0;
-	double *vmag, *err, *x, *real_x;
+	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
 		siril_log_color_message(_("Gnuplot was not found, the light curve data will be "
@@ -748,7 +748,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
 		return -1;
 	}
-	if (nb_ref_stars < 1)
+	if (nb_ref_stars == 1)
 		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
 	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
 
@@ -758,6 +758,10 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	real_x = calloc(nbImages, sizeof(double));
 	if (!vmag || !err || !x || !real_x) {
 		PRINT_ALLOC_ERR;
+		free(vmag); // g_free is safe to use here as it takes no action if the arg is NULL
+		free(err);
+		free(x);
+		free(real_x);
 		return -1;
 	}
 	// i is index in dataset, j is index in output
@@ -874,6 +878,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 				return 1;
 			}
 			g_free(buffer);
+			buffer = NULL;
 			while (x < MAX_SEQPSF && seq->photometry[x]) {
 				buffer = g_strdup_printf(", %g", tmp_plot->data[j].y);
 				if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
@@ -887,10 +892,12 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 				tmp_plot = tmp_plot->next;
 				++x;
 				g_free(buffer);
+				buffer = NULL;
 			}
 			if (!g_output_stream_write_all(output_stream, "\n", 1, NULL, NULL, &error)) {
 				g_warning("%s\n", error->message);
 				g_free(buffer);
+				buffer = NULL;
 				g_clear_error(&error);
 				g_object_unref(output_stream);
 				g_object_unref(file);

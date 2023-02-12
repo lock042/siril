@@ -5,6 +5,32 @@
 #  include <config.h>
 #endif
 
+#define MAX_COMMAND_WORDS 50		// max number of words to split in command line input
+
+typedef enum {
+	REQ_CMD_NONE = (1 << 0),
+	REQ_CMD_SINGLE_IMAGE = (1 << 1),
+	REQ_CMD_SEQUENCE = (1 << 2),
+	REQ_CMD_FOR_CFA = (1 << 3),
+	REQ_CMD_FOR_MONO = (1 << 4),
+	REQ_CMD_FOR_RGB = (1 << 5),
+	REQ_CMD_SELECTION = (1 << 6),
+	REQ_CMD_NO_THREAD = (1 << 10)
+} cmd_prerequires;
+
+typedef
+struct {
+	char *name;
+	int nbarg;
+	char *usage;
+	int (* process)(int);
+	char *definition;
+	gboolean scriptable;
+	cmd_prerequires prerequires;
+} command;
+
+extern char *word[MAX_COMMAND_WORDS];  // NULL terminated
+
 int	process_addmax(int nb);
 int	process_autostretch(int nb);
 int	process_autoghs(int nb);

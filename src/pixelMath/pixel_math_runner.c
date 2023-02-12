@@ -580,7 +580,7 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 									expression = g_string_free(string, FALSE);
 									total_len = strlen(expression);
 									pos = pos + strlen(replace);
-
+									g_free(replace);
 									siril_debug_print("Expression%d: %s\n", c, expression);
 								}
 							}
@@ -863,7 +863,7 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 }
 
 int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
-	if (index > MAX_IMAGES) {
+	if (index > MAX_IMAGES - 1) {
 		siril_log_message(_("A maximum of %d images can be used in a single expression.\n"), MAX_IMAGES);
 		return 1;
 	}
@@ -1080,8 +1080,9 @@ static void select_image(int nb) {
 			if (filename) {
 				gchar filter[FLEN_VALUE] = { 0 };
 				fits f = { 0 };
-				read_fits_metadata_from_path(filename, &f);
-				if (check_files_dimensions(&width, &height, &channel)) {
+				if (read_fits_metadata_from_path(filename, &f)) {
+					siril_log_color_message(_("Could not open file: %s\n"), "red", filename);
+				} else if (check_files_dimensions(&width, &height, &channel)) {
 					if (width != 0 && (channel != f.naxes[2] ||
 							width != f.naxes[0] ||
 							height != f.naxes[1])) {
@@ -1254,8 +1255,10 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	char buffer[512];
 
 	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip,
-			&model, &path, &iter))
+			&model, &path, &iter)) {
+		free(all_functions);
 		return FALSE;
+	}
 
 	gint real_index = get_real_index_from_index_in_list(model, &iter);
 

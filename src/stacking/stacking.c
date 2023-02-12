@@ -196,14 +196,14 @@ gpointer stack_function_handler(gpointer p) {
 
 // Checks that the number of degrees of freedoms is not more than shift
 // returns FALSE if not
-gboolean stack_regdata_is_valid(struct stacking_args args) {
-	if (!layer_has_registration(args.seq, args.reglayer)) return TRUE;
+gboolean stack_regdata_is_valid(struct stacking_args *args) {
+	if (!layer_has_registration(args->seq, args->reglayer)) return TRUE;
 	transformation_type regmin, regmax;
-	guess_transform_from_seq(args.seq, args.reglayer, &regmin, &regmax, FALSE);
+	guess_transform_from_seq(args->seq, args->reglayer, &regmin, &regmax, FALSE);
 	if (regmax > SHIFT_TRANSFORMATION)
 		return FALSE;
 	else if (regmax == SHIFT_TRANSFORMATION) {
-		siril_log_color_message(_("Stacking will use registration data of layer %d\n"), "salmon", args.reglayer);
+		siril_log_color_message(_("Stacking will use registration data of layer %d\n"), "salmon", args->reglayer);
 	}
 	return TRUE;
 }
@@ -273,7 +273,7 @@ static void start_stacking() {
 	stackparam.seq = &com.seq;
 	stackparam.reglayer = get_registration_layer(stackparam.seq);
 	// checking regdata is absent, or if present, is only shift
-	if (!stack_regdata_is_valid(stackparam)) {
+	if (!stack_regdata_is_valid(&stackparam)) {
 		int confirm = siril_confirm_dialog(_("Registration data found"),
 			_("Stacking has detected registration data with more than simple shifts.\n"
 			"Normally, you should apply existing registration before stacking."),

@@ -5,32 +5,7 @@
 #include "core/siril.h"
 #include "core/command.h"
 #include "core/command_def.h"
-
-#define MAX_COMMAND_WORDS 50		// max number of words to split in command line input
-
-extern char *word[MAX_COMMAND_WORDS];	// NULL terminated
-
-typedef enum {
-	REQ_CMD_NONE = (1 << 0),
-	REQ_CMD_SINGLE_IMAGE = (1 << 1),
-	REQ_CMD_SEQUENCE = (1 << 2),
-	REQ_CMD_FOR_CFA = (1 << 3),
-	REQ_CMD_FOR_MONO = (1 << 4),
-	REQ_CMD_FOR_RGB = (1 << 5),
-	REQ_CMD_SELECTION = (1 << 6),
-	REQ_CMD_NO_THREAD = (1 << 10)
-} cmd_prerequires;
-
-typedef
-struct {
-	char *name;
-	int nbarg;
-	char *usage;
-	int (* process)(int);
-	char *definition;
-	gboolean scriptable;
-	cmd_prerequires prerequires;
-} command;
+#include "core/command_extra.h"
 
 static command commands[] = {
 	/* name, nbarg, usage, function pointer, description, scriptable */
@@ -258,6 +233,7 @@ static command commands[] = {
 	{"wiener", 0, "wiener [-alpha=]", process_wiener, STR_WIENER, TRUE, REQ_CMD_SINGLE_IMAGE},
 	/* reconstruct from wavelet transform and weighs plans with c1, c2, c3... */
 	{"wrecons", 2, "wrecons c1 c2 c3 ...", process_wrecons, STR_WRECONS, TRUE, REQ_CMD_SINGLE_IMAGE},
+	EXTRA_COMMANDS
 
 	{"",0,"",0, STR_NONE, FALSE, REQ_CMD_NONE}
 };

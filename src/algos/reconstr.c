@@ -1,21 +1,21 @@
 /* @(#)reconstr.c	19.1 (ES0-DMD) 02/25/03 13:34:40 */
 /*===========================================================================
  Copyright (C) 1995 European Southern Observatory (ESO)
- 
+
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License as
  published by the Free Software Foundation; either version 2 of
  the License, or (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public
  License along with this program;
  If not, see <http://www.gnu.org/licenses/>.
- 
+
  Corresponding concerning ESO-MIDAS should be addressed as follows:
  Internet e-mail: midas@eso.org
  Postal address: European Southern Observatory
@@ -154,6 +154,14 @@ int wavelet_reconstruct_file(char *File_Name_Transform, float *coef, WORD *data)
 
 	Nl = Wavelet.Nbr_Ligne;
 	Nc = Wavelet.Nbr_Col;
+	if (Nl < 1 || Nc < 1 || Nl > MAX_IMAGE_DIM || Nc > MAX_IMAGE_DIM) {
+		siril_log_color_message(_("Error: dimensions reported by wavelets file are negative, zero or excessive.\n"), "red");
+		return 1;
+	}
+	if (Wavelet.Nbr_Plan < 1 || Wavelet.Nbr_Plan > 6) {
+		siril_log_color_message(_("Error: number of plans reported by wavelets file is out of bounds.\n"), "red");
+		return 1;
+	}
 	Imag = f_vector_alloc(Nl * Nc);
 	if (Imag == NULL) {
 		PRINT_ALLOC_ERR;

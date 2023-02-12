@@ -53,6 +53,7 @@ const char *scnr_type_to_string(scnr_type t) {
 /* Subtractive Chromatic Noise Reduction */
 gpointer scnr(gpointer p) {
 	struct scnr_data *args = (struct scnr_data *) p;
+	g_assert(args->fit->type == DATA_USHORT || args->fit->type == DATA_FLOAT);
 	size_t i, nbdata = args->fit->naxes[0] * args->fit->naxes[1];
 	gint nb_above_1 = 0;
 	struct timeval t_start, t_end;
@@ -64,20 +65,25 @@ gpointer scnr(gpointer p) {
 			args->preserve ? _(", preserving lightness") : "");
 	gettimeofday(&t_start, NULL);
 
+	int error = 0;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (i = 0; i < nbdata; i++) {
 		double red, green, blue;
-		if (args->fit->type == DATA_USHORT) {
-			red = args->fit->pdata[RLAYER][i] * invnorm;
-			green = args->fit->pdata[GLAYER][i] * invnorm;
-			blue = args->fit->pdata[BLAYER][i] * invnorm;
-		}
-		else if (args->fit->type == DATA_FLOAT) {
-			red = (double)args->fit->fpdata[RLAYER][i];
-			green = (double)args->fit->fpdata[GLAYER][i];
-			blue = (double)args->fit->fpdata[BLAYER][i];
+		switch (args->fit->type) {
+			case DATA_USHORT:
+				red = args->fit->pdata[RLAYER][i] * invnorm;
+				green = args->fit->pdata[GLAYER][i] * invnorm;
+				blue = args->fit->pdata[BLAYER][i] * invnorm;
+				break;
+			case DATA_FLOAT:
+				red = (double)args->fit->fpdata[RLAYER][i];
+				green = (double)args->fit->fpdata[GLAYER][i];
+				blue = (double)args->fit->fpdata[BLAYER][i];
+				break;
+			default: // Default needs to be included in the switch to avoid warning about omitting DATA_UNSUPPORTED
+				break;
 		}
 
 		double x, y, z, L, a, b, m;
@@ -141,7 +147,7 @@ gpointer scnr(gpointer p) {
 	show_time(t_start, t_end);
 
 	notify_gfit_modified();
-	return GINT_TO_POINTER(0);
+	return GINT_TO_POINTER(error);
 }
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {

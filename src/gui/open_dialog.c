@@ -101,13 +101,10 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 			g_free(upcase);
 		}
 		raw[strlen(raw) - 1] = '\0';
-		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
-			gtk_filter_add(chooser, _("RAW DSLR Camera Files"), raw,
-				gui.file_ext_filter == TYPERAW);
-		} else {
-			all_filter = g_string_append(all_filter, ";");
-			all_filter = g_string_append(all_filter, raw);
-		}
+
+		all_filter = g_string_append(all_filter, ";");
+		all_filter = g_string_append(all_filter, raw);
+
 
 		free(raw);
 

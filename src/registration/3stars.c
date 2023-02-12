@@ -548,12 +548,16 @@ int register_3stars(struct registration_args *regargs) {
 	int processed = 0, failed = 0;
 
 	// local flag accounting both for process_all_frames flag and collecting failures along the process
-	gboolean *included = NULL;
-	float *scores = NULL;
-	included = calloc(regargs->seq->number, sizeof(gboolean));
-	scores = calloc(regargs->seq->number, sizeof(float));
-	if (!included || !scores) {
+	gboolean *included = calloc(regargs->seq->number, sizeof(gboolean));
+	if (!included) {
 		PRINT_ALLOC_ERR;
+		_3stars_free_results();
+		return 1;
+	}
+	float *scores = calloc(regargs->seq->number, sizeof(float));
+	if (!scores) {
+		PRINT_ALLOC_ERR;
+		free(included);
 		_3stars_free_results();
 		return 1;
 	}

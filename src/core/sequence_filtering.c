@@ -220,7 +220,7 @@ seq_image_filter create_multiple_filter_from_list(struct filtering_tuple *filter
 int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq, seq_image_filter *criterion, double *param) {
 	int nb_filters = 0;
 	int layer = get_registration_layer(seq);
-	struct filtering_tuple filters[5] = { { NULL, 0.0 } };
+	struct filtering_tuple filters[8] = { { NULL, 0.0 } };
 
 	if ((arg->f_fwhm_p > 0.0f && arg->f_fwhm > 0.0f) ||
 			(arg->f_wfwhm_p > 0.0f && arg->f_wfwhm > 0.0f) ||
@@ -242,7 +242,7 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 				compute_highest_accepted_fwhm(seq, layer, arg->f_fwhm_p, arg->f_fwhm_k);
 		siril_log_message(_("Using star FWHM images filter (below %f)\n"),
 					filters[nb_filters].param);
-				nb_filters++;
+		nb_filters++;
 	}
 	if (arg->f_wfwhm_p > 0.0f || arg->f_wfwhm > 0.0f) {
 		filters[nb_filters].filter = seq_filter_weighted_fwhm;
@@ -250,7 +250,7 @@ int convert_parsed_filter_to_filter(struct seq_filter_config *arg, sequence *seq
 				compute_highest_accepted_weighted_fwhm(seq, layer, arg->f_wfwhm_p, arg->f_wfwhm_k);
 		siril_log_message(_("Using star weighted FWHM images filter (below %f)\n"),
 					filters[nb_filters].param);
-				nb_filters++;
+		nb_filters++;
 	}
 	if (arg->f_round_p > 0.0f || arg->f_round > 0.0f) {
 		filters[nb_filters].filter = seq_filter_roundness;
@@ -310,8 +310,10 @@ int setup_filtered_data(struct stacking_args *args) {
 		siril_log_message(_("Provided filtering options do not allow at least two images to be processed.\n"));
 		return 1;
 	}
-	if (args->image_indices)
+	if (args->image_indices) {
 		free(args->image_indices);
+		args->image_indices = NULL;
+	}
 	return stack_fill_list_of_unfiltered_images(args);
 }
 
@@ -329,7 +331,7 @@ int stack_fill_list_of_unfiltered_images(struct stacking_args *args) {
 		}
 		args->image_indices = newptr;
 	} else {
-		args->image_indices = malloc(args->nb_images_to_stack * sizeof(int));
+		args->image_indices = calloc(args->nb_images_to_stack, sizeof(int));
 		if (!args->image_indices) {
 			PRINT_ALLOC_ERR;
 			return 1;
@@ -430,7 +432,10 @@ static double generic_compute_accepted_value_with_rejection(sequence *seq, int l
 		if (data > 0.0f)
 			val[n++] = data * factor;
 	}
-	if (!n) return 0.0;
+	if (!n) {
+		free(val);
+		return 0.0;
+	}
 	if (n < seq->number) {
 		siril_log_message(_("Warning: some images don't have information available for best "
 				"images selection, using only available data (%d images on %d).\n"),
@@ -456,8 +461,11 @@ static double generic_compute_accepted_value_with_rejection(sequence *seq, int l
 		n -= j;
 	} while (j > 0);
 
-	if (n < 0) return 0.0;
-	
+	if (n < 0) {
+		free(val);
+		return 0.0;
+	}
+
 	threshold = factor * val[n - 1]; // we return a positive value
 	free(val);
 	return threshold;
@@ -499,7 +507,7 @@ double compute_highest_accepted_background(sequence *seq, int layer, double crit
 }
 
 double compute_lowest_accepted_nbstars(sequence *seq, int layer, double criterion, gboolean is_ksigma) {
-	if (!is_ksigma) 
+	if (!is_ksigma)
 		return generic_compute_accepted_value(seq, layer, criterion, FALSE, regdata_nbstars);
 	else
 		return generic_compute_accepted_value_with_rejection(seq, layer, criterion, FALSE, regdata_nbstars);
@@ -550,7 +558,8 @@ gchar *describe_filter(sequence *seq, seq_image_filter filtering_criterion, doub
 				descr[strlen(descr)-1] = '\0';	// remove the new line
 				if (f) descr[0] = tolower(descr[0]);
 			}
-			g_string_append(str, descr);
+			if (descr)
+				g_string_append(str, descr);
 			g_string_append(str, ", ");
 			g_free(descr);
 			f++;

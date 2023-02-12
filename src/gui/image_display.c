@@ -606,7 +606,7 @@ static void draw_vport(const draw_data_t* dd) {
 		view->view_width = dd->window_width;
 		view->view_height = dd->window_height;
 		cairo_t *cached_cr = cairo_create(view->disp_surface);
-		cairo_matrix_t y_reflection_matrix, flipped_matrix; 
+		cairo_matrix_t y_reflection_matrix, flipped_matrix;
 		cairo_matrix_init_identity(&y_reflection_matrix);
 		if (livestacking_is_started() && !g_strcmp0(gfit.row_order, "TOP-DOWN")) {
 			y_reflection_matrix.yy = -1.0;
@@ -1674,7 +1674,7 @@ point get_center_of_vport() {
 	guint window_width = gtk_widget_get_allocated_width(widget);
 	guint window_height = gtk_widget_get_allocated_height(widget);
 
-	point center = { window_width / 2, window_height / 2 };
+	point center = { window_width / 2., window_height / 2. };
 
 	return center;
 }

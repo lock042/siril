@@ -135,7 +135,7 @@ gboolean end_BandingEngine(gpointer p) {
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
-	
+
 	free(args);
 	return FALSE;
 }
@@ -206,12 +206,14 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
+			clearfits(fiximage);
 			return 1;
 		}
 		double background = stat->median;
 		double *rowvalue = calloc(fit->ry, sizeof(double));
 		if (rowvalue == NULL) {
 			PRINT_ALLOC_ERR;
+			clearfits(fiximage);
 			free_stats(stat);
 			return 1;
 		}
@@ -225,6 +227,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 			if (cpyline == NULL) {
 				PRINT_ALLOC_ERR;
 				free(rowvalue);
+				clearfits(fiximage);
 				return 1;
 			}
 			memcpy(cpyline, line, fit->rx * sizeof(WORD));

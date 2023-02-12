@@ -3488,7 +3488,7 @@ int *num_stars_M /* O: number of stars in output array M */
 	int current_num_J, current_num_K;
 	double deltax, deltay;
 	double Axm, Axp, Aym, Ayp;
-	s_star *sa, *sb;
+	s_star *sa = NULL, *sb = NULL;
 
 #ifdef DEBUG
 	printf("entering match_arrays_slow ");
@@ -3562,7 +3562,8 @@ int *num_stars_M /* O: number of stars in output array M */
 
 	for (posA = 0; posA < num_stars_A; posA++) {
 
-		g_assert((sa = &(star_array_A[posA])) != NULL);
+		sa = &(star_array_A[posA]);
+		g_assert(sa != NULL);
 		Ax = sa->x;
 		Ay = sa->y;
 
@@ -3573,7 +3574,8 @@ int *num_stars_M /* O: number of stars in output array M */
 
 		for (posB = 0; posB < num_stars_B; posB++) {
 
-			g_assert((sb = &(star_array_B[posB])) != NULL);
+			sb = &(star_array_B[posB]);
+			g_assert(sb != NULL);
 			Bx = sb->x;
 			By = sb->y;
 

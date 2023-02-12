@@ -1,6 +1,8 @@
 #ifndef SRC_CORE_COMMAND_LINE_PROCESSOR_H_
 #define SRC_CORE_COMMAND_LINE_PROCESSOR_H_
 
+#include <glib.h>
+
 typedef enum {
 	CMD_NOT_FOUND = -999,
 	CMD_NO_WAIT = -667,
@@ -34,7 +36,7 @@ int check_requires(gboolean *checked_requires, gboolean is_required);
 void log_several_lines(char *text);
 
 gpointer execute_script(gpointer p);
-int	processcommand(const char *line);
+int processcommand(const char *line);
 void init_command();
 sequence *load_sequence(const char *name, char **get_filename);
 

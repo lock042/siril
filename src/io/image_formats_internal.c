@@ -221,6 +221,12 @@ int readbmp(const char *name, fits *fit) {
 	/*	memcpy(&compression, header + 30, 4);*/
 
 	get_image_size(header, &width, &height);
+	if (width < 1 || height < 1 || width > MAX_IMAGE_DIM || height > MAX_IMAGE_DIM) {
+		fprintf(stderr, "readbmp: file reports negative, zero or excessive dimensions\n");
+		perror("readbmp");
+		fclose(file);
+		return -1;
+	}
 	memcpy(&nbplane, header + 28, 2);
 	nbplane = nbplane / 8;
 	memcpy(&data_offset, header + 10, 4);
@@ -600,6 +606,10 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 
 static int saveppm(const char *name, fits *fit) {
 	FILE *fp = g_fopen(name, "wb");
+	if (!fp) {
+		siril_log_color_message(_("Error opening file %s\n"), "red", name);
+		return 1;
+	}
 	size_t i, ndata = fit->rx * fit->ry;
 	double norm;
 	const char *comment = "# CREATOR : SIRIL";

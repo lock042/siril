@@ -126,6 +126,8 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 			markup = g_markup_printf_escaped (format_white, "Image: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
+		g_free(filename);
+		filename = NULL;
 	}
 
 
@@ -138,6 +140,7 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 			markup = g_markup_printf_escaped (format_white, "Sequence: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
+		g_free(seq_basename);
 	}
 
 }
@@ -146,7 +149,7 @@ void launch_clipboard_survey() {
 	if (com.script)
 		return;
 	GtkClipboard *clipboard = NULL;
-	
+
 	/* Get the clipboard object */
 	clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 
@@ -819,6 +822,7 @@ void display_filename() {
 	g_free(base_name);
 	g_free(orig_filename);
 	g_free(orig_base_name);
+	if (concat_base_name) g_string_free(concat_base_name, TRUE);
 }
 
 void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
@@ -1274,27 +1278,32 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 
 static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	static gboolean first_resize = TRUE;
-	int position = gtk_paned_get_position(paned);
-	//printf("position updated to %d\n", position);
 	if (first_resize) {
 		if (com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
 			gtk_paned_set_position(paned, com.pref.gui.pan_position);
 		}
 		first_resize = FALSE;
-	} else {
-		if (com.pref.gui.remember_windows)
-			com.pref.gui.pan_position = position;
-		int max_position;
-		g_object_get(G_OBJECT(paned), "max-position", &max_position, NULL);
-		if (position == max_position) {
-			GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-			com.pref.gui.pan_position = -1;
-			// hide it
-			GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
-			g_action_activate(action_panel, NULL);
-			gtk_paned_set_position(paned, -1);	// reset to default
-		}
 	}
+}
+
+gboolean on_main_panel_button_release_event(GtkWidget *widget,
+		GdkEventButton *event, gpointer user_data) {
+	int position = gtk_paned_get_position((GtkPaned*) widget);
+	if (com.pref.gui.remember_windows) {
+		com.pref.gui.pan_position = position;
+	}
+	int max_position;
+	g_object_get(G_OBJECT(widget), "max-position", &max_position, NULL);
+	if (position == max_position) {
+		GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+		com.pref.gui.pan_position = -1;
+		// hide it
+		GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
+		g_action_activate(action_panel, NULL);
+		gtk_paned_set_position((GtkPaned*) widget, -1);	// reset to default
+	}
+
+	return FALSE;
 }
 
 void initialize_all_GUI(gchar *supported_files) {
@@ -1530,7 +1539,7 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 			break;
 		case 4:
 			gfit.binning_x = 1;
-			gfit.binning_x = 2;
+			gfit.binning_y = 2;
 			break;
 		case 5:
 			gfit.binning_x = 1;
@@ -1551,6 +1560,7 @@ void on_file_information_close_clicked(GtkButton *button, gpointer user_data) {
 		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), gfit.focal_length, gfit.pixel_size_x);
 	}
 	gtk_widget_hide(lookup_widget("file_information"));
+	refresh_star_list();
 }
 
 void on_toggleButtonUnbinned_toggled(GtkToggleButton *button, gpointer user_data) {
