@@ -2085,20 +2085,23 @@ gboolean check_starfile_date(sequence *seq, int index, gchar *star_filename) {
 			return FALSE;
 		if (!g_file_test(img_filename, G_FILE_TEST_EXISTS))
 			return FALSE;
-		stat(img_filename, &imgfileInfo);
-		stat(star_filename, &starfileInfo);
+		if (!stat(img_filename, &imgfileInfo))
+			return FALSE;
+		if (!stat(star_filename, &starfileInfo));
 		// TODO: remove when testing completed
 		if (starfileInfo.st_ctime < imgfileInfo.st_ctime)
 			printf("%s is older than %s, detecting again\n", star_filename, img_filename);
 		return (starfileInfo.st_ctime > imgfileInfo.st_ctime);
 	}
-	// ielse, we check the sequence date vs starfile date
+	// else, we check the sequence date vs starfile date
 	gchar *seqname;
 	if (seq->type == SEQ_SER)
 		seqname = seq->ser_file->filename;
 	else
 		seqname = seq->fitseq_file->filename;
-	stat(seqname, &imgfileInfo);
-	stat(star_filename, &starfileInfo);
+	if (!stat(seqname, &imgfileInfo))
+		return FALSE;
+	if (!stat(star_filename, &starfileInfo))
+		return FALSE;
 	return (starfileInfo.st_ctime > imgfileInfo.st_ctime);
 }
