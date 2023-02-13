@@ -76,12 +76,12 @@ struct phot_config *phot_set_adjusted_for_image(fits *fit) {
 	return retval;
 }
 
-// dynamic radius: aperture = 2*fwhm, inner = 3*fwhm, outer = 4*fwhm
+// dynamic radius: aperture = 2*fwhm, inner and outer based on preferences
 rectangle compute_dynamic_area_for_psf(psf_star *psf, struct phot_config *original, struct phot_config *phot_set, Homography H, Homography Href) {
 	phot_set->gain = original->gain;
 	phot_set->aperture = psf->fwhmx * 2.0;
-	phot_set->inner = psf->fwhmx * 3.0;
-	phot_set->outer = psf->fwhmx * 4.0;
+	phot_set->inner = psf->fwhmx * com.pref.phot_set.auto_inner_factor;
+	phot_set->outer = psf->fwhmx * com.pref.phot_set.auto_outer_factor;
 	phot_set->force_radius = TRUE;
 	phot_set->minval = original->minval;
 	phot_set->maxval = original->maxval;
@@ -249,8 +249,10 @@ void initialize_photometric_param() {
 	com.pref.phot_set.outer = 30;
 	com.pref.phot_set.aperture = 10;
 	com.pref.phot_set.force_radius = FALSE;
+	com.pref.phot_set.auto_inner_factor = 3.2;
+	com.pref.phot_set.auto_outer_factor = 4.5;
 	com.pref.phot_set.gain = 2.3;
-	com.pref.phot_set.minval = 0;
+	com.pref.phot_set.minval = -1000;
 	com.pref.phot_set.maxval = 60000;
 }
 
@@ -477,12 +479,13 @@ static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangl
 		siril_debug_print("star is outside image\n");
 		return 1;
 	}
-	y = fit->ry - y - 1;
+	y = (double)(fit->ry - 1) - y;
+	// some margin needs to be allowed for star centroid movement
 	double start = 1.5 * com.pref.phot_set.outer;
-	double size = 3 * com.pref.phot_set.outer;
+	double size = 3.0 * com.pref.phot_set.outer;
 	rectangle area;
-	area.x = x - start;
-	area.y = y - start;
+	area.x = round_to_int(x - start);
+	area.y = round_to_int(y - start);
 	area.w = size;
 	area.h = size;
 	if (area.x < 0 || area.y < 0 ||
@@ -507,7 +510,9 @@ static int area_is_unique(rectangle *area, rectangle *areas, int nb_areas) {
 	return 1;
 }
 
-int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path, gboolean use_comp1, gboolean use_comp2, fits *first) {
+/* com.pref.phot_set.outer needs to be set at this point */
+int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path,
+		gboolean use_comp1, gboolean use_comp2, fits *first) {
 	/* The file is a CSV with these fields:
 	 * Type,Name,HFR,xPos,yPos,AvgBright,MaxBright,Background,Ra,Dec
 	 *
@@ -555,22 +560,18 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 
 				if (ra_index < 1 || dec_index < 1) {
 					siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-					fclose(fd);
-					free(areas);
-					return 1;
+					target_acquired = FALSE;
+					break;
 				}
 				siril_debug_print("Found RA and Dec indices in file: %d and %d\n", ra_index, dec_index);
 				ready_to_parse = TRUE;
 				continue;
 			}
-			else {
-				siril_debug_print("malformed line: %s\n", buf);
-				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-				g_strfreev(tokens);
-				fclose(fd);
-				free(areas);
-				return 1;
-			}
+			siril_debug_print("malformed line: %s\n", buf);
+			siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
+			g_strfreev(tokens);
+			target_acquired = FALSE;
+			break;
 		}
 
 		if (!strcasecmp(type, "target")) {
@@ -581,9 +582,8 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				siril_debug_print("malformed line: %s\n", buf);
 				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
 				g_strfreev(tokens);
-				fclose(fd);
-				free(areas);
-				return 1;
+				target_acquired = FALSE;
+				break;
 			}
 
 			args->target_descr = g_strdup(tokens[name_index]);
@@ -612,9 +612,8 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				siril_debug_print("malformed line: %s\n", buf);
 				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
 				g_strfreev(tokens);
-				fclose(fd);
-				free(areas);
-				return 1;
+				target_acquired = FALSE;
+				break;
 			}
 			int index = target_acquired ? stars_count : stars_count + 1;
 			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[index])) {
@@ -639,9 +638,8 @@ int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *f
 				siril_debug_print("malformed line: %s\n", buf);
 				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
 				g_strfreev(tokens);
-				fclose(fd);
-				free(areas);
-				return 1;
+				target_acquired = FALSE;
+				break;
 			}
 			int index = target_acquired ? stars_count : stars_count + 1;
 			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[index])) {
@@ -685,9 +683,7 @@ gpointer light_curve_worker(gpointer arg) {
 	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
 		framing = FOLLOW_STAR_FRAME;
 
-	/* for now, we use seqpsf as many times as needed and the GUI way of
-	 * generating the light curve. Maybe someday it would be wise to move to
-	 * all_stars_psf instead, depending on the number of reference stars */
+	// someday we should move the area in the seqpsf args, not needed for now
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
 
@@ -697,12 +693,14 @@ gpointer light_curve_worker(gpointer arg) {
 				retval = 1;
 				break;
 			}
-			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"), star_index);
+			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),
+					star_index);
 		}
 
 		if (args->seq == &com.seq)
 			queue_redraw(REDRAW_OVERLAY);
 	}
+	memset(&com.selection, 0, sizeof(rectangle));
 
 	/* analyse data and create the light curve */
 	if (!retval)

@@ -107,13 +107,13 @@
 #include "algos/siril_wcs.h"
 #include "algos/geometry.h"
 #include "algos/photometric_cc.h"
+#include "algos/fix_xtrans_af.h"
+#include "algos/annotate.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
 #include "registration/matching/match.h"
-#include "algos/fix_xtrans_af.h"
-#include "algos/annotate.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "git-version.h"
@@ -3781,7 +3781,8 @@ int process_seq_tilt(int nb) {
 	return CMD_OK;
 }
 
-int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *seqpsf_area, gchar **target_descr) {
+/* com.pref.phot_set.outer needs to be set at this point */
+static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *seqpsf_area, gchar **target_descr) {
 	rectangle area;
 	if (g_str_has_prefix(arg, "-at=") || g_str_has_prefix(arg, "-refat=")) {
 		gchar *value, *end;
@@ -3945,12 +3946,9 @@ int process_seq_psf(int nb) {
 	return seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, com.script);
 }
 
-// light_curve sequencename channel { -ninalist=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... } }
+// light_curve sequencename channel [-autoring] { -ninalist=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... } }
 int process_light_curve(int nb) {
-	sequence *seq;
-	int layer;
-
-	seq = load_sequence(word[1], NULL);
+	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
 	siril_debug_print("reference image in seqfile is %d\n", seq->reference_image);
@@ -3961,7 +3959,7 @@ int process_light_curve(int nb) {
 	seq->current = refimage;	// seqpsf computes transformations from current
 
 	gchar *end;
-	layer = g_ascii_strtoull(word[2], &end, 10);
+	int layer = g_ascii_strtoull(word[2], &end, 10);
 	if (end == word[2] || layer >= seq->nb_layers) {
 		siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
 		free_sequence(seq, TRUE);
@@ -3971,60 +3969,96 @@ int process_light_curve(int nb) {
 	if (sequence_drifts(seq, layer, seq->rx / 4))
 		return CMD_GENERIC_ERROR;
 
+	int argidx = 3;
+	gboolean autoring = FALSE;
+	if (!g_strcmp0(word[argidx], "-autoring")) {
+		autoring = TRUE;
+		if (nb == 3) {
+			siril_log_message(_("Missing argument to command\n"));
+			return CMD_ARG_ERROR;
+		}
+		argidx++;
+	}
+
+	fits first = { 0 };
+	if (autoring) {
+		if (seq_read_frame(seq, refimage, &first, FALSE, -1)) {
+			free_sequence(seq, TRUE);
+			return CMD_GENERIC_ERROR;
+		}
+		float fwhm = measure_image_FWHM(&first);
+		if (fwhm <= 0.0f) {
+			siril_log_color_message(_("Could not find stars in the first image, aborting.\n"), "red");
+			free_sequence(seq, TRUE);
+			clearfits(&first);
+			return CMD_GENERIC_ERROR;
+		}
+		/* automatic aperture is 2 times each star's FWHM, which can be
+		 * significantly larger than the mean FWHM that we get here */
+		com.pref.phot_set.inner = com.pref.phot_set.auto_inner_factor * fwhm;
+		com.pref.phot_set.outer = com.pref.phot_set.auto_outer_factor * fwhm;
+		siril_log_message(_("Setting inner and outer photometry ring radii to %.1f and %.1f\n"),
+				com.pref.phot_set.inner, com.pref.phot_set.outer);
+	} else {
+		if (seq_read_frame_metadata(seq, refimage, &first)) {
+			free_sequence(seq, TRUE);
+			return CMD_GENERIC_ERROR;
+		}
+		siril_log_message(_("Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"),
+				com.pref.phot_set.inner, com.pref.phot_set.outer);
+	}
+	g_assert(com.pref.phot_set.inner < com.pref.phot_set.outer);
+
 	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		clearfits(&first);
+		return CMD_ALLOC_ERROR;
+	}
 
 	/* we have a sequence and channel, now we iterate with seqpsf on the list of stars */
-	if (g_str_has_prefix(word[3], "-ninastars=")) {
-		char *file = word[3] + 11;
+	if (g_str_has_prefix(word[argidx], "-ninastars=")) {
+		char *file = word[argidx] + 11;
 		if (file[0] == '\0') {
-			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
+			siril_log_message(_("Missing argument to %s, aborting.\n"), word[argidx]);
 			free(args);
-			return 1;
+			clearfits(&first);
+			return CMD_GENERIC_ERROR;
 		}
 		if (!seq_has_wcs) {
 			siril_log_message(_("No image in the sequence was found with the WCS information required for star selection by equatorial coordinates, plate solve the reference or the first\n"));
 			free(args);
+			clearfits(&first);
 			return CMD_FOR_PLATE_SOLVED;
 		}
-
-		fits first = { 0 };
-		if (seq_read_frame_metadata(seq, refimage, &first)) {
+		if (parse_nina_stars_file_using_WCS(args, file, TRUE, TRUE, &first)) {
 			free_sequence(seq, TRUE);
 			free(args);
-			return CMD_GENERIC_ERROR;
-		}
-		if (parse_nina_stars_file_using_WCS(args, word[3]+11, TRUE, TRUE, &first)) {
-			free_sequence(seq, TRUE);
-			free(args);
+			clearfits(&first);
 			return CMD_GENERIC_ERROR;
 		}
 	} else {
-		fits first = { 0 };
-		if (seq_read_frame_metadata(seq, refimage, &first)) {
-			free_sequence(seq, TRUE);
-			free(args);
-			return CMD_GENERIC_ERROR;
-		}
-		args->areas = malloc((nb - 3) * sizeof(rectangle));
-		for (int arg_index = 3; arg_index < nb; arg_index++) {
-			if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3], &args->target_descr)) {
+		args->areas = malloc((nb - argidx) * sizeof(rectangle));
+		for (int arg_index = argidx; arg_index < nb; arg_index++) {
+			if (parse_star_position_arg(word[arg_index], seq, &first,
+						&args->areas[arg_index - argidx], &args->target_descr)) {
 				free_sequence(seq, TRUE);
 				free(args->areas);
 				free(args);
+				clearfits(&first);
 				return CMD_ARG_ERROR;;
 			}
 		}
-		args->nb = nb - 3;
+		args->nb = nb - argidx;
 	}
+	clearfits(&first);
 	args->seq = seq;
 	args->layer = layer;
 	args->display_graph = FALSE;
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
-	// TODO: display stars if sequence is current and not headless
-
 	start_in_new_thread(light_curve_worker, args);
-	return 0;
+	return CMD_OK;
 }
 
 int process_seq_crop(int nb) {

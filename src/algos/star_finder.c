@@ -1237,3 +1237,43 @@ END:
 	return GINT_TO_POINTER(retval);
 }
 
+// returns the max of each channel's robust mean, 0 for errors
+float measure_image_FWHM(fits *fit) {
+	float fwhm[3];
+	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
+	gboolean failed = FALSE;
+	int nb_chan = (int)fit->naxes[2];
+	g_assert(nb_chan == 1 || nb_chan == 3);
+#ifdef _OPENMP
+	int *threads = compute_thread_distribution(nb_chan, com.max_thread);
+#pragma omp parallel for num_threads(com.max_thread)
+#endif
+	for (int chan = 0; chan < nb_chan; chan++) {
+		int nb_stars;
+		int nb_subthreads;
+#ifdef _OPENMP
+		nb_subthreads = threads[chan];
+#else
+		nb_subthreads = com.max_thread;
+#endif
+		psf_star **stars = peaker(&im, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE,
+				TRUE, 200, com.pref.starfinder_conf.profile, nb_subthreads);
+		if (stars) {
+			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
+			siril_debug_print("FWHM for channel %d: %.3f\n", chan, fwhm[chan]);
+
+			for (int i = 0; i < nb_stars; i++)
+				free_psf(stars[i]);
+			free(stars);
+		}
+		else failed = TRUE;
+	}
+#ifdef _OPENMP
+	free(threads);
+#endif
+	if (failed)
+		return 0.0f;
+	if (nb_chan == 1)
+		return fwhm[0];
+	return max(fwhm[0], max(fwhm[1], fwhm[2]));
+}

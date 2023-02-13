@@ -5,6 +5,7 @@
 #include "io/sequence.h"
 #include "gui/message_dialog.h"
 #include "gui/plot.h"
+#include "core/siril_log.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *file_chooser = NULL;
@@ -104,6 +105,9 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 		// TODO: if clicked on cancel, do not continue
 	}
 
+	siril_log_message(_("Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"),
+			com.pref.phot_set.inner, com.pref.phot_set.outer);
+
 	clear_all_photometry_and_plot();
 	init_plot_colors();
 
@@ -114,6 +118,8 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 	if (parse_nina_stars_file_using_WCS(args, nina_file, use_c1, use_c2, &gfit)) {
 		// fail
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
+		free(args);
+		return;
 	}
 
 	args->seq = &com.seq;

@@ -1582,13 +1582,13 @@ static gboolean end_register_idle(gpointer p) {
 
 /* Moves the selection x, and y after transformation by Href^-1*Him */
 void selection_H_transform(rectangle *selection, Homography Href, Homography Himg) {
-	double xc, yc;
-	xc = (double)selection->x + (double)selection->w * 0.5;
-	yc = (double)selection->y + (double)selection->h * 0.5;
+	double xc = selection->x + selection->w * 0.5;
+	double yc = selection->y + selection->h * 0.5;
 	cvTransfPoint(&xc, &yc, Href, Himg);
-	selection->x = (int)(xc - (double)selection->w * 0.5);
-	selection->y = (int)(yc - (double)selection->h * 0.5);
-	// siril_log_message(_("boxselect %d %d %d %d\n"), selection->x, selection->y, selection->w, selection->h);
+	selection->x = round_to_int(xc - selection->w * 0.5);
+	selection->y = round_to_int(yc - selection->h * 0.5);
+	siril_debug_print("boxselect %d %d %d %d\n",
+			selection->x, selection->y, selection->w, selection->h);
 }
 
 void translation_from_H(Homography H, double *dx, double *dy) {
@@ -1598,7 +1598,7 @@ void translation_from_H(Homography H, double *dx, double *dy) {
 
 Homography H_from_translation(double dx, double dy) {
 	Homography H = { 0 }; // cvGetEye() cannot fail, but doesn't initialize H.pair_matched,
-						  // hence it is initialized here before the call to cvGetEye()
+			      // hence it is initialized here before the call to cvGetEye()
 	cvGetEye(&H);
 	H.h02 = dx;
 	H.h12 = -dy;

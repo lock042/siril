@@ -391,43 +391,6 @@ int photometric_cc(struct photometric_cc_data *args) {
 	return ret;
 }
 
-float measure_image_FWHM(fits *fit) {
-	float fwhm[3];
-	/*fits downsampled = { 0 };
-	copyfits(fit, &downsampled, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-	cvResizeGaussian(&downsampled, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA, FALSE, 0.0);*/
-	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
-	gboolean failed = FALSE;
-#ifdef _OPENMP
-	int *threads = compute_thread_distribution(3, com.max_thread);
-#pragma omp parallel for num_threads(com.max_thread)
-#endif
-	for (int chan = 0; chan < 3; chan++) {
-		int nb_stars;
-		int nb_subthreads;
-#ifdef _OPENMP
-		nb_subthreads = threads[chan];
-#else
-		nb_subthreads = com.max_thread;
-#endif
-		psf_star **stars = peaker(&im, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, com.pref.starfinder_conf.profile, nb_subthreads);
-		if (stars) {
-			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
-			siril_debug_print("FWHM for channel %d: %.3f\n", chan, fwhm[chan]);
-
-			for (int i = 0; i < nb_stars; i++)
-				free_psf(stars[i]);
-			free(stars);
-		}
-		else failed = TRUE;
-	}
-	// clearfits(&downsampled);
-	free(threads);
-	if (failed)
-		return 0.0f;
-	return max(fwhm[0], max(fwhm[1], fwhm[2]));
-}
-
 /* photometric_cc is the entry point for the PCC following the call to the
  * plate solver which gives the star list. We can also run the PCC on a
  * plate-solved image without running plate solving again, this is what this
