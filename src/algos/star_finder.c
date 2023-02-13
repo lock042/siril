@@ -48,7 +48,8 @@
 #define DENSITY_THRESHOLD 0.001 // energy density threshold at which the PSF theoretical radius is cut. Value of 0.001 means we set the box radius to enclose 99.9% of the volume below the psf
 #define SAT_THRESHOLD 0.7 // fraction of the dynamic range (frame max - bg) above which pixels are expected to saturate or be close to saturation
 #define SAT_DETECTION_RANGE 0.1 // fraction of the dynamic range (frame max - bg) below local max value above which the 8 adjacent pixels must remain to consider we have a saturation plateau
-#define MAX_BOX_RADIUS 100 // max allowable value for R (the radius of the box that is passed to PSF fitting)
+#define MAX_BOX_RADIUS 200 // max allowable value for R (the radius of the box that is passed to PSF fitting)
+#define MAX_RADIUS_RATIO_DUP 0.2 // The fraction of the box radius to classify as a duplicate
 
 // Use this flag to print canditates rejection output (0 or 1, only works if SIRIL_OUTPUT_DEBUG is on)
 #define DEBUG_STAR_DETECTION 0
@@ -130,6 +131,22 @@ static int star_cmp_by_mag_est(const void *a, const void *b) {
 	else if ((*a1).mag_est < (*a2).mag_est)
 		return 1;
 	return 0;
+}
+
+// Finds if the point xx,yy is already listed in the candidates within matchradius
+// The list is crawled in reverse order to return TRUE faster
+// When the next candidate is further away (along y axis) than the current box radius, the search breaks and returns FALSE
+static gboolean candidate_is_duplicate(int xx, int yy, int boxradius, starc *candidates, int nbstars) {
+	int matchradius = (int)((double)boxradius * MAX_RADIUS_RATIO_DUP);
+	matchradius = max(matchradius, 1); // just in case we find zero
+					   // we go though the list in reverse order as we may break out faster
+	for (int i = nbstars - 1; i >= 0; i--) {
+		if (abs(xx - candidates[i].x) + abs(yy - candidates[i].y) <= matchradius)
+			return TRUE;
+		if (yy - candidates[i].y > boxradius) // if yy is further away than the box radius, we won't find a duplicate anymore
+			break;
+	}
+	return FALSE;
 }
 
 /* peaker is the function that searches for stars in an image.
@@ -470,12 +487,12 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				int Rm = max(Rr, Rc);
 				Rm = min(Rm, MAX_BOX_RADIUS);
 				if (Rm > r) {
-				// avoid enlarging outside frame width
+					// avoid enlarging outside frame width
 					if (xx - Rm < 0)
 						Rm = xx;
 					if (xx + Rm >= nx)
 						Rm = nx - xx - 1;
-				// avoid enlarging outside frame height
+					// avoid enlarging outside frame height
 					if (yy - Rm < 0)
 						Rm = yy;
 					if (yy + Rm >= ny)
@@ -492,9 +509,11 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 						bingo = FALSE;
 
 				if (bingo && nbstars < MAX_STARS) {
-					if (nbstars > 0 && candidates[nbstars - 1].x == xx &&
-							candidates[nbstars - 1].x == yy)
+					if (nbstars > 0 && candidate_is_duplicate(xx, yy, R, candidates, nbstars)) {
+						if (DEBUG_STAR_DETECTION)
+							siril_debug_print("candidate is a duplicate\n");
 						continue; // avoid duplicates for large saturated stars
+					}
 					candidates[nbstars].x = xx;
 					candidates[nbstars].y = yy;
 					candidates[nbstars].mag_est = meanhigh;
