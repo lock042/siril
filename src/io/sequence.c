@@ -1707,8 +1707,8 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 	int i;
 	for (i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++);
 	if (i == MAX_SEQPSF) {
-		free_photometry_set(seq, 0);
-		i = 0;
+		free_photometry_set(seq, 1);
+		i = 1;
 	}
 	else seq->photometry[i+1] = NULL;
 	seq->photometry[i] = calloc(seq->number, sizeof(psf_star *));

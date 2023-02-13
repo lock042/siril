@@ -3951,6 +3951,11 @@ int process_light_curve(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+		clear_all_photometry_and_plot(); // calls GTK+ code, but we're not in a script here
+	}
 	siril_debug_print("reference image in seqfile is %d\n", seq->reference_image);
 	int refimage = 0;
 	gboolean seq_has_wcs;
@@ -3997,8 +4002,8 @@ int process_light_curve(int nb) {
 		 * significantly larger than the mean FWHM that we get here */
 		com.pref.phot_set.inner = com.pref.phot_set.auto_inner_factor * fwhm;
 		com.pref.phot_set.outer = com.pref.phot_set.auto_outer_factor * fwhm;
-		siril_log_message(_("Setting inner and outer photometry ring radii to %.1f and %.1f\n"),
-				com.pref.phot_set.inner, com.pref.phot_set.outer);
+		siril_log_message(_("Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"),
+				com.pref.phot_set.inner, com.pref.phot_set.outer, fwhm);
 	} else {
 		if (seq_read_frame_metadata(seq, refimage, &first)) {
 			free_sequence(seq, TRUE);
