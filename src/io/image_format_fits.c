@@ -2513,10 +2513,18 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 				fprintf(stderr, "error: data ptr unallocated\n");
 				return -1;
 			}
+			if (!from->data)) {
+				fprintf(stderr, "error: no suitable data in src fits\n");
+				return -1;
+			}
 			memcpy(to->data, from->data, nbdata * depth * sizeof(WORD));
 		} else if (to->type == DATA_FLOAT) {
 			if (!(to->fdata)) {
 				fprintf(stderr, "error: fdata ptr unallocated\n");
+				return -1;
+			}
+			if (!from->fdata)) {
+				fprintf(stderr, "error: no suitable data in src fits\n");
 				return -1;
 			}
 			memcpy(to->fdata, from->fdata, nbdata * depth * sizeof(float));

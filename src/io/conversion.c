@@ -982,6 +982,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 		siril_debug_print("read error, ignoring image\n");
 		g_atomic_int_inc(&conv->failed_images);
 		finish_write_seq(rwdata->writer, FALSE);
+		if (fit) clearfits(fit);
 		return;
 	}
 	readjust_memory_limits(conv, fit);
