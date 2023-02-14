@@ -4284,8 +4284,8 @@ int process_nozero(int nb){
 
 int process_ddp(int nb) {
 	gchar *end;
-	int level = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || level < 0) {
+	float level = (float) g_ascii_strtod(word[1], &end);
+	if (end == word[1] || level < 0 || level > USHRT_MAX_SINGLE) {
 		siril_log_message(_("Level value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}

@@ -2513,7 +2513,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 				fprintf(stderr, "error: data ptr unallocated\n");
 				return -1;
 			}
-			if (!from->data)) {
+			if (!from->data) {
 				fprintf(stderr, "error: no suitable data in src fits\n");
 				return -1;
 			}
@@ -2523,7 +2523,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 				fprintf(stderr, "error: fdata ptr unallocated\n");
 				return -1;
 			}
-			if (!from->fdata)) {
+			if (!from->fdata) {
 				fprintf(stderr, "error: no suitable data in src fits\n");
 				return -1;
 			}
