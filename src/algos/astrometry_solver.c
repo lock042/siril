@@ -459,7 +459,11 @@ gpointer search_in_online_conesearch(gpointer p) {
 	if (result) {
 		retval = parse_buffer(result, args->limit_mag);
 	}
+#if defined HAVE_LIBCURL
+	free(result);
+#else
 	g_free(result);
+#endif
 	if (!retval) {
 		siril_add_idle(end_process_sso, NULL);
 	} else {
