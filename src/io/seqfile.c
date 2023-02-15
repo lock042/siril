@@ -583,6 +583,7 @@ int writeseqfile(sequence *seq){
 	int i, layer;
 
 	if (!seq->seqname || seq->seqname[0] == '\0') return 1;
+	if (!seq->imgparam) return 1;
 	filename = malloc(strlen(seq->seqname)+5);
 	sprintf(filename, "%s.seq", seq->seqname);
 	seqfile = g_fopen(filename, "w+t");

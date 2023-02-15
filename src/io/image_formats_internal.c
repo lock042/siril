@@ -848,7 +848,8 @@ int readpic(const char *name, fits *fit) {
 
 	size_t nbdata = fit->rx * fit->ry;
 
-	fseek(pic_file->file, 290, SEEK_SET);
+	if (fseek(pic_file->file, 290, SEEK_SET))
+		fprintf(stderr, "fseek() failure!\n");
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));
 
 	if ((fread(buf, 1, nbdata * pic_file->nbplane * sizeof(WORD), pic_file->file))

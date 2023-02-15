@@ -976,6 +976,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 			g_atomic_int_inc(&conv->converted_files);
 		}
 		free(rwdata);	// reader and writer are freed in their function
+		if (fit) free(fit);
 		return;
 	}
 	else if (!fit || read_status == NOT_READ || read_status == READ_FAILED) {

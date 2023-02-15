@@ -345,7 +345,7 @@ void c_pipp_avi_write::frame_added()
         m_avi_stdindex_header.base_offset[1] = (uint32_t)(base_offset >> 32);
         m_avi_stdindex_header.base_offset[0] = (uint32_t)(base_offset & 0xFFFFFFFF);
     }
-    
+
     m_total_frame_count++;  // Increment frame counts
 
     if (m_old_avi_format == 0) {
@@ -497,7 +497,7 @@ bool c_pipp_avi_write::create(
                                + sizeof(m_indx_chunk_header) + m_indx_chunk_header.size
                                + sizeof(m_odml_list_header) - sizeof(m_odml_list_header.four_cc) + m_odml_list_header.size;
     }
-        
+
     // Set the size of hdrl LIST
     m_hdrl_list_header.size = sizeof(m_hdrl_list_header.four_cc)
                           + sizeof(m_avih_chunk_header) + m_avih_chunk_header.size
@@ -522,7 +522,7 @@ bool c_pipp_avi_write::create(
     m_movi_avix_list_header.size = sizeof(m_movi_avix_list_header.four_cc)
                                + m_max_frames_in_other_riffs * sizeof(s_chunk_header)       // 00db chunks
                                + m_max_frames_in_other_riffs * m_frame_size                   // frame data
-                               + sizeof(m_ix00_chunk_header)                                // ix00 chunk header  
+                               + sizeof(m_ix00_chunk_header)                                // ix00 chunk header
                                + sizeof(m_avi_stdindex_header)                              // Standard index header
                                + m_max_frames_in_other_riffs * sizeof(m_avi_stdindex_entry);  // Standard index entries
 
@@ -680,7 +680,7 @@ void c_pipp_avi_write::finish_riff()
 
         // Update final headers
         m_avi_riff_header.size = (uint32_t)filesize - 8;
-    } 
+    }
 
     // Grab start position of the next RIFF
     int64_t riff_end_position = ftell64(mp_avi_file);
@@ -691,7 +691,8 @@ void c_pipp_avi_write::finish_riff()
         // We need to correct the RIFF and LIST sizes as it is not completely full
 
         // Go back to the start of this RIFF
-        fseek64(mp_avi_file, m_riff_start_position, SEEK_SET);
+        if (fseek64(mp_avi_file, m_riff_start_position, SEEK_SET))
+            fprintf(stderr, "error in AVI write: fseek64 failed...\n");
 
         // Write RIFF header again with correct length now that we know it
         m_avix_riff_header.size = (int32_t)(riff_end_position - m_riff_start_position) - sizeof(m_avix_riff_header) + sizeof(m_avix_riff_header.four_cc);
@@ -702,7 +703,8 @@ void c_pipp_avi_write::finish_riff()
         fwrite_error_check(&m_movi_avix_list_header , 1 , sizeof(m_movi_avix_list_header) , mp_avi_file);
 
         // Go back to the end of this RIFF
-        fseek64(mp_avi_file, riff_end_position, SEEK_SET);
+        if (fseek64(mp_avi_file, riff_end_position, SEEK_SET))
+            fprintf(stderr, "error in AVI write: fseek64 failed...\n");
     }
 
     // Grab start position of the next RIFF

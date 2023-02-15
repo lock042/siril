@@ -587,6 +587,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 			siril_world_cs_get_delta(catalog_center) == 0.0) {
 		if (use_local_asnet) {
 			args->cat_center = NULL;
+			siril_world_cs_unref(catalog_center);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"),
 					_("Please enter object coordinates."));
