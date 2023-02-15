@@ -63,7 +63,7 @@ static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 
 static void set_filters_save_dialog(GtkFileChooser *chooser) {
 	GString *all_filter = NULL;
-	const gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS";
+	const gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz";
 	const gchar *bmp_filter = "*.bmp;*.BMP";
 	const gchar *netpbm_filter = "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM";
 

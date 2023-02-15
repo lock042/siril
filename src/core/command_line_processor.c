@@ -600,14 +600,18 @@ int processcommand(const char *line) {
 
 // loads the sequence from com.wd
 sequence *load_sequence(const char *name, char **get_filename) {
-	gchar *file = g_strdup(name);
+	gchar *file = NULL;
 	gchar *altfile = NULL;
-	if (!g_str_has_suffix(name, ".seq")) {
-		str_append(&file, ".seq");
-		if (!g_str_has_suffix(name, "_"))
-			altfile = g_strdup_printf("%s_.seq", name);
+	if (name[0] == '.' && g_utf8_strlen(name, -1) == 1 && sequence_is_loaded())
+		file = g_strdup(com.seq.seqname);
+	else {
+		file = g_strdup(name);
+		if (!g_str_has_suffix(name, ".seq")) {
+			str_append(&file, ".seq");
+			if (!g_str_has_suffix(name, "_"))
+				altfile = g_strdup_printf("%s_.seq", name);
+		}
 	}
-
 	if (!is_readable_file(file) && (!altfile || !is_readable_file(altfile))) {
 		if (check_seq()) {
 			siril_log_color_message(_("No sequence `%s' found.\n"), "red", name);

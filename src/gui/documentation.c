@@ -31,7 +31,7 @@
 void siril_get_documentation() {
 	gboolean ret;
 	const char *locale;
-	const char *supported_languages[] = { NULL }; // en is NULL: default language
+	const char *supported_languages[] = { "de", "fr", NULL };  // en is NULL: default language
 	gchar *lang = NULL;
 	int i = 0;
 

@@ -16791,7 +16791,6 @@ msgid "New version is available. You can download it at <a href=\"%s\">%s</a>\n"
 msgstr ""
 "Nouvelle version disponible. Vous pouvez la télécharger à <a href=\"%s\">%s</"
 "a>\n"
-"\n"
 
 #: src/core/siril_update.c:358
 msgid "No update check: this is a development version\n"
@@ -21583,7 +21582,6 @@ msgstr "FWHM : %*.2f %s\n"
 msgid "roundness:%*.2f\n"
 msgstr ""
 "rondeur : %*.2f\n"
-"\n"
 
 #: src/registration/global.c:904
 msgid "The number of stars has capped, readapting threshold and filtering\n"

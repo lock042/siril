@@ -1383,27 +1383,28 @@ gpointer plate_solver(gpointer p) {
 	if (!args->manual) {
 		int detection_layer = args->fit->naxes[2] == 1 ? 0 : 1;
 		fits fit_backup = { 0 };	// original image in case of downscale
-		gchar *header_backup = NULL;
 		if (args->downsample) {
 			int retval;
+			fits tmp = { 0 };
 			siril_log_message(_("Down-sampling image for faster star detection by a factor %.2f\n"),
 					DOWNSAMPLE_FACTOR);
-			retval = extract_fits(args->fit, &fit_backup, detection_layer, FALSE);
+			retval = extract_fits(args->fit, &tmp, detection_layer, FALSE);
 			if (!retval) {
-				copy_fits_metadata(args->fit, &fit_backup);
-				header_backup = g_strdup(args->fit->header);
+				//copy_fits_metadata(args->fit, &tmp);
 				args->rx_solver = round_to_int(DOWNSAMPLE_FACTOR * args->fit->rx);
 				args->ry_solver = round_to_int(DOWNSAMPLE_FACTOR * args->fit->ry);
-				retval = cvResizeGaussian(args->fit, args->rx_solver, args->ry_solver,
+				retval = cvResizeGaussian(&tmp, args->rx_solver, args->ry_solver,
 						OPENCV_AREA, FALSE);
 			}
 			if (retval) {
-				clearfits(&fit_backup);
+				clearfits(&tmp);
 				siril_log_color_message(_("Failed to downsample image, aborting\n"), "red");
 				args->message = g_strdup(_("Not enough memory"));
 				args->ret = 1;
 				goto clearup;
 			}
+			memcpy(&fit_backup, args->fit, sizeof(fits));
+			memcpy(args->fit, &tmp, sizeof(fits));
 
 			// TODO: should we average x and y or even better separate scales on x and y?
 			args->scalefactor = (double)fit_backup.rx / (double)args->fit->rx;
@@ -1422,8 +1423,6 @@ gpointer plate_solver(gpointer p) {
 		if (args->downsample) {
 			clearfits(args->fit);
 			memcpy(args->fit, &fit_backup, sizeof(fits));
-			args->fit->header = header_backup;
-			memset(&fit_backup, 0, sizeof(fits));
 		}
 	} else {
 		stars = args->stars ? args->stars : com.stars;
