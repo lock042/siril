@@ -7514,6 +7514,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	args->use_cosmetic_correction = FALSE;// dy default, CC is not activated
 	args->cc_from_dark = FALSE;
 	args->bad_pixel_map_file = NULL;
+	args->ignore_exclusion = FALSE;
 
 	/* checking for options */
 	for (int i = 2; i < nb; i++) {
@@ -7623,6 +7624,8 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			args->use_dark_optim = TRUE;
 		} else if (!strcmp(word[i], "-fix_xtrans")) {
 			args->fix_xtrans = TRUE;
+		} else if (!strcmp(word[i], "-pex")) {
+			args->ignore_exclusion = TRUE;
 		} else if (!strcmp(word[i], "-cfa")) {
 			args->is_cfa = TRUE;
 		} else if (!strcmp(word[i], "-debayer")) {
