@@ -469,7 +469,8 @@ static int prepro_finalize_hook(struct generic_seq_args *args) {
 void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	struct generic_seq_args *args = create_default_seqargs(prepro->seq);
 	args->force_float = !com.pref.force_16bit && prepro->output_seqtype != SEQ_SER;
-	if (args->obey_excluded) {
+	if (!prepro->ignore_exclusion) {
+		siril_debug_print("Ignoring exclusions: frames marked as excluded will still be processed.\n");
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = prepro->seq->selnum;
 	}
@@ -885,7 +886,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	// set output filename (preprocessed file name prefix)
 	args->ppprefix = gtk_entry_get_text(entry);
 
-	args->obey_excluded = gtk_toggle_button_get_active(preprocess_excluded);
+	args->ignore_exclusion = gtk_toggle_button_get_active(preprocess_excluded);
 	args->is_cfa = gtk_toggle_button_get_active(CFA);
 	args->debayer = gtk_toggle_button_get_active(debayer);
 	args->equalize_cfa = gtk_toggle_button_get_active(equalize_cfa);
