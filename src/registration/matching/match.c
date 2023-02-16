@@ -333,7 +333,10 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	atApplyTrans(numA, star_list_A, trans);
 
 	/* Match items in list A to those in list B */
-	atMatchLists(numA, star_list_A, numB, star_list_B, match_radius, &num_matches, &matched_list_A, &matched_list_B);
+	free_stars(&matched_list_A);
+	free_stars(&matched_list_B);
+	atMatchLists(numA, star_list_A, numB, star_list_B, match_radius, &num_matches, &matched_list_A, &matched_list_B); // causes memleak
+
 	trans->nm = num_matches;
 	num_matched_B = num_matched_A = num_matches;
 #ifdef DEBUG
