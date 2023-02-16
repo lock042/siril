@@ -450,6 +450,7 @@ gpointer search_in_online_conesearch(gpointer p) {
 	gchar *url = g_string_free(string_url, FALSE);
 	gchar *cleaned_url = url_cleanup(url);
 	gchar *result = fetch_url(cleaned_url);
+	printf("result size %d\n", strlen(result));
 	siril_debug_print(_("URL: %s \n"), cleaned_url);
 
 	g_free(cleaned_url);
