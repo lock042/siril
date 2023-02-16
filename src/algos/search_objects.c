@@ -274,7 +274,6 @@ int parse_buffer(const gchar *buffer, double lim_mag) {
 				}
 				g_strfreev(display_name);
 			}
-			world_cs = NULL;
 			g_free(realname);
 			rank+=1;
 		}
