@@ -1327,13 +1327,13 @@ static void report_file_conversion(struct _convert_data *args, struct readwrite_
 	gchar *str = NULL;
 	if (rwarg->reader->filename) {
 		if (rwarg->writer->filename) {
-			str = g_strdup_printf("'%s' -> '%s'%s", rwarg->reader->filename, rwarg->writer->filename, SIRIL_EOL);
+			str = g_strdup_printf("'%s' -> '%s'\n", rwarg->reader->filename, rwarg->writer->filename);
 		}
 		else if (rwarg->writer->fitseq) {
-			str = g_strdup_printf("'%s' -> '%s' image %d%s", rwarg->reader->filename, rwarg->writer->fitseq->filename, rwarg->writer->index, SIRIL_EOL);
+			str = g_strdup_printf("'%s' -> '%s' image %d\n", rwarg->reader->filename, rwarg->writer->fitseq->filename, rwarg->writer->index);
 		}
 		else if (rwarg->writer->ser) {
-			str = g_strdup_printf("'%s' -> '%s' image %d%s", rwarg->reader->filename, rwarg->writer->ser->filename, rwarg->writer->index, SIRIL_EOL);
+			str = g_strdup_printf("'%s' -> '%s' image %d\n", rwarg->reader->filename, rwarg->writer->ser->filename, rwarg->writer->index);
 		}
 	}
 	if (str) {
