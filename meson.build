@@ -262,7 +262,9 @@ if not htmesh_dep.found()
 
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
-  #opt_var.append_compile_args(
+if platform_windows
+  opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
+endif
   sub_proj = cmake.subproject('htmesh', options: opt_var)
 
   htmesh_dep = sub_proj.dependency('htmesh')
