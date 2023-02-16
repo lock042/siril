@@ -87,7 +87,6 @@ static int readinitfile_libconfig(gchar *path) {
 	if (config_lookup_string(&config, keywords[WD], &dir)) {
 		free(com.wd);
 		com.wd = g_strdup(dir);
-		g_free(dir);
 	}
 
 	/* Debayer setting */
@@ -112,17 +111,14 @@ static int readinitfile_libconfig(gchar *path) {
 
 		config_setting_lookup_string(prepro_setting, "bias_lib", &bias);
 		com.pref.prepro.bias_lib = g_strdup(bias);
-		g_free(bias);
 		config_setting_lookup_bool(prepro_setting, "use_bias_lib", &com.pref.prepro.use_bias_lib);
 
 		config_setting_lookup_string(prepro_setting, "dark_lib", &dark);
 		com.pref.prepro.dark_lib = g_strdup(dark);
-		g_free(dark);
 		config_setting_lookup_bool(prepro_setting, "use_dark_lib", &com.pref.prepro.use_dark_lib);
 
 		config_setting_lookup_string(prepro_setting, "flat_lib", &flat);
 		com.pref.prepro.flat_lib = g_strdup(flat);
-		g_free(flat);
 		config_setting_lookup_bool(prepro_setting, "use_flat_lib", &com.pref.prepro.use_flat_lib);
 
 		prepro_setting = config_lookup(&config, "prepro-settings.xtrans_af");
@@ -269,20 +265,16 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_int(misc_setting, "theme", &com.pref.gui.combo_theme);
 		config_setting_lookup_string(misc_setting, "lang", &lang);
 		com.pref.lang = g_strdup(lang);
-		g_free(lang);
 		config_setting_lookup_bool(misc_setting, "is_maximized", &com.pref.gui.is_maximized);
 		config_setting_lookup_string(misc_setting, "swap_directory", &swap_dir);
 		com.pref.swap_dir = g_strdup(swap_dir);
 		config_setting_lookup_string(misc_setting, "extension", &extension);
 		com.pref.ext = g_strdup(extension);
-		g_free(extension);
 		config_setting_lookup_int(misc_setting, "FITS_type", &type);
 		com.pref.force_16bit = (type == 0);
-		g_free(type);
 		config_setting_lookup_int(misc_setting, "selection_guides", &com.pref.gui.selection_guides);
 		config_setting_lookup_string(misc_setting, "copyright", &copyright);
 		com.pref.copyright = g_strdup(copyright);
-		g_free(copyright);
 
 		misc_setting = config_lookup(&config, "misc-settings.scripts_paths");
 		if (misc_setting != NULL) {
