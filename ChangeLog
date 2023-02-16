@@ -9,6 +9,7 @@ xx/xx/22
 * Added Star Recomposition tool to mix and stretch starless and starmask images
 * Added star intensive care to unsaturate stars
 * Added new deconvolution tool with RL, Split Bregman and Wiener algorithms and several PSF generation options (replaces old tool)
+* Added new denoising tool
 * Added pcc command for headless PCC and plate solving
 * Added local KStars star catalogue support for offline astrometry and PCC (NOMAD)
 * Added a new framing assistant with several modes and image framing preview
@@ -86,10 +87,6 @@ xx/xx/22
 * Fixed gnuplot call for macOS/AppImage, by making its path configurable
 * Fixed bug in roworder of SER sequence created from TOP-DOWN FITS images
 * Added ability to use Starnet++ on sequences
-
-siril 1.0.7
-xx/xx/22
-
 * Fixed bug when saving 16bits signed FITS images
 * Fixed internationalization in siril-cli
 * Fixed subsky command success status
