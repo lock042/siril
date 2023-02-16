@@ -469,6 +469,10 @@ static int prepro_finalize_hook(struct generic_seq_args *args) {
 void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	struct generic_seq_args *args = create_default_seqargs(prepro->seq);
 	args->force_float = !com.pref.force_16bit && prepro->output_seqtype != SEQ_SER;
+	if (args->obey_excluded) {
+		args->filtering_criterion = seq_filter_included;
+		args->nb_filtered_images = prepro->seq->selnum;
+	}
 	args->compute_size_hook = prepro_compute_size_hook;
 	args->compute_mem_limits_hook = prepro_compute_mem_hook;
 	args->prepare_hook = prepro_prepare_hook;
@@ -863,6 +867,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
 	GtkToggleButton *debayer = GTK_TOGGLE_BUTTON(lookup_widget("checkButton_pp_dem"));
 	GtkToggleButton *equalize_cfa = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_equalize_cfa"));
+	GtkToggleButton *preprocess_excluded = GTK_TOGGLE_BUTTON(lookup_widget("toggle_preprocess_excluded"));
 	GtkComboBox *output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
 
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
@@ -880,6 +885,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	// set output filename (preprocessed file name prefix)
 	args->ppprefix = gtk_entry_get_text(entry);
 
+	args->obey_excluded = gtk_toggle_button_get_active(preprocess_excluded);
 	args->is_cfa = gtk_toggle_button_get_active(CFA);
 	args->debayer = gtk_toggle_button_get_active(debayer);
 	args->equalize_cfa = gtk_toggle_button_get_active(equalize_cfa);

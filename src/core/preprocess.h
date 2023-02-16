@@ -33,6 +33,8 @@ struct preprocessing_data {
 	deviant_pixel *dev;	// the runtime list of deviant pixels (icold + ihot long)
 	gboolean is_cfa;	// when replacing pixels, don't use direct neighbours
 
+	gboolean obey_excluded; // if true, images marked as excluded will not
+							// be preprocessed
 	int retval;
 };
 
