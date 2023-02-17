@@ -267,7 +267,7 @@ siril-win64:
 
 siril-macos:
   stage: packaging
-  image: macos-10.13-xcode-9
+  image: macos-12-xcode-13
   parallel:
     matrix:
       - RUNNER: [ "macosarm", "shared-macos-amd64" ]
@@ -276,19 +276,20 @@ siril-macos:
       when: never  # job requires custom runner, not suitable outside the project
     - if: $RUNNER == "macosarm"
       variables:
-        SDKROOT: /Users/Shared/sdks/MacOSX11.3.sdk
         ARCHITECTURE: arm64
+        SDKROOT: /Users/Shared/sdks/MacOSX11.3.sdk
     - if: $RUNNER == "shared-macos-amd64"
       variables:
         ARCHITECTURE: x86_64
+        MACOSX_DEPLOYMENT_TARGET: "10.13"
         SYS_USRLOCAL_IGNORE: "true"
   tags:
     - ${RUNNER}
   variables:
     REP_DIR: /Users/Shared/data
     SIRIL_BUILD: $CI_PIPELINE_IID
-    RELEASE_ARCHIVE: jhb-0.23_$ARCHITECTURE.dmg
-    RELEASE_TAG: r5
+    RELEASE_ARCHIVE: jhb-0.29_$ARCHITECTURE.dmg
+    RELEASE_TAG: r6
     RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
     - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename
