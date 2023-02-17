@@ -904,8 +904,9 @@ char *copy_header(fits *fit) {
 		header = strdup(str);
 		g_free(str);
 	}
-
-	return header;
+	char *retstr = g_strdup(header);
+	g_free(header);
+	return retstr;
 }
 
 /***** data reading and transformation ******/
@@ -2040,6 +2041,7 @@ int read_fits_metadata(fits *fit) {
 
 	read_fits_header(fit);	// stores useful header data in fit
 	fit->header = copy_header(fit);
+
 	return 0;
 }
 
@@ -2055,9 +2057,9 @@ static int read_fits_metadata_from_path_internal(const char *filename, fits *fit
 
 	read_fits_metadata(fit);
 	fit->header = copy_header(fit);
-
 	status = 0;
 	fits_close_file(fit->fptr, &status);
+
 	return status;
 }
 
