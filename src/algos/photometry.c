@@ -249,8 +249,8 @@ void initialize_photometric_param() {
 	com.pref.phot_set.outer = 30;
 	com.pref.phot_set.aperture = 10;
 	com.pref.phot_set.force_radius = FALSE;
-	com.pref.phot_set.auto_inner_factor = 3.2;
-	com.pref.phot_set.auto_outer_factor = 4.5;
+	com.pref.phot_set.auto_inner_factor = 4.2;
+	com.pref.phot_set.auto_outer_factor = 6.3;
 	com.pref.phot_set.gain = 2.3;
 	com.pref.phot_set.minval = -1000;
 	com.pref.phot_set.maxval = 60000;

@@ -3967,7 +3967,8 @@ int process_light_curve(int nb) {
 	int layer = g_ascii_strtoull(word[2], &end, 10);
 	if (end == word[2] || layer >= seq->nb_layers) {
 		siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
-		free_sequence(seq, TRUE);
+		if (seq != &com.seq)
+			free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 
@@ -3988,13 +3989,15 @@ int process_light_curve(int nb) {
 	fits first = { 0 };
 	if (autoring) {
 		if (seq_read_frame(seq, refimage, &first, FALSE, -1)) {
-			free_sequence(seq, TRUE);
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
 			return CMD_GENERIC_ERROR;
 		}
-		float fwhm = measure_image_FWHM(&first);
+		float fwhm = measure_image_FWHM(&first, layer);
 		if (fwhm <= 0.0f) {
 			siril_log_color_message(_("Could not find stars in the first image, aborting.\n"), "red");
-			free_sequence(seq, TRUE);
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
 			clearfits(&first);
 			return CMD_GENERIC_ERROR;
 		}
@@ -4006,7 +4009,8 @@ int process_light_curve(int nb) {
 				com.pref.phot_set.inner, com.pref.phot_set.outer, fwhm);
 	} else {
 		if (seq_read_frame_metadata(seq, refimage, &first)) {
-			free_sequence(seq, TRUE);
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
 			return CMD_GENERIC_ERROR;
 		}
 		siril_log_message(_("Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"),
@@ -4037,7 +4041,8 @@ int process_light_curve(int nb) {
 			return CMD_FOR_PLATE_SOLVED;
 		}
 		if (parse_nina_stars_file_using_WCS(args, file, TRUE, TRUE, &first)) {
-			free_sequence(seq, TRUE);
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
 			free(args);
 			clearfits(&first);
 			return CMD_GENERIC_ERROR;
@@ -4047,7 +4052,8 @@ int process_light_curve(int nb) {
 		for (int arg_index = argidx; arg_index < nb; arg_index++) {
 			if (parse_star_position_arg(word[arg_index], seq, &first,
 						&args->areas[arg_index - argidx], &args->target_descr)) {
-				free_sequence(seq, TRUE);
+				if (seq != &com.seq)
+					free_sequence(seq, TRUE);
 				free(args->areas);
 				free(args);
 				clearfits(&first);

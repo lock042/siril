@@ -405,7 +405,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	}
 
 	/* run peaker to measure FWHM of the image to adjust photometry settings */
-	args->fwhm = measure_image_FWHM(args->fit);
+	args->fwhm = measure_image_FWHM(args->fit, -1);
 	if (args->fwhm <= 0.0f) {
 		siril_log_message(_("Error computing FWHM for photometry settings adjustment\n"));
 		siril_add_idle(end_generic, NULL);

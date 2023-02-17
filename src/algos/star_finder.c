@@ -1237,12 +1237,14 @@ END:
 	return GINT_TO_POINTER(retval);
 }
 
-// returns the max of each channel's robust mean, 0 for errors
-float measure_image_FWHM(fits *fit) {
+// if channel < 0, returns the max of each channel's robust mean
+// if channel, returns the robust mean for this channel
+// returns 0 for errors
+float measure_image_FWHM(fits *fit, int channel) {
 	float fwhm[3];
 	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
 	gboolean failed = FALSE;
-	int nb_chan = (int)fit->naxes[2];
+	int nb_chan = channel < 0 ? (int)fit->naxes[2] : 1;
 	g_assert(nb_chan == 1 || nb_chan == 3);
 #ifdef _OPENMP
 	int *threads = compute_thread_distribution(nb_chan, com.max_thread);
@@ -1256,7 +1258,8 @@ float measure_image_FWHM(fits *fit) {
 #else
 		nb_subthreads = com.max_thread;
 #endif
-		psf_star **stars = peaker(&im, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE,
+		psf_star **stars = peaker(&im, channel < 0 ? chan : channel,
+				&com.pref.starfinder_conf, &nb_stars, NULL, FALSE,
 				TRUE, 200, com.pref.starfinder_conf.profile, nb_subthreads);
 		if (stars) {
 			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
