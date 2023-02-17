@@ -458,6 +458,23 @@ void clear_preprocessing_data(struct preprocessing_data *prepro) {
 	if (prepro->dev)
 		free(prepro->dev);
 }
+gboolean end_prepro_sequence(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+
+	if (args->has_output && args->load_new_sequence &&
+			args->new_seq_prefix && !args->retval) {
+		gchar *basename = g_path_get_basename(args->seq->seqname);
+		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
+		check_seq();
+		update_sequences_list(seqname);
+		g_free(seqname);
+		g_free(basename);
+	}
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free(p);
+	return end_generic(NULL);
+}
 
 static int prepro_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
@@ -478,6 +495,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	args->has_output = TRUE;
 	args->new_seq_prefix = prepro->ppprefix;
 	args->load_new_sequence = TRUE;
+	args->idle_function = end_prepro_sequence;
 	args->force_ser_output = prepro->seq->type != SEQ_SER && prepro->output_seqtype == SEQ_SER;
 	args->force_fitseq_output = prepro->seq->type != SEQ_FITSEQ && prepro->output_seqtype == SEQ_FITSEQ;
 	args->user = prepro;
