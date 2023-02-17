@@ -588,25 +588,49 @@ guint64 get_available_memory() {
 
 	return available;
 #elif defined(OS_OSX)
-	guint64 mem = (guint64) 0; /* this is the default value if we can't retrieve any values */
 	vm_size_t page_size;
-	mach_port_t mach_port;
-	mach_msg_type_number_t count;
-	vm_statistics64_data_t vm_stats;
+        vm_statistics64_data_t vm_stats;
 
-	mach_port = mach_host_self();
-	count = sizeof(vm_stats) / sizeof(natural_t);
-	if (KERN_SUCCESS == host_page_size(mach_port, &page_size) &&
-			KERN_SUCCESS == host_statistics64(mach_port, HOST_VM_INFO,
-					(host_info64_t)&vm_stats, &count))	{
-
-		gint64 unused_memory = ((gint64)vm_stats.free_count +
-				(gint64)vm_stats.inactive_count +
-				(gint64)vm_stats.wire_count) * (gint64) page_size;
-
-		mem = (guint64) (unused_memory);
+	mach_port_t mach_port = mach_host_self();
+	mach_msg_type_number_t count = sizeof(vm_stats) / sizeof(natural_t);
+	if (KERN_SUCCESS != host_page_size(mach_port, &page_size) ||
+			KERN_SUCCESS != host_statistics64(mach_port, HOST_VM_INFO64,
+				(host_info64_t)&vm_stats, &count)) {
+		siril_log_message("Failed to call host_statistics64(), available memory could not be computed\n");
+		return 0;
 	}
-	return mem;
+	/* 1) compute what's marked as available */
+	guint64 unused_pages = (guint64)vm_stats.free_count +
+		(guint64)vm_stats.purgeable_count +
+		(guint64)vm_stats.external_page_count;
+	guint64 mem1 = unused_pages * page_size;
+	siril_debug_print("method 1: %.2f GB available\n", mem / 1073741824.0);
+
+	/* 2) compute what's left from what's marked as non-available */
+	guint64 physical_memory;
+	int mib[2] = { CTL_HW, HW_MEMSIZE };
+	size_t length = sizeof(guint64);
+	if (sysctl(mib, 2, &physical_memory, &length, NULL, 0) < 0) {
+		siril_debug_print("Failed to call sysctl(HW_MEMSIZE)\n");
+		return mem1;
+	}
+
+	/* active_count is considered used, inactive_count is shared between
+	 * not recently used pages and file cache at least. internal_page_count
+	 * gives us how much of both is actual process use and
+	 * external_page_count is file cache */
+	guint64 used_pages = (guint64)vm_stats.internal_page_count -
+		(guint64)vm_stats.purgeable_count +
+		(guint64)vm_stats.wire_count +
+		(guint64)vm_stats.compressor_page_count;
+
+	guint64 mem2 = physical_memory - used_pages * page_size;
+	siril_debug_print("method 2: %.2f GB available\n", mem / 1073741824.0);
+
+	// there's often a slight difference between the two, we might as well take the smallest
+	if (mem1 < mem2)
+		return mem1;
+	return mem2;
 #elif defined(BSD) /* BSD (DragonFly BSD, FreeBSD, OpenBSD, NetBSD). ----------- */
 	/* FIXME: this is incorrect, this returns the available amount of memory at boot, not at runtime */
 	static gboolean initialized = FALSE;
