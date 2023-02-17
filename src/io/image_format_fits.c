@@ -823,6 +823,7 @@ static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int
 			if (!newstr) {
 				PRINT_ALLOC_ERR;
 				free(*header);
+				*header = NULL;
 				return 1;
 			}
 			*header = newstr;

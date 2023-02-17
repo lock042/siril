@@ -7701,7 +7701,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 prepro_parse_end:
 	clearfits(&reffit);
 	if (retvalue) {
-		free(args);
+		clear_preprocessing_data(args);
 		return NULL;
 	}
 	return args;
@@ -7717,8 +7717,10 @@ int process_preprocess(int nb) {
 	}
 
 	struct preprocessing_data *args = parse_preprocess_args(nb, seq);
-	if (!args)
+	if (!args) {
+		free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
+	}
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 	args->autolevel = TRUE;

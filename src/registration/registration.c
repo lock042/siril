@@ -1576,6 +1576,8 @@ static gboolean end_register_idle(gpointer p) {
 	if (args->func == &register_3stars) reset_3stars();
 
 	free(args->new_seq_name);
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
 	free(args);
 	return FALSE;
 }
