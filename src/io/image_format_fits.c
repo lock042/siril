@@ -890,7 +890,7 @@ char *copy_header(fits *fit) {
 	}
 
 	if (header[0] == '\0') {
-		g_free(header);
+		free(header);
 		header = NULL;
 	}
 	if (!header)
@@ -901,11 +901,11 @@ char *copy_header(fits *fit) {
 	if (!g_utf8_validate(header, -1, NULL)) {
 		gchar *str = g_utf8_make_valid(header, -1);
 		g_free(header);
-		header = strdup(str);
+		header = g_strdup(str);
 		g_free(str);
 	}
 	char *retstr = g_strdup(header);
-	g_free(header);
+	free(header);
 	return retstr;
 }
 
