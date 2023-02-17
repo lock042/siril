@@ -604,7 +604,7 @@ guint64 get_available_memory() {
 		(guint64)vm_stats.purgeable_count +
 		(guint64)vm_stats.external_page_count;
 	guint64 mem1 = unused_pages * page_size;
-	siril_debug_print("method 1: %.2f GB available\n", mem / 1073741824.0);
+	siril_debug_print("method 1: %.2f GB available\n", mem1 / 1073741824.0);
 
 	/* 2) compute what's left from what's marked as non-available */
 	guint64 physical_memory;
@@ -625,7 +625,7 @@ guint64 get_available_memory() {
 		(guint64)vm_stats.compressor_page_count;
 
 	guint64 mem2 = physical_memory - used_pages * page_size;
-	siril_debug_print("method 2: %.2f GB available\n", mem / 1073741824.0);
+	siril_debug_print("method 2: %.2f GB available\n", mem2 / 1073741824.0);
 
 	// there's often a slight difference between the two, we might as well take the smallest
 	if (mem1 < mem2)
