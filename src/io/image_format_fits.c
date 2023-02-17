@@ -900,13 +900,15 @@ char *copy_header(fits *fit) {
 	 * indeed some header are not */
 	if (!g_utf8_validate(header, -1, NULL)) {
 		gchar *str = g_utf8_make_valid(header, -1);
-		g_free(header);
+		free(header);
 		header = g_strdup(str);
 		g_free(str);
+	} else {
+		char *tmp = g_strdup(header);
+		free(header);
+		header = tmp;
 	}
-	char *retstr = g_strdup(header);
-	free(header);
-	return retstr;
+	return header;
 }
 
 /***** data reading and transformation ******/
