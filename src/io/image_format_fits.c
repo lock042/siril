@@ -904,7 +904,7 @@ char *copy_header(fits *fit) {
 		header = g_strdup(str);
 		g_free(str);
 	} else {
-		char *tmp = g_strdup(header);
+		gchar *tmp = g_strdup(header);
 		free(header);
 		header = tmp;
 	}
