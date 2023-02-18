@@ -56,6 +56,7 @@ v1.2.0 mmm dd, 2022
 * Added binning and binxy command
 * Added rejection maps creation on rejection stacking
 * Added astro-tiff option in the command savetif with -astro
+* Added ability to use Starnet++ on sequences
 * Allowed area selection (and much more) to be done on RGB display tab
 * Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
 * Updated seq file version to v4. Registration block keeps homography information
@@ -84,8 +85,8 @@ v1.2.0 mmm dd, 2022
 * Fixed sequence closing in script processing after each command
 * Fixed opening of scientific FITS cube files
 * Fixed gnuplot call for macOS/AppImage, by making its path configurable
+* Fixed available memory computation for mac and the associated freeze
 * Fixed bug in roworder of SER sequence created from TOP-DOWN FITS images
-* Added ability to use Starnet++ on sequences
 * Fixed bug when saving 16bits signed FITS images
 * Fixed internationalization in siril-cli
 * Fixed subsky command success status
