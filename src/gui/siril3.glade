@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -13716,7 +13716,6 @@ Note: excluding saturated stars from the list will probably make registration or
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">Only shift images instead of using rotation on registration. This should be unchecked for alt-az or heavily drifting mounts. This makes one image processing much faster.</property>
                 <property name="halign">start</property>
-                <property name="active">True</property>
                 <property name="draw-indicator">True</property>
               </object>
               <packing>
