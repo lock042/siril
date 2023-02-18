@@ -47,7 +47,14 @@ void on_spin_sf_threshold_changed(GtkSpinButton *spinbutton, gpointer user_data)
 }
 
 void on_spin_sf_roundness_changed(GtkSpinButton *spinbutton, gpointer user_data) {
-	com.pref.starfinder_conf.roundness = gtk_spin_button_get_value(spinbutton);
+	gboolean range = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("psf_roundness_range_check_button")));
+	double minr = gtk_spin_button_get_value(spinbutton);
+	if (range) {
+		double maxr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_maxr")));
+		if (minr >= maxr - 0.01)
+			gtk_spin_button_set_value(spinbutton, maxr - 0.01);
+	}
+	com.pref.starfinder_conf.roundness = minr;
 }
 
 void on_spin_sf_minbeta_changed(GtkSpinButton *spinbutton, gpointer user_data) {
@@ -78,6 +85,16 @@ void on_spin_sf_maxA_changed(GtkSpinButton *spinbutton, gpointer user_data) {
 	siril_debug_print("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
 }
 
+void on_spin_sf_maxr_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	double minr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round")));
+	double maxr = gtk_spin_button_get_value(spinbutton);
+	if (maxr <= minr + 0.01) {
+		gtk_spin_button_set_value(spinbutton, minr + 0.01);
+	}
+	com.pref.starfinder_conf.max_r = gtk_spin_button_get_value(spinbutton);
+	siril_debug_print("minr = %f, maxr = %f\n", com.pref.starfinder_conf.roundness, com.pref.starfinder_conf.max_r);
+}
+
 void on_psf_amplitude_range_check_button_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	GtkWidget *minw = lookup_widget("spinstarfinder_minA"), *maxw = lookup_widget("spinstarfinder_maxA");
 	gboolean enabled = gtk_toggle_button_get_active(togglebutton);
@@ -93,6 +110,23 @@ void on_psf_amplitude_range_check_button_toggled(GtkToggleButton *togglebutton, 
 	siril_debug_print("minA = %f, maxA = %f\n", com.pref.starfinder_conf.min_A, com.pref.starfinder_conf.max_A);
 }
 
+void on_psf_roundness_range_check_button_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
+	GtkWidget *maxw = lookup_widget("spinstarfinder_maxr");
+	gboolean enabled = gtk_toggle_button_get_active(togglebutton);
+	if (enabled) {
+		double minr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinstarfinder_round")));
+		double maxr = gtk_spin_button_get_value(GTK_SPIN_BUTTON(maxw));
+		if (maxr <= minr + 0.01) {
+			maxr = minr + 0.01;
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(maxw), maxr);
+		}
+		com.pref.starfinder_conf.max_r = maxr;
+	}
+	else com.pref.starfinder_conf.max_r = 1.0;
+	gtk_widget_set_sensitive(maxw, enabled);
+	siril_debug_print("minr = %f, maxr = %f\n", com.pref.starfinder_conf.roundness, com.pref.starfinder_conf.max_r);
+}
+
 void on_combostarfinder_profile_changed(GtkComboBox *combo, gpointer user_data) {
 	GtkWidget *beta_control_label = GTK_WIDGET(lookup_widget("beta_control_label"));
 	GtkWidget *beta_control_spin = GTK_WIDGET(lookup_widget("spin_minbeta"));
@@ -106,7 +140,7 @@ void on_reset_findstar_button_clicked(GtkButton *button, gpointer user_data) {
 	com.pref.starfinder_conf = (star_finder_params) {
 		.radius = DEF_BOX_RADIUS, .sigma = 1., .roundness = 0.5,
 			.convergence = 1, .relax_checks = FALSE, .profile = PSF_GAUSSIAN,
-			.min_beta = 1.5, .min_A = 0.0, .max_A = 0.0 };
+			.min_beta = 1.5, .min_A = 0.0, .max_A = 0.0, .max_r = 1.0 };
 	update_peaker_GUI();
 }
 

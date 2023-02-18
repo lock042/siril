@@ -215,6 +215,7 @@ typedef struct {
 	starprofile profile;
 	double min_beta;
 	double min_A, max_A;
+	double max_r;
 } star_finder_params;
 
 typedef struct fftw_params {

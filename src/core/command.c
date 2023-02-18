@@ -3414,6 +3414,7 @@ int process_set_findstar(int nb) {
 	starprofile profile = com.pref.starfinder_conf.profile;
 	double minA = com.pref.starfinder_conf.min_A;
 	double maxA = com.pref.starfinder_conf.max_A;
+	double maxr = com.pref.starfinder_conf.max_r;
 	gchar *end;
 
 	if (nb > startoptargs) {
@@ -3495,6 +3496,13 @@ int process_set_findstar(int nb) {
 						siril_log_message(_("Wrong parameter value %s.\n"), current);
 						return CMD_ARG_ERROR;
 					}
+				} else if (g_str_has_prefix(current, "-maxR=")) {
+					value = current + 6;
+					maxr = g_ascii_strtod(value, &end);
+					if (end == value || maxr <= 0.0 || maxr > 1.0) {
+						siril_log_message(_("Wrong parameter value %s.\n"), current);
+						return CMD_ARG_ERROR;
+					}
 				} else if (!g_ascii_strcasecmp(current, "reset")) {
 					siril_log_message(_("Resetting findstar parameters to default values.\n"));
 					sigma = 1.;
@@ -3516,8 +3524,14 @@ int process_set_findstar(int nb) {
 
 	siril_log_message(_("sigma = %3.2f\n"), sigma);
 	com.pref.starfinder_conf.sigma = sigma;
-	siril_log_message(_("roundness = %3.2f\n"), roundness);
+	if (maxr != 1.0 && maxr > roundness)
+		siril_log_message(_("roundness range = [%f, %f]\n"), roundness, maxr);
+	else {
+		siril_log_message(_("roundness = %3.2f\n"), roundness);
+		maxr = 1.0;
+	}
 	com.pref.starfinder_conf.roundness = roundness;
+	com.pref.starfinder_conf.max_r = maxr;
 	siril_log_message(_("radius = %d\n"), radius);
 	com.pref.starfinder_conf.radius = radius;
 	if ((minA > 0.0 || maxA > 0.0) && minA < maxA)

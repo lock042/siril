@@ -93,7 +93,8 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_FWHM_NEG; //crit 15
 	}
-	if ((result->fwhmy / result->fwhmx) < sf->roundness) {
+	double r = result->fwhmy / result->fwhmx;
+	if (r < sf->roundness || r > sf->max_r) {
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_ROUNDNESS_BELOW_CRIT; //crit 16
 	}
