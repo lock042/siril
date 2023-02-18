@@ -84,8 +84,8 @@ static imstats *refimage_stats[3] = { NULL };
 /* config */
 static gboolean use_32bits = FALSE;
 static super_bool use_demosaicing = BOOL_NOT_SET;
-static transformation_type reg_type = SHIFT_TRANSFORMATION;
-static gboolean reg_rotates = FALSE;
+static transformation_type reg_type = HOMOGRAPHY_TRANSFORMATION;
+static gboolean reg_rotates = TRUE;
 
 static gpointer live_stacker(gpointer arg);
 int star_align_prepare_hook(struct generic_seq_args *args);
@@ -201,7 +201,17 @@ static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 			siril_debug_print("Filename is not canonical\n");
 		}
 		if (type != TYPEFITS) {
-			siril_log_message(_("File not supported for live stacking: %s\n"), filename);
+			if (type == TYPERAW) {
+				if (!wait_for_file_to_be_written(filename)) {
+					fits dest = { 0 };
+					gchar *new = replace_ext(filename, com.pref.ext);
+					any_to_fits(TYPERAW, filename, &dest, FALSE, !com.pref.force_16bit, FALSE);
+					savefits(new, &dest);
+					clearfits(&dest);
+				}
+			}  else {
+				siril_log_message(_("File not supported for live stacking: %s\n"), filename);
+			}
 			g_free(filename);
 		} else {
 			if (strncmp(filename, "live_stack", 10) &&
