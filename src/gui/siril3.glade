@@ -9047,20 +9047,6 @@ Modifying parameters in this windows afterward will void the colour balance, and
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button_crop">
-                <property name="label" translatable="yes">Crop image to common area after align</property>
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">2</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel" id="label_align">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -9118,6 +9104,9 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="left-attach">2</property>
                 <property name="top-attach">0</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
