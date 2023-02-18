@@ -801,19 +801,25 @@ static void draw_stars(const draw_data_t* dd) {
 		cairo_stroke(cr);
 	}
 
+	/* draw seqpsf stars */
 	if (sequence_is_loaded() && com.seq.current >= 0) {
-		/* draw seqpsf stars */
 		for (i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++) {
-			cairo_set_dash(cr, NULL, 0, 0);
-			cairo_set_source_rgba(cr, com.seq.photometry_colors[i][0],
-					com.seq.photometry_colors[i][1],
-					com.seq.photometry_colors[i][2], 1.0);
-			cairo_set_line_width(cr, 2.0 / dd->zoom);
 			psf_star *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
-				double size = (!com.pref.phot_set.force_radius && gui.qphot) ? gui.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
+				double size = (!com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?
+					the_psf->fwhmx * 2.0 : com.pref.phot_set.aperture;
+				cairo_set_dash(cr, NULL, 0, 0);
+				// make the aperture slightly brighter
+				cairo_set_source_rgba(cr, min(com.seq.photometry_colors[i][0] + 0.2, 1.0),
+						min(com.seq.photometry_colors[i][1] + 0.2, 1.0),
+						min(com.seq.photometry_colors[i][2] + 0.2, 1.0), 1.0);
+				cairo_set_line_width(cr, 2.0 / dd->zoom);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);
 				cairo_stroke(cr);
+
+				cairo_set_source_rgba(cr, com.seq.photometry_colors[i][0],
+						com.seq.photometry_colors[i][1],
+						com.seq.photometry_colors[i][2], 1.0);
 				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0.,
 						2. * M_PI);
 				cairo_stroke(cr);
@@ -825,13 +831,10 @@ static void draw_stars(const draw_data_t* dd) {
 				cairo_move_to(cr, the_psf->xpos + com.pref.phot_set.outer + 5, the_psf->ypos);
 				if (i == 0) {
 					cairo_show_text(cr, "V");
-				}
-				else {
-					gchar *tmp;
-					tmp = g_strdup_printf("%d", i);
+				} else {
+					char tmp[16];
+					sprintf(tmp, "%d", i);
 					cairo_show_text(cr, tmp);
-
-					g_free(tmp);
 				}
 				cairo_stroke(cr);
 			}
