@@ -3643,12 +3643,20 @@ int process_pm(int nb) {
 		}
 		if (start < end && *start) {
 			*end = 0;
-			args->varname[i] = g_strdup(start + 1);
+			gboolean found = FALSE;
+			for (int j = 0; j < i; j++) {
+				gchar *test = g_strrstr(args->varname[j], start + 1);
+				if (test)
+					found = TRUE;
+			}
+			if (!found)
+				args->varname[i++] = g_strdup(start + 1);
 			start = cur = end;
-			i++;
 		}
 		cur++;
 	}
+	args->nb_rows = i; // this is the final number of variables
+	args->varname = realloc(args->varname, i * sizeof(gchar *));
 
 	int width = -1;
 	int height = -1;
