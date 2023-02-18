@@ -162,6 +162,7 @@ enum {
 };
 
 static fits var_fit[MAX_IMAGES] = { 0 };
+static gboolean var_fit_mask[MAX_IMAGES] = { 0 };
 
 static GtkListStore *pixel_math_list_store = NULL;
 static GtkListStore *pixel_math_list_store_functions = NULL;
@@ -467,7 +468,7 @@ static void update_metadata(fits *fit) {
 	fits **f = malloc((MAX_IMAGES + 1) * sizeof(fits *));
 	int j = 0;
 	for (int i = 0; i < MAX_IMAGES ; i++)
-		if (var_fit[i].rx > 0)
+		if (var_fit[i].rx > 0 && var_fit_mask[i])
 			f[j++] = &var_fit[i];
 	f[j] = NULL;
 
@@ -591,9 +592,18 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 			}
 		}
 	}
+	// gchar* g_strrstr (const gchar* haystack, const gchar* needle);
+	
+	for (int j = 0; j < nb_images; j++) {
+		gchar *test =  g_strrstr(expression, image[j]);
+		if (test) {
+			var_fit_mask[j] = TRUE;
+			siril_debug_print("found image name %s in the expression %s\n", image[j], expression);
+		}
+	}
 	return expression;
-}
 
+}
 gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
@@ -880,6 +890,7 @@ int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 void free_pm_var(int nb) {
 	for (int i = 0; i < nb; i++) {
 		clearfits(&var_fit[i]);
+		var_fit_mask[i] = FALSE;
 	}
 }
 
