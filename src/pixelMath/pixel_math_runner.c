@@ -592,8 +592,6 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 			}
 		}
 	}
-	// gchar* g_strrstr (const gchar* haystack, const gchar* needle);
-	
 	for (int j = 0; j < nb_images; j++) {
 		gchar *test =  g_strrstr(expression, image[j]);
 		if (test) {
@@ -602,7 +600,6 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 		}
 	}
 	return expression;
-
 }
 gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;

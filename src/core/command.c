@@ -3656,7 +3656,7 @@ int process_pm(int nb) {
 		cur++;
 	}
 	args->nb_rows = i; // this is the final number of variables
-	args->varname = realloc(args->varname, i * sizeof(gchar *)); // not sure about this one
+	args->varname = realloc(args->varname, i * sizeof(gchar *));
 
 	int width = -1;
 	int height = -1;
