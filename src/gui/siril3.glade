@@ -3105,7 +3105,7 @@ This option has no effect if processing a sequence.</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_roundness">
-    <property name="upper">0.95</property>
+    <property name="upper">0.94999999999999996</property>
     <property name="value">0.5</property>
     <property name="step-increment">0.05</property>
     <property name="page-increment">0.25</property>
@@ -9110,6 +9110,9 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="left-attach">2</property>
                 <property name="top-attach">0</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>
@@ -20081,7 +20084,7 @@ Note: FITS images will have no effect when the pre-processed sequence is SER or 
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-markup" translatable="yes">Create a symbolic link for FITS files instead of copying them. This is useful to rename a sequence without duplicating files on the disk.
+                                                            <property name="tooltip-markup" translatable="yes">Create a symbolic link for FITS files instead of copying them. This is useful to rename a sequence without duplicating files on the disk. This option disables compression.
 
 &lt;b&gt;WARNING: on Windows, the symbolic link operations are only possible in Development mode.&lt;/b&gt;</property>
                                                             <property name="halign">start</property>
