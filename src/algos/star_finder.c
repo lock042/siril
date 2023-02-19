@@ -847,11 +847,11 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 			star_finder_params fparams = { 0 };
 			int fmax_stars;
 			int prof, layer;
-			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d relax=%d profile=%d minbeta=%lf max_stars=%d layer=%d minA=%lf maxA=%lf",
+			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d relax=%d profile=%d minbeta=%lf max_stars=%d layer=%d minA=%lf maxA=%lf maxR=%lf",
 						&fparams.sigma, &fparams.roundness, &fparams.radius,
 						&fparams.relax_checks, &prof, &fparams.min_beta, &fmax_stars,
-						&layer, &fparams.min_A, &fparams.max_A) < 8) {
-				// minA and maxA are newer and not mandatory
+						&layer, &fparams.min_A, &fparams.max_A, &fparams.max_r) < 8) {
+				// minA, maxA and maxR are newer and not mandatory
 				read_failure = TRUE;
 				break;
 			}
@@ -860,7 +860,7 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 				fparams.radius == sf->radius &&	fparams.relax_checks == sf->relax_checks &&
 				fparams.profile == sf->profile && fparams.min_beta == sf->min_beta &&
 				(fmax_stars >= sfargs->max_stars_fitted) && layer == sfargs->layer &&
-				fparams.min_A == sf->min_A && fparams.max_A == sf->max_A;
+				fparams.min_A == sf->min_A && fparams.max_A == sf->max_A && fparams.max_r == sf->max_r;
 			if (fmax_stars > sfargs->max_stars_fitted) sfargs->max_stars_fitted = fmax_stars;
 			siril_debug_print("params check: %d\n", params_ok);
 			if (!params_ok) {
@@ -954,8 +954,8 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
-	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d relax=%d profile=%d minbeta=%3.1f max_stars=%d layer=%d minA=%3.2f maxA=%3.2f%s",
-			sf->sigma, sf->roundness, sf->radius, sf->relax_checks,sf->profile, sf->min_beta, max_stars_fitted, layer, sf->min_A, sf->max_A, SIRIL_EOL);
+	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d relax=%d profile=%d minbeta=%3.1f max_stars=%d layer=%d minA=%3.2f maxA=%3.2f maxR=%3.2f%s",
+			sf->sigma, sf->roundness, sf->radius, sf->relax_checks,sf->profile, sf->min_beta, max_stars_fitted, layer, sf->min_A, sf->max_A, sf->max_r, SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}

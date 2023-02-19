@@ -3514,6 +3514,9 @@ int process_set_findstar(int nb) {
 					convergence = 1;
 					profile = PSF_GAUSSIAN;
 					minbeta = 1.5;
+					minA = 0.0;
+					maxA = 0.0;
+					maxr = 1.0;
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
 					return CMD_ARG_ERROR;
