@@ -43,7 +43,7 @@
 mouse_status_enum mouse_status;
 
 // caching widgets
-static GtkWidget *rotation_dlg = NULL, *histo_dlg = NULL;
+static GtkWidget *rotation_dlg = NULL;
 
 /* mouse callbacks */
 static double margin_size = 10;
@@ -323,7 +323,6 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 
 	if (!rotation_dlg) {
 		rotation_dlg = lookup_widget("rotation_dialog");
-		histo_dlg = lookup_widget("histogram_dialog");
 	}
 	/* when double clicking on drawing area (if no images loaded)
 	 * you can load an image This feature is in GIMP and I really
@@ -501,8 +500,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 					com.selection.x = zoomed.x;
 					com.selection.w = gui.start.x - zoomed.x;
 				}
-				if (com.selection.w == 0 && gtk_widget_is_visible(histo_dlg))
-					com.selection.w = 1;
 			}
 			if (!gui.freezeY) {
 				if (zoomed.y >= gui.start.y) {
@@ -512,8 +509,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 					com.selection.y = zoomed.y;
 					com.selection.h = gui.start.y - zoomed.y;
 				}
-				if (com.selection.h == 0 && gtk_widget_is_visible(histo_dlg))
-					com.selection.h = 1;
 			}
 			// Clicking in displayed psf selects star in list if the DynamicPSF dialog is open
 			GtkWidget *dynpsf_dlg = lookup_widget("stars_list_window");
@@ -586,7 +581,6 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
 	if (!rotation_dlg) {
 		rotation_dlg = lookup_widget("rotation_dialog");
-		histo_dlg = lookup_widget("histogram_dialog");
 	}
 	if ((!single_image_is_loaded() && !sequence_is_loaded())
 			|| gfit.type == DATA_UNSUPPORTED) {
