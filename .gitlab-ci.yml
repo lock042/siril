@@ -293,7 +293,10 @@ siril-macos:
     RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
     - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename
-    - git clone --branch $RELEASE_TAG --depth 1 --recurse-submodules https://gitlab.com/free-astro/siril_macos.git
+    - |
+      git clone https://gitlab.com/free-astro/siril_macos.git
+      git -C siril_macos checkout f795699
+      git -C siril_macos submodule update --init --recursive
     - siril_macos/jhb/usr/bin/archive uninstall_dmg  # after_script doesn't run for cancelled/timed out jobs
     - siril_macos/jhb/usr/bin/archive install_dmg
     - |
