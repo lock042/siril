@@ -471,16 +471,6 @@ static int make_index_for_rainbow(BYTE index[][3]) {
  * v v v below:          R E D R A W I N G     W I D G E T S           v v v *
  *****************************************************************************/
 
-typedef struct draw_data {
-	cairo_t *cr;	// the context to draw to
-	int vport;	// the viewport index to draw
-	double zoom;	// the current zoom value
-	gboolean neg_view;	// negative view
-	cairo_filter_t filter;	// the type of image filtering to use
-	guint image_width, image_height;	// image size
-	guint window_width, window_height;	// drawing area size
-} draw_data_t;
-
 typedef struct label_point_struct {
 	double x, y, ra, dec, angle;
 	gboolean isRA;
@@ -1667,6 +1657,10 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* registration framing*/
 	draw_regframe(&dd);
+
+	/* allow custom rendering */
+	if (gui.draw_extra)
+		gui.draw_extra(&dd);
 
 	return FALSE;
 }

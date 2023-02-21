@@ -162,6 +162,7 @@ static void global_initialization() {
 
 	gui.selected_star = -1;
 	gui.qphot = NULL;
+	gui.draw_extra = NULL;
 	gui.cvport = RED_VPORT;
 	gui.show_excluded = TRUE;
 	gui.sliders = MINMAX;
