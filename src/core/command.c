@@ -2457,11 +2457,12 @@ int process_merge(int nb) {
 	switch (seqs[0]->type) {
 		case SEQ_REGULAR:
 			// use the conversion, it makes symbolic links or copies as a fallback
+			char *destroot = strdup(word[nb - 1]);
 			args = malloc(sizeof(struct _convert_data));
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
 			args->list = glist_to_array(list, &args->total);
-			args->destroot = format_basename(strdup(word[nb - 1]), TRUE);
+			args->destroot = format_basename(destroot, TRUE);
 			args->input_has_a_seq = FALSE;
 			args->input_has_a_film = FALSE;
 			args->debayer = FALSE;
