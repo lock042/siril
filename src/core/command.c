@@ -7699,7 +7699,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			args->use_dark_optim = TRUE;
 		} else if (!strcmp(word[i], "-fix_xtrans")) {
 			args->fix_xtrans = TRUE;
-		} else if (!strcmp(word[i], "-pex")) {
+		} else if (!strcmp(word[i], "-all")) {
 			args->ignore_exclusion = TRUE;
 		} else if (!strcmp(word[i], "-cfa")) {
 			args->is_cfa = TRUE;

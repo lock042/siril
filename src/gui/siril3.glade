@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -21509,11 +21509,11 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                     </child>
                                                     <child>
                                                       <object class="GtkCheckButton" id="toggle_preprocess_excluded">
-                                                        <property name="label" translatable="yes">Preprocess frames marked as excluded</property>
+                                                        <property name="label" translatable="yes">Preprocess all frames</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Preprocess frames even if marked as excluded. This is different to how all other sequence operations work but preprocessing used to be a special case. The default is now to honour exclusions but the old behaviour remains available as an option.</property>
+                                                        <property name="tooltip-text" translatable="yes">Force preprocessing of all frames even if marked as excluded.</property>
                                                         <property name="draw-indicator">True</property>
                                                       </object>
                                                       <packing>
