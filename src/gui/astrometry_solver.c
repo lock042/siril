@@ -359,6 +359,7 @@ static void clear_all_objects() {
 
 static void add_object_to_list() {
 	GtkTreeIter iter;
+	gboolean anyobject = FALSE;
 
 	get_list_IPS();
 	clear_all_objects();
@@ -367,18 +368,27 @@ static void add_object_to_list() {
 		gtk_list_store_append(list_IPS, &iter);
 		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "NED", COLUMN_NAME,
 				platedObject[RESOLVER_NED].name, -1);
+		anyobject = TRUE;
 	}
 
 	if (platedObject[RESOLVER_SIMBAD].name) {
 		gtk_list_store_append(list_IPS, &iter);
 		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "Simbad",
 				COLUMN_NAME, platedObject[RESOLVER_SIMBAD].name, -1);
+		anyobject = TRUE;
 	}
 
 	if (platedObject[RESOLVER_VIZIER].name) {
 		gtk_list_store_append(list_IPS, &iter);
 		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "VizieR",
 				COLUMN_NAME, platedObject[RESOLVER_VIZIER].name, -1);
+		anyobject = TRUE;
+	}
+
+	if (!anyobject) {
+		gtk_list_store_append(list_IPS, &iter);
+		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "N/A",
+				COLUMN_NAME, "No object found", -1);
 	}
 
 }
@@ -407,6 +417,10 @@ static void add_object_in_tree_view(const gchar *object) {
 		if (!has_nonzero_coords()) {
 			g_free(result);
 			set_cursor_waiting(FALSE);
+			// the list is empty, it will just write "No object found" as the first entry
+			g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
+			add_object_to_list();
+			g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 			siril_log_color_message(_("No object found\n"), "red");
 			return;
 		}
