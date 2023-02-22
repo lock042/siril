@@ -5261,10 +5261,11 @@ int select_unselect(gboolean select) {
 		update_reg_interface(FALSE);
 		adjust_sellabel();
 		drawPlot();
-	} else {
-		free_sequence(seq, FALSE);
 	}
-	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), com.seq.selnum);
+	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
+
+	if (!check_seq_is_comseq(seq))
+		free_sequence(seq, FALSE);
 
 	return CMD_OK;
 }
