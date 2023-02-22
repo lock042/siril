@@ -1216,7 +1216,7 @@ char **glist_to_array(GList *list, int *arg_count) {
 		if (arg_count)
 			*arg_count = count;
 	}
-	char **array = malloc(count * sizeof(char *));
+	char **array = malloc((count + 1) * sizeof(char *));
 	if (!array) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -1224,6 +1224,7 @@ char **glist_to_array(GList *list, int *arg_count) {
 	GList *orig_list = list;
 	for (int i = 0; i < count && list; list = list->next, i++)
 		array[i] = g_strdup(list->data);
+	array[count] = NULL;
 	g_list_free_full(orig_list, g_free);
 	return array;
 }
