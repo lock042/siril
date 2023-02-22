@@ -4042,7 +4042,7 @@ int process_light_curve(int nb) {
 	}
 	g_assert(com.pref.phot_set.inner < com.pref.phot_set.outer);
 
-	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
+	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		clearfits(&first);
@@ -4065,9 +4065,7 @@ int process_light_curve(int nb) {
 			return CMD_FOR_PLATE_SOLVED;
 		}
 		if (parse_nina_stars_file_using_WCS(args, file, TRUE, TRUE, &first)) {
-			if (seq != &com.seq)
-				free_sequence(seq, TRUE);
-			free(args);
+			free_light_curve_args(args);
 			clearfits(&first);
 			return CMD_GENERIC_ERROR;
 		}
@@ -4076,10 +4074,7 @@ int process_light_curve(int nb) {
 		for (int arg_index = argidx; arg_index < nb; arg_index++) {
 			if (parse_star_position_arg(word[arg_index], seq, &first,
 						&args->areas[arg_index - argidx], &args->target_descr)) {
-				if (seq != &com.seq)
-					free_sequence(seq, TRUE);
-				free(args->areas);
-				free(args);
+				free_light_curve_args(args);
 				clearfits(&first);
 				return CMD_ARG_ERROR;;
 			}

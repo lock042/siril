@@ -1589,6 +1589,7 @@ void init_plot_colors() {
 		com.seq.photometry_colors[i][1] = cfgplot.clrs[i].rgba[1];
 		com.seq.photometry_colors[i][2] = cfgplot.clrs[i].rgba[2];
 	}
+	free_colors(&cfgplot);
 }
 
 void notify_new_photometry() {
