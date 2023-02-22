@@ -172,7 +172,7 @@ int gaussian_blur_RT(fits *fit, double sigma, int threads);
 int unsharp(fits*, double sigma, double mult, gboolean verbose);
 float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
 int loglut(fits *fit);
-int ddp(fits *a, int lev, float coef, float sig);
+int ddp(fits *a, float lev, float coef, float sig);
 int visu(fits *fit, int low, int high);
 int fill(fits *fit, int level, rectangle *arearg);
 int off(fits *a, float level);

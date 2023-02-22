@@ -127,13 +127,16 @@ static GActionEntry app_entries[] = {
 void load_glade_file() {
 	GError *err = NULL;
 	gchar* gladefile;
+	gboolean retval;
 
 	gladefile = g_build_filename(siril_get_system_data_dir(), GLADE_FILE, NULL);
 
 	/* try to load the glade file, from the sources defined above */
 	gui.builder = gtk_builder_new();
-
-	if (!gtk_builder_add_from_file(gui.builder, gladefile, &err)) {
+	// TODO: the following gtk_builder_add_from_file call is the source
+	// of libfontconfig memory leaks.
+	retval = gtk_builder_add_from_file(gui.builder, gladefile, &err);
+	if (!retval) {
 		g_error(_("%s was not found or contains errors, "
 					"cannot render GUI:\n%s\n Exiting.\n"), gladefile, err->message);
 		g_clear_error(&err);

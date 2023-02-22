@@ -808,6 +808,7 @@ static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int
 	fits_get_hdrspace(fptr, &nkeys, NULL, &status);
 	if (status || nkeys < 0) {
 		free(*header);
+		*header = NULL;
 		return 1;
 	}
 	for (int i = 1; i <= nkeys; i++) {
@@ -823,6 +824,7 @@ static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int
 			if (!newstr) {
 				PRINT_ALLOC_ERR;
 				free(*header);
+				*header = NULL;
 				return 1;
 			}
 			*header = newstr;
@@ -838,6 +840,7 @@ static int copy_header_from_hdu(fitsfile *fptr, char **header, int *strsize, int
 		if (!newstr) {
 			PRINT_ALLOC_ERR;
 			free(*header);
+			*header = NULL;
 			return 1;
 		}
 		*header = newstr;
@@ -861,7 +864,6 @@ char *copy_header(fits *fit) {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
-	header[0] = '\0';
 	strlength = 0;
 	if (copy_header_from_hdu(fit->fptr, &header, &strsize, &strlength))
 		return NULL;
@@ -889,21 +891,22 @@ char *copy_header(fits *fit) {
 	}
 
 	if (header[0] == '\0') {
-		g_free(header);
+		free(header);
 		header = NULL;
 	}
 	if (!header)
 		return NULL;
 
-	/* we need to test if text is ut8
-	 * indeed some header are not */
+	/* we need to test if text is utf8
+	 * indeed some header are not.
+	 *
+	 */
 	if (!g_utf8_validate(header, -1, NULL)) {
 		gchar *str = g_utf8_make_valid(header, -1);
-		g_free(header);
+		free(header);
 		header = strdup(str);
 		g_free(str);
 	}
-
 	return header;
 }
 
@@ -2039,6 +2042,7 @@ int read_fits_metadata(fits *fit) {
 
 	read_fits_header(fit);	// stores useful header data in fit
 	fit->header = copy_header(fit);
+
 	return 0;
 }
 
@@ -2053,10 +2057,10 @@ static int read_fits_metadata_from_path_internal(const char *filename, fits *fit
 	}
 
 	read_fits_metadata(fit);
-	fit->header = copy_header(fit);
 
 	status = 0;
 	fits_close_file(fit->fptr, &status);
+
 	return status;
 }
 
@@ -2513,10 +2517,18 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 				fprintf(stderr, "error: data ptr unallocated\n");
 				return -1;
 			}
+			if (!from->data) {
+				fprintf(stderr, "error: no suitable data in src fits\n");
+				return -1;
+			}
 			memcpy(to->data, from->data, nbdata * depth * sizeof(WORD));
 		} else if (to->type == DATA_FLOAT) {
 			if (!(to->fdata)) {
 				fprintf(stderr, "error: fdata ptr unallocated\n");
+				return -1;
+			}
+			if (!from->fdata) {
+				fprintf(stderr, "error: no suitable data in src fits\n");
 				return -1;
 			}
 			memcpy(to->fdata, from->fdata, nbdata * depth * sizeof(float));

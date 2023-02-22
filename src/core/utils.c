@@ -311,6 +311,7 @@ float ushort_to_float_bitpix(fits *fit, WORD value) {
  * @return
  */
 WORD *float_buffer_to_ushort(float *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	WORD *buf = malloc(ndata * sizeof(WORD));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -329,6 +330,7 @@ WORD *float_buffer_to_ushort(float *buffer, size_t ndata) {
  * @return
  */
 signed short *float_buffer_to_short(float *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	signed short *buf = malloc(ndata * sizeof(signed short));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -347,6 +349,7 @@ signed short *float_buffer_to_short(float *buffer, size_t ndata) {
  * @return
  */
 signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	signed short *buf = malloc(ndata * sizeof(signed short));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -365,6 +368,7 @@ signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
  * @return
  */
 float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -383,6 +387,7 @@ float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
  * @return
  */
 float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -401,6 +406,7 @@ float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
  * @return
  */
 float *ushort8_buffer_to_float(WORD *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;

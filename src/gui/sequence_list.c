@@ -857,6 +857,7 @@ void update_icons_sequence_list(gboolean is_dark) {
 		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame.svg", NULL);
 		w = gtk_image_new_from_file(image);
 	}
+	g_free(image);
 	gtk_button_set_image(GTK_BUTTON(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"))), w);
 	gtk_widget_show(w);
 }

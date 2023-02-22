@@ -264,9 +264,6 @@ void free_starnet_args(starnet_data *args) {
 		g_free((void*)args->seqname);
 	if (args->seqEntry)
 		g_free((void*)args->seqEntry);
-	if (args->seq)
-		if (!check_seq_is_comseq(args->seq))
-			free_sequence(args->seq, TRUE);
 	free(args);
 	siril_debug_print("starnet_args freed\n");
 }
@@ -290,6 +287,9 @@ gboolean seqstarnet_idle(gpointer p) {
 		g_free(basename);
 	}
 	free_starnet_args(starnet_args);
+	if (args->seq)
+		if (!check_seq_is_comseq(args->seq))
+			free_sequence(args->seq, TRUE);
 	free(p);
 	return end_generic(NULL);
 }

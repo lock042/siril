@@ -739,10 +739,11 @@ static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, do
 
 		if (g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, NULL) == FALSE) {
 			siril_log_color_message(_("Error writing output...\n"), "red");
+			g_output_stream_close(output_stream, NULL, NULL);
 			return 1;
 		}
 	}
-
+	g_output_stream_close(output_stream, NULL, NULL);
 	return 0;
 }
 

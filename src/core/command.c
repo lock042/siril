@@ -4351,8 +4351,8 @@ int process_nozero(int nb){
 
 int process_ddp(int nb) {
 	gchar *end;
-	int level = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || level < 0) {
+	float level = (float) g_ascii_strtod(word[1], &end);
+	if (end == word[1] || level < 0 || level > USHRT_MAX_SINGLE) {
 		siril_log_message(_("Level value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
@@ -4983,6 +4983,7 @@ int process_seq_fixbanding(int nb) {
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
+		free (args);
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	args->seq = seq;
@@ -7005,6 +7006,7 @@ int process_seq_applyreg(int nb) {
 terminate_register_on_error:
 	if (!check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
+	free(reg_args->new_seq_name);
 	free(reg_args);
 	return CMD_ARG_ERROR;
 }
@@ -7771,7 +7773,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 prepro_parse_end:
 	clearfits(&reffit);
 	if (retvalue) {
-		free(args);
+		clear_preprocessing_data(args);
 		return NULL;
 	}
 	return args;
@@ -7787,8 +7789,10 @@ int process_preprocess(int nb) {
 	}
 
 	struct preprocessing_data *args = parse_preprocess_args(nb, seq);
-	if (!args)
+	if (!args) {
+		free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
+	}
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 	args->autolevel = TRUE;
