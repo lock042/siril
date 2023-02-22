@@ -162,6 +162,7 @@ static void global_initialization() {
 
 	gui.selected_star = -1;
 	gui.qphot = NULL;
+	gui.draw_extra = NULL;
 	gui.cvport = RED_VPORT;
 	gui.show_excluded = TRUE;
 	gui.sliders = MINMAX;
@@ -463,6 +464,17 @@ int main(int argc, char *argv[]) {
 
 	g_application_set_option_context_summary(G_APPLICATION(app), _("Siril - A free astronomical image processing software."));
 	g_application_add_main_option_entries(G_APPLICATION(app), main_option);
+
+	{	/* Setting the 'register-session' property is for macOS
+		 * - to enable DnD via dock icon
+		 * - to enable system menu "Quit"
+		 */
+		GValue value = G_VALUE_INIT;
+		g_value_init(&value, G_TYPE_BOOLEAN);
+		g_value_set_boolean(&value, TRUE);
+		g_object_set_property(G_OBJECT(app), "register-session", &value);
+		g_value_unset(&value);
+	}
 
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 	if (status) {

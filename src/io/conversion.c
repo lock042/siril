@@ -580,13 +580,6 @@ gpointer convert_thread_worker(gpointer p) {
 	args->retval = 0;
 	gboolean allow_symlink = args->output_type == SEQ_REGULAR && test_if_symlink_is_ok(TRUE);
 	args->make_link &= allow_symlink;
-	if (args->make_link && com.pref.comp.fits_enabled) {
-		/* of course if input files are already compressed with the same
-		 * algorithm, that's a problem, but it's not very likely to happen */
-		siril_log_message(_("Not using symbolic links because FITS compression is enabled\n"));
-		args->make_link = FALSE;
-	}
-
 	if (args->multiple_output && args->output_type != SEQ_SER && args->output_type != SEQ_FITSEQ) {
 		siril_log_message(_("disabling incompatible multiple output option in conversion\n"));
 		args->multiple_output = FALSE;
@@ -1327,13 +1320,13 @@ static void report_file_conversion(struct _convert_data *args, struct readwrite_
 	gchar *str = NULL;
 	if (rwarg->reader->filename) {
 		if (rwarg->writer->filename) {
-			str = g_strdup_printf("'%s' -> '%s'%s", rwarg->reader->filename, rwarg->writer->filename, SIRIL_EOL);
+			str = g_strdup_printf("'%s' -> '%s'\n", rwarg->reader->filename, rwarg->writer->filename);
 		}
 		else if (rwarg->writer->fitseq) {
-			str = g_strdup_printf("'%s' -> '%s' image %d%s", rwarg->reader->filename, rwarg->writer->fitseq->filename, rwarg->writer->index, SIRIL_EOL);
+			str = g_strdup_printf("'%s' -> '%s' image %d\n", rwarg->reader->filename, rwarg->writer->fitseq->filename, rwarg->writer->index);
 		}
 		else if (rwarg->writer->ser) {
-			str = g_strdup_printf("'%s' -> '%s' image %d%s", rwarg->reader->filename, rwarg->writer->ser->filename, rwarg->writer->index, SIRIL_EOL);
+			str = g_strdup_printf("'%s' -> '%s' image %d\n", rwarg->reader->filename, rwarg->writer->ser->filename, rwarg->writer->index);
 		}
 	}
 	if (str) {

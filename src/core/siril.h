@@ -504,6 +504,15 @@ struct image_view {
 	cairo_surface_t *disp_surface;	// the cache
 };
 
+typedef struct draw_data {
+	cairo_t *cr;	// the context to draw to
+	int vport;	// the viewport index to draw
+	double zoom;	// the current zoom value
+	gboolean neg_view;	// negative view
+	cairo_filter_t filter;	// the type of image filtering to use
+	guint image_width, image_height;	// image size
+	guint window_width, window_height;	// drawing area size
+} draw_data_t;
 
 /* The global data structure of siril gui */
 struct guiinf {
@@ -527,6 +536,8 @@ struct guiinf {
 	gboolean show_wcs_grid;		// show the equatorial grid over the image
 
 	psf_star *qphot;		// quick photometry result, highlight a star
+
+	void (*draw_extra)(draw_data_t *dd);
 
 	/*********** Color mapping **********/
 	WORD lo, hi;			// the values of the cutoff sliders

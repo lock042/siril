@@ -210,11 +210,16 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 
 		if (args->partial_image) {
-			if (args->regdata_for_partial && (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][input_idx].H) > -2)
-			&& (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H) > -2)) { // do not try to transform area if img matrix is null
+			regdata *regparam = NULL;
+			if (args->regdata_for_partial)
+				regparam = args->seq->regparam[args->layer_for_partial];
+			if (regparam &&
+					guess_transform_from_H(regparam[input_idx].H) > NULL_TRANSFORMATION &&
+					guess_transform_from_H(regparam[args->seq->reference_image].H) > NULL_TRANSFORMATION) {
+				// do not try to transform area if img matrix is null
 				selection_H_transform(&area,
-						args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H,
-						args->seq->regparam[args->layer_for_partial][input_idx].H);
+						regparam[args->seq->reference_image].H,
+						regparam[input_idx].H);
 			}
 			// args->area may be modified in hooks
 

@@ -111,6 +111,8 @@ struct phot_config {
 	double gain;		// A/D converter gain in electrons per ADU
 	double inner;		// Inner radius of the annulus used to measure local background.
 	double outer;		// Outer radius of the annulus used to measure local background.
+	double auto_inner_factor;// factor for automatic inner radius computation from FWHM
+	double auto_outer_factor;// factor for automatic outer radius computation from FWHM
 	double aperture;	// flux aperture
 	gboolean force_radius;	// force the aperture radius value
 	double minval, maxval;	// consider pixels outside this range as invalid for photometry
@@ -213,6 +215,7 @@ typedef struct {
 	starprofile profile;
 	double min_beta;
 	double min_A, max_A;
+	double max_r;
 } star_finder_params;
 
 typedef struct fftw_params {

@@ -1786,8 +1786,6 @@ clearup:
 }
 
 /*********************** finding asnet bash first **********************/
-static gboolean solvefield_is_in_path = FALSE;
-
 #ifdef _WIN32
 static gchar *siril_get_asnet_bash() {
 	const gchar *localappdata = g_get_user_data_dir();
@@ -1803,6 +1801,7 @@ static gchar *siril_get_asnet_bash() {
 	return g_build_filename(com.pref.asnet_dir, "bin", "bash", NULL);
 }
 #else
+static gboolean solvefield_is_in_path = FALSE;
 static gchar *siril_get_asnet_bin() {
 	if (solvefield_is_in_path)
 		return g_strdup("solve-field");

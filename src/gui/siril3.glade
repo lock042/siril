@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -567,6 +567,7 @@ Uncheck if images come from a monochrome sensor.</property>
     <property name="resizable">False</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can-focus">False</property>
@@ -3086,6 +3087,12 @@ This option has no effect if processing a sequence.</property>
     <property name="step-increment">0.10</property>
     <property name="page-increment">0.10</property>
   </object>
+  <object class="GtkAdjustment" id="adjstarfinder_maxr">
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.05</property>
+    <property name="page-increment">0.25</property>
+  </object>
   <object class="GtkAdjustment" id="adjstarfinder_minA">
     <property name="upper">0.98999999999999999</property>
     <property name="step-increment">0.10</property>
@@ -3099,9 +3106,9 @@ This option has no effect if processing a sequence.</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_roundness">
-    <property name="upper">0.90</property>
+    <property name="upper">0.94999999999999996</property>
     <property name="value">0.5</property>
-    <property name="step-increment">0.10</property>
+    <property name="step-increment">0.05</property>
     <property name="page-increment">0.25</property>
   </object>
   <object class="GtkAdjustment" id="adjstarfinder_threshold">
@@ -9047,20 +9054,6 @@ Modifying parameters in this windows afterward will void the colour balance, and
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button_crop">
-                <property name="label" translatable="yes">Crop image to common area after align</property>
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">2</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel" id="label_align">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -9118,6 +9111,12 @@ Modifying parameters in this windows afterward will void the colour balance, and
                 <property name="left-attach">2</property>
                 <property name="top-attach">0</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
@@ -13229,8 +13228,7 @@ The default value is 0.5, suitable for stars twice as big in one direction as th
                         <property name="input-purpose">number</property>
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                         <property name="adjustment">adjstarfinder_roundness</property>
-                        <property name="climb-rate">0.10</property>
-                        <property name="digits">1</property>
+                        <property name="digits">2</property>
                         <property name="numeric">True</property>
                         <property name="value">0.5</property>
                         <signal name="value-changed" handler="on_spin_sf_roundness_changed" swapped="no"/>
@@ -13422,10 +13420,39 @@ Note: excluding saturated stars from the list will probably make registration or
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkCheckButton" id="psf_roundness_range_check_button">
+                        <property name="label" translatable="yes">Roundness range</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Enable roundness upper bound.
+Use only to display optical distorsions or double stars, not for registration or astrometry, this will break them.</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_psf_roundness_range_check_button_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">2</property>
+                      </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkSpinButton" id="spinstarfinder_maxr">
+                        <property name="visible">True</property>
+                        <property name="sensitive">False</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Maximum roundness, use only to display optical distorsions or double stars, not for registration or astrometry, this will break them.</property>
+                        <property name="width-chars">5</property>
+                        <property name="input-purpose">number</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <property name="adjustment">adjstarfinder_maxr</property>
+                        <property name="digits">2</property>
+                        <property name="numeric">True</property>
+                        <signal name="value-changed" handler="on_spin_sf_maxr_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">2</property>
+                      </packing>
                     </child>
                     <child>
                       <placeholder/>
@@ -13716,7 +13743,6 @@ Note: excluding saturated stars from the list will probably make registration or
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">Only shift images instead of using rotation on registration. This should be unchecked for alt-az or heavily drifting mounts. This makes one image processing much faster.</property>
                 <property name="halign">start</property>
-                <property name="active">True</property>
                 <property name="draw-indicator">True</property>
               </object>
               <packing>
@@ -14850,6 +14876,7 @@ This research has made use of IMCCE's SkyBoT VO tool.</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Merge CFA Elements</property>
     <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="show" handler="on_merge_cfa_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -15278,6 +15305,7 @@ Each image in the sequence will only be processed if the corresponding images fo
     <property name="default-width">1</property>
     <property name="default-height">1</property>
     <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="delete-event" handler="on_button_histo_close_clicked" swapped="no"/>
     <signal name="show" handler="on_histogram_window_show" swapped="no"/>
     <child internal-child="vbox">
@@ -20059,7 +20087,7 @@ Note: FITS images will have no effect when the pre-processed sequence is SER or 
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-markup" translatable="yes">Create a symbolic link for FITS files instead of copying them. This is useful to rename a sequence without duplicating files on the disk.
+                                                            <property name="tooltip-markup" translatable="yes">Create a symbolic link for FITS files instead of copying them. This is useful to rename a sequence without duplicating files on the disk. This option disables compression.
 
 &lt;b&gt;WARNING: on Windows, the symbolic link operations are only possible in Development mode.&lt;/b&gt;</property>
                                                             <property name="halign">start</property>

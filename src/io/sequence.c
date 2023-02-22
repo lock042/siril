@@ -1638,7 +1638,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 		if (spsfargs->framing == FOLLOW_STAR_FRAME) {
 			args->area.x = round_to_int(data->psf->xpos - args->area.w*0.5);
 			args->area.y = round_to_int(data->psf->ypos - args->area.h*0.5);
-			//fprintf(stdout, "moving area to %d, %d\n", args->area.x, args->area.y);
+			siril_debug_print("moving area to %d, %d\n", args->area.x, args->area.y);
 		}
 
 		if (!args->seq->imgparam[index].date_obs && fit->date_obs)
@@ -1707,8 +1707,8 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 	int i;
 	for (i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++);
 	if (i == MAX_SEQPSF) {
-		free_photometry_set(seq, 0);
-		i = 0;
+		free_photometry_set(seq, 1);
+		i = 1;
 	}
 	else seq->photometry[i+1] = NULL;
 	seq->photometry[i] = calloc(seq->number, sizeof(psf_star *));
@@ -1868,7 +1868,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 				return 1;
 			}
 			selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
-			if (args->area.x < 0 || args-> area.x > seq->rx - args->area.w ||
+			if (args->area.x < 0 || args->area.x > seq->rx - args->area.w ||
 					args->area.y < 0 || args->area.y > seq->ry - args->area.h) {
 				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
 				free(args);
@@ -2002,13 +2002,8 @@ gboolean sequence_has_wcs(sequence *seq, int *index) {
 }
 
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
-	gboolean error = FALSE;
-	if(!seq->regparam)
-		error = TRUE;
-	else if (!seq->regparam[reglayer])
-		error = TRUE;
-	if (error) {
-		siril_debug_print("Sequence drift could not be checked as sequence has no regdata on layer %d\n", reglayer);
+	if (!seq->regparam || !seq->regparam[reglayer]) {
+		siril_log_message(_("Sequence drift could not be checked as sequence has no regdata on layer %d\n"), reglayer);
 		return FALSE;
 	}
 	double orig_x = (double)(seq->rx / 2.);

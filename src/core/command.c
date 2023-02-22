@@ -107,13 +107,13 @@
 #include "algos/siril_wcs.h"
 #include "algos/geometry.h"
 #include "algos/photometric_cc.h"
+#include "algos/fix_xtrans_af.h"
+#include "algos/annotate.h"
 #include "opencv/opencv.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
 #include "registration/matching/match.h"
-#include "algos/fix_xtrans_af.h"
-#include "algos/annotate.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "git-version.h"
@@ -3414,6 +3414,7 @@ int process_set_findstar(int nb) {
 	starprofile profile = com.pref.starfinder_conf.profile;
 	double minA = com.pref.starfinder_conf.min_A;
 	double maxA = com.pref.starfinder_conf.max_A;
+	double maxr = com.pref.starfinder_conf.max_r;
 	gchar *end;
 
 	if (nb > startoptargs) {
@@ -3495,6 +3496,13 @@ int process_set_findstar(int nb) {
 						siril_log_message(_("Wrong parameter value %s.\n"), current);
 						return CMD_ARG_ERROR;
 					}
+				} else if (g_str_has_prefix(current, "-maxR=")) {
+					value = current + 6;
+					maxr = g_ascii_strtod(value, &end);
+					if (end == value || maxr <= 0.0 || maxr > 1.0) {
+						siril_log_message(_("Wrong parameter value %s.\n"), current);
+						return CMD_ARG_ERROR;
+					}
 				} else if (!g_ascii_strcasecmp(current, "reset")) {
 					siril_log_message(_("Resetting findstar parameters to default values.\n"));
 					sigma = 1.;
@@ -3506,6 +3514,9 @@ int process_set_findstar(int nb) {
 					convergence = 1;
 					profile = PSF_GAUSSIAN;
 					minbeta = 1.5;
+					minA = 0.0;
+					maxA = 0.0;
+					maxr = 1.0;
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
 					return CMD_ARG_ERROR;
@@ -3516,8 +3527,14 @@ int process_set_findstar(int nb) {
 
 	siril_log_message(_("sigma = %3.2f\n"), sigma);
 	com.pref.starfinder_conf.sigma = sigma;
-	siril_log_message(_("roundness = %3.2f\n"), roundness);
+	if (maxr != 1.0 && maxr > roundness)
+		siril_log_message(_("roundness range = [%f, %f]\n"), roundness, maxr);
+	else {
+		siril_log_message(_("roundness = %3.2f\n"), roundness);
+		maxr = 1.0;
+	}
 	com.pref.starfinder_conf.roundness = roundness;
+	com.pref.starfinder_conf.max_r = maxr;
 	siril_log_message(_("radius = %d\n"), radius);
 	com.pref.starfinder_conf.radius = radius;
 	if ((minA > 0.0 || maxA > 0.0) && minA < maxA)
@@ -3643,12 +3660,20 @@ int process_pm(int nb) {
 		}
 		if (start < end && *start) {
 			*end = 0;
-			args->varname[i] = g_strdup(start + 1);
+			gboolean found = FALSE;
+			for (int j = 0; j < i; j++) {
+				gchar *test = g_strrstr(args->varname[j], start + 1);
+				if (test)
+					found = TRUE;
+			}
+			if (!found)
+				args->varname[i++] = g_strdup(start + 1);
 			start = cur = end;
-			i++;
 		}
 		cur++;
 	}
+	args->nb_rows = i; // this is the final number of variables
+	args->varname = realloc(args->varname, i * sizeof(gchar *));
 
 	int width = -1;
 	int height = -1;
@@ -3778,7 +3803,8 @@ int process_seq_tilt(int nb) {
 	return CMD_OK;
 }
 
-int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *seqpsf_area, gchar **target_descr) {
+/* com.pref.phot_set.outer needs to be set at this point */
+static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectangle *seqpsf_area, gchar **target_descr) {
 	rectangle area;
 	if (g_str_has_prefix(arg, "-at=") || g_str_has_prefix(arg, "-refat=")) {
 		gchar *value, *end;
@@ -3942,14 +3968,16 @@ int process_seq_psf(int nb) {
 	return seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, com.script);
 }
 
-// light_curve sequencename channel { -ninalist=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... } }
+// light_curve sequencename channel [-autoring] { -ninalist=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... } }
 int process_light_curve(int nb) {
-	sequence *seq;
-	int layer;
-
-	seq = load_sequence(word[1], NULL);
+	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+		clear_all_photometry_and_plot(); // calls GTK+ code, but we're not in a script here
+	}
 	siril_debug_print("reference image in seqfile is %d\n", seq->reference_image);
 	int refimage = 0;
 	gboolean seq_has_wcs;
@@ -3958,70 +3986,112 @@ int process_light_curve(int nb) {
 	seq->current = refimage;	// seqpsf computes transformations from current
 
 	gchar *end;
-	layer = g_ascii_strtoull(word[2], &end, 10);
+	int layer = g_ascii_strtoull(word[2], &end, 10);
 	if (end == word[2] || layer >= seq->nb_layers) {
 		siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
-		free_sequence(seq, TRUE);
+		if (seq != &com.seq)
+			free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 
 	if (sequence_drifts(seq, layer, seq->rx / 4))
 		return CMD_GENERIC_ERROR;
 
+	int argidx = 3;
+	gboolean autoring = FALSE;
+	if (!g_strcmp0(word[argidx], "-autoring")) {
+		autoring = TRUE;
+		if (nb == 3) {
+			siril_log_message(_("Missing argument to command\n"));
+			return CMD_ARG_ERROR;
+		}
+		argidx++;
+	}
+
+	fits first = { 0 };
+	if (autoring) {
+		if (seq_read_frame(seq, refimage, &first, FALSE, -1)) {
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
+			return CMD_GENERIC_ERROR;
+		}
+		float fwhm = measure_image_FWHM(&first, layer);
+		if (fwhm <= 0.0f) {
+			siril_log_color_message(_("Could not find stars in the first image, aborting.\n"), "red");
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
+			clearfits(&first);
+			return CMD_GENERIC_ERROR;
+		}
+		/* automatic aperture is 2 times each star's FWHM, which can be
+		 * significantly larger than the mean FWHM that we get here */
+		com.pref.phot_set.inner = com.pref.phot_set.auto_inner_factor * fwhm;
+		com.pref.phot_set.outer = com.pref.phot_set.auto_outer_factor * fwhm;
+		siril_log_message(_("Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"),
+				com.pref.phot_set.inner, com.pref.phot_set.outer, fwhm);
+	} else {
+		if (seq_read_frame_metadata(seq, refimage, &first)) {
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
+			return CMD_GENERIC_ERROR;
+		}
+		siril_log_message(_("Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"),
+				com.pref.phot_set.inner, com.pref.phot_set.outer);
+	}
+	g_assert(com.pref.phot_set.inner < com.pref.phot_set.outer);
+
 	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		clearfits(&first);
+		return CMD_ALLOC_ERROR;
+	}
 
 	/* we have a sequence and channel, now we iterate with seqpsf on the list of stars */
-	if (g_str_has_prefix(word[3], "-ninastars=")) {
-		char *file = word[3] + 11;
+	if (g_str_has_prefix(word[argidx], "-ninastars=")) {
+		char *file = word[argidx] + 11;
 		if (file[0] == '\0') {
-			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
+			siril_log_message(_("Missing argument to %s, aborting.\n"), word[argidx]);
 			free(args);
-			return 1;
+			clearfits(&first);
+			return CMD_GENERIC_ERROR;
 		}
 		if (!seq_has_wcs) {
 			siril_log_message(_("No image in the sequence was found with the WCS information required for star selection by equatorial coordinates, plate solve the reference or the first\n"));
 			free(args);
+			clearfits(&first);
 			return CMD_FOR_PLATE_SOLVED;
 		}
-
-		fits first = { 0 };
-		if (seq_read_frame_metadata(seq, refimage, &first)) {
-			free_sequence(seq, TRUE);
+		if (parse_nina_stars_file_using_WCS(args, file, TRUE, TRUE, &first)) {
+			if (seq != &com.seq)
+				free_sequence(seq, TRUE);
 			free(args);
-			return CMD_GENERIC_ERROR;
-		}
-		if (parse_nina_stars_file_using_WCS(args, word[3]+11, TRUE, TRUE, &first)) {
-			free_sequence(seq, TRUE);
-			free(args);
+			clearfits(&first);
 			return CMD_GENERIC_ERROR;
 		}
 	} else {
-		fits first = { 0 };
-		if (seq_read_frame_metadata(seq, refimage, &first)) {
-			free_sequence(seq, TRUE);
-			free(args);
-			return CMD_GENERIC_ERROR;
-		}
-		args->areas = malloc((nb - 3) * sizeof(rectangle));
-		for (int arg_index = 3; arg_index < nb; arg_index++) {
-			if (parse_star_position_arg(word[arg_index], seq, &first, &args->areas[arg_index - 3], &args->target_descr)) {
-				free_sequence(seq, TRUE);
+		args->areas = malloc((nb - argidx) * sizeof(rectangle));
+		for (int arg_index = argidx; arg_index < nb; arg_index++) {
+			if (parse_star_position_arg(word[arg_index], seq, &first,
+						&args->areas[arg_index - argidx], &args->target_descr)) {
+				if (seq != &com.seq)
+					free_sequence(seq, TRUE);
 				free(args->areas);
 				free(args);
+				clearfits(&first);
 				return CMD_ARG_ERROR;;
 			}
 		}
-		args->nb = nb - 3;
+		args->nb = nb - argidx;
 	}
+	clearfits(&first);
 	args->seq = seq;
 	args->layer = layer;
 	args->display_graph = FALSE;
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
-	// TODO: display stars if sequence is current and not headless
-
 	start_in_new_thread(light_curve_worker, args);
-	return 0;
+	return CMD_OK;
 }
 
 int process_seq_crop(int nb) {
@@ -5191,10 +5261,11 @@ int select_unselect(gboolean select) {
 		update_reg_interface(FALSE);
 		adjust_sellabel();
 		drawPlot();
-	} else {
-		free_sequence(seq, FALSE);
 	}
-	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), com.seq.selnum);
+	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
+
+	if (!check_seq_is_comseq(seq))
+		free_sequence(seq, FALSE);
 
 	return CMD_OK;
 }
@@ -5566,9 +5637,8 @@ int process_seq_split_cfa(int nb) {
 
 int process_seq_merge_cfa(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
+	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
-	}
 
 	if (seq->nb_layers > 1) {
 		if (!check_seq_is_comseq(seq))
@@ -5576,7 +5646,12 @@ int process_seq_merge_cfa(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
+	if (!word[2])
+		return CMD_WRONG_N_ARG;
+
 	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
+	if(!args)
+		return CMD_ALLOC_ERROR;
 
 	if (!strcmp(word[2], "RGGB")) {
 		args->pattern = BAYER_FILTER_RGGB;

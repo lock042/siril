@@ -93,7 +93,8 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_FWHM_NEG; //crit 15
 	}
-	if ((result->fwhmy / result->fwhmx) < sf->roundness) {
+	double r = result->fwhmy / result->fwhmx;
+	if (r < sf->roundness || r > sf->max_r) {
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_ROUNDNESS_BELOW_CRIT; //crit 16
 	}
@@ -846,11 +847,11 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 			star_finder_params fparams = { 0 };
 			int fmax_stars;
 			int prof, layer;
-			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d relax=%d profile=%d minbeta=%lf max_stars=%d layer=%d minA=%lf maxA=%lf",
+			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d relax=%d profile=%d minbeta=%lf max_stars=%d layer=%d minA=%lf maxA=%lf maxR=%lf",
 						&fparams.sigma, &fparams.roundness, &fparams.radius,
 						&fparams.relax_checks, &prof, &fparams.min_beta, &fmax_stars,
-						&layer, &fparams.min_A, &fparams.max_A) < 8) {
-				// minA and maxA are newer and not mandatory
+						&layer, &fparams.min_A, &fparams.max_A, &fparams.max_r) < 8) {
+				// minA, maxA and maxR are newer and not mandatory
 				read_failure = TRUE;
 				break;
 			}
@@ -859,7 +860,7 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 				fparams.radius == sf->radius &&	fparams.relax_checks == sf->relax_checks &&
 				fparams.profile == sf->profile && fparams.min_beta == sf->min_beta &&
 				(fmax_stars >= sfargs->max_stars_fitted) && layer == sfargs->layer &&
-				fparams.min_A == sf->min_A && fparams.max_A == sf->max_A;
+				fparams.min_A == sf->min_A && fparams.max_A == sf->max_A && fparams.max_r == sf->max_r;
 			if (fmax_stars > sfargs->max_stars_fitted) sfargs->max_stars_fitted = fmax_stars;
 			siril_debug_print("params check: %d\n", params_ok);
 			if (!params_ok) {
@@ -953,8 +954,8 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
-	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d relax=%d profile=%d minbeta=%3.1f max_stars=%d layer=%d minA=%3.2f maxA=%3.2f%s",
-			sf->sigma, sf->roundness, sf->radius, sf->relax_checks,sf->profile, sf->min_beta, max_stars_fitted, layer, sf->min_A, sf->max_A, SIRIL_EOL);
+	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d relax=%d profile=%d minbeta=%3.1f max_stars=%d layer=%d minA=%3.2f maxA=%3.2f maxR=%3.2f%s",
+			sf->sigma, sf->roundness, sf->radius, sf->relax_checks,sf->profile, sf->min_beta, max_stars_fitted, layer, sf->min_A, sf->max_A, sf->max_r, SIRIL_EOL);
 	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
 		HANDLE_WRITE_ERR;
 	}
@@ -1238,3 +1239,46 @@ END:
 	return GINT_TO_POINTER(retval);
 }
 
+// if channel < 0, returns the max of each channel's robust mean
+// if channel, returns the robust mean for this channel
+// returns 0 for errors
+float measure_image_FWHM(fits *fit, int channel) {
+	float fwhm[3];
+	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
+	gboolean failed = FALSE;
+	int nb_chan = channel < 0 ? (int)fit->naxes[2] : 1;
+	g_assert(nb_chan == 1 || nb_chan == 3);
+#ifdef _OPENMP
+	int *threads = compute_thread_distribution(nb_chan, com.max_thread);
+#pragma omp parallel for num_threads(com.max_thread) if(nb_chan > 1)
+#endif
+	for (int chan = 0; chan < nb_chan; chan++) {
+		int nb_stars;
+		int nb_subthreads;
+#ifdef _OPENMP
+		nb_subthreads = threads[chan];
+#else
+		nb_subthreads = com.max_thread;
+#endif
+		int real_chan = channel < 0 ? chan : channel;
+		psf_star **stars = peaker(&im, real_chan, &com.pref.starfinder_conf, &nb_stars,
+				NULL, FALSE, TRUE, 200, com.pref.starfinder_conf.profile, nb_subthreads);
+		if (stars) {
+			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
+			siril_debug_print("FWHM for channel %d: %.3f\n", real_chan, fwhm[chan]);
+
+			for (int i = 0; i < nb_stars; i++)
+				free_psf(stars[i]);
+			free(stars);
+		}
+		else failed = TRUE;
+	}
+#ifdef _OPENMP
+	free(threads);
+#endif
+	if (failed)
+		return 0.0f;
+	if (nb_chan == 1)
+		return fwhm[0];
+	return max(fwhm[0], max(fwhm[1], fwhm[2]));
+}
