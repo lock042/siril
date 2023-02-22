@@ -4351,8 +4351,8 @@ int process_nozero(int nb){
 
 int process_ddp(int nb) {
 	gchar *end;
-	int level = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || level < 0) {
+	float level = (float) g_ascii_strtod(word[1], &end);
+	if (end == word[1] || level < 0 || level > USHRT_MAX_SINGLE) {
 		siril_log_message(_("Level value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
@@ -4983,6 +4983,7 @@ int process_seq_fixbanding(int nb) {
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
+		free (args);
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	args->seq = seq;
@@ -5261,10 +5262,11 @@ int select_unselect(gboolean select) {
 		update_reg_interface(FALSE);
 		adjust_sellabel();
 		drawPlot();
-	} else {
-		free_sequence(seq, FALSE);
 	}
-	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), com.seq.selnum);
+	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
+
+	if (!check_seq_is_comseq(seq))
+		free_sequence(seq, FALSE);
 
 	return CMD_OK;
 }
@@ -5636,9 +5638,8 @@ int process_seq_split_cfa(int nb) {
 
 int process_seq_merge_cfa(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
+	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
-	}
 
 	if (seq->nb_layers > 1) {
 		if (!check_seq_is_comseq(seq))
@@ -5646,7 +5647,12 @@ int process_seq_merge_cfa(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
+	if (!word[2])
+		return CMD_WRONG_N_ARG;
+
 	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
+	if(!args)
+		return CMD_ALLOC_ERROR;
 
 	if (!strcmp(word[2], "RGGB")) {
 		args->pattern = BAYER_FILTER_RGGB;
@@ -7005,6 +7011,7 @@ int process_seq_applyreg(int nb) {
 terminate_register_on_error:
 	if (!check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
+	free(reg_args->new_seq_name);
 	free(reg_args);
 	return CMD_ARG_ERROR;
 }
@@ -7771,7 +7778,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 prepro_parse_end:
 	clearfits(&reffit);
 	if (retvalue) {
-		free(args);
+		clear_preprocessing_data(args);
 		return NULL;
 	}
 	return args;
@@ -7787,8 +7794,10 @@ int process_preprocess(int nb) {
 	}
 
 	struct preprocessing_data *args = parse_preprocess_args(nb, seq);
-	if (!args)
+	if (!args) {
+		free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
+	}
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 	args->autolevel = TRUE;

@@ -184,6 +184,16 @@ int wavelet_reconstruct_file_float(char *File_Name_Transform, float *coef, float
 	if (wave_io_read(File_Name_Transform, &Wavelet))
 		return 1;
 
+	// Sanity check before using values read from file
+	if (Wavelet.Nbr_Plan < 1 || Wavelet.Nbr_Plan > 6) {
+		siril_log_color_message(_("Error: number of plans reported by wavelets file is out of bounds.\n"), "red");
+		return 1;
+	}
+	if (Wavelet.Nbr_Ligne < 1 || Wavelet.Nbr_Ligne > MAX_IMAGE_DIM || Wavelet.Nbr_Col < 1 || Wavelet.Nbr_Col > MAX_IMAGE_DIM) {
+		siril_log_color_message(_("Error: dimensions reported by wavelets file are negative, zero or excessive.\n"), "red");
+		return 1;
+	}
+
 	wavelet_reconstruct_data(&Wavelet, data, coef);
 
 	wave_io_free(&Wavelet);

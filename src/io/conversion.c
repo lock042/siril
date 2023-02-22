@@ -969,12 +969,17 @@ static void pool_worker(gpointer data, gpointer user_data) {
 			g_atomic_int_inc(&conv->converted_files);
 		}
 		free(rwdata);	// reader and writer are freed in their function
+		if (fit) free(fit);
 		return;
 	}
 	else if (!fit || read_status == NOT_READ || read_status == READ_FAILED) {
 		siril_debug_print("read error, ignoring image\n");
 		g_atomic_int_inc(&conv->failed_images);
 		finish_write_seq(rwdata->writer, FALSE);
+		if (fit) {
+			clearfits(fit);
+			free(fit);
+		}
 		return;
 	}
 	readjust_memory_limits(conv, fit);

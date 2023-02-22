@@ -601,6 +601,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 			siril_world_cs_get_delta(catalog_center) == 0.0) {
 		if (use_local_asnet) {
 			args->cat_center = NULL;
+			siril_world_cs_unref(catalog_center);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"),
 					_("Please enter object coordinates."));
@@ -619,7 +620,15 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->use_local_cat = TRUE;
 		args->catalog_file = NULL;
 		args->onlineCatalog = CAT_ASNET;
-		args->filename = g_strdup(com.uniq->filename);
+
+		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
+			args->filename = g_strdup(com.uniq->filename);
+		} else if (sequence_is_loaded()) {
+			args->filename = g_strdup_printf("%s%.5d", com.seq.seqname, com.seq.current + 1);
+		} else {
+			args->filename = g_strdup_printf("image");
+		}
+
 		return 0;
 	}
 

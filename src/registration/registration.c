@@ -275,7 +275,7 @@ int register_shift_dft(struct registration_args *args) {
 	ret = seq_read_frame_part(args->seq, args->layer, ref_image, &fit_ref,
 			&args->selection, FALSE, -1);
 
-	if (ret) {
+	if (ret || ((fit_ref.type == DATA_USHORT && !fit_ref.data) || (fit_ref.type == DATA_FLOAT && !fit_ref.fdata))) {
 		siril_log_message(
 				_("Register: could not load first image to register, aborting.\n"));
 		args->seq->regparam[args->layer] = NULL;
@@ -1576,6 +1576,8 @@ static gboolean end_register_idle(gpointer p) {
 	if (args->func == &register_3stars) reset_3stars();
 
 	free(args->new_seq_name);
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
 	free(args);
 	return FALSE;
 }

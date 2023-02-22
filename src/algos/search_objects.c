@@ -320,6 +320,8 @@ int parse_buffer(const gchar *buffer, double lim_mag) {
 		siril_world_cs_unref(world_cs);
 		return 0;
 	}
+	if (world_cs)
+		siril_world_cs_unref(world_cs);
 	return 1;
 }
 
