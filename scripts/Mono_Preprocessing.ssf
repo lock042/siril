@@ -19,7 +19,7 @@
 #
 ############################################
 
-requires 1.1.0
+requires 1.2.0
 
 # Convert Bias Frames to .fit files
 cd biases

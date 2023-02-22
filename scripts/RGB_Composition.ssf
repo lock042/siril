@@ -10,7 +10,7 @@
 # respects this order alphanumerically)
 # They will get aligned, cropped and combined into a color image
 
-requires 1.1.0
+requires 1.2.0
 
 # Convert 3 input images to a sequence
 convert colors -out=process
