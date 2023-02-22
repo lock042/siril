@@ -662,7 +662,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		initialize_FITS_name_entries();	// To update UI with new preferences
 		refresh_star_list();		// To update star list with new preferences
 		if (com.found_object)
-			force_to_refresh_catalogue_list();
+			refresh_found_objects();
 		save_main_window_state();
 		writeinitfile();
 

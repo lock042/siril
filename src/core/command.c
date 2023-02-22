@@ -8708,7 +8708,6 @@ int process_sso() {
 	}
 
 	purge_temp_user_catalogue();
-	force_to_refresh_catalogue_list();
 
 	double lim_mag = 20.0;
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
@@ -8729,15 +8728,19 @@ int process_sso() {
 	args->focal_length = gfit.focal_length;
 	args->pixel_size = gfit.pixel_size_x;
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
+	if (args->scale == 0.0) {
+		siril_log_message(_("Could not compute image resolution\n"));
+		free(args);
+		return CMD_INVALID_IMAGE;
+	}
 
 	start_in_new_thread(search_in_online_conesearch, args);
-
 	return CMD_OK;
 }
 
 static gboolean end_process_catsearch(gpointer p) {
 	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	force_to_refresh_catalogue_list();
+	refresh_found_objects();
 	if (!gtk_toggle_tool_button_get_active(button)) {
 		gtk_toggle_tool_button_set_active(button, TRUE);
 	} else {
@@ -8859,5 +8862,72 @@ int process_parse(int nb) {
 	siril_log_message(_("String in: %s\n"), word[1]);
 	siril_log_message(_("String out: %s\n"), expression);
 	g_free(expression);
+	return CMD_OK;
+}
+
+int process_show(int nb) {
+	// show [-clear] { -list=file | [name] ra dec }
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	char *name = " ";
+	int next_arg = 1;
+	if (!g_strcmp0(word[next_arg], "-clear")) {
+		next_arg++;
+		purge_temp_user_catalogue();
+	}
+
+	if (g_str_has_prefix(word[next_arg], "-list=")) {
+		const char *file = word[next_arg] + 6;
+		load_csv_targets_to_temp(file);
+		goto display;
+	}
+
+	SirilWorldCS *coords = NULL;
+parse_coords:
+	if (nb > next_arg && (word[next_arg][1] >= '0' && word[next_arg][1] <= '9')) {
+		// code from process_pcc
+		char *sep = strchr(word[next_arg], ',');
+		if (!sep) {
+			if (nb <= next_arg) {
+				siril_log_message(_("Could not parse target coordinates\n"));
+				return CMD_ARG_ERROR;
+			}
+			coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg+1]);
+			next_arg += 2;
+		}
+		else {
+			*sep++ = '\0';
+			coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], sep);
+			next_arg++;
+		}
+		if (!coords) {
+			siril_log_message(_("Could not parse target coordinates\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+	else {
+		if (nb > next_arg + 1) {
+			name = word[next_arg];
+			next_arg++;
+			goto parse_coords;
+		}
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+		return CMD_ARG_ERROR;
+	}
+
+	add_object_in_catalogue(name, coords, TRUE, TRUE);	// with the first TRUE, it's in tmp
+
+display:
+	/* display the new 'found_object' */
+	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+	if (!gtk_toggle_tool_button_get_active(button)) {
+		gtk_toggle_tool_button_set_active(button, TRUE);
+	} else {
+		refresh_found_objects();
+		redraw(REDRAW_OVERLAY);
+	}
+
 	return CMD_OK;
 }

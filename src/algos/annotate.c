@@ -35,6 +35,7 @@
 #define CATALOG_DIST_EPSILON (1/3600.0)	// 1 arcsec
 
 static GSList *siril_catalogue_list = NULL; // loaded data from all annotation catalogues
+
 static gboolean show_catalog(int catalog);
 
 static const gchar *cat[] = {
@@ -44,20 +45,23 @@ static const gchar *cat[] = {
 	"ldn.txt",
 	"sh2.txt",
 	"stars.txt",
+	/* below this line, user catalogues are in the user directory, not the
+	 * siril install dir. See also USER_DSO_CAT_INDEX which gives the index
+	 * of this separation */
 	"user-DSO-catalogue.txt",
-	"user-SSO-catalogue.txt",
-	"user-temp.txt"
+	"user-SSO-catalogue.txt"
 };
 // update USER_DSO_CAT_INDEX and USER_SSO_CAT_INDEX from the .h in case of change
 
 struct _CatalogObjects {
-	gchar *code;
-	gdouble ra;
-	gdouble dec;
-	gdouble radius;
+	gchar *code;	// displayed name
+	gdouble ra;	// in degrees, but in the files it's in hours...
+	gdouble dec;	// degrees
+	gdouble radius;	// in degrees but in the files it's the diameter. 0 for point-like,
+			// negative for no accurate size
 	gchar *name;
 	gchar *alias;
-	gint catalogue;
+	gint catalogue;	// index from the list of catalogues above
 };
 
 static CatalogObjects* new_catalog_object(const gchar *code, gdouble ra,
@@ -104,6 +108,7 @@ gboolean is_inside(fits *fit, double ra, double dec) {
 	return wcs2pix(fit, ra, dec, NULL, NULL) == 0;
 }
 
+/* compare two objects, looking for duplicates based on the alias names againts the code of the object to search */
 static gint object_compare(gconstpointer *a, gconstpointer *b) {
 	const CatalogObjects *s1 = (const CatalogObjects *) a;
 	const CatalogObjects *s2 = (const CatalogObjects *) b;
@@ -132,21 +137,16 @@ static gint object_compare(gconstpointer *a, gconstpointer *b) {
  * code ; ra ; dec sign ; dec ; radius ; name ; alias
  *
  */
-
 static GSList *load_catalog(const gchar *filename, gint cat_index) {
 	GFile *file;
 	gchar *line;
 	GSList *list = NULL;
-	GError *error = NULL;
 
 	file = g_file_new_for_path(filename);
-	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, &error);
+	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, NULL);
 
 	if (input_stream == NULL) {
-		if (error != NULL) {
-			g_clear_error(&error);
-			siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
-		}
+		siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
 		g_object_unref(file);
 		return NULL;
 	}
@@ -194,8 +194,73 @@ static GSList *load_catalog(const gchar *filename, gint cat_index) {
 	return list;
 }
 
-static void load_all_catalogues() {
+// for the show command, load a list of objects from a file into the temp cat
+void load_csv_targets_to_temp(const gchar *filename) {
+	GFile *file;
+	gchar *line;
+	GSList *list = NULL;
+
+	file = g_file_new_for_path(filename);
+	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, NULL);
+
+	if (input_stream == NULL) {
+		siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
+		g_object_unref(file);
+		return;
+	}
+
+	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
+	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
+				NULL, NULL))) {
+		if (line[0] == '#') {
+			g_free(line);
+			continue;
+		}
+		gchar **token = g_strsplit(line, ",", -1);
+		guint nargs = g_strv_length(token);
+		if (nargs < 3) {
+			siril_log_message(_("Malformed line: %s\n"), line);
+			g_strfreev(token);
+			g_free(line);
+			continue;
+		}
+
+		/* mandatory tokens */
+		const gchar *code = token[0];
+		double ra, dec;
+		if (strchr(token[1], ' ') || strchr(token[1], ':')) {
+			ra = parse_ra_hms(token[1]);	// in hours
+			dec = parse_dec_dms(token[2]);
+		} else {
+			ra = g_ascii_strtod(token[1], NULL);	// in degrees
+			dec = g_ascii_strtod(token[2], NULL);
+		}
+		if (isnan(ra) || isnan(dec) || (ra == 0.0 && dec == 0.0)) {
+			siril_log_message(_("Malformed line: %s\n"), line);
+		} else {
+			CatalogObjects *object = new_catalog_object(code, ra, dec, 0.0, NULL, NULL, USER_TEMP_CAT_INDEX);
+			list = g_slist_prepend(list, (gpointer) object);
+
+		}
+		g_strfreev(token);
+		g_free(line);
+	}
+	//list = g_slist_reverse(list);
+	siril_debug_print("loaded %d objects from CSV temporary annotation %s\n", g_slist_length(list), filename);
+	if (list)
+		siril_catalogue_list = g_slist_concat(list, siril_catalogue_list);
+
+	g_object_unref(data_input);
+	g_object_unref(input_stream);
+	g_object_unref(file);
+}
+
+static void reload_all_catalogues() {
+	siril_debug_print("reloading annotation catalogues\n");
 	if (siril_catalogue_list) {
+		g_slist_free(com.found_object);
+		com.found_object = NULL;
+
 		g_slist_free_full(siril_catalogue_list, (GDestroyNotify)free_catalogue_object);
 		siril_catalogue_list = NULL;
 	}
@@ -288,7 +353,7 @@ static gchar* replace_str(const gchar *s, const gchar *old, const gchar *new) {
 	return result;
 }
 
-gchar *retrieve_site_coord (fits *fit) {
+gchar *retrieve_site_coord(fits *fit) {
 	//  In case no localisation data is available, set the reference to geocentric, ie @500 in the request
 	if (!fit->sitelat || !fit->sitelong)
 		return g_strdup("@500");
@@ -310,13 +375,12 @@ gchar *retrieve_site_coord (fits *fit) {
 	return g_string_free(formatted_site_coord, FALSE);
 }
 
-static void write_in_user_catalogue(CatalogObjects *object, gboolean is_solar_system, gboolean is_in_field) {
-	GError *error = NULL;
-	GFile *file;
-	GOutputStream *output_stream;
-	gchar *root;
+static void write_in_user_catalogue(CatalogObjects *object, int cat_index) {
+	// the temporary objects catalogue has no disk existence
+	if (cat_index >= USER_TEMP_CAT_INDEX) return;
+
 	/* First we test if root directory already exists */
-	root = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", NULL);
+	gchar *root = g_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", NULL);
 
 	if (!g_file_test(root, G_FILE_TEST_EXISTS)) {
 		if (g_mkdir_with_parents(root, 0755) < 0) {
@@ -326,18 +390,11 @@ static void write_in_user_catalogue(CatalogObjects *object, gboolean is_solar_sy
 		}
 	}
 
-	if (is_in_field) {
-		file = g_file_new_build_filename(root, cat[USER_TEMP_CAT_INDEX], NULL);
-	} else {
-		if (is_solar_system) {
-			file = g_file_new_build_filename(root, cat[USER_SSO_CAT_INDEX], NULL);
-		}else {
-			file = g_file_new_build_filename(root, cat[USER_DSO_CAT_INDEX], NULL);
-		}
-	}
-
+	GFile *file = g_file_new_build_filename(root, cat[cat_index], NULL);
 	g_free(root);
 
+	GError *error = NULL;
+	GOutputStream *output_stream;
 	output_stream = (GOutputStream *)g_file_append_to(file, G_FILE_CREATE_NONE, NULL, &error);
 	if (output_stream == NULL) {
 		if (error != NULL) {
@@ -360,12 +417,14 @@ static void write_in_user_catalogue(CatalogObjects *object, gboolean is_solar_sy
 	g_object_unref(file);
 }
 
+/* get a list of objects from all catalogues (= from siril_catalogue_list) that
+ * are framed in the passed plate solved image */
 GSList *find_objects(fits *fit) {
 	if (!has_wcs(fit)) return NULL;
 	GSList *targets = NULL;
 
 	if (!is_catalogue_loaded())
-		load_all_catalogues();
+		reload_all_catalogues();
 	GSList *list = get_siril_catalogue_list();
 
 	for (GSList *l = list; l; l = l->next) {
@@ -375,8 +434,7 @@ GSList *find_objects(fits *fit) {
 		/* Search for objects in the image */
 		if (is_inside(fit, cur->ra, cur->dec)) {
 			if (!g_slist_find_custom(targets, cur, (GCompareFunc) object_compare)) {
-				CatalogObjects *new_object = new_catalog_object(cur->code, cur->ra, cur->dec, cur->radius, cur->name, cur->alias, cur->catalogue);
-				targets = g_slist_prepend(targets, new_object);
+				targets = g_slist_prepend(targets, cur);
 			}
 		}
 	}
@@ -391,7 +449,7 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_s
 	int cat_index;
 
 	if (!is_catalogue_loaded())
-		load_all_catalogues();
+		reload_all_catalogues();
 	/* check for the object first to avoid duplicates, not for solar system objects */
 	if (!is_solar_system) {
 		GSList *cur = siril_catalogue_list;
@@ -413,15 +471,12 @@ void add_object_in_catalogue(gchar *code, SirilWorldCS *wcs, gboolean is_solar_s
 		else cat_index = USER_DSO_CAT_INDEX;
 	}
 
-
 	CatalogObjects *new_object = new_catalog_object(code,
 			siril_world_cs_get_alpha(wcs), siril_world_cs_get_delta(wcs), 0,
 			NULL, NULL, cat_index);
 
-
-
-	siril_catalogue_list = g_slist_append(siril_catalogue_list, new_object);
-	write_in_user_catalogue(new_object, is_solar_system, is_in_field);
+	siril_catalogue_list = g_slist_prepend(siril_catalogue_list, new_object);
+	write_in_user_catalogue(new_object, cat_index);
 }
 
 gchar *get_catalogue_object_code(CatalogObjects *object) {
@@ -473,10 +528,10 @@ void free_catalogue_object(CatalogObjects *object) {
 	g_free(object);
 }
 
-void force_to_refresh_catalogue_list() {
+void refresh_found_objects() {
 	if (has_wcs(&gfit)) {
 		if (com.found_object) {
-			g_slist_free_full(com.found_object, (GDestroyNotify) free_catalogue_object);
+			g_slist_free(com.found_object);
 		}
 		com.found_object = find_objects(&gfit);
 	}
@@ -486,33 +541,58 @@ static gboolean show_catalog(int catalog) {
 	return com.pref.gui.catalog[catalog];
 }
 
-void purge_temp_user_catalogue() {
-	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[USER_TEMP_CAT_INDEX], NULL);
+static void remove_temp_from_found(gpointer data, gpointer user_data) {
+	CatalogObjects *obj = (CatalogObjects *) data;
+	if (obj->catalogue == USER_TEMP_CAT_INDEX)
+		com.found_object = g_slist_remove(com.found_object, data);
+	// this is a very inefficient way to remove objects from a list,
+	// but ok here becase there are not many
+}
 
-	g_autoptr(GError) local_error = NULL;
-	if (g_file_query_exists(file, NULL) && !g_file_delete(file, NULL, &local_error)) {
-		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
-	} else {
-		load_all_catalogues();
+void purge_temp_user_catalogue() {
+	g_slist_foreach(com.found_object, remove_temp_from_found, NULL);
+
+	GSList *cur = siril_catalogue_list, *prev = NULL;
+	while (cur) {
+		CatalogObjects *obj = cur->data;
+		if (obj->catalogue == USER_TEMP_CAT_INDEX) {
+			// remove and free
+			if (cur == siril_catalogue_list) {
+				siril_catalogue_list = cur->next;
+				free_catalogue_object(obj);
+				g_slist_free_1(cur);
+				cur = siril_catalogue_list;
+			} else {
+				GSList *tmp = cur;
+				prev->next = cur->next;
+				free_catalogue_object(obj);
+				g_slist_free_1(tmp);
+			}
+		}
+		else {
+			prev = cur;
+			cur = cur->next;
+		}
 	}
-	g_object_unref(file);
 }
 
 void on_purge_SSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 	int confirm = siril_confirm_dialog(_("Catalog deletion"),
-			_("You are about to purge your SOLAR SYSTEM user catalog. This means the file containing the manually added objects will be deleted. "
+			_("You are about to purge your SOLAR SYSTEM user catalog. This means the "
+				"file containing the manually added objects will be deleted. "
 				"This operation cannot be undone."), _("Purge Catalogue"));
 	if (!confirm) {
 		return;
 	}
 
-	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[USER_SSO_CAT_INDEX], NULL);
+	GFile *file = g_file_new_build_filename(siril_get_config_dir(),
+			PACKAGE, "catalogue", cat[USER_SSO_CAT_INDEX], NULL);
 
 	g_autoptr(GError) local_error = NULL;
 	if (g_file_query_exists(file, NULL) && !g_file_delete(file, NULL, &local_error)) {
 		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
 	} else {
-		load_all_catalogues();
+		reload_all_catalogues();
 	}
 
 	g_object_unref(file);
@@ -520,7 +600,8 @@ void on_purge_SSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) 
 
 void on_purge_DSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) {
 	int confirm = siril_confirm_dialog(_("Catalogue deletion"),
-			_("You are about to purge your DEEP SKY user catalogue. This means the file containing the manually added objects will be deleted. "
+			_("You are about to purge your DEEP SKY user catalogue. This means the "
+				"file containing the manually added objects will be deleted. "
 				"This operation cannot be undone."), _("Purge Catalogue"));
 	if (!confirm) {
 		return;
@@ -532,8 +613,9 @@ void on_purge_DSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) 
 	if (g_file_query_exists(file, NULL) && !g_file_delete(file, NULL, &local_error)) {
 		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
 	} else {
-		load_all_catalogues();
+		reload_all_catalogues();
 	}
 
 	g_object_unref(file);
 }
+

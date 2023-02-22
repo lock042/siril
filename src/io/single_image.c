@@ -96,7 +96,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	clear_sampling_setting_box();	// clear focal and pixel pitch info
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
-	g_slist_free_full(com.found_object, (GDestroyNotify)free_catalogue_object);
+	g_slist_free(com.found_object);
 	com.found_object = NULL;
 	reset_display_offset();
 	reset_zoom_default();

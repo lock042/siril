@@ -157,6 +157,8 @@ void free_Platedobject() {
 
 /* get resolution in arcsec per pixel */
 double get_resolution(double focal, double pixel) {
+	if (focal <= 0.0 || pixel <= 0.0)
+		return 0.0;
 	return RADCONV / focal * pixel;
 }
 

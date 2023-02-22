@@ -384,9 +384,9 @@ void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user
 			com.found_object = find_objects(&gfit);
 		}
 	} else {
-		purge_temp_user_catalogue();
-		g_slist_free_full(com.found_object, (GDestroyNotify) free_catalogue_object);
+		g_slist_free(com.found_object);
 		com.found_object = NULL;
+		purge_temp_user_catalogue();
 	}
 	g_simple_action_set_state(action, state);
 	redraw(REDRAW_OVERLAY);
