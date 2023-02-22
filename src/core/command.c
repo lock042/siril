@@ -8885,6 +8885,7 @@ int process_show(int nb) {
 	}
 
 	SirilWorldCS *coords = NULL;
+	GtkToggleToolButton *button = NULL;
 parse_coords:
 	if (nb > next_arg && (word[next_arg][1] >= '0' && word[next_arg][1] <= '9')) {
 		// code from process_pcc
@@ -8921,7 +8922,7 @@ parse_coords:
 
 display:
 	/* display the new 'found_object' */
-	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+	button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
 	if (!gtk_toggle_tool_button_get_active(button)) {
 		gtk_toggle_tool_button_set_active(button, TRUE);
 	} else {
