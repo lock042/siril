@@ -2454,10 +2454,11 @@ int process_merge(int nb) {
 	struct ser_struct out_ser;
 	struct _convert_data *args = NULL;
 	fitseq out_fitseq;
+	char *destroot;
 	switch (seqs[0]->type) {
 		case SEQ_REGULAR:
 			// use the conversion, it makes symbolic links or copies as a fallback
-			char *destroot = strdup(word[nb - 1]);
+			destroot = strdup(word[nb - 1]);
 			args = malloc(sizeof(struct _convert_data));
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
