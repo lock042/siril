@@ -5261,10 +5261,11 @@ int select_unselect(gboolean select) {
 		update_reg_interface(FALSE);
 		adjust_sellabel();
 		drawPlot();
-	} else {
-		free_sequence(seq, FALSE);
 	}
-	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), com.seq.selnum);
+	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
+
+	if (!check_seq_is_comseq(seq))
+		free_sequence(seq, FALSE);
 
 	return CMD_OK;
 }
@@ -5636,9 +5637,8 @@ int process_seq_split_cfa(int nb) {
 
 int process_seq_merge_cfa(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
+	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
-	}
 
 	if (seq->nb_layers > 1) {
 		if (!check_seq_is_comseq(seq))
@@ -5646,7 +5646,12 @@ int process_seq_merge_cfa(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
+	if (!word[2])
+		return CMD_WRONG_N_ARG;
+
 	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
+	if(!args)
+		return CMD_ALLOC_ERROR;
 
 	if (!strcmp(word[2], "RGGB")) {
 		args->pattern = BAYER_FILTER_RGGB;
