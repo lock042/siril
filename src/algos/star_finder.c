@@ -42,6 +42,10 @@
 #include "gui/PSF_list.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
+#ifdef HAVE_WCSLIB
+#include <wcslib.h>
+#include <wcsfix.h>
+#endif
 
 #define _SQRT_EXP1 1.6487212707
 #define KERNEL_SIZE 2.  // sigma of the gaussian smoothing kernel
@@ -1092,6 +1096,39 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 	return retval;
 }
 
+void free_findstar_args(struct starfinder_data *args) {
+#ifdef HAVE_WCSLIB
+	wcsfree(args->ref_wcs);
+#endif
+	if (args->startable)
+		g_free(args->startable);
+	if (args->starfile)
+		g_free(args->starfile);
+	free(args);
+	printf("findstar_args freed\n");
+	return;
+}
+
+gboolean end_findstar_sequence(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+	struct starfinder_data *findstar_args = (struct starfinder_data*) args->user;
+	if (args->has_output && args->load_new_sequence &&
+			args->new_seq_prefix && !args->retval) {
+		gchar *basename = g_path_get_basename(args->seq->seqname);
+		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
+		check_seq();
+		update_sequences_list(seqname);
+		g_free(seqname);
+		g_free(basename);
+	}
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free_findstar_args(findstar_args);
+	printf("findstar_args have been freed\n");
+	free(p);
+	return end_generic(NULL);
+}
+
 int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	struct generic_seq_args *args = create_default_seqargs(findstar_args->im.from_seq);
 	if (!findstar_args->process_all_images) {
@@ -1104,6 +1141,7 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	args->has_output = FALSE;
 	args->load_new_sequence = FALSE;
 	args->user = findstar_args;
+	args->idle_function = end_findstar_sequence; // needed in order to free ref_wcs
 	args->already_in_a_thread = findstar_args->already_in_thread;
 
 	if (findstar_args->save_to_file && findstar_args->save_eqcoords) {

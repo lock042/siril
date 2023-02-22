@@ -221,6 +221,8 @@ void free_preferences(preferences *pref) {
 }
 
 void set_wisdom_file() {
+	if (com.pref.fftw_conf.wisdom_file)
+		g_free(com.pref.fftw_conf.wisdom_file);
 	if (com.pref.fftw_conf.multithreaded)
 		com.pref.fftw_conf.wisdom_file = g_build_filename(g_get_user_cache_dir(), "siril_fftw_threaded.wisdom", NULL);
 	else

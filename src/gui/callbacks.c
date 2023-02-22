@@ -822,6 +822,7 @@ void display_filename() {
 	g_free(base_name);
 	g_free(orig_filename);
 	g_free(orig_base_name);
+	if (error) g_error_free(error);
 	if (concat_base_name) g_string_free(concat_base_name, TRUE);
 }
 

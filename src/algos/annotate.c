@@ -470,6 +470,7 @@ gdouble get_catalogue_object_radius(CatalogObjects *object) {
 void free_catalogue_object(CatalogObjects *object) {
 	g_free(object->code);
 	g_free(object->name);
+	g_free(object->alias);
 	g_free(object);
 }
 

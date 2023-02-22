@@ -71,6 +71,9 @@ static int readinitfile_libconfig(gchar *path) {
 	if (config_read_file(&config, file_path) == CONFIG_FALSE) {
 		siril_log_color_message(_("Cannot load initfile: %s\n"), "red", config_error_text(&config));
 		config_destroy(&config);
+#ifdef _WIN32
+		g_free(file_path);
+#endif
 		return 1;
 	}
 	siril_log_message(_("Loading old configuration file: '%s'\n"), file_path);
@@ -428,6 +431,7 @@ int readinitfile(char *path) {
 	GKeyFile *kf = g_key_file_new();
 	gchar *fname = get_locale_filename(path);
 	GError *error = NULL;
+	int retval;
 	if (!g_key_file_load_from_file(kf, fname, G_KEY_FILE_NONE, &error)) {
 		if (error != NULL) {
 			siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
@@ -440,7 +444,9 @@ int readinitfile(char *path) {
 #ifndef HAVE_JSON_GLIB
 	com.pref.check_update = FALSE;
 #endif
-	return read_keyfile(kf);
+	retval = read_keyfile(kf);
+	g_key_file_free(kf);
+	return retval;
 }
 
 /**
@@ -450,6 +456,7 @@ int readinitfile(char *path) {
 
 int checkinitfile() {
 	/* com.initfile will contain the path passed with -i if any, NULL else */
+	set_wisdom_file();
 	if (com.initfile) {
 		siril_log_message(_("Reading configuration file %s\n"), com.initfile);
 		return readinitfile(com.initfile);
@@ -499,7 +506,6 @@ int checkinitfile() {
 		com.initfile = config_file;
 		retval = readinitfile(com.initfile);
 	}
-	set_wisdom_file();
 	g_free(pathname);
 	return retval;
 }
