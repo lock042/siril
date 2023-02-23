@@ -470,25 +470,25 @@ int remixer() {
 
 	// Process left image
 	if (left_loaded && (left_changed || leftBP_changed)) {
-		apply_linked_ght_to_fits(&fit_left, &fit_left_calc, params_left, TRUE);
+		apply_linked_ght_to_fits(&fit_left, &fit_left_calc, &params_left, TRUE);
 	}
 		// Now do the linear BP shift, if needed. The only parameter that matters is BP so
 		// we just need to change the stretch type, no need to recompute params.
 	if (left_loaded && (leftBP_changed || (left_changed && leftBP != 0.0f))) {
 		params_left.stretchtype = STRETCH_LINEAR;
-		apply_linked_ght_to_fits(&fit_left_calc, &fit_left_calc, params_left, TRUE);
+		apply_linked_ght_to_fits(&fit_left_calc, &fit_left_calc, &params_left, TRUE);
 		leftBP_changed = FALSE;
 	}
 	left_changed = FALSE;
 
 	// Process right image
 	if (right_loaded && (right_changed || rightBP_changed)) {
-		apply_linked_ght_to_fits(&fit_right, &fit_right_calc, params_right, TRUE);
+		apply_linked_ght_to_fits(&fit_right, &fit_right_calc, &params_right, TRUE);
 	}
 		// As above, BP shift if required.
 	if (right_loaded && (rightBP_changed || (right_changed && rightBP != 0.0f))) {
 		params_right.stretchtype = STRETCH_LINEAR;
-		apply_linked_ght_to_fits(&fit_right_calc, &fit_right_calc, params_right, TRUE);
+		apply_linked_ght_to_fits(&fit_right_calc, &fit_right_calc, &params_right, TRUE);
 		rightBP_changed = FALSE;
 	}
 	right_changed = FALSE;

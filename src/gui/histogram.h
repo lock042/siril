@@ -18,7 +18,7 @@ struct mtf_data {
 struct ght_data {
 	fits *fit;
 	sequence *seq;
-	struct ght_params params_ght;
+	struct ght_params *params_ght;
 	const gchar *seqEntry;
 };
 
