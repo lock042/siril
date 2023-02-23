@@ -5526,7 +5526,7 @@ int process_seq_mtf(int nb) {
 
 	args->seq = seq;
 	args->fit = &gfit;
-	args->seqEntry = "mtf_";
+	args->seqEntry = strdup("mtf_");
 	gchar *end1, *end2, *end3;
 	args->params.shadows = g_ascii_strtod(word[2], &end1);
 	args->params.midtones = g_ascii_strtod(word[3], &end2);

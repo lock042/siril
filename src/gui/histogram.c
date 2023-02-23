@@ -1533,12 +1533,19 @@ void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
+int mtf_finalize_hook(struct generic_seq_args *args) {
+	struct mtf_data *data = (struct mtf_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	struct generic_seq_args *args = create_default_seqargs(mtf_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = mtf_args->seq->selnum;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = mtf_finalize_hook;
 	args->image_hook = mtf_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Midtone Transfer Function");
@@ -1552,12 +1559,19 @@ void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
+int ght_finalize_hook(struct generic_seq_args *args) {
+	struct ght_params *data = (struct ght_params *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 void apply_ght_to_sequence(struct ght_data *ght_args) {
 	struct generic_seq_args *args = create_default_seqargs(ght_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = ght_args->seq->selnum;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = ght_finalize_hook;
 	args->image_hook = ght_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Generalised Hyperbolic Transfer Function");
