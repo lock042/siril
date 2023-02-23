@@ -1751,6 +1751,10 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		free(spsfargs);
 		args->user = NULL;
 	}
+	printf("End of seqpsf finalize\n");
+	if (seq && !check_seq_is_comseq(seq))
+		free_sequence(seq, TRUE);
+
 	return 0;
 }
 

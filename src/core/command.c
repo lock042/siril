@@ -3932,6 +3932,12 @@ int process_seq_psf(int nb) {
 		if (!seq) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
+		if (!com.script && seq != &com.seq) {
+			set_seq(word[1]);
+			free_sequence(seq, TRUE);
+			seq = &com.seq;
+		}
+
 		fits first = { 0 };
 		if (seq_read_frame_metadata(seq, 0, &first)) {
 			free_sequence(seq, TRUE);
