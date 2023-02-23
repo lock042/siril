@@ -138,24 +138,7 @@ You can also build it from source yourself with msys2, it is documented
 
 Translation instructions for SIRIL
 ----------------------------------
-The translation system is based on [intltool](https://www.freedesktop.org/wiki/Software/intltool/),
-common for GTK+ software, with the help of the [poedit](https://poedit.net/) editor.
-
-Get SIRIL sources. In the siril directory, run **meson** if not already done, then run
-
-    ninja siril-pot -C _build
-
-Install poedit and open the **siril.pot** file in the po directory to start a new translation.
-
-Proceed to the translation of the English elements in the list. When you want
-to stop or when you have finished, send us the .po file that you created and
-we'll include it in the next version's sources and packages.
-
-If you want to work on an already existing language, run
-
-    ninja siril-update-po -C _build
-
-to update po files and edit it with poedit.
+We now use weblate for the translation of the application. Go to this [address](https://weblate.pixls.us/projects/siril/) and create an account.
 
 Notes on SIRIL FITS image format
 --------------------------------

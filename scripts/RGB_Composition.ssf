@@ -3,14 +3,14 @@
 # Script for Siril 1.2
 # February 2023
 # (C) Vincent Hourdin
-# Preprocessing v1.2
+# RGB_compositing v1.0
 #
 ########### SIMPLE RGB COMPOSTION ###########
 # In an empty directory, put images named R, G and B (or any naming that
 # respects this order alphanumerically)
 # They will get aligned, cropped and combined into a color image
 
-requires 1.1.0
+requires 1.2.0
 
 # Convert 3 input images to a sequence
 convert colors -out=process
