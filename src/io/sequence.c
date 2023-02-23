@@ -1840,6 +1840,8 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 
 	if (com.selection.w <= 0 || com.selection.h <= 0){
 		siril_log_message(_("Select an area first\n"));
+		if (seq && !check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		return 1;
 	}
 
@@ -1861,6 +1863,9 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 			siril_log_color_message(_("The reference image has a null matrix and was not previously registered. Please select another one.\n"), "red");
 			free(args);
 			free(spsfargs);
+			if (seq && !check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
+
 			return 1;
 		}
 		// transform selection back from current to ref frame coordinates
@@ -1869,6 +1874,8 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 				siril_log_color_message(_("The current image has a null matrix and was not previously registered. Please load another one to select the star.\n"), "red");
 				free(args);
 				free(spsfargs);
+				if (seq && !check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
 				return 1;
 			}
 			selection_H_transform(&args->area, seq->regparam[layer][seq->current].H, seq->regparam[layer][seq->reference_image].H);
@@ -1877,6 +1884,8 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 				siril_log_color_message(_("This area is outside of the reference image. Please select the reference image to select another star.\n"), "red");
 				free(args);
 				free(spsfargs);
+				if (seq && !check_seq_is_comseq(seq))
+					free_sequence(seq, TRUE);
 				return 1;
 			}
 		}
