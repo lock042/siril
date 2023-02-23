@@ -1275,7 +1275,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	if (!plot_data || !widget)
 		return;
 	pldata *plot = plot_data;
-	d1 = ref_d = mean_d = NULL;
+	d1 = ref_d = mean_d = curr_d = NULL;
 
 	double color = (com.pref.gui.combo_theme == 0) ? 0.0 : 1.0;
 
@@ -1435,8 +1435,10 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	free_colors(&cfgplot);
 	kplot_free(p);
 	kdata_destroy(d1);
-	kdata_destroy(curr_d);
-	kdata_destroy(ref_d);
+	if (curr_d)
+		kdata_destroy(curr_d);
+	if (ref_d)
+		kdata_destroy(ref_d);
 	if (mean_d)
 		kdata_destroy(mean_d);
 }
