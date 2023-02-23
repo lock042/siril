@@ -577,6 +577,7 @@ static gboolean end_convert_idle(gpointer p) {
 
 gpointer convert_thread_worker(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
+	struct writer_data *writer = NULL;
 	args->nb_converted_files = 0;
 	args->retval = 0;
 	gboolean allow_symlink = args->output_type == SEQ_REGULAR && test_if_symlink_is_ok(TRUE);
@@ -620,7 +621,7 @@ gpointer convert_thread_worker(gpointer p) {
 		print_reader(reader);
 		g_atomic_int_inc(&convert.nb_input_images);
 
-		struct writer_data *writer = calloc(1, sizeof(struct writer_data));
+		writer = calloc(1, sizeof(struct writer_data));
 		seqwrite_status wstatus = get_next_write_details(args, &convert, writer,
 				rstatus == GOT_OK_LAST_IN_SEQ || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE,
 				rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE || rstatus == GOT_OK_LAST_FILE);
@@ -628,6 +629,7 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_debug_print("got writer error\n");
 			free(reader);
 			free(writer);
+			writer = NULL;
 			break;
 		}
 		print_writer(writer);
@@ -637,6 +639,10 @@ gpointer convert_thread_worker(gpointer p) {
 		report_file_conversion(args, rwarg);
 		if (!g_thread_pool_push(pool, rwarg, NULL)) {
 			siril_log_message(_("Failed to queue image conversion task, aborting"));
+			free(reader);
+			free(writer);
+			writer = NULL;
+			free(rwarg);
 			break;
 		}
 		if (rstatus == GOT_OK_LAST_FILE || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE)
@@ -645,7 +651,10 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_debug_print("last image of the sequence reached, opening next sequence\n");
 			open_next_input_seq(&convert);
 		}
+		free(writer->seq_count);
+		g_free(writer->filename);
 		free(writer);
+		writer = NULL;
 		// reader is freed elsewhere
 	} while (com.run_thread);
 	siril_debug_print("conversion scheduling loop finished, waiting for conversion tasks to finish\n");
@@ -665,6 +674,7 @@ gpointer convert_thread_worker(gpointer p) {
 		else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 		write_conversion_report(args);
 	}
+	free(writer);
 	free(convert.threads);
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
