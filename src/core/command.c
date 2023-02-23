@@ -5651,9 +5651,6 @@ int process_seq_merge_cfa(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	if (!word[2])
-		return CMD_WRONG_N_ARG;
-
 	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
 	if(!args)
 		return CMD_ALLOC_ERROR;
