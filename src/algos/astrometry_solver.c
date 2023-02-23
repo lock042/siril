@@ -2173,6 +2173,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		free_fitted_stars(aargs->cstars);
 	if (aargs->catalog_file)
 		g_object_unref(aargs->catalog_file);
+	free (aargs);
 	return 0;
 }
 
@@ -2191,7 +2192,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->image_hook = astrometry_image_hook;
 	seqargs->finalize_hook = astrometry_finalize_hook;
 	seqargs->has_output = TRUE;
-	seqargs->new_seq_prefix = "ps_";
+	seqargs->new_seq_prefix = strdup("ps_");
 	seqargs->description = "plate solving";
 	seqargs->user = args;
 
