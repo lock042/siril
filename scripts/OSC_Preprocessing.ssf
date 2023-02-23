@@ -1,9 +1,9 @@
 ############################################
 #
 # Script for Siril 1.2
-# December 2022
+# February 2023
 # (C) Cyril Richard
-# Preprocessing v1.2
+# Preprocessing v1.3
 #
 ########### PREPROCESSING SCRIPT ###########
 #
@@ -35,8 +35,8 @@ cd flats
 convert flat -out=../process
 cd ../process
 
-# Pre-process Flat Frames
-preprocess flat -bias=../masters/bias_stacked
+# Calibrate Flat Frames
+calibrate flat -bias=../masters/bias_stacked
 
 # Stack Flat Frames to pp_flat_stacked.fit
 stack pp_flat rej 3 3 -norm=mul -out=../masters/pp_flat_stacked
@@ -56,8 +56,8 @@ cd lights
 convert light -out=../process
 cd ../process
 
-# Pre-process Light Frames
-preprocess light -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -cc=dark -cfa -equalize_cfa -debayer
+# Calibrate Light Frames
+calibrate light -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -cc=dark -cfa -equalize_cfa -debayer
 
 # Align lights
 register pp_light
