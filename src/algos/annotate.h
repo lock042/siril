@@ -41,6 +41,6 @@ void refresh_found_objects();
 void free_catalogue_object(CatalogObjects *object);
 void purge_temp_user_catalogue();
 gboolean is_inside(fits *fit, double ra, double dec);
-void load_csv_targets_to_temp(const gchar *filename);
+int load_csv_targets_to_temp(const gchar *filename);
 
 #endif /* SRC_ALGOS_ANNOTATE_H_ */

@@ -196,45 +196,77 @@ static GSList *load_catalog(const gchar *filename, gint cat_index) {
 }
 
 // for the show command, load a list of objects from a file into the temp cat
-void load_csv_targets_to_temp(const gchar *filename) {
-	GFile *file;
-	gchar *line;
-	GSList *list = NULL;
-
-	file = g_file_new_for_path(filename);
+int load_csv_targets_to_temp(const gchar *filename) {
+	GFile *file = g_file_new_for_path(filename);
 	GInputStream *input_stream = (GInputStream *)g_file_read(file, NULL, NULL);
 
 	if (input_stream == NULL) {
 		siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
 		g_object_unref(file);
-		return;
+		return 1;
 	}
 
+	int name_index = 0, ra_index = 1, dec_index = 2, max_index = 2;
+	gboolean first_line = TRUE;
+
 	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
+	GSList *list = NULL;
+	gchar *line;
 	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL,
-				NULL, NULL))) {
-		if (line[0] == '#') {
+					NULL, NULL))) {
+		if (line[0] == '\0' || line[0] == '\r' || line[0] == '\n' || line[0] == '#') {
+			first_line = FALSE;
 			g_free(line);
 			continue;
 		}
+		remove_trailing_eol(line);
+
 		gchar **token = g_strsplit(line, ",", -1);
 		guint nargs = g_strv_length(token);
-		if (nargs < 3) {
+
+		if (first_line) {
+			first_line = FALSE;
+			// this could be a NINA stars type CSV file, it's easy to
+			// also support it in this function
+			if (!strcasecmp(token[0], "type") && token[1]) {
+				siril_debug_print("header from the NINA file: %s\n", line);
+				name_index = -1; ra_index = -1; dec_index = -1;
+				for (int i = 1; token[i]; i++) {
+					if (!strcasecmp(token[i], "ra"))
+						ra_index = i;
+					else if (!strcasecmp(token[i], "dec"))
+						dec_index = i;
+					else if (!strcasecmp(token[i], "name"))
+						name_index = i;
+				}
+				g_strfreev(token);
+				g_free(line);
+				if (name_index == -1 || ra_index == -1 || dec_index == -1) {
+					siril_log_color_message(_("Stars file did not contain the expected header for NINA-style format\n"), "red");
+					break;
+				}
+				max_index = max(name_index, max(ra_index, dec_index));
+				continue;
+			}
+		}
+
+		if (nargs < max_index + 1) {
 			siril_log_message(_("Malformed line: %s\n"), line);
+			first_line = FALSE;
 			g_strfreev(token);
 			g_free(line);
 			continue;
 		}
 
 		/* mandatory tokens */
-		const gchar *code = token[0];
+		const gchar *code = token[name_index];
 		double ra, dec;
-		if (strchr(token[1], ' ') || strchr(token[1], ':')) {
-			ra = parse_ra_hms(token[1]);	// in hours
-			dec = parse_dec_dms(token[2]);
+		if (strchr(token[ra_index], ' ') || strchr(token[ra_index], ':')) {
+			ra = parse_ra_hms(token[ra_index]);	// in hours
+			dec = parse_dec_dms(token[dec_index]);
 		} else {
-			ra = g_ascii_strtod(token[1], NULL);	// in degrees
-			dec = g_ascii_strtod(token[2], NULL);
+			ra = g_ascii_strtod(token[ra_index], NULL);	// in degrees
+			dec = g_ascii_strtod(token[dec_index], NULL);
 		}
 		if (isnan(ra) || isnan(dec) || (ra == 0.0 && dec == 0.0)) {
 			siril_log_message(_("Malformed line: %s\n"), line);
@@ -254,6 +286,7 @@ void load_csv_targets_to_temp(const gchar *filename) {
 	g_object_unref(data_input);
 	g_object_unref(input_stream);
 	g_object_unref(file);
+	return list == NULL;
 }
 
 // this will also purge the temporary list
