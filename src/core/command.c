@@ -7855,12 +7855,12 @@ int process_calibrate_single(int nb) {
 
 int process_preprocess(int nb) {
 	PRINT_DEPRECATED_WARNING("calibrate");
-	process_calibrate(nb);
+	return (process_calibrate(nb));
 }
 
 int process_preprocess_single(int nb) {
 	PRINT_DEPRECATED_WARNING("calibrate_single");
-	process_calibrate_single(nb);
+	return (process_calibrate_single(nb));
 }
 
 int process_set_32bits(int nb) {
