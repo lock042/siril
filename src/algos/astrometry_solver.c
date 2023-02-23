@@ -422,8 +422,10 @@ static gchar *fetch_url(const gchar *url) {
 
 gpointer search_in_online_conesearch(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
-	if (!args->fit->date_obs)
+	if (!args->fit->date_obs) {
+		free(args);
 		return NULL;
+	}
 	double ra, dec;
 	center2wcs(args->fit, &ra, &dec);
 	int retval = 0;

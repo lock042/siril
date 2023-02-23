@@ -52,6 +52,7 @@ static const gchar *cat[] = {
 	"user-SSO-catalogue.txt"
 };
 // update USER_DSO_CAT_INDEX and USER_SSO_CAT_INDEX from the .h in case of change
+// make sure com.pref.gui.catalog matches this too
 
 struct _CatalogObjects {
 	gchar *code;	// displayed name
@@ -255,6 +256,7 @@ void load_csv_targets_to_temp(const gchar *filename) {
 	g_object_unref(file);
 }
 
+// this will also purge the temporary list
 static void reload_all_catalogues() {
 	siril_debug_print("reloading annotation catalogues\n");
 	if (siril_catalogue_list) {
@@ -538,6 +540,10 @@ void refresh_found_objects() {
 }
 
 static gboolean show_catalog(int catalog) {
+	if (catalog > G_N_ELEMENTS(com.pref.gui.catalog) || catalog < 0) {
+		siril_debug_print("BAD ANNOTATION CATALOGUE ENTRY DETECTED\n");
+		return FALSE;
+	}
 	return com.pref.gui.catalog[catalog];
 }
 
@@ -546,7 +552,7 @@ static void remove_temp_from_found(gpointer data, gpointer user_data) {
 	if (obj->catalogue == USER_TEMP_CAT_INDEX)
 		com.found_object = g_slist_remove(com.found_object, data);
 	// this is a very inefficient way to remove objects from a list,
-	// but ok here becase there are not many
+	// but ok here because there are not many
 }
 
 void purge_temp_user_catalogue() {
@@ -563,7 +569,8 @@ void purge_temp_user_catalogue() {
 				cur = siril_catalogue_list;
 			} else {
 				GSList *tmp = cur;
-				prev->next = cur->next;
+				cur = cur->next;
+				prev->next = cur;
 				free_catalogue_object(obj);
 				g_slist_free_1(tmp);
 			}
@@ -590,7 +597,12 @@ void on_purge_SSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) 
 	if (g_file_query_exists(file, NULL) && !g_file_delete(file, NULL, &local_error)) {
 		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
 	} else {
+		gboolean was_displayed = com.found_object != NULL;
 		reload_all_catalogues();
+		if (was_displayed) {
+			com.found_object = find_objects(&gfit);
+			redraw(REDRAW_OVERLAY);
+		}
 	}
 
 	g_object_unref(file);
@@ -605,13 +617,19 @@ void on_purge_DSO_user_catalogue_clicked(GtkButton *button, gpointer user_data) 
 		return;
 	}
 
-	GFile *file = g_file_new_build_filename(siril_get_config_dir(), PACKAGE, "catalogue", cat[USER_DSO_CAT_INDEX], NULL);
+	GFile *file = g_file_new_build_filename(siril_get_config_dir(),
+			PACKAGE, "catalogue", cat[USER_DSO_CAT_INDEX], NULL);
 
 	g_autoptr(GError) local_error = NULL;
 	if (g_file_query_exists(file, NULL) && !g_file_delete(file, NULL, &local_error)) {
 		g_warning("Failed to delete %s: %s", g_file_peek_path(file), local_error->message);
 	} else {
+		gboolean was_displayed = com.found_object != NULL;
 		reload_all_catalogues();
+		if (was_displayed) {
+			com.found_object = find_objects(&gfit);
+			redraw(REDRAW_OVERLAY);
+		}
 	}
 
 	g_object_unref(file);
