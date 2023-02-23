@@ -734,12 +734,16 @@ gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file) {
 
 	/* get the OS limit and extend it if possible */
 #ifdef _WIN32
-	MAX_NO_FILE = min(MAX_NO_FILE_CFITSIO, 2048);
+	MAX_NO_FILE = min(MAX_NO_FILE_CFITSIO, 8192);
 	open_max = _getmaxstdio();
 	if (open_max < MAX_NO_FILE) {
-		/* extend the limit to 2048 if possible
-		 * 2048 is the maximum on WINDOWS */
-		_setmaxstdio(MAX_NO_FILE);
+		/* extend the limit to 8192 if possible
+		 * 8192 is the maximum on WINDOWS */
+		int ret = _setmaxstdio(MAX_NO_FILE);
+		if (ret == -1 && MAX_NO_FILE_CFITSIO > 8192) {
+			/* fallback to 2048 */
+			_setmaxstdio(2048);
+		}
 		open_max = _getmaxstdio();
 	}
 #else
@@ -774,6 +778,8 @@ gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file) {
 	maxfile = min(open_max, MAX_NO_FILE);
 	siril_debug_print("Maximum of files that will be opened=%d\n", maxfile);
 	*nb_allowed_file = maxfile;
+	if (nb_frames > maxfile)
+		siril_log_color_message("Max number of opened files (%d) is larger than required number of images (%d)\n", "red", maxfile, nb_frames);
 
 	return nb_frames < maxfile;
 }

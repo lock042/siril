@@ -6259,6 +6259,13 @@ int process_convertraw(int nb) {
 	/* convert the list to an array for parallel processing */
 	char **files_to_convert = glist_to_array(list, &count);
 
+	int nb_allowed;
+	if (!allow_to_open_files(count, &nb_allowed) && output == SEQ_REGULAR) {
+		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
+		g_strfreev(files_to_convert);
+		return CMD_GENERIC_ERROR;
+	}
+
 	siril_log_color_message(_("Conversion: processing %d RAW files...\n"), "green", count);
 
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
@@ -6352,6 +6359,13 @@ int process_link(int nb) {
 	list = g_list_sort(list, (GCompareFunc) strcompare);
 	/* convert the list to an array for parallel processing */
 	char **files_to_link = glist_to_array(list, &count);
+
+	int nb_allowed;
+	if (!allow_to_open_files(count, &nb_allowed)) {
+		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
+		g_strfreev(files_to_link);
+		return CMD_GENERIC_ERROR;
+	}
 
 	gchar *str = ngettext("Link: processing %d FITS file...\n", "Link: processing %d FITS files...\n", count);
 	str = g_strdup_printf(str, count);
@@ -6467,6 +6481,13 @@ int process_convert(int nb) {
 	list = g_list_sort(list, (GCompareFunc) strcompare);
 	/* convert the list to an array for parallel processing */
 	gchar **files_to_link = glist_to_array(list, &count);
+
+	int nb_allowed;
+	if (!allow_to_open_files(count, &nb_allowed) && output == SEQ_REGULAR) {
+		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
+		g_strfreev(files_to_link);
+		return CMD_GENERIC_ERROR;
+	}
 
 	gchar *str = ngettext("Convert: processing %d FITS file...\n", "Convert: processing %d FITS files...\n", count);
 	str = g_strdup_printf(str, count);
