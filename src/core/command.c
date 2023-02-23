@@ -5672,8 +5672,8 @@ int process_seq_merge_cfa(int nb) {
 	}
 	siril_log_message(_("Reconstructing %s Bayer matrix.\n"), word[2]);
 	args->seq = seq;
-	args->seqEntryIn = "CFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
-	args->seqEntryOut = "mCFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->seqEntryIn = strdup("CFA_"); // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->seqEntryOut = strdup("mCFA_");
 
 	int startoptargs = 3;
 	if (nb > startoptargs) {

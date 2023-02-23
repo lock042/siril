@@ -25,8 +25,8 @@ void clear_Bayer_information(fits *fit);
 
 struct merge_cfa_data {
 	sequence *seq;
-	const gchar *seqEntryIn;
-	const gchar *seqEntryOut;
+	const char *seqEntryIn;
+	const char *seqEntryOut;
 	sensor_pattern pattern;
 };
 
