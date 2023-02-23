@@ -394,7 +394,9 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 
 	if (ret) {
 		clearfits(double_data->ha);
+		free(double_data->ha);
 		clearfits(double_data->oiii);
+		free(double_data->oiii);
 		free(double_data);
 	} else {
 #ifdef _OPENMP
@@ -447,6 +449,7 @@ static int dual_finalize(struct generic_seq_args *args) {
 	cfa_args->new_ser_oiii = NULL;
 	cfa_args->new_fitseq_oiii = NULL;
 	seqwriter_set_number_of_outputs(1);
+	free(cfa_args);
 	return retval;
 }
 
@@ -516,9 +519,11 @@ static int dual_save(struct generic_seq_args *args, int out_index, int in_index,
 			retval2 = save1fits32(dest, double_data->oiii, RLAYER);
 		}
 		free(dest);
-		clearfits(double_data->ha);
-		clearfits(double_data->oiii);
 	}
+	clearfits(double_data->ha);
+	free(double_data->ha);
+	clearfits(double_data->oiii);
+	free(double_data->oiii);
 	free(double_data);
 	return retval1 || retval2;
 }
