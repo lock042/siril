@@ -207,6 +207,7 @@ int load_csv_targets_to_temp(const gchar *filename) {
 	}
 
 	int name_index = 0, ra_index = 1, dec_index = 2, max_index = 2;
+	gboolean nina_file = FALSE;
 	gboolean first_line = TRUE;
 
 	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
@@ -246,13 +247,19 @@ int load_csv_targets_to_temp(const gchar *filename) {
 					break;
 				}
 				max_index = max(name_index, max(ra_index, dec_index));
+				nina_file = TRUE;
 				continue;
 			}
 		}
 
 		if (nargs < max_index + 1) {
 			siril_log_message(_("Malformed line: %s\n"), line);
-			first_line = FALSE;
+			g_strfreev(token);
+			g_free(line);
+			continue;
+		}
+		if (nina_file && strncasecmp(line, "comp", 4)) {
+			// ignore the target and variable stars from the list
 			g_strfreev(token);
 			g_free(line);
 			continue;
