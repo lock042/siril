@@ -123,6 +123,8 @@
 #include "command_list.h"
 #include "command_line_processor.h"
 
+#define PRINT_DEPRECATED_WARNING(__new_function__) siril_log_color_message(_("This function is deprecated: %s should be used instead.\n"), "red", __new_function__)
+
 /* process_command functions take the number of arguments (like argc) as
  * parameter and will be able to access the equivalent of argv with `word'
  * they return CMD_OK on success
@@ -7785,7 +7787,7 @@ prepro_parse_end:
 	return args;
 }
 
-int process_preprocess(int nb) {
+int process_calibrate(int nb) {
 	if (word[1][0] == '\0')
 		return CMD_ARG_ERROR;
 
@@ -7808,7 +7810,7 @@ int process_preprocess(int nb) {
 	return CMD_OK;
 }
 
-int process_preprocess_single(int nb) {
+int process_calibrate_single(int nb) {
 	if (word[1][0] == '\0')
 		return CMD_ARG_ERROR;
 
@@ -7822,6 +7824,16 @@ int process_preprocess_single(int nb) {
 	args->allow_32bit_output = !com.pref.force_16bit;
 
 	return preprocess_given_image(word[1], args);
+}
+
+int process_preprocess(int nb) {
+	PRINT_DEPRECATED_WARNING("calibrate");
+	process_calibrate(nb);
+}
+
+int process_preprocess_single(int nb) {
+	PRINT_DEPRECATED_WARNING("calibrate_single");
+	process_calibrate_single(nb);
 }
 
 int process_set_32bits(int nb) {
