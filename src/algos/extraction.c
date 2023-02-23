@@ -183,6 +183,19 @@ sensor_pattern get_bayer_pattern(fits *fit) {
 	return tmp_pattern;
 }
 
+int extract_finalize_hook(struct generic_seq_args *args) {
+	struct split_cfa_data *data = (struct split_cfa_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
+int split_finalize_hook(struct generic_seq_args *args) {
+	struct split_cfa_data *data = (struct split_cfa_data *) args->user;
+	free(data);
+	return 0;
+}
+
 int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	fits f_Ha = { 0 };
@@ -215,7 +228,7 @@ void apply_extractHa_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
 	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->prepare_hook = extract_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = extract_finalize_hook;
 	args->image_hook = extractHa_image_hook;
 	args->description = _("Extract Ha");
 	args->has_output = TRUE;
@@ -332,19 +345,6 @@ int extractGreen_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 		memcpy(fit, &f_Ha, sizeof(fits));
 	}
 	return ret;
-}
-
-int extract_finalize_hook(struct generic_seq_args *args) {
-	struct split_cfa_data *data = (struct split_cfa_data *) args->user;
-	int retval = seq_finalize_hook(args);
-	free(data);
-	return retval;
-}
-
-int split_finalize_hook(struct generic_seq_args *args) {
-	struct split_cfa_data *data = (struct split_cfa_data *) args->user;
-	free(data);
-	return 0;
 }
 
 void apply_extractGreen_to_sequence(struct split_cfa_data *split_cfa_args) {

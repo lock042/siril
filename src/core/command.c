@@ -5732,7 +5732,7 @@ int process_seq_extractHa(int nb) {
 	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
 
 	args->seq = seq;
-	args->seqEntry = "Ha_";
+	args->seqEntry = strdup("Ha_");
 
 	int startoptargs = 2;
 	if (nb > startoptargs) {
