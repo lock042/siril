@@ -5077,10 +5077,10 @@ int process_subsky(int nb) {
 			char *value = arg + 8;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
-				g_free(prefix);
+				free(prefix);
 				return CMD_ARG_ERROR;
 			}
-			g_free(prefix); // Required in case we have gone round the loop and prefix was also set in a previous arg
+			free(prefix); // Required in case we have gone round the loop and prefix was also set in a previous arg
 			prefix = strdup(value);
 		}
 		else if (g_str_has_prefix(arg, "-samples=")) {
@@ -5089,7 +5089,7 @@ int process_subsky(int nb) {
 			samples = g_ascii_strtoull(value, &end, 10);
 			if (end == value || samples <= 1) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
-				g_free(prefix);
+				free(prefix);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -5098,7 +5098,7 @@ int process_subsky(int nb) {
 			tolerance = g_ascii_strtod(value, &next);
 			if (next == value || tolerance < 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
-				g_free(prefix);
+				free(prefix);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -5107,7 +5107,7 @@ int process_subsky(int nb) {
 			smooth = g_ascii_strtod(value, &next);
 			if (next == value || smooth < 0.0 || smooth > 1.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
-				g_free(prefix);
+				free(prefix);
 				return CMD_ARG_ERROR;
 			}
 			if (interp != BACKGROUND_INTER_RBF)
@@ -5115,13 +5115,13 @@ int process_subsky(int nb) {
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			g_free(prefix);
+			free(prefix);
 			return CMD_ARG_ERROR;
 		}
 		arg_index++;
 	}
 
-	struct background_data *args = malloc(sizeof(struct background_data));
+	struct background_data *args = calloc(1, sizeof(struct background_data));
 	args->nb_of_samples = samples;
 	args->tolerance = tolerance;
 	args->correction = BACKGROUND_CORRECTION_SUBTRACT;
@@ -5134,7 +5134,7 @@ int process_subsky(int nb) {
 	if (is_sequence) {
 		args->seq = seq;
 		args->dither = TRUE;
-		args->seqEntry = prefix ? prefix : "bkg_";
+		args->seqEntry = prefix ? prefix : strdup("bkg_");
 
 		apply_background_extraction_to_sequence(args);
 	} else {
