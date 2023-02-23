@@ -353,16 +353,6 @@ the_end:
 		siril_log_message(_("Finalizing sequence processing failed.\n"));
 		args->retval = 1;
 	}
-
-	/* the struct cleaner hook is called now so we can free dynamically allocated members of
-	 * function-specific structs, whether running in a script or not. It should only be NULL
-	 * if the function-specific struct contains no dynamically allocated objects. */
-
-	if (args->struct_cleaner_hook && args->struct_cleaner_hook(args)) {
-		siril_log_message(_("Cleanup error.\n"));
-		args->retval = 1;
-	}
-
 	int retval = args->retval;	// so we can free args if needed in the idle
 
 	if (!args->already_in_a_thread) {

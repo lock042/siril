@@ -81,11 +81,6 @@ struct generic_seq_args {
 	/** function called after iterating through the sequence, or on
 	 *  clean-up, even in case of error */
 	int (*finalize_hook)(struct generic_seq_args *);
-	/** function called from the finalize hook to clean function-specific
-	 *  structures. Most sequence operations should set this, but if the
-	 *  function-specific args structure contains no dynamically allocated
-	 *  objects then it may be NULL */
-	int (*struct_cleaner_hook) (struct generic_seq_args *);
 	/** idle function to register at the end, if not already_in_a_thread and
 	 *  not when the generic function is used from a script. If NULL, the
 	 *  default idle function that stops the thread is used.

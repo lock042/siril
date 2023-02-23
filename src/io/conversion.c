@@ -570,6 +570,7 @@ static gboolean end_convert_idle(gpointer p) {
 	show_time(args->t_start, t_end);
 	stop_processing_thread();
 	g_free(args->destroot);
+	free(args->report);
 	free(args);
 	return FALSE;
 }
@@ -644,7 +645,8 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_debug_print("last image of the sequence reached, opening next sequence\n");
 			open_next_input_seq(&convert);
 		}
-
+		free(writer);
+		// reader is freed elsewhere
 	} while (com.run_thread);
 	siril_debug_print("conversion scheduling loop finished, waiting for conversion tasks to finish\n");
 	g_thread_pool_free(pool, FALSE, TRUE);
@@ -663,6 +665,7 @@ gpointer convert_thread_worker(gpointer p) {
 		else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 		write_conversion_report(args);
 	}
+	free(convert.threads);
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
 }

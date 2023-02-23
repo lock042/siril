@@ -2459,7 +2459,7 @@ int process_merge(int nb) {
 		case SEQ_REGULAR:
 			// use the conversion, it makes symbolic links or copies as a fallback
 			destroot = strdup(word[nb - 1]);
-			args = malloc(sizeof(struct _convert_data));
+			args = calloc(1, sizeof(struct _convert_data));
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
 			args->list = glist_to_array(list, &args->total);
@@ -5228,10 +5228,14 @@ int select_unselect(gboolean select) {
 	}
 	if (end1 == word[2] || from < 1 || from > seq->number) {
 		siril_log_message(_("The second argument must be between 1 and the number of images.\n"));
+			if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 	if (end2 == word[3] || to < from) {
 		siril_log_message(_("The third argument must be larger or equal than the \"from\" argument.\n"));
+			if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 	if (to > seq->number) {
@@ -5263,7 +5267,7 @@ int select_unselect(gboolean select) {
 	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
 
 	if (!check_seq_is_comseq(seq))
-		free_sequence(seq, FALSE);
+		free_sequence(seq, TRUE);
 
 	return CMD_OK;
 }
