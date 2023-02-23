@@ -168,9 +168,9 @@ static void initialize_convert() {
 	int nb_allowed;
 	if (!allow_to_open_files(count, &nb_allowed) && output_type == SEQ_REGULAR) {
 		gboolean confirm = siril_confirm_dialog(_("Too many files are being converted."),
-				_("You are about to convert a large amount of files into standard FITS files."
-						"However, your OS limits the number of files that will be processed in the same time."
-						"You may want to convert your input files into a FITS sequence."), _("Convert to FITS Sequence"));
+				_("You are about to convert a large amount of files into standard FITS files. "
+				"However, your OS limits the number of files that will be processed in the same time."
+				"You may want to convert your input files into a FITS sequence."), _("Convert to FITS Sequence"));
 		if (!confirm) return;
 	}
 
