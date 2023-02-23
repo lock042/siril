@@ -207,7 +207,7 @@ int process_seq_clean(int nb) {
 		set_layers_for_registration();
 		drawPlot();
 	} else {
-		free_sequence(seq, FALSE);
+		free_sequence(seq, TRUE);
 	}
 	return CMD_OK;
 }
