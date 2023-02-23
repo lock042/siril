@@ -334,6 +334,19 @@ int extractGreen_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	return ret;
 }
 
+int extract_finalize_hook(struct generic_seq_args *args) {
+	struct split_cfa_data *data = (struct split_cfa_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
+int split_finalize_hook(struct generic_seq_args *args) {
+	struct split_cfa_data *data = (struct split_cfa_data *) args->user;
+	free(data);
+	return 0;
+}
+
 void apply_extractGreen_to_sequence(struct split_cfa_data *split_cfa_args) {
 	struct generic_seq_args *args = create_default_seqargs(split_cfa_args->seq);
 	args->seq = split_cfa_args->seq;
@@ -341,7 +354,7 @@ void apply_extractGreen_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
 	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->prepare_hook = extract_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = extract_finalize_hook;
 	args->image_hook = extractGreen_image_hook;
 	args->description = _("Extract Green");
 	args->has_output = TRUE;
@@ -739,7 +752,7 @@ void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->description = _("Split CFA");
 	args->new_seq_prefix = split_cfa_args->seqEntry;
 	args->user = split_cfa_args;
-
+	args->finalize_hook = split_finalize_hook;
 	split_cfa_args->fit = NULL;	// not used here
 
 	start_in_new_thread(generic_sequence_worker, args);

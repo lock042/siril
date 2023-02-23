@@ -384,6 +384,7 @@ gboolean end_generic_sequence(gpointer p) {
 		g_free(seqname);
 		g_free(basename);
 	}
+	free((char*) args->new_seq_prefix);
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
 	free(p);

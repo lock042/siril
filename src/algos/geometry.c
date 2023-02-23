@@ -670,7 +670,6 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 int crop_finalize_hook(struct generic_seq_args *args) {
 	struct crop_sequence_data *data = (struct crop_sequence_data *) args->user;
 	int retval = seq_finalize_hook(args);
-	free((char*)data->prefix);
 	free(data);
 	return retval;
 }

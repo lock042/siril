@@ -5603,7 +5603,7 @@ int process_seq_split_cfa(int nb) {
 
 	args->seq = seq;
 	args->fit = &gfit;
-	args->seqEntry = "CFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->seqEntry = strdup("CFA_"); // propose to default to "CFA" for consistency of output names with single image split_cfa
 
 	int startoptargs = 2;
 	if (nb > startoptargs) {
@@ -5780,7 +5780,7 @@ int process_seq_extractGreen(int nb) {
 	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
 
 	args->seq = seq;
-	args->seqEntry = "Green_";
+	args->seqEntry = strdup("Green_");
 
 	int startoptargs = 2;
 	if (nb > startoptargs) {
