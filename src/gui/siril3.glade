@@ -23903,8 +23903,6 @@ After pixel rejection, the mean of the stack is computed.
 
 &lt;b&gt;Median&lt;/b&gt;: This method was mostly used for dark/flat/offset stacking although now we recommend the use of average with rejection stacking.
 The median value of the pixels in the stack is computed for each pixel.
-As this method should only be used for dark/flat/offset stacking, it does not take
-into account shifts computed during registration.
 
 &lt;b&gt;Pixel maximum&lt;/b&gt;: This case is mainly used to construct long exposure star-trails images.
 Pixels of the image are replaced by pixels at the same coordinates if intensity is greater.
