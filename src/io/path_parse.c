@@ -163,13 +163,16 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 #endif
 			if (!count) {
 				out = g_build_filename(dirname, file, NULL);
-				stat(out, &fileInfo);
+					if (stat(out, &fileInfo))
+						siril_debug_print("stat() failed\n");
 			} else {
 				currfile = g_build_filename(dirname, file, NULL);
-				stat(currfile, &currfileInfo);
+				if (stat(currfile, &currfileInfo))
+						siril_debug_print("stat() failed\n");
 				if (currfileInfo.st_ctime > fileInfo.st_ctime) { // currfile is more recent
 					out = g_build_filename(dirname, file, NULL);
-					stat(out, &fileInfo);
+					if (stat(out, &fileInfo))
+						siril_debug_print("stat() failed\n");
 				}
 			}
 			count++;

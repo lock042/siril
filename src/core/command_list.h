@@ -19,6 +19,8 @@ static command commands[] = {
 	{"binxy", 1, "binxy coefficient [-sum]", process_binxy, STR_BINXY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"boxselect", 0, "boxselect [-clear] [x y width height]", process_boxselect, STR_BOXSELECT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE | REQ_CMD_NO_THREAD},
 
+	{"calibrate", 1, "calibrate sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-all] [-prefix=] [-fitseq]", process_calibrate, STR_CALIBRATE, TRUE, REQ_CMD_NONE},
+	{"calibrate_single", 1, "calibrate_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_calibrate_single, STR_CALIBRATE_SINGLE, TRUE, REQ_CMD_NONE},
 	{"capabilities", 0, "capabilities", process_capabilities, STR_CAPABILITIES, TRUE, REQ_CMD_NONE},
 	{"catsearch", 1, "catsearch star_name", process_catsearch, STR_CATSEARCH, TRUE, REQ_CMD_NONE},
 	{"cd", 1, "cd directory", process_cd, STR_CD, TRUE, REQ_CMD_NONE},
@@ -121,8 +123,8 @@ static command commands[] = {
 	{"pcc", 0, "pcc [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-downscale]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB },
 	{"platesolve", 0, "platesolve [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-localasnet] [-downscale]", process_pcc, STR_PLATESOLVE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"pm", 1, "pm \"expression\" [-rescale [low] [high]]", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
-	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]", process_preprocess, STR_PREPROCESS, TRUE, REQ_CMD_NONE},
-	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_PREPROCESS_SINGLE, TRUE, REQ_CMD_NONE},
+	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-all] [-prefix=] [-fitseq]", process_preprocess, STR_CALIBRATE, TRUE, REQ_CMD_NONE},
+	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_CALIBRATE_SINGLE, TRUE, REQ_CMD_NONE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"register", 1, "register sequencename [-2pass] [-noout] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=] [-nostarlist] [-interp=] [-noclamp] [-selected]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
@@ -191,7 +193,7 @@ static command commands[] = {
 	{"setext", 1, "setext extension", process_set_ext, STR_SETEXT, TRUE, REQ_CMD_NONE},
 	{"setfindstar", 0, "setfindstar [reset] [-radius=] [-sigma=] [-roundness=] [-focal=] [-pixelsize=] [-convergence=] [ [-gaussian] | [-moffat] ] [-minbeta=] [-relax=on|off] [-minA=] [-maxA=] [-maxR=]", process_set_findstar, STR_SETFINDSTAR, TRUE, REQ_CMD_NONE},
 	{"setmag", 1, "setmag magnitude", process_set_mag, STR_SETMAG, FALSE, REQ_CMD_SINGLE_IMAGE},
-	{"seqmagset", 1, "seqmagset magnitude", process_set_mag_seq, STR_SEQMAGSET, FALSE, REQ_CMD_SEQUENCE},
+	{"seqsetmag", 1, "seqsetmag magnitude", process_set_mag_seq, STR_SEQSETMAG, FALSE, REQ_CMD_SEQUENCE},
 	{"setmem", 1, "setmem ratio", process_set_mem, STR_SETMEM, TRUE, REQ_CMD_NONE},
 	{"setphot", 0, "setphot [-inner=20] [-outer=30] [-aperture=10] [-force_radius=no] [-gain=2.3] [-min_val=0] [-max_val=60000]", process_set_photometry, STR_SETPHOT, TRUE, REQ_CMD_NONE},
 	{"setref", 2, "setref sequencename image_number", process_set_ref, STR_SETREF, TRUE, REQ_CMD_NONE},
@@ -224,7 +226,7 @@ static command commands[] = {
 	{"unclipstars", 0, "unclipstars", process_unclip, STR_SYNTHSTARUNCLIP, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"unselect", 3, "unselect sequencename from to", process_unselect, STR_UNSELECT, TRUE, REQ_CMD_NONE},
 	{"unsetmag", 0, "unsetmag", process_unset_mag, STR_UNSETMAG, FALSE, REQ_CMD_NONE},
-	{"sequnsetmag", 0, "sequnsetmag", process_unset_mag_seq, STR_SEQUNSETMAG, FALSE, REQ_CMD_SINGLE_IMAGE},
+	{"sequnsetmag", 0, "sequnsetmag", process_unset_mag_seq, STR_SEQUNSETMAG, FALSE, REQ_CMD_SEQUENCE},
 	{"unsharp", 2, "unsharp sigma multi", process_unsharp, STR_UNSHARP, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"visu", 2, "visu low high", process_visu, STR_VISU, FALSE, REQ_CMD_SINGLE_IMAGE},

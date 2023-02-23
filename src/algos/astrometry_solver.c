@@ -424,7 +424,8 @@ gpointer search_in_online_conesearch(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	if (!args->fit->date_obs) {
 		free(args);
-		return NULL;
+		siril_add_idle(end_generic, NULL);
+		return GINT_TO_POINTER(-1);
 	}
 	double ra, dec;
 	center2wcs(args->fit, &ra, &dec);
@@ -461,12 +462,16 @@ gpointer search_in_online_conesearch(gpointer p) {
 	if (result) {
 		retval = parse_buffer(result, args->limit_mag);
 	}
+#if defined HAVE_LIBCURL
+	free(result);
+#else
 	g_free(result);
+#endif
 	if (!retval) {
-		siril_add_idle(end_process_sso, NULL);
+		siril_add_idle(end_process_sso, args);
 	} else {
-		siril_add_idle(end_generic, NULL);
 		free(args);
+		siril_add_idle(end_generic, NULL);
 	}
 
 	return GINT_TO_POINTER(retval);

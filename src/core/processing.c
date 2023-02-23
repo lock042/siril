@@ -385,6 +385,8 @@ gboolean end_generic_sequence(gpointer p) {
 		g_free(seqname);
 		g_free(basename);
 	}
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
 	free(p);
 	return end_generic(NULL);
 }

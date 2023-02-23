@@ -127,13 +127,16 @@ static GActionEntry app_entries[] = {
 void load_glade_file() {
 	GError *err = NULL;
 	gchar* gladefile;
+	gboolean retval;
 
 	gladefile = g_build_filename(siril_get_system_data_dir(), GLADE_FILE, NULL);
 
 	/* try to load the glade file, from the sources defined above */
 	gui.builder = gtk_builder_new();
-
-	if (!gtk_builder_add_from_file(gui.builder, gladefile, &err)) {
+	// TODO: the following gtk_builder_add_from_file call is the source
+	// of libfontconfig memory leaks.
+	retval = gtk_builder_add_from_file(gui.builder, gladefile, &err);
+	if (!retval) {
 		g_error(_("%s was not found or contains errors, "
 					"cannot render GUI:\n%s\n Exiting.\n"), gladefile, err->message);
 		g_clear_error(&err);
@@ -464,6 +467,17 @@ int main(int argc, char *argv[]) {
 
 	g_application_set_option_context_summary(G_APPLICATION(app), _("Siril - A free astronomical image processing software."));
 	g_application_add_main_option_entries(G_APPLICATION(app), main_option);
+
+	{	/* Setting the 'register-session' property is for macOS
+		 * - to enable DnD via dock icon
+		 * - to enable system menu "Quit"
+		 */
+		GValue value = G_VALUE_INIT;
+		g_value_init(&value, G_TYPE_BOOLEAN);
+		g_value_set_boolean(&value, TRUE);
+		g_object_set_property(G_OBJECT(app), "register-session", &value);
+		g_value_unset(&value);
+	}
 
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 	if (status) {

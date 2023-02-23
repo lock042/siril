@@ -45,6 +45,8 @@ gpointer run_bm3d_on_fit(gpointer p);
 
 int	process_boxselect(int nb);
 
+int	process_calibrate(int nb);
+int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
 int	process_catsearch(int nb);
 int	process_cd(int nb);

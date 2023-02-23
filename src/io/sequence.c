@@ -1201,7 +1201,8 @@ void remove_prefixed_star_files(sequence *seq, const char *prefix) {
 		fit_sequence_get_image_filename(seq, i, root, FALSE);
 		gchar *star_filename = g_strdup_printf("%s%s.lst", prefix, root);
 		siril_debug_print("Removing %s\n", star_filename);
-		g_unlink(star_filename);
+		if (g_unlink(star_filename))
+			siril_debug_print("g_unlink() failed\n");
 		g_free(star_filename);
 	}
 }

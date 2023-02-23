@@ -123,6 +123,8 @@
 #include "command_list.h"
 #include "command_line_processor.h"
 
+#define PRINT_DEPRECATED_WARNING(__new_function__) siril_log_color_message(_("This command is deprecated: %s should be used instead.\n"), "red", __new_function__)
+
 /* process_command functions take the number of arguments (like argc) as
  * parameter and will be able to access the equivalent of argv with `word'
  * they return CMD_OK on success
@@ -2454,14 +2456,16 @@ int process_merge(int nb) {
 	struct ser_struct out_ser;
 	struct _convert_data *args = NULL;
 	fitseq out_fitseq;
+	char *destroot;
 	switch (seqs[0]->type) {
 		case SEQ_REGULAR:
 			// use the conversion, it makes symbolic links or copies as a fallback
+			destroot = strdup(word[nb - 1]);
 			args = malloc(sizeof(struct _convert_data));
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
 			args->list = glist_to_array(list, &args->total);
-			args->destroot = format_basename(word[nb - 1], FALSE);
+			args->destroot = format_basename(destroot, TRUE);
 			args->input_has_a_seq = FALSE;
 			args->input_has_a_film = FALSE;
 			args->debayer = FALSE;
@@ -4351,8 +4355,8 @@ int process_nozero(int nb){
 
 int process_ddp(int nb) {
 	gchar *end;
-	int level = g_ascii_strtoull(word[1], &end, 10);
-	if (end == word[1] || level < 0) {
+	float level = (float) g_ascii_strtod(word[1], &end);
+	if (end == word[1] || level < 0 || level > USHRT_MAX_SINGLE) {
 		siril_log_message(_("Level value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
@@ -4983,6 +4987,7 @@ int process_seq_fixbanding(int nb) {
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
+		free (args);
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	args->seq = seq;
@@ -5261,10 +5266,11 @@ int select_unselect(gboolean select) {
 		update_reg_interface(FALSE);
 		adjust_sellabel();
 		drawPlot();
-	} else {
-		free_sequence(seq, FALSE);
 	}
-	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), com.seq.selnum);
+	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
+
+	if (!check_seq_is_comseq(seq))
+		free_sequence(seq, FALSE);
 
 	return CMD_OK;
 }
@@ -5636,9 +5642,8 @@ int process_seq_split_cfa(int nb) {
 
 int process_seq_merge_cfa(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
+	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
-	}
 
 	if (seq->nb_layers > 1) {
 		if (!check_seq_is_comseq(seq))
@@ -5646,7 +5651,12 @@ int process_seq_merge_cfa(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
+	if (!word[2])
+		return CMD_WRONG_N_ARG;
+
 	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
+	if(!args)
+		return CMD_ALLOC_ERROR;
 
 	if (!strcmp(word[2], "RGGB")) {
 		args->pattern = BAYER_FILTER_RGGB;
@@ -7005,6 +7015,7 @@ int process_seq_applyreg(int nb) {
 terminate_register_on_error:
 	if (!check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
+	free(reg_args->new_seq_name);
 	free(reg_args);
 	return CMD_ARG_ERROR;
 }
@@ -7584,6 +7595,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	args->use_cosmetic_correction = FALSE;// dy default, CC is not activated
 	args->cc_from_dark = FALSE;
 	args->bad_pixel_map_file = NULL;
+	args->ignore_exclusion = FALSE;
 
 	/* checking for options */
 	for (int i = 2; i < nb; i++) {
@@ -7693,6 +7705,8 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			args->use_dark_optim = TRUE;
 		} else if (!strcmp(word[i], "-fix_xtrans")) {
 			args->fix_xtrans = TRUE;
+		} else if (!strcmp(word[i], "-all")) {
+			args->ignore_exclusion = TRUE;
 		} else if (!strcmp(word[i], "-cfa")) {
 			args->is_cfa = TRUE;
 		} else if (!strcmp(word[i], "-debayer")) {
@@ -7771,13 +7785,13 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 prepro_parse_end:
 	clearfits(&reffit);
 	if (retvalue) {
-		free(args);
+		clear_preprocessing_data(args);
 		return NULL;
 	}
 	return args;
 }
 
-int process_preprocess(int nb) {
+int process_calibrate(int nb) {
 	if (word[1][0] == '\0')
 		return CMD_ARG_ERROR;
 
@@ -7787,8 +7801,10 @@ int process_preprocess(int nb) {
 	}
 
 	struct preprocessing_data *args = parse_preprocess_args(nb, seq);
-	if (!args)
+	if (!args) {
+		free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
+	}
 
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 	args->autolevel = TRUE;
@@ -7800,7 +7816,7 @@ int process_preprocess(int nb) {
 	return CMD_OK;
 }
 
-int process_preprocess_single(int nb) {
+int process_calibrate_single(int nb) {
 	if (word[1][0] == '\0')
 		return CMD_ARG_ERROR;
 
@@ -7814,6 +7830,16 @@ int process_preprocess_single(int nb) {
 	args->allow_32bit_output = !com.pref.force_16bit;
 
 	return preprocess_given_image(word[1], args);
+}
+
+int process_preprocess(int nb) {
+	PRINT_DEPRECATED_WARNING("calibrate");
+	process_calibrate(nb);
+}
+
+int process_preprocess_single(int nb) {
+	PRINT_DEPRECATED_WARNING("calibrate_single");
+	process_calibrate_single(nb);
 }
 
 int process_set_32bits(int nb) {
