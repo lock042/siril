@@ -123,7 +123,7 @@
 #include "command_list.h"
 #include "command_line_processor.h"
 
-#define PRINT_DEPRECATED_WARNING(__new_function__) siril_log_color_message(_("This function is deprecated: %s should be used instead.\n"), "red", __new_function__)
+#define PRINT_DEPRECATED_WARNING(__new_function__) siril_log_color_message(_("This command is deprecated: %s should be used instead.\n"), "red", __new_function__)
 
 /* process_command functions take the number of arguments (like argc) as
  * parameter and will be able to access the equivalent of argv with `word'
