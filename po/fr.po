@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-21 11:24+0100\n"
-"PO-Revision-Date: 2023-02-23 15:55+0000\n"
-"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
+"PO-Revision-Date: 2023-02-23 20:30+0000\n"
+"Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
 "Language: fr\n"
@@ -19323,7 +19323,7 @@ msgstr "Seul le format FITS est supporté pour le découpage CFA des séquences"
 
 #: src/gui/statistics_list.c:47
 msgid "mean"
-msgstr "moyenne"
+msgstr "mean"
 
 #: src/gui/statistics_list.c:48
 msgid "median"
@@ -21074,7 +21074,7 @@ msgstr "Écart absolu médian de l'image."
 
 #: src/pixelMath/pixel_math_runner.c:113
 msgid "Pixel maximum of the image."
-msgstr "Pixel maximum de l'image."
+msgstr "Maximum d'un pixel de l'image."
 
 #: src/pixelMath/pixel_math_runner.c:115
 msgid "Mean of the image."
@@ -21086,19 +21086,19 @@ msgstr "Médiane de l'image."
 
 #: src/pixelMath/pixel_math_runner.c:118
 msgid "Pixel minimum of the image."
-msgstr "Pixel minimum de l'image."
+msgstr "Minimum d'un pixel de l'image."
 
 #: src/pixelMath/pixel_math_runner.c:119
 msgid "Estimation of Gaussian noise in the image."
-msgstr "Estimation du bruit gaussien de l'image."
+msgstr "Estimation du bruit Gaussien dans l'image."
 
 #: src/pixelMath/pixel_math_runner.c:120
 msgid "Standard deviation of the image."
-msgstr "Écart-type de l'image."
+msgstr "Déviation standard de l'image."
 
 #: src/pixelMath/pixel_math_runner.c:121
 msgid "Width in pixels of the specified image."
-msgstr "Largeur en pixels de l'image spécifiée."
+msgstr "Largeur en pixel d'une image spécifiée."
 
 #: src/pixelMath/pixel_math_runner.c:125
 msgid "Pixel Inversion operator."
