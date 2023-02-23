@@ -21509,11 +21509,11 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                     </child>
                                                     <child>
                                                       <object class="GtkCheckButton" id="toggle_preprocess_excluded">
-                                                        <property name="label" translatable="yes">Preprocess all frames</property>
+                                                        <property name="label" translatable="yes">Calibrate all frames</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Force preprocessing of all frames even if marked as excluded.</property>
+                                                        <property name="tooltip-text" translatable="yes">Force calibration of all frames even if marked as excluded.</property>
                                                         <property name="draw-indicator">True</property>
                                                       </object>
                                                       <packing>
