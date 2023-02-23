@@ -4139,7 +4139,7 @@ int process_seq_crop(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	struct crop_sequence_data *args = malloc(sizeof(struct crop_sequence_data));
+	struct crop_sequence_data *args = calloc(1, sizeof(struct crop_sequence_data));
 
 	args->seq = seq;
 	args->area = area;
