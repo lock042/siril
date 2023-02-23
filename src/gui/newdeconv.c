@@ -1380,17 +1380,10 @@ static int deconvolution_compute_mem_limits(struct generic_seq_args *args, gbool
 	return 1;
 }
 int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
-	int retval = 0;
-//	deconvolution_sequence_data *seqdata = (deconvolution_sequence_data *) args->user;
-	g_assert(seqargs->has_output); // don't call this hook otherwise
-	if ((seqargs->force_ser_output || (seqargs->seq->type == SEQ_SER && !seqargs->force_fitseq_output)) && seqargs->new_ser) {
-		retval = ser_write_and_close(seqargs->new_ser);
-		free(seqargs->new_ser);
-	}
-	else if ((seqargs->force_fitseq_output || (seqargs->seq->type == SEQ_FITSEQ && !seqargs->force_ser_output)) && seqargs->new_fitseq) {
-		retval = fitseq_close_file(seqargs->new_fitseq);
-		free(seqargs->new_fitseq);
-	}
+	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
+	int retval = seq_finalize_hook(seqargs);
+	free(data->deconv_data);
+	free(data);
 	set_progress_bar_data(_("Ready."), 0.);
 
 	args.psftype = args.oldpsftype; // Restore consistency
@@ -1484,8 +1477,8 @@ gpointer deconvolve_sequence_command(gpointer p, sequence* seqname) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
-	deconvolution_sequence_data* seqargs = malloc(sizeof(deconvolution_sequence_data));
-	seqargs->seqEntry = "dec_";
+	deconvolution_sequence_data* seqargs = calloc(1, sizeof(deconvolution_sequence_data));
+	seqargs->seqEntry = strdup("dec_");
 	seqargs->seq = seqname;
 	apply_deconvolve_to_sequence(seqargs);
 	return GINT_TO_POINTER(retval);
