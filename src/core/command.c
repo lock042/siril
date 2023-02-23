@@ -3793,6 +3793,8 @@ int process_seq_tilt(int nb) {
 	// load it before running
 	if (!com.script && seq != &com.seq) {
 		set_seq(word[1]);
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
 		draw_polygon = TRUE;
 	}
 
