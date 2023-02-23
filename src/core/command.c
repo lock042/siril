@@ -5163,7 +5163,7 @@ int process_findcosme(int nb) {
 		i++;
 	}
 
-	struct cosmetic_data *args = malloc(sizeof(struct cosmetic_data));
+	struct cosmetic_data *args = calloc(1, sizeof(struct cosmetic_data));
 	gchar *end1, *end2;
 
 	args->seq = seq;
@@ -5185,7 +5185,7 @@ int process_findcosme(int nb) {
 	args->fit = &gfit;
 
 	if (is_sequence) {
-		args->seqEntry = "cc_";
+		args->seqEntry = strdup("cc_");
 		args->threading = SINGLE_THREADED;
 
 		int startoptargs = i + 3;
