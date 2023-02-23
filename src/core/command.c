@@ -6259,6 +6259,7 @@ int process_convertraw(int nb) {
 
 	int nb_allowed;
 	if (!allow_to_open_files(count, &nb_allowed) && output == SEQ_REGULAR) {
+		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
 		g_strfreev(files_to_convert);
 		return CMD_GENERIC_ERROR;
 	}
@@ -6359,6 +6360,7 @@ int process_link(int nb) {
 
 	int nb_allowed;
 	if (!allow_to_open_files(count, &nb_allowed)) {
+		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
 		g_strfreev(files_to_link);
 		return CMD_GENERIC_ERROR;
 	}
@@ -6480,6 +6482,7 @@ int process_convert(int nb) {
 
 	int nb_allowed;
 	if (!allow_to_open_files(count, &nb_allowed) && output == SEQ_REGULAR) {
+		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
 		g_strfreev(files_to_link);
 		return CMD_GENERIC_ERROR;
 	}
