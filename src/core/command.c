@@ -570,7 +570,6 @@ int process_seq_starnet(int nb){
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	if (!starnet_args)
 		return CMD_ALLOC_ERROR;
-	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->linear = FALSE;
 	starnet_args->customstride = FALSE;
 	starnet_args->upscale = FALSE;
