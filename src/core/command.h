@@ -221,4 +221,5 @@ int process_start_ls(int nb);
 int process_livestack(int nb);
 int process_stop_ls(int nb);
 
+int process_show(int nb);
 #endif
