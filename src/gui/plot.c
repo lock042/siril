@@ -1429,10 +1429,13 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		plot_draw_all_sliders_fill(cr);
 		plot_draw_all_markers(cr);
 		plot_draw_selection(cr);
+		free(pdd.selected);
+		pdd.selected = NULL;
 	}
 	free_colors(&cfgplot);
 	kplot_free(p);
 	kdata_destroy(d1);
+	kdata_destroy(curr_d);
 	kdata_destroy(ref_d);
 	if (mean_d)
 		kdata_destroy(mean_d);
