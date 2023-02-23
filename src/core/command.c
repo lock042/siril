@@ -4739,7 +4739,8 @@ int process_seq_cosme(int nb) {
 	GFile *file = g_file_new_for_path(filename);
 	g_free(filename);
 
-	struct cosme_data *args = malloc(sizeof(struct cosme_data));
+	struct cosme_data *args = calloc(1, sizeof(struct cosme_data));
+	args->prefix = strdup("cosme_");
 
 	if (g_str_has_prefix(word[3], "-prefix=")) {
 		char *current = word[3], *value;
@@ -4754,8 +4755,6 @@ int process_seq_cosme(int nb) {
 			return CMD_ARG_ERROR;
 		}
 		args->prefix = strdup(value);
-	} else {
-		args->prefix = "cosme_";
 	}
 
 	args->seq = seq;
