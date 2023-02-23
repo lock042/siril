@@ -1820,6 +1820,9 @@ proper_ending:
 	if (seq == &com.seq)
 		adjust_sellabel();
 
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+
 	free(spsfargs);
 	free(args);
 	return end_generic(NULL);

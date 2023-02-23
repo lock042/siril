@@ -3943,15 +3943,18 @@ int process_seq_psf(int nb) {
 		if (end == word[2] || layer >= seq->nb_layers) {
 			siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
 			free_sequence(seq, TRUE);
+			clearfits(&first);
 			return CMD_ARG_ERROR;
 		}
 
 		rectangle area;
 		if (parse_star_position_arg(word[3], seq, &first, &area, NULL)) {
 			free_sequence(seq, TRUE);
+			clearfits(&first);
 			return 1;
 		}
 		com.selection = area;
+		clearfits(&first);
 	}
 
 	framing_mode framing = REGISTERED_FRAME;
