@@ -1129,6 +1129,18 @@ gboolean end_findstar_sequence(gpointer p) {
 	return end_generic(NULL);
 }
 
+int findstar_finalize_hook (struct generic_seq_args *args) {
+	struct starfinder_data *data = (struct starfinder_data *) args->user;
+	printf("finalizing\n");
+#ifdef HAVE_WCSLIB
+	if (data->ref_wcs) {
+		if (!wcsfree(data->ref_wcs))
+			free(data->ref_wcs);
+	}
+#endif
+	return 0;
+}
+
 int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 	struct generic_seq_args *args = create_default_seqargs(findstar_args->im.from_seq);
 	if (!findstar_args->process_all_images) {
@@ -1136,6 +1148,7 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 		args->nb_filtered_images = args->seq->selnum;
 	}
 	args->image_hook = findstar_image_hook;
+	args->finalize_hook = findstar_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("FindStar");
 	args->has_output = FALSE;
