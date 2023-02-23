@@ -282,7 +282,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 	return ST_OK;
 }
 
-static int stack_read_block_data(struct stacking_args *args, int use_regdata,
+static int stack_read_block_data(struct stacking_args *args,
 		struct _image_block *my_block, struct _data_block *data,
 		long *naxes, data_type itype, int thread_id) {
 
@@ -299,7 +299,7 @@ static int stack_read_block_data(struct stacking_args *args, int use_regdata,
 		if (!get_thread_run())
 			return ST_CANCEL;
 
-		if (use_regdata && args->reglayer >= 0) {
+		if (args->reglayer >= 0) {
 			/* Load registration data for current image and modify area.
 			 * Here, only the y shift is managed. If possible, the remaining part
 			 * of the original area is read, the rest is filled with zeros. The x
@@ -343,7 +343,7 @@ static int stack_read_block_data(struct stacking_args *args, int use_regdata,
 			}
 		}
 
-		if (!use_regdata || readdata) {
+		if (args->reglayer < 0 || readdata) {
 			// reading pixels from current frame
 			void *buffer;
 			if (itype == DATA_FLOAT)
@@ -992,7 +992,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	// data for mean/rej only
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
-	gboolean use_regdata = is_mean;
 
 	int nb_frames = args->nb_images_to_stack; // number of frames actually used
 	naxes[0] = naxes[1] = 0; naxes[2] = 1;
@@ -1006,13 +1005,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 	g_assert(nb_frames <= args->seq->number);
 
-	if (use_regdata) {
-		if (args->reglayer < 0) {
-			siril_log_message(_("No registration layer passed, ignoring registration data!\n"));
-			use_regdata = FALSE;
-		}
-		else layerparam = args->seq->regparam[args->reglayer];
+	if (args->reglayer < 0) {
+		siril_log_message(_("No registration layer passed, ignoring registration data!\n"));
 	}
+	else layerparam = args->seq->regparam[args->reglayer];
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 
@@ -1258,7 +1254,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		data = &data_pool[data_idx];
 
 		/**** Step 2: load image data for the corresponding image block ****/
-		retval = stack_read_block_data(args, use_regdata, my_block, data, naxes, itype, data_idx);
+		retval = stack_read_block_data(args, my_block, data, naxes, itype, data_idx);
 		if (retval) continue;
 
 #if defined _OPENMP && defined STACK_DEBUG
@@ -1302,14 +1298,12 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				 * to optimize caching and improve readability */
 				for (int frame = 0; frame < nb_frames; ++frame) {
 					int pix_idx = line_idx + x;
-					if (use_regdata) {
+					if (layerparam) {
 						int shiftx = 0;
-						if (layerparam) {
-							double scale = args->seq->upscale_at_stacking;
-							double dx, dy;
-							translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
-							shiftx = round_to_int(dx * scale);
-						}
+						double scale = args->seq->upscale_at_stacking;
+						double dx, dy;
+						translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+						shiftx = round_to_int(dx * scale);
 
 						if (shiftx && (x - shiftx >= naxes[0] || x - shiftx < 0)) {
 							/* outside bounds, images are black. We could
