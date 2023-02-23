@@ -8720,6 +8720,7 @@ int process_sso() {
 		if (next == value) {
 			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
 			free(args);
+			redraw(REDRAW_OVERLAY);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -8731,6 +8732,7 @@ int process_sso() {
 	if (args->scale == 0.0) {
 		siril_log_message(_("Could not compute image resolution\n"));
 		free(args);
+		redraw(REDRAW_OVERLAY);
 		return CMD_INVALID_IMAGE;
 	}
 
@@ -8876,6 +8878,10 @@ int process_show(int nb) {
 	if (!g_strcmp0(word[next_arg], "-clear")) {
 		next_arg++;
 		purge_temp_user_catalogue();
+		if (nb == 2) {
+			redraw(REDRAW_OVERLAY);
+			return CMD_OK;
+		}
 	}
 
 	if (g_str_has_prefix(word[next_arg], "-list=")) {

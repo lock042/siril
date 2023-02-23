@@ -556,7 +556,6 @@ void purge_temp_user_catalogue() {
 	while (cur) {
 		CatalogObjects *obj = cur->data;
 		if (obj->catalogue == USER_TEMP_CAT_INDEX) {
-			// remove and free
 			if (cur == siril_catalogue_list) {
 				siril_catalogue_list = cur->next;
 				free_catalogue_object(obj);
@@ -568,8 +567,7 @@ void purge_temp_user_catalogue() {
 				free_catalogue_object(obj);
 				g_slist_free_1(tmp);
 			}
-		}
-		else {
+		} else {
 			prev = cur;
 			cur = cur->next;
 		}
