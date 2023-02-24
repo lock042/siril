@@ -855,6 +855,7 @@ int readpic(const char *name, fits *fit) {
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));
 	if (!buf) {
 		siril_log_color_message(_("Error: memory allocation failure.\n"), "red");
+		_pic_close_file(pic_file);
 		return -1;
 	}
 

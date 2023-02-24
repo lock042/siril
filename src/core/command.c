@@ -8275,6 +8275,7 @@ prepro_parse_end:
 	clearfits(&reffit);
 	if (retvalue) {
 		clear_preprocessing_data(args);
+		free(args);
 		return NULL;
 	}
 	return args;
@@ -9451,6 +9452,6 @@ display:
 		refresh_found_objects();
 		redraw(REDRAW_OVERLAY);
 	}
-
+	siril_world_cs_unref(coords);
 	return CMD_OK;
 }

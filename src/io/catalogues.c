@@ -386,6 +386,14 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		free(cat);
 		return NULL;
 	}
+	// ntrixels is tainted (read from external file): sanitize values
+	// Maximum of 2^24 currently seems reasonable (and allows plenty
+	// of headroom)
+	if (cat->ntrixels < 1 || cat->ntrixels > 1<<25) {
+		siril_log_color_message(_("Error: number of trixels reported by file is out of limits.\n"), "red");
+		free(cat);
+		return NULL;
+	}
 
 	if (fread(cat->indices, sizeof(struct catalogue_index), cat->ntrixels, f) < cat->ntrixels) {
 		siril_debug_print("unexpected read failure in index table\n");
