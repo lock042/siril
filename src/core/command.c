@@ -409,7 +409,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 					}
 				}
 				free(loop->data);
-				loop->fdata = NULL;
+				loop->data = NULL;
 			}
 		clearfits(loop);
 		}
