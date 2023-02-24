@@ -364,6 +364,7 @@ the_end:
 		if (!run_idle) {
 			// some generic cleanup for scripts
 			// should we check for seq = com.seq?
+			free((char*) args->new_seq_prefix);
 			free_sequence(args->seq, TRUE);
 			free(args);
 		}

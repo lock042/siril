@@ -1131,7 +1131,6 @@ gboolean end_findstar_sequence(gpointer p) {
 
 int findstar_finalize_hook (struct generic_seq_args *args) {
 	struct starfinder_data *data = (struct starfinder_data *) args->user;
-	printf("finalizing\n");
 #ifdef HAVE_WCSLIB
 	if (data->ref_wcs) {
 		if (!wcsfree(data->ref_wcs))
