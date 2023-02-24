@@ -123,6 +123,8 @@
 #include "command_list.h"
 #include "command_line_processor.h"
 
+#define PRINT_DEPRECATED_WARNING(__new_function__) siril_log_color_message(_("This command is deprecated: %s should be used instead.\n"), "red", __new_function__)
+
 /* process_command functions take the number of arguments (like argc) as
  * parameter and will be able to access the equivalent of argv with `word'
  * they return CMD_OK on success
@@ -6120,9 +6122,6 @@ int process_seq_merge_cfa(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	if (!word[2])
-		return CMD_WRONG_N_ARG;
-
 	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
 	if(!args)
 		return CMD_ALLOC_ERROR;
@@ -6728,6 +6727,13 @@ int process_convertraw(int nb) {
 	/* convert the list to an array for parallel processing */
 	char **files_to_convert = glist_to_array(list, &count);
 
+	int nb_allowed;
+	if (!allow_to_open_files(count, &nb_allowed) && output == SEQ_REGULAR) {
+		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
+		g_strfreev(files_to_convert);
+		return CMD_GENERIC_ERROR;
+	}
+
 	siril_log_color_message(_("Conversion: processing %d RAW files...\n"), "green", count);
 
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
@@ -6821,6 +6827,13 @@ int process_link(int nb) {
 	list = g_list_sort(list, (GCompareFunc) strcompare);
 	/* convert the list to an array for parallel processing */
 	char **files_to_link = glist_to_array(list, &count);
+
+	int nb_allowed;
+	if (!allow_to_open_files(count, &nb_allowed)) {
+		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
+		g_strfreev(files_to_link);
+		return CMD_GENERIC_ERROR;
+	}
 
 	gchar *str = ngettext("Link: processing %d FITS file...\n", "Link: processing %d FITS files...\n", count);
 	str = g_strdup_printf(str, count);
@@ -6936,6 +6949,13 @@ int process_convert(int nb) {
 	list = g_list_sort(list, (GCompareFunc) strcompare);
 	/* convert the list to an array for parallel processing */
 	gchar **files_to_link = glist_to_array(list, &count);
+
+	int nb_allowed;
+	if (!allow_to_open_files(count, &nb_allowed) && output == SEQ_REGULAR) {
+		siril_log_message(_("You should pass an extra argument -fitseq to convert your sequence to fitseq format.\n"));
+		g_strfreev(files_to_link);
+		return CMD_GENERIC_ERROR;
+	}
 
 	gchar *str = ngettext("Convert: processing %d FITS file...\n", "Convert: processing %d FITS files...\n", count);
 	str = g_strdup_printf(str, count);
@@ -8064,6 +8084,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	args->use_cosmetic_correction = FALSE;// dy default, CC is not activated
 	args->cc_from_dark = FALSE;
 	args->bad_pixel_map_file = NULL;
+	args->ignore_exclusion = FALSE;
 
 	/* checking for options */
 	for (int i = 2; i < nb; i++) {
@@ -8173,6 +8194,8 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			args->use_dark_optim = TRUE;
 		} else if (!strcmp(word[i], "-fix_xtrans")) {
 			args->fix_xtrans = TRUE;
+		} else if (!strcmp(word[i], "-all")) {
+			args->ignore_exclusion = TRUE;
 		} else if (!strcmp(word[i], "-cfa")) {
 			args->is_cfa = TRUE;
 		} else if (!strcmp(word[i], "-debayer")) {
@@ -8257,7 +8280,7 @@ prepro_parse_end:
 	return args;
 }
 
-int process_preprocess(int nb) {
+int process_calibrate(int nb) {
 	if (word[1][0] == '\0')
 		return CMD_ARG_ERROR;
 
@@ -8282,7 +8305,7 @@ int process_preprocess(int nb) {
 	return CMD_OK;
 }
 
-int process_preprocess_single(int nb) {
+int process_calibrate_single(int nb) {
 	if (word[1][0] == '\0')
 		return CMD_ARG_ERROR;
 
@@ -8296,6 +8319,16 @@ int process_preprocess_single(int nb) {
 	args->allow_32bit_output = !com.pref.force_16bit;
 
 	return preprocess_given_image(word[1], args);
+}
+
+int process_preprocess(int nb) {
+	PRINT_DEPRECATED_WARNING("calibrate");
+	return (process_calibrate(nb));
+}
+
+int process_preprocess_single(int nb) {
+	PRINT_DEPRECATED_WARNING("calibrate_single");
+	return (process_calibrate_single(nb));
 }
 
 int process_set_32bits(int nb) {
@@ -9190,7 +9223,6 @@ int process_sso() {
 	}
 
 	purge_temp_user_catalogue();
-	force_to_refresh_catalogue_list();
 
 	double lim_mag = 20.0;
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
@@ -9203,6 +9235,7 @@ int process_sso() {
 		if (next == value) {
 			siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
 			free(args);
+			redraw(REDRAW_OVERLAY);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -9211,15 +9244,20 @@ int process_sso() {
 	args->focal_length = gfit.focal_length;
 	args->pixel_size = gfit.pixel_size_x;
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
+	if (args->scale == 0.0) {
+		siril_log_message(_("Could not compute image resolution\n"));
+		free(args);
+		redraw(REDRAW_OVERLAY);
+		return CMD_INVALID_IMAGE;
+	}
 
 	start_in_new_thread(search_in_online_conesearch, args);
-
 	return CMD_OK;
 }
 
 static gboolean end_process_catsearch(gpointer p) {
 	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	force_to_refresh_catalogue_list();
+	refresh_found_objects();
 	if (!gtk_toggle_tool_button_get_active(button)) {
 		gtk_toggle_tool_button_set_active(button, TRUE);
 	} else {
@@ -9341,5 +9379,78 @@ int process_parse(int nb) {
 	siril_log_message(_("String in: %s\n"), word[1]);
 	siril_log_message(_("String out: %s\n"), expression);
 	g_free(expression);
+	return CMD_OK;
+}
+
+int process_show(int nb) {
+	// show [-clear] { -list=file | [name] ra dec }
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+	char *name = " ";
+	int next_arg = 1;
+	if (!g_strcmp0(word[next_arg], "-clear")) {
+		next_arg++;
+		purge_temp_user_catalogue();
+		if (nb == 2) {
+			redraw(REDRAW_OVERLAY);
+			return CMD_OK;
+		}
+	}
+
+	if (g_str_has_prefix(word[next_arg], "-list=")) {
+		const char *file = word[next_arg] + 6;
+		if (load_csv_targets_to_temp(file))
+			return CMD_ARG_ERROR;
+		goto display;
+	}
+
+	SirilWorldCS *coords = NULL;
+	GtkToggleToolButton *button = NULL;
+parse_coords:
+	if (nb > next_arg && (word[next_arg][1] >= '0' && word[next_arg][1] <= '9')) {
+		// code from process_pcc
+		char *sep = strchr(word[next_arg], ',');
+		if (!sep) {
+			if (nb <= next_arg) {
+				siril_log_message(_("Could not parse target coordinates\n"));
+				return CMD_ARG_ERROR;
+			}
+			coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg+1]);
+			next_arg += 2;
+		}
+		else {
+			*sep++ = '\0';
+			coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], sep);
+			next_arg++;
+		}
+		if (!coords) {
+			siril_log_message(_("Could not parse target coordinates\n"));
+			return CMD_ARG_ERROR;
+		}
+	}
+	else {
+		if (nb > next_arg + 1) {
+			name = word[next_arg];
+			next_arg++;
+			goto parse_coords;
+		}
+		siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+		return CMD_ARG_ERROR;
+	}
+
+	add_object_in_catalogue(name, coords, TRUE, TRUE);	// with the first TRUE, it's in tmp
+
+display:
+	/* display the new 'found_object' */
+	button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+	if (!gtk_toggle_tool_button_get_active(button)) {
+		gtk_toggle_tool_button_set_active(button, TRUE);
+	} else {
+		refresh_found_objects();
+		redraw(REDRAW_OVERLAY);
+	}
+
 	return CMD_OK;
 }

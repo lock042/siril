@@ -110,6 +110,9 @@ int _3stars_check_registration_ready() {
 }
 
 gboolean _3stars_check_selection() {
+	if (com.seq.current < 0)
+		return FALSE;
+
 	if (!follow) {
 		follow = lookup_widget("followStarCheckButton");
 		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));

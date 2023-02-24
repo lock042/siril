@@ -1,4 +1,4 @@
-v1.2.0 mmm dd, 2022
+v1.2.0-beta1 February 24, 2023
 
 * Added livestacking mode with darks/CC/flats support, registration and stacking
 * Added unlinking channels in autostretch preview

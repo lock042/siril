@@ -286,7 +286,7 @@ static void update_image_parameters_GUI() {
 gboolean end_process_sso(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
-	force_to_refresh_catalogue_list();
+	refresh_found_objects();
 	if (!gtk_toggle_tool_button_get_active(button)) {
 		gtk_toggle_tool_button_set_active(button, TRUE);
 	} else {

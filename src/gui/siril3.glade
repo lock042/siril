@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -21508,7 +21508,18 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <placeholder/>
+                                                      <object class="GtkCheckButton" id="toggle_preprocess_excluded">
+                                                        <property name="label" translatable="yes">Calibrate all frames</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">True</property>
+                                                        <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Force calibration of all frames even if marked as excluded.</property>
+                                                        <property name="draw-indicator">True</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="left-attach">2</property>
+                                                        <property name="top-attach">1</property>
+                                                      </packing>
                                                     </child>
                                                   </object>
                                                 </child>
@@ -23892,8 +23903,6 @@ After pixel rejection, the mean of the stack is computed.
 
 &lt;b&gt;Median&lt;/b&gt;: This method was mostly used for dark/flat/offset stacking although now we recommend the use of average with rejection stacking.
 The median value of the pixels in the stack is computed for each pixel.
-As this method should only be used for dark/flat/offset stacking, it does not take
-into account shifts computed during registration.
 
 &lt;b&gt;Pixel maximum&lt;/b&gt;: This case is mainly used to construct long exposure star-trails images.
 Pixels of the image are replaced by pixels at the same coordinates if intensity is greater.

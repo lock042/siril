@@ -1245,24 +1245,24 @@ static gdouble y_circle(gdouble y, gdouble radius) {
 
 static void draw_annotates(const draw_data_t* dd) {
 	if (!com.found_object) return;
-	fits *fit = &gfit;
-	double width = (double) fit->rx;
-	double height = (double) fit->ry;
+	gdouble resolution = get_wcs_image_resolution(&gfit);
+	if (resolution <= 0) return;
+	double width = (double) gfit.rx;
+	double height = (double) gfit.ry;
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
 
 	cairo_set_line_width(cr, 1.0 / dd->zoom);
 	cairo_rectangle(cr, 0., 0., width, height); // to clip the grid
 	cairo_clip(cr);
-	GSList *list;
-	for (list = com.found_object; list; list = list->next) {
+
+	for (GSList *list = com.found_object; list; list = list->next) {
 		CatalogObjects *object = (CatalogObjects *)list->data;
 		gdouble radius = get_catalogue_object_radius(object);
 		gdouble world_x = get_catalogue_object_ra(object);
 		gdouble world_y = get_catalogue_object_dec(object);
 		gchar *code = get_catalogue_object_code(object);
 		guint catalog = get_catalogue_object_cat(object);
-		gdouble resolution = get_wcs_image_resolution(&gfit);
 		gdouble x, y;
 
 		switch (catalog) {
@@ -1285,9 +1285,8 @@ static void draw_annotates(const draw_data_t* dd) {
 			break;
 		}
 
-		if (resolution <= 0) return;
-
 		radius = radius / resolution / 60.0;
+		// radius now in pixels
 
 		if (!wcs2pix(&gfit, world_x, world_y, &x, &y)) {
 			y = height - y - 1;

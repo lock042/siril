@@ -1,5 +1,5 @@
-siril 1.2.x
-xx/xx/22
+siril 1.2.0-beta1
+02/24/23
 
 * Added livestacking mode with darks/CC/flats support, registration and stacking
 * Added unlinking channels in autostretch preview

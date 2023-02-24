@@ -37,8 +37,10 @@ gdouble get_catalogue_object_ra(CatalogObjects *object);
 gchar *retrieve_site_coord (fits *fit);
 gdouble get_catalogue_object_dec(CatalogObjects *object);
 gdouble get_catalogue_object_radius(CatalogObjects *object);
-void force_to_refresh_catalogue_list();
+void refresh_found_objects();
 void free_catalogue_object(CatalogObjects *object);
 void purge_temp_user_catalogue();
 gboolean is_inside(fits *fit, double ra, double dec);
+int load_csv_targets_to_temp(const gchar *filename);
+
 #endif /* SRC_ALGOS_ANNOTATE_H_ */
