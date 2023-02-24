@@ -850,6 +850,7 @@ int readpic(const char *name, fits *fit) {
 
 	if (fseek(pic_file->file, 290, SEEK_SET)) {
 		siril_log_color_message(_("Error: seek failure in file.\n"), "red");
+		_pic_close_file(pic_file);
 		return -1;
 	}
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));

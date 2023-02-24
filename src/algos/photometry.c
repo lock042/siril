@@ -677,7 +677,7 @@ static gboolean end_light_curve_worker(gpointer p) {
 }
 
 void free_light_curve_args(struct light_curve_args *args) {
-	if (args->seq && args->seq != &com.seq)
+	if (args->seq && !check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
 	free(args->areas);
 	g_free(args->target_descr);

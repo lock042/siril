@@ -4442,7 +4442,10 @@ int process_seq_psf(int nb) {
 		}
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	return seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, com.script);
+	int retval = seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, com.script);
+	if (!check_seq_is_comseq(seq))
+		free_sequence(seq, TRUE);
+	return retval;
 }
 
 // light_curve sequencename channel [-autoring] { -ninalist=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... } }
