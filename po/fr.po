@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-24 10:19+0100\n"
-"PO-Revision-Date: 2023-02-25 10:39+0000\n"
+"PO-Revision-Date: 2023-02-25 22:07+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -5542,11 +5542,13 @@ msgstr ""
 
 #: src/gui/siril3.glade:21512
 msgid "Calibrate all frames"
-msgstr ""
+msgstr "Calibrer toutes les images"
 
 #: src/gui/siril3.glade:21516
 msgid "Force calibration of all frames even if marked as excluded."
 msgstr ""
+"Force la calibration de toutes les images même si elles sont marquées comme "
+"exclues."
 
 #: src/gui/siril3.glade:21530
 msgid "Output sequence"
@@ -6465,7 +6467,6 @@ msgid "Plot"
 msgstr "Graphique"
 
 #: src/gui/siril3.glade:23889
-#, fuzzy
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
 "Pixel values are added in an image normalized to 32-bit values.\n"
@@ -6498,8 +6499,8 @@ msgid ""
 "intensity is lower."
 msgstr ""
 "<b>Somme</b> : c'est la méthode la plus simple.\n"
-"Les valeurs des pixels sont ajoutées à une nouvelle image normalisée en 32-"
-"bit.\n"
+"Les valeurs des pixels sont ajoutées à une nouvelle image normalisée en "
+"32-bit.\n"
 "Cela augmente le rapport signal/bruit (SNR) comme la racine carrée du nombre "
 "d'images.\n"
 "\n"
@@ -6519,9 +6520,6 @@ msgstr ""
 "l'empilement des darks/flats/offsets bien que maintenant nous recommandons "
 "l'empilement par moyenne avec rejet.\n"
 "La valeur médiane de chaque pile de pixels est calculée.\n"
-"Comme cette méthode ne devrait être appliquée que pour l'empilement des "
-"darks/flats/offset, elle ne tient pas comptes des informations d'alignements "
-"stockées dans le fichier .seq.\n"
 "\n"
 "<b>Pixel maximum</b> : Cet algorithme est principalement utilisé pour "
 "construire des images de traînées d'étoiles en longue pose.\n"
@@ -6996,7 +6994,7 @@ msgstr "Masquez le panneau de contrôle pour afficher uniquement le l'image."
 msgid "Click to Set the name of the item to clipboard (green-ed label)"
 msgstr ""
 "Cliquez pour définir le nom de l'élément dans le presse-papiers (étiquette "
-"verte)."
+"verte)"
 
 #: src/gui/siril3.glade:25383
 msgid "Sequence:"
@@ -8115,7 +8113,7 @@ msgid ""
 "the button \"Use it as default\""
 msgstr ""
 "Choisissez un fichier maître offset qui peut être utilisé comme master-bias "
-"générique en cliquant sur le bouton \"Utiliser par défaut\"."
+"générique en cliquant sur le bouton \"Utiliser par défaut\""
 
 #: src/gui/siril3.glade:29146
 msgid ""
@@ -9099,11 +9097,13 @@ msgstr "Le fichier [%s] n'existe pas\n"
 #: src/algos/annotate.c:246
 msgid "Stars file did not contain the expected header for NINA-style format\n"
 msgstr ""
+"Le fichier d'étoiles ne contient pas l'en-tête attendu pour le format de "
+"style NINA.\n"
 
 #: src/algos/annotate.c:256 src/algos/annotate.c:279
 #, c-format
 msgid "Malformed line: %s\n"
-msgstr ""
+msgstr "Ligne malformée : %s\n"
 
 #: src/algos/annotate.c:429 src/core/command.c:4474 src/core/command.c:6207
 #: src/core/command.c:6313 src/core/command.c:6435 src/core/command.c:7260
@@ -10592,9 +10592,9 @@ msgid "Images must have same data type.\n"
 msgstr "Les images doivent avoir le même type de données.\n"
 
 #: src/core/command.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "This command is deprecated: %s should be used instead.\n"
-msgstr "Cette commande ne peut être utilisée que sur une séquence chargée\n"
+msgstr "Cette commande est obsolète : %s doit être utilisée à la place.\n"
 
 #: src/core/command.c:156
 msgid "Currently loaded image has no FITS header\n"
@@ -11963,6 +11963,8 @@ msgid ""
 "You should pass an extra argument -fitseq to convert your sequence to fitseq "
 "format.\n"
 msgstr ""
+"Vous devez passer un argument supplémentaire -fitseq pour convertir votre "
+"séquence au format fitseq.\n"
 
 #: src/core/command.c:6266
 #, c-format
@@ -12685,9 +12687,8 @@ msgstr ""
 "la date d'observation.\n"
 
 #: src/core/command.c:8777
-#, fuzzy
 msgid "Could not compute image resolution\n"
-msgstr "Impossible de copier l'image, abandon\n"
+msgstr "Impossible de calculer la résolution de l'image\n"
 
 #: src/core/command.c:8851
 #, c-format
@@ -12824,7 +12825,6 @@ msgstr ""
 "passé, la sélection courante est imprimée"
 
 #: src/core/command_def.h:16
-#, fuzzy
 msgid ""
 "Calibrate the sequence <b>sequencename</b> using bias, dark and flat given "
 "in argument.\n"
@@ -12860,7 +12860,7 @@ msgid ""
 "If <b>-fitseq</b> is provided, the output sequence will be a FITS sequence "
 "(single file)"
 msgstr ""
-"Prétraite la séquence <b>sequencename</b> en utilisant offset, dark et flat "
+"Calibre la séquence <b>sequencename</b> en utilisant offset, dark et flat "
 "donnés en argument.\n"
 "\n"
 "Pour l'offset, un niveau uniforme peut être spécifié à la place d'une image, "
@@ -12887,15 +12887,17 @@ msgstr ""
 "une correction sur les darks et les offsets pour supprimer un motif carré.\n"
 "L'option <b>-equalize_cfa</b> égalise l'intensité moyenne des couches RVB du "
 "flat master CFA.\n"
-"Il est également possible d'optimiser la soustraction des darks avec <b>-"
-"opt</b>.\n"
+"Il est également possible d'optimiser la soustraction des darks avec "
+"<b>-opt</b>.\n"
+"By default, frames marked as excluded will not be processed. L'argument "
+"<b>-all</b> peut être utilisé pour forcer le traitement de toutes les images "
+"même si elles sont marquées comme exclues.\n"
 "Le nom de la séquence de sortie commence par le préfixe \"pp_\", sauf "
 "indication contraire avec l'option <b>-prefix=</b>.\n"
-"Si <b>-fitseq</b> est fourni, la séquence de sortie sera une séquence FITS "
-"(fichier unique)"
+"Si <b>-fitseq</b> est fourni, la séquence de sortie sera une séquence FITS ("
+"fichier unique)"
 
 #: src/core/command_def.h:17
-#, fuzzy
 msgid ""
 "Calibrate the image <b>imagename</b> using bias, dark and flat given in "
 "argument.\n"
@@ -12928,8 +12930,8 @@ msgid ""
 "The output filename starts with the prefix \"pp_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Prétraite l'image<b>imagename</b> en utilisant offset, dark et flat donnés "
-"en argument.\n"
+"Calibre l'image<b>imagename</b> en utilisant offset, dark et flat donnés en "
+"argument.\n"
 "\n"
 "Pour l'offset, un niveau uniforme peut être spécifié à la place d'une image, "
 "en entrant une expression entre guillemets commençant par un signe =, telle "
@@ -12955,8 +12957,11 @@ msgstr ""
 "une correction sur les darks et les offsets pour supprimer un motif carré.\n"
 "L'option <b>-equalize_cfa</b> égalise l'intensité moyenne des couches RVB du "
 "flat master CFA.\n"
-"Il est également possible d'optimiser la soustraction des darks avec <b>-"
-"opt</b>.\n"
+"Il est également possible d'optimiser la soustraction des darks avec "
+"<b>-opt</b>.\n"
+"Notez que l'analyseur syntaxique en ligne de commande ne rejettera pas "
+"l'argument <b>-pex</b>, qui est utilisé dans les séquences de prétraitement, "
+"mais il sera ignoré.\n"
 "Le nom de la séquence de sortie commence par le préfixe \"pp_\", sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
@@ -13112,7 +13117,6 @@ msgstr ""
 "commande BOXSELECT"
 
 #: src/core/command_def.h:32
-#, fuzzy
 msgid ""
 "Performs a DDP (digital development processing) as described first by "
 "Kunihiko Okano. This implementation is the one described in IRIS.\n"
@@ -13126,14 +13130,17 @@ msgid ""
 "32-bit images in which case it will be scaled automatically"
 msgstr ""
 "Effectue un DDP (traitement de développement numérique) tel que décrit en "
-"premier par Kunihiko Okano. Cette implémentation est celle décrite dans "
-"IRIS.\n"
+"premier par Kunihiko Okano. Cette implémentation est celle décrite dans IRIS."
 "\n"
-"Il combine une distribution linéaire sur les niveaux bas (inférieurs au "
-"<b>niveau</b>) et une distribution non linéaire sur les niveaux élevés.\n"
+"\n"
+"Il combine une distribution linéaire sur les bas niveaux (en dessous du "
+"<b>level</b>) et une distribution non linéaire sur les hauts niveaux.\n"
 "Il utilise un filtre gaussien d'écart type <b>sigma</b> et multiplie l'image "
 "résultante par <b>coef</b>. Les valeurs typiques pour <b>sigma</b> sont "
-"comprises entre 0,7 et 2"
+"comprises entre 0,7 et 2. L'argument de niveau doit être dans la plage [0, "
+"65535] pour les images 16 bits et peut être donné dans la plage [0, 1] ou [ "
+"0, 65535] pour les images 32 bits auquel cas il sera mis à l'échelle "
+"automatiquement"
 
 #: src/core/command_def.h:33
 msgid ""
@@ -13192,8 +13199,8 @@ msgstr ""
 "supprimer le bruit \"sel et poivre\" avant d'exécuter le débruitage, et par "
 "défaut cette commande appliquera automatiquement la correction cosmétique. "
 "Cependant, si cela a déjà été effectué plus tôt dans le flux de travail, il "
-"peut être désactivé ici à l'aide de la commande facultative <b>-nocosmetic</"
-"b>.\n"
+"peut être désactivé ici à l'aide de la commande facultative "
+"<b>-nocosmetic</b>.\n"
 "\n"
 "Un paramètre optionnel <b>-mod=m</b> peut être donné, où 0 &lt;= m &lt;= 1. "
 "Le pixel de sortie est calculé comme : <i>out=m x d + (1 − m) x in </i>, où "
@@ -13226,6 +13233,10 @@ msgstr ""
 "1. Ceci est utilisé par le booster SOS pour déterminer la quantité d'image "
 "bruitée ajoutée au résultat intermédiaire entre chaque itération. Si -sos=n "
 "n'est pas spécifié, le paramètre est ignoré.\n"
+"\n"
+"Par défaut, on n'applique pas DA3D ou SOS, car l'amélioration du débruitage "
+"est généralement relativement faible et ces techniques nécessitent un temps "
+"de traitement supplémentaire.\n"
 "\n"
 "Dans de très rares cas, des artefacts colorés en blocs peuvent être trouvés "
 "dans la sortie lors du débruitage des images couleur. L'argument facultatif "
@@ -13671,12 +13682,12 @@ msgid ""
 "capable of storing negative values. To clip negative value, use 16 bit input "
 "images or clip use the THRESHLO command"
 msgstr ""
-"Soustrait l'image en mémoire par l'image <b>filename</b> donnée en "
-"argument.\n"
+"Soustrait l'image en mémoire par l'image <b>filename</b> donnée en argument."
+"\n"
 "Le résultat sera en 32 bits par canal si cela est autorisé dans les "
 "préférences, donc capable de stocker des valeurs négatives. Pour clipper une "
 "valeur négative, utiliser des images d'entrée de 16 bits ou clipper en "
-"utilisant la commande THRESHLO."
+"utilisant la commande THRESHLO"
 
 #: src/core/command_def.h:75
 msgid ""
@@ -15332,6 +15343,7 @@ msgstr ""
 "alors toujours transmettre des valeurs après ce mot-clé.\n"
 "\n"
 "Valeurs configurables :\n"
+"\n"
 "<b>-radius=</b> définit le rayon du champ de recherche initial et doit être "
 "compris entre 3 et 50.\n"
 "<b>-sigma=</b> définit le seuil au-dessus du bruit et doit être supérieur ou "
@@ -15353,8 +15365,8 @@ msgstr ""
 "la PSF et devrait être fixé entre 1 et 3 (plus tolérant).\n"
 "<b>-relax=</b> relâche les vérifications qui sont faites sur les étoiles "
 "candidates pour évaluer si elles sont des étoiles ou non, afin de permettre "
-"aux objets n'ayant pas la forme d'une étoile d'être tout de même acceptés "
-"(désactivé par défaut)"
+"aux objets n'ayant pas la forme d'une étoile d'être tout de même acceptés ("
+"désactivé par défaut)"
 
 #: src/core/command_def.h:163
 msgid ""
@@ -15420,6 +15432,12 @@ msgid ""
 "can be passed using a CSV file with the option <b>-file=</b> containing a "
 "name, ra and dec. This is only available from the GUI of Siril"
 msgstr ""
+"Affiche un point sur l'image résolue astrométriquement chargée à l'aide du "
+"catalogue d'annotations temporaires de l'utilisateur, en fonction de ses "
+"coordonnées équatoriales. L'option <b>-reset</b> efface d'abord ce catalogue "
+"et peut être utilisée seule. Plusieurs points peuvent être passés à l'aide "
+"d'un fichier CSV avec l'option <b>-file=</b> contenant un nom, ra et dec. "
+"Ceci n'est disponible qu'à partir de l'interface graphique de Siril"
 
 #: src/core/command_def.h:168
 msgid ""
@@ -18117,16 +18135,15 @@ msgid "Too many files are being converted."
 msgstr "Trop de fichiers sont en cours de conversion."
 
 #: src/gui/conversion.c:171
-#, fuzzy
 msgid ""
 "You are about to convert a large amount of files into standard FITS files. "
 "However, your OS limits the number of files that will be processed in the "
 "same time.You may want to convert your input files into a FITS sequence."
 msgstr ""
-"Vous êtes sur le point de convertir une grande quantité de fichiers en "
-"fichiers FITS standard. Cependant, votre système d'exploitation limite le "
-"nombre de fichiers qui seront traités en même temps. Vous souhaiterez peut-"
-"être convertir vos fichiers d'entrée en une séquence FITS."
+"Vous êtes sur le point de convertir un grand nombre de fichiers en fichiers "
+"FITS standard. Cependant, votre système d'exploitation limite le nombre de "
+"fichiers qui peuvent être traités en même temps et vous souhaitez convertir "
+"vos fichiers d'entrée en une séquence FITS."
 
 #: src/gui/conversion.c:173
 msgid "Convert to FITS Sequence"
@@ -18708,7 +18725,7 @@ msgid ""
 "gnuplot is available, for both cases)"
 msgstr ""
 "si cette option n'est pas cochée, une image PNG du graphique sera générée à "
-"la place (si gnuplot est disponible, dans les deux cas)."
+"la place (si gnuplot est disponible, dans les deux cas)"
 
 #: src/gui/nina_light_curve.c:83
 msgid "The currently loaded image must be plate solved"
@@ -19492,7 +19509,7 @@ msgstr ""
 msgid "A new documentation is also available via the menu \"Siril Manual\""
 msgstr ""
 "Une nouvelle documentation est également disponible via le menu "
-"\"Documentation\"."
+"\"Documentation\""
 
 #: src/gui/siril_intro.c:42
 msgid ""
@@ -20020,14 +20037,13 @@ msgstr "Erreur lors de l'ouverture du fichier BMP.\n"
 #: src/io/image_formats_internal.c:215
 #, c-format
 msgid "readbmp: %ld header bytes read instead of 54\n"
-msgstr ""
+msgstr "readbmp : %ld octets d'en-tête lus au lieu de 54\n"
 
 #: src/io/image_formats_internal.c:225
-#, fuzzy
 msgid "readbmp: file reports negative, zero or excessive dimensions\n"
 msgstr ""
-"Erreur : les dimensions rapportées par le fichier des ondelettes sont "
-"négatives, nulles ou excessives.\n"
+"readbmp : le fichier rapporte des dimensions négatives, nulles ou "
+"excessives\n"
 
 #: src/io/image_formats_internal.c:238
 msgid "BMP fseek for data"
@@ -20036,7 +20052,7 @@ msgstr ""
 #: src/io/image_formats_internal.c:251
 #, c-format
 msgid "readbmp: could not read all data: (%zu, %lu)\n"
-msgstr ""
+msgstr "readbmp : impossible de lire toutes les données : (%zu, %lu)\n"
 
 #: src/io/image_formats_internal.c:272
 msgid ""
@@ -20120,14 +20136,12 @@ msgid "Error: seek failure in file.\n"
 msgstr "Erreur : le redimensionnement de l'image a échoué...\n"
 
 #: src/io/image_formats_internal.c:857
-#, fuzzy
 msgid "Error: memory allocation failure.\n"
-msgstr "Erreur : la soustraction d'image a échoué...\n"
+msgstr "Erreur : échec de l'allocation de mémoire.\n"
 
 #: src/io/image_formats_internal.c:863
-#, fuzzy
 msgid "Error: Cannot read the data\n"
-msgstr "Impossible de lire les données\n"
+msgstr "Erreur : Impossible de lire les données\n"
 
 #: src/io/image_formats_internal.c:888
 #, c-format
