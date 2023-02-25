@@ -335,11 +335,12 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		free(cat);
 		return NULL;
 	}
-	if (cat->nfields < 1 || cat->nfields > 256) {
-		siril_log_message(_("Error: catalogue file reports bad number of fields\n"));
+	if (cat->nfields != 6 && cat->nfields != 11) {
+		siril_debug_print("the number of field is not recognized as one of the main catalogues\n");
 		free(cat);
 		return NULL;
 	}
+
 	if (cat->byteswap)
 		cat->nfields = bswap_16(cat->nfields);
 	//siril_debug_print("%d fields reported:\n", cat->nfields);
@@ -361,12 +362,6 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		//displayDataElementDescription(&(cat->de[i]));
 	}
 
-	if (cat->nfields != 6 && cat->nfields != 11) {
-		siril_debug_print("the number of field is not recognized as one of the main catalogues\n");
-		free(cat);
-		return NULL;
-	}
-
 	/* reading the trixel index table */
 	if (!fread(&cat->ntrixels, 4, 1, f)) {
 		siril_debug_print("error reading number of trixels\n");
@@ -383,19 +378,20 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	//siril_debug_print("Number of trixels reported = %d (levels: %d)\n",
 	//		cat->ntrixels, cat->HTM_Level);
 
+	// ntrixels is tainted (read from external file): sanitize values
+	// Maximum of 2^20 currently seems reasonable (and allows plenty
+	// of headroom)
+	if (cat->ntrixels < 1 || cat->ntrixels > 1<<20) {
+		siril_log_color_message(_("Error: number of trixels reported by file is out of limits.\n"), "red");
+		free(cat);
+		return NULL;
+	}
+
 	cat->index_offset = ftell(f);
 
 	cat->indices = malloc(cat->ntrixels * sizeof(struct catalogue_index));
 	if (!cat->indices) {
 		PRINT_ALLOC_ERR;
-		free(cat);
-		return NULL;
-	}
-	// ntrixels is tainted (read from external file): sanitize values
-	// Maximum of 2^24 currently seems reasonable (and allows plenty
-	// of headroom)
-	if (cat->ntrixels < 1 || cat->ntrixels > 1<<25) {
-		siril_log_color_message(_("Error: number of trixels reported by file is out of limits.\n"), "red");
 		free(cat);
 		return NULL;
 	}
