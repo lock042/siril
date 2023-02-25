@@ -180,14 +180,14 @@ static int exec_prog_win32(const char **argv) {
 	if (_pipe(pipe_fds, 0x100, O_TEXT)) {
 		perror("pipe creation error");
 		forkerrors = 1;
-		return 0;
+		return -1;
 	}
 
 	wargv0 = g_utf8_to_utf16 (argv[0], -1, NULL, NULL, &conv_error);
 	if (wargv0 == NULL) {
 		g_set_error (&error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED, _("Invalid program name: %s"), conv_error->message);
 		g_clear_error(&conv_error);
-		return 0;
+		return -1;
 	}
 
 	if (!utf8_charv_to_wcharv(argv, &wargv, &conv_error_index, &conv_error)) {
@@ -196,8 +196,7 @@ static int exec_prog_win32(const char **argv) {
 				conv_error_index, conv_error->message);
 		g_clear_error(&conv_error);
 		g_free(wargv0);
-
-		return 0;
+		return -1;
 	}
 
 	//from https://docs.microsoft.com/fr-fr/cpp/c-runtime-library/reference/pipe?view=msvc-170
@@ -223,7 +222,7 @@ static int exec_prog_win32(const char **argv) {
 					set_progress_bar_data("Running StarNet", (value / 100));
 				}
 				if (value != 0.0 && value == value)
-					if (!has_started) has_started = TRUE;
+					has_started = TRUE;
 			}
 			if(!GetExitCodeProcess(hProcess,(unsigned long*)&nExitCode))
 				return -1;
@@ -490,7 +489,11 @@ gpointer do_starnet(gpointer p) {
 	params.do_red = TRUE;
 	params.do_green = TRUE;
 	params.do_blue = TRUE;
-	find_linked_midtones_balance_default(&workingfit, &params);
+	retval = find_linked_midtones_balance_default(&workingfit, &params);
+	if (retval && args->linear) {
+		siril_log_color_message(_("Error: unable to find the MTF stretch factors...\n"), "red");
+		goto CLEANUP;
+	}
 	if (args->linear) {
 		if (verbose)
 			siril_log_message(_("StarNet: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
@@ -509,7 +512,8 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Save current stretched image as working 16-bit TIFF (post initial stretch if the image was linear)
-	if (savetif(temptif, &workingfit, 16, NULL, com.pref.copyright, TRUE)) {
+	retval = savetif(temptif, &workingfit, 16, NULL, com.pref.copyright, TRUE);
+	if (retval) {
 		siril_log_color_message(_("Error: unable to save working TIFF of original image...\n"), "red");
 		goto CLEANUP;
 	}
@@ -549,7 +553,7 @@ gpointer do_starnet(gpointer p) {
 	retval = exec_prog(my_argv);
 #endif
 	if (retval || forkerrors) {
-		if (!retval && forkerrors)
+		// if (!retval && forkerrors)
 		siril_log_color_message(_("Error: StarNet did not execute correctly...\n"), "red");
 		goto CLEANUP;
 	}
@@ -557,6 +561,7 @@ gpointer do_starnet(gpointer p) {
 	// Read the starless stretched tiff. Successful return value of readtif() is nsamples
 	clearfits(&workingfit); // Clear it first to free the data
 	retval = readtif(starlesstif, &workingfit, FALSE);
+	siril_log_message("retval: %d\n", retval);
 	if (retval < 1 || retval > 3) {
 		siril_log_color_message(_("Error: unable to read starless image from TIFF...\n"), "red");
 		goto CLEANUP;
@@ -688,9 +693,10 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	CLEANUP:
-	retval = g_chdir(currentdir);
-	if (retval) {
+	int retval2 = g_chdir(currentdir);
+	if (retval2) {
 		siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
+		retval = retval2;
 	}
 	CLEANUP1:
 	if (args->starmask) {
@@ -716,7 +722,7 @@ gpointer do_starnet(gpointer p) {
 	if (verbose)
 		show_time(t_start, t_end);
 	if (single_image_is_loaded()) {
-		if (args->follow_on) {
+		if (args->follow_on && (!retval)) {
 			free_starnet_args(args);
 			siril_add_idle(end_and_call_remixer, blendargs);
 			return GINT_TO_POINTER(retval);
