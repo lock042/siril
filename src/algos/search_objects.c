@@ -251,6 +251,8 @@ int parse_buffer(const gchar *buffer, double lim_mag) {
 					else valid = FALSE;
 				}
 				if (valid) {
+					if (world_cs)
+						siril_world_cs_unref(world_cs);
 					world_cs = siril_world_cs_new_from_a_d(ra, dec);
 					is_solar_system = TRUE;
 					is_in_field = TRUE;
@@ -271,6 +273,7 @@ int parse_buffer(const gchar *buffer, double lim_mag) {
 					com.pref.gui.catalog[6] = TRUE;	// enabling the user catalog in which it will be added
 					add_object_in_catalogue(realname, world_cs, is_solar_system, is_in_field);
 					siril_world_cs_unref(world_cs);
+					world_cs = NULL;
 				}
 				g_strfreev(display_name);
 			}

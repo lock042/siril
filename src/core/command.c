@@ -4443,7 +4443,7 @@ int process_seq_psf(int nb) {
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
 	int retval = seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, com.script);
-	if (!check_seq_is_comseq(seq))
+	if (seq != &com.seq)
 		free_sequence(seq, TRUE);
 	return retval;
 }
@@ -9388,6 +9388,7 @@ int process_parse(int nb) {
 
 int process_show(int nb) {
 	// show [-clear] { -list=file | [name] ra dec }
+	SirilWorldCS *coords = NULL;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
@@ -9410,7 +9411,6 @@ int process_show(int nb) {
 		goto display;
 	}
 
-	SirilWorldCS *coords = NULL;
 	GtkToggleToolButton *button = NULL;
 parse_coords:
 	if (nb > next_arg && (word[next_arg][1] >= '0' && word[next_arg][1] <= '9')) {

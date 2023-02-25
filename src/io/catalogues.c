@@ -335,6 +335,11 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		free(cat);
 		return NULL;
 	}
+	if (cat->nfields < 1 || cat->nfields > 256) {
+		siril_log_message(_("Error: catalogue file reports bad number of fields\n"));
+		free(cat);
+		return NULL;
+	}
 	if (cat->byteswap)
 		cat->nfields = bswap_16(cat->nfields);
 	//siril_debug_print("%d fields reported:\n", cat->nfields);
