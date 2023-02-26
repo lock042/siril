@@ -119,7 +119,7 @@ static int exec_prog_starnet(char **argv) {
 		if (value != 0.0 && value == value && verbose) {
 			set_progress_bar_data(_("Running StarNet"), (value / 100));
 		}
-		if (g_str_has_prefix(buffer, "\nDone!")) {
+		if (value == 100.0) {
 			retval = 0;
 		}
 		g_free(buffer);
