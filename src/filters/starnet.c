@@ -23,6 +23,10 @@
 #include <io.h>
 #include <fcntl.h>
 #include <gio/gwin32inputstream.h>
+#else
+#include <sys/types.h> // for waitpid(2)
+#include <sys/wait.h> // for waitpid(2)
+#include <gio/gunixinputstream.h>
 #endif
 
 #include "core/siril.h"
@@ -53,10 +57,6 @@
 
 #include <unistd.h>
 #include <sys/types.h>
-#ifndef _WIN32
-#include <signal.h>
-#include <sys/wait.h>
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,80 +65,17 @@
 #include "starnet.h"
 
 #ifdef HAVE_LIBTIFF
-
 fits *current_fit = NULL;
 gboolean verbose = TRUE;
 
 // Wrapper for execve
 char *my_argv[64];
-static int forkerrors = 0;
 
-#ifndef _WIN32
-static pid_t child_pid;
-
-static int exec_prog(char **argv) {
-	pid_t my_pid;
-	int status;
-	forkerrors = 0;
-	int pipe_fds[2];
-	int n;
-	char buf[0x100] = {0};
-
-	if (pipe(pipe_fds)) {
-		perror("pipe creation error");
-		forkerrors = 1;
-		return 0;
-	}
-
-	if (0 == (my_pid = fork())) {
-		child_pid = getpid();
-		close(pipe_fds[0]);
-		dup2(pipe_fds[1], 1);
-		fprintf(stdout, "pid:%d\n",child_pid);
-		if (-1 == execve(argv[0], (char **)argv , NULL)) {
-			perror("child process execve failed");
-			forkerrors = 1;
-			return 0;
-		}
-		fflush(stdout);
-		perror(argv[0]);
-		exit(0);
-	} else {
-		close(pipe_fds[1]);
-		while (0 == waitpid(my_pid , &status , WNOHANG)) {
-			usleep(100000);	// Wait for starnet++ to finish before attempting to process the output
-			if ((n = read(pipe_fds[0], buf, 0x100)) > 0) {
-				buf[n - 1] = 0;
-				char *m = strstr(buf, "pid:");
-				if (m != 0) {
-					m += 4;
-					child_pid = atoi(m);
-					com.child_is_running = TRUE;
-					com.childpid = child_pid;
-				} else {
-					double value = g_ascii_strtod(buf, NULL);
-					if (value != 0.0 && value == value && verbose) { //
-						set_progress_bar_data(_("Running StarNet"), (value / 100));
-					}
-				}
-			}
-		}
-		com.child_is_running = FALSE;
-		com.childpid = 0;
-		if (1 != WIFEXITED(status) || 0 != WEXITSTATUS(status)) {
-			siril_log_color_message(_("Error: external command %s failed...\n"), "red", argv[0]);
-			forkerrors = 1;
-			return 0;
-		}
-	}
-	return 0;
-}
-#else
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
 }
 
-static int exec_prog_win32(char **argv) {
+static int exec_prog_starnet(char **argv) {
 	gint child_stdout;
 	GPid child_pid;
 	g_autoptr(GError) error = NULL;
@@ -151,14 +88,18 @@ static int exec_prog_win32(char **argv) {
 			NULL, &error);
 
 	if (error != NULL) {
-		siril_log_color_message("Spawning starnet failed: %s\n", "red", error->message);
+		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
 		return retval;
 	}
 	// Add a child watch function which will be called when the child process exits.
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
 
 	GInputStream *stream = NULL;
-	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stdout), TRUE);
+#ifdef _WIN32
+	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stdout), FALSE);
+#else
+	stream = g_unix_input_stream_new(child_stdout, FALSE);
+#endif
 
 	gboolean doprint = TRUE;
 	gchar *buffer;
@@ -170,13 +111,13 @@ static int exec_prog_win32(char **argv) {
 			siril_log_message("StarNet: %s\n", buffer);
 		if (g_str_has_prefix(buffer, "Total number of tiles")) {
 			// need to set EOL to CR otherwise can't read the progress percentage
-			// which just sends xx% progress/r to avoid flushing 
+			// which just sends xx% progress/r to avoid flushing
 			g_data_input_stream_set_newline_type(data_input, G_DATA_STREAM_NEWLINE_TYPE_CR);
 			doprint = FALSE;
 		}
 		double value = g_ascii_strtod(buffer, NULL);
 		if (value != 0.0 && value == value && verbose) {
-			set_progress_bar_data("Running StarNet", (value / 100));
+			set_progress_bar_data(_("Running StarNet"), (value / 100));
 		}
 		if (g_str_has_prefix(buffer, "\nDone!")) {
 			retval = 0;
@@ -187,7 +128,6 @@ static int exec_prog_win32(char **argv) {
 	g_object_unref(stream);
 	return retval;
 }
-#endif
 
 starnet_version starnet_executablecheck() {
 	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
@@ -274,7 +214,7 @@ gpointer do_starnet(gpointer p) {
 								// a configurable item
 #endif
 	gchar *currentdir = NULL;
-	gchar starnetcommand[19] = "starnet++";
+	gchar *starnetcommand = NULL;
 	gchar *temptif = NULL;
 	gchar *starlesstif = NULL;
 	gchar *starlessfit = NULL;
@@ -287,7 +227,6 @@ gpointer do_starnet(gpointer p) {
 	gchar starnetprefix[10] = "starnet_";
 	gchar starlessprefix[10] = "starless_";
 	gchar starmaskprefix[10] = "starmask_";
-	memset(starnetcommand, 0, sizeof(starnetcommand));
 	// Set up paths and filenames
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 		temp = g_path_get_basename(com.uniq->filename);
@@ -299,10 +238,10 @@ gpointer do_starnet(gpointer p) {
 		imagenoextorig = g_strdup_printf("image");
 	}
 	imagenoext = g_strdup(imagenoextorig);
-	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
-        *q = *c == ' ' ? '_' : *c;
-	if (g_strcmp0(imagenoext, imagenoextorig) && verbose)
-		siril_log_color_message(_("StarNet: spaces detected in filename. StarNet can't handle these so they have been replaced by underscores.\n"), "salmon");
+	// for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
+    //     *q = *c == ' ' ? '_' : *c;
+	// if (g_strcmp0(imagenoext, imagenoextorig) && verbose)
+	// 	siril_log_color_message(_("StarNet: spaces detected in filename. StarNet can't handle these so they have been replaced by underscores.\n"), "salmon");
 	starlessnoext = g_strdup_printf("%s%s", starlessprefix, imagenoext);
 	starmasknoext = g_strdup_printf("%s%s", starmaskprefix, imagenoext);
 	imagenoext = g_strdup_printf("%s%s", starnetprefix, imagenoext);
@@ -469,32 +408,27 @@ gpointer do_starnet(gpointer p) {
 	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
 	version = starnet_executablecheck();
 	if (version == V2) {
-		snprintf(starnetcommand, 19, STARNET_BIN);
+		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_BIN, NULL);
 	} else if ((current_fit->naxes[2] == 3) && (version == V1RGB || version == V1BOTH)) {
-		snprintf(starnetcommand, 19, STARNET_RGB);
+		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_RGB, NULL);
 	} else if ((current_fit->naxes[2] == 1) && (version == V1MONO || version == V1BOTH)) {
-		snprintf(starnetcommand, 19, STARNET_MONO);
+		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_MONO, NULL);
 	}
 	else {
 		siril_log_color_message(_("No suitable StarNet executable found in the installation directory\n"), "red");
 		goto CLEANUP;
 	}
+	printf("%s\n", starnetcommand);
 	int nb = 0;
-// #ifdef _WIN32
-// 	my_argv[nb++] = "start";
-// 	my_argv[nb++] = "/B";
-// #endif
 	my_argv[nb++] = starnetcommand;
 	my_argv[nb++] = temptif;
 	my_argv[nb++] = starlesstif;
 	if (args->customstride) my_argv[nb++] = args->stride;
 	// *** Call starnet++ *** //
-#ifdef _WIN32
-	retval = exec_prog_win32(my_argv);
-#else
-	retval = exec_prog(my_argv);
-#endif
-	if (retval || forkerrors) {
+	retval = exec_prog_starnet(my_argv);
+	g_free(starnetcommand);
+	starnetcommand = NULL;
+	if (retval) {
 		siril_log_color_message(_("Error: StarNet did not execute correctly...\n"), "red");
 		goto CLEANUP;
 	}
@@ -763,7 +697,7 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	seqdata->starnet_fit = fit;
 	seqdata->starmask_fit = calloc(1, sizeof(fits));
 	seqdata->imgnumber = o;
-
+	siril_log_color_message(_("Starnet: Processing image %d\n"), "green", o + 1);
 	do_starnet(seqdata);
 	return ret;
 }
@@ -826,5 +760,5 @@ void apply_starnet_to_sequence(struct starnet_data *seqdata) {
 
 	start_in_new_thread(generic_sequence_worker, seqargs);
 }
-#endif
 
+#endif
