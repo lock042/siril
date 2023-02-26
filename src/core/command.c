@@ -6326,7 +6326,6 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	args->seq = seq;
-	args->seqEntry = ""; // not used
 
 	apply_extractHaOIII_to_sequence(args);
 
@@ -6431,7 +6430,6 @@ int process_seq_stat(int nb) {
 
 	struct stat_data *args = calloc(1, sizeof(struct stat_data));
 	args->seq = seq;
-	args->seqEntry = ""; // not used
 	args->csv_name = g_strdup(word[2]);
 	args->selection = com.selection;
 	args->option = STATS_MAIN;
