@@ -249,6 +249,7 @@ gboolean end_and_call_remixer(gpointer p)
 {
 	struct remixargs *blendargs = (remixargs *) p;
 	toggle_remixer_window_visibility(CALL_FROM_STARNET, blendargs->fit1, blendargs->fit2);
+	free(blendargs);
 	return end_generic(NULL);
 }
 
@@ -495,7 +496,6 @@ gpointer do_starnet(gpointer p) {
 	retval = exec_prog(my_argv);
 #endif
 	if (retval || forkerrors) {
-		// if (!retval && forkerrors)
 		siril_log_color_message(_("Error: StarNet did not execute correctly...\n"), "red");
 		goto CLEANUP;
 	}
@@ -663,10 +663,24 @@ gpointer do_starnet(gpointer p) {
 	if (verbose)
 		show_time(t_start, t_end);
 	if (single_image_is_loaded()) {
-		if (args->follow_on && (!retval)) {
+		if (args->follow_on) {
 			free_starnet_args(args);
-			siril_add_idle(end_and_call_remixer, blendargs);
-			return GINT_TO_POINTER(retval);
+			if (!(retval)) {
+				siril_add_idle(end_and_call_remixer, blendargs);
+				return GINT_TO_POINTER(retval);
+			} else {
+				if (blendargs && blendargs->fit1) {
+					clearfits(blendargs->fit1);
+					free(blendargs->fit1);
+				}
+				if (blendargs && blendargs->fit2) {
+					clearfits(blendargs->fit2);
+					free(blendargs->fit2);
+				}
+				if (blendargs)
+					free(blendargs);
+				return GINT_TO_POINTER(retval);
+			}
 		} else {
 			notify_gfit_modified();
 			siril_add_idle(end_starnet, args);

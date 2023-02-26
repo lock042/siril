@@ -708,7 +708,7 @@ void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
 	notify_update((gpointer) param);
 }
 
-int toggle_remixer_window_visibility(int _invocation, const fits* _fit_left, const fits* _fit_right) {
+int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fit_right) {
 	invocation = _invocation;
 	if (gtk_widget_get_visible(lookup_widget("dialog_star_remix"))) {
 		set_cursor_waiting(TRUE);
@@ -723,7 +723,10 @@ int toggle_remixer_window_visibility(int _invocation, const fits* _fit_left, con
 		GtkToggleButton *toggle_log = GTK_TOGGLE_BUTTON(lookup_widget("toggle_remixer_log_histograms"));
 		gtk_toggle_button_set_active(toggle_log, remix_log_scale);
 		if (invocation == CALL_FROM_STARNET) {
-			fit_left = *_fit_left;
+			copyfits(_fit_left, &fit_left, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+			clearfits(_fit_left);
+			free(_fit_left);
+			_fit_left = NULL;
 			close_histograms(TRUE, TRUE);
 			remix_histo_startup_left();
 			copyfits(&fit_left, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
@@ -732,8 +735,11 @@ int toggle_remixer_window_visibility(int _invocation, const fits* _fit_left, con
 			left_loaded = TRUE; // Mark LHS image as loaded
 			left_changed = TRUE; // Force update on initial draw
 			permit_calculation = TRUE;
-			fit_right = *_fit_right;
+			copyfits(_fit_right, &fit_right, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
 			remix_histo_startup_right();
+			clearfits(_fit_right);
+			free(_fit_right);
+			_fit_right = NULL;
 			copyfits(&fit_right, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 			right_loaded = TRUE; // Mark RHS image as loaded
 			right_changed = TRUE; // Force update on initial draw
