@@ -156,7 +156,6 @@ static int exec_prog_win32(char **argv) {
 	}
 	// Add a child watch function which will be called when the child process exits.
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
-	CloseWindow((HWND)child_pid);
 
 	GInputStream *stream = NULL;
 	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stdout), TRUE);
