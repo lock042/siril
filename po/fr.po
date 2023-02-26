@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-25 23:08+0100\n"
-"PO-Revision-Date: 2023-02-26 20:23+0000\n"
-"Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
+"PO-Revision-Date: 2023-02-27 09:56+0000\n"
+"Last-Translator: inkongru <spacealexx@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
 "Language: fr\n"
@@ -44,7 +44,7 @@ msgstr "Fermer"
 #: src/gui/siril3.glade:169 src/gui/siril3.glade:2111 src/gui/siril3.glade:9483
 #: src/gui/siril3.glade:18799
 msgid "Close current window"
-msgstr "Fermer la fenêtre courrante"
+msgstr "Fermer la fenêtre courante"
 
 #: src/gui/siril3.glade:180 src/gui/siril3.glade:596 src/gui/siril3.glade:772
 #: src/gui/siril3.glade:1024 src/gui/siril3.glade:1182
@@ -3665,7 +3665,7 @@ msgstr "Raccourcis"
 
 #: src/gui/siril3.glade:14167 src/gui/about_dialog.c:73
 msgid "About Siril"
-msgstr "À propos de siril"
+msgstr "À propos de Siril"
 
 #: src/gui/siril3.glade:14210
 msgid "Image Plate Solver..."
@@ -13472,7 +13472,7 @@ msgid ""
 "Prints information about the reference image of the sequence given in "
 "argument. First image has index 0"
 msgstr ""
-"Imprime des informations sur l'image de référence de la séquence donnée en "
+"Affiche des informations sur l'image de référence de la séquence donnée en "
 "argument. La première image a l'index 0"
 
 #: src/core/command_def.h:60
@@ -15248,9 +15248,7 @@ msgstr ""
 
 #: src/core/command_def.h:158
 msgid "Allows images to be saved with 32 bits per channel on processing"
-msgstr ""
-"Permet aux images d'être enregistrées avec 32 bits par canal lors du "
-"traitement"
+msgstr "Permet d'enregistrer les images en 32 bits par canal lors du traitement"
 
 #: src/core/command_def.h:159
 msgid ""
