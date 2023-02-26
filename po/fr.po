@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-25 23:08+0100\n"
 "PO-Revision-Date: 2023-02-26 20:23+0000\n"
-"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
+"Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
 "Language: fr\n"
@@ -16935,19 +16935,19 @@ msgstr "sigma valeur haute pour le rejet"
 
 #: src/core/settings.c:350
 msgid "linear low value for rejection"
-msgstr "linear valeur basse pour le rejet"
+msgstr "valeur linéaire basse pour le rejet"
 
 #: src/core/settings.c:351
 msgid "linear high value for rejection"
-msgstr "linear valeur haute pour le rejet"
+msgstr "valeur linéaire haute pour le rejet"
 
 #: src/core/settings.c:352
 msgid "percentile low value for rejection"
-msgstr "percentile valeur basse pour le rejet"
+msgstr "pourcentage valeur basse pour le rejet"
 
 #: src/core/settings.c:353
 msgid "percentile high value for rejection"
-msgstr "percentile valeur haute pour le rejet"
+msgstr "pourcentage valeur haute pour le rejet"
 
 #: src/core/settings.c:355
 msgid "first start of siril"
