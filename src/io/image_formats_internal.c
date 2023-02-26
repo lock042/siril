@@ -235,7 +235,7 @@ int readbmp(const char *name, fits *fit) {
 	size_t nbdata = width * height * nbplane + height * padsize;
 
 	if (fseek(file, data_offset, SEEK_SET) == -1) {
-		siril_log_color_message(_("BMP fseek for data"), "red");
+		siril_debug_print("BMP fseek for data");
 		fclose(file);
 		return -1;
 	}
