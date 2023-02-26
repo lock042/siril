@@ -385,6 +385,10 @@ gboolean end_generic_sequence(gpointer p) {
 		g_free(seqname);
 		g_free(basename);
 	}
+	// frees new_seq_prefix. This means that new_seq_prefix (or the seqEntry
+	// string in function-specific structs) *must* always be allocated using
+	// a freeable function, i.e. char* seqEntry = strdup("prefix_"); rather
+	// than char* seqEntry = "prefix_";
 	free((char*) args->new_seq_prefix);
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);

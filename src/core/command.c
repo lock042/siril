@@ -5451,7 +5451,7 @@ int process_fixbanding(int nb) {
 }
 
 int process_seq_fixbanding(int nb) {
-	struct banding_data *args = malloc(sizeof(struct banding_data));
+	struct banding_data *args = calloc(1, sizeof(struct banding_data));
 	gchar *end1 = NULL, *end2 = NULL;
 	args->seq = NULL;
 
@@ -5480,7 +5480,6 @@ int process_seq_fixbanding(int nb) {
 	// settings default optional values
 	args->protect_highlights = TRUE;
 	args->applyRotation = FALSE;
-	args->seqEntry = g_strdup("unband_");
 	args->fit = NULL;
 
 	if (nb > 4) {
@@ -5493,14 +5492,17 @@ int process_seq_fixbanding(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
 					if (!check_seq_is_comseq(args->seq))
 						free_sequence(args->seq, TRUE);
+					free((char*) args->seqEntry);
 					free(args);
 					return CMD_ARG_ERROR;
 				}
-				args->seqEntry = g_strdup(value);
+				args->seqEntry = strdup(value);
 			} else if (!g_strcmp0(arg, "-vertical")) {
 				args->applyRotation = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+				free((char*) args->seqEntry);
+				printf("seqEntry freed");
 				if (!check_seq_is_comseq(args->seq))
 					free_sequence(args->seq, TRUE);
 				free(args);
@@ -5509,6 +5511,9 @@ int process_seq_fixbanding(int nb) {
 			arg_index++;
 		}
 	}
+	if (!args->seqEntry)
+		args->seqEntry = strdup("unband_");
+
 	apply_banding_to_sequence(args);
 	return CMD_OK;
 }

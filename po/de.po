@@ -8,15 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-25 23:08+0100\n"
-"PO-Revision-Date: 2023-02-19 13:54+0100\n"
+"PO-Revision-Date: 2023-02-26 20:23+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
-"Language-Team: \n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.2.2\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7986
 #: src/filters/cosmetic_correction.c:428 src/filters/cosmetic_correction.c:599
@@ -4961,7 +4962,6 @@ msgid "Symbolic Link"
 msgstr "Symbolischer Link"
 
 #: src/gui/siril3.glade:20090
-#, fuzzy
 msgid ""
 "Create a symbolic link for FITS files instead of copying them. This is "
 "useful to rename a sequence without duplicating files on the disk. This "
@@ -4970,12 +4970,12 @@ msgid ""
 "<b>WARNING: on Windows, the symbolic link operations are only possible in "
 "Development mode.</b>"
 msgstr ""
-"Erstellen Sie einen symbolischen Link für FITS-Dateien, anstatt sie zu "
-"kopieren. Dies ist nützlich, um eine Sequenz umzubenennen, ohne Dateien auf "
-"der Platte zu duplizieren.\n"
+"Erstellt einen symbolischen Link für FITS-Dateien, anstatt sie zu kopieren. "
+"Dies ist nützlich, um eine Sequenz umzubenennen, ohne Dateien auf der Platte "
+"zu duplizieren.\n"
 "\n"
 "<b>WARNUNG: unter Windows sind die Operationen für symbolische Links nur im "
-"Entwicklungsmodus möglich.</b>"
+"Entwicklermodus möglich.</b>"
 
 #: src/gui/siril3.glade:20105 src/gui/siril3.glade:27810
 #: src/gui/open_dialog.c:216
@@ -5517,11 +5517,13 @@ msgstr ""
 
 #: src/gui/siril3.glade:21512
 msgid "Calibrate all frames"
-msgstr ""
+msgstr "Alle Frames kalibrieren"
 
 #: src/gui/siril3.glade:21516
 msgid "Force calibration of all frames even if marked as excluded."
 msgstr ""
+"Erzwingt die Kalibrierung aller Bilder, auch wenn einige als ausgeschlossen "
+"markiert sind."
 
 #: src/gui/siril3.glade:21530
 msgid "Output sequence"
@@ -5801,7 +5803,6 @@ msgid "Star #3:"
 msgstr "Stern #3:"
 
 #: src/gui/siril3.glade:22251
-#, fuzzy
 msgid ""
 "Indicate relative distance (in percentage vs total image size) over which to "
 "look for the alignment pattern.\n"
@@ -5812,10 +5813,10 @@ msgid ""
 "Higher values give more tolerance in alignment and smaller numbers lead to "
 "faster computations."
 msgstr ""
-"Geben Sie den relativen Abstand (in Prozent zur Gesamtbildgröße) an, über "
-"den nach dem Ausrichtungsmuster gesucht werden soll. \n"
+"Gibt einen relativen Abstand (in Prozent der Gesamtbildgröße) an, über den "
+"nach dem Ausrichtungsmuster gesucht werden soll. \n"
 "\n"
-"Standardmäßig wird das Muster nur auf 25 % der gesamten Bildgröße um den "
+"Standardmäßig wird das Muster nur in 25 % der gesamten Bildgröße um den "
 "Bereich herum gesucht, in dem es auf dem Referenzbild gefunden wurde.\n"
 "\n"
 "Höhere Werte bieten mehr Toleranz bei der Ausrichtung und kleinere\n"
@@ -6435,7 +6436,6 @@ msgid "Plot"
 msgstr "Grafischer Plot"
 
 #: src/gui/siril3.glade:23888
-#, fuzzy
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
 "Pixel values are added in an image normalized to 32-bit values.\n"
@@ -6481,6 +6481,7 @@ msgstr ""
 "- Median-Sigma-Clipping\n"
 "- Winsorized Sigma-Clipping\n"
 "- Lineares Anpassungs-Clipping\n"
+"- Generalisierter studentischer Abweichungs-Test\n"
 "Nach der Pixelunterdrückung wird der Mittelwert des Stacks berechnet.\n"
 "\n"
 "<b>Mittelwert</b>: Diese Methode wurde meist für Dark-/Flat-/Offset-Stacking "
@@ -6493,7 +6494,7 @@ msgstr ""
 "berücksichtigt.\n"
 "\n"
 "<b>Pixelmaximum</b>: Dieser Fall wird hauptsächlich für die Konstruktion von "
-"lang belichteten Startrail Bildern verwendet.\n"
+"lang belichteten Strichspurbildern verwendet.\n"
 "Die Pixel des Bildes werden durch Pixel mit den gleichen Koordinaten "
 "ersetzt, wenn die Intensität größer ist.\n"
 "\n"
@@ -6527,7 +6528,6 @@ msgid "Method:"
 msgstr "Stacking Methoden:"
 
 #: src/gui/siril3.glade:23963
-#, fuzzy
 msgid ""
 "If one of these items is selected, a normalisation process will be applied "
 "to all input images before stacking.\n"
@@ -6549,20 +6549,22 @@ msgstr ""
 "Wenn eine der Optionen in diesem Bereich gesetzt ist, wird vor dem Stacken "
 "zunächst\n"
 "eine Normalisierung aller Bilder durchgeführt.\n"
-"- Normalisierung hebt alle Bild-Hintergründe auf gleiches Niveau. Sie wird "
-"dann durch\n"
-"Multiplikation oder Addition ausgeführt. Beide Verfahren liefern generell "
+"\n"
+"- Normalisierung hebt alle Bild-Hintergründe auf gleiches Niveau. "
+"Anschließend wird durch\n"
+"Multiplikation oder Addition normalisiert. Beide Verfahren liefern generell "
 "ein ähnliches\n"
-"Ergebnis, aber man beachte, daß multiplikative N. bevorzugt wird für Bilder, "
-"die später\n"
-"für die Multiplikation/Division mit Flats vrwendet werden sollen.\n"
+"Ergebnis, aber man beachte, dass multiplikative Normalisierung bevorzugt "
+"wird für Bilder, die später\n"
+"für die Multiplikation/Division mit Flats verwendet werden sollen.\n"
+"\n"
 "- Skalieren nimmt eine Einteilung vor durch Gewichtung aller Eingangsbilder. "
 "Diese\n"
 "Option tendiert zu einer Verbesserung des SNR und ist deswegen der "
 "Standardwert für\n"
 "additive Normalisierung.\n"
 "\n"
-"<b>Master-Darks und -Bias dürfen NICHT normalisiert werden. Bei Flatfield-"
+"<b>Master-Darks und -Bias sollten NICHT normalisiert werden. Bei Flat-"
 "Frames\n"
 "muss jedoch eine multiplikative Normalisierung vorgenommen werden</b>"
 
@@ -9051,11 +9053,13 @@ msgstr "Datei [%s] existiert nicht\n"
 #: src/algos/annotate.c:246
 msgid "Stars file did not contain the expected header for NINA-style format\n"
 msgstr ""
+"Die Sterndatei enthielt nicht den erwarteten Header für das Dateiformat im "
+"NINA-Stil\n"
 
 #: src/algos/annotate.c:256 src/algos/annotate.c:279
 #, c-format
 msgid "Malformed line: %s\n"
-msgstr ""
+msgstr "Fehlerhafte Zeile: %s\n"
 
 #: src/algos/annotate.c:429 src/core/command.c:4474 src/core/command.c:6207
 #: src/core/command.c:6313 src/core/command.c:6435 src/core/command.c:7260
@@ -10532,9 +10536,9 @@ msgid "Images must have same data type.\n"
 msgstr "Bilder müssen vom gleichen Datentyp sein.\n"
 
 #: src/core/command.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "This command is deprecated: %s should be used instead.\n"
-msgstr "Dieser Befehl kann nur bei geladener Sequenz verwendet werden.\n"
+msgstr "Dieser Befehl ist veraltet: Stattdessen sollte %s verwendet werden.\n"
 
 #: src/core/command.c:156
 msgid "Currently loaded image has no FITS header\n"
@@ -11902,6 +11906,8 @@ msgid ""
 "You should pass an extra argument -fitseq to convert your sequence to fitseq "
 "format.\n"
 msgstr ""
+"Sie sollten ein zusätzliches Argument -fitseq übergeben, um Ihre Sequenz in "
+"das fitseq-Format zu konvertieren.\n"
 
 #: src/core/command.c:6266
 #, c-format
@@ -12619,9 +12625,8 @@ msgid ""
 msgstr "Dieser Befehl funktioniert nur mit astrometrisch gelösten Bildern\n"
 
 #: src/core/command.c:8777
-#, fuzzy
 msgid "Could not compute image resolution\n"
-msgstr "Konnte Bild nicht kopieren, Abbruch\n"
+msgstr "Bildauflösung konnte nicht berechnet werden\n"
 
 #: src/core/command.c:8851
 #, c-format
@@ -12759,7 +12764,6 @@ msgstr ""
 "angegeben wird, wir die aktuelle Auswahl ausgegeben"
 
 #: src/core/command_def.h:16
-#, fuzzy
 msgid ""
 "Calibrate the sequence <b>sequencename</b> using bias, dark and flat given "
 "in argument.\n"
@@ -12799,25 +12803,40 @@ msgstr ""
 "der angegebenen Bias, Darks und Flats durch.\n"
 "\n"
 "Für Bias kann anstelle eines Bildes ein einheitlicher Pegel angegeben "
-"werden, indem ein Ausdruck mit einem =-Zeichen eingegeben wird, z. B. -"
-"bias=\"=256\" oder -bias=\"=64*$OFFSET\".\n"
+"werden, indem ein Ausdruck mit einem =-Zeichen eingegeben wird, z. B. -bias="
+"\"=256\" oder -bias=\"=64*$OFFSET\".\n"
+"\n"
+"Standardmäßig ist keine kosmetische Korrektur aktiviert. Wenn Sie eine "
+"anwenden möchten, müssen Sie es mit der Option <b>-cc=</b> angeben.\n"
+"Sie können <b>-cc=dark</b> verwenden, um Hot- und Cold-Pixel aus dem "
+"Masterdark zu erkennen (ein Masterdark muss mit der Option <b>-dark=</b> "
+"angegeben werden), optional gefolgt von <b>siglo</b> und <b>sighi</b> für "
+"kalte bzw. heiße Pixel. Ein Wert von 0 deaktiviert diese Korrektur. Falls "
+"keine Sigma-Werte angegeben werden, werden lediglich eine Hot-Pixel-"
+"Erkennung mit einem Sigma von 3 benutzt.\n"
+"Alternativ können Sie <b>-cc=bpm</b> gefolgt vom Pfad zu Ihrer Bad-Pixel-Map "
+"verwenden, um anzugeben, welche Pixel korrigiert werden müssen. Eine "
+"Beispieldatei kann mit einem <i>find_hot</i>-Befehl auf einem Masterdark "
+"abgerufen werden.\n"
 "\n"
 "Es ist möglich, mit der Option <b>-cfa</b> festzulegen, ob Bilder für "
-"kosmetische Korrekturen CFA sind, und mit <b>-debayer</b> Bilder am Ende des "
-"Prozesses zu entmosaikisieren.\n"
+"kosmetische Korrekturen CFA-Bilder sind, und mit <b>-debayer</b> Bilder am "
+"Ende des Prozesses zu entmosaikisieren.\n"
 "Die Option <b>-fix_xtrans</b> widmet sich X-Trans-Dateien, indem sie eine "
 "Korrektur auf Dunkelbildern und Biasstörungen anwendet, um ein hässliches "
 "quadratisches Muster zu entfernen.\n"
 "Die Option <b>-equalize_cfa</b> gleicht die mittlere Intensität der RGB-"
 "Ebenen des CFA Flat Masters aus.\n"
 "Es ist auch möglich, den Dunkelabzug mit <b>-opt</b> zu optimieren.\n"
+"Standardmäßig werden als ausgeschlossen markierte Frames nicht verarbeitet. "
+"Das Argument <b>-all</b> kann verwendet werden, um die Verarbeitung aller "
+"Frames zu erzwingen, selbst wenn diese als ausgeschlossen markiert sind.\n"
 "Der Name der Ausgabesequenz beginnt mit dem Präfix \"pp_\", sofern nicht mit "
 "der Option <b>-prefix=</b> anders angegeben.\n"
 "Wenn <b>-fitseq</b> angegeben wird, ist die Ausgabesequenz eine FITS-Sequenz "
 "(einzelne Datei)."
 
 #: src/core/command_def.h:17
-#, fuzzy
 msgid ""
 "Calibrate the image <b>imagename</b> using bias, dark and flat given in "
 "argument.\n"
@@ -12854,8 +12873,8 @@ msgstr ""
 "als Parameter angegebenen Bias, Darks und Flats durch.\n"
 "\n"
 "Für Bias kann anstelle eines Bildes ein einheitlicher Pegel angegeben "
-"werden, indem ein Ausdruck mit einem =-Zeichen eingegeben wird, z. B. -"
-"bias=\"=256\" oder -bias=\"=64*$OFFSET\".\n"
+"werden, indem ein Ausdruck mit einem =-Zeichen eingegeben wird, z. B. -bias="
+"\"=256\" oder -bias=\"=64*$OFFSET\".\n"
 "\n"
 "Es ist möglich, mit der Option <b>-cfa</b> festzulegen, ob Bilder für "
 "kosmetische Korrekturen CFA sind, und mit <b>-debayer</b> Bilder am Ende des "
@@ -12866,6 +12885,8 @@ msgstr ""
 "Die Option <b>-equalize_cfa</b> gleicht die mittlere Intensität der RGB-"
 "Ebenen des CFA Flat Masters aus.\n"
 "Es ist auch möglich, den Dunkelabzug mit <b>-opt</b> zu optimieren.\n"
+"Beachten Sie, dass der Befehlszeilen-Parser das Argument <b>-pex</b>, das in "
+"Vorverarbeitungssequenzen verwendet wird, nicht ablehnt, sondern ignoriert.\n"
 "Der Name der Ausgabesequenz beginnt mit dem Präfix \"pp_\", sofern nicht mit "
 "der Option <b>-prefix=</b> anders angegeben"
 
@@ -13018,7 +13039,6 @@ msgstr ""
 "Auswahl auch über den BOXSELECT-Befehl erfolgen"
 
 #: src/core/command_def.h:32
-#, fuzzy
 msgid ""
 "Performs a DDP (digital development processing) as described first by "
 "Kunihiko Okano. This implementation is the one described in IRIS.\n"
@@ -13032,15 +13052,17 @@ msgid ""
 "32-bit images in which case it will be scaled automatically"
 msgstr ""
 "Führt ein DDP aus (Digitale Entwicklung des Bildes), wie erstmals von "
-"Kunihiko Okano beschrieben. Diese Implementierung entspricht jener aus "
-"IRIS. \n"
+"Kunihiko Okano beschrieben. Diese Implementierung entspricht jener aus IRIS. "
 "\n"
-"Diese Methode kombiniert eine lineare Verteilung bei niedrigem Pegel "
-"(unterhalb von <b>Level</b>) und eine nicht-lineare Verteilung bei höheren "
+"\n"
+"Diese Methode kombiniert eine lineare Verteilung bei niedrigem Pegel ("
+"unterhalb von <b>Level</b>) und eine nicht-lineare Verteilung bei höheren "
 "Pegeln.\n"
 "Sie benutzt einen Gauss-Filter für Sigma <b>sigma</b> und multipliziert das "
 "Bild mit <b>coef</b>. Typische Werte für <b>sigma</b> liegen zwischen 0,7 "
-"und 2"
+"und 2. Das Argument level sollte bei 16-Bit-Bildern im Bereich [0, 65535] "
+"liegen und kann bei 32-Bit-Bildern entweder im Bereich [0, 1] oder [0, 65535]"
+" angegeben werden; in diesem Fall wird es automatisch skaliert"
 
 #: src/core/command_def.h:33
 msgid ""
@@ -15336,6 +15358,12 @@ msgid ""
 "can be passed using a CSV file with the option <b>-file=</b> containing a "
 "name, ra and dec. This is only available from the GUI of Siril"
 msgstr ""
+"Zeigt einen Punkt auf dem astrometrisch gelösten Bild unter Verwendung des "
+"temporären Benutzeranmerkungskatalogs basierend auf seinen äquatorialen "
+"Koordinaten an. Die Option <b>-reset</b> löscht diesen Katalog zuerst und "
+"kann alleine verwendet werden. Mehrere Punkte können über eine CSV-Datei mit "
+"der Option <b>-file=</b> übergeben werden, die einen Namen, Ra- und Dek-"
+"Werte enthält. Dies ist nur über die GUI von Siril verfügbar"
 
 #: src/core/command_def.h:168
 msgid ""
@@ -17186,6 +17214,9 @@ msgid ""
 "Conversion of the filename to system codepage failed. Please consider "
 "removing all wide chars.\n"
 msgstr ""
+"Die Konvertierung des Dateinamens in die System-Codepage ist fehlgeschlagen. "
+"Bitte beachten Sie, dass alle breiten Zeichen (mehr als 8 Bit) entfernt "
+"werden müssen.\n"
 
 #: src/core/utils.c:1069
 msgid "Filename is too long, not expanding it\n"
@@ -18028,7 +18059,6 @@ msgid "Too many files are being converted."
 msgstr "Es werden zu viele Dateien konvertiert."
 
 #: src/gui/conversion.c:171
-#, fuzzy
 msgid ""
 "You are about to convert a large amount of files into standard FITS files. "
 "However, your OS limits the number of files that will be processed in the "
@@ -18036,8 +18066,8 @@ msgid ""
 msgstr ""
 "Sie sind dabei, eine große Anzahl von Dateien in Standard-FITS-Dateien zu "
 "konvertieren. Ihr Betriebssystem begrenzt jedoch die Anzahl der Dateien, die "
-"in der gleichen Zeit verarbeitet werden. Vielleicht möchten Sie Ihre "
-"Eingabedateien in eine FITS-Sequenz konvertieren."
+"in der gleichen Zeit verarbeitet werden, so dass Sie die Eingabedateien in "
+"eine FITS-Sequenz konvertieren müssen."
 
 #: src/gui/conversion.c:173
 msgid "Convert to FITS Sequence"
@@ -19942,19 +19972,16 @@ msgstr "Fehler beim Öffnen der BMP-Datei.\n"
 #: src/io/image_formats_internal.c:215
 #, c-format
 msgid "readbmp: %ld header bytes read instead of 54\n"
-msgstr ""
+msgstr "readbmp: %ld Header-Bytes gelesen statt 54\n"
 
 #: src/io/image_formats_internal.c:225
-#, fuzzy
 msgid "readbmp: file reports negative, zero or excessive dimensions\n"
-msgstr ""
-"Fehler: Die von der Wavelets-Datei gemeldeten Dimensionen sind negativ, null "
-"oder zu groß.\n"
+msgstr "readbmp: Datei meldet negative, Null oder zu große Abmessungen\n"
 
 #: src/io/image_formats_internal.c:251
 #, c-format
 msgid "readbmp: could not read all data: (%zu, %lu)\n"
-msgstr ""
+msgstr "readbmp: konnte nicht alle Daten lesen: (%zu, %lu)\n"
 
 #: src/io/image_formats_internal.c:272
 msgid ""
@@ -20034,12 +20061,10 @@ msgid "Sorry but Siril cannot open the PIC file: %s.\n"
 msgstr "SIRIL kann dieses PIC-Format nicht öffnen: %s.\n"
 
 #: src/io/image_formats_internal.c:857
-#, fuzzy
 msgid "Error: memory allocation failure.\n"
-msgstr "Fehler: Bildabzug fehlgeschlagen.\n"
+msgstr "Fehler: Fehler bei der Speicherzuweisung.\n"
 
 #: src/io/image_formats_internal.c:863
-#, fuzzy
 msgid "Error: Cannot read the data\n"
 msgstr "Kann die Daten nicht lesen\n"
 

@@ -637,6 +637,7 @@ gpointer convert_thread_worker(gpointer p) {
 		rwarg->reader = reader;
 		rwarg->writer = writer;
 		report_file_conversion(args, rwarg);
+
 		if (!g_thread_pool_push(pool, rwarg, NULL)) {
 			siril_log_message(_("Failed to queue image conversion task, aborting"));
 			free(reader);
@@ -1027,7 +1028,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 			if (!conv->output_ser) {
 				conv->output_ser = malloc(sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
-				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
+				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? g_strdup_printf(args->destroot) : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
 					g_free(dest);

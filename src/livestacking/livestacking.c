@@ -154,7 +154,11 @@ void stop_live_stacking_engine() {
 	first_stacking_result = TRUE;
 	unreserve_thread();
 
-	set_cursor_waiting(FALSE);
+	if (!com.headless) {
+		GtkWidget *toolbar = lookup_widget("GtkToolMainBar");
+		if (!gtk_widget_is_visible(toolbar)) show_hide_toolbox();
+		set_cursor_waiting(FALSE);
+	}
 }
 
 static int wait_for_file_to_be_written(const gchar *filename) {
@@ -243,7 +247,8 @@ int start_livestacking(gboolean with_filewatcher) {
 		gui.rendering_mode = STF_DISPLAY;
 		set_display_mode();
 		force_unlinked_channels();
-		show_hide_toolbox();
+		GtkWidget *toolbar = lookup_widget("GtkToolMainBar");
+		if (gtk_widget_is_visible(toolbar)) show_hide_toolbox();
 		livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, reg_type);
 	}
 

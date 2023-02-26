@@ -3106,7 +3106,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 	long naxes[4];
 	float *ima_data = NULL;
 
-	TRYFITS(fits_open_diskfile, &fp, filename, READONLY);
+	TRYFITS(siril_fits_open_diskfile, &fp, filename, READONLY);
 
 	if (siril_fits_move_first_image(fp)) {
 		siril_log_message(_("Selecting the primary header failed, is the FITS file '%s' malformed?\n"), filename);
