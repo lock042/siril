@@ -235,7 +235,7 @@ int readbmp(const char *name, fits *fit) {
 	size_t nbdata = width * height * nbplane + height * padsize;
 
 	if (fseek(file, data_offset, SEEK_SET) == -1) {
-		siril_log_color_message(_("BMP fseek for data"), "red");
+		siril_debug_print("BMP fseek for data");
 		fclose(file);
 		return -1;
 	}
@@ -849,7 +849,7 @@ int readpic(const char *name, fits *fit) {
 	size_t nbdata = fit->rx * fit->ry;
 
 	if (fseek(pic_file->file, 290, SEEK_SET)) {
-		siril_log_color_message(_("Error: seek failure in file.\n"), "red");
+		siril_debug_print("Error: seek failure in file.\n");
 		return -1;
 	}
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));

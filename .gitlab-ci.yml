@@ -219,7 +219,7 @@ deps-win64:
     - cd crossroad
     - ./setup.py install --prefix=`pwd`/../.local
     - cd ..
-    - pip3 install zstandard
+    - pip3 install --break-system-packages zstandard
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
     - crossroad w64 siril --run="build/windows/crossbuild-gitlab-ci/build-deps.sh"
