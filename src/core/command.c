@@ -2013,10 +2013,10 @@ int process_ght(int nb) {
 	if (retval)
 		return retval;
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-
 	char log[100];
 	sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -2034,10 +2034,10 @@ int process_invght(int nb) {
 	if (retval)
 		return retval;
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-
 	char log[100];
 	sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -2055,10 +2055,10 @@ int process_modasinh(int nb) {
 	if (retval)
 		return retval;
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-
 	char log[100];
 	sprintf(log, "Asinh GHS (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -2076,10 +2076,10 @@ int process_invmodasinh(int nb) {
 	if (retval)
 		return retval;
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-
 	char log[100];
 	sprintf(log, "Inverse asinh GHS (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -2097,10 +2097,10 @@ int process_linstretch(int nb) {
 	if (retval)
 		return retval;
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-
 	char log[100];
 	sprintf(log, "GHS BP shift (BP: %.3f)", params->BP);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
 
 	notify_gfit_modified();
 	return CMD_OK;
