@@ -44,14 +44,10 @@ If you would like to fix any bug or add a new feature then follow below steps:
 
 ### Translation
 
-We are looking for volunteer translators, for the software and for the documentation. No programming experience is required; you just need to download [Poedit](https://poedit.net/) for your OS, and generate `*.pot` and `*.po` files by making:
-
-    ninja siril-pot -C _build
-    ninja siril-update-po -C _build
-
-Once done, you can either open the `*.pot` file for a new translation or the `*.po` file of the language you want to contribute to an existing one. Then, you can open a merge request or a bug report and attach the new `*.po` file. We do not need *.mo that are compiled files.
-
-It is also possible to help translating the documentation. To do that, feel free to open a new ticket.
+If you're interested in contributing to the translation of the application and documentation, 
+we encourage you to use [Weblate](https://weblate.pixls.us/projects/siril/). Weblate is a 
+powerful web-based translation tool that allows for easy collaboration and efficient 
+translation workflow.
 
 ### Formatting
 
