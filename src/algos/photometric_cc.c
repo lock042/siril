@@ -482,7 +482,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	free(stars);
 	args = NULL;
 
-	set_progress_bar_data(_("Ready."), PROGRESS_RESET);
+	set_progress_bar_data("", PROGRESS_RESET);
 
 	if (!retval && image_is_gfit) {
 		siril_log_color_message(_("Photometric Color Calibration suceeded.\n"), "green");
