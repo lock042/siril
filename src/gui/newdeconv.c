@@ -1384,12 +1384,13 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	int retval = seq_finalize_hook(seqargs);
 	free(data->deconv_data);
 	free(data);
-	set_progress_bar_data(_("Ready."), 0.);
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
 	args.psftype = args.oldpsftype; // Restore consistency
 	sequence_is_running = 0;
 	return retval;
 }
+
 
 int deconvolution_image_hook(struct generic_seq_args *seqargs, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 0;
