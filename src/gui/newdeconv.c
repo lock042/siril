@@ -35,6 +35,7 @@
 #include "gui/image_display.h"
 #include "gui/sequence_list.h"
 #include "gui/message_dialog.h"
+#include "gui/PSF_list.h"
 #include "gui/registration_preview.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
@@ -1026,8 +1027,7 @@ gpointer estimate_only(gpointer p) {
 	}
 ENDEST:
 	if (stars_need_clearing) {
-		free(com.stars);
-		com.stars = NULL;
+		clear_stars_list(FALSE);
 		stars_need_clearing = FALSE;
 	}
 	siril_log_color_message(_("Deconvolution PSF generated.\n"), "green");
@@ -1274,13 +1274,14 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 //	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("bdeconv_filechooser")));
 	set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	set_deconvolve_params();
+	set_cursor_waiting(TRUE);
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
 		seqargs = malloc(sizeof(deconvolution_sequence_data));
-		seqargs->seqEntry = strdup(gtk_entry_get_text(deconvolutionSeqEntry));
-		set_cursor_waiting(TRUE);
-		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0')
-			seqargs->seqEntry = "dec_";
 		seqargs->seq = &com.seq;
+		seqargs->from_command = FALSE;
+		seqargs->seqEntry = strdup(gtk_entry_get_text(deconvolutionSeqEntry));
+		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0')
+			seqargs->seqEntry = strdup("dec_");
 
 		apply_deconvolve_to_sequence(seqargs);
 	} else {
@@ -1382,8 +1383,10 @@ static int deconvolution_compute_mem_limits(struct generic_seq_args *args, gbool
 int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
 	int retval = seq_finalize_hook(seqargs);
-	free(data->deconv_data);
-	free(data);
+	if (data && data->from_command && data->deconv_data)
+		free(data->deconv_data);
+	if (data)
+		free(data);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
 	args.psftype = args.oldpsftype; // Restore consistency
@@ -1394,9 +1397,9 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 
 int deconvolution_image_hook(struct generic_seq_args *seqargs, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 0;
-//	deconvolution_sequence_data *seqdata = (deconvolution_sequence_data *) args->user;
 	the_fit = fit;
-	deconvolve(NULL);
+	ret = GPOINTER_TO_INT(deconvolve(NULL));
+	the_fit = &gfit; // Prevent bad things happening if fit is freed and we then try to do things with the_fit
 	args.oldpsftype = args.psftype; // Need to store the previous psf type so we can restore
 	// it later and avoid inconsistency between the GTK widget and the parameter.
 	args.psftype = PSF_PREVIOUS; // For all but the first image in the sequence we will reuse the kernel calculated for the first image.
@@ -1481,6 +1484,7 @@ gpointer deconvolve_sequence_command(gpointer p, sequence* seqname) {
 	deconvolution_sequence_data* seqargs = calloc(1, sizeof(deconvolution_sequence_data));
 	seqargs->seqEntry = strdup("dec_");
 	seqargs->seq = seqname;
+	seqargs->from_command = TRUE;
 	apply_deconvolve_to_sequence(seqargs);
 	return GINT_TO_POINTER(retval);
 
