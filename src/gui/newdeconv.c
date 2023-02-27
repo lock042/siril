@@ -1276,7 +1276,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	set_deconvolve_params();
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
 		seqargs = malloc(sizeof(deconvolution_sequence_data));
-		seqargs->seqEntry = gtk_entry_get_text(deconvolutionSeqEntry);
+		seqargs->seqEntry = strdup(gtk_entry_get_text(deconvolutionSeqEntry));
 		set_cursor_waiting(TRUE);
 		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0')
 			seqargs->seqEntry = "dec_";

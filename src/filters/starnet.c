@@ -702,14 +702,14 @@ static int starnet_prepare_hook(struct generic_seq_args *args) {
 	// but we copy the result between each call
 	starnet_args->new_ser_starless = args->new_ser;
 	starnet_args->new_fitseq_starless = args->new_fitseq;
-	free((char*) args->new_seq_prefix);
+	free(args->new_seq_prefix);
 
 	args->new_seq_prefix = strdup("starmask_");
 	if (starnet_basic_prepare_hook(args))
 		return 1;
 	starnet_args->new_ser_starmask = args->new_ser;
 	starnet_args->new_fitseq_starmask = args->new_fitseq;
-	free((char*) args->new_seq_prefix);
+	free(args->new_seq_prefix);
 
 	// Set the prefix for the sequence we want loaded afterwards
 	args->new_seq_prefix = strdup("starless_");

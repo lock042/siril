@@ -884,7 +884,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 
 	// set output filename (preprocessed file name prefix)
-	args->ppprefix = gtk_entry_get_text(entry);
+	args->ppprefix = strdup(gtk_entry_get_text(entry));
 
 	args->ignore_exclusion = gtk_toggle_button_get_active(preprocess_excluded);
 	args->is_cfa = gtk_toggle_button_get_active(CFA);

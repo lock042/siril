@@ -103,7 +103,7 @@ struct generic_seq_args {
 	/** size ratio of output images for memory evaluation */
 	double upscale_ratio;
 	/** output files: prefix for the new sequence and automatic loading */
-	const char *new_seq_prefix;
+	char *new_seq_prefix;
 	/** flag to load or not a new sequence */
 	gboolean load_new_sequence;
 	/** flag to force output to be SER file */

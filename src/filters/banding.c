@@ -415,7 +415,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	args->amount = amount;
 	args->sigma = invsigma;
 	args->applyRotation = gtk_toggle_button_get_active(vertical);
-	args->seqEntry = gtk_entry_get_text(bandingSeqEntry);
+	args->seqEntry = strdup(gtk_entry_get_text(bandingSeqEntry));
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {

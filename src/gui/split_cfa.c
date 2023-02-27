@@ -43,7 +43,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(TRUE);
 		args->seq = &com.seq;
 		args->scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
-		args->seqEntry = gtk_entry_get_text(entrySplitCFA);
+		args->seqEntry = strdup(gtk_entry_get_text(entrySplitCFA));
 		if (com.seq.type == SEQ_SER) {
 			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: sequence is SER"),
 						_("Only FITS format is supported for sequence CFA splitting"));

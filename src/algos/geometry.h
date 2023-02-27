@@ -7,7 +7,7 @@
 struct crop_sequence_data {
 	sequence *seq;
 	rectangle area;
-	const char *prefix;
+	char *prefix;
 	int retvalue;
 };
 

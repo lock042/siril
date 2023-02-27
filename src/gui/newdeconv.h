@@ -6,7 +6,7 @@
 
 typedef struct deconvolution_sequence_data {
 	sequence *seq;
-	const gchar* seqEntry;
+	char* seqEntry;
 	estk_data *deconv_data;
 } deconvolution_sequence_data;
 

@@ -305,7 +305,7 @@ void on_crop_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 	args->seq = &com.seq;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
-	args->prefix = gtk_entry_get_text(cropped_entry);
+	args->prefix = strdup(gtk_entry_get_text(cropped_entry));
 
 	set_cursor_waiting(TRUE);
 	crop_sequence(args);

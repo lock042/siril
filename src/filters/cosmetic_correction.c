@@ -605,7 +605,7 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 	args->description = _("Cosmetic Correction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = cosme_args->prefix;
+	args->new_seq_prefix = strdup(cosme_args->prefix);
 	args->load_new_sequence = TRUE;
 	args->user = cosme_args;
 
@@ -790,7 +790,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->amount = gtk_adjustment_get_value(adjCosmeAmount);
 
 	args->fit = &gfit;
-	args->seqEntry = gtk_entry_get_text(cosmeticSeqEntry);
+	args->seqEntry = strdup(gtk_entry_get_text(cosmeticSeqEntry));
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
