@@ -817,7 +817,8 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 					stat->scale
 			);
 		}
-		free_stats(stat);
+		if (free_stats(stat))
+			siril_debug_print("Error freeing stats in seqstat...\n");
 	}
 	return 0;
 }

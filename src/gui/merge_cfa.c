@@ -145,7 +145,7 @@ void apply_to_seq() {
 	args->seqEntryIn = gtk_entry_get_text(entryMergeCFAin);
 	if (args->seqEntryIn && args->seqEntryIn[0] == '\0')
 		args->seqEntryIn = "CFA_";
-	args->seqEntryOut = gtk_entry_get_text(entryMergeCFAout);
+	args->seqEntryOut = strdup(gtk_entry_get_text(entryMergeCFAout));
 	if (args->seqEntryOut && args->seqEntryOut[0] == '\0')
 		args->seqEntryOut = "mCFA_";
 	GtkComboBox *combo_pattern = GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern"));

@@ -12,14 +12,14 @@ struct mtf_data {
 	fits *fit;
 	sequence *seq;
 	struct mtf_params params;
-	const gchar *seqEntry;
+	char *seqEntry;
 };
 
 struct ght_data {
 	fits *fit;
 	sequence *seq;
-	struct ght_params params_ght;
-	const gchar *seqEntry;
+	struct ght_params *params_ght;
+	char *seqEntry;
 };
 
 typedef enum {

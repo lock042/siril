@@ -209,7 +209,7 @@ int process_seq_clean(int nb) {
 		set_layers_for_registration();
 		drawPlot();
 	} else {
-		free_sequence(seq, FALSE);
+		free_sequence(seq, TRUE);
 	}
 	return CMD_OK;
 }
@@ -454,11 +454,13 @@ int process_denoise(int nb){
 			args->do_cosme = FALSE;
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
-			if (args->modulation == 0.f) {
-				siril_log_message(_("Modulation is zero: doing nothing.\n"));
+			arg += 5;
+			float mod = (float) g_ascii_strtod(arg, &end);
+			if (mod <= 0.f || mod > 1.f) {
+				siril_log_message(_("Error: modulation must be > 0.0 and <= 1.0.\n"));
 				free(args);
 				return CMD_OK;
-			}
+			} else args->modulation = mod;
 		}
 		else if (g_str_has_prefix(arg, "-rho=")) {
 			arg += 5;
@@ -572,7 +574,6 @@ int process_seq_starnet(int nb){
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	if (!starnet_args)
 		return CMD_ALLOC_ERROR;
-	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->linear = FALSE;
 	starnet_args->customstride = FALSE;
 	starnet_args->upscale = FALSE;
@@ -1311,7 +1312,7 @@ int process_makepsf(int nb) {
 
 int process_deconvolve(int nb, nonblind_t type) {
 	gboolean error = FALSE;
-	estk_data* data = malloc(sizeof(estk_data));
+	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
 	if (type == 0)
@@ -1416,7 +1417,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	gboolean error = FALSE;
-	estk_data* data = malloc(sizeof(estk_data));
+	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
 	if (type == 0)
@@ -1685,399 +1686,421 @@ int process_wrecons(int nb) {
 	return CMD_OK;
 }
 
-int process_linstretch(int nb) {
+int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *params, struct ght_data *seqdata) {
+	int stretch_colourmodel = COL_INDEP;
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
 	gboolean do_blue = TRUE;
+	double D = NAN, B = 0.0 , LP = 0.0, SP = 0.0, HP = 1.0, BP = NAN;
 
-	if (nb <= 0) return CMD_ARG_ERROR;
-
-	double BP = 0.0;
-	gchar *end;
-
-	BP = g_ascii_strtod(word[1], &end);
-	if (end == word[1] || (BP < 0.0) || (BP > 1.0)) {
-		siril_log_message(_("Black Point BP must be between 0 and 1\n"));
+	for (int i = (ght_seq ? 2 : 1) ; i < nb ; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (!strcmp(arg, "R")) {
+			do_green = FALSE;
+			do_blue = FALSE;
+		}
+		else if (!strcmp(arg, "G")) {
+			do_red = FALSE;
+			do_blue = FALSE;
+		}
+		else if (!strcmp(arg, "B")) {
+			do_green = FALSE;
+			do_red = FALSE;
+		}
+		else if (!strcmp(arg, "RG")) {
+			do_blue = FALSE;
+		}
+		else if (!strcmp(arg, "RB")) {
+			do_green = FALSE;
+		}
+		else if (!strcmp(arg, "GB")) {
+			do_red = FALSE;
+		}
+		else if (g_str_has_prefix(arg,"-BP=")) {
+			if (stretchtype == STRETCH_LINEAR) {
+				arg += 4;
+				BP = g_ascii_strtod(arg, &end);
+			} else {
+				return CMD_ARG_ERROR;
+			}
+		} else {
+			if (stretchtype == STRETCH_LINEAR) {
+				return CMD_ARG_ERROR;
+			}
+			else if (g_str_has_prefix(arg, "-human")) {
+				stretch_colourmodel = COL_HUMANLUM;
+			}
+			else if (g_str_has_prefix(arg, "-even")) {
+				stretch_colourmodel = COL_EVENLUM;
+			}
+			else if (g_str_has_prefix(arg, "-independent")) {
+				stretch_colourmodel = COL_INDEP;
+			}
+			else if (g_str_has_prefix(arg,"-D=")) {
+				arg += 3;
+				D = g_ascii_strtod(arg, &end);
+			}
+			else if (g_str_has_prefix(arg,"-B=")) {
+				if (stretchtype == STRETCH_PAYNE_NORMAL || stretchtype == STRETCH_PAYNE_INVERSE) {
+					arg += 3;
+					B = g_ascii_strtod(arg, &end);
+				} else {
+					return CMD_ARG_ERROR;
+				}
+			}
+			else if (g_str_has_prefix(arg,"-LP=")) {
+				arg += 4;
+				LP = g_ascii_strtod(arg, &end);
+			}
+			else if (g_str_has_prefix(arg,"-SP=")) {
+				arg += 4;
+				SP = g_ascii_strtod(arg, &end);
+			}
+			else if (g_str_has_prefix(arg,"-HP=")) {
+				arg += 4;
+				HP = g_ascii_strtod(arg, &end);
+			}
+		}
 	}
-	if (word[2]) {
-		if (!strcmp(word[2], "R")) {
-			do_green = FALSE;
-			do_blue = FALSE;
+	if (stretchtype == STRETCH_LINEAR) {
+		if (BP != BP) {
+			siril_log_message(_("Error: BP must be specified between 0.0 and 1.0 using -BP=\n"));
+			return CMD_WRONG_N_ARG;
 		}
-		if (!strcmp(word[2], "G")) {
-			do_red = FALSE;
-			do_blue = FALSE;
+		if (BP < 0. || BP > 1.) {
+			siril_log_message(_("Error: BP must be >= 0.0 and <= 1.0.\n"));
+			return CMD_ARG_ERROR;
 		}
-		if (!strcmp(word[2], "B")) {
-			do_green = FALSE;
-			do_red = FALSE;
+		D = 0.0;
+		B = 0.0;
+		LP = 0.0;
+		SP = 0.0;
+		HP = 0.0;
+	} else {
+		if (D != D) {
+			siril_log_message(_("Error: D must be specified between 0.0 and 1.0 using -D=\n"));
+			return CMD_WRONG_N_ARG;
 		}
-		if (!strcmp(word[2], "RG")) {
-			do_blue = FALSE;
+
+		if (stretchtype == STRETCH_PAYNE_NORMAL || stretchtype == STRETCH_PAYNE_INVERSE) {
+			if (B < 0. || B > 15.) {
+				siril_log_message(_("Error: B must be >= 0.0 and <= 15.0.\n"));
+				return CMD_ARG_ERROR;
+			}
+		} else {
+			B = 0.0;
 		}
-		if (!strcmp(word[2], "RB")) {
-			do_green = FALSE;
+		if (D <= 0. || D > 10.) {
+			siril_log_message(_("Error: D must be > 0.0 and <= 10.0.\n"));
+			return CMD_ARG_ERROR;
 		}
-		if (!strcmp(word[2], "GB")) {
-			do_red = FALSE;
+		if (SP < 0. || SP > 1.) {
+			siril_log_message(_("Error: SP must be >= 0.0 and <= 1.0.\n"));
+			return CMD_ARG_ERROR;
 		}
+		if (LP < 0. || LP > SP) {
+			siril_log_message(_("Error: LP must be >= 0.0 and <= SP.\n"));
+			return CMD_ARG_ERROR;
+		}
+		if (HP < SP || HP > 1.) {
+			siril_log_message(_("Error: HP must be >= SP and <= 1.0.\n"));
+			return CMD_ARG_ERROR;
+		}
+		BP = 0.0;
 	}
+
 	set_cursor_waiting(TRUE);
-	ght_params params = {0.0, 0.0, 0.0, 0.0, 0.0, BP, STRETCH_LINEAR, COL_INDEP, do_red, do_green, do_blue};
-	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+	params->B = (float) B;
+	params->D = (float) expm1(D);
+	params->LP = (float) LP;
+	params->SP = (float) SP;
+	params->HP = (float) HP;
+	params->BP = (float) BP;
+	params->stretchtype = stretchtype;
+	params->payne_colourstretchmodel = stretch_colourmodel;
+	params->do_red = do_red;
+	params->do_green = do_green;
+	params->do_blue = do_blue;
+	return CMD_OK;
+}
 
-	char log[90];
-	sprintf(log, "Linear stretch to black point %.3f", BP);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
+int process_seq_ght(int nb) {
+	int stretchtype = STRETCH_PAYNE_NORMAL;
 
-	notify_gfit_modified();
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		siril_log_message(_("Error: cannot open sequence\n"));
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	ght_params *params = calloc(1, sizeof(ght_params));
+	if (!params)
+		return CMD_ALLOC_ERROR;
+
+	struct ght_data *seqdata = calloc(1, sizeof(struct ght_data));
+	if (!seqdata) {
+		free(params);
+		return CMD_ALLOC_ERROR;
+	} else {
+		seqdata->seq = seq;
+		seqdata->params_ght = params;
+		seqdata->seqEntry = strdup("ght_");
+		if(!seqdata->seqEntry) {
+			free(params);
+			free(seqdata);
+			return CMD_ALLOC_ERROR;
+		}
+	}
+
+	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
+	if (retval)
+		return retval;
+	apply_ght_to_sequence(seqdata);
+	return CMD_OK;
+}
+
+int process_seq_invght(int nb) {
+	int stretchtype = STRETCH_PAYNE_INVERSE;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		siril_log_message(_("psgError: cannot open sequence\n"));
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	ght_params *params = calloc(1, sizeof(ght_params));
+	if (!params)
+		return CMD_ALLOC_ERROR;
+
+	struct ght_data *seqdata = calloc(1, sizeof(struct ght_data));
+	if (!seqdata) {
+		free(params);
+		return CMD_ALLOC_ERROR;
+	} else {
+		seqdata->seq = seq;
+		seqdata->params_ght = params;
+		seqdata->seqEntry = strdup("ght_");
+		if(!seqdata->seqEntry) {
+			free(params);
+			free(seqdata);
+			return CMD_ALLOC_ERROR;
+		}
+	}
+
+	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
+	if (retval)
+		return retval;
+	apply_ght_to_sequence(seqdata);
+	return CMD_OK;
+}
+
+int process_seq_modasinh(int nb) {
+	int stretchtype = STRETCH_ASINH;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		siril_log_message(_("psgError: cannot open sequence\n"));
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	ght_params *params = calloc(1, sizeof(ght_params));
+	if (!params)
+		return CMD_ALLOC_ERROR;
+
+	struct ght_data *seqdata = calloc(1, sizeof(struct ght_data));
+	if (!seqdata) {
+		free(params);
+		return CMD_ALLOC_ERROR;
+	} else {
+		seqdata->seq = seq;
+		seqdata->params_ght = params;
+		seqdata->seqEntry = strdup("ght_");
+		if(!seqdata->seqEntry) {
+			free(params);
+			free(seqdata);
+			return CMD_ALLOC_ERROR;
+		}
+	}
+
+	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
+	if (retval)
+		return retval;
+	apply_ght_to_sequence(seqdata);
+	return CMD_OK;
+}
+
+int process_seq_invmodasinh(int nb) {
+	int stretchtype = STRETCH_INVASINH;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		siril_log_message(_("psgError: cannot open sequence\n"));
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	ght_params *params = calloc(1, sizeof(ght_params));
+	if (!params)
+		return CMD_ALLOC_ERROR;
+
+	struct ght_data *seqdata = calloc(1, sizeof(struct ght_data));
+	if (!seqdata) {
+		free(params);
+		return CMD_ALLOC_ERROR;
+	} else {
+		seqdata->seq = seq;
+		seqdata->params_ght = params;
+		seqdata->seqEntry = strdup("ght_");
+		if(!seqdata->seqEntry) {
+			free(params);
+			free(seqdata);
+			return CMD_ALLOC_ERROR;
+		}
+	}
+
+	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
+	if (retval)
+		return retval;
+	apply_ght_to_sequence(seqdata);
+	return CMD_OK;
+}
+
+int process_seq_linstretch(int nb) {
+	int stretchtype = STRETCH_LINEAR;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		siril_log_message(_("psgError: cannot open sequence\n"));
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	ght_params *params = calloc(1, sizeof(ght_params));
+	if (!params)
+		return CMD_ALLOC_ERROR;
+
+	struct ght_data *seqdata = calloc(1, sizeof(struct ght_data));
+	if (!seqdata) {
+		free(params);
+		return CMD_ALLOC_ERROR;
+	} else {
+		seqdata->seq = seq;
+		seqdata->params_ght = params;
+		seqdata->seqEntry = strdup("ght_");
+		if(!seqdata->seqEntry) {
+			free(params);
+			free(seqdata);
+			return CMD_ALLOC_ERROR;
+		}
+	}
+
+	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
+	if (retval)
+		return retval;
+	apply_ght_to_sequence(seqdata);
 	return CMD_OK;
 }
 
 int process_ght(int nb) {
-	int stretch_colourmodel = COL_INDEP;
-	int arg_offset = 0;
-	gboolean do_red = TRUE;
-	gboolean do_green = TRUE;
-	gboolean do_blue = TRUE;
-	gchar *end;
+	int stretchtype = STRETCH_PAYNE_NORMAL;
+	struct ght_data *seqdata = NULL;
 
-	if (!strcmp(word[1], "-human")) {
-		stretch_colourmodel = COL_HUMANLUM;
-		arg_offset = 1;
-	}
-	else if (!strcmp(word[1], "-even")) {
-		stretch_colourmodel = COL_EVENLUM;
-		arg_offset = 1;
-	}
-	else if (!strcmp(word[1], "-independent")) {
-		stretch_colourmodel = COL_INDEP;
-		arg_offset = 1;
-	}
-	if (nb <= 4 + arg_offset)
-	return CMD_WRONG_N_ARG;
+	ght_params *params = calloc(1, sizeof(ght_params));
+	if (!params)
+		return CMD_ALLOC_ERROR;
 
-	double D = g_ascii_strtod(word[1 + arg_offset], &end);
-	if (end == word[1 + arg_offset] || (D < 0.0) || (D > 10.0)) {
-		siril_log_message(_("Stretch factor D must be between 0 and 10\n"));
-		return CMD_ARG_ERROR;
-	}
-	D = expm1f((float) D);
-
-	double B = g_ascii_strtod(word[2 + arg_offset], &end);
-	if (end == word[2 + arg_offset] || (B < -5.0) || (B > 15.0)) {
-		siril_log_message(_("Stretch intensity B must be between -5 and +15\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	double SP = g_ascii_strtod(word[4 + arg_offset], &end);
-	if (end == word[4 + arg_offset] || (SP < 0.0) || (SP > 1.0)) {
-		siril_log_message(_("Stretch focal point SP must be between 0 and 1\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	double LP = g_ascii_strtod(word[3 + arg_offset], &end);
-	if (end == word[3 + arg_offset] || (LP < 0.0) || (LP > SP)) {
-		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	double HP = g_ascii_strtod(word[5 + arg_offset], &end);
-	if (end == word[5 + arg_offset] || (HP < SP) || (HP > 1.0)) {
-		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	if (word[6 + arg_offset]) {
-		if (!strcmp(word[6 + arg_offset], "R")) {
-			do_green = FALSE;
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[6 + arg_offset], "G")) {
-			do_red = FALSE;
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[6 + arg_offset], "B")) {
-			do_green = FALSE;
-			do_red = FALSE;
-		}
-		if (!strcmp(word[6 + arg_offset], "RG")) {
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[6 + arg_offset], "RB")) {
-			do_green = FALSE;
-		}
-		if (!strcmp(word[6 + arg_offset], "GB")) {
-			do_red = FALSE;
-		}
-	}
-	set_cursor_waiting(TRUE);
-	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_NORMAL, stretch_colourmodel, do_red, do_green, do_blue};
+	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
+	if (retval)
+		return retval;
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-
 	char log[100];
-	sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", SP, D, B, LP, HP);
+	sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
 
 	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int process_invght(int nb) {
-	gboolean do_red = TRUE;
-	gboolean do_green = TRUE;
-	gboolean do_blue = TRUE;
-	gchar *end;
+	int stretchtype = STRETCH_PAYNE_INVERSE;
+	struct ght_data *seqdata = NULL;
 
-	int stretch_colourmodel = COL_INDEP;
-	int arg_offset = 0;
-	if (!strcmp(word[1], "-human")) {
-		stretch_colourmodel = COL_HUMANLUM;
-		arg_offset = 1;
-	}
-	else if (!strcmp(word[1], "-even")) {
-		stretch_colourmodel = COL_EVENLUM;
-		arg_offset = 1;
-	}
-	else if (!strcmp(word[1], "-independent")) {
-		stretch_colourmodel = COL_INDEP;
-		arg_offset = 1;
-	}
-	if (nb <= 4 + arg_offset)
+	ght_params *params = calloc(1, sizeof(ght_params));
+	if (!params)
+		return CMD_ALLOC_ERROR;
 
-		return CMD_WRONG_N_ARG;
-
-	double D = g_ascii_strtod(word[1 + arg_offset], &end);
-	if (end == word[1 + arg_offset] || (D < 0.0) || (D > 10.0)) {
-		siril_log_message(_("Stretch factor D must be between 0 and 10\n"));
-		return CMD_ARG_ERROR;
-	}
-	D = expm1f((float) D);
-
-	double B = g_ascii_strtod(word[2 + arg_offset], &end);
-	if (end == word[2 + arg_offset] || (B < -5.0) || (B > 15.0)) {
-		siril_log_message(_("Stretch intensity B must be between -5 and +15\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	double SP = g_ascii_strtod(word[4 + arg_offset], &end);
-	if (end == word[4 + arg_offset] || (SP < 0.0) || (SP > 1.0)) {
-		siril_log_message(_("Stretch focal point SP must be between 0 and 1\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	double LP = g_ascii_strtod(word[3 + arg_offset], &end);
-	if (end == word[3 + arg_offset] || (LP < 0.0) || (LP > SP)) {
-		siril_log_message(_("Shadow preservation point LP must be between 0 and stretch focal point\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	double HP = g_ascii_strtod(word[5 + arg_offset], &end);
-	if (end == word[5 + arg_offset] || (HP < SP) || (HP > 1.0)) {
-		siril_log_message(_("Headroom preservation point HP must be between stretch focal point and 1\n"));
-		return CMD_ARG_ERROR;
-	}
-	if (word[6 + arg_offset]) {
-		if (!strcmp(word[6 + arg_offset], "R")) {
-			do_green = FALSE;
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[6 + arg_offset], "G")) {
-			do_red = FALSE;
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[6 + arg_offset], "B")) {
-			do_green = FALSE;
-			do_red = FALSE;
-		}
-		if (!strcmp(word[6 + arg_offset], "RG")) {
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[6 + arg_offset], "RB")) {
-			do_green = FALSE;
-		}
-		if (!strcmp(word[6 + arg_offset], "GB")) {
-			do_red = FALSE;
-		}
-	}
-
-	set_cursor_waiting(TRUE);
-	ght_params params = {B, D, LP, SP, HP, 0.0, STRETCH_PAYNE_INVERSE,
-		stretch_colourmodel, do_red, do_green, do_blue};
+	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
+	if (retval)
+		return retval;
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-
 	char log[100];
-	sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])",
-			SP, D, B, LP, HP);
+	sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
 
 	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int process_modasinh(int nb) {
-	gboolean do_red = TRUE;
-	gboolean do_green = TRUE;
-	gboolean do_blue = TRUE;
-	gchar *end;
+	int stretchtype = STRETCH_ASINH;
+	struct ght_data *seqdata = NULL;
 
-	int stretch_colourmodel = COL_INDEP;
-	int arg_offset = 0;
-	if (!strcmp(word[1], "-human")) {
-		stretch_colourmodel = COL_HUMANLUM;
-		arg_offset = 1;
-	}
-	else if (!strcmp(word[1], "-even")) {
-		stretch_colourmodel = COL_EVENLUM;
-		arg_offset = 1;
-	}
-	else if (!strcmp(word[1], "-independent")) {
-		stretch_colourmodel = COL_INDEP;
-		arg_offset = 1;
-	}
-	if (nb <= arg_offset + 3)
-	return CMD_WRONG_N_ARG;
+	ght_params *params = calloc(1, sizeof(ght_params));
+	if (!params)
+		return CMD_ALLOC_ERROR;
 
-	double D = g_ascii_strtod(word[arg_offset + 1], &end);
-	if (end == word[1 + arg_offset] || (D < 0.0) || (D > 10.0)) {
-		siril_log_message(_("D must be between 0 and 10\n"));
-		return CMD_ARG_ERROR;
-	}
-	D = expm1f((float) D);
-
-	double SP = g_ascii_strtod(word[arg_offset + 3], &end);
-	if (end == word[3 + arg_offset] || (SP < 0.0) || (SP > 1.0)) {
-		siril_log_message(_("SP must be between 0 and 1\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	double LP = g_ascii_strtod(word[arg_offset + 2], &end);
-	if (end == word[2 + arg_offset] || (LP < 0.0) || (LP > SP)) {
-		siril_log_message(_("LP must be between 0 and stretch focal point\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	double HP = g_ascii_strtod(word[arg_offset + 4], &end);
-	if (end == word[4 + arg_offset] || (HP < SP) || (HP > 1.0)) {
-		siril_log_message(_("HP must be between stretch focal point and 1\n"));
-		return CMD_ARG_ERROR;
-	}
-	if (word[5 + arg_offset]) {
-		if (!strcmp(word[5 + arg_offset], "R")) {
-			do_green = FALSE;
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[5 + arg_offset], "G")) {
-			do_red = FALSE;
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[5 + arg_offset], "B")) {
-			do_green = FALSE;
-			do_red = FALSE;
-		}
-		if (!strcmp(word[5 + arg_offset], "RG")) {
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[5 + arg_offset], "RB")) {
-			do_green = FALSE;
-		}
-		if (!strcmp(word[5 + arg_offset], "GB")) {
-			do_red = FALSE;
-		}
-	}
-
-	set_cursor_waiting(TRUE);
-	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_ASINH, stretch_colourmodel, do_red, do_green, do_blue};
+	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
+	if (retval)
+		return retval;
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-
 	char log[100];
-	sprintf(log, "Modified asinh (pivot: %.3f, amount: %.2f, [%.2f, %.2f])",
-			SP, D, LP, HP);
+	sprintf(log, "Asinh GHS (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
 
 	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int process_invmodasinh(int nb) {
-	gboolean do_red = TRUE;
-	gboolean do_green = TRUE;
-	gboolean do_blue = TRUE;
-	gchar *end;
+	int stretchtype = STRETCH_INVASINH;
+	struct ght_data *seqdata = NULL;
 
-	int stretch_colourmodel = COL_INDEP;
-	int arg_offset = 0;
-	if (!strcmp(word[1], "-human")) {
-		stretch_colourmodel = COL_HUMANLUM;
-		arg_offset = 1;
-	}
-	else if (!strcmp(word[1], "-even")) {
-		stretch_colourmodel = COL_EVENLUM;
-		arg_offset = 1;
-	}
-	else if (!strcmp(word[1], "-independent")) {
-		stretch_colourmodel = COL_INDEP;
-		arg_offset = 1;
-	}
-	if (nb <= arg_offset + 3)
-	return CMD_WRONG_N_ARG;
+	ght_params *params = calloc(1, sizeof(ght_params));
+	if (!params)
+		return CMD_ALLOC_ERROR;
 
-	double D = g_ascii_strtod(word[arg_offset + 1], &end);
-	if (end == word[1 + arg_offset] || (D < 0.0) || (D > 10.0)) {
-		siril_log_message(_("D must be between 0 and 10\n"));
-		return CMD_ARG_ERROR;
-	}
-	D = expm1f((float)D);
-
-	double SP = g_ascii_strtod(word[arg_offset + 3], &end);
-	if (end == word[3 + arg_offset] || (SP < 0.0) || (SP > 1.0)) {
-		siril_log_message(_("SP must be between 0 and 1\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	double LP = g_ascii_strtod(word[arg_offset + 2], &end);
-	if (end == word[2 + arg_offset] || (LP < 0.0) || (LP > SP)) {
-		siril_log_message(_("LP must be between 0 and stretch focal point\n"));
-		return CMD_ARG_ERROR;
-	}
-
-	double HP = g_ascii_strtod(word[arg_offset + 4], &end);
-	if (end == word[4 + arg_offset] || (HP < SP) || (HP > 1.0)) {
-		siril_log_message(_("HP must be between stretch focal point and 1\n"));
-		return CMD_ARG_ERROR;
-	}
-	if (word[5 + arg_offset]) {
-		if (!strcmp(word[5 + arg_offset], "R")) {
-			do_green = FALSE;
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[5 + arg_offset], "G")) {
-			do_red = FALSE;
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[5 + arg_offset], "B")) {
-			do_green = FALSE;
-			do_red = FALSE;
-		}
-		if (!strcmp(word[5 + arg_offset], "RG")) {
-			do_blue = FALSE;
-		}
-		if (!strcmp(word[5 + arg_offset], "RB")) {
-			do_green = FALSE;
-		}
-		if (!strcmp(word[5 + arg_offset], "GB")) {
-			do_red = FALSE;
-		}
-	}
-
-	set_cursor_waiting(TRUE);
-	ght_params params = {0.0, D, LP, SP, HP, 0.0, STRETCH_INVASINH, stretch_colourmodel, do_red, do_green, do_blue};
+	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
+	if (retval)
+		return retval;
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-
 	char log[100];
-	sprintf(log, "Inverse modified asinh (pivot: %.3f, amount: %.2f, [%.2f, %.2f])",
-			SP, D, LP, HP);
+	sprintf(log, "Inverse asinh GHS (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
+
+	notify_gfit_modified();
+	return CMD_OK;
+}
+
+int process_linstretch(int nb) {
+	int stretchtype = STRETCH_LINEAR;
+	struct ght_data *seqdata = NULL;
+
+	ght_params *params = calloc(1, sizeof(ght_params));
+	if (!params)
+		return CMD_ALLOC_ERROR;
+
+	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
+	if (retval)
+		return retval;
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+	char log[100];
+	sprintf(log, "GHS BP shift (BP: %.3f)", params->BP);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
 
 	notify_gfit_modified();
 	return CMD_OK;
@@ -2461,7 +2484,7 @@ int process_merge(int nb) {
 		case SEQ_REGULAR:
 			// use the conversion, it makes symbolic links or copies as a fallback
 			destroot = strdup(word[nb - 1]);
-			args = malloc(sizeof(struct _convert_data));
+			args = calloc(1, sizeof(struct _convert_data));
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
 			args->list = glist_to_array(list, &args->total);
@@ -2776,7 +2799,7 @@ int process_autoghs(int nb) {
 
 		ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
 			.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE };
-		apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+		apply_linked_ght_to_fits(&gfit, &gfit, &params, TRUE);
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
@@ -2791,7 +2814,7 @@ int process_autoghs(int nb) {
 
 				ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
 					.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
-				apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+				apply_linked_ght_to_fits(&gfit, &gfit, &params, TRUE);
 
 				free_stats(stats[i]);
 			}
@@ -3796,6 +3819,8 @@ int process_seq_tilt(int nb) {
 	// load it before running
 	if (!com.script && seq != &com.seq) {
 		set_seq(word[1]);
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
 		draw_polygon = TRUE;
 	}
 
@@ -3933,6 +3958,12 @@ int process_seq_psf(int nb) {
 		if (!seq) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
+		if (!com.script && seq != &com.seq) {
+			set_seq(word[1]);
+			free_sequence(seq, TRUE);
+			seq = &com.seq;
+		}
+
 		fits first = { 0 };
 		if (seq_read_frame_metadata(seq, 0, &first)) {
 			free_sequence(seq, TRUE);
@@ -3945,15 +3976,18 @@ int process_seq_psf(int nb) {
 		if (end == word[2] || layer >= seq->nb_layers) {
 			siril_log_message(_("PSF cannot be computed on channel %d for this sequence of %d channels\n"), layer, seq->nb_layers);
 			free_sequence(seq, TRUE);
+			clearfits(&first);
 			return CMD_ARG_ERROR;
 		}
 
 		rectangle area;
 		if (parse_star_position_arg(word[3], seq, &first, &area, NULL)) {
 			free_sequence(seq, TRUE);
+			clearfits(&first);
 			return 1;
 		}
 		com.selection = area;
+		clearfits(&first);
 	}
 
 	framing_mode framing = REGISTERED_FRAME;
@@ -3969,7 +4003,10 @@ int process_seq_psf(int nb) {
 		}
 	}
 	siril_log_message(_("Running the PSF on the sequence, layer %d\n"), layer);
-	return seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, com.script);
+	int retval = seqpsf(seq, layer, FALSE, FALSE, framing, TRUE, com.script);
+	if (seq != &com.seq)
+		free_sequence(seq, TRUE);
+	return retval;
 }
 
 // light_curve sequencename channel [-autoring] { -ninalist=file | [-auto] { -at=x,y | -wcs=ra,dec [-refat=x,y] [-refwcs=ra,dec] ... } }
@@ -4044,7 +4081,7 @@ int process_light_curve(int nb) {
 	}
 	g_assert(com.pref.phot_set.inner < com.pref.phot_set.outer);
 
-	struct light_curve_args *args = malloc(sizeof(struct light_curve_args));
+	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		clearfits(&first);
@@ -4067,9 +4104,7 @@ int process_light_curve(int nb) {
 			return CMD_FOR_PLATE_SOLVED;
 		}
 		if (parse_nina_stars_file_using_WCS(args, file, TRUE, TRUE, &first)) {
-			if (seq != &com.seq)
-				free_sequence(seq, TRUE);
-			free(args);
+			free_light_curve_args(args);
 			clearfits(&first);
 			return CMD_GENERIC_ERROR;
 		}
@@ -4078,10 +4113,7 @@ int process_light_curve(int nb) {
 		for (int arg_index = argidx; arg_index < nb; arg_index++) {
 			if (parse_star_position_arg(word[arg_index], seq, &first,
 						&args->areas[arg_index - argidx], &args->target_descr)) {
-				if (seq != &com.seq)
-					free_sequence(seq, TRUE);
-				free(args->areas);
-				free(args);
+				free_light_curve_args(args);
 				clearfits(&first);
 				return CMD_ARG_ERROR;;
 			}
@@ -4146,7 +4178,7 @@ int process_seq_crop(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	struct crop_sequence_data *args = malloc(sizeof(struct crop_sequence_data));
+	struct crop_sequence_data *args = calloc(1, sizeof(struct crop_sequence_data));
 
 	args->seq = seq;
 	args->area = area;
@@ -4736,7 +4768,8 @@ int process_seq_cosme(int nb) {
 	GFile *file = g_file_new_for_path(filename);
 	g_free(filename);
 
-	struct cosme_data *args = malloc(sizeof(struct cosme_data));
+	struct cosme_data *args = calloc(1, sizeof(struct cosme_data));
+	args->prefix = strdup("cosme_");
 
 	if (g_str_has_prefix(word[3], "-prefix=")) {
 		char *current = word[3], *value;
@@ -4751,8 +4784,6 @@ int process_seq_cosme(int nb) {
 			return CMD_ARG_ERROR;
 		}
 		args->prefix = strdup(value);
-	} else {
-		args->prefix = "cosme_";
 	}
 
 	args->seq = seq;
@@ -4981,7 +5012,7 @@ int process_fixbanding(int nb) {
 }
 
 int process_seq_fixbanding(int nb) {
-	struct banding_data *args = malloc(sizeof(struct banding_data));
+	struct banding_data *args = calloc(1, sizeof(struct banding_data));
 	gchar *end1 = NULL, *end2 = NULL;
 	args->seq = NULL;
 
@@ -5010,7 +5041,6 @@ int process_seq_fixbanding(int nb) {
 	// settings default optional values
 	args->protect_highlights = TRUE;
 	args->applyRotation = FALSE;
-	args->seqEntry = g_strdup("unband_");
 	args->fit = NULL;
 
 	if (nb > 4) {
@@ -5023,14 +5053,17 @@ int process_seq_fixbanding(int nb) {
 					siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
 					if (!check_seq_is_comseq(args->seq))
 						free_sequence(args->seq, TRUE);
+					free((char*) args->seqEntry);
 					free(args);
 					return CMD_ARG_ERROR;
 				}
-				args->seqEntry = g_strdup(value);
+				args->seqEntry = strdup(value);
 			} else if (!g_strcmp0(arg, "-vertical")) {
 				args->applyRotation = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+				free((char*) args->seqEntry);
+				printf("seqEntry freed");
 				if (!check_seq_is_comseq(args->seq))
 					free_sequence(args->seq, TRUE);
 				free(args);
@@ -5039,6 +5072,9 @@ int process_seq_fixbanding(int nb) {
 			arg_index++;
 		}
 	}
+	if (!args->seqEntry)
+		args->seqEntry = strdup("unband_");
+
 	apply_banding_to_sequence(args);
 	return CMD_OK;
 }
@@ -5082,10 +5118,10 @@ int process_subsky(int nb) {
 			char *value = arg + 8;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
-				g_free(prefix);
+				free(prefix);
 				return CMD_ARG_ERROR;
 			}
-			g_free(prefix); // Required in case we have gone round the loop and prefix was also set in a previous arg
+			free(prefix); // Required in case we have gone round the loop and prefix was also set in a previous arg
 			prefix = strdup(value);
 		}
 		else if (g_str_has_prefix(arg, "-samples=")) {
@@ -5094,7 +5130,7 @@ int process_subsky(int nb) {
 			samples = g_ascii_strtoull(value, &end, 10);
 			if (end == value || samples <= 1) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
-				g_free(prefix);
+				free(prefix);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -5103,7 +5139,7 @@ int process_subsky(int nb) {
 			tolerance = g_ascii_strtod(value, &next);
 			if (next == value || tolerance < 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
-				g_free(prefix);
+				free(prefix);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -5112,7 +5148,7 @@ int process_subsky(int nb) {
 			smooth = g_ascii_strtod(value, &next);
 			if (next == value || smooth < 0.0 || smooth > 1.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), arg);
-				g_free(prefix);
+				free(prefix);
 				return CMD_ARG_ERROR;
 			}
 			if (interp != BACKGROUND_INTER_RBF)
@@ -5120,13 +5156,13 @@ int process_subsky(int nb) {
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			g_free(prefix);
+			free(prefix);
 			return CMD_ARG_ERROR;
 		}
 		arg_index++;
 	}
 
-	struct background_data *args = malloc(sizeof(struct background_data));
+	struct background_data *args = calloc(1, sizeof(struct background_data));
 	args->nb_of_samples = samples;
 	args->tolerance = tolerance;
 	args->correction = BACKGROUND_CORRECTION_SUBTRACT;
@@ -5139,7 +5175,7 @@ int process_subsky(int nb) {
 	if (is_sequence) {
 		args->seq = seq;
 		args->dither = TRUE;
-		args->seqEntry = prefix ? prefix : "bkg_";
+		args->seqEntry = prefix ? prefix : strdup("bkg_");
 
 		apply_background_extraction_to_sequence(args);
 	} else {
@@ -5170,7 +5206,7 @@ int process_findcosme(int nb) {
 		i++;
 	}
 
-	struct cosmetic_data *args = malloc(sizeof(struct cosmetic_data));
+	struct cosmetic_data *args = calloc(1, sizeof(struct cosmetic_data));
 	gchar *end1, *end2;
 
 	args->seq = seq;
@@ -5192,7 +5228,7 @@ int process_findcosme(int nb) {
 	args->fit = &gfit;
 
 	if (is_sequence) {
-		args->seqEntry = "cc_";
+		args->seqEntry = strdup("cc_");
 		args->threading = SINGLE_THREADED;
 
 		int startoptargs = i + 3;
@@ -5235,10 +5271,14 @@ int select_unselect(gboolean select) {
 	}
 	if (end1 == word[2] || from < 1 || from > seq->number) {
 		siril_log_message(_("The second argument must be between 1 and the number of images.\n"));
+			if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 	if (end2 == word[3] || to < from) {
 		siril_log_message(_("The third argument must be larger or equal than the \"from\" argument.\n"));
+			if (!check_seq_is_comseq(seq))
+				free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
 	if (to > seq->number) {
@@ -5270,7 +5310,7 @@ int select_unselect(gboolean select) {
 	siril_log_message(_("Selection update finished, %d images are selected in the sequence\n"), seq->selnum);
 
 	if (!check_seq_is_comseq(seq))
-		free_sequence(seq, FALSE);
+		free_sequence(seq, TRUE);
 
 	return CMD_OK;
 }
@@ -5529,7 +5569,7 @@ int process_seq_mtf(int nb) {
 
 	args->seq = seq;
 	args->fit = &gfit;
-	args->seqEntry = "mtf_";
+	args->seqEntry = strdup("mtf_");
 	gchar *end1, *end2, *end3;
 	args->params.shadows = g_ascii_strtod(word[2], &end1);
 	args->params.midtones = g_ascii_strtod(word[3], &end2);
@@ -5606,7 +5646,7 @@ int process_seq_split_cfa(int nb) {
 
 	args->seq = seq;
 	args->fit = &gfit;
-	args->seqEntry = "CFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->seqEntry = strdup("CFA_"); // propose to default to "CFA" for consistency of output names with single image split_cfa
 
 	int startoptargs = 2;
 	if (nb > startoptargs) {
@@ -5672,8 +5712,8 @@ int process_seq_merge_cfa(int nb) {
 	}
 	siril_log_message(_("Reconstructing %s Bayer matrix.\n"), word[2]);
 	args->seq = seq;
-	args->seqEntryIn = "CFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
-	args->seqEntryOut = "mCFA_"; // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->seqEntryIn = strdup("CFA_"); // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->seqEntryOut = strdup("mCFA_");
 
 	int startoptargs = 3;
 	if (nb > startoptargs) {
@@ -5732,7 +5772,7 @@ int process_seq_extractHa(int nb) {
 	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
 
 	args->seq = seq;
-	args->seqEntry = "Ha_";
+	args->seqEntry = strdup("Ha_");
 
 	int startoptargs = 2;
 	if (nb > startoptargs) {
@@ -5780,7 +5820,7 @@ int process_seq_extractGreen(int nb) {
 	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
 
 	args->seq = seq;
-	args->seqEntry = "Green_";
+	args->seqEntry = strdup("Green_");
 
 	int startoptargs = 2;
 	if (nb > startoptargs) {
@@ -5847,7 +5887,6 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	args->seq = seq;
-	args->seqEntry = ""; // not used
 
 	apply_extractHaOIII_to_sequence(args);
 
@@ -5952,7 +5991,6 @@ int process_seq_stat(int nb) {
 
 	struct stat_data *args = calloc(1, sizeof(struct stat_data));
 	args->seq = seq;
-	args->seqEntry = ""; // not used
 	args->csv_name = g_strdup(word[2]);
 	args->selection = com.selection;
 	args->option = STATS_MAIN;
@@ -7804,6 +7842,7 @@ prepro_parse_end:
 	clearfits(&reffit);
 	if (retvalue) {
 		clear_preprocessing_data(args);
+		free(args);
 		return NULL;
 	}
 	return args;
@@ -8913,6 +8952,7 @@ int process_parse(int nb) {
 
 int process_show(int nb) {
 	// show [-clear] { -list=file | [name] ra dec }
+	SirilWorldCS *coords = NULL;
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
@@ -8935,7 +8975,6 @@ int process_show(int nb) {
 		goto display;
 	}
 
-	SirilWorldCS *coords = NULL;
 	GtkToggleToolButton *button = NULL;
 parse_coords:
 	if (nb > next_arg && (word[next_arg][1] >= '0' && word[next_arg][1] <= '9')) {
@@ -8980,6 +9019,6 @@ display:
 		refresh_found_objects();
 		redraw(REDRAW_OVERLAY);
 	}
-
+	siril_world_cs_unref(coords);
 	return CMD_OK;
 }

@@ -38,7 +38,7 @@ typedef struct starnet_data {
 	gboolean starmask;
 	gboolean follow_on;
 	const gchar *seqname;
-	const gchar *seqEntry;
+	char *seqEntry;
 	int imgnumber;
 } starnet_data;
 

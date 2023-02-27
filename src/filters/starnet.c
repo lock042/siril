@@ -83,7 +83,7 @@ static int exec_prog_starnet(char **argv) {
 
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, argv, NULL,
-			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH | 
+			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			NULL, &error);
@@ -162,26 +162,6 @@ void free_starnet_args(starnet_data *args) {
 gboolean end_starnet(gpointer p) {
 	starnet_data *args = (starnet_data *) p;
 	free_starnet_args(args);
-	return end_generic(NULL);
-}
-
-gboolean seqstarnet_idle(gpointer p) {
-	struct generic_seq_args *args = (struct generic_seq_args *) p;
-	starnet_data *starnet_args = (starnet_data *) args->user;
-	if (args->has_output && args->load_new_sequence &&
-			args->new_seq_prefix && !args->retval) {
-		gchar *basename = g_path_get_basename(args->seq->seqname);
-		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
-		check_seq();
-		update_sequences_list(seqname);
-		g_free(seqname);
-		g_free(basename);
-	}
-	free_starnet_args(starnet_args);
-	if (args->seq)
-		if (!check_seq_is_comseq(args->seq))
-			free_sequence(args->seq, TRUE);
-	free(p);
 	return end_generic(NULL);
 }
 
@@ -641,10 +621,11 @@ static int starnet_finalize_hook(struct generic_seq_args *args) {
 
 	args->new_ser = starnet_args->new_ser_starmask;
 	args->new_fitseq = starnet_args->new_fitseq_starmask;
-	retval = seq_finalize_hook(args) || retval;
+	retval |= seq_finalize_hook(args);
 	starnet_args->new_ser_starmask = NULL;
 	starnet_args->new_fitseq_starmask = NULL;
 	seqwriter_set_number_of_outputs(1);
+	free_starnet_args(starnet_args);
 	return retval;
 }
 
@@ -715,21 +696,23 @@ static int starnet_basic_prepare_hook(struct generic_seq_args *args) {
 static int starnet_prepare_hook(struct generic_seq_args *args) {
 	struct starnet_data *starnet_args = (struct starnet_data *) args->user;
 	// we call the generic prepare twice with different prefixes
-	args->new_seq_prefix = "starless_";
+	args->new_seq_prefix = strdup("starless_");
 	if (starnet_basic_prepare_hook(args))
 		return 1;
 	// but we copy the result between each call
 	starnet_args->new_ser_starless = args->new_ser;
 	starnet_args->new_fitseq_starless = args->new_fitseq;
+	free(args->new_seq_prefix);
 
-	args->new_seq_prefix = "starmask_";
+	args->new_seq_prefix = strdup("starmask_");
 	if (starnet_basic_prepare_hook(args))
 		return 1;
 	starnet_args->new_ser_starmask = args->new_ser;
 	starnet_args->new_fitseq_starmask = args->new_fitseq;
+	free(args->new_seq_prefix);
 
-	args->new_seq_prefix = "starless_"; // Set the prefix for the sequence we want
-										// loaded afterwards
+	// Set the prefix for the sequence we want loaded afterwards
+	args->new_seq_prefix = strdup("starless_");
 	args->new_ser = NULL;
 	args->new_fitseq = NULL;
 
@@ -743,7 +726,6 @@ void apply_starnet_to_sequence(struct starnet_data *seqdata) {
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = seqdata->seq->selnum;
 	seqargs->compute_mem_limits_hook = starnet_compute_mem_limits;
-	seqargs->idle_function = seqstarnet_idle;
 	seqargs->finalize_hook = starnet_finalize_hook;
 	seqargs->save_hook = starnet_save_hook;
 	seqargs->image_hook = starnet_image_hook;
@@ -751,7 +733,6 @@ void apply_starnet_to_sequence(struct starnet_data *seqdata) {
 	seqargs->description = _("StarNet");
 	seqargs->has_output = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
-	seqdata->seqEntry = g_strdup_printf("starless_");
 	seqargs->new_seq_prefix = seqdata->seqEntry;
 	seqargs->load_new_sequence = TRUE;
 	seqargs->user = seqdata;
@@ -759,7 +740,7 @@ void apply_starnet_to_sequence(struct starnet_data *seqdata) {
 	if (ptr)
 		seqdata->seqname = g_strdup_printf("%s%s%s", seqdata->seqEntry, ptr + 1, com.pref.ext);
 	else seqdata->seqname = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, seqargs->seq->seqname, com.pref.ext);
-
+	set_progress_bar_data(_("StarNet: Processing..."), 0.);
 	start_in_new_thread(generic_sequence_worker, seqargs);
 }
 

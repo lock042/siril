@@ -106,13 +106,20 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 	return limit;
 }
 
+int banding_finalize_hook(struct generic_seq_args *args) {
+	struct banding_data *data = (struct banding_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 void apply_banding_to_sequence(struct banding_data *banding_args) {
 	struct generic_seq_args *args = create_default_seqargs(banding_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = args->seq->selnum;
 	args->compute_mem_limits_hook = banding_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = banding_finalize_hook;
 	args->image_hook = banding_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Banding Reduction");
@@ -343,6 +350,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
+	free(fiximage);
 	if ((!ret) && applyRotation) {
 		if (cvRotateImage(fit, -90)) return 1;
 	}
@@ -407,7 +415,7 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	args->amount = amount;
 	args->sigma = invsigma;
 	args->applyRotation = gtk_toggle_button_get_active(vertical);
-	args->seqEntry = gtk_entry_get_text(bandingSeqEntry);
+	args->seqEntry = strdup(gtk_entry_get_text(bandingSeqEntry));
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {

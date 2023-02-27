@@ -60,6 +60,8 @@ struct light_curve_args {
 	gboolean display_graph;	// if true, show it, if false, generate png
 };
 
+void free_light_curve_args(struct light_curve_args *args);
+
 gpointer light_curve_worker(gpointer arg);
 
 int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph);

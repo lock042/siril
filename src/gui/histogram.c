@@ -155,7 +155,7 @@ static void histo_recompute() {
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
-		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, TRUE);
+		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, &params_ght, TRUE);
 	}
 	notify_gfit_modified();
 }
@@ -904,7 +904,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 			fprintf(stdout, "%d %d %d\n", params.do_red, params.do_green, params.do_blue);
 			args->params = params;
-			args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
+			args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq"))));
 			if (args->seqEntry && args->seqEntry[0] == '\0')
 				args->seqEntry = "mtf_";
 			args->seq = &com.seq;
@@ -921,10 +921,12 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_data *args = malloc(sizeof(struct ght_data));
 			struct ght_params params = { .B = _B, .D = _D, .LP = _LP, .SP = _SP, .HP = _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
-			args->params_ght = params;
-			args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
+			args->params_ght = &params;
+			const gchar* temp = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
+			args->seqEntry = strdup(temp);
+			g_free((gchar *) temp);
 			if (args->seqEntry && args->seqEntry[0] == '\0')
-				args->seqEntry = "ght_";
+				args->seqEntry = strdup("ght_");
 			args->seq = &com.seq;
 		/* here it is a bit tricky.
 		 * It is better to first close the window as it is a liveview tool
@@ -1533,12 +1535,19 @@ void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
+int mtf_finalize_hook(struct generic_seq_args *args) {
+	struct mtf_data *data = (struct mtf_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	struct generic_seq_args *args = create_default_seqargs(mtf_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = mtf_args->seq->selnum;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = mtf_finalize_hook;
 	args->image_hook = mtf_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Midtone Transfer Function");
@@ -1552,12 +1561,21 @@ void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
+int ght_finalize_hook(struct generic_seq_args *args) {
+	struct ght_data *data = (struct ght_data *) args->user;
+	struct ght_params *ghtp = (struct ght_params *) data->params_ght;
+	int retval = seq_finalize_hook(args);
+	free(ghtp);
+	free(data);
+	return retval;
+}
+
 void apply_ght_to_sequence(struct ght_data *ght_args) {
 	struct generic_seq_args *args = create_default_seqargs(ght_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = ght_args->seq->selnum;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = ght_finalize_hook;
 	args->image_hook = ght_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Generalised Hyperbolic Transfer Function");
