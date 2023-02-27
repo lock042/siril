@@ -483,7 +483,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	args = NULL;
 
 	if (!retval && image_is_gfit) {
-		siril_log_color_message(_("Photometric Colour Calibration suceeded.\n"), "green");
+		siril_log_color_message(_("Photometric Color Calibration suceeded.\n"), "green");
 		set_progress_bar_data(_("Ready."), 0.);
 		notify_gfit_modified();
 	}
