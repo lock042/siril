@@ -83,7 +83,7 @@ static int exec_prog_starnet(char **argv) {
 
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, argv, NULL,
-			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH | 
+			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			NULL, &error);
@@ -621,7 +621,7 @@ static int starnet_finalize_hook(struct generic_seq_args *args) {
 
 	args->new_ser = starnet_args->new_ser_starmask;
 	args->new_fitseq = starnet_args->new_fitseq_starmask;
-	retval |= seq_finalize_hook(args) || retval;
+	retval |= seq_finalize_hook(args);
 	starnet_args->new_ser_starmask = NULL;
 	starnet_args->new_fitseq_starmask = NULL;
 	seqwriter_set_number_of_outputs(1);
