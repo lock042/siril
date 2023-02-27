@@ -1855,8 +1855,12 @@ int process_seq_ght(int nb) {
 	}
 
 	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
-	if (retval)
+	if (retval) {
+		free(params);
+		free(seqdata->seqEntry);
+		free(seqdata);
 		return retval;
+	}
 	apply_ght_to_sequence(seqdata);
 	return CMD_OK;
 }
@@ -1866,7 +1870,7 @@ int process_seq_invght(int nb) {
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
-		siril_log_message(_("psgError: cannot open sequence\n"));
+		siril_log_message(_("Error: cannot open sequence\n"));
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 
@@ -1890,8 +1894,12 @@ int process_seq_invght(int nb) {
 	}
 
 	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
-	if (retval)
+	if (retval) {
+		free(params);
+		free(seqdata->seqEntry);
+		free(seqdata);
 		return retval;
+	}
 	apply_ght_to_sequence(seqdata);
 	return CMD_OK;
 }
@@ -1901,7 +1909,7 @@ int process_seq_modasinh(int nb) {
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
-		siril_log_message(_("psgError: cannot open sequence\n"));
+		siril_log_message(_("Error: cannot open sequence\n"));
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 
@@ -1925,8 +1933,12 @@ int process_seq_modasinh(int nb) {
 	}
 
 	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
-	if (retval)
+	if (retval) {
+		free(params);
+		free(seqdata->seqEntry);
+		free(seqdata);
 		return retval;
+	}
 	apply_ght_to_sequence(seqdata);
 	return CMD_OK;
 }
@@ -1936,7 +1948,7 @@ int process_seq_invmodasinh(int nb) {
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
-		siril_log_message(_("psgError: cannot open sequence\n"));
+		siril_log_message(_("Error: cannot open sequence\n"));
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 
@@ -1960,8 +1972,12 @@ int process_seq_invmodasinh(int nb) {
 	}
 
 	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
-	if (retval)
+	if (retval) {
+		free(params);
+		free(seqdata->seqEntry);
+		free(seqdata);
 		return retval;
+	}
 	apply_ght_to_sequence(seqdata);
 	return CMD_OK;
 }
@@ -1971,7 +1987,7 @@ int process_seq_linstretch(int nb) {
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
-		siril_log_message(_("psgError: cannot open sequence\n"));
+		siril_log_message(_("Error: cannot open sequence\n"));
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 
@@ -1995,8 +2011,12 @@ int process_seq_linstretch(int nb) {
 	}
 
 	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
-	if (retval)
+	if (retval) {
+		free(params);
+		free(seqdata->seqEntry);
+		free(seqdata);
 		return retval;
+	}
 	apply_ght_to_sequence(seqdata);
 	return CMD_OK;
 }
@@ -2010,8 +2030,10 @@ int process_ght(int nb) {
 		return CMD_ALLOC_ERROR;
 
 	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
-	if (retval)
+	if (retval) {
+		free (params);
 		return retval;
+	}
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 	char log[100];
 	sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
@@ -2031,8 +2053,10 @@ int process_invght(int nb) {
 		return CMD_ALLOC_ERROR;
 
 	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
-	if (retval)
+	if (retval) {
+		free (params);
 		return retval;
+	}
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 	char log[100];
 	sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
@@ -2052,8 +2076,10 @@ int process_modasinh(int nb) {
 		return CMD_ALLOC_ERROR;
 
 	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
-	if (retval)
+	if (retval) {
+		free (params);
 		return retval;
+	}
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 	char log[100];
 	sprintf(log, "Asinh GHS (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
@@ -2073,8 +2099,10 @@ int process_invmodasinh(int nb) {
 		return CMD_ALLOC_ERROR;
 
 	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
-	if (retval)
+	if (retval) {
+		free (params);
 		return retval;
+	}
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 	char log[100];
 	sprintf(log, "Inverse asinh GHS (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
@@ -2094,8 +2122,10 @@ int process_linstretch(int nb) {
 		return CMD_ALLOC_ERROR;
 
 	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
-	if (retval)
+	if (retval) {
+		free (params);
 		return retval;
+	}
 	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 	char log[100];
 	sprintf(log, "GHS BP shift (BP: %.3f)", params->BP);
