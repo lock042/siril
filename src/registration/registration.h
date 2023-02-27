@@ -78,7 +78,7 @@ struct registration_args {
 	int new_total;                  // remaining images after registration
 	imgdata *imgparam;		// imgparam for the new sequence
 	regdata *regparam;		// regparam for the new sequence
-	const gchar *prefix;		// prefix of the created sequence if any
+	char *prefix;		// prefix of the created sequence if any
 	gboolean load_new_sequence;	// load the new sequence if success
 	gchar *new_seq_name;
 	opencv_interpolation interpolation; // type of rotation interpolation

@@ -1040,13 +1040,20 @@ static int background_mem_limits_hook(struct generic_seq_args *args, gboolean fo
 	return limit;
 }
 
+int bg_extract_finalize_hook(struct generic_seq_args *args) {
+	struct background_data *data = (struct background_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 void apply_background_extraction_to_sequence(struct background_data *background_args) {
 	struct generic_seq_args *args = create_default_seqargs(background_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = background_args->seq->selnum;
 	args->compute_mem_limits_hook = background_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = bg_extract_finalize_hook;
 	args->image_hook = background_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Background Extraction");

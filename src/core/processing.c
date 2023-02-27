@@ -353,7 +353,6 @@ the_end:
 		siril_log_message(_("Finalizing sequence processing failed.\n"));
 		args->retval = 1;
 	}
-
 	int retval = args->retval;	// so we can free args if needed in the idle
 
 	if (!args->already_in_a_thread) {
@@ -365,6 +364,7 @@ the_end:
 		if (!run_idle) {
 			// some generic cleanup for scripts
 			// should we check for seq = com.seq?
+			free(args->new_seq_prefix);
 			free_sequence(args->seq, TRUE);
 			free(args);
 		}
@@ -385,6 +385,11 @@ gboolean end_generic_sequence(gpointer p) {
 		g_free(seqname);
 		g_free(basename);
 	}
+	// frees new_seq_prefix. This means that new_seq_prefix (or the seqEntry
+	// string in function-specific structs) *must* always be allocated using
+	// a freeable function, i.e. char* seqEntry = strdup("prefix_"); rather
+	// than char* seqEntry = "prefix_";
+	free(args->new_seq_prefix);
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
 	free(p);

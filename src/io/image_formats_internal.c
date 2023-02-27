@@ -849,12 +849,14 @@ int readpic(const char *name, fits *fit) {
 	size_t nbdata = fit->rx * fit->ry;
 
 	if (fseek(pic_file->file, 290, SEEK_SET)) {
-		siril_debug_print("Error: seek failure in file.\n");
+		siril_log_color_message(_("Error: seek failure in file.\n"), "red");
+		_pic_close_file(pic_file);
 		return -1;
 	}
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));
 	if (!buf) {
 		siril_log_color_message(_("Error: memory allocation failure.\n"), "red");
+		_pic_close_file(pic_file);
 		return -1;
 	}
 

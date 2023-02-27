@@ -10,7 +10,7 @@ struct banding_data {
 	double amount;
 	gboolean protect_highlights;
 	gboolean applyRotation;
-	const gchar *seqEntry;
+	char *seqEntry;
 	sequence *seq;
 };
 

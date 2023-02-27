@@ -1431,7 +1431,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	reg_args->no_output = keep_noout_state;
 	reg_args->x2upscale = gtk_toggle_button_get_active(x2upscale);
 	reg_args->cumul = gtk_toggle_button_get_active(cumul);
-	reg_args->prefix = gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry")));
+	reg_args->prefix = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry"))));
 	reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
 	reg_args->percent_moved = (float) gtk_spin_button_get_value(percent_moved) / 100.f;
 	int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));

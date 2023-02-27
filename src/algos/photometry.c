@@ -462,6 +462,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 				}
 				g_free(title);
 				g_free(xlabel);
+				gnuplot_close(gplot);
 			}
 			else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
 		}
@@ -675,6 +676,15 @@ static gboolean end_light_curve_worker(gpointer p) {
 	return end_generic(NULL);
 }
 
+void free_light_curve_args(struct light_curve_args *args) {
+	if (args->seq && !check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free(args->areas);
+	g_free(args->target_descr);
+	free(args);
+	return;
+}
+
 gpointer light_curve_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
@@ -706,9 +716,7 @@ gpointer light_curve_worker(gpointer arg) {
 	if (!retval)
 		retval = new_light_curve(args->seq, "light_curve.dat", args->target_descr, args->display_graph);
 
-	if (args->seq != &com.seq)
-		free_sequence(args->seq, TRUE);
-	free(args);
+	free_light_curve_args(args);
 	siril_add_idle(end_light_curve_worker, NULL);
 	return GINT_TO_POINTER(retval);
 }

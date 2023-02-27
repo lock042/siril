@@ -15,7 +15,7 @@ typedef enum {
 struct split_cfa_data {
 	fits *fit;
 	sequence *seq;
-	const gchar *seqEntry;	// not used for Ha-OIII split
+	char *seqEntry;	// not used for Ha-OIII split
 
 	/* below: internal algorithm usage */
 	struct ser_struct *new_ser_ha;

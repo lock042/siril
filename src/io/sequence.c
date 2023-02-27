@@ -1751,6 +1751,7 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 		free(spsfargs);
 		args->user = NULL;
 	}
+
 	return 0;
 }
 
@@ -1819,6 +1820,9 @@ proper_ending:
 
 	if (seq == &com.seq)
 		adjust_sellabel();
+
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
 
 	free(spsfargs);
 	free(args);

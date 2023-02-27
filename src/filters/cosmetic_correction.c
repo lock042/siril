@@ -343,6 +343,12 @@ int cosmeticCorrection(fits *fit, deviant_pixel *dev, int size, gboolean is_cfa)
 }
 
 /**** Autodetect *****/
+static int cosmetic_finalize_hook(struct generic_seq_args *args) {
+	int retval = seq_finalize_hook(args);
+	free(args->user);
+	return retval;
+}
+
 int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct cosmetic_data *c_args = (struct cosmetic_data*) args->user;
@@ -422,7 +428,7 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	args->nb_filtered_images = cosme_args->seq->selnum;
 	args->compute_mem_limits_hook = cosmetic_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = cosmetic_finalize_hook;
 	args->image_hook = cosmetic_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Cosmetic Correction");
@@ -599,7 +605,7 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 	args->description = _("Cosmetic Correction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = cosme_args->prefix;
+	args->new_seq_prefix = strdup(cosme_args->prefix);
 	args->load_new_sequence = TRUE;
 	args->user = cosme_args;
 
@@ -784,7 +790,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->amount = gtk_adjustment_get_value(adjCosmeAmount);
 
 	args->fit = &gfit;
-	args->seqEntry = gtk_entry_get_text(cosmeticSeqEntry);
+	args->seqEntry = strdup(gtk_entry_get_text(cosmeticSeqEntry));
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {

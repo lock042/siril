@@ -1389,6 +1389,14 @@ CLEANUP_MERGECFA:
 	return retval;
 }
 
+int mergecfa_finalize_hook(struct generic_seq_args *args) {
+	struct merge_cfa_data *data = (struct merge_cfa_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free((char*) data->seqEntryIn);
+	free(data);
+	return retval;
+}
+
 void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	struct generic_seq_args *args = create_default_seqargs(merge_cfa_args->seq);
 	args->seq = merge_cfa_args->seq;
@@ -1398,7 +1406,7 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	args->compute_size_hook = mergecfa_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->image_hook = mergecfa_image_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = mergecfa_finalize_hook;
 	args->description = _("Merge CFA");
 	args->has_output = TRUE;
 	args->new_seq_prefix = merge_cfa_args->seqEntryOut;

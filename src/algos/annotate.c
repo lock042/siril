@@ -581,7 +581,7 @@ void refresh_found_objects() {
 }
 
 static gboolean show_catalog(int catalog) {
-	if (catalog > G_N_ELEMENTS(com.pref.gui.catalog) || catalog < 0) {
+	if (catalog >= G_N_ELEMENTS(com.pref.gui.catalog) || catalog < 0) {
 		siril_debug_print("BAD ANNOTATION CATALOGUE ENTRY DETECTED\n");
 		return FALSE;
 	}

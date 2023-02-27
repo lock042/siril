@@ -81,7 +81,6 @@ struct generic_seq_args {
 	/** function called after iterating through the sequence, or on
 	 *  clean-up, even in case of error */
 	int (*finalize_hook)(struct generic_seq_args *);
-
 	/** idle function to register at the end, if not already_in_a_thread and
 	 *  not when the generic function is used from a script. If NULL, the
 	 *  default idle function that stops the thread is used.
@@ -104,7 +103,7 @@ struct generic_seq_args {
 	/** size ratio of output images for memory evaluation */
 	double upscale_ratio;
 	/** output files: prefix for the new sequence and automatic loading */
-	const char *new_seq_prefix;
+	char *new_seq_prefix;
 	/** flag to load or not a new sequence */
 	gboolean load_new_sequence;
 	/** flag to force output to be SER file */
