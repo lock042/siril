@@ -8,15 +8,16 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-25 23:08+0100\n"
-"PO-Revision-Date: 2022-08-09 10:43+0200\n"
+"PO-Revision-Date: 2023-02-27 17:34+0000\n"
 "Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
-"Language-Team: Italian <sonia@zonia3000.net>\n"
+"Language-Team: Italian <https://weblate.pixls.us/projects/siril/"
+"siril-application/it/>\n"
 "Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.1.1\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7986
 #: src/filters/cosmetic_correction.c:428 src/filters/cosmetic_correction.c:599
@@ -80,7 +81,6 @@ msgstr ""
 "pixel freddo."
 
 #: src/gui/siril3.glade:237 src/gui/siril3.glade:267
-#, fuzzy
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a cold pixel."
@@ -103,7 +103,6 @@ msgstr ""
 "pixel caldo."
 
 #: src/gui/siril3.glade:303 src/gui/siril3.glade:333
-#, fuzzy
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a hot pixel."
@@ -163,36 +162,31 @@ msgstr "Prefisso di output:"
 msgid ""
 "Prefix of the image names resulting from the cosmetic correction process."
 msgstr ""
-"Prefisso dei nomi di immagine risultanti dal processo di correzione "
-"cosmetica."
+"Prefisso dei nomi immagine risultanti dal processo di correzione cosmetica."
 
 #: src/gui/siril3.glade:566
-#, fuzzy
 msgid "Binning"
-msgstr "Binning: "
+msgstr "Binning:"
 
 #: src/gui/siril3.glade:631
-#, fuzzy
 msgid "Binning factor:"
-msgstr "Binning: "
+msgstr "Fattore di Binning:"
 
 #: src/gui/siril3.glade:663
-#, fuzzy
 msgid "Downsample mode:"
 msgstr "Sottocampiona immagini"
 
 #: src/gui/siril3.glade:677
-#, fuzzy
 msgid "Average"
-msgstr "Neutra Media"
+msgstr "Media"
 
 #: src/gui/siril3.glade:678
 msgid "Sum"
-msgstr ""
+msgstr "Somma"
 
 #: src/gui/siril3.glade:725 src/gui/siril3.glade:17553
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr "Equalizzazione Istogramma adattiva a contrasto limitato..."
+msgstr "Equalizzazione Istogramma Adattiva a Contrasto Limitato..."
 
 #: src/gui/siril3.glade:744 src/gui/siril3.glade:2390 src/gui/siril3.glade:3190
 #: src/gui/siril3.glade:5054 src/gui/siril3.glade:9464
@@ -223,7 +217,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:864
 msgid "Clip Limit"
-msgstr "Limite per il taglio"
+msgstr "Limite di Clip"
 
 #: src/gui/siril3.glade:899
 msgid "Sets threshold for contrast limiting."
@@ -237,7 +231,7 @@ msgid ""
 "artifacts may appear."
 msgstr ""
 "Attenzione, rimuovere tutti i bordi neri o altri residui\n"
-"dello stacking croppando l'immagine. \n"
+"post stacking ritagliando l'immagine. \n"
 "Non farlo può portare alla comparsa di artefatti."
 
 #: src/gui/siril3.glade:930 src/gui/siril3.glade:3046 src/gui/siril3.glade:3379
@@ -254,12 +248,11 @@ msgid "Apply wavelet extraction."
 msgstr "Applica estrazione delle wavelet."
 
 #: src/gui/siril3.glade:1059
-#, fuzzy
 msgid ""
 "Number of wavelet layers. You can choose up to 9 layers for wavelets "
 "computing."
 msgstr ""
-"Numero di livelli delle wavelet. Puoi scegliere fino a 6 livelli di wavelet."
+"Numero di livelli delle wavelet. Puoi scegliere fino a 9 livelli di wavelet."
 
 #: src/gui/siril3.glade:1080
 msgid "Type of algorithm"
@@ -277,7 +270,7 @@ msgstr "BSpline"
 
 #: src/gui/siril3.glade:1099
 msgid "Nb. of Layers: "
-msgstr "Num. di livelli: "
+msgstr "Num. di Livelli: "
 
 #: src/gui/siril3.glade:1111 src/gui/siril3.glade:18401
 #: src/gui/siril3.glade:18672
@@ -286,20 +279,19 @@ msgstr "Interpolazione: "
 
 #: src/gui/siril3.glade:1152 src/filters/banding.c:118
 msgid "Banding Reduction"
-msgstr "Riduzione del banding"
+msgstr "Riduzione del Banding"
 
 #: src/gui/siril3.glade:1227 src/gui/siril3.glade:1250
-#, fuzzy
 msgid "Defines the strength of the correction."
-msgstr "Adatta l'immagine alla finestra"
+msgstr "Definisce la forza della correzione."
 
 #: src/gui/siril3.glade:1266
 msgid "Protect from Highlights"
-msgstr "Proteggi dalle Alteluci"
+msgstr "Proteggi dalle Alteluci (Highlights)"
 
 #: src/gui/siril3.glade:1270
 msgid "Bright pixels are ignored."
-msgstr ""
+msgstr "I piexl brillanti vengono ignorati."
 
 #: src/gui/siril3.glade:1290
 msgid "1/Sigma Factor"
@@ -310,6 +302,8 @@ msgid ""
 "Background for lines is computed using pixels in SigmaFactor * StdDev only. "
 "Higher value will give a better protection."
 msgstr ""
+"Lo sfondo per le linee viene calcolato utilizzando pixel soltanto in "
+"SigmaFactor * StdDev. Un valore più alto darà una protezione migliore."
 
 #: src/gui/siril3.glade:1342
 msgid "Vertical banding"
@@ -331,9 +325,10 @@ msgstr "Filtro mediano"
 
 #: src/gui/siril3.glade:1542
 msgid "Kernel Size:"
-msgstr "Dimensione del kernel:"
+msgstr "Dimensione del Kernel:"
 
 #: src/gui/siril3.glade:1554
+#, fuzzy
 msgid ""
 "Kernel Size. This is the odd size of the neighborhood considered for each "
 "pixel."
@@ -353,8 +348,8 @@ msgid ""
 "process to converge to better result."
 msgstr ""
 "Numero di iterazioni dell'algoritmo.\n"
-"Questo è utile quando il parametro di modulazione è diverso da 1, aiutando "
-"l'intero processo a convergere verso un miglior risultato."
+"Questo è utile quando il parametro di modulazione è diverso da 1, "
+"facilitando l'intero processo a convergere verso risultati migliori."
 
 #: src/gui/siril3.glade:1648 src/gui/siril3.glade:8241
 msgid "Modulation"
@@ -372,7 +367,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1701 src/gui/siril3.glade:8910
 msgid "Use Luminance"
-msgstr "Usa luminanza"
+msgstr "Usa Luminanza"
 
 #: src/gui/siril3.glade:1801
 msgid "Rotational Gradient"
@@ -425,9 +420,8 @@ msgid "Y coordinate of the center of polar coordinates."
 msgstr "Coordinata Y del centro di coordinate polari."
 
 #: src/gui/siril3.glade:2090
-#, fuzzy
 msgid "StarNet Star Removal"
-msgstr "Starnet++ Rimozione stella"
+msgstr "StarNet Rimozione stella"
 
 #: src/gui/siril3.glade:2122 src/gui/siril3.glade:2536
 #: src/gui/siril3.glade:12527
@@ -435,25 +429,23 @@ msgid "Execute"
 msgstr "Esegui"
 
 #: src/gui/siril3.glade:2126
-#, fuzzy
 msgid "Apply StarNet"
-msgstr "Applicare suddivisione CFA"
+msgstr "Applicare StarNet"
 
 #: src/gui/siril3.glade:2156
 msgid "Pre-stretch linear image"
 msgstr "Pre-estende l’immagine lineare"
 
 #: src/gui/siril3.glade:2161
-#, fuzzy
 msgid ""
 "If selected, an optimised Midtone Transfer Function (MTF) stretch is applied "
 "to the image before running StarNet, and the inverse stretch is applied on "
 "completion. This is necessary for using StarNet at the linear stage of "
 "processing."
 msgstr ""
-"Se selezionato, all’immagine viene applicato uno stretch della  funzione "
-"ottimizzata di trasferimento dei mezzitoni (MTF) prima di eseguire Starnet++ "
-"e lo stretch  inverso viene applicato al completamento. Ciò è necessario per "
+"Se selezionato, all’immagine viene applicato uno stretch della funzione "
+"ottimizzata di trasferimento dei mezzitoni (MTF) prima di eseguire Starnet, "
+"e lo stretch inverso viene applicato al completamento. Ciò è necessario per "
 "utilizzare Starnet nella fase lineare di elaborazione."
 
 #: src/gui/siril3.glade:2174
@@ -476,40 +468,37 @@ msgid "Use custom stride"
 msgstr "Usa passo personalizzato"
 
 #: src/gui/siril3.glade:2199
-#, fuzzy
 msgid ""
 "If selected, a custom value may be entererd for the StarNet stride "
 "parameter. The default value is 256 and the StarNet developer recommends not "
 "to change this."
 msgstr ""
 "Se selezionato un valore personalizzato può essere inserito nel parametro di "
-"passo di Starnet++. Il valore di default è 256 e non è raccomandato "
-"cambiarlo (sviluppatore starnet)."
+"passo di StarNet. Il valore di default è 256 e non è raccomandato cambiarlo ("
+"sviluppatore StarNet)."
 
 #: src/gui/siril3.glade:2219
 msgid "Stride"
 msgstr "Passo"
 
 #: src/gui/siril3.glade:2231
-#, fuzzy
 msgid ""
 "Sets the size of tiles passed to the StarNet neural network for processing. "
 "It is strongly recommended to leave this at the default setting. Halving the "
 "stride setting quadruples the processing time. If altered, stride must be an "
 "even integer between 2-256."
 msgstr ""
-"Imposta la dimensione dei riquadri passati alla rete neurale Starnet++ per "
-"l’elaborazione. Si consiglia vivamente di lasciare questo valore "
-"all’impostazione predefinita. Dimezzare l’impostazione del passo quadruplica "
-"il tempo di elaborazione. Se modificato, il passo deve essere un numero "
-"intero pari compreso tra 2 e 256."
+"Imposta la dimensione dei riquadri passati alla rete neurale Starnet per l’"
+"elaborazione. Si consiglia vivamente di lasciare questo valore all’"
+"impostazione predefinita. Dimezzare l’impostazione del passo quadruplica il "
+"tempo di elaborazione. Se modificato, il passo deve essere un numero intero "
+"pari compreso tra 2 e 256."
 
 #: src/gui/siril3.glade:2254
 msgid "Recompose stars on completion"
 msgstr "Ricompone le stelle al termine"
 
 #: src/gui/siril3.glade:2259
-#, fuzzy
 msgid ""
 "If selected, on completion of the StarNet process the star recomposition "
 "tool will open, providing an interface for independently stretching and "
@@ -517,17 +506,17 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
-"Se selezionato, al completamento del processo di rimozione delle stelle si "
-"aprirà lo strumento di ricomposizione delle stelle, fornendo un’interfaccia "
-"per allungare e fondere in modo indipendente lo sfondo e le stelle se si "
-"desidera la riduzione delle stelle, piuttosto che la rimozione totale."
+"Se selezionato, al completamento del processo StarNet si aprirà il tool di "
+"ricomposizione delle stelle, fornendo un’interfaccia per allungare e fondere "
+"in modo indipendente lo sfondo e le stelle se si desidera la riduzione delle "
+"stelle, piuttosto che la rimozione totale. Questa opzione non ha effetto nel "
+"caso si stia processando una sequenza."
 
 #: src/gui/siril3.glade:2274
 msgid "Upsample x2"
 msgstr "Ricampiona x2"
 
 #: src/gui/siril3.glade:2279
-#, fuzzy
 msgid ""
 "If selected, the image will be upsampled by a factor of 2 before running "
 "StarNet. This improves performance on very tight stars but quadruples "
@@ -535,16 +524,18 @@ msgid ""
 "rescaled to the original size on completion."
 msgstr ""
 "Se selezionata, l’immagine verrà sovracampionata di un fattore 2 prima di "
-"eseguire Starnet++. Ciò migliora le prestazioni su stelle molto strette, ma "
+"eseguire StarNet. Ciò migliora le prestazioni su stelle molto piccole, ma "
 "quadruplica il tempo di elaborazione e può compromettere le prestazioni su "
-"stelle molto grandi. Al termine, l’immagine viene ridimensionata alle "
-"dimensioni originali."
+"stelle molto grandi. Al termine, l’immagine viene riscalata alle dimensioni "
+"originali."
 
 #: src/gui/siril3.glade:2296
 msgid ""
 "Apply StarNet to all images in the current sequence. Starless and, if "
 "selected, star mask, sequences will be generated."
 msgstr ""
+"Applica StarNet a tutte le immagini della sequenza attuale. Saranno generate "
+"sequenze di sfondo senza stelle e, se selezionato, maschera di stelle."
 
 #: src/gui/siril3.glade:2372
 msgid "Wavelets control"
@@ -567,9 +558,8 @@ msgid "Type:"
 msgstr "Tipo:"
 
 #: src/gui/siril3.glade:2504
-#, fuzzy
 msgid "Nb of layers:"
-msgstr "Num. di livelli: "
+msgstr "Num. di livelli:"
 
 #: src/gui/siril3.glade:2515
 msgid "Number of wavelet layers that will be used"
@@ -581,27 +571,27 @@ msgstr "Calcola wavelet"
 
 #: src/gui/siril3.glade:2615
 msgid "Layer 1"
-msgstr ""
+msgstr "Livello 1"
 
 #: src/gui/siril3.glade:2685
 msgid "Layer 2"
-msgstr ""
+msgstr "Livello 2"
 
 #: src/gui/siril3.glade:2755
 msgid "Layer 3"
-msgstr ""
+msgstr "Livello 3"
 
 #: src/gui/siril3.glade:2825
 msgid "Layer 4"
-msgstr ""
+msgstr "Livello 4"
 
 #: src/gui/siril3.glade:2895
 msgid "Layer 5"
-msgstr ""
+msgstr "Livello 5"
 
 #: src/gui/siril3.glade:2965
 msgid "Layer 6"
-msgstr ""
+msgstr "Livello 6"
 
 #: src/gui/siril3.glade:3031
 msgid "Adjust"
@@ -844,14 +834,12 @@ msgstr ""
 "consentendo all’utente di lavorare in modo iterativo."
 
 #: src/gui/siril3.glade:3924
-#, fuzzy
 msgid "Show original image"
-msgstr "non presente nell’immagine"
+msgstr "Mostra l'immagine originale"
 
 #: src/gui/siril3.glade:3929
-#, fuzzy
 msgid "Keep pressing this button to see the original image."
-msgstr "Clicca su questo pulsante per visualizzare l'immagine."
+msgstr "Mantenere premuto sul pulsante per visualizzare l'immagine."
 
 #: src/gui/siril3.glade:3976
 msgid ""
@@ -931,12 +919,11 @@ msgstr "<b>Copyright dell'immagine</b>"
 
 #: src/gui/siril3.glade:4652
 msgid "ASTRO-TIFF"
-msgstr ""
+msgstr "ASTRO-TIFF"
 
 #: src/gui/siril3.glade:4653
-#, fuzzy
 msgid "Standard TIFF"
-msgstr "Salvataggio TIFF"
+msgstr "TIFF standard"
 
 #: src/gui/siril3.glade:4669
 msgid "TIFF"
@@ -1099,20 +1086,20 @@ msgstr "Deconvoluzione"
 msgid ""
 "Generate the kernel and use it to deconvolve the current image or sequence"
 msgstr ""
+"Genera il kernel e lo utilizza per la deconvoluzione dell'immagine o "
+"sequenza attuale"
 
 #: src/gui/siril3.glade:5967
-#, fuzzy
 msgid "Blind deconvolution"
-msgstr "Deconvoluzione"
+msgstr "Deconvoluzione cieca"
 
 #: src/gui/siril3.glade:5971
 msgid "Estimates a PSF from the image"
-msgstr ""
+msgstr "Stima una PSF dall'immagine"
 
 #: src/gui/siril3.glade:5984
-#, fuzzy
 msgid "PSF from stars"
-msgstr "PSF sull'area"
+msgstr "PSF dalle stelle"
 
 #: src/gui/siril3.glade:5988
 msgid ""
@@ -1120,67 +1107,72 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
+"Modella una PSF basata sui parametri PSF medi delle stelle identificate. Se "
+"non sono state rilevate stelle, verrà effettuato un tentativo di rilevarle "
+"nell'immagine entro un intervallo adeguato di luminosità di picco."
 
 #: src/gui/siril3.glade:6001
-#, fuzzy
 msgid "Manual PSF"
-msgstr "Manuale"
+msgstr "PSF manuale"
 
 #: src/gui/siril3.glade:6005
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr ""
+msgstr "Usa una PSF definita manualmente in base ai parametri scelti."
 
 #: src/gui/siril3.glade:6020
+#, fuzzy
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
 msgstr ""
+"Selezionail metodo di stima cieca della PSF da utilizzare. La discesa ℓ0 è "
+"l'impostazione predefinita e di solito l'opzione migliore."
 
 #: src/gui/siril3.glade:6023
 msgid "Spectral Irregularity"
-msgstr ""
+msgstr "Irregolarità Spettrale"
 
 #: src/gui/siril3.glade:6024
+#, fuzzy
 msgid "ℓ0 Descent"
-msgstr ""
+msgstr "ℓ0 Discesa"
 
 #: src/gui/siril3.glade:6035
 msgid "Previous PSF"
-msgstr ""
+msgstr "PSF precedente"
 
 #: src/gui/siril3.glade:6039
 msgid "Reuse the previously calculated PSF."
-msgstr ""
+msgstr "Riutilizza la PSF calcolata in precedenza."
 
 #: src/gui/siril3.glade:6054
 msgid ""
 "Select a PSF to load from file. The PSF must be square and should ideally "
 "have odd length / width."
 msgstr ""
+"Seleziona una PSF da caricare dal file. La PSF deve essere quadrata e "
+"idealmente dovrebbe avere lunghezza/larghezza dispari."
 
 #: src/gui/siril3.glade:6068
-#, fuzzy
 msgid "Load PSF from file"
-msgstr "Fit gaussiano fallito"
+msgstr "Carica PSF dal file"
 
 #: src/gui/siril3.glade:6082
-#, fuzzy
 msgid "Generate PSF"
-msgstr "Generare"
+msgstr "Genera PSF"
 
 #: src/gui/siril3.glade:6086
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
 msgstr ""
+"Genera e visualizza in anteprima la PSF, ma non esegue la deconvoluzione"
 
 #: src/gui/siril3.glade:6108
-#, fuzzy
 msgid "Save PSF to a file"
-msgstr "Salva File"
+msgstr "Salva PSF in un file"
 
 #: src/gui/siril3.glade:6127
-#, fuzzy
 msgid "PSF from selection"
-msgstr "Nessuna selezione"
+msgstr "PSF dalla selezione"
 
 #: src/gui/siril3.glade:6130
 msgid ""
@@ -17316,25 +17308,28 @@ msgstr ""
 "le modifiche."
 
 #: src/gui/callbacks.c:1878
-#, fuzzy
 msgid ""
 "\n"
 "- Registration"
-msgstr "Registrazione"
+msgstr ""
+"\n"
+"- Registrazione"
 
 #: src/gui/callbacks.c:1879
-#, fuzzy
 msgid ""
 "\n"
 "- Statistics"
-msgstr "Statistiche"
+msgstr ""
+"\n"
+"- Statistiche"
 
 #: src/gui/callbacks.c:1880
-#, fuzzy
 msgid ""
 "\n"
 "- Selection"
-msgstr "Selezione"
+msgstr ""
+"\n"
+"- Selezione"
 
 #: src/gui/callbacks.c:1884
 #, fuzzy
