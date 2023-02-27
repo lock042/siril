@@ -1391,7 +1391,7 @@ int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 		retval = fitseq_close_file(seqargs->new_fitseq);
 		free(seqargs->new_fitseq);
 	}
-	set_progress_bar_data(_("Ready."), 0.);
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 
 	args.psftype = args.oldpsftype; // Restore consistency
 	sequence_is_running = 0;
