@@ -44,7 +44,10 @@ If you would like to fix any bug or add a new feature then follow below steps:
 
 ### Translation
 
-We now use weblate for the translation of the application. Go to this [address](https://weblate.pixls.us/projects/siril/) and create an account.
+If you're interested in contributing to the translation of the application and documentation, 
+we encourage you to use [Weblate](https://weblate.pixls.us/projects/siril/). Weblate is a 
+powerful web-based translation tool that allows for easy collaboration and efficient 
+translation workflow.
 
 ### Formatting
 
