@@ -270,7 +270,7 @@ endif
   htmesh_dep = sub_proj.dependency('htmesh')
   htmesh_inc = sub_proj.include_directories('htmesh')
 else
-  siril_cpp_flag += '-DHAVE_LIBRTPROCESS'
+  siril_cpp_flag += '-DHAVE_HTMESH'
 endif
 
 ## Optional dependencies
