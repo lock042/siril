@@ -1875,7 +1875,7 @@ int process_seq_ghs(int nb, int stretchtype) {
 		return retval;
 	}
 	if (!seqdata->seqEntry)
-		seqdata->seqEntry = strdup("ght_");
+		seqdata->seqEntry = strdup("stretch_");
 
 	apply_ght_to_sequence(seqdata);
 	return CMD_OK;
