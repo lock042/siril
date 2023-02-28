@@ -8,6 +8,7 @@ typedef struct deconvolution_sequence_data {
 	sequence *seq;
 	char* seqEntry;
 	estk_data *deconv_data;
+	gboolean from_command;
 } deconvolution_sequence_data;
 
 void reset_conv_args(estk_data* args);
