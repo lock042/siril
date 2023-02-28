@@ -569,7 +569,7 @@ static gboolean end_convert_idle(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time(args->t_start, t_end);
 	stop_processing_thread();
-	g_free(args->destroot);
+	free(args->destroot);
 	free(args->report);
 	free(args);
 	return FALSE;
@@ -652,10 +652,6 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_debug_print("last image of the sequence reached, opening next sequence\n");
 			open_next_input_seq(&convert);
 		}
-		free(writer->seq_count);
-		g_free(writer->filename);
-		free(writer);
-		writer = NULL;
 		// reader is freed elsewhere
 	} while (com.run_thread);
 	siril_debug_print("conversion scheduling loop finished, waiting for conversion tasks to finish\n");
@@ -675,8 +671,9 @@ gpointer convert_thread_worker(gpointer p) {
 		else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 		write_conversion_report(args);
 	}
-	free(writer);
 	free(convert.threads);
+	free(convert.output_fitseq);
+	free(convert.output_ser);
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
 }
@@ -983,13 +980,17 @@ static void pool_worker(gpointer data, gpointer user_data) {
 			g_atomic_int_inc(&conv->converted_files);
 		}
 		free(rwdata);	// reader and writer are freed in their function
-		if (fit) free(fit);
+		if (fit) {
+			clearfits(fit);
+			free(fit);
+		}
 		return;
 	}
 	else if (!fit || read_status == NOT_READ || read_status == READ_FAILED) {
 		siril_debug_print("read error, ignoring image\n");
 		g_atomic_int_inc(&conv->failed_images);
 		finish_write_seq(rwdata->writer, FALSE);
+		free(rwdata);
 		if (fit) {
 			clearfits(fit);
 			free(fit);
@@ -1018,6 +1019,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	double percent = (double)g_atomic_int_get(&conv->converted_images) /
 		(double)g_atomic_int_get(&conv->nb_input_images);
 	set_progress_bar_data(NULL, percent);
+	return;
 }
 
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
