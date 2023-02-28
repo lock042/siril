@@ -1,5 +1,5 @@
 # Package shared ressources
-mkdir -p ${W64_OUT}/etc/ssl
+mkdir -p ${INSTALL_PREFIX}/etc/ssl
 cp -fr ${W64_OUT}/etc/ssl ${INSTALL_PREFIX}/etc
 cp -fr ${W64_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
 cp -fr ${W64_OUT}/share/icons/ ${INSTALL_PREFIX}/share

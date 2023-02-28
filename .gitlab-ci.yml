@@ -319,7 +319,7 @@ win64:
     - siril-win64
   script:
     # Package ssl certificates
-    - mkdir -p $CROSSROAD_OUT}/etc/ssl
+    - mkdir -p ${INSTALL_PREFIX}/etc/ssl
     - cp -fr ${CROSSROAD_OUT}/etc/ssl ${INSTALL_PREFIX}/etc
 
     # Package shared ressources
