@@ -532,17 +532,29 @@ void process_destroot(sequence_type output_type) {
 	destroot = g_str_to_ascii(name, NULL); // we want to avoid special char
 	gboolean seq_exists = FALSE;
 	if (output_type == SEQ_SER) {
-		if (!g_str_has_suffix(destroot, ".ser"))
-			str_append(&destroot, ".ser");
+		if (!g_str_has_suffix(destroot, ".ser")) {
+			gchar* temp = str_append(&destroot, ".ser");
+			if (!temp) {
+				PRINT_ALLOC_ERR;
+				return;
+			}
+			destroot = temp;
+		}
 		seq_exists = check_if_seq_exist(destroot, FALSE);
 	}
 	else if (output_type == SEQ_FITSEQ) {
-		if (!g_str_has_suffix(destroot, com.pref.ext))
-			str_append(&destroot, com.pref.ext);
+		if (!g_str_has_suffix(destroot, com.pref.ext)) {
+			destroot = str_append(&destroot, com.pref.ext);
+		}
 		seq_exists = check_if_seq_exist(destroot, FALSE);
 	}
 	else {
-		destroot = format_basename(destroot, TRUE);
+		gchar* temp = format_basename(destroot, TRUE);
+		if (!temp) {
+			PRINT_ALLOC_ERR;
+			return;
+		}
+		destroot = temp;
 		seq_exists = check_if_seq_exist(destroot, TRUE);
 	}
 

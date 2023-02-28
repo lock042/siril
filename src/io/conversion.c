@@ -652,10 +652,6 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_debug_print("last image of the sequence reached, opening next sequence\n");
 			open_next_input_seq(&convert);
 		}
-		free(writer->seq_count);
-		g_free(writer->filename);
-		free(writer);
-		writer = NULL;
 		// reader is freed elsewhere
 	} while (com.run_thread);
 	siril_debug_print("conversion scheduling loop finished, waiting for conversion tasks to finish\n");
@@ -675,8 +671,9 @@ gpointer convert_thread_worker(gpointer p) {
 		else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 		write_conversion_report(args);
 	}
-	free(writer);
 	free(convert.threads);
+	free(convert.output_fitseq);
+	free(convert.output_ser);
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
 }
