@@ -1718,6 +1718,19 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 		else if (!strcmp(arg, "GB")) {
 			do_red = FALSE;
 		}
+		else if (g_str_has_prefix(word[i], "-prefix=")) {
+			if (ght_seq) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return CMD_ARG_ERROR;
+				}
+				seqdata->seqEntry = strdup(value);
+			} else {
+				return CMD_ARG_ERROR;
+			}
+		}
 		else if (g_str_has_prefix(arg,"-BP=")) {
 			if (stretchtype == STRETCH_LINEAR) {
 				arg += 4;
@@ -1826,8 +1839,7 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 	return CMD_OK;
 }
 
-int process_seq_ght(int nb) {
-	int stretchtype = STRETCH_PAYNE_NORMAL;
+int process_seq_ghs(int nb, int stretchtype) {
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
@@ -1836,22 +1848,21 @@ int process_seq_ght(int nb) {
 	}
 
 	ght_params *params = calloc(1, sizeof(ght_params));
-	if (!params)
+	if (!params) {
+		if (seq != &com.seq)
+			free_sequence(seq, TRUE);
 		return CMD_ALLOC_ERROR;
+	}
 
 	struct ght_data *seqdata = calloc(1, sizeof(struct ght_data));
 	if (!seqdata) {
 		free(params);
+		if (seq != &com.seq)
+			free_sequence(seq, TRUE);
 		return CMD_ALLOC_ERROR;
 	} else {
 		seqdata->seq = seq;
 		seqdata->params_ght = params;
-		seqdata->seqEntry = strdup("ght_");
-		if(!seqdata->seqEntry) {
-			free(params);
-			free(seqdata);
-			return CMD_ALLOC_ERROR;
-		}
 	}
 
 	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
@@ -1859,281 +1870,93 @@ int process_seq_ght(int nb) {
 		free(params);
 		free(seqdata->seqEntry);
 		free(seqdata);
+		if (seq != &com.seq)
+			free_sequence(seq, TRUE);
 		return retval;
 	}
+	if (!seqdata->seqEntry)
+		seqdata->seqEntry = strdup("ght_");
+
 	apply_ght_to_sequence(seqdata);
 	return CMD_OK;
+}
+
+int process_seq_ght(int nb) {
+	return process_seq_ghs(nb, STRETCH_PAYNE_NORMAL);
 }
 
 int process_seq_invght(int nb) {
-	int stretchtype = STRETCH_PAYNE_INVERSE;
-
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		siril_log_message(_("Error: cannot open sequence\n"));
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
-
-	ght_params *params = calloc(1, sizeof(ght_params));
-	if (!params)
-		return CMD_ALLOC_ERROR;
-
-	struct ght_data *seqdata = calloc(1, sizeof(struct ght_data));
-	if (!seqdata) {
-		free(params);
-		return CMD_ALLOC_ERROR;
-	} else {
-		seqdata->seq = seq;
-		seqdata->params_ght = params;
-		seqdata->seqEntry = strdup("ght_");
-		if(!seqdata->seqEntry) {
-			free(params);
-			free(seqdata);
-			return CMD_ALLOC_ERROR;
-		}
-	}
-
-	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
-	if (retval) {
-		free(params);
-		free(seqdata->seqEntry);
-		free(seqdata);
-		return retval;
-	}
-	apply_ght_to_sequence(seqdata);
-	return CMD_OK;
+	return process_seq_ghs(nb, STRETCH_PAYNE_INVERSE);
 }
 
 int process_seq_modasinh(int nb) {
-	int stretchtype = STRETCH_ASINH;
-
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		siril_log_message(_("Error: cannot open sequence\n"));
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
-
-	ght_params *params = calloc(1, sizeof(ght_params));
-	if (!params)
-		return CMD_ALLOC_ERROR;
-
-	struct ght_data *seqdata = calloc(1, sizeof(struct ght_data));
-	if (!seqdata) {
-		free(params);
-		return CMD_ALLOC_ERROR;
-	} else {
-		seqdata->seq = seq;
-		seqdata->params_ght = params;
-		seqdata->seqEntry = strdup("ght_");
-		if(!seqdata->seqEntry) {
-			free(params);
-			free(seqdata);
-			return CMD_ALLOC_ERROR;
-		}
-	}
-
-	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
-	if (retval) {
-		free(params);
-		free(seqdata->seqEntry);
-		free(seqdata);
-		return retval;
-	}
-	apply_ght_to_sequence(seqdata);
-	return CMD_OK;
+	return process_seq_ghs(nb, STRETCH_ASINH);
 }
 
 int process_seq_invmodasinh(int nb) {
-	int stretchtype = STRETCH_INVASINH;
-
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		siril_log_message(_("Error: cannot open sequence\n"));
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
-
-	ght_params *params = calloc(1, sizeof(ght_params));
-	if (!params)
-		return CMD_ALLOC_ERROR;
-
-	struct ght_data *seqdata = calloc(1, sizeof(struct ght_data));
-	if (!seqdata) {
-		free(params);
-		return CMD_ALLOC_ERROR;
-	} else {
-		seqdata->seq = seq;
-		seqdata->params_ght = params;
-		seqdata->seqEntry = strdup("ght_");
-		if(!seqdata->seqEntry) {
-			free(params);
-			free(seqdata);
-			return CMD_ALLOC_ERROR;
-		}
-	}
-
-	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
-	if (retval) {
-		free(params);
-		free(seqdata->seqEntry);
-		free(seqdata);
-		return retval;
-	}
-	apply_ght_to_sequence(seqdata);
-	return CMD_OK;
+	return process_seq_ghs(nb, STRETCH_INVASINH);
 }
 
 int process_seq_linstretch(int nb) {
-	int stretchtype = STRETCH_LINEAR;
+	return process_seq_ghs(nb, STRETCH_LINEAR);
+}
 
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		siril_log_message(_("Error: cannot open sequence\n"));
-		return CMD_SEQUENCE_NOT_FOUND;
-	}
+int process_ghs(int nb, int stretchtype) {
+	struct ght_data *seqdata = NULL;
 
 	ght_params *params = calloc(1, sizeof(ght_params));
 	if (!params)
 		return CMD_ALLOC_ERROR;
 
-	struct ght_data *seqdata = calloc(1, sizeof(struct ght_data));
-	if (!seqdata) {
-		free(params);
-		return CMD_ALLOC_ERROR;
-	} else {
-		seqdata->seq = seq;
-		seqdata->params_ght = params;
-		seqdata->seqEntry = strdup("ght_");
-		if(!seqdata->seqEntry) {
-			free(params);
-			free(seqdata);
-			return CMD_ALLOC_ERROR;
-		}
-	}
-
-	int retval = process_ght_args(nb, TRUE, stretchtype, params, seqdata);
+	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
 	if (retval) {
-		free(params);
-		free(seqdata->seqEntry);
-		free(seqdata);
+		free (params);
 		return retval;
 	}
-	apply_ght_to_sequence(seqdata);
+	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+	char log[100];
+	switch (stretchtype) {
+		case STRETCH_PAYNE_NORMAL:
+			sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
+			break;
+		case STRETCH_PAYNE_INVERSE:
+			sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
+			break;
+		case STRETCH_ASINH:
+			sprintf(log, "GHS asinh (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
+			break;
+		case STRETCH_INVASINH:
+			sprintf(log, "GHS inverse asinh (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
+			break;
+		case STRETCH_LINEAR:
+			sprintf(log, "GHS BP shift (new BP: %.3f)", params->BP);
+			break;
+	}
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+	free(params);
+
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
 int process_ght(int nb) {
-	int stretchtype = STRETCH_PAYNE_NORMAL;
-	struct ght_data *seqdata = NULL;
-
-	ght_params *params = calloc(1, sizeof(ght_params));
-	if (!params)
-		return CMD_ALLOC_ERROR;
-
-	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
-	if (retval) {
-		free (params);
-		return retval;
-	}
-	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-	char log[100];
-	sprintf(log, "GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
-	free(params);
-
-	notify_gfit_modified();
-	return CMD_OK;
+	return process_ghs(nb, STRETCH_PAYNE_NORMAL);
 }
 
 int process_invght(int nb) {
-	int stretchtype = STRETCH_PAYNE_INVERSE;
-	struct ght_data *seqdata = NULL;
-
-	ght_params *params = calloc(1, sizeof(ght_params));
-	if (!params)
-		return CMD_ALLOC_ERROR;
-
-	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
-	if (retval) {
-		free (params);
-		return retval;
-	}
-	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-	char log[100];
-	sprintf(log, "Inverse GHS (pivot: %.3f, amount: %.2f, local: %.1f [%.2f, %.2f])", params->SP, params->D, params->B, params->LP, params->HP);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
-	free(params);
-
-	notify_gfit_modified();
-	return CMD_OK;
+	return process_ghs(nb, STRETCH_PAYNE_INVERSE);
 }
 
 int process_modasinh(int nb) {
-	int stretchtype = STRETCH_ASINH;
-	struct ght_data *seqdata = NULL;
-
-	ght_params *params = calloc(1, sizeof(ght_params));
-	if (!params)
-		return CMD_ALLOC_ERROR;
-
-	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
-	if (retval) {
-		free (params);
-		return retval;
-	}
-	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-	char log[100];
-	sprintf(log, "Asinh GHS (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
-	free(params);
-
-	notify_gfit_modified();
-	return CMD_OK;
+	return process_ghs(nb, STRETCH_ASINH);
 }
 
 int process_invmodasinh(int nb) {
-	int stretchtype = STRETCH_INVASINH;
-	struct ght_data *seqdata = NULL;
-
-	ght_params *params = calloc(1, sizeof(ght_params));
-	if (!params)
-		return CMD_ALLOC_ERROR;
-
-	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
-	if (retval) {
-		free (params);
-		return retval;
-	}
-	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-	char log[100];
-	sprintf(log, "Inverse asinh GHS (pivot: %.3f, amount: %.2f [%.2f, %.2f])", params->SP, params->D, params->LP, params->HP);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
-	free(params);
-
-	notify_gfit_modified();
-	return CMD_OK;
+	return process_ghs(nb, STRETCH_INVASINH);
 }
 
 int process_linstretch(int nb) {
-	int stretchtype = STRETCH_LINEAR;
-	struct ght_data *seqdata = NULL;
-
-	ght_params *params = calloc(1, sizeof(ght_params));
-	if (!params)
-		return CMD_ALLOC_ERROR;
-
-	int retval = process_ght_args(nb, FALSE, stretchtype, params, seqdata);
-	if (retval) {
-		free (params);
-		return retval;
-	}
-	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
-	char log[100];
-	sprintf(log, "GHS BP shift (BP: %.3f)", params->BP);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
-	free(params);
-
-	notify_gfit_modified();
-	return CMD_OK;
+	return process_ghs(nb, STRETCH_LINEAR);
 }
 
 int process_wavelet(int nb) {
