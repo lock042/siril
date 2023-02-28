@@ -133,9 +133,9 @@ int prepare_rawdata(float *Imag, int Nl, int Nc, WORD *buf) {
 
 /****************************************************************************/
 
-float *f_vector_alloc(Nbr_Elem)
-	/* allocates a vector of float */
-	int Nbr_Elem; {
+/* allocates a vector of float */
+float *f_vector_alloc(int Nbr_Elem)
+{
 	float *Vector;
 
 	Vector = (float*) calloc(Nbr_Elem, sizeof(float));
