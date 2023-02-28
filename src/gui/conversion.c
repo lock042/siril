@@ -36,7 +36,7 @@
 #include "gui/progress_and_log.h"
 #include "algos/sorting.h"
 
-static gchar *destroot = NULL;
+static char *destroot = NULL;
 static GtkListStore *liststore_convert = NULL;
 static GtkTreeView *tree_view = NULL;
 static GtkTreeModel *model = NULL;
@@ -230,7 +230,7 @@ static void initialize_convert() {
 	args->nb_converted_files = 0;
 	args->input_has_a_seq = !no_sequence_to_convert;
 	args->input_has_a_film = there_is_a_film;
-	args->destroot = g_strdup(destroot);
+	args->destroot = strdup(destroot);
 	args->debayer = debayer;
 	args->make_link = symbolic_link;
 	args->output_type = output_type;
@@ -525,20 +525,22 @@ void process_destroot(sequence_type output_type) {
 
 	const gchar *name = gtk_entry_get_text(convroot_entry);
 	if (*name == '\0') {
-		g_free(destroot);
+		free(destroot);
 		destroot = NULL;
 		return;
 	}
-	destroot = g_str_to_ascii(name, NULL); // we want to avoid special char
+	if (destroot) {
+		free(destroot);
+		destroot = NULL;
+	}
+	gchar* temp = g_str_to_ascii(name, NULL); // we want to avoid special char
+	destroot = strdup(temp); // Need to ensure destroot is always allocated
+							 // from the stdlib memory pool not the glib one
+	g_free(temp);
 	gboolean seq_exists = FALSE;
 	if (output_type == SEQ_SER) {
 		if (!g_str_has_suffix(destroot, ".ser")) {
-			gchar* temp = str_append(&destroot, ".ser");
-			if (!temp) {
-				PRINT_ALLOC_ERR;
-				return;
-			}
-			destroot = temp;
+			destroot = str_append(&destroot, ".ser");
 		}
 		seq_exists = check_if_seq_exist(destroot, FALSE);
 	}
@@ -549,7 +551,7 @@ void process_destroot(sequence_type output_type) {
 		seq_exists = check_if_seq_exist(destroot, FALSE);
 	}
 	else {
-		gchar* temp = format_basename(destroot, TRUE);
+		char* temp = format_basename(destroot, TRUE);
 		if (!temp) {
 			PRINT_ALLOC_ERR;
 			return;
