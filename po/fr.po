@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-25 23:08+0100\n"
-"PO-Revision-Date: 2023-02-27 09:56+0000\n"
-"Last-Translator: Robert MORELLI <r.morelli@laposte.net>\n"
+"PO-Revision-Date: 2023-02-28 16:18+0000\n"
+"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
 "Language: fr\n"
@@ -16607,7 +16607,7 @@ msgstr "pour un total d'images traitées de %d)\n"
 
 #: src/core/settings.c:248
 msgid "current working directory"
-msgstr "le répertoire de travail actuel"
+msgstr "répertoire de travail actuel"
 
 #: src/core/settings.c:249
 msgid "FITS file extension"
@@ -16803,7 +16803,7 @@ msgstr "rayon autour des coordonnées de la cible (degrés)"
 
 #: src/core/settings.c:305
 msgid "do not delete .xyls FITS tables"
-msgstr "ne pas supprimer les tableaux FITS .xyls"
+msgstr "ne pas supprimer la table FITS .xyls"
 
 #: src/core/settings.c:306
 msgid "do not delete .wcs result files"
