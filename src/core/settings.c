@@ -192,8 +192,8 @@ preferences pref_init = {
 	},
 	.fftw_conf = {
 		.timelimit = 60,
-		.strategy = 2,
-		.multithreaded = FALSE,
+		.strategy = 1,
+		.multithreaded = TRUE,
 		.wisdom_file = NULL,
 		.fft_cutoff = 15,
 	}
