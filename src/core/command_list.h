@@ -78,7 +78,7 @@ static command commands[] = {
 	{"imul", 1, "imul filename", process_imoper, STR_IMUL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"inspector", 0, "inspector", process_inspector, STR_INSPECTOR, FALSE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"invght", 1, "invght -D= [-B=] [-LP=] [-SP=] [-HP=] [-human | -even | -independent] [channels]", process_invght, STR_INVGHT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"invmodasinh", 1, "-D= [-LP=] [-SP=] [-HP=] [-human | -even | -independent] [channels]", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"invmodasinh", 1, "invmodasinh -D= [-LP=] [-SP=] [-HP=] [-human | -even | -independent] [channels]", process_invmodasinh, STR_INVMODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"invmtf", 3, "invmtf low mid high [channels]", process_mtf, STR_INVMTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"isub", 1, "isub filename", process_imoper, STR_ISUB, TRUE, REQ_CMD_SINGLE_IMAGE},
 
