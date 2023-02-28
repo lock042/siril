@@ -161,7 +161,7 @@ void wait_for_script_thread();
 gboolean end_generic(gpointer arg);
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);
 
-struct generic_seq_args *create_default_seqargs();
+struct generic_seq_args *create_default_seqargs(sequence *seq);
 
 int check_threading(threading_type *threads);
 int limit_threading(threading_type *threads, int min_iterations_per_thread, size_t total_iterations);
