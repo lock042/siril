@@ -282,6 +282,23 @@ static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynt
 	return;
 }
 
+// Do not use this function on com.stars!
+// To clear com.stars, clear_stars_list() (from gui/PSF_list.c)
+// must be used.
+int free_psf_starstarstar(psf_star **stars) {
+	if (!stars) {
+		return 0;
+	} else {
+
+		int i = 0;
+		while (i < MAX_STARS && stars[i])
+			free_psf(stars[i++]);
+		free(stars);
+		stars = NULL;
+	}
+	return 0;
+}
+
 int starcount(psf_star **stars) {
 	int i = 0;
 	if (!(stars)) {
@@ -331,6 +348,7 @@ int generate_synthstars(fits *fit) {
 		stars_needs_freeing = TRUE;
 	} else {
 		stars = com.stars;
+		stars_needs_freeing = FALSE;
 	}
 	if (starcount(stars) < 1) {
 		siril_log_color_message(_("No stars detected in the image.\n"), "red");
@@ -464,8 +482,11 @@ int generate_synthstars(fits *fit) {
 			free(psfL);
 		}
 	}
+	// Stars are only freed if they were *not* taken from com.stars: if the
+	// user has made a specific selection of stars, we want to leave that
+	// selection intact.
 	if (stars_needs_freeing)
-		free(stars);
+		free_psf_starstarstar(stars);
 	// Construct the RGB from synthetic L (and for RGB images, also the H and S values from the orginal image thus giving our synthesized stars the correct colour)
 	if (!stopcalled) {
 		if (is_RGB) {
@@ -701,7 +722,7 @@ int reprofile_saturated_stars(fits *fit) {
 				sat_stars++;
 			}
 		}
-		free(stars);
+		free_psf_starstarstar(stars);
 		siril_log_message(_("Star synthesis: %d stars desaturated\n"), sat_stars);
 	}
 
