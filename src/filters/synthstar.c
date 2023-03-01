@@ -235,7 +235,7 @@ static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynt
 	int xx, yy;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel num_threads(com.max_thread) if (com.max_thread > 1)
 {
 #pragma omp for simd schedule(static) collapse(2) private(xx, yy)
 #endif
@@ -495,25 +495,25 @@ int generate_synthstars(fits *fit) {
 			G = (float*) calloc(count, sizeof(float));
 			B = (float*) calloc(count, sizeof(float));
 #ifdef _OPENMP
-#pragma omp parallel if (com.max_thread > 1)
+#pragma omp parallel num_threads(com.max_thread) if (com.max_thread > 1)
+{
 			omp_set_num_threads(com.max_thread);
-			{
 #endif
 			float bufmaxx = 1.f;
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 			for (size_t i = 0; i < count; i++)
 				if (Lsynth[i] > bufmaxx)
 					bufmaxx = Lsynth[i];
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 			for (size_t i = 0; i < count; i++)
 				Lsynth[i] /= bufmaxx;
 
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 				for (size_t n = 0; n < count; n++) {
 					hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],
@@ -543,7 +543,7 @@ int generate_synthstars(fits *fit) {
 //#endif
 				if (is_32bit) {
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 					for (size_t n = 0; n < count; n++) {
 						fit->fpdata[RLAYER][n] = R[n];
@@ -552,7 +552,7 @@ int generate_synthstars(fits *fit) {
 					}
 				} else {
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 					for (size_t n = 0; n < count; n++) {
 						fit->pdata[RLAYER][n] = roundf_to_WORD(R[n] * norm);
