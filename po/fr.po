@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-25 23:08+0100\n"
-"PO-Revision-Date: 2023-02-28 16:18+0000\n"
+"PO-Revision-Date: 2023-03-01 22:32+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -16868,7 +16868,7 @@ msgstr "si aucun modèle X-Trans n'est trouvé, utilisez ceci"
 
 #: src/core/settings.c:332
 msgid "default master bias"
-msgstr "master-offset par défaut"
+msgstr "bias maître par défaut"
 
 #: src/core/settings.c:333
 msgid "use default master bias"
@@ -16880,7 +16880,7 @@ msgstr "master-dark par défaut"
 
 #: src/core/settings.c:335
 msgid "use default master dark"
-msgstr "utiliser le master-dark par défa"
+msgstr "utiliser le dark maître par défaut"
 
 #: src/core/settings.c:336
 msgid "default master flat"
@@ -21249,7 +21249,7 @@ msgstr "Arc tangente hyperbolique de x."
 
 #: src/pixelMath/pixel_math_runner.c:75
 msgid "Round x upwards to the nearest integer."
-msgstr "Arrondir x vers le haut à l'entier le plus proche."
+msgstr "Arrondi x à l'entier supérieur."
 
 #: src/pixelMath/pixel_math_runner.c:76
 msgid "Cosine of x."
