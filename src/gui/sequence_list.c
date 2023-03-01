@@ -605,7 +605,7 @@ void exclude_single_frame(int index) {
 void select_unselect_frames_from_list(gboolean *selected, gboolean keep) {
 	gboolean need_ref_update = FALSE;
 
-	for (int i = 0; i <= com.seq.number; i++) { // use real index
+	for (int i = 0; i < com.seq.number; i++) { // use real index
 		com.seq.imgparam[i].incl = (keep) ? selected[i] : !selected[i] && com.seq.imgparam[i].incl;
 		if (!com.seq.imgparam[i].incl && com.seq.reference_image == i) { // reference image is not included anymore
 			need_ref_update = TRUE;

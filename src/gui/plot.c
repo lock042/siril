@@ -1428,8 +1428,6 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		plot_draw_all_sliders_fill(cr);
 		plot_draw_all_markers(cr);
 		plot_draw_selection(cr);
-		free(pdd.selected);
-		pdd.selected = NULL;
 	}
 	free_colors(&cfgplot);
 	kplot_free(p);
