@@ -630,7 +630,6 @@ int reprofile_saturated_stars(fits *fit) {
 	siril_log_color_message(_("Star synthesis (desaturating clipped star profiles): processing...\n"), "green");
 	gboolean is_RGB = (fit->naxes[2] == 3) ? TRUE : FALSE;
 	gboolean is_32bit = TRUE;
-	gboolean buf_needs_freeing = FALSE;
 	float norm = 1.0f, invnorm = 1.0f;
 	if (fit->type == DATA_USHORT) {
 		is_32bit = FALSE;
@@ -643,16 +642,15 @@ int reprofile_saturated_stars(fits *fit) {
 	int count = dimx * dimy;
 	float *buf[3];
 
+	buf[RLAYER] = malloc(count *sizeof(float));
 	if (is_RGB) {
+		buf[GLAYER] = malloc(count * sizeof(float));
+		buf[BLAYER] = malloc(count * sizeof(float));
 		if (is_32bit) {
-			buf[RLAYER] = fit->fpdata[RLAYER];
-			buf[GLAYER] = fit->fpdata[GLAYER];
-			buf[BLAYER] = fit->fpdata[BLAYER];
+			memcpy(buf[RLAYER], fit->fpdata[RLAYER], fit->rx * fit->ry * sizeof(float));
+			memcpy(buf[GLAYER], fit->fpdata[GLAYER], fit->rx * fit->ry * sizeof(float));
+			memcpy(buf[BLAYER], fit->fpdata[BLAYER], fit->rx * fit->ry * sizeof(float));
 		} else {
-			buf[RLAYER] = (float*) calloc(count, sizeof(float));
-			buf[GLAYER] = (float*) calloc(count, sizeof(float));
-			buf[BLAYER] = (float*) calloc(count, sizeof(float));
-			buf_needs_freeing = TRUE;
 			for (size_t i = 0; i < count; i++) {
 				buf[RLAYER][i] = (float) fit->pdata[RLAYER][i] * invnorm;
 				buf[GLAYER][i] = (float) fit->pdata[GLAYER][i] * invnorm;
@@ -661,10 +659,9 @@ int reprofile_saturated_stars(fits *fit) {
 		}
 	} else { // mono
 		if (is_32bit)
-			buf[RLAYER] = fit->fdata;
+			memcpy(buf[RLAYER], fit->fdata, fit->rx * fit->ry * sizeof(float));
 		else {
-			buf[RLAYER] = (float*) calloc(count, sizeof(float));
-			buf_needs_freeing = TRUE;
+			buf[RLAYER] = malloc(count * sizeof(float));
 			for (size_t i = 0; i < count; i++)
 				buf[RLAYER][i] = (float) fit->data[i] * invnorm;
 		}
@@ -707,7 +704,6 @@ int reprofile_saturated_stars(fits *fit) {
 				int size = 5.f * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that it should cover the saturated parts of the star
 				if (!(size % 2))
 					size++;
-//				float maxfwhm = (float) max(stars[n]->fwhmx, stars[n]->fwhmy);
 				float ratio = stars[n]->fwhmx / stars[n]->fwhmy;
 				float angle = (float) stars[n]->angle;
 
@@ -740,26 +736,33 @@ int reprofile_saturated_stars(fits *fit) {
 				for (size_t i = 0; i < count; i++)
 					buf[chan][i] *= invbufmax;
 		}
-
-		if (!is_32bit) {
+		if (is_32bit) {
+			if (is_RGB) {
+				memcpy(fit->fpdata[RLAYER], buf[RLAYER], fit->rx * fit->ry * sizeof(float));
+				memcpy(fit->fpdata[GLAYER], buf[GLAYER], fit->rx * fit->ry * sizeof(float));
+				memcpy(fit->fpdata[BLAYER], buf[BLAYER], fit->rx * fit->ry * sizeof(float));
+			}
+			else {
+				memcpy(fit->fdata, buf[RLAYER], fit->rx * fit->ry * sizeof(float));
+			}
+		} else {
 			for (size_t n = 0; n < count; n++) {
 				if (is_RGB) {
 					fit->pdata[RLAYER][n] = roundf_to_WORD(buf[RLAYER][n] * norm);
 					fit->pdata[GLAYER][n] = roundf_to_WORD(buf[GLAYER][n] * norm);
 					fit->pdata[BLAYER][n] = roundf_to_WORD(buf[BLAYER][n] * norm);
 				}
-				else
+				else {
 					fit->data[n] = roundf_to_WORD(buf[RLAYER][n] * norm);
+				}
 			}
 		}
 	}
-	if (buf_needs_freeing) {
-		if (is_RGB) {
-			for (size_t i = 0; i <3; i++)
-				free(buf[i]);
-		} else
-			free(buf[RLAYER]);
-	}
+	if (is_RGB) {
+		for (size_t i = 0; i <3; i++)
+			free(buf[i]);
+	} else
+		free(buf[RLAYER]);
 
 	if (fit == &gfit && !stopcalled)
 		notify_gfit_modified();
