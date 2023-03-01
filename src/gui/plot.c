@@ -1404,6 +1404,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
 		pdd.offset = (point){ get_offsx(),  get_offsy()};
 		// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
+		if (pdd.selected) free(pdd.selected);
 		pdd.selected = calloc(com.seq.number, sizeof(gboolean));
 		if (selection_is_active()) {
 			double xmin, ymin, xmax, ymax;
