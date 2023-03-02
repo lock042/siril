@@ -279,7 +279,7 @@ openmp_dep = []
 if platform_windows
     siril_c_flag += '-DHAVE_FFTW3F_OMP'
     siril_cpp_flag += '-DHAVE_FFTW3F_OMP'
-  siril_link_arg += ['-lfftw3f_omp', '-lm']
+  siril_link_arg += ['-lm']
 endif
 
 if enable_openmp
