@@ -231,11 +231,13 @@ static void add_star_to_mono_buffer(const float *psfL, int size, float *Lsynth, 
 }
 
 static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy, float sat, float bg, float noise) {
+	float* buf = malloc(size * size * sizeof(float));
+	float* resbuf = malloc(size * size * sizeof(float));
 	const int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
-
+// Blend synthetic data into Lsynth and make a copy in buf for filtering the join
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel num_threads(com.max_thread)
 {
 #pragma omp for simd schedule(static) collapse(2) private(xx, yy)
 #endif
@@ -243,43 +245,89 @@ static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynt
 		for (int psfy = 0; psfy < size; psfy++) {
 			xx = x + psfx - halfpsfdim;
 			yy = y + psfy - halfpsfdim;
-			if (xx > 0 && xx < dimx && yy > 0 && yy < dimy) {
+// Note the bounds, xx >= 0 and < dimx but yy > 0 and <= dimy
+// This is correct, it is because Lsynth gets indexed by xx but by dimy - yy
+// Same comment applies below in the copy back
+			if (xx >= 0 && xx < dimx && yy > 0 && yy <= dimy) {
 				float orig = Lsynth[xx + ((dimy - yy) * dimx)];
 				float synth = psfL[psfx + (psfy * size)];
 				float synthfactor = (orig < sat) ? 1.f -
 					((sat - orig) / sat) : 1.f;
 				Lsynth[xx + ((dimy - yy) * dimx)] += max(synth * synthfactor
 					+ orig * (1 - synthfactor) - sat, 0.f);
+				buf[psfx + psfy * size] = Lsynth[xx + ((dimy - yy) * dimx)];
 			}
 		}
 	}
+
+// Carry out median blur of middle part, storing the result in resbuf
+// in order not to overwrite data in buf that is still needed as input
+// for remaining pixel calculations
 #ifdef _OPENMP
-#pragma omp for simd schedule(static) collapse(2) private(xx, yy)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
-// 3x3 median blur to smooth off the join between synthetic PSF and original data
-	for (int psfx = 0; psfx < size; psfx++) {
-		for (int psfy = 0; psfy < size; psfy++) {
+	for (int i = halfpsfdim * 2/3 ; i < halfpsfdim * 4/3 ; i++) {
+		for (int j = halfpsfdim * 2/3 ; j < halfpsfdim * 4/3 ; j++) {
+			int il = i - 1;
+			int iu = i + 1;
+			int jl = (j - 1) * size;
+			int jm = j * size;
+			int ju = (j + 1) * size;
+			int offx = i - halfpsfdim;
+			int offy = j - halfpsfdim;
+			int rad = halfpsfdim * 2/3;
+			// Only blur within a circle of radius rad
+			if (offx * offx + offy * offy <= rad * rad)
+				resbuf[i + jm] = median9f(
+					buf[il + jl],
+					buf[i + jl],
+					buf[iu + jl],
+					buf[il + jm],
+					buf[i + jm],
+					buf[iu + jm],
+					buf[il + ju],
+					buf[i + ju],
+					buf[iu + ju]);
+		}
+	}
+
+// Copy resbuf back into Lsynth
+#ifdef _OPENMP
+#pragma omp for simd schedule(static) collapse(2)
+#endif
+	for (int psfx = size * 2/3; psfx < size * 2/3; psfx++) {
+		for (int psfy = size * 2/3; psfy < size * 4/3; psfy++) {
 			xx = x + psfx - halfpsfdim;
 			yy = y + psfy - halfpsfdim;
-			if (xx > 0 && xx < dimx && yy > 0 && yy < dimy)
-				if ((psfx - halfpsfdim) * (psfx - halfpsfdim) + (psfy - halfpsfdim) * (psfy - halfpsfdim) < (size / 6) * (size / 6))
-					Lsynth[xx + ((dimy - yy) * dimx)] = median9f(
-						Lsynth[xx - 1 + ((dimy - yy - 1) * dimx)],
-						Lsynth[xx + ((dimy - yy - 1) * dimx)],
-						Lsynth[xx + 1 + ((dimy - yy - 1) * dimx)],
-						Lsynth[xx - 1 + ((dimy - yy) * dimx)],
-						Lsynth[xx + ((dimy - yy) * dimx)],
-						Lsynth[xx + 1 + ((dimy - yy) * dimx)],
-						Lsynth[xx - 1 + ((dimy - yy + 1) * dimx)],
-						Lsynth[xx + ((dimy - yy + 1) * dimx)],
-						Lsynth[xx + 1 + ((dimy - yy + 1) * dimx)]);
+			if (xx >= 0 && xx < dimx && yy > 0 && yy <= dimy) {
+				Lsynth[xx + ((dimy - yy) * dimx)] = resbuf[psfx + psfy * size];
+			}
 		}
 	}
 #ifdef _OPENMP
 #pragma omp barrier
 }
 #endif
+	free(buf);
+	free(resbuf);
 	return;
+}
+
+// Do not use this function on com.stars!
+// To clear com.stars, clear_stars_list() (from gui/PSF_list.c)
+// must be used.
+int free_psf_starstarstar(psf_star **stars) {
+	if (!stars) {
+		return 0;
+	} else {
+
+		int i = 0;
+		while (i < MAX_STARS && stars[i])
+			free_psf(stars[i++]);
+		free(stars);
+		stars = NULL;
+	}
+	return 0;
 }
 
 int starcount(psf_star **stars) {
@@ -331,6 +379,7 @@ int generate_synthstars(fits *fit) {
 		stars_needs_freeing = TRUE;
 	} else {
 		stars = com.stars;
+		stars_needs_freeing = FALSE;
 	}
 	if (starcount(stars) < 1) {
 		siril_log_color_message(_("No stars detected in the image.\n"), "red");
@@ -464,8 +513,11 @@ int generate_synthstars(fits *fit) {
 			free(psfL);
 		}
 	}
+	// Stars are only freed if they were *not* taken from com.stars: if the
+	// user has made a specific selection of stars, we want to leave that
+	// selection intact.
 	if (stars_needs_freeing)
-		free(stars);
+		free_psf_starstarstar(stars);
 	// Construct the RGB from synthetic L (and for RGB images, also the H and S values from the orginal image thus giving our synthesized stars the correct colour)
 	if (!stopcalled) {
 		if (is_RGB) {
@@ -474,25 +526,25 @@ int generate_synthstars(fits *fit) {
 			G = (float*) calloc(count, sizeof(float));
 			B = (float*) calloc(count, sizeof(float));
 #ifdef _OPENMP
-#pragma omp parallel if (com.max_thread > 1)
+#pragma omp parallel num_threads(com.max_thread) if (com.max_thread > 1)
+{
 			omp_set_num_threads(com.max_thread);
-			{
 #endif
 			float bufmaxx = 1.f;
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 			for (size_t i = 0; i < count; i++)
 				if (Lsynth[i] > bufmaxx)
 					bufmaxx = Lsynth[i];
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 			for (size_t i = 0; i < count; i++)
 				Lsynth[i] /= bufmaxx;
 
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 				for (size_t n = 0; n < count; n++) {
 					hsl_to_rgb_float_sat(Hsynth[n], Ssynth[n], Lsynth[n], &R[n],
@@ -522,7 +574,7 @@ int generate_synthstars(fits *fit) {
 //#endif
 				if (is_32bit) {
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 					for (size_t n = 0; n < count; n++) {
 						fit->fpdata[RLAYER][n] = R[n];
@@ -531,7 +583,7 @@ int generate_synthstars(fits *fit) {
 					}
 				} else {
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
 #endif
 					for (size_t n = 0; n < count; n++) {
 						fit->pdata[RLAYER][n] = roundf_to_WORD(R[n] * norm);
@@ -609,7 +661,6 @@ int reprofile_saturated_stars(fits *fit) {
 	siril_log_color_message(_("Star synthesis (desaturating clipped star profiles): processing...\n"), "green");
 	gboolean is_RGB = (fit->naxes[2] == 3) ? TRUE : FALSE;
 	gboolean is_32bit = TRUE;
-	gboolean buf_needs_freeing = FALSE;
 	float norm = 1.0f, invnorm = 1.0f;
 	if (fit->type == DATA_USHORT) {
 		is_32bit = FALSE;
@@ -622,16 +673,15 @@ int reprofile_saturated_stars(fits *fit) {
 	int count = dimx * dimy;
 	float *buf[3];
 
+	buf[RLAYER] = malloc(count *sizeof(float));
 	if (is_RGB) {
+		buf[GLAYER] = malloc(count * sizeof(float));
+		buf[BLAYER] = malloc(count * sizeof(float));
 		if (is_32bit) {
-			buf[RLAYER] = fit->fpdata[RLAYER];
-			buf[GLAYER] = fit->fpdata[GLAYER];
-			buf[BLAYER] = fit->fpdata[BLAYER];
+			memcpy(buf[RLAYER], fit->fpdata[RLAYER], fit->rx * fit->ry * sizeof(float));
+			memcpy(buf[GLAYER], fit->fpdata[GLAYER], fit->rx * fit->ry * sizeof(float));
+			memcpy(buf[BLAYER], fit->fpdata[BLAYER], fit->rx * fit->ry * sizeof(float));
 		} else {
-			buf[RLAYER] = (float*) calloc(count, sizeof(float));
-			buf[GLAYER] = (float*) calloc(count, sizeof(float));
-			buf[BLAYER] = (float*) calloc(count, sizeof(float));
-			buf_needs_freeing = TRUE;
 			for (size_t i = 0; i < count; i++) {
 				buf[RLAYER][i] = (float) fit->pdata[RLAYER][i] * invnorm;
 				buf[GLAYER][i] = (float) fit->pdata[GLAYER][i] * invnorm;
@@ -640,10 +690,9 @@ int reprofile_saturated_stars(fits *fit) {
 		}
 	} else { // mono
 		if (is_32bit)
-			buf[RLAYER] = fit->fdata;
+			memcpy(buf[RLAYER], fit->fdata, fit->rx * fit->ry * sizeof(float));
 		else {
-			buf[RLAYER] = (float*) calloc(count, sizeof(float));
-			buf_needs_freeing = TRUE;
+			buf[RLAYER] = malloc(count * sizeof(float));
 			for (size_t i = 0; i < count; i++)
 				buf[RLAYER][i] = (float) fit->data[i] * invnorm;
 		}
@@ -686,7 +735,6 @@ int reprofile_saturated_stars(fits *fit) {
 				int size = 5.f * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that it should cover the saturated parts of the star
 				if (!(size % 2))
 					size++;
-//				float maxfwhm = (float) max(stars[n]->fwhmx, stars[n]->fwhmy);
 				float ratio = stars[n]->fwhmx / stars[n]->fwhmy;
 				float angle = (float) stars[n]->angle;
 
@@ -701,7 +749,7 @@ int reprofile_saturated_stars(fits *fit) {
 				sat_stars++;
 			}
 		}
-		free(stars);
+		free_psf_starstarstar(stars);
 		siril_log_message(_("Star synthesis: %d stars desaturated\n"), sat_stars);
 	}
 
@@ -719,26 +767,33 @@ int reprofile_saturated_stars(fits *fit) {
 				for (size_t i = 0; i < count; i++)
 					buf[chan][i] *= invbufmax;
 		}
-
-		if (!is_32bit) {
+		if (is_32bit) {
+			if (is_RGB) {
+				memcpy(fit->fpdata[RLAYER], buf[RLAYER], fit->rx * fit->ry * sizeof(float));
+				memcpy(fit->fpdata[GLAYER], buf[GLAYER], fit->rx * fit->ry * sizeof(float));
+				memcpy(fit->fpdata[BLAYER], buf[BLAYER], fit->rx * fit->ry * sizeof(float));
+			}
+			else {
+				memcpy(fit->fdata, buf[RLAYER], fit->rx * fit->ry * sizeof(float));
+			}
+		} else {
 			for (size_t n = 0; n < count; n++) {
 				if (is_RGB) {
 					fit->pdata[RLAYER][n] = roundf_to_WORD(buf[RLAYER][n] * norm);
 					fit->pdata[GLAYER][n] = roundf_to_WORD(buf[GLAYER][n] * norm);
 					fit->pdata[BLAYER][n] = roundf_to_WORD(buf[BLAYER][n] * norm);
 				}
-				else
+				else {
 					fit->data[n] = roundf_to_WORD(buf[RLAYER][n] * norm);
+				}
 			}
 		}
 	}
-	if (buf_needs_freeing) {
-		if (is_RGB) {
-			for (size_t i = 0; i <3; i++)
-				free(buf[i]);
-		} else
-			free(buf[RLAYER]);
-	}
+	if (is_RGB) {
+		for (size_t i = 0; i <3; i++)
+			free(buf[i]);
+	} else
+		free(buf[RLAYER]);
 
 	if (fit == &gfit && !stopcalled)
 		notify_gfit_modified();
