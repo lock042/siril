@@ -231,12 +231,13 @@ static void add_star_to_mono_buffer(const float *psfL, int size, float *Lsynth, 
 }
 
 static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy, float sat, float bg, float noise) {
-	float* midbuf = NULL;
+	float* buf = malloc(size * size * sizeof(float));
+	float* resbuf = malloc(size * size * sizeof(float));
 	const int halfpsfdim = (size - 1) / 2;
-	int xx, yy, midsize, midoffset;
-
+	int xx, yy;
+// Blend synthetic data into Lsynth and make a copy in buf for filtering the join
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel num_threads(com.max_thread)
 {
 #pragma omp for simd schedule(static) collapse(2) private(xx, yy)
 #endif
@@ -244,78 +245,68 @@ static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynt
 		for (int psfy = 0; psfy < size; psfy++) {
 			xx = x + psfx - halfpsfdim;
 			yy = y + psfy - halfpsfdim;
-			if (xx > 0 && xx < dimx && yy > 0 && yy < dimy) {
+			if (xx >= 0 && xx < dimx && yy > 0 && yy <= dimy) {
 				float orig = Lsynth[xx + ((dimy - yy) * dimx)];
 				float synth = psfL[psfx + (psfy * size)];
 				float synthfactor = (orig < sat) ? 1.f -
 					((sat - orig) / sat) : 1.f;
 				Lsynth[xx + ((dimy - yy) * dimx)] += max(synth * synthfactor
 					+ orig * (1 - synthfactor) - sat, 0.f);
+				buf[psfx + psfy * size] = Lsynth[xx + ((dimy - yy) * dimx)];
 			}
 		}
 	}
-// Copy middle third of (size x size) area around star centre into
-// temporary buffer for blurring
-#ifdef _OPENMP
-#pragma omp single
-	{
-#endif
-	midsize = size / 3;
-	if (!midsize %2) midsize++;
-	midoffset = midsize / 2;
-	midbuf = malloc(midsize * midsize * sizeof(float));
-#ifdef _OPENMP
-	}
-#pragma omp for simd schedule(static) collapse(2)
-#endif
-	for (int i = 0 ; i < midsize ; i++) {
-		for (int j = 0 ; j < midsize ; j++) {
-			int li = x + midoffset - i;
-			int lj = dimy - y - midoffset + j;
-			midbuf[i + j * midsize] = Lsynth[li + lj * size];
-		}
-	}
 
-// Carry out median blur of middle part
+// Carry out median blur of middle part, storing the result in resbuf
+// in order not to overwrite data in buf that is still needed as input
+// for remaining pixel calculations
 #ifdef _OPENMP
 #pragma omp for simd schedule(static) collapse(2)
 #endif
-	for (int i = 1 ; i < midsize - 1 ; i++) {
-		for (int j = 1 ; j < midsize - 1 ; j++) {
+	for (int i = halfpsfdim * 2/3 ; i < halfpsfdim * 4/3 ; i++) {
+		for (int j = halfpsfdim * 2/3 ; j < halfpsfdim * 4/3 ; j++) {
 			int il = i - 1;
 			int iu = i + 1;
-			int jl = (j-1)*midsize;
-			int jm = j * midsize;
-			int ju = (j+1)*midsize;
-			midbuf[i + j * midsize] = median9f(
-				midbuf[il + jl],
-				midbuf[i + jl],
-				midbuf[iu + jl],
-				midbuf[il + jm],
-				midbuf[i + jm],
-				midbuf[iu + jm],
-				midbuf[il + ju],
-				midbuf[i + ju],
-				midbuf[iu + ju]);
+			int jl = (j - 1) * size;
+			int jm = j * size;
+			int ju = (j + 1) * size;
+			int offx = i - halfpsfdim;
+			int offy = j - halfpsfdim;
+			int rad = halfpsfdim * 2/3;
+			// Only blur within a circle of radius rad
+			if (offx * offx + offy * offy <= rad * rad)
+				resbuf[i + jm] = median9f(
+					buf[il + jl],
+					buf[i + jl],
+					buf[iu + jl],
+					buf[il + jm],
+					buf[i + jm],
+					buf[iu + jm],
+					buf[il + ju],
+					buf[i + ju],
+					buf[iu + ju]);
 		}
 	}
 
-// Copy back
+// Copy resbuf back into Lsynth
 #ifdef _OPENMP
 #pragma omp for simd schedule(static) collapse(2)
 #endif
-	for (int i = 0 ; i < midsize ; i++) {
-		for (int j = 0 ; j < midsize ; j++) {
-			int li = x + midoffset - i;
-			int lj = dimy - y - midoffset + j;
-			Lsynth[li + lj * size] = midbuf[i + j * midsize];
+	for (int psfx = size * 2/3; psfx < size * 2/3; psfx++) {
+		for (int psfy = size * 2/3; psfy < size * 4/3; psfy++) {
+			xx = x + psfx - halfpsfdim;
+			yy = y + psfy - halfpsfdim;
+			if (xx >= 0 && xx < dimx && yy > 0 && yy <= dimy) {
+				Lsynth[xx + ((dimy - yy) * dimx)] = resbuf[psfx + psfy * size];
+			}
 		}
 	}
 #ifdef _OPENMP
 #pragma omp barrier
 }
 #endif
-	free(midbuf);
+	free(buf);
+	free(resbuf);
 	return;
 }
 
