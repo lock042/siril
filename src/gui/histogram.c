@@ -1027,8 +1027,6 @@ void setup_histo_dialog() {
 			// Make visible the UI elements required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("grid32")), TRUE);
-			// Set default parameters
-			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "mtf_");
 
 			//Force dialog size to size of visible widgets only
 			gtk_window_resize(GTK_WINDOW(lookup_widget("histogram_dialog")),1,1);
@@ -1063,8 +1061,8 @@ void setup_ght_dialog() {
 			_HP = 1.0f;
 			lp_warning_given = FALSE;
 			hp_warning_given = FALSE;
-			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "ght_");
 			gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("drawingarea_histograms")), _("Clicking on the histogram sets SP"));
+			gtk_window_resize(GTK_WINDOW(lookup_widget("histogram_dialog")),1,1);
 }
 
 void updateGHTcontrols() {
