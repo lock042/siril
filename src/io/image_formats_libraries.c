@@ -365,13 +365,13 @@ static int readtif8bits(TIFF* tif, uint32_t width, uint32_t height, uint16_t nsa
 	return retval;
 }
 
-static uint16_t get_compression_mode() {
+gboolean get_tiff_compression() {
 	if (!com.headless) {
 		GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("radiobuttonCompDeflate"));
 		if (gtk_toggle_button_get_active(button))
-			return (uint16_t) COMPRESSION_ADOBE_DEFLATE;
+			return TRUE;
 	}
-	return (uint16_t) COMPRESSION_NONE;
+	return FALSE;
 }
 
 static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
@@ -632,7 +632,9 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gbo
 
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
 
-int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *description, const char *copyright, gboolean embeded_icc){
+int savetif(const char *name, fits *fit, uint16_t bitspersample,
+		const char *description, const char *copyright,
+		gboolean tiff_compression, gboolean embeded_icc) {
 	int retval = 0;
 	float norm;
 	gchar *filename = g_strdup(name);
@@ -666,7 +668,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *des
 	TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(tif, -1));
 	TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
 	TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, nsamples);
-	TIFFSetField(tif, TIFFTAG_COMPRESSION, get_compression_mode());
+	TIFFSetField(tif, TIFFTAG_COMPRESSION, tiff_compression ? COMPRESSION_ADOBE_DEFLATE : COMPRESSION_NONE);
 	if (description) {
 		TIFFSetField(tif, TIFFTAG_IMAGEDESCRIPTION, description);
 	}
