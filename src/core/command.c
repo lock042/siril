@@ -693,7 +693,7 @@ int process_savepng(int nb){
 #ifdef HAVE_LIBTIFF
 int process_savetif(int nb){
 	uint16_t bitspersample = 16;
-	uint16_t compression = (uint16_t) COMPRESSION_NONE;
+	gboolean tiff_compression = FALSE;
 	gchar *astro_tiff = NULL;
 
 	if (strcasecmp(word[0], "savetif8") == 0)
@@ -705,7 +705,7 @@ int process_savetif(int nb){
 		if (word[i] && !g_strcmp0(word[i], "-astro")) {
 			astro_tiff = AstroTiff_build_header(&gfit);
 		} else if (word[i] && !g_strcmp0(word[i], "-deflate")) {
-			compression = (uint16_t) COMPRESSION_ADOBE_DEFLATE;
+			tiff_compression = TRUE;
 		} else {
             siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
             return CMD_ARG_ERROR;
@@ -719,7 +719,7 @@ int process_savetif(int nb){
 		retval = 1;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savetif(filename, &gfit, bitspersample, astro_tiff, com.pref.copyright, compression, TRUE);
+		retval = savetif(filename, &gfit, bitspersample, astro_tiff, com.pref.copyright, tiff_compression, TRUE);
 		set_cursor_waiting(FALSE);
 	}
 	g_free(astro_tiff);

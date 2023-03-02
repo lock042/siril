@@ -59,7 +59,7 @@ struct exportseq_args {
 	export_format output;
 	gboolean normalize;
 
-	uint16_t compression_mode; // compression of TIFF files
+	gboolean tiff_compression; // compression of TIFF files
 
 	int film_fps;		// has to be int for avi or ffmpeg
 	int film_quality;	// [1, 5], for mp4 and webm
@@ -473,7 +473,7 @@ static gpointer export_sequence(gpointer ptr) {
 #ifdef HAVE_LIBTIFF
 			case EXPORT_TIFF:
 				snprintf(dest, 255, "%s%05d", args->basename, i + 1);
-				retval = savetif(dest, destfit, 16, NULL, com.pref.copyright, args->compression_mode, TRUE);
+				retval = savetif(dest, destfit, 16, NULL, com.pref.copyright, args->tiff_compression, TRUE);
 				break;
 #endif
 			case EXPORT_SER:
@@ -638,7 +638,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 		// add a trailing '_' for multiple-files sequences
 		args->basename = format_basename(args->basename, TRUE);
 		if (args->output == EXPORT_TIFF) {
-			args->compression_mode = get_tiff_compression_mode();
+			args->tiff_compression = get_tiff_compression_mode() == COMPRESSION_NONE ? FALSE : TRUE;
 		}
 	}
 	// Display a useful warning because I always forget to remove selection

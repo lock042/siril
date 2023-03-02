@@ -634,7 +634,7 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gbo
 
 int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		const char *description, const char *copyright,
-		uint16_t compression_mode, gboolean embeded_icc) {
+		gboolean tiff_compression, gboolean embeded_icc) {
 	int retval = 0;
 	float norm;
 	gchar *filename = g_strdup(name);
@@ -668,7 +668,7 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(tif, -1));
 	TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
 	TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, nsamples);
-	TIFFSetField(tif, TIFFTAG_COMPRESSION, compression_mode);
+	TIFFSetField(tif, TIFFTAG_COMPRESSION, tiff_compression ? COMPRESSION_ADOBE_DEFLATE : COMPRESSION_NONE);
 	if (description) {
 		TIFFSetField(tif, TIFFTAG_IMAGEDESCRIPTION, description);
 	}
