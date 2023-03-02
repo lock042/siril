@@ -1133,6 +1133,8 @@ char *format_basename(char *root, gboolean can_free) {
 	}
 
 	char *appended = malloc(len + 2);
+	if (!appended)
+		return NULL;
 	sprintf(appended, "%s_", root);
 	if (can_free)
 		free(root);

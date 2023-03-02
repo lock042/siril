@@ -8,15 +8,16 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-25 23:08+0100\n"
-"PO-Revision-Date: 2022-08-09 10:43+0200\n"
+"PO-Revision-Date: 2023-02-28 16:18+0000\n"
 "Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
-"Language-Team: Italian <sonia@zonia3000.net>\n"
+"Language-Team: Italian <https://weblate.pixls.us/projects/siril/"
+"siril-application/it/>\n"
 "Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.1.1\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7986
 #: src/filters/cosmetic_correction.c:428 src/filters/cosmetic_correction.c:599
@@ -80,7 +81,6 @@ msgstr ""
 "pixel freddo."
 
 #: src/gui/siril3.glade:237 src/gui/siril3.glade:267
-#, fuzzy
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a cold pixel."
@@ -103,7 +103,6 @@ msgstr ""
 "pixel caldo."
 
 #: src/gui/siril3.glade:303 src/gui/siril3.glade:333
-#, fuzzy
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a hot pixel."
@@ -163,36 +162,31 @@ msgstr "Prefisso di output:"
 msgid ""
 "Prefix of the image names resulting from the cosmetic correction process."
 msgstr ""
-"Prefisso dei nomi di immagine risultanti dal processo di correzione "
-"cosmetica."
+"Prefisso dei nomi immagine risultanti dal processo di correzione cosmetica."
 
 #: src/gui/siril3.glade:566
-#, fuzzy
 msgid "Binning"
-msgstr "Binning: "
+msgstr "Binning"
 
 #: src/gui/siril3.glade:631
-#, fuzzy
 msgid "Binning factor:"
-msgstr "Binning: "
+msgstr "Fattore di Binning:"
 
 #: src/gui/siril3.glade:663
-#, fuzzy
 msgid "Downsample mode:"
-msgstr "Sottocampiona immagini"
+msgstr "Modo di sottocampionamento:"
 
 #: src/gui/siril3.glade:677
-#, fuzzy
 msgid "Average"
-msgstr "Neutra Media"
+msgstr "Media"
 
 #: src/gui/siril3.glade:678
 msgid "Sum"
-msgstr ""
+msgstr "Somma"
 
 #: src/gui/siril3.glade:725 src/gui/siril3.glade:17553
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
-msgstr "Equalizzazione Istogramma adattiva a contrasto limitato..."
+msgstr "Equalizzazione Istogramma Adattiva a Contrasto Limitato..."
 
 #: src/gui/siril3.glade:744 src/gui/siril3.glade:2390 src/gui/siril3.glade:3190
 #: src/gui/siril3.glade:5054 src/gui/siril3.glade:9464
@@ -223,7 +217,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:864
 msgid "Clip Limit"
-msgstr "Limite per il taglio"
+msgstr "Limite di Clip"
 
 #: src/gui/siril3.glade:899
 msgid "Sets threshold for contrast limiting."
@@ -237,7 +231,7 @@ msgid ""
 "artifacts may appear."
 msgstr ""
 "Attenzione, rimuovere tutti i bordi neri o altri residui\n"
-"dello stacking croppando l'immagine. \n"
+"post stacking ritagliando l'immagine. \n"
 "Non farlo può portare alla comparsa di artefatti."
 
 #: src/gui/siril3.glade:930 src/gui/siril3.glade:3046 src/gui/siril3.glade:3379
@@ -254,12 +248,11 @@ msgid "Apply wavelet extraction."
 msgstr "Applica estrazione delle wavelet."
 
 #: src/gui/siril3.glade:1059
-#, fuzzy
 msgid ""
 "Number of wavelet layers. You can choose up to 9 layers for wavelets "
 "computing."
 msgstr ""
-"Numero di livelli delle wavelet. Puoi scegliere fino a 6 livelli di wavelet."
+"Numero di livelli delle wavelet. Puoi scegliere fino a 9 livelli di wavelet."
 
 #: src/gui/siril3.glade:1080
 msgid "Type of algorithm"
@@ -277,7 +270,7 @@ msgstr "BSpline"
 
 #: src/gui/siril3.glade:1099
 msgid "Nb. of Layers: "
-msgstr "Num. di livelli: "
+msgstr "Num. di Livelli: "
 
 #: src/gui/siril3.glade:1111 src/gui/siril3.glade:18401
 #: src/gui/siril3.glade:18672
@@ -286,20 +279,19 @@ msgstr "Interpolazione: "
 
 #: src/gui/siril3.glade:1152 src/filters/banding.c:118
 msgid "Banding Reduction"
-msgstr "Riduzione del banding"
+msgstr "Riduzione del Banding"
 
 #: src/gui/siril3.glade:1227 src/gui/siril3.glade:1250
-#, fuzzy
 msgid "Defines the strength of the correction."
-msgstr "Adatta l'immagine alla finestra"
+msgstr "Definisce la forza della correzione."
 
 #: src/gui/siril3.glade:1266
 msgid "Protect from Highlights"
-msgstr "Proteggi dalle Alteluci"
+msgstr "Proteggi dalle Alteluci (Highlights)"
 
 #: src/gui/siril3.glade:1270
 msgid "Bright pixels are ignored."
-msgstr ""
+msgstr "I piexl brillanti vengono ignorati."
 
 #: src/gui/siril3.glade:1290
 msgid "1/Sigma Factor"
@@ -310,6 +302,8 @@ msgid ""
 "Background for lines is computed using pixels in SigmaFactor * StdDev only. "
 "Higher value will give a better protection."
 msgstr ""
+"Lo sfondo per le linee viene calcolato utilizzando pixel soltanto in "
+"SigmaFactor * StdDev. Un valore più alto darà una protezione migliore."
 
 #: src/gui/siril3.glade:1342
 msgid "Vertical banding"
@@ -331,9 +325,10 @@ msgstr "Filtro mediano"
 
 #: src/gui/siril3.glade:1542
 msgid "Kernel Size:"
-msgstr "Dimensione del kernel:"
+msgstr "Dimensione del Kernel:"
 
 #: src/gui/siril3.glade:1554
+#, fuzzy
 msgid ""
 "Kernel Size. This is the odd size of the neighborhood considered for each "
 "pixel."
@@ -353,8 +348,8 @@ msgid ""
 "process to converge to better result."
 msgstr ""
 "Numero di iterazioni dell'algoritmo.\n"
-"Questo è utile quando il parametro di modulazione è diverso da 1, aiutando "
-"l'intero processo a convergere verso un miglior risultato."
+"Questo è utile quando il parametro di modulazione è diverso da 1, "
+"facilitando l'intero processo a convergere verso risultati migliori."
 
 #: src/gui/siril3.glade:1648 src/gui/siril3.glade:8241
 msgid "Modulation"
@@ -372,7 +367,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:1701 src/gui/siril3.glade:8910
 msgid "Use Luminance"
-msgstr "Usa luminanza"
+msgstr "Usa Luminanza"
 
 #: src/gui/siril3.glade:1801
 msgid "Rotational Gradient"
@@ -425,9 +420,8 @@ msgid "Y coordinate of the center of polar coordinates."
 msgstr "Coordinata Y del centro di coordinate polari."
 
 #: src/gui/siril3.glade:2090
-#, fuzzy
 msgid "StarNet Star Removal"
-msgstr "Starnet++ Rimozione stella"
+msgstr "StarNet Rimozione stella"
 
 #: src/gui/siril3.glade:2122 src/gui/siril3.glade:2536
 #: src/gui/siril3.glade:12527
@@ -435,25 +429,23 @@ msgid "Execute"
 msgstr "Esegui"
 
 #: src/gui/siril3.glade:2126
-#, fuzzy
 msgid "Apply StarNet"
-msgstr "Applicare suddivisione CFA"
+msgstr "Applicare StarNet"
 
 #: src/gui/siril3.glade:2156
 msgid "Pre-stretch linear image"
 msgstr "Pre-estende l’immagine lineare"
 
 #: src/gui/siril3.glade:2161
-#, fuzzy
 msgid ""
 "If selected, an optimised Midtone Transfer Function (MTF) stretch is applied "
 "to the image before running StarNet, and the inverse stretch is applied on "
 "completion. This is necessary for using StarNet at the linear stage of "
 "processing."
 msgstr ""
-"Se selezionato, all’immagine viene applicato uno stretch della  funzione "
-"ottimizzata di trasferimento dei mezzitoni (MTF) prima di eseguire Starnet++ "
-"e lo stretch  inverso viene applicato al completamento. Ciò è necessario per "
+"Se selezionato, all’immagine viene applicato uno stretch della funzione "
+"ottimizzata di trasferimento dei mezzitoni (MTF) prima di eseguire Starnet, "
+"e lo stretch inverso viene applicato al completamento. Ciò è necessario per "
 "utilizzare Starnet nella fase lineare di elaborazione."
 
 #: src/gui/siril3.glade:2174
@@ -476,40 +468,37 @@ msgid "Use custom stride"
 msgstr "Usa passo personalizzato"
 
 #: src/gui/siril3.glade:2199
-#, fuzzy
 msgid ""
 "If selected, a custom value may be entererd for the StarNet stride "
 "parameter. The default value is 256 and the StarNet developer recommends not "
 "to change this."
 msgstr ""
 "Se selezionato un valore personalizzato può essere inserito nel parametro di "
-"passo di Starnet++. Il valore di default è 256 e non è raccomandato "
-"cambiarlo (sviluppatore starnet)."
+"passo di StarNet. Il valore di default è 256 e non è raccomandato cambiarlo ("
+"sviluppatore StarNet)."
 
 #: src/gui/siril3.glade:2219
 msgid "Stride"
 msgstr "Passo"
 
 #: src/gui/siril3.glade:2231
-#, fuzzy
 msgid ""
 "Sets the size of tiles passed to the StarNet neural network for processing. "
 "It is strongly recommended to leave this at the default setting. Halving the "
 "stride setting quadruples the processing time. If altered, stride must be an "
 "even integer between 2-256."
 msgstr ""
-"Imposta la dimensione dei riquadri passati alla rete neurale Starnet++ per "
-"l’elaborazione. Si consiglia vivamente di lasciare questo valore "
-"all’impostazione predefinita. Dimezzare l’impostazione del passo quadruplica "
-"il tempo di elaborazione. Se modificato, il passo deve essere un numero "
-"intero pari compreso tra 2 e 256."
+"Imposta la dimensione dei riquadri passati alla rete neurale Starnet per l’"
+"elaborazione. Si consiglia vivamente di lasciare questo valore all’"
+"impostazione predefinita. Dimezzare l’impostazione del passo quadruplica il "
+"tempo di elaborazione. Se modificato, il passo deve essere un numero intero "
+"pari compreso tra 2 e 256."
 
 #: src/gui/siril3.glade:2254
 msgid "Recompose stars on completion"
 msgstr "Ricompone le stelle al termine"
 
 #: src/gui/siril3.glade:2259
-#, fuzzy
 msgid ""
 "If selected, on completion of the StarNet process the star recomposition "
 "tool will open, providing an interface for independently stretching and "
@@ -517,17 +506,17 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
-"Se selezionato, al completamento del processo di rimozione delle stelle si "
-"aprirà lo strumento di ricomposizione delle stelle, fornendo un’interfaccia "
-"per allungare e fondere in modo indipendente lo sfondo e le stelle se si "
-"desidera la riduzione delle stelle, piuttosto che la rimozione totale."
+"Se selezionato, al completamento del processo StarNet si aprirà il tool di "
+"ricomposizione delle stelle, fornendo un’interfaccia per allungare e fondere "
+"in modo indipendente lo sfondo e le stelle se si desidera la riduzione delle "
+"stelle, piuttosto che la rimozione totale.\n"
+" Questa opzione non ha effetto nel caso si stia processando una sequenza."
 
 #: src/gui/siril3.glade:2274
 msgid "Upsample x2"
 msgstr "Ricampiona x2"
 
 #: src/gui/siril3.glade:2279
-#, fuzzy
 msgid ""
 "If selected, the image will be upsampled by a factor of 2 before running "
 "StarNet. This improves performance on very tight stars but quadruples "
@@ -535,16 +524,18 @@ msgid ""
 "rescaled to the original size on completion."
 msgstr ""
 "Se selezionata, l’immagine verrà sovracampionata di un fattore 2 prima di "
-"eseguire Starnet++. Ciò migliora le prestazioni su stelle molto strette, ma "
+"eseguire StarNet. Ciò migliora le prestazioni su stelle molto piccole, ma "
 "quadruplica il tempo di elaborazione e può compromettere le prestazioni su "
-"stelle molto grandi. Al termine, l’immagine viene ridimensionata alle "
-"dimensioni originali."
+"stelle molto grandi. Al termine, l’immagine viene riscalata alle dimensioni "
+"originali."
 
 #: src/gui/siril3.glade:2296
 msgid ""
 "Apply StarNet to all images in the current sequence. Starless and, if "
 "selected, star mask, sequences will be generated."
 msgstr ""
+"Applica StarNet a tutte le immagini della sequenza attuale. Saranno generate "
+"sequenze di sfondo senza stelle e, se selezionato, maschera di stelle."
 
 #: src/gui/siril3.glade:2372
 msgid "Wavelets control"
@@ -567,9 +558,8 @@ msgid "Type:"
 msgstr "Tipo:"
 
 #: src/gui/siril3.glade:2504
-#, fuzzy
 msgid "Nb of layers:"
-msgstr "Num. di livelli: "
+msgstr "Num. di livelli:"
 
 #: src/gui/siril3.glade:2515
 msgid "Number of wavelet layers that will be used"
@@ -581,27 +571,27 @@ msgstr "Calcola wavelet"
 
 #: src/gui/siril3.glade:2615
 msgid "Layer 1"
-msgstr ""
+msgstr "Livello 1"
 
 #: src/gui/siril3.glade:2685
 msgid "Layer 2"
-msgstr ""
+msgstr "Livello 2"
 
 #: src/gui/siril3.glade:2755
 msgid "Layer 3"
-msgstr ""
+msgstr "Livello 3"
 
 #: src/gui/siril3.glade:2825
 msgid "Layer 4"
-msgstr ""
+msgstr "Livello 4"
 
 #: src/gui/siril3.glade:2895
 msgid "Layer 5"
-msgstr ""
+msgstr "Livello 5"
 
 #: src/gui/siril3.glade:2965
 msgid "Layer 6"
-msgstr ""
+msgstr "Livello 6"
 
 #: src/gui/siril3.glade:3031
 msgid "Adjust"
@@ -638,12 +628,9 @@ msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
 msgstr ""
-"129 / 5.000\n"
-"Risultati della traduzione\n"
-"star_border\n"
-"Per le immagini a colori, utilizzare i pesi dell’efficienza luminosa "
-"dell’occhio umano per calcolare la luminanza utilizzata per calcolare "
-"l’allungamento per ciascun pixel."
+"Per le immagini a colori, utilizzare i pesi dell’efficienza luminosa dell’"
+"occhio umano per calcolare la luminanza utilizzata per calcolare l’"
+"allungamento per ciascun pixel."
 
 #: src/gui/siril3.glade:3412 src/algos/background_extraction.c:1052
 msgid "Background Extraction"
@@ -794,7 +781,7 @@ msgid ""
 "Left click adds samples while right click removes them."
 msgstr ""
 "Potete anche selezionare i campioni manualmente.\n"
-"Click col tasto sinistro aggiunge i campioni, mentre il il click col tasto "
+"Click col tasto sinistro aggiunge i campioni, mentre il click col tasto "
 "destro li rimuove."
 
 #: src/gui/siril3.glade:3853
@@ -844,14 +831,12 @@ msgstr ""
 "consentendo all’utente di lavorare in modo iterativo."
 
 #: src/gui/siril3.glade:3924
-#, fuzzy
 msgid "Show original image"
-msgstr "non presente nell’immagine"
+msgstr "Mostra l'immagine originale"
 
 #: src/gui/siril3.glade:3929
-#, fuzzy
 msgid "Keep pressing this button to see the original image."
-msgstr "Clicca su questo pulsante per visualizzare l'immagine."
+msgstr "Mantenere premuto sul pulsante per visualizzare l'immagine."
 
 #: src/gui/siril3.glade:3976
 msgid ""
@@ -931,12 +916,11 @@ msgstr "<b>Copyright dell'immagine</b>"
 
 #: src/gui/siril3.glade:4652
 msgid "ASTRO-TIFF"
-msgstr ""
+msgstr "ASTRO-TIFF"
 
 #: src/gui/siril3.glade:4653
-#, fuzzy
 msgid "Standard TIFF"
-msgstr "Salvataggio TIFF"
+msgstr "TIFF standard"
 
 #: src/gui/siril3.glade:4669
 msgid "TIFF"
@@ -1099,20 +1083,20 @@ msgstr "Deconvoluzione"
 msgid ""
 "Generate the kernel and use it to deconvolve the current image or sequence"
 msgstr ""
+"Genera il kernel e lo utilizza per la deconvoluzione dell'immagine o "
+"sequenza attuale"
 
 #: src/gui/siril3.glade:5967
-#, fuzzy
 msgid "Blind deconvolution"
-msgstr "Deconvoluzione"
+msgstr "Deconvoluzione cieca"
 
 #: src/gui/siril3.glade:5971
 msgid "Estimates a PSF from the image"
-msgstr ""
+msgstr "Stima una PSF dall'immagine"
 
 #: src/gui/siril3.glade:5984
-#, fuzzy
 msgid "PSF from stars"
-msgstr "PSF sull'area"
+msgstr "PSF dalle stelle"
 
 #: src/gui/siril3.glade:5988
 msgid ""
@@ -1120,67 +1104,72 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
+"Modella una PSF basata sui parametri PSF medi delle stelle identificate. Se "
+"non sono state rilevate stelle, verrà effettuato un tentativo di rilevarle "
+"nell'immagine entro un intervallo adeguato di luminosità di picco."
 
 #: src/gui/siril3.glade:6001
-#, fuzzy
 msgid "Manual PSF"
-msgstr "Manuale"
+msgstr "PSF manuale"
 
 #: src/gui/siril3.glade:6005
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr ""
+msgstr "Usa una PSF definita manualmente in base ai parametri scelti."
 
 #: src/gui/siril3.glade:6020
+#, fuzzy
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
 msgstr ""
+"Selezionail metodo di stima cieca della PSF da utilizzare. La discesa ℓ0 è "
+"l'impostazione predefinita e di solito l'opzione migliore."
 
 #: src/gui/siril3.glade:6023
 msgid "Spectral Irregularity"
-msgstr ""
+msgstr "Irregolarità Spettrale"
 
 #: src/gui/siril3.glade:6024
+#, fuzzy
 msgid "ℓ0 Descent"
-msgstr ""
+msgstr "ℓ0 Discesa"
 
 #: src/gui/siril3.glade:6035
 msgid "Previous PSF"
-msgstr ""
+msgstr "PSF precedente"
 
 #: src/gui/siril3.glade:6039
 msgid "Reuse the previously calculated PSF."
-msgstr ""
+msgstr "Riutilizza la PSF calcolata in precedenza."
 
 #: src/gui/siril3.glade:6054
 msgid ""
 "Select a PSF to load from file. The PSF must be square and should ideally "
 "have odd length / width."
 msgstr ""
+"Seleziona una PSF da caricare dal file. La PSF deve essere quadrata e "
+"idealmente dovrebbe avere lunghezza/larghezza dispari."
 
 #: src/gui/siril3.glade:6068
-#, fuzzy
 msgid "Load PSF from file"
-msgstr "Fit gaussiano fallito"
+msgstr "Carica PSF dal file"
 
 #: src/gui/siril3.glade:6082
-#, fuzzy
 msgid "Generate PSF"
-msgstr "Generare"
+msgstr "Genera PSF"
 
 #: src/gui/siril3.glade:6086
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
 msgstr ""
+"Genera e visualizza in anteprima la PSF, ma non esegue la deconvoluzione"
 
 #: src/gui/siril3.glade:6108
-#, fuzzy
 msgid "Save PSF to a file"
-msgstr "Salva File"
+msgstr "Salva PSF in un file"
 
 #: src/gui/siril3.glade:6127
-#, fuzzy
 msgid "PSF from selection"
-msgstr "Nessuna selezione"
+msgstr "PSF dalla selezione"
 
 #: src/gui/siril3.glade:6130
 msgid ""
@@ -1209,9 +1198,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:6259 src/gui/siril3.glade:7227
-#, fuzzy
 msgid "Profile"
-msgstr "Tipi di file supportati:"
+msgstr "Profilo"
 
 #: src/gui/siril3.glade:6270
 msgid ""
@@ -1280,18 +1268,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:6453
-#, fuzzy
 msgid "Pixel Size / μm"
-msgstr "Dimensione del pixel (µm):"
+msgstr "Dimensione del pixel / µm"
 
 #: src/gui/siril3.glade:6465
 msgid "Wavelength / nm"
 msgstr ""
 
 #: src/gui/siril3.glade:6477
-#, fuzzy
 msgid "Focal length / mm"
-msgstr "Lunghezza focale (mm):"
+msgstr "Lunghezza focale / mm"
 
 #: src/gui/siril3.glade:6489
 msgid "Diameter / mm"
@@ -1418,19 +1404,16 @@ msgid "Downsample blur"
 msgstr "Sottocampiona immagini"
 
 #: src/gui/siril3.glade:6895
-#, fuzzy
 msgid "Kernel threshold"
-msgstr "Soglia della rotondità:"
+msgstr "Soglia del kernel"
 
 #: src/gui/siril3.glade:6907
-#, fuzzy
 msgid "Better kernel"
-msgstr "Pattern Bayer/mosaic: "
+msgstr "Miglior kernel"
 
 #: src/gui/siril3.glade:6919
-#, fuzzy
 msgid "Kernel ℓ1"
-msgstr "Dimensione del kernel:"
+msgstr "Kernel ℓ1"
 
 #: src/gui/siril3.glade:6931
 msgid "Amount of blur to use for downsampling during PSF estimation"
@@ -1550,9 +1533,8 @@ msgid "Shows a preview of the PSF, if one has been calculated."
 msgstr ""
 
 #: src/gui/siril3.glade:7445
-#, fuzzy
 msgid "Usage tips"
-msgstr "Utilizzo: %s\n"
+msgstr "Suggerimenti di utilizzo"
 
 #: src/gui/siril3.glade:7449
 msgid ""
@@ -1641,9 +1623,8 @@ msgid "Gradient descent step size"
 msgstr ""
 
 #: src/gui/siril3.glade:7650
-#, fuzzy
 msgid "Algorithm method"
-msgstr "Algoritmo: "
+msgstr "Metodo di Algoritmo"
 
 #: src/gui/siril3.glade:7661
 msgid ""
@@ -1974,12 +1955,10 @@ msgstr ""
 "automaticamente utilizzando l'header del file."
 
 #: src/gui/siril3.glade:8702
-#, fuzzy
 msgid "Real pixel size"
-msgstr "Campiona Pixels:"
+msgstr "Reale dimensione del pixel"
 
 #: src/gui/siril3.glade:8706
-#, fuzzy
 msgid ""
 "Check this button if binning is not taken into account in the pixel size "
 "value. In this case, the binning value will be used to compute the "
@@ -1989,7 +1968,9 @@ msgid ""
 msgstr ""
 "Seleziona questo pulsante se il binning non è preso in considerazione nel "
 "valore della dimensione del pixel. In questo caso, verrà utilizzato il "
-"valore del binning nella combo box sottostante."
+"valore del binning nella combo box sottostante.\n"
+"ATTENZIONE: selezionandolo si memorizza come preferenza, disponibile anche "
+"nella sezione preferenze opzione FITS."
 
 #: src/gui/siril3.glade:8729
 #, fuzzy
@@ -2283,7 +2264,6 @@ msgid "Colour stretch model"
 msgstr "Modello di stretch del colore"
 
 #: src/gui/siril3.glade:9659 src/gui/siril3.glade:10268
-#, fuzzy
 msgid ""
 "Set the stretch model for colour stretches. The options are: evenly weighted "
 "luminance, which calculates the stretch based on a luminance value weighting "
@@ -2299,7 +2279,8 @@ msgstr ""
 "stretch è basato su un valore di luminanza pesando i canali R, G e B in "
 "accordo alla sensibilità relativa dell’occhio umano; e Valori di canale "
 "indipendenti dove si applica uno stretch indipendente a ciascun canale di "
-"pixel."
+"pixel.\n"
+"Nota che i modelli basati sulla luminaria non sono generalmente invertibili."
 
 #: src/gui/siril3.glade:9664 src/gui/siril3.glade:10273
 #: src/gui/siril3.glade:16006
@@ -2924,7 +2905,7 @@ msgid ""
 "coordinates from the header of the file if they exist."
 msgstr ""
 "Clicca su questo pulsante per ottenere i valori di lunghezza focale, "
-"dimensione del pixel e RA/DEC coordinate punto  dall'header del file, se "
+"dimensione del pixel e RA/DEC coordinate punto dall'header del file, se "
 "esistono."
 
 #: src/gui/siril3.glade:12018
@@ -3332,9 +3313,8 @@ msgstr ""
 "tutti gli altri parametri di rilevamento sono falliti."
 
 #: src/gui/siril3.glade:13263
-#, fuzzy
 msgid "Convergence:"
-msgstr "Conversione"
+msgstr "Convergenza:"
 
 #: src/gui/siril3.glade:13274
 msgid ""
@@ -3809,9 +3789,8 @@ msgid "GRBG"
 msgstr "GRBG"
 
 #: src/gui/siril3.glade:15114
-#, fuzzy
 msgid "Bayer Pattern"
-msgstr "Pattern Bayer/mosaic: "
+msgstr "Pattern Bayer"
 
 #: src/gui/siril3.glade:15133
 msgid ""
@@ -3821,14 +3800,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:15165
-#, fuzzy
 msgid "Sequence input marker"
-msgstr "Nome della sequenza:"
+msgstr "Marcatore input sequenza"
 
 #: src/gui/siril3.glade:15176
-#, fuzzy
 msgid "Sequence output prefix"
-msgstr "Prefisso di output:"
+msgstr "Prefisso di output sequenza"
 
 #: src/gui/siril3.glade:15187
 msgid ""
@@ -4098,9 +4075,8 @@ msgid "column"
 msgstr "colonna"
 
 #: src/gui/siril3.glade:17043
-#, fuzzy
 msgid "Images"
-msgstr "Immagine:"
+msgstr "Immagini"
 
 #: src/gui/siril3.glade:17078
 msgid ""
@@ -4118,6 +4094,7 @@ msgstr ""
 "Ad esempio, se imposti i parametri con l’espressione <i>factor=0.8, K=0.2,</"
 "i>, tutte le occorrenze di <i>factor</i> e <i>K</i> nella formula sopra "
 "saranno sostituiti rispettivamente da 0,8 e 0,2.\n"
+"\n"
 "<i>Ha * factor + OIII * K</i> sarebbe quindi valutato a <i>Ha * 0.8 + OIII * "
 "0.2</i>"
 
@@ -4239,9 +4216,8 @@ msgid "Remove Green Noise..."
 msgstr "Rimuovi rumore verde..."
 
 #: src/gui/siril3.glade:17495
-#, fuzzy
 msgid "Compute the inverse of the image"
-msgstr "Fase dell'immagine: "
+msgstr "Calcola l'immagine inversa"
 
 #: src/gui/siril3.glade:17497 src/gui/colors.c:312
 msgid "Negative Transformation"
@@ -4335,9 +4311,8 @@ msgid "Geometry"
 msgstr "Geometria"
 
 #: src/gui/siril3.glade:17706
-#, fuzzy
 msgid "Open the background extraction dialog"
-msgstr "Canale #%d: estrazione dello sfondo completata.\n"
+msgstr "Apre il pannello estrazione dello sfondo"
 
 #: src/gui/siril3.glade:17708
 msgid "Background Extraction..."
@@ -4483,9 +4458,8 @@ msgid "Vertical Mirror"
 msgstr "Rifletti verticalmente"
 
 #: src/gui/siril3.glade:18116
-#, fuzzy
 msgid "Binning..."
-msgstr "Binning: "
+msgstr "Binning..."
 
 #: src/gui/siril3.glade:18130
 msgid "Resample..."
@@ -4550,9 +4524,8 @@ msgstr "Lanczos-4"
 
 #: src/gui/siril3.glade:18483 src/gui/siril3.glade:18713
 #: src/gui/siril3.glade:23088
-#, fuzzy
 msgid "Interpolation clamping"
-msgstr "Interpolazione: "
+msgstr "Blocco dell'interpolazione"
 
 #: src/gui/siril3.glade:18487 src/gui/siril3.glade:18717
 msgid ""
@@ -4871,18 +4844,15 @@ msgid "Clean Sequence"
 msgstr "Ritaglia Sequenza"
 
 #: src/gui/siril3.glade:20265
-#, fuzzy
 msgid ""
 "This button clears selection, registration and/or statistics data stored in "
 "the loaded sequence. You can specify to clear only registration, statistics "
 "and/or selection with the button on the right.\n"
 msgstr ""
-"Questo comando cancella i dati di selezione, registrazione e/o statistici "
-"memorizzati in <b>sequencename</b>.\n"
-"\n"
-"Puoi specificare di cancellare solo la registrazione, le statistiche e/o la "
-"selezione rispettivamente con le opzioni <b>-reg</b>, <b>-stat</b> e <b>-"
-"sel</b>. Tutti vengono cancellati se non viene inserita alcuna opzione"
+"Questo pulsante cancella i dati di selezione, registrazione e/o statistica "
+"memorizzati nella sequenza caricata. È possibile specificare di cancellare "
+"solo la registrazione, le statistiche e/o la selezione con il pulsante a "
+"destra.\n"
 
 #: src/gui/siril3.glade:20281
 msgid ""
@@ -5019,9 +4989,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:20628
 msgid "Full HD"
-msgstr ""
-"Fu\n"
-"ll HD"
+msgstr "Full HD"
 
 #: src/gui/siril3.glade:20629
 msgid "4K"
@@ -5132,11 +5100,12 @@ msgid ""
 "Instead of an image, you can also specify a uniform level to be subtracted, "
 "starting with an \"=\" sign, such as =256 or =64*$OFFSET"
 msgstr ""
-"Inserisci qui il nome del file master bias/offset, o usa il pulsante "
-"sfoglia.\n"
+"Inserisci qui il nome del file master bias/offset, o usa il pulsante sfoglia."
+"\n"
 "L'immagine master bias/offset verrà rimossa da tutte le immagini della "
-"sequenza. Invece di un’immagine, puoi anche specificare un livello uniforme "
-"da sottrarre, iniziando con un segno “=“, come =256 o =64*$OFFSET"
+"sequenza. \n"
+"Invece di un’immagine, puoi anche specificare un livello uniforme da "
+"sottrarre, iniziando con un segno “=“, come =256 o =64*$OFFSET"
 
 #: src/gui/siril3.glade:20931
 #, fuzzy
@@ -5206,7 +5175,7 @@ msgid ""
 "photosites giving a visible square in the middle of the dark/bias frames."
 msgstr ""
 "Questa opzione aiuta nel fissare gli AF pixel di Fujifilm X-Trans. Infatti, "
-"a causa del sistema  autofocus a rilevamento di fase, i fotositi utilizzati "
+"a causa del sistema autofocus a rilevamento di fase, i fotositi utilizzati "
 "per l’autofocus ricevono meno luce rispetto ai fotositi circostanti. La "
 "macchina fotografica compensa questa differenza aumentando i valori per "
 "questi specifici fotositi generando un punto visibile nel mezzo dei dark/"
@@ -5345,7 +5314,6 @@ msgid "Debayer before saving"
 msgstr "Applica Debayer alle immagini FITS prima di salvare"
 
 #: src/gui/siril3.glade:21480
-#, fuzzy
 msgid ""
 "Check this option if you want to apply a demosaicing algorithm to your FITS "
 "images right after they were preprocessed. By doing this, you skip one "
@@ -5353,10 +5321,7 @@ msgid ""
 msgstr ""
 "Seleziona questa opzione se vuoi applicare un algoritmo di demosaicizzazione "
 "alle tue immagini FITS subito dopo che sono state pre-elaborate. Facendo "
-"questo, salti un passaggio manuale che può richiedere un po' di tempo.\n"
-"\n"
-"ATTENZIONE: questa opzione è disponibile solamente per immagini FITS come "
-"sequenza SER che può essere demosaicizzata al volo."
+"questo, salti un passaggio manuale che può richiedere un po' di tempo."
 
 #: src/gui/siril3.glade:21493
 msgid ""
@@ -5411,9 +5376,11 @@ msgid ""
 msgstr ""
 "Canale sul quale viene eseguita la registrazione. Può essere fatta solo su "
 "un canale alla volta, quindi su immagini monocromatiche.\n"
+"Il segno (*) che appare dopo il nome del layer indica che i dati di "
+"registrazione sono già disponibili per questo layer.\n"
 "Durante l’elaborazione delle immagini, i dati di registrazione sono presi "
-"dal livello di default, se disponibile (per immagini RGB: Verde, altrimenti "
-"ricade sul Blu e poi sul Rosso)."
+"dal livello di default, se disponibile (per immagini RGB: Verde, "
+"alternativamente sul Blu e poi sul Rosso)."
 
 #: src/gui/siril3.glade:21674
 msgid "Follow star movement"
@@ -5465,7 +5432,8 @@ msgstr ""
 "Seleziona questa checkbox se vuoi eseguire l'algoritmo Global Star Alignment "
 "all'interno dell'area selezionata nell'immagine di riferimento. Se nessuna "
 "selezione è stata fatta quest'opzione viene ignorata.\n"
-"ATTENZIONE: Assicurati di selezionare un’area con un numero di stelle "
+"\n"
+"<b>ATTENZIONE</b>: Assicurati di selezionare un’area con un numero di stelle "
 "sufficienti."
 
 #: src/gui/siril3.glade:21756
@@ -5532,23 +5500,27 @@ msgstr ""
 "x/y), adatta per immagini senza distorsioni, senza scaling e senza rotazioni "
 "di campo. Necessita di almeno 1 coppia di stelle sovrapponibili per definire "
 "la trasformazione.\n"
+"\n"
 "<b>Somiglianza</b>è una mappatura con 4 gradi di libertà (un "
 "dimensionamento, una rotazione e spostamenti x/y) più rigida dell'omografia, "
 "adatta per immagini senza distorsione. Necessita di almeno 2 coppie di "
 "stelle sovrapponibili per definire la trasformazione.\n"
+"\n"
 "<b>Affine</b>è una mappatura a 6 gradi di libertà (due dimensionamenti, una "
 "rotazione e spostamenti x/y), adatta per immagini con piccole distorsioni. "
 "Necessita di almeno 3 coppie di stelle sovrapponibili per definire la "
 "trasformazione.\n"
-"<b>omografia</b>è la trasformazione di default e utilizza una trasformazione "
+"\n"
+"<b>Omografia</b>è la trasformazione di default e utilizza una trasformazione "
 "a 8 gradi di libertà per curvare le immagini adattandole al frame di "
 "riferimento. Questa si adatta ai casi generici ed è fortemente raccomandata "
 "per le immagini a campo largo. Necessita di almeno 4 coppie di stelle "
 "sovrapponibili per definire la trasformazione.\n"
+"\n"
 "<b>ATTENZIONE</b>: L'allineamento di stelle iniziale utilizza un algoritmo "
 "di similitudine dei triangoli e di conseguenza il numero minimo di coppie di "
 "stelle dev'essere almeno di 3 per <b>Spostamento</b>, <b>Somiglianza</b> e "
-"<b>Affine</b> e 4 per l'<b>omografia</b>."
+"<b>Affine</b> e 4 per l'<b>Omografia</b>."
 
 #: src/gui/siril3.glade:21834
 msgid "Shift"
@@ -5648,12 +5620,9 @@ msgstr "Stella #2:"
 
 #: src/gui/siril3.glade:22168
 msgid "Star #3:"
-msgstr ""
-"Stella \n"
-"#3:"
+msgstr "Stella #3:"
 
 #: src/gui/siril3.glade:22251
-#, fuzzy
 msgid ""
 "Indicate relative distance (in percentage vs total image size) over which to "
 "look for the alignment pattern.\n"
@@ -5671,7 +5640,7 @@ msgstr ""
 "dimensione totale dell’immagine attorno alla zona in cui è stato posizionato "
 "sul frame di riferimento.\n"
 "\n"
-"Valori più alti danno più tolleranza nell’allineamento e valori più piccoli\n"
+"Valori più alti danno più tolleranza nell’allineamento e valori più piccoli "
 "portano a calcoli più veloci."
 
 #: src/gui/siril3.glade:22271
@@ -6282,7 +6251,6 @@ msgid "Plot"
 msgstr "Grafico"
 
 #: src/gui/siril3.glade:23888
-#, fuzzy
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
 "Pixel values are added in an image normalized to 32-bit values.\n"
@@ -6315,8 +6283,8 @@ msgid ""
 "intensity is lower."
 msgstr ""
 "<b>Somma</b>: questo è il metodo più semplice.\n"
-"I valori dei pixel sono sommati in un'immagine normalizzata a valori a 32-"
-"bit.\n"
+"I valori dei pixel sono sommati in un'immagine normalizzata a valori a "
+"32-bit.\n"
 "Aumenta il rapporto segnale/rumore (SNR) secondo la radice quadrata del "
 "numero di immagini.\n"
 "\n"
@@ -6329,16 +6297,13 @@ msgstr ""
 "- Median Sigma Clipping\n"
 "- Winsorized Sigma Clipping\n"
 "- Linear Fit Clipping\n"
-"- Generalised ESD Test\n"
+"- Test ESD generalizzato\n"
 "Dopo aver scartato i pixel, la media dello stack viene calcolata.\n"
 "\n"
 "<b>Mediano</b>: questo metodo veniva usato principalmente per lo stacking di "
 "dark/flat/offset sebbene ora raccomandiamo l'uso dello stacking medio con "
 "rejection.\n"
 "Il valore mediano dei pixel nello stack è calcolato per ciascun pixel.\n"
-"Poiché questo metodo dovrebbe essere utilizzato solo per stacking di dark/"
-"flat/offset,\n"
-"esso non tiene conto degli spostamenti calcolati durante la registrazione.\n"
 "\n"
 "<b>Pixel massimo</b>: E’ usato principalmente per costruire immagini di "
 "tracce stellari a lunga esposizione.\n"
@@ -6375,7 +6340,6 @@ msgid "Method:"
 msgstr "Metodo:"
 
 #: src/gui/siril3.glade:23963
-#, fuzzy
 msgid ""
 "If one of these items is selected, a normalisation process will be applied "
 "to all input images before stacking.\n"
@@ -6398,24 +6362,18 @@ msgstr ""
 "verrà applicata a tutte le immagini di input prima dello stacking\n"
 "\n"
 "- La normalizzazione abbina la media degli sfondi di tutte le immagini di "
-"input, poi\n"
-"la normalizzazione è elaborata per moltiplicazione o addizione. Ricorda che\n"
-"entrambe i processi generalmente portano a risultati simili ma la "
-"normalizzazione\n"
-"moltiplicativa è da preferirsi per immagini che verranno utilizzate per "
-"moltiplicazioni o\n"
-"divisioni, come i flat-field.\n"
+"input, poi la normalizzazione è elaborata per moltiplicazione o addizione. "
+"Ricorda che entrambe i processi generalmente portano a risultati simili ma "
+"la normalizzazione moltiplicativa è da preferirsi per immagini che verranno "
+"utilizzate per moltiplicazioni o divisioni, come i flat-field.\n"
 "\n"
 "- La scala combina la dispersione pesando tutte le immagini di input. Questo "
-"tende a\n"
-"migliorare il rapporto segnale-rumore e quindi quest'opzione è usata di "
-"default nella\n"
-"normalizzazione addittiva.\n"
+"tende a migliorare il rapporto segnale-rumore e quindi quest'opzione è usata "
+"di default nella normalizzazione addittiva.\n"
 "\n"
 "<b>I master offset e dark non dovrebbero essere elaborati con la "
-"normalizzazione.\n"
-"Tuttavia, la normalizzazione moltiplicativa deve essere usata per i frame "
-"flat-field.</b>"
+"normalizzazione. Tuttavia, la normalizzazione moltiplicativa deve essere "
+"usata per i frame flat-field.</b>"
 
 #: src/gui/siril3.glade:23972
 msgid "No normalisation"
@@ -6519,16 +6477,17 @@ msgid ""
 "[3] Rosner, Bernard (May 1983), Percentage Points for a Generalized ESD Many-"
 "Outlier Procedure, Technometrics, 25(2), pp. 165-172"
 msgstr ""
-"Sei algoritmi di rejection sono disponibili.\n"
+"Sette algoritmi di rejection sono disponibili:\n"
+"\n"
 "<b>Percentile Clipping</b> è un algoritmo a step singolo ideale per piccoli "
 "insiemi di dati (fino a 6 immagini).\n"
 "\n"
 "<b>Sigma Clipping</b> è un algoritmo iterativo che scarta i pixel la cui "
 "distanza dalla mediana è maggiore dei due valori dati in unità di sigma.\n"
 "\n"
-"<b>MAD Clipping</b> e’ un algoritmo iterativo simile al Sigma Clipping con "
-"l’eccezione che il parametro utilizzato è la Deviazione Mediana Assoluta "
-"(MAD). Generalmente è utilizzato nel processing di immagini a infrarosso con "
+"<b>MAD Clipping</b> e’ un algoritmo iterativo simile al Sigma Clipping con l’"
+"eccezione che il parametro utilizzato è la Deviazione Mediana Assoluta (MAD)"
+". Generalmente è utilizzato nel processing di immagini a infrarosso con "
 "rumore elevato.\n"
 "\n"
 "<b>Median Sigma Clipping</b> è lo stesso algoritmo ad eccezione del fatto "
@@ -6627,9 +6586,8 @@ msgid "Weighing:"
 msgstr ""
 
 #: src/gui/siril3.glade:24249
-#, fuzzy
 msgid "Create rejection maps"
-msgstr "Reiezione immagini:"
+msgstr "Crea mappa di rejection"
 
 #: src/gui/siril3.glade:24253
 msgid ""
@@ -7367,10 +7325,8 @@ msgid "Default Type:"
 msgstr "Tipo di default:"
 
 #: src/gui/siril3.glade:27930
-#, fuzzy
 msgid "Allow FITS cubes to have images of different sizes"
-msgstr ""
-"Tentando di aggiungere un'immagine di dimensione differente in un SER\n"
+msgstr "Consente ai cubi FITS di avere immagini di dimensioni diverse"
 
 #: src/gui/siril3.glade:27934
 msgid ""
@@ -7403,9 +7359,8 @@ msgstr ""
 "FITS."
 
 #: src/gui/siril3.glade:27995
-#, fuzzy
 msgid "Update pixel size of binned image"
-msgstr "Usando la dimensione dei pixel dall’immagine: %f\n"
+msgstr "Aggiorna la dimensione in pixel dell'immagine binned"
 
 #: src/gui/siril3.glade:27999
 msgid ""
@@ -7450,7 +7405,6 @@ msgstr ""
 "risultando in una scarsa compressione."
 
 #: src/gui/siril3.glade:28106
-#, fuzzy
 msgid ""
 "Select an algorithm method for FITS compression:\n"
 "\n"
@@ -7472,20 +7426,7 @@ msgstr ""
 "*<b>GZIP2</b>: I bytes nella matrice dei valori dei pixel dell’immagine "
 "vengono mescolati in ordine decrescente di significatività prima di essere "
 "compressi con l’algoritmo gzip. Di solito è particolarmente efficace quando "
-"si comprimono insiemi a virgola mobile.\n"
-"*<b>Hcompress</b>: In breve il metodo utilizzato è:\n"
-"\t-1. Una trasformazione wavelet denominata H-transform (una trasformazione "
-"Haar generalizzata a due dimensioni), seguita da\n"
-"\t-2. una quantizzazione che elimina il rumore nell’immagine trattenendo il "
-"segnale su tutte le scale, seguita da \n"
-"\t-3. Una codifica quadtree (albero quadramentale) dei coefficienti "
-"quantizzati.\n"
-"Questa tecnica fornisce una compressione molto buona per le immagini "
-"astronomiche ed è relativamente rapida. I calcoli vengono eseguiti "
-"utilizzando aritmetica a numeri interi e sono completamente reversibili. "
-"Conseguentemente il programma può essere utilizzato sia per compressione "
-"senza perdita (loseless) che con perdita, senza alcun approccio speciale "
-"necessario per il caso lossless (es. non è necessario un file di residui)"
+"si comprimono insiemi a virgola mobile."
 
 #: src/gui/siril3.glade:28118
 msgid "GZIP1"
@@ -7553,11 +7494,12 @@ msgid "Catalogue"
 msgstr "Catalogo"
 
 #: src/gui/siril3.glade:28404
-#, fuzzy
 msgid ""
 "Purge Solar Sys\n"
 "user Catalog"
-msgstr "Rimuovi Catalogo Utente"
+msgstr ""
+"Rimuovi Sistema Solare\n"
+"Catalogo Utente"
 
 #: src/gui/siril3.glade:28409
 #, fuzzy
@@ -7569,11 +7511,12 @@ msgstr ""
 "annullata"
 
 #: src/gui/siril3.glade:28421
-#, fuzzy
 msgid ""
 "Purge Deep Sky\n"
 "user Catalog"
-msgstr "Rimuovi Catalogo Utente"
+msgstr ""
+"Rimuovi Cielo Profondo\n"
+"Catalogo Utente"
 
 #: src/gui/siril3.glade:28426
 #, fuzzy
@@ -7657,7 +7600,6 @@ msgid "World Coordinate System"
 msgstr "Sistema di coordinate mondiale"
 
 #: src/gui/siril3.glade:28574
-#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
@@ -7665,10 +7607,10 @@ msgid ""
 "<b>namedstars.dat</b>: the brightest stars, all of them have names."
 msgstr ""
 "Questi quattro cataloghi di KStars sono usati per il plate-solving e "
-"l’astrometria."
+"l’astrometria.\n"
+"<b>namedstars.dat</b>: le stelle più luminose, tutte hanno un nome."
 
 #: src/gui/siril3.glade:28590
-#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
@@ -7676,7 +7618,9 @@ msgid ""
 "<b>unnamedstars.dat</b>: also bright stars, but down to magnitude 8"
 msgstr ""
 "Questi quattro cataloghi di KStars sono usati per il plate-solving e "
-"l’astrometria."
+"l’astrometria.\n"
+"\n"
+"<b>unnamedstars.dat</b>: stelle luminose, ma fino alla magnitudine 8"
 
 #: src/gui/siril3.glade:28606
 msgid ""
@@ -7698,7 +7642,6 @@ msgstr ""
 "Specifica la posizione del catalogo stellare deepstars.dat sul tuo sistema."
 
 #: src/gui/siril3.glade:28645
-#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
@@ -7707,7 +7650,10 @@ msgid ""
 "the 2.5 Million Brightest Stars, down to magnitude 12.5"
 msgstr ""
 "Questi quattro cataloghi di KStars sono usati per il plate-solving e "
-"l’astrometria."
+"l’astrometria.\n"
+"\n"
+"<b>deepstars.dat</b>: stelle più deboli estratte dal catalogo Tycho-2 dei "
+"2,5 milioni di stelle più luminose, fino alla magnitudine 12,5"
 
 #: src/gui/siril3.glade:28661
 msgid ""
@@ -7717,7 +7663,6 @@ msgstr ""
 "proprio sistema."
 
 #: src/gui/siril3.glade:28674
-#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
@@ -7727,16 +7672,19 @@ msgid ""
 "down to magnitude 18."
 msgstr ""
 "Questi quattro cataloghi di KStars sono usati per il plate-solving e "
-"l’astrometria."
+"l’astrometria.\n"
+"\n"
+"<b>USNO-NOMAD-1e8.dat</b>: un estratto dell'enorme catalogo NOMAD limitato "
+"alle informazioni fotometriche B-V e al moto proprio delle stelle in una "
+"forma binaria compatta, fino alla magnitudine 18."
 
 #: src/gui/siril3.glade:28693
-#, fuzzy
 msgid ""
 "<b>Local Star Catalogues</b> (<a href=\"https://free-astro.org/index.php?"
 "title=Siril:Star_Catalogues\">more info</a>)"
 msgstr ""
-"<b>Catalogo di stelle locali</b> (<a href=“https://free-astro.org/index.php?"
-"title=Siril:Star_Catalogues”>maggiori informazioni</a>)"
+"<b>Catalogo di stelle locali</b> (<a href=\"https://free-astro.org/index."
+"php?title=Siril:Star_Catalogues\">maggiori informazioni</a>)"
 
 #: src/gui/siril3.glade:28713
 msgid "Update default focal length and pixel size from the result"
@@ -7755,9 +7703,8 @@ msgid "General Platesolving"
 msgstr "Forza il plate solving"
 
 #: src/gui/siril3.glade:28763
-#, fuzzy
 msgid "Degrees of the polynomial correction:"
-msgstr "Adatta l'immagine alla finestra"
+msgstr "Gradi di correzione polinomiale:"
 
 #: src/gui/siril3.glade:28775
 msgid "Sampling tolerance (%):"
@@ -7865,9 +7812,8 @@ msgstr ""
 "Utilizza il master selezionato come default nel tab di pre-elaborazione"
 
 #: src/gui/siril3.glade:29067
-#, fuzzy
 msgid "Master-flat:"
-msgstr "Master-flan"
+msgstr "Master-flat:"
 
 #: src/gui/siril3.glade:29079
 #, fuzzy
@@ -7875,9 +7821,8 @@ msgid "Master-bias:"
 msgstr "usa bias:"
 
 #: src/gui/siril3.glade:29091
-#, fuzzy
 msgid "Master-dark:"
-msgstr "Master-dark"
+msgstr "Master-dark:"
 
 #: src/gui/siril3.glade:29102
 msgid ""
@@ -8258,8 +8203,8 @@ msgstr ""
 "senza il comando “requires”. Ciò assicura la compatibilità tra gli scripts e "
 "Siril.\n"
 "\n"
-"<span foreground=“red”><b>ATTENZIONE: deseleziona questa opzione soltanto se "
-"sai quello che stai per fare!</b></span>"
+"<span foreground=\"red\"><b>ATTENZIONE: deseleziona questa opzione soltanto "
+"se sai quello che stai per fare!</b></span>"
 
 #: src/gui/siril3.glade:30713 src/gui/siril3.glade:31260
 msgid "Warning Dialogs"
@@ -8944,18 +8889,22 @@ msgid "Failed to download page %s (error %ld)\n"
 msgstr "Impossibile scaricare la pagina %s (errore %ld)\n"
 
 #: src/algos/astrometry_solver.c:384
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Fetch failed with code %ld\n"
 "%s\n"
-msgstr "Recupero fallito con codice %ld per l'URL%s\n"
+msgstr ""
+"Recupero fallito con codice %ld\n"
+"%s\n"
 
 #: src/algos/astrometry_solver.c:391
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Fetch failed with code %ld\n"
 "%s"
-msgstr "Recupero fallito con codice %ld per l'URL%s\n"
+msgstr ""
+"Recupero fallito con codice %ld \n"
+"%s"
 
 #: src/algos/astrometry_solver.c:392
 msgid "Online service error"
@@ -9021,9 +8970,8 @@ msgid "Up is %+.2lf deg ClockWise wrt. N%s\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:793
-#, fuzzy
 msgid " (flipped)"
-msgstr "(capovolto)"
+msgstr " (capovolto)"
 
 #: src/algos/astrometry_solver.c:797
 #, c-format
@@ -9254,9 +9202,8 @@ msgid "Astrometry.net solving blindly for scales [%s, %s]\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:1967
-#, fuzzy
 msgid "No astrometric solution found\n"
-msgstr "Soluzione astrometrica rilevata"
+msgstr "Nessuna soluzione astrometrica rilevata\n"
 
 #: src/algos/astrometry_solver.c:1996
 #, c-format
@@ -9388,9 +9335,7 @@ msgstr ""
 #: src/gui/histogram.c:1391 src/gui/remixer.c:1138 src/gui/remixer.c:1181
 #: src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
-msgstr ""
-"Errore, calcolo delle statistiche non riuscito.\n"
-"\n"
+msgstr "Errore, calcolo delle statistiche non riuscito.\n"
 
 #: src/algos/colors.c:807 src/algos/photometric_cc.c:316
 msgid "Background reference:\n"
@@ -9405,13 +9350,12 @@ msgid "Color calibration factors:\n"
 msgstr "Fattori di calibrazione dei colori:\n"
 
 #: src/algos/demosaicing.c:949
-#, fuzzy
 msgid ""
 "FITS header does not contain a proper XTRANS pattern, demosaicing cannot be "
 "done\n"
 msgstr ""
 "Gli header FITS non contengono un pattern XTRANS corretto, non posso "
-"effettuare il demosaicing"
+"effettuare il demosaicing\n"
 
 #: src/algos/demosaicing.c:966
 #, c-format
@@ -9466,19 +9410,19 @@ msgid "Image %d: error identifying CFA3 filename\n"
 msgstr ""
 
 #: src/algos/demosaicing.c:1361
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: error opening CFA1 file\n"
-msgstr "Errore durante l'apertura del file"
+msgstr "Immagine %d: errore nell'apertura del file CFA1\n"
 
 #: src/algos/demosaicing.c:1366
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: error opening CFA2 file\n"
-msgstr "Errore durante l'apertura del file"
+msgstr "Immagine %d: Errore durante l'apertura del file CFA2\n"
 
 #: src/algos/demosaicing.c:1371
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: error opening CFA3 file\n"
-msgstr "Errore durante l'apertura del file"
+msgstr "Immagine %d: Errore durante l'apertura del file CFA3\n"
 
 #: src/algos/demosaicing.c:1402
 msgid "Merge CFA"
@@ -9499,9 +9443,8 @@ msgid "Y dimensions incompatible\n"
 msgstr ""
 
 #: src/algos/demosaicing.c:1437
-#, fuzzy
 msgid "Channels not all mono\n"
-msgstr "Estrazione del canale"
+msgstr "Non tutti i canali sono in mono\n"
 
 #: src/algos/demosaicing.c:1439
 #, fuzzy
@@ -10307,7 +10250,7 @@ msgstr ""
 
 #: src/core/command.c:156
 msgid "Currently loaded image has no FITS header\n"
-msgstr "L’immagine attualmente caricata non ha un header  FITS\n"
+msgstr "L’immagine attualmente caricata non ha un header FITS\n"
 
 #: src/core/command.c:158
 msgid "=FITS header for currently loaded image=\n"
@@ -10394,9 +10337,8 @@ msgid "Colour artefact suppression active.\n"
 msgstr ""
 
 #: src/core/command.c:368
-#, fuzzy
 msgid "Starting NL-Bayes denoising..."
-msgstr "Inizio dello stacking...\n"
+msgstr "Inizio denoising NL-Bayes..."
 
 #: src/core/command.c:422
 #, fuzzy
@@ -10471,9 +10413,8 @@ msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
 msgstr ""
 
 #: src/core/command.c:786
-#, fuzzy
 msgid "Error loading files!\n"
-msgstr "Errore durante l'apertura del file"
+msgstr "Errore nel caricamento dei file!\n"
 
 #: src/core/command.c:791
 msgid "Reconstructing RGGB Bayer matrix.\n"
@@ -10501,9 +10442,8 @@ msgid "Unsaved Bayer pattern merge"
 msgstr "indice del modello Bayer"
 
 #: src/core/command.c:814
-#, fuzzy
 msgid "Bayer pattern merge"
-msgstr "Pattern Bayer/mosaic: "
+msgstr "Unione pattern Bayer"
 
 #: src/core/command.c:841
 msgid "Could not understand the requested operator\n"
@@ -10534,25 +10474,23 @@ msgid "Image %d\n"
 msgstr "Immagine: %s\n"
 
 #: src/core/command.c:968
-#, fuzzy
 msgid ""
 "Warning: this image is excluded from the sequence main processing list\n"
 msgstr ""
-"Includi tutte le immagini della sequenza nella elaborazione pianificata"
+"Attenzione: questa immagine è esclusa dall'elenco di elaborazione principale "
+"della sequenza\n"
 
 #: src/core/command.c:997
 msgid "Error: will not clear the PSF while a sequence is running.\n"
 msgstr ""
 
 #: src/core/command.c:1006
-#, fuzzy
 msgid "Deconvolution kernel cleared.\n"
-msgstr "Deconvoluzione applicata"
+msgstr "Il kernel di deconvoluzione è stato cancellato.\n"
 
 #: src/core/command.c:1011
-#, fuzzy
 msgid "Save PSF to file:\n"
-msgstr "Salva File"
+msgstr "Salva PSF al file:\n"
 
 #: src/core/command.c:1023 src/core/command.c:1095
 msgid ""
@@ -10573,9 +10511,8 @@ msgid "spectral irregularity method\n"
 msgstr ""
 
 #: src/core/command.c:1042
-#, fuzzy
 msgid "multiscale estimation\n"
-msgstr "Stima del rumore"
+msgstr "Stima multiscala\n"
 
 #: src/core/command.c:1050 src/core/command.c:1330 src/core/command.c:1435
 #, fuzzy
@@ -10613,9 +10550,8 @@ msgid "symmetric kernel\n"
 msgstr ""
 
 #: src/core/command.c:1135
-#, fuzzy
 msgid "Manual PSF generation:\n"
-msgstr "Registrazione manuale"
+msgstr "Generazione PSF manuale:\n"
 
 #: src/core/command.c:1142
 msgid "Gaussian PSF\n"
@@ -10626,9 +10562,8 @@ msgid "Moffat PSF\n"
 msgstr ""
 
 #: src/core/command.c:1150
-#, fuzzy
 msgid "Disc PSF\n"
-msgstr "PSF dinamica"
+msgstr "Disco PSF\n"
 
 #: src/core/command.c:1154
 msgid "Airy disc PSF\n"
@@ -10695,9 +10630,8 @@ msgid "Load PSF from file:\n"
 msgstr ""
 
 #: src/core/command.c:1298
-#, fuzzy
 msgid "Error loading PSF.\n"
-msgstr "Errore durante l'apertura del file"
+msgstr "Errore nel caricamento PFS.\n"
 
 #: src/core/command.c:1343 src/core/command.c:1450
 #, fuzzy
@@ -10768,9 +10702,7 @@ msgstr "Il fattore di stretch deve essere compre tra 0 e 10\n"
 
 #: src/core/command.c:1769 src/core/command.c:1859
 msgid "Stretch intensity B must be between -5 and +15\n"
-msgstr ""
-"L’intenstià dello stretch deve essere compresa tra -5 e +15\n"
-"\n"
+msgstr "L’intenstià dello stretch B deve essere compresa tra -5 e +15\n"
 
 #: src/core/command.c:1775 src/core/command.c:1865
 msgid "Stretch focal point SP must be between 0 and 1\n"
@@ -10796,9 +10728,7 @@ msgstr "D deve essere compreso tra 0 e 10\n"
 
 #: src/core/command.c:1950 src/core/command.c:2034
 msgid "SP must be between 0 and 1\n"
-msgstr ""
-"SP deve essere compreso tra 0 e 1\n"
-"\n"
+msgstr "SP deve essere compreso tra 0 e 1\n"
 
 #: src/core/command.c:1956 src/core/command.c:2040
 msgid "LP must be between 0 and stretch focal point\n"
@@ -10973,14 +10903,14 @@ msgid "Invalid argument to %s, aborting.\n"
 msgstr "Argomento mancante a %s, interruzione.\n"
 
 #: src/core/command.c:2775
-#, fuzzy, c-format
+#, c-format
 msgid "Symmetry point SP=%f\n"
-msgstr "Punto di simmetria (SP)"
+msgstr "Punto di simmetria SP=%f\n"
 
 #: src/core/command.c:2790
-#, fuzzy, c-format
+#, c-format
 msgid "Symmetry point for channel %d: SP=%f\n"
-msgstr "Punto di simmetria (SP)"
+msgstr "Punto di simmetria per canale %d: SP=%f\n"
 
 #: src/core/command.c:2832
 msgid "The target background value must be in the [0, 1] range\n"
@@ -11080,9 +11010,8 @@ msgid "Angle is 0.0 or 360.0 degrees. Doing nothing...\n"
 msgstr ""
 
 #: src/core/command.c:3146 src/core/command.c:3372
-#, fuzzy
 msgid "Wrong magnitude value.\n"
-msgstr "Magnitudine della stella (assoluta)"
+msgstr "Valore di magnitudine errato.\n"
 
 #: src/core/command.c:3157 src/core/command.c:3747 src/core/command.c:3924
 #: src/core/siril_actions.c:649
@@ -11189,7 +11118,6 @@ msgid ""
 msgstr ""
 "Valori di parametro errati. La rotondità deve essere compresa tra 0 e 0.95, "
 "interruzione.\n"
-"\n"
 
 #: src/core/command.c:3464
 msgid ""
@@ -11203,7 +11131,6 @@ msgid "Wrong parameter values. Pixel size must be greater than 0, aborting.\n"
 msgstr ""
 "Valori di parametro errati. La dimensione dei pixel deve essere maggiore di "
 "0, interruzione.\n"
-"\n"
 
 #: src/core/command.c:3479
 msgid "Wrong parameter values. Auto must be set to on or off, aborting.\n"
@@ -11212,13 +11139,11 @@ msgstr ""
 "interrompo.\n"
 
 #: src/core/command.c:3486
-#, fuzzy
 msgid ""
 "Wrong parameter values. Convergence must be between 1 and 3, aborting.\n"
 msgstr ""
-"Valori di parametro errati. La rotondità deve essere compresa tra 0 e 0.95, "
+"Valori dei parametri errati. La convergenza deve essere compresa tra 1 e 3, "
 "interruzione.\n"
-"\n"
 
 #: src/core/command.c:3493 src/core/command.c:3500 src/core/command.c:3507
 #, fuzzy, c-format
@@ -11226,9 +11151,8 @@ msgid "Wrong parameter value %s.\n"
 msgstr "Parametri errati.\n"
 
 #: src/core/command.c:3511
-#, fuzzy
 msgid "Resetting findstar parameters to default values.\n"
-msgstr "Ripristina i parametri ai valori di default"
+msgstr "Ripristina i parametri findstar ai valori di default.\n"
 
 #: src/core/command.c:3532
 #, c-format
@@ -11272,9 +11196,7 @@ msgstr "focale = %3.1f\n"
 #: src/core/command.c:3556
 #, c-format
 msgid "pixelsize = %3.2f\n"
-msgstr ""
-"dimensione del pixel = %3.2f\n"
-"\n"
+msgstr "dimensione del pixel = %3.2f\n"
 
 #: src/core/command.c:3558
 #, c-format
@@ -11349,9 +11271,9 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:3894
-#, fuzzy, c-format
+#, c-format
 msgid "Coordinates of the star: %.1f, %.1f\n"
-msgstr "Coordinate X del nucleo della prima immagine."
+msgstr "Coordinate della stella: %.1f,%.1f\n"
 
 #: src/core/command.c:3909
 #, fuzzy
@@ -11440,9 +11362,8 @@ msgid "Coeff value is incorrect\n"
 msgstr ""
 
 #: src/core/command.c:4370
-#, fuzzy
 msgid "Sigma value is incorrect\n"
-msgstr "sigma valore basso per la reiezione"
+msgstr "Valore sigma incorretto\n"
 
 #: src/core/command.c:4386
 msgid "Number of layers MUST be 1 or 3\n"
@@ -11617,11 +11538,10 @@ msgid "Reconstructing %s Bayer matrix.\n"
 msgstr ""
 
 #: src/core/command.c:5879
-#, fuzzy, c-format
+#, c-format
 msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr ""
-"Errore, calcolo delle statistiche non riuscito.\n"
-"\n"
+"Calcolo delle statistiche non riuscito per il canale %d (tutto nullo?).\n"
 
 #: src/core/command.c:5900 src/core/command.c:5905
 #, fuzzy, c-format
@@ -11706,9 +11626,7 @@ msgstr ""
 #: src/core/command.c:6266
 #, c-format
 msgid "Conversion: processing %d RAW files...\n"
-msgstr ""
-"Conversione: elaborazione %d file RAW...\n"
-"\n"
+msgstr "Conversione: elaborazione %d files RAW...\n"
 
 #: src/core/command.c:6330
 #, c-format
@@ -11798,7 +11716,6 @@ msgstr ""
 "Forzare la trasformazione di registrazione a switch, che è l’unica "
 "trasformazione compatibile senza interpolazione, non è compatibile con "
 "OpenCV inferiore a 4.4. Interruzione\n"
-"\n"
 
 #: src/core/command.c:6729 src/registration/registration.c:1498
 msgid ""
@@ -11815,9 +11732,8 @@ msgstr "Registrazione: elaborazione utilizzando il metodo %s\n"
 
 #: src/core/command.c:6748 src/core/command.c:7026
 #: src/registration/registration.c:1521
-#, fuzzy
 msgid "Interpolation clamping active\n"
-msgstr "Algoritmo di interpolazione:"
+msgstr "Bloccaggio dell'interpolazione attivo\n"
 
 #: src/core/command.c:6771 src/core/command.c:6789 src/core/command.c:6808
 #: src/core/command.c:6827 src/core/command.c:6846 src/core/command.c:6864
@@ -11833,9 +11749,7 @@ msgstr "Non esistono dati di registrazione per questa sequenza, interruzione\n"
 #: src/core/command.c:6990
 #, c-format
 msgid "Unknown framing type %s, aborting.\n"
-msgstr ""
-"Tipo di frame sconosciuto %s, interruzione.\n"
-"\n"
+msgstr "Tipo di inquadratura sconosciuto %s, interruzione.\n"
 
 #: src/core/command.c:7006
 #, c-format
@@ -11952,9 +11866,8 @@ msgid "Could not save the stacking result %s\n"
 msgstr "Non posso salvare il risultato dello stacking %s\n"
 
 #: src/core/command.c:7273 src/stacking/stacking.c:627
-#, fuzzy
 msgid "Saving rejection maps\n"
-msgstr "Reiezione immagini:"
+msgstr "Salvo le mappe di rejection\n"
 
 #: src/core/command.c:7302 src/stacking/stacking.c:680
 msgid "Stacking failed, please check the log to fix your issue.\n"
@@ -12075,9 +11988,7 @@ msgstr ""
 
 #: src/core/command.c:7767
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
-msgstr ""
-"Correzione cosmetica da masterdark: disattivata per i pixel freddi.\n"
-"\n"
+msgstr "Correzione cosmetica da masterdark: disattivata per i pixel freddi.\n"
 
 #: src/core/command.c:7769
 #, c-format
@@ -12089,9 +12000,7 @@ msgstr ""
 
 #: src/core/command.c:7771
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
-msgstr ""
-"Correzione cosmetica da masterdark: disattivata per pixel caldi.\n"
-"\n"
+msgstr "Correzione cosmetica da masterdark: disattivata per pixel caldi.\n"
 
 #: src/core/command.c:7778
 #, c-format
@@ -12112,9 +12021,7 @@ msgstr ""
 #: src/core/command.c:7791
 #, c-format
 msgid "Unknown argument %s, aborting.\n"
-msgstr ""
-"Argomento sconosciuto %s, interruzione.\n"
-"\n"
+msgstr "Argomento sconosciuto %s, interruzione.\n"
 
 #: src/core/command.c:7827 src/core/command.c:7845 src/core/preprocess.c:884
 msgid "Preprocessing...\n"
@@ -12185,7 +12092,7 @@ msgstr ""
 #, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
-msgstr[0] "Ora in uso %d processori logici\n"
+msgstr[0] "Ora in uso %d processore logico\n"
 msgstr[1] "Ora in uso %d processori logici\n"
 
 #: src/core/command.c:7973
@@ -12305,7 +12212,6 @@ msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr ""
 "L’immagine deve avere tutte le stesse dimensioni e devono essere "
 "monocromatiche\n"
-"\n"
 
 #: src/core/command.c:8353 src/core/command.c:8365 src/core/command.c:8946
 #: src/core/command.c:8958
@@ -12543,7 +12449,6 @@ msgstr ""
 "passato alcun argomento, viene stampata la selezione corrente"
 
 #: src/core/command_def.h:16
-#, fuzzy
 msgid ""
 "Calibrate the sequence <b>sequencename</b> using bias, dark and flat given "
 "in argument.\n"
@@ -12582,38 +12487,41 @@ msgstr ""
 "Preelabora la sequenza <b>sequencename</b> utilizzando bias, dark e flat "
 "forniti nell’argomento.\n"
 "\n"
-"Per il bias, è possibile specificare un livello uniforme invece di "
-"un’immagine, inserendo un’espressione tra virgolette che inizia con un segno "
-"=, come -bias=“=256” o -bias=“=64*$OFFSET”.\n"
+"Per il bias, è possibile specificare un livello uniforme invece di un’"
+"immagine, inserendo un’espressione tra virgolette che inizia con un segno =, "
+"come -bias=“=256” o -bias=“=64*$OFFSET”.\n"
 "\n"
 "Per impostazione predefinita, la correzione cosmetica non è attivata. Se "
 "desideri applicarla, dovrai specificarlo con l’opzione <b>-cc=</b>.\n"
 "Puoi utilizzare <b>-cc=dark</b> per rilevare pixel caldi e freddi dal "
-"masterdark (è necessario assegnare un masterdark con l’opzione <b>-dark=</"
-"b>), facoltativamente seguito da <b> siglo</b> e <b>sighi</b> "
-"rispettivamente per i pixel freddi e quelli caldi. Un valore di 0 disattiva "
-"la correzione. Se i sigma non vengono forniti, verrà applicato solo il "
-"rilevamento di hot pixel con un sigma di 3.\n"
+"masterdark (è necessario assegnare un masterdark con l’opzione <b>-dark=</b>)"
+", facoltativamente seguito da <b> siglo</b> e <b>sighi</b> rispettivamente "
+"per i pixel freddi e quelli caldi. Un valore di 0 disattiva la correzione. "
+"Se i sigma non vengono forniti, verrà applicato solo il rilevamento di hot "
+"pixel con un sigma di 3.\n"
 "In alternativa, puoi utilizzare <b>-cc=bpm</b> seguito dal percorso della "
-"mappa dei pixel danneggiati per specificare quali pixel devono essere "
-"corretti. Un file di esempio può essere ottenuto con un comando <i>find_hot</"
-"i> su un masterdark.\n"
+"mappa dei Bad Pixel per specificare quali pixel devono essere corretti. Un "
+"file di esempio può essere ottenuto con un comando <i>find_hot</i> su un "
+"masterdark.\n"
 "\n"
 "È possibile specificare se le immagini sono CFA per scopi di correzione "
-"estetica con l’opzione <b>-cfa</b> e anche per immagini demosaicizzate al "
+"cosmetica con l’opzione <b>-cfa</b> e anche per immagini demosaicizzate al "
 "termine del processo con <b>-debayer</b>.\n"
 "L’opzione <b>-fix_xtrans</b> è dedicata ai file X-Trans applicando una "
 "correzione su scuri e bias per rimuovere un noioso pattern quadrettato.\n"
 "L’opzione <b>-equalize_cfa</b> equalizza l’intensità media dei livelli RGB "
 "del flat master CFA.\n"
 "È anche possibile ottimizzare la sottrazione del dark con <b>-opt</b>.\n"
+"Per impostazione predefinita, i frame contrassegnati come esclusi non "
+"verranno elaborati. L'argomento <b>-all</b> può essere utilizzato per "
+"forzare l'elaborazione di tutti i frame anche se contrassegnati come esclusi."
+"\n"
 "Il nome della sequenza di output inizia con il prefisso “pp_” se non "
 "diversamente specificato con l’opzione <b>-prefix=</b>.\n"
 "Se viene fornito <b>-fitseq</b>, la sequenza di output sarà una sequenza "
 "FITS (file singolo)"
 
 #: src/core/command_def.h:17
-#, fuzzy
 msgid ""
 "Calibrate the image <b>imagename</b> using bias, dark and flat given in "
 "argument.\n"
@@ -12646,21 +12554,21 @@ msgid ""
 "The output filename starts with the prefix \"pp_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Preelabora l’immagine <b>nomeimmagine</b> usando bias, dark e flat forniti "
+"Calibra l’immagine <b>nomeimmagine</b> usando bias, dark e flat forniti "
 "nell’argomento.\n"
 "\n"
-"Per il bias, è possibile specificare un livello uniforme invece di "
-"un’immagine, inserendo un’espressione tra virgolette che inizia con un segno "
-"=, come -bias=“=256” o -bias=“=64*$OFFSET”.\n"
+"Per il bias, è possibile specificare un livello uniforme invece di un’"
+"immagine, inserendo un’espressione tra virgolette che inizia con un segno =, "
+"come -bias=“=256” o -bias=“=64*$OFFSET”.\n"
 "\n"
 "Per impostazione predefinita, la correzione cosmetica non è attivata. Se "
 "desideri applicarla, dovrai specificarlo con l’opzione <b>-cc=</b>.\n"
 "Puoi utilizzare <b>-cc=dark</b> per rilevare pixel caldi e freddi dal "
-"masterdark (è necessario assegnare un masterdark con l’opzione <b>-dark=</"
-"b>), facoltativamente seguito da <b> siglo</b> e <b>sighi</b> "
-"rispettivamente per i pixel freddi e quelli caldi. Un valore di 0 disattiva "
-"la correzione. Se i sigma non vengono forniti, verrà applicato solo il "
-"rilevamento di hot pixel con un sigma di 3.\n"
+"masterdark (è necessario assegnare un masterdark con l’opzione <b>-dark=</b>)"
+", facoltativamente seguito da <b> siglo</b> e <b>sighi</b> rispettivamente "
+"per i pixel freddi e quelli caldi. Un valore di 0 disattiva la correzione. "
+"Se i sigma non vengono forniti, verrà applicato solo il rilevamento di hot "
+"pixel con un sigma di 3.\n"
 "In alternativa, puoi utilizzare <b>-cc=bpm</b> seguito dal percorso della "
 "mappa dei pixel danneggiati per specificare quali pixel devono essere "
 "corretti. Un file di esempio può essere ottenuto con un comando <i>find_hot</"
@@ -12674,6 +12582,9 @@ msgstr ""
 "L’opzione <b>-equalize_cfa</b> equalizza l’intensità media dei livelli RGB "
 "del flat master CFA.\n"
 "È anche possibile ottimizzare la sottrazione del dark con <b>-opt</b>.\n"
+"Si noti che il parser della riga di comando non rifiuterà l'argomento "
+"<b>-pex</b>, utilizzato nelle sequenze di pre-elaborazione, ma verrà "
+"ignorato.\n"
 "Il nome del file di output inizia con il prefisso “pp_” se non diversamente "
 "specificato con l’opzione <b>-prefix=</b>"
 
@@ -13035,7 +12946,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:52
-#, fuzzy
 msgid ""
 "Tries to remove the canon banding.\n"
 "\n"
@@ -13044,11 +12954,12 @@ msgid ""
 "higher protection.\n"
 "<b>-vertical</b> option enables to perform vertical banding removal"
 msgstr ""
-"Tenta di rimuovere il canon banding.\n"
+"Tenta di rimuovere il banding canonico.\n"
 "\n"
-"L'argomento <b>ampunt</b> definisce l'ammontare della correzione.\n"
+"L'argomento <b>amount</b> definisce l'ammontare della correzione.\n"
 "<b>Sigma</b> definisce un livello di protezione dell'algoritmo, alti valori "
-"di sigma danno protezione più alta"
+"di sigma danno protezione più alta.\n"
+"L'opzione <b>-vertical</b> abilita la rimozione del branding verticale"
 
 #: src/core/command_def.h:53
 msgid ""
@@ -13173,23 +13084,24 @@ msgstr ""
 "histo_[channel name].dat nella cartella di lavoro"
 
 #: src/core/command_def.h:66
-#, fuzzy
 msgid ""
 "Adds the image in memory to the image <b>filename</b> given in argument.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
 msgstr ""
 "Aggiunge l'immagine in memoria all'immagine <b>filename</b> fornita come "
-"argomento"
+"argomento.\n"
+"Il risultato sarà a 32 bit per canale se impostato nelle preferenze"
 
 #: src/core/command_def.h:67
-#, fuzzy
 msgid ""
 "Divides the image in memory by the image <b>filename</b> given in argument.\n"
 "Result will be in 32 bits per channel if allowed in the preferences. See "
 "also FDIV"
 msgstr ""
 "Divide l'immagine in memoria per l'immagine <b>filename</b> fornita come "
-"argomento. Vedi anche FDIV"
+"argomento. \n"
+"Il risultato sarà a 32 bit per canale se impostato nelle preferenze. Vedi "
+"anche FDIV"
 
 #: src/core/command_def.h:68
 msgid ""
@@ -13248,7 +13160,6 @@ msgid "Inverse of the midtones transfer function"
 msgstr "Funzione di trasferimento mezzitoni"
 
 #: src/core/command_def.h:71
-#, fuzzy
 msgid ""
 "Inverse generalised arcsinh stretch based on the work of the ghsastro.co.uk "
 "team. This is similar to the simple asinh stretch but offers additional "
@@ -13270,14 +13181,14 @@ msgid ""
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
 msgstr ""
-"Stretch arcsinh generalizzato inverso basato sul lavoro del team di ghsastro."
-"co.uk. Questo è simile al semplice stretch asinh ma offre parametri "
+"Stretch arcsinh generalizzato inverso basato sul lavoro del team di "
+"ghsastro.co.uk. Questo è simile al semplice stretch asinh ma offre parametri "
 "aggiuntivi per la messa a punto.\n"
 "\n"
-"Un argomento facoltativo (sia <b>-umano</b>, <b>-pari</b> o <b>-"
-"indipendente</b>, può essere passato per selezionare sia la luminanza "
-"ponderata umana che quella pari oppure canali di colore indipendenti per lo "
-"stretch del colore (l’argomento viene ignorato per le immagini mono).\n"
+"Un argomento facoltativo (sia <b>-human</b>, <b>-even</b> o <b>-indipendent</"
+"b>, può essere passato per selezionare sia la luminanza ponderata umana che "
+"quella pari oppure canali di colore indipendenti per lo stretch del colore "
+"(l’argomento viene ignorato per le immagini mono).\n"
 "Ci sono una serie di argomenti obbligatori:\n"
 "<b>D</b> definisce la forza dello stretch, tra 0 e 10;\n"
 "<b>LP</b> definisce un intervallo di conservazione dell’ombra compreso tra 0 "
@@ -13286,17 +13197,20 @@ msgstr ""
 "che è il punto in cui sarà più intenso;\n"
 "<b>HP</b> definisce una regione tra HP e 1 in cui lo stretch è lineare, "
 "preservando i dettagli delle alte luci e prevenendo il rigonfiamento delle "
-"stelle"
+"stelle.\n"
+"Facoltativamente, il parametro <b>[channels]</b> può essere utilizzato per "
+"specificare i canali a cui applicare lo stretch: questo può essere R, G, B, "
+"RG, RB o GB. L'impostazione predefinita è tutti i canali"
 
 #: src/core/command_def.h:72
-#, fuzzy
 msgid ""
 "Multiplies the image in memory by the image <b>filename</b> given in "
 "argument.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
 msgstr ""
 "Moltiplica l'immagine in memoria per l'immagine <b>filename</b> fornita come "
-"argomento"
+"argomento.\n"
+"Il risultato sarà a 32 bit per canale se impostato nelle preferenze"
 
 #: src/core/command_def.h:73
 msgid ""
@@ -13332,14 +13246,13 @@ msgid ""
 "convert files in another directory with the <b>-out=</b> option"
 msgstr ""
 "Collega tutte le immagini FITS nella cartella di lavoro con il <b>basename</"
-"n> fornito come argomento.\n"
+"b> fornito come argomento.\n"
 "\n"
 "Se nessun link simbolico può essere creato, i file vengono copiati. E’ "
-"possibile convertire i files in un’altra cartella usando l’opzione <b>-out</"
-"b>"
+"possibile convertire i files in un’altra cartella usando l’opzione "
+"<b>-out</b>"
 
 #: src/core/command_def.h:77
-#, fuzzy
 msgid ""
 "Stretches the image linearly to a new black point BP.\n"
 "\n"
@@ -13349,10 +13262,14 @@ msgid ""
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
 msgstr ""
-"Esegue lo stretch sull’immagine fino a un nuovo punto di nero BOP.\n"
+"Esegue lo stretch sull’immagine linearmente fino a un nuovo punto di nero BP."
+"\n"
 "\n"
 "C’è un solo argomento obbligatorio:\n"
-"<b>BP</b>fornisce il nuovo punto di nero a cui tendere lo stretch"
+"<b>BP</b>fornisce il nuovo punto di nero a cui tendere lo stretch.\n"
+"Facoltativamente, il parametro <b>[channels]</b> può essere utilizzato per "
+"specificare i canali a cui applicare l'allungamento: questo può essere R, G, "
+"B, RG, RB o GB. L'impostazione predefinita è tutti i canali"
 
 #: src/core/command_def.h:78
 msgid ""
@@ -13496,7 +13413,6 @@ msgid "Flips the image about the horizontal axis"
 msgstr "Inverte l'immagine attorno all'asse orizzontale"
 
 #: src/core/command_def.h:91
-#, fuzzy
 msgid ""
 "Modified arcsinh stretch based on the work of the ghsastro.co.uk team. This "
 "is similar to the simple asinh stretch but offers additional parameters for "
@@ -13522,7 +13438,7 @@ msgstr ""
 "Questo è simile al semplice asinh stretch ma offre parametri aggiuntivi per "
 "la messa a punto.\n"
 "\n"
-"Un argomento opzionale (sia <b>-umano</b>, <b>-pari</b> o <b>-indipendente</"
+"Un argomento opzionale (sia <b>-human</b>, <b>-even</b> o <b>-indiopendent</"
 "b>, può essere passato per selezionare sia la luminanza ponderata umana che "
 "quella pari oppure canali di colore indipendenti per lo stretch del colore "
 "(l’argomento viene ignorato per le immagini mono).\n"
@@ -13534,10 +13450,12 @@ msgstr ""
 "che è il punto in cui sarà più intenso;\n"
 "<b>HP</b> definisce una regione tra HP e 1 in cui lo stretch è lineare, "
 "preservando i dettagli delle alte luci e prevenendo il rigonfiamento delle "
-"stelle"
+"stelle.\n"
+"Facoltativamente, il parametro <b>[channels]</b> può essere utilizzato per "
+"specificare i canali a cui applicare l'allungamento: questo può essere R, G, "
+"B, RG, RB o GB. L'impostazione predefinita è tutti i canali"
 
 #: src/core/command_def.h:92
-#, fuzzy
 msgid ""
 "Applies midtones transfer function to the current loaded image.\n"
 "\n"
@@ -13552,7 +13470,10 @@ msgstr ""
 "\n"
 "Sono necessari tre parametri, <b>low</b>, <b>midtones</b> e <b>high</b> dove "
 "il parametro bilancia mezzitoni definisce uno stretch dell’istogramma non "
-"lineare nel range [0,1]"
+"lineare nel range [0,1]\n"
+"Facoltativamente, il parametro <b>[channels]</b> può essere utilizzato per "
+"specificare i canali a cui applicare l'allungamento: questo può essere R, G, "
+"B, RG, RB o GB. L'impostazione predefinita è tutti i canali"
 
 #: src/core/command_def.h:94
 msgid ""
@@ -13742,7 +13663,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:108
-#, fuzzy
 msgid ""
 "Finds and optionally performs geometric transforms on images of the sequence "
 "given in argument so that they may be superimposed on the reference image. "
@@ -13784,42 +13704,51 @@ msgid ""
 "If created, the output sequence name starts with the prefix \"r_\" unless "
 "otherwise specified with <b>-prefix=</b> option"
 msgstr ""
-"Esegue trasformazioni geometriche su immagini della sequenza data in "
-"argomento in modo che possano essere sovrapposte all’immagine di "
-"riferimento. Utilizzando le stelle per la registrazione, questo algoritmo "
-"funziona solo con le immagini del cielo profondo.\n"
+"Trova ed eventualmente esegue trasformazioni geometriche sulle immagini "
+"della sequenza data in argomento in modo che possano essere sovrapposte "
+"all'immagine di riferimento. Usando le stelle per la registrazione, questo "
+"algoritmo funziona solo con immagini del cielo profondo. Le opzioni di "
+"rilevamento delle stelle possono essere modificate utilizzando la finestra "
+"di dialogo <b>SETFINDSTAR</b> o <i>Dynamic PSF</i>. Il rilevamento viene "
+"eseguito sul livello verde per le immagini a colori, a meno che non sia "
+"specificato dall'opzione <b>-layer=</b> con un argomento che va da 0 a 2 per "
+"il rosso al blu.\n"
 "\n"
-"Il nome della sequenza di output inizia con il prefisso <b>”r_”</b> se non "
-"diversamente specificato con l’opzione <b>-prefix=</b>.\n"
+"Le opzioni <b>-2pass</b> e <b>-noout</b> calcoleranno solo le trasformazioni "
+"ma non genereranno le immagini trasformate, <b>-2pass</b> aggiunge un "
+"passaggio preliminare all'algoritmo per trovare una buona immagine di "
+"riferimento prima di calcolare le trasformazioni.<b>-nostarlist</b> "
+"disabilita il salvataggio degli elenchi di stelle su disco.\n"
 "\n"
-"L’opzione <b>-drizzle</b> attiva lo stacking dei sub-pixel, o up-scaling di "
-"2 le immagini create nella sequenza ruotata o impostando un flag che "
-"procederà all’up-scaling durante lo stacking se <b >-noout</b> è passato.\n"
+"L'opzione <b>-transf=</b> specifica l'uso di <b>shift</b>, <b>similarity</"
+"b>, <b>affine</b> o <b>homography</b> (predefinito) trasformazioni "
+"rispettivamente.\n"
+"L'opzione <b>-drizzle</b> attiva il sub-pixel stacking ingrandendo di 2 le "
+"immagini generate.\n"
+"L'opzione <b>-minpairs=</b> specificherà il numero minimo di coppie di "
+"stelle che un fotogramma deve avere con il fotogramma di riferimento, "
+"altrimenti il fotogramma verrà scartato ed escluso dalla sequenza.\n"
+"L'opzione <b>-maxstars=</b> specificherà il numero massimo di stelle da "
+"trovare all'interno di ogni fotogramma (deve essere compreso tra 100 e 2000)"
+". Con più stelle, è possibile calcolare una registrazione più accurata, ma "
+"richiederà più tempo per l'esecuzione.\n"
 "\n"
-"L’opzione <b>-transf=</b> specifica l’uso di trasformazioni <b>”shift”</b>, "
-"<b>”similarity”</b>, <b>”affine”</b> o <b>”homography”</b> rispettivamente, "
-"l’omografia è l’impostazione predefinita.\n"
-"L’opzione <b>-minpairs=</b> specificherà il numero minimo di coppie di "
-"stelle che un frame deve avere con il frame di riferimento, altrimenti il ​​"
-"frame verrà eliminato.\n"
-"\n"
-"L’opzione <b>-maxstars=</b> specificherà il numero massimo di stelle da "
-"trovare all’interno di ogni frame (deve essere compreso tra 100 e 2000). Un "
-"valore maggiore consentirà di trovare più stelle ed eseguire una "
-"registrazione più accurata, ma richiederà più tempo per l’esecuzione.\n"
-"\n"
-"La registrazione viene eseguita sul livello verde per le immagini RGB, a "
-"meno che non sia specificato dall’opzione <b>-layer=</b> (0, 1 o 2 "
-"rispettivamente per R, G e B).\n"
-"\n"
-"Il metodo di interpolazione può essere specificato con la parola chiave <b>-"
-"interp=</b> seguita da uno dei metodi nell’elenco { no[ne] | ne[aresti] | "
-"cu[bic] | la[nczos4] | li[near] | ar[ea]}. Se viene passato <b>none</b>, la "
-"trasformazione è forzata a spostarsi e a ciascuna immagine viene applicato "
-"uno spostamento in termini di pixel senza alcuna interpolazione.\n"
+"Il metodo di interpolazione dei pixel può essere specificato con l'argomento "
+"<b>-interp=</b> seguito da uno dei metodi nell'elenco <b>no</b>[ne], "
+"<b>ne</b>[ arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea] }. Se viene passato <b>none</b>, la trasformazione viene "
+"forzata a spostarsi e viene applicato uno spostamento in pixel a ciascuna "
+"immagine senza alcuna interpolazione.\n"
+"Il clamping dei metodi di interpolazione bicubic e lanczos4 è l'impostazione "
+"predefinita, per evitare artefatti, ma può essere disabilitato con "
+"l'argomento <b>-noclamp</b>.\n"
 "\n"
 "Tutte le immagini della sequenza verranno registrate a meno che non venga "
-"passata l'opzione <b>-selected</b>"
+"passata l'opzione <b>-selected</b>, in tal caso le immagini escluse non "
+"verranno elaborate\n"
+"\n"
+"Se creato, il nome della sequenza di output inizia con il prefisso \"r_\" se "
+"non diversamente specificato con l'opzione <b>-prefix=</b>"
 
 #: src/core/command_def.h:109
 msgid "Rescans the scripts folders and updates scripts menu"
@@ -14087,7 +14016,6 @@ msgstr ""
 "sequenza caricata (da <b>from</b> a <b>to</b> inclusi)"
 
 #: src/core/command_def.h:130
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using registration "
@@ -14129,35 +14057,46 @@ msgstr ""
 "Applica le trasformazioni geometriche alle immagini della sequenza data in "
 "argomento in modo che possano essere sovrapposte all’immagine di "
 "riferimento, utilizzando i dati di registrazione precedentemente calcolati. "
-"Questo vale solo per le immagini selezionate se è stata aggiunta l’opzione "
-"<b>-selected</b>.\n"
+"\n"
 "\n"
 "Il nome della sequenza di output inizia con il prefisso <b>”r_”</b> se non "
 "diversamente specificato con l’opzione <b>-prefix=</b>.\n"
 "\n"
-"L’opzione <b>-drizzle</b> attiva l’up-scaling di 2 delle immagini create "
+"L’opzione <b>-drizzle</b> attiva l’up-scaling per 2 delle immagini create "
 "nella sequenza trasformata.\n"
 "\n"
-"Il metodo di interpolazione può essere specificato con la parola chiave <b>-"
-"interp=</b> seguita da uno dei metodi nell’elenco { no[ne] | ne[aresti] | "
-"cu[bic] | la[nczos4] | li[near] | ar[ea]}. Se viene passato <b>none</b>, la "
-"trasformazione è forzata a spostarsi e a ciascuna immagine viene applicato "
-"uno spostamento in termini di pixel senza alcuna interpolazione.\n"
+"Il metodo di interpolazione può essere specificato con la parola chiave "
+"<b>-interp=</b> seguita da uno dei metodi nell’elenco <b>no</b>[ne], "
+"<b>ne</b>[arest], "
+"<b>cu</b>[bic],<b>la</b>[nczos4],<b>li</b>[near],<b>ar</b>[ea]}. Se viene "
+"passato <b>none</b>, la trasformazione è forzata a spostarsi e a ciascuna "
+"immagine viene applicato uno spostamento in termini di pixel senza alcuna "
+"interpolazione.\n"
+"Il clamping dei metodi di interpolazione bicubic e lanczos4 è l'impostazione "
+"predefinita, per evitare artefatti, ma può essere disabilitato con "
+"l'argomento <b>-noclamp</b>.\n"
 "\n"
 "La registrazione viene eseguita sul primo livello per il quale esistono dati "
 "per le immagini RGB, a meno che non sia specificato dall’opzione <b>-layer=</"
-"b> (0, 1 o 2 rispettivamente per R, G e B.\n"
+"b> (0, 1 o 2 rispettivamente per R, G e B).\n"
 "\n"
 "Il framing automatico della sequenza di output può essere specificato usando "
-"la parola chiave <b>-framing=</b> seguita da uno dei metodi nell’elenco "
-"{ current | min | max | cog }:\n"
+"la parola chiave <b>-framing=</b> seguita da uno dei metodi nell’elenco { "
+"current | min | max | cog }:\n"
 "<b>-framing=max</b> (riquadro di delimitazione) aggiunge un bordo nero "
-"attorno a ciascuna immagine come richiesto in modo che nessuna parte "
-"dell’immagine venga ritagliata quando viene registrata.\n"
+"attorno a ciascuna immagine come richiesto in modo che nessuna parte dell’"
+"immagine venga ritagliata quando viene registrata.\n"
 "<b>-framing=min</b> (area comune) ritaglia ogni immagine nell’area che ha in "
 "comune con tutte le immagini della sequenza.\n"
 "<b>-framing=cog</b> determina la migliore posizione di inquadratura come "
-"centro di gravità (cog) di tutte le immagini"
+"centro di gravità (cog) di tutte le immagini.\n"
+"\n"
+"Filtraggio delle immagini:\n"
+"Le immagini da registrare possono essere selezionate in base ad alcuni "
+"filtri, come quelli selezionati o con il miglior FWHM, con alcune delle "
+"opzioni <b>-filter-*</b>.\n"
+"Vedere il riferimento al comando per la documentazione completa su questo "
+"comando"
 
 #: src/core/command_def.h:131
 #, fuzzy
@@ -14287,7 +14226,6 @@ msgstr ""
 "diversamente specificato con l’opzione <b>-prefix=</b>"
 
 #: src/core/command_def.h:141
-#, fuzzy
 msgid ""
 "Same command as FIXBANDING but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -14295,10 +14233,12 @@ msgid ""
 "specified with <b>-prefix=</b> option.\n"
 "<b>-vertical</b> option enables to perform vertical banding removal"
 msgstr ""
-"Lo stesso comando come FIND_COSME ma per la sequenza <b>sequencename</b>.\n"
+"Lo stesso comando come FIXBANDING ma per la sequenza <b>sequencename</b>.\n"
 "\n"
-"Il nome della sequenza di output inizia con il prefisso “cc_” se non "
-"diversamente specificato con l’opzione <b>-prefix=</b>"
+"Il nome della sequenza di output inizia con il prefisso “unband_” se non "
+"diversamente specificato con l’opzione <b>-prefix=</b>.\n"
+"L'opzione <b>-vertical</b> consente di eseguire la rimozione del banding "
+"verticale"
 
 #: src/core/command_def.h:142
 #, fuzzy
@@ -14326,7 +14266,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:144
-#, fuzzy
 msgid ""
 "Same command as MTF but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -14340,7 +14279,11 @@ msgstr ""
 "Lo stesso comando come MTF ma per la sequenza <b>sequencename</b>.\n"
 "\n"
 "Il nome della sequenza di output inizia con il prefisso “mtf_” se non "
-"diversamente specificato con l’opzione <b>-prefix=</b>"
+"diversamente specificato con l’opzione <b>-prefix=</b>\n"
+"\n"
+"Facoltativamente, il parametro <b>[channels]</b> può essere utilizzato per "
+"specificare i canali a cui applicare l'allungamento: questo può essere R, G, "
+"B, RG, RB o GB. L'impostazione predefinita è tutti i canali"
 
 #: src/core/command_def.h:145
 msgid ""
@@ -14408,7 +14351,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:149
-#, fuzzy
 msgid ""
 "Same as SETMAG command but for the loaded sequence. \n"
 "\n"
@@ -14434,8 +14376,9 @@ msgstr ""
 "Quando si esegue il comando, l'ultima stella che è stata analizzata sarà "
 "considerata come la stella di riferimento. Visualizzare il grafico della "
 "magnitudine prima di digitare il comando lo rende può semplice da "
-"comprendere. Per azzerare la stella di riferimento e l'offset della "
-"magnitudine vedi UNSETMAGSEQ"
+"comprendere. \n"
+"Per azzerare la stella di riferimento e l'offset della magnitudine vedi "
+"UNSETMAGSEQ"
 
 #: src/core/command_def.h:150
 msgid ""
@@ -14458,7 +14401,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:152
-#, fuzzy
 msgid ""
 "Same command as STAT for sequence <b>sequencename</b>.\n"
 "\n"
@@ -14473,8 +14415,10 @@ msgstr ""
 "\n"
 "L’<b>output</b>è salvato come un file csv fornito in un secondo argomento.\n"
 "Il parametro opzionale definisce il numero di valori statistici computati: "
-"<b>basic</b>, <b>main</b> o<b>full</b> (più dettagliato ma più lungo da "
-"computare)"
+"<b>basic</b>, <b>main</b> (default) o<b>full</b> (più dettagliato ma più "
+"lungo da computare)\n"
+"Se viene inserito <b>-cfa</b> e le immagini sono CFA, vengono effettuate "
+"statistiche sulle estrazioni pre-filtro"
 
 #: src/core/command_def.h:153
 msgid ""
@@ -14543,10 +14487,11 @@ msgid ""
 "compression with a quantization of 16"
 msgstr ""
 "Definisce se le immagini sono compresse o no.\n"
+"\n"
 "<b>0</b> significa nessuna compressione mentre <b>1</b> ablita la "
 "compressione.\n"
-"Se la compressione è attiva, il tipo deve essere scritto esplicitamente "
-"nell’opzione <b>-type=</b> (“rice”, “gzip1”, “gzip2”).\n"
+"Se la compressione è attiva, il tipo deve essere scritto esplicitamente nell’"
+"opzione <b>-type=</b> (“rice”, “gzip1”, “gzip2”).\n"
 "Associato alla compressione, il valore di quantizzazione deve essere nel "
 "range [0, 256]. Per esempio , “setcompress 1 -type=rice 16” imposta la "
 "compressione rice con una quantizzazione di 16"
@@ -14576,7 +14521,6 @@ msgstr ""
 "L'argomento <b>extension</b> può essere \"fit\", \"fts\" o \"fits\""
 
 #: src/core/command_def.h:162
-#, fuzzy
 msgid ""
 "Defines stars detection parameters for FINDSTAR and REGISTER commands.\n"
 "\n"
@@ -14612,19 +14556,32 @@ msgstr ""
 "Definisce i parametri di rilevamento delle stelle per i comandi FINDSTAR e "
 "REGISTER.\n"
 "\n"
+"Non passando alcun parametro vengono elencati i valori correnti.\n"
+"Il passaggio di <b>reset</b> ripristina tutti i valori ai valori "
+"predefiniti. È quindi ancora possibile passare i valori dopo questa parola "
+"chiave.\n"
+"\n"
+"Valori configurabili:\n"
+"\n"
 "<b>-radius=</b> definisce il raggio della casella di ricerca iniziale e deve "
 "essere compreso tra 3 e 50.\n"
 "<b>-sigma=</b> definisce la soglia sopra il rumore e deve essere maggiore o "
 "uguale a 0,05.\n"
 "<b>-roundness=</b> definisce la rotondità minima delle stelle e deve essere "
-"compresa tra 0 e 0,95\n"
-"<b>-auto=</b> viene utilizzato se impostato su “on”, nel qual caso l’opzione "
-"<b>raggio</b> viene corretta per tenere conto del campionamento effettivo "
-"definito da <b>focal</b> e le opzioni <b>pixelsize</b> (a meno che non siano "
-"già definite nell’intestazione dell’immagine). Questa opzione può essere "
-"disattivata impostando <b>-auto=</b>off.\n"
+"compresa tra 0 e 0,95. <b>-maxR</b> permette di impostare un limite "
+"superiore alla rotondità, per visualizzare solo le zone dove le stelle sono "
+"significativamente allungate, non cambiare per la registrazione.\n"
+"<b>-minA</b> e <b>-maxA</b> definiscono i limiti per l'ampiezza minima e "
+"massima delle stelle da mantenere, normalizzati tra 0 e 1.\n"
 "<b>-focal=</b> definisce la lunghezza focale del telescopio.\n"
 "<b>-pixelsize=</b> definisce la dimensione in pixel del sensore.\n"
+"<b> -gaussian</b> e <b>-moffat</b> configurano il modello di risolutore da "
+"utilizzare (Gaussian è l'impostazione predefinita).\n"
+"Se viene selezionato Moffat, <b>-minbeta=</b> definisce il valore minimo di "
+"beta per il quale saranno accettate le stelle candidate e deve essere "
+"maggiore o uguale a 0.0 e minore di 10.0.\n"
+"<b>-convergence=</b> definisce il numero di iterazioni eseguite per "
+"adattarsi a PSF e dovrebbe essere impostato tra 1 e 3 (più tollerante).\n"
 "<b>-relax=</b> allenta i controlli che vengono effettuati su stelle "
 "candidate per valutare se sono stelle o meno, per consentire agli oggetti "
 "che non hanno la forma di stelle di essere comunque accettati (disattivato "
@@ -14717,7 +14674,6 @@ msgstr ""
 "e li salva in files"
 
 #: src/core/command_def.h:170
-#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -14772,7 +14728,7 @@ msgid ""
 msgstr ""
 "Esegue lo stacking della sequenza <b>sequencename</b>, usando le opzioni.\n"
 "\n"
-"Tipo di rifiuto:\n"
+"Tipo di rejection:\n"
 "I tipi consentiti sono: “sum”, “max”, “min”, “med” (o “median”) e “rej” (o "
 "“mean”). Se non viene fornito alcun argomento diverso dal nome della "
 "sequenza, viene presupposto lo stacking somma.\n"
@@ -14781,11 +14737,14 @@ msgstr ""
 "I tipi rej o mean richiedono l’uso di argomenti aggiuntivi per il tipo dei "
 "valori di rifiuto. Il tipo di rifiuto è uno di { n[one] | p[ercentile] | "
 "s[igma] | m[edian] | w[insorized] | l[inear] | g[eneralized] | [m]a[d] } per "
-"Percentile, Sigma, Median, Winsorized, Linear-Fit, Generalized Extreme "
-"Studentized Deviate Test o k-MAD clipping. Se omesso, viene utilizzato il "
-"valore predefinito (Winsorized).\n"
+"Percentile, Sigma, Median, Winsorized, Linear-Fit, Test ESD Generalizzato o "
+"k-MAD clipping. Se omesso, viene utilizzato il valore predefinito "
+"(Winsorized).\n"
 "I parametri di rifiuto <b>sigma basso</b> e <b>sigma alto</b> sono "
 "obbligatori a meno che non sia selezionato <b>nessuno</b>.\n"
+"Facoltativamente, è possibile creare mappe di rifiuto, che mostrano dove i "
+"pixel sono stati rifiutati in una (<b>-rejmap</b>) o due (<b>-rejmaps</b>, "
+"per i rifiuti bassi e alti) immagini appena create.\n"
 "\n"
 "Normalizzazione delle immagini di input:\n"
 "Per i tipi di stacking med|median e rej|mean, sono consentiti diversi tipi "
@@ -14795,27 +14754,32 @@ msgstr ""
 "<b>-nonorm</b> è l’opzione per disabilitare la normalizzazione. In caso "
 "contrario, l’additivo con il metodo di scala viene applicato per "
 "impostazione predefinita.\n"
+"\n"
 "L’opzione <b>-fastnorm</b> specifica di utilizzare stimatori più veloci per "
 "posizione e scala rispetto all’IKSS predefinito.\n"
+"<b>-rgb_equal</b> utilizzerà la normalizzazione per equalizzare gli sfondi "
+"delle immagini a colori, utile se non verranno utilizzati pcc e unlinked "
+"autostretch.\n"
 "\n"
 "Altre opzioni per l’impilamento dei rifiuti:\n"
 "<b>-weight_from_noise</b> è un’opzione per aggiungere pesi maggiori ai "
 "fotogrammi con un rumore di fondo inferiore.\n"
 "<b>-weight_from_nbstack</b> pesa le immagini di input in base a quante "
 "immagini sono state utilizzate per crearle, utile per il live stacking.\n"
-"<b>-output_norm</b> applica una normalizzazione alla fine dello stacking per "
-"ridimensionare il risultato nell’intervallo [0, 1].\n"
-"<b>-rgb_equal</b> equalizza i canali RGB dell’immagine impilata (solo "
-"colore).\n"
+"<b>-weight_from_nbstars</b> o <b>-weight_from_wfwhm</b> immagini di input "
+"ponderate in base al numero di stelle o wFWHM calcolato durante la fase di "
+"registrazione.\n"
 "\n"
-"Uscite:\n"
+"Outputs:\n"
 "Il nome dell’immagine risultato può essere impostato con l’opzione <b>-out=</"
 "b>. In caso contrario, verrà denominato <b>sequencename</b>_stacked.fit\n"
+"<b>-output_norm</b> applica una normalizzazione per ridimensionare il "
+"risultato nell'intervallo [0, 1] (solo stacking mediano e medio).\n"
 "\n"
 "Filtraggio delle immagini:\n"
 "Le immagini da impilare possono essere selezionate in base ad alcuni filtri, "
-"come la selezione manuale o il miglior FWHM, con alcune delle opzioni <b>-"
-"filter-*</b>.\n"
+"come la selezione manuale o il miglior FWHM, con alcune delle opzioni "
+"<b>-filter-*</b>.\n"
 "Vedere il riferimento al comando per la documentazione completa su questo "
 "comando"
 
@@ -14830,7 +14794,6 @@ msgstr ""
 "lo stacking somma. Vedi il comando STACK per la descrizione delle opzioni"
 
 #: src/core/command_def.h:172
-#, fuzzy
 msgid ""
 "This command calls <a href=\"https://www.starnetastro.com/\">StarNet</a> to "
 "remove stars from the current image.\n"
@@ -14860,7 +14823,7 @@ msgid ""
 "More tips and tricks are available <a href=\"https://www.starnetastro.com/"
 "tips-tricks/\">there</a>"
 msgstr ""
-"Questo comando chiama <a href=“https://www.starnetastro.com/“>Starnet++</a> "
+"Questo comando chiama <a href=\"https://www.starnetastro.com/\">StarNet</a> "
 "per rimuovere le stelle dall’immagine corrente.\n"
 "\n"
 "<b>Prerequisito:</b> Starnet++ è un programma esterno, senza affiliazione "
@@ -14870,8 +14833,8 @@ msgstr ""
 "la versione linea di comando (non la versione della GUI che esiste per gli "
 "utenti Windows).\n"
 "\n"
-"L’immagine senza stelle viene caricata al completamento e viene creata "
-"un’immagine maschera stella nella directory di lavoro a meno che non venga "
+"L’immagine senza stelle viene caricata al completamento e viene creata un’"
+"immagine maschera stella nella directory di lavoro a meno che non venga "
 "fornito il parametro opzionale <b>-nostarmask</b>.\n"
 "\n"
 "Facoltativamente, i parametri possono essere passati al comando:\n"
@@ -14879,16 +14842,16 @@ msgstr ""
 "pre-stretch prima di eseguire Starnet e lo stretch inverso alle immagini "
 "senza stelle e maschera stellare generate.\n"
 "- Per migliorare la rimozione delle stelle su immagini con stelle molto "
-"strette, può essere fornito il parametro <b>-upscale</b>. Ciò aumenterà "
-"l’immagine di un fattore 2 prima dell’elaborazione Starnet++ e la "
+"strette, può essere fornito il parametro <b>-upscale</b>. Ciò aumenterà l’"
+"immagine di un fattore 2 prima dell’elaborazione Starnet++ e la "
 "ridimensionerà alle dimensioni originali in seguito, a scapito di un tempo "
 "di elaborazione maggiore.\n"
 "- Può essere fornito il parametro facoltativo <b>-stride=value</b>, tuttavia "
 "l’autore di Starnet <i>fortemente</i> raccomanda di utilizzare lo stride "
 "predefinito di 256.\n"
 "\n"
-"Altri suggerimenti e trucchi sono disponibili <a href=“https://www."
-"starnetastro.com/tips-tricks/“>qui</a>"
+"Altri suggerimenti e trucchi sono disponibili <a href=\"https://www."
+"starnetastro.com/tips-tricks/\">qui</a>"
 
 #: src/core/command_def.h:173
 #, fuzzy
@@ -14977,8 +14940,8 @@ msgid ""
 "Replaces values below <b>lo</b> with <b>lo</b> and values above <b>hi</b> "
 "with <b>hi</b>"
 msgstr ""
-"Rimpiazza i valori inferiori a b>lo</b> con <b>lo</b> e i valori superiori a "
-"<b>hi</b> con <b>hi</b>"
+"Rimpiazza i valori inferiori a <b>lo</b> con <b>lo</b> e i valori superiori "
+"a <b>hi</b> con <b>hi</b>"
 
 #: src/core/command_def.h:182
 msgid ""
@@ -15061,9 +15024,8 @@ msgstr ""
 "seconda del numero di piani usati nella trasformazione wavelet"
 
 #: src/core/command_line_processor.c:50
-#, fuzzy
 msgid "unknown command name"
-msgstr "parametro da linea di comando '%c' sconosciuto\n"
+msgstr "nome comando sconosciuto"
 
 #: src/core/command_line_processor.c:52
 msgid "non-blocking command, no error"
@@ -15075,9 +15037,8 @@ msgid "current working directory is invalid"
 msgstr "cartella di lavoro corrente"
 
 #: src/core/command_line_processor.c:56
-#, fuzzy
 msgid "command cannot be used in a script"
-msgstr "Questo comando non può essere utilizzato in uno script: %s\n"
+msgstr "il comando non può essere utilizzato in uno script"
 
 #: src/core/command_line_processor.c:58
 #, fuzzy
@@ -15085,14 +15046,12 @@ msgid "invalid number of arguments"
 msgstr "Numero di stelle"
 
 #: src/core/command_line_processor.c:60
-#, fuzzy
 msgid "invalid arguments"
-msgstr "Argomento mancante %s, interruzione.\n"
+msgstr "argomenti invalidi"
 
 #: src/core/command_line_processor.c:62
-#, fuzzy
 msgid "invalid image area selection"
-msgstr "Selezione immagine:"
+msgstr "selezione area immagine non valida"
 
 #: src/core/command_line_processor.c:64
 msgid "command succeeded"
@@ -15119,33 +15078,28 @@ msgid "invalid input image"
 msgstr "non presente nell’immagine"
 
 #: src/core/command_line_processor.c:75
-#, fuzzy
 msgid "load an image or sequence first"
-msgstr "Carica prima un'immagine o una sequenza.\n"
+msgstr "carica prima un'immagine o una sequenza"
 
 #: src/core/command_line_processor.c:77
-#, fuzzy
 msgid "command is only for a loaded single image"
-msgstr "Questo comando può essere solo applicato su immagini plate-solved.\n"
+msgstr "il comando è solo per una singola immagine caricata"
 
 #: src/core/command_line_processor.c:79
 msgid "command is only for a sequence"
 msgstr ""
 
 #: src/core/command_line_processor.c:81
-#, fuzzy
 msgid "command is not for monochrome images"
-msgstr "Questo comando non può essere applicato a immagini monocromatiche.\n"
+msgstr "il comando non può essere applicato a immagini monocromatiche"
 
 #: src/core/command_line_processor.c:83
-#, fuzzy
 msgid "command is not for color images"
-msgstr "comando troppo lungo o malformato\n"
+msgstr "il comando non è per le immagini a colori"
 
 #: src/core/command_line_processor.c:85
-#, fuzzy
 msgid "command is only for OSC CFA images"
-msgstr "Questo comando può essere solo applicato su immagini plate-solved.\n"
+msgstr "il comando è solo per le immagini OSC CFA"
 
 #: src/core/command_line_processor.c:87
 #, fuzzy
@@ -15153,9 +15107,8 @@ msgid "file not found"
 msgstr "File non trovato"
 
 #: src/core/command_line_processor.c:89
-#, fuzzy
 msgid "command is only for plate solved images"
-msgstr "Questo comando può essere solo applicato su immagini plate-solved.\n"
+msgstr "questo comando può essere solo applicato su immagini plate-solved"
 
 #: src/core/command_line_processor.c:91
 msgid "command requires a preliminary step"
@@ -15167,9 +15120,8 @@ msgid "memory allocation error"
 msgstr "allocazione di memoria"
 
 #: src/core/command_line_processor.c:95
-#, fuzzy
 msgid "a processing is already running"
-msgstr "Pre-elaborazione è pronta\n"
+msgstr "un'elaborazione è già in esecuzione"
 
 #: src/core/command_line_processor.c:142
 #, c-format
@@ -15723,16 +15675,12 @@ msgstr "Utilizzo il filtro immagini (di stelle) FWHM (al di sotto %f)\n"
 #: src/core/sequence_filtering.c:251
 #, c-format
 msgid "Using star weighted FWHM images filter (below %f)\n"
-msgstr ""
-"Utilizzo il filtro immagini (di stelle) FWHM pesata (al di sotto %f)\n"
-"\n"
+msgstr "Utilizzo il filtro immagini (di stelle) FWHM pesata (al di sotto %f)\n"
 
 #: src/core/sequence_filtering.c:259
 #, c-format
 msgid "Using star roundness images filter (above %f)\n"
-msgstr ""
-"Utilizzo il filtro immagini (di stelle) Rotondità (al di sopra %f)\n"
-"\n"
+msgstr "Utilizzo il filtro immagini (di stelle) Rotondità (al di sopra %f)\n"
 
 #: src/core/sequence_filtering.c:267
 #, c-format
@@ -15742,16 +15690,12 @@ msgstr "Utilizzo del filtro dell’immagine di sfondo (sotto %f)\n"
 #: src/core/sequence_filtering.c:275
 #, c-format
 msgid "Using number of stars filter (above %f)\n"
-msgstr ""
-"Utilizzo del filtro del numero di stelle (sopra %f)\n"
-"\n"
+msgstr "Utilizzo del filtro del numero di stelle (sopra %f)\n"
 
 #: src/core/sequence_filtering.c:283
 #, c-format
 msgid "Using image quality filter (below %f)\n"
-msgstr ""
-"Utilizzo il filtro immagini Qualità (al di sotto %f)\n"
-"\n"
+msgstr "Utilizzo il filtro immagini qualità (al di sotto %f)\n"
 
 #: src/core/sequence_filtering.c:310
 msgid ""
@@ -15871,11 +15815,8 @@ msgid "don't use 32 bits for pixel depth"
 msgstr "non utilizzare 32 bit per la profondità dei pixel"
 
 #: src/core/settings.c:251
-#, fuzzy
 msgid "allow FITS cubes to have different sizes"
-msgstr ""
-"Errore durante lo stacking: le immagini di input hanno dimensioni "
-"differenti\n"
+msgstr "consentire ai cubi FITS di avere dimensioni diverse"
 
 #: src/core/settings.c:252
 msgid "memory mode (0 ratio, 1 amount)"
@@ -16060,9 +16001,8 @@ msgid "degrees of the polynomial correction"
 msgstr ""
 
 #: src/core/settings.c:304
-#, fuzzy
 msgid "radius around the target coordinates (degrees)"
-msgstr "Impossibile analizzare le coordinate del bersaglio\n"
+msgstr "raggio attorno alle coordinate del target (gradi)"
 
 #: src/core/settings.c:305
 msgid "do not delete .xyls FITS tables"
@@ -16317,7 +16257,7 @@ msgstr "mostra le stelle nelle annotazioni"
 
 #: src/core/settings.c:384
 msgid "show user objects in annotations"
-msgstr "mostra gli oggetti  dell’utente nelle annotazioni"
+msgstr "mostra gli oggetti dell’utente nelle annotazioni"
 
 #: src/core/settings.c:386
 #, fuzzy
@@ -16387,24 +16327,24 @@ msgid "RGB alignment (PSF)"
 msgstr "Allineamento RGB (PSF)"
 
 #: src/core/siril_log.c:94
-#, fuzzy, c-format
+#, c-format
 msgid "%d h %02d min %.2d s"
-msgstr "%s: %d h %02d min %.2d s.\n"
+msgstr "%d h %02d min %.2d s"
 
 #: src/core/siril_log.c:98
-#, fuzzy, c-format
+#, c-format
 msgid "%d min %02d s"
-msgstr "%s: %d min %02d s.\n"
+msgstr "%d min %02d s"
 
 #: src/core/siril_log.c:101
-#, fuzzy, c-format
+#, c-format
 msgid "%.2lf ms"
-msgstr "%s: %.2lf ms.\n"
+msgstr "%.2lf ms"
 
 #: src/core/siril_log.c:103
-#, fuzzy, c-format
+#, c-format
 msgid "%.2lf s"
-msgstr "%s: %.2lf s.\n"
+msgstr "%.2lf s."
 
 #: src/core/siril_log.c:114
 msgid "Execution time"
@@ -16420,7 +16360,7 @@ msgstr ""
 #, c-format
 msgid ""
 "New version is available. You can download it at <a href=\"%s\">%s</a>\n"
-msgstr "Nuova versione disponibile. Puoi scaricarla su <a href=“%s”>%s</a>\n"
+msgstr "Nuova versione disponibile. Puoi scaricarla su<a href=\"%s\">%s</a>\n"
 
 #: src/core/siril_update.c:358
 msgid "No update check: this is a development version\n"
@@ -16547,7 +16487,7 @@ msgstr "Il nome del file è troppo lungo, non viene espanso\n"
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "pixel"
-msgstr[1] "pixel"
+msgstr[1] "pixels"
 
 #: src/core/utils.c:1175 src/io/image_format_fits.c:3140
 #: src/io/image_format_fits.c:3145 src/io/ser.c:1357
@@ -16943,9 +16883,8 @@ msgid "Star synthesis (full star mask creation): processing...\n"
 msgstr "Estrazione del canale %s: elaborazione...\n"
 
 #: src/filters/synthstar.c:336
-#, fuzzy
 msgid "No stars detected in the image.\n"
-msgstr "Cerca un oggetto nell’immagine"
+msgstr "nessuna stella rilevata nell'immagine.\n"
 
 #: src/filters/synthstar.c:339
 #, c-format
@@ -17000,11 +16939,7 @@ msgstr "Programma di (pre-)elaborazione dell'immagine astronomica"
 
 #: src/gui/about_dialog.c:81
 msgid "translator-credits"
-msgstr ""
-"traduttori \n"
-"Sonia Zorba  <sonia@zonia3000.net>\n"
-"Luca Benassi <bennolo@gmail.com>\n"
-"Gianluca Arcuri <yanlukmac@icloud.com>"
+msgstr "crediti-traduttori"
 
 #: src/gui/about_dialog.c:83
 msgid "Visit the Siril website"
@@ -17036,13 +16971,13 @@ msgstr ""
 "Puoi anche provare a guardare all'interno di un altro catalogo, oppure "
 "clicca sul tasto “sottocampionamento”, specialmente per le immagini "
 "realizzate con il Drizzle.\n"
+"\n"
 "Infine, ricordati che l'algoritmo di plate solving dovrebbe essere applicato "
 "solo su immagini lineari."
 
 #: src/gui/astrometry_solver.c:424
-#, fuzzy
 msgid "No object found\n"
-msgstr "Nessuna proiezione"
+msgstr "Nessun oggetto trovato\n"
 
 #: src/gui/astrometry_solver.c:511
 msgid ""
@@ -17186,14 +17121,12 @@ msgid "%s, %d/%d images selected"
 msgstr "%s, %d/%d immagini selezionate"
 
 #: src/gui/callbacks.c:449
-#, fuzzy
 msgid "Sequence: "
-msgstr "Sequenza:"
+msgstr "Sequenza: "
 
 #: src/gui/callbacks.c:456
-#, fuzzy
 msgid "Image: "
-msgstr "Immagine:"
+msgstr "Immagine: "
 
 #: src/gui/callbacks.c:460
 msgid "- none -"
@@ -17309,37 +17242,36 @@ msgid "Searching for sequences in the current working directory..."
 msgstr "Ricerca di sequenze nella cartella di lavoro corrente..."
 
 #: src/gui/callbacks.c:1877
-#, fuzzy
 msgid "This erases the following data, and there's no possible undo:\n"
-msgstr ""
-"Cancella la precedente selezione dell'immagine e non c'è modo di annullare "
-"le modifiche."
+msgstr "Cancella i seguenti dati, e non c'è modo di annullare le modifiche:\n"
 
 #: src/gui/callbacks.c:1878
-#, fuzzy
 msgid ""
 "\n"
 "- Registration"
-msgstr "Registrazione"
+msgstr ""
+"\n"
+"- Registrazione"
 
 #: src/gui/callbacks.c:1879
-#, fuzzy
 msgid ""
 "\n"
 "- Statistics"
-msgstr "Statistiche"
+msgstr ""
+"\n"
+"- Statistiche"
 
 #: src/gui/callbacks.c:1880
-#, fuzzy
 msgid ""
 "\n"
 "- Selection"
-msgstr "Selezione"
+msgstr ""
+"\n"
+"- Selezione"
 
 #: src/gui/callbacks.c:1884
-#, fuzzy
 msgid "Clear Sequence Data?"
-msgstr "Ritaglia Sequenza"
+msgstr "Cancello i Dati Sequenza?"
 
 #: src/gui/callbacks.c:1884
 #, fuzzy
@@ -17577,9 +17509,8 @@ msgstr ""
 "valori predefiniti\n"
 
 #: src/gui/histogram.c:1036
-#, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations"
-msgstr "Trasformazione Stretch Iperbolica Generalizzata…"
+msgstr "Trasformazione Stretch Iperbolica Generalizzata"
 
 #: src/gui/histogram.c:1065 src/gui/histogram.c:1451
 msgid "Clicking on the histogram sets SP"
@@ -17608,7 +17539,7 @@ msgstr ""
 #: src/gui/histogram.c:1449
 msgid "Clicking on the linear stretch histogram sets BP"
 msgstr ""
-"Facendo clic  sullo stretch lineare dell’istogramma si imposta il punto di "
+"Facendo clic sullo stretch lineare dell’istogramma si imposta il punto di "
 "nero"
 
 #: src/gui/histogram.c:1544
@@ -17678,9 +17609,9 @@ msgid "Mirror Y"
 msgstr "Speculare Y"
 
 #: src/gui/menu_gray_geometry.c:183
-#, fuzzy, c-format
+#, c-format
 msgid "Binning x%d (%s)"
-msgstr "Binning: "
+msgstr "Binning x%d (%s)"
 
 #: src/gui/menu_gray_geometry.c:183
 msgid "average"
@@ -17805,14 +17736,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/newdeconv.c:779
-#, fuzzy
 msgid "No PSF file selected.\n"
-msgstr "%d file selezionato"
+msgstr "Nessun file PSF selezionato.\n"
 
 #: src/gui/newdeconv.c:817
-#, fuzzy
 msgid "Kernel estimation complete.\n"
-msgstr "Registrazione completa."
+msgstr "Stima kernel completata.\n"
 
 #: src/gui/newdeconv.c:831
 msgid ""
@@ -17859,9 +17788,8 @@ msgstr ""
 
 #. User wants PSF from stars but has not selected any stars
 #: src/gui/newdeconv.c:968 src/gui/newdeconv.c:1092
-#, fuzzy
 msgid "No stars detected. Finding suitable non-saturated stars...\n"
-msgstr "Cerca un oggetto nell’immagine"
+msgstr "Nessuna stella rilevata. Trovare stelle adatte non saturate...\n"
 
 #: src/gui/newdeconv.c:984 src/gui/newdeconv.c:1108
 #, fuzzy
@@ -17874,9 +17802,8 @@ msgid "Starting PSF computation..."
 msgstr "Ricomposizione Stelle…"
 
 #: src/gui/newdeconv.c:1033
-#, fuzzy
 msgid "Deconvolution PSF generated.\n"
-msgstr "Deconvoluzione applicata"
+msgstr "Deconvoluzione PSF generata.\n"
 
 #. Refuse to process the image using previous PSF if there is no previous PSF defined
 #. Refuse to process the sequence using previous PSF if there is no previous PSF defined
@@ -17887,14 +17814,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/newdeconv.c:1146
-#, fuzzy
 msgid "Starting PSF estimation..."
-msgstr "Inizio dello stacking...\n"
+msgstr "Inizio della stima PSF..."
 
 #: src/gui/newdeconv.c:1173
-#, fuzzy
 msgid "Starting non-blind deconvolution..."
-msgstr "Inizio dello stacking...\n"
+msgstr "Avvio della deconvoluzione non-cieca..."
 
 #: src/gui/newdeconv.c:1181
 #, fuzzy
@@ -17906,9 +17831,8 @@ msgid "Richardson-Lucy halted early by the stopping criterion after iteration"
 msgstr ""
 
 #: src/gui/newdeconv.c:1183
-#, fuzzy
 msgid "Richardson-Lucy deconvolution..."
-msgstr "Lucy-Richardson deconvolution: elaborazione...\n"
+msgstr "Deconvoluzione Richardson-Lucy..."
 
 #: src/gui/newdeconv.c:1358
 msgid ""
@@ -17917,9 +17841,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/newdeconv.c:1414
-#, fuzzy
 msgid "Deconvolution. Processing sequence..."
-msgstr "Lucy-Richardson deconvolution: elaborazione...\n"
+msgstr "Deconvoluzione. Processo la sequenza"
 
 #: src/gui/nina_light_curve.c:19
 msgid "Light curve with NINA star list"
@@ -17930,9 +17853,8 @@ msgid "_OK"
 msgstr "_OK"
 
 #: src/gui/nina_light_curve.c:27
-#, fuzzy
 msgid "Select the NINA star list file"
-msgstr "Seleziona prima un'area\n"
+msgstr "Selezione il catalogo stelle NINA"
 
 #: src/gui/nina_light_curve.c:32
 #, fuzzy
@@ -17974,9 +17896,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/nina_light_curve.c:83
-#, fuzzy
 msgid "The currently loaded image must be plate solved"
-msgstr "L’immagine attualmente caricata non ha un header  FITS\n"
+msgstr "L'immagine attualmente caricate deve effettuare il plate solving"
 
 #: src/gui/nina_light_curve.c:104
 msgid ""
@@ -18064,9 +17985,8 @@ msgid "Photometric Color Calibration"
 msgstr "Calibrazione fotometrica del colore"
 
 #: src/gui/photometric_cc.c:246
-#, fuzzy
 msgid "(online catalogue)"
-msgstr "Catalogo di Stelle Online: "
+msgstr "(catalogo Online)"
 
 #: src/gui/photometric_cc.c:247
 #, fuzzy
@@ -18272,7 +18192,7 @@ msgstr ""
 "rmse:\t%.3e\n"
 
 #: src/gui/PSF_list.c:293
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Average Moffat PSF\n"
 "\n"
@@ -18288,9 +18208,10 @@ msgid ""
 msgstr ""
 "Media Gaussiana PSF\n"
 "\n"
-"N:\t%d stelle\n"
+"N:  \t%d stelle (%d saturate ed escluse)\n"
 "B:\t%.6f\n"
 "A:\t%.6f\n"
+"Beta:\t%.2f\n"
 "FWHMx:\t%.2f%s\n"
 "FWHMy:\t%.2f%s\n"
 "r:\t%.3f\n"
@@ -18315,7 +18236,7 @@ msgstr "Stella %d di %d"
 
 #: src/gui/PSF_list.c:463
 msgid "Star list file (*.lst)"
-msgstr "File elenco stelle  (*.lst)"
+msgstr "File elenco stelle (*.lst)"
 
 #: src/gui/PSF_list.c:664
 msgid "Excellent"
@@ -18342,7 +18263,7 @@ msgid "N/A"
 msgstr "N/A"
 
 #: src/gui/PSF_list.c:725
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "PSF fit Result (%s%s):\n"
 "\n"
@@ -18371,13 +18292,14 @@ msgid ""
 "RMSE:\n"
 "\t\tRMSE=%.3e"
 msgstr ""
-"Coordinate del baricentro:\n"
+"Risultato in forma PSF (%s%s):\n"
+"\n"
+"Coordinate del Centroide:\n"
 "\t\t%s\n"
 "\n"
-"Larghezza intera metà massimo:\n"
+"Larghezza intera metà massimo FWHM:\n"
 "\t\tFWHMx=%.2f%s\n"
 "\t\tFWHMy=%.2f%s\n"
-"\n"
 "Angolo:\n"
 "\t\t%0.2fdeg\n"
 "\n"
@@ -18437,9 +18359,8 @@ msgid "Show advanced stretch options."
 msgstr "Mostra le opzioni di stretch avanzate"
 
 #: src/gui/remixer.c:1019 src/gui/remixer.c:1074
-#, fuzzy
 msgid "Error: image could not be loaded"
-msgstr "Errore: copia dell’immagine non riuscita…\n"
+msgstr "Errore: l'immagine non può essere caricata"
 
 #: src/gui/remixer.c:1020 src/gui/remixer.c:1075
 #, fuzzy
@@ -18727,7 +18648,7 @@ msgid ""
 "shortcut list and the preferences dialog where many of the options are "
 "available"
 msgstr ""
-"Premi il tasto F10  o clicca su questo pulsante per aprire il menu. Qui puoi "
+"Premi il tasto F10 o clicca su questo pulsante per aprire il menu. Qui puoi "
 "trovare l’elenco degli shortcut e la finestra preferenze dove sono "
 "disponibili molte opzioni"
 
@@ -18968,9 +18889,8 @@ msgid "Disk Space: N/A"
 msgstr "Spazio disco: N/D"
 
 #: src/io/catalogues.c:136
-#, fuzzy
 msgid "Could not open local NOMAD catalogue\n"
-msgstr "Non posso scaricare il catalogo di stelle on line."
+msgstr "Non posso aprire il catalogo locale NOMAD\n"
 
 #: src/io/catalogues.c:142
 #, fuzzy
@@ -19304,9 +19224,9 @@ msgid "Reading NetPBM: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "Lettura NetPBM: file %s, %ld canale/i, %ux%u pixel\n"
 
 #: src/io/image_formats_internal.c:610
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening file %s\n"
-msgstr "Errore durante l'apertura del file"
+msgstr "Errore durante l'apertura del file %s\n"
 
 #: src/io/image_formats_internal.c:649 src/io/image_formats_internal.c:688
 #, c-format
@@ -19421,9 +19341,9 @@ msgid "Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 msgstr "Salvataggio JPG: file %s, qualità=%d%%, %ld canale/i, %ux%u pixel\n"
 
 #: src/io/image_formats_libraries.c:1011
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening the file %s\n"
-msgstr "Errore durante l'apertura del file"
+msgstr "Errore durante l'apertura del file %s\n"
 
 #: src/io/image_formats_libraries.c:1127
 #, c-format
@@ -19598,7 +19518,7 @@ msgstr ""
 msgid "frame"
 msgid_plural "frames"
 msgstr[0] "frame"
-msgstr[1] "frame"
+msgstr[1] "frames"
 
 #: src/io/image_format_fits.c:3141 src/io/image_format_fits.c:3146
 #: src/io/ser.c:1358
@@ -19637,14 +19557,12 @@ msgstr ""
 "essere non nulli, la qualità deve essere compresa tra 1 e 5."
 
 #: src/io/path_parse.c:33
-#, fuzzy
 msgid "Warning code:"
-msgstr "Attenzione"
+msgstr "Codice di avviso:"
 
 #: src/io/path_parse.c:33
-#, fuzzy
 msgid "Error code:"
-msgstr "Errore"
+msgstr "Codice di errore:"
 
 #: src/io/path_parse.c:34
 #, fuzzy
@@ -19668,24 +19586,20 @@ msgid "Library not defined in preferences: "
 msgstr ""
 
 #: src/io/path_parse.c:55
-#, fuzzy
 msgid "Key not found: "
-msgstr "File non trovato"
+msgstr "Chiave non trovata: "
 
 #: src/io/path_parse.c:59
-#, fuzzy
 msgid "Wrong date: "
-msgstr "Valore errato"
+msgstr "Data errata: "
 
 #: src/io/path_parse.c:63
-#, fuzzy
 msgid "Wrong coordinates: "
-msgstr "Coordinate centrali errate"
+msgstr "Coordinate errate: "
 
 #: src/io/path_parse.c:67
-#, fuzzy
 msgid "Unsupported format: "
-msgstr "tipo di immagine non supportata"
+msgstr "Formato non supportato: "
 
 #: src/io/path_parse.c:74
 msgid "More than one match for: "
@@ -19700,9 +19614,8 @@ msgid "Problem with path: "
 msgstr ""
 
 #: src/io/path_parse.c:83
-#, fuzzy
 msgid "Could not create temp FITS for header update: "
-msgstr "Impossibile creare la pipe denominata %s\n"
+msgstr "Impossibile creare temp FITS per l'aggiornamento dell'intestazione: "
 
 #: src/io/path_parse.c:87
 #, fuzzy
@@ -20215,12 +20128,15 @@ msgid "seconds"
 msgstr "secondi"
 
 #: src/livestacking/gui.c:116
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Noise: %0.3f\n"
 "\n"
 "Last image processing time: %s"
-msgstr "Registrazione: elaborazione immagine %s"
+msgstr ""
+"Rumore: %0.3f\n"
+"\n"
+"Tempo ultima elaborazione immagine: %s"
 
 #: src/livestacking/gui.c:119
 #, c-format
@@ -20312,7 +20228,7 @@ msgstr "NON STO USANDO IL FLAT: non posso aprire il file ’%s’\n"
 #: src/livestacking/livestacking.c:335
 #, c-format
 msgid "Master flat %d x %d configured for live stacking\n"
-msgstr "Master flat %d x %d cè configurato per il  live stacking\n"
+msgstr "Master flat %d x %d è configurato per il live stacking\n"
 
 #: src/livestacking/livestacking.c:363
 msgid "Preprocessing is ready\n"
@@ -20332,9 +20248,7 @@ msgstr "Registrazione global star"
 
 #: src/livestacking/livestacking.c:536
 msgid "preprocessing failed\n"
-msgstr ""
-"pre-elaborazione fallita.\n"
-"\n"
+msgstr "pre-elaborazione fallita.\n"
 
 #: src/livestacking/livestacking.c:546
 msgid "Live stacking waiting for files"
@@ -20343,7 +20257,7 @@ msgstr "Live stacking in attesa dei files"
 #: src/livestacking/livestacking.c:561
 #, fuzzy
 msgid "Failed to open the first image"
-msgstr "Apertura prima immagine fallita\n"
+msgstr "Apertura prima immagine fallita"
 
 #: src/livestacking/livestacking.c:574
 msgid "live stacking will debayer images\n"
@@ -20383,9 +20297,7 @@ msgstr "L’immagine flat non ha la stessa dimensione, non utilizzo (%dx%d)\n"
 
 #: src/livestacking/livestacking.c:753
 msgid "Reference image statistics not found\n"
-msgstr ""
-"Statistiche immagine di riferimento non trovate\n"
-"\n"
+msgstr "Statistiche immagine di riferimento non trovate\n"
 
 #: src/livestacking/livestacking.c:764
 #, c-format
@@ -20569,7 +20481,7 @@ msgstr ""
 #: src/pixelMath/pixel_math_runner.c:110
 #, fuzzy
 msgid "Biweight midvariance of the image."
-msgstr "Fase dell'immagine: "
+msgstr "Pesa la midvariance dell'immagine."
 
 #: src/pixelMath/pixel_math_runner.c:111
 #, fuzzy
@@ -20577,9 +20489,8 @@ msgid "Height in pixels of the specified image."
 msgstr "Dimensione in pixel del riquadro di ricerca."
 
 #: src/pixelMath/pixel_math_runner.c:112 src/pixelMath/pixel_math_runner.c:114
-#, fuzzy
 msgid "Median absolute deviation of the image."
-msgstr "Magnitudine dell'immagine: "
+msgstr "Deviazione mediana assoluta dell'immagine."
 
 #: src/pixelMath/pixel_math_runner.c:113
 #, fuzzy
@@ -20587,14 +20498,12 @@ msgid "Pixel maximum of the image."
 msgstr "Stacking Pixel Massimo"
 
 #: src/pixelMath/pixel_math_runner.c:115
-#, fuzzy
 msgid "Mean of the image."
-msgstr "Magnitudine dell'immagine: "
+msgstr "Media dell'immagine."
 
 #: src/pixelMath/pixel_math_runner.c:116 src/pixelMath/pixel_math_runner.c:117
-#, fuzzy
 msgid "Median of the image."
-msgstr "Magnitudine dell'immagine: "
+msgstr "Mediana dell'immagine."
 
 #: src/pixelMath/pixel_math_runner.c:118
 #, fuzzy
@@ -21017,7 +20926,7 @@ msgid ""
 "Siril cannot convert the DATE-OBS keyword into a valid date needed in the "
 "alignment."
 msgstr ""
-"Siril non può convertire la keyword  DATE-OBS in una data valida richiesta "
+"Siril non può convertire la keyword DATE-OBS in una data valida richiesta "
 "nell’allineamento."
 
 #: src/registration/comet.c:182
@@ -21454,9 +21363,8 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "Stacking di %d immagini di %d della sequenza"
 
 #: src/registration/registration.c:1161
-#, fuzzy
 msgid "Failed to determine registration method...\n"
-msgstr "indice del metodo selezionato"
+msgstr "Impossibile determinare il metodo di registrazione...\n"
 
 #: src/registration/registration.c:1204
 msgid "Debayer the sequence for registration"
@@ -21726,7 +21634,6 @@ msgstr ""
 "La sequenza di input è in formato 32-bit me le preferenze sono impostate su "
 "un formato di output a 16-bit. Si prega di cambiare le impostazioni nelle "
 "preferenze e riprovare.\n"
-" \n"
 
 #: src/stacking/stacking.c:159
 #, c-format
@@ -21752,9 +21659,8 @@ msgstr ""
 "Lo stacking utilizzerà i dati di registrazione del canale %d se presenti.\n"
 
 #: src/stacking/stacking.c:277
-#, fuzzy
 msgid "Registration data found"
-msgstr "Metodo di registrazione:"
+msgstr "Dati di registrazione trovati"
 
 #: src/stacking/stacking.c:278
 msgid ""
@@ -21772,9 +21678,9 @@ msgid "Stacking: processing...\n"
 msgstr "Stacking: elaborazione...\n"
 
 #: src/stacking/stacking.c:303
-#, fuzzy, c-format
+#, c-format
 msgid "Integration of %d images on %d of the sequence:\n"
-msgstr "Stacking di %d immagini di %d della sequenza"
+msgstr "Integrazione di %d immagini su %d della sequenza\n"
 
 #: src/stacking/stacking.c:307
 msgid "Pixel combination ......... average\n"

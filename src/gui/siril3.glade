@@ -30986,6 +30986,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="receives-default">False</property>
                                 <property name="tooltip-text" translatable="yes">If selected, FFTW will use multiple threads. This is usually a speedup on large images, but will increase initial planning time the first time FFTW operates on an image of a given size.</property>
                                 <property name="halign">start</property>
+                                <property name="active">True</property>
                                 <property name="draw-indicator">True</property>
                               </object>
                               <packing>
@@ -31010,7 +31011,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="tooltip-text" translatable="yes">Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it optimise FFT calculations of given sizes. For each successive level of planning strategy, more work will be done to find the optimum calculation strategy the first time an unknown FFT size is encountered. The first-time calculation will be progressively slower, but the wisdom is stored and will make subsequent runs faster. For most users the default Patient strategy is fine. If you regularly deal with images of many different sizes, Estimate or Measure may be better; if all your images are always exactly the same size, you may wish to try Exhaustive. Note that the initial plan for a given size and planning level takes longer to generate if you have selected multithreaded FFTW.</property>
-                                <property name="active">2</property>
+                                <property name="active">1</property>
                                 <items>
                                   <item translatable="yes">Estimate</item>
                                   <item translatable="yes">Measure</item>
