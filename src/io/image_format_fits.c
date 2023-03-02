@@ -463,6 +463,10 @@ void read_fits_header(fits *fit) {
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "BAYERPAT", &(fit->bayer_pattern), NULL, &status);
+	/* if value is NONE we do not want to have the keyword */
+	if (status == 0 && !strcasecmp(fit->bayer_pattern, "NONE")) {
+		memset(fit->bayer_pattern, 0, sizeof(char) * FLEN_VALUE);
+	}
 
 	status = 0;
 	fits_read_key(fit->fptr, TINT, "XBAYROFF", &(fit->bayer_xoffset), NULL, &status);
@@ -641,6 +645,9 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			copy_string_key(fit->observer, value);
 		} else if (g_str_has_prefix(card, "BAYERPAT=")) {
 			copy_string_key(fit->bayer_pattern, value);
+			if (!strcasecmp(fit->bayer_pattern, "NONE")) {
+				memset(fit->bayer_pattern, 0, sizeof(char) * FLEN_VALUE);
+			}
 		} else if (g_str_has_prefix(card, "XBAYROFF=")) {
 			fit->bayer_xoffset = g_ascii_strtoull(value, NULL, 10);
 		} else if (g_str_has_prefix(card, "YBAYROFF=")) {
@@ -2041,6 +2048,7 @@ int read_fits_metadata(fits *fit) {
 	}
 
 	read_fits_header(fit);	// stores useful header data in fit
+	fit->header = copy_header(fit);
 
 	return 0;
 }
