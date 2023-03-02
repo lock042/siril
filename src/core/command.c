@@ -706,6 +706,9 @@ int process_savetif(int nb){
 			astro_tiff = AstroTiff_build_header(&gfit);
 		} else if (word[i] && !g_strcmp0(word[i], "-deflate")) {
 			compression = (uint16_t) COMPRESSION_ADOBE_DEFLATE;
+		} else {
+            siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+            return CMD_ARG_ERROR;
 		}
 	}
 
