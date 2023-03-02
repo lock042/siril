@@ -435,7 +435,7 @@ static gboolean initialize_data(gpointer p) {
 	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
 	args->bitspersamples = gtk_toggle_button_get_active(button_8) ? 8 : gtk_toggle_button_get_active(button_32) ? 32 : 16;
 	get_tif_data_from_ui(&gfit, &args->description, &args->copyright, &args->embeded_icc);
-	args->tiff_compression = get_tiff_compression_mode() == COMPRESSION_NONE ? FALSE : TRUE;
+	args->tiff_compression = get_tiff_compression();
 #endif
 	args->entry = GTK_ENTRY(lookup_widget("savetxt"));
 	args->filename = gtk_entry_get_text(args->entry);

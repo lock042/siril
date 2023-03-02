@@ -707,8 +707,8 @@ int process_savetif(int nb){
 		} else if (word[i] && !g_strcmp0(word[i], "-deflate")) {
 			tiff_compression = TRUE;
 		} else {
-            siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-            return CMD_ARG_ERROR;
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			return CMD_ARG_ERROR;
 		}
 	}
 
