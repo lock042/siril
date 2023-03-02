@@ -290,7 +290,7 @@ if enable_openmp
   endif
   if platform_osx
     message('Set OpenMP flags for macOS')
-    siril_link_arg += ['-lomp', '-lfftw3f_threads']
+    siril_link_arg += ['-lomp']
     siril_cpp_flag += ['-Xpreprocessor', '-fopenmp', '-DHAVE_FFTW3F_OMP']
     siril_c_flag += ['-Xpreprocessor', '-fopenmp', '-DHAVE_FFTW3F_OMP']
   else
