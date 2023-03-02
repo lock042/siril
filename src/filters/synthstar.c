@@ -231,11 +231,12 @@ static void add_star_to_mono_buffer(const float *psfL, int size, float *Lsynth, 
 }
 
 static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy, float sat, float bg, float noise) {
+	float* midbuf = NULL;
 	const int halfpsfdim = (size - 1) / 2;
-	int xx, yy;
+	int xx, yy, midsize, midoffset;
 
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread) if (com.max_thread > 1)
+#pragma omp parallel
 {
 #pragma omp for simd schedule(static) collapse(2) private(xx, yy)
 #endif
@@ -253,32 +254,68 @@ static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynt
 			}
 		}
 	}
+// Copy middle third of (size x size) area around star centre into
+// temporary buffer for blurring
 #ifdef _OPENMP
-#pragma omp for simd schedule(static) collapse(2) private(xx, yy)
+#pragma omp single
+	{
 #endif
-// 3x3 median blur to smooth off the join between synthetic PSF and original data
-	for (int psfx = 0; psfx < size; psfx++) {
-		for (int psfy = 0; psfy < size; psfy++) {
-			xx = x + psfx - halfpsfdim;
-			yy = y + psfy - halfpsfdim;
-			if (xx > 0 && xx < dimx && yy > 0 && yy < dimy)
-				if ((psfx - halfpsfdim) * (psfx - halfpsfdim) + (psfy - halfpsfdim) * (psfy - halfpsfdim) < (size / 6) * (size / 6))
-					Lsynth[xx + ((dimy - yy) * dimx)] = median9f(
-						Lsynth[xx - 1 + ((dimy - yy - 1) * dimx)],
-						Lsynth[xx + ((dimy - yy - 1) * dimx)],
-						Lsynth[xx + 1 + ((dimy - yy - 1) * dimx)],
-						Lsynth[xx - 1 + ((dimy - yy) * dimx)],
-						Lsynth[xx + ((dimy - yy) * dimx)],
-						Lsynth[xx + 1 + ((dimy - yy) * dimx)],
-						Lsynth[xx - 1 + ((dimy - yy + 1) * dimx)],
-						Lsynth[xx + ((dimy - yy + 1) * dimx)],
-						Lsynth[xx + 1 + ((dimy - yy + 1) * dimx)]);
+	midsize = size / 3;
+	if (!midsize %2) midsize++;
+	midoffset = midsize / 2;
+	midbuf = malloc(midsize * midsize * sizeof(float));
+#ifdef _OPENMP
+	}
+#pragma omp for simd schedule(static) collapse(2)
+#endif
+	for (int i = 0 ; i < midsize ; i++) {
+		for (int j = 0 ; j < midsize ; j++) {
+			int li = x + midoffset - i;
+			int lj = dimy - y - midoffset + j;
+			midbuf[i + j * midsize] = Lsynth[li + lj * size];
+		}
+	}
+
+// Carry out median blur of middle part
+#ifdef _OPENMP
+#pragma omp for simd schedule(static) collapse(2)
+#endif
+	for (int i = 1 ; i < midsize - 1 ; i++) {
+		for (int j = 1 ; j < midsize - 1 ; j++) {
+			int il = i - 1;
+			int iu = i + 1;
+			int jl = (j-1)*midsize;
+			int jm = j * midsize;
+			int ju = (j+1)*midsize;
+			midbuf[i + j * midsize] = median9f(
+				midbuf[il + jl],
+				midbuf[i + jl],
+				midbuf[iu + jl],
+				midbuf[il + jm],
+				midbuf[i + jm],
+				midbuf[iu + jm],
+				midbuf[il + ju],
+				midbuf[i + ju],
+				midbuf[iu + ju]);
+		}
+	}
+
+// Copy back
+#ifdef _OPENMP
+#pragma omp for simd schedule(static) collapse(2)
+#endif
+	for (int i = 0 ; i < midsize ; i++) {
+		for (int j = 0 ; j < midsize ; j++) {
+			int li = x + midoffset - i;
+			int lj = dimy - y - midoffset + j;
+			Lsynth[li + lj * size] = midbuf[i + j * midsize];
 		}
 	}
 #ifdef _OPENMP
 #pragma omp barrier
 }
 #endif
+	free(midbuf);
 	return;
 }
 
