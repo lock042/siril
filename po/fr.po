@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-25 23:08+0100\n"
-"PO-Revision-Date: 2023-02-28 16:18+0000\n"
+"PO-Revision-Date: 2023-03-01 22:51+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -7047,10 +7047,10 @@ msgid ""
 "to display your data. Stretch your histogram before to work on an external "
 "tool.</b>"
 msgstr ""
-"Mode d'affichage: cette liste présente tous les modes de visualisation "
+"Mode d'affichage : cette liste présente tous les modes de visualisation "
 "disponibles dans Siril.\n"
 "\n"
-"<b> Attention: seul le mode linéaire affiche les valeurs réelles des pixels "
+"<b> Attention : seul le mode linéaire affiche les valeurs réelles des pixels "
 "(lorsque les curseurs de visualisation sont aux positions min et max). Les "
 "autres modes ne sont qu'un moyen pratique d'afficher vos données. Étirez "
 "votre histogramme avant de travailler sur un outil externe. </b>"
@@ -7920,8 +7920,8 @@ msgstr ""
 "Ces quatre catalogues de KStars sont utilisés pour la résolution "
 "astrométrique.\n"
 "\n"
-"<b>USNO-NOMAD-1e8.dat</b>: un extrait de l'énorme catalogue NOMAD limité aux "
-"informations photométriques B-V et au mouvement propre des étoiles sous "
+"<b>USNO-NOMAD-1e8.dat</b> : un extrait de l'énorme catalogue NOMAD limité "
+"aux informations photométriques B-V et au mouvement propre des étoiles sous "
 "forme de binaire compact, jusqu'à la magnitude 18."
 
 #: src/gui/siril3.glade:28693
@@ -8784,7 +8784,7 @@ msgstr "Mise à jour"
 #: src/gui/siril-shortcuts.ui:14
 msgctxt "shortcut window"
 msgid "Images / Videos"
-msgstr "Images / Videos"
+msgstr "Images / Vidéos"
 
 #: src/gui/siril-shortcuts.ui:19
 msgctxt "shortcut window"
@@ -9196,7 +9196,7 @@ msgid ""
 "Fetch failed with code %ld\n"
 "%s\n"
 msgstr ""
-"Fetch failed with code %ld\n"
+"Échec de la recherche avec le code %ld\n"
 "%s\n"
 
 #: src/algos/astrometry_solver.c:391
@@ -9220,7 +9220,7 @@ msgstr "Erreur de chargement de l'url : [%s] - %s\n"
 #: src/algos/astrometry_solver.c:456 src/algos/astrometry_solver.c:553
 #, c-format
 msgid "URL: %s \n"
-msgstr "URL: %s \n"
+msgstr "URL : %s \n"
 
 #: src/algos/astrometry_solver.c:490
 #, c-format
@@ -9250,7 +9250,7 @@ msgstr "Aucune donnée topocentrique disponible. Définir en géocentrique\n"
 #: src/algos/astrometry_solver.c:535
 #, c-format
 msgid "at LAT: %f, LONG: %f\n"
-msgstr "à LAT: %f, LONG: %f\n"
+msgstr "à LAT : %f, LONG : %f\n"
 
 #: src/algos/astrometry_solver.c:546
 #, c-format
@@ -9343,7 +9343,7 @@ msgstr "Annulé"
 
 #: src/algos/astrometry_solver.c:1307
 msgid "Could not download the online star catalogue."
-msgstr "Could not download the online star catalogue."
+msgstr "Impossible de télécharger le catalogue en ligne des étoiles."
 
 #: src/algos/astrometry_solver.c:1327
 msgid "Cannot project the star catalog."
@@ -9613,8 +9613,8 @@ msgid ""
 "Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-"
 "axis aberration[FWHM]: %.2f\n"
 msgstr ""
-"Étoiles: %d, Moyenne tronquée[FWHM]: %.2f, Tilt du capteur[FWHM]: %.2f "
-"(%.0f%%), Aberration hors axe[FWHM]: %.2f\n"
+"Étoiles : %d, Moyenne tronquée[FWHM] : %.2f, Tilt du capteur[FWHM] : %.2f (%."
+"0f%%), Aberration hors axe[FWHM] : %.2f\n"
 
 #: src/algos/ccd-inspector.c:283
 msgid "Tilt evaluation"
@@ -9813,7 +9813,7 @@ msgid ""
 "Fix X-Trans: Unknown camera %s, trying to read information from "
 "preferences.\n"
 msgstr ""
-"Correction des fichiers X-Trans: caméra inconnue %s, tentative de récupérer "
+"Correction des fichiers X-Trans : caméra inconnue %s, tentative de récupérer "
 "les informations des préférences.\n"
 
 #: src/algos/fix_xtrans_af.c:191
@@ -10275,7 +10275,7 @@ msgid ""
 "SNR=%.1fdB\n"
 "RMSE=%.3e\n"
 msgstr ""
-"Résultat de l'ajustement PSF (%s):\n"
+"Résultat de l'ajustement PSF (%s) :\n"
 "%s\n"
 "FWHM X=%0.2f%s, FWHM Y=%0.2f%s\n"
 "r=%0.2f%sAngle=%0.2f deg\n"
@@ -10814,7 +10814,7 @@ msgstr ""
 #: src/core/command.c:963
 #, c-format
 msgid "Image %d: '%s'\n"
-msgstr "Image %d: '%s'\n"
+msgstr "Image %d : '%s'\n"
 
 #: src/core/command.c:965
 #, c-format
@@ -11141,7 +11141,7 @@ msgstr "********* FIN DE LA LISTE***********\n"
 
 #: src/core/command.c:2398
 msgid "Merge: no working directory set.\n"
-msgstr "Fusion: aucun répertoire de travail défini.\n"
+msgstr "Fusion : aucun répertoire de travail défini.\n"
 
 #: src/core/command.c:2419
 #, c-format
@@ -11882,8 +11882,8 @@ msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f\n"
 msgstr ""
-"Canal %s : Moyenne : %0.1f, Médiane : %0.1f, Sigma : %0.1f, Min : %0.1f, "
-"Max : %0.1f, bgnoise: %0.1f\n"
+"Canal %s : Moyenne : %0.1f, Médiane : %0.1f, Sigma : %0.1f, Min : %0.1f, Max "
+": %0.1f, bgnoise : %0.1f\n"
 
 #: src/core/command.c:5917 src/core/command.c:5924
 #, c-format
@@ -11891,8 +11891,8 @@ msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 msgstr ""
-"Canal %s : Moyenne : %0.1f, Médiane : %0.1f, Sigma : %0.1f, Min : %0.1f, "
-"Max : %0.1f, bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
+"Canal %s : Moyenne : %0.1f, Médiane : %0.1f, Sigma : %0.1f, Min : %0.1f, Max "
+": %0.1f, bgnoise : %0.1f, avgDev : %0.1f, MAD : %0.1f, sqrt(BWMV) : %0.1f\n"
 
 #: src/core/command.c:6011
 #, c-format
@@ -11927,7 +11927,7 @@ msgstr "Cette commande ne peut être exécutée que pour les images FITS\n"
 
 #: src/core/command.c:6166
 msgid "Conversion: no working directory set.\n"
-msgstr "Conversion: aucun répertoire de travail défini.\n"
+msgstr "Conversion : aucun répertoire de travail défini.\n"
 
 #: src/core/command.c:6171 src/core/command.c:6289 src/core/command.c:6397
 msgid ""
@@ -11984,7 +11984,7 @@ msgstr[1] "Lien : traitement de %d fichiers FITS ...\n"
 
 #: src/core/command.c:6373
 msgid "Link: no working directory set.\n"
-msgstr "Lien: aucun répertoire de travail défini.\n"
+msgstr "Lien : aucun répertoire de travail défini.\n"
 
 #: src/core/command.c:6452
 #, c-format
@@ -12004,7 +12004,7 @@ msgstr[1] "Conversion : traitement de %d fichiers ...\n"
 
 #: src/core/command.c:6495
 msgid "Convert: no working directory set.\n"
-msgstr "Conversion: aucun répertoire de travail défini.\n"
+msgstr "Conversion : aucun répertoire de travail défini.\n"
 
 #: src/core/command.c:6578 src/registration/registration.c:1448
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
@@ -12245,8 +12245,8 @@ msgid ""
 "The average stacking with rejection requires two extra arguments: sigma low "
 "and high.\n"
 msgstr ""
-"L'empilement par moyenne avec rejet nécessite deux arguments "
-"supplémentaires: sigma low et high.\n"
+"L'empilement par moyenne avec rejet nécessite deux arguments supplémentaires "
+": sigma low et high.\n"
 
 #: src/core/command.c:7412 src/core/command.c:7541
 msgid ""
@@ -12297,8 +12297,8 @@ msgstr "Impossible de charger l'image, abandon.\n"
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
 msgstr ""
-"La valeur de l'offset n'a pas pu être analysée à partir de l'expression: %s, "
-"abandon.\n"
+"La valeur de l'offset n'a pas pu être analysée à partir de l'expression : "
+"%s, abandon.\n"
 
 #: src/core/command.c:7632 src/core/preprocess.c:673
 #, c-format
@@ -12522,7 +12522,7 @@ msgstr ""
 #: src/core/command.c:8163 src/core/command.c:8214
 #, c-format
 msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
-msgstr "Sélection courrante [x, y, w, h]: %d %d %d %d\n"
+msgstr "Sélection actuelle [x, y, w, h] : %d %d %d %d\n"
 
 #: src/core/command.c:8166
 msgid "No current selection in image\n"
@@ -13800,7 +13800,7 @@ msgstr ""
 
 #: src/core/command_def.h:81
 msgid "Computes and applies a logarithmic scale to the current image"
-msgstr "Calcule et applique une échelle logarithmique à l'image courante"
+msgstr "Calcule et applique une échelle logarithmique à l'image actuelle"
 
 #: src/core/command_def.h:82
 msgid "Lists files and directories in the working directory"
@@ -13948,11 +13948,11 @@ msgid ""
 "reading image data entirely if no flip is required. Image is overwritten if "
 "a flip was made"
 msgstr ""
-"Retourne l'image autour de l'axe vertical, uniquement si nécessaire (si ce "
-"n'est pas déjà de type `bottom-up`). Il prend le nom du fichier image comme "
-"argument, ce qui lui permet d'éviter de lire entièrement les données de "
-"l'image si aucun retournement n'est requis. L'image est écrasée si un "
-"retournement a été effectué"
+"Retourne l'image autour de l'axe vertical, seulement si nécessaire (si ce "
+"n'est pas déjà retourné). Elle prend le nom du fichier image comme argument, "
+"ce qui lui permet d'éviter de lire entièrement les données de l'image si "
+"aucun retournement n'est nécessaire. L'image est écrasée si un retournement "
+"a été effectué"
 
 #: src/core/command_def.h:90
 msgid "Flips the image about the horizontal axis"
@@ -14411,7 +14411,7 @@ msgid ""
 "argument"
 msgstr ""
 "Retourne une erreur si la version de Siril est plus ancienne que celle "
-"passée en argument"
+"donnée en argument"
 
 #: src/core/command_def.h:111
 msgid ""
@@ -15509,54 +15509,55 @@ msgid ""
 msgstr ""
 "Empile la séquence <b>sequencename</b>, en utilisant les options.\n"
 "\n"
-"Type de rejet :\n"
-"Les types autorisés sont : \"sum\", \"max\", \"min\", \"med\" (ou "
-"\"median\") et \"rej\" (ou \"mean\"). Si aucun argument autre que le nom de "
-"la séquence n'est fourni, l'empilement par somme est supposé.\n"
+"Type de rejet :\n"
+"Les types autorisés sont : \"sum\", \"max\", \"min\", \"med\" (ou \"median\")"
+" et \"rej\" (ou \"mean\"). Si aucun argument autre que le nom de la séquence "
+"n'est fourni, l'empilement par somme est supposé.\n"
 "\n"
-"Empilement avec rejet :\n"
+"Empilement avec rejet :\n"
 "Les types rej ou mean nécessitent l'utilisation d'arguments supplémentaires "
 "pour le type et les valeurs de rejet. Le type de rejet est l'un des { n[one] "
-"| p[ercentile] | s[igma] | m[edian] | w[insorized] | l[inear] | "
-"g[eneralized] | [m]a[d] } pour le Percentile, Sigma, la Médian, Winsorized, "
-"Linear-Fit, le test d'écart de Student extrême généralisé ou k-MAD clipping. "
-"S'il est omis, la valeur par défaut (Winsorized) est utilisée.\n"
+"| p[ercentile] | s[igma] | m[edian] | w[insorized] | l[inear] | g[eneralized]"
+" | [m]a[d] } pour le Percentile, Sigma, la Médian, Winsorized, Linear-Fit, "
+"le test d'écart de Student extrême généralisé ou k-MAD clipping. S'il est "
+"omis, la valeur par défaut (Winsorized) est utilisée.\n"
 "Les paramètres de rejet <b>sigma bas</b> et <b>sigma haut</b> sont "
 "obligatoires sauf si <b>none</b> est sélectionné.\n"
 "En option, des cartes de rejet peuvent être créées, indiquant où les pixels "
 "ont été rejetés dans une (<b>-rejmap</b>) ou deux (<b>-rejmaps</b>, pour les "
 "rejets bas et haut) images nouvellement créées.\n"
 "\n"
-"Normalisation des images d'entrée :\n"
+"Normalisation des images d'entrée :\n"
 "Pour les types d'empilement med|median et rej|mean, différents types de "
-"normalisation sont autorisés : <b>-norm=add</b> pour additif, <b>-norm=mul</"
-"b> pour multiplicatif. Les options <b>-norm=addscale</b> et <b>-"
-"norm=mulscale</b> appliquent la même normalisation mais avec des opérations "
-"d'échelle. <b>-nonorm</b> est l'option pour désactiver la normalisation. "
-"Sinon, l'additif avec mise à l'échelle est appliqué par défaut.\n"
+"normalisation sont autorisés : <b>-norm=add</b> pour additif, <b>-norm=mul</"
+"b> pour multiplicatif. Les options <b>-norm=addscale</b> et "
+"<b>-norm=mulscale</b> appliquent la même normalisation mais avec des "
+"opérations d'échelle. <b>-nonorm</b> est l'option pour désactiver la "
+"normalisation. Sinon, l'additif avec mise à l'échelle est appliqué par "
+"défaut.\n"
 "L'option <b>-fastnorm</b> spécifie d'utiliser des estimateurs plus rapides "
 "pour l'échelle que l'IKSS par défaut.\n"
 "<b>-rgb_equal</b> utilisera la normalisation pour égaliser le fond de ciel "
 "des images en couleur, utile si pcc et l'autostretch non lié ne seront pas "
 "utilisés.\n"
 "\n"
-"Autres options pour l'empilement par rejets :\n"
+"Autres options pour l'empilement par rejets :\n"
 "<b>-weight_from_noise</b> est une option pour ajouter des poids plus "
 "importants aux images avec un bruit de fond plus faible.\n"
 "<b>-weight_from_nbstack</b> pondère les images d'entrée en fonction du "
-"nombre d'images utilisées pour les créer, utile pour l'empilement en "
-"direct.\n"
+"nombre d'images utilisées pour les créer, utile pour l'empilement en direct."
+"\n"
 "<b>-weight_from_nbstars</b> ou <b>-weight_from_wfwhm</b> pondère les images "
 "d'entrée en fonction du nombre d'étoiles ou de wFWHM calculé lors de l'étape "
 "d'enregistrement.\n"
 "\n"
-"Les sorties:\n"
+"Les sorties :\n"
 "Le nom de l'image en sortie peut être défini avec l'option <b>-out=</b>. "
 "Sinon, il sera nommé <b>sequencename</b>_stacked.fit.\n"
 "<b>-output_norm</b> applique une normalisation pour redimensionner le "
 "résultat dans la plage [0, 1] (empilement médian et moyen uniquement).\n"
 "\n"
-"Filtrer les images :\n"
+"Filtrer les images :\n"
 "Les images à empiler peuvent être sélectionnées en fonction de certains "
 "filtres, comme la sélection manuelle ou le meilleur FWHM, avec certaines des "
 "options <b>-filter-*</b>.\n"
@@ -15963,7 +15964,7 @@ msgstr ""
 #: src/core/command_line_processor.c:359
 #, c-format
 msgid "Error in line %d ('%s'): %s.\n"
-msgstr "Erreur à la ligne %d ('%s'): %s.\n"
+msgstr "Erreur à la ligne %d ('%s') : %s.\n"
 
 #: src/core/command_line_processor.c:360
 msgid "Exiting batch processing.\n"
@@ -16113,15 +16114,15 @@ msgid ""
 "Compression enabled: There may no be enough free disk space to perform this "
 "operation: %s available for %s needed (missing %s)\n"
 msgstr ""
-"Compression activée: l'espace disque disponible peut être insuffisant pour "
-"effectuer cette opération : %s disponible pour %s nécessaire (%s manquant)\n"
+"Compression activée : l'espace disque disponible peut être insuffisant pour "
+"effectuer cette opération : %s disponible pour %s nécessaire (%s manquant)\n"
 
 #: src/core/OS_utils.c:243
 msgid ""
 "Compression enabled: There may not be enough free disk space to perform this "
 "operation"
 msgstr ""
-"Compression activée: l'espace disque disponible peut ne pas être suffisant "
+"Compression activée : l'espace disque disponible peut ne pas être suffisant "
 "pour effectuer cette opération"
 
 #: src/core/OS_utils.c:245
@@ -16130,16 +16131,16 @@ msgid ""
 "Compression enabled: It is likely that there is not enough free disk space "
 "to perform this operation: %s available for %s needed (missing %s)\n"
 msgstr ""
-"Compression activée: il est probable que l'espace disque disponible soit "
-"insuffisant pour effectuer cette opération: %s disponible pour %s nécessaire "
-"(%s manquant)\n"
+"Compression activée : il est probable que l'espace disque disponible soit "
+"insuffisant pour effectuer cette opération : %s disponible pour %s "
+"nécessaire (%s manquant)\n"
 
 #: src/core/OS_utils.c:248
 msgid ""
 "Compression enabled: It is likely that there is not enough free disk space "
 "to perform this operation"
 msgstr ""
-"Compression activée: il est probable que l'espace disque disponible soit "
+"Compression activée : il est probable que l'espace disque disponible soit "
 "insuffisant pour effectuer cette opération"
 
 #: src/core/OS_utils.c:252
@@ -16462,7 +16463,7 @@ msgstr "Traitement interrompu par l'utilisateur\n"
 #: src/core/sequence_filtering.c:229
 msgid "Sequence filter: values can only be either literal or percent\n"
 msgstr ""
-"Filtre de séquence: les valeurs ne peuvent être que littérales ou en "
+"Filtre de séquence : les valeurs ne peuvent être que littérales ou en "
 "pourcent\n"
 
 #: src/core/sequence_filtering.c:235
@@ -16528,7 +16529,7 @@ msgid ""
 "Warning: some images don't have information available for best images "
 "selection, using only available data (%d images on %d).\n"
 msgstr ""
-"Avertissement: certaines images ne disposent pas des informations "
+"Avertissement : certaines images ne disposent pas des informations "
 "nécessaires à la sélection des meilleures images et n'utilisent que les "
 "données disponibles (%d images sur %d).\n"
 
@@ -16687,7 +16688,7 @@ msgstr "ajouter CTYPE3='RGB' dans l'en-tête FITS"
 
 #: src/core/settings.c:268
 msgid "user copyright to put in file header"
-msgstr "copyright de l'utilisateur à mettre dans l'en-tête du fichier"
+msgstr "copyright utilisateur à mettre dans l'en-tête du fichier"
 
 #: src/core/settings.c:269
 msgid "directory of the starnet++ installation"
@@ -16747,7 +16748,7 @@ msgstr "décalage de la matrice de Bayer en X"
 
 #: src/core/settings.c:289
 msgid "Bayer matrix offset Y"
-msgstr "décalage de la matrice de Bayer en Y"
+msgstr "Décalage en Y de la matrice de Bayer"
 
 #: src/core/settings.c:290
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
@@ -16868,7 +16869,7 @@ msgstr "si aucun modèle X-Trans n'est trouvé, utilisez ceci"
 
 #: src/core/settings.c:332
 msgid "default master bias"
-msgstr "master-offset par défaut"
+msgstr "bias maître par défaut"
 
 #: src/core/settings.c:333
 msgid "use default master bias"
@@ -16880,7 +16881,7 @@ msgstr "master-dark par défaut"
 
 #: src/core/settings.c:335
 msgid "use default master dark"
-msgstr "utiliser le master-dark par défa"
+msgstr "utiliser le dark maître par défaut"
 
 #: src/core/settings.c:336
 msgid "default master flat"
@@ -17197,7 +17198,7 @@ msgstr "Erreur : %ld. Attente de %us avant nouvel essai\n"
 #, c-format
 msgid "Cannot retrieve information from the update URL. Error: [%ld]\n"
 msgstr ""
-"Impossible de récupérer les informations de l'URL de mise à jour. Erreur: "
+"Impossible de récupérer les informations de l'URL de mise à jour. Erreur : "
 "[%ld]\n"
 
 #: src/core/siril_update.c:636
@@ -17451,7 +17452,7 @@ msgstr ""
 #: src/filters/rgradient.c:256
 #, c-format
 msgid "RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"
-msgstr "RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"
+msgstr "RGradient : (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"
 
 #: src/filters/rgradient.c:275
 msgid "Center coordinate selection error"
@@ -17862,7 +17863,7 @@ msgstr ""
 #: src/gui/background_extraction.c:219
 #, c-format
 msgid "Background extraction (Correction: %s)"
-msgstr "Extraction du gradient (Correction: %s)"
+msgstr "Extraction du gradient (Correction : %s)"
 
 #: src/gui/background_extraction.c:225
 msgid "No Background model computed"
@@ -17926,13 +17927,13 @@ msgstr "- néant -"
 msgid ""
 "This sequence name already exists!! Please change the name before converting."
 msgstr ""
-"Ce nom de séquence existe déjà !! S'il vous plaît changer le nom avant de "
+"Ce nom de séquence existe déjà ! ! S'il vous plaît changer le nom avant de "
 "convertir."
 
 #: src/gui/callbacks.c:745
 #, c-format
 msgid "W: %dpx H: %dpx ratio: %.4f"
-msgstr "L: %dpx H: %dpx ratio: %.4f"
+msgstr "L : %dpx H : %dpx ratio : %.4f"
 
 #: src/gui/callbacks.c:763
 #, c-format
@@ -17969,7 +17970,7 @@ msgstr ""
 "La conversion d'une image 32 bits en une image 16 bits peut entraîner une "
 "perte de précision numérique. Revenir à 32 bits ne permettra pas de "
 "récupérer cette perte.\n"
-"Voulez-vous vraiment convertir vos données?"
+"Voulez-vous vraiment convertir vos données ?"
 
 #: src/gui/callbacks.c:840
 msgid "Convert to 16 bits"
@@ -19017,14 +19018,14 @@ msgid ""
 msgstr ""
 "Moyenne du PSF Gaussien\n"
 "\n"
-"N:\t%d étoiles (%d saturées et exclues)\n"
-"B:\t%.6f\n"
-"A:\t%.6f\n"
-"FWHMx:\t%.2f%s\n"
-"FWHMy:\t%.2f%s\n"
-"r:\t%.3f\n"
-"Angle:\t%.2f deg\n"
-"rmse:\t%.3e\n"
+"N :\t%d étoiles (%d saturées et exclues)\n"
+"B :\t%.6f\n"
+"A :\t%.6f\n"
+"FWHMx :\t%.2f%s\n"
+"FWHMy :\t%.2f%s\n"
+"r :\t%.3f\n"
+"Angle :\t%.2f deg\n"
+"rmse :\t%.3e\n"
 
 #: src/gui/PSF_list.c:293
 #, c-format
@@ -19127,31 +19128,31 @@ msgid ""
 "RMSE:\n"
 "\t\tRMSE=%.3e"
 msgstr ""
-"Résultat de la PSF(%s%s):\n"
+"Résultat de la PSF(%s%s) :\n"
 "\n"
-"Coordonnées du Centroïde :\n"
+"Coordonnées du Centroïde :\n"
 "\t\t%s\n"
 "\n"
-"Largeur à mi-hauteur :\n"
+"Largeur à mi-hauteur :\n"
 "\t\tFWHMx=%.2f%s\n"
 "\t\tFWHMy=%.2f%s\n"
 "\t\tr=%.2f\n"
-"Angle :\n"
+"Angle :\n"
 "\t\t%0.2fdeg\n"
 "\n"
-"Valeur de fond de ciel :\n"
+"Valeur de fond de ciel :\n"
 "\t\tB=%.6f\n"
 "\n"
-"Intensité Maximale :\n"
+"Intensité Maximale :\n"
 "\t\tA=%.6f\n"
 "\n"
-"Magnitude (%s) :\n"
+"Magnitude (%s) :\n"
 "\t\tm=%.4f±%.4f\n"
 "\n"
-"Rapport Signal sur Bruit :\n"
+"Rapport Signal sur Bruit :\n"
 "\t\tRSB=%.1fdB (%s)\n"
 "\n"
-"RMSE:\n"
+"RMSE :\n"
 "\t\tRMSE=%.3e"
 
 #: src/gui/PSF_list.c:740
@@ -19318,7 +19319,7 @@ msgstr ""
 "Vous êtes sur le point d'utiliser des scripts. L'exécution de scripts "
 "automatiques est quelque chose de facile et, généralement, cela fournit une "
 "belle image. Cependant, vous devez garder à l'esprit que les scripts ne sont "
-"pas magiques; des choix automatiques sont faits là où une décision humaine "
+"pas magiques ; des choix automatiques sont faits là où une décision humaine "
 "serait probablement meilleure. De plus, toutes les commandes utilisées dans "
 "un script sont disponibles sur l'interface graphique avec un meilleur "
 "contrôle des paramètres."
@@ -20021,7 +20022,7 @@ msgstr ""
 #, c-format
 msgid "Symbolic link could not be made, copying the file. Error: %s\n"
 msgstr ""
-"Impossible de créer le lien symbolique, le fichier est copié. Erreur: %s\n"
+"Impossible de créer le lien symbolique, le fichier est copié. Erreur : %s\n"
 
 #: src/io/image_formats_internal.c:210
 msgid "Error opening BMP.\n"
@@ -20147,7 +20148,7 @@ msgstr "Heure (de l'observation) : %s\n"
 #: src/io/image_formats_libraries.c:83 src/io/image_formats_libraries.c:166
 #: src/io/image_formats_libraries.c:249 src/io/image_formats_libraries.c:327
 msgid "Alpha channel is ignored.\n"
-msgstr "Le canal alpha est ignoré?\n"
+msgstr "Le canal alpha est ignoré.\n"
 
 #: src/io/image_formats_libraries.c:101 src/io/image_formats_libraries.c:128
 #: src/io/image_formats_libraries.c:184 src/io/image_formats_libraries.c:211
@@ -20396,7 +20397,7 @@ msgstr ""
 msgid "Selecting the primary header failed, is the FITS file '%s' malformed?\n"
 msgstr ""
 "La sélection de l'en-tête principal a échoué, le fichier FITS '%s' est-il "
-"mal formé?\n"
+"mal formé ?\n"
 
 #: src/io/image_format_fits.c:3141 src/io/ser.c:1358
 msgid "frame"
@@ -20525,7 +20526,7 @@ msgstr "Le fichier de séquence %s semble être corrompu\n"
 msgid ""
 "%s: Copying registration data from non-demosaiced layer to green layer\n"
 msgstr ""
-"%s: Copie les données d'alignement du canal non dématricé au canal vert\n"
+"%s : Copie les données d'alignement du canal non dématricé au canal vert\n"
 
 #: src/io/seqfile.c:574
 #, c-format
@@ -20570,7 +20571,7 @@ msgid ""
 "SER file. SER file format is a simple image sequence format, similar to "
 "uncompressed films."
 msgstr ""
-"Les séquences de films sont désormais obsolètes dans Siril: certaines "
+"Les séquences de films sont désormais obsolètes dans Siril : certaines "
 "fonctionnalités sont désactivées et d'autres peuvent planter. Nous vous "
 "encourageons vivement à convertir cette séquence en un fichier SER. Le "
 "format de fichier SER est un format de séquence d'images simple, similaire "
@@ -20707,7 +20708,7 @@ msgid ""
 "on the previous found star; this disables parallel processing.\n"
 msgstr ""
 "L'analyse PSF de la séquence utilise une zone de sélection glissante centrée "
-"sur l'étoile trouvée précédemment; ceci désactive la parallélisation.\n"
+"sur l'étoile trouvée précédemment ; ceci désactive la parallélisation.\n"
 
 #: src/io/sequence.c:1885
 msgid ""
@@ -20715,8 +20716,8 @@ msgid ""
 "selection area for each image; this is compatible with parallel processing.\n"
 msgstr ""
 "L'analyse de séquence de la fonction PSF utilise les données d'alignement "
-"pour déplacer la zone de sélection de chaque image; ceci est compatible avec "
-"la parallélisation.\n"
+"pour déplacer la zone de sélection de chaque image ; ceci est compatible "
+"avec la parallélisation.\n"
 
 #: src/io/sequence.c:1897
 msgid "PSF on area"
@@ -20936,7 +20937,7 @@ msgstr ""
 #: src/io/ser.c:542
 #, c-format
 msgid "Removing failed SER file: %s\n"
-msgstr "Suppression du fichier SER en échec: %s\n"
+msgstr "Suppression du fichier SER en échec : %s\n"
 
 #: src/io/ser.c:553
 msgid "The SER sequence is being created with no image in it.\n"
@@ -21249,7 +21250,7 @@ msgstr "Arc tangente hyperbolique de x."
 
 #: src/pixelMath/pixel_math_runner.c:75
 msgid "Round x upwards to the nearest integer."
-msgstr "Arrondir x vers le haut à l'entier le plus proche."
+msgstr "Arrondi x à l'entier supérieur."
 
 #: src/pixelMath/pixel_math_runner.c:76
 msgid "Cosine of x."
@@ -21910,7 +21911,7 @@ msgid ""
 "data: Image %d skipped\n"
 msgstr ""
 "Moins de %d%% paires d'étoiles conservées par le modèle de translation, ce "
-"modèle est peut être trop rigide pour vos images: Image %d écartée\n"
+"modèle est peut être trop rigide pour vos images : Image %d écartée\n"
 
 #: src/registration/global.c:261
 #, c-format
@@ -21919,7 +21920,7 @@ msgid ""
 "your data: Image %d skipped\n"
 msgstr ""
 "Moins de %d%% paires d'étoiles conservées par le modèle de similarité, ce "
-"modèle est peut être trop rigide pour vos images: Image %d écartée\n"
+"modèle est peut être trop rigide pour vos images : Image %d écartée\n"
 
 #: src/registration/global.c:266
 #, c-format
@@ -21928,7 +21929,7 @@ msgid ""
 "data: Image %d skipped\n"
 msgstr ""
 "Moins de %d%% paires d'étoiles conservées par le modèle affine, ce modèle "
-"est peut être trop rigide pour vos images: Image %d écartée\n"
+"est peut être trop rigide pour vos images : Image %d écartée\n"
 
 #: src/registration/global.c:271
 #, c-format

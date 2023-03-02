@@ -8004,7 +8004,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
             <property name="shadow-type">none</property>
             <child>
               <object class="GtkCheckButton" id="check_denoise_suppress_artefacts">
-                <property name="label" translatable="yes">Independant Channels</property>
+                <property name="label" translatable="yes">Independent Channels</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>

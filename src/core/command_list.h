@@ -150,9 +150,9 @@ static command commands[] = {
 #endif
 	{"savepnm", 1, "savepnm filename", process_savepnm, STR_SAVEPNM, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifdef HAVE_LIBTIFF
-	{"savetif", 1, "savetif filename [-astro]", process_savetif, STR_SAVETIF, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"savetif32", 1, "savetif32 filename [-astro]", process_savetif, STR_SAVETIF32, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"savetif8", 1, "savetif8 filename [-astro]", process_savetif, STR_SAVETIF8, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"savetif", 1, "savetif filename [-astro] [-deflate]", process_savetif, STR_SAVETIF, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"savetif32", 1, "savetif32 filename [-astro] [-deflate]", process_savetif, STR_SAVETIF32, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"savetif8", 1, "savetif8 filename [-astro] [-deflate]", process_savetif, STR_SAVETIF8, TRUE, REQ_CMD_SINGLE_IMAGE},
 #endif
 	{"sb", 0, "sb [-alpha=] [-iters=]", process_sb, STR_SB, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"select", 3, "select sequencename from to", process_select, STR_SELECT, TRUE, REQ_CMD_NONE},
