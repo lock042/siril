@@ -245,6 +245,9 @@ static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynt
 		for (int psfy = 0; psfy < size; psfy++) {
 			xx = x + psfx - halfpsfdim;
 			yy = y + psfy - halfpsfdim;
+// Note the bounds, xx >= 0 and < dimx but yy > 0 and <= dimy
+// This is correct, it is because Lsynth gets indexed by xx but by dimy - yy
+// Same comment applies below in the copy back
 			if (xx >= 0 && xx < dimx && yy > 0 && yy <= dimy) {
 				float orig = Lsynth[xx + ((dimy - yy) * dimx)];
 				float synth = psfL[psfx + (psfy * size)];
