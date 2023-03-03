@@ -231,7 +231,7 @@ static void add_star_to_mono_buffer(const float *psfL, int size, float *Lsynth, 
 }
 
 static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynth, int x, int y, int dimx, int dimy, float sat, float bg, float noise) {
-	float* buf = malloc(size * size * sizeof(float));
+	float* buf = calloc(1, size * size * sizeof(float));
 	float* resbuf = malloc(size * size * sizeof(float));
 	const int halfpsfdim = (size - 1) / 2;
 	int xx, yy;
@@ -259,6 +259,7 @@ static void replace_sat_star_in_buffer(const float *psfL, int size, float *Lsynt
 			}
 		}
 	}
+	memcpy(resbuf, buf, size * size * sizeof(float));
 
 // Carry out median blur of middle part, storing the result in resbuf
 // in order not to overwrite data in buf that is still needed as input
