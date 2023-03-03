@@ -189,22 +189,19 @@ endif
 
 # threaded fftw3f
 if cc.links('''#include <fftw3.h>
-               #include <unistd.h>
-               int main (int argc, char ** argv) {
+               int main () {
                  fftwf_init_threads();
                  return 0;
                }''', name : 'fftwf linked with pthreads and combined_threads')
   have_fftw3fthreadsnolinkerarg = true
 elif cc.links('''#include <fftw3.h>
-               #include <unistd.h>
-               int main (int argc, char ** argv) {
+               int main () {
                  fftwf_init_threads();
                  return 0;
                }''', args : ['-lfftw3f_omp'], name : 'fftwf linked with openmp')
   have_fftw3fomp = true
 elif cc.links('''#include <fftw3.h>
-               #include <unistd.h>
-               int main (int argc, char ** argv) {
+               int main () {
                  fftwf_init_threads();
                  return 0;
                }''', args : ['-lfftw3f_threads'], name : 'fftwf linked with pthreads')
