@@ -18,6 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
+#define HAVE_FFTW3F_MULTITHREAD
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -292,7 +296,7 @@ int register_shift_dft(struct registration_args *args) {
 	convol = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 
 	gchar* wisdomFile = com.pref.fftw_conf.wisdom_file;
-#ifdef HAVE_FFTW3F_OMP
+#ifdef HAVE_FFTW3F_MULTITHREAD
 	fftwf_plan_with_nthreads(com.max_thread);
 #endif
 	// test for available wisdom

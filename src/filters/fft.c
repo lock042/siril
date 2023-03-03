@@ -18,6 +18,10 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
+#define HAVE_FFTW3F_MULTITHREAD
+#endif
+
 #include <stdio.h>
 #include <math.h>
 #include <complex.h>
@@ -439,7 +443,7 @@ gpointer fourier_transform(gpointer p) {
 	int chan;
 	struct timeval t_start, t_end;
 	fits *tmp = NULL, *tmp1 = NULL, *tmp2 = NULL;
-#ifdef HAVE_FFTW3F_OMP
+#ifdef HAVE_FFTW3F_MULTITHREAD
 // Change these lines to use fftw functions if double support is ever required
 		int n = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
         fftwf_plan_with_nthreads(n);

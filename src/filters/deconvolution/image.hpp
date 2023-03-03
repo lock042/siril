@@ -30,6 +30,10 @@ free-astro 2022-2023.
 */
 #pragma once
 
+#if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
+#define HAVE_FFTW3F_MULTITHREAD
+#endif
+
 #include <unordered_map>
 
 #include <cassert>
@@ -51,7 +55,7 @@ template <typename T>
 class img_t {
 public:
     static void use_threading(int n) {
-#ifdef HAVE_FFTW3F_OMP
+#ifdef HAVE_FFTW3F_MULTITHREAD
         fftwf_set_timelimit(cppfftwtimelimit);
         if (n > 1) {
             fftwf_plan_with_nthreads(n);
