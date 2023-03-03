@@ -193,11 +193,16 @@ if cc.links('''#include <fftw3.h>
                int main (int argc, char ** argv) {
                  fftwf_init_threads();
                  return 0;
+               }''', name : 'fftwf linked with pthreads and combined_threads: no linker flags needed')
+  have_fftw3fthreadsnolinkerarg = true
+elif cc.links('''#include <fftw3.h>
+               #include <unistd.h>
+               int main (int argc, char ** argv) {
+                 fftwf_init_threads();
+                 return 0;
                }''', args : ['-lfftw3f_omp'], name : 'fftwf linked with openmp')
   have_fftw3fomp = true
-endif
-
-if cc.links('''#include <fftw3.h>
+elif cc.links('''#include <fftw3.h>
                #include <unistd.h>
                int main (int argc, char ** argv) {
                  fftwf_init_threads();
@@ -206,14 +211,7 @@ if cc.links('''#include <fftw3.h>
   have_fftw3fthreads = true
 endif
 
-if cc.links('''#include <fftw3.h>
-               #include <unistd.h>
-               int main (int argc, char ** argv) {
-                 fftwf_init_threads();
-                 return 0;
-               }''', name : 'threaded fftwf with no linker flags')
-  have_fftw3fthreadsnolinkerarg = true
-endif
+
 ################################################################################
 # Directories
 
