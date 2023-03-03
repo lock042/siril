@@ -236,7 +236,7 @@ void initialize_default_settings() {
 	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
-	set_wisdom_file();
+	// set_wisdom_file();
 }
 
 void update_gain_from_gfit() {

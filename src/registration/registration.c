@@ -294,7 +294,8 @@ int register_shift_dft(struct registration_args *args) {
 	in = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 	out = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 	convol = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
-
+	
+	set_wisdom_file();
 	gchar* wisdomFile = com.pref.fftw_conf.wisdom_file;
 #ifdef HAVE_FFTW3F_MULTITHREAD
 	fftwf_plan_with_nthreads(com.max_thread);

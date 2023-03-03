@@ -245,7 +245,7 @@ static void update_performances_preferences() {
 	com.pref.fftw_conf.strategy = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_fftw_plan_strategy")));
 	com.pref.fftw_conf.multithreaded = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_fftw_multithreaded")));
 	com.pref.fftw_conf.fft_cutoff = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_conv_min_fft")));
-	set_wisdom_file();
+	//set_wisdom_file();
 
 	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
 	com.pref.hd_bitdepth = bitdepth;
@@ -658,7 +658,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		free_preferences(&com.pref);
 		dump_ui_to_global_var();
-		set_wisdom_file();
+		// set_wisdom_file();
 		initialize_FITS_name_entries();	// To update UI with new preferences
 		refresh_star_list();		// To update star list with new preferences
 		if (com.found_object)

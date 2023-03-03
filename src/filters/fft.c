@@ -463,7 +463,7 @@ gpointer fourier_transform(gpointer p) {
 		default:
 			strategy = FFTW_ESTIMATE;
 	}
-
+	set_wisdom_file();
     if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
         siril_log_message(_("Siril FFT wisdom imported successfully...\n"));
 	} else if (fftwf_import_system_wisdom() == 1) {
