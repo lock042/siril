@@ -32,7 +32,7 @@
  * only newline. It is an allocated string and must not be freed. It can be
  * reused until next call to this function.
  */
-char* siril_log_internal(const char* format, const char* color, va_list arglist) {
+static char* siril_log_internal(const char* format, const char* color, va_list arglist) {
 	static char *msg = NULL;
 
 	if (msg == NULL) {
