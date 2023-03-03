@@ -42,6 +42,10 @@ srcInclude  = include_directories('src')
 
 warnings = []
 
+have_fftw3fomp = false
+have_fftw3fthreads = false
+have_fftw3fthreadsnolinkerarg = false
+
 enable_openmp    = get_option('openmp')
 enable_json_glib = get_option('json_glib')
 enable_libraw    = get_option('libraw')
