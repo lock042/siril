@@ -279,7 +279,8 @@ openmp_dep = []
 if platform_windows
     siril_c_flag += '-DHAVE_FFTW3F_THREADS'
     siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
-  siril_link_arg += ['-lm']
+#  siril_link_arg += ['-lfftw_omp'] # not currently needed, may be needed after merge of
+# pull request to mingw package?
 endif
 
 if enable_openmp
