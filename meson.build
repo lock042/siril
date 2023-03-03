@@ -336,8 +336,12 @@ if enable_openmp
     siril_link_arg += ['-lfftw3f_threads']
     message('FFTW linked against pthreads: will use OpenMP callback')
   elif have_fftw3fthreadsnolinkerarg
-    siril_c_flag += '-DHAVE_FFTW3F_MULTITHREAD'
-    siril_cpp_flag += '-DHAVE_FFTW3F_MULTITHREAD'
+# Note in this instance FFTW has been built with the combined_threads
+# option so we cannot tell whether OpenMP or pthreads are used. So
+# we tell the compiler to replace the threading callback anyway, to be
+# safe.
+    siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+    siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
     message('FFTW will use combined_threads')
   endif
 elif have_fftw3fthreads
