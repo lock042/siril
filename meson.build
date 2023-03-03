@@ -208,7 +208,7 @@ if cc.links('''#include <fftw3.h>
                  fftwf_init_threads();
                  return 0;
                }''', name : 'threaded fftwf with no linker flags')
-  have_fftw3fthreads = true
+  have_fftw3fthreadsnolinkerarg = true
 endif
 ################################################################################
 # Directories
@@ -328,11 +328,21 @@ if enable_openmp
     siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
     siril_link_arg += ['-lfftw3f_threads']
     message('FFTW linked against pthreads: will use OpenMP callback')
+  elif have_fftw3fthreadsnolinkerarg
+# Note in this instance FFTW has been built with the combined_threads
+# option which means pthreads is in use
+    siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+    siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
+    message('FFTW linked against pthreads: will use OpenMP callback')
   endif
 elif have_fftw3fthreads
   siril_c_flag += '-DHAVE_FFTW3F_THREADS'
   siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
   siril_link_arg += ['-lfftw3f_threads']
+  message('FFTW linked against pthreads')
+elif have_fftw3fthreadsnolinkerarg
+  siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+  siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
   message('FFTW linked against pthreads')
 else
   message('FFTW does not support multithreading')
