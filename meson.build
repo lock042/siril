@@ -208,7 +208,7 @@ if cc.links('''#include <fftw3.h>
                  fftwf_init_threads();
                  return 0;
                }''', name : 'threaded fftwf with no linker flags')
-  have_fftw3fthreadsnolinkerarg = true
+  have_fftw3fthreads = true
 endif
 ################################################################################
 # Directories
@@ -303,13 +303,6 @@ endif
 ## Optional dependencies
 
 openmp_dep = []
-if platform_windows
-    siril_c_flag += '-DHAVE_FFTW3F_THREADS'
-    siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
-#  siril_link_arg += ['-lfftw_omp'] # not currently needed, may be needed after merge of
-# pull request to mingw package?
-endif
-
 if enable_openmp
   if platform_osx
     message('Set OpenMP flags for macOS')
@@ -329,30 +322,18 @@ if enable_openmp
     siril_c_flag += '-DHAVE_FFTW3F_OMP'
     siril_cpp_flag += '-DHAVE_FFTW3F_OMP'
     siril_link_arg += ['-lfftw3f_omp']
-    message('FFTW will use OpenMP')
+    message('FFTW linked against OpenMP')
   elif have_fftw3fthreads
     siril_c_flag += '-DHAVE_FFTW3F_THREADS'
     siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
     siril_link_arg += ['-lfftw3f_threads']
     message('FFTW linked against pthreads: will use OpenMP callback')
-  elif have_fftw3fthreadsnolinkerarg
-# Note in this instance FFTW has been built with the combined_threads
-# option so we cannot tell whether OpenMP or pthreads are used. So
-# we tell the compiler to replace the threading callback anyway, to be
-# safe.
-    siril_c_flag += '-DHAVE_FFTW3F_THREADS'
-    siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
-    message('FFTW will use combined_threads')
   endif
 elif have_fftw3fthreads
   siril_c_flag += '-DHAVE_FFTW3F_THREADS'
   siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
   siril_link_arg += ['-lfftw3f_threads']
-  message('FFTW will use pthreads')
-elif have_fftw3fthreadsnolinkerarg
-  siril_c_flag += '-DHAVE_FFTW3F_MULTITHREAD'
-  siril_cpp_flag += '-DHAVE_FFTW3F_MULTITHREAD'
-  message('FFTW will use combined_threads')
+  message('FFTW linked against pthreads')
 else
   message('FFTW does not support multithreading')
 endif
