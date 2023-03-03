@@ -193,7 +193,7 @@ if cc.links('''#include <fftw3.h>
                int main (int argc, char ** argv) {
                  fftwf_init_threads();
                  return 0;
-               }''', name : 'fftwf linked with pthreads and combined_threads: no linker flags needed')
+               }''', name : 'fftwf linked with pthreads and combined_threads')
   have_fftw3fthreadsnolinkerarg = true
 elif cc.links('''#include <fftw3.h>
                #include <unistd.h>
