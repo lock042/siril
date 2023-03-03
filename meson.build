@@ -187,28 +187,6 @@ if cc.has_argument('-msse4.1') and cpp.has_argument('-msse4.1')
   endif
 endif
 
-# threaded fftw3f
-if cc.links('''#include <fftw3.h>
-               int main () {
-                 fftwf_init_threads();
-                 return 0;
-               }''', name : 'fftwf linked with pthreads and combined_threads')
-  have_fftw3fthreadsnolinkerarg = true
-elif cc.links('''#include <fftw3.h>
-               int main () {
-                 fftwf_init_threads();
-                 return 0;
-               }''', args : ['-lfftw3f_omp'], name : 'fftwf linked with openmp')
-  have_fftw3fomp = true
-elif cc.links('''#include <fftw3.h>
-               int main () {
-                 fftwf_init_threads();
-                 return 0;
-               }''', args : ['-lfftw3f_threads'], name : 'fftwf linked with pthreads')
-  have_fftw3fthreads = true
-endif
-
-
 ################################################################################
 # Directories
 
@@ -262,7 +240,29 @@ gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
 exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
+
 fftw3f_dep = dependency('fftw3f', required : true)
+# threaded fftw3f
+if cc.links('''#include <fftw3.h>
+               int main () {
+                 fftwf_init_threads();
+                 return 0;
+               }''', dependencies : [fftw3f_dep], name : 'fftwf linked with pthreads and combined_threads')
+  have_fftw3fthreadsnolinkerarg = true
+elif cc.links('''#include <fftw3.h>
+               int main () {
+                 fftwf_init_threads();
+                 return 0;
+               }''', dependencies : [fftw3f_dep], args : ['-lfftw3f_omp'], name : 'fftwf linked with openmp')
+  have_fftw3fomp = true
+elif cc.links('''#include <fftw3.h>
+               int main () {
+                 fftwf_init_threads();
+                 return 0;
+               }''', dependencies : [fftw3f_dep], args : ['-lfftw3f_threads'], name : 'fftwf linked with pthreads')
+  have_fftw3fthreads = true
+endif
+
 cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
