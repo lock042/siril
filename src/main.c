@@ -198,7 +198,7 @@ static void global_initialization() {
 	// program, replace the parallel loop to avoid conflicting threads.
 	// See https://www.fftw.org/fftw3_doc/Usage-of-Multi_002dthreaded-FFTW.html
 	void fftw_threads_set_callback(
-		void (*parallel_loop)(void *(*work)(void *), char *jobdata, size_t elsize, int njobs,
+		void (*parallel_loop)(void *(*work)(char *), char *jobdata, size_t elsize, int njobs,
 		void *data), void *data);
 #endif
 
