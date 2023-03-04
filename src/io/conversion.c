@@ -322,7 +322,7 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 			break;
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
-			retval = (readtif(source, dest, force_float) < 0);
+			retval = (readtif(source, dest, force_float, TRUE) < 0);
 			break;
 #endif
 		case TYPEPNM:

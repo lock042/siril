@@ -381,7 +381,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Save current stretched image as working 16-bit TIFF (post initial stretch if the image was linear)
-	retval = savetif(temptif, &workingfit, 16, NULL, com.pref.copyright, FALSE, TRUE);
+	retval = savetif(temptif, &workingfit, 16, NULL, com.pref.copyright, FALSE, TRUE, FALSE);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to save working TIFF of original image...\n"), "red");
 		goto CLEANUP;
@@ -417,7 +417,7 @@ gpointer do_starnet(gpointer p) {
 
 	// Read the starless stretched tiff. Successful return value of readtif() is nsamples
 	clearfits(&workingfit); // Clear it first to free the data
-	retval = readtif(starlesstif, &workingfit, FALSE);
+	retval = readtif(starlesstif, &workingfit, FALSE, FALSE);
 	if (retval < 1 || retval > 3) {
 		siril_log_color_message(_("Error: unable to read starless image from TIFF...\n"), "red");
 		goto CLEANUP;
