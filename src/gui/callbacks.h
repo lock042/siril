@@ -10,7 +10,7 @@ void launch_clipboard_survey();
 
 void initialize_all_GUI(gchar *files);
 void siril_set_theme(int active);
-void load_prefered_theme();
+void load_prefered_theme(gint theme);
 void set_cutoff_sliders_max_values();		// was set_upper_minmax
 void set_cutoff_sliders_values();		// was set_ranges
 void set_sliders_value_to_gfit();
@@ -49,7 +49,7 @@ void close_tab();
 void activate_tab(int vport);
 void init_right_tab();
 
-void update_prepro_interface();
+void update_prepro_interface(gboolean allow_debayer);
 
 void on_treeview_selection_convert_changed(GtkTreeSelection *treeselection, gpointer user_data);
 void update_statusbar_convert();
