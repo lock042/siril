@@ -116,11 +116,14 @@ static int exec_prog_starnet(char **argv) {
 			g_data_input_stream_set_newline_type(data_input, G_DATA_STREAM_NEWLINE_TYPE_CR);
 			doprint = FALSE;
 		}
-		double value = g_ascii_strtod(buffer, NULL);
+		gchar *arg = buffer;
+		if (g_str_has_prefix(buffer, "Working:"))
+			arg += 9;
+		double value = g_ascii_strtod(arg, NULL);
 		if (value != 0.0 && value == value && verbose) {
 			set_progress_bar_data(_("Running StarNet"), (value / 100));
 		}
-		if (value == 100.0) {
+		if (g_str_has_prefix(buffer, "100% finished") || g_str_has_prefix(buffer, "Writing mask")) {
 			retval = 0;
 		}
 		g_free(buffer);
@@ -203,6 +206,7 @@ gpointer do_starnet(gpointer p) {
 	gchar *starnetcommand = NULL;
 	gchar *temptif = NULL;
 	gchar *starlesstif = NULL;
+	gchar *starmasktif = NULL;
 	gchar *starlessfit = NULL;
 	gchar *starmaskfit = NULL;
 	gchar *imagenoext = NULL;
@@ -213,6 +217,8 @@ gpointer do_starnet(gpointer p) {
 	gchar *torcharg_out = NULL;
 	gchar *torcharg_stride = NULL;
 	gchar *torcharg_up = NULL;
+	gchar *torcharg_mask = NULL; // We don't want the mask output, but the new starnet generates it regardless
+			// so we may as well put it somewhere known so we can delete it so as not to leave behind clutter.
 	gchar *temp = NULL;
 	gchar starnetprefix[10] = "starnet_";
 	gchar starlessprefix[10] = "starless_";
@@ -252,6 +258,14 @@ gpointer do_starnet(gpointer p) {
 	g_free(starlesstif);
 	starlesstif = g_strdup(temp);
 	g_free(temp);
+
+	starmasktif = g_build_filename(com.wd, starmasknoext, NULL);
+	temp = remove_ext_from_filename(starmasktif);
+	g_free(starmasktif);
+	starmasktif = g_strdup(temp);
+	g_free(temp);
+	printf("%s", starmasktif);
+
 	starlessfit = g_strdup(starlesstif);
 	temp = g_strdup_printf("%s.tif", starlesstif);
 	g_free(starlesstif);
@@ -438,9 +452,13 @@ gpointer do_starnet(gpointer p) {
 			my_argv[nb++] = args->stride;
 		}
 	}
-	if (args->upscale && version == TORCH) {
-		torcharg_up = g_strdup("-u");
-		my_argv[nb++] = torcharg_up;
+	if (version == TORCH) {
+		if (args->upscale) {
+			torcharg_up = g_strdup("-u");
+			my_argv[nb++] = torcharg_up;
+		}
+		torcharg_mask = g_strdup_printf("-m %s", starmasktif);
+		my_argv[nb++] = torcharg_mask;
 	}
 
 	// *** Call starnet++ *** //
@@ -462,15 +480,11 @@ gpointer do_starnet(gpointer p) {
 
 	// Remove working TIFF files, they are no longer required
 	retval = g_remove(starlesstif);
-	if (retval) {
-		siril_log_color_message(_("Error: unable to remove temporary working file...\n"), "red");
-		// No goto here as even if it fails we want to try to remove the other TIFF
-	}
-
+	retval |= (g_remove(starmasktif) && version == TORCH);
 	retval |= g_remove(temptif);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to remove temporary working file...\n"), "red");
-		goto CLEANUP;
+		siril_log_message(_("Attempting to continue. You will need to clean up the working files manually.\n"));
 	}
 
 	/* we need to copy metadata as they have been removed with readtif     */
