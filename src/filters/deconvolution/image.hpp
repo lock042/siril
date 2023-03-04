@@ -30,10 +30,6 @@ free-astro 2022-2023.
 */
 #pragma once
 
-#if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
-#define HAVE_FFTW3F_MULTITHREAD
-#endif
-
 #include <unordered_map>
 
 #include <cassert>

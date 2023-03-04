@@ -18,10 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
-#define HAVE_FFTW3F_MULTITHREAD
-#endif
-
 #include <stdio.h>
 #include <math.h>
 #include <complex.h>

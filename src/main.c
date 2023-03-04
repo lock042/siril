@@ -18,10 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
-#define HAVE_FFTW3F_MULTITHREAD
-#endif
-
 #define MAIN
 #ifdef HAVE_CONFIG_H
 #  include <config.h>

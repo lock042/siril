@@ -247,19 +247,19 @@ if cc.links('''#include <fftw3.h>
                int main () {
                  fftwf_init_threads();
                  return 0;
-               }''', dependencies : [fftw3f_dep], name : 'fftwf linked with pthreads and combined_threads')
+               }''', dependencies : [fftw3f_dep], name : 'fftw3f linked with pthreads and combined_threads')
   have_fftw3fthreadsnolinkerarg = true
 elif cc.links('''#include <fftw3.h>
                int main () {
                  fftwf_init_threads();
                  return 0;
-               }''', dependencies : [fftw3f_dep], args : ['-lfftw3f_omp'], name : 'fftwf linked with openmp')
+               }''', dependencies : [fftw3f_dep], args : ['-lfftw3f_omp'], name : 'fftw3f linked with openmp')
   have_fftw3fomp = true
 elif cc.links('''#include <fftw3.h>
                int main () {
                  fftwf_init_threads();
                  return 0;
-               }''', dependencies : [fftw3f_dep], args : ['-lfftw3f_threads'], name : 'fftwf linked with pthreads')
+               }''', dependencies : [fftw3f_dep], args : ['-lfftw3f_threads'], name : 'fftw3f linked with pthreads')
   have_fftw3fthreads = true
 endif
 
