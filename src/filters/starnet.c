@@ -268,13 +268,12 @@ gpointer do_starnet(gpointer p) {
 	g_free(starmasktif);
 	starmasktif = g_strdup(temp);
 	g_free(temp);
-	printf("%s", starmasktif);
+	temp = g_strdup_printf("%s.tif", starmasktif);
+	g_free(starmasktif);
+	starmasktif = g_strdup(temp);
+	g_free(temp);
 
 	starlessfit = g_strdup(starlesstif);
-	temp = g_strdup_printf("%s.tif", starlesstif);
-	g_free(starlesstif);
-	starlesstif = g_strdup(temp);
-	g_free(temp);
 		if (strlen(starlesstif) > pathmax) {
 		retval = 1;
 		siril_log_color_message(_("Error: file path too long!\n"), "red");
