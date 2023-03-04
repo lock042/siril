@@ -12,7 +12,8 @@
 #define STARNET_BIN "starnet++"
 #define STARNET_RGB "rgb_starnet++"
 #define STARNET_MONO "mono_starnet++"
-#define STARNET_TORCH "starnet2T"
+#define STARNET_TORCH "starnet2"
+#define STARNET_TORCHT "starnet2T"
 #endif
 
 typedef enum {
@@ -21,7 +22,8 @@ typedef enum {
 	V1MONO = 2,
 	V1RGB = 4,
 	V1BOTH = 6,
-	TORCH = 8
+	TORCH = 8,
+	TORCHT = 24
 } starnet_version;
 
 typedef struct starnet_data {

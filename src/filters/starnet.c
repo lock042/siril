@@ -136,12 +136,15 @@ static int exec_prog_starnet(char **argv) {
 starnet_version starnet_executablecheck() {
 	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
 	gchar* torchpath = g_build_filename(com.pref.starnet_dir, STARNET_TORCH, NULL);
+	gchar* torchtpath = g_build_filename(com.pref.starnet_dir, STARNET_TORCHT, NULL);
 	gchar* fullpath = g_build_filename(com.pref.starnet_dir, STARNET_BIN, NULL);
 	gchar* rgbpath = g_build_filename(com.pref.starnet_dir, STARNET_RGB, NULL);
 	gchar* monopath = g_build_filename(com.pref.starnet_dir, STARNET_MONO, NULL);
 	starnet_version retval = NIL;
 	if (g_file_test(torchpath, G_FILE_TEST_IS_EXECUTABLE)) {
 		retval = TORCH;
+	} else if (g_file_test(torchtpath, G_FILE_TEST_IS_EXECUTABLE)) {
+		retval = TORCHT;
 	} else if (g_file_test(fullpath, G_FILE_TEST_IS_EXECUTABLE)) {
 		retval = V2;
 	} else {
@@ -151,6 +154,7 @@ starnet_version starnet_executablecheck() {
 			retval |= V1MONO;
 	}
 	g_free(torchpath);
+	g_free(torchtpath);
 	g_free(fullpath);
 	g_free(rgbpath);
 	g_free(monopath);
@@ -416,6 +420,8 @@ gpointer do_starnet(gpointer p) {
 	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
 	if (version == TORCH) {
 		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_TORCH, NULL);
+	} else if (version == TORCHT) {
+		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_TORCHT, NULL);
 	} else if (version == V2) {
 		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_BIN, NULL);
 	} else if ((current_fit->naxes[2] == 3) && (version == V1RGB || version == V1BOTH)) {
@@ -432,7 +438,7 @@ gpointer do_starnet(gpointer p) {
 	// Process StarNet arguments
 	int nb = 0;
 	my_argv[nb++] = starnetcommand;
-	if (version == TORCH) {
+	if (version == TORCH || version == TORCHT) {
 		torcharg_in = g_strdup_printf("-i %s", temptif);
 		my_argv[nb++] = torcharg_in;
 	} else {
@@ -445,14 +451,14 @@ gpointer do_starnet(gpointer p) {
 		my_argv[nb++] = starlesstif;
 	}
 	if (args->customstride) {
-		if (version == TORCH) {
+		if (version == TORCH || version == TORCHT) {
 			torcharg_stride = g_strdup_printf("-s %s", args->stride);
 			my_argv[nb++] = torcharg_stride;
 		} else {
 			my_argv[nb++] = args->stride;
 		}
 	}
-	if (version == TORCH) {
+	if (version == TORCH || version == TORCHT) {
 		if (args->upscale) {
 			torcharg_up = g_strdup("-u");
 			my_argv[nb++] = torcharg_up;
@@ -480,7 +486,7 @@ gpointer do_starnet(gpointer p) {
 
 	// Remove working TIFF files, they are no longer required
 	retval = g_remove(starlesstif);
-	retval |= (g_remove(starmasktif) && version == TORCH);
+	retval |= (g_remove(starmasktif) && (version == TORCH || version == TORCHT));
 	retval |= g_remove(temptif);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to remove temporary working file...\n"), "red");

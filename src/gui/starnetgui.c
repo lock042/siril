@@ -87,6 +87,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
 			break;
 		case TORCH:
+		case TORCHT:
 			gtk_label_set_text(label_starnetinfo, _("Valid StarNet v2-Torch executable found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
 			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 			break;
