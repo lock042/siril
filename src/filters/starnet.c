@@ -494,8 +494,6 @@ gpointer do_starnet(gpointer p) {
 			siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
 			goto CLEANUP;
 		}
-		if (verbose)
-			siril_log_color_message(_("StarNet: starless image generated\n"), "green");
 	}
 
 	if (args->starmask) {
@@ -520,8 +518,6 @@ gpointer do_starnet(gpointer p) {
 					clearfits(args->starmask_fit);
 				copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 			}
-			if (verbose)
-				siril_log_color_message(_("StarNet: star mask generated\n"), "green");
 		}
 	}
 
