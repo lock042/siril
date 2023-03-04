@@ -132,11 +132,14 @@ static int exec_prog_starnet(char **argv) {
 
 starnet_version starnet_executablecheck() {
 	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
+	gchar* torchpath = g_build_filename(com.pref.starnet_dir, STARNET_TORCH, NULL);
 	gchar* fullpath = g_build_filename(com.pref.starnet_dir, STARNET_BIN, NULL);
 	gchar* rgbpath = g_build_filename(com.pref.starnet_dir, STARNET_RGB, NULL);
 	gchar* monopath = g_build_filename(com.pref.starnet_dir, STARNET_MONO, NULL);
 	starnet_version retval = NIL;
-	if (g_file_test(fullpath, G_FILE_TEST_IS_EXECUTABLE)) {
+	if (g_file_test(torchpath, G_FILE_TEST_IS_EXECUTABLE)) {
+		retval = TORCH;
+	} else if (g_file_test(fullpath, G_FILE_TEST_IS_EXECUTABLE)) {
 		retval = V2;
 	} else {
 		if (g_file_test(rgbpath, G_FILE_TEST_IS_EXECUTABLE))
@@ -144,6 +147,7 @@ starnet_version starnet_executablecheck() {
 		if (g_file_test(monopath, G_FILE_TEST_IS_EXECUTABLE))
 			retval |= V1MONO;
 	}
+	g_free(torchpath);
 	g_free(fullpath);
 	g_free(rgbpath);
 	g_free(monopath);
@@ -205,10 +209,18 @@ gpointer do_starnet(gpointer p) {
 	gchar *starlessnoext = NULL;
 	gchar *starmasknoext = NULL;
 	gchar *imagenoextorig = NULL;
+	gchar *torcharg_in = NULL;
+	gchar *torcharg_out = NULL;
+	gchar *torcharg_stride = NULL;
+	gchar *torcharg_up = NULL;
 	gchar *temp = NULL;
 	gchar starnetprefix[10] = "starnet_";
 	gchar starlessprefix[10] = "starless_";
 	gchar starmaskprefix[10] = "starmask_";
+
+	// Check StarNet version
+	version = starnet_executablecheck();
+
 	// Set up paths and filenames
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 		temp = g_path_get_basename(com.uniq->filename);
@@ -370,7 +382,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Upscale if needed
-	if (args->upscale) {
+	if (args->upscale && version != TORCH) {
 		if (verbose)
 			siril_log_message(_("StarNet: 2x upscaling selected. Upscaling image...\n"));
 		retval = cvResizeGaussian(&workingfit, round_to_int(2*orig_x), round_to_int(2*orig_y), OPENCV_AREA, FALSE);
@@ -388,8 +400,9 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
-	version = starnet_executablecheck();
-	if (version == V2) {
+	if (version == TORCH) {
+		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_TORCH, NULL);
+	} else if (version == V2) {
 		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_BIN, NULL);
 	} else if ((current_fit->naxes[2] == 3) && (version == V1RGB || version == V1BOTH)) {
 		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_RGB, NULL);
@@ -400,12 +413,36 @@ gpointer do_starnet(gpointer p) {
 		siril_log_color_message(_("No suitable StarNet executable found in the installation directory\n"), "red");
 		goto CLEANUP;
 	}
-	printf("%s\n", starnetcommand);
+	siril_debug_print("%s\n", starnetcommand);
+
+	// Process StarNet arguments
 	int nb = 0;
 	my_argv[nb++] = starnetcommand;
-	my_argv[nb++] = temptif;
-	my_argv[nb++] = starlesstif;
-	if (args->customstride) my_argv[nb++] = args->stride;
+	if (version == TORCH) {
+		torcharg_in = g_strdup_printf("-i %s", temptif);
+		my_argv[nb++] = torcharg_in;
+	} else {
+		my_argv[nb++] = temptif;
+	}
+	if (version == TORCH) {
+		torcharg_out = g_strdup_printf("-o %s", starlesstif);
+		my_argv[nb++] = torcharg_out;
+	} else {
+		my_argv[nb++] = starlesstif;
+	}
+	if (args->customstride) {
+		if (version == TORCH) {
+			torcharg_stride = g_strdup_printf("-s %s", args->stride);
+			my_argv[nb++] = torcharg_stride;
+		} else {
+			my_argv[nb++] = args->stride;
+		}
+	}
+	if (args->upscale && version == TORCH) {
+		torcharg_up = g_strdup("-u");
+		my_argv[nb++] = torcharg_up;
+	}
+
 	// *** Call starnet++ *** //
 	retval = exec_prog_starnet(my_argv);
 	g_free(starnetcommand);
@@ -460,7 +497,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Downscale again if needed
-	if (args->upscale) {
+	if (args->upscale && version != TORCH) {
 		if (verbose)
 			siril_log_message(_("StarNet: 2x upscaling selected. Re-scaling starless image to original size...\n"));
 		retval = cvResizeGaussian(&workingfit, orig_x, orig_y, OPENCV_AREA, FALSE);
@@ -571,6 +608,10 @@ gpointer do_starnet(gpointer p) {
 	g_free(imagenoext); // part filename
 	g_free(imagenoextorig); // part filename
 	g_free(temptif); // part filename
+	g_free(torcharg_in);
+	g_free(torcharg_out);
+	g_free(torcharg_stride);
+	g_free(torcharg_up);
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
