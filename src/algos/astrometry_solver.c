@@ -1926,6 +1926,10 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	gint child_stdout, child_stderr;
 	GPid child_pid;
 	g_autoptr(GError) error = NULL;
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+	AllocConsole(); // opening a console to get asnet stdout when in stable (no console build)
+	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
+#endif
 
 	g_spawn_async_with_pipes(NULL, sfargs, NULL,
 			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
@@ -1939,6 +1943,9 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		g_free(table_filename);
 #ifdef _WIN32
 		g_free(asnet_shell);
+#ifndef SIRIL_UNSTABLE
+		FreeConsole(); // and closing it
+#endif
 #else
 		g_free(asnet_path);
 #endif
@@ -1983,6 +1990,9 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	g_free(table_filename);
 #ifdef _WIN32
 	g_free(asnet_shell);
+#ifndef SIRIL_UNSTABLE
+		FreeConsole(); // and closing it
+#endif
 #else
 	g_free(asnet_path);
 #endif
