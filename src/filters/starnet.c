@@ -82,7 +82,7 @@ static int exec_prog_starnet(char **argv) {
 	int retval = -1;
 
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-	AllocConsole(); // opening a console to get asnet stdout when in stable (no console build)
+	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
 	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
 #endif
 
