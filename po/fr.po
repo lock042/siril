@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-02 21:55+0100\n"
-"PO-Revision-Date: 2023-03-03 09:47+0000\n"
+"PO-Revision-Date: 2023-03-06 10:39+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -17383,7 +17383,7 @@ msgstr "Siril FFT wisdom importé avec succès...\n"
 
 #: src/filters/fft.c:466 src/gui/newdeconv.c:1003 src/gui/newdeconv.c:1126
 msgid "System FFT wisdom imported successfully...\n"
-msgstr "La sagesse du système FFT a été importée avec succès...\n"
+msgstr "Système FFT importé avec succès...\n"
 
 #: src/filters/fft.c:468 src/gui/newdeconv.c:1005 src/gui/newdeconv.c:1129
 msgid "No FFT wisdom found to import...\n"
@@ -17399,7 +17399,7 @@ msgstr "Fichiers corrompus\n"
 
 #: src/filters/fft.c:549 src/gui/newdeconv.c:1023 src/gui/newdeconv.c:1241
 msgid "Siril FFT wisdom updated successfully...\n"
-msgstr "La sagesse de Siril FFT a été mise à jour avec succès...\n"
+msgstr "Système FFT mis à jour avec succès…\n"
 
 #: src/filters/fft.c:551 src/gui/newdeconv.c:1025 src/gui/newdeconv.c:1244
 msgid "Siril FFT wisdom update failed...\n"
