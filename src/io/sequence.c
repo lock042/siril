@@ -346,7 +346,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		ser_init_struct(ser_file);
 		int ret = ser_open_file(name, ser_file);
 		if (ret) {
-			if (ret == -2) {
+			if (ret == SER_NOT_ENOUGH_FRAMES) {
 				siril_log_color_message(_("Need at least 2 frames to be usable in Siril. Please convert the SER file into FITS file.\n"), "red");
 				ser_close_file(ser_file);
 			}
