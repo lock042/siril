@@ -54,6 +54,8 @@
 // Type of invocation - HISTO_STRETCH or GHT_STRETCH (maybe others in future?)
 static int invocation = NO_STRETCH_SET_YET;
 
+static gboolean closing = FALSE;
+
 // Parameters for use in calculations
 static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0f;
 static gboolean do_channel[3];
@@ -139,7 +141,6 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 			notify_gfit_modified();
 		}
 	}
-
 	// free data
 	clear_backup();
 	clear_hist_backup();
@@ -702,7 +703,8 @@ static void update_histo_mtf() {
 }
 
 static int histo_update_preview() {
-	histo_recompute();
+	if (!closing)
+		histo_recompute();
 	return 0;
 }
 
@@ -854,6 +856,7 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 
 void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
+	closing = FALSE;
 	histo_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values();
@@ -861,6 +864,7 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 }
 
 void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
+	closing = TRUE;
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
 	histo_close(TRUE, TRUE);

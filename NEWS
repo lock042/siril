@@ -1,3 +1,19 @@
+v1.2.0-beta1 xxx xx, 2023
+
+* Fixed behavior on Windows when calling external programs (StarNet, astrometry.net)
+* Fixed crash when converting sequence to SER
+* Fixed PCC progress bar which never terminated
+* Fixed AppImage Build
+* Fixed crash when using deconvolution on a sequence
+* Fixed SSL certificates locations on Windows which where preventing SearchObject related functions to succeed
+* Fixed reading BAYERPAT key if it was set to NONE
+* Fixed StarNet behavior when TIFF compression was ON
+* Fixed crash in synthstar (full resynthetize and desaturate)
+* Fixed handling widechars in config files (Windows only) which caused a crash at startup
+* Fixed crash when selecting datapoints in Plot tab
+* Reworked GHS commands
+* Added a warning when trying to read one-frame SER files
+
 v1.2.0-beta1 February 24, 2023
 
 * Added livestacking mode with darks/CC/flats support, registration and stacking
