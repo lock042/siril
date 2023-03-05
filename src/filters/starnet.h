@@ -4,7 +4,8 @@
 #include "core/siril.h"
 
 #ifdef _WIN32
-#define STARNET_TORCH "starnet2T.exe"
+#define STARNET_TORCH "starnet2.exe"
+#define STARNET_TORCH_T "starnet2T.exe"
 #define STARNET_BIN "starnet++.exe"
 #define STARNET_RGB "rgb_starnet++.exe"
 #define STARNET_MONO "mono_starnet++.exe"
@@ -13,7 +14,7 @@
 #define STARNET_RGB "rgb_starnet++"
 #define STARNET_MONO "mono_starnet++"
 #define STARNET_TORCH "starnet2"
-#define STARNET_TORCHT "starnet2T"
+#define STARNET_TORCH_T "starnet2T"
 #endif
 
 typedef enum {
@@ -23,7 +24,7 @@ typedef enum {
 	V1RGB = 4,
 	V1BOTH = 6,
 	TORCH = 8,
-	TORCHT = 24
+	TORCH_T = 24
 } starnet_version;
 
 typedef struct starnet_data {
