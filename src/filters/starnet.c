@@ -89,7 +89,7 @@ static int exec_prog_starnet(char **argv) {
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
-			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
+			G_SPAWN_LEAVE_DESCRIPTORS_OPEN,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			NULL, &error);
 
