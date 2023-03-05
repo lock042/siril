@@ -559,7 +559,14 @@ guint64 get_available_memory() {
 
 		char *str = strstr(buffer, "MemAvailable:");
 		if (!str)
+		{
+			// Fallback for kernels < 3.14 or WSL2 where /proc/meminfo does not provide "MemAvailable:" column
+			str = strstr(buffer, "MemFree:");
+		}
+		if (!str)
+		{
 			return (guint64) 0;
+		}
 
 		char *end;
 		str += 13;
