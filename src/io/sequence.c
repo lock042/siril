@@ -344,7 +344,12 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 	if (!strcasecmp(ext, "ser")) {
 		struct ser_struct *ser_file = malloc(sizeof(struct ser_struct));
 		ser_init_struct(ser_file);
-		if (ser_open_file(name, ser_file)) {
+		int ret = ser_open_file(name, ser_file);
+		if (ret) {
+			if (ret == -2) {
+				siril_log_color_message(_("Need at least 2 frames to be usable in Siril. Please convert the SER file into FITS file.\n"), "red");
+				ser_close_file(ser_file);
+			}
 			return NULL;
 		}
 
