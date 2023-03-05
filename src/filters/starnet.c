@@ -118,7 +118,7 @@ static int exec_prog_starnet(char **argv) {
 					NULL, NULL))) {
 		if (doprint && verbose)
 			siril_log_message("StarNet: %s\n", buffer);
-		if (g_str_has_prefix(buffer, "Total number of tiles")) {
+		if (g_str_has_prefix(buffer, "Total number of tiles") || g_str_has_prefix(buffer, "Working:")) {
 			// need to set EOL to CR otherwise can't read the progress percentage
 			// which just sends xx% progress/r to avoid flushing
 			g_data_input_stream_set_newline_type(data_input, G_DATA_STREAM_NEWLINE_TYPE_CR);
