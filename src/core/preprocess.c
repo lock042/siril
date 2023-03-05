@@ -481,7 +481,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	args->finalize_hook = prepro_finalize_hook;
 	args->description = _("Preprocessing");
 	args->has_output = TRUE;
-	args->new_seq_prefix = prepro->ppprefix;
+	args->new_seq_prefix = strdup(prepro->ppprefix);
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = prepro->seq->type != SEQ_SER && prepro->output_seqtype == SEQ_SER;
 	args->force_fitseq_output = prepro->seq->type != SEQ_FITSEQ && prepro->output_seqtype == SEQ_FITSEQ;
