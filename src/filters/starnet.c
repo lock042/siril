@@ -272,6 +272,11 @@ gpointer do_starnet(gpointer p) {
 	temp = remove_ext_from_filename(starlesstif);
 	g_free(starlesstif);
 	starlesstif = g_strdup(temp);
+	starlessfit = g_strdup(temp);
+	g_free(temp);
+	temp = g_strdup_printf("%s.tif", starlesstif);
+	g_free(starlesstif);
+	starlesstif = g_strdup(temp);
 	g_free(temp);
 
 	starmasktif = g_build_filename(com.wd, starmasknoext, NULL);
@@ -284,13 +289,11 @@ gpointer do_starnet(gpointer p) {
 	starmasktif = g_strdup(temp);
 	g_free(temp);
 
-	starlessfit = g_strdup(starlesstif);
-		if (strlen(starlesstif) > pathmax) {
+	if (strlen(starlesstif) > pathmax) {
 		retval = 1;
 		siril_log_color_message(_("Error: file path too long!\n"), "red");
 		goto CLEANUP3;
 	}
-
 	temp = g_strdup_printf("%s%s", starlessfit, com.pref.ext);
 	g_free(starlessfit);
 	starlessfit = g_strdup(temp);
@@ -314,6 +317,8 @@ gpointer do_starnet(gpointer p) {
 	g_free(starmaskfit);
 	starmaskfit = g_strdup(temp);
 	g_free(temp);
+
+//	printf("%s\n%s\n%s\n%s\n", starlesstif, starlessfit, starmasktif, starmaskfit);
 	// ok, let's start
 	if (verbose)
 		set_progress_bar_data(_("Starting StarNet"), PROGRESS_NONE);
