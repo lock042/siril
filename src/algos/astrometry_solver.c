@@ -1991,7 +1991,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #ifdef _WIN32
 	g_free(asnet_shell);
 #ifndef SIRIL_UNSTABLE
-		FreeConsole(); // and closing it
+	FreeConsole(); // and closing it
 #endif
 #else
 	g_free(asnet_path);
