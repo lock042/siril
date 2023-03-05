@@ -334,7 +334,7 @@ static int ser_write_header(struct ser_struct *ser_file) {
 
 	if (sizeof(header) != fwrite(header, 1, sizeof(header), ser_file->file)) {
 		perror("write");
-		return SER_GENERIC_ERROR;
+		return 1;
 	}
 	return SER_OK;
 }
@@ -371,7 +371,7 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 		ser_file->bit_pixel_depth = 16;
 	} else {
 		siril_log_message(_("Writing a 32-bit image to SER files is not supported.\n"));
-		return SER_GENERIC_ERROR;
+		return 1;
 	}
 	if (fit->instrume[0] != 0) {
 		memset(ser_file->instrument, 0, 40);
@@ -569,7 +569,7 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 			siril_debug_print("g_unlink() failed\n");
 	if ((ser_file->file = g_fopen(filename, "w+b")) == NULL) {
 		perror("open SER file for creation");
-		return SER_GENERIC_ERROR;
+		return 1;
 	}
 
 	ser_file->filename = strdup(filename);
@@ -601,7 +601,7 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 		 * before closing in case the number of the image in the new
 		 * SER changes from the copied SER */
 		if (ser_write_header(ser_file))
-			return SER_GENERIC_ERROR;
+			return 1;
 	} else {	// new SER
 		ser_file->file_id = strdup("LUCAM-RECORDER");
 		ser_file->lu_id = 0;
@@ -716,7 +716,7 @@ int ser_metadata_as_fits(struct ser_struct *ser_file, fits *fit) {
 		fit->naxes[2] = 3;
 		break;
 	default:
-		return SER_GENERIC_ERROR;
+		return 1;
 	}
 	fit->naxes[0] = fit->rx = ser_file->image_width;
 	fit->naxes[1] = fit->ry = ser_file->image_height;
@@ -1173,12 +1173,12 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	if (ser_file->number_of_planes == 0) {
 		// adding first frame of a new sequence, use it to populate the header
 		if (ser_write_header_from_fit(ser_file, fit)) {
-			return SER_GENERIC_ERROR;
+			return 1;
 		}
 	}
 	if (fit->rx != ser_file->image_width || fit->ry != ser_file->image_height) {
 		siril_log_message(_("Trying to add an image of different size in a SER\n"));
-		return SER_GENERIC_ERROR;
+		return 1;
 	}
 
 	if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
