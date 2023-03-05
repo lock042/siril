@@ -483,7 +483,7 @@ gpointer do_starnet(gpointer p) {
 
 	// Remove working TIFF files, they are no longer required
 	retval = g_remove(starlesstif);
-	retval |= (g_remove(starmasktif) && (version & TORCH);
+	retval |= (g_remove(starmasktif) && (version & TORCH));
 	retval |= g_remove(temptif);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to remove temporary working file...\n"), "red");
