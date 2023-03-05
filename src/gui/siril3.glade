@@ -28910,7 +28910,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Select astrometry.net location.
 On UNIX-based systems, it is generally in the PATH variable and not necessary.
-On Windows, you must point to the location of cygwin_ansvr folder.</property>
+On Windows, you must point to the location of cygwin_ansvr folder only if not installed in %LOCALAPPDATA%.</property>
                                         <property name="valign">center</property>
                                         <property name="action">select-folder</property>
                                         <property name="create-folders">False</property>
