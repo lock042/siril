@@ -17,6 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
+
+// Comment out this #define before public release
+#define STARNET_DEBUG
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -76,7 +80,7 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
 }
 
-static int exec_prog_starnet(char **argv) {
+static int exec_prog_starnet(char **argv, starnet_version version) {
 	gint child_stdout;
 	GPid child_pid;
 	g_autoptr(GError) error = NULL;
@@ -115,6 +119,9 @@ static int exec_prog_starnet(char **argv) {
 	gchar *buffer;
 	gsize length = 0;
 	GDataInputStream *data_input = g_data_input_stream_new(stream);
+#ifdef STARNET_DEBUG
+	gchar *lastbuffer = NULL;
+#endif
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
 		if (doprint && verbose)
@@ -132,11 +139,23 @@ static int exec_prog_starnet(char **argv) {
 		if (value != 0.0 && value == value && verbose) {
 			set_progress_bar_data(_("Running StarNet"), (value / 100));
 		}
-		if (g_str_has_prefix(buffer, "100% finished") || g_str_has_prefix(buffer, "Writing mask")) {
+		if (g_str_has_prefix(buffer, "100% finished") || (version & TORCH && (g_strrstr(buffer, "Writing") || g_strrstr(buffer, "Done!")))) {
 			retval = 0;
+#ifdef STARNET_DEBUG
+			if (verbose)
+				siril_log_message(_("StarNet caught buffer: %s : exit successful\n"), buffer);
+#endif
 		}
+#ifdef STARNET_DEBUG
+		lastbuffer = g_strdup(buffer);
+#endif
 		g_free(buffer);
 	}
+#ifdef STARNET_DEBUG
+	if (retval)
+		siril_log_message(_("Starnet exit not caught, last buffer: %s\n"), lastbuffer);
+	g_free(lastbuffer);
+#endif
 	g_object_unref(data_input);
 	g_object_unref(stream);
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
@@ -579,7 +598,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// *** Call starnet++ *** //
-	retval = exec_prog_starnet(my_argv);
+	retval = exec_prog_starnet(my_argv, version);
 	g_free(starnetcommand);
 	starnetcommand = NULL;
 	if (retval) {
