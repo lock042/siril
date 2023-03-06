@@ -136,6 +136,7 @@ preferences pref_init = {
 		.catalog[8] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
+		.show_deciasec = FALSE,
 		.reg_settings = 0,
 		.reg_interpolation = OPENCV_LANCZOS4,
 		.reg_clamping = TRUE,
@@ -371,6 +372,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
+	{ "gui", "show_deciasec", STYPE_BOOL, N_("show tenths of arcseconds on hover"), &com.pref.gui.show_deciasec },
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 
