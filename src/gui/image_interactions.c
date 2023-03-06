@@ -28,7 +28,6 @@
 #include "core/siril_world_cs.h"
 #include "algos/background_extraction.h"
 #include "algos/siril_wcs.h"
-#include "algos/photometry.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/open_dialog.h"
