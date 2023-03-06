@@ -147,9 +147,11 @@ static int exec_prog_starnet(char **argv) {
 
 starnet_version starnet_executablecheck(gchar* executable) {
 	int retval = NIL;
+	gint child_stdout;
+	GPid child_pid;
+	g_autoptr(GError) error = NULL;
 	gchar *v1dir = NULL;
-	gchar* otherexec = NULL;
-//	printf("%s\n", executable);
+//	gchar* otherexec = NULL;
 	if (!executable || executable[0] == '\0') {
 		return NIL;
 	}
@@ -161,49 +163,22 @@ starnet_version starnet_executablecheck(gchar* executable) {
 		v1dir = g_path_get_dirname(executable);
 		if (g_str_has_suffix(executable, "rgb_starnet++")) {
 			retval = V1RGB;
-			otherexec = g_strdup_printf("%s/mono_starnet++", v1dir);
-			if (g_file_test(otherexec, G_FILE_TEST_IS_EXECUTABLE)) {
-				goto END;
-			} else {
-				retval += V1MONO;
-				goto END;
-			}
+			goto END;
 		} else if (g_str_has_suffix(executable, "rgb_starnet++.exe")) {
 			retval = V1RGB;
-			otherexec = g_strdup_printf("%s/mono_starnet++.exe", v1dir);
-			if (g_file_test(otherexec, G_FILE_TEST_IS_EXECUTABLE)) {
-				goto END;
-			} else {
-				retval += V1MONO;
-				goto END;
-			}
+			goto END;
 		} else if (g_str_has_suffix(executable, "mono_starnet++")) {
 			retval = V1MONO;
-			otherexec = g_strdup_printf("%s/rgb_starnet++", v1dir);
-			if (g_file_test(otherexec, G_FILE_TEST_IS_EXECUTABLE)) {
-				goto END;
-			} else {
-				retval += V1RGB;
-				goto END;
-			}
+			goto END;
 		} else if (g_str_has_suffix(executable, "mono_starnet++.exe")) {
 			retval = V1MONO;
-			otherexec = g_strdup_printf("%s/rgb_starnet++.exe", v1dir);
-			if (g_file_test(otherexec, G_FILE_TEST_IS_EXECUTABLE)) {
-				goto END;
-			} else {
-				retval += V1RGB;
-				goto END;
-			}
+			goto END;
 		}
 	}
 	// Execute file and test output
 	int nb = 0;
 	test_argv[nb++] = executable;
 	test_argv[nb++] = g_strdup("--version");
-	gint child_stdout;
-	GPid child_pid;
-	g_autoptr(GError) error = NULL;
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
 	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
 	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
@@ -257,7 +232,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 END:
 	printf("StarNet version: %d\n", (int) retval);
 	g_free(v1dir);
-	g_free(otherexec);
+//	g_free(otherexec);
 
 	return retval;
 }
@@ -322,6 +297,7 @@ gpointer do_starnet(gpointer p) {
 	gchar *torcharg_out = NULL;
 	gchar *torcharg_stride = NULL;
 	gchar *torcharg_up = NULL;
+	gchar *torcharg_weights = NULL;
 	gchar *torcharg_mask = NULL; // We don't want the mask output, but the new starnet generates it regardless
 			// so we may as well put it somewhere known so we can delete it so as not to leave behind clutter.
 	gchar *temp = NULL;
@@ -340,7 +316,7 @@ gpointer do_starnet(gpointer p) {
 			starnetcommand = g_strdup(com.pref.starnet_exe);
 		} else if (current_fit->naxes[2] == 1) {
 			gchar *temp = g_path_get_dirname(com.pref.starnet_exe);
-			gchar *winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : NULL;
+			gchar *winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
 			starnetcommand = g_strdup_printf("%s/mono_starnet++%s", temp, winext);
 			g_free(temp);
 			g_free(winext);
@@ -350,7 +326,7 @@ gpointer do_starnet(gpointer p) {
 			starnetcommand = g_strdup(com.pref.starnet_exe);
 		} else if (current_fit->naxes[2] == 1) {
 			gchar *temp = g_path_get_dirname(com.pref.starnet_exe);
-			gchar *winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : NULL;
+			gchar *winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
 			starnetcommand = g_strdup_printf("%s/rgb_starnet++%s", temp, winext);
 			g_free(temp);
 			g_free(winext);
@@ -581,6 +557,14 @@ gpointer do_starnet(gpointer p) {
 			torcharg_up = g_strdup("-u");
 			my_argv[nb++] = torcharg_up;
 		}
+		if (com.pref.starnet_weights && com.pref.starnet_weights[0] != '\0') {
+			if (g_access(com.pref.starnet_weights, R_OK)) {
+				siril_log_color_message(_("Error: cannot read the neural net weights file.\n"), "red");
+				goto CLEANUP;
+			}
+			torcharg_weights = g_strdup_printf("-w %s", com.pref.starnet_weights);
+			my_argv[nb++] = torcharg_weights;
+		}
 		torcharg_mask = g_strdup_printf("-m %s", starmasktif);
 		my_argv[nb++] = torcharg_mask;
 	}
@@ -749,6 +733,8 @@ gpointer do_starnet(gpointer p) {
 	g_free(torcharg_in);
 	g_free(torcharg_out);
 	g_free(torcharg_stride);
+	g_free(torcharg_weights);
+	g_free(torcharg_mask);
 	g_free(torcharg_up);
 	gettimeofday(&t_end, NULL);
 	if (verbose)

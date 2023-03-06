@@ -510,6 +510,14 @@ int process_denoise(int nb){
 
 int process_starnet(int nb){
 #ifdef HAVE_LIBTIFF
+	if (!com.pref.starnet_exe || com.pref.starnet_exe[0] == '\0') {
+		siril_log_color_message(_("Error: no StarNet executable set.\n"), "red");
+		return CMD_FILE_NOT_FOUND;
+	}
+	if (starnet_executablecheck(com.pref.starnet_exe) == NIL) {
+		siril_log_color_message(_("Error: StarNet executable is not valid.\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->linear = FALSE;
@@ -571,6 +579,14 @@ int process_starnet(int nb){
 
 int process_seq_starnet(int nb){
 #ifdef HAVE_LIBTIFF
+	if (!com.pref.starnet_exe || com.pref.starnet_exe[0] == '\0') {
+		siril_log_color_message(_("Error: no StarNet executable set.\n"), "red");
+		return CMD_FILE_NOT_FOUND;
+	}
+	if (starnet_executablecheck(com.pref.starnet_exe) == NIL) {
+		siril_log_color_message(_("Error: StarNet executable is not valid.\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	if (!starnet_args)
 		return CMD_ALLOC_ERROR;

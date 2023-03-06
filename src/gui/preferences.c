@@ -302,8 +302,17 @@ void initialize_path_directory(const gchar *path) {
 
 void initialize_starnet_executable(const gchar *path) {
 	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
+	GtkWidget *starnet_weights = GTK_WIDGET(lookup_widget("filechooser_starnet_weights"));
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (starnet_exe, path);
+		if (starnet_executablecheck(path) & TORCH) {
+			gtk_widget_set_sensitive(starnet_weights, TRUE);
+			gtk_widget_set_sensitive(starnet_weights_reset, TRUE);
+		} else {
+			gtk_widget_set_sensitive(starnet_weights, FALSE);
+			gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
+		}
 	}
 }
 
@@ -405,6 +414,15 @@ void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer
 	}
 	st_exe = path;
 	st_version = starnet_executablecheck(path);
+	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
+	GtkWidget *starnet_weights = GTK_WIDGET(lookup_widget("filechooser_starnet_weights"));
+	if (st_version & TORCH) {
+		gtk_widget_set_sensitive(starnet_weights, TRUE);
+		gtk_widget_set_sensitive(starnet_weights_reset, TRUE);
+	} else {
+		gtk_widget_set_sensitive(starnet_weights, FALSE);
+		gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
+	}
 
 }
 

@@ -31332,7 +31332,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="can-focus">False</property>
                                 <property name="tooltip-markup" translatable="yes">Select StarNet executable. Works with all StarNet command-line versions.
 
-For old StarNet++ v1 installations that used separate executables to process mono and RGB files, the executables &lt;b&gt;must&lt;/b&gt; retain their original names &lt;b&gt;mono_starnet++&lt;/b&gt; and &lt;b&gt;rgb_starnet++&lt;/b&gt;, and they must both be in the same directory. You can select either in this file chooser.</property>
+For old StarNet++ v1 installations that used separate executables to process mono and RGB files, the executables &lt;b&gt;must&lt;/b&gt; retain their original names &lt;b&gt;mono_starnet++&lt;/b&gt; and &lt;b&gt;rgb_starnet++&lt;/b&gt; (with &lt;b&gt;.exe&lt;/b&gt; if using Windows), and they must both be in the same directory. You can select either executable: Siril will automatically find the other one if it exists.</property>
                                 <property name="valign">center</property>
                                 <property name="create-folders">False</property>
                                 <property name="filter">all_files</property>
