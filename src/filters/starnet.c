@@ -126,7 +126,10 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 					NULL, NULL))) {
 		if (doprint && verbose)
 			siril_log_message("StarNet: %s\n", buffer);
-		if (g_str_has_prefix(buffer, "Total number of tiles") || g_str_has_prefix(buffer, "Working:")) {
+		// TODO: the Mac M1 version definitely contains the substring "backend" in
+		// the line before the progress percentages start. Need to check this is
+		// still true when the Torch version comes out for other targets.
+		if (g_str_has_prefix(buffer, "Total number of tiles") || g_strrstr(buffer, "backend")) {
 			// need to set EOL to CR otherwise can't read the progress percentage
 			// which just sends xx% progress/r to avoid flushing
 			g_data_input_stream_set_newline_type(data_input, G_DATA_STREAM_NEWLINE_TYPE_CR);
@@ -139,7 +142,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 		if (value != 0.0 && value == value && verbose) {
 			set_progress_bar_data(_("Running StarNet"), (value / 100));
 		}
-		if (g_str_has_prefix(buffer, "100% finished") || (version & TORCH && (g_strrstr(buffer, "Writing") || g_strrstr(buffer, "Done!")))) {
+		if (g_str_has_prefix(buffer, "100% finished") || g_strrstr(buffer, "Writing mask")) {
 			retval = 0;
 #ifdef STARNET_DEBUG
 			if (verbose)
