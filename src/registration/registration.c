@@ -1457,6 +1457,19 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		reg_args->filters.filter_included = gtk_combo_box_get_active(reg_all_sel_box);
 	}
+	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) && 
+		reg_args->matchSelection && reg_args->seq->is_variable) {
+		siril_log_color_message(_("Cannot use area selection on a sequence with variable image sizes\n"), "red");
+		free(reg_args);
+		unreserve_thread();
+		return;
+	}
+
+	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) && 
+		!reg_args->matchSelection) {
+		delete_selected_area(); // othersie it is enforced
+	}
+
 
 	/* We check that available disk space is enough when
 	the registration method produces a new sequence
