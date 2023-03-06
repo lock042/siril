@@ -203,6 +203,8 @@ int check_seq() {
 	sequence **sequences;
 	int i, nb_seq = 0, max_seq = 10;
 
+	siril_log_color_message(_("Checking sequences in the directory: %s.\n"), "blue", com.wd);
+
 	if (!com.wd) {
 		siril_log_message(_("Current working directory is not set, aborting.\n"));
 		return 1;
