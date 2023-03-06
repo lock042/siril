@@ -306,27 +306,37 @@ gpointer do_starnet(gpointer p) {
 	version = starnet_executablecheck(com.pref.starnet_exe);
 	// If v1, check we have the right executable for the number of channels in current_fit
 	if (version == NIL) {
-		siril_log_color_message(_("No suitable StarNet executable found in the installation directory\n"), "red");
+		siril_log_color_message(_("No suitable StarNet executable found.\n"), "red");
 		goto CLEANUP;
 	} else if (version == V1RGB) {
 		if (current_fit->naxes[2] == 3) {
 			starnetcommand = g_strdup(com.pref.starnet_exe);
-		} else if (current_fit->naxes[2] == 1) {
+		} else {
 			gchar *temp = g_path_get_dirname(com.pref.starnet_exe);
 			gchar *winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
 			starnetcommand = g_strdup_printf("%s/mono_starnet++%s", temp, winext);
 			g_free(temp);
 			g_free(winext);
+			if (starnet_executablecheck(starnetcommand) != V1MONO) {
+				siril_log_color_message(_("No suitable StarNet executable found for a mono image.\n"), "red");
+				retval = 1;
+				goto CLEANUP3;
+			}
 		}
 	} else if (version == V1MONO) {
 		if (current_fit->naxes[2] == 1) {
 			starnetcommand = g_strdup(com.pref.starnet_exe);
-		} else if (current_fit->naxes[2] == 1) {
+		} else {
 			gchar *temp = g_path_get_dirname(com.pref.starnet_exe);
 			gchar *winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
 			starnetcommand = g_strdup_printf("%s/rgb_starnet++%s", temp, winext);
 			g_free(temp);
 			g_free(winext);
+			if (starnet_executablecheck(starnetcommand) != V1RGB) {
+				siril_log_color_message(_("No suitable StarNet executable found for a RGB image.\n"), "red");
+				retval = 1;
+				goto CLEANUP3;
+			}
 		}
 	} else if (version == V2 || version & TORCH) {
 		starnetcommand = g_strdup(com.pref.starnet_exe);
