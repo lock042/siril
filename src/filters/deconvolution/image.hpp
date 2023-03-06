@@ -30,6 +30,9 @@ free-astro 2022-2023.
 */
 #pragma once
 
+
+// All other files get the definition of HAVE_FFTW3F_MULTITHREAD from
+// siril.h. This file doesn't include siril.h so we define it again here.
 #if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
 #define HAVE_FFTW3F_MULTITHREAD
 #endif
