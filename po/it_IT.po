@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-02 21:55+0100\n"
-"PO-Revision-Date: 2023-03-03 21:52+0000\n"
+"PO-Revision-Date: 2023-03-06 21:44+0000\n"
 "Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
 "Language-Team: Italian <https://weblate.pixls.us/projects/siril/"
 "siril-application/it/>\n"
@@ -3568,9 +3568,8 @@ msgid "for now only detected in files and automatically enabled"
 msgstr "per ora rilevato solo nei file e abilitato automaticamente"
 
 #: src/gui/siril3.glade:13740
-#, fuzzy
 msgid "shift-only registration"
-msgstr "registrazione a spostamento"
+msgstr "registrazione solo spostamento"
 
 #: src/gui/siril3.glade:13744
 msgid ""
@@ -5598,9 +5597,8 @@ msgstr ""
 "parallelizzata per cui girerà su un solo core della CPU."
 
 #: src/gui/siril3.glade:21691
-#, fuzzy
 msgid "Shift only"
-msgstr "Spostamento"
+msgstr "Spostamento solo"
 
 #: src/gui/siril3.glade:21694
 msgid ""
@@ -7488,11 +7486,13 @@ msgid ""
 "Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly "
 "better but slower."
 msgstr ""
+"Numero di passaggi per X-Trans\n"
+"Algoritmo di demosaicizzazione di Markesteijn, 1 è l'impostazione "
+"predefinita, 3 potrebbe essere leggermente migliore ma più lento."
 
 #: src/gui/siril3.glade:27778
-#, fuzzy
 msgid "X-Trans demosaicing quality"
-msgstr "Basato sulla qualità"
+msgstr "X-Trans qualità di demosaicizzazione"
 
 #: src/gui/siril3.glade:27792
 msgid "1"
@@ -7554,6 +7554,9 @@ msgid ""
 "Siril and that contain multiple images of different dimensions, which would "
 "otherwise considered as invalid Siril FITSEQ files."
 msgstr ""
+"Questo può essere utile per aprire file FITS scientifici che non sono stati "
+"creati da Siril e che contengono più immagini di dimensioni diverse, che "
+"altrimenti sarebbero considerati file Siril FITSEQ non validi."
 
 #: src/gui/siril3.glade:27952
 msgid "<b>FITS Format</b>"
@@ -7589,6 +7592,11 @@ msgid ""
 "binning (checked), the already multiplied pixel size is given (unchecked).\n"
 "It depends on the acquistion software used to create the FITS."
 msgstr ""
+"Utilizzato per il calcolo del campionamento dell'immagine, la dimensione dei "
+"pixel può essere fornita in due modi diversi: viene fornita la dimensione "
+"reale dei pixel ma deve essere moltiplicata per il binning (selezionata), "
+"viene fornita la dimensione dei pixel già moltiplicata (non selezionata).\n"
+"Dipende dal software di acquisizione utilizzato per creare il FITS."
 
 #: src/gui/siril3.glade:28020
 msgid "<b>FITS Header</b>"
@@ -7599,7 +7607,6 @@ msgid "Enabled"
 msgstr "Abilitata"
 
 #: src/gui/siril3.glade:28084
-#, fuzzy
 msgid ""
 "While floating-point format images may be losslessly compressed (using gzip, "
 "since Rice only compresses integer arrays), these images often do not "
@@ -7613,11 +7620,11 @@ msgid ""
 "the pixel values, resulting in poor compression."
 msgstr ""
 "Mentre il formato immagini virgola mobile può essere compresso senza perdita "
-"dati (usando gzip, dal momento che Rice e Hcompress comprimono solo formati "
-"interi), queste immagini spesso non si comprimono molto bene perché i valori "
-"dei pixel contengono troppo rumore; i bits meno significativi nella mantissa "
-"dei valori di pixel effettivamente contengono pattern di bit casuali "
-"incompressibili. Per ottenere una compressione maggiore, è necessario "
+"dati (usando gzip, dal momento che Rice comprime solo formati interi), "
+"queste immagini spesso non si comprimono molto bene perché i valori dei "
+"pixel contengono troppo rumore; i bits meno significativi nella mantissa dei "
+"valori di pixel effettivamente contengono pattern di bit casuali "
+"incomprimibili. Per ottenere una compressione maggiore, è necessario "
 "rimuovere una parte del rumore ma senza perdere le informazioni utili. Se la "
 "compressione è troppo grande, si sottocampionano i valori dei pixel con "
 "conseguente perdita di informazioni nell’immagine. Se troppo bassa, però, "
@@ -7722,13 +7729,12 @@ msgstr ""
 "Catalogo Utente"
 
 #: src/gui/siril3.glade:28409
-#, fuzzy
 msgid ""
 "Purge the SOLAR SYSTEM user catalog by deleting the file. The operation "
 "cannot be undone"
 msgstr ""
-"Svuota il catalogo utente cancellando il file. L'operazione non può essere "
-"annullata"
+"Svuota il catalogo utente SISTEMA SOLARE cancellando il file. L'operazione "
+"non può essere ripristinata"
 
 #: src/gui/siril3.glade:28421
 msgid ""
@@ -7739,13 +7745,12 @@ msgstr ""
 "Catalogo Utente"
 
 #: src/gui/siril3.glade:28426
-#, fuzzy
 msgid ""
 "Purge the DEEP SKY user catalog by deleting the file. The operation cannot "
 "be undone"
 msgstr ""
-"Svuota il catalogo utente cancellando il file. L'operazione non può essere "
-"annullata"
+"Svuota il catalogo DEEP SKY cancellando il file. L'operazione non può essere "
+"recuperata"
 
 #: src/gui/siril3.glade:28451
 msgid "Annotations"
@@ -7909,6 +7914,8 @@ msgstr ""
 #: src/gui/siril3.glade:28713
 msgid "Update default focal length and pixel size from the result"
 msgstr ""
+"Aggiorna la lunghezza focale predefinita e la dimensione dei pixel dal "
+"risultato"
 
 #: src/gui/siril3.glade:28717
 msgid ""
@@ -7916,11 +7923,14 @@ msgid ""
 "pixel size are stored in the settings as default values for images that "
 "don't have the corresponding medatada."
 msgstr ""
+"Quando viene trovata una soluzione astrometrica, la lunghezza focale "
+"calcolata e la dimensione dei pixel di input vengono memorizzate nelle "
+"impostazioni come valori predefiniti per le immagini che non hanno i "
+"corrispondenti metadati."
 
 #: src/gui/siril3.glade:28728
-#, fuzzy
 msgid "General Platesolving"
-msgstr "Forza il plate solving"
+msgstr "Plate solving generale"
 
 #: src/gui/siril3.glade:28763
 msgid "Degrees of the polynomial correction:"
@@ -7928,47 +7938,57 @@ msgstr "Gradi di correzione polinomiale:"
 
 #: src/gui/siril3.glade:28775
 msgid "Sampling tolerance (%):"
-msgstr ""
+msgstr "Tolleranza di campionamento (%):"
 
 #: src/gui/siril3.glade:28786
 msgid ""
 "Percent below and above the expected sampling to allow. Given sampling is "
 "multiplied or divided by 1 + this / 100."
 msgstr ""
+"Percentuale al di sotto e al di sopra del campionamento previsto da "
+"consentire. Il campionamento dato viene moltiplicato o diviso per 1 + questo "
+"/ 100."
 
 #: src/gui/siril3.glade:28801
 msgid ""
 "Allowed search radius around the target coordinates for the solve (degrees). "
 "Unused for blind (no target passed) solves."
 msgstr ""
+"Raggio di ricerca consentito attorno alle coordinate di destinazione per la "
+"soluzione (gradi). Non utilizzato per le soluzioni alla cieca (nessun "
+"obiettivo superato)."
 
 #: src/gui/siril3.glade:28818
 msgid "Target radius (degree)"
-msgstr ""
+msgstr "Raggio target (gradi)"
 
 #: src/gui/siril3.glade:28827
 msgid "Do not delete .xyls FITS tables"
-msgstr ""
+msgstr "Non eliminare le tabelle FITS .xyls"
 
 #: src/gui/siril3.glade:28831
 msgid ""
 "The list of stars is passed to solve-field as a FITS table, check this to "
 "keep the file in the working directory."
 msgstr ""
+"L'elenco delle stelle viene passato a solve-field come tabella FITS, "
+"seleziona per mantenere il file nella directory di lavoro."
 
 #: src/gui/siril3.glade:28841
 msgid "Do not delete .wcs result files"
-msgstr ""
+msgstr "Non cancellare i files risultanti .wcs"
 
 #: src/gui/siril3.glade:28845
 msgid ""
 "The results from solve-field are stored in a FITS header with a file name "
 "ending in .wcs. Check this to not remove this file."
 msgstr ""
+"I risultati di solve-field vengono memorizzati in un'header FITS con un nome "
+"file che termina con .wcs. Seleziona questo per non rimuovere questo file."
 
 #: src/gui/siril3.glade:28858
 msgid "Maximum seconds to try solving:"
-msgstr ""
+msgstr "Numero massimo di secondi per cercare la risoluzione:"
 
 #: src/gui/siril3.glade:28869
 msgid ""
@@ -7976,16 +7996,22 @@ msgid ""
 "total solve time only if solve-field is configured to do so in its "
 "configuration file."
 msgstr ""
+"Tempo concesso per la risoluzione di ogni file di catalogo. Può essere "
+"utilizzato come tempo totale di risoluzione solo se solve-field è "
+"configurato per farlo nel suo file di configurazione."
 
 #: src/gui/siril3.glade:28884
 msgid ""
 "Astrometry.net can use a polynomial correction (SIP) to work with optical "
 "aberrations, this is the order of the polynomial model. 0 disables it."
 msgstr ""
+"Astrometry.net può utilizzare una correzione polinomiale (SIP) per sistemare "
+"le aberrazioni ottiche, questo è l'ordine del modello polinomiale. 0 lo "
+"disabilita."
 
 #: src/gui/siril3.glade:28900
 msgid "Location of local astrometry.net solver"
-msgstr ""
+msgstr "Posizione del risolutore locale astrometry.net"
 
 #: src/gui/siril3.glade:28911
 msgid ""
@@ -7994,26 +8020,30 @@ msgid ""
 "necessary.\n"
 "On Windows, you must point to the location of cygwin_ansvr folder."
 msgstr ""
+"Seleziona la posizione di astrometry.net.\n"
+"Sui sistemi basati su UNIX, è generalmente nella variabile PATH e non è "
+"necessario.\n"
+"Su Windows, devi puntare alla posizione della cartella cygwin_ansvr."
 
 #: src/gui/siril3.glade:28918
-#, fuzzy
 msgid "Select astrometry.net installation directory"
-msgstr "Seleziona la directory di installazione di Starnet++"
+msgstr "Seleziona la directory di installazione di astrometry.net"
 
 #: src/gui/siril3.glade:28927
 msgid "Show solve-field output"
-msgstr ""
+msgstr "Mostra il risultato di solve-field"
 
 #: src/gui/siril3.glade:28931
 msgid ""
 "Show the output of solve-field, the astrometry.net local solver, in the main "
 "Siril log."
 msgstr ""
+"Mostra l'output di solve-field, il risolutore locale di astrometry.net, nel "
+"registro principale di Siril."
 
 #: src/gui/siril3.glade:28956
-#, fuzzy
 msgid "Astrometry.net Platesolving"
-msgstr "Forza il plate solving"
+msgstr "Astrometry.net Platesolving"
 
 #: src/gui/siril3.glade:28990 src/gui/siril3.glade:29614
 msgid "Pre-processing"
@@ -8026,19 +8056,16 @@ msgstr "Usa come default"
 
 #: src/gui/siril3.glade:29023 src/gui/siril3.glade:29038
 #: src/gui/siril3.glade:29053
-#, fuzzy
 msgid "Use the chosen master as default file in the Calibration tab"
-msgstr ""
-"Utilizza il master selezionato come default nel tab di pre-elaborazione"
+msgstr "Utilizza il master selezionato come default nel tab di Calibrazione"
 
 #: src/gui/siril3.glade:29067
 msgid "Master-flat:"
 msgstr "Master-flat:"
 
 #: src/gui/siril3.glade:29079
-#, fuzzy
 msgid "Master-bias:"
-msgstr "usa bias:"
+msgstr "Master bias:"
 
 #: src/gui/siril3.glade:29091
 msgid "Master-dark:"
@@ -8053,7 +8080,6 @@ msgstr ""
 "sottrarre, iniziando con un segno “=“, come =256 o =64*$OFFSET"
 
 #: src/gui/siril3.glade:29116
-#, fuzzy
 msgid ""
 "Choose a master-bias that can be used as generic master-bias by clicking on "
 "the button \"Use it as default\""
@@ -8082,9 +8108,8 @@ msgid "Dark/Bias/Flat Libraries"
 msgstr "Librerie Dark/Bias/Flat"
 
 #: src/gui/siril3.glade:29239
-#, fuzzy
 msgid "Default name:"
-msgstr "Tipo di default:"
+msgstr "Nome di default:"
 
 #: src/gui/siril3.glade:29251
 msgid ""
@@ -8096,17 +8121,24 @@ msgid ""
 "specicified).\n"
 "If sequence name does not have the suffix \"_\", it is automatically added"
 msgstr ""
+"Il nome predefinito da utilizzare per denominare il risultato dello stacking."
+"\n"
+"Questa può essere un'espressione che utilizza la parola chiave $seqname$ che "
+"verrà analizzata come il nome della sequenza corrente al termine "
+"dell'operazione di stacking.\n"
+"Esempio: $seqname$stacked produrrebbe \"r_pp_light_stacked\" per una "
+"sequenza denominata \"r_pp_light_\" (questo è il comportamento predefinito "
+"se non è specificato nulla).\n"
+"Se il nome della sequenza non ha il suffisso \"_\", viene aggiunto "
+"automaticamente"
 
 #: src/gui/siril3.glade:29271
-#, fuzzy
 msgid "Use this name as default in the Stacking tab"
-msgstr ""
-"Utilizza il master selezionato come default nel tab di pre-elaborazione"
+msgstr "Utilizza questo nome come default nel tab di Stacking"
 
 #: src/gui/siril3.glade:29289
-#, fuzzy
 msgid "Stacking default"
-msgstr "Risultato stacking"
+msgstr "Default stacking"
 
 #: src/gui/siril3.glade:29306
 msgid ""
@@ -8234,9 +8266,8 @@ msgid "Camera"
 msgstr "Fotocamera"
 
 #: src/gui/siril3.glade:30015 src/gui/siril3.glade:30126
-#, fuzzy
 msgid "Analysis Tools"
-msgstr "_Analisi"
+msgstr "Tool di Analisi"
 
 #: src/gui/siril3.glade:30047
 msgid ""
@@ -8244,26 +8275,25 @@ msgid ""
 "pixels. The higher you set the value, the more stars you will see, but at a "
 "lower resolution."
 msgstr ""
+"Definisce la dimensione del pannello utilizzato per il mosaico. Questa "
+"dimensione è espressa in pixel. Più alto è il valore, più stelle vedrai, ma "
+"con una risoluzione inferiore."
 
 #: src/gui/siril3.glade:30066
-#, fuzzy
 msgid "Panel size (px):"
-msgstr "Dimensione del pixel (µm):"
+msgstr "Dimensione del pannello (px):"
 
 #: src/gui/siril3.glade:30078
-#, fuzzy
 msgid "Window size (px):"
-msgstr "Dimensione del pixel (µm):"
+msgstr "Dimensione della finestra (px):"
 
 #: src/gui/siril3.glade:30089
-#, fuzzy
 msgid "Defines the size of the window."
-msgstr "Adatta l'immagine alla finestra"
+msgstr "Definisce la dimensione della finestra"
 
 #: src/gui/siril3.glade:30111
-#, fuzzy
 msgid "<b>Aberration Inspector</b>"
-msgstr "Operatore di sottrazione."
+msgstr "<b>Controllo Aberrazione</b>"
 
 #: src/gui/siril3.glade:30140 src/gui/siril3.glade:30566
 msgid "User Interface"
@@ -8358,29 +8388,24 @@ msgid "Image Thumbnails"
 msgstr "Immagine anteprima"
 
 #: src/gui/siril3.glade:30442
-#, fuzzy
 msgid "Default screen transfer function"
-msgstr "Funzione di trasferimento mezzitoni"
+msgstr "Default funzione di trasferimento schermo"
 
 #: src/gui/siril3.glade:30460
-#, fuzzy
 msgid "Autostretch"
 msgstr "AutoStretch"
 
 #: src/gui/siril3.glade:30477
-#, fuzzy
 msgid "Image Display"
-msgstr "Elaborazione dell'immagine"
+msgstr "Visualizza Immagine"
 
 #: src/gui/siril3.glade:30509
-#, fuzzy
 msgid "Default display mode"
-msgstr "Modalità visualizzazione"
+msgstr "Modalità visualizzazione di default"
 
 #: src/gui/siril3.glade:30539
-#, fuzzy
 msgid "Histogram Display"
-msgstr "Istogrammi"
+msgstr "Visualizza Istogrammi"
 
 #: src/gui/siril3.glade:30611
 msgid ""
@@ -8493,7 +8518,7 @@ msgstr "<b>Gestione della memoria</b>"
 
 #: src/gui/siril3.glade:30893
 msgid "Default bit depth for HD AutoStretch"
-msgstr ""
+msgstr "Profondità di bit di default per AutoStretch HD"
 
 #: src/gui/siril3.glade:30909
 msgid ""
@@ -8504,25 +8529,30 @@ msgid ""
 "will apply from the next viewer mode change, and can be applied now using "
 "the button to the right."
 msgstr ""
+"mposta la profondità di bit predefinita per la modalità di visualizzazione "
+"HD AutoStretch. Profondità di bit più elevate richiedono esponenzialmente "
+"più memoria per la LUT e impiegano più tempo per ricalcolarla, ma svolgono "
+"un lavoro molto migliore nel livellare gli artefatti di quantizzazione nella "
+"visualizzazione di immagini con picchi dell'istogramma molto stretti. La "
+"profondità di bit predefinita verrà applicata dalla successiva modifica "
+"della modalità di visualizzazione e può essere applicata ora utilizzando il "
+"pulsante a destra."
 
 #: src/gui/siril3.glade:30926
-#, fuzzy
 msgid "Apply bit depth"
-msgstr "Applicare suddivisione CFA"
+msgstr "Applica profondità di bit"
 
 #: src/gui/siril3.glade:30930
-#, fuzzy
 msgid "Set the selected HD AutoStretch bit depth now"
-msgstr "AutoStretch"
+msgstr "Imposta adesso la profondità di bit HD AutoStretch selezionata"
 
 #: src/gui/siril3.glade:30953
-#, fuzzy
 msgid "HD AutoStretch"
-msgstr "AutoStretch"
+msgstr "AutoStretch HD"
 
 #: src/gui/siril3.glade:30983
 msgid "Multithreaded FFTW"
-msgstr ""
+msgstr "FFTW multithread"
 
 #: src/gui/siril3.glade:30987
 msgid ""
@@ -8530,12 +8560,17 @@ msgid ""
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
 msgstr ""
+"Se selezionato, FFTW utilizzerà thread multipli. Questo di solito è un "
+"aumento della velocità su immagini di grandi dimensioni, ma aumenterà il "
+"tempo di pianificazione iniziale la prima volta che FFTW opera su "
+"un'immagine di una determinata dimensione."
 
 #: src/gui/siril3.glade:31002 src/core/settings.c:278
 msgid "FFTW planning strategy"
-msgstr ""
+msgstr "FFTW strategia di pianificazione"
 
 #: src/gui/siril3.glade:31013
+#, fuzzy
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -8549,22 +8584,35 @@ msgid ""
 "and planning level takes longer to generate if you have selected "
 "multithreaded FFTW."
 msgstr ""
+"Imposta la strategia di pianificazione FFTW. FFTW genera e memorizza "
+"saggezza per aiutarlo a ottimizzare i calcoli FFT di determinate dimensioni. "
+"Per ogni livello successivo di strategia di pianificazione, verrà svolto più "
+"lavoro per trovare la strategia di calcolo ottimale la prima volta che si "
+"incontra una dimensione FFT sconosciuta. Il primo calcolo sarà "
+"progressivamente più lento, ma la saggezza viene memorizzata e renderà le "
+"esecuzioni successive più veloci. Per la maggior parte degli utenti va bene "
+"la strategia Paziente predefinita. Se hai a che fare regolarmente con "
+"immagini di molte dimensioni diverse, Stima o Misura potrebbero essere "
+"migliori; se tutte le tue immagini hanno sempre esattamente le stesse "
+"dimensioni, potresti voler provare Esaustivo. Tieni presente che il piano "
+"iniziale per una data dimensione e livello di pianificazione richiede più "
+"tempo per essere generato se hai selezionato FFTW multithread."
 
 #: src/gui/siril3.glade:31017
 msgid "Measure"
-msgstr ""
+msgstr "Misura"
 
 #: src/gui/siril3.glade:31018
 msgid "Patient"
-msgstr ""
+msgstr "Paziente"
 
 #: src/gui/siril3.glade:31019
 msgid "Exhaustive"
-msgstr ""
+msgstr "Esaustivo"
 
 #: src/gui/siril3.glade:31032
 msgid "FFTW planning time limit (seconds)"
-msgstr ""
+msgstr "FFWT limite tempo di pianificazione (secondi)"
 
 #: src/gui/siril3.glade:31043
 msgid ""
@@ -8573,10 +8621,15 @@ msgid ""
 "FFTW is in the middle of an uninterruptible operation. If set to 0, a "
 "minimum planning level of Estimate will always be completed."
 msgstr ""
+"Indica a FFTW di dedicare al massimo questo numero di secondi alla "
+"pianificazione di un FFT. In pratica, questo può essere leggermente superato "
+"se il limite di tempo viene raggiunto quando FFTW è nel mezzo di "
+"un'operazione non interruttibile. Se impostato su 0, verrà sempre completato "
+"un livello minimo di pianificazione di Stima."
 
 #: src/gui/siril3.glade:31058
 msgid "Minimum PSF size to use FFT convolutions"
-msgstr ""
+msgstr "Dimensione di PSF minima per utilizzare le convoluzioni FFT"
 
 #: src/gui/siril3.glade:31069
 msgid ""
@@ -8588,11 +8641,18 @@ msgid ""
 "is therefore configurable. This parameter sets the minimum size for which "
 "Fourier Transforms will be used."
 msgstr ""
+"Siril può calcolare le convoluzioni sommando il kernel ad ogni pixel o "
+"usando le trasformate di Fourier. Il primo diventa molto inefficace per "
+"kernel di grandi dimensioni, mentre il secondo richiede un certo tempo di "
+"configurazione. Pertanto le trasformate di Fourier sono più veloci per i "
+"kernel più grandi, la somma è più veloce per i kernel più piccoli. L'esatto "
+"punto di crossover dipenderà dal tuo hardware ed è quindi configurabile. "
+"Questo parametro imposta la dimensione minima per la quale verrà utilizzata "
+"la trasformata di Fourier."
 
 #: src/gui/siril3.glade:31091
-#, fuzzy
 msgid "<b>FFTW Options</b>"
-msgstr "<b>Compressione FITS</b>"
+msgstr "<b>Opzioni FFTW</b>"
 
 #: src/gui/siril3.glade:31119 src/gui/siril3.glade:31486
 msgid "Miscellaneous"
@@ -8632,7 +8692,7 @@ msgstr "Non chiedere prima di uscire"
 
 #: src/gui/siril3.glade:31240
 msgid "Don't ask before saving when display is not linear"
-msgstr ""
+msgstr "Non chiedere prima di salvare quando la visualizzazione non è lineare"
 
 #: src/gui/siril3.glade:31283
 msgid "Play introduction"
@@ -8664,20 +8724,21 @@ msgid ""
 "Not necessary if the path of gnuplot is stored in the PATH variable (UNIX-"
 "like)."
 msgstr ""
+"Deve puntare a una directory di installazione gnuplot valida.\n"
+"Non necessario se il percorso di gnuplot è memorizzato nella variabile PATH ("
+"tipo UNIX)."
 
 #: src/gui/siril3.glade:31376
 msgid "Select gnuplot binary location."
-msgstr ""
+msgstr "Seleziona la posizione binaria di gnuplot."
 
 #: src/gui/siril3.glade:31380
-#, fuzzy
 msgid "Select gnuplot installation directory"
-msgstr "Seleziona la directory di installazione di Starnet++"
+msgstr "Seleziona la directory di installazione di gnuplot"
 
 #: src/gui/siril3.glade:31396
-#, fuzzy
 msgid "Software Location"
-msgstr "Aggiornamento software"
+msgstr "Posizione Software"
 
 #: src/gui/siril3.glade:31419
 msgid "Copyright when saving image as TIFF"
@@ -9007,11 +9068,13 @@ msgstr "Il file [%s] non esiste\n"
 #: src/algos/annotate.c:246
 msgid "Stars file did not contain the expected header for NINA-style format\n"
 msgstr ""
+"Il file Stars non conteneva l'intestazione prevista per il formato stile "
+"NINA\n"
 
 #: src/algos/annotate.c:256 src/algos/annotate.c:279
 #, c-format
 msgid "Malformed line: %s\n"
-msgstr ""
+msgstr "Linea malformata: %s\n"
 
 #: src/algos/annotate.c:429 src/core/command.c:4515 src/core/command.c:6254
 #: src/core/command.c:6360 src/core/command.c:6482 src/core/command.c:7307
@@ -9021,9 +9084,8 @@ msgid "Cannot create output folder: %s\n"
 msgstr "Non posso creare la cartella di output: %s\n"
 
 #: src/algos/annotate.c:454
-#, fuzzy
 msgid "Error: failed to write output to user catalogue.\n"
-msgstr "Impossibile ottenere i dati dal catalogo locale, è installato?\n"
+msgstr "Errore: non riesco a scrivere il risultato nel catalogo utente.\n"
 
 #: src/algos/annotate.c:503
 #, c-format
@@ -9031,22 +9093,22 @@ msgid ""
 "The object was already found in the %s catalog under the name %s, not adding "
 "it again\n"
 msgstr ""
+"L'oggetto è già stato trovato nel catalogo %s con il nome %s, non lo "
+"riaggiungo\n"
 
 #: src/algos/annotate.c:626
-#, fuzzy
 msgid "Catalog deletion"
 msgstr "Rimozione catalogo"
 
 #: src/algos/annotate.c:627
-#, fuzzy
 msgid ""
 "You are about to purge your SOLAR SYSTEM user catalog. This means the file "
 "containing the manually added objects will be deleted. This operation cannot "
 "be undone."
 msgstr ""
-"Stai per svuotare il catalogo utente. Questo significa che il file che "
-"contiene gli oggetti aggiunti manualmente sarà cancellato. Questa operazione "
-"non può essere annullata."
+"Stai per svuotare il catalogo utente SOLAR SYSTEM. Questo significa che il "
+"file che contiene gli oggetti aggiunti manualmente sarà cancellato. Questa "
+"operazione non può essere recuperata."
 
 #: src/algos/annotate.c:629 src/algos/annotate.c:656
 msgid "Purge Catalogue"
@@ -9057,51 +9119,46 @@ msgid "Catalogue deletion"
 msgstr "Rimozione catalogo"
 
 #: src/algos/annotate.c:654
-#, fuzzy
 msgid ""
 "You are about to purge your DEEP SKY user catalogue. This means the file "
 "containing the manually added objects will be deleted. This operation cannot "
 "be undone."
 msgstr ""
-"Stai per svuotare il catalogo utente. Questo significa che il file che "
-"contiene gli oggetti aggiunti manualmente sarà cancellato. Questa operazione "
-"non può essere annullata."
+"Stai per svuotare il catalogo utente DEEP SKY. Questo significa che il file "
+"che contiene gli oggetti aggiunti manualmente sarà cancellato. Questa "
+"operazione non può essere recuperata."
 
 #: src/algos/astrometry_solver.c:95
 msgid "Tycho-2"
-msgstr ""
+msgstr "Tycho-2"
 
 #: src/algos/astrometry_solver.c:97
 msgid "NOMAD"
-msgstr ""
+msgstr "NOMAD"
 
 #: src/algos/astrometry_solver.c:99
-#, fuzzy
 msgid "Gaia DR3"
-msgstr "Gaia EDR3"
+msgstr "Gaia DR3"
 
 #: src/algos/astrometry_solver.c:101
 msgid "PPMXL"
-msgstr ""
+msgstr "PPMXL"
 
 #: src/algos/astrometry_solver.c:103
-#, fuzzy
 msgid "bright stars"
-msgstr "n° stelle"
+msgstr "stelle luminose"
 
 #: src/algos/astrometry_solver.c:109
 msgid "local Tycho-2+NOMAD"
-msgstr ""
+msgstr "Tycho-2+NOMAD locale"
 
 #: src/algos/astrometry_solver.c:111
-#, fuzzy
 msgid "local astrometry.net"
-msgstr "Astrometria"
+msgstr "Astrometry.net locale"
 
 #: src/algos/astrometry_solver.c:113 src/gui/callbacks.c:1215
-#, fuzzy
 msgid "unknown"
-msgstr "errore sconosciuto"
+msgstr "sconosciuto"
 
 #: src/algos/astrometry_solver.c:363
 #, c-format
@@ -9128,51 +9185,52 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:392
 msgid "Online service error"
-msgstr ""
+msgstr "Errore servizio online"
 
 #: src/algos/astrometry_solver.c:415 src/core/siril_update.c:659
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading url: [%s] - %s\n"
-msgstr "Errore nel caricare url %s: %s\n"
+msgstr "Errore nel caricare url:[%s] - %s\n"
 
 #: src/algos/astrometry_solver.c:456 src/algos/astrometry_solver.c:553
-#, fuzzy, c-format
+#, c-format
 msgid "URL: %s \n"
-msgstr "Collegamento: %s\n"
+msgstr "URL: %s \n"
 
 #: src/algos/astrometry_solver.c:490
-#, fuzzy, c-format
+#, c-format
 msgid "Searching %s in CDSESAME...\n"
-msgstr "Ricerca degli script in: \"%s\"...\n"
+msgstr "Ricerca %s in CDSESAME...\n"
 
 #: src/algos/astrometry_solver.c:498
-#, fuzzy, c-format
+#, c-format
 msgid "Searching %s in VIZIER...\n"
-msgstr "Ricerca degli script in: \"%s\"...\n"
+msgstr "Ricerca %s in VIZIER...\n"
 
 #: src/algos/astrometry_solver.c:507
-#, fuzzy, c-format
+#, c-format
 msgid "Searching %s in SIMBAD...\n"
-msgstr "Ricerca degli script in: \"%s\"...\n"
+msgstr "Ricerca %s in SIMBAD...\n"
 
 #: src/algos/astrometry_solver.c:530
 #, c-format
 msgid "Searching for solar system object %s on observation date %s\n"
 msgstr ""
+"Ricerca dell'oggetto del sistema solare %s alla data di osservazione %s\n"
 
 #: src/algos/astrometry_solver.c:533
 msgid "No topocentric data available. Set to geocentric\n"
-msgstr ""
+msgstr "Nessun dato topocentrico disponibile. Imposta a geocentrico\n"
 
 #: src/algos/astrometry_solver.c:535
 #, c-format
 msgid "at LAT: %f, LONG: %f\n"
-msgstr ""
+msgstr "alla LAT: %f, LONG: %f\n"
 
 #: src/algos/astrometry_solver.c:546
-#, fuzzy, c-format
+#, c-format
 msgid "Searching %s in SIMBAD(photo)...\n"
-msgstr "Ricerca degli script in: \"%s\"...\n"
+msgstr "Ricerca %s in SIMBAD(foto)...\n"
 
 #: src/algos/astrometry_solver.c:667
 msgid "Using already downloaded star catalogue\n"
@@ -9187,7 +9245,7 @@ msgstr ""
 #: src/algos/astrometry_solver.c:793
 #, c-format
 msgid "Up is %+.2lf deg ClockWise wrt. N%s\n"
-msgstr ""
+msgstr "Up è %+.2lf gradi in senso orario wrt. N%s\n"
 
 #: src/algos/astrometry_solver.c:793
 msgid " (flipped)"
@@ -9224,9 +9282,9 @@ msgid "Catalog NOMAD size: %d objects\n"
 msgstr "Dimensione del catalogo NOMAD: %d oggetti\n"
 
 #: src/algos/astrometry_solver.c:878
-#, fuzzy, c-format
+#, c-format
 msgid "Local catalogs size: %d objects\n"
-msgstr "Catalogo Gaia %s dimensione: %d oggetti\n"
+msgstr "Dimensioni del catalogo locale: %d oggetti\n"
 
 #: src/algos/astrometry_solver.c:916
 #, c-format
@@ -9234,9 +9292,9 @@ msgid "Catalog TYCHO-2 size: %d objects\n"
 msgstr "Dimensione del catalogo TYCHO-2: %d oggetti\n"
 
 #: src/algos/astrometry_solver.c:958
-#, fuzzy, c-format
+#, c-format
 msgid "Catalog Gaia DR3 size: %d objects\n"
-msgstr "Catalogo Gaia %s dimensione: %d oggetti\n"
+msgstr "Dimensione Catalogo Gaia DR3: %d oggetti\n"
 
 #: src/algos/astrometry_solver.c:1000
 #, c-format
@@ -9271,13 +9329,13 @@ msgid "Could not load the star catalog (%s)."
 msgstr "Non posso caricare il catalogo di stelle (%s)."
 
 #: src/algos/astrometry_solver.c:1365
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Plate solving image from local catalogues for a field of view of %.2f "
 "degrees\n"
 msgstr ""
 "Immagine di plate-solving da cataloghi locali per un campo visivo di %.2f "
-"gradi%s, utilizzando una magnitudine limite di %.2f\n"
+"gradi%\n"
 
 #: src/algos/astrometry_solver.c:1367
 #, c-format
@@ -9305,39 +9363,43 @@ msgstr ""
 #, c-format
 msgid "Down-sampling image for faster star detection by a factor %.2f\n"
 msgstr ""
+"Sottocampiona l'immagine di un fattore %.2f per un più veloce rilevamento "
+"delle stelle\n"
 
 #: src/algos/astrometry_solver.c:1408
-#, fuzzy
 msgid "Failed to downsample image, aborting\n"
-msgstr "impossibile calcolare le statistiche sull’immagine, interruzione\n"
+msgstr "Sottocampionamento immagine fallito, interruzione\n"
 
 #: src/algos/astrometry_solver.c:1409
-#, fuzzy
 msgid "Not enough memory"
-msgstr "Non ci sono abbastanza campioni."
+msgstr "Memoria insufficente"
 
 #: src/algos/astrometry_solver.c:1444
-#, fuzzy, c-format
+#, c-format
 msgid "There are not enough stars picked in the image. At least %d are needed."
 msgstr ""
-"Non ci sono abbastanza stelle all'interno dell'immagine. Sono necessarie "
-"almeno %d stelle."
+"Non ci sono abbastanza stelle rilevate all'interno dell'immagine. Sono "
+"necessarie almeno %d stelle."
 
 #: src/algos/astrometry_solver.c:1450
-#, fuzzy, c-format
+#, c-format
 msgid "Using %d detected stars from image.\n"
-msgstr "Usando la dimensione dei pixel dall’immagine: %f\n"
+msgstr "Uso %d stelle rilevate dall'immagine.\n"
 
 #: src/algos/astrometry_solver.c:1469 src/gui/callbacks.c:1561
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
+"Lunghezza focale %.2f e dimensione pixel %.2f salvati come valori "
+"predefiniti\n"
 
 #: src/algos/astrometry_solver.c:1478
 msgid ""
 "This operation (PCC) relies on the missing WCSLIB software, cannot "
 "continue.\n"
 msgstr ""
+"Questa operazione (PCC) si basa sul software WCSLIB mancante, non posso "
+"continuare.\n"
 
 #: src/algos/astrometry_solver.c:1489
 #, c-format
@@ -9396,18 +9458,17 @@ msgid "Plate Solve"
 msgstr "Plate Solver dell'immagine"
 
 #: src/algos/astrometry_solver.c:1856
-#, fuzzy
 msgid "asnet_ansvr directory is not set - aborting\n"
-msgstr "La cartella di lavoro corrente non è impostata, interruzione.\n"
+msgstr "La cartella asnet_ansvr non è impostata, interruzione.\n"
 
 #: src/algos/astrometry_solver.c:1861
 msgid "solve-field was not found, set its path in the preferences\n"
 msgstr ""
+"solve-field non è stato trovato, imposta il suo percorso nelle preferenze\n"
 
 #: src/algos/astrometry_solver.c:1868
-#, fuzzy
 msgid "Failed to create the input data for solve-field\n"
-msgstr "Creazione file di output SER ‘%s’ fallita\n"
+msgstr "Impossibile creare i dati di input per solve-field\n"
 
 #: src/algos/astrometry_solver.c:1912
 #, c-format
@@ -9415,11 +9476,13 @@ msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius for scales [%s, %s]\n"
 msgstr ""
+"Risoluzione Astrometry.net con un campo di ricerca a RA: %s, Dec: %s, entro "
+"un raggio di %s gradi per le scale [%s, %s]\n"
 
 #: src/algos/astrometry_solver.c:1918
 #, c-format
 msgid "Astrometry.net solving blindly for scales [%s, %s]\n"
-msgstr ""
+msgstr "Astrometry.net risoluzione alla cieca per le scale [%s, %s]\n"
 
 #: src/algos/astrometry_solver.c:1967
 msgid "No astrometric solution found\n"
@@ -9429,14 +9492,15 @@ msgstr "Nessuna soluzione astrometrica rilevata\n"
 #, c-format
 msgid "Could not read the solution from solve-field (expected in file %s)\n"
 msgstr ""
+"Impossibile leggere la soluzione da solve-field (previsto nel file %s)\n"
 
 #: src/algos/astrometry_solver.c:2036
 msgid "Local astrometry.net solve succeeded.\n"
-msgstr ""
+msgstr "Risoluzione locale astrometry.net riuscita.\n"
 
 #: src/algos/astrometry_solver.c:2060
 msgid "Warning: using the current selection to detect stars\n"
-msgstr ""
+msgstr "Attenzione: uso la selezione corrente per rilevare le stelle\n"
 
 #: src/algos/astrometry_solver.c:2104
 msgid "Selection is not used in manual star selection mode\n"
@@ -9470,18 +9534,17 @@ msgstr ""
 "essere calcolato.\n"
 
 #: src/algos/background_extraction.c:833
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to generate background samples for image: %s\n"
-msgstr "Impossibile creare la directory di configurazione %s\n"
+msgstr "Impossibile generare i campioni di sfondo per l'immagine: %s\n"
 
 #: src/algos/background_extraction.c:888
 msgid "Not enough samples."
 msgstr "Non ci sono abbastanza campioni."
 
 #: src/algos/background_extraction.c:898 src/gui/PSF_list.c:718
-#, fuzzy
 msgid "monochrome"
-msgstr "(Anteprima Monocromatica)"
+msgstr "Monocromo"
 
 #: src/algos/background_extraction.c:899
 #, c-format
@@ -9498,9 +9561,9 @@ msgid "Out of memory - aborting"
 msgstr "Memoria esaurita - interruzione"
 
 #: src/algos/background_extraction.c:931
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to generate background samples for image %d: %s\n"
-msgstr "Impossibile creare la directory di configurazione %s\n"
+msgstr "Impossibile generare campioni di sfondo per l'immagine %d: %s\n"
 
 #: src/algos/background_extraction.c:1019 src/algos/demosaicing.c:1284
 #: src/algos/extraction.c:726 src/algos/statistics.c:912
@@ -9539,7 +9602,6 @@ msgid "%s channel extraction: processing...\n"
 msgstr "Estrazione del canale %s: elaborazione...\n"
 
 #: src/algos/colors.c:614
-#, fuzzy
 msgid "Siril cannot extract channels. Make sure your image is in RGB mode.\n"
 msgstr ""
 "Siril non può estrarre i canali. Assicurati che la tua immagine sia in "
@@ -9580,7 +9642,7 @@ msgstr ""
 #: src/algos/demosaicing.c:966
 #, c-format
 msgid "Invalid character in X-Trans filter pattern: %c\n"
-msgstr ""
+msgstr "Carattere non valido nel pattern di filtro X-Trans: %c\n"
 
 #: src/algos/demosaicing.c:1226
 msgid "Cannot perform debayering on image with more than one channel\n"
@@ -9617,17 +9679,17 @@ msgstr "Non posso eseguire il debayering\n"
 #: src/algos/demosaicing.c:1340
 #, c-format
 msgid "Image %d: error identifying CFA1 filename\n"
-msgstr ""
+msgstr "Immagine %d: errore nell'identificazione del nome file CFA1\n"
 
 #: src/algos/demosaicing.c:1345
 #, c-format
 msgid "Image %d: error identifying CFA2 filename\n"
-msgstr ""
+msgstr "Immagine %d: errore nell'identificazione del nome file CFA2\n"
 
 #: src/algos/demosaicing.c:1350
 #, c-format
 msgid "Image %d: error identifying CFA3 filename\n"
-msgstr ""
+msgstr "Immagine %d: errore nell'identificazione del nome file CFA3\n"
 
 #: src/algos/demosaicing.c:1361
 #, c-format
@@ -9646,37 +9708,35 @@ msgstr "Immagine %d: Errore durante l'apertura del file CFA3\n"
 
 #: src/algos/demosaicing.c:1410
 msgid "Merge CFA"
-msgstr ""
+msgstr "Unisce i CFA"
 
 #: src/algos/demosaicing.c:1439
 msgid ""
 "Input files are incompatible (all must be mono with the same size and bit "
 "depth). Aborting...\n"
 msgstr ""
+"I files di input sono incompatibili (devono essere tutti mono con la stessa "
+"dimensione e profondità di bit). Interruzione...\n"
 
 #: src/algos/demosaicing.c:1441
 msgid "X dimensions incompatible\n"
-msgstr ""
+msgstr "Dimensioni X non compatibili\n"
 
 #: src/algos/demosaicing.c:1443
 msgid "Y dimensions incompatible\n"
-msgstr ""
+msgstr "Dimensione Y incompatibile\n"
 
 #: src/algos/demosaicing.c:1445
 msgid "Channels not all mono\n"
 msgstr "Non tutti i canali sono in mono\n"
 
 #: src/algos/demosaicing.c:1447
-#, fuzzy
 msgid "Input files not all the same bit depth\n"
-msgstr ""
-"I file di input SER devono avere la stessa dimensione per poter essere "
-"uniti.\n"
+msgstr "I file di input non hanno tutti la stessa profondità di bit\n"
 
 #: src/algos/demosaicing.c:1454
-#, fuzzy
 msgid "Error creating output image\n"
-msgstr "Errore nella lettura di una delle aree dell'immagine\n"
+msgstr "Errore nel creare l'immagine di output\n"
 
 #: src/algos/extraction.c:60 src/algos/extraction.c:110
 msgid "Extract_Ha does not work on non-Bayer filter camera images!\n"
@@ -9746,14 +9806,14 @@ msgid "Failed to sample enough pixels for AF type %d.\n"
 msgstr "Non è stato possibile campionare abbastanza pixel per il tipo AF%d.\n"
 
 #: src/algos/geometry.c:268
-#, fuzzy, c-format
+#, c-format
 msgid "Binning x%d: processing...\n"
-msgstr "Riduzione del banding: elaborazione...\n"
+msgstr "Binning x%d: elaborazione...\n"
 
 #: src/algos/geometry.c:287
 #, c-format
 msgid "New image size: %dx%d pixels.\n"
-msgstr ""
+msgstr "Nuova dimensione dell'immagine: %dx%d pixels.\n"
 
 #: src/algos/geometry.c:295 src/algos/geometry.c:390
 msgid "Nearest-Neighbor"
@@ -9835,9 +9895,8 @@ msgid "unsupported image type"
 msgstr "tipo di immagine non supportata"
 
 #: src/algos/photometry.c:268
-#, fuzzy
 msgid "PSF fit failed"
-msgstr "Fit gaussiano fallito"
+msgstr "Adattamento PSF fallito"
 
 #: src/algos/photometry.c:270
 msgid "not in area"
@@ -9889,23 +9948,27 @@ msgid ""
 "Gnuplot was not found, the light curve data will be produced in %s but no "
 "image will be created.\n"
 msgstr ""
+"Gnuplot non è stato trovato, i dati della curva di luce verranno prodotti in "
+"%s ma non verrà creata alcuna immagine.\n"
 
 #: src/algos/photometry.c:324 src/gui/plot.c:718
 msgid "No photometry data found, error\n"
-msgstr ""
+msgstr "Nessun dato di fotometria trovato, errore\n"
 
 #: src/algos/photometry.c:343
-#, fuzzy
 msgid "There are not enough valid stars to make a photometric analysis.\n"
 msgstr ""
-"Non ci sono abbastanza stelle nell'immagine di riferimento per eseguire "
-"l'allineamento\n"
+"Non ci sono abbastanza stelle valide per realizzare una analisi fotometrica."
+"\n"
 
 #: src/algos/photometry.c:357 src/gui/plot.c:748
 msgid ""
 "The reference stars are not good enough, probably out of the configured "
 "valid pixel range, cannot calibrate the light curve\n"
 msgstr ""
+"Le stelle di riferimento non sono abbastanza buone, probabilmente al di "
+"fuori dell'intervallo di pixel valido configurato, non posso calibrare la "
+"curva di luce\n"
 
 #: src/algos/photometry.c:361 src/gui/plot.c:752
 msgid ""
@@ -9913,11 +9976,14 @@ msgid ""
 "light curve. Try to add more reference stars or check the configured valid "
 "pixel range\n"
 msgstr ""
+"È stata convalidata solo una stella di riferimento, ciò non risulterà in una "
+"curva di luce accurata. Prova ad aggiungere più stelle di riferimento o "
+"controlla l'intervallo di pixel valido configurato\n"
 
 #: src/algos/photometry.c:362 src/gui/plot.c:753
 #, c-format
 msgid "Using %d stars to calibrate the light curve\n"
-msgstr ""
+msgstr "Uso %d stelle per calibrare la curva di luce\n"
 
 #: src/algos/photometry.c:434
 #, c-format
@@ -9925,11 +9991,13 @@ msgid ""
 "Calibrated data for %d points of the light curve, %d excluded because of "
 "invalid photometry\n"
 msgstr ""
+"Dati di calibrazione per %d punti della curva di luce, %d esclusi a causa "
+"della fotometria non valida\n"
 
 #: src/algos/photometry.c:440 src/gui/plot.c:831
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to create the light curve data file %s\n"
-msgstr "Creazione file di output SER ‘%s’ fallita\n"
+msgstr "Creazione del data file curva di luce %s fallita\n"
 
 #: src/algos/photometry.c:442 src/gui/plot.c:834 src/gui/plot.c:930
 #, c-format
@@ -9937,18 +10005,20 @@ msgid "%s has been saved.\n"
 msgstr "%s è stato salvato.\n"
 
 #: src/algos/photometry.c:460
-#, fuzzy, c-format
+#, c-format
 msgid "%s has been generated.\n"
-msgstr "%s è stato salvato.\n"
+msgstr "%s è stato generato.\n"
 
 #: src/algos/photometry.c:467 src/gui/plot.c:825
 msgid "Communicating with gnuplot failed, still creating the data file\n"
 msgstr ""
+"Comunicazione con gnuplot non riuscita, creazione del file di dati ancora in "
+"corso\n"
 
 #: src/algos/photometry.c:528
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open file %s: %s\n"
-msgstr "Impossibile aprire il file: %s\n"
+msgstr "Impossibile aprire il file %s: %s\n"
 
 #: src/algos/photometry.c:563 src/algos/photometry.c:572
 #: src/algos/photometry.c:584 src/algos/photometry.c:614
@@ -9957,41 +10027,45 @@ msgid ""
 "The NINA star information file did not contain all expected data (RA and "
 "Dec)\n"
 msgstr ""
+"Il file di informazioni sulla stella NINA non conteneva tutti i dati "
+"previsti (RA e Dec)\n"
 
 #: src/algos/photometry.c:594
-#, fuzzy, c-format
+#, c-format
 msgid "Target star identified: %s\n"
-msgstr "Non posso caricare il file di init: %s\n"
+msgstr "Stella target identificata: %s\n"
 
 #: src/algos/photometry.c:596
 msgid ""
 "There was a problem finding the target star in the image, cannot continue "
 "with the light curve\n"
 msgstr ""
+"Si è verificato un problema nel trovare la stella target nell'immagine, "
+"impossibile continuare con la curva di luce\n"
 
 #: src/algos/photometry.c:623 src/algos/photometry.c:649
 #, c-format
 msgid "Star %s added as a reference star\n"
-msgstr ""
+msgstr "La stella %s è stata aggiunta come stella di riferimento\n"
 
 #: src/algos/photometry.c:625 src/algos/photometry.c:651
 #, c-format
 msgid "Star %s ignored because it was too close to another\n"
-msgstr ""
+msgstr "La stella %s è stata ignorata perché troppo vicina ad un'altra\n"
 
 #: src/algos/photometry.c:627 src/algos/photometry.c:653
 #, c-format
 msgid "Star %s could not be used because it's on the borders or outside\n"
-msgstr ""
+msgstr "La stella %s non può essere usata perché è sui bordi o fuori\n"
 
 #: src/algos/photometry.c:702
 msgid "Failed to analyse the variable star photometry\n"
-msgstr ""
+msgstr "Analisi della fotometria variabile stellare fallita\n"
 
 #: src/algos/photometry.c:706
 #, c-format
 msgid "Failed to analyse the photometry of reference star %d\n"
-msgstr ""
+msgstr "Analisi della fotometria della stella di riferimento %d fallita\n"
 
 #: src/algos/photometric_cc.c:120
 #, c-format
@@ -10027,7 +10101,6 @@ msgstr ""
 "non essere perfetta perché non si basava su molte stelle\n"
 
 #: src/algos/photometric_cc.c:234
-#, fuzzy
 msgid ""
 "The photometric color correction seems to have found an imprecise solution, "
 "consider correcting the image gradient first\n"
@@ -10036,9 +10109,8 @@ msgstr ""
 "imprecisa, considerare prima la correzione del gradiente dell’immagine\n"
 
 #: src/algos/photometric_cc.c:312
-#, fuzzy
 msgid "White balance factors:\n"
-msgstr "Fattori di calibrazione dei colori:\n"
+msgstr "Fattori di bilanciamento del bianco:\n"
 
 #: src/algos/photometric_cc.c:350
 msgid "Photometric color correction will do nothing for monochrome images\n"
@@ -10068,9 +10140,9 @@ msgid "blue"
 msgstr "blu"
 
 #: src/algos/photometric_cc.c:377
-#, fuzzy, c-format
+#, c-format
 msgid "Photometry radii set to %.1f for inner and %.1f for outer\n"
-msgstr "Fotometria per stella a %.1f, %.1f nell’immagine %d\n"
+msgstr "Raggi fotometrici impostati a %.1f,per l'interno e %.1f per l'esterno\n"
 
 #: src/algos/photometric_cc.c:380
 msgid "Photometry color calibration in progress..."
@@ -10095,11 +10167,13 @@ msgstr ""
 "fotometria\n"
 
 #: src/algos/photometric_cc.c:438
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Getting stars from local catalogues for PCC, with a radius of %.2f degrees "
 "and limit magnitude %.2f\n"
-msgstr "Ottengo stelle dai cataloghi locali per PCC, magnitudine limite %.2f\n"
+msgstr ""
+"Ottengo stelle dai cataloghi locali per PCC, con un raggio di %.2f gradi e "
+"una magnitudine limite di %.2f\n"
 
 #: src/algos/photometric_cc.c:455
 msgid "No valid catalog found.\n"
@@ -10123,9 +10197,8 @@ msgid "The %s catalog has been successfully downloaded.\n"
 msgstr "Il catalogo %s è stato scaricato con successo.\n"
 
 #: src/algos/photometric_cc.c:488
-#, fuzzy
 msgid "Photometric Color Calibration succeeded.\n"
-msgstr "Calibrazione fotometrica del colore fallita"
+msgstr "Calibrazione Fotometrica del Colore riuscita.\n"
 
 #: src/algos/photometric_cc.c:501
 #, c-format
@@ -10146,9 +10219,11 @@ msgid ""
 "\n"
 "beta=%0.2f\n"
 msgstr ""
+"\n"
+"beta=%0.2f\n"
 
 #: src/algos/PSF.c:789
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "PSF fit Result (%s):\n"
 "%s\n"
@@ -10160,13 +10235,13 @@ msgid ""
 "SNR=%.1fdB\n"
 "RMSE=%.3e\n"
 msgstr ""
-"Risultato PSF:\n"
+"Risultato PSF (%s):\n"
 "%s\n"
 "FWHM X=%0.2f%s, FWHM Y=%0.2f%s\n"
-"Angolo=%0.2f gradi\n"
+"r=%0.2f%sAngolo=%0.2f gradi\n"
 "Valore dello sfondo=%0.6f\n"
 "Intensità massima=%0.6f\n"
-"Magnitudine (%s)=%0.2f\n"
+"Magnitudine (%s)=%0.4f±%.4f\n"
 "SNR=%.1fdB\n"
 "RMSE=%.3e\n"
 
@@ -10184,10 +10259,12 @@ msgid ""
 "Error: dimensions reported by wavelets file are negative, zero or "
 "excessive.\n"
 msgstr ""
+"Errore: le dimensioni riportate dal file wavelet sono negative, nulle o "
+"eccessive.\n"
 
 #: src/algos/reconstr.c:162 src/algos/reconstr.c:189
 msgid "Error: number of plans reported by wavelets file is out of bounds.\n"
-msgstr ""
+msgstr "Errore: il numero di piani riportati dal file wavelet è fuori limite.\n"
 
 #: src/algos/reconstr.c:219
 msgid "Unknown transform\n"
@@ -10197,32 +10274,32 @@ msgstr "Trasformazione sconosciuta\n"
 #: src/algos/search_objects.c:74
 #, c-format
 msgid "Bmag= %lf  , Vmag= %lf\n"
-msgstr ""
+msgstr "Bmag= %lf  , Vmag= %lf\n"
 
 #: src/algos/search_objects.c:123
-#, fuzzy, c-format
+#, c-format
 msgid "Unsupported object type in response: %s\n"
-msgstr "Tipi di file supportati: %s\n"
+msgstr "Tipo di oggetto non supportato in risposta: %s\n"
 
 #: src/algos/search_objects.c:267
-#, fuzzy, c-format
+#, c-format
 msgid "Found %s at coordinates: %s, %s with magnitude: %0.1lf\n"
-msgstr "Impossibile analizzare le coordinate del bersaglio\n"
+msgstr "Trovato %s alle coordinate:%s,%s con magnitudine:%0.1lf\n"
 
 #: src/algos/search_objects.c:285
 #, c-format
 msgid "Found %d Solar System Objects with mag < %0.1lf\n"
-msgstr ""
+msgstr "Trovati %d oggetti del Sistema Solare con magnitudine <%0.1lf\n"
 
 #: src/algos/search_objects.c:317
-#, fuzzy, c-format
+#, c-format
 msgid "Found %s at coordinates: %s, %s\n"
-msgstr "Impossibile analizzare le coordinate del bersaglio\n"
+msgstr "Trovato %s alle coordinato: %s,%s\n"
 
 #: src/algos/search_objects.c:365
 #, c-format
 msgid "Object %s not found or encountered an error processing it\n"
-msgstr ""
+msgstr "Oggetto %s non trovato o si è verificato un errore nel processarlo\n"
 
 #: src/algos/star_finder.c:189 src/algos/star_finder.c:192
 #, c-format
@@ -10246,16 +10323,19 @@ msgid ""
 "More than half of PSF fits have failed - try increasing the convergence "
 "criterion\n"
 msgstr ""
+"Più della metà degli adattamenti PSF ha avuto esito negativo -prova ad "
+"aumentare il criterio di convergenza\n"
 
 #: src/algos/star_finder.c:910
 #, c-format
 msgid "Found %d stars with same settings in %s, skipping detection\n"
 msgstr ""
+"Trovate %d stelle con le stesse impostazioni in %s, salto il rilevamento\n"
 
 #: src/algos/star_finder.c:939
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot save star list %s: %s\n"
-msgstr "Non riesco a prendere l’istantanea: %s\n"
+msgstr "Impossibile salvare l'elenco stelle %s: %s\n"
 
 #: src/algos/star_finder.c:994
 #, c-format
@@ -10263,9 +10343,8 @@ msgid "The file %s has been created.\n"
 msgstr "Il file %s è stato creato.\n"
 
 #: src/algos/star_finder.c:1152
-#, fuzzy
 msgid "FindStar"
-msgstr "Trova"
+msgstr "TrovaStelle"
 
 #: src/algos/star_finder.c:1167 src/registration/applyreg.c:224
 #: src/registration/comet.c:240 src/registration/global.c:139
@@ -10273,9 +10352,9 @@ msgid "Could not load reference image\n"
 msgstr "Non posso caricare l'immagine di riferimento\n"
 
 #: src/algos/star_finder.c:1259
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"
-msgstr "Trovate %d stelle in %s, canale #%d\n"
+msgstr "Trovati %d %s profili stelle in %s, canale #%d (FWHM %f)\n"
 
 #: src/algos/star_finder.c:1261
 msgid "selection"
@@ -10286,19 +10365,17 @@ msgid "image"
 msgstr "immagine"
 
 #: src/algos/statistics.c:250
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to compute CFA statistics for channel %d\n"
-msgstr "impossibile calcolare le statistiche sull’immagine, interruzione\n"
+msgstr "Impossibile calcolare le statistiche CFA per il canale %d\n"
 
 #: src/algos/statistics.c:279 src/algos/statistics_float.c:340
-#, fuzzy
 msgid "Failed to compute CFA statistics\n"
-msgstr "impossibile calcolare le statistiche sull’immagine, interruzione\n"
+msgstr "Impossibile calcolare le statistiche CFA\n"
 
 #: src/algos/statistics.c:745
-#, fuzzy
 msgid "Bad argument to stats option\n"
-msgstr "Argomento mancante a %s, interruzione.\n"
+msgstr "Errato Argomento per le opzioni statistiche\n"
 
 #: src/algos/statistics.c:881
 #, c-format
@@ -10463,10 +10540,10 @@ msgid "Images must have same data type.\n"
 msgstr "Le immagini devono avere lo stesso tipo di dati.\n"
 
 #: src/core/command.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "This command is deprecated: %s should be used instead.\n"
 msgstr ""
-"Questo comando può essere usato solo dopo aver caricato una sequenza.\n"
+"Questo comando è deprecato: %s dovrebbe essere utilizzato in alternativa\n"
 
 #: src/core/command.c:156
 msgid "Currently loaded image has no FITS header\n"
@@ -10509,87 +10586,88 @@ msgid "Hue range must be [0, 6]\n"
 msgstr "L’intervallo di tonalità deve essere [0, 6]\n"
 
 #: src/core/command.c:249
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Applying saturation enhancement of %d%%, from level %g times (median + "
 "sigma).\n"
 msgstr ""
-"Applicazione del miglioramento della saturazione di %d%, dal livello %g * "
-"sigma.\n"
+"Applicazione del miglioramento della saturazione di %d%%, dal livello %g "
+"volte (mediana + sigma).\n"
 
 #: src/core/command.c:322 src/core/command.c:324
 #, c-format
 msgid "NL-Bayes denoise (mod=%.3f"
-msgstr ""
+msgstr "Denoise NL-Bayes (mod=%.3f"
 
 #: src/core/command.c:326 src/core/command.c:328
-#, fuzzy, c-format
+#, c-format
 msgid ", DA3D enabled"
-msgstr "abilitata"
+msgstr ", DA3D abilitata"
 
 #: src/core/command.c:330 src/core/command.c:332
-#, fuzzy, c-format
+#, c-format
 msgid ", SOS enabled (iters=%d, rho=%.3f)"
-msgstr "Deconvoluzione (iterazioni=%d, sigma=%.3f)"
+msgstr ",SOS abilitata (iterazioni=%d, rho=%.3f)"
 
 #: src/core/command.c:334 src/core/command.c:336
-#, fuzzy, c-format
+#, c-format
 msgid ", VST enabled"
-msgstr "abilitata"
+msgstr ", VST abilitata"
 
 #: src/core/command.c:339 src/core/command.c:341
-#, fuzzy, c-format
+#, c-format
 msgid ", CC enabled)"
-msgstr "abilitata"
+msgstr ", CC abilitata)"
 
 #: src/core/command.c:345
 #, c-format
 msgid ")"
-msgstr ""
+msgstr ")"
 
 #: src/core/command.c:357
 #, c-format
 msgid "Error, this can't happen!"
-msgstr ""
+msgstr "Errore, questo non può succedere!"
 
 #: src/core/command.c:365
 msgid "Colour artefact suppression active.\n"
-msgstr ""
+msgstr "Soppressione artefatti di colore attiva.\n"
 
 #: src/core/command.c:368
 msgid "Starting NL-Bayes denoising..."
 msgstr "Inizio denoising NL-Bayes..."
 
 #: src/core/command.c:422
-#, fuzzy
 msgid "NL-Bayes execution time"
-msgstr "Tempo di esecuzione totale"
+msgstr "Tempo di esecuzione NL-Bayes"
 
 #: src/core/command.c:460
 msgid "Error: modulation must be > 0.0 and <= 1.0.\n"
-msgstr ""
+msgstr "Errore: la modulazione deve essere >0.00 e <=1.0\n"
 
 #: src/core/command.c:470
-#, fuzzy
 msgid "Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"
 msgstr ""
-"Errore nel parametro stride: deve essere un numero intero positivo, max 256, "
-"interruzione.\n"
+"Errore nel parametro rho: deve essere rigorosamente >0 e <1, interruzione\n"
 
 #: src/core/command.c:483
 msgid "Error: SOS iterations must be >= 1. Defaulting to 1.\n"
-msgstr ""
+msgstr "Errore: le iterazioni SOS devono essere >=1. Reimposto su 1.\n"
 
 #: src/core/command.c:486
 msgid ""
 "Note: high number of SOS iterations. Processing time may be lengthy...\n"
 msgstr ""
+"Nota: elevato numero di iterazioni SOS. Il tempo di elaborazione può essere "
+"lungo...\n"
 
 #: src/core/command.c:493
 msgid ""
 "Error: will not carry out DA3D or SOS iterations with Anscombe transform VST "
 "selected. aborting.\n"
 msgstr ""
+"Errore: non eseguirò iterazioni DA3D o SOS con Anscombe transform VST "
+"selezionato. interrompo.\n"
 
 #: src/core/command.c:498
 msgid "Will apply generalised Anscombe variance stabilising transform.\n"
