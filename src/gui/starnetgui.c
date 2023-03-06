@@ -68,6 +68,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkToggleButton *toggle_starnet_starmask = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask"));
 	GtkToggleButton *toggle_starnet_customstride = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_customstride"));
 	GtkLabel *label_starnetinfo = GTK_LABEL(lookup_widget("label_starnetinfo"));
+	gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 
 	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("stride_control")), FALSE);
 	if (!com.pref.starnet_exe || g_access(com.pref.starnet_exe, R_OK)) {
@@ -90,11 +91,9 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 			break;
 		case TORCH:
 			gtk_label_set_text(label_starnetinfo, _("Valid StarNet v2-Torch executable found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
-			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 			break;
 		case V2:
 			gtk_label_set_text(label_starnetinfo, _("Valid StarNet v2 executable found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
-			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 			break;
 		case V1MONO:
 			temp = g_path_get_dirname(com.pref.starnet_exe);
@@ -102,9 +101,11 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 			starnetcommand = g_strdup_printf("%s/rgb_starnet++%s", temp, winext);
 			if (starnet_executablecheck(starnetcommand) == V1RGB)
 				gtk_label_set_text(label_starnetinfo, bothtext);
-			else
+			else {
 				gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 mono executable was found in the configured StarNet installation directory.\nStarNet can process mono images only."));
-			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
+				if (gfit.naxes[2] == 3)
+					gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
+			}
 			g_free(temp);
 			temp = NULL;
 			g_free(winext);
@@ -115,12 +116,14 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 		case V1RGB:
 			temp = g_path_get_dirname(com.pref.starnet_exe);
 			winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
-			starnetcommand = g_strdup_printf("%s/rgb_starnet++%s", temp, winext);
+			starnetcommand = g_strdup_printf("%s/mono_starnet++%s", temp, winext);
 			if (starnet_executablecheck(starnetcommand) == V1MONO)
 				gtk_label_set_text(label_starnetinfo, bothtext);
-			else
+			else {
 				gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 RGB executable was found in the configured StarNet installation directory.\nStarNet can process RGB images only."));
-			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
+				if (gfit.naxes[2] == 1)
+					gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
+			}
 			g_free(temp);
 			temp = NULL;
 			g_free(winext);
