@@ -83,7 +83,6 @@ static int exec_prog_starnet(char **argv) {
 
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
 	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
-	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
 #endif
 
 	// g_spawn handles wchar so not need to convert
@@ -95,9 +94,6 @@ static int exec_prog_starnet(char **argv) {
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-		FreeConsole(); // and closing it
-#endif
 		return retval;
 	}
 	// Add a child watch function which will be called when the child process exits.
@@ -135,9 +131,6 @@ static int exec_prog_starnet(char **argv) {
 	}
 	g_object_unref(data_input);
 	g_object_unref(stream);
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-	FreeConsole(); // and closing it
-#endif
 	return retval;
 }
 
