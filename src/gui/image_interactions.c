@@ -682,12 +682,16 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			double world_x, world_y;
 			pix2wcs(&gfit, (double) zoomed.x, (double) (gfit.ry - zoomed.y - 1), &world_x, &world_y);
 			if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
-				SirilWorldCS *world_cs;
-
-				world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+				SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
 				if (world_cs) {
-					gchar *ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
-					gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+					gchar *ra, *dec;
+					if (com.pref.gui.show_deciasec) {
+						ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%04.1lfs");
+						dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.1lf\"");
+					} else {
+						ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
+						dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+					}
 					g_sprintf(wcs_buffer, "α: %s δ: %s", ra, dec);
 
 					gtk_label_set_text(labels_wcs[gui.cvport], wcs_buffer);

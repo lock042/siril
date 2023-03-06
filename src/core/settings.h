@@ -188,6 +188,8 @@ struct gui_config {
 	gint selection_guides;	// number of elements of the grid guides
 				// (2 for a simple cross, 3 for the 3 thirds rule, etc.)
 
+	gboolean show_deciasec;	// show tenths of arcseconds in the displayed hover coordinates
+
 	// single registration GUI variable
 	int reg_settings;	// selected registration method
 	int reg_interpolation; // selected interpolation method
