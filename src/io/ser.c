@@ -660,10 +660,7 @@ int ser_open_file(const char *filename, struct ser_struct *ser_file) {
 		ser_close_file(ser_file);
 		return SER_GENERIC_ERROR;
 	}
-	if (ser_file->frame_count < 2) {
-		ser_close_file(ser_file);
-		return SER_NOT_ENOUGH_FRAMES;
-	}
+
 	ser_file->filename = strdup(filename);
 	return SER_OK;
 }

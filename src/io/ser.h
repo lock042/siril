@@ -63,7 +63,6 @@ typedef enum {
 } ser_color;
 
 typedef enum {
-	SER_NOT_ENOUGH_FRAMES = -2,
 	SER_GENERIC_ERROR = -1,
 	SER_OK = 0,
 } ser_error;
