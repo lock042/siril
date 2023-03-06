@@ -70,6 +70,7 @@ gboolean verbose = TRUE;
 
 // Wrapper for execve
 char *my_argv[64];
+char *test_argv[3];
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
@@ -144,31 +145,120 @@ static int exec_prog_starnet(char **argv) {
 	return retval;
 }
 
-starnet_version starnet_executablecheck() {
-	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
-	gchar* torchpath = g_build_filename(com.pref.starnet_dir, STARNET_TORCH, NULL);
-	gchar* torchtpath = g_build_filename(com.pref.starnet_dir, STARNET_TORCH_T, NULL);
-	gchar* fullpath = g_build_filename(com.pref.starnet_dir, STARNET_BIN, NULL);
-	gchar* rgbpath = g_build_filename(com.pref.starnet_dir, STARNET_RGB, NULL);
-	gchar* monopath = g_build_filename(com.pref.starnet_dir, STARNET_MONO, NULL);
-	starnet_version retval = NIL;
-	if (g_file_test(torchpath, G_FILE_TEST_IS_EXECUTABLE)) {
-		retval = TORCH;
-	} else if (g_file_test(torchtpath, G_FILE_TEST_IS_EXECUTABLE)) {
-		retval = TORCH_T;
-	} else if (g_file_test(fullpath, G_FILE_TEST_IS_EXECUTABLE)) {
-		retval = V2;
-	} else {
-		if (g_file_test(rgbpath, G_FILE_TEST_IS_EXECUTABLE))
-			retval = V1RGB;
-		if (g_file_test(monopath, G_FILE_TEST_IS_EXECUTABLE))
-			retval |= V1MONO;
+starnet_version starnet_executablecheck(gchar* executable) {
+	int retval = NIL;
+	gchar *v1dir = NULL;
+	gchar* otherexec = NULL;
+//	printf("%s\n", executable);
+	if (!executable || executable[0] == '\0') {
+		return NIL;
 	}
-	g_free(torchpath);
-	g_free(torchtpath);
-	g_free(fullpath);
-	g_free(rgbpath);
-	g_free(monopath);
+	if (!g_file_test(executable, G_FILE_TEST_IS_EXECUTABLE)) {
+		return NIL; // It's not executable so return NIL
+	}
+	// v1 tests, capture the other executable
+	if (g_str_has_suffix(executable, "rgb_starnet++") || g_str_has_suffix(executable, "rgb_starnet++.exe") || g_str_has_suffix(executable, "mono_starnet++") || g_str_has_suffix(executable, "mono_starnet++.exe")) {
+		v1dir = g_path_get_dirname(executable);
+		if (g_str_has_suffix(executable, "rgb_starnet++")) {
+			retval = V1RGB;
+			otherexec = g_strdup_printf("%s/mono_starnet++", v1dir);
+			if (g_file_test(otherexec, G_FILE_TEST_IS_EXECUTABLE)) {
+				goto END;
+			} else {
+				retval += V1MONO;
+				goto END;
+			}
+		} else if (g_str_has_suffix(executable, "rgb_starnet++.exe")) {
+			retval = V1RGB;
+			otherexec = g_strdup_printf("%s/mono_starnet++.exe", v1dir);
+			if (g_file_test(otherexec, G_FILE_TEST_IS_EXECUTABLE)) {
+				goto END;
+			} else {
+				retval += V1MONO;
+				goto END;
+			}
+		} else if (g_str_has_suffix(executable, "mono_starnet++")) {
+			retval = V1MONO;
+			otherexec = g_strdup_printf("%s/rgb_starnet++", v1dir);
+			if (g_file_test(otherexec, G_FILE_TEST_IS_EXECUTABLE)) {
+				goto END;
+			} else {
+				retval += V1RGB;
+				goto END;
+			}
+		} else if (g_str_has_suffix(executable, "mono_starnet++.exe")) {
+			retval = V1MONO;
+			otherexec = g_strdup_printf("%s/rgb_starnet++.exe", v1dir);
+			if (g_file_test(otherexec, G_FILE_TEST_IS_EXECUTABLE)) {
+				goto END;
+			} else {
+				retval += V1RGB;
+				goto END;
+			}
+		}
+	}
+	// Execute file and test output
+	int nb = 0;
+	test_argv[nb++] = executable;
+	test_argv[nb++] = g_strdup("--version");
+	gint child_stdout;
+	GPid child_pid;
+	g_autoptr(GError) error = NULL;
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
+	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
+#endif
+	// g_spawn handles wchar so not need to convert
+	g_spawn_async_with_pipes(NULL, test_argv, NULL,
+			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
+			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
+			NULL, NULL, &child_pid, NULL, &child_stdout,
+			NULL, &error);
+
+	if (error != NULL) {
+		siril_log_color_message(_("Spawning starnet failed during version check: %s\n"), "red", error->message);
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+		FreeConsole(); // and closing it
+#endif
+		return NIL;
+	}
+	// Add a child watch function which will be called when the child process exits.
+	g_child_watch_add(child_pid, child_watch_cb, NULL);
+
+	GInputStream *stream = NULL;
+#ifdef _WIN32
+	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stdout), FALSE);
+#else
+	stream = g_unix_input_stream_new(child_stdout, FALSE);
+#endif
+	gchar *buffer;
+	gsize length = 0;
+	GDataInputStream *data_input = g_data_input_stream_new(stream);
+	gboolean done = FALSE;
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
+					NULL, NULL)) && !done) {
+		siril_debug_print("%s\n", buffer);
+		if (g_strrstr(buffer, "StarNet++ v2.0")) {
+			retval = V2;
+			done = TRUE;
+		} else if (g_strrstr(buffer, " version:")) {
+			retval = TORCH; // We ignore the actual version number for now, it's enough that this substring is
+							 // a unique identifier for the Torch-based StarNet versions.
+			done = TRUE;
+		}
+		g_free(buffer);
+	}
+	g_object_unref(data_input);
+	g_object_unref(stream);
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+	FreeConsole(); // and closing it
+#endif
+
+END:
+	printf("StarNet version: %d\n", (int) retval);
+	g_free(v1dir);
+	g_free(otherexec);
+
 	return retval;
 }
 
@@ -240,7 +330,36 @@ gpointer do_starnet(gpointer p) {
 	gchar starmaskprefix[10] = "starmask_";
 
 	// Check StarNet version
-	version = starnet_executablecheck();
+	version = starnet_executablecheck(com.pref.starnet_exe);
+	// If v1, check we have the right executable for the number of channels in current_fit
+	if (version == NIL) {
+		siril_log_color_message(_("No suitable StarNet executable found in the installation directory\n"), "red");
+		goto CLEANUP;
+	} else if (version == V1RGB) {
+		if (current_fit->naxes[2] == 3) {
+			starnetcommand = g_strdup(com.pref.starnet_exe);
+		} else if (current_fit->naxes[2] == 1) {
+			gchar *temp = g_path_get_dirname(com.pref.starnet_exe);
+			gchar *winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : NULL;
+			starnetcommand = g_strdup_printf("%s/mono_starnet++%s", temp, winext);
+			g_free(temp);
+			g_free(winext);
+		}
+	} else if (version == V1MONO) {
+		if (current_fit->naxes[2] == 1) {
+			starnetcommand = g_strdup(com.pref.starnet_exe);
+		} else if (current_fit->naxes[2] == 1) {
+			gchar *temp = g_path_get_dirname(com.pref.starnet_exe);
+			gchar *winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : NULL;
+			starnetcommand = g_strdup_printf("%s/rgb_starnet++%s", temp, winext);
+			g_free(temp);
+			g_free(winext);
+		}
+	} else if (version == V2 || version & TORCH) {
+		starnetcommand = g_strdup(com.pref.starnet_exe);
+	}
+
+	siril_debug_print("%s\n", starnetcommand);
 
 	// Set up paths and filenames
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
@@ -332,16 +451,18 @@ gpointer do_starnet(gpointer p) {
 	if (!args->starmask && verbose) siril_log_message(_("StarNet: -nostarmask invoked, star mask will not be generated...\n"));
 
 	// Check starnet directory is not NULL - can happen first time the new preference file is loaded
-	if (!com.pref.starnet_dir) {
+	if (!com.pref.starnet_exe) {
 		retval = 1;
-		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
+		siril_log_color_message(_("Incorrect permissions on the StarNet executable: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_exe);
 		goto CLEANUP3;
 	}
 
 	// Check starnet directory is defined
-	retval = g_access(com.pref.starnet_dir, R_OK);
+	gchar* dir = g_path_get_dirname(com.pref.starnet_exe);
+	retval = g_access(dir, R_OK);
 	if (retval) {
-		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
+		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", dir);
+		g_free(dir);
 		goto CLEANUP3;
 		// Dijkstra might be spinning in his grave but one of the few legitimate uses
 		// of gotos is this type of error cleanup and return. Much more readable than a
@@ -349,11 +470,13 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Change to starnet directory
-	retval = g_chdir(com.pref.starnet_dir);
+	retval = g_chdir(dir);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to change to StarNet directory.\nEnsure it is set in Preferences / Miscellaneous...\n"), "red");
+		g_free(dir);
 		goto CLEANUP3;
 	}
+	g_free(dir);
 
 	// Create a working copy of the image.
 	// copyfits(from, to, oper, layer)
@@ -431,24 +554,6 @@ gpointer do_starnet(gpointer p) {
 		siril_log_color_message(_("Error: unable to save working StarNet input file...\n"), "red");
 		goto CLEANUP;
 	}
-
-	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
-	if (version == TORCH) {
-		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_TORCH, NULL);
-	} else if (version == TORCH_T) {
-		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_TORCH_T, NULL);
-	} else if (version == V2) {
-		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_BIN, NULL);
-	} else if ((current_fit->naxes[2] == 3) && (version == V1RGB || version == V1BOTH)) {
-		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_RGB, NULL);
-	} else if ((current_fit->naxes[2] == 1) && (version == V1MONO || version == V1BOTH)) {
-		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_MONO, NULL);
-	}
-	else {
-		siril_log_color_message(_("No suitable StarNet executable found in the installation directory\n"), "red");
-		goto CLEANUP;
-	}
-	siril_debug_print("%s\n", starnetcommand);
 
 	// Process StarNet arguments
 	int nb = 0;

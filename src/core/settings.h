@@ -78,6 +78,16 @@ typedef enum {
 	PSF_MOFFAT_BFIXED
 } starprofile;
 
+typedef enum {
+	NIL = 0,
+	V2 = 1,
+	V1MONO = 2,
+	V1RGB = 4,
+	V1BOTH = 6,
+	TORCH = 8,
+	TORCH_T = 24
+} starnet_version;
+
 /***********************************************************************************************/
 
 
@@ -265,7 +275,8 @@ struct pref_struct {
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF
 
-	gchar *starnet_dir;	// Location of starnet++ installation (requires v2.0.2 or greater)
+	gchar *starnet_exe;	// Location of starnet++ executable
+	gchar *starnet_weights;	// Location of StarNet weights file (optional, Torch based StarNet only)
 	gchar *gnuplot_dir;	// Location of gnuplot installation
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
 

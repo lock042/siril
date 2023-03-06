@@ -17,16 +17,6 @@
 #define STARNET_TORCH_T "starnet2T"
 #endif
 
-typedef enum {
-	NIL = 0,
-	V2 = 1,
-	V1MONO = 2,
-	V1RGB = 4,
-	V1BOTH = 6,
-	TORCH = 8,
-	TORCH_T = 24
-} starnet_version;
-
 typedef struct starnet_data {
 	struct ser_struct *new_ser_starless;
 	fitseq *new_fitseq_starless;

@@ -70,7 +70,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkLabel *label_starnetinfo = GTK_LABEL(lookup_widget("label_starnetinfo"));
 
 	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("stride_control")), FALSE);
-	if (!com.pref.starnet_dir || g_access(com.pref.starnet_dir, R_OK)) {
+	if (!com.pref.starnet_exe || g_access(com.pref.starnet_exe, R_OK)) {
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
 		gtk_label_set_text(label_starnetinfo, "StarNet installation directory not set.\nMust be configured in Preferences / Miscellaneous.");
 	} else
@@ -81,7 +81,7 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_label_set_text(label_starnetinfo, "StarNet unavailable: requires Siril to be compiled with libtiff support.");
 #endif
 #ifdef HAVE_LIBTIFF
-	switch (starnet_executablecheck()) {
+	switch (starnet_executablecheck(com.pref.starnet_exe)) {
 		case NIL:
 			gtk_label_set_text(label_starnetinfo, _("No valid StarNet executable found in the configured StarNet installation directory.\nCheck your StarNet installation and Siril configuration."));
 			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);

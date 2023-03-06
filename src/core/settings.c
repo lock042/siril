@@ -60,7 +60,8 @@ preferences pref_init = {
 	.catalogue_paths[3] = NULL,
 	.rgb_aladin = FALSE,
 	.copyright = NULL,
-	.starnet_dir = NULL,
+	.starnet_exe = NULL,
+	.starnet_weights = NULL,
 	.gnuplot_dir = NULL,
 	.asnet_dir = NULL,
 	.starfinder_conf = { // starfinder_conf
@@ -206,8 +207,10 @@ void free_preferences(preferences *pref) {
 	pref->swap_dir = NULL;
 	g_free(pref->copyright);
 	pref->copyright = NULL;
-	g_free(pref->starnet_dir);
-	pref->starnet_dir = NULL;
+	g_free(pref->starnet_exe);
+	pref->starnet_exe = NULL;
+	g_free(pref->starnet_weights);
+	pref->starnet_weights = NULL;
 	g_free(pref->gnuplot_dir);
 	pref->gnuplot_dir = NULL;
 	g_free(pref->asnet_dir);
@@ -266,7 +269,8 @@ struct settings_access all_settings[] = {
 	{ "core", "catalogue_nomad", STYPE_STR, N_("Path of the USNO-NOMAD-1e8.dat catalogue"), &com.pref.catalogue_paths[3] },
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
-	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
+	{ "core", "starnet_exe", STYPE_STR, N_("location of the StarNet executable"), &com.pref.starnet_exe },
+	{ "core", "starnet_weights", STYPE_STR, N_("location of the StarNet-torch weights file"), &com.pref.starnet_weights },
 	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
 #ifdef _WIN32
 	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
