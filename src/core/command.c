@@ -587,6 +587,7 @@ int process_seq_starnet(int nb){
 		siril_log_color_message(_("Error: StarNet executable is not valid.\n"), "red");
 		return CMD_GENERIC_ERROR;
 	}
+	sequence *seq = load_sequence(word[1], NULL);
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	if (!starnet_args)
 		return CMD_ALLOC_ERROR;
@@ -595,9 +596,9 @@ int process_seq_starnet(int nb){
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
 	starnet_args->follow_on = FALSE;
-	starnet_args->starnet_fit = &gfit;
+//	starnet_args->starnet_fit = &gfit;
 	gboolean error = FALSE;
-	starnet_args->seq = load_sequence(word[1], NULL);
+	starnet_args->seq = seq;
 	if (!starnet_args->seq) {
 		siril_log_message(_("Error: cannot open sequence\n"));
 		free(starnet_args);

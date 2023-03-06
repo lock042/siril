@@ -279,13 +279,13 @@ gboolean end_and_call_remixer(gpointer p)
 /* StarNet star removal routine */
 
 gpointer do_starnet(gpointer p) {
-	verbose = single_image_is_loaded(); // To suppress log messages during seq working
 	starnet_version version = NIL;
 	int retval = 0;
 	int retval2 = 0;
 	fits workingfit, fit;
 	starnet_data *args = (starnet_data *) p;
-	args->follow_on = single_image_is_loaded() ? args->follow_on : FALSE;
+	verbose = (args->seq == NULL); // To suppress log messages during seq working
+	args->follow_on = args->seq ? FALSE : args->follow_on;
 	current_fit = args->starnet_fit;
 	int orig_x = current_fit->rx, orig_y = current_fit->ry;
 	struct remixargs *blendargs = NULL;
@@ -368,7 +368,7 @@ gpointer do_starnet(gpointer p) {
 		temp = g_path_get_basename(com.uniq->filename);
 		imagenoextorig = g_strdup_printf("%s", temp);
 		g_free(temp);
-	} else if (sequence_is_loaded()) {
+	} else if (args->seq) {
 		imagenoextorig = g_strdup_printf("%s%.5d", args->seq->seqname, args->imgnumber + 1);
 	} else {
 		imagenoextorig = g_strdup_printf("image");
@@ -675,7 +675,7 @@ gpointer do_starnet(gpointer p) {
 
 	// Save workingfit as starless stretched image fits
 	update_filter_information(&workingfit, "Starless", TRUE);
-	if (single_image_is_loaded() && get_thread_run()) { // sequence worker will handle saving this in the sequence
+	if ((!args->seq) && get_thread_run()) { // sequence worker will handle saving this in the sequence
 		retval = savefits(starlessfit, &workingfit);
 		if (retval) {
 			siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
@@ -694,7 +694,7 @@ gpointer do_starnet(gpointer p) {
 
 		// Save fit as starmask fits
 		if (get_thread_run()) {
-			if (single_image_is_loaded()) {
+			if ((!args->seq)) {
 				retval = savefits(starmaskfit, &fit);
 				if (retval) {
 					siril_log_color_message(_("Error: unable to save starmask image as FITS...\n"), "red");
@@ -720,7 +720,7 @@ gpointer do_starnet(gpointer p) {
 	if (verbose)
 		siril_log_color_message(_("StarNet: job completed.\n"), "green");
 
-	if (single_image_is_loaded()) {
+	if ((!args->seq)) {
 		free(com.uniq->filename);
 		com.uniq->filename = strdup(starlessfit);
 		if (args->follow_on) {
@@ -767,7 +767,7 @@ gpointer do_starnet(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
-	if (single_image_is_loaded()) {
+	if ((!args->seq)) {
 		if (args->follow_on) {
 			free_starnet_args(args);
 			if (!(retval)) {
