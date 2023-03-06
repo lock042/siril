@@ -151,14 +151,13 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	GPid child_pid;
 	g_autoptr(GError) error = NULL;
 	gchar *v1dir = NULL;
-//	gchar* otherexec = NULL;
 	if (!executable || executable[0] == '\0') {
 		return NIL;
 	}
 	if (!g_file_test(executable, G_FILE_TEST_IS_EXECUTABLE)) {
 		return NIL; // It's not executable so return NIL
 	}
-	// v1 tests, capture the other executable
+	// V1 tests
 	if (g_str_has_suffix(executable, "rgb_starnet++") || g_str_has_suffix(executable, "rgb_starnet++.exe") || g_str_has_suffix(executable, "mono_starnet++") || g_str_has_suffix(executable, "mono_starnet++.exe")) {
 		v1dir = g_path_get_dirname(executable);
 		if (g_str_has_suffix(executable, "rgb_starnet++")) {
@@ -175,7 +174,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 			goto END;
 		}
 	}
-	// Execute file and test output
+	// Not V1: execute file and test output to determine version
 	int nb = 0;
 	test_argv[nb++] = executable;
 	test_argv[nb++] = g_strdup("--version");
@@ -212,7 +211,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	gboolean done = FALSE;
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL)) && !done) {
-		siril_debug_print("%s\n", buffer);
+//		siril_debug_print("%s\n", buffer);
 		if (g_strrstr(buffer, "StarNet++ v2.0")) {
 			retval = V2;
 			done = TRUE;
@@ -230,9 +229,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 #endif
 
 END:
-	printf("StarNet version: %d\n", (int) retval);
 	g_free(v1dir);
-//	g_free(otherexec);
 
 	return retval;
 }
@@ -335,7 +332,7 @@ gpointer do_starnet(gpointer p) {
 		starnetcommand = g_strdup(com.pref.starnet_exe);
 	}
 
-	siril_debug_print("%s\n", starnetcommand);
+	siril_debug_print("Using %s\n", starnetcommand);
 
 	// Set up paths and filenames
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
@@ -545,7 +542,9 @@ gpointer do_starnet(gpointer p) {
 		my_argv[nb++] = starlesstif;
 	}
 	if (args->customstride) {
-		if (version & TORCH) {
+		if (args->stride - current_fit->rx > 0 || args->stride - current_fit->ry > 0) {
+			siril_log_color_message(_("Warning: stride is greater than image dimensions. Using default stride.\n"), "salmon");
+		} else if (version & TORCH) {
 			torcharg_stride = g_strdup_printf("-s %s", args->stride);
 			my_argv[nb++] = torcharg_stride;
 		} else {

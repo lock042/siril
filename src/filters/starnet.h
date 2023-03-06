@@ -3,20 +3,6 @@
 
 #include "core/siril.h"
 
-#ifdef _WIN32
-#define STARNET_TORCH "starnet2.exe"
-#define STARNET_TORCH_T "starnet2T.exe"
-#define STARNET_BIN "starnet++.exe"
-#define STARNET_RGB "rgb_starnet++.exe"
-#define STARNET_MONO "mono_starnet++.exe"
-#else
-#define STARNET_BIN "starnet++"
-#define STARNET_RGB "rgb_starnet++"
-#define STARNET_MONO "mono_starnet++"
-#define STARNET_TORCH "starnet2"
-#define STARNET_TORCH_T "starnet2T"
-#endif
-
 typedef struct starnet_data {
 	struct ser_struct *new_ser_starless;
 	fitseq *new_fitseq_starless;

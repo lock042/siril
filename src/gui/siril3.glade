@@ -2076,9 +2076,9 @@ If the parameters is null, so no filter is apply at all.</property>
   </object>
   <object class="GtkAdjustment" id="adj_starnet_stride">
     <property name="lower">2</property>
-    <property name="upper">256</property>
+    <property name="upper">512</property>
     <property name="value">256</property>
-    <property name="step-increment">128</property>
+    <property name="step-increment">2</property>
     <property name="page-increment">128</property>
   </object>
   <object class="GtkDialog" id="starnet_dialog">

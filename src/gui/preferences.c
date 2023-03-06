@@ -426,6 +426,15 @@ void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer
 
 }
 
+void on_starnet_weights_clear_clicked(GtkButton *button, gpointer user_data) {
+	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
+	if (st_weights) {
+		g_free(st_weights);
+	}
+	st_weights = g_strdup("\0");
+	gtk_file_chooser_set_filename(starnet_weights, st_weights);
+}
+
 void on_filechooser_starnet_weights_file_set(GtkFileChooserButton *fileChooser, gpointer user_data) {
 	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(fileChooser);
 	gchar *path;

@@ -546,7 +546,7 @@ int process_starnet(int nb){
 			double stride = g_ascii_strtod(arg, &end);
 			int intstride = stride;
 			if (arg == end) error = TRUE;
-			else if ((intstride < 2.0) || (intstride > 256) || (intstride % 2)) {
+			else if ((intstride < 2.0) || (intstride > 512) || (intstride % 2)) {
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
 				free(starnet_args);
 				return CMD_ARG_ERROR;
