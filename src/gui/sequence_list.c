@@ -875,6 +875,7 @@ static int ListSequences(const gchar *sDir, const char *sequence_name_to_select,
 	char filename[256];
 	int number_of_loaded_sequences = 0;
 	wchar_t *wpath;
+	gboolean found = FALSE;
 
 	//Specify a file mask. *.seq = We want only seq file!
 	sprintf(sPath, "%s\\*.seq", sDir);
@@ -906,8 +907,10 @@ static int ListSequences(const gchar *sDir, const char *sequence_name_to_select,
 						&& !strncmp(filename, sequence_name_to_select,
 							strlen(filename))) {
 					*index_of_seq_to_load = number_of_loaded_sequences;
+					found = TRUE;
 				}
-				++number_of_loaded_sequences;
+				if (!sequence_name_to_select || (sequence_name_to_select && found))
+					++number_of_loaded_sequences;
 			}
 			g_free(cFileName);
 		}
@@ -950,6 +953,8 @@ int update_sequences_list(const char *sequence_name_to_select) {
 #else
 	struct dirent **list;
 	int i, n;
+	gboolean found = FALSE;
+
 
 	n = scandir(com.wd, &list, 0, alphasort);
 	if (n < 0)
@@ -964,9 +969,12 @@ int update_sequences_list(const char *sequence_name_to_select) {
 				free_sequence(seq, TRUE);
 				char *filename = list[i]->d_name;
 				gtk_combo_box_text_append_text(seqcombo, filename);
-				if (seqname && !strcmp(filename, seqname))
+				if (seqname && !strcmp(filename, seqname)) {
 					index_of_seq_to_load = number_of_loaded_sequences;
-				++number_of_loaded_sequences;
+					found = TRUE;
+				}
+				if (!seqname || (seqname && found))
+					++number_of_loaded_sequences;
 			}
 		}
 	}

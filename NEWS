@@ -11,6 +11,7 @@ v1.2.0-beta1 xxx xx, 2023
 * Fixed crash in synthstar (full resynthetize and desaturate)
 * Fixed handling widechars in config files (Windows only) which caused a crash at startup
 * Fixed crash when selecting datapoints in Plot tab
+* Fixed crash when sending a seqplatesolve or seqstarnet command with no other argument
 * Reworked GHS commands
 * Added a warning when trying to read one-frame SER files
 

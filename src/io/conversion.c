@@ -1180,7 +1180,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			free(convert->current_ser);
 			convert->current_ser = NULL;
 			g_free(name);
-			return OPEN_ERROR;
+			return OPEN_ERROR_AND_STOP;
 		}
 		convert->readseq_count = get_new_read_counter();
 		g_free(name);

@@ -177,12 +177,12 @@ static command commands[] = {
 	{"seqmodasinh", 2, "seqmodasinh sequence -D= [-LP=] [-SP=] [-HP=] [-human | -even | -independent] [channels] [-prefix=]", process_seq_modasinh, STR_SEQINVMODASINH, TRUE, REQ_CMD_NONE},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [channels] [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE, REQ_CMD_NONE},
 	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
-	{"seqplatesolve", 0, "seqplatesolve sequencename [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-downscale]", process_pcc, STR_SEQPLATESOLVE, TRUE, REQ_CMD_NO_THREAD},
+	{"seqplatesolve", 1, "seqplatesolve sequencename [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-downscale]", process_pcc, STR_SEQPLATESOLVE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqrl", 1, "seqrl sequencename [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul] [-seq]", process_seq_rl, STR_SEQRL, TRUE, REQ_CMD_NONE},
 	{"seqsb", 1, "sb sequencename [-alpha=] [-iters=]", process_seq_sb, STR_SEQSB, TRUE, REQ_CMD_NONE},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA, TRUE, REQ_CMD_NO_THREAD},
 #ifdef HAVE_LIBTIFF
-	{"seqstarnet", 0, "seqstarnet sequencename [-stretch] [-upscale] [-stride=value] [-nostarmask]", process_seq_starnet, STR_SEQSTARNET, TRUE, REQ_CMD_NONE},
+	{"seqstarnet", 1, "seqstarnet sequencename [-stretch] [-upscale] [-stride=value] [-nostarmask]", process_seq_starnet, STR_SEQSTARNET, TRUE, REQ_CMD_NONE},
 #endif
 	{"seqstat", 2, "seqstat sequencename output [option] [-cfa]", process_seq_stat, STR_SEQSTAT, TRUE, REQ_CMD_NO_THREAD},
 	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree } [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=]", process_subsky, STR_SEQSUBSKY, TRUE, REQ_CMD_NONE},
