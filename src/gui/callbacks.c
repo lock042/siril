@@ -57,6 +57,7 @@
 #include "message_dialog.h"
 #include "PSF_list.h"
 #include "histogram.h"
+#include "remixer.h"
 #include "script_menu.h"
 #include "progress_and_log.h"
 #include "dialogs.h"
@@ -65,6 +66,7 @@
 #include "siril_preview.h"
 #include "siril-window.h"
 #include "registration_preview.h"
+
 
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item"};
 
@@ -1376,6 +1378,15 @@ void initialize_all_GUI(gchar *supported_files) {
 	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview_selection_convert"));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 	g_signal_connect(selection, "changed", G_CALLBACK(on_treeview_selection_convert_changed), NULL);
+
+	/* Due to another bug in glade we write these callbacks here
+	 * In glade there are not sorted as we want */
+	g_signal_connect(lookup_widget("remix_apply"), "delete-event", G_CALLBACK(on_remix_cancel_clicked), NULL);
+	g_signal_connect(lookup_widget("remix_apply"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+
+	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(on_button_histo_close_clicked), NULL);
+	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+
 
 	selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
