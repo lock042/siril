@@ -28,6 +28,7 @@
 #include <string.h>
 #include <locale.h>
 #include <unistd.h>
+#include <fftw3.h>
 #ifdef OS_OSX
 #import <AppKit/AppKit.h>
 #if defined(ENABLE_RELOCATABLE_RESOURCES)
@@ -116,10 +117,22 @@ static void global_initialization() {
 	com.stars = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
+	com.child_is_running = FALSE;
+	com.kernel = NULL;
+	com.kernelsize = 0;
+	com.kernelchannels = 0;
+#ifdef _WIN32
+	com.childhandle = NULL;
+#else
+	com.childpid = 0;
+#endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 
 	initialize_default_settings();	// com.pref
+#ifdef HAVE_FFTW3F_OMP
+	fftwf_init_threads(); // Should really only be called once so do it at startup
+#endif
 }
 
 static void siril_app_activate(GApplication *application) {
