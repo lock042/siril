@@ -39,8 +39,8 @@ AC_DEFUN([AC_OPENMP],
 	  dnl will fail (since we know that it failed without the option),
 	  dnl therefore the loop will continue searching for an option, and
 	  dnl no output file called 'penmp' or 'mp' is created.
-	  for ac_option in "-fopenmp -lfftw3f_omp" "-Xpreprocessor -fopenmp -lomp" -xopenmp -openmp -mp -omp -qsmp=omp -homp \
-                           -Popenmp --openmp; do
+	  dnl for ac_option in "-fopenmp -lfftw3f_omp" "-Xpreprocessor -fopenmp -lomp" -xopenmp -openmp -mp -omp -qsmp=omp -homp -Popenmp --openmp; do
+	  for ac_option in "-fopenmp" "-Xpreprocessor -fopenmp -lomp" -xopenmp -openmp -mp -omp -qsmp=omp -homp -Popenmp --openmp; do
 	    ac_save_[]_AC_LANG_PREFIX[]FLAGS=$[]_AC_LANG_PREFIX[]FLAGS
 	    _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS $ac_option"
 	    AC_LINK_IFELSE([_AC_LANG_OPENMP],
