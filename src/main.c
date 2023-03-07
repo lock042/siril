@@ -469,6 +469,12 @@ int main(int argc, char *argv[]) {
 	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 #endif
 
+#ifdef _WIN32
+	// Turn off buffering for output to console on MSYS terminal on Windows
+	setvbuf(stdout, NULL, _IONBF, 0);
+	setvbuf(stderr, NULL, _IONBF, 0);
+#endif
+
 	initialize_siril_directories();
 
 	dir = siril_get_locale_dir();

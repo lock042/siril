@@ -203,6 +203,8 @@ int check_seq() {
 	sequence **sequences;
 	int i, nb_seq = 0, max_seq = 10;
 
+	siril_log_color_message(_("Checking sequences in the directory: %s.\n"), "blue", com.wd);
+
 	if (!com.wd) {
 		siril_log_message(_("Current working directory is not set, aborting.\n"));
 		return 1;
@@ -344,7 +346,8 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 	if (!strcasecmp(ext, "ser")) {
 		struct ser_struct *ser_file = malloc(sizeof(struct ser_struct));
 		ser_init_struct(ser_file);
-		if (ser_open_file(name, ser_file)) {
+		int ret = ser_open_file(name, ser_file);
+		if (ret) {
 			return NULL;
 		}
 
@@ -406,10 +409,15 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 		siril_debug_print("Found a FITS sequence\n");
 	}
 
-	if (new_seq && new_seq->beg != new_seq->end) {
-		if (buildseqfile(new_seq, 0)) {
-			free_sequence(new_seq, TRUE);
-			new_seq = NULL;
+	if (new_seq) {
+		if (new_seq->beg != new_seq->end) {
+			if (buildseqfile(new_seq, 0)) {
+				free_sequence(new_seq, TRUE);
+				new_seq = NULL;
+			}
+		} else if (new_seq->type == SEQ_SER) {
+			siril_log_color_message(_("Cannot load SER sequence. Need at least 2 frames to be usable in Siril. "
+					"Please convert the SER file into FITS file.\n"), "salmon");
 		}
 	}
 	return new_seq;

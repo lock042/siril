@@ -868,7 +868,7 @@ void update_icons_sequence_list(gboolean is_dark) {
 
 #ifdef _WIN32
 static int ListSequences(const gchar *sDir, const char *sequence_name_to_select,
-		GtkComboBoxText *seqcombo, int *index_of_seq_to_load) {
+		GtkComboBoxText *seqcombo, int *index_of_seq_to_load, gboolean *found) {
 	WIN32_FIND_DATAW fdFile;
 	HANDLE hFind = NULL;
 	char sPath[2048];
@@ -906,6 +906,7 @@ static int ListSequences(const gchar *sDir, const char *sequence_name_to_select,
 						&& !strncmp(filename, sequence_name_to_select,
 							strlen(filename))) {
 					*index_of_seq_to_load = number_of_loaded_sequences;
+					*found = TRUE;
 				}
 				++number_of_loaded_sequences;
 			}
@@ -931,6 +932,7 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	int number_of_loaded_sequences = 0;
 	int index_of_seq_to_load = -1;
 	char *seqname = NULL;
+	gboolean found = FALSE;
 
 	// clear the previous list
 	seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("sequence_list_combobox"));
@@ -946,10 +948,11 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	}
 
 #ifdef _WIN32
-	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load);
+	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load, &found);
 #else
 	struct dirent **list;
 	int i, n;
+
 
 	n = scandir(com.wd, &list, 0, alphasort);
 	if (n < 0)
@@ -964,8 +967,10 @@ int update_sequences_list(const char *sequence_name_to_select) {
 				free_sequence(seq, TRUE);
 				char *filename = list[i]->d_name;
 				gtk_combo_box_text_append_text(seqcombo, filename);
-				if (seqname && !strcmp(filename, seqname))
+				if (seqname && !strcmp(filename, seqname)) {
 					index_of_seq_to_load = number_of_loaded_sequences;
+					found = TRUE;
+				}
 				++number_of_loaded_sequences;
 			}
 		}
@@ -975,15 +980,16 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	free(list);
 #endif
 
-	if (seqname) free(seqname);
-
 	if (!number_of_loaded_sequences) {
 		fprintf(stderr, "No valid sequence found in CWD.\n");
+		if (seqname) free(seqname);
 		return -1;
-	} else {
+	} else if (!seqname || (seqname && found)) {
 		fprintf(stdout, "Loaded %d %s\n", number_of_loaded_sequences,
 				ngettext("sequence", "sequences", number_of_loaded_sequences));
-	}
+	} else return -1;
+
+	if (seqname) free(seqname);
 
 	if (number_of_loaded_sequences > 1 && index_of_seq_to_load < 0) {
 		gtk_combo_box_popup(GTK_COMBO_BOX(seqcombo));

@@ -394,7 +394,7 @@ static TIFF* Siril_TIFFOpen(const char *name, const char *mode) {
 /* reads a TIFF file and stores it in the fits argument.
  * If file loading fails, the argument is untouched.
  */
-int readtif(const char *name, fits *fit, gboolean force_float) {
+int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose) {
 	int retval = 0;
 	uint32_t height, width;
 	uint16_t nbits, nsamples, color, orientation;
@@ -596,7 +596,8 @@ int readtif(const char *name, fits *fit, gboolean force_float) {
 	retval = nsamples;
 
 	gchar *basename = g_path_get_basename(name);
-	siril_log_message(_("Reading TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
+	if (verbose)
+		siril_log_message(_("Reading TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
 						nbits, basename, fit->naxes[2], fit->rx, fit->ry);
 	g_free(basename);
 
@@ -634,7 +635,7 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gbo
 
 int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		const char *description, const char *copyright,
-		gboolean tiff_compression, gboolean embeded_icc) {
+		gboolean tiff_compression, gboolean embeded_icc, gboolean verbose) {
 	int retval = 0;
 	float norm;
 	gchar *filename = g_strdup(name);
@@ -813,7 +814,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		if (g_remove(filename))
 			fprintf(stderr, "Error removing file\n");
 	} else {
-		siril_log_message(_("Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
+		if (verbose)
+			siril_log_message(_("Saving TIFF: %d-bit file %s, %ld layer(s), %ux%u pixels\n"),
 				bitspersample, filename, nsamples, width, height);
 	}
 

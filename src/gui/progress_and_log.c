@@ -171,8 +171,7 @@ static gboolean idle_messaging(gpointer p) {
 }
 
 // Send a log message to the console in the UI
-void gui_log_message(const char* msg, const char* color)
-{
+void gui_log_message(const char* msg, const char* color) {
 	if (com.headless)
 		return;
 	time_t now_sec = time(NULL);

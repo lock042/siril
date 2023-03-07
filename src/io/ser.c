@@ -50,7 +50,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 /* Output SER timestamp */
 static int display_date(guint64 timestamp, char *txt) {
 	if (timestamp == 0)
-		return -1;
+		return SER_GENERIC_ERROR;
 
 	GDateTime *date = ser_timestamp_to_date_time(timestamp);
 	if (date) {
@@ -59,7 +59,7 @@ static int display_date(guint64 timestamp, char *txt) {
 		free(str);
 		g_date_time_unref(date);
 	}
-	return 0;
+	return SER_OK;
 }
 
 static const char *convert_color_id_to_char(ser_color color_id) {
@@ -101,7 +101,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 	if (!ser_file->frame_count || ser_file->image_width <= 0 ||
 			ser_file->image_height <= 0 || ser_file->byte_pixel_depth <= 0 ||
 			!ser_file->number_of_planes)
-		return 0;
+		return SER_OK;
 
 	gint64 frame_size = (gint64) ser_file->image_width *
 		ser_file->image_height * ser_file->number_of_planes;
@@ -112,17 +112,17 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 		ser_file->ts = calloc(8, ser_file->frame_count);
 		if (!ser_file->ts) {
 			PRINT_ALLOC_ERR;
-			return 0;
+			return SER_OK;
 		}
 		ser_file->ts_alloc = ser_file->frame_count;
 
 		// Seek to start of timestamps
 		for (int i = 0; i < ser_file->frame_count; i++) {
 			if ((gint64) -1 == fseek64(ser_file->file, offset + (i * 8), SEEK_SET))
-				return -1;
+				return SER_GENERIC_ERROR;
 
 			if (8 != fread(&ser_file->ts[i], 1, 8, ser_file->file))
-				return 0;
+				return SER_OK;
 
 			ser_file->ts[i] = le64_to_cpu(ser_file->ts[i]);
 		}
@@ -162,7 +162,7 @@ static int ser_read_timestamp(struct ser_struct *ser_file) {
 	} else {
 		fprintf(stdout, _("Warning: no timestamps stored in the SER sequence.\n"));
 	}
-	return 0;
+	return SER_OK;
 }
 
 static int ser_recompute_frame_count(struct ser_struct *ser_file) {
@@ -172,7 +172,7 @@ static int ser_recompute_frame_count(struct ser_struct *ser_file) {
 	siril_log_message(_("Trying to fix broken SER file...\n"));
 	gint64 frame_size = (gint64) ser_file->image_width * ser_file->image_height;
 	if (frame_size == 0)
-		return 0;
+		return SER_OK;
 
 	if (ser_file->color_id == SER_RGB || ser_file->color_id == SER_BGR) {
 		frame_size *= 3;  // Color images have twice as many samples
@@ -192,7 +192,7 @@ static int ser_read_header(struct ser_struct *ser_file) {
 	char header[SER_HEADER_LEN];
 	int ret;
 	if (!ser_file || ser_file->file == NULL)
-		return -1;
+		return SER_GENERIC_ERROR;
 
 	/* Get file size */
 	ret = fseek64(ser_file->file, 0, SEEK_END);
@@ -200,13 +200,13 @@ static int ser_read_header(struct ser_struct *ser_file) {
 	ret |= fseek64(ser_file->file, 0, SEEK_SET);
 	if (ser_file->filesize == -1 || ret == -1) {
 		perror("seek");
-		return -1;
+		return SER_GENERIC_ERROR;
 	}
 
 	/* Read header (size of 178) */
 	if (SER_HEADER_LEN != fread(header, 1, sizeof header, ser_file->file)) {
 		perror("fread");
-		return -1;
+		return SER_GENERIC_ERROR;
 	}
 
 	// modify this to support big endian
@@ -261,7 +261,7 @@ static int ser_read_header(struct ser_struct *ser_file) {
 
 	ser_read_timestamp(ser_file);
 
-	return 0;
+	return SER_OK;
 }
 
 static int ser_write_timestamps(struct ser_struct *ser_file) {
@@ -270,7 +270,7 @@ static int ser_write_timestamps(struct ser_struct *ser_file) {
 	if (!ser_file->frame_count || ser_file->image_width <= 0 ||
 			ser_file->image_height <= 0 || ser_file->byte_pixel_depth <= 0 ||
 			!ser_file->number_of_planes)
-		return -1;
+		return SER_GENERIC_ERROR;
 
 	if (ser_file->ts) {
 		// Seek to start of timestamps
@@ -285,18 +285,18 @@ static int ser_write_timestamps(struct ser_struct *ser_file) {
 			if (i >= ser_file->ts_alloc)
 				break;
 			if ((gint64)-1 == fseek64(ser_file->file, offset+(i*8), SEEK_SET)) {
-				return -1;
+				return SER_GENERIC_ERROR;
 			}
 
 			ts = cpu_to_le64(ser_file->ts[i]);
 
 			if (8 != fwrite(&ts, 1, 8, ser_file->file)) {
 				perror("write timestamps:");
-				return -1;
+				return SER_GENERIC_ERROR;
 			}
 		}
 	}
-	return 0;
+	return SER_OK;
 }
 
 /* (over)write the header of the opened file on the disk */
@@ -305,10 +305,10 @@ static int ser_write_header(struct ser_struct *ser_file) {
 	struct ser_struct ser_file_le;
 
 	if (!ser_file || ser_file->file == NULL)
-		return -1;
+		return SER_GENERIC_ERROR;
 	if ((gint64) -1 == fseek64(ser_file->file, 0, SEEK_SET)) {
 		perror("seek");
-		return -1;
+		return SER_GENERIC_ERROR;
 	}
 
 	memcpy(&ser_file_le, ser_file, sizeof(struct ser_struct));
@@ -334,9 +334,9 @@ static int ser_write_header(struct ser_struct *ser_file) {
 
 	if (sizeof(header) != fwrite(header, 1, sizeof(header), ser_file->file)) {
 		perror("write");
-		return 1;
+		return SER_GENERIC_ERROR;
 	}
-	return 0;
+	return SER_OK;
 }
 
 /* populate fields that are not already set in ser_create_file */
@@ -371,7 +371,7 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 		ser_file->bit_pixel_depth = 16;
 	} else {
 		siril_log_message(_("Writing a 32-bit image to SER files is not supported.\n"));
-		return 1;
+		return SER_GENERIC_ERROR;
 	}
 	if (fit->instrume[0] != 0) {
 		memset(ser_file->instrument, 0, 40);
@@ -388,7 +388,7 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 
 	if (fit->date_obs)
 		ser_file->date = date_time_to_ser_timestamp(fit->date_obs);
-	return 0;
+	return SER_OK;
 }
 
 static int get_SER_Bayer_Pattern(ser_color pattern) {
@@ -430,7 +430,7 @@ static void ser_manage_endianess_and_depth(struct ser_struct *ser_file,
 }
 
 static int ser_alloc_ts(struct ser_struct *ser_file, int frame_no) {
-	int retval = 0;
+	int retval = SER_OK;
 #ifdef _OPENMP
 	omp_set_lock(&ser_file->ts_lock);
 #endif
@@ -523,7 +523,7 @@ void ser_display_info(struct ser_struct *ser_file) {
 }
 
 static int ser_end_write(struct ser_struct *ser_file, gboolean abort) {
-	int retval = 0;
+	int retval = SER_OK;
 	if (ser_file->writer) {
 		retval = stop_writer(ser_file->writer, abort);
 		ser_file->frame_count = ser_file->writer->frame_count;
@@ -534,7 +534,7 @@ static int ser_end_write(struct ser_struct *ser_file, gboolean abort) {
 }
 
 int ser_close_and_delete_file(struct ser_struct *ser_file) {
-	if (ser_file == NULL) return -1;
+	if (ser_file == NULL) return SER_GENERIC_ERROR;
 	int retval = ser_end_write(ser_file, TRUE);
 	char *filename = ser_file->filename;
 	ser_file->filename = NULL;
@@ -547,12 +547,12 @@ int ser_close_and_delete_file(struct ser_struct *ser_file) {
 }
 
 int ser_write_and_close(struct ser_struct *ser_file) {
-	if (ser_file == NULL) return -1;
+	if (ser_file == NULL) return SER_GENERIC_ERROR;
 	int retval = ser_end_write(ser_file, FALSE);
 	if (!ser_file->frame_count) {
 		siril_log_color_message(_("The SER sequence is being created with no image in it.\n"), "red");
 		ser_close_and_delete_file(ser_file);
-		return -1;
+		return SER_GENERIC_ERROR;
 	}
 	ser_write_header(ser_file);	// writes the header
 	ser_write_timestamps(ser_file);	// writes the trailer
@@ -569,7 +569,7 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 			siril_debug_print("g_unlink() failed\n");
 	if ((ser_file->file = g_fopen(filename, "w+b")) == NULL) {
 		perror("open SER file for creation");
-		return 1;
+		return SER_GENERIC_ERROR;
 	}
 
 	ser_file->filename = strdup(filename);
@@ -601,7 +601,7 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 		 * before closing in case the number of the image in the new
 		 * SER changes from the copied SER */
 		if (ser_write_header(ser_file))
-			return 1;
+			return SER_GENERIC_ERROR;
 	} else {	// new SER
 		ser_file->file_id = strdup("LUCAM-RECORDER");
 		ser_file->lu_id = 0;
@@ -624,7 +624,7 @@ int ser_create_file(const char *filename, struct ser_struct *ser_file,
 
 	siril_log_message(_("Created SER file %s\n"), filename);
 	start_writer(ser_file->writer, ser_file->frame_count);
-	return 0;
+	return SER_OK;
 }
 
 int ser_reset_to_monochrome(struct ser_struct *ser_file) {
@@ -643,12 +643,12 @@ static int ser_write_image_for_writer(struct seqwriter_data *writer, fits *image
 int ser_open_file(const char *filename, struct ser_struct *ser_file) {
 	if (ser_file->file) {
 		fprintf(stderr, "SER: file already opened, or badly closed\n");
-		return -1;
+		return SER_GENERIC_ERROR;
 	}
 	ser_file->file = g_fopen(filename, "r+b"); // now we can fix broken file, so not O_RDONLY anymore
 	if (ser_file->file == NULL) {
 		perror("SER file open");
-		return -1;
+		return SER_GENERIC_ERROR;
 	}
 #ifdef _OPENMP
 	omp_init_lock(&ser_file->fd_lock);
@@ -658,17 +658,18 @@ int ser_open_file(const char *filename, struct ser_struct *ser_file) {
 		fprintf(stderr, "SER: reading header failed, closing file %s\n",
 				filename);
 		ser_close_file(ser_file);
-		return -1;
+		return SER_GENERIC_ERROR;
 	}
+
 	ser_file->filename = strdup(filename);
-	return 0;
+	return SER_OK;
 }
 
 int ser_close_file(struct ser_struct *ser_file) {
-	int retval = 0;
+	int retval = SER_OK;
 	user_warned = FALSE;
 	if (!ser_file)
-		return -1;
+		return SER_GENERIC_ERROR;
 	if (ser_file->file) {
 		retval = fclose(ser_file->file);
 		ser_file->file = NULL;
@@ -712,26 +713,26 @@ int ser_metadata_as_fits(struct ser_struct *ser_file, fits *fit) {
 		fit->naxes[2] = 3;
 		break;
 	default:
-		return 1;
+		return SER_GENERIC_ERROR;
 	}
 	fit->naxes[0] = fit->rx = ser_file->image_width;
 	fit->naxes[1] = fit->ry = ser_file->image_height;
 	fit->bitpix = (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
 	fit->orig_bitpix = fit->bitpix;
 	fit->binning_x = fit->binning_y = 1;
-	return 0;
+	return SER_OK;
 }
 
 /* reads a frame on an already opened SER sequence.
  * frame number starts at 0 */
 int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolean force_float, gboolean open_debayer) {
-	int retval = 0, i, j, swap = 0;
+	int retval = SER_OK, i, j, swap = 0;
 	gint64 offset, frame_size;
 	size_t read_size;
 	WORD *olddata, *tmp;
 	if (!ser_file || ser_file->file == NULL || !ser_file->number_of_planes ||
 			!fit || frame_no < 0 || frame_no >= ser_file->frame_count)
-		return -1;
+		return SER_GENERIC_ERROR;
 
 	frame_size = (gint64) ser_file->image_width * (gint64) ser_file->image_height *
 			(gint64) ser_file->number_of_planes;
@@ -742,7 +743,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		PRINT_ALLOC_ERR;
 		if (olddata)
 			free(olddata);
-		return -1;
+		return SER_GENERIC_ERROR;
 	}
 
 	offset = SER_HEADER_LEN	+ frame_size *
@@ -754,16 +755,16 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 #endif
 	if ((gint64)-1 == fseek64(ser_file->file, offset, SEEK_SET)) {
 		perror("fseek in SER");
-		retval = -1;
+		retval = SER_GENERIC_ERROR;
 	} else {
 		if (fread(fit->data, 1, read_size, ser_file->file) != read_size)
-			retval = -1;
+			retval = SER_GENERIC_ERROR;
 	}
 #ifdef _OPENMP
 	omp_unset_lock(&ser_file->fd_lock);
 #endif
 	if (retval)
-		return -1;
+		return SER_GENERIC_ERROR;
 
 	ser_manage_endianess_and_depth(ser_file, fit->data, frame_size);
 
@@ -855,7 +856,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		tmp = malloc(frame_size * sizeof(WORD));
 		if (!tmp) {
 			PRINT_ALLOC_ERR;
-			return -1;
+			return SER_GENERIC_ERROR;
 		}
 		memcpy(tmp, fit->data, sizeof(WORD) * frame_size);
 		fit->naxes[0] = fit->rx = ser_file->image_width;
@@ -878,7 +879,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	case SER_BAYER_MYYC:
 	default:
 		siril_log_message(_("This type of Bayer pattern is not handled yet.\n"));
-		return -1;
+		return SER_GENERIC_ERROR;
 	}
 
 	/* copy the SER timestamp to the fits */
@@ -904,7 +905,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	fits_flip_top_to_bottom(fit);
 	fit->top_down = FALSE;
 	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
-	return 0;
+	return SER_OK;
 }
 
 /* multi-type cropping, works in constant space if needed */
@@ -950,7 +951,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 		WORD *outbuf, const rectangle *area, const int layer) {
 	gint64 offset, frame_size;
-	int retval = 0;
+	int retval = SER_OK;
 	WORD *read_buffer;
 	size_t read_size = ser_file->image_width * area->h * ser_file->byte_pixel_depth;
 	if (layer != -1) read_size *= 3;
@@ -960,7 +961,7 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 		read_buffer = malloc(read_size);
 		if (!read_buffer) {
 			PRINT_ALLOC_ERR;
-			return -1;
+			return SER_GENERIC_ERROR;
 		}
 	}
 	else read_buffer = outbuf;
@@ -978,10 +979,10 @@ static int read_area_from_image(struct ser_struct *ser_file, const int frame_no,
 
 	if ((gint64)-1 == fseek64(ser_file->file, offset, SEEK_SET)) {
 		perror("fseek in SER");
-		retval = -1;
+		retval = SER_GENERIC_ERROR;
 	} else {
 		if (fread(read_buffer, 1, read_size, ser_file->file) != read_size) {
-			retval = -1;
+			retval = SER_GENERIC_ERROR;
 		}
 	}
 #ifdef _OPENMP
@@ -1030,7 +1031,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 
 	if (!ser_file || ser_file->file == NULL || frame_no < 0
 			|| frame_no >= ser_file->frame_count)
-		return -1;
+		return SER_GENERIC_ERROR;
 
 	type_ser = ser_file->color_id;
 	if (!com.pref.debayer.open_debayer &&
@@ -1040,7 +1041,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 	switch (type_ser) {
 	case SER_MONO:
 		if (read_area_from_image(ser_file, frame_no, buffer, area, -1))
-			return -1;
+			return SER_GENERIC_ERROR;
 		ser_manage_endianess_and_depth(ser_file, buffer, (gint64) area->w * area->h);
 		break;
 
@@ -1075,7 +1076,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		}
 		if (layer < 0 || layer >= 3) {
 			siril_log_message(_("For a demosaiced image, layer has to be R, G or B (0 to 2).\n"));
-			return -1;
+			return SER_GENERIC_ERROR;
 		}
 
 		image_area = (rectangle) { .x = 0, .y = 0,
@@ -1086,11 +1087,11 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		rawbuf = malloc(debayer_area.w * debayer_area.h * sizeof(WORD));
 		if (!rawbuf) {
 			PRINT_ALLOC_ERR;
-			return -1;
+			return SER_GENERIC_ERROR;
 		}
 		if (read_area_from_image(ser_file, frame_no, rawbuf, &debayer_area, -1)) {
 			free(rawbuf);
-			return -1;
+			return SER_GENERIC_ERROR;
 		}
 		ser_manage_endianess_and_depth(ser_file, rawbuf, (gint64) debayer_area.w * debayer_area.h);
 
@@ -1101,7 +1102,7 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 				&debayer_area.h, BAYER_BILINEAR, com.pref.debayer.bayer_pattern, ser_file->bit_pixel_depth);
 		free(rawbuf);
 		if (!demosaiced_buf)
-			return -1;
+			return SER_GENERIC_ERROR;
 
 		/* area is the destination area.
 		 * debayer_area is the demosaiced buf area.
@@ -1122,21 +1123,21 @@ int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 	case SER_RGB:
 		g_assert(ser_file->number_of_planes == 3);
 		if (read_area_from_image(ser_file, frame_no, buffer, area, layer))
-			return -1;
+			return SER_GENERIC_ERROR;
 		ser_manage_endianess_and_depth(ser_file, buffer, (gint64) area->w * area->h);
 		break;
 	default:
 		siril_log_message(_("This type of Bayer pattern is not handled yet.\n"));
-		return -1;
+		return SER_GENERIC_ERROR;
 	}
 
-	return 0;
+	return SER_OK;
 }
 
 int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 		int frame_no, fits *fit, const rectangle *area) {
 	if (new_fit_image(&fit, area->w, area->h, 1, DATA_USHORT))
-		return -1;
+		return SER_GENERIC_ERROR;
 	fit->top_down = TRUE;
 	if (ser_file->ts) {
 		GDateTime *timestamp = ser_timestamp_to_date_time(ser_file->ts[frame_no]);
@@ -1159,22 +1160,22 @@ int ser_write_frame_from_fit(struct ser_struct *ser_file, fits *fit, int frame_n
 // frame_no should always be the next image, or frame_count
 static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *fit, int frame_no) {
 	int pixel, plane, dest;
-	int ret, retval = 0;
+	int ret, retval = SER_OK;
 	gint64 offset, frame_size;
 	BYTE *data8 = NULL;	// for 8-bit files
 	WORD *data16 = NULL;	// for 16-bit files
 
 	if (!ser_file || ser_file->file == NULL || !fit)
-		return -1;
+		return SER_GENERIC_ERROR;
 	if (ser_file->number_of_planes == 0) {
 		// adding first frame of a new sequence, use it to populate the header
 		if (ser_write_header_from_fit(ser_file, fit)) {
-			return 1;
+			return SER_GENERIC_ERROR;
 		}
 	}
 	if (fit->rx != ser_file->image_width || fit->ry != ser_file->image_height) {
 		siril_log_message(_("Trying to add an image of different size in a SER\n"));
-		return 1;
+		return SER_GENERIC_ERROR;
 	}
 
 	if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
@@ -1190,13 +1191,13 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		data8 = malloc(frame_size * ser_file->byte_pixel_depth);
 		if (!data8) {
 			PRINT_ALLOC_ERR;
-			return -1;
+			return SER_GENERIC_ERROR;
 		}
 	} else {
 		data16 = malloc(frame_size * ser_file->byte_pixel_depth);
 		if (!data16) {
 			PRINT_ALLOC_ERR;
-			return -1;
+			return SER_GENERIC_ERROR;
 		}
 	}
 
@@ -1224,7 +1225,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		omp_unset_lock(&ser_file->fd_lock);
 #endif
 		perror("seek");
-		retval = -1;
+		retval = SER_GENERIC_ERROR;
 		goto free_and_quit;
 	}
 
@@ -1283,7 +1284,7 @@ int import_metadata_from_serfile(struct ser_struct *ser_file, fits *to) {
 	strncpy(to->telescop, ser_file->telescope, FLEN_VALUE - 1);
 	if (ser_file->fps > 0.0)
 		to->exposure = 1.0 / ser_file->fps;
-	return 0;
+	return SER_OK;
 }
 
 static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {

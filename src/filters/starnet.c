@@ -81,6 +81,11 @@ static int exec_prog_starnet(char **argv) {
 	g_autoptr(GError) error = NULL;
 	int retval = -1;
 
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
+	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
+#endif
+
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
@@ -90,6 +95,9 @@ static int exec_prog_starnet(char **argv) {
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+		FreeConsole(); // and closing it
+#endif
 		return retval;
 	}
 	// Add a child watch function which will be called when the child process exits.
@@ -127,6 +135,9 @@ static int exec_prog_starnet(char **argv) {
 	}
 	g_object_unref(data_input);
 	g_object_unref(stream);
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+	FreeConsole(); // and closing it
+#endif
 	return retval;
 }
 
@@ -381,9 +392,9 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Save current stretched image as working 16-bit TIFF (post initial stretch if the image was linear)
-	retval = savetif(temptif, &workingfit, 16, NULL, com.pref.copyright, FALSE, TRUE);
+	retval = savetif(temptif, &workingfit, 16, NULL, com.pref.copyright, FALSE, TRUE, FALSE);
 	if (retval) {
-		siril_log_color_message(_("Error: unable to save working TIFF of original image...\n"), "red");
+		siril_log_color_message(_("Error: unable to save working StarNet input file...\n"), "red");
 		goto CLEANUP;
 	}
 
@@ -417,11 +428,25 @@ gpointer do_starnet(gpointer p) {
 
 	// Read the starless stretched tiff. Successful return value of readtif() is nsamples
 	clearfits(&workingfit); // Clear it first to free the data
-	retval = readtif(starlesstif, &workingfit, FALSE);
+	retval = readtif(starlesstif, &workingfit, FALSE, FALSE);
 	if (retval < 1 || retval > 3) {
-		siril_log_color_message(_("Error: unable to read starless image from TIFF...\n"), "red");
+		siril_log_color_message(_("Error: unable to read StarNet output file...\n"), "red");
 		goto CLEANUP;
 	}
+
+	// Remove working TIFF files, they are no longer required
+	retval = g_remove(starlesstif);
+	if (retval) {
+		siril_log_color_message(_("Error: unable to remove temporary working file...\n"), "red");
+		// No goto here as even if it fails we want to try to remove the other TIFF
+	}
+
+	retval |= g_remove(temptif);
+	if (retval) {
+		siril_log_color_message(_("Error: unable to remove temporary working file...\n"), "red");
+		goto CLEANUP;
+	}
+
 	/* we need to copy metadata as they have been removed with readtif     */
 	copy_fits_metadata(current_fit, &workingfit);
 
@@ -480,8 +505,6 @@ gpointer do_starnet(gpointer p) {
 			siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
 			goto CLEANUP;
 		}
-		if (verbose)
-			siril_log_color_message(_("StarNet: starless image generated\n"), "green");
 	}
 
 	if (args->starmask) {
@@ -506,22 +529,7 @@ gpointer do_starnet(gpointer p) {
 					clearfits(args->starmask_fit);
 				copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
 			}
-			if (verbose)
-				siril_log_color_message(_("StarNet: star mask generated\n"), "green");
 		}
-	}
-
-	// Remove working files, they are no longer required
-	retval = g_remove(starlesstif);
-	if (retval) {
-		siril_log_color_message(_("Error: unable to remove working file...\n"), "red");
-		// No goto here as even if it fails we want to try to remove the other TIFF
-	}
-
-	retval |= g_remove(temptif);
-	if (retval) {
-		siril_log_color_message(_("Error: unable to remove working file...\n"), "red");
-		goto CLEANUP;
 	}
 
 	// All done, now copy the working image back into gfit

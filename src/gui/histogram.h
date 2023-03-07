@@ -34,7 +34,7 @@ void compute_histo_for_gfit();
 void invalidate_gfit_histogram();
 void update_gfit_histogram_if_needed();
 void apply_histo_cancel();
-void toggle_histogram_window_visibility();
+void toggle_histogram_window_visibility(int _invocation);
 
 void on_histoMidEntry_changed(GtkEditable *editable, gpointer user_data);
 void on_histoShadEntry_changed(GtkEditable *editable, gpointer user_data);

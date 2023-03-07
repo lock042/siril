@@ -631,7 +631,7 @@ int save_kernel(gchar* filename) {
 		return retval;
 	}
 #ifdef HAVE_LIBTIFF
-	retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution PSF", NULL, FALSE, FALSE);
+	retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution PSF", NULL, FALSE, FALSE, TRUE);
 #else
 	// This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
 	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving PSF in FITS format.\n"), "salmon");

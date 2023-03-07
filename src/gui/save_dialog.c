@@ -473,7 +473,7 @@ static gpointer mini_save_dialog(gpointer p) {
 #endif
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
-			args->retval = savetif(args->filename, &gfit, args->bitspersamples, args->description, args->copyright, args->tiff_compression, args->embeded_icc);
+			args->retval = savetif(args->filename, &gfit, args->bitspersamples, args->description, args->copyright, args->tiff_compression, args->embeded_icc, TRUE);
 			break;
 #endif
 #ifdef HAVE_LIBPNG

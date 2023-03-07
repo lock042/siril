@@ -1,3 +1,21 @@
+siril 1.2.0-beta2
+xx/xx/23
+
+* Fixed behavior on Windows when calling external programs (StarNet, astrometry.net)
+* Fixed crash when converting sequence to SER
+* Fixed PCC progress bar which never terminated
+* Fixed AppImage Build
+* Fixed crash when using deconvolution on a sequence
+* Fixed SSL certificates locations on Windows which where preventing SearchObject related functions to succeed
+* Fixed reading BAYERPAT key if it was set to NONE
+* Fixed StarNet behavior when TIFF compression was ON
+* Fixed crash in synthstar (full resynthetize and desaturate)
+* Fixed handling widechars in config files (Windows only) which caused a crash at startup
+* Fixed crash when selecting datapoints in Plot tab
+* Fixed crash when sending a seqplatesolve or seqstarnet command with no other argument
+* Reworked GHS commands
+* Added a warning when trying to read one-frame SER files
+
 siril 1.2.0-beta1
 02/24/23
 

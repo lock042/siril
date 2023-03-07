@@ -427,9 +427,8 @@ int read_keyfile(GKeyFile *kf) {
 	return nb_keys_read == 0;
 }
 
-int readinitfile(char *path) {
+int readinitfile(gchar *fname) {
 	GKeyFile *kf = g_key_file_new();
-	gchar *fname = get_locale_filename(path);
 	GError *error = NULL;
 	int retval;
 	if (!g_key_file_load_from_file(kf, fname, G_KEY_FILE_NONE, &error)) {
@@ -437,10 +436,8 @@ int readinitfile(char *path) {
 			siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
 			g_clear_error(&error);
 		}
-		g_free(fname);
 		return 1;
 	}
-	g_free(fname);
 #ifndef HAVE_JSON_GLIB
 	com.pref.check_update = FALSE;
 #endif
