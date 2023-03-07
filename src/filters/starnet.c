@@ -234,10 +234,16 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL)) && !done) {
 //		siril_debug_print("%s\n", buffer);
-		if (g_strrstr(buffer, "StarNet++ v2.0")) {
+		if (g_strrstr(buffer, "StarNet++ v2")) {
+#ifdef STARNET_DEBUG
+			siril_log_message(_("V2 detected\n"));
+#endif
 			retval = V2;
 			done = TRUE;
 		} else if (g_strrstr(buffer, " version:")) {
+#ifdef STARNET_DEBUG
+			siril_log_message(_("V2-torch detected\n"));
+#endif
 			retval = TORCH; // We ignore the actual version number for now, it's enough that this substring is
 							 // a unique identifier for the Torch-based StarNet versions.
 			done = TRUE;
