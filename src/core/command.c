@@ -584,7 +584,7 @@ int process_seq_starnet(int nb){
 		return CMD_FILE_NOT_FOUND;
 	}
 	if (starnet_executablecheck(com.pref.starnet_exe) == NIL) {
-		siril_log_color_message(_("Error: StarNet executable is not valid.\n"), "red");
+		siril_log_color_message(_("Error: StarNet executable (%s) is not valid.\n"), "red", com.pref.starnet_exe);
 		return CMD_GENERIC_ERROR;
 	}
 	sequence *seq = load_sequence(word[1], NULL);

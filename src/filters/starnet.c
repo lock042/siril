@@ -580,8 +580,8 @@ gpointer do_starnet(gpointer p) {
 		my_argv[nb++] = starlesstif;
 	}
 	if (args->customstride) {
-		int s = g_ascii_strtod(args->stride, NULL);
-		if ((s - current_fit->naxes[0] > 0) || (args->stride - current_fit->naxes[1] > 0)) {
+		unsigned int s = (unsigned int) g_ascii_strtod(args->stride, NULL);
+		if (s > min(current_fit->rx, current_fit->ry)) {
 			siril_log_color_message(_("Warning: stride (%d) is greater than at least one of the image dimensions (%d x %d). Using default stride.\n"), "salmon", s, current_fit->naxes[0], current_fit->naxes[1]);
 		} else if (version & TORCH) {
 			torcharg_stride = g_strdup_printf("-s %s", args->stride);
