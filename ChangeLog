@@ -15,6 +15,8 @@ xx/xx/23
 * Fixed crash when sending a seqplatesolve or seqstarnet command with no other argument
 * Reworked GHS commands
 * Added a warning when trying to read one-frame SER files
+* Autodetect libfftw threading support (meson only, hope to add autotools support later)
+
 
 siril 1.2.0-beta1
 02/24/23
