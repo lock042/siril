@@ -30,6 +30,9 @@ free-astro 2022-2023.
 */
 #pragma once
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 // All other files get the definition of HAVE_FFTW3F_MULTITHREAD from
 // siril.h. This file doesn't include siril.h so we define it again here.
