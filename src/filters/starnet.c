@@ -234,7 +234,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL)) && !done) {
 #ifdef STARNET_DEBUG
-		siril_debug_print("%s\n", buffer);
+		siril_log_message("%s\n", buffer);
 #endif
 		if (g_strrstr(buffer, "StarNet++ v2")) {
 #ifdef STARNET_DEBUG
