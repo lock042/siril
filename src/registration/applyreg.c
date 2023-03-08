@@ -96,6 +96,14 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
+				if (regargs->seq->is_variable) {
+					double rx2 = (double)regargs->seq->imgparam[i].rx;
+					double ry2 = (double)regargs->seq->imgparam[i].ry;
+					current_framing.pt[1].x = rx2;
+					current_framing.pt[2].x = rx2;
+					current_framing.pt[2].y = ry2;
+					current_framing.pt[3].y = ry2;
+				}
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, regargs->seq->regparam[regargs->layer][i].H, Href);
 					if (xmin > current_framing.pt[j].x) xmin = current_framing.pt[j].x;
@@ -125,6 +133,14 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
+				if (regargs->seq->is_variable) {
+					double rx2 = (double)regargs->seq->imgparam[i].rx;
+					double ry2 = (double)regargs->seq->imgparam[i].ry;
+					current_framing.pt[1].x = rx2;
+					current_framing.pt[2].x = rx2;
+					current_framing.pt[2].y = ry2;
+					current_framing.pt[3].y = ry2;
+				}
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);

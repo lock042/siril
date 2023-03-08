@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0
 
 Copyright (C) The free-astro development team, 2019
 
@@ -2076,9 +2076,9 @@ If the parameters is null, so no filter is apply at all.</property>
   </object>
   <object class="GtkAdjustment" id="adj_starnet_stride">
     <property name="lower">2</property>
-    <property name="upper">256</property>
+    <property name="upper">512</property>
     <property name="value">256</property>
-    <property name="step-increment">128</property>
+    <property name="step-increment">2</property>
     <property name="page-increment">128</property>
   </object>
   <object class="GtkDialog" id="starnet_dialog">
@@ -5607,6 +5607,11 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
     <property name="upper">65535</property>
     <property name="step-increment">20</property>
     <property name="page-increment">1000</property>
+  </object>
+  <object class="GtkFileFilter" id="all_files">
+    <patterns>
+      <pattern>*</pattern>
+    </patterns>
   </object>
   <object class="GtkImage" id="astrometry">
     <property name="visible">True</property>
@@ -9418,8 +9423,6 @@ Modifying parameters in this windows afterward will void the colour balance, and
     <property name="resizable">False</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
-    <signal name="delete-event" handler="on_remix_cancel_clicked" swapped="no"/>
-    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can-focus">False</property>
@@ -9476,7 +9479,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
             </child>
             <child>
               <object class="GtkButton" id="remix_cancel">
-                <property name="label" translatable="yes">Cancel</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -15305,8 +15308,6 @@ Each image in the sequence will only be processed if the corresponding images fo
     <property name="default-width">1</property>
     <property name="default-height">1</property>
     <property name="type-hint">dialog</property>
-    <signal name="delete-event" handler="on_button_histo_close_clicked" swapped="no"/>
-    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
     <signal name="show" handler="on_histogram_window_show" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox">
@@ -31315,7 +31316,7 @@ Configuring a memory amount larger than what is available on your system may res
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <!-- n-columns=2 n-rows=2 -->
+                          <!-- n-columns=2 n-rows=3 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -31325,11 +31326,17 @@ Configuring a memory amount larger than what is available on your system may res
                               <object class="GtkFileChooserButton" id="filechooser_starnet">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Select Starnet++ installation directory. Works with both Starnet++ v1.0 and v2.0.2+ (Command Line Tool version, not GUI version for Windows users).</property>
+                                <property name="tooltip-markup" translatable="yes">Select StarNet executable. Works with all StarNet command-line versions.
+
+For old StarNet++ v1 installations that used separate executables to process mono and RGB files, the executables &lt;b&gt;must&lt;/b&gt; retain their original names &lt;b&gt;mono_starnet++&lt;/b&gt; and &lt;b&gt;rgb_starnet++&lt;/b&gt; (with &lt;b&gt;.exe&lt;/b&gt; if using Windows), and they must both be in the same directory. You can select either executable: Siril will automatically find the other one if it exists.</property>
                                 <property name="valign">center</property>
-                                <property name="action">select-folder</property>
+                                <property name="create-folders">False</property>
+                                <property name="filter">all_files</property>
+                                <property name="preview-widget-active">False</property>
                                 <property name="show-hidden">True</property>
-                                <property name="title" translatable="yes">Select Starnet++ installation directory</property>
+                                <property name="use-preview-label">False</property>
+                                <property name="title" translatable="yes">Select StarNet executable</property>
+                                <signal name="file-set" handler="on_filechooser_starnet_file_set" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -31342,7 +31349,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                                 <property name="xpad">10</property>
-                                <property name="label" translatable="yes">Must point to a valid Starnet++ installation directory.</property>
+                                <property name="label" translatable="yes">Must point to a valid StarNet executable.</property>
                                 <attributes>
                                   <attribute name="style" value="italic"/>
                                 </attributes>
@@ -31350,6 +31357,83 @@ Configuring a memory amount larger than what is available on your system may res
                               <packing>
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFileChooserButton" id="filechooser_starnet_weights">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Select StarNet weights file. This &lt;b&gt;only&lt;/b&gt; works with the new Torch-based StarNet versions. It is optional: if left blank, the weights file &lt;b&gt;must&lt;/b&gt; be in the same directory as the StarNet executable.</property>
+                                <property name="valign">center</property>
+                                <property name="create-folders">False</property>
+                                <property name="filter">all_files</property>
+                                <property name="preview-widget-active">False</property>
+                                <property name="show-hidden">True</property>
+                                <property name="use-preview-label">False</property>
+                                <property name="title" translatable="yes">Select StarNet weights file</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkButton" id="starnet_weights_clear">
+                                    <property name="label" translatable="yes">Clear</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="tooltip-markup" translatable="yes">Clears the neural net weights location. When cleared, the weights file &lt;b&gt;must&lt;/b&gt; be in the same directory as the StarNet executable.</property>
+                                    <signal name="clicked" handler="on_starnet_weights_clear_clicked" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="xpad">10</property>
+                                    <property name="label" translatable="yes">May point to a StarNet neural net weights file.
+Torch-based StarNet versions only.</property>
+                                    <attributes>
+                                      <attribute name="style" value="italic"/>
+                                    </attributes>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFileChooserButton" id="filechooser_gnuplot">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Select gnuplot binary location.</property>
+                                <property name="valign">center</property>
+                                <property name="action">select-folder</property>
+                                <property name="create-folders">False</property>
+                                <property name="show-hidden">True</property>
+                                <property name="title" translatable="yes">Select gnuplot installation directory</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">2</property>
                               </packing>
                             </child>
                             <child>
@@ -31366,22 +31450,7 @@ Not necessary if the path of gnuplot is stored in the PATH variable (UNIX-like).
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkFileChooserButton" id="filechooser_gnuplot">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Select gnuplot binary location.</property>
-                                <property name="valign">center</property>
-                                <property name="action">select-folder</property>
-                                <property name="show-hidden">True</property>
-                                <property name="title" translatable="yes">Select gnuplot installation directory</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">1</property>
+                                <property name="top-attach">2</property>
                               </packing>
                             </child>
                           </object>

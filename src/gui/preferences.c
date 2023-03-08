@@ -40,13 +40,16 @@
 #include "stacking/stacking.h"
 
 #include "preferences.h"
+#include "filters/starnet.h"
 
 #ifndef W_OK
 #define W_OK 2
 #endif
 
 static gchar *sw_dir = NULL;
-static gchar *st_dir = NULL;
+static gchar *st_exe = NULL;
+static gchar *st_weights = NULL;
+static starnet_version st_version = NIL;
 
 static void reset_swapdir() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
@@ -251,12 +254,14 @@ static void update_performances_preferences() {
 
 static void update_misc_preferences() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
-	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
 	GtkFileChooser *gnuplot_bin = GTK_FILE_CHOOSER(lookup_widget("filechooser_gnuplot"));
 
 	com.pref.swap_dir = gtk_file_chooser_get_filename(swap_dir);
 
-	com.pref.starnet_dir = gtk_file_chooser_get_filename(starnet_dir);
+	com.pref.starnet_exe = gtk_file_chooser_get_filename(starnet_exe);
+	com.pref.starnet_weights = gtk_file_chooser_get_filename(starnet_weights);
 	com.pref.gnuplot_dir = gtk_file_chooser_get_filename(gnuplot_bin);
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
@@ -293,10 +298,26 @@ void initialize_path_directory(const gchar *path) {
 	}
 }
 
-void initialize_starnet_directory(const gchar *path) {
-	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+void initialize_starnet_executable(const gchar *path) {
+	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
+	GtkWidget *starnet_weights = GTK_WIDGET(lookup_widget("filechooser_starnet_weights"));
 	if (path && path[0] != '\0') {
-		gtk_file_chooser_set_filename (starnet_dir, path);
+		gtk_file_chooser_set_filename (starnet_exe, path);
+		if (starnet_executablecheck(path) & TORCH) {
+			gtk_widget_set_sensitive(starnet_weights, TRUE);
+			gtk_widget_set_sensitive(starnet_weights_reset, TRUE);
+		} else {
+			gtk_widget_set_sensitive(starnet_weights, FALSE);
+			gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
+		}
+	}
+}
+
+void initialize_starnet_weights(const gchar *path) {
+	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
+	if (path && path[0] != '\0') {
+		gtk_file_chooser_set_filename (starnet_weights, path);
 	}
 }
 
@@ -375,21 +396,59 @@ void on_filechooser_swap_file_set(GtkFileChooserButton *fileChooser, gpointer us
 }
 
 void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer user_data) {
-	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(fileChooser);
-	gchar *dir;
+	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(fileChooser);
+	gchar *path;
 
-	dir = gtk_file_chooser_get_filename (starnet_dir);
-
-	if (g_access(dir, W_OK)) {
-		gchar *msg = siril_log_color_message(_("You don't have permission to write in this directory: %s\n"), "red", dir);
+	path = gtk_file_chooser_get_filename (starnet_exe);
+	printf("%s\n", path);
+	if (g_access(path, X_OK)) {
+		gchar *msg = siril_log_color_message(_("You don't have permission to execute this file: %s\n"), "red", path);
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
-		gtk_file_chooser_set_filename(starnet_dir, com.pref.starnet_dir);
+		gtk_file_chooser_set_filename(starnet_exe, com.pref.starnet_exe);
 		return;
 	}
-	if (st_dir) {
-		g_free(st_dir);
-		st_dir = gtk_file_chooser_get_filename(starnet_dir);
+	if (st_exe) {
+		g_free(st_exe);
 	}
+	st_exe = path;
+	st_version = starnet_executablecheck(path);
+	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
+	GtkWidget *starnet_weights = GTK_WIDGET(lookup_widget("filechooser_starnet_weights"));
+	if (st_version & TORCH) {
+		gtk_widget_set_sensitive(starnet_weights, TRUE);
+		gtk_widget_set_sensitive(starnet_weights_reset, TRUE);
+	} else {
+		gtk_widget_set_sensitive(starnet_weights, FALSE);
+		gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
+	}
+
+}
+
+void on_starnet_weights_clear_clicked(GtkButton *button, gpointer user_data) {
+	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
+	if (st_weights) {
+		g_free(st_weights);
+	}
+	st_weights = g_strdup("\0");
+	gtk_file_chooser_set_filename(starnet_weights, st_weights);
+}
+
+void on_filechooser_starnet_weights_file_set(GtkFileChooserButton *fileChooser, gpointer user_data) {
+	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(fileChooser);
+	gchar *path;
+
+	path = gtk_file_chooser_get_filename (starnet_weights);
+
+	if (g_access(path, R_OK)) {
+		gchar *msg = siril_log_color_message(_("You don't have permission to read this file: %s\n"), "red", path);
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), msg);
+		gtk_file_chooser_set_filename(starnet_weights, com.pref.starnet_weights);
+		return;
+	}
+	if (st_weights) {
+		g_free(st_weights);
+	}
+	st_weights = gtk_file_chooser_get_filename(starnet_weights);
 }
 
 void on_show_preview_button_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -580,7 +639,8 @@ void update_preferences_from_model() {
 
 	/* tab 10 */
 	initialize_path_directory(pref->swap_dir);
-	initialize_starnet_directory(pref->starnet_dir);
+	initialize_starnet_executable(pref->starnet_exe);
+	initialize_starnet_weights(pref->starnet_weights);
 	initialize_gnuplot_directory(pref->gnuplot_dir);
 	initialize_asnet_directory(pref->asnet_dir);
 
@@ -691,12 +751,12 @@ gchar *get_swap_dir() {
 	return sw_dir;
 }
 
-gchar *get_starnet_dir() {
-	GtkFileChooser *starnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
-	if (st_dir)
-		st_dir = gtk_file_chooser_get_filename(starnet_dir);
+gchar *get_starnet_exe() {
+	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
+	if (st_exe)
+		st_exe = gtk_file_chooser_get_filename(starnet_exe);
 
-	return sw_dir;
+	return st_exe;
 }
 
 /* these one are not on the preference dialog */
