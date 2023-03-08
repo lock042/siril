@@ -14,6 +14,8 @@ v1.2.0-beta1 xxx xx, 2023
 * Fixed crash when sending a seqplatesolve or seqstarnet command with no other argument
 * Reworked GHS commands
 * Added a warning when trying to read one-frame SER files
+* Add support for Torch-based StarNet executables
+
 
 v1.2.0-beta1 February 24, 2023
 
