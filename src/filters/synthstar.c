@@ -358,7 +358,9 @@ gpointer do_synthstar() {
 int generate_synthstars(fits *fit) {
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	siril_log_color_message(_("Star synthesis (full star mask creation): processing...\n"), "green");
+	char *msg = siril_log_color_message(_("Star synthesis (full star mask creation): processing...\n"), "green");
+	msg[strlen(msg) - 1] = '\0';
+	set_progress_bar_data(msg, PROGRESS_RESET);
 	gboolean is_RGB = TRUE;
 	gboolean is_32bit = TRUE;
 	gboolean stars_needs_freeing = FALSE;
@@ -477,6 +479,7 @@ int generate_synthstars(fits *fit) {
 		// Check if stop has been pressed
 		if (!get_thread_run())
 			stopcalled = TRUE;
+		set_progress_bar_data(NULL,	(double) n / (double) nb_stars);
 		if (!stopcalled) {
 			float lum = (float) stars[n]->A;
 			if (lum < 0.0f)
@@ -651,6 +654,7 @@ int generate_synthstars(fits *fit) {
 		notify_gfit_modified();
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, "Execution time");
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	return 0;
 }
 
