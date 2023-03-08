@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-07 09:09+0100\n"
-"PO-Revision-Date: 2023-03-08 12:07+0000\n"
+"PO-Revision-Date: 2023-03-09 07:20+0000\n"
 "Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
 "Language-Team: Italian <https://weblate.pixls.us/projects/siril/"
 "siril-application/it/>\n"
@@ -11591,6 +11591,8 @@ msgstr ""
 msgid ""
 "Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"
 msgstr ""
+"Uso raggi preconfigurati di anelli fotometrici interni ed esterni di %.1f e %"
+".1f\n"
 
 #: src/core/command.c:3963
 msgid ""
@@ -11598,6 +11600,9 @@ msgid ""
 "star selection by equatorial coordinates, plate solve the reference or the "
 "first\n"
 msgstr ""
+"Nessuna immagine nella sequenza è stata trovata con le informazioni WCS "
+"richieste per la selezione della stella in base alle coordinate equatoriali, "
+"esegui il plate-solving della immagine di riferimento o della prima\n"
 
 #: src/core/command.c:4083
 #, c-format
@@ -11624,13 +11629,12 @@ msgid "lo must be strictly smaller than hi\n"
 msgstr "lo (basso) deve essere necessariamente inferiore di hi (alto)\n"
 
 #: src/core/command.c:4254
-#, fuzzy
 msgid "Level value is incorrect\n"
-msgstr "La Versione richiesta non è corretta\n"
+msgstr "Valore Livello è incorretto\n"
 
 #: src/core/command.c:4259
 msgid "Coeff value is incorrect\n"
-msgstr ""
+msgstr "Il valore Coeff è incorretto\n"
 
 #: src/core/command.c:4264
 msgid "Sigma value is incorrect\n"
@@ -11641,9 +11645,8 @@ msgid "Number of layers MUST be 1 or 3\n"
 msgstr "Il numero di canali DEVE essere 1 o 3\n"
 
 #: src/core/command.c:4284
-#, fuzzy
 msgid "Width and Height must be positive values.\n"
-msgstr "Ritaglio: x e y devono avere valori positivi.\n"
+msgstr "Larghezza e Altezza devono essere valori positivi.\n"
 
 #: src/core/command.c:4297
 msgid "new empty image"
@@ -11655,7 +11658,7 @@ msgid "Values must be positive and less than %d.\n"
 msgstr "I valori devono essere positivi e inferiori a %d.\n"
 
 #: src/core/command.c:4319 src/core/command.c:4750
-#, fuzzy, c-format
+#, c-format
 msgid "Value must be positive and less than %d.\n"
 msgstr "I valori devono essere positivi e inferiori a %d.\n"
 
@@ -11685,11 +11688,8 @@ msgstr ""
 "e %d.\n"
 
 #: src/core/command.c:4491
-#, fuzzy
 msgid "Option -out= is not available for sequences, ignoring\n"
-msgstr ""
-"Le opzioni per il nome del file di output non sono ammesse in questo "
-"contesto, verranno ignorate.\n"
+msgstr "L'opzione -out= non è disponibile per le sequenze, ignoro\n"
 
 #: src/core/command.c:4501
 msgid "find_hot must be applied on an one-channel master-dark frame"
@@ -11726,25 +11726,24 @@ msgid "Center of gravity coordinates are (%.3lf, %.3lf)\n"
 msgstr "Il centro di gravità delle coordinate è (%.3lf, %.3lf)\n"
 
 #: src/core/command.c:4794
-#, fuzzy
 msgid ""
 "Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum "
 "mask) or 3 (additive mask)\n"
-msgstr "Il tipo può essere 0 (media) o 1 (massima) protezione neutra\n"
+msgstr ""
+"Il tipo può essere 0 (media neutrale) o 1 (massima neutrale), 2 (massimo "
+"maschera) o 3 (maschera additiva)\n"
 
 #: src/core/command.c:4805
 msgid "Amount can only be [0, 1]\n"
-msgstr ""
+msgstr "L'importo può essere solo [0, 1]\n"
 
 #: src/core/command.c:4845 src/core/command.c:4889
-#, fuzzy
 msgid "Amount value must be in the [0, 4] range.\n"
-msgstr "Il valore di sfondo target deve essere nel range [0, 1]\n"
+msgstr "Il valore dell'importo deve essere compreso nell'intervallo [0, 4].\n"
 
 #: src/core/command.c:4851 src/core/command.c:4897
-#, fuzzy
 msgid "1/sigma value must be in the [0, 5] range.\n"
-msgstr "Il valore di sfondo target deve essere nel range [0, 1]\n"
+msgstr "Il valore 1/sigma deve essere compreso nell'intervallo [0, 5].\n"
 
 #: src/core/command.c:4971
 msgid "Polynomial degree order must be within the [1, 4] range.\n"
@@ -11755,38 +11754,32 @@ msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
 msgstr "smooth è inutilizzato con il modello polinomiale, ignoro.\n"
 
 #: src/core/command.c:5077
-#, fuzzy
 msgid "Sigma low must be positive.\n"
-msgstr "Il fattore di sfondo deve essere positivo\n"
+msgstr "Sigma basso deve essere positivo\n"
 
 #: src/core/command.c:5083
-#, fuzzy
 msgid "Sigma high must be positive.\n"
-msgstr "Selezione: x e y devono avere valori positivi.\n"
+msgstr "Sigma alto deve essere positivo.\n"
 
 #: src/core/command.c:5135
-#, fuzzy
 msgid "The second argument must be between 1 and the number of images.\n"
 msgstr ""
-"Il primo argomento deve essere compreso tra 1 e il numero delle immagini.\n"
+"Il secondo argomento deve essere compreso tra 1 e il numero delle immagini.\n"
 
 #: src/core/command.c:5141
-#, fuzzy
 msgid ""
 "The third argument must be larger or equal than the \"from\" argument.\n"
 msgstr ""
-"Il primo argomento deve essere compreso tra 1 e il numero delle immagini.\n"
+"Il terzo argomento deve essere più grande o uguale dell'argomento \"from\"\n"
 
 #: src/core/command.c:5147
-#, fuzzy
 msgid "The third argument is larger than the number of images.\n"
-msgstr ""
-"Il primo argomento deve essere compreso tra 1 e il numero delle immagini.\n"
+msgstr "Il terzo argomento deve essere maggiore del numero delle immagini\n"
 
 #: src/core/command.c:5148
-#, fuzzy, c-format
+#, c-format
 msgid "Re-adjusting to %d.\n"
-msgstr "Sto leggendo %s\n"
+msgstr "Riadatto a %d\n"
 
 #: src/core/command.c:5172 src/gui/sequence_list.c:627
 #, c-format
@@ -11801,12 +11794,12 @@ msgstr "Non posso copiare immagine di input, interruzione.\n"
 
 #: src/core/command.c:5219
 msgid "CieLAB"
-msgstr ""
+msgstr "CieLAB"
 
 #: src/core/command.c:5575
 #, c-format
 msgid "Reconstructing %s Bayer matrix.\n"
-msgstr ""
+msgstr "Ricostruisco %s matrice Bayer.\n"
 
 #: src/core/command.c:5780
 #, c-format
@@ -11815,52 +11808,53 @@ msgstr ""
 "Calcolo delle statistiche non riuscito per il canale %d (tutto nullo?).\n"
 
 #: src/core/command.c:5801 src/core/command.c:5806
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f\n"
 msgstr ""
-"%s livelli: Media: %0.1lf, Mediana: %0.1lf, Sigma: %0.1lf, Deviazione media: "
-"%0.1lf, Min: %0.1lf, Max: %0.1lf\n"
+"%s livelli: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: "
+"%0.1f, bgnoise:%0.1f\n"
 
 #: src/core/command.c:5818 src/core/command.c:5825
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 msgstr ""
-"%s livelli: Media: %0.1lf, Mediana: %0.1lf, Sigma: %0.1lf, Deviazione media: "
-"%0.1lf, Min: %0.1lf, Max: %0.1lf\n"
+"%s livelli: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: "
+"%0.1f, bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 
 #: src/core/command.c:5911
 #, c-format
 msgid "No image appears to be loaded, reloading from '%s'\n"
-msgstr ""
+msgstr "Nessuna immagine caricata, ricarico da'%s'\n"
 
 #: src/core/command.c:6014
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to save the JSON file %s: %s\n"
-msgstr "Creazione file di output SER ‘%s’ fallita\n"
+msgstr "Salvataggio JSON file %s: %s fallito\n"
 
 #: src/core/command.c:6017
 #, c-format
 msgid "Save metadata to the JSON file '%s'\n"
-msgstr ""
+msgstr "Salva metadati nel file JSON'%s'\n"
 
 #: src/core/command.c:6030
 msgid ""
 "json-glib was not found at build time, cannot proceed. Install and rebuild.\n"
 msgstr ""
+"json-glib non è stato trovato al momento della compilazione, impossibile "
+"procedere. Installa e ricostruisci.\n"
 
 #: src/core/command.c:6041
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d, %s = %s\n"
-msgstr "Immagine: %s\n"
+msgstr "Immagine %d, %s = %s\n"
 
 #: src/core/command.c:6050
-#, fuzzy
 msgid "This command can only run for FITS images\n"
-msgstr "Questo comando può essere solo applicato su immagini plate-solved.\n"
+msgstr "Questo comando può essere agire sono sulle immagini FITS\n"
 
 #: src/core/command.c:6066
 msgid "Conversion: no working directory set.\n"
@@ -11870,6 +11864,8 @@ msgstr "Conversione: nessuna cartella di lavoro impostata.\n"
 msgid ""
 "First argument is the converted sequence name and shall not start with a -\n"
 msgstr ""
+"Il primo argomento è il nome della sequenza convertito e non dovrebbe "
+"iniziare con un -\n"
 
 #: src/core/command.c:6124
 #, c-format
@@ -11893,6 +11889,8 @@ msgid ""
 "You should pass an extra argument -fitseq to convert your sequence to fitseq "
 "format.\n"
 msgstr ""
+"Dovresti passare un argomento extra -fitseq per convertire la tua sequenza "
+"in formato fitseq.\n"
 
 #: src/core/command.c:6166
 #, c-format
@@ -11952,9 +11950,8 @@ msgstr ""
 "interruzione.\n"
 
 #: src/core/command.c:6593 src/registration/registration.c:146
-#, fuzzy
 msgid "Two-Pass Global Star Alignment (deep-sky)"
-msgstr "Allineamento Global Star (cielo profondo)"
+msgstr "Allineamento Global Star a due passate (cielo profondo)"
 
 #: src/core/command.c:6596 src/registration/registration.c:144
 msgid "Global Star Alignment (deep-sky)"
@@ -11963,7 +11960,7 @@ msgstr "Allineamento Global Star (cielo profondo)"
 #: src/core/command.c:6604
 msgid ""
 "The -nostarlist option has an effect only when -2pass is used, ignoring\n"
-msgstr ""
+msgstr "L'opzione -nostarlist ha effetto solo quando si usa -2pass, ignoro\n"
 
 #: src/core/command.c:6613 src/core/processing.c:141
 #: src/registration/applyreg.c:624 src/registration/registration.c:1471
@@ -11993,6 +11990,8 @@ msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "upscaling can be applied. Aborting\n"
 msgstr ""
+"Quando l'interpolazione è impostata su Nessuna, le immagini devono avere le "
+"stesse dimensioni e non è possibile applicare l'upscaling. Interruzione\n"
 
 #. don't load it for command line execution
 #. to avoid problems with com.stars later on in the process
@@ -12035,12 +12034,12 @@ msgid "Registration: Applying existing data"
 msgstr "Registrazione: Applicazione dei dati esistenti"
 
 #: src/core/command.c:6950
-#, fuzzy
 msgid ""
 "Output normalization is allowed only with median or mean stacking, "
 "ignoring.\n"
 msgstr ""
-"La normalizzazione rapida è consentita solo con lo stacking medio, ignoro.\n"
+"La normalizzazione in output è consentita solo con lo stacking mediano o "
+"media, ignoro.\n"
 
 #: src/core/command.c:6956 src/core/command.c:6966 src/core/command.c:6974
 #: src/core/command.c:6982
@@ -12097,18 +12096,18 @@ msgstr ""
 "contesto, verranno ignorate.\n"
 
 #: src/core/command.c:7036
-#, fuzzy
 msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
-msgstr "La ponderazione è consentita solo con stacking medio, ignoro.\n"
+msgstr ""
+"La mappa di rejection può essere creata soltanto con lo stacking rejection, "
+"ignoro.\n"
 
 #: src/core/command.c:7038
-#, fuzzy
 msgid ""
 "Rejection maps can only be created if rejection has been activated, "
 "ignoring.\n"
 msgstr ""
-"La ponderazione è consentita solo se è stata attivata la normalizzazione, "
-"ignoro.\n"
+"La mappa di rejection può essere creata soltanto se il rejection è stato "
+"attivato, ignoro.\n"
 
 #: src/core/command.c:7046
 #, c-format
@@ -12130,6 +12129,9 @@ msgid ""
 "Stacking has detected registration data on layer %d with more than simple "
 "shifts. You should apply existing registration before stacking\n"
 msgstr ""
+"Lo stacking ha rilevato i dati di registrazione sul livello %d con "
+"spostamenti più che semplici. È necessario applicare la registrazione "
+"esistente prima dello stacking\n"
 
 #: src/core/command.c:7166
 #, c-format
@@ -12491,22 +12493,26 @@ msgstr "Impossibile analizzare le coordinate del bersaglio\n"
 
 #: src/core/command.c:8336
 msgid "Catalog can only be NOMAD or APASS for photometric usage\n"
-msgstr ""
+msgstr "Il catalogo può essere solo NOMAD o APASS per l'utilizzo fotometrico\n"
 
 #: src/core/command.c:8344
 msgid "Specifying a catalog has no effect for astrometry.net solving\n"
 msgstr ""
+"Specificare un catalogo non ha alcun effetto nella risoluzione astrometry."
+"net\n"
 
 #: src/core/command.c:8346
 msgid ""
 "Astrometry.net interaction relies on the missing WCSLIB software, cannot "
 "continue.\n"
 msgstr ""
+"L'interazione Astrometry.net dipende dal software WCSLIB mancante, non posso "
+"continuare\n"
 
 #: src/core/command.c:8362
-#, fuzzy, c-format
+#, c-format
 msgid "Using remote %s instead of local NOMAD catalogue\n"
-msgstr "Impossibile ottenere i dati dal catalogo locale, è installato?\n"
+msgstr "Uso il remoto %s al posto del catalogo NOMAD locale\n"
 
 #: src/core/command.c:8399
 msgid ""
@@ -12536,50 +12542,51 @@ msgstr ""
 
 #: src/core/command.c:8415
 msgid "Image is already plate solved. Nothing will be done.\n"
-msgstr ""
+msgstr "L'immagine è stata già risolta (plate solving). Inattivo.\n"
 
 #: src/core/command.c:8436 src/core/command.c:8460
-#, fuzzy
 msgid ""
 "Focal length and pixel size are only used for plate solving, ignored now\n"
 msgstr ""
 "la lunghezza focale e la dimensione dei pixel vengono utilizzati solo per il "
-"plate-solving, ora ignorate\n"
+"plate-solving, ignorate per ora\n"
 
 #: src/core/command.c:8439
-#, fuzzy, c-format
+#, c-format
 msgid "Using provided pixel size: %.2f\n"
-msgstr "Utilizzando la dimensione in pixel fornita: %f\n"
+msgstr "Uso la dimensione del pixel fornita: %.2f\n"
 
 #: src/core/command.c:8453
-#, fuzzy, c-format
+#, c-format
 msgid "Using pixel size from preferences: %.2f\n"
-msgstr "Utilizzo della dimensione dei pixel dalle preferenze: %f\n"
+msgstr "Utilizzo la dimensione dei pixel dalle preferenze: %.2f\n"
 
 #: src/core/command.c:8455
-#, fuzzy, c-format
+#, c-format
 msgid "Using pixel size from image: %.2f\n"
-msgstr "Usando la dimensione dei pixel dall’immagine: %f\n"
+msgstr "Uso la dimensione del pixel dall’immagine: %.2f\n"
 
 #: src/core/command.c:8463
-#, fuzzy, c-format
+#, c-format
 msgid "Using provided focal length: %.2f\n"
-msgstr "Utilizzando la lunghezza focale fornita: %f\n"
+msgstr "Uso la lunghezza focale fornita: %.2f\n"
 
 #: src/core/command.c:8477
-#, fuzzy, c-format
+#, c-format
 msgid "Using focal length from preferences: %.2f\n"
-msgstr "Utilizzo della lunghezza focale dalle preferenze: %f\n"
+msgstr "Uso della lunghezza focale dalle preferenze: %.2f\n"
 
 #: src/core/command.c:8479
-#, fuzzy, c-format
+#, c-format
 msgid "Using focal length from image: %.2f\n"
-msgstr "Usando la lunghezza focale dall’immagine: %f\n"
+msgstr "Uso la lunghezza focale dall’immagine: %.2f\n"
 
 #: src/core/command.c:8484 src/core/command.c:8496
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr ""
+"Gli argomenti sull'alterazione della magnitudine sono inutili per il plate-"
+"solving astrometry.net\n"
 
 #: src/core/command.c:8551 src/core/command.c:8646 src/core/command.c:8701
 #: src/core/command.c:8819
@@ -12587,15 +12594,15 @@ msgid "This command only works on plate solved images\n"
 msgstr "Questo comando può essere solo applicato su immagini plate-solved.\n"
 
 #: src/core/command.c:8651
-#, fuzzy
 msgid ""
 "This command only works on images that have observation date information\n"
-msgstr "Questo comando può essere solo applicato su immagini plate-solved.\n"
+msgstr ""
+"Questo comando funziona solo su immagini che hanno informazioni sulla data "
+"di osservazione\n"
 
 #: src/core/command.c:8678
-#, fuzzy
 msgid "Could not compute image resolution\n"
-msgstr "Non posso copiare l’immagine, interruzione\n"
+msgstr "Non posso calcolare la risoluzione di immagine\n"
 
 #: src/core/command.c:8752
 #, c-format
@@ -12614,14 +12621,14 @@ msgstr ""
 "non questo comando\n"
 
 #: src/core/command.c:8809
-#, fuzzy, c-format
+#, c-format
 msgid "String in: %s\n"
-msgstr "Avvio dello script %s\n"
+msgstr "Stringa in: %s\n"
 
 #: src/core/command.c:8810
-#, fuzzy, c-format
+#, c-format
 msgid "String out: %s\n"
-msgstr "Avvio dello script %s\n"
+msgstr "Stringa out: %s\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -12635,7 +12642,6 @@ msgstr ""
 "b>"
 
 #: src/core/command_def.h:7
-#, fuzzy
 msgid ""
 "Stretches the image to show faint objects using an hyperbolic arcsin "
 "transformation. The mandatory argument <b>stretch</b>, typically between 1 "
@@ -12654,7 +12660,8 @@ msgstr ""
 "valore pixel normalizzato di [0, 1]. Infine l’opzione <b>-human</b> consente "
 "di utilizzare i pesi dell’efficienza luminosa dell’occhio umano per "
 "calcolare la luminanza utilizzata per calcolare lo stretch per ciascun "
-"pixel, invece della semplice media dei valori dei pixel dei canali"
+"pixel, invece della semplice media dei valori dei pixel dei canali. Questo "
+"metodo preserva la luminosità dallo spazio colore L*a*b"
 
 #: src/core/command_def.h:8
 msgid ""
@@ -12685,6 +12692,16 @@ msgid ""
 "brightness range, 0.7 for <b>HP</b>, 0 for <b>LP</b> are used but can be "
 "changed with the options of the same names"
 msgstr ""
+"Applicazione dello stretch iperbolico generalizzato con un punto di "
+"simmetria SP definito come k.sigma dalla mediana di ciascun canale (il "
+"valore <b>shadowsclip</b> fornito qui è k e può essere negativo). Per "
+"impostazione predefinita, SP e lo stretch vengono calcolati per canale; SP "
+"può essere calcolato come media dei canali immagine passando <b>-linked</b>. "
+"La quantità di stretch <b>D</b> è fornita nel secondo argomento obbligatorio."
+"\n"
+"Vengono utilizzati valori impliciti di 13 per <b>B</b>, che lo rendono molto "
+"focalizzato sulla gamma di luminosità di SP, 0,7 per <b>HP</b>, 0 per <b>LP</"
+"b> ma possono essere cambiato con le opzioni con gli stessi nomi"
 
 #: src/core/command_def.h:11
 msgid "Returns the background level of the image loaded in memory"
@@ -12702,6 +12719,10 @@ msgid ""
 "argument <b>-sum</b> is passed, then the sum of pixels is computed, while it "
 "is the average when no optional argument is provided"
 msgstr ""
+"Calcola il binning numerico dell'immagine in memoria (somma dei pixel 2x2, "
+"3x3..., come il binning analogico delle telecamere CCD). Se viene passato "
+"l'argomento facoltativo <b>-sum</b>, viene calcolata la somma dei pixel, "
+"mentre è la media quando non viene fornito alcun argomento facoltativo"
 
 #: src/core/command_def.h:14
 msgid ""
