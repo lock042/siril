@@ -229,9 +229,9 @@ static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, flo
 	}
 
 	if (ngood < 20)
-		siril_log_color_message(_("The photometric color correction has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
+		siril_log_color_message(_("The photometric color calibration has found a solution which may not be perfect because it did not rely on many stars\n"), ngood < 5 ? "red" : "salmon");
 	else if (deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1)
-		siril_log_message(_("The photometric color correction seems to have found an imprecise solution, consider correcting the image gradient first\n"));
+		siril_log_message(_("The photometric color calibration seems to have found an imprecise solution, consider correcting the image gradient first\n"));
 	free(data[RED]);
 	free(data[GREEN]);
 	free(data[BLUE]);
@@ -399,7 +399,7 @@ int photometric_cc(struct photometric_cc_data *args) {
 gpointer photometric_cc_standalone(gpointer p) {
 	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
 	if (!has_wcs(args->fit)) {
-		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
+		siril_log_color_message(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"), "red");
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
@@ -417,7 +417,7 @@ gpointer photometric_cc_standalone(gpointer p) {
 	center2wcs(args->fit, &ra, &dec);
 	double resolution = get_wcs_image_resolution(args->fit);
 	if ((ra == -1.0 && dec == -1.0) || resolution <= 0.0) {
-		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
+		siril_log_color_message(_("Cannot run the standalone photometric color calibration on this image because it has no WCS data or it is not supported\n"), "red");
 		siril_add_idle(end_generic, NULL);
 		return GINT_TO_POINTER(1);
 	}
