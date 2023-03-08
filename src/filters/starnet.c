@@ -197,6 +197,18 @@ starnet_version starnet_executablecheck(gchar* executable) {
 		}
 	}
 	// Not V1: execute file and test output to determine version
+	// Get the starnet installation directory and chdir to it
+	gchar *dir = g_path_get_dirname(com.pref.starnet_exe);
+	gchar *currentdir = g_get_current_dir();
+	int retval2 = g_chdir(dir);
+	if (retval2) {
+		retval = NIL;
+		g_free(dir);
+		g_free(currentdir);
+		return NIL;
+	}
+	g_free(dir);
+
 	int nb = 0;
 	test_argv[nb++] = executable;
 	test_argv[nb++] = g_strdup("--version");
@@ -257,6 +269,15 @@ starnet_version starnet_executablecheck(gchar* executable) {
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
 	FreeConsole(); // and closing it
 #endif
+
+	retval2 = g_chdir(currentdir);
+	if (retval2) {
+		retval2 = g_chdir(com.wd);
+		if (retval2) {
+			siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
+		}
+	}
+	g_free(currentdir);
 
 END:
 	g_free(v1dir);
