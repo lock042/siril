@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-07 09:09+0100\n"
-"PO-Revision-Date: 2023-03-06 21:44+0000\n"
+"PO-Revision-Date: 2023-03-08 12:07+0000\n"
 "Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
-"Language-Team: Italian <https://weblate.pixls.us/projects/siril/siril-"
-"application/it/>\n"
+"Language-Team: Italian <https://weblate.pixls.us/projects/siril/"
+"siril-application/it/>\n"
 "Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1116,7 +1116,6 @@ msgid "Use a manually defined PSF based on the parameters chosen."
 msgstr "Usa una PSF definita manualmente in base ai parametri scelti."
 
 #: src/gui/siril3.glade:6020
-#, fuzzy
 msgid ""
 "Select the blind PSF estimation method to use. ℓ0 descent is the default and "
 "usually the best option."
@@ -2915,7 +2914,6 @@ msgstr ""
 "fornire un valore con un errore che non superi il 20%."
 
 #: src/gui/siril3.glade:11799
-#, fuzzy
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning."
@@ -8014,7 +8012,6 @@ msgid "Location of local astrometry.net solver"
 msgstr "Posizione del risolutore locale astrometry.net"
 
 #: src/gui/siril3.glade:28911
-#, fuzzy
 msgid ""
 "Select astrometry.net location.\n"
 "On UNIX-based systems, it is generally in the PATH variable and not "
@@ -8025,7 +8022,8 @@ msgstr ""
 "Seleziona la posizione di astrometry.net.\n"
 "Sui sistemi basati su UNIX, è generalmente nella variabile PATH e non è "
 "necessario.\n"
-"Su Windows, devi puntare alla posizione della cartella cygwin_ansvr."
+"Su Windows, devi puntare alla posizione della cartella cygwin_ansvr solo se "
+"non è installata in %LOCALAPPDATA%."
 
 #: src/gui/siril3.glade:28918
 msgid "Select astrometry.net installation directory"
@@ -10298,7 +10296,7 @@ msgstr "Trovati %d oggetti del Sistema Solare con magnitudine <%0.1lf\n"
 #: src/algos/search_objects.c:317
 #, c-format
 msgid "Found %s at coordinates: %s, %s\n"
-msgstr "Trovato %s alle coordinato: %s,%s\n"
+msgstr "Trovato %s alle coordinate: %s,%s\n"
 
 #: src/algos/search_objects.c:365
 #, c-format
@@ -10676,14 +10674,16 @@ msgstr ""
 #: src/core/command.c:498
 msgid "Will apply generalised Anscombe variance stabilising transform.\n"
 msgstr ""
+"Sarà applicata la trasformata generalizzata a varianza stabilizzata di "
+"Anscombe.\n"
 
 #: src/core/command.c:500
 msgid "Will carry out final stage DA3D denoising.\n"
-msgstr ""
+msgstr "Sarà eseguita la fase finale DA3D Denoising.\n"
 
 #: src/core/command.c:502
 msgid "Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"
-msgstr ""
+msgstr "Non saranno eseguiti ne DA3D ne SOS. Iterazioni SOS impostate su 1.\n"
 
 #: src/core/command.c:542 src/core/command.c:610
 msgid ""
@@ -10706,13 +10706,12 @@ msgstr ""
 "libtiff.\n"
 
 #: src/core/command.c:586 src/core/command.c:959 src/core/command.c:1855
-#, fuzzy
 msgid "Error: cannot open sequence\n"
-msgstr "Non posso aprire una sequenza da qui\n"
+msgstr "Errore: Non posso aprire la sequenza\n"
 
 #: src/core/command.c:773
 msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
-msgstr ""
+msgstr "Errore, richiede almeno 4 argomenti per specificare i 4 file!\n"
 
 #: src/core/command.c:796
 msgid "Error loading files!\n"
@@ -10720,28 +10719,27 @@ msgstr "Errore nel caricamento dei file!\n"
 
 #: src/core/command.c:801
 msgid "Reconstructing RGGB Bayer matrix.\n"
-msgstr ""
+msgstr "Ricostruisco la matrice Bayer RGGB.\n"
 
 #: src/core/command.c:804
 msgid "Reconstructing BGGR Bayer matrix.\n"
-msgstr ""
+msgstr "Ricostruisco la matrice Bayer BGGR.\n"
 
 #: src/core/command.c:807
 msgid "Reconstructing GBRG Bayer matrix.\n"
-msgstr ""
+msgstr "Ricostruisco la matrice Bayer GBRG.\n"
 
 #: src/core/command.c:810
 msgid "Reconstructing GRBG Bayer matrix.\n"
-msgstr ""
+msgstr "Ricostruisco la matrice Bayer GRBG.\n"
 
 #: src/core/command.c:812 src/core/command.c:5569
 msgid "Invalid Bayer matrix specified!\n"
-msgstr ""
+msgstr "Matrice Bayer non valida specificata!\n"
 
 #: src/core/command.c:823
-#, fuzzy
 msgid "Unsaved Bayer pattern merge"
-msgstr "indice del modello Bayer"
+msgstr "Unione pattern Bayer non salvata"
 
 #: src/core/command.c:824
 msgid "Bayer pattern merge"
@@ -10764,16 +10762,17 @@ msgstr "Entropia: %.3f\n"
 #: src/core/command.c:965
 msgid "Reference image is undefined, the following would be used:\n"
 msgstr ""
+"L'immagine di riferimento non è definita, verrebbe utilizzato quanto segue:\n"
 
 #: src/core/command.c:973
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: '%s'\n"
-msgstr "Immagine: %s\n"
+msgstr "Immagine: %d: '%s'\n"
 
 #: src/core/command.c:975
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d\n"
-msgstr "Immagine: %s\n"
+msgstr "Immagine %d\n"
 
 #: src/core/command.c:978
 msgid ""
@@ -10785,6 +10784,7 @@ msgstr ""
 #: src/core/command.c:1007
 msgid "Error: will not clear the PSF while a sequence is running.\n"
 msgstr ""
+"Errore: la PSF non sarà cancellata mentre una sequenza è in esecuzione.\n"
 
 #: src/core/command.c:1016
 msgid "Deconvolution kernel cleared.\n"
@@ -10799,57 +10799,57 @@ msgid ""
 "Error: image or sequence must be loaded to carry out blind PSF estimation. "
 "Aborting...\n"
 msgstr ""
+"Errore: l'immagine o la sequenza devono essere caricate per eseguire la "
+"stima cieca PSF. Interruzione ...\n"
 
 #: src/core/command.c:1038
 msgid "Blind kernel estimation:\n"
-msgstr ""
+msgstr "Stima cieca del kernel:\n"
 
 #: src/core/command.c:1044
 msgid "ℓ0 descent prior method\n"
-msgstr ""
+msgstr "Metodo precedente ℓ0 descent\n"
 
 #: src/core/command.c:1048
 msgid "spectral irregularity method\n"
-msgstr ""
+msgstr "Metodo di irregolarità spettrale\n"
 
 #: src/core/command.c:1052
 msgid "multiscale estimation\n"
 msgstr "Stima multiscala\n"
 
 #: src/core/command.c:1060 src/core/command.c:1340 src/core/command.c:1445
-#, fuzzy
 msgid "Error in alpha parameter: must be between 0 and 1e5, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro Alpha: deve essere compreso tra 0 e 1e5, interruzione.\n"
 
 #: src/core/command.c:1075
-#, fuzzy
 msgid ""
 "Error in compensation factor parameter: must be between 1 and 1e5, "
 "aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro fattore di compensazione: deve essere compreso tra 1 e "
+"1e5, interruzione.\n"
 
 #: src/core/command.c:1088 src/core/command.c:1128 src/core/command.c:1172
-#, fuzzy
 msgid ""
 "Error in ks parameter: must be odd and between 3 and minimum of (image "
 "height, image width): aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro ks: deve essere dispari e tra 3 e il minimo (altezza "
+"dell'immagine, larghezza dell'immagine): interruzione.\n"
 
 #: src/core/command.c:1110
 msgid ""
 "Error: requested to generate PSF from stars but no stars have been selected. "
 "Run findstar first.\n"
 msgstr ""
+"Errore: richiesto di generare PSF dalle stelle ma non sono state "
+"selezionate. Esegui findstar (trovatselle) prima.\n"
 
 #: src/core/command.c:1120
 msgid "symmetric kernel\n"
-msgstr ""
+msgstr "kernel simmetrico\n"
 
 #: src/core/command.c:1145
 msgid "Manual PSF generation:\n"
@@ -10857,11 +10857,11 @@ msgstr "Generazione PSF manuale:\n"
 
 #: src/core/command.c:1152
 msgid "Gaussian PSF\n"
-msgstr ""
+msgstr "PSF Gaussiana\n"
 
 #: src/core/command.c:1156
 msgid "Moffat PSF\n"
-msgstr ""
+msgstr "PSF Moffat\n"
 
 #: src/core/command.c:1160
 msgid "Disc PSF\n"
@@ -10869,91 +10869,74 @@ msgstr "Disco PSF\n"
 
 #: src/core/command.c:1164
 msgid "Airy disc PSF\n"
-msgstr ""
+msgstr "PSF Airy disc\n"
 
 #: src/core/command.c:1185 src/core/command.c:1289
-#, fuzzy
 msgid "Error in fwhm parameter: must be between 0 and 100, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro fwhm: deve essere compreso tra 0 e 100, interruzione.\n"
 
 #: src/core/command.c:1198
-#, fuzzy
 msgid "Error in ratio parameter: must be between -360 and +360, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
+"Errore nel parametro rapporto: deve essere compreso tra -360 e +360, "
 "interruzione.\n"
 
 #: src/core/command.c:1211
-#, fuzzy
 msgid "Error in ratio parameter: must be between 0 and 5, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro rapporto: deve essere compreso tra 0 e 5, interruzione."
+"\n"
 
 #: src/core/command.c:1224
-#, fuzzy
 msgid "Error in beta parameter: must be between 0 and 10, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro beta: deve essere compreso tra 0 e 10, interruzione.\n"
 
 #: src/core/command.c:1237
-#, fuzzy
 msgid "Error in dia parameter: must be between 0 and 5000, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro dia: deve essere compreso tra 0 e 5000, interruzione.\n"
 
 #: src/core/command.c:1250
-#, fuzzy
 msgid "Error in fl parameter: must be between 0 and 60000, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro fl: deve essere compreso tra 0 e 60000, interruzione.\n"
 
 #: src/core/command.c:1263
-#, fuzzy
 msgid "Error in wl parameter: must be between 100 and 30000, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro wl: deve essere compreso tra 100 e 30000, interruzione."
+"\n"
 
 #: src/core/command.c:1276
-#, fuzzy
 msgid "Error in fwhm parameter: must be between 1 and 30, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro fwhm: deve essere compreso tra 1 e 30, interruzione.\n"
 
 #: src/core/command.c:1305
 msgid "Load PSF from file:\n"
-msgstr ""
+msgstr "Carica PSF dal file:\n"
 
 #: src/core/command.c:1308
 msgid "Error loading PSF.\n"
 msgstr "Errore nel caricamento PFS.\n"
 
 #: src/core/command.c:1353 src/core/command.c:1460
-#, fuzzy
 msgid "Error in iterations parameter: must be between 1 and 1e5, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
+"Errore nel parametro iterazioni: deve essere compreso tra 1 e 1e5, "
 "interruzione.\n"
 
 #: src/core/command.c:1366 src/core/command.c:1475
-#, fuzzy
 msgid "Error in stop parameter: must be between 0 and 1, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
-"interruzione.\n"
+"Errore nel parametro stop: deve essere compreso tra 0 e 1, interruzione.\n"
 
 #: src/core/command.c:1380 src/core/command.c:1491
-#, fuzzy
 msgid "Error in step size parameter: must be between 0 and 1, aborting.\n"
 msgstr ""
-"Valori di parametro errati. Il raggio deve essere compreso tra 3 e 50, "
+"Errore nel parametro dimensione: deve essere compreso tra 0 e 1, "
 "interruzione.\n"
 
 #: src/core/command.c:1594
@@ -11013,40 +10996,36 @@ msgid "Missing argument to %s, aborting.\n"
 msgstr "Argomento mancante a %s, interruzione.\n"
 
 #: src/core/command.c:1791
-#, fuzzy
 msgid "Error: BP must be specified between 0.0 and 1.0 using -BP=\n"
-msgstr "SP deve essere compreso tra 0 e 1\n"
+msgstr "Errore nel parametro BP: deve essere compreso tra 0.0 e 1.0 uso -BP=\n"
 
 #: src/core/command.c:1795
 msgid "Error: BP must be >= 0.0 and <= 1.0.\n"
-msgstr ""
+msgstr "Errore: BP deve essere >=0.0 e <=1.0\n"
 
 #: src/core/command.c:1805
-#, fuzzy
 msgid "Error: D must be specified between 0.0 and 1.0 using -D=\n"
-msgstr "D deve essere compreso tra 0 e 10\n"
+msgstr "Errore; D deve essere specificato tra 0.0 e 1.0 uso -D=\n"
 
 #: src/core/command.c:1811
 msgid "Error: B must be >= 0.0 and <= 15.0.\n"
-msgstr ""
+msgstr "Errore: B deve essere >=0.0 e <=15.0.\n"
 
 #: src/core/command.c:1818
-#, fuzzy
 msgid "Error: D must be > 0.0 and <= 10.0.\n"
-msgstr "D deve essere compreso tra 0 e 10\n"
+msgstr "Errore: D deve essere >0.0 e <=10.0\n"
 
 #: src/core/command.c:1822
-#, fuzzy
 msgid "Error: SP must be >= 0.0 and <= 1.0.\n"
-msgstr "SP deve essere compreso tra 0 e 1\n"
+msgstr "Errore: SP deve essere >=0-0 e <=1.0.\n"
 
 #: src/core/command.c:1826
 msgid "Error: LP must be >= 0.0 and <= SP.\n"
-msgstr ""
+msgstr "Errore: LP deve essere >= 0.0 e <=SP.\n"
 
 #: src/core/command.c:1830
 msgid "Error: HP must be >= SP and <= 1.0.\n"
-msgstr ""
+msgstr "Errore: HP deve essere >= SP e <= 1.0.\n"
 
 #: src/core/command.c:1989 src/core/command.c:7987 src/filters/wavelets.c:255
 #: src/filters/wavelets.c:325
@@ -11062,14 +11041,12 @@ msgid "Wavelet: type must be %d or %d\n"
 msgstr "Wavelet: il tipo deve essere %d o %d\n"
 
 #: src/core/command.c:2042
-#, fuzzy
 msgid "Low value must be in the [0, 1] range.\n"
-msgstr "Il valore di sfondo target deve essere nel range [0, 1]\n"
+msgstr "Il valore Basso deve essere nell'intervallo [0, 1].\n"
 
 #: src/core/command.c:2047
-#, fuzzy
 msgid "High value must be in the [0, 1] range.\n"
-msgstr "Il valore di sfondo target deve essere nel range [0, 1]\n"
+msgstr "Il valore Alto deve essere nell'intervallo [0, 1].\n"
 
 #: src/core/command.c:2078
 msgid "Stretch must be greater than or equal to 1\n"
@@ -11176,12 +11153,17 @@ msgid ""
 "This command is only supported with FITS and TIFF, able to contain "
 "orientation information\n"
 msgstr ""
+"Questo comando è supportato solo con FITS e TIFF, in grado di contenere "
+"informazioni di orientamento\n"
 
 #: src/core/command.c:2474
+#, fuzzy
 msgid ""
 "This command is only supported with single FITS images, for the first HDU, "
 "not a FITS cube.\n"
 msgstr ""
+"Questo comando è supportato solo con immagini FITS singole, per la prima "
+"HDU, non un cubo FITS\n"
 
 #: src/core/command.c:2481 src/core/command.c:2495 src/core/command.c:4533
 #: src/core/command.c:8774 src/pixelMath/pixel_math_runner.c:1092
@@ -11191,16 +11173,18 @@ msgstr "Impossibile aprire il file: %s\n"
 
 #: src/core/command.c:2487 src/core/command.c:2516
 msgid "Image data is already bottom-up\n"
-msgstr ""
+msgstr "I dati dell'immagine sono già dal basso verso l'alto\n"
 
 #: src/core/command.c:2493 src/core/command.c:2519
 msgid "Mirroring image to convert to bottom-up data\n"
 msgstr ""
+"Capovolgo specularmente l'immagine per convertire i dati dal basso verso l'"
+"alto\n"
 
 #: src/core/command.c:2505
-#, fuzzy, c-format
+#, c-format
 msgid "Could not save mirrored image: %s\n"
-msgstr "Impossibile aprire il file: %s\n"
+msgstr "Non posso salvare l'immagine capovolta: %s\n"
 
 #: src/core/command.c:2545 src/core/command.c:3742 src/core/command.c:3749
 #: src/core/command.c:3754 src/core/command.c:4994 src/core/command.c:5003
@@ -11240,20 +11224,17 @@ msgid "unlinked"
 msgstr "scollegato"
 
 #: src/core/command.c:2750
-#, fuzzy
 msgid "Factor must be a number greater than 0.\n"
-msgstr "Ritaglio: larghezza e altezza devono essere maggiori di 0.\n"
+msgstr "Il Fattore deve essere un numero maggiore di 0.\n"
 
 #: src/core/command.c:2793
-#, fuzzy, c-format
+#, c-format
 msgid "Scale %lf not allowed. Should be between 0.0 and 5.0.\n"
-msgstr ""
-"Numero massimo di stelle %s non consentito. Dovrebbe essere compreso tra %d "
-"e %d.\n"
+msgstr "Scala %lf non consentita. Dovrebbe essere tra 0.0 e 5.0.\n"
 
 #: src/core/command.c:2797
 msgid "Scale is 1.0. Not doing anything.\n"
-msgstr ""
+msgstr "La scala è 1.0. Inattivo.\n"
 
 #: src/core/command.c:2832 src/core/command.c:2937 src/core/command.c:6494
 #: src/core/command.c:6581 src/core/command.c:6865
@@ -11264,7 +11245,7 @@ msgstr "Tipo di trasformazione sconosciuta %s, interruzione.\n"
 #: src/core/command.c:2841
 #, c-format
 msgid "Resampling to %d x %d pixels with %s interpolation\n"
-msgstr ""
+msgstr "Ricampiono a %d x %d pixel con interpolazione %s\n"
 
 #: src/core/command.c:2861 src/core/siril.c:278 src/filters/rgradient.c:238
 msgid "This process cannot be applied to 8b images\n"
@@ -11287,11 +11268,9 @@ msgstr ""
 "risultante verrà ritagliata.\n"
 
 #: src/core/command.c:2905
-#, fuzzy, c-format
+#, c-format
 msgid "Angle %lf not allowed. Should be between 0.0 and 360.0.\n"
-msgstr ""
-"Numero massimo di stelle %s non consentito. Dovrebbe essere compreso tra %d "
-"e %d.\n"
+msgstr "Angolo %lf non consentito. Dovrebbe essere tra 0.0 e 360.0.\n"
 
 #: src/core/command.c:2943
 msgid "-nocrop option is not valid if a selection is active. Ignoring\n"
@@ -11299,7 +11278,7 @@ msgstr "L’opzione -nocrop non è valida se è attiva una selezione. Ignoro\n"
 
 #: src/core/command.c:2953
 msgid "Angle is 0.0 or 360.0 degrees. Doing nothing...\n"
-msgstr ""
+msgstr "L'angolo è di 0.0 o 360.0 gradi. Inattivo...\n"
 
 #: src/core/command.c:3031 src/core/command.c:3257
 msgid "Wrong magnitude value.\n"
@@ -11343,14 +11322,14 @@ msgid "minimum value must be smaller than the maximum\n"
 msgstr "il valore minimo deve essere inferiore al massimo\n"
 
 #: src/core/command.c:3199
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera "
 "conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"
 msgstr ""
 "Raggio dell’anello di sfondo locale: da %.1f a %.1f, apertura: %.1f (%s), "
-"gain di conversione della fotocamera: %f e-/ADU, utilizzando pixel con "
-"valori ]%d, %d[\n"
+"gain di conversione della fotocamera: %f e-/ADU, utilizzo pixel con valori ]"
+"%f, %f[\n"
 
 #: src/core/command.c:3203
 msgid "forced"
@@ -11396,13 +11375,13 @@ msgstr ""
 "interruzione\n"
 
 #: src/core/command.c:3331
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Wrong parameter values. Minimum beta must be greater than or equal to 0.0 "
 "and less than %.0f, aborting\n"
 msgstr ""
-"Valori di parametro errati. Sigma deve essere maggiore di 0,05, "
-"interruzione\n"
+"Valori di parametro errati. Il minimo beta deve essere maggiore o uguale a "
+"0.0 e minore di %.0f, interruzione\n"
 
 #: src/core/command.c:3342
 msgid ""
@@ -11438,9 +11417,9 @@ msgstr ""
 "interruzione.\n"
 
 #: src/core/command.c:3378 src/core/command.c:3385 src/core/command.c:3392
-#, fuzzy, c-format
+#, c-format
 msgid "Wrong parameter value %s.\n"
-msgstr "Parametri errati.\n"
+msgstr "Valori di Parametro %s errati.\n"
 
 #: src/core/command.c:3396
 msgid "Resetting findstar parameters to default values.\n"
@@ -11452,9 +11431,9 @@ msgid "sigma = %3.2f\n"
 msgstr "sigma = %3.2f\n"
 
 #: src/core/command.c:3420
-#, fuzzy, c-format
+#, c-format
 msgid "roundness range = [%f, %f]\n"
-msgstr "rotondità = %3.2f\n"
+msgstr "Range di rotondità = [%f, %f]\n"
 
 #: src/core/command.c:3422
 #, c-format
@@ -11469,16 +11448,16 @@ msgstr "raggio = %d\n"
 #: src/core/command.c:3430
 #, c-format
 msgid "amplitude range = [%f, %f]\n"
-msgstr ""
+msgstr "range di amplitudine = [%f, %f]\n"
 
 #: src/core/command.c:3432
 msgid "amplitude range unlimited\n"
-msgstr ""
+msgstr "gamma di ampiezza illimitata\n"
 
 #: src/core/command.c:3437
 #, c-format
 msgid "convergence = %d\n"
-msgstr ""
+msgstr "convergenza = %d\n"
 
 #: src/core/command.c:3439
 #, c-format
@@ -11496,14 +11475,14 @@ msgid "relax = %s\n"
 msgstr "allenta = %s\n"
 
 #: src/core/command.c:3445
-#, fuzzy, c-format
+#, c-format
 msgid "profile = %s\n"
-msgstr "allenta = %s\n"
+msgstr "profilo = %s\n"
 
 #: src/core/command.c:3448
-#, fuzzy, c-format
+#, c-format
 msgid "minimum beta = %3.2f\n"
-msgstr "sigma = %3.2f\n"
+msgstr "minimo beta = %3.2f\n"
 
 #: src/core/command.c:3457
 msgid "Reference magnitude unset for sequence\n"
@@ -11522,9 +11501,8 @@ msgid "There is an unmatched $. Please check the expression.\n"
 msgstr "C’è un $ non corrispondente. Si prega di controllare l’espressione.\n"
 
 #: src/core/command.c:3514 src/core/command.c:3519
-#, fuzzy
 msgid "Rescale can only be done in the [0, 1] range.\n"
-msgstr "Il valore di sfondo target deve essere nel range [0, 1]\n"
+msgstr "Il Rescale può essere eseguito solo nell'intervallo [0, 1].\n"
 
 #: src/core/command.c:3587
 msgid "Image must have same dimension\n"
@@ -11544,9 +11522,8 @@ msgstr ""
 "Si prega di fornire il numero del canale che inizia da 0 per il rosso\n"
 
 #: src/core/command.c:3724 src/core/command.c:3764 src/core/command.c:3778
-#, fuzzy
 msgid "The given coordinates are not in the image, aborting\n"
-msgstr "Non posso caricare l’immagine, interruzione.\n"
+msgstr "Le coordinate fornite non sono nell'immagine, interruzione\n"
 
 #: src/core/command.c:3729
 msgid ""
@@ -11561,6 +11538,8 @@ msgid ""
 "The reference image of the sequence does not have the WCS information "
 "required for star selection by equatorial coordinates\n"
 msgstr ""
+"L'immagine di riferimento della sequenza non ha le informazioni WCS "
+"richieste per la selezione delle stelle mediante coordinate equatoriali\n"
 
 #: src/core/command.c:3781
 #, c-format
@@ -11568,17 +11547,17 @@ msgid "Coordinates of the star: %.1f, %.1f\n"
 msgstr "Coordinate della stella: %.1f,%.1f\n"
 
 #: src/core/command.c:3796
-#, fuzzy
 msgid "Arguments are not optional when called from a script\n"
 msgstr ""
-"gli argomenti non sono facoltativi quando vengono chiamati dallo script: "
-"nome sequenza e numero canale\n"
+"gli argomenti non sono facoltativi quando vengono chiamati dallo script:\n"
 
 #: src/core/command.c:3800
 msgid ""
 "Arguments are optional only if a sequence is already loaded and selection "
 "around a star made\n"
 msgstr ""
+"Gli argomenti sono opzionali solo se una sequenza è già caricata e la "
+"selezione attorno a una stella fatta\n"
 
 #: src/core/command.c:3839 src/core/command.c:3894
 #, c-format
@@ -11592,20 +11571,20 @@ msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "Elaboro la PSF sulla sequenza, livello %d\n"
 
 #: src/core/command.c:3908
-#, fuzzy
 msgid "Missing argument to command\n"
-msgstr "Argomento mancante a %s, interruzione.\n"
+msgstr "Argomento mancante al comando\n"
 
 #: src/core/command.c:3923
-#, fuzzy
 msgid "Could not find stars in the first image, aborting.\n"
-msgstr "Non posso caricare l’immagine, interruzione.\n"
+msgstr "Non sono state trovare stelle nella prima immagine, interruzione.\n"
 
 #: src/core/command.c:3933
 #, c-format
 msgid ""
 "Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"
 msgstr ""
+"Imposta l'anello fotometrico circolare interno ed esterno a %.1f e %.1f(FWHM "
+"è %f)\n"
 
 #: src/core/command.c:3941 src/gui/nina_light_curve.c:108
 #, c-format
