@@ -510,6 +510,14 @@ int process_denoise(int nb){
 
 int process_starnet(int nb){
 #ifdef HAVE_LIBTIFF
+	if (!com.pref.starnet_exe || com.pref.starnet_exe[0] == '\0') {
+		siril_log_color_message(_("Error: no StarNet executable set.\n"), "red");
+		return CMD_FILE_NOT_FOUND;
+	}
+	if (starnet_executablecheck(com.pref.starnet_exe) == NIL) {
+		siril_log_color_message(_("Error: StarNet executable (%s) is not valid.\n"), "red", com.pref.starnet_exe);
+		return CMD_GENERIC_ERROR;
+	}
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->linear = FALSE;
@@ -538,7 +546,7 @@ int process_starnet(int nb){
 			double stride = g_ascii_strtod(arg, &end);
 			int intstride = stride;
 			if (arg == end) error = TRUE;
-			else if ((intstride < 2.0) || (intstride > 256) || (intstride % 2)) {
+			else if ((intstride < 2.0) || (intstride > 512) || (intstride % 2)) {
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
 				free(starnet_args);
 				return CMD_ARG_ERROR;
@@ -571,6 +579,15 @@ int process_starnet(int nb){
 
 int process_seq_starnet(int nb){
 #ifdef HAVE_LIBTIFF
+	if (!com.pref.starnet_exe || com.pref.starnet_exe[0] == '\0') {
+		siril_log_color_message(_("Error: no StarNet executable set.\n"), "red");
+		return CMD_FILE_NOT_FOUND;
+	}
+	if (starnet_executablecheck(com.pref.starnet_exe) == NIL) {
+		siril_log_color_message(_("Error: StarNet executable (%s) is not valid.\n"), "red", com.pref.starnet_exe);
+		return CMD_GENERIC_ERROR;
+	}
+	sequence *seq = load_sequence(word[1], NULL);
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	if (!starnet_args)
 		return CMD_ALLOC_ERROR;
@@ -579,9 +596,9 @@ int process_seq_starnet(int nb){
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
 	starnet_args->follow_on = FALSE;
-	starnet_args->starnet_fit = &gfit;
+//	starnet_args->starnet_fit = &gfit;
 	gboolean error = FALSE;
-	starnet_args->seq = load_sequence(word[1], NULL);
+	starnet_args->seq = seq;
 	if (!starnet_args->seq) {
 		siril_log_message(_("Error: cannot open sequence\n"));
 		free(starnet_args);
