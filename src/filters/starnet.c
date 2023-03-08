@@ -19,7 +19,7 @@
 */
 
 // Comment out this #define before public release
-#define STARNET_DEBUG
+//#define STARNET_DEBUG
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -219,7 +219,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, test_argv, NULL,
 			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
-			G_SPAWN_LEAVE_DESCRIPTORS_OPEN,
+			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			NULL, &error);
 
