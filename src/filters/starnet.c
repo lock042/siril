@@ -314,7 +314,7 @@ gpointer do_starnet(gpointer p) {
 	starnet_version version = NIL;
 	int retval = 0;
 	int retval2 = 0;
-	fits workingfit, fit;
+	fits workingfit = { 0 }, fit = { 0 };
 	starnet_data *args = (starnet_data *) p;
 	verbose = (args->seq == NULL); // To suppress log messages during seq working
 	args->follow_on = args->seq ? FALSE : args->follow_on;
@@ -766,10 +766,12 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	CLEANUP:
-	retval2 = g_chdir(currentdir);
-	if (retval2) {
-		siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
-		retval = retval2;
+	if (currentdir) {
+		retval2 = g_chdir(currentdir);
+		if (retval2) {
+			siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
+			retval = retval2;
+		}
 	}
 	CLEANUP1:
 	if (args->starmask) {
