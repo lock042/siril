@@ -17,6 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
+
+// Comment out this #define before public release
+//#define STARNET_DEBUG
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -70,12 +74,13 @@ gboolean verbose = TRUE;
 
 // Wrapper for execve
 char *my_argv[64];
+char *test_argv[3];
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
 }
 
-static int exec_prog_starnet(char **argv) {
+static int exec_prog_starnet(char **argv, starnet_version version) {
 	gint child_stdout;
 	GPid child_pid;
 	g_autoptr(GError) error = NULL;
@@ -114,25 +119,46 @@ static int exec_prog_starnet(char **argv) {
 	gchar *buffer;
 	gsize length = 0;
 	GDataInputStream *data_input = g_data_input_stream_new(stream);
+#ifdef STARNET_DEBUG
+	gchar *lastbuffer = NULL;
+#endif
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
 		if (doprint && verbose)
 			siril_log_message("StarNet: %s\n", buffer);
-		if (g_str_has_prefix(buffer, "Total number of tiles")) {
+		// TODO: the Mac M1 version definitely contains the substring "backend" in
+		// the line before the progress percentages start. Need to check this is
+		// still true when the Torch version comes out for other targets.
+		if (g_str_has_prefix(buffer, "Total number of tiles") || g_strrstr(buffer, "backend")) {
 			// need to set EOL to CR otherwise can't read the progress percentage
 			// which just sends xx% progress/r to avoid flushing
 			g_data_input_stream_set_newline_type(data_input, G_DATA_STREAM_NEWLINE_TYPE_CR);
 			doprint = FALSE;
 		}
-		double value = g_ascii_strtod(buffer, NULL);
+		gchar *arg = buffer;
+		if (g_str_has_prefix(buffer, "Working:"))
+			arg += 9;
+		double value = g_ascii_strtod(arg, NULL);
 		if (value != 0.0 && value == value && verbose) {
 			set_progress_bar_data(_("Running StarNet"), (value / 100));
 		}
-		if (value == 100.0) {
+		if (g_str_has_prefix(buffer, "100% finished") || g_strrstr(buffer, "Writing mask")) {
 			retval = 0;
+#ifdef STARNET_DEBUG
+			if (verbose)
+				siril_log_message(_("StarNet caught buffer: %s : exit successful\n"), buffer);
+#endif
 		}
+#ifdef STARNET_DEBUG
+		lastbuffer = g_strdup(buffer);
+#endif
 		g_free(buffer);
 	}
+#ifdef STARNET_DEBUG
+	if (retval)
+		siril_log_message(_("Starnet exit not caught, last buffer: %s\n"), lastbuffer);
+	g_free(lastbuffer);
+#endif
 	g_object_unref(data_input);
 	g_object_unref(stream);
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
@@ -141,23 +167,121 @@ static int exec_prog_starnet(char **argv) {
 	return retval;
 }
 
-starnet_version starnet_executablecheck() {
-	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
-	gchar* fullpath = g_build_filename(com.pref.starnet_dir, STARNET_BIN, NULL);
-	gchar* rgbpath = g_build_filename(com.pref.starnet_dir, STARNET_RGB, NULL);
-	gchar* monopath = g_build_filename(com.pref.starnet_dir, STARNET_MONO, NULL);
-	starnet_version retval = NIL;
-	if (g_file_test(fullpath, G_FILE_TEST_IS_EXECUTABLE)) {
-		retval = V2;
-	} else {
-		if (g_file_test(rgbpath, G_FILE_TEST_IS_EXECUTABLE))
-			retval = V1RGB;
-		if (g_file_test(monopath, G_FILE_TEST_IS_EXECUTABLE))
-			retval |= V1MONO;
+starnet_version starnet_executablecheck(gchar* executable) {
+	int retval = NIL;
+	gint child_stdout;
+	GPid child_pid;
+	g_autoptr(GError) error = NULL;
+	gchar *v1dir = NULL;
+	if (!executable || executable[0] == '\0') {
+		return NIL;
 	}
-	g_free(fullpath);
-	g_free(rgbpath);
-	g_free(monopath);
+	if (!g_file_test(executable, G_FILE_TEST_IS_EXECUTABLE)) {
+		return NIL; // It's not executable so return NIL
+	}
+	// V1 tests
+	if (g_str_has_suffix(executable, "rgb_starnet++") || g_str_has_suffix(executable, "rgb_starnet++.exe") || g_str_has_suffix(executable, "mono_starnet++") || g_str_has_suffix(executable, "mono_starnet++.exe")) {
+		v1dir = g_path_get_dirname(executable);
+		if (g_str_has_suffix(executable, "rgb_starnet++")) {
+			retval = V1RGB;
+			goto END;
+		} else if (g_str_has_suffix(executable, "rgb_starnet++.exe")) {
+			retval = V1RGB;
+			goto END;
+		} else if (g_str_has_suffix(executable, "mono_starnet++")) {
+			retval = V1MONO;
+			goto END;
+		} else if (g_str_has_suffix(executable, "mono_starnet++.exe")) {
+			retval = V1MONO;
+			goto END;
+		}
+	}
+	// Not V1: execute file and test output to determine version
+	// Get the starnet installation directory and chdir to it
+	gchar *dir = g_path_get_dirname(com.pref.starnet_exe);
+	gchar *currentdir = g_get_current_dir();
+	int retval2 = g_chdir(dir);
+	if (retval2) {
+		retval = NIL;
+		g_free(dir);
+		g_free(currentdir);
+		return NIL;
+	}
+	g_free(dir);
+
+	int nb = 0;
+	test_argv[nb++] = executable;
+	test_argv[nb++] = g_strdup("--version");
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
+	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
+#endif
+	// g_spawn handles wchar so not need to convert
+	g_spawn_async_with_pipes(NULL, test_argv, NULL,
+			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
+			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
+			NULL, NULL, &child_pid, NULL, &child_stdout,
+			NULL, &error);
+
+	if (error != NULL) {
+		siril_log_color_message(_("Spawning starnet failed during version check: %s\n"), "red", error->message);
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+		FreeConsole(); // and closing it
+#endif
+		return NIL;
+	}
+	// Add a child watch function which will be called when the child process exits.
+	g_child_watch_add(child_pid, child_watch_cb, NULL);
+
+	GInputStream *stream = NULL;
+#ifdef _WIN32
+	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stdout), FALSE);
+#else
+	stream = g_unix_input_stream_new(child_stdout, FALSE);
+#endif
+	gchar *buffer;
+	gsize length = 0;
+	GDataInputStream *data_input = g_data_input_stream_new(stream);
+	gboolean done = FALSE;
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
+					NULL, NULL)) && !done) {
+#ifdef STARNET_DEBUG
+		siril_log_message("%s\n", buffer);
+#endif
+		if (g_strrstr(buffer, "StarNet++ v2")) {
+#ifdef STARNET_DEBUG
+			siril_log_message(_("V2 detected\n"));
+#endif
+			retval = V2;
+			done = TRUE;
+		} else if (g_strrstr(buffer, " version:")) {
+#ifdef STARNET_DEBUG
+			siril_log_message(_("V2-torch detected\n"));
+#endif
+			retval = TORCH; // We ignore the actual version number for now, it's enough that this substring is
+							 // a unique identifier for the Torch-based StarNet versions.
+			done = TRUE;
+		}
+		g_free(buffer);
+	}
+	g_object_unref(data_input);
+	g_object_unref(stream);
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+	FreeConsole(); // and closing it
+#endif
+
+	retval2 = g_chdir(currentdir);
+	if (retval2) {
+		retval2 = g_chdir(com.wd);
+		if (retval2) {
+			siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
+		}
+	}
+	g_free(currentdir);
+
+END:
+	g_free(v1dir);
+
 	return retval;
 }
 
@@ -187,13 +311,13 @@ gboolean end_and_call_remixer(gpointer p)
 /* StarNet star removal routine */
 
 gpointer do_starnet(gpointer p) {
-	verbose = single_image_is_loaded(); // To suppress log messages during seq working
 	starnet_version version = NIL;
 	int retval = 0;
 	int retval2 = 0;
 	fits workingfit, fit;
 	starnet_data *args = (starnet_data *) p;
-	args->follow_on = single_image_is_loaded() ? args->follow_on : FALSE;
+	verbose = (args->seq == NULL); // To suppress log messages during seq working
+	args->follow_on = args->seq ? FALSE : args->follow_on;
 	current_fit = args->starnet_fit;
 	int orig_x = current_fit->rx, orig_y = current_fit->ry;
 	struct remixargs *blendargs = NULL;
@@ -210,22 +334,73 @@ gpointer do_starnet(gpointer p) {
 	gchar *starnetcommand = NULL;
 	gchar *temptif = NULL;
 	gchar *starlesstif = NULL;
+	gchar *starmasktif = NULL;
 	gchar *starlessfit = NULL;
 	gchar *starmaskfit = NULL;
 	gchar *imagenoext = NULL;
 	gchar *starlessnoext = NULL;
 	gchar *starmasknoext = NULL;
 	gchar *imagenoextorig = NULL;
+	gchar *torcharg_in = NULL;
+	gchar *torcharg_out = NULL;
+	gchar *torcharg_stride = NULL;
+	gchar *torcharg_up = NULL;
+	gchar *torcharg_weights = NULL;
+	gchar *torcharg_mask = NULL; // We don't want the mask output, but the new starnet generates it regardless
+			// so we may as well put it somewhere known so we can delete it so as not to leave behind clutter.
 	gchar *temp = NULL;
 	gchar starnetprefix[10] = "starnet_";
 	gchar starlessprefix[10] = "starless_";
 	gchar starmaskprefix[10] = "starmask_";
+
+	// Check StarNet version
+	version = starnet_executablecheck(com.pref.starnet_exe);
+	// If v1, check we have the right executable for the number of channels in current_fit
+	if (version == NIL) {
+		siril_log_color_message(_("No suitable StarNet executable found.\n"), "red");
+		goto CLEANUP;
+	} else if (version == V1RGB) {
+		if (current_fit->naxes[2] == 3) {
+			starnetcommand = g_strdup(com.pref.starnet_exe);
+		} else {
+			gchar *temp = g_path_get_dirname(com.pref.starnet_exe);
+			gchar *winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
+			starnetcommand = g_strdup_printf("%s/mono_starnet++%s", temp, winext);
+			g_free(temp);
+			g_free(winext);
+			if (starnet_executablecheck(starnetcommand) != V1MONO) {
+				siril_log_color_message(_("No suitable StarNet executable found for a mono image.\n"), "red");
+				retval = 1;
+				goto CLEANUP3;
+			}
+		}
+	} else if (version == V1MONO) {
+		if (current_fit->naxes[2] == 1) {
+			starnetcommand = g_strdup(com.pref.starnet_exe);
+		} else {
+			gchar *temp = g_path_get_dirname(com.pref.starnet_exe);
+			gchar *winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
+			starnetcommand = g_strdup_printf("%s/rgb_starnet++%s", temp, winext);
+			g_free(temp);
+			g_free(winext);
+			if (starnet_executablecheck(starnetcommand) != V1RGB) {
+				siril_log_color_message(_("No suitable StarNet executable found for a RGB image.\n"), "red");
+				retval = 1;
+				goto CLEANUP3;
+			}
+		}
+	} else if (version == V2 || version & TORCH) {
+		starnetcommand = g_strdup(com.pref.starnet_exe);
+	}
+
+	siril_debug_print("Using %s\n", starnetcommand);
+
 	// Set up paths and filenames
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 		temp = g_path_get_basename(com.uniq->filename);
 		imagenoextorig = g_strdup_printf("%s", temp);
 		g_free(temp);
-	} else if (sequence_is_loaded()) {
+	} else if (args->seq) {
 		imagenoextorig = g_strdup_printf("%s%.5d", args->seq->seqname, args->imgnumber + 1);
 	} else {
 		imagenoextorig = g_strdup_printf("image");
@@ -250,18 +425,28 @@ gpointer do_starnet(gpointer p) {
 	temp = remove_ext_from_filename(starlesstif);
 	g_free(starlesstif);
 	starlesstif = g_strdup(temp);
+	starlessfit = g_strdup(temp);
 	g_free(temp);
-	starlessfit = g_strdup(starlesstif);
 	temp = g_strdup_printf("%s.tif", starlesstif);
 	g_free(starlesstif);
 	starlesstif = g_strdup(temp);
 	g_free(temp);
-		if (strlen(starlesstif) > pathmax) {
+
+	starmasktif = g_build_filename(com.wd, starmasknoext, NULL);
+	temp = remove_ext_from_filename(starmasktif);
+	g_free(starmasktif);
+	starmasktif = g_strdup(temp);
+	g_free(temp);
+	temp = g_strdup_printf("%s.tif", starmasktif);
+	g_free(starmasktif);
+	starmasktif = g_strdup(temp);
+	g_free(temp);
+
+	if (strlen(starlesstif) > pathmax) {
 		retval = 1;
 		siril_log_color_message(_("Error: file path too long!\n"), "red");
 		goto CLEANUP3;
 	}
-
 	temp = g_strdup_printf("%s%s", starlessfit, com.pref.ext);
 	g_free(starlessfit);
 	starlessfit = g_strdup(temp);
@@ -285,6 +470,8 @@ gpointer do_starnet(gpointer p) {
 	g_free(starmaskfit);
 	starmaskfit = g_strdup(temp);
 	g_free(temp);
+
+//	printf("%s\n%s\n%s\n%s\n", starlesstif, starlessfit, starmasktif, starmaskfit);
 	// ok, let's start
 	if (verbose)
 		set_progress_bar_data(_("Starting StarNet"), PROGRESS_NONE);
@@ -298,16 +485,18 @@ gpointer do_starnet(gpointer p) {
 	if (!args->starmask && verbose) siril_log_message(_("StarNet: -nostarmask invoked, star mask will not be generated...\n"));
 
 	// Check starnet directory is not NULL - can happen first time the new preference file is loaded
-	if (!com.pref.starnet_dir) {
+	if (!com.pref.starnet_exe) {
 		retval = 1;
-		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
+		siril_log_color_message(_("Incorrect permissions on the StarNet executable: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_exe);
 		goto CLEANUP3;
 	}
 
 	// Check starnet directory is defined
-	retval = g_access(com.pref.starnet_dir, R_OK);
+	gchar* dir = g_path_get_dirname(com.pref.starnet_exe);
+	retval = g_access(dir, R_OK);
 	if (retval) {
-		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", com.pref.starnet_dir);
+		siril_log_color_message(_("Incorrect permissions on the StarNet directory: %s\nEnsure it is correctly set in Preferences / Miscellaneous.\n"), "red", dir);
+		g_free(dir);
 		goto CLEANUP3;
 		// Dijkstra might be spinning in his grave but one of the few legitimate uses
 		// of gotos is this type of error cleanup and return. Much more readable than a
@@ -315,11 +504,13 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Change to starnet directory
-	retval = g_chdir(com.pref.starnet_dir);
+	retval = g_chdir(dir);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to change to StarNet directory.\nEnsure it is set in Preferences / Miscellaneous...\n"), "red");
+		g_free(dir);
 		goto CLEANUP3;
 	}
+	g_free(dir);
 
 	// Create a working copy of the image.
 	// copyfits(from, to, oper, layer)
@@ -381,7 +572,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Upscale if needed
-	if (args->upscale) {
+	if (args->upscale && !(version & TORCH)) {
 		if (verbose)
 			siril_log_message(_("StarNet: 2x upscaling selected. Upscaling image...\n"));
 		retval = cvResizeGaussian(&workingfit, round_to_int(2*orig_x), round_to_int(2*orig_y), OPENCV_AREA, FALSE);
@@ -398,27 +589,49 @@ gpointer do_starnet(gpointer p) {
 		goto CLEANUP;
 	}
 
-	// Check for starnet executables (pre-v2.0.2 or v2.0.2+)
-	version = starnet_executablecheck();
-	if (version == V2) {
-		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_BIN, NULL);
-	} else if ((current_fit->naxes[2] == 3) && (version == V1RGB || version == V1BOTH)) {
-		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_RGB, NULL);
-	} else if ((current_fit->naxes[2] == 1) && (version == V1MONO || version == V1BOTH)) {
-		starnetcommand = g_build_filename(com.pref.starnet_dir, STARNET_MONO, NULL);
-	}
-	else {
-		siril_log_color_message(_("No suitable StarNet executable found in the installation directory\n"), "red");
-		goto CLEANUP;
-	}
-	printf("%s\n", starnetcommand);
+	// Process StarNet arguments
 	int nb = 0;
 	my_argv[nb++] = starnetcommand;
-	my_argv[nb++] = temptif;
-	my_argv[nb++] = starlesstif;
-	if (args->customstride) my_argv[nb++] = args->stride;
+	if (version & TORCH) {
+		torcharg_in = g_strdup_printf("-i %s", temptif);
+		my_argv[nb++] = torcharg_in;
+
+		torcharg_out = g_strdup_printf("-o %s", starlesstif);
+		my_argv[nb++] = torcharg_out;
+	} else {
+		my_argv[nb++] = temptif;
+		my_argv[nb++] = starlesstif;
+	}
+	if (args->customstride) {
+		unsigned int s = (unsigned int) g_ascii_strtod(args->stride, NULL);
+		if (s > min(current_fit->rx, current_fit->ry)) {
+			siril_log_color_message(_("Warning: stride (%d) is greater than at least one of the image dimensions (%d x %d). Using default stride.\n"), "salmon", s, current_fit->naxes[0], current_fit->naxes[1]);
+		} else if (version & TORCH) {
+			torcharg_stride = g_strdup_printf("-s %s", args->stride);
+			my_argv[nb++] = torcharg_stride;
+		} else {
+			my_argv[nb++] = args->stride;
+		}
+	}
+	if (version & TORCH) {
+		if (args->upscale) {
+			torcharg_up = g_strdup("-u");
+			my_argv[nb++] = torcharg_up;
+		}
+		if (com.pref.starnet_weights && com.pref.starnet_weights[0] != '\0') {
+			if (g_access(com.pref.starnet_weights, R_OK)) {
+				siril_log_color_message(_("Error: cannot read the neural net weights file.\n"), "red");
+				goto CLEANUP;
+			}
+			torcharg_weights = g_strdup_printf("-w %s", com.pref.starnet_weights);
+			my_argv[nb++] = torcharg_weights;
+		}
+		torcharg_mask = g_strdup_printf("-m %s", starmasktif);
+		my_argv[nb++] = torcharg_mask;
+	}
+
 	// *** Call starnet++ *** //
-	retval = exec_prog_starnet(my_argv);
+	retval = exec_prog_starnet(my_argv, version);
 	g_free(starnetcommand);
 	starnetcommand = NULL;
 	if (retval) {
@@ -436,15 +649,11 @@ gpointer do_starnet(gpointer p) {
 
 	// Remove working TIFF files, they are no longer required
 	retval = g_remove(starlesstif);
-	if (retval) {
-		siril_log_color_message(_("Error: unable to remove temporary working file...\n"), "red");
-		// No goto here as even if it fails we want to try to remove the other TIFF
-	}
-
+	retval |= (g_remove(starmasktif) && (version & TORCH));
 	retval |= g_remove(temptif);
 	if (retval) {
 		siril_log_color_message(_("Error: unable to remove temporary working file...\n"), "red");
-		goto CLEANUP;
+		siril_log_message(_("Attempting to continue. You will need to clean up the working files manually.\n"));
 	}
 
 	/* we need to copy metadata as they have been removed with readtif     */
@@ -471,7 +680,7 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	// Downscale again if needed
-	if (args->upscale) {
+	if (args->upscale && !(version & TORCH)) {
 		if (verbose)
 			siril_log_message(_("StarNet: 2x upscaling selected. Re-scaling starless image to original size...\n"));
 		retval = cvResizeGaussian(&workingfit, orig_x, orig_y, OPENCV_AREA, FALSE);
@@ -499,7 +708,7 @@ gpointer do_starnet(gpointer p) {
 
 	// Save workingfit as starless stretched image fits
 	update_filter_information(&workingfit, "Starless", TRUE);
-	if (single_image_is_loaded() && get_thread_run()) { // sequence worker will handle saving this in the sequence
+	if ((!args->seq) && get_thread_run()) { // sequence worker will handle saving this in the sequence
 		retval = savefits(starlessfit, &workingfit);
 		if (retval) {
 			siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
@@ -518,7 +727,7 @@ gpointer do_starnet(gpointer p) {
 
 		// Save fit as starmask fits
 		if (get_thread_run()) {
-			if (single_image_is_loaded()) {
+			if ((!args->seq)) {
 				retval = savefits(starmaskfit, &fit);
 				if (retval) {
 					siril_log_color_message(_("Error: unable to save starmask image as FITS...\n"), "red");
@@ -544,7 +753,7 @@ gpointer do_starnet(gpointer p) {
 	if (verbose)
 		siril_log_color_message(_("StarNet: job completed.\n"), "green");
 
-	if (single_image_is_loaded()) {
+	if ((!args->seq)) {
 		free(com.uniq->filename);
 		com.uniq->filename = strdup(starlessfit);
 		if (args->follow_on) {
@@ -582,10 +791,16 @@ gpointer do_starnet(gpointer p) {
 	g_free(imagenoext); // part filename
 	g_free(imagenoextorig); // part filename
 	g_free(temptif); // part filename
+	g_free(torcharg_in);
+	g_free(torcharg_out);
+	g_free(torcharg_stride);
+	g_free(torcharg_weights);
+	g_free(torcharg_mask);
+	g_free(torcharg_up);
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
-	if (single_image_is_loaded()) {
+	if ((!args->seq)) {
 		if (args->follow_on) {
 			free_starnet_args(args);
 			if (!(retval)) {

@@ -3,24 +3,6 @@
 
 #include "core/siril.h"
 
-#ifdef _WIN32
-#define STARNET_BIN "starnet++.exe"
-#define STARNET_RGB "rgb_starnet++.exe"
-#define STARNET_MONO "mono_starnet++.exe"
-#else
-#define STARNET_BIN "starnet++"
-#define STARNET_RGB "rgb_starnet++"
-#define STARNET_MONO "mono_starnet++"
-#endif
-
-typedef enum {
-	NIL = 0,
-	V2 = 1,
-	V1MONO = 2,
-	V1RGB = 4,
-	V1BOTH = 6
-} starnet_version;
-
 typedef struct starnet_data {
 	struct ser_struct *new_ser_starless;
 	fitseq *new_fitseq_starless;
