@@ -8,15 +8,16 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-07 09:09+0100\n"
-"PO-Revision-Date: 2022-05-30 11:48+0800\n"
-"Last-Translator: yecloud@me.com\n"
-"Language-Team: yecloud.net <yecloud@me.com>\n"
+"PO-Revision-Date: 2023-03-08 12:07+0000\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
+"Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
+"siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 3.0.1\n"
+"X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7986
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -80,13 +81,11 @@ msgstr ""
 "位）。"
 
 #: src/gui/siril3.glade:237 src/gui/siril3.glade:267
-#, fuzzy
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a cold pixel."
-msgstr ""
-"当一个像素被认定为冷像素时，该像素必须相异于周围邻居像素的倍数（平均偏差单"
-"位）。"
+msgstr "当一个像素被认定为冷像素时，该像素必须相异于周围相邻的像素的倍数（以平均偏差"
+"单位表示）。"
 
 #: src/gui/siril3.glade:283 src/gui/siril3.glade:21219
 msgid "Hot Sigma:"
@@ -101,13 +100,11 @@ msgstr ""
 "位）。"
 
 #: src/gui/siril3.glade:303 src/gui/siril3.glade:333
-#, fuzzy
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a hot pixel."
-msgstr ""
-"当一个像素被认定为热像素时，该像素必须相异于周围邻居像素的倍数（平均偏差单"
-"位）。"
+msgstr "当一个像素被认定为热像素时，该像素必须相异于周围相邻的像素的倍数（以平均偏差"
+"单位表示）。"
 
 #: src/gui/siril3.glade:352 src/gui/siril3.glade:1215 src/gui/siril3.glade:5163
 #: src/gui/siril3.glade:5431
@@ -160,28 +157,24 @@ msgid ""
 msgstr "降噪处理后的文件名前缀。"
 
 #: src/gui/siril3.glade:566
-#, fuzzy
 msgid "Binning"
-msgstr "像素合并: "
+msgstr "像素合并"
 
 #: src/gui/siril3.glade:631
-#, fuzzy
 msgid "Binning factor:"
-msgstr "像素合并: "
+msgstr "像素因子:"
 
 #: src/gui/siril3.glade:663
-#, fuzzy
 msgid "Downsample mode:"
-msgstr "降低图像采样"
+msgstr "缩减采样模式:"
 
 #: src/gui/siril3.glade:677
-#, fuzzy
 msgid "Average"
-msgstr "中性色调平均化"
+msgstr "平均数"
 
 #: src/gui/siril3.glade:678
 msgid "Sum"
-msgstr ""
+msgstr "求和"
 
 #: src/gui/siril3.glade:725 src/gui/siril3.glade:17553
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -244,11 +237,10 @@ msgid "Apply wavelet extraction."
 msgstr "执行小波提取。"
 
 #: src/gui/siril3.glade:1059
-#, fuzzy
 msgid ""
 "Number of wavelet layers. You can choose up to 9 layers for wavelets "
 "computing."
-msgstr "小波图层数量。可以选择最多6个图层。"
+msgstr "小波图层数量。您最多可以选择9个图层。"
 
 #: src/gui/siril3.glade:1080
 msgid "Type of algorithm"
@@ -278,9 +270,8 @@ msgid "Banding Reduction"
 msgstr "除去条纹"
 
 #: src/gui/siril3.glade:1227 src/gui/siril3.glade:1250
-#, fuzzy
 msgid "Defines the strength of the correction."
-msgstr "缩放至窗口大小"
+msgstr "定义修正的强度。"
 
 #: src/gui/siril3.glade:1266
 msgid "Protect from Highlights"
@@ -522,9 +513,8 @@ msgid "Type:"
 msgstr "类型:"
 
 #: src/gui/siril3.glade:2504
-#, fuzzy
 msgid "Nb of layers:"
-msgstr "图层数: "
+msgstr "图层数:"
 
 #: src/gui/siril3.glade:2515
 msgid "Number of wavelet layers that will be used"
@@ -1130,9 +1120,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:6259 src/gui/siril3.glade:7227
-#, fuzzy
 msgid "Profile"
-msgstr "支持文件类型:"
+msgstr "配置文件"
 
 #: src/gui/siril3.glade:6270
 msgid ""
@@ -1160,9 +1149,8 @@ msgid "Airy Disc"
 msgstr ""
 
 #: src/gui/siril3.glade:6330 src/gui/siril3.glade:7251
-#, fuzzy
 msgid "Ratio"
-msgstr "旋转…"
+msgstr "比率"
 
 #: src/gui/siril3.glade:6341
 msgid ""
@@ -1201,18 +1189,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:6453
-#, fuzzy
 msgid "Pixel Size / μm"
-msgstr "像素尺寸(微米):"
+msgstr "像素尺寸 / 微米"
 
 #: src/gui/siril3.glade:6465
 msgid "Wavelength / nm"
 msgstr ""
 
 #: src/gui/siril3.glade:6477
-#, fuzzy
 msgid "Focal length / mm"
-msgstr "焦距(毫米): "
+msgstr "焦距 / 毫米"
 
 #: src/gui/siril3.glade:6489
 msgid "Diameter / mm"
@@ -1220,7 +1206,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:6500
 msgid "Sensor pixel size in microns"
-msgstr ""
+msgstr "传感器像素尺寸（微米）"
 
 #: src/gui/siril3.glade:6516
 msgid ""
@@ -1339,19 +1325,16 @@ msgid "Downsample blur"
 msgstr "降低图像采样"
 
 #: src/gui/siril3.glade:6895
-#, fuzzy
 msgid "Kernel threshold"
-msgstr "圆度阀值："
+msgstr "内核阈值"
 
 #: src/gui/siril3.glade:6907
-#, fuzzy
 msgid "Better kernel"
-msgstr "Bayer滤镜排列模式: "
+msgstr "更好的内核"
 
 #: src/gui/siril3.glade:6919
-#, fuzzy
 msgid "Kernel ℓ1"
-msgstr "内核大小:"
+msgstr "内核 ℓ1"
 
 #: src/gui/siril3.glade:6931
 msgid "Amount of blur to use for downsampling during PSF estimation"
@@ -1562,9 +1545,8 @@ msgid "Gradient descent step size"
 msgstr ""
 
 #: src/gui/siril3.glade:7650
-#, fuzzy
 msgid "Algorithm method"
-msgstr "算法： "
+msgstr "算法"
 
 #: src/gui/siril3.glade:7661
 msgid ""
@@ -1631,7 +1613,8 @@ msgid ""
 "This option applies cosmetic correction to remove salt and pepper noise "
 "before the primary denoising algorithm. This is generally a good thing and "
 "the setting defaults to active."
-msgstr ""
+msgstr "此选项在主降噪算法之前应用外观修正以消除教研噪声。这通常是一件好事，设置默认"
+"为启用。"
 
 #: src/gui/siril3.glade:8007
 #, fuzzy
@@ -1836,9 +1819,8 @@ msgid "Non-square pixels can be entered but will not be used in most cases."
 msgstr ""
 
 #: src/gui/siril3.glade:8569
-#, fuzzy
 msgid "Pixel size (micron): "
-msgstr "像素宽度X(微米): "
+msgstr "像素尺寸（微米）: "
 
 #: src/gui/siril3.glade:8580
 msgid ""
@@ -1884,9 +1866,8 @@ msgid ""
 msgstr "如果像素合并无法从文件头中读取，你可以在此手工输入。"
 
 #: src/gui/siril3.glade:8702
-#, fuzzy
 msgid "Real pixel size"
-msgstr "样本像素:"
+msgstr "实际像素尺寸"
 
 #: src/gui/siril3.glade:8706
 #, fuzzy
@@ -2145,18 +2126,20 @@ msgid ""
 "point, lowlight and highlight preservation. The inverse hyperbolic and "
 "arcsinh stretches are also available."
 msgstr ""
+"选择拉伸类型。线性执行简单的线性拉伸到新的黑点。广义双曲线拉伸使用拉伸强度、"
+"局部强度、对称点以及阴影和高光保留区域的参数执行双曲线拉伸。改良化反双曲正弦"
+"拉伸使用对称点、低光和高光保留的附加参数执行反双曲正弦拉伸。反双曲和反双曲正"
+"弦拉伸也可使用。"
 
 #: src/gui/siril3.glade:9613 src/gui/siril3.glade:10222
 #: src/gui/siril3.glade:15956
-#, fuzzy
 msgid "Generalised hyperbolic transform"
-msgstr "负片变换"
+msgstr "广义双曲变换"
 
 #: src/gui/siril3.glade:9614 src/gui/siril3.glade:10223
 #: src/gui/siril3.glade:15957
-#, fuzzy
 msgid "Inverse generalised hyperbolic transform"
-msgstr "负片变换"
+msgstr "反广义双曲变换"
 
 #: src/gui/siril3.glade:9615 src/gui/siril3.glade:10224
 #: src/gui/siril3.glade:15958
@@ -2528,7 +2511,7 @@ msgstr "开始图像解析。"
 
 #: src/gui/siril3.glade:11553
 msgid "Start the photometric color calibration algorithm."
-msgstr "开始基于解析的色彩校准算法。"
+msgstr "开始测光法色彩校准算法。"
 
 #: src/gui/siril3.glade:11595 src/gui/siril3.glade:11615
 #: src/gui/siril3.glade:11635 src/gui/siril3.glade:11655
@@ -2602,9 +2585,8 @@ msgid ""
 msgstr "像素尺寸（微米），假定为正方形像素单元。"
 
 #: src/gui/siril3.glade:11818
-#, fuzzy
 msgid "Focal length (mm):"
-msgstr "焦距(毫米): "
+msgstr "焦距（毫米）:"
 
 #: src/gui/siril3.glade:11829
 #, fuzzy
@@ -3073,9 +3055,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:13263
-#, fuzzy
 msgid "Convergence:"
-msgstr "转化"
+msgstr "收敛："
 
 #: src/gui/siril3.glade:13274
 msgid ""
@@ -3086,16 +3067,18 @@ msgid ""
 "This should normally be the case only for stacked images. Increasing this "
 "value may signicantly impact star finding computation time."
 msgstr ""
+"PSF拟合的收敛准则。 \n"
+"默认值 1 应该适用于大多数情况。但是，对于具有强烈慧差的图像，可能需要增加此值"
+"以允许更多的迭代步骤。\n"
+"通常，此功能只应用于叠加后的图像。增加此值可能会显著影响星点侦测计算时间。"
 
 #: src/gui/siril3.glade:13295
-#, fuzzy
 msgid "Profile type:"
-msgstr "支持文件类型:"
+msgstr "配置文件类型:"
 
 #: src/gui/siril3.glade:13322
-#, fuzzy
 msgid "Minimum beta:"
-msgstr "最少星点匹配:"
+msgstr "最小的 beta："
 
 #: src/gui/siril3.glade:13332
 msgid ""
@@ -3476,9 +3459,8 @@ msgid "RGB align"
 msgstr "RGB对齐"
 
 #: src/gui/siril3.glade:14877
-#, fuzzy
 msgid "Merge CFA Elements"
-msgstr "拆分CFA通道…"
+msgstr "合并CFA单元"
 
 #: src/gui/siril3.glade:14964
 msgid "CFA0"
@@ -3549,9 +3531,8 @@ msgid "GRBG"
 msgstr "GRBG"
 
 #: src/gui/siril3.glade:15114
-#, fuzzy
 msgid "Bayer Pattern"
-msgstr "Bayer滤镜排列模式: "
+msgstr "Bayer滤镜模式"
 
 #: src/gui/siril3.glade:15133
 msgid ""
@@ -3713,6 +3694,10 @@ msgid ""
 "and highlight preservation. The inverse hyperbolic and arcsinh stretches are "
 "also available, useful for working in negative space."
 msgstr ""
+"选择拉伸类型。线性执行简单的线性拉伸到新的黑点。广义双曲线拉伸使用拉伸强度、"
+"局部强度、对称点以及阴影和高光保留区域的参数执行双曲线拉伸。改良化反双曲正弦"
+"拉伸使用对称点、低光和高光保留的附加参数执行反双曲正弦拉伸。反双曲和反双曲正"
+"弦拉伸也可在负片空间中工作。"
 
 #: src/gui/siril3.glade:15960
 msgid "Linear stretch (BP shift)"
@@ -3913,9 +3898,8 @@ msgid "Open the generalized hyperbolic transform dialog"
 msgstr "负片变换"
 
 #: src/gui/siril3.glade:17412
-#, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations..."
-msgstr "直方图变换…"
+msgstr "广义双曲拉伸变换..."
 
 #: src/gui/siril3.glade:17425
 #, fuzzy
@@ -3950,18 +3934,16 @@ msgid "Remove Green Noise..."
 msgstr "除去绿色噪声…"
 
 #: src/gui/siril3.glade:17495
-#, fuzzy
 msgid "Compute the inverse of the image"
-msgstr "相位文件: "
+msgstr "计算图像的反转"
 
 #: src/gui/siril3.glade:17497 src/gui/colors.c:312
 msgid "Negative Transformation"
 msgstr "负片变换"
 
 #: src/gui/siril3.glade:17521
-#, fuzzy
 msgid "Open the À Trou wavelet transform dialog"
-msgstr "小波变换（ATWT）…"
+msgstr "打开小波变换对话框"
 
 #: src/gui/siril3.glade:17523
 msgid "À trous Wavelets Transform..."
@@ -3977,14 +3959,12 @@ msgid "Banding Reduction..."
 msgstr "除去条纹…"
 
 #: src/gui/siril3.glade:17551
-#, fuzzy
 msgid "Open the contrast limited adaptive histogram Equalization dialog"
-msgstr "有限对比度自适应均衡拉伸（CLAHE）…"
+msgstr "打开有限对比度自适应均衡拉伸对话框"
 
 #: src/gui/siril3.glade:17566
-#, fuzzy
 msgid "Open the cosmectic correction dialog"
-msgstr "开启基于解析的色彩校准对话窗"
+msgstr "打开降噪对话窗"
 
 #: src/gui/siril3.glade:17568
 msgid "Cosmetic Correction..."
@@ -4160,7 +4140,7 @@ msgstr "开启基于解析的色彩校准对话窗"
 
 #: src/gui/siril3.glade:17977
 msgid "Photometric Color Calibration..."
-msgstr "基于解析的色彩校准..."
+msgstr "测光法色彩校准..."
 
 #: src/gui/siril3.glade:18020
 #, fuzzy
@@ -4194,9 +4174,8 @@ msgid "Vertical Mirror"
 msgstr "垂直翻转"
 
 #: src/gui/siril3.glade:18116
-#, fuzzy
 msgid "Binning..."
-msgstr "像素合并: "
+msgstr "像素合并..."
 
 #: src/gui/siril3.glade:18130
 msgid "Resample..."
@@ -4261,9 +4240,8 @@ msgstr "Lanczos-4"
 
 #: src/gui/siril3.glade:18483 src/gui/siril3.glade:18713
 #: src/gui/siril3.glade:23088
-#, fuzzy
 msgid "Interpolation clamping"
-msgstr "插值: "
+msgstr "插值保持"
 
 #: src/gui/siril3.glade:18487 src/gui/siril3.glade:18717
 msgid ""
@@ -4872,7 +4850,7 @@ msgstr "图像校准"
 
 #: src/gui/siril3.glade:21089
 msgid "Enable Cosmectic Correction"
-msgstr "启用降噪"
+msgstr "启用外观修正"
 
 #: src/gui/siril3.glade:21093
 msgid ""
@@ -6681,21 +6659,22 @@ msgid ""
 "For the XTRANS sensor, a special algorithm called <b>Markesteijn</b> is used "
 "regardless of the method selected in the preferences."
 msgstr ""
-"选择一种去马赛克的插值算法。\n"
-"* <b>Fast Debayer</b> Siril中最快的算法。当然下列其他算法的效果会更好。\n"
-"* <b>VNG4</b> 基于临限值的可变数目梯度，在一个5x5的范围中对邻居像素采样。它对"
-"于图像中的平坦区域（比如天空背景）效果很好，但是在高对比区域（比如星点）会产"
-"生伪像。\n"
+"选择一种去马赛克的插值算法。 \n"
+"* <b>Fast Debayer</b> 是 Siril "
+"中可用的最快算法。但是，下面列出的其他算法通常要好得多。 \n"
+"* <b>VNG4</b> 基于阈值的可变梯度数，在源像素周围5x5的范围中对相邻像素采样。它"
+"对于图像中的平坦区域（比如天空背景）效果很好，但是在高对比区域（比如星点）会"
+"产生伪影。 \n"
 "* <b>AHD</b> 自适应均匀定向，另外一种著名的去马赛克算法。然而它通常会在背景中"
-"产生伪色和造成奇怪的星点。\n"
-"* <b>AMaZE</b> 混叠最小化和拉链效应祛除，用于低噪声图像会得到很好的效果。\n"
-"* <b>DCB</b> 双线性矫正，一种较晚近的算法，跟AHD一样会在背景中产生些许伪"
-"色。\n"
-"* <b>HPHD</b> 异质性预测硬决策，一种效果不错的老算法，但是非常慢。\n"
-"* <b>IGV</b> and <b>LMMSE</b> 对高噪声图像效果很好。不过IGV会丢失部分色彩信"
-"息，而LMMSE是最耗费计算资源（需要巨量内存）的算法之一。\n"
+"产生伪色和造成奇怪的星点。 \n"
+"* <b>AMaZE</b> 混叠最小化和拉链效应祛除，用于低噪声图像会得到很好的效果。 \n"
+"* <b>DCB</b> 双线性矫正，一种较晚近的算法，跟AHD一样会在背景中产生些许伪影。 "
+"\n"
+"* <b>HPHD</b> 异质性投影硬决策，一种效果不错的老算法，但是非常慢。 \n"
+"* <b>IGV</b> and <b>LMMSE</b> 对高噪声图像效果很好。不过IGV会丢失部分色彩信息"
+"，而LMMSE是最耗费计算资源（需要巨量内存）的算法之一。 \n"
 "* <b>RCD</b> 比例纠正去马赛克，相较于其他算法更加着重于平滑色彩修正误差。它处"
-"理圆形边缘（比如星点）效果优良，因此成为Siril的缺省算法。\n"
+"理圆形边缘（比如星点）效果优良，因此成为Siril的缺省算法。 \n"
 "\n"
 "对于XTRANS传感器，一种名为<b>Markesteijn</b>的特殊算法将被使用而无视上述任何"
 "选择。"
@@ -7157,9 +7136,8 @@ msgid "General Platesolving"
 msgstr "打开解析对话框"
 
 #: src/gui/siril3.glade:28763
-#, fuzzy
 msgid "Degrees of the polynomial correction:"
-msgstr "缩放至窗口大小"
+msgstr "多项式修正的阶数:"
 
 #: src/gui/siril3.glade:28775
 msgid "Sampling tolerance (%):"
@@ -7216,7 +7194,8 @@ msgstr ""
 msgid ""
 "Astrometry.net can use a polynomial correction (SIP) to work with optical "
 "aberrations, this is the order of the polynomial model. 0 disables it."
-msgstr ""
+msgstr "Astrometry.net 可以使用多项式修正 （SIP） "
+"来处理光学像差，这是多项式模型的阶数。0 禁用它。"
 
 #: src/gui/siril3.glade:28900
 msgid "Location of local astrometry.net solver"
@@ -8025,7 +8004,7 @@ msgstr "打开解析对话框"
 #: src/gui/siril-shortcuts.ui:177
 msgctxt "shortcut window"
 msgid "Open photometric color calibration dialog"
-msgstr "开启基于解析的色彩校准对话窗"
+msgstr "打开测光法色彩校准对话窗"
 
 #: src/gui/siril-shortcuts.ui:184
 msgctxt "shortcut window"
@@ -8372,9 +8351,8 @@ msgid "Up is %+.2lf deg ClockWise wrt. N%s\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:793
-#, fuzzy
 msgid " (flipped)"
-msgstr "(翻转)"
+msgstr " (翻转)"
 
 #: src/algos/astrometry_solver.c:797
 #, c-format
@@ -8472,9 +8450,8 @@ msgid ""
 msgstr ""
 
 #: src/algos/astrometry_solver.c:1370 src/algos/astrometry_solver.c:1375
-#, fuzzy
 msgid " (uncentered)"
-msgstr "中心化"
+msgstr " （不居中）"
 
 #: src/algos/astrometry_solver.c:1372
 #, c-format
@@ -8511,7 +8488,7 @@ msgstr "叠加图像%d失败"
 #: src/algos/astrometry_solver.c:1469 src/gui/callbacks.c:1561
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
-msgstr ""
+msgstr "将焦距%.2f和像素尺寸%.2f保存为缺省值\n"
 
 #: src/algos/astrometry_solver.c:1478
 msgid ""
@@ -8619,7 +8596,7 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:2141 src/core/command.c:8446
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
-msgstr ""
+msgstr "在图像或设置中找不到像素尺寸，无法继续\n"
 
 #: src/algos/astrometry_solver.c:2151 src/core/command.c:8470
 msgid "Focal length not found in image or in settings, cannot proceed\n"
@@ -8905,7 +8882,7 @@ msgstr "除去条纹：处理中...\n"
 #: src/algos/geometry.c:287
 #, c-format
 msgid "New image size: %dx%d pixels.\n"
-msgstr ""
+msgstr "新图像尺寸： %dx%d 像素。\n"
 
 #: src/algos/geometry.c:295 src/algos/geometry.c:390
 msgid "Nearest-Neighbor"
@@ -9172,13 +9149,13 @@ msgstr ""
 msgid ""
 "The photometric color correction has found a solution which may not be "
 "perfect because it did not rely on many stars\n"
-msgstr ""
+msgstr "测光法色彩修正找到了一个可能不完美的解决方案，因为它不依赖于很多星点\n"
 
 #: src/algos/photometric_cc.c:234
 msgid ""
 "The photometric color correction seems to have found an imprecise solution, "
 "consider correcting the image gradient first\n"
-msgstr ""
+msgstr "测光法色彩修正似乎找到了不精确的解决方案，考虑先修正图像梯度\n"
 
 #: src/algos/photometric_cc.c:312
 #, fuzzy
@@ -9187,7 +9164,7 @@ msgstr "色彩校准因子:\n"
 
 #: src/algos/photometric_cc.c:350
 msgid "Photometric color correction will do nothing for monochrome images\n"
-msgstr ""
+msgstr "测光法色彩修证对单色图像无效\n"
 
 #: src/algos/photometric_cc.c:366
 #, fuzzy
@@ -9222,13 +9199,13 @@ msgstr "基于解析的色彩校准执行中…"
 
 #: src/algos/photometric_cc.c:386
 msgid "Photometric Color Calibration failed"
-msgstr "基于解析的色彩校准失败"
+msgstr "测光法色彩校准失败"
 
 #: src/algos/photometric_cc.c:402 src/algos/photometric_cc.c:420
 msgid ""
 "Cannot run the standalone photometric color correction on this image because "
 "it has no WCS data or it is not supported\n"
-msgstr ""
+msgstr "无法对此图像运行独立的测光法色彩修正，因为它没有 WCS 数据或不受支持\n"
 
 #: src/algos/photometric_cc.c:410
 msgid "Error computing FWHM for photometry settings adjustment\n"
@@ -9263,9 +9240,8 @@ msgid "The %s catalog has been successfully downloaded.\n"
 msgstr ""
 
 #: src/algos/photometric_cc.c:488
-#, fuzzy
 msgid "Photometric Color Calibration succeeded.\n"
-msgstr "基于解析的色彩校准失败"
+msgstr "测光法色彩校准成功。\n"
 
 #: src/algos/photometric_cc.c:501
 #, fuzzy, c-format
@@ -9719,7 +9695,7 @@ msgstr ""
 
 #: src/core/command.c:498
 msgid "Will apply generalised Anscombe variance stabilising transform.\n"
-msgstr ""
+msgstr "将应用广义安斯科姆方差稳定变换。\n"
 
 #: src/core/command.c:500
 msgid "Will carry out final stage DA3D denoising.\n"
@@ -9787,9 +9763,8 @@ msgid "Unsaved Bayer pattern merge"
 msgstr "选择相机的Bayer滤镜排列模式。"
 
 #: src/core/command.c:824
-#, fuzzy
 msgid "Bayer pattern merge"
-msgstr "Bayer滤镜排列模式: "
+msgstr "Bayer模式合并"
 
 #: src/core/command.c:851
 msgid "Could not understand the requested operator\n"
@@ -11218,23 +11193,21 @@ msgstr ""
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
-msgstr ""
-"Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
+msgstr "基于主暗场降噪: 对冷像素使用 sigma %.2lf\n"
 
 #: src/core/command.c:7667
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
-msgstr "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
+msgstr "基于主暗场降噪: 对冷像素停用。\n"
 
 #: src/core/command.c:7669
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
-msgstr ""
-"Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
+msgstr "基于主暗场降噪: 对热像素使用 sigma %.2lf\n"
 
 #: src/core/command.c:7671
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
-msgstr "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
+msgstr "基于主暗场降噪: 对热像素停用。\n"
 
 #: src/core/command.c:7678
 #, c-format
@@ -11244,7 +11217,7 @@ msgstr "Could not open file %s, aborting.\n"
 #: src/core/command.c:7682
 #, c-format
 msgid "Cosmetic correction from Bad Pixel Map: %s.\n"
-msgstr "Cosmetic correction from Bad Pixel Map: %s.\n"
+msgstr "基于坏像素图降噪: %s\n"
 
 #: src/core/command.c:7686
 msgid "You must specify a bad pixel map file with -cc=bpm option, aborting.\n"
@@ -11470,13 +11443,13 @@ msgstr ""
 
 #: src/core/command.c:8412
 msgid "Photometric color correction will use plate solving first\n"
-msgstr ""
+msgstr "测光法色彩修正将会首先使用图像解析\n"
 
 #: src/core/command.c:8413
 msgid ""
 "Photometric color correction will use WCS information and bypass internal "
 "plate solver\n"
-msgstr ""
+msgstr "测光法色彩修正将使用 WCS 信息并绕过内建解析\n"
 
 #: src/core/command.c:8415
 msgid "Image is already plate solved. Nothing will be done.\n"
@@ -11485,22 +11458,22 @@ msgstr ""
 #: src/core/command.c:8436 src/core/command.c:8460
 msgid ""
 "Focal length and pixel size are only used for plate solving, ignored now\n"
-msgstr ""
+msgstr "焦距和像素尺寸仅用于解析，现在忽略\n"
 
 #: src/core/command.c:8439
-#, fuzzy, c-format
+#, c-format
 msgid "Using provided pixel size: %.2f\n"
-msgstr "叠加图像%d失败"
+msgstr "使用所提供的像素尺寸：%.2f\n"
 
 #: src/core/command.c:8453
-#, fuzzy, c-format
+#, c-format
 msgid "Using pixel size from preferences: %.2f\n"
-msgstr "叠加图像%d失败"
+msgstr "使用首选项中的像素尺寸：%.2f\n"
 
 #: src/core/command.c:8455
-#, fuzzy, c-format
+#, c-format
 msgid "Using pixel size from image: %.2f\n"
-msgstr "叠加图像%d失败"
+msgstr "使用图像中的像素尺寸：%.2f\n"
 
 #: src/core/command.c:8463
 #, fuzzy, c-format
@@ -11658,7 +11631,6 @@ msgstr ""
 "selection is printed."
 
 #: src/core/command_def.h:16
-#, fuzzy
 msgid ""
 "Calibrate the sequence <b>sequencename</b> using bias, dark and flat given "
 "in argument.\n"
@@ -11694,12 +11666,12 @@ msgid ""
 "If <b>-fitseq</b> is provided, the output sequence will be a FITS sequence "
 "(single file)"
 msgstr ""
-"Preprocesses the sequence <b>sequencename</b> using bias, dark and flat "
-"given in argument.\n"
+"Calibrate the sequence <b>sequencename</b> using bias, dark and flat given "
+"in argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering "
-"a quoted expression starting with an = sign, such as -bias=\"=256\" or -"
-"bias=\"=64*$OFFSET\".\n"
+"a quoted expression starting with an = sign, such as -bias=\"=256\" or -bias="
+"\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -11720,13 +11692,15 @@ msgstr ""
 "The <b>-equalize_cfa</b> option equalizes the mean intensity of RGB layers "
 "of the CFA flat master.\n"
 "It is also possible to optimize the dark subtraction with <b>-opt</b>.\n"
+"By default, frames marked as excluded will not be processed. The argument "
+"<b>-all</b> can be used to force processing of all frames even if marked as "
+"excluded.\n"
 "The output sequence name starts with the prefix \"pp_\" unless otherwise "
 "specified with option <b>-prefix=</b>.\n"
-"If <b>-fitseq</b> is provided, the output sequence will be a FITS sequence "
-"(single file).\n"
+"If <b>-fitseq</b> is provided, the output sequence will be a FITS sequence ("
+"single file)"
 
 #: src/core/command_def.h:17
-#, fuzzy
 msgid ""
 "Calibrate the image <b>imagename</b> using bias, dark and flat given in "
 "argument.\n"
@@ -11759,12 +11733,12 @@ msgid ""
 "The output filename starts with the prefix \"pp_\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Preprocesses the image <b>imagename</b> using bias, dark and flat given in "
+"Calibrate the image <b>imagename</b> using bias, dark and flat given in "
 "argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering "
-"a quoted expression starting with an = sign, such as -bias=\"=256\" or -"
-"bias=\"=64*$OFFSET\".\n"
+"a quoted expression starting with an = sign, such as -bias=\"=256\" or -bias="
+"\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -11785,8 +11759,10 @@ msgstr ""
 "The <b>-equalize_cfa</b> option equalizes the mean intensity of RGB layers "
 "of the CFA flat master.\n"
 "It is also possible to optimize the dark subtraction with <b>-opt</b>.\n"
+"Note that the command-line parser will not reject the argument <b>-pex</b>, "
+"which is used in preprocessing sequences, but it will be ignored.\n"
 "The output filename starts with the prefix \"pp_\" unless otherwise "
-"specified with option <b>-prefix=</b>.\n"
+"specified with option <b>-prefix=</b>"
 
 #: src/core/command_def.h:18
 msgid "Lists Siril capabilities, based on compilation and runtime"
@@ -11903,10 +11879,8 @@ msgid ""
 "file]. COSME is adapted to correct residual hot and cold pixels after "
 "preprocessing"
 msgstr ""
-"Applies the local mean to a set of pixels on the in-memory image (cosmetic "
-"correction). The coordinates of these pixels are in an ASCII file [.lst "
-"file]. COSME is adapted to correct residual hot and cold pixels after "
-"preprocessing"
+"将局部平均值应用于内存中图像上的一组像素（降噪）。这些像素的坐标位于 ASCII "
+"文件 [.lst 文件] 中。COSME适用于预处理后的残余热像素和冷像素修正"
 
 #: src/core/command_def.h:29
 msgid "Same function as COSME but applying to RAW CFA images"
@@ -12002,6 +11976,52 @@ msgid ""
 "used to prevent this by denoising each channel separately. This is slower "
 "but will eliminate artefacts"
 msgstr ""
+"Denoises the image using the non-local Bayesian algorithm described by <a "
+"href=\"https://www.ipol.im/pub/art/2013/16\">Lebrun, Buades and Morel</a>.\n"
+"\n"
+"It is strongly recommended to apply cosmetic correction to remove salt and "
+"pepper noise before running denoise, and by default this command will apply "
+"cosmetic correction automatically. However, if this has already been carried "
+"out earlier in the workflow it may be disabled here using the optional "
+"command <b>-nocosmetic</b>.\n"
+"\n"
+"An optional argument <b>-mod=m</b> may be given, where 0 &lt;= m &lt;= 1. "
+"The output pixel is computed as : <i>out=m x d + (1 − m) x in</i>, where "
+"<i>d</i> is the denoised pixel value. A modulation value of 1 will apply no "
+"modulation. If the parameter is omitted, it defaults to 1.\n"
+"\n"
+"The optional argument <b>-vst</b> can be used to apply the generalised "
+"Anscombe variance stabilising transform prior to NL-Bayes. This is useful "
+"with photon-starved images such as single subs, where the noise follows a "
+"Poisson or Poisson-Gaussian distribution rather than being primarily "
+"Gaussian. It cannot be used in conjunction with DA3D or SOS, and for "
+"denoising stacked images it is usually not beneficial.\n"
+"\n"
+"The optional argument <b>-da3d</b> can be used to enable Data-Adaptive Dual "
+"Domain Denoising (DA3D) as a final stage denoising algorithm. This uses the "
+"output of BM3D as a guide image to refine the denoising. It improves detail "
+"and reduces staircasing artefacts.\n"
+"\n"
+"The optional argument <b>-sos=<i>n</i></b> can be used to enable Strengthen-"
+"Operate-Subtract (SOS) iterative denoise boosting, with the number of "
+"iterations specified by n. In particular, this booster may produce better "
+"results if the un-boosted NL-Bayes algorithm produces artefacts in "
+"background areas. If both -da3d and -sos=n are specified, the last to be "
+"specified will apply.\n"
+"\n"
+"The optional argument <b>-rho=r</b> may be specified, where 0 &lt; r &lt; 1. "
+"This is used by the SOS booster to determine the amount of noisy image added "
+"in to the intermediate result between each iteration. If -sos=n is not "
+"specified then the parameter is ignored.\n"
+"\n"
+"The default is not to apply DA3D or SOS, as the improvement in denoising is "
+"usually relatively small and these techniques requires additional processing "
+"time.\n"
+"\n"
+"In very rare cases, blocky coloured artefacts may be found in the output "
+"when denoising colour images. The optional argument <b>-indep</b> can be "
+"used to prevent this by denoising each channel separately. This is slower "
+"but will eliminate artefacts"
 
 #: src/core/command_def.h:34
 msgid "Dumps the FITS header"
@@ -12133,7 +12153,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:52
-#, fuzzy
 msgid ""
 "Tries to remove the canon banding.\n"
 "\n"
@@ -12144,9 +12163,10 @@ msgid ""
 msgstr ""
 "Tries to remove the canon banding.\n"
 "\n"
-"Argument <b>amount</b> define the amount of correction.\n"
+"Argument <b>amount</b> defines the amount of correction.\n"
 "<b>Sigma</b> defines a protection level of the algorithm, higher sigma gives "
-"higher protection"
+"higher protection.\n"
+"<b>-vertical</b> option enables to perform vertical banding removal"
 
 #: src/core/command_def.h:53
 msgid ""
@@ -12176,8 +12196,8 @@ msgid ""
 msgstr ""
 "Performs a median filter of size <b>ksize</b> x <b>ksize</b> (<b>ksize</b> "
 "MUST be odd) to the original image with a modulation parameter "
-"<b>modulation</b>.\n"
-"\n"
+"<b>modulation</b>. \n"
+" \n"
 "The output pixel is computed as : out=mod x m + (1 − mod) x in, where m is "
 "the median-filtered pixel value. A modulation's value of 1 will apply no "
 "modulation"
@@ -12228,6 +12248,22 @@ msgid ""
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
 msgstr ""
+"基于 ghsastro.co.uk 团队工作的反广义双曲拉伸。 \n"
+" \n"
+"参数 <b>-D=</b> 定义拉伸的强度，介于 0 和 10 "
+"之间。这是唯一的强制性参数。以下可选参数可进一步定制拉伸： \n"
+"<b>B4</b> 定义焦点附近的拉伸强度，介于 -5 和 15 之间; \n"
+"<b>LP</b> 定义一个介于 0 和 LP "
+"之间的阴影保留范围，其中拉伸将是线性的，保留阴影细节; \n"
+"<b>SP</b> 定义拉伸的对称点，介于 0 和 1 之间，这是拉伸最强烈的点; \n"
+"<b>HP</b> 定义 HP 和 1 "
+"之间的区域，其中拉伸是线性的，保留高光细节并防止星光膨胀。 \n"
+"如果省略 B，则 LP 和 SP 默认为 0.0，HP 默认为 1.0。 \n"
+"可以传递一个可选参数（<b>-human</b>、<b>-even</b> 或 <b>-independent</b>）来"
+"选择人类加权或偶数加权亮度或用于颜色拉伸的独立颜色通道。对于单色图像，将忽略"
+"该参数。 \n"
+"可选参数 <b>[channels]</b> 可用于指定要应用拉伸的通道：可以是 R、G、B、RG、"
+"RB 或 GB。默认值为所有通道"
 
 #: src/core/command_def.h:61
 msgid "Equalizes the mean intensity of RGB layers in a CFA image"
@@ -12294,6 +12330,22 @@ msgid ""
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
 msgstr ""
+"基于 ghsastro.co.uk 团队工作的反广义双曲拉伸。\n"
+"\n"
+"参数 <b>-D=</b> 定义拉伸的强度，介于 0 和 10 "
+"之间。这是唯一的强制性参数。以下可选参数可进一步定制拉伸： \n"
+"<b>B4</b> 定义焦点附近的拉伸强度，介于 -5 和 15 之间;\n"
+"<b>LP</b> 定义一个介于 0 和 LP "
+"之间的阴影保留范围，其中拉伸将是线性的，保留阴影细节;\n"
+"<b>SP</b> 定义拉伸的对称点，介于 0 和 1 之间，这是拉伸最强烈的点;\n"
+"<b>HP</b> 定义 HP 和 1 "
+"之间的区域，其中拉伸是线性的，保留高光细节并防止星光膨胀。\n"
+"如果省略 B，则 LP 和 SP 默认为 0.0，HP 默认为 1.0。\n"
+"可以传递一个可选参数（<b>-human</b>、<b>-even</b> 或 <b>-independent</b>）来"
+"选择人类加权或偶数加权亮度或用于颜色拉伸的独立颜色通道。对于单色图像，将忽略"
+"该参数。\n"
+"可选参数 <b>[channels]</b> 可用于指定要应用拉伸的通道：可以是 R、G、B、RG、"
+"RB 或 GB。默认值为所有通道"
 
 #: src/core/command_def.h:70
 #, fuzzy
@@ -12507,6 +12559,53 @@ msgid ""
 "For any of the above PSF generation options the optional argument <b>-ks=</"
 "b> may be provided to set the PSF dimension"
 msgstr ""
+"Generates a PSF for use with deconvolution. One of the following must be "
+"given as the first argument: <b>clear</b> (clears the existing PSF), "
+"<b>load</b> (loads a PSF from a file), <b>save</b> (saves the current PSF), "
+"<b>blind</b> (blind estimate of tke PSF), <b>stars</b> (generates a PSF "
+"based on measured stars from the image) or <b>manual</b> (generates a PSF "
+"manually based on a function and parameters).\n"
+"\n"
+"No additional arguments are required when using the <b>clear</b> argument.\n"
+"\n"
+"To load a previously saved PSF the <b>load</b> argument requires the PSF "
+"filename as a second argument. This may be in any format that Siril has been "
+"compiled with support for, but it must be square and should ideally be odd.\n"
+"\n"
+"To save the current PSF the argument <b>save</b> is used, with no additional "
+"arguments required: the PSF will be named based on the name of the open file "
+"or sequence.\n"
+"\n"
+"For <b>blind</b>, the following optional arguments may be provided: <b>-l0</"
+"b> uses the l0 descent method, <b>-si</b> uses the spectral irregularity "
+"method, <b>-multiscale</b> configures the l0 method to do a multi-scale PSF "
+"estimate, <b>-lambda=</b> provides the regularization constant.\n"
+"\n"
+"For PSF from detected stars the only optional parameter is <b>-sym</b>, "
+"which configures the PSF to be symmetric.\n"
+"\n"
+"For a manual PSF, one of <b>-gaussian</b>, <b>-moffat</b>, <b>-disc</b> or "
+"<b>-airy</b> must be provided to specify the PSF function. For Gaussian or "
+"Moffat PSFs the optional arguments <b>-fwhm=</b>, <b>-angle=</b> and "
+"<b>-ratio=</b> may be provided. For Moffat PSFs the optional argument "
+"<b>-beta=</b> may also be provided. If these values are omitted, they "
+"default to the same values as in the deconvolution dialog. For disc PSFs "
+"only the argument <b>-fwhm=</b> is required, which for this function is used "
+"to set the <i>diameter</i> of the PSF. For Airy PSFs the following arguments "
+"may be provided: <b>-dia=</b> (sets the telescope diameter), <b>-fl=</b> ("
+"sets the telescope focal length), <b>-wl=</b> (sets the wavelength to "
+"calculate the Airy diffraction pattern for), <b>-pixelsize=</b> (sets the "
+"sensor pixel size), <b>-obstruct=</b> (sets the central obstruction as a "
+"percentage of the overall aperture area). If these parameters are not "
+"provided, wavelength will default to 525nm and central obstruction will "
+"default to 0%. Siril will attempt to read the others from the open image, "
+"but some imaging software may not provide all of them in which case you will "
+"get bad results, and note the metadata may not be populated for SER format "
+"videos. You will learn from experience which are safe to omit for your "
+"particular imaging setup.\n"
+"\n"
+"For any of the above PSF generation options the optional argument <b>-ks=</"
+"b> may be provided to set the PSF dimension"
 
 #: src/core/command_def.h:87
 msgid "Merges several sequences into one"
@@ -12681,6 +12780,31 @@ msgid ""
 "<b>-catalog=apass</b>. If installed locally, the remote NOMAD can be forced "
 "by providing <b>-catalog=nomad</b>"
 msgstr ""
+"Run the Photometric Color Correction on the loaded image.\n"
+"If the image has already been plate solved, the PCC can reuse the "
+"astrometric solution, otherwise, or if WCS or other image metadata is "
+"erroneous or missing, arguments for the plate solving must be passed:\n"
+"  the approximate image center coordinates can be provided in decimal "
+"degrees or degree/hour minute second values (J2000 with colon separators), "
+"with right ascension and declination values separated by a comma or a space."
+"\n"
+"  focal length and pixel size can be passed with <b>-focal=</b> (in mm) and "
+"<b>-pixelsize=</b> (in microns), overriding values from image and settings.\n"
+"  you can force the plate solving to be remade using the <b>-platesolve</b> "
+"flag.\n"
+"\n"
+"Unless <b>-noflip</b> is specified and the image is detected as being upside-"
+"down, the image will be flipped if a plate solving is run.\n"
+"For faster star detection in big images, downsampling the image is possible "
+"with <b>-downscale</b>.\n"
+"\n"
+"The limit magnitude of stars used for plate solving and PCC is automatically "
+"computed from the size of the field of view, but can be altered by passing a "
+"+offset or -offset value to <b>-limitmag=</b>, or simply an absolute "
+"positive value for the limit magnitude.\n"
+"The star catalog used is NOMAD by default, it can be changed by providing "
+"<b>-catalog=apass</b>. If installed locally, the remote NOMAD can be forced "
+"by providing <b>-catalog=nomad</b>"
 
 #: src/core/command_def.h:104
 msgid ""
@@ -12714,6 +12838,35 @@ msgid ""
 "is passed, it forces the use of the remote catalog given in argument, with "
 "possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass"
 msgstr ""
+"Plate solve the loaded image.\n"
+"If the image has already been plate solved nothing will be done, unless the "
+"<b>-platesolve</b> argument is passed to force a new solve. If WCS or other "
+"image metadata is erroneous or missing, arguments must be passed:\n"
+"  the approximate image center coordinates can be provided in decimal "
+"degrees or degree/hour minute second values (J2000 with colon separators), "
+"with right ascension and declination values separated by a comma or a space ("
+"not mandatory for astrometry.net).\n"
+"  focal length and pixel size can be passed with <b>-focal=</b> (in mm) and "
+"<b>-pixelsize=</b> (in microns), overriding values from image and settings.\n"
+"\n"
+"Unless <b>-noflip</b> is specified, if the image is detected as being upside-"
+"down, it will be flipped.\n"
+"For faster star detection in big images, downsampling the image is possible "
+"with <b>-downscale</b>.\n"
+"\n"
+"Images can be either plate solved by Siril using a star catalogue and the "
+"global registration algorithm or by astrometry.net's local solve-field "
+"command (enabled with <b>-localasnet</b>).\n"
+"The following options apply to Siril's plate solve only.\n"
+"The limit magnitude of stars used for plate solving is automatically "
+"computed from the size of the field of view, but can be altered by passing a "
+"+offset or -offset value to <b>-limitmag=</b>, or simply an absolute "
+"positive value for the limit magnitude.\n"
+"The choice of the star catalog is automatic unless the <b>-catalog=</b> "
+"option is passed: if local catalogs are installed, they are used, otherwise "
+"the choice is based on the field of view and limit magnitude. If the option "
+"is passed, it forces the use of the remote catalog given in argument, with "
+"possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass"
 
 #: src/core/command_def.h:105
 msgid ""
@@ -12846,6 +12999,20 @@ msgid ""
 "Clamping of the bicubic and lanczos4 interpolation methods is the default, "
 "to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 msgstr ""
+"Resamples image, either with a factor <b>factor</b> or for the target width "
+"or height provided by either of <b>-width=</b> or <b>-height=</b>. This is "
+"generally used to resize images, a factor of 0.5 divides size by 2.\n"
+"In the graphical user interface, we can see that several interpolation "
+"algorithms are proposed.\n"
+"\n"
+"The pixel interpolation method can be specified with the <b>-interp=</b> "
+"argument followed by one of the methods in the list <b>no</b>[ne], "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea]}. If <b>none</b> is passed, the transformation is forced to "
+"shift and a pixel-wise shift is applied to each image without any "
+"interpolation.\n"
+"Clamping of the bicubic and lanczos4 interpolation methods is the default, "
+"to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 
 #: src/core/command_def.h:112
 msgid ""
@@ -12937,6 +13104,22 @@ msgid ""
 "Clamping of the bicubic and lanczos4 interpolation methods is the default, "
 "to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 msgstr ""
+"Rotates the image by an angle of <b>degree</b> value. The option <b>-nocrop</"
+"b> can be added to avoid cropping to the image size (black borders will be "
+"added).\n"
+"\n"
+" Note: if a selection is active, i.e. by using a command `boxselect` before "
+"`rotate`, the resulting image will be a rotated crop. In this particular "
+"case, the option <b>-nocrop</b> will be ignored if passed.\n"
+"\n"
+"The pixel interpolation method can be specified with the <b>-interp=</b> "
+"argument followed by one of the methods in the list <b>no</b>[ne], "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea]}. If <b>none</b> is passed, the transformation is forced to "
+"shift and a pixel-wise shift is applied to each image without any "
+"interpolation.\n"
+"Clamping of the bicubic and lanczos4 interpolation methods is the default, "
+"to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument"
 
 #: src/core/command_def.h:117
 msgid ""
@@ -13388,6 +13571,37 @@ msgid ""
 "is passed, it forces the use of the remote catalog given in argument, with "
 "possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass"
 msgstr ""
+"Plate solve a sequence. A new sequence will be created with the prefix \"ps_"
+"\".\n"
+"If images have already been plate solved, they will just be copied, unless "
+"the <b>-platesolve</b> argument is passed to force a new solve. If WCS or "
+"other image metadata are erroneous or missing, arguments must be passed:\n"
+"  the approximate image center coordinates can be provided in decimal "
+"degrees or degree/hour minute second values (J2000 with colon separators), "
+"with right ascension and declination values separated by a comma or a space ("
+"not mandatory for astrometry.net).\n"
+"  focal length and pixel size can be passed with <b>-focal=</b> (in mm) and "
+"<b>-pixelsize=</b> (in microns), overriding values from images and settings."
+"\n"
+"\n"
+"Unless <b>-noflip</b> is specified, if images are detected as being upside-"
+"down, they will be flipped.\n"
+"For faster star detection in big images, downsampling the image is possible "
+"with <b>-downscale</b>.\n"
+"\n"
+"Images can be either plate solved by Siril using a star catalogue and the "
+"global registration algorithm or by astrometry.net's local solve-field "
+"command (enabled with <b>-localasnet</b>).\n"
+"The following options apply to Siril's plate solve only.\n"
+"The limit magnitude of stars used for plate solving is automatically "
+"computed from the size of the field of view, but can be altered by passing a "
+"+offset or -offset value to <b>-limitmag=</b>, or simply an absolute "
+"positive value for the limit magnitude.\n"
+"The choice of the star catalog is automatic unless the <b>-catalog=</b> "
+"option is passed: if local catalogs are installed, they are used, otherwise "
+"the choice is based on the field of view and limit magnitude. If the option "
+"is passed, it forces the use of the remote catalog given in argument, with "
+"possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass"
 
 #: src/core/command_def.h:151
 msgid ""
@@ -13581,7 +13795,6 @@ msgstr ""
 "The argument <b>extension</b> can be \"fit\", \"fts\" or \"fits\""
 
 #: src/core/command_def.h:167
-#, fuzzy
 msgid ""
 "Defines stars detection parameters for FINDSTAR and REGISTER commands.\n"
 "\n"
@@ -13614,20 +13827,36 @@ msgid ""
 "if they are stars or not, to allow objects not shaped like stars to still be "
 "accepted (off by default)"
 msgstr ""
-"Defines stars detection parameters for FINDSTAR and REGISTER commands.\n"
+"Defines stars detection parameters for FINDSTAR and REGISTER commands. \n"
 "\n"
+"Passing no parameter lists the current values. \n"
+"Passing <b>reset</b> resets all values to defaults. You can then still pass "
+"values after this keyword. \n"
+" \n"
+"Configurable values: \n"
+" \n"
 "<b>-radius=</b> defines the radius of the initial search box and must be "
-"between 3 and 50.\n"
+"between 3 and 50. \n"
 "<b>-sigma=</b> defines the threshold above noise and must be greater or "
-"equal to 0.05.\n"
+"equal to 0.05. \n"
 "<b>-roundness=</b> defines minimum star roundness and must between 0 and "
-"0.95\n"
-"<b>-auto=</b> is used if set to \"on\", in which case the <b>radius</b> "
-"option is corrected to account for the actual sampling defined by <b>focal</"
-"b> and <b>pixelsize</b> options (unless already defined in the image "
-"header). This option can be deactivated by setting <b>-auto=</b>off.\n"
-"<b>-focal=</b> defines the focal length of the telescope.\n"
-"<b>-pixelsize=</b> defines the pixel size of the sensor."
+"0.95. <b>-maxR</b> allows an upper bound to roundness to be set, to "
+"visualize only the areas where stars are significantly elongated, do not "
+"change for registration. \n"
+"<b>-minA</b> and <b>-maxA</b> define limits for the minimum and maximum "
+"amplitude of stars to keep, normalized between 0 and 1. \n"
+"<b>-focal=</b> defines the focal length of the telescope. \n"
+"<b>-pixelsize=</b> defines the pixel size of the sensor. \n"
+"<b> -gaussian</b> and <b>-moffat</b> configure the solver model to be used ("
+"Gaussian is the default). \n"
+"If Moffat is selected, <b>-minbeta=</b> defines the minimum value of beta "
+"for which candidate stars will be accepted and must be greater or equal to "
+"0.0 and less than 10.0. \n"
+"<b>-convergence=</b> defines the number of iterations performed to fit PSF "
+"and should be set between 1 and 3 (more tolerant). \n"
+"<b>-relax=</b> relaxes the checks that are done on star candidates to assess "
+"if they are stars or not, to allow objects not shaped like stars to still be "
+"accepted (off by default)"
 
 #: src/core/command_def.h:168
 msgid ""
@@ -14398,9 +14627,9 @@ msgid "Input pipe creation failed with error %d\n"
 msgstr "创建输入管道失败，错误 %d\n"
 
 #: src/core/pipe.c:139 src/core/pipe.c:154
-#, fuzzy, c-format
+#, c-format
 msgid "Could not create the named pipe %s\n"
-msgstr "无法创建命名管道 "
+msgstr "无法创建命名管道 %s\n"
 
 #: src/core/pipe.c:145 src/core/pipe.c:160
 #, c-format
@@ -14798,9 +15027,8 @@ msgid "HD AutoStretch bit depth"
 msgstr "自动拉伸"
 
 #: src/core/settings.c:257
-#, fuzzy
 msgid "need requires cmd in script"
-msgstr "Can be used in a script: "
+msgstr "需要脚本中的requires命令"
 
 #: src/core/settings.c:258
 msgid "need requires cmd in pipe"
@@ -14821,9 +15049,8 @@ msgid "swap directory"
 msgstr "选择Swap目录"
 
 #: src/core/settings.c:262
-#, fuzzy
 msgid "update pixel size of binned images"
-msgstr "搜索框的像素尺寸。"
+msgstr "更新合并后图像的像素尺寸"
 
 #: src/core/settings.c:263
 msgid "WCS formalism used in FITS header"
@@ -14890,7 +15117,7 @@ msgstr ""
 
 #: src/core/settings.c:283
 msgid "pixel size in µm for radius adjustment"
-msgstr ""
+msgstr "像素尺寸（以μm为单位），用于半径调整"
 
 #: src/core/settings.c:285
 #, fuzzy
@@ -14903,9 +15130,8 @@ msgid "index of the Bayer pattern"
 msgstr "选择相机的Bayer滤镜排列模式。"
 
 #: src/core/settings.c:287
-#, fuzzy
 msgid "type of interpolation"
-msgstr "Debayer插值算法: "
+msgstr "插值类型"
 
 #: src/core/settings.c:288
 msgid "force debayer top-down"
@@ -14968,7 +15194,7 @@ msgstr ""
 
 #: src/core/settings.c:304
 msgid "degrees of the polynomial correction"
-msgstr ""
+msgstr "多项式修正的阶数"
 
 #: src/core/settings.c:305
 #, fuzzy
@@ -14993,7 +15219,7 @@ msgstr ""
 
 #: src/core/settings.c:311
 msgid "update default focal length and pixel size from the result"
-msgstr ""
+msgstr "从结果更新缺省的焦距和像素尺寸"
 
 #: src/core/settings.c:313
 msgid "panel size of aberration inspector"
@@ -15025,9 +15251,8 @@ msgstr "HCompress标度因子"
 
 #. the GUI part, not as useful but still required to be listed in order to be saved in the ini file
 #: src/core/settings.c:322
-#, fuzzy
 msgid "type of sensor for cosmetic correction"
-msgstr "主暗场和降噪"
+msgstr "用于降噪的传感器类型"
 
 #: src/core/settings.c:323
 #, fuzzy
@@ -15036,7 +15261,7 @@ msgstr "包含三个通道"
 
 #: src/core/settings.c:324
 msgid "enable correction for X-Trans sensor"
-msgstr ""
+msgstr "启用 X-Trans 传感器修正"
 
 #: src/core/settings.c:325 src/core/settings.c:326 src/core/settings.c:327
 #: src/core/settings.c:328 src/core/settings.c:329 src/core/settings.c:330
@@ -15106,9 +15331,8 @@ msgid "index of the normalization method"
 msgstr "错误的插值方法"
 
 #: src/core/settings.c:348
-#, fuzzy
 msgid "index of the rejection method"
-msgstr "保护算法: "
+msgstr "剔除方法的指标"
 
 #: src/core/settings.c:349
 msgid "sigma low value for rejection"
@@ -15188,9 +15412,8 @@ msgid "list of script directories"
 msgstr ""
 
 #: src/core/settings.c:371
-#, fuzzy
 msgid "warn when launching a script"
-msgstr "Can be used in a script: "
+msgstr "启动脚本时发出警告"
 
 #: src/core/settings.c:372
 #, fuzzy
@@ -15350,7 +15573,7 @@ msgstr "无法检查更新：无法获取版本文件\n"
 #, c-format
 msgid ""
 "New version is available. You can download it at <a href=\"%s\">%s</a>\n"
-msgstr "发现新版本。请到此处下载更新 <a href=“%s”>%s</a>\n"
+msgstr "发现新版本。请到此处下载更新 <a href=\"%s\">%s</a>\n"
 
 #: src/core/siril_update.c:358
 msgid "No update check: this is a development version\n"
@@ -15914,10 +16137,10 @@ msgid ""
 "Finally, keep in mind that plate solving algorithm should only be applied on "
 "linear image."
 msgstr ""
-"这通常是由于初始化参数（像素尺寸，焦距，初始化坐标）与实际情况相去甚远。\n"
+"这通常是由于初始化参数（像素尺寸，焦距，初始化坐标）与实际情况相去甚远。 \n"
 "\n"
 "您可以尝试使用另外的星表，或者尝试使用“Downsampling”按钮，尤其是对于Drizzle图"
-"像。\n"
+"像。 \n"
 "\n"
 "最后，请注意解析算法只能作用于线性图像。"
 
@@ -16013,7 +16236,7 @@ msgstr ""
 #: src/gui/background_extraction.c:219
 #, c-format
 msgid "Background extraction (Correction: %s)"
-msgstr "背景提取（校正: %s）"
+msgstr "背景提取（修正: %s）"
 
 #: src/gui/background_extraction.c:225
 msgid "No Background model computed"
@@ -16058,14 +16281,12 @@ msgid "%s, %d/%d images selected"
 msgstr "%s, %d/%d 图像已被选择"
 
 #: src/gui/callbacks.c:449
-#, fuzzy
 msgid "Sequence: "
-msgstr "队列:"
+msgstr "队列: "
 
 #: src/gui/callbacks.c:456
-#, fuzzy
 msgid "Image: "
-msgstr "图像："
+msgstr "图像： "
 
 #: src/gui/callbacks.c:460
 msgid "- none -"
@@ -16178,30 +16399,32 @@ msgid "This erases the following data, and there's no possible undo:\n"
 msgstr "这将清除之前的图像选择，并且无法撤销。"
 
 #: src/gui/callbacks.c:1878
-#, fuzzy
 msgid ""
 "\n"
 "- Registration"
-msgstr "对齐"
+msgstr ""
+"\n"
+"- 对齐"
 
 #: src/gui/callbacks.c:1879
-#, fuzzy
 msgid ""
 "\n"
 "- Statistics"
-msgstr "统计信息"
+msgstr ""
+"\n"
+"- 统计信息"
 
 #: src/gui/callbacks.c:1880
-#, fuzzy
 msgid ""
 "\n"
 "- Selection"
-msgstr "选择"
+msgstr ""
+"\n"
+"- 选择"
 
 #: src/gui/callbacks.c:1884
-#, fuzzy
 msgid "Clear Sequence Data?"
-msgstr "裁剪整个队列"
+msgstr "清除队列数据？"
 
 #: src/gui/callbacks.c:1884
 #, fuzzy
@@ -16421,9 +16644,8 @@ msgid "Could not compute autostretch parameters, using default values\n"
 msgstr "无法计算自动拉伸参数，使用缺省值\n"
 
 #: src/gui/histogram.c:1040
-#, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations"
-msgstr "直方图变换…"
+msgstr "广义双曲拉伸变换"
 
 #: src/gui/histogram.c:1068 src/gui/histogram.c:1455
 msgid "Clicking on the histogram sets SP"
@@ -16455,9 +16677,8 @@ msgid "Midtone Transfer Function"
 msgstr "中间调变换函数"
 
 #: src/gui/histogram.c:1583
-#, fuzzy
 msgid "Generalised Hyperbolic Transfer Function"
-msgstr "负片变换"
+msgstr "广义双曲拉伸函数"
 
 #: src/gui/image_display.c:151
 msgid ""
@@ -16519,9 +16740,9 @@ msgid "Mirror Y"
 msgstr "镜像 Y"
 
 #: src/gui/menu_gray_geometry.c:183
-#, fuzzy, c-format
+#, c-format
 msgid "Binning x%d (%s)"
-msgstr "像素合并: "
+msgstr "像素合并x%d (%s)"
 
 #: src/gui/menu_gray_geometry.c:183
 msgid "average"
@@ -16574,7 +16795,7 @@ msgstr ""
 #: src/gui/newdeconv.c:462
 msgid ""
 "Warning: sensor pixel size obtained from FITS header data may be incorrect.\n"
-msgstr ""
+msgstr "警告：从 FITS 文件头数据所获取的传感器像素尺寸可能不正确。\n"
 
 #: src/gui/newdeconv.c:505 src/gui/PSF_list.c:249
 msgid "Stars FWHM must have the same units."
@@ -16667,7 +16888,7 @@ msgstr ""
 msgid ""
 "Warning: sensor pixel size appears likely to be incorrect. Continuing "
 "anyway...\n"
-msgstr ""
+msgstr "警告：传感器像素尺寸可能不正确。无论如何继续...\n"
 
 #: src/gui/newdeconv.c:872
 msgid ""
@@ -16888,12 +17109,11 @@ msgstr "创建SER文件“%s”失败\n"
 
 #: src/gui/photometric_cc.c:166
 msgid "Photometric Color Calibration"
-msgstr "基于解析的色彩校准"
+msgstr "测光法色彩校准"
 
 #: src/gui/photometric_cc.c:246
-#, fuzzy
 msgid "(online catalogue)"
-msgstr "在线星表: "
+msgstr "（在线星表）"
 
 #: src/gui/photometric_cc.c:247
 #, fuzzy
@@ -17676,7 +17896,7 @@ msgstr "未知图像"
 #: src/gui/statistics_list.c:200
 #, c-format
 msgid "Size of selection in pixel: (%d,%d)"
-msgstr "所选区域尺寸－像素: (%d,%d)"
+msgstr "以像素为单位的选区大小: (%d,%d)"
 
 #: src/gui/statistics_list.c:203
 #, c-format
@@ -18450,24 +18670,20 @@ msgid "Library not defined in preferences: "
 msgstr ""
 
 #: src/io/path_parse.c:55
-#, fuzzy
 msgid "Key not found: "
-msgstr "文件未找到"
+msgstr "未找到密钥： "
 
 #: src/io/path_parse.c:59
-#, fuzzy
 msgid "Wrong date: "
-msgstr "无效值"
+msgstr "错误的日期： "
 
 #: src/io/path_parse.c:63
-#, fuzzy
 msgid "Wrong coordinates: "
-msgstr "错误的中央坐标"
+msgstr "错误的中央坐标： "
 
 #: src/io/path_parse.c:67
-#, fuzzy
 msgid "Unsupported format: "
-msgstr "支持文件类型:"
+msgstr "不支持的格式： "
 
 #: src/io/path_parse.c:74
 msgid "More than one match for: "
@@ -19318,9 +19534,8 @@ msgid "Average absolute deviation of the image."
 msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:110
-#, fuzzy
 msgid "Biweight midvariance of the image."
-msgstr "相位文件: "
+msgstr "图像的双权中方差。"
 
 #: src/pixelMath/pixel_math_runner.c:111
 #, fuzzy
@@ -19328,9 +19543,8 @@ msgid "Height in pixels of the specified image."
 msgstr "搜索框的像素尺寸。"
 
 #: src/pixelMath/pixel_math_runner.c:112 src/pixelMath/pixel_math_runner.c:114
-#, fuzzy
 msgid "Median absolute deviation of the image."
-msgstr "幅值文件: "
+msgstr "图像的中位数绝对偏差。"
 
 #: src/pixelMath/pixel_math_runner.c:113
 #, fuzzy
@@ -19338,14 +19552,12 @@ msgid "Pixel maximum of the image."
 msgstr "像素最大化叠加"
 
 #: src/pixelMath/pixel_math_runner.c:115
-#, fuzzy
 msgid "Mean of the image."
-msgstr "幅值文件: "
+msgstr "图像的平均值。"
 
 #: src/pixelMath/pixel_math_runner.c:116 src/pixelMath/pixel_math_runner.c:117
-#, fuzzy
 msgid "Median of the image."
-msgstr "幅值文件: "
+msgstr "图像的中位数。"
 
 #: src/pixelMath/pixel_math_runner.c:118
 #, fuzzy
