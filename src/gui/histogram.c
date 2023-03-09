@@ -1134,6 +1134,8 @@ void toggle_histogram_window_visibility(int _invocation) {
 			setup_ght_dialog();
 			updateGHTcontrols();
 		}
+		if (gui.rendering_mode == LINEAR_DISPLAY)
+			setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 		siril_open_dialog("histogram_dialog");
 	}
 }

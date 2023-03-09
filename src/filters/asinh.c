@@ -24,6 +24,7 @@
 #include "core/proto.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
+#include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
@@ -177,6 +178,9 @@ void on_asinh_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkSpinButton *spin_stretch = GTK_SPIN_BUTTON(lookup_widget("spin_asinh"));
 	GtkSpinButton *spin_black_p = GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh"));
 	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
+
+	if (gui.rendering_mode == LINEAR_DISPLAY)
+		setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 
 	asinh_startup();
 	asinh_stretch_value = 0.0f;
