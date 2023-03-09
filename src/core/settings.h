@@ -161,7 +161,7 @@ struct comp_config {
 };
 
 struct gui_config {
-	gboolean first_start;		// use to display information at first use
+	const gchar *first_start;		// use to display information at first use
 	gboolean silent_quit;
 	gboolean silent_linear;
 	gboolean remember_windows;	// restore windows at their previous location

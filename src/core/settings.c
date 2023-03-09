@@ -104,7 +104,7 @@ preferences pref_init = {
 		.use_stack_default = TRUE,
 	},
 	.gui = {
-		.first_start = TRUE,
+		.first_start = NULL,
 		.silent_quit = FALSE,
 		.silent_linear = FALSE,
 		.remember_windows = TRUE,
@@ -357,7 +357,7 @@ struct settings_access all_settings[] = {
 	{ "gui_stack", "percentile_low", STYPE_DOUBLE, N_("percentile low value for rejection"), &com.pref.stack.percentile_low, { .range_double = { 0., 100. } } },
 	{ "gui_stack", "percentile_high", STYPE_DOUBLE, N_("percentile high value for rejection"), &com.pref.stack.percentile_high, { .range_double = { 0., 100. } } },
 
-	{ "gui", "first_start", STYPE_BOOL, N_("first start of siril"), &com.pref.gui.first_start },
+	{ "gui", "first_start", STYPE_STR, N_("first start of siril"), &com.pref.gui.first_start },
 	{ "gui", "silent_quit", STYPE_BOOL, N_("don't confirm quit when exiting"), &com.pref.gui.silent_quit },
 	{ "gui", "silent_linear", STYPE_BOOL, N_("don't confirm save when non linear mode"), &com.pref.gui.silent_linear },
 	{ "gui", "remember_windows", STYPE_BOOL, N_("remember window position"), &com.pref.gui.remember_windows },

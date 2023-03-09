@@ -32,13 +32,12 @@ static gboolean go_next;
 
 const SirilTipIntro intro_tips[] = {
 		{"headerbar", N_("Welcome to the newest version of Siril. Please take a moment to read some tips about this release"), 8},
-		{"notebook1", N_("All of the application windows have been merged into this window. In the left panel, you can see the image preview with the Red, Green, and Blue channels and the RGB Mix"), 9},
 		{"labelRGB", N_("The RGB tab is now ready for processing. You can select and work on this tab which is open by default if the image is RGB."), 8},
 		{"label22", N_("Pre-processing steps are grouped together in the right panel. You can reach each step with the F1...F7 keys"), 8},
 		{"button_paned", N_("This button will hide the right panel. You can also try the full screen mode (Control - F)"), 8},
 		{"hamburger-menu", N_("Press F10 or click on this button to open the menu. Here you can find the shortcut list and the preferences dialog where many of the options are available"), 9},
 		{"hamburger-menu", N_("You can get more scripts by clicking to the \"Get scripts\" item in the menu"), 6},
-		{"main_menu_doc", N_("A new documentation is also available via the menu \"Siril Manual\""), 6},
+		{"hamburger-menu", N_("A new documentation is also available via the menu \"Siril Manual\""), 6},
 		{"cwd_button", N_("You can change your working directory by hitting this button. The working directory is shown right below the title at the center of the headerbar"), 9},
 		{"header_open_button", N_("You can open a single image or FITS/SER sequence"), 6},
 		{"recent_menu_button", N_("Here’s listed the most recent FITS files you’ve opened"), 6},
@@ -50,8 +49,8 @@ const SirilTipIntro intro_tips[] = {
 		{"header_save_button", N_("... or save the current FITS image with the same name"), 6},
 		{"header_snapshot_button", N_("Take a snapshot of your image at any time, with false color, in negative view or with annotation"), 8},
 		{"command", N_("As usual you can enter Siril commands. To have an overview of all commands, type \"help\""), 7},
-		{"GtkToolMainBar", N_("Basic viewing operations are available in the main toolbar. Zooming is now available with Ctrl-Scroll up and down"), 8},
-		{"GtkToolMainBar", N_("To pan your image you can now use Ctrl-Click (and drag)"), 6},
+		{"GtkToolMainBar", N_("Basic viewing operations are available in the main toolbar. Zooming is available with Ctrl-Scroll up and down"), 8},
+		{"GtkToolMainBar", N_("To pan your image you can use Ctrl-Click (and drag)"), 6},
 		{"drawingarear", N_("Enjoy using the new Siril"), 6}
 };
 
