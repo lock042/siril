@@ -13,14 +13,15 @@ typedef struct starnet_data {
 	fits *starnet_fit;
 	fits *starmask_fit;
 	struct timeval t_start;
-	gchar stride[6];
+	gchar *stride;
 	gboolean linear;
 	gboolean customstride;
 	gboolean upscale;
 	gboolean starmask;
 	gboolean follow_on;
+	gboolean too_small;
 	const gchar *seqname;
-	char *seqEntry;
+	gchar *seqEntry;
 	int imgnumber;
 } starnet_data;
 
