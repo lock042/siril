@@ -132,8 +132,8 @@ PKG_CHECK_MODULES(GTK, gtk+-3.0 >= 3.20.0)
 dnl check cairo
 PKG_CHECK_MODULES(CAIRO, cairo)
 
-dnl check fftw3
-PKG_CHECK_MODULES(FFTW, [fftw3f])
+dnl check fftw3 and its threading capabilities
+m4_include([m4/fftw.m4])
 
 dnl check GNU Scientific Library
 PKG_CHECK_MODULES(GSL, [gsl < 2],

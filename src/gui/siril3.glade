@@ -30984,7 +30984,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="label" translatable="yes">Multithreaded FFTW</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
+                                <property name="receives-default">True</property>
                                 <property name="tooltip-text" translatable="yes">If selected, FFTW will use multiple threads. This is usually a speedup on large images, but will increase initial planning time the first time FFTW operates on an image of a given size.</property>
                                 <property name="halign">start</property>
                                 <property name="active">True</property>

@@ -439,7 +439,7 @@ gpointer fourier_transform(gpointer p) {
 	int chan;
 	struct timeval t_start, t_end;
 	fits *tmp = NULL, *tmp1 = NULL, *tmp2 = NULL;
-#ifdef HAVE_FFTW3F_OMP
+#ifdef HAVE_FFTW3F_MULTITHREAD
 // Change these lines to use fftw functions if double support is ever required
 		int n = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
         fftwf_plan_with_nthreads(n);
@@ -459,7 +459,7 @@ gpointer fourier_transform(gpointer p) {
 		default:
 			strategy = FFTW_ESTIMATE;
 	}
-
+	set_wisdom_file();
     if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
         siril_log_message(_("Siril FFT wisdom imported successfully...\n"));
 	} else if (fftwf_import_system_wisdom() == 1) {
