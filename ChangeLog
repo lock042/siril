@@ -1,5 +1,5 @@
 siril 1.2.0-beta2
-xx/xx/23
+03/12/23
 
 * Fixed behavior on Windows when calling external programs (StarNet, astrometry.net)
 * Fixed crash when converting sequence to SER
