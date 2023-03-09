@@ -996,6 +996,7 @@ gpointer estimate_only(gpointer p) {
 	cppfftwtimelimit = com.pref.fftw_conf.timelimit;
 	cppfftwmultithreaded = com.pref.fftw_conf.multithreaded;
 	set_cursor_waiting(TRUE);
+	set_wisdom_file();
 	if (args.psftype == PSF_BLIND) {
 		if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 			siril_log_message(_("Siril FFT wisdom imported successfully...\n"));
@@ -1118,6 +1119,8 @@ gpointer deconvolve(gpointer p) {
 	cppfftwmultithreaded = com.pref.fftw_conf.multithreaded;
 
 	set_cursor_waiting(TRUE);
+	set_wisdom_file();
+	siril_debug_print("Multi: %d, wisdom: %s\n", com.pref.fftw_conf.multithreaded, com.pref.fftw_conf.wisdom_file);
 	if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("Siril FFT wisdom imported successfully...\n"));

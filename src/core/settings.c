@@ -240,7 +240,7 @@ void initialize_default_settings() {
 	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
-	set_wisdom_file();
+	// set_wisdom_file();
 }
 
 void update_gain_from_gfit() {
@@ -281,7 +281,7 @@ struct settings_access all_settings[] = {
 	{ "core", "fftw_timelimit", STYPE_DOUBLE, N_("FFTW planning timelimit"), &com.pref.fftw_conf.timelimit },
 	{ "core", "fftw_conv_fft_cutoff", STYPE_INT, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
 	{ "core", "fftw_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
-	{ "core", "fftw_timeout", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
+	{ "core", "fftw_multithreaded", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
 
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
