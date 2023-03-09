@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -174,7 +174,7 @@ static double QualityEstimate_ushort(fits *fit, int layer) {
 #endif
 		q = Gradient(buf, x_samples, y_samples);
 
-		dval += (q * ((QSUBSAMPLE_MIN * QSUBSAMPLE_MIN)
+		dval += (q * ((double)(QSUBSAMPLE_MIN * QSUBSAMPLE_MIN)
 					/ (subsample * subsample)));
 		//printf("dval val : %f\n", dval);
 

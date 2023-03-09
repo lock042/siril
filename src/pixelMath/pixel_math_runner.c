@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -162,6 +162,7 @@ enum {
 };
 
 static fits var_fit[MAX_IMAGES] = { 0 };
+static gboolean var_fit_mask[MAX_IMAGES] = { 0 };
 
 static GtkListStore *pixel_math_list_store = NULL;
 static GtkListStore *pixel_math_list_store_functions = NULL;
@@ -467,7 +468,7 @@ static void update_metadata(fits *fit) {
 	fits **f = malloc((MAX_IMAGES + 1) * sizeof(fits *));
 	int j = 0;
 	for (int i = 0; i < MAX_IMAGES ; i++)
-		if (var_fit[i].rx > 0)
+		if (var_fit[i].rx > 0 && var_fit_mask[i])
 			f[j++] = &var_fit[i];
 	f[j] = NULL;
 
@@ -580,7 +581,7 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 									expression = g_string_free(string, FALSE);
 									total_len = strlen(expression);
 									pos = pos + strlen(replace);
-
+									g_free(replace);
 									siril_debug_print("Expression%d: %s\n", c, expression);
 								}
 							}
@@ -591,9 +592,15 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 			}
 		}
 	}
+	for (int j = 0; j < nb_images; j++) {
+		gchar *test =  g_strrstr(expression, image[j]);
+		if (test) {
+			var_fit_mask[j] = TRUE;
+			siril_debug_print("found image name %s in the expression %s\n", image[j], expression);
+		}
+	}
 	return expression;
 }
-
 gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
@@ -863,7 +870,7 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 }
 
 int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
-	if (index > MAX_IMAGES) {
+	if (index > MAX_IMAGES - 1) {
 		siril_log_message(_("A maximum of %d images can be used in a single expression.\n"), MAX_IMAGES);
 		return 1;
 	}
@@ -880,6 +887,7 @@ int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 void free_pm_var(int nb) {
 	for (int i = 0; i < nb; i++) {
 		clearfits(&var_fit[i]);
+		var_fit_mask[i] = FALSE;
 	}
 }
 
@@ -1059,7 +1067,7 @@ static void select_image(int nb) {
 			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT,	NULL);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fits.fz)"), FITS_EXTENSIONS);
+	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"), FITS_EXTENSIONS);
 	siril_file_chooser_add_preview(GTK_FILE_CHOOSER(dialog), preview);
 
 	res = gtk_dialog_run(GTK_DIALOG(dialog));
@@ -1080,8 +1088,9 @@ static void select_image(int nb) {
 			if (filename) {
 				gchar filter[FLEN_VALUE] = { 0 };
 				fits f = { 0 };
-				read_fits_metadata_from_path(filename, &f);
-				if (check_files_dimensions(&width, &height, &channel)) {
+				if (read_fits_metadata_from_path(filename, &f)) {
+					siril_log_color_message(_("Could not open file: %s\n"), "red", filename);
+				} else if (check_files_dimensions(&width, &height, &channel)) {
 					if (width != 0 && (channel != f.naxes[2] ||
 							width != f.naxes[0] ||
 							height != f.naxes[1])) {
@@ -1254,8 +1263,10 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	char buffer[512];
 
 	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip,
-			&model, &path, &iter))
+			&model, &path, &iter)) {
+		free(all_functions);
 		return FALSE;
+	}
 
 	gint real_index = get_real_index_from_index_in_list(model, &iter);
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -366,22 +366,23 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	}
 
 	if (combo_extract_channel == NULL) {
-		combo_extract_channel = GTK_COMBO_BOX(
-				lookup_widget("combo_extract_colors"));
-		channel_extract_entry[0] = GTK_ENTRY(
-				lookup_widget("Ch1_extract_channel_entry"));
-		channel_extract_entry[1] = GTK_ENTRY(
-				lookup_widget("Ch2_extract_channel_entry"));
-		channel_extract_entry[2] = GTK_ENTRY(
-				lookup_widget("Ch3_extract_channel_entry"));
+		combo_extract_channel = GTK_COMBO_BOX(lookup_widget("combo_extract_colors"));
+		channel_extract_entry[0] = GTK_ENTRY(lookup_widget("Ch1_extract_channel_entry"));
+		channel_extract_entry[1] = GTK_ENTRY(lookup_widget("Ch2_extract_channel_entry"));
+		channel_extract_entry[2] = GTK_ENTRY(lookup_widget("Ch3_extract_channel_entry"));
 	}
 
 	args->type = gtk_combo_box_get_active(combo_extract_channel);
 	args->str_type = gtk_combo_box_get_active_id(combo_extract_channel);
 
-	args->channel[0] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[0]), com.pref.ext);
-	args->channel[1] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[1]), com.pref.ext);
-	args->channel[2] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[2]), com.pref.ext);
+	args->channel[0] = args->channel[1] = args->channel[2] = NULL;
+
+	if (gtk_entry_get_text(channel_extract_entry[0]))
+		args->channel[0] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[0]), com.pref.ext);
+	if (gtk_entry_get_text(channel_extract_entry[1]))
+		args->channel[1] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[1]), com.pref.ext);
+	if (gtk_entry_get_text(channel_extract_entry[2]))
+		args->channel[2] = g_strdup_printf("%s%s", gtk_entry_get_text(channel_extract_entry[2]), com.pref.ext);
 
 	if ((args->channel[0][0] != '\0') && (args->channel[1][0] != '\0')
 			&& (args->channel[2][0] != '\0')) {

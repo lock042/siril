@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -91,7 +91,8 @@ int symlink_uniq_file(gchar *src_filename, gchar *dest_filename, gboolean allow_
 	/* remove already existing file to avoid error */
 	GStatBuf dest_stat;
 	if (g_lstat(dest_filename, &dest_stat) == 0) {
-		g_unlink(dest_filename);
+		if (g_unlink(dest_filename))
+			siril_debug_print("g_unlink() failed\n");
 	}
 
 #ifdef _WIN32

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -95,7 +95,7 @@ static void wavelets_startup() {
 
 int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer) {
 	int chan, start, end, retval = 0;
-	wave_transf_des wavelet[3];
+	wave_transf_des wavelet[3] = { 0 };
 
 	g_assert(fit->naxes[2] <= 3);
 
@@ -109,7 +109,7 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 		}
 	}
 
-	if (reqlayer < 0 || reqlayer > 3) {
+	if (reqlayer < 0 || reqlayer >= 3) {
 		start = 0;
 		end = fit->naxes[2];
 	}
@@ -137,6 +137,9 @@ int get_wavelet_layers(fits *fit, int Nbr_Plan, int Plan, int Type, int reqlayer
 				retval = 1;
 				break;
 			}
+		} else { // Unknown fit->type
+			retval = 1;
+			break;
 		}
 		Nl = wavelet[chan].Nbr_Ligne;
 		Nc = wavelet[chan].Nbr_Col;
@@ -156,7 +159,7 @@ static gboolean end_wavelets_filter(gpointer p) {
 	struct wavelets_filter_data *args = (struct wavelets_filter_data *) p;
 	stop_processing_thread();// can it be done here in case there is no thread?
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_DONE);
-	
+
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;

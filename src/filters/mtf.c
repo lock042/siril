@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -151,10 +151,9 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 	imstats *stat[3];
 
 	int nb_channels = (int)fit->naxes[2];
-
 	int retval = compute_all_channels_statistics_single_image(fit,
 			STATS_BASIC | STATS_MAD, MULTI_THREADED, stat);
-	for (i = 0; i < nb_channels; ++i) {
+	for (i = 0; i < nb_channels; i++) {
 		if (stat[i]) {
 			if (retval)
 				free_stats(stat[i]);
@@ -208,7 +207,7 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		result->highlights = c1;
 
 	}
-	for (i = 0; i < nb_channels; ++i)
+	for (i = 0; i < nb_channels; i++)
 		free_stats(stat[i]);
 	return 0;
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -106,13 +106,20 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 	return limit;
 }
 
+int banding_finalize_hook(struct generic_seq_args *args) {
+	struct banding_data *data = (struct banding_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 void apply_banding_to_sequence(struct banding_data *banding_args) {
-	struct generic_seq_args *args = create_default_seqargs(&com.seq);
+	struct generic_seq_args *args = create_default_seqargs(banding_args->seq);
 	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = com.seq.selnum;
+	args->nb_filtered_images = args->seq->selnum;
 	args->compute_mem_limits_hook = banding_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = banding_finalize_hook;
 	args->image_hook = banding_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Banding Reduction");
@@ -135,7 +142,7 @@ gboolean end_BandingEngine(gpointer p) {
 	redraw(REMAP_ALL);
 	redraw_previews();
 	set_cursor_waiting(FALSE);
-	
+
 	free(args);
 	return FALSE;
 }
@@ -206,12 +213,14 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_BASIC | STATS_MAD, threads);
 		if (!stat) {
 			siril_log_message(_("Error: statistics computation failed.\n"));
+			clearfits(fiximage);
 			return 1;
 		}
 		double background = stat->median;
 		double *rowvalue = calloc(fit->ry, sizeof(double));
 		if (rowvalue == NULL) {
 			PRINT_ALLOC_ERR;
+			clearfits(fiximage);
 			free_stats(stat);
 			return 1;
 		}
@@ -225,6 +234,7 @@ static int BandingEngine_ushort(fits *fit, double sigma, double amount, gboolean
 			if (cpyline == NULL) {
 				PRINT_ALLOC_ERR;
 				free(rowvalue);
+				clearfits(fiximage);
 				return 1;
 			}
 			memcpy(cpyline, line, fit->rx * sizeof(WORD));
@@ -340,6 +350,7 @@ static int BandingEngine_float(fits *fit, double sigma, double amount, gboolean 
 
 	invalidate_stats_from_fit(fit);
 	clearfits(fiximage);
+	free(fiximage);
 	if ((!ret) && applyRotation) {
 		if (cvRotateImage(fit, -90)) return 1;
 	}
@@ -404,13 +415,14 @@ void on_button_apply_fixbanding_clicked(GtkButton *button, gpointer user_data) {
 	args->amount = amount;
 	args->sigma = invsigma;
 	args->applyRotation = gtk_toggle_button_get_active(vertical);
-	args->seqEntry = gtk_entry_get_text(bandingSeqEntry);
+	args->seqEntry = strdup(gtk_entry_get_text(bandingSeqEntry));
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
 		if (args->seqEntry && args->seqEntry[0] == '\0')
 			args->seqEntry = "unband_";
 		gtk_toggle_button_set_active(seq, FALSE);
+		args->seq = &com.seq;
 		apply_banding_to_sequence(args);
 	} else {
 		start_in_new_thread(BandingEngineThreaded, args);

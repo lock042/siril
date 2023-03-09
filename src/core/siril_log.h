@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@ char* siril_log_color_message(const char* format, const char* color, ...);
 
 void show_time(struct timeval, struct timeval);
 void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg);
+const char *format_time_diff(struct timeval t_start, struct timeval t_end);
 void get_min_sec_from_timevals(struct timeval t_start, struct timeval t_end,
 		int *min, int *sec);
 

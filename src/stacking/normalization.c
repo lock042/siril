@@ -137,7 +137,7 @@ static int normalization_get_max_number_of_threads(sequence *seq) {
 	 * For DATA_FLOAT, we have: the image O(n), rewrite without zeros O(m),
 	 * used directly for IKSS and a copy for MAD O(m).
 	 */
-	guint64 memory_per_image = seq->rx * seq->ry;
+	guint64 memory_per_image = (guint64) seq->rx * seq->ry;
 	if (get_data_type(seq->bitpix) == DATA_FLOAT)
 		memory_per_image *= (seq->nb_layers + 2) * sizeof(float);
 	else memory_per_image *= (seq->nb_layers + 1) * sizeof(WORD) + 2 * sizeof(float);

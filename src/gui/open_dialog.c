@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -74,7 +74,7 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 	gchar *pic_filter = "*.pic;*.PIC";
 	gchar *ser_filter = "*.ser;*.SER";
 	if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
-		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts, *.fits.fz)"),
+		gtk_filter_add(chooser, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
 				fits_filter, gui.file_ext_filter == TYPEFITS);
 	} else {
 		all_filter = g_string_new(fits_filter);
@@ -101,13 +101,10 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 			g_free(upcase);
 		}
 		raw[strlen(raw) - 1] = '\0';
-		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
-			gtk_filter_add(chooser, _("RAW DSLR Camera Files"), raw,
-				gui.file_ext_filter == TYPERAW);
-		} else {
-			all_filter = g_string_append(all_filter, ";");
-			all_filter = g_string_append(all_filter, raw);
-		}
+
+		all_filter = g_string_append(all_filter, ";");
+		all_filter = g_string_append(all_filter, raw);
+
 
 		free(raw);
 
@@ -242,9 +239,31 @@ static void opendial(int whichdial) {
 	case OD_FLAT:
 	case OD_DARK:
 	case OD_OFFSET:
+	case OD_FLATLIB:
+	case OD_DARKLIB:
+	case OD_OFFSETLIB:
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		if (whichdial == OD_FLATLIB) {
+			if (com.pref.prepro.flat_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.flat_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
+		} else if (whichdial == OD_DARKLIB) {
+			if (com.pref.prepro.dark_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.dark_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
+		} else if (whichdial == OD_OFFSETLIB) {
+			if (com.pref.prepro.bias_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.bias_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
+		}
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog, whichdial);
 		siril_file_chooser_add_preview(dialog, preview);
@@ -291,6 +310,7 @@ static void opendial(int whichdial) {
 		gboolean anything_loaded;
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
 		GtkEntry *flat_entry, *dark_entry, *bias_entry, *bad_pixel_entry;
+		GtkEntry *flatlib_entry, *darklib_entry, *biaslib_entry;
 		GtkToggleButton *flat_button, *dark_button, *bias_button;
 		GtkWidget *pbutton;
 
@@ -309,6 +329,9 @@ static void opendial(int whichdial) {
 		flat_entry = GTK_ENTRY(lookup_widget("flatname_entry"));
 		dark_entry = GTK_ENTRY(lookup_widget("darkname_entry"));
 		bias_entry = GTK_ENTRY(lookup_widget("offsetname_entry"));
+		flatlib_entry = GTK_ENTRY(lookup_widget("flatlib_entry"));
+		darklib_entry = GTK_ENTRY(lookup_widget("darklib_entry"));
+		biaslib_entry = GTK_ENTRY(lookup_widget("biaslib_entry"));
 		bad_pixel_entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
 
 		flat_button = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
@@ -334,6 +357,18 @@ static void opendial(int whichdial) {
 			gtk_entry_set_text(bias_entry, filename);
 			gtk_toggle_button_set_active(bias_button, TRUE);
 			gtk_widget_set_sensitive(pbutton, anything_loaded);
+			break;
+
+		case OD_FLATLIB:
+			gtk_entry_set_text(flatlib_entry, filename);
+			break;
+
+		case OD_DARKLIB:
+			gtk_entry_set_text(darklib_entry, filename);
+			break;
+
+		case OD_OFFSETLIB:
+			gtk_entry_set_text(biaslib_entry, filename);
 			break;
 
 		case OD_CWD:
@@ -373,10 +408,6 @@ static void opendial(int whichdial) {
 	siril_widget_destroy(widgetdialog);
 }
 
-void on_darkfile_button_clicked(GtkButton *button, gpointer user_data) {
-	opendial(OD_DARK);
-}
-
 void cwd_btton_clicked() {
 	opendial(OD_CWD);
 }
@@ -385,8 +416,24 @@ void on_offsetfile_button_clicked(GtkButton *button, gpointer user_data) {
 	opendial(OD_OFFSET);
 }
 
+void on_darkfile_button_clicked(GtkButton *button, gpointer user_data) {
+	opendial(OD_DARK);
+}
+
 void on_flatfile_button_clicked(GtkButton *button, gpointer user_data) {
 	opendial(OD_FLAT);
+}
+
+void on_offsetlibfile_button_clicked(GtkButton *button, gpointer user_data) {
+	opendial(OD_OFFSETLIB);
+}
+
+void on_darklibfile_button_clicked(GtkButton *button, gpointer user_data) {
+	opendial(OD_DARKLIB);
+}
+
+void on_flatlibfile_button_clicked(GtkButton *button, gpointer user_data) {
+	opendial(OD_FLATLIB);
 }
 
 void header_open_button_clicked() {

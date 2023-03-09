@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,12 +22,12 @@
 #include <math.h>
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/astrometry_solver.h"
 #include "algos/statistics.h"
 #include "algos/siril_wcs.h"
-#include "core/undo.h"
 #include "core/processing.h"
 #include "opencv/opencv.h"
 #include "io/single_image.h"
@@ -144,37 +144,178 @@ static void fits_rotate_pi(fits *fit) {
 	}
 }
 
+static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, int bin_factor) {
+	size_t nbdata = width * height;
+
+	full_stats_invalidation_from_fit(fit);
+
+	if (fit->type == DATA_USHORT) {
+		if (fit->data)
+			free(fit->data);
+		fit->data = (WORD *)newbuf;
+		fit->pdata[RLAYER] = fit->data;
+		fit->pdata[GLAYER] = fit->data + nbdata;
+		fit->pdata[BLAYER] = fit->data + nbdata * 2;
+	}
+	else if (fit->type == DATA_FLOAT) {
+		if (fit->fdata)
+			free(fit->fdata);
+		fit->fdata = (float *)newbuf;
+		fit->fpdata[RLAYER] = fit->fdata;
+		fit->fpdata[GLAYER] = fit->fdata + nbdata;
+		fit->fpdata[BLAYER] = fit->fdata + nbdata * 2;
+	}
+	/* update size */
+	fit->naxes[0] = width;
+	fit->naxes[1] = height;
+	fit->rx = width;
+	fit->ry = height;
+
+	if (fit->binning_x == 0 || fit->binning_x == 1) {
+		fit->binning_x = bin_factor;
+		fit->binning_y = bin_factor;
+	} else {
+		fit->binning_x *= bin_factor;
+		fit->binning_y *= bin_factor;
+	}
+	if (!com.pref.binning_update) {
+		fit->pixel_size_x *= bin_factor;
+		fit->pixel_size_y *= bin_factor;
+	}
+}
+
+static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
+	if (bin_factor == 0) // Bin 0 would be nonsensical.
+		return;
+	int width = fit->rx;
+	int height = fit->ry;
+	int new_width = width / bin_factor;
+	int new_height = height / bin_factor;
+
+	size_t npixels = new_width * new_height;
+
+	float *newbuf = malloc(npixels * fit->naxes[2] * sizeof(float));
+	if (!newbuf) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
+	for (int channel = 0; channel < fit->naxes[2]; channel++) {
+		float *buf = fit->fdata + (width * height) * channel;
+
+		long k = 0 + channel * npixels;
+		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
+			for (int col = 0, ncol = 0; col < width - bin_factor + 1; col += bin_factor, ncol++) {
+				int c = 0;
+				newbuf[k] = 0;
+				for (int i = 0; i < bin_factor; i++) {
+					for (int j = 0; j < bin_factor; j++) {
+						newbuf[k] += buf[i + col + (j + row) * width];
+						c++;
+					}
+				}
+				if (mean) newbuf[k] /= c;
+				k++;
+			}
+		}
+	}
+	fit_update_buffer(fit, newbuf, new_width, new_height, bin_factor);
+	return;
+}
+
+static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
+	if (bin_factor == 0) // Bin 0 would be nonsensical.
+		return;
+	int width = fit->rx;
+	int height = fit->ry;
+	int new_width = width / bin_factor;
+	int new_height = height / bin_factor;
+
+	size_t npixels = new_width * new_height;
+
+	WORD *newbuf = malloc(npixels * fit->naxes[2] * sizeof(WORD));
+	if (!newbuf) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+
+	for (int channel = 0; channel < fit->naxes[2]; channel++) {
+		WORD *buf = fit->data + (width * height) * channel;
+
+		long k = 0 + channel * npixels;
+		for (int row = 0, nrow = 0; row < height ; row += bin_factor, nrow++) {
+			for (int col = 0, ncol = 0; col < width - bin_factor + 1; col += bin_factor, ncol++) {
+				int c = 0;
+				int tmp = 0;
+				for (int i = 0; i < bin_factor; i++) {
+					for (int j = 0; j < bin_factor; j++) {
+						tmp += (buf[i + col + (j + row) * width]);
+						c++;
+					}
+				}
+				if (mean) tmp /= c;
+				newbuf[k] = truncate_to_WORD(tmp);
+				k++;
+			}
+		}
+	}
+	fit_update_buffer(fit, newbuf, new_width, new_height, bin_factor);
+}
+
+int fits_binning(fits *fit, int factor, gboolean mean) {
+	struct timeval t_start, t_end;
+
+	siril_log_color_message(_("Binning x%d: processing...\n"), "green", factor);
+	gettimeofday(&t_start, NULL);
+
+	if (fit->type == DATA_USHORT) {
+		fits_binning_ushort(fit, factor, mean);
+	} else if (fit->type == DATA_FLOAT) {
+		fits_binning_float(fit, factor, mean);
+	}
+
+	free_wcs(fit, TRUE); // we keep RA/DEC to initialize platesolve
+	load_WCS_from_memory(fit);
+
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+
+	char log[90];
+	sprintf(log, "Binned x%d (%s)", factor, mean ? "mean" : "sum");
+	fit->history = g_slist_append(fit->history, strdup(log));
+
+	siril_log_message(_("New image size: %dx%d pixels.\n"), fit->rx, fit->ry);
+
+	return 0;
+}
+
+const char *interp_to_str(opencv_interpolation interpolation) {
+	switch (interpolation) {
+		case OPENCV_NEAREST:
+			return _("Nearest-Neighbor");
+		default:
+		case OPENCV_LINEAR:
+			return _("Bilinear");
+		case OPENCV_AREA:
+			return _("Pixel Area Relation");
+		case OPENCV_CUBIC:
+			return _("Bicubic");
+		case OPENCV_LANCZOS4:
+			return _("Lanczos4");
+	}
+}
+
 /* These functions do not more than resize_gaussian and rotate_image
  * except for console outputs.
  * Indeed, siril_log_message seems not working in a cpp file */
-int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
+int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp) {
 	int retvalue;
-	const char *str_inter;
 	struct timeval t_start, t_end;
 	float factor_X = (float)image->rx / (float)toX;
 	float factor_Y = (float)image->ry / (float)toY;
 
-	switch (interpolation) {
-		case OPENCV_NEAREST:
-			str_inter = _("Nearest-Neighbor");
-			break;
-		default:
-		case OPENCV_LINEAR:
-			str_inter = _("Bilinear");
-			break;
-		case OPENCV_AREA:
-			str_inter = _("Pixel Area Relation");
-			break;
-		case OPENCV_CUBIC:
-			str_inter = _("Bicubic");
-			break;
-		case OPENCV_LANCZOS4:
-			str_inter = _("Lanczos4");
-			break;
-	}
-
 	siril_log_color_message(_("Resample (%s interpolation): processing...\n"),
-			"green", str_inter);
+			"green", interp_to_str(interpolation));
 
 	gettimeofday(&t_start, NULL);
 
@@ -398,6 +539,7 @@ void mirrory(fits *fit, gboolean verbose) {
 		show_time(t_start, t_end);
 	}
 
+	fit->history = g_slist_append(fit->history, strdup("Left-right mirror"));
 #ifdef HAVE_WCSLIB
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
@@ -418,20 +560,12 @@ void mirrory(fits *fit, gboolean verbose) {
 static int crop_ushort(fits *fit, rectangle *bounds) {
 	int i, j, layer;
 	int newnbdata;
-	struct timeval t_start = { 0 }, t_end = { 0 };
 	rectangle bounds_cpy = { 0 };
 
-	if (bounds->x >= fit->rx) return -1;
-	if (bounds->y >= fit->ry) return -1;
 	bounds_cpy.x = bounds->x;
 	bounds_cpy.y = bounds->y;
 	bounds_cpy.w = (bounds->x + bounds->w > fit->rx) ? fit->rx - bounds->x : bounds->w;
 	bounds_cpy.h = (bounds->y + bounds->h > fit->ry) ? fit->ry - bounds->y : bounds->h;
-
-	if (fit == &gfit) {
-		siril_log_color_message(_("Crop: processing...\n"), "red");
-		gettimeofday(&t_start, NULL);
-	}
 
 	newnbdata = bounds_cpy.w * bounds_cpy.h;
 	for (layer = 0; layer < fit->naxes[2]; ++layer) {
@@ -450,33 +584,18 @@ static int crop_ushort(fits *fit, rectangle *bounds) {
 	}
 	fit->rx = fit->naxes[0] = bounds_cpy.w;
 	fit->ry = fit->naxes[1] = bounds_cpy.h;
-
-	if (fit == &gfit) {
-		clear_stars_list(TRUE);
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
 static int crop_float(fits *fit, rectangle *bounds) {
 	int i, j, layer;
 	int newnbdata;
-	struct timeval t_start = { 0 }, t_end = { 0 };
 	rectangle bounds_cpy = { 0 };
 
-	if (bounds->x >= fit->rx) return -1;
-	if (bounds->y >= fit->ry) return -1;
 	bounds_cpy.x = bounds->x;
 	bounds_cpy.y = bounds->y;
 	bounds_cpy.w = (bounds->x + bounds->w > fit->rx) ? fit->rx - bounds->x : bounds->w;
 	bounds_cpy.h = (bounds->y + bounds->h > fit->ry) ? fit->ry - bounds->y : bounds->h;
-
-	if (fit == &gfit) {
-		siril_log_color_message(_("Crop: processing...\n"), "green");
-		gettimeofday(&t_start, NULL);
-	}
 
 	newnbdata = bounds_cpy.w * bounds_cpy.h;
 	for (layer = 0; layer < fit->naxes[2]; ++layer) {
@@ -495,22 +614,20 @@ static int crop_float(fits *fit, rectangle *bounds) {
 	}
 	fit->rx = fit->naxes[0] = bounds_cpy.w;
 	fit->ry = fit->naxes[1] = bounds_cpy.h;
-
-	if (fit == &gfit) {
-		clear_stars_list(TRUE);
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-	invalidate_stats_from_fit(fit);
 	return 0;
 }
 
 int crop(fits *fit, rectangle *bounds) {
+	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
+	if (bounds->x + bounds->w > fit->rx) return -1;
+	if (bounds->y + bounds->h > fit->ry) return -1;
 #ifdef HAVE_WCSLIB
 	int orig_ry = fit->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
-	GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
+	gboolean wcs = has_wcs(fit);
+	if (wcs)
+		GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
 #endif
 
 	if (fit->type == DATA_USHORT) {
@@ -524,8 +641,10 @@ int crop(fits *fit, rectangle *bounds) {
 	} else {
 		return -1;
 	}
+
+	invalidate_stats_from_fit(fit);
 #ifdef HAVE_WCSLIB
-	if (has_wcs(fit)) {
+	if (wcs) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(fit, H);
 		load_WCS_from_memory(fit);
@@ -548,6 +667,13 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	return crop(fit, &(c_args->area));
 }
 
+int crop_finalize_hook(struct generic_seq_args *args) {
+	struct crop_sequence_data *data = (struct crop_sequence_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 /* TODO: should we use the partial image? */
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	struct generic_seq_args *args = create_default_seqargs(crop_sequence_data->seq);
@@ -555,7 +681,7 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->nb_filtered_images = crop_sequence_data->seq->selnum;
 	args->compute_size_hook = crop_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = crop_finalize_hook;
 	args->image_hook = crop_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Crop Sequence");
@@ -565,7 +691,6 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->load_new_sequence = TRUE;
 	args->user = crop_sequence_data;
 
-	remove_prefixed_sequence_files(crop_sequence_data->seq, crop_sequence_data->prefix);
 	start_in_new_thread(generic_sequence_worker, args);
 
 	return 0;

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -32,7 +32,7 @@
  * only newline. It is an allocated string and must not be freed. It can be
  * reused until next call to this function.
  */
-char* siril_log_internal(const char* format, const char* color, va_list arglist) {
+static char* siril_log_internal(const char* format, const char* color, va_list arglist) {
 	static char *msg = NULL;
 
 	if (msg == NULL) {
@@ -78,33 +78,36 @@ char* siril_log_color_message(const char* format, const char* color, ...) {
 	return msg;
 }
 
-void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg) {
-	double start, end, diff;
-
-	start = (double) (t_start.tv_sec + t_start.tv_usec / 1.0E6);
-	end = (double) (t_end.tv_sec + t_end.tv_usec / 1.0E6);
-	diff = end - start;
-
-	if (diff >= 0.0) {
+const char *format_time_diff(struct timeval t_start, struct timeval t_end) {
+	static char str[32];
+	double start = (double) (t_start.tv_sec + t_start.tv_usec / 1.0E6);
+	double end = (double) (t_end.tv_sec + t_end.tv_usec / 1.0E6);
+	double diff = end - start;
+	if (diff < 0.0) {
+		str[0] = '\0';
+	} else {
 		if (diff >= 3600.0) {
 			int hour = (int) diff / 3600;
 			int sec = (int) diff % 3600;
 			int min = sec / 60;
 			sec = sec % 60;
-			siril_log_color_message(_("%s: %d h %02d min %.2d s.\n"), "green",
-					msg, hour, min, sec);
+			sprintf(str, _("%d h %02d min %.2d s"), hour, min, sec);
 		} else if (diff >= 60.0) {
 			int min = (int) diff / 60;
 			int sec = (int) diff % 60;
-			siril_log_color_message(_("%s: %d min %02d s.\n"), "green", msg,
-					min, sec);
+			sprintf(str, _("%d min %02d s"), min, sec);
 		} else if (diff < 1.0) {
 			double ms = diff * 1.0E3;
-			siril_log_color_message(_("%s: %.2lf ms.\n"), "green", msg, ms);
+			sprintf(str, _("%.2lf ms"), ms);
 		} else {
-			siril_log_color_message(_("%s: %.2lf s.\n"), "green", msg, diff);
+			sprintf(str, _("%.2lf s"), diff);
 		}
 	}
+	return str;
+}
+
+void show_time_msg(struct timeval t_start, struct timeval t_end, const char *msg) {
+	siril_log_color_message("%s: %s\n", "green", msg, format_time_diff(t_start, t_end));
 }
 
 void show_time(struct timeval t_start, struct timeval t_end) {

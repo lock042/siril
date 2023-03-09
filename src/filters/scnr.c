@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -36,32 +36,54 @@
 
 #include "scnr.h"
 
+const char *scnr_type_to_string(scnr_type t) {
+	switch (t) {
+		default:
+		case SCNR_AVERAGE_NEUTRAL:
+			return _("average neutral");
+		case SCNR_MAXIMUM_NEUTRAL:
+			return _("maximum neutral");
+		case SCNR_MAXIMUM_MASK:
+			return _("maximum mask");
+		case SCNR_ADDITIVE_MASK:
+			return _("additive mask");
+	}
+}
 
 /* Subtractive Chromatic Noise Reduction */
 gpointer scnr(gpointer p) {
 	struct scnr_data *args = (struct scnr_data *) p;
+	g_assert(args->fit->type == DATA_USHORT || args->fit->type == DATA_FLOAT);
 	size_t i, nbdata = args->fit->naxes[0] * args->fit->naxes[1];
+	gint nb_above_1 = 0;
 	struct timeval t_start, t_end;
 	double norm = get_normalized_value(args->fit);
 	double invnorm = 1.0 / norm;
 
-	siril_log_color_message(_("SCNR: processing...\n"), "green");
+	siril_log_color_message(_("SCNR: processing with %s algorithm%s...\n"),
+			"green", scnr_type_to_string(args->type),
+			args->preserve ? _(", preserving lightness") : "");
 	gettimeofday(&t_start, NULL);
 
+	int error = 0;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) private(i) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (i = 0; i < nbdata; i++) {
 		double red, green, blue;
-		if (args->fit->type == DATA_USHORT) {
-			red = args->fit->pdata[RLAYER][i] * invnorm;
-			green = args->fit->pdata[GLAYER][i] * invnorm;
-			blue = args->fit->pdata[BLAYER][i] * invnorm;
-		}
-		else if (args->fit->type == DATA_FLOAT) {
-			red = (double)args->fit->fpdata[RLAYER][i];
-			green = (double)args->fit->fpdata[GLAYER][i];
-			blue = (double)args->fit->fpdata[BLAYER][i];
+		switch (args->fit->type) {
+			case DATA_USHORT:
+				red = args->fit->pdata[RLAYER][i] * invnorm;
+				green = args->fit->pdata[GLAYER][i] * invnorm;
+				blue = args->fit->pdata[BLAYER][i] * invnorm;
+				break;
+			case DATA_FLOAT:
+				red = (double)args->fit->fpdata[RLAYER][i];
+				green = (double)args->fit->fpdata[GLAYER][i];
+				blue = (double)args->fit->fpdata[BLAYER][i];
+				break;
+			default: // Default needs to be included in the switch to avoid warning about omitting DATA_UNSUPPORTED
+				break;
 		}
 
 		double x, y, z, L, a, b, m;
@@ -71,19 +93,19 @@ gpointer scnr(gpointer p) {
 		}
 
 		switch (args->type) {
-			case 0:
+			case SCNR_AVERAGE_NEUTRAL:
 				m = 0.5 * (red + blue);
 				green = min(green, m);
 				break;
-			case 1:
+			case SCNR_MAXIMUM_NEUTRAL:
 				m = max(red, blue);
 				green = min(green, m);
 				break;
-			case 2:
+			case SCNR_MAXIMUM_MASK:
 				m = max(red, blue);
 				green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
 				break;
-			case 3:
+			case SCNR_ADDITIVE_MASK:
 				m = min(1.0, red + blue);
 				green = (green * (1.0 - args->amount) * (1.0 - m)) + (m * green);
 		}
@@ -94,6 +116,8 @@ gpointer scnr(gpointer p) {
 			xyz_to_LAB(x, y, z, &tmp, &a, &b);
 			LAB_to_xyz(L, a, b, &x, &y, &z);
 			xyz_to_rgb(x, y, z, &red, &green, &blue);
+			if (red > 1.000001 || green > 1.000001 || blue > 1.000001)
+				g_atomic_int_inc(&nb_above_1);
 		}
 
 		if (args->fit->type == DATA_USHORT) {
@@ -108,17 +132,22 @@ gpointer scnr(gpointer p) {
 			}
 		}
 		else if (args->fit->type == DATA_FLOAT) {
-			args->fit->fpdata[RLAYER][i] = (float)red;
-			args->fit->fpdata[GLAYER][i] = (float)green;
-			args->fit->fpdata[BLAYER][i] = (float)blue;
+			args->fit->fpdata[RLAYER][i] = set_float_in_interval(red, 0.0f, 1.0f);
+			args->fit->fpdata[GLAYER][i] = set_float_in_interval(green, 0.0f, 1.0f);
+			args->fit->fpdata[BLAYER][i] = set_float_in_interval(blue, 0.0f, 1.0f);
 		}
 	}
+
+	/* normalize in case of preserve, it can under/overshoot */
+	if (args->preserve && nb_above_1)
+		siril_log_message("%d pixels were truncated to a maximum value of 1\n", nb_above_1);
 
 	free(args);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
+
 	notify_gfit_modified();
-	return GINT_TO_POINTER(0);
+	return GINT_TO_POINTER(error);
 }
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
@@ -131,9 +160,6 @@ void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
-	/* Type 0: Average Neutral protection
-	 * Type 1: Maximum Neutral protection
-	 */
 	int type = gtk_combo_box_get_active(
 			GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_scnr")));
 	GtkToggleButton *light_button = GTK_TOGGLE_BUTTON(
@@ -148,8 +174,8 @@ void on_SCNR_Apply_clicked(GtkButton *button, gpointer user_data) {
 	}
 
 	struct scnr_data *args = malloc(sizeof(struct scnr_data));
-	undo_save_state(&gfit, _("SCNR (type=%d, amount=%0.2lf, preserve=%s)"),
-			type, amount, preserve ? "true" : "false");
+	undo_save_state(&gfit, _("SCNR (type=%s, amount=%0.2lf, preserve=%s)"),
+			scnr_type_to_string(type), amount, preserve ? "true" : "false");
 
 	args->fit = &gfit;
 	args->type = type;
@@ -173,5 +199,3 @@ void on_combo_scnr_changed(GtkComboBoxText *box, gpointer user_data) {
 	gtk_widget_set_sensitive(GTK_WIDGET(label), type > 1);
 	gtk_widget_set_sensitive(GTK_WIDGET(spinButton), type > 1);
 }
-
-

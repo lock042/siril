@@ -16,7 +16,16 @@ struct starfinder_data {
 	int layer;
 	int max_stars_fitted;
 	gboolean save_to_file;	// generate starfile if TRUE and in sequence
-	gchar *starfile;	// save to file if not NULL
+	/******* saving the star list with equatorial coordinates *******/
+	int reference_image;	// index of the image in the sequence
+	gboolean save_eqcoords;	// save equatorial coordinates in it
+	Homography reference_H;	// homography for the plate solved frame
+#ifdef HAVE_WCSLIB
+	struct wcsprm *ref_wcs;	// reference astrometry
+#endif
+	/****************************************************************/
+	gchar *starfile;	// save to lst file if not NULL
+	gchar *startable;	// save to FITS table if not NULL
 	psf_star ***stars;	// save to pointer if not NULL
 	int *nb_stars;		// number of stars in stars if not NULL
 	threading_type threading;
@@ -46,12 +55,14 @@ typedef enum {
 	SF_NO_MAG = 13,
 	SF_FWHM_TOO_SMALL = 14,
 	SF_FWHM_NEG = 15,
-	SF_ROUNDNESS_BELOW_CRIT = 16
+	SF_ROUNDNESS_BELOW_CRIT = 16,
+	SF_MOFFAT_BETA_TOO_SMALL = 17,
+	SF_AMPLITUDE_OUTSIDE_RANGE = 18
 } sf_errors;
 
 void update_peaker_GUI();
 void confirm_peaker_GUI();
-psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads);
+psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, starprofile profile, int threads);
 psf_star *add_star(fits *fit, int layer, int *index);
 int remove_star(int index);
 void sort_stars_by_mag(psf_star **stars, int total);
@@ -63,5 +74,8 @@ psf_star **filter_stars_by_amplitude(psf_star **stars, float threshold, int *nbf
 float filtered_FWHM_average(psf_star **stars, int nb);
 int apply_findstar_to_sequence(struct starfinder_data *findstar_args);
 gpointer findstar_worker(gpointer p);
+int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, int layer, gboolean verbose);
+int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars, int rx, int ry);
+float measure_image_FWHM(fits *fit, int channel);
 
 #endif

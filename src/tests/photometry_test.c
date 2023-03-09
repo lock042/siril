@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -153,22 +153,21 @@ void test_photometry_float() {
 	double bg = BG;
 	initialize_photometric_param();
 	gsl_matrix *matrix = fill_star(star, DATA_FLOAT);
-	psf_star *psf = psf_global_minimisation(matrix, bg, 1., 1, TRUE, TRUE, &com.pref.phot_set, FALSE, NULL);
+	psf_star *psf = psf_global_minimisation(matrix, bg, 1., 1, FALSE, TRUE, &com.pref.phot_set, FALSE, PSF_GAUSSIAN, NULL);
 
 	cr_assert(psf, "psf failed");
 	cr_assert(psf->phot, "photometry failed");
 	cr_assert(psf->phot_is_valid, "photometry is not valid");
-	printf("mag:%0.6f\n", psf->s_mag);
 
-	cr_expect_float_eq(psf->mag, -3.451166f, 1e-6);
+	cr_expect_float_eq(psf->mag, -3.451165f, 1e-6);
 	cr_expect_float_eq(psf->s_mag, 0.146089f, 1e-6);
 
 	cr_expect_float_eq(psf->x0, 51.27f, 1e-2);
 	cr_expect_float_eq(psf->y0, 54.24f, 1e-2);
-	cr_expect_float_eq(psf->fwhmx, 8.161106f, 1e-6);
-	cr_expect_float_eq(psf->fwhmy, 7.250467f, 1e-6);
-	cr_expect_float_eq(psf->angle, -21.648570f, 1e-6);
-	cr_expect_float_eq(psf->A, 0.329286f, 1e-6);
+	cr_expect_float_eq(psf->fwhmx, 8.160966f, 1e-6);
+	cr_expect_float_eq(psf->fwhmy, 7.250390f, 1e-6);
+	cr_expect_float_eq(psf->angle, -21.648769f, 1e-6);
+	cr_expect_float_eq(psf->A, 0.329290f, 1e-6);
 	cr_expect_float_eq(psf->B, 0.021232f, 1e-6);
 	cr_expect_float_eq(psf->rmse, 2.250e-03, 1e-6);
 
@@ -181,7 +180,7 @@ void test_photometry_ushort() {
 	initialize_photometric_param();
 	gsl_matrix *matrix = fill_star(star, DATA_USHORT);
 	psf_error error;
-	psf_star *psf = psf_global_minimisation(matrix, bg, USHRT_MAX_DOUBLE, 1, TRUE, TRUE, &com.pref.phot_set, FALSE, &error);
+	psf_star *psf = psf_global_minimisation(matrix, bg, USHRT_MAX_DOUBLE, 1, FALSE, TRUE, &com.pref.phot_set, FALSE, PSF_GAUSSIAN, &error);
 
 	cr_assert(psf, "psf failed");
 	cr_assert(psf->phot, "photometry failed");
@@ -191,25 +190,23 @@ void test_photometry_ushort() {
 	/* These values are different from float case. This
 	 * is perfectly normal.
 	 */
-	printf("mag:%0.6f\n", psf->s_mag);
-	cr_expect_float_eq(psf->mag, -15.492349f, 1e-6);
+	cr_expect_float_eq(psf->mag, -15.492348f, 1e-6);
 	cr_expect_float_eq(psf->s_mag, 0.000947f, 1e-6);
-	
 
-	/* These values are strictly identical to float case.
-	 * This is perfectly normal too.
+	/* These values are almost identical to float case.
+	 * This is due to the tolerance being set in the psf fit solver.
 	 */
 	cr_expect_float_eq(psf->x0, 51.27f, 1e-2);
 	cr_expect_float_eq(psf->y0, 54.24f, 1e-2);
-	cr_expect_float_eq(psf->fwhmy, 7.250467f, 1e-6);
-	cr_expect_float_eq(psf->fwhmx, 8.161106f, 1e-6);
-	cr_expect_float_eq(psf->fwhmy, 7.250467f, 1e-6);
-	cr_expect_float_eq(psf->angle, -21.648570f, 1e-6);
+	cr_expect_float_eq(psf->fwhmy, 7.250367f, 1e-6);
+	cr_expect_float_eq(psf->fwhmx, 8.160933f, 1e-6);
+	cr_expect_float_eq(psf->fwhmy, 7.250367f, 1e-6);
+	cr_expect_float_eq(psf->angle, -21.648115f, 1e-6);
 
 	/* Here we multiply by USHRT_MAX_SINGLE and we take a low
 	 * accuracy because of rounding errors.
 	 */
-	cr_expect_float_eq(psf->A, 0.329286f * USHRT_MAX_SINGLE, 0.1);
+	cr_expect_float_eq(psf->A, 0.329290f * USHRT_MAX_SINGLE, 0.1);
 	cr_expect_float_eq(psf->B, 0.021232f * USHRT_MAX_SINGLE, 0.1);
 	cr_expect_float_eq(psf->rmse, 2.250e-03 * USHRT_MAX_SINGLE, 0.1);
 

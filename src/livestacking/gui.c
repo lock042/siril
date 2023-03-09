@@ -67,7 +67,7 @@ void livestacking_display(gchar *str, gboolean free_after_display) {
 	if (!label)
 		label = GTK_LABEL(lookup_widget("livest_label1"));
 	set_label(label, str, free_after_display);
-	livestacking_update_number_of_images(0, 0.0, -1.0);
+	livestacking_update_number_of_images(0, 0.0, -1.0, NULL);
 }
 
 static void update_icon(const gchar *name, gboolean is_loaded) {
@@ -79,21 +79,21 @@ static void update_icon(const gchar *name, gboolean is_loaded) {
 }
 
 void livestacking_display_config(gboolean use_dark, gboolean use_flat, transformation_type regtype) {
-	static GtkLabel *conf_label = NULL;
-	if (!conf_label)
-		conf_label = GTK_LABEL(lookup_widget("ls_config_label"));
-
+	static GtkLabel *reg_conf_label = NULL;
+	if (!reg_conf_label)
+		reg_conf_label = GTK_LABEL(lookup_widget("ls_reg_config_label"));
 	const char *desc = describe_transformation_type(regtype);
-	update_icon("ls_config", g_strcmp0(desc, "INVALID"));
+	update_icon("ls_reg_config", g_strcmp0(desc, "INVALID"));
 
 	gchar *txt = g_strdup_printf(_("Registering with %s transformation"), desc);
-	gtk_label_set_text(conf_label, txt);
+	gtk_label_set_text(reg_conf_label, txt);
 	g_free(txt);
+
 	update_icon("ls_masterdark", use_dark);
 	update_icon("ls_masterflat", use_flat);
 }
 
-void livestacking_update_number_of_images(int nb, double total_exposure, double noise) {
+void livestacking_update_number_of_images(int nb, double total_exposure, double noise, const char *process_time) {
 	if (com.headless)
 		return;
 	static GtkLabel *label_cumul = NULL, *label_stats = NULL;
@@ -112,7 +112,10 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 		unit = _("seconds");
 	}
 	gchar *txt;
-	if (noise > 0.0) {
+	if (noise > 0.0 && process_time) {
+		txt = g_strdup_printf(_("Noise: %0.3f\n\nLast image processing time: %s"), noise, process_time);
+		set_label(label_stats, txt, TRUE);
+	} else if (noise > 0.0) {
 		txt = g_strdup_printf(_("Noise: %0.3f"), noise);
 		set_label(label_stats, txt, TRUE);
 	} else {
@@ -123,17 +126,29 @@ void livestacking_update_number_of_images(int nb, double total_exposure, double 
 	set_label(label_cumul, txt, TRUE);
 }
 
-void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {
+void on_livestacking_playpause_clicked(GtkToolButton *button, gpointer user_data) {
+	GtkWidget *label = lookup_widget("livest_label1");
+	widget_set_class(label, "record", "");
+	gtk_tool_button_set_icon_name(button, pause_play_button[get_paused_status()]);
+	if (!livestacking_is_started())
+		on_livestacking_start();
+	else {
+		gtk_label_set_text(GTK_LABEL(label), _("Paused ..."));
+		pause_live_stacking_engine();
+	}
+}
+
+void on_livestacking_stop_clicked(GtkToolButton *button, gpointer user_data) {
+	GtkWidget *label = lookup_widget("livest_label1");
+	gtk_label_set_text(GTK_LABEL(label), _("Idle"));
+	widget_set_class(label, "", "record");
+	gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(lookup_widget("livestacking_playpause")),
+			pause_play_button[1]);
 	stop_live_stacking_engine();
 }
 
-void on_livestacking_stop_clicked(GtkButton *button, gpointer user_data) {
-	gtk_widget_hide(lookup_widget("livestacking_player"));
-}
-
-void on_livestacking_pause_clicked(GtkToolButton *button, gpointer user_data) {
-	pause_live_stacking_engine();
-	gtk_tool_button_set_icon_name(button, pause_play_button[get_paused_status()]);
+void on_livestacking_player_hide(GtkWidget *widget, gpointer user_data) {
+	on_livestacking_stop_clicked(NULL, NULL);
 }
 
 gboolean update_debayer_button_status_idle(gpointer new_state) {
@@ -290,7 +305,13 @@ void init_preprocessing_from_GUI() {
 		}
 	}
 
-	init_preprocessing_finalize(prepro);
+	GtkToggleButton *use_32b_button = GTK_TOGGLE_BUTTON(lookup_widget("ls_32bits"));
+	gboolean use_32_bits = gtk_toggle_button_get_active(use_32b_button);
+
+	init_preprocessing_finalize(prepro, use_32_bits);
+
+	GtkToggleButton *shift_reg_button = GTK_TOGGLE_BUTTON(lookup_widget("ls_shiftonly"));
+	init_registration_finalize(gtk_toggle_button_get_active(shift_reg_button));
 }
 
 void on_livestacking_start() {

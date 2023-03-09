@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -207,12 +207,12 @@ int readbmp(const char *name, fits *fit) {
 	unsigned short nbplane = 0;
 
 	if ((file = g_fopen(name, "rb")) == NULL) {
-		siril_log_message(_("Error opening BMP.\n"));
+		siril_log_color_message(_("Error opening BMP.\n"), "red");
 		return -1;
 	}
 
 	if ((count = fread(header, 1, 54, file)) != 54) {
-		fprintf(stderr, "readbmp: %ld header bytes read instead of 54\n", count);
+		siril_log_color_message(_("readbmp: %ld header bytes read instead of 54\n"), "red", count);
 		perror("readbmp");
 		fclose(file);
 		return -1;
@@ -221,6 +221,12 @@ int readbmp(const char *name, fits *fit) {
 	/*	memcpy(&compression, header + 30, 4);*/
 
 	get_image_size(header, &width, &height);
+	if (width < 1 || height < 1 || width > MAX_IMAGE_DIM || height > MAX_IMAGE_DIM) {
+		siril_log_color_message(_("readbmp: file reports negative, zero or excessive dimensions\n"), "red");
+		perror("readbmp");
+		fclose(file);
+		return -1;
+	}
 	memcpy(&nbplane, header + 28, 2);
 	nbplane = nbplane / 8;
 	memcpy(&data_offset, header + 10, 4);
@@ -229,7 +235,7 @@ int readbmp(const char *name, fits *fit) {
 	size_t nbdata = width * height * nbplane + height * padsize;
 
 	if (fseek(file, data_offset, SEEK_SET) == -1) {
-		perror("BMP fseek for data");
+		siril_debug_print("BMP fseek for data");
 		fclose(file);
 		return -1;
 	}
@@ -242,7 +248,7 @@ int readbmp(const char *name, fits *fit) {
 	}
 	unsigned long f;
 	if (nbdata != (f = fread(buf, 1, nbdata, file))) {
-		fprintf(stderr, "readbmp: could not read all data: (%zu, %lu)\n", nbdata, f);
+		siril_log_color_message(_("readbmp: could not read all data: (%zu, %lu)\n"), "red", nbdata, f);
 		free(buf);
 		fclose(file);
 		return -1;
@@ -263,8 +269,8 @@ int readbmp(const char *name, fits *fit) {
 			bmp32tofits48(buf, width, height, fit);
 			break;
 		default:
-			siril_log_message(_("Sorry but Siril cannot "
-						"open this kind of BMP. Try to convert it before.\n"));
+			siril_log_color_message(_("Sorry but Siril cannot "
+						"open this kind of BMP. Try to convert it before.\n"), "red");
 	}
 	fit->type = DATA_USHORT;
 	free(buf);
@@ -335,7 +341,7 @@ int savebmp(const char *name, fits *fit) {
 
 	f = g_fopen(filename, "wb");
 	if (f == NULL) {
-		siril_log_message(_("Can't create BMP file.\n"));
+		siril_log_color_message(_("Can't create BMP file.\n"), "red");
 		free(filename);
 		return 1;
 	}
@@ -413,7 +419,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	size_t stride;
 
 	if ((file = g_fopen(filename, "rb")) == NULL) {
-		siril_log_message(_("Sorry but Siril cannot open this file.\n"));
+		siril_log_color_message(_("Sorry but Siril cannot open this file.\n"), "red");
 		return -1;
 	}
 	if (fgets(buf, 256, file) == NULL) {
@@ -422,9 +428,9 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		return -1;
 	}
 	if (buf[0] != 'P' || buf[1] < '5' || buf[1] > '6' || buf[2] != '\n') {
-		siril_log_message(
+		siril_log_color_message(
 				_("Wrong magic cookie in PNM file, ASCII types and"
-					" b&w bitmaps are not supported.\n"));
+					" b&w bitmaps are not supported.\n"), "red");
 		fclose(file);
 		return -1;
 	}
@@ -506,7 +512,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			return -1;
 		}
 		if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
-			siril_log_message(_("Error reading 8-bit PPM image data.\n"));
+			siril_log_color_message(_("Error reading 8-bit PPM image data.\n"), "red");
 			fclose(file);
 			free(tmpbuf);
 			free(fit->data);
@@ -535,8 +541,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 				return -1;
 			}
 			if (fread(fit->data, stride, fit->ry, file) < fit->ry) {
-				siril_log_message(
-						_("Error reading 16-bit gray PPM image data.\n"));
+				siril_log_color_message(
+						_("Error reading 16-bit gray PPM image data.\n"), "red");
 				fclose(file);
 				free(fit->data);
 				fit->data = NULL;
@@ -567,8 +573,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 				return -1;
 			}
 			if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
-				siril_log_message(
-						_("Error reading 16-bit color PPM image data.\n"));
+				siril_log_color_message(
+						_("Error reading 16-bit color PPM image data.\n"), "red");
 				fclose(file);
 				free(tmpbuf);
 				free(fit->data);
@@ -582,7 +588,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		fit->binning_x = fit->binning_y = 1;
 		fits_flip_top_to_bottom(fit);
 	} else {
-		siril_log_message(_("Not handled max value for PNM: %d.\n"),
+		siril_log_color_message(_("Not handled max value for PNM: %d.\n"), "red",
 				max_val);
 		fclose(file);
 		return -1;
@@ -600,6 +606,10 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 
 static int saveppm(const char *name, fits *fit) {
 	FILE *fp = g_fopen(name, "wb");
+	if (!fp) {
+		siril_log_color_message(_("Error opening file %s\n"), "red", name);
+		return 1;
+	}
 	size_t i, ndata = fit->rx * fit->ry;
 	double norm;
 	const char *comment = "# CREATOR : SIRIL";
@@ -777,8 +787,8 @@ static int _pic_read_header(struct pic_struct *pic_file) {
 	memcpy(&pic_file->magic, header, 4);
 
 	if (pic_file->magic != 0x12231fc) {
-		siril_log_message(_("Wrong magic cookie in PIC file. "
-					"This image is not supported.\n"));
+		siril_log_color_message(_("Wrong magic cookie in PIC file. "
+					"This image is not supported.\n"), "red");
 		return -1;
 	}
 
@@ -817,8 +827,8 @@ int readpic(const char *name, fits *fit) {
 	pic_file = calloc(1, sizeof(struct pic_struct));
 
 	if ((pic_file->file = g_fopen(name, "rb")) == NULL) {
-		siril_log_message(
-				_("Sorry but Siril cannot open the PIC file: %s.\n"), name);
+		siril_log_color_message(
+				_("Sorry but Siril cannot open the PIC file: %s.\n"), "red", name);
 		free(pic_file);
 		return -1;
 	}
@@ -838,12 +848,21 @@ int readpic(const char *name, fits *fit) {
 
 	size_t nbdata = fit->rx * fit->ry;
 
-	fseek(pic_file->file, 290, SEEK_SET);
+	if (fseek(pic_file->file, 290, SEEK_SET)) {
+		siril_log_color_message(_("Error: seek failure in file.\n"), "red");
+		_pic_close_file(pic_file);
+		return -1;
+	}
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));
+	if (!buf) {
+		siril_log_color_message(_("Error: memory allocation failure.\n"), "red");
+		_pic_close_file(pic_file);
+		return -1;
+	}
 
 	if ((fread(buf, 1, nbdata * pic_file->nbplane * sizeof(WORD), pic_file->file))
 			!= nbdata * pic_file->nbplane * sizeof(WORD)) {
-		siril_log_message(_("Cannot Read the data\n"));
+		siril_log_color_message(_("Error: Cannot read the data\n"), "red");
 		free(buf);
 		_pic_close_file(pic_file);
 		return -1;
@@ -858,7 +877,7 @@ int readpic(const char *name, fits *fit) {
 			break;
 		default:
 			retval = -1;
-			siril_log_message(_("Sorry but Siril cannot open this file.\n"));
+			siril_log_color_message(_("Sorry but Siril cannot open this file.\n"), "red");
 	}
 	free(buf);
 

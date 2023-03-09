@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -53,6 +53,8 @@
 
 // Type of invocation - HISTO_STRETCH or GHT_STRETCH (maybe others in future?)
 static int invocation = NO_STRETCH_SET_YET;
+
+static gboolean closing = FALSE;
 
 // Parameters for use in calculations
 static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0f;
@@ -139,7 +141,6 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 			notify_gfit_modified();
 		}
 	}
-
 	// free data
 	clear_backup();
 	clear_hist_backup();
@@ -155,8 +156,7 @@ static void histo_recompute() {
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
-		GHTsetup(&compute_params, _B, _D, _LP, _SP, _HP, _stretchtype);
-		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, params_ght, compute_params, TRUE);
+		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, &params_ght, TRUE);
 	}
 	notify_gfit_modified();
 }
@@ -703,7 +703,8 @@ static void update_histo_mtf() {
 }
 
 static int histo_update_preview() {
-	histo_recompute();
+	if (!closing)
+		histo_recompute();
 	return 0;
 }
 
@@ -797,7 +798,7 @@ static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct ght_data *m_args = (struct ght_data*) args->user;
-	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, m_args->compute_params, FALSE);
+	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
 	return 0;
 }
 
@@ -855,6 +856,7 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 
 void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
+	closing = FALSE;
 	histo_startup();
 	_initialize_clip_text();
 	reset_cursors_and_values();
@@ -862,6 +864,7 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 }
 
 void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
+	closing = TRUE;
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
 	histo_close(TRUE, TRUE);
@@ -905,7 +908,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
 			fprintf(stdout, "%d %d %d\n", params.do_red, params.do_green, params.do_blue);
 			args->params = params;
-			args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
+			args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq"))));
 			if (args->seqEntry && args->seqEntry[0] == '\0')
 				args->seqEntry = "mtf_";
 			args->seq = &com.seq;
@@ -922,11 +925,12 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_data *args = malloc(sizeof(struct ght_data));
 			struct ght_params params = { .B = _B, .D = _D, .LP = _LP, .SP = _SP, .HP = _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
-			args->params_ght = params;
-			args->compute_params = compute_params;
-			args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
+			args->params_ght = &params;
+			const gchar* temp = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
+			args->seqEntry = strdup(temp);
+			g_free((gchar *) temp);
 			if (args->seqEntry && args->seqEntry[0] == '\0')
-				args->seqEntry = "ght_";
+				args->seqEntry = strdup("ght_");
 			args->seq = &com.seq;
 		/* here it is a bit tricky.
 		 * It is better to first close the window as it is a liveview tool
@@ -950,9 +954,24 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 				_("Histogram Transf. (mid=%.3f, lo=%.3f, hi=%.3f)"),
 				_midtones, _shadows, _highlights);
 		} else if (invocation == GHT_STRETCH) {
-			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3lf, B=%2.3lf, LP=%2.3lf, SP=%2.3lf, HP=%2.3lf", _D, _B, _LP, _SP, _HP);
-			undo_save_state(get_preview_gfit_backup(),
-				_("Generalised hyperbolic stretch..."));
+			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f", _D, _B, _LP, _SP, _HP);
+			switch (_stretchtype) {
+				case STRETCH_PAYNE_NORMAL:
+					undo_save_state(get_preview_gfit_backup(), _("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+					break;
+				case STRETCH_PAYNE_INVERSE:
+					undo_save_state(get_preview_gfit_backup(), _("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+					break;
+				case STRETCH_ASINH:
+					undo_save_state(get_preview_gfit_backup(), _("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+					break;
+				case STRETCH_INVASINH:
+					undo_save_state(get_preview_gfit_backup(), _("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+					break;
+				case STRETCH_LINEAR:
+					undo_save_state(get_preview_gfit_backup(), _("GHS LINEAR BP: %.2f"), _BP);
+					break;
+			}
 		}
 		clear_backup();
 		clear_hist_backup();
@@ -995,6 +1014,7 @@ void on_histoToolAutoStretch_clicked(GtkToolButton *button, gpointer user_data) 
 		_midtones = params.midtones;
 		_highlights = 1.0f;
 		_update_entry_text();
+		update_histo_mtf();
 		histo_update_preview();
 	} else {
 		siril_log_color_message(_("Could not compute autostretch parameters, using default values\n"), "salmon");
@@ -1011,8 +1031,6 @@ void setup_histo_dialog() {
 			// Make visible the UI elements required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("grid32")), TRUE);
-			// Set default parameters
-			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "mtf_");
 
 			//Force dialog size to size of visible widgets only
 			gtk_window_resize(GTK_WINDOW(lookup_widget("histogram_dialog")),1,1);
@@ -1047,8 +1065,8 @@ void setup_ght_dialog() {
 			_HP = 1.0f;
 			lp_warning_given = FALSE;
 			hp_warning_given = FALSE;
-			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "ght_");
 			gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("drawingarea_histograms")), _("Clicking on the histogram sets SP"));
+			gtk_window_resize(GTK_WINDOW(lookup_widget("histogram_dialog")),1,1);
 }
 
 void updateGHTcontrols() {
@@ -1276,11 +1294,31 @@ void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
 	if (mid >= _highlights) mid = _highlights;
 	_midtones = mid;
 	set_cursor_waiting(TRUE);
+	update_histo_mtf();
 	histo_update_preview();
 	gchar *str = g_strdup_printf("%8.7f", mid);
 	gtk_entry_set_text(entry, str);
 	g_free(str);
 	set_cursor_waiting(FALSE);
+}
+
+gboolean on_histoMidEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+
+	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoMidEntry"));
+	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+	if (mid <= _shadows) mid = _shadows;
+	if (mid >= _highlights) mid = _highlights;
+	_midtones = mid;
+	set_cursor_waiting(TRUE);
+	update_histo_mtf();
+	histo_update_preview();
+	gchar *str = g_strdup_printf("%8.7f", mid);
+	gtk_entry_set_text(entry, str);
+	g_free(str);
+	set_cursor_waiting(FALSE);
+
+	return FALSE;
 }
 
 void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -1363,7 +1401,7 @@ void on_eyedropper_SP_clicked(GtkButton *button, gpointer user_data) {
 			active_channels++;
 		}
 	}
-	ref /= active_channels;
+	ref /= (active_channels ? active_channels : 1.f);
 	ref /= norm;
 	_SP = (float) ref;
 	if (_SP < _LP) {
@@ -1435,17 +1473,54 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 	set_cursor_waiting(FALSE);
 }
 
+gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoShadEntry"));
+	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+	if (lo <= 0.f) lo = 0.f;
+	if (lo >= _highlights) lo = _highlights;
+	_shadows = lo;
+	set_cursor_waiting(TRUE);
+	update_histo_mtf();
+	histo_update_preview();
+	gchar *str = g_strdup_printf("%8.7f", lo);
+	gtk_entry_set_text(entry, str);
+	g_free(str);
+	set_cursor_waiting(FALSE);
+
+	return FALSE;
+}
+
 void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (lo <= 0.f) lo = 0.f;
 	if (lo >= _highlights) lo = _highlights;
 	_shadows = lo;
 	set_cursor_waiting(TRUE);
+	update_histo_mtf();
 	histo_update_preview();
 	gchar *str = g_strdup_printf("%8.7f", lo);
 	gtk_entry_set_text(entry, str);
 	g_free(str);
 	set_cursor_waiting(FALSE);
+}
+
+gboolean on_histoHighEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoHighEntry"));
+	float hi = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+	if (hi <= _shadows) hi = _shadows;
+	if (hi >= 1.f) hi = 1.f;
+	_highlights = hi;
+	set_cursor_waiting(TRUE);
+	update_histo_mtf();
+	histo_update_preview();
+	gchar *str = g_strdup_printf("%8.7f", hi);
+	gtk_entry_set_text(entry, str);
+	g_free(str);
+	set_cursor_waiting(FALSE);
+
+	return FALSE;
 }
 
 void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
@@ -1454,6 +1529,7 @@ void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
 	if (hi >= 1.f) hi = 1.f;
 	_highlights = hi;
 	set_cursor_waiting(TRUE);
+	update_histo_mtf();
 	histo_update_preview();
 	gchar *str = g_strdup_printf("%8.7f", hi);
 	gtk_entry_set_text(entry, str);
@@ -1461,12 +1537,19 @@ void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
+int mtf_finalize_hook(struct generic_seq_args *args) {
+	struct mtf_data *data = (struct mtf_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	struct generic_seq_args *args = create_default_seqargs(mtf_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = mtf_args->seq->selnum;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = mtf_finalize_hook;
 	args->image_hook = mtf_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Midtone Transfer Function");
@@ -1480,12 +1563,21 @@ void apply_mtf_to_sequence(struct mtf_data *mtf_args) {
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
+int ght_finalize_hook(struct generic_seq_args *args) {
+	struct ght_data *data = (struct ght_data *) args->user;
+	struct ght_params *ghtp = (struct ght_params *) data->params_ght;
+	int retval = seq_finalize_hook(args);
+	free(ghtp);
+	free(data);
+	return retval;
+}
+
 void apply_ght_to_sequence(struct ght_data *ght_args) {
 	struct generic_seq_args *args = create_default_seqargs(ght_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = ght_args->seq->selnum;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = ght_finalize_hook;
 	args->image_hook = ght_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Generalised Hyperbolic Transfer Function");

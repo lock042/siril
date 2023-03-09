@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -43,7 +43,7 @@
 mouse_status_enum mouse_status;
 
 // caching widgets
-static GtkWidget *rotation_dlg = NULL, *histo_dlg = NULL;
+static GtkWidget *rotation_dlg = NULL;
 
 /* mouse callbacks */
 static double margin_size = 10;
@@ -109,21 +109,21 @@ static gboolean is_inside_of_sel(pointi zoomed, double zoom) {
 */
 static gboolean clamp2image(pointi* pt) {
 	gboolean x_inside = FALSE;
-	gboolean y_inside = FALSE;
 	if (pt->x < 0) {
 		pt->x = 0;
-	} else if (pt->x >= gfit.rx) {
+	} else if (pt->x > gfit.rx) {
 		pt->x = gfit.rx - 1;
 	} else {
-		x_inside = TRUE;
+		x_inside = pt->x < gfit.rx;
 	}
 
+	gboolean y_inside = FALSE;
 	if (pt->y < 0) {
 		pt->y = 0;
-	} else if (pt->y >= gfit.ry) {
+	} else if (pt->y > gfit.ry) {
 		pt->y = gfit.ry - 1;
 	} else {
-		y_inside = TRUE;
+		y_inside = pt->y < gfit.ry;
 	}
 	return x_inside && y_inside;
 }
@@ -318,13 +318,11 @@ void enforce_ratio_and_clamp() {
 	com.selection.y = set_int_in_interval(com.selection.y, 0, gfit.ry - com.selection.h);
 }
 
-
 gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer user_data) {
 
 	if (!rotation_dlg) {
 		rotation_dlg = lookup_widget("rotation_dialog");
-		histo_dlg = lookup_widget("histogram_dialog");
 	}
 	/* when double clicking on drawing area (if no images loaded)
 	 * you can load an image This feature is in GIMP and I really
@@ -433,7 +431,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 						&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
 
 					struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, TRUE, ps, TRUE, NULL);
+					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 					free(ps);
 					if (gui.qphot) {
 						gui.qphot->xpos = gui.qphot->x0 + area.x;
@@ -442,7 +440,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 						else
 							gui.qphot->ypos = area.y + area.h - gui.qphot->y0;
 						redraw(REDRAW_OVERLAY);
-						popup_psf_result(gui.qphot, &area);
+						popup_psf_result(gui.qphot, &area, &gfit);
 					}
 				}
 			}
@@ -502,8 +500,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 					com.selection.x = zoomed.x;
 					com.selection.w = gui.start.x - zoomed.x;
 				}
-				if (com.selection.w == 0 && gtk_widget_is_visible(histo_dlg))
-					com.selection.w = 1;
 			}
 			if (!gui.freezeY) {
 				if (zoomed.y >= gui.start.y) {
@@ -513,9 +509,13 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 					com.selection.y = zoomed.y;
 					com.selection.h = gui.start.y - zoomed.y;
 				}
-				if (com.selection.h == 0 && gtk_widget_is_visible(histo_dlg))
-					com.selection.h = 1;
 			}
+			// Clicking in displayed psf selects star in list if the DynamicPSF dialog is open
+			GtkWidget *dynpsf_dlg = lookup_widget("stars_list_window");
+			if (((com.selection.w == 0 || com.selection.w == 1) && (com.selection.h == 0 || com.selection.h == 1)) && gtk_widget_is_visible(dynpsf_dlg)) {
+				set_iter_of_clicked_psf((double) com.selection.x, (double) com.selection.y);
+			}
+
 			// never let selection be null if rotation_dlg is visible
 			// reinstate full image instead
 			if (!gui.freezeX && com.selection.w == 0 && gtk_widget_is_visible(rotation_dlg))
@@ -581,7 +581,6 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		GdkEventMotion *event, gpointer user_data) {
 	if (!rotation_dlg) {
 		rotation_dlg = lookup_widget("rotation_dialog");
-		histo_dlg = lookup_widget("histogram_dialog");
 	}
 	if ((!single_image_is_loaded() && !sequence_is_loaded())
 			|| gfit.type == DATA_UNSUPPORTED) {
@@ -683,12 +682,16 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			double world_x, world_y;
 			pix2wcs(&gfit, (double) zoomed.x, (double) (gfit.ry - zoomed.y - 1), &world_x, &world_y);
 			if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
-				SirilWorldCS *world_cs;
-
-				world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+				SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
 				if (world_cs) {
-					gchar *ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
-					gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+					gchar *ra, *dec;
+					if (com.pref.gui.show_deciasec) {
+						ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%04.1lfs");
+						dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.1lf\"");
+					} else {
+						ra = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
+						dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+					}
 					g_sprintf(wcs_buffer, "α: %s δ: %s", ra, dec);
 
 					gtk_label_set_text(labels_wcs[gui.cvport], wcs_buffer);

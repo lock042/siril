@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 m4_define([siril_major_version], [1])
-m4_define([siril_minor_version], [1])
+m4_define([siril_minor_version], [2])
 m4_define([siril_micro_version], [0])
-m4_define([siril_prerelease_version], [alpha1])
+m4_define([siril_prerelease_version], [devbeta2])
 m4_define([siril_version],
           [siril_major_version.siril_minor_version.siril_micro_version])
 m4_define([siril_version_full],
@@ -14,8 +14,8 @@ m4_define([siril_stable],
           m4_if(m4_eval(siril_minor_version % 2), [0], [yes], [no]))
 
 dnl change siril_version_full by siril_version for stable release
-dnl AC_INIT([siril], [siril_version_full],
-AC_INIT([siril], [siril_version],
+AC_INIT([siril], [siril_version_full],
+dnl AC_INIT([siril], [siril_version],
         [https://gitlab.com/free-astro/siril/issues],
         [siril],
         [https://www.siril.org])
@@ -54,7 +54,7 @@ if test "x$remember_set_CFLAGS" = "x"; then
 fi
 
 CFLAGS="-D_FILE_OFFSET_BITS=64 -Werror=unknown-pragmas -Werror=unused-label -fno-common -ftree-vectorize -fno-math-errno $CFLAGS $OPENMP_CFLAGS"
-CXXFLAGS="$CFLAGS"
+CXXFLAGS="$CFLAGS -std=c++14"
 
 if test "x$SIRIL_UNSTABLE" = "xyes"; then
   AC_DEFINE(SIRIL_UNSTABLE, 1,
@@ -152,9 +152,9 @@ if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
 	(test "X$CXX" != "Xg++"))) ; then
 	AC_PROG_CXXCPP
 
-	dnl check for C++11 support
+	dnl check for C++14 support
 	m4_include([m4/ax_cxx_compile_stdcxx.m4])
-	AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
+	AX_CXX_COMPILE_STDCXX(14, noext, mandatory)
 
 	PKG_CHECK_MODULES([OPENCV], [opencv4 >= 4.4.0],
 			  [AC_DEFINE([HAVE_CV44], [1], [Using OpenCV4.4])]
@@ -342,9 +342,13 @@ platform_family="other"
 PATHSEP=':'
 AC_MSG_CHECKING([platform and architecture])
 case "$host_os" in
-	linux-* | freebsd-*)
+	linux-**)
 		platform=unix
 		platform_family="linux"
+		;;
+	freebsd-*)
+		platform=unix
+		platform_family="bsd"
 		;;
 	cygwin*)
 		platform=windows
@@ -376,8 +380,8 @@ AM_CONDITIONAL([PLATFORM_UNIX], [test "$platform" = "unix"])
 AM_CONDITIONAL([PLATFORM_WIN32], [test "$platform" = "windows"])
 AM_CONDITIONAL([PLATFORM_OSX], [test "$platform" = "osx"])
 
-AC_DEFINE_UNQUOTED(SIRIL_BUILD_PLATFORM_FAMILY, "$platform_family",
-		   [The OS family this was built for])
+AC_DEFINE_UNQUOTED(CPU_ARCH, "$host_cpu", [The CPU family this was built for])
+AC_DEFINE_UNQUOTED(SIRIL_BUILD_PLATFORM_FAMILY, "$platform_family", [The OS family this was built for])
 
 AC_SUBST(WIN32_LARGE_ADDRESS_AWARE)
 AC_SUBST(PATHSEP)

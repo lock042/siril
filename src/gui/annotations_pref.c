@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -58,13 +58,15 @@ void fill_astrometry_catalogue(gboolean *catalog) {
 
 void get_astrometry_catalogue_values() {
 	GtkTreeIter iter;
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(list_store_catalogue), &iter);
+	gboolean valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(list_store_catalogue), &iter);
 
-	for(int i = 0; i < G_N_ELEMENTS(astro_catalogue); i++) {
+	int i = 0;
+	while (valid) {
 		gboolean value = TRUE;
 		gtk_tree_model_get(GTK_TREE_MODEL(list_store_catalogue), &iter, 0, &value, -1);
 		com.pref.gui.catalog[i] = value;
-		gtk_tree_model_iter_next (GTK_TREE_MODEL(list_store_catalogue), &iter);
+		valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(list_store_catalogue), &iter);
+		i++;
 	}
 }
 

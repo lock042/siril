@@ -7,6 +7,32 @@
 
 image: debian:testing
 
+# Our general workflow rules, see relevant documentation here:
+# https://docs.gitlab.com/ee/ci/pipelines/merge_request_pipelines.html
+# https://docs.gitlab.com/ee/ci/yaml/#rules
+#
+# We also run everything for schedules (which you can't tell from looking
+# at these rule alone).
+workflow:
+  rules:
+    # run merge request pipelines
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    # do not run branch pipelines if corresponding merge requests exist...
+    # (this avoids duplicate pipelines)
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    # ...but otherwise run branch pipelines
+    - if: '$CI_COMMIT_BRANCH'
+    # run tag pipelines
+    - if: '$CI_COMMIT_TAG'
+
+# A few jobs are only supposed to run either on demand, on schedule (i.e.
+# weekly) or on tag (i.e. release).
+.run_ondemand_schedule_tag: &run_ondemand_schedule_tag
+  - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  - if: '$CI_COMMIT_TAG'
+  - when: manual
+
 stages:
   - prepare
   - dependencies
@@ -38,7 +64,7 @@ build-image:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context build/build-image/ --dockerfile build/build-image/Dockerfile.debian-latest --destination $CI_REGISTRY_IMAGE:build-debian-latest --cache=true --cache-ttl=120h
-    
+
 # Image for GNU/Linux build
 build-image-oldstable:
   stage: prepare
@@ -65,10 +91,9 @@ build-image-win64:
 
 # Try building/packaging with msys2 in one step
 # (otherwise win VM gets wiped)
-win64-native-nightly:
-  only:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /w64/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/ || $CI_PIPELINE_SOURCE == "schedule"
+win64-native:
+  rules:
+    *run_ondemand_schedule_tag
   stage: prepare
   cache: {}
   variables:
@@ -87,6 +112,7 @@ win64-native-nightly:
     - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-deps.sh"
     - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
     - C:\msys64\usr\bin\bash -lc "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
+  allow_failure: true
 
 ################################################################################
 # GNU/Linux 64-bit CIs
@@ -114,7 +140,7 @@ deps-debian:
   script:
     - cd _Criterion
     - patch --binary -p1 < ../build/windows/criterion.patch
-    - meson _build --prefix ${INSTALL_PREFIX}
+    - meson setup _build --prefix ${INSTALL_PREFIX}
     - ninja -C _build install
   needs: ["build-image"]
 
@@ -156,7 +182,7 @@ siril-deb-autotools:
 siril-deb-meson:
   extends: .siril-debian/testing-base
   script:
-    - meson --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Denable-libcurl=yes -Dlibconfig=true -Dcriterion=true
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Denable-libcurl=yes -Dlibconfig=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
     - cd ${BUILD_DIR}
@@ -165,7 +191,7 @@ siril-deb-meson:
   artifacts:
     paths:
       - ${BUILD_DIR}/meson-logs/testlog.junit.xml
-      - ${BUILD_DIR}/coverage.xml    
+      - ${BUILD_DIR}/coverage.xml
     reports:
       junit: ${BUILD_DIR}/meson-logs/testlog.junit.xml
       coverage_report:
@@ -182,6 +208,8 @@ deps-win64:
   variables:
     XDG_CACHE_HOME: "$CI_PROJECT_DIR/.cache/"
     XDG_DATA_HOME: "$CI_PROJECT_DIR/.local/share/"
+# fix from Jehan see https://gitlab.gnome.org/GNOME/gimp/-/commit/6378f3af8dcae896d9bc93b45bc8e651fb55805a
+    DEB_PYTHON_INSTALL_LAYOUT: "deb"
   cache:
     paths:
       - .cache/crossroad/
@@ -191,7 +219,7 @@ deps-win64:
     - cd crossroad
     - ./setup.py install --prefix=`pwd`/../.local
     - cd ..
-    - pip3 install zstandard
+    - pip3 install --break-system-packages zstandard
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
     - crossroad w64 siril --run="build/windows/crossbuild-gitlab-ci/build-deps.sh"
@@ -218,8 +246,6 @@ siril-win64:
       - .cache/crossroad/
       - apt-cache
   script:
-    - update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
-    - update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
     - export PATH="`pwd`/.local/bin:$PATH"
     - mkdir _build && cd _build
     - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" -Denable-libcurl=yes -Dlibconfig=true .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
@@ -236,12 +262,66 @@ siril-win64:
 ################################################################################
 # Packaging
 
-win64-nightly:
+################################################################################
+# macOS CI
+
+siril-macos:
+  stage: packaging
+  image: macos-12-xcode-13
+  parallel:
+    matrix:
+      - RUNNER: [ "macosarm", "shared-macos-amd64" ]
+  rules:
+    - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
+      when: never  # job requires custom runner, not suitable outside the project
+    - if: $RUNNER == "macosarm"
+      variables:
+        ARCHITECTURE: arm64
+        SDKROOT: /Users/Shared/sdks/MacOSX11.3.sdk
+    - if: $RUNNER == "shared-macos-amd64"
+      variables:
+        ARCHITECTURE: x86_64
+        MACOSX_DEPLOYMENT_TARGET: "10.13"
+        SYS_USRLOCAL_IGNORE: "true"
+  tags:
+    - ${RUNNER}
+  variables:
+    REP_DIR: /Users/Shared/data
+    SIRIL_BUILD: $CI_PIPELINE_IID
+    RELEASE_ARCHIVE: jhb-0.29_$ARCHITECTURE.dmg
+    RELEASE_TAG: r7
+    RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
+  script:
+    - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename
+    - |
+      git clone https://gitlab.com/free-astro/siril_macos.git
+      git -C siril_macos checkout $RELEASE_TAG
+      git -C siril_macos submodule update --init --recursive
+    - siril_macos/jhb/usr/bin/archive uninstall_dmg  # after_script doesn't run for cancelled/timed out jobs
+    - siril_macos/jhb/usr/bin/archive install_dmg
+    - |
+      cd siril_macos
+      ./build_siril.sh
+      mv Siril*.dmg ..
+  after_script:
+    - siril_macos/jhb/usr/bin/archive uninstall_dmg
+  needs: []
+  artifacts:
+    name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
+    expire_in: 1 week
+    paths:
+      - Siril*.dmg
+
+win64:
   stage: packaging
   image: $CI_REGISTRY_IMAGE:build-win64-latest
   dependencies:
     - siril-win64
   script:
+    # Package ssl certificates
+    - mkdir -p ${INSTALL_PREFIX}/etc/ssl
+    - cp -fr ${CROSSROAD_OUT}/etc/ssl ${INSTALL_PREFIX}/etc
+
     # Package shared ressources
     - cp -fr ${CROSSROAD_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
     - cp -fr ${CROSSROAD_OUT}/share/icons/ ${INSTALL_PREFIX}/share
@@ -282,11 +362,9 @@ win64-nightly:
     paths:
       - ${INSTALL_DIR}
 
-flatpak-nightly:
-  # Update the image URL whenever the runtime version in the flatpak manifest is changed
-  only:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /CI-flatpak/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /flatpak/ || $CI_PIPELINE_SOURCE == "schedule"
+flatpak:
+  rules:
+    *run_ondemand_schedule_tag
   image: 'quay.io/gnome_infrastructure/gnome-runtime-images:gnome-master'
   stage: packaging
   variables:
@@ -316,9 +394,9 @@ flatpak-nightly:
       - ".flatpak-builder/ccache"
   needs: []
   allow_failure: true
-  
 
-appimage-nightly:
+
+appimage:
   stage: packaging
   image: $CI_REGISTRY_IMAGE:build-debian-oldstable
   variables:
@@ -335,6 +413,7 @@ appimage-nightly:
     paths:
       - build/appimage/Siril*.AppImage*
   needs: ["build-image-oldstable"]
+  allow_failure: true
 
 ################################################################################
 # Analysis
@@ -360,16 +439,15 @@ cppcheck:
 ################################################################################
 # Distribution
 win64-native-installer:
-  only:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /w64i/ || $CI_COMMIT_TAG != null || $CI_COMMIT_BRANCH =~ /wininstall/ || $CI_PIPELINE_SOURCE == "schedule"
+  rules:
+    *run_ondemand_schedule_tag
   variables:
     CHERE_INVOKING: "yes"
   tags:
     - windows
   stage: distribution
   dependencies:
-    - win64-native-nightly
+    - win64-native
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -380,4 +458,5 @@ win64-native-installer:
   script:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
-  needs: ["win64-native-nightly"]
+  needs: ["win64-native"]
+  allow_failure: true

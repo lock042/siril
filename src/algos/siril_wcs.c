@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -82,6 +82,10 @@ gboolean load_WCS_from_memory(fits *fit) {
 	int status;
 	if (!fit->wcslib) {
 		fit->wcslib = calloc(1, sizeof(struct wcsprm));
+		if(!fit->wcslib) {
+			PRINT_ALLOC_ERR;
+			return FALSE;
+		}
 		fit->wcslib->flag = -1;
 	}
 	wcsinit(1, NAXIS, fit->wcslib, 0, 0, 0);
@@ -90,7 +94,7 @@ gboolean load_WCS_from_memory(fits *fit) {
 	const char CUNIT[2][9] = { "deg", "deg" };
 
 	for (int i = 0; i < NAXIS; i++) {
-		strcpy(fit->wcslib->cunit[i], &CUNIT[i][0]);
+		strncpy(fit->wcslib->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
 	}
 
 	double *pcij = fit->wcslib->pc;
@@ -113,7 +117,7 @@ gboolean load_WCS_from_memory(fits *fit) {
 	}
 
 	for (int i = 0; i < NAXIS; i++) {
-		strcpy(fit->wcslib->ctype[i], &CTYPE[i][0]);
+		strncpy(fit->wcslib->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
 	}
 
 	fit->wcslib->equinox = fit->wcsdata.equinox;
@@ -217,22 +221,31 @@ gboolean load_WCS_from_file(fits* fit) {
 #endif
 }
 
-void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
-	*r = -1.0;
-	*d = -1.0;
 #ifdef HAVE_WCSLIB
+void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d) {
+	*r = 0.0;
+	*d = 0.0;
 	int status, stat[NWCSFIX];
 	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
 
 	pixcrd[0] = x;
 	pixcrd[1] = y;
 
-	status = wcsp2s(fit->wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
+	status = wcsp2s(wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
 	if (status != 0)
 		return;
 
 	*r = world[0];
 	*d = world[1];
+}
+#endif
+
+void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
+	*r = 0.0;
+	*d = 0.0;
+#ifdef HAVE_WCSLIB
+	if (fit->wcslib)
+		pix2wcs2(fit->wcslib, x, y, r, d);
 #endif
 }
 
@@ -253,13 +266,14 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	if (!status) {
 		double xx = pixcrd[0];
 		double yy = pixcrd[1];
-		// return values even if outside
-		// required for celestial grid display
+		// return values even if outside (required for celestial grid display)
 		if (x) *x = xx;
 		if (y) *y = yy;
-		if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry)
+		if (xx < 0.0 || yy < 0.0 || xx > (double)fit->rx || yy > (double)fit->ry) {
 			//siril_debug_print("outside image but valid return\n");
+			// wcss2p returns values between 0 and 9, picking a new one
 			status = 10;
+		}
 	}
 	return status;
 #endif
@@ -313,7 +327,8 @@ double get_wcs_image_resolution(fits *fit) {
 #endif
 	if (resolution <= 0.0) {
 		if (fit->focal_length >= 0.0 && fit->pixel_size_x >= 0.0 && fit->pixel_size_y == fit->pixel_size_x)
-			resolution = (RADCONV / fit->focal_length * fit->pixel_size_x) / 3600;
+			resolution = (RADCONV / fit->focal_length * fit->pixel_size_x) / 3600.0;
+		// what about pix size x != y?
 	}
 	return resolution;
 }

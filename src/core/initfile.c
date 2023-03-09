@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2015 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -49,6 +49,10 @@ static const char *keywords[] = { "working-directory",
 		"stacking-settings", "astrometry-settings", "photometry-settings",
 		"misc-settings", "compression-settings" };
 
+
+/** DEPRECATED function. Do not add preferences in here,
+ * libconfig is not use anymore with new settings */
+
 static int readinitfile_libconfig(gchar *path) {
 	config_t config;
 	const char *dir = NULL;
@@ -67,6 +71,9 @@ static int readinitfile_libconfig(gchar *path) {
 	if (config_read_file(&config, file_path) == CONFIG_FALSE) {
 		siril_log_color_message(_("Cannot load initfile: %s\n"), "red", config_error_text(&config));
 		config_destroy(&config);
+#ifdef _WIN32
+		g_free(file_path);
+#endif
 		return 1;
 	}
 	siril_log_message(_("Loading old configuration file: '%s'\n"), file_path);
@@ -96,7 +103,7 @@ static int readinitfile_libconfig(gchar *path) {
 	/* Preprocessing settings */
 	config_setting_t *prepro_setting = config_lookup(&config, keywords[PRE]);
 	if (prepro_setting) {
-		const char *bias = NULL, *bias_synth = NULL, *dark = NULL, *flat = NULL;
+		const char *bias = NULL, *dark = NULL, *flat = NULL;
 
 		config_setting_lookup_bool(prepro_setting, "cfa", &com.pref.prepro.cfa);
 		config_setting_lookup_bool(prepro_setting, "equalize_cfa", &com.pref.prepro.equalize_cfa);
@@ -105,11 +112,6 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_string(prepro_setting, "bias_lib", &bias);
 		com.pref.prepro.bias_lib = g_strdup(bias);
 		config_setting_lookup_bool(prepro_setting, "use_bias_lib", &com.pref.prepro.use_bias_lib);
-
-
-		config_setting_lookup_string(prepro_setting, "bias_synth", &bias_synth);
-		com.pref.prepro.bias_synth = g_strdup(bias_synth);
-		config_setting_lookup_bool(prepro_setting, "use_bias_synth", &com.pref.prepro.use_bias_synth);
 
 		config_setting_lookup_string(prepro_setting, "dark_lib", &dark);
 		com.pref.prepro.dark_lib = g_strdup(dark);
@@ -153,7 +155,6 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_float(stack_setting, "linear_high", &com.pref.stack.linear_high);
 		config_setting_lookup_float(stack_setting, "percentile_low", &com.pref.stack.percentile_low);
 		config_setting_lookup_float(stack_setting, "percentile_high", &com.pref.stack.percentile_high);
-
 
 		config_setting_lookup_int(stack_setting, "mem_mode", (int*)&com.pref.mem_mode);
 		config_setting_lookup_float(stack_setting, "maxmem", &com.pref.memory_ratio);
@@ -212,7 +213,7 @@ static int readinitfile_libconfig(gchar *path) {
 	config_setting_t *misc_setting = config_lookup(&config, keywords[MISC]);
 	if (misc_setting) {
 		int type;
-		const char *swap_dir = NULL, *starnet_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
+		const char *swap_dir = NULL, *extension = NULL, *lang = NULL, *copyright = NULL;
 
 		config_setting_lookup_int(misc_setting, "pan_position", &com.pref.gui.pan_position);
 		config_setting_lookup_int(misc_setting, "hd_bitdepth", &com.pref.hd_bitdepth);
@@ -254,11 +255,11 @@ static int readinitfile_libconfig(gchar *path) {
 		if (config_setting_lookup_bool(misc_setting, "rgb_aladin", &com.pref.rgb_aladin) == CONFIG_FALSE) {
 			com.pref.rgb_aladin = FALSE;
 		}
-		if (config_setting_lookup_float(misc_setting, "focal", &com.pref.focal) == CONFIG_FALSE) {
-			com.pref.focal = 1000.0;
+		if (config_setting_lookup_float(misc_setting, "focal", &com.pref.starfinder_conf.focal_length) == CONFIG_FALSE) {
+			com.pref.starfinder_conf.focal_length = 1000.0;
 		}
-		if (config_setting_lookup_float(misc_setting, "pitch", &com.pref.pitch) == CONFIG_FALSE) {
-			com.pref.pitch = 5.0;
+		if (config_setting_lookup_float(misc_setting, "pitch", &com.pref.starfinder_conf.pixel_size_x) == CONFIG_FALSE) {
+			com.pref.starfinder_conf.pixel_size_x = 5.0;
 		}
 		config_setting_lookup_int(misc_setting, "thumbnail_size", &com.pref.gui.thumbnail_size);
 		config_setting_lookup_int(misc_setting, "theme", &com.pref.gui.combo_theme);
@@ -267,8 +268,6 @@ static int readinitfile_libconfig(gchar *path) {
 		config_setting_lookup_bool(misc_setting, "is_maximized", &com.pref.gui.is_maximized);
 		config_setting_lookup_string(misc_setting, "swap_directory", &swap_dir);
 		com.pref.swap_dir = g_strdup(swap_dir);
-		config_setting_lookup_string(misc_setting, "starnet_directory", &starnet_dir);
-		com.pref.starnet_dir = g_strdup(starnet_dir);
 		config_setting_lookup_string(misc_setting, "extension", &extension);
 		com.pref.ext = g_strdup(extension);
 		config_setting_lookup_int(misc_setting, "FITS_type", &type);
@@ -309,16 +308,17 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 	gboolean boolval;
 	int intval;
 	double doubleval;
-	gchar *strval;
+	gchar *strval = NULL;
 	gsize len;
-	gchar **strs;
+	gchar **strs = NULL;
 	switch (desc->type) {
 		case STYPE_BOOL:
 			boolval = g_key_file_get_boolean(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
+				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
-						desc->group, desc->key, error->message,
-						g_key_file_get_string(kf, desc->group, desc->key, NULL));
+						desc->group, desc->key, error->message, keystring);
+				g_free(keystring);
 				return 1;
 			}
 			*((gboolean*)desc->data) = boolval;
@@ -326,9 +326,10 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 		case STYPE_INT:
 			intval = g_key_file_get_integer(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
+				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
-						desc->group, desc->key, error->message,
-						g_key_file_get_string(kf, desc->group, desc->key, NULL));
+						desc->group, desc->key, error->message, keystring);
+				g_free(keystring);
 				return 1;
 			}
 			if (desc->range_int.min != 0 || desc->range_int.max != 0) {
@@ -345,9 +346,10 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 		case STYPE_DOUBLE:
 			doubleval = g_key_file_get_double(kf, desc->group, desc->key, &error);
 			if (error && error->code == G_KEY_FILE_ERROR_INVALID_VALUE) {
+				gchar* keystring = g_key_file_get_string(kf, desc->group, desc->key, NULL);
 				siril_log_message(_("error in config file for %s.%s: %s (value: %s)\n"),
-						desc->group, desc->key, error->message,
-						g_key_file_get_string(kf, desc->group, desc->key, NULL));
+						desc->group, desc->key, error->message, keystring);
+				g_free(keystring);
 				return 1;
 			}
 			if (desc->range_double.min != 0.0 || desc->range_double.max != 0.0) {
@@ -369,11 +371,14 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 						desc->group, desc->key);
 				return 1;
 			}
-			if (strval[0] == '\0')
+			if (strval[0] == '\0') {
+				g_free(strval);
 				return 1;
+			}
 			if (desc->type == STYPE_STRDIR && !g_file_test(strval, G_FILE_TEST_IS_DIR)) {
 				siril_log_color_message(_("directory `%s' for config key %s.%s doesn't exist, not using it.\n"),
 						"salmon", strval, desc->group, desc->key);
+				g_free(strval);
 				return 1;
 			}
 			gchar *old_value = *((gchar**)desc->data);
@@ -391,8 +396,8 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 				if (old_list)
 					g_slist_free_full(old_list, g_free);
 				*((GSList**)desc->data) = list;
-				g_free(strs);
 			}
+			g_free(strs);
 			break;
 	}
 	return 0;
@@ -415,28 +420,30 @@ int read_keyfile(GKeyFile *kf) {
 			if (!get_key_data(kf, desc))
 				nb_keys_read++;
 		}
+		g_strfreev(keys);
 	}
+	g_strfreev(groups);
 	siril_debug_print("read %zd keys from key file\n", nb_keys_read);
 	return nb_keys_read == 0;
 }
 
-int readinitfile(char *path) {
+int readinitfile(gchar *fname) {
 	GKeyFile *kf = g_key_file_new();
-	gchar *fname = get_locale_filename(path);
 	GError *error = NULL;
+	int retval;
 	if (!g_key_file_load_from_file(kf, fname, G_KEY_FILE_NONE, &error)) {
 		if (error != NULL) {
 			siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
 			g_clear_error(&error);
 		}
-		g_free(fname);
 		return 1;
 	}
-	g_free(fname);
 #ifndef HAVE_JSON_GLIB
 	com.pref.check_update = FALSE;
 #endif
-	return read_keyfile(kf);
+	retval = read_keyfile(kf);
+	g_key_file_free(kf);
+	return retval;
 }
 
 /**
@@ -446,6 +453,7 @@ int readinitfile(char *path) {
 
 int checkinitfile() {
 	/* com.initfile will contain the path passed with -i if any, NULL else */
+	set_wisdom_file();
 	if (com.initfile) {
 		siril_log_message(_("Reading configuration file %s\n"), com.initfile);
 		return readinitfile(com.initfile);
@@ -495,7 +503,6 @@ int checkinitfile() {
 		com.initfile = config_file;
 		retval = readinitfile(com.initfile);
 	}
-
 	g_free(pathname);
 	return retval;
 }
@@ -554,8 +561,10 @@ int writeinitfile() {
 		g_free(com.initfile);
 		com.initfile = NULL;
 		g_key_file_free(kf);
+		g_clear_error(&error);
 		return 1;
 	}
+	g_clear_error(&error);
 	g_key_file_free(kf);
 	return 0;
 }

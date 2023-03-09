@@ -49,7 +49,10 @@ typedef enum {
 	BAYER_FILTER_BGGR,
 	BAYER_FILTER_GBRG,
 	BAYER_FILTER_GRBG,
-	XTRANS_FILTER,
+	XTRANS_FILTER_1,
+	XTRANS_FILTER_2,
+	XTRANS_FILTER_3,
+	XTRANS_FILTER_4,
 	BAYER_FILTER_NONE = -1		//case where pattern is undefined or untested
 } sensor_pattern;
 #define BAYER_FILTER_MIN BAYER_FILTER_RGGB
@@ -69,6 +72,20 @@ typedef enum {
 	XTRANS
 } interpolation_method;
 
+typedef enum {
+	PSF_GAUSSIAN,
+	PSF_MOFFAT_BFREE,
+	PSF_MOFFAT_BFIXED
+} starprofile;
+
+typedef enum {
+	NIL = 0,
+	V2 = 1,
+	V1MONO = 2,
+	V1RGB = 4,
+	TORCH = 8,
+} starnet_version;
+
 /***********************************************************************************************/
 
 
@@ -83,11 +100,27 @@ struct libraw_config {
 	double gamm[3];						// Gamma correction
 };
 
+struct astrometry_config {
+	gboolean update_default_scale;	// update default focal length and pixel size from the result
+
+	/* for local astrometry.net */
+	int percent_scale_range;	// percent below and above the expected sampling to allow
+	int sip_correction_order;	// degrees of the polynomial correction
+	double radius_degrees;		// radius around the target coordinates (degrees)
+	gboolean keep_xyls_files;	// do not delete .xyls FITS tables
+	gboolean keep_wcs_files;	// do not delete .wcs result files
+	int max_seconds_run;		// maximum seconds of CPU time to try solving
+	gboolean show_asnet_output;	// show solve-field output in main log
+};
+
+
 /* This structure is used for storing all parameters used in photometry module */
 struct phot_config {
 	double gain;		// A/D converter gain in electrons per ADU
 	double inner;		// Inner radius of the annulus used to measure local background.
 	double outer;		// Outer radius of the annulus used to measure local background.
+	double auto_inner_factor;// factor for automatic inner radius computation from FWHM
+	double auto_outer_factor;// factor for automatic outer radius computation from FWHM
 	double aperture;	// flux aperture
 	gboolean force_radius;	// force the aperture radius value
 	double minval, maxval;	// consider pixels outside this range as invalid for photometry
@@ -107,6 +140,7 @@ struct debayer_config {
 	interpolation_method bayer_inter;	// interpolation method for non-libraw debayer
 	gboolean top_down;			// debayer top-down orientation
 	int xbayeroff, ybayeroff;		// x and y Bayer offsets
+	int xtrans_passes;			// number of passes for X-Trans debayer
 };
 
 // GUI data backup
@@ -147,10 +181,14 @@ struct gui_config {
 	gint thumbnail_size;
 
 	int position_compass;	// compass position, can be moved
-	gboolean catalog[8];	// 6 system catalogs and 2 user catalogs for annotations
+	gboolean catalog[9];	// 6 system catalogs and 2 user catalogs for annotations and 1
+				// short-lived catalogue for "who's in the field" annotations
+				// see also cat in annotate.c
 
 	gint selection_guides;	// number of elements of the grid guides
 				// (2 for a simple cross, 3 for the 3 thirds rule, etc.)
+
+	gboolean show_deciasec;	// show tenths of arcseconds in the displayed hover coordinates
 
 	// single registration GUI variable
 	int reg_settings;	// selected registration method
@@ -170,25 +208,36 @@ struct prepro_config {
 	rectangle xtrans_sample;// if no xtrans model found, use these values
 	gchar *bias_lib;
 	gboolean use_bias_lib;
-	gchar *bias_synth;
-	gboolean use_bias_synth;
 	gchar *dark_lib;
 	gboolean use_dark_lib;
 	gchar *flat_lib;
 	gboolean use_flat_lib;
+	gchar *stack_default;
+	gboolean use_stack_default;
 };
 
 typedef struct {
 	int radius;
-	int adj_radius;
-	gboolean adjust;
 	double sigma;
 	double roundness;
 	double focal_length;
 	double pixel_size_x;
 	int convergence;
 	gboolean relax_checks;
+	starprofile profile;
+	double min_beta;
+	double min_A, max_A;
+	double max_r;
 } star_finder_params;
+
+typedef struct fftw_params {
+	double timelimit;
+	int strategy;
+	gboolean multithreaded;
+	gchar* wisdom_file;
+	int fft_cutoff;
+} fftw_params;
+
 
 /**
  * This is the preference structure.
@@ -218,9 +267,7 @@ struct pref_struct {
 
 	gchar *swap_dir;	// swap directory
 
-	// TODO: do we actually need these two?
-	gdouble focal;		// focal length saved in config file
-	gdouble pitch;		// pixel pitch saved in config file
+	gboolean binning_update;// update pixel size of binned images
 
 	int wcs_formalism;	// formalism used in FITS header
 	gchar *catalogue_paths[4]; // local star catalogues for plate solving and PCC
@@ -228,16 +275,21 @@ struct pref_struct {
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF
 
-	gchar *starnet_dir;	// Location of starnet++ installation (requires v2.0.2 or greater)
+	gchar *starnet_exe;	// Location of starnet++ executable
+	gchar *starnet_weights;	// Location of StarNet weights file (optional, Torch based StarNet only)
+	gchar *gnuplot_dir;	// Location of gnuplot installation
+	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;
 	struct gui_config gui;
 	struct debayer_config debayer;
 	struct phot_config phot_set;
+	struct astrometry_config astrometry;
 	struct analysis_config analysis;
 	struct stack_config stack;
 	struct comp_config comp;
+	fftw_params fftw_conf;
 };
 typedef struct pref_struct preferences;
 /**
@@ -282,6 +334,7 @@ int print_all_settings(gboolean with_details);
 
 void free_preferences(preferences *pref);	// TODO check if they're used
 void initialize_default_settings();
+void set_wisdom_file();
 
 void update_gain_from_gfit();
 

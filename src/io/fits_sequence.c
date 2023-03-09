@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -118,7 +118,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 int fitseq_is_fitseq(const char *filename, int *frames) {
 	fitsfile *fptr;
 	int status = 0;
-	if (siril_fits_open_diskfile(&fptr, filename, READONLY, &status))
+	if (siril_fits_open_diskfile_img(&fptr, filename, READONLY, &status))
 		return 0;
 
 	int nb_images;
@@ -151,7 +151,7 @@ int fitseq_open(const char *filename, fitseq *fitseq) {
 	}
 
 	int status = 0;
-	siril_fits_open_diskfile(&(fitseq->fptr), filename, READONLY, &status);
+	siril_fits_open_diskfile_img(&(fitseq->fptr), filename, READONLY, &status);
 	if (status) {
 		report_fits_error(status);
 		siril_log_color_message(_("Cannot open FITS file %s\n"), "red", filename);
@@ -307,16 +307,20 @@ int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, cons
 
 /* create a fits sequence with the given name into the given struct */
 int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
-	g_unlink(filename); /* Delete old file if it already exists */
+	gchar *new_filename = set_right_extension(filename);
+
+	if (g_unlink(new_filename))
+		siril_debug_print("g_unlink() failed\n");/* Delete old file if it already exists */
 	fitseq_init_struct(fitseq);
 
 	int status = 0;
-	if (siril_fits_create_diskfile(&fitseq->fptr, filename, &status)) { /* create new FITS file */
+	if (siril_fits_create_diskfile(&fitseq->fptr, new_filename, &status)) { /* create new FITS file */
 		report_fits_error(status);
+		g_free(new_filename);
 		return 1;
 	}
 
-	fitseq->filename = strdup(filename);
+	fitseq->filename = strdup(new_filename);
 	fitseq->frame_count = frame_count;
 	fitseq->writer = malloc(sizeof(struct seqwriter_data));
 	fitseq->writer->write_image_hook = fitseq_write_image_for_writer;
@@ -325,6 +329,7 @@ int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
 			fitseq->filename, fitseq->frame_count);
 
 	start_writer(fitseq->writer, frame_count);
+	g_free(new_filename);
 	return 0;
 }
 
@@ -385,7 +390,8 @@ void fitseq_close_and_delete_file(fitseq *fitseq) {
 	fitseq->filename = NULL;
 	fitseq_destroy(fitseq, TRUE);
 	siril_log_message(_("Removing failed FITS sequence file: %s\n"), filename);
-	g_unlink(filename);
+	if (g_unlink(filename))
+		siril_debug_print("g_unlink() failed\n");
 }
 
 int fitseq_close_file(fitseq *fitseq) {
@@ -400,7 +406,7 @@ static int fitseq_prepare_for_multiple_read(fitseq *fitseq) {
 	fitseq->thread_fptr = malloc(fitseq->num_threads * sizeof(fitsfile *));
 	for (guint i = 0; i < fitseq->num_threads; i++) {
 		int status = 0;
-		if (siril_fits_open_diskfile(&fitseq->thread_fptr[i], fitseq->filename, READONLY, &status)) {
+		if (siril_fits_open_diskfile_img(&fitseq->thread_fptr[i], fitseq->filename, READONLY, &status)) {
 			report_fits_error(status);
 			return -1;
 		}

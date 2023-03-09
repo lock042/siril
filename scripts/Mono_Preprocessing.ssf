@@ -1,9 +1,9 @@
 ############################################
 #
-# Script for Siril 1.0
-# April 2022
+# Script for Siril 1.2
+# February 2023
 # (C) Cyril Richard
-# Mono_Preprocessing v1.1
+# Mono_Preprocessing v1.3
 #
 ########### PREPROCESSING SCRIPT ###########
 #
@@ -15,10 +15,11 @@
 #   flats/
 #   darks/
 #   lights/
+# Saves masters to ./masters/
 #
 ############################################
 
-requires 1.1.0
+requires 1.2.0
 
 # Convert Bias Frames to .fit files
 cd biases
@@ -26,7 +27,7 @@ convert bias -out=../process
 cd ../process
 
 # Stack Bias Frames to bias_stacked.fit
-stack bias rej 3 3 -nonorm
+stack bias rej 3 3 -nonorm -out=../masters/bias_stacked
 cd ..
 
 # Convert Flat Frames to .fit files
@@ -34,11 +35,11 @@ cd flats
 convert flat -out=../process
 cd ../process
 
-# Pre-process Flat Frames
-preprocess flat -bias=bias_stacked
+# Calibrate Flat Frames
+calibrate flat -bias=../masters/bias_stacked
 
 # Stack Flat Frames to pp_flat_stacked.fit
-stack pp_flat rej 3 3 -norm=mul
+stack pp_flat rej 3 3 -norm=mul -out=../masters/pp_flat_stacked
 cd ..
 
 # Convert Dark Frames to .fit files
@@ -47,7 +48,7 @@ convert dark -out=../process
 cd ../process
 
 # Stack Dark Frames to dark_stacked.fit
-stack dark rej 3 3 -nonorm
+stack dark rej 3 3 -nonorm -out=../masters/dark_stacked
 cd ..
 
 # Convert Light Frames to .fit files
@@ -55,14 +56,18 @@ cd lights
 convert light -out=../process
 cd ../process
 
-# Pre-process Light Frames
-preprocess light -dark=dark_stacked -flat=pp_flat_stacked -cc=dark
+# Calibrate Light Frames
+calibrate light -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -cc=dark
 
 # Align Lights
 register pp_light
 
 # Stack calibrated lights to result.fit
-stack r_pp_light rej 3 3 -norm=addscale -output_norm -out=../result
+stack r_pp_light rej 3 3 -norm=addscale -output_norm -out=result
 
-cd ..
+# and flipping if required
+load result
+mirrorx -bottomup
+save ../result_$FILTER:%s$_$LIVETIME:%d$s
+
 close

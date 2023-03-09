@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,6 +34,7 @@
 #include "gui/image_display.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "gui/message_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/remixer.h"
 #include "gui/siril_preview.h"
@@ -46,7 +47,7 @@ static gboolean sgui_starmask;
 static gboolean sgui_upscale;
 static gboolean sgui_linear;
 static gboolean sgui_follow_on;
-static double sgui_starnet_stride;
+static int sgui_starnet_stride;
 
 static void starnet_startup() {
 	sgui_linear = FALSE;
@@ -54,7 +55,7 @@ static void starnet_startup() {
 	sgui_upscale = FALSE;
 	sgui_starmask = TRUE;
 	sgui_follow_on = FALSE;
-	sgui_starnet_stride = 256.0;
+	sgui_starnet_stride = 256;
 }
 
 /*** callbacks **/
@@ -67,26 +68,71 @@ void on_starnet_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkToggleButton *toggle_starnet_starmask = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask"));
 	GtkToggleButton *toggle_starnet_customstride = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_customstride"));
 	GtkLabel *label_starnetinfo = GTK_LABEL(lookup_widget("label_starnetinfo"));
+	gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 
 	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("stride_control")), FALSE);
-	if (!com.pref.starnet_dir || g_access(com.pref.starnet_dir, R_OK)) {
+	if (!com.pref.starnet_exe || g_access(com.pref.starnet_exe, R_OK)) {
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
-		gtk_label_set_text(label_starnetinfo, "Starnet++ installation directory not set.\nMust be configured in Preferences / Miscellaneous.");
+		gtk_label_set_text(label_starnetinfo, "StarNet installation directory not set.\nMust be configured in Preferences / Miscellaneous.");
 	} else
 		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
 
 #ifndef HAVE_LIBTIFF
 	gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
-	gtk_label_set_text(label_starnetinfo, "Starnet++ unavailable: requires Siril to be compiled with libtiff support.");
+	gtk_label_set_text(label_starnetinfo, "StarNet unavailable: requires Siril to be compiled with libtiff support.");
 #endif
 #ifdef HAVE_LIBTIFF
-	if (!starnet_executablecheck()) {
-		gtk_label_set_text(label_starnetinfo, "No valid Starnet++ executable found in the configured Starnet++ installation directory.\nCheck your Starnet++ installation and Siril configuration.");
-		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
-	} else {
-		gtk_label_set_text(label_starnetinfo, "");
-		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), TRUE);
+	gchar *temp = NULL, *winext = NULL, *starnetcommand = NULL;
+	gchar *bothtext = g_strdup(_("Valid StarNet v1 mono and RGB executables found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
+	switch (starnet_executablecheck(com.pref.starnet_exe)) {
+		case NIL:
+			gtk_label_set_text(label_starnetinfo, _("No valid StarNet executable found in the configured StarNet installation directory.\nCheck your StarNet installation and Siril configuration."));
+			gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
+			break;
+		case TORCH:
+			gtk_label_set_text(label_starnetinfo, _("Valid StarNet v2-Torch executable found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
+			break;
+		case V2:
+			gtk_label_set_text(label_starnetinfo, _("Valid StarNet v2 executable found in the configured StarNet installation directory.\nStarNet can process mono and RGB images."));
+			break;
+		case V1MONO:
+			temp = g_path_get_dirname(com.pref.starnet_exe);
+			winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
+			starnetcommand = g_strdup_printf("%s/rgb_starnet++%s", temp, winext);
+			if (starnet_executablecheck(starnetcommand) == V1RGB)
+				gtk_label_set_text(label_starnetinfo, bothtext);
+			else {
+				gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 mono executable was found in the configured StarNet installation directory.\nStarNet can process mono images only."));
+				if (gfit.naxes[2] == 3)
+					gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
+			}
+			g_free(temp);
+			temp = NULL;
+			g_free(winext);
+			winext = NULL;
+			g_free(starnetcommand);
+			starnetcommand = NULL;
+			break;
+		case V1RGB:
+			temp = g_path_get_dirname(com.pref.starnet_exe);
+			winext = g_str_has_suffix(com.pref.starnet_exe, ".exe") ? g_strdup(".exe") : g_strdup("\0");
+			starnetcommand = g_strdup_printf("%s/mono_starnet++%s", temp, winext);
+			if (starnet_executablecheck(starnetcommand) == V1MONO)
+				gtk_label_set_text(label_starnetinfo, bothtext);
+			else {
+				gtk_label_set_text(label_starnetinfo, _("Only the StarNet v1 RGB executable was found in the configured StarNet installation directory.\nStarNet can process RGB images only."));
+				if (gfit.naxes[2] == 1)
+					gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("starnet_apply")), FALSE);
+			}
+			g_free(temp);
+			temp = NULL;
+			g_free(winext);
+			winext = NULL;
+			g_free(starnetcommand);
+			starnetcommand = NULL;
+			break;
 	}
+	g_free(bothtext);
 #endif
 	starnet_startup();
 
@@ -112,6 +158,7 @@ void on_starnet_cancel_clicked(GtkButton *button, gpointer user_data) {
 void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_starnet_stride = GTK_SPIN_BUTTON(lookup_widget("spin_starnet_stride"));
 	GtkToggleButton *toggle_starnet_stretch = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_stretch"));
+	GtkToggleButton *toggle_starnet_sequence = GTK_TOGGLE_BUTTON(lookup_widget("starnet_sequence_toggle"));
 	GtkToggleButton *toggle_starnet_upsample = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_upsample"));
 	GtkToggleButton *toggle_starnet_starmask = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_starmask"));
 	GtkToggleButton *toggle_starnet_customstride = GTK_TOGGLE_BUTTON(lookup_widget("toggle_starnet_customstride"));
@@ -120,38 +167,59 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	sgui_starmask = gtk_toggle_button_get_active(toggle_starnet_starmask);
 	sgui_upscale = gtk_toggle_button_get_active(toggle_starnet_upsample);
 	sgui_linear = gtk_toggle_button_get_active(toggle_starnet_stretch);
-	sgui_starnet_stride = gtk_spin_button_get_value(spin_starnet_stride);
-	if (fmod(sgui_starnet_stride, 2))
-		sgui_starnet_stride = 2 * round(sgui_starnet_stride / 2);
-	if (sgui_starnet_stride < 2.0)
-		sgui_starnet_stride = 2.0;
-	if (sgui_starnet_stride > 256.0)
-		sgui_starnet_stride = 256.0;
+	sgui_starnet_stride = (int) gtk_spin_button_get_value(spin_starnet_stride);
+	if (sgui_starnet_stride % 2)
+		sgui_starnet_stride ++;
+	if (sgui_starnet_stride < 2)
+		sgui_starnet_stride = 2;
+	if (sgui_starnet_stride > 256)
+		sgui_starnet_stride = 256;
 	starnet_data *starnet_args;
-	starnet_args = malloc(sizeof(starnet_data));
+	starnet_args = calloc(1, sizeof(starnet_data));
 	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
+	starnet_args->seqname = NULL;
+	starnet_args->seq = NULL;
+	starnet_args->starnet_fit = &gfit;
+	starnet_args->imgnumber = -1;
 	starnet_args->customstride = sgui_customstride;
 	starnet_args->upscale = sgui_upscale;
 	starnet_args->linear = sgui_linear;
 	starnet_args->starmask = sgui_starmask;
-	sprintf(starnet_args->stride, "%d", (int) sgui_starnet_stride);
+	sprintf(starnet_args->stride, "%d", sgui_starnet_stride);
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	starnet_args->follow_on = sgui_follow_on;
-	start_in_new_thread(do_starnet, starnet_args);
-	siril_close_dialog("starnet_dialog");
+	if (gtk_toggle_button_get_active(toggle_starnet_sequence) == FALSE) {
+		if (single_image_is_loaded()) {
+			start_in_new_thread(do_starnet, starnet_args);
+			siril_close_dialog("starnet_dialog");
+		} else {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"), _("Unable to apply StarNet to a single image as no single image is loaded. Did you mean to apply to sequence?"));
+		}
+		set_cursor_waiting(FALSE);
+	} else if (gtk_toggle_button_get_active(toggle_starnet_sequence) == TRUE) {
+		if (sequence_is_loaded()) {
+			starnet_args->seq = &com.seq;
+			starnet_args->seqname = g_strdup_printf("starless_%s", starnet_args->seq->seqname);
+			apply_starnet_to_sequence(starnet_args);
+			siril_close_dialog("starnet_dialog");
+		} else {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"), _("Unable to apply StarNet to a sequence as no sequence is loaded. Did you mean to uncheck the apply to sequence option?"));
+		}
+		set_cursor_waiting(FALSE);
+	}
 }
 #endif
 
 /*** adjusters **/
 void on_spin_starnet_stride_value_changed(GtkSpinButton *button, gpointer user_data) {
-	sgui_starnet_stride = gtk_spin_button_get_value(button);
-	if (fmod(sgui_starnet_stride, 2))
-		sgui_starnet_stride = 2 * round(sgui_starnet_stride / 2);
-	if (sgui_starnet_stride < 2.0)
-		sgui_starnet_stride = 2.0;
-	if (sgui_starnet_stride > 256.0)
-		sgui_starnet_stride = 256.0;
+	sgui_starnet_stride = (int) gtk_spin_button_get_value(button);
+	if (sgui_starnet_stride % 2)
+		sgui_starnet_stride++;
+	if (sgui_starnet_stride < 2)
+		sgui_starnet_stride = 2;
+	if (sgui_starnet_stride > 256)
+		sgui_starnet_stride = 256;
 }
 
 void on_toggle_starnet_customstride_toggled(GtkToggleButton *button, gpointer user_data) {

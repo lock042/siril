@@ -43,9 +43,12 @@ int readpic(const char *name, fits *fit);
 
 /****************** image_formats_libraries.h ******************/
 #ifdef HAVE_LIBTIFF
-int readtif(const char *name, fits *fit, gboolean force_float);
+gboolean get_tiff_compression();
+int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose);
 void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc);
-int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *description, const char *copyright, gboolean embeded_icc);
+int savetif(const char *name, fits *fit, uint16_t bitspersample,
+		const char *description, const char *copyright,
+		gboolean tiff_compression, gboolean embeded_icc, gboolean verbose);
 #endif
 
 #ifdef HAVE_LIBJPEG
@@ -74,6 +77,7 @@ WORD round_to_WORD(double x);
 BYTE round_to_BYTE(double x);
 BYTE roundf_to_BYTE(float f);
 WORD roundf_to_WORD(float f);
+signed short roundf_to_short(float f);
 guint float_to_max_range(float f, guint max);
 int round_to_ceiling_multiple(int x, int factor);
 BYTE conv_to_BYTE(double x);
@@ -87,9 +91,12 @@ float ushort_to_float_range(WORD w);
 float uchar_to_float_range(BYTE w);
 float double_ushort_to_float_range(double d);
 WORD float_to_ushort_range(float f);
+signed short float_to_short_range(float f);
 BYTE float_to_uchar_range(float f);
 float ushort_to_float_bitpix(fits *fit, WORD value);
 WORD *float_buffer_to_ushort(float *buffer, size_t ndata);
+signed short *float_buffer_to_short(float *buffer, size_t ndata);
+signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata);
 float *uchar_buffer_to_float(BYTE *buffer, size_t ndata);
 float *ushort_buffer_to_float(WORD *buffer, size_t ndata);
 float *ushort8_buffer_to_float(WORD *buffer, size_t ndata);
@@ -142,6 +149,11 @@ gboolean string_is_a_number(const char *str);
 guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
 		guint limit);
 #endif
+char *str_replace(char *orig, char *rep, char *with);
+void replace_spaces_from_str(gchar *s, char c);
+gchar *build_string_from_words(char **words);
+void append_elements_to_array(char **array, char **elements);
+const gchar *get_com_ext(gboolean fz);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
@@ -163,7 +175,7 @@ int gaussian_blur_RT(fits *fit, double sigma, int threads);
 int unsharp(fits*, double sigma, double mult, gboolean verbose);
 float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
 int loglut(fits *fit);
-int ddp(fits *a, int lev, float coef, float sig);
+int ddp(fits *a, float lev, float coef, float sig);
 int visu(fits *fit, int low, int high);
 int fill(fits *fit, int level, rectangle *arearg);
 int off(fits *a, float level);

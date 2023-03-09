@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,6 +34,7 @@
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
+#include "algos/annotate.h"
 #include "io/conversion.h"
 #include "io/films.h"
 #include "io/image_format_fits.h"
@@ -56,6 +57,7 @@
 #include "message_dialog.h"
 #include "PSF_list.h"
 #include "histogram.h"
+#include "remixer.h"
 #include "script_menu.h"
 #include "progress_and_log.h"
 #include "dialogs.h"
@@ -64,6 +66,7 @@
 #include "siril_preview.h"
 #include "siril-window.h"
 #include "registration_preview.h"
+
 
 static gchar *display_item_name[] = { "linear_item", "log_item", "square_root_item", "squared_item", "asinh_item", "auto_item", "histo_item"};
 
@@ -125,6 +128,8 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 			markup = g_markup_printf_escaped (format_white, "Image: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
+		g_free(filename);
+		filename = NULL;
 	}
 
 
@@ -137,6 +142,7 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 			markup = g_markup_printf_escaped (format_white, "Sequence: ");
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
+		g_free(seq_basename);
 	}
 
 }
@@ -248,8 +254,8 @@ void set_sliders_value_to_gfit() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 
 	gfit.hi = gtk_adjustment_get_value(adj1);
@@ -264,8 +270,8 @@ void set_cutoff_sliders_max_values() {
 	static GtkAdjustment *adj1 = NULL, *adj2 = NULL;
 	gdouble max_val;
 	if (adj1 == NULL) {
-		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1"));// scalemax
-		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2"));// scalemin
+		adj1 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax"));// scalemax
+		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 	/* set max value for range according to number of bits of original image
 	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG.
@@ -290,8 +296,8 @@ void set_cutoff_sliders_values() {
 	static GtkEntry *maxentry = NULL, *minentry = NULL;
 	static GtkToggleButton *cutmax = NULL;
 	if (adjmin == NULL) {
-		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment1")); // scalemax
-		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment2")); // scalemin
+		adjmax = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemax")); // scalemax
+		adjmin = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin")); // scalemin
 		maxentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "max_entry"));
 		minentry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "min_entry"));
 		cutmax = GTK_TOGGLE_BUTTON(
@@ -533,6 +539,9 @@ void update_MenuItem() {
 	/* search object */
 	GAction *action_search_objectr = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-object");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_objectr), any_image_is_loaded && has_wcs(&gfit));
+	/* search SOLAR object */
+	GAction *action_search_solar = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-solar");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_solar), any_image_is_loaded && has_wcs(&gfit));
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
@@ -750,7 +759,7 @@ void update_display_fwhm() {
 	if (!single_image_is_loaded() && !sequence_is_loaded()) {
 		g_sprintf(fwhm_buffer, " ");
 	} else if (com.selection.w && com.selection.h) {// Now we don't care about the size of the sample. Minimization checks that
-		if (com.selection.w < 300 && com.selection.h < 300) {
+		if (com.selection.w < 300 && com.selection.h < 300 && com.selection.w > 5 && com.selection.h > 5) {
 			double roundness;
 			double fwhm_val = psf_get_fwhm(&gfit, select_vport(gui.cvport), &com.selection, &roundness);
 			g_sprintf(fwhm_buffer, _("fwhm: %.2f px, r: %.2f"), fwhm_val, roundness);
@@ -815,6 +824,8 @@ void display_filename() {
 	g_free(base_name);
 	g_free(orig_filename);
 	g_free(orig_base_name);
+	if (error) g_error_free(error);
+	if (concat_base_name) g_string_free(concat_base_name, TRUE);
 }
 
 void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data) {
@@ -953,31 +964,31 @@ void initialize_FITS_name_entries() {
 	mflat = GTK_ENTRY(lookup_widget("flatname_entry"));
 	final_stack = GTK_ENTRY(lookup_widget("entryresultfile"));
 
-	if (com.pref.prepro.bias_lib && (g_file_test(com.pref.prepro.bias_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.bias_lib) {
 		if (com.pref.prepro.use_bias_lib) {
 			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_lib);
 		}
 	}
 
-	if (com.pref.prepro.bias_synth) {
-		if (com.pref.prepro.use_bias_synth) {
-			str[0] = g_strdup_printf("%s", com.pref.prepro.bias_synth);
-		}
-	}
-
-	if (com.pref.prepro.dark_lib && (g_file_test(com.pref.prepro.dark_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.dark_lib) {
 		if (com.pref.prepro.use_dark_lib) {
 			str[1] = g_strdup_printf("%s", com.pref.prepro.dark_lib);
 		}
 	}
 
-	if (com.pref.prepro.flat_lib && (g_file_test(com.pref.prepro.flat_lib, G_FILE_TEST_EXISTS))) {
+	if (com.pref.prepro.flat_lib) {
 		if (com.pref.prepro.use_flat_lib) {
 			str[2] = g_strdup_printf("%s", com.pref.prepro.flat_lib);
 		}
 
 	}
-	str[3] = g_strdup_printf("stack_result%s", com.pref.ext);
+
+	if (com.pref.prepro.stack_default) {
+		if (com.pref.prepro.use_stack_default) {
+			str[3] = g_strdup_printf("%s", com.pref.prepro.stack_default);
+		}
+
+	}
 
 	const char *t_bias = gtk_entry_get_text(mbias);
 	if (!str[0] && t_bias[0] == '\0') {
@@ -1004,7 +1015,13 @@ void initialize_FITS_name_entries() {
 	}
 
 	const char *t_stack = gtk_entry_get_text(final_stack);
-	if (t_stack[0] == '\0') {
+	if (!str[3] && t_stack[0] == '\0') {
+		if (sequence_is_loaded())
+			str[3] = g_strdup_printf("%s_stacked%s", com.seq.seqname, com.pref.ext);
+		else
+			str[3] = g_strdup_printf("stack_result%s", com.pref.ext);
+	}
+	if (str[3]) {
 		gtk_entry_set_text(final_stack, str[3]);
 	}
 
@@ -1017,13 +1034,20 @@ void initialize_FITS_name_entries() {
 void set_output_filename_to_sequence_name() {
 	static GtkEntry *output_file = NULL;
 	gchar *msg;
-	if (!output_file)
-		output_file = GTK_ENTRY(lookup_widget("entryresultfile"));
 	if (!com.seq.seqname || *com.seq.seqname == '\0')
 		return;
+	output_file = GTK_ENTRY(lookup_widget("entryresultfile"));
+	if (com.pref.prepro.stack_default) {
+		if (com.pref.prepro.use_stack_default) {
+			gtk_entry_set_text(output_file, com.pref.prepro.stack_default);
+			return;
+		}
+	}
+	const gchar* com_ext = get_com_ext(com.seq.fz);
+
 	msg = g_strdup_printf("%s%sstacked%s", com.seq.seqname,
 			g_str_has_suffix(com.seq.seqname, "_") ?
-			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), com.pref.ext);
+			"" : (g_str_has_suffix(com.seq.seqname, "-") ? "" : "_"), com_ext);
 	gtk_entry_set_text(output_file, msg);
 
 	g_free(msg);
@@ -1110,6 +1134,7 @@ static void load_accels() {
 		"win.zoom-one",               "<Primary>1", NULL,
 
 		"win.search-object",          "<Primary>slash", NULL,
+		"win.search-solar",          "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
@@ -1176,31 +1201,47 @@ static void initialize_preprocessing() {
 	update_prepro_interface(FALSE);
 }
 
+void update_sampling_in_information() {
+	GtkLabel *sampling_label = GTK_LABEL(lookup_widget("info_sampling_label"));
+	// display sampling based on information displayed in the window
+	// otherwise, we could use get_wcs_image_resolution(fits *fit)
+	if (gfit.focal_length > 0.0 && gfit.pixel_size_x > 0.0) {
+		float pixel_size = gfit.pixel_size_x;
+		if (gfit.binning_x > 1 && com.pref.binning_update)
+			pixel_size *= gfit.binning_x;
+		double scale = get_resolution(gfit.focal_length, pixel_size);
+		char buf[20];
+		sprintf(buf, "%.4f", scale);
+		gtk_label_set_text(sampling_label, buf);
+	}
+	else gtk_label_set_text(sampling_label, _("unknown"));
+}
+
+/* update the Information window from gfit */
 void set_GUI_CAMERA() {
-	if (gfit.focal_length) {
-		gchar *focal = g_strdup_printf("%.3lf", gfit.focal_length);
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("focal_entry")), focal);
-		g_free(focal);
-	}
-	if (gfit.pixel_size_x) {
-		gchar *pitchX = g_strdup_printf("%.2lf", gfit.pixel_size_x);
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchX_entry")), pitchX);
-		g_free(pitchX);
-	}
-	if (gfit.pixel_size_y) {
-		gchar *pitchY = g_strdup_printf("%.2lf", gfit.pixel_size_y);
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchY_entry")), pitchY);
-		g_free(pitchY);
-	}
+	/* information will be taken from gfit or from the preferences and overwritten in
+	 * gfit by the callbacks */
+	char buf[20];
+	double fl = gfit.focal_length > 0.0 ? gfit.focal_length : com.pref.starfinder_conf.focal_length;
+	sprintf(buf, "%.3f", fl);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("focal_entry")), buf);
+
+	double pixsz = gfit.pixel_size_x > 0.0 ? gfit.pixel_size_x : com.pref.starfinder_conf.pixel_size_x;
+	sprintf(buf, "%.2f", pixsz);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchX_entry")), buf);
+
+	pixsz = gfit.pixel_size_y > 0.0 ? gfit.pixel_size_y : com.pref.starfinder_conf.pixel_size_x;
+	sprintf(buf, "%.2f", pixsz);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchY_entry")), buf);
 
 	GtkComboBox *binning = GTK_COMBO_BOX(lookup_widget("combobinning"));
 	if (!gfit.binning_x || !gfit.binning_y) {
 		gtk_combo_box_set_active(binning, 0);
 	}
-	/* squared binning */
-	else if (gfit.binning_x == gfit.binning_y)
+	else if (gfit.binning_x == gfit.binning_y) {
+		/* squared binning */
 		gtk_combo_box_set_active(binning, (gint) gfit.binning_x - 1);
-	else {
+	} else {
 		short coeff =
 			gfit.binning_x > gfit.binning_y ?
 			gfit.binning_x / gfit.binning_y :
@@ -1213,10 +1254,13 @@ void set_GUI_CAMERA() {
 				gtk_combo_box_set_active(binning, 5);
 				break;
 			default:
-				siril_log_message(_("This binning %d x %d is not handled yet\n"),
+				siril_log_message(_("Binning %d x %d is not supported\n"),
 						gfit.binning_x, gfit.binning_y);
 		}
 	}
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggleButtonUnbinned")), com.pref.binning_update);
+	//gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("saveinfo_toggle")), com.pref.astrometry.update_default_scale);
 }
 
 static GtkTargetEntry drop_types[] = {
@@ -1237,27 +1281,32 @@ static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent
 
 static void pane_notify_position_cb(GtkPaned *paned, gpointer user_data) {
 	static gboolean first_resize = TRUE;
-	int position = gtk_paned_get_position(paned);
-	//printf("position updated to %d\n", position);
 	if (first_resize) {
 		if (com.pref.gui.remember_windows && com.pref.gui.pan_position > 0) {
 			gtk_paned_set_position(paned, com.pref.gui.pan_position);
 		}
 		first_resize = FALSE;
-	} else {
-		if (com.pref.gui.remember_windows)
-			com.pref.gui.pan_position = position;
-		int max_position;
-		g_object_get(G_OBJECT(paned), "max-position", &max_position, NULL);
-		if (position == max_position) {
-			GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-			com.pref.gui.pan_position = -1;
-			// hide it
-			GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
-			g_action_activate(action_panel, NULL);
-			gtk_paned_set_position(paned, -1);	// reset to default
-		}
 	}
+}
+
+gboolean on_main_panel_button_release_event(GtkWidget *widget,
+		GdkEventButton *event, gpointer user_data) {
+	int position = gtk_paned_get_position((GtkPaned*) widget);
+	if (com.pref.gui.remember_windows) {
+		com.pref.gui.pan_position = position;
+	}
+	int max_position;
+	g_object_get(G_OBJECT(widget), "max-position", &max_position, NULL);
+	if (position == max_position) {
+		GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+		com.pref.gui.pan_position = -1;
+		// hide it
+		GAction *action_panel = g_action_map_lookup_action(G_ACTION_MAP(app_win), "panel");
+		g_action_activate(action_panel, NULL);
+		gtk_paned_set_position((GtkPaned*) widget, -1);	// reset to default
+	}
+
+	return FALSE;
 }
 
 void initialize_all_GUI(gchar *supported_files) {
@@ -1329,6 +1378,18 @@ void initialize_all_GUI(gchar *supported_files) {
 	GtkTreeSelection *selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview_selection_convert"));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 	g_signal_connect(selection, "changed", G_CALLBACK(on_treeview_selection_convert_changed), NULL);
+
+	/* Due to another bug in glade we write these callbacks here
+	 * In glade there are not sorted as we want */
+	g_signal_connect(lookup_widget("remix_apply"), "delete-event", G_CALLBACK(on_remix_cancel_clicked), NULL);
+	g_signal_connect(lookup_widget("remix_apply"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+
+	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(on_button_histo_close_clicked), NULL);
+	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+
+
+	selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 
 	siril_drag_single_image_set_dest();
 
@@ -1460,18 +1521,21 @@ void on_cosmEnabledCheck_toggled(GtkToggleButton *button, gpointer user_data) {
 void on_focal_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* focal_entry = gtk_entry_get_text(GTK_ENTRY(editable));
 	gfit.focal_length = g_ascii_strtod(focal_entry, NULL);
+	update_sampling_in_information();
 	drawPlot();
 }
 
 void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchX_entry = gtk_entry_get_text(GTK_ENTRY(editable));
 	gfit.pixel_size_x = (float) g_ascii_strtod(pitchX_entry, NULL);
+	update_sampling_in_information();
 	drawPlot();
 }
 
 void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchY_entry = gtk_entry_get_text(GTK_ENTRY(editable));
 	gfit.pixel_size_y = (float) g_ascii_strtod(pitchY_entry, NULL);
+	update_sampling_in_information();
 	drawPlot();
 }
 
@@ -1483,11 +1547,11 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 		case 1:
 		case 2:
 		case 3:
-			gfit.binning_x = gfit.binning_y = (short) index + 1;
+			gfit.binning_x = gfit.binning_y = (unsigned int) index + 1;
 			break;
 		case 4:
 			gfit.binning_x = 1;
-			gfit.binning_x = 2;
+			gfit.binning_y = 2;
 			break;
 		case 5:
 			gfit.binning_x = 1;
@@ -1496,21 +1560,24 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 		default:
 			fprintf(stderr, "Should not happen\n");
 	}
+	update_sampling_in_information();
 	drawPlot();
 }
 
 void on_file_information_close_clicked(GtkButton *button, gpointer user_data) {
+	GtkToggleButton *save_as_prefs_button = GTK_TOGGLE_BUTTON(lookup_widget("saveinfo_toggle"));
+	if (gtk_toggle_button_get_active(save_as_prefs_button)) {
+		com.pref.starfinder_conf.focal_length = gfit.focal_length;
+		com.pref.starfinder_conf.pixel_size_x = gfit.pixel_size_x;
+		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), gfit.focal_length, gfit.pixel_size_x);
+	}
 	gtk_widget_hide(lookup_widget("file_information"));
+	refresh_star_list();
 }
 
-
 void on_toggleButtonUnbinned_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkWidget *box;
-
-	box = (GtkWidget *)user_data;
-
-	gfit.unbinned = gtk_toggle_button_get_active(button);
-	gtk_widget_set_sensitive(box, gfit.unbinned);
+	com.pref.binning_update = gtk_toggle_button_get_active(button);
+	update_sampling_in_information();
 }
 
 void on_button_clear_sample_clicked(GtkButton *button, gpointer user_data) {
@@ -1592,7 +1659,6 @@ void siril_quit() {
 	gboolean quit = siril_confirm_dialog_and_remember(_("Closing application"),
 			_("Are you sure you want to quit?"), _("Exit"), &com.pref.gui.silent_quit);
 	if (quit) {
-		writeinitfile();
 		gtk_main_quit();
 	} else {
 		fprintf(stdout, "Staying on the application.\n");
@@ -1742,29 +1808,23 @@ void on_notebook1_switch_page(GtkNotebook *notebook, GtkWidget *page,
 }
 
 struct checkSeq_filter_data {
-//	int force;
 	int retvalue;
 };
 
 static gboolean end_checkSeq(gpointer p) {
 	struct checkSeq_filter_data *args = (struct checkSeq_filter_data *) p;
-	stop_processing_thread();
-
-	/* it's better to uncheck the force button each time it is used */
-	if (args->retvalue)
+	end_generic(NULL);
+	if (!args->retvalue)
 		update_sequences_list(NULL);
+	else control_window_switch_to_tab(OUTPUT_LOGS);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	set_cursor_waiting(FALSE);
 	free(args);
-
 	return FALSE;
 }
 
 static gpointer checkSeq(gpointer p) {
 	struct checkSeq_filter_data *args = (struct checkSeq_filter_data *) p;
-
-	if (!check_seq())
-		args->retvalue = 1;
+	args->retvalue = check_seq();
 	siril_add_idle(end_checkSeq, args);
 	return GINT_TO_POINTER(0);
 }
@@ -1838,7 +1898,7 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 		if (clear) {
 			clean_sequence(&com.seq, cleanreg, cleanstat, cleansel);
 			update_stack_interface(TRUE);
-			update_reg_interface(TRUE);
+			update_reg_interface(FALSE);
 			adjust_sellabel();
 			reset_plot();
 			set_layers_for_registration();

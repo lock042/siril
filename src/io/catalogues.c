@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -31,6 +31,7 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/proto.h"
+#include "core/OS_utils.h"
 #include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
@@ -40,6 +41,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef fseek64
+#ifdef _WIN32
+#define fseek64 _fseeki64
+#else
+#define fseek64 fseeko
+#endif
+#endif
+
 #define NAMEDSTARS_DAT "~/.local/share/kstars/namedstars.dat"
 #define UNNAMEDSTARS_DAT "~/.local/share/kstars/unnamedstars.dat"
 #define TYCHOSTARS_DAT "~/.local/share/kstars/deepstars.dat"
@@ -48,7 +57,7 @@ const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYC
 
 struct catalogue_index {
 	uint32_t trixelID;
-	uint32_t offset;
+	uint32_t offset;	// file size is < 4G, it's fine
 	uint32_t nrecs;
 };
 
@@ -244,7 +253,7 @@ static int update_coords_with_proper_motion(double *ra, double *dec, double dRA,
 /* get stars with coordinates projected on image (pcc_star), only those that
  * have B-V photometric information, up to the max_mag magnitude.
  * fit must have WCS inforation */
-int get_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
+int get_photo_stars_from_local_catalogues(double ra, double dec, double radius, fits *fit, float max_mag, pcc_star **stars, int *nb_stars) {
 	if (!has_wcs(fit))
 		return 1;
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
@@ -326,6 +335,12 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		free(cat);
 		return NULL;
 	}
+	if (cat->nfields != 6 && cat->nfields != 11) {
+		siril_debug_print("the number of field is not recognized as one of the main catalogues\n");
+		free(cat);
+		return NULL;
+	}
+
 	if (cat->byteswap)
 		cat->nfields = bswap_16(cat->nfields);
 	//siril_debug_print("%d fields reported:\n", cat->nfields);
@@ -347,12 +362,6 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		//displayDataElementDescription(&(cat->de[i]));
 	}
 
-	if (cat->nfields != 6 && cat->nfields != 11) {
-		siril_debug_print("the number of field is not recognized as one of the main catalogues\n");
-		free(cat);
-		return NULL;
-	}
-
 	/* reading the trixel index table */
 	if (!fread(&cat->ntrixels, 4, 1, f)) {
 		siril_debug_print("error reading number of trixels\n");
@@ -368,6 +377,15 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	/* 512 for level 3, 32768 for NOMAD level 6 */
 	//siril_debug_print("Number of trixels reported = %d (levels: %d)\n",
 	//		cat->ntrixels, cat->HTM_Level);
+
+	// ntrixels is tainted (read from external file): sanitize values
+	// Maximum of 2^20 currently seems reasonable (and allows plenty
+	// of headroom)
+	if (cat->ntrixels < 1 || cat->ntrixels > 1<<20) {
+		siril_log_color_message(_("Error: number of trixels reported by file is out of limits.\n"), "red");
+		free(cat);
+		return NULL;
+	}
 
 	cat->index_offset = ftell(f);
 
@@ -496,14 +514,7 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 	}
 
 	//siril_debug_print("offset for trixel %u: %u\n", trixel, index->offset);
-	int fseek_retval;
-	/* If offset > 2^31 - 1, do the fseek in two steps */
-	if (index->offset > INT_MAX) {
-		if ((fseek_retval = fseek(cat->f, INT_MAX, SEEK_SET)))
-			fseek_retval = fseek(cat->f, index->offset - ((uint32_t)1 << 31) + 1, SEEK_CUR);
-	}
-	else fseek_retval = fseek(cat->f, index->offset, SEEK_SET);
-        if (fseek_retval) {
+	if (fseek64(cat->f, index->offset, SEEK_SET)) {
 		siril_debug_print("failed to seek to the trixel offset %u\n", index->offset);
 		return 1;
 	}
@@ -562,13 +573,14 @@ static int read_trixel(int trixel, struct catalogue_file *cat, deepStarData **st
 
 void initialize_local_catalogues_paths() {
 	int nb_catalogues = sizeof(default_catalogues_paths) / sizeof(const char *);
+	int maxpath = get_pathmax();
 	for (int catalogue = 0; catalogue < nb_catalogues; catalogue++) {
 		if (com.pref.catalogue_paths[catalogue] &&
 				com.pref.catalogue_paths[catalogue][0] != '\0')
 			continue;
-		char path[1024];
-		strcpy(path, default_catalogues_paths[catalogue]);
-		expand_home_in_filename(path, 1024);
+		char path[maxpath];
+		strncpy(path, default_catalogues_paths[catalogue], maxpath - 1);
+		expand_home_in_filename(path, maxpath);
 		com.pref.catalogue_paths[catalogue] = g_strdup(path);
 	}
 }
@@ -582,24 +594,16 @@ gboolean local_catalogues_available() {
 	return TRUE;
 }
 
+// Haversine formula on unit sphere
+// https://en.wikipedia.org/wiki/Haversine_formula
+// dec is phi, ra is lambda
 // in degrees
 static double compute_coords_distance(double ra1, double dec1, double ra2, double dec2) {
-	double ra1minra2 = ra1 - ra2;
-	double ra_diff;
-	if (ra1 > ra2) {
-		double ra1o = ra1 - 360.0;
-		if (ra1minra2 < fabs(ra1o - ra2))
-			ra_diff = ra1minra2;
-		else ra_diff = ra1o - ra2;
-	} else {
-		double ra2o = ra2 - 360.0;
-		if (fabs(ra1minra2) < fabs(ra1 - ra2o))
-			ra_diff = ra1minra2;
-		else ra_diff = ra1 - ra2o;
-	}
-
-	double dec_diff = dec1 - dec2;
-	return sqrt(ra_diff * ra_diff + dec_diff * dec_diff);
+	double dra_2 = 0.5 * (ra2 - ra1) * DEGTORAD;
+	double ddec_2 = 0.5 * (dec2 - dec1) * DEGTORAD;
+	double h = pow(sin(ddec_2), 2.) + cos(dec1 * DEGTORAD) * cos(dec2 * DEGTORAD) * pow(sin(dra_2), 2.);
+	if (h > 1.) h = 1.;
+	return 2 * asin(pow(h, 0.5)) * RADTODEG;
 }
 
 /* similar to get_stars_from_local_catalogues except it doesn't project the
@@ -742,9 +746,13 @@ static int project_local_catalog(deepStarData_dist *stars, uint32_t nb_stars, do
 			sprintf(line, "%f %12.5f %12.5f %f %f\n", stars[i].distance, xi, eta, Vmag, Bmag);
 		else 	sprintf(line, "%f %13.6e %13.6e %f %f\n", stars[i].distance, xi, eta, Vmag, Bmag);
 
-		g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, NULL);
+		if (g_output_stream_write_all(output_stream, line, strlen(line), NULL, NULL, NULL) == FALSE) {
+			siril_log_color_message(_("Error writing output...\n"), "red");
+			g_output_stream_close(output_stream, NULL, NULL);
+			return 1;
+		}
 	}
-
+	g_output_stream_close(output_stream, NULL, NULL);
 	return 0;
 }
 

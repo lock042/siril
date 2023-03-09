@@ -16,6 +16,7 @@ src/algos/fix_xtrans_af.c
 src/algos/geometry.c
 src/algos/noise.c
 src/algos/photometry.c
+src/algos/photometric_cc.c
 src/algos/PSF.c
 src/algos/quality.c
 src/algos/reconstr.c
@@ -50,7 +51,6 @@ src/filters/asinh.c
 src/filters/banding.c
 src/filters/clahe.c
 src/filters/cosmetic_correction.c
-src/filters/deconv.c
 src/filters/fft.c
 src/filters/ght.c
 src/filters/median.c
@@ -68,12 +68,14 @@ src/gui/callbacks.c
 src/gui/conversion.c
 src/gui/colors.c
 src/gui/dialog_preview.c
+src/gui/documentation.c
 src/gui/histogram.c
 src/gui/image_display.c
 src/gui/image_interactions.c
 src/gui/linear_match.c
 src/gui/menu_gray_geometry.c
 src/gui/message_dialog.c
+src/gui/newdeconv.c
 src/gui/nina_light_curve.c
 src/gui/open_dialog.c
 src/gui/photometric_cc.c
@@ -105,6 +107,7 @@ src/io/image_formats_internal.c
 src/io/image_formats_libraries.c
 src/io/image_format_fits.c
 src/io/mp4_output.c
+src/io/path_parse.c
 src/io/seqfile.c
 src/io/sequence.c
 src/io/sequence_export.c

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -282,7 +282,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 	return ST_OK;
 }
 
-static int stack_read_block_data(struct stacking_args *args, int use_regdata,
+static int stack_read_block_data(struct stacking_args *args,
 		struct _image_block *my_block, struct _data_block *data,
 		long *naxes, data_type itype, int thread_id) {
 
@@ -299,7 +299,7 @@ static int stack_read_block_data(struct stacking_args *args, int use_regdata,
 		if (!get_thread_run())
 			return ST_CANCEL;
 
-		if (use_regdata && args->reglayer >= 0) {
+		if (args->reglayer >= 0) {
 			/* Load registration data for current image and modify area.
 			 * Here, only the y shift is managed. If possible, the remaining part
 			 * of the original area is read, the rest is filled with zeros. The x
@@ -343,7 +343,7 @@ static int stack_read_block_data(struct stacking_args *args, int use_regdata,
 			}
 		}
 
-		if (!use_regdata || readdata) {
+		if (args->reglayer < 0 || readdata) {
 			// reading pixels from current frame
 			void *buffer;
 			if (itype == DATA_FLOAT)
@@ -405,7 +405,7 @@ static void norm_to_0_1_range(fits *fit) {
  * does a different operation to keep the final pixel values.
  *********************************************************************************/
 
-static int percentile_clipping(WORD pixel, const float sig[], float median, guint64 rej[]) {
+static int percentile_clipping(WORD pixel, const float sig[], float median, int rej[]) {
 	float plow = sig[0];
 	float phigh = sig[1];
 
@@ -423,7 +423,7 @@ static int percentile_clipping(WORD pixel, const float sig[], float median, guin
 /* Rejection of pixels, following sigma_(high/low) * sigma.
  * The function returns 0 if no rejections are required, 1 if it's a high
  * rejection and -1 for a low-rejection */
-static int sigma_clipping(WORD pixel, const float sig[], float sigma, float median, guint64 rej[]) {
+static int sigma_clipping(WORD pixel, const float sig[], float sigma, float median, int rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
@@ -445,7 +445,7 @@ static void Winsorize(WORD *pixel, WORD m0, WORD m1, int N) {
 	}
 }
 
-static int line_clipping(WORD pixel, const float sig[], float sigma, int i, float a, float b, guint64 rej[]) {
+static int line_clipping(WORD pixel, const float sig[], float sigma, int i, float a, float b, int rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
@@ -500,8 +500,7 @@ int check_G_values(float Gs, float Gc) {
 	return (Gs > Gc);
 }
 
-void confirm_outliers(struct outliers *out, int N, double median, int *rejected,
-		guint64 rej[2]) {
+void confirm_outliers(struct outliers *out, int N, double median, int *rejected, int rej[2]) {
 	int i = N - 1;
 
 	while (i > 1 && !out[i].out) {
@@ -519,7 +518,7 @@ void confirm_outliers(struct outliers *out, int N, double median, int *rejected,
 	}
 }
 
-static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struct stacking_args *args, guint64 crej[2]) {
+static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struct stacking_args *args, int rej[2]) {
 	int N = nb_frames;	// N is the number of pixels kept from the current stack
 	float median = 0.f;
 	int pixel, output, changed, n, r = 0;
@@ -568,7 +567,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 	switch (args->type_of_rejection) {
 		case PERCENTILE:
 			for (int frame = 0; frame < N; frame++) {
-				rejected[frame] = percentile_clipping(stack[frame], args->sig, median, crej);
+				rejected[frame] = percentile_clipping(stack[frame], args->sig, median, rej);
 			}
 
 			for (pixel = 0, output = 0; pixel < N; pixel++) {
@@ -600,7 +599,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 						// no more rejections
 						rejected[frame] = 0;
 					} else {
-						rejected[frame] = sigma_clipping(stack[frame], args->sig, var, median, crej);
+						rejected[frame] = sigma_clipping(stack[frame], args->sig, var, median, rej);
 						if (rejected[frame]) {
 							r++;
 						}
@@ -628,7 +627,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				}
 				n = 0;
 				for (int frame = 0; frame < N; frame++) {
-					if (sigma_clipping(stack[frame], args->sig, sigma, median, crej)) {
+					if (sigma_clipping(stack[frame], args->sig, sigma, median, rej)) {
 						stack[frame] = median;
 						n++;
 					}
@@ -655,7 +654,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 						rejected[frame] = 0;
 					} else {
 						rejected[frame] = sigma_clipping(stack[frame],
-								args->sig, sigma, median, crej);
+								args->sig, sigma, median, rej);
 						if (rejected[frame] != 0)
 							r++;
 					}
@@ -690,7 +689,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 						rejected[frame] = 0;
 					} else {
 						rejected[frame] =
-							line_clipping(stack[frame], args->sig, sigma, frame, a, b, crej);
+							line_clipping(stack[frame], args->sig, sigma, frame, a, b, rej);
 						if (rejected[frame] != 0)
 							r++;
 					}
@@ -740,7 +739,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				out[iter].i = (max_index == 0) ? cold++ : max_index;
 				remove_element(w_stack, max_index, size);
 			}
-			confirm_outliers(out, max_outliers, median, rejected, crej);
+			confirm_outliers(out, max_outliers, median, rejected, rej);
 			free(out);
 
 			for (pixel = 0, output = 0; pixel < N; pixel++) {
@@ -761,12 +760,12 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 }
 
 static double mean_and_reject(struct stacking_args *args, struct _data_block *data,
-		int stack_size, data_type itype, guint64 crej[2]) {
+		int stack_size, data_type itype, int rej[2]) {
 	double mean;
 
 	int layer = data->layer;
 	if (itype == DATA_USHORT) {
-		int kept_pixels = apply_rejection_ushort(data, stack_size, args, crej);
+		int kept_pixels = apply_rejection_ushort(data, stack_size, args, rej);
 		if (kept_pixels == 0)
 			mean = quickmedian(data->stack, stack_size);
 		else {
@@ -800,7 +799,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 			}
 		}
 	} else {
-		int kept_pixels = apply_rejection_float(data, stack_size, args, crej);
+		int kept_pixels = apply_rejection_float(data, stack_size, args, rej);
 		if (kept_pixels == 0)
 			mean = quickmedian_float(data->stack, stack_size);
 		else {
@@ -961,13 +960,15 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 
 /* How many rows fit in memory, based on image size, number and available memory.
  * It returns at most the total number of rows of the image (naxes[1] * naxes[2]) */
-static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack) {
+static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack, int nb_rejmaps) {
 	int max_memory = get_max_memory_in_MB();
 	long total_nb_rows = naxes[1] * naxes[2];
 	int elem_size = type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 
 	guint64 size_of_result = naxes[0] * naxes[1] * naxes[2] * elem_size;
+	guint64 size_of_rejmaps = naxes[0] * naxes[1] * naxes[2] * sizeof(WORD);
 	max_memory -= size_of_result / BYTES_IN_A_MB;
+	max_memory -= nb_rejmaps * size_of_rejmaps / BYTES_IN_A_MB;
 	if (max_memory < 0)
 		max_memory = 0;
 
@@ -991,7 +992,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	// data for mean/rej only
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
-	gboolean use_regdata = is_mean;
 
 	int nb_frames = args->nb_images_to_stack; // number of frames actually used
 	naxes[0] = naxes[1] = 0; naxes[2] = 1;
@@ -1005,13 +1005,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 	g_assert(nb_frames <= args->seq->number);
 
-	if (use_regdata) {
-		if (args->reglayer < 0) {
-			siril_log_message(_("No registration layer passed, ignoring registration data!\n"));
-			use_regdata = FALSE;
-		}
-		else layerparam = args->seq->regparam[args->reglayer];
+	if (args->reglayer < 0) {
+		siril_log_message(_("No registration layer passed, ignoring registration data!\n"));
 	}
+	else layerparam = args->seq->regparam[args->reglayer];
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 
@@ -1052,6 +1049,18 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			fit.orig_bitpix = USHORT_IMG;
 	}
 
+	/* initialize rejection maps */
+	if (args->create_rejmaps) {
+		if ((retval = new_fit_image(&args->rejmap_low, naxes[0], naxes[1], naxes[2], DATA_USHORT))) {
+			goto free_and_close;
+		}
+		if (!args->merge_lowhigh_rejmaps) {
+			if ((retval = new_fit_image(&args->rejmap_high, naxes[0], naxes[1], naxes[2], DATA_USHORT))) {
+				goto free_and_close;
+			}
+		}
+	}
+
 	/* manage threads */
 	int nb_threads;
 #ifdef _OPENMP
@@ -1081,7 +1090,13 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	long largest_block_height;
 	int nb_blocks;
 	data_type itype = get_data_type(bitpix);
-	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack);
+	int nb_rejmaps = 0;
+	if (args->create_rejmaps) {
+		if (args->merge_lowhigh_rejmaps)
+			nb_rejmaps = 1;
+		else nb_rejmaps = 2;
+	}
+	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack, nb_rejmaps);
 	/* Compute parallel processing data: the data blocks, later distributed to threads */
 	if ((retval = stack_compute_parallel_blocks(&blocks, max_number_of_rows, naxes, nb_threads,
 					&largest_block_height, &nb_blocks))) {
@@ -1100,7 +1115,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	g_assert(npixels_in_block > 0);
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 
-	fprintf(stdout, "allocating data for %d threads (each %'lu MB)\n", pool_size,
+	fprintf(stdout, "allocating data for %d threads (each %lu MB)\n", pool_size,
 			(unsigned long)(nb_frames * npixels_in_block * ielem_size) / BYTES_IN_A_MB);
 	data_pool = calloc(pool_size, sizeof(struct _data_block));
 	size_t bufferSize = ielem_size * nb_frames * (npixels_in_block + 1ul) + 4ul; // buffer for tmp and stack, added 4 byte for alignment
@@ -1183,7 +1198,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	if (args->apply_noise_weights) {
 		siril_log_message(_("Computing weights based on noise...\n"));
 		retval = compute_noise_weights(args);
-		if(retval) {
+		if (retval) {
 			retval = ST_GENERIC_ERROR;
 			goto free_and_close;
 		}
@@ -1191,7 +1206,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	if (args->apply_wfwhm_weights) {
 		siril_log_message(_("Computing weights based on wFWHM...\n"));
 		retval = compute_wfwhm_weights(args);
-		if(retval) {
+		if (retval) {
 			retval = ST_GENERIC_ERROR;
 			goto free_and_close;
 		}
@@ -1199,7 +1214,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	if (args->apply_nbstars_weights) {
 		siril_log_message(_("Computing weights based on number of stars...\n"));
 		retval = compute_nbstars_weights(args);
-		if(retval) {
+		if (retval) {
 			retval = ST_GENERIC_ERROR;
 			goto free_and_close;
 		}
@@ -1223,6 +1238,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		struct _image_block *my_block = blocks+i;
 		struct _data_block *data;
 		int data_idx = 0;
+		guint64 brej[2] = {0, 0}; // rejection counts for the block
 		long x, y;
 
 		if (!get_thread_run()) retval = ST_CANCEL;
@@ -1238,7 +1254,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		data = &data_pool[data_idx];
 
 		/**** Step 2: load image data for the corresponding image block ****/
-		retval = stack_read_block_data(args, use_regdata, my_block, data, naxes, itype, data_idx);
+		retval = stack_read_block_data(args, my_block, data, naxes, itype, data_idx);
 		if (retval) continue;
 
 #if defined _OPENMP && defined STACK_DEBUG
@@ -1262,7 +1278,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			size_t pdata_idx = (naxes[1] - (my_block->start_row + y) - 1) * naxes[0];
 			/* index of the line in the read data, data->pix[frame] */
 			size_t line_idx = y * naxes[0];
-			guint64 crej[2] = {0, 0};
 			if (retval) break;
 
 			// update progress bar
@@ -1283,14 +1298,12 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				 * to optimize caching and improve readability */
 				for (int frame = 0; frame < nb_frames; ++frame) {
 					int pix_idx = line_idx + x;
-					if (use_regdata) {
+					if (layerparam) {
 						int shiftx = 0;
-						if (layerparam) {
-							double scale = args->seq->upscale_at_stacking;
-							double dx, dy;
-							translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
-							shiftx = round_to_int(dx * scale);
-						}
+						double scale = args->seq->upscale_at_stacking;
+						double dx, dy;
+						translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+						shiftx = round_to_int(dx * scale);
 
 						if (shiftx && (x - shiftx >= naxes[0] || x - shiftx < 0)) {
 							/* outside bounds, images are black. We could
@@ -1357,7 +1370,20 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 				double result; // resulting pixel value, either mean or median
 				if (is_mean) {
-					result = mean_and_reject(args, data, nb_frames, itype, crej);
+					int rej[2] = { 0, 0 };
+					result = mean_and_reject(args, data, nb_frames, itype, rej);
+					brej[0] += rej[0];
+					brej[1] += rej[1];
+					if (args->create_rejmaps) {
+						if (args->merge_lowhigh_rejmaps) {
+							WORD nbrej = truncate_to_WORD(rej[0] + rej[1]);
+							args->rejmap_low->pdata[my_block->channel][pdata_idx] = nbrej;
+						}
+						else {
+							args->rejmap_low->pdata[my_block->channel][pdata_idx] = truncate_to_WORD(rej[0]);
+							args->rejmap_high->pdata[my_block->channel][pdata_idx] = truncate_to_WORD(rej[1]);
+						}
+					}
 				} else {
 					if (itype == DATA_USHORT)
 						result = quickmedian(data->stack, nb_frames);
@@ -1377,18 +1403,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				}
 				pdata_idx++;
 			} // end of for x
-
-			if (is_mean && args->type_of_rejection != NO_REJEC) {
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				irej[my_block->channel][0] += crej[0];
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				irej[my_block->channel][1] += crej[1];
-			}
-
 		} // end of for y
 #if defined _OPENMP && defined STACK_DEBUG
 		{
@@ -1400,6 +1414,18 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					data_idx, i, min, sec);
 		}
 #endif
+		if (is_mean && args->type_of_rejection != NO_REJEC) {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+			irej[my_block->channel][0] += brej[0];
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+			irej[my_block->channel][1] += brej[1];
+		}
+
+
 	} /* end of loop over parallel stacks */
 
 	if (retval)

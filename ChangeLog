@@ -1,5 +1,26 @@
-siril 1.2.x
-xx/xx/22
+siril 1.2.0-beta2
+xx/xx/23
+
+* Fixed behavior on Windows when calling external programs (StarNet, astrometry.net)
+* Fixed crash when converting sequence to SER
+* Fixed PCC progress bar which never terminated
+* Fixed AppImage Build
+* Fixed crash when using deconvolution on a sequence
+* Fixed SSL certificates locations on Windows which where preventing SearchObject related functions to succeed
+* Fixed reading BAYERPAT key if it was set to NONE
+* Fixed StarNet behavior when TIFF compression was ON
+* Fixed crash in synthstar (full resynthetize and desaturate)
+* Fixed handling widechars in config files (Windows only) which caused a crash at startup
+* Fixed crash when selecting datapoints in Plot tab
+* Fixed crash when sending a seqplatesolve or seqstarnet command with no other argument
+* Fixed crash in global and 2pass registration, if a selection was active and the sequence had variable image sizes
+* Fixed min and max framing borders calculations if the sequence had variable image sizes
+* Reworked GHS commands
+* Added a warning when trying to read one-frame SER files
+* Add support for Torch-based StarNet executables
+
+siril 1.2.0-beta1
+02/24/23
 
 * Added livestacking mode with darks/CC/flats support, registration and stacking
 * Added unlinking channels in autostretch preview
@@ -7,13 +28,17 @@ xx/xx/22
 * Added LRGB composition command and PixelMath command for new offline compositions
 * Added Starnet++ integration in GUI and command and mask creation
 * Added Star Recomposition tool to mix and stretch starless and starmask images
+* Added star intensive care to unsaturate stars
+* Added new deconvolution tool with RL, Split Bregman and Wiener algorithms and several PSF generation options (replaces old tool)
+* Added new denoising tool
 * Added pcc command for headless PCC and plate solving
-* Added local KStars star catalogue support for plate solving and PCC (NOMAD)
+* Added local KStars star catalogue support for offline astrometry and PCC (NOMAD)
 * Added a new framing assistant with several modes and image framing preview
 * Added specifying max number of stars for registration
 * Added bad pixel map option for preprocess, both in GUI and command
 * Added and reviewed commands for offline and automatic post-processing
 * Added background level and star count as new sequence filters
+* Added option to compute sequence filtering threshold using k-sigma clipping
 * Added weighing based on number of stars or wFWHM for stacking
 * Added a new threading mechanism for per-image improved performance
 * Added star selection from coordinates to seqpsf and star tracking with homography
@@ -28,14 +53,12 @@ xx/xx/22
 * Added statistic functions to Pixel Math as well as mtf
 * Added solar system object search from online service for image annotations
 * Added zoom sliders and plot selection in Plot tab
-* Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
-* Updated seq file version to v4. Registration block keeps homography information
-* Refactored global registration and added 2pass and Apply Existing methods
-* Refactored 3-star registration to run the 3 stars analysis successively
-* Refactored PCC, using WCS information to identify stars instead of registration match
-* Refactored settings, preferences and configuration file, adding get and set commands
-* Refactored commands error handling
-* Refactored light curve creation, filtering the reference stars to valid only
+* Added Moffat star profile as an option instead of Gaussian
+* Added the possibility to run statistics on individual filters of CFA images
+* Added parsing paths with header key values for preprocess, stack and save actions
+* Added a high definition mode to auto-stretch visualization
+* Added memory and processor count cgroups limits enforcement (linux only)
+* Added a mapping file created by conversion operations
 * Added background level and number of stars to stored registation data and plots
 * Added commands: [update with https://free-astro.org/index.php?title=Siril:Commands#Commands_history ]
 * Added KOMBAT alogrithm for registration and removed deprecated ECC
@@ -44,21 +67,51 @@ xx/xx/22
 * Added option "full" to export all possible stats in seqstat command
 * Added argument to executable to pass pipes path, allowing several instances to run simultaneously
 * Added more reporting on online object search, avoiding duplicates in catalogues
-* Replaced generalized hyperbolic transform stretch method by more general algorithms and optimised for speed
 * Added improved graphical interface to hyperbolic stretches
-* Altered behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels (this is useful in NB workflows etc.)
+* Added 9-panel dialog tool showing corners and center of the image for a closer inspection
+* Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
+* Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Added 9-panel dialog tool showing corners and center of the image for a closer inspection
+* Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
+* Added undershoot clamping to bicubic and lanczos4 interpolation methods
+* Added CFA merge process for reconstructing a Bayer pattern previously split out with extraction
+* Added binning and binxy command
+* Added rejection maps creation on rejection stacking
+* Added astro-tiff option in the command savetif with -astro
+* Added ability to use Starnet++ on sequences
+* Allowed area selection (and much more) to be done on RGB display tab
+* Updated scripts to specify cosmetic correction is from masterdark with -cc=dark option
+* Updated seq file version to v4. Registration block keeps homography information
+* Updated behaviour of channel select toggles in histogram and hyperbolic stretch tools, allowing stretching only selected channels
 * Replaced Libraw with RT debayering
+* Replaced generalized hyperbolic transform stretch method by more general algorithms and optimised for speed
+* Optimised asinh code for speed
+* Improved Ha-OIII extraction to offer full resolution O-III output and improve star roundness
+* Improved management of focal length, pixel size and binning, in settings and images
+* Refactored global registration and added 2pass and Apply Existing methods
+* Refactored 3-star registration to run the 3 stars analysis successively
+* Refactored 1- and 2/3-stars registration into one single registration method
+* Refactored PCC, using WCS information to identify stars instead of registration match
+* Refactored settings, preferences and configuration file, adding get and set commands
+* Refactored commands error handling
+* Refactored light curve creation, filtering the reference stars to valid only
+* Refactored PSF fitting to solve for the angle in all cases
+* Refactored astrometry for command and sequence operation, astrometry.net interop.
 * Fixed comet registration when registration was accumulated over existing data
 * Fixed star detection for images with very large stars
 * Fixed cancellation of seqpsf or seqcrop
 * Fixed photometry analysis of stars with negative pixels around them
 * Fixed dates keywords in sum and min/max algorithms
 * Fixed FITS header preservation on RGB composition
-* Added 9-panel dialog tool showing corners and center of the image for a closer inspection
-* Optimised asinh code for speed
-* Added NL-Bayes denoising algorithm with optional boosters DA3D, SOS and Anscombe VST
-* Added undershoot clamping to bicubic and lanczos4 interpolation methods
-* Allow area selection (and much more) to be done on RGB display tab
+* Fixed possible FITSEQ infinite loop and inconsistent numbering caused by hidden files in conversion
+* Fixed sequence closing in script processing after each command
+* Fixed opening of scientific FITS cube files
+* Fixed gnuplot call for macOS/AppImage, by making its path configurable
+* Fixed available memory computation for mac and the associated freeze
+* Fixed bug in roworder of SER sequence created from TOP-DOWN FITS images
+* Fixed bug when saving 16bits signed FITS images
+* Fixed internationalization in siril-cli
+* Fixed subsky command success status
 
 siril 1.0.6
 10/18/22

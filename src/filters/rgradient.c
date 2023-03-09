@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 
 #include "core/siril.h"
 #include "core/arithm.h"
-#include "core/sleef.h"
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/OS_utils.h"
@@ -45,13 +44,12 @@ static void to_polar(int x, int y, point center, double *r, double *theta) {
 	double dx = x - center.x;
 	double dy = y - center.y;
 	*r = sqrt(dx * dx + dy * dy);
-	*theta = xatan2(dy, dx);
+	*theta = atan2(dy, dx);
 }
 
 static void to_cartesian(double r, double theta, point center, point *p) {
-	const double2 sincosval = xsincos(theta);
-	p->x = center.x + r * sincosval.y;
-	p->y = center.y + r * sincosval.x;
+	p->x = center.x + r * cos(theta);
+	p->y = center.y + r * sin(theta);
 }
 
 static gboolean end_rgradient_filter(gpointer p) {
@@ -264,7 +262,7 @@ void on_rgradient_Apply_clicked(GtkButton *button, gpointer user_data) {
 
 void on_button_rgradient_selection_clicked(GtkButton *button, gpointer user_data) {
 	if (com.selection.h && com.selection.w) {
-		psf_star *result = psf_get_minimisation(&gfit, 0, &com.selection, FALSE, FALSE, NULL, TRUE, NULL);
+		psf_star *result = psf_get_minimisation(&gfit, 0, &com.selection, FALSE, NULL, TRUE, PSF_GAUSSIAN, NULL);
 		if (result) {
 			gchar *x0 = g_strdup_printf("%.3lf", result->x0 + com.selection.x);
 			gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_rgradient_xc")), x0);

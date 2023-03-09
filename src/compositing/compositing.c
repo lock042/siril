@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -1189,9 +1189,9 @@ void autoadjust(int force_redraw) {
 	/* update the real colours of layers from their saturated colour, based
 	 * on how much each colour of the composition overflows */
 	// amounts of normalization to be done on each layer's image for each channel
-	double to_redistribute_red = (max_pixel.red - 1.0) / (double)nb_images_red;
-	double to_redistribute_green = (max_pixel.green - 1.0) / (double)nb_images_green;
-	double to_redistribute_blue = (max_pixel.blue - 1.0) / (double)nb_images_blue;
+	double to_redistribute_red = nb_images_red == 0 ? 0.0 : (max_pixel.red - 1.0) / (double)nb_images_red;
+	double to_redistribute_green = nb_images_green == 0 ? 0.0 : (max_pixel.green - 1.0) / (double)nb_images_green;
+	double to_redistribute_blue = nb_images_blue == 0 ? 0.0 : (max_pixel.blue - 1.0) / (double)nb_images_blue;
 	for (layer = 1; layers[layer]; layer++) {
 		if (has_fit(layer)) {
 			double to_redistribute = 0.0;	// for this layer

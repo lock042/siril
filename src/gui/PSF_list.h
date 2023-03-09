@@ -4,11 +4,12 @@
 #include "core/siril.h"
 #include "algos/PSF.h"
 
-void refresh_star_list(psf_star **);
+void refresh_star_list();
 void clear_stars_list(gboolean refresh_GUI);
+void update_star_list(psf_star **new_stars, gboolean update_PSF_list);
 void pick_a_star();
-int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, gboolean verbose);
+void set_iter_of_clicked_psf(double x, double y);
 
-void popup_psf_result(psf_star *result, rectangle *area);
+void popup_psf_result(psf_star *result, rectangle *area, fits *fit);
 
 #endif

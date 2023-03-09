@@ -55,7 +55,11 @@
 
 #define SQR(x) ((x)*(x))
 #endif
-#define RADCONV ((3600.0 * 180.0) / M_PI) / 1.0E3
+#define RADCONV (((3600.0 * 180.0) / M_PI) / 1.0E3)
+
+// Used for sanity checking reported sizes from image files.
+// Not a guarantee that the file will fit in memory
+#define MAX_IMAGE_DIM 100000
 
 #define USHRT_MAX_DOUBLE ((double)USHRT_MAX)
 #define SHRT_MAX_DOUBLE ((double)SHRT_MAX)
@@ -162,6 +166,7 @@ typedef enum {
 #define MAX_STARS 200000		// maximum length of com.stars
 #define MAX_STARS_FITTED 2000	// maximum number of stars fitted for registration
 #define MIN_STARS_FITTED 100	// minimum number of stars fitted for registration
+#define DEF_BOX_RADIUS 5 // default radius of the box in starfinder_conf
 
 #define INDEX_MAX 65535		// maximum index for images
 
@@ -315,6 +320,7 @@ struct sequ {
 	int beg;		// imgparam[0]->filenum
 	int end;		// imgparam[number-1]->filenum
 	double exposure;	// exposure of frames (we assume they are all identical)
+	gboolean fz;
 
 	sequence_type type;
 	struct ser_struct *ser_file;
@@ -322,7 +328,7 @@ struct sequ {
 	struct fits_sequence *fitseq_file; // FITS sequence data structure
 #ifdef HAVE_FFMS2
 	struct film_struct *film_file;
-	char *ext;		// extension of video, NULL if not video
+	const char *ext;	// extension of video, NULL if not video
 #endif
 	fits **internal_fits;	// for INTERNAL sequences: images references. Length: number
 	fitsfile **fptr;	// file descriptors for open-mode operations
@@ -407,7 +413,6 @@ struct ffit {
 	double data_min;	// used to check if 32b float is in the [0, 1] range
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
 	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
-	gboolean unbinned;
 	char row_order[FLEN_VALUE];
 	GDateTime *date, *date_obs;
 	double expstart, expend;
@@ -499,6 +504,15 @@ struct image_view {
 	cairo_surface_t *disp_surface;	// the cache
 };
 
+typedef struct draw_data {
+	cairo_t *cr;	// the context to draw to
+	int vport;	// the viewport index to draw
+	double zoom;	// the current zoom value
+	gboolean neg_view;	// negative view
+	cairo_filter_t filter;	// the type of image filtering to use
+	guint image_width, image_height;	// image size
+	guint window_width, window_height;	// drawing area size
+} draw_data_t;
 
 /* The global data structure of siril gui */
 struct guiinf {
@@ -523,6 +537,8 @@ struct guiinf {
 
 	psf_star *qphot;		// quick photometry result, highlight a star
 
+	void (*draw_extra)(draw_data_t *dd);
+
 	/*********** Color mapping **********/
 	WORD lo, hi;			// the values of the cutoff sliders
 	gboolean cut_over;		// display values over hi as negative
@@ -530,9 +546,9 @@ struct guiinf {
 	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY or default_rendering_mode if set in preferences
 	gboolean unlink_channels;	// only for autostretch
 	BYTE remap_index[3][USHRT_MAX];	// abstracted here so it can be used for previews and is easier to change the bit depth
-	BYTE *hd_remap_index[3]; // HD remap indexes for the high precision LUTs.
+	BYTE *hd_remap_index[3];	// HD remap indexes for the high precision LUTs.
 	guint hd_remap_max;		// the maximum index value to use for the HD LUT. Default is 2^22
-	gboolean use_hd_remap; // Boolean set by the menu check box to indicate whether HD LUT should be used for AutoStretch
+	gboolean use_hd_remap;		// use high definition LUT for auto-stretch
 
 	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
@@ -605,10 +621,14 @@ struct cominf {
 	sensor_tilt *tilt;		// computed tilt information
 
 	gboolean child_is_running;	// boolean to check if there is a child process running
+
+	float* kernel;			// float* to hold kernel for new deconvolution process
+	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
+	unsigned kernelchannels;	// Holds number of channels for the kernel
 #ifdef _WIN32
-void* childhandle;			// For Windows, handle of a child process
+	void* childhandle;		// For Windows, handle of a child process
 #else
-pid_t childpid;				// For other OSes, PID of a child process
+	pid_t childpid;			// For other OSes, PID of a child process
 #endif
 };
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -33,7 +33,6 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
-#include "core/sleef.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -83,6 +82,7 @@ static char *phtfmt32[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.4f", "%0.1f"
 static char *phtfmt16[] = { "%0.2f", "%0.2f", "%0.2f", "%0.2f", "%0.0f", "%0.1f", "%0.1f", "%0.2f"};
 static GtkMenu *menu = NULL;
 static GtkMenuItem *menu_item1 = NULL, *menu_item2 = NULL, *menu_item3 = NULL;
+static gboolean popup_already_shown = FALSE, has_item3 = TRUE;
 
 static void formatX(double v, char *buf, size_t bufsz) {
 	char *fmt;
@@ -187,8 +187,8 @@ static gboolean is_inside_selection(double x, double y) {
 	if (!selection_is_active()) return FALSE;
 	if (x >= pdd.selection.x + SEL_TOLERANCE &&
 		x <= pdd.selection.x + pdd.selection.w - SEL_TOLERANCE &&
-		y >= pdd.selection.y + SEL_TOLERANCE && 
-		y <= pdd.selection.y + pdd.selection.h - SEL_TOLERANCE) 
+		y >= pdd.selection.y + SEL_TOLERANCE &&
+		y <= pdd.selection.y + pdd.selection.h - SEL_TOLERANCE)
 			return TRUE;
 	return FALSE;
 }
@@ -298,7 +298,7 @@ static gboolean get_index_of_frame(double x, double y, gboolean check_index_incl
 
 	while (plot) {
 		for (int j = 0; j < plot->nb; j++) {
-			double dist = xpow((*index - plot->data[j].x) * invrangex, 2) + xpow((*ypos - plot->data[j].y) * invrangey, 2);
+			double dist = pow((*index - plot->data[j].x) * invrangex, 2) + pow((*ypos - plot->data[j].y) * invrangey, 2);
 			if (dist < mindist) {
 				mindist = dist;
 				closestframe = plot->frame[j];
@@ -423,11 +423,10 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	double fwhm;
 	double dx, dy;
 	double cx,cy;
-	gboolean Href_is_invalid;
 	cx = (seq->is_variable) ? (double)seq->imgparam[ref_image].rx * 0.5 : (double)seq->rx * 0.5;
 	cy = (seq->is_variable) ? (double)seq->imgparam[ref_image].ry * 0.5 : (double)seq->ry * 0.5;
 	Homography Href = seq->regparam[layer][ref_image].H;
-	Href_is_invalid = (guess_transform_from_H(Href) == -2) ? TRUE : FALSE;
+	gboolean Href_is_invalid = (guess_transform_from_H(Href) == NULL_TRANSFORMATION);
 	pdd.datamin = (point){ DBL_MAX, DBL_MAX};
 	pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
 
@@ -440,7 +439,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
-					double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].fwhm;
@@ -452,7 +451,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				// compute the center of image i in the axes of the reference frame
 				dx = (seq->is_variable) ? (double)seq->imgparam[i].rx * 0.5 : (double)seq->rx * 0.5;
 				dy = (seq->is_variable) ? (double)seq->imgparam[i].ry * 0.5 : (double)seq->ry * 0.5;
-				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == -2) {
+				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == NULL_TRANSFORMATION) {
 					plot->data[j].x = 0;
 					break;
 				}
@@ -461,7 +460,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
-					double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].weighted_fwhm;
@@ -490,7 +489,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
-					double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].fwhm;
@@ -502,7 +501,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				// compute the center of image i in the axes of the reference frame
 				dx = (seq->is_variable) ? (double)seq->imgparam[i].rx * 0.5 : (double)seq->rx * 0.5;
 				dy = (seq->is_variable) ? (double)seq->imgparam[i].ry * 0.5 : (double)seq->ry * 0.5;
-				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == -2) {
+				if (Href_is_invalid || guess_transform_from_H(seq->regparam[layer][i].H) == NULL_TRANSFORMATION) {
 					plot->data[j].y = 0;
 					break;
 				}
@@ -511,7 +510,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
-					double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].weighted_fwhm;
@@ -627,7 +626,6 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 					fwhm_to_arcsec_if_needed(&gfit, psfs[i]);
 					fwhm = psfs[i]->fwhmx_arcsec < 0 ? psfs[i]->fwhmx : psfs[i]->fwhmx_arcsec;
 				} else {
-					fwhm_to_pixels(psfs[i]);
 					fwhm = psfs[i]->fwhmx;
 				}
 				plot->data[j].y = fwhm;
@@ -709,10 +707,12 @@ static double get_error_for_time(pldata *plot, double time) {
 // the first will be the target
 int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	int i, j, nbImages = 0;
-	double *vmag, *err, *x, *real_x;
+	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
-		siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but no image will be created.\n"), filename);
+		siril_log_color_message(_("Gnuplot was not found, the light curve data will be "
+				"produced in %s but no image will be created. "
+				"You can specify the path to gnuplot in the Siril preferences.\n"), "red", filename);
 	}
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -748,7 +748,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
 		return -1;
 	}
-	if (nb_ref_stars < 1)
+	if (nb_ref_stars == 1)
 		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
 	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
 
@@ -758,6 +758,10 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	real_x = calloc(nbImages, sizeof(double));
 	if (!vmag || !err || !x || !real_x) {
 		PRINT_ALLOC_ERR;
+		free(vmag); // g_free is safe to use here as it takes no action if the arg is NULL
+		free(err);
+		free(x);
+		free(real_x);
 		return -1;
 	}
 	// i is index in dataset, j is index in output
@@ -874,6 +878,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 				return 1;
 			}
 			g_free(buffer);
+			buffer = NULL;
 			while (x < MAX_SEQPSF && seq->photometry[x]) {
 				buffer = g_strdup_printf(", %g", tmp_plot->data[j].y);
 				if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
@@ -887,10 +892,12 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 				tmp_plot = tmp_plot->next;
 				++x;
 				g_free(buffer);
+				buffer = NULL;
 			}
 			if (!g_output_stream_write_all(output_stream, "\n", 1, NULL, NULL, &error)) {
 				g_warning("%s\n", error->message);
 				g_free(buffer);
+				buffer = NULL;
 				g_clear_error(&error);
 				g_object_unref(output_stream);
 				g_object_unref(file);
@@ -1263,12 +1270,11 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	guint width, height;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
-	struct kdata *d1, *ref_d, *mean_d, *curr_d;
+	struct kdata *d1 = NULL, *ref_d = NULL, *mean_d = NULL, *curr_d = NULL;
 
 	if (!plot_data || !widget)
 		return;
 	pldata *plot = plot_data;
-	d1 = ref_d = mean_d = NULL;
 
 	double color = (com.pref.gui.combo_theme == 0) ? 0.0 : 1.0;
 
@@ -1398,6 +1404,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 		pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
 		pdd.offset = (point){ get_offsx(),  get_offsy()};
 		// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
+		if (pdd.selected) free(pdd.selected);
 		pdd.selected = calloc(com.seq.number, sizeof(gboolean));
 		if (selection_is_active()) {
 			double xmin, ymin, xmax, ymax;
@@ -1425,8 +1432,12 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	}
 	free_colors(&cfgplot);
 	kplot_free(p);
-	kdata_destroy(d1);
-	kdata_destroy(ref_d);
+	if (d1)
+		kdata_destroy(d1);
+	if (curr_d)
+		kdata_destroy(curr_d);
+	if (ref_d)
+		kdata_destroy(ref_d);
 	if (mean_d)
 		kdata_destroy(mean_d);
 }
@@ -1582,6 +1593,7 @@ void init_plot_colors() {
 		com.seq.photometry_colors[i][1] = cfgplot.clrs[i].rgba[1];
 		com.seq.photometry_colors[i][2] = cfgplot.clrs[i].rgba[2];
 	}
+	free_colors(&cfgplot);
 }
 
 void notify_new_photometry() {
@@ -1595,13 +1607,33 @@ void notify_new_photometry() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 }
 
-/* copied from subprojects/kplot/draw.c, in which the max is 7, not MAX_SEQPSF.
- * We assign the same color to all others */
+static const int color_tab[][3] = {
+		{0x94, 0x04, 0xd3},
+		{0x00, 0x9e, 0x73},
+		{0x56, 0xb4, 0xe9},
+		{0xe6, 0x9f, 0x00},
+		{0xf0, 0xe4, 0x42},
+		{0x00, 0x72, 0xb2},
+		{0xe5, 0x1e, 0x10},
+		{0xe8, 0x5e, 0xbe},
+		{0x00, 0x9b, 0xff},
+		{0xff, 0xb1, 0x67},
+		{0xa5, 0xff, 0xd2},
+		{0xa7, 0x57, 0x40},
+		{0x5f, 0xad, 0x4e},
+		{0x6b, 0x68, 0x82},
+		{0xff, 0x6e, 0x41},
+		{0x00, 0x5f, 0x39},
+		{0x00, 0xff, 0x78},
+		{0xb5, 0x00, 0xff},
+		{0x75, 0x44, 0xb1},
+		{0x98, 0xff, 0x52}
+};
+
 static void set_colors(struct kplotcfg *cfg) {
-	int i;
 	cfg->clrsz = MAX_SEQPSF;
 	cfg->clrs = calloc(cfg->clrsz, sizeof(struct kplotccfg));
-	for (i = 0; i < cfg->clrsz; i++) {
+	for (int i = 0; i < cfg->clrsz; i++) {
 		cfg->clrs[i].type = KPLOTCTYPE_RGBA;
 		cfg->clrs[i].rgba[3] = 1.0;
 		if (i > 6) {
@@ -1610,27 +1642,12 @@ static void set_colors(struct kplotcfg *cfg) {
 			cfg->clrs[i].rgba[2] = 0xbb;
 		}
 	}
-	cfg->clrs[0].rgba[0] = 0x94 / 255.0;
-	cfg->clrs[0].rgba[1] = 0x04 / 255.0;
-	cfg->clrs[0].rgba[2] = 0xd3 / 255.0;
-	cfg->clrs[1].rgba[0] = 0x00 / 255.0;
-	cfg->clrs[1].rgba[1] = 0x9e / 255.0;
-	cfg->clrs[1].rgba[2] = 0x73 / 255.0;
-	cfg->clrs[2].rgba[0] = 0x56 / 255.0;
-	cfg->clrs[2].rgba[1] = 0xb4 / 255.0;
-	cfg->clrs[2].rgba[2] = 0xe9 / 255.0;
-	cfg->clrs[3].rgba[0] = 0xe6 / 255.0;
-	cfg->clrs[3].rgba[1] = 0x9f / 255.0;
-	cfg->clrs[3].rgba[2] = 0x00 / 255.0;
-	cfg->clrs[4].rgba[0] = 0xf0 / 255.0;
-	cfg->clrs[4].rgba[1] = 0xe4 / 255.0;
-	cfg->clrs[4].rgba[2] = 0x42 / 255.0;
-	cfg->clrs[5].rgba[0] = 0x00 / 255.0;
-	cfg->clrs[5].rgba[1] = 0x72 / 255.0;
-	cfg->clrs[5].rgba[2] = 0xb2 / 255.0;
-	cfg->clrs[6].rgba[0] = 0xe5 / 255.0;
-	cfg->clrs[6].rgba[1] = 0x1e / 255.0;
-	cfg->clrs[6].rgba[2] = 0x10 / 255.0;
+
+	for (int i = 0; i < MAX_SEQPSF; i++) {
+		cfg->clrs[i].rgba[0] = color_tab[i][0] / 255.0;
+		cfg->clrs[i].rgba[1] = color_tab[i][1] / 255.0;
+		cfg->clrs[i].rgba[2] = color_tab[i][2] / 255.0;
+	}
 }
 
 static void free_colors(struct kplotcfg *cfg) {
@@ -1649,25 +1666,10 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 	double y = (double)event->y;
 	if (pdd.action == SELACTION_SELECTING) {
 		double x1, x2, y1, y2;
-		if (x <= pdd.selection.x) {
-			x1 = x;
-			x2 = pdd.selection.x + pdd.selection.w;
-		} else {
-			x1 = pdd.selection.x;
-			x2 = x;
-		}
-		if (y <= pdd.selection.y) {
-			y1 = y;
-			y2 = pdd.selection.y + pdd.selection.h;
-		} else {
-			y1 = pdd.selection.y;
-			y2 = y;
-		}
-		x1 = max(SIDE_MARGIN, x1);
-		x2 = min(pdd.surf_w - PLOT_SLIDER_THICKNESS, x2);
-		y1 = max(SIDE_MARGIN, y1);
-		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, y2);
-		//siril_debug_print("%.0f %.0f\n", x1, x2);
+		x1 = max(SIDE_MARGIN, min(pdd.start.x, x));
+		x2 = min(pdd.surf_w - PLOT_SLIDER_THICKNESS, max(pdd.start.x, x));
+		y1 = max(SIDE_MARGIN, min(pdd.start.y, y));
+		y2 = min(pdd.surf_h - PLOT_SLIDER_THICKNESS, max(pdd.start.y, y));
 		pdd.selection = (rectangled){x1, y1, x2 - x1, y2 - y1};
 		drawPlot();
 		return TRUE;
@@ -1680,20 +1682,44 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 		y2 = pdd.selection.y + pdd.selection.h;
 		switch (pdd.border_grabbed) {
 			case SELBORDER_LEFT:
-				x1 = min(x , pdd.selection.x + pdd.selection.w);
-				x2 = max(x , pdd.selection.x + pdd.selection.w);
+				if (x <= pdd.selection.x + pdd.selection.w) {
+					x1 = x;
+					x2 = pdd.selection.x + pdd.selection.w;
+				} else {
+					x2 = x;
+					x1 = pdd.selection.x + pdd.selection.w;
+					pdd.border_grabbed = SELBORDER_RIGHT;
+				}
 				break;
 			case SELBORDER_RIGHT:
-				x1 = min(x , pdd.selection.x);
-				x2 = max(x , pdd.selection.x);
+				if (x >= pdd.selection.x) {
+					x1 = pdd.selection.x;
+					x2 = x;
+				} else {
+					x1 = x;
+					x2 = pdd.selection.x;
+					pdd.border_grabbed = SELBORDER_LEFT;
+				}
 				break;
 			case SELBORDER_TOP:
-				y1 = min(y , pdd.selection.y + pdd.selection.h);
-				y2 = max(y , pdd.selection.y + pdd.selection.h);
+				if (y <= pdd.selection.y + pdd.selection.h) {
+					y1 = y;
+					y2 = pdd.selection.y + pdd.selection.h;
+				} else {
+					y2 = y;
+					y1 = pdd.selection.y + pdd.selection.h;
+					pdd.border_grabbed = SELBORDER_BOTTOM;
+				}
 				break;
 			case SELBORDER_BOTTOM:
-				y1 = min(y , pdd.selection.y);
-				y2 = max(y , pdd.selection.y);
+				if (y >= pdd.selection.y) {
+					y1 = pdd.selection.y;
+					y2 = y;
+				} else {
+					y1 = y;
+					y2 = pdd.selection.y;
+					pdd.border_grabbed = SELBORDER_TOP;
+				}
 				break;
 			default:
 				break;
@@ -1756,7 +1782,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 				} else {
 					dv = pdd.start.y - y;
 					v1 = (1. - pdd.yrange[0]) * pdd.range.y + pdd.offset.y; // y axis is reversed
-					v2 = (1. - pdd.yrange[1]) * pdd.range.y + pdd.offset.y; 
+					v2 = (1. - pdd.yrange[1]) * pdd.range.y + pdd.offset.y;
 					if (v2 - dv <= pdd.offset.y) {
 						dv = v2 - pdd.offset.y;
 						y = pdd.start.y - dv;
@@ -1859,8 +1885,15 @@ static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event
 	gtk_menu_item_set_label(menu_item1, str);
 	gchar *str2 = g_strdup_printf(_("Show Frame %d"), (int)index);
 	gtk_menu_item_set_label(menu_item2, str2);
-	gtk_menu_item_set_label(menu_item3, "");
-	gtk_widget_set_sensitive(GTK_WIDGET(menu_item3), FALSE);
+	if (!popup_already_shown) {
+		// we need to ref it to keep it alive after removing from container
+		g_object_ref(menu_item3);
+		popup_already_shown = TRUE;
+	}
+	if (has_item3) {
+		gtk_container_remove(GTK_CONTAINER(menu), lookup_widget("menu_plot_item3"));
+		has_item3 = FALSE;
+	}
 	g_free(str);
 	g_free(str2);
 
@@ -1889,6 +1922,10 @@ static void do_popup_selectionmenu(GtkWidget *my_widget, GdkEventButton *event) 
 	}
 	gtk_menu_item_set_label(menu_item1, _("Zoom to selection"));
 	gtk_menu_item_set_label(menu_item2, _("Only keep points within selection"));
+	if (!has_item3) {
+		gtk_container_add(GTK_CONTAINER(menu), lookup_widget("menu_plot_item3"));
+		has_item3 = TRUE;
+	}
 	gtk_menu_item_set_label(menu_item3, _("Exclude selected points"));
 	gtk_widget_set_sensitive(GTK_WIDGET(menu_item3), TRUE);
 
@@ -1921,7 +1958,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 			return TRUE;
 		}
 	}
-	
+
 	if (is_inside_selectable_zone(x, y) && event->button == GDK_BUTTON_PRIMARY) {
 		enum border_type border = is_over_selection_border(x, y);
 		if (event->type == GDK_DOUBLE_BUTTON_PRESS) {  // double-click resets zoom
@@ -1938,6 +1975,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 		} else { // start drawing selection
 			pdd.action = SELACTION_SELECTING;
 			pdd.selection = (rectangled){x, y, 0., 0.};
+			pdd.start = (point){x, y};
 			return TRUE;
 		}
 	}

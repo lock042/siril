@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -818,8 +818,10 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 		retval = 0;
 		break;
 	case XTRANS:
-		if (!xtrans)
+		if (!xtrans) {
+			free(newbuf);
 			return NULL;
+		}
 		retval = fast_xtrans_interpolate(buf, newbuf, *width, *height, xtrans);
 		break;
 	}
@@ -830,7 +832,7 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 	return newbuf;
 }
 
-int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
+int adjust_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	int xbayeroff = 0, ybayeroff = 0;
 	gboolean top_down = com.pref.debayer.top_down;
 
@@ -912,28 +914,56 @@ int retrieve_Bayer_pattern(fits *fit, sensor_pattern *pattern) {
 	return 0;
 }
 
-/* This function retrieve the xtrans matrix from the FITS header */
-static int retrieve_XTRANS_pattern(char *bayer, unsigned int xtrans[6][6]) {
+static void adjust_XTrans_pattern(fits *fit, unsigned int xtrans[6][6]) {
+	gboolean top_down = com.pref.debayer.top_down;
+
+	if (com.pref.debayer.use_bayer_header) {
+		if (!g_strcmp0(fit->row_order, "TOP-DOWN")) {
+			top_down = TRUE;
+		} else if (!g_strcmp0(fit->row_order, "BOTTOM-UP")) {
+			top_down = FALSE;
+		}
+	}
+	siril_debug_print("X-Trans pattern will be used %s\n", top_down ? "top-down" : "bottom-up (inverted)");
+
+	if (!top_down) {
+		int offset = fit->ry % 6;
+		if (offset)
+			siril_debug_print("Image with an X-Trans sensor doesn't have a height multiple of 6\n");
+		unsigned int orig[6][6];
+		memcpy(orig, xtrans, 36 * sizeof(unsigned int));
+		for (int i = 0; i < 6; i++) {
+			int y = (5 - i + offset) % 6;
+			for (int j = 0; j < 6; j++) {
+				xtrans[i][j] = orig[y][j];
+			}
+		}
+	}
+}
+
+/* convert the string-described X-Trans pattern into an int array with value corresponding to filter */
+static int compile_XTrans_pattern(const char *bayer, unsigned int xtrans[6][6]) {
 	int i = 0;
 
 	if (strlen(bayer) != 36) {
-		siril_log_color_message(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done"), "red");
+		siril_log_color_message(_("FITS header does not contain a proper XTRANS pattern, demosaicing cannot be done\n"), "red");
 		return 1;
 	}
 
-	for (int x = 0; x < 6; x++) {
-		for (int y = 0; y < 6; y++) {
+	for (int y = 0; y < 6; y++) {
+		for (int x = 0; x < 6; x++) {
 			switch (bayer[i]) {
 			case 'R':
-				xtrans[x][y] = 0;
+				xtrans[y][x] = 0;
 				break;
 			case 'G':
-				xtrans[x][y] = 1;
+				xtrans[y][x] = 1;
 				break;
 			case 'B':
-				xtrans[x][y] = 2;
+				xtrans[y][x] = 2;
 				break;
 			default:
+				siril_log_color_message(_("Invalid character in X-Trans filter pattern: %c\n"), "red", bayer[i]);
 				return 1;
 			}
 			i++;
@@ -1086,9 +1116,9 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 		}
 		if (!top_down)
 			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
-		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
+		compile_XTrans_pattern(fit->bayer_pattern, xtrans);
 	} else {
-		retrieve_Bayer_pattern(fit, &pattern);
+		adjust_Bayer_pattern(fit, &pattern);
 	}
 
 	if (USE_SIRIL_DEBAYER) {
@@ -1145,9 +1175,9 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 		}
 		if (!top_down)
 			fits_flip_top_to_bottom(fit); // TODO: kind of ugly but not easy with xtrans
-		retrieve_XTRANS_pattern(fit->bayer_pattern, xtrans);
+		compile_XTrans_pattern(fit->bayer_pattern, xtrans);
 	} else {
-		retrieve_Bayer_pattern(fit, &pattern);
+		adjust_Bayer_pattern(fit, &pattern);
 	}
 
 	float *newbuf = debayer_buffer_new_float(buf, &width, &height, interpolation, pattern, xtrans);
@@ -1171,7 +1201,8 @@ int debayer(fits *fit, interpolation_method interpolation, sensor_pattern patter
 	else return -1;
 }
 
-int retrieveBayerPatternFromChar(const char *bayer) {
+// gets the index in filter_pattern
+int get_cfa_pattern_index_from_string(const char *bayer) {
 	for (int i = 0; i < G_N_ELEMENTS(filter_pattern); i++) {
 		if (g_ascii_strcasecmp(bayer, filter_pattern[i]) == 0) {
 			return i;
@@ -1201,7 +1232,7 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 	interpolation_method tmp_algo = com.pref.debayer.bayer_inter;
 	if (com.pref.debayer.use_bayer_header) {
 		sensor_pattern bayer;
-		bayer = retrieveBayerPatternFromChar(fit->bayer_pattern);
+		bayer = get_cfa_pattern_index_from_string(fit->bayer_pattern);
 
 		if (bayer <= BAYER_FILTER_MAX) {
 			if (bayer != tmp_pattern) {
@@ -1218,7 +1249,7 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 		} else {
 			tmp_pattern = bayer;
 			tmp_algo = XTRANS;
-			siril_log_color_message(_("XTRANS Sensor detected. Using special algorithm.\n"), "green");
+			siril_log_message(_("XTRANS Sensor detected. Using special algorithm.\n"));
 		}
 	}
 	if (tmp_pattern >= BAYER_FILTER_MIN && tmp_pattern <= BAYER_FILTER_MAX) {
@@ -1232,4 +1263,420 @@ int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
 		retval = -1;
 	}
 	return retval;
+}
+
+static int mergecfa_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	required = 8 * MB_per_image;
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+				thread_limit = com.max_thread;
+		limit = thread_limit;
+		if (for_writer)
+			return 1;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+#endif
+	}
+	return limit;
+}
+
+gint64 mergecfa_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
+	double ratio = 4.;
+	double fullseqsize = seq_compute_size(args->seq, nb_frames, args->output_type);
+	return (gint64)(fullseqsize * ratio);
+}
+
+int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
+
+	int retval = 0;
+	struct merge_cfa_data *merge_cfa_args = (struct merge_cfa_data*) args->user;
+	char *cfa0_f = calloc(256, sizeof(BYTE));
+	char *cfa1_f = NULL;
+	char *cfa2_f = NULL;
+	char *cfa3_f = NULL;
+	cfa0_f = seq_get_image_filename(args->seq, in_index, cfa0_f);
+	size_t len = strlen(merge_cfa_args->seqEntryIn);
+	char *prefix0 = calloc(len + 2, sizeof(BYTE));
+	char *prefix1 = calloc(len + 2, sizeof(BYTE));
+	char *prefix2 = calloc(len + 2, sizeof(BYTE));
+	char *prefix3 = calloc(len + 2, sizeof(BYTE));
+	int m = snprintf(NULL, 0, "%s", merge_cfa_args->seqEntryIn);
+	strncpy(prefix0, merge_cfa_args->seqEntryIn, m);
+	strncpy(prefix1, prefix0, m);
+	strncpy(prefix2, prefix0, m);
+	strncpy(prefix3, prefix0, m);
+	strcat(prefix0, "0");
+	strcat(prefix1, "1");
+	strcat(prefix2, "2");
+	strcat(prefix3, "3");
+	cfa1_f = str_replace(cfa0_f, prefix0, prefix1);
+	cfa2_f = str_replace(cfa0_f, prefix0, prefix2);
+	cfa3_f = str_replace(cfa0_f, prefix0, prefix3);
+	if (cfa0_f) free(cfa0_f);
+	free(prefix0);
+	free(prefix1);
+	free(prefix2);
+	free(prefix3);
+	if (cfa1_f == NULL) {
+		retval = 1;
+		siril_log_message(_("Image %d: error identifying CFA1 filename\n"), args->seq->current);
+		goto CLEANUP_MERGECFA;
+	}
+	if (cfa2_f == NULL) {
+		retval = 1;
+		siril_log_message(_("Image %d: error identifying CFA2 filename\n"), args->seq->current);
+		goto CLEANUP_MERGECFA;
+	}
+	if (cfa3_f == NULL) {
+		retval = 1;
+		siril_log_message(_("Image %d: error identifying CFA3 filename\n"), args->seq->current);
+		goto CLEANUP_MERGECFA;
+	}
+
+	fits cfa1 = { 0 };
+	fits cfa2 = { 0 };
+	fits cfa3 = { 0 };
+	fits *out = { 0 };
+
+	retval = readfits(cfa1_f, &cfa1, NULL, FALSE);
+	if(retval != 0) {
+		siril_log_message(_("Image %d: error opening CFA1 file\n"), args->seq->current);
+		goto CLEANUP_MERGECFA;
+	}
+	retval = readfits(cfa2_f, &cfa2, NULL, FALSE);
+	if(retval != 0) {
+		siril_log_message(_("Image %d: error opening CFA2 file\n"), args->seq->current);
+		goto CLEANUP_MERGECFA;
+	}
+	retval = readfits(cfa3_f, &cfa3, NULL, FALSE);
+	if(retval != 0) {
+		siril_log_message(_("Image %d: error opening CFA3 file\n"), args->seq->current);
+		goto CLEANUP_MERGECFA;
+	}
+	out = merge_cfa(fit, &cfa1, &cfa2, &cfa3, merge_cfa_args->pattern);
+	if (out != NULL) {
+		clearfits(fit);
+		copyfits(out, fit, (CP_ALLOC | CP_COPYA | CP_FORMAT), -1);
+		clearfits(out);
+		free(out);
+	}
+CLEANUP_MERGECFA:
+	clearfits(&cfa1);
+	clearfits(&cfa2);
+	clearfits(&cfa3);
+	if (cfa1_f) { free(cfa1_f); }
+	if (cfa2_f) { free(cfa2_f); }
+	if (cfa3_f) { free(cfa3_f); }
+
+	return retval;
+}
+
+int mergecfa_finalize_hook(struct generic_seq_args *args) {
+	struct merge_cfa_data *data = (struct merge_cfa_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free((char*) data->seqEntryIn);
+	free(data);
+	return retval;
+}
+
+void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
+	struct generic_seq_args *args = create_default_seqargs(merge_cfa_args->seq);
+	args->seq = merge_cfa_args->seq;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = merge_cfa_args->seq->selnum;
+	args->compute_mem_limits_hook = mergecfa_compute_mem_limits;
+	args->compute_size_hook = mergecfa_compute_size_hook;
+	args->prepare_hook = seq_prepare_hook;
+	args->image_hook = mergecfa_image_hook;
+	args->finalize_hook = mergecfa_finalize_hook;
+	args->description = _("Merge CFA");
+	args->has_output = TRUE;
+	args->new_seq_prefix = merge_cfa_args->seqEntryOut;
+	args->load_new_sequence = TRUE;
+	args->force_ser_output = FALSE;
+	args->user = merge_cfa_args;
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+
+//
+// Re-mosaic 4 subpattern images previously separated with split_cfa
+// This routine is Bayer pattern agnostic: split_cfa generates files
+// CFA0, CFA1, CFA2 and CFA3 which can be RGGB, BGGR etc. This routine
+// will assemble them in the same pattern as long as the files are
+// provided in the correct order CFA0 to CFA3.
+//
+// (returns 0 on success, -1 on failure)
+//
+
+fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern pattern) {
+	fits *out = NULL;
+
+	// Check input files are compatible
+	gboolean x_compat = (cfa0->naxes[0] == cfa1->naxes[0] && cfa1->naxes[0] == cfa2->naxes[0] && cfa2->naxes[0] == cfa3->naxes[0]);
+	gboolean y_compat = (cfa0->naxes[1] == cfa1->naxes[1] && cfa1->naxes[1] == cfa2->naxes[1] && cfa2->naxes[1] == cfa3->naxes[1]);
+	gboolean c_compat = (cfa0->naxes[2] == cfa1->naxes[2] && cfa1->naxes[2] == cfa2->naxes[2] && cfa2->naxes[2] == cfa3->naxes[2] && cfa3->naxes[2] == 1);
+	gboolean t_compat = (cfa0->type == cfa1->type && cfa1->type == cfa2->type && cfa2->type == cfa3->type);
+	if (!(x_compat && y_compat && c_compat && t_compat)) {
+		siril_log_color_message(_("Input files are incompatible (all must be mono with the same size and bit depth). Aborting...\n"), "red");
+		if(!x_compat)
+			siril_log_message(_("X dimensions incompatible\n"));
+		if(!y_compat)
+			siril_log_message(_("Y dimensions incompatible\n"));
+		if(!c_compat)
+			siril_log_message(_("Channels not all mono\n"));
+		if(!t_compat)
+			siril_log_message(_("Input files not all the same bit depth\n"));
+		return NULL;
+	}
+	int datatype = cfa0->type;
+
+	// Create output fits twice the width and height of the cfa fits files
+	if (new_fit_image(&out, cfa0->rx << 1, cfa0->ry << 1, 1, datatype)) {
+		siril_log_color_message(_("Error creating output image\n"), "red");
+		return NULL;
+	}
+
+//	out->header = copy_header(cfa0);
+	copy_fits_metadata(cfa0, out);
+	if (out->header)
+		fprintf(stdout, "header ok\n");
+	for (size_t outx = 0 ; outx < out->rx; outx += 2) {
+		for(size_t outy = 0 ; outy < out->ry ; outy += 2) {
+			size_t cfax = outx >> 1;
+			size_t cfay = outy >> 1;
+			size_t indexcfa = cfax + cfay * (size_t) cfa0->rx;
+			// Note order because of the read orientation
+			size_t indexout1 = outx + outy * out->rx;
+			size_t indexout3 = (outx + 1) + outy * out->rx;
+			size_t indexout0 = outx + (outy + 1) * out->rx;
+			size_t indexout2 = (outx + 1) + (outy + 1) * out->rx;
+			switch (datatype) {
+				case DATA_FLOAT:
+					out->fdata[indexout0] = cfa0->fdata[indexcfa];
+					out->fdata[indexout1] = cfa1->fdata[indexcfa];
+					out->fdata[indexout2] = cfa2->fdata[indexcfa];
+					out->fdata[indexout3] = cfa3->fdata[indexcfa];
+					break;
+				case DATA_USHORT:
+					out->data[indexout0] = cfa0->data[indexcfa];
+					out->data[indexout1] = cfa1->data[indexcfa];
+					out->data[indexout2] = cfa2->data[indexcfa];
+					out->data[indexout3] = cfa3->data[indexcfa];
+					break;
+			}
+		}
+	}
+	// Set Bayer pattern in FITS header
+	switch (pattern) {
+		case BAYER_FILTER_RGGB:
+			strcpy(out->bayer_pattern, "RGGB");
+			break;
+		case BAYER_FILTER_BGGR:
+			strcpy(out->bayer_pattern, "BGGR");
+			break;
+		case BAYER_FILTER_GRBG:
+			strcpy(out->bayer_pattern, "GRBG");
+			break;
+		case BAYER_FILTER_GBRG:
+			strcpy(out->bayer_pattern, "GBRG");
+			break;
+		default:
+			break;
+	}
+	clearfits (cfa0);
+	clearfits (cfa1);
+	clearfits (cfa2);
+	clearfits (cfa3);
+	siril_debug_print("Merge CFA complete\n");
+	return out;
+}
+
+static unsigned int compile_bayer_pattern(sensor_pattern pattern) {
+	/* red is 0, green is 1, blue is 2 */
+	switch (pattern) {
+		case BAYER_FILTER_RGGB:
+			return cpu_to_be32(0x00010102);
+		case BAYER_FILTER_BGGR:
+			return cpu_to_be32(0x02010100);
+		case BAYER_FILTER_GBRG:
+			return cpu_to_be32(0x01020001);
+		case BAYER_FILTER_GRBG:
+			return cpu_to_be32(0x01000201);
+		default:
+			return 0x03030303;
+	}
+}
+
+/* from the header description of the color filter array, we create a mask that
+ * contains filter values for top-down reading */
+static int get_compiled_pattern(fits *fit, int layer, BYTE pattern[36], int *pattern_size) {
+	g_assert(layer >= 0 && layer < 3);
+	sensor_pattern idx = get_cfa_pattern_index_from_string(fit->bayer_pattern);
+
+	if (idx >= BAYER_FILTER_MIN && idx <= BAYER_FILTER_MAX) {
+		/* 2x2 Bayer matrix */
+		// reorient it correctly for the image
+		adjust_Bayer_pattern(fit, &idx);
+		*((unsigned int *)pattern) = compile_bayer_pattern(idx);
+		*pattern_size = 2;
+		siril_debug_print("extracting CFA data for filter %d on Bayer pattern\n", layer);
+		return 0;
+	}
+	else if (idx != BAYER_FILTER_NONE) {
+		/* 6x6 X-Trans matrix */
+		unsigned int xtrans[6][6];
+		compile_XTrans_pattern(fit->bayer_pattern, xtrans);
+		adjust_XTrans_pattern(fit, xtrans);
+		for (int i = 0; i < 36; i++)
+			pattern[i] = (BYTE)(((unsigned int *)xtrans)[i]);
+		*pattern_size = 6;
+		siril_debug_print("extracting CFA data for filter %d on X-Trans pattern\n", layer);
+		return 0;
+	}
+	return 1;
+}
+
+WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
+	BYTE pattern[36];	// red is 0, green is 1, blue is 2
+	int pattern_size;	// 2 or 6
+	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+		return NULL;
+
+	// alloc buffer
+	size_t npixels = fit->naxes[0] * fit->naxes[1];
+	WORD *buf = malloc(npixels * sizeof(WORD));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	WORD *input = fit->data;
+
+	// and we copy the pixels top-down
+	size_t i = 0, j = 0;
+	int x, y, pattern_y = 0;
+	for (y = 0; y < fit->ry; y++) {
+		int pattern_idx_y = pattern_y * pattern_size;
+		for (x = 0; x < fit->rx; x++) {
+			int pattern_idx = pattern_idx_y + x % pattern_size;
+			if (pattern[pattern_idx] == layer)
+				buf[j++] = input[i];
+			i++;
+		}
+		pattern_y = (pattern_y + 1) % pattern_size;
+	}
+
+	void * tmp = realloc(buf, j * sizeof(WORD));
+	if (!tmp) {
+		PRINT_ALLOC_ERR;
+		free(buf);
+		return NULL;
+	} else {
+		buf = tmp;
+	}
+	*newsize = j;
+	return buf;
+}
+
+WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, size_t *newsize) {
+	BYTE pattern[36];	// red is 0, green is 1, blue is 2
+	int pattern_size;	// 2 or 6
+	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+		return NULL;
+	siril_debug_print("CFA buffer extraction with area\n");
+
+	// alloc buffer
+	size_t npixels = bounds->w * bounds->h;
+	WORD *buf = malloc(npixels * sizeof(WORD));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	WORD *input = fit->data;
+
+	// copy the pixels top-down
+	size_t j = 0;
+	int start_y = fit->ry - bounds->y - bounds-> h;
+	int pattern_y = start_y % pattern_size;
+	for (int y = start_y; y < fit->ry - bounds->y; y++) {
+		int pattern_idx_y = pattern_y * pattern_size;
+		size_t i = y * fit->rx + bounds->x;
+		for (int x = bounds->x; x < bounds->x + bounds->w; x++) {
+			int pattern_idx = pattern_idx_y + x % pattern_size;
+			if (pattern[pattern_idx] == layer)
+				buf[j++] = input[i];
+			i++;
+		}
+		pattern_y = (pattern_y + 1) % pattern_size;
+	}
+
+	void *tmp = realloc(buf, j * sizeof(WORD));
+	if (!tmp) {
+		free(buf);
+		PRINT_ALLOC_ERR;
+		return NULL;
+	} else {
+		buf = tmp;
+	}
+	*newsize = j;
+	return buf;
+}
+
+float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
+	BYTE pattern[36];	// red is 0, green is 1, blue is 2
+	int pattern_size;	// 2 or 6
+	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+		return NULL;
+
+	// alloc buffer
+	size_t npixels = fit->naxes[0] * fit->naxes[1];
+	float *buf = malloc(npixels * sizeof(float));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	float *input = fit->fdata;
+
+	// copy the pixels top-down
+	size_t i = 0, j = 0;
+	int x, y, pattern_y = 0;
+	for (y = 0; y < fit->ry; y++) {
+		int pattern_idx_y = pattern_y * pattern_size;
+		for (x = 0; x < fit->rx; x++) {
+			int pattern_idx = pattern_idx_y + x % pattern_size;
+			if (pattern[pattern_idx] == layer)
+				buf[j++] = input[i];
+			i++;
+		}
+		pattern_y = (pattern_y + 1) % pattern_size;
+	}
+
+	void *tmp = realloc(buf, j * sizeof(float));
+	if (!tmp) {
+		free(buf);
+		PRINT_ALLOC_ERR;
+		return NULL;
+	} else {
+		buf = tmp;
+	}
+	*newsize = j;
+	return buf;
 }

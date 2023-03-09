@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  *
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -35,51 +35,28 @@
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
+#include "algos/siril_wcs.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/PSF_list.h"
+#include "registration/registration.h"
+#include "opencv/opencv.h"
+#ifdef HAVE_WCSLIB
+#include <wcslib.h>
+#include <wcsfix.h>
+#endif
 
 #define _SQRT_EXP1 1.6487212707
-#define KERNEL_SIZE 3.  // sigma of the gaussian smoothing kernel
+#define KERNEL_SIZE 2.  // sigma of the gaussian smoothing kernel
 #define DENSITY_THRESHOLD 0.001 // energy density threshold at which the PSF theoretical radius is cut. Value of 0.001 means we set the box radius to enclose 99.9% of the volume below the psf
 #define SAT_THRESHOLD 0.7 // fraction of the dynamic range (frame max - bg) above which pixels are expected to saturate or be close to saturation
 #define SAT_DETECTION_RANGE 0.1 // fraction of the dynamic range (frame max - bg) below local max value above which the 8 adjacent pixels must remain to consider we have a saturation plateau
-#define MAX_BOX_RADIUS 100 // max allowable value for R (the radius of the box that is passed to PSF fitting)
+#define MAX_BOX_RADIUS 200 // max allowable value for R (the radius of the box that is passed to PSF fitting)
+#define MAX_RADIUS_RATIO_DUP 0.2 // The fraction of the box radius to classify as a duplicate
 
 // Use this flag to print canditates rejection output (0 or 1, only works if SIRIL_OUTPUT_DEBUG is on)
 #define DEBUG_STAR_DETECTION 0
-
-static double guess_resolution(fits *fit) {
-	double focal = fit->focal_length;
-	double size = fit->pixel_size_x;
-	double bin;
-
-	/* if we have no way to guess, we return the
-		* flag -1
-		*/
-	if ((focal <= 0.0) || (size <= 0.0)) {  // try to read values that were filled only if coming from astrometry solver
-		focal = com.pref.starfinder_conf.focal_length;
-		size = com.pref.starfinder_conf.pixel_size_x;
-	}
-
-	if ((focal <= 0.0) || (size <= 0.0))
-		return -1.0;
-
-	bin = ((fit->binning_x + fit->binning_y) / 2.0);
-	if (bin <= 0) bin = 1.0;
-
-	double res = RADCONV / focal * size * bin;
-
-	/* test for high value. In this case we increase
-	 * the number of detected star in reject_star function
-	 */
-	/* if res > 1.0 we use default radius value */
-	if (res > 1.0) return 1.0;
-	/* if res is too small, we bound the value to 2.0 to avoid expanding the first search box (and decrease perf) */
-	if (res < 0.5) return 0.5;
-	return res;
-}
 
 static float compute_threshold(image *image, double ksigma, int layer, rectangle *area, float *norm, double *bg, double *bgnoise, double *max, int threads) {
 	float threshold;
@@ -105,7 +82,7 @@ static float compute_threshold(image *image, double ksigma, int layer, rectangle
 	return threshold;
 }
 
-static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se, double dynrange, gchar *errmsg) {
+static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se, double dynrange, double minA, double maxA, gchar *errmsg) {
 	if (isnan(result->fwhmx) || isnan(result->fwhmy))
 		return SF_NO_FWHM; //crit 11
 	if (isnan(result->x0) || isnan(result->y0))
@@ -120,22 +97,33 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_FWHM_NEG; //crit 15
 	}
-	if ((result->fwhmy / result->fwhmx) < sf->roundness) {
+	double r = result->fwhmy / result->fwhmx;
+	if (r < sf->roundness || r > sf->max_r) {
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_ROUNDNESS_BELOW_CRIT; //crit 16
 	}
-	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) { // if star center off from original candidate detection by more than sigma radius
+	if ((fabs(result->x0 - (double)se->R) >= se->sx) || (fabs(result->y0 - (double)se->R) >= se->sy)) {
+		// if star center off from original candidate detection by more than sigma radius
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "x0: %3.1f, y0: %3.1f, R:%d\n", result->x0, result->y0, se->R);
 		return SF_CENTER_OFF; //crit 10
 	}
-	if (result->fwhmx > max(se->sx, se->sy) * _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {// criteria gets looser as guessed fwhm gets larger than kernel
+	if (result->fwhmx > max(se->sx, se->sy) * _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE))) {
+		// criteria gets looser as guessed fwhm gets larger than kernel
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhm: %3.1f, s: %3.1f, m: %3.1f, R: %3d\n", result->fwhmx, max(se->sx, se->sy), _2_SQRT_2_LOG2 * (1 + 0.5 * log(max(se->sx, se->sy) / KERNEL_SIZE)), se->R);
 		return SF_FWHM_TOO_LARGE; //crit 2
 	}
-	if (((result->rmse * sf->sigma / result->A) > 0.1) && (!(result->A > dynrange))) {
-	//  do not apply for saturated stars to keep them for alignement purposes
+	if (((result->rmse * sf->sigma / result->A) > 0.2) && (!(result->A > dynrange))) {
+		//  do not apply for saturated stars to keep them for alignement purposes
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "RMSE: %4.3e, A: %4.3e, B: %4.3e\n", result->rmse, result->A, result->B);
 		return SF_RMSE_TOO_LARGE; //crit 3
+	}
+	if ((minA > 0.0 || maxA > 0.0) && (result->A < minA || result->A > maxA)) {
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "A: %4.3e, allowed [%4.3f, %4.3f]\n", result->A, minA, maxA);
+		return SF_AMPLITUDE_OUTSIDE_RANGE;
+	}
+	if ((result->profile != PSF_GAUSSIAN) && (result->beta <  sf->min_beta)) {
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "Beta: %4.3e\n", result->beta);
+		return SF_MOFFAT_BETA_TOO_SMALL; // crit 17
 	}
 	return SF_OK;
 }
@@ -150,17 +138,35 @@ static int star_cmp_by_mag_est(const void *a, const void *b) {
 	return 0;
 }
 
-/*
- This is an implementation of a simple peak detector algorithm which
- identifies any pixel that is greater than any of its eight neighbors.
+// Finds if the point xx,yy is already listed in the candidates within matchradius
+// The list is crawled in reverse order to return TRUE faster
+// When the next candidate is further away (along y axis) than the current box radius, the search breaks and returns FALSE
+static gboolean candidate_is_duplicate(int xx, int yy, int boxradius, starc *candidates, int nbstars) {
+	int matchradius = (int)((double)boxradius * MAX_RADIUS_RATIO_DUP);
+	matchradius = max(matchradius, 1); // just in case we find zero
+					   // we go though the list in reverse order as we may break out faster
+	for (int i = nbstars - 1; i >= 0; i--) {
+		if (abs(xx - candidates[i].x) + abs(yy - candidates[i].y) <= matchradius)
+			return TRUE;
+		if (yy - candidates[i].y > boxradius) // if yy is further away than the box radius, we won't find a duplicate anymore
+			break;
+	}
+	return FALSE;
+}
 
- Original algorithm come from:
- Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
+/* peaker is the function that searches for stars in an image.
+ * It is based on two old implementations that have been refined here over time:
+ * 1. Copyleft (L) 1998 Kenneth J. Mighell (Kitt Peak National Observatory)
+ * 2. DAOFIND by Peter Stetson, 1987.
+ * This is a peak detector on a smoother image (now using Gaussian blur) which
+ * identifies any pixel greater than its eight neighbors. The candidates are
+ * then checked for consistency before being fitted to Gaussian or Moffat star
+ * profiles (PSF).
  */
 
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads);
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads);
 
-psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, int threads) {
+psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars, rectangle *area, gboolean showtime, gboolean limit_nbstars, int maxstars, starprofile profile, int threads) {
 	int nx = image->fit->rx;
 	int ny = image->fit->ry;
 	int areaX0 = 0;
@@ -245,28 +251,22 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 
 	candidates = malloc(MAX_STARS * sizeof(starc));
 	if (!candidates) {
+		free(image_ushort);
+		free(image_float);
 		clearfits(&smooth_fit);
 		free(smooth_image);
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 
-	double res = guess_resolution(image->fit);
-
-	if (res < 0) {
-		res = 1.0;
-	}
-
-	sf->adj_radius = sf->adjust ? sf->radius / res : sf->radius;
-	siril_debug_print("Adjusted radius: %d\n", sf->adj_radius);
-	int r = sf->adj_radius;
+	int r = sf->radius;
 	int boxsize = (2 * r + 1)*(2 * r + 1);
 	double locthreshold = sf->sigma * 5.0 * bgnoise;
 	double sat = 0.;
 	double dynrange = (min(maxi, norm) - bg);
 	double minsatlevel = dynrange * SAT_THRESHOLD; // the level above background at which pixels are considered to have saturated or be close to saturation
 	double satrange = dynrange * SAT_DETECTION_RANGE; // the max variation level that defines the plateau of saturation
-	double s_factor = sqrt(-2. * log(DENSITY_THRESHOLD)); 
+	double s_factor = sqrt(-2. * log(DENSITY_THRESHOLD));
 	siril_debug_print("Min saturation level: %3.1f\n", minsatlevel);
 	/* Search for candidate stars in the filtered image */
 	for (int y = r + areaY0; y < areaY1 - r; y++) {
@@ -492,12 +492,12 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				int Rm = max(Rr, Rc);
 				Rm = min(Rm, MAX_BOX_RADIUS);
 				if (Rm > r) {
-				// avoid enlarging outside frame width
+					// avoid enlarging outside frame width
 					if (xx - Rm < 0)
 						Rm = xx;
 					if (xx + Rm >= nx)
 						Rm = nx - xx - 1;
-				// avoid enlarging outside frame height
+					// avoid enlarging outside frame height
 					if (yy - Rm < 0)
 						Rm = yy;
 					if (yy + Rm >= ny)
@@ -510,10 +510,15 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				float dSr = max(-srl,srr)/min(-srl,srr);
 				float dSc = max(-scu,scd)/min(-scu,scd);
 				if (!com.pref.starfinder_conf.relax_checks)
-					if ((dA > 2.) || (dSr > 2.) || ( dSc > 2.) || (max(Ar,Ac) < locthreshold))  bingo = FALSE;
+					if (dA > 2. || dSr > 2. || dSc > 2. || max(Ar,Ac) < locthreshold)
+						bingo = FALSE;
 
 				if (bingo && nbstars < MAX_STARS) {
-					if (nbstars > 0 && candidates[nbstars - 1].x == xx && candidates[nbstars - 1].x == yy) continue; // avoid duplicates for large saturated stars
+					if (nbstars > 0 && candidate_is_duplicate(xx, yy, R, candidates, nbstars)) {
+						if (DEBUG_STAR_DETECTION)
+							siril_debug_print("candidate is a duplicate\n");
+						continue; // avoid duplicates for large saturated stars
+					}
 					candidates[nbstars].x = xx;
 					candidates[nbstars].y = yy;
 					candidates[nbstars].mag_est = meanhigh;
@@ -523,7 +528,9 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 					candidates[nbstars].sat = (has_saturated) ? sat : norm;
 					candidates[nbstars].has_saturated = (has_saturated);
 					nbstars++;
-					if (has_saturated && DEBUG_STAR_DETECTION) siril_debug_print("%d: %d - %d is saturated with R = %d\n", nbstars, xx, yy, R);
+					if (has_saturated && DEBUG_STAR_DETECTION)
+						siril_debug_print("%d: %d - %d is saturated with R = %d\n",
+								nbstars, xx, yy, R);
 					if (nbstars == MAX_STARS) break;
 				}
 			}
@@ -533,10 +540,9 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	free(smooth_image);
 	clearfits(&smooth_fit);
 	siril_debug_print("Candidates for stars: %d\n", nbstars);
-
 	/* Check if candidates are stars by minimizing a PSF on each */
 	psf_star **results;
-	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, dynrange, &results, limit_nbstars, maxstars, threads);
+	nbstars = minimize_candidates(image->fit, sf, candidates, nbstars, layer, dynrange, &results, limit_nbstars, maxstars, profile, threads);
 	if (nbstars == 0)
 		results = NULL;
 	sort_stars_by_mag(results, nbstars);
@@ -556,7 +562,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 }
 
 /* returns number of stars found, result is in parameters */
-static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, int threads) {
+static int minimize_candidates(fits *image, star_finder_params *sf, starc *candidates, int nb_candidates, int layer, double dynrange, psf_star ***retval, gboolean limit_nbstars, int maxstars, starprofile profile, int threads) {
 	int nx = image->rx;
 	int ny = image->ry;
 	WORD **image_ushort = NULL;
@@ -565,22 +571,39 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 	sf_errors accepted_level = (com.pref.starfinder_conf.relax_checks) ? SF_RMSE_TOO_LARGE : SF_OK;
 	double bg = background(image, layer, NULL, SINGLE_THREADED);
 	int psf_failure = 0;
+	double minA = 0.0, maxA = 0.0;
+	if (sf->min_A > 0.0 || sf->max_A > 0.0) {
+		if (image->type == DATA_USHORT) {
+			double mult = (image->bitpix == BYTE_IMG) ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE;
+			minA = sf->min_A * mult;
+			maxA = sf->max_A * mult;
+		}
+		else if (image->type == DATA_FLOAT) {
+			minA = sf->min_A;
+			maxA = sf->max_A;
+		}
+		else return 0;
+		siril_debug_print("using the amplitude range [%f, %f]\n", minA, maxA);
+	}
 
 	if (image->type == DATA_USHORT) {
 		image_ushort = malloc(ny * sizeof(WORD *));
 		for (int k = 0; k < ny; k++)
 			image_ushort[ny - k - 1] = image->pdata[layer] + k * nx;
 	}
-	else if (image->type == DATA_FLOAT) {
+	else {
 		image_float = malloc(ny * sizeof(float *));
 		for (int k = 0; k < ny; k++)
 			image_float[ny - k - 1] = image->fpdata[layer] + k * nx;
 	}
-	else return 0;
 
 	psf_star **results = new_fitted_stars(nb_candidates);
 	if (!results) {
 		PRINT_ALLOC_ERR;
+		if (image_float)
+			free(image_float);
+		if (image_ushort)
+			free(image_ushort);
 		return 0;
 	}
 
@@ -624,12 +647,12 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 				}
 			}
 			psf_error error;
-			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, com.pref.starfinder_conf.convergence, FALSE, FALSE, NULL, FALSE, &error);
+			psf_star *cur_star = psf_global_minimisation(z, bg, candidates[candidate].sat, com.pref.starfinder_conf.convergence, TRUE, FALSE, NULL, FALSE, profile, &error);
 			gsl_matrix_free(z);
 			if (cur_star) {
 				gchar errmsg[SF_ERRMSG_LEN] = "";
-				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], dynrange, (DEBUG_STAR_DETECTION) ? errmsg : NULL);
-				if (star_invalidated <= accepted_level) {
+				sf_errors star_invalidated = reject_star(cur_star, sf, &candidates[candidate], dynrange, minA, maxA, (DEBUG_STAR_DETECTION) ? errmsg : NULL);
+				if (error != PSF_ERR_DIVERGED && star_invalidated <= accepted_level) { // we don't return NULL on convergence errors so we need to catch that PSF has not diverged
 					cur_star->layer = layer;
 					cur_star->xpos = (x - R) + cur_star->x0;
 					cur_star->ypos = (y - R) + cur_star->y0;
@@ -760,6 +783,7 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 				n++;
 			}
 		}
+		n = (n == 0) ? 1 : n;
 		*FWHMx = (float)(fwhmx / (double)n);
 		*FWHMy = (float)(fwhmy / (double)n);
 		*B = (float)(b / (double)n);
@@ -768,16 +792,16 @@ void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy
 			float *A = malloc(nb * sizeof(float));
 			if (!A) {
 				PRINT_ALLOC_ERR;
+				return;
 			}
 			for (int i = 0; i < nb; i++)
 				A[i] = stars[i]->A;
 			quicksort_f(A, nb);
 			*Acut = (float)gsl_stats_float_quantile_from_sorted_data(A, 1, nb, Acutp);
-			g_free(A);
+			free(A);
 		}
 	}
 }
-
 
 float filtered_FWHM_average(psf_star **stars, int nb) {
 	if (!stars || !stars[0])
@@ -806,12 +830,14 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	star_finder_params *sf = &com.pref.starfinder_conf;
 	int star = 0, nb_stars = -1;
 	while (fgets(buffer, 300, fd)) {
-		if (buffer[0] != '#' && !params_ok)
+		if (buffer[0] != '#' && !params_ok) {
+			fclose(fd);
 			return 0;
+		}
 		if (!strncmp(buffer, "# ", 2)) {
-			if (sscanf(buffer, "# %d stars found ", &nb_stars) == 1) {
+			if (sscanf(buffer, "# %d stars found ", &nb_stars) == 1) { // nbstars tainted as based on data from file, needs extra checking
 				siril_debug_print("nb stars: %d\n", nb_stars);
-				if (nb_stars > 0 && sfargs->stars) {
+				if (nb_stars > 0 && nb_stars < MAX_STARS && sfargs->stars) { // check nbstars against lower and upper bounds
 					*sfargs->stars = malloc((nb_stars + 1) * sizeof(struct psf_star *));
 					if (!(*sfargs->stars)) {
 						PRINT_ALLOC_ERR;
@@ -824,24 +850,31 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		if (!strncmp(buffer, "# sigma=", 8)) {
 			star_finder_params fparams = { 0 };
 			int fmax_stars;
-			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d auto_adjust=%d relax=%d max_stars=%d",
+			int prof, layer;
+			if (sscanf(buffer, "# sigma=%lf roundness=%lf radius=%d relax=%d profile=%d minbeta=%lf max_stars=%d layer=%d minA=%lf maxA=%lf maxR=%lf",
 						&fparams.sigma, &fparams.roundness, &fparams.radius,
-						&fparams.adjust, &fparams.relax_checks, &fmax_stars) != 6) {
+						&fparams.relax_checks, &prof, &fparams.min_beta, &fmax_stars,
+						&layer, &fparams.min_A, &fparams.max_A, &fparams.max_r) < 8) {
+				// minA, maxA and maxR are newer and not mandatory
 				read_failure = TRUE;
 				break;
 			}
+			fparams.profile = prof;
 			params_ok = fparams.sigma == sf->sigma && fparams.roundness == sf->roundness &&
-				fparams.radius == sf->radius && fparams.adjust == sf->adjust &&
-				fparams.relax_checks == sf->relax_checks &&
-				(fmax_stars >= sfargs->max_stars_fitted);
+				fparams.radius == sf->radius &&	fparams.relax_checks == sf->relax_checks &&
+				fparams.profile == sf->profile && fparams.min_beta == sf->min_beta &&
+				(fmax_stars >= sfargs->max_stars_fitted) && layer == sfargs->layer &&
+				fparams.min_A == sf->min_A && fparams.max_A == sf->max_A && fparams.max_r == sf->max_r;
 			if (fmax_stars > sfargs->max_stars_fitted) sfargs->max_stars_fitted = fmax_stars;
 			siril_debug_print("params check: %d\n", params_ok);
 			if (!params_ok) {
 				read_failure = TRUE;
 				break;
 			}
-			if (!sfargs->stars) // if cannot store them, no need to read them
+			if (!sfargs->stars) {// if cannot store them, no need to read them
+				star = nb_stars; // for message display
 				break;
+			}
 		}
 		if (buffer[0] == '#' || buffer[0] == '\0')
 			continue;
@@ -855,13 +888,16 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		psf_star *s = new_psf_star();
 		memset(s, 0, sizeof(psf_star));
 		int fi, tokens;
+		char dump[9];
 		tokens = sscanf(buffer,
-				"%d\t%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%le\t%lf",
-				&fi, &s->layer, &s->B, &s->A, &s->xpos, &s->ypos,
-				&s->fwhmx, &s->fwhmy, &s->fwhmx_arcsec, &s->fwhmy_arcsec, &s->angle, &s->rmse, &s->mag);
-		if (tokens != 13) {
+				"%d\t%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%le\t%lf\t%s",
+				&fi, &s->layer, &s->B, &s->A, &s->beta, &s->xpos, &s->ypos,
+				&s->fwhmx, &s->fwhmy, &s->fwhmx_arcsec, &s->fwhmy_arcsec, &s->angle, &s->rmse, &s->mag, dump);
+		if (tokens != 15) {
 			siril_debug_print("malformed line: %s", buffer);
 			read_failure = TRUE;
+			free(s);
+			s = NULL;
 			break;
 		}
 		if (fi != star + 1)
@@ -871,8 +907,8 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 		(*sfargs->stars)[star] = NULL;
 	}
 	if (!read_failure) {
-		siril_debug_print("found %d stars with same settings in %s\n", star, filename);
-		*sfargs->nb_stars = star;
+		siril_log_message(_("Found %d stars with same settings in %s, skipping detection\n"), star, filename);
+		if (sfargs->nb_stars) *sfargs->nb_stars = star;
 	} else {
 		if (sfargs->stars) {
 			free(*sfargs->stars);
@@ -881,6 +917,149 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	}
 	fclose(fd);
 	return !read_failure;
+}
+
+#define HANDLE_WRITE_ERR \
+	g_warning("%s\n", error->message); \
+	g_clear_error(&error); \
+	g_object_unref(output_stream); \
+	g_object_unref(file); \
+	return 1
+
+int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, int layer, gboolean verbose) {
+	int i = 0;
+	GError *error = NULL;
+
+	GFile *file = g_file_new_for_path(filename);
+	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
+			G_FILE_CREATE_NONE, NULL, &error);
+
+	if (!output_stream) {
+		if (error) {
+			siril_log_message(_("Cannot save star list %s: %s\n"), filename, error->message);
+			g_clear_error(&error);
+		}
+		g_object_unref(file);
+		return 1;
+	}
+	if (nbstars <= 0) {
+		// unknown by caller
+		nbstars = 0;
+		if (stars)
+			while (stars[nbstars++]);
+	}
+
+	char buffer[320];
+	char gausstr[] = "Gaussian";
+	char moffstr[] = "Moffat";
+	char *starprof;
+	gdouble beta;
+	int len = snprintf(buffer, 320, "# %d stars found using the following parameters:%s", nbstars, SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
+	len = snprintf(buffer, 320, "# sigma=%3.2f roundness=%3.2f radius=%d relax=%d profile=%d minbeta=%3.1f max_stars=%d layer=%d minA=%3.2f maxA=%3.2f maxR=%3.2f%s",
+			sf->sigma, sf->roundness, sf->radius, sf->relax_checks,sf->profile, sf->min_beta, max_stars_fitted, layer, sf->min_A, sf->max_A, sf->max_r, SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
+	len = snprintf(buffer, 320,
+			"# star#\tlayer\tB\tA\tbeta\tX\tY\tFWHMx [px]\tFWHMy [px]\tFWHMx [\"]\tFWHMy [\"]\tangle\tRMSE\tmag\tProfile\tRA\tDec%s",
+			SIRIL_EOL);
+	if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+		HANDLE_WRITE_ERR;
+	}
+	if (stars) {
+		while (stars[i]) {
+			if (stars[i]->profile == PSF_GAUSSIAN) {
+				beta = -1;
+				starprof = gausstr;
+			} else {
+				beta = stars[i]->beta;
+				starprof = moffstr;
+			}
+			len = snprintf(buffer, 320,
+					"%d\t%d\t%10.6f\t%10.6f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%10.2f\t%3.2f\t%10.3e\t%10.2f\t%s\t%f\t%f%s",
+					i + 1, stars[i]->layer, stars[i]->B, stars[i]->A, beta,
+					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
+					stars[i]->fwhmy, stars[i]->fwhmx_arcsec ,stars[i]->fwhmy_arcsec,
+					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset,
+					starprof, stars[i]->ra, stars[i]->dec, SIRIL_EOL);
+		if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+			HANDLE_WRITE_ERR;
+		}
+		i++;
+	}
+	}
+	if (verbose) siril_log_message(_("The file %s has been created.\n"), filename);
+	g_object_unref(output_stream);
+	g_object_unref(file);
+
+	return 0;
+}
+
+/* saving a list of sources to the input format of solve-field, the astrometry.net
+ * plate solver, as described here:
+ * http://astrometry.net/doc/readme.html#source-lists-xylists
+ * Convention is to have the columns for pixel coordinates named IMAGEX and IMAGEY and
+ * having in the header the keywords IMAGEW and IMAGEH giving rx and ry.
+ * Correction by 0.5 pixel to conform to asnet convention (compared to siril) is also added
+ */
+int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars, int rx, int ry) {
+	if (g_unlink(filename)) {
+		siril_debug_print("g_unlink failure\n");
+	} /* Delete old file if it already exists */
+
+	fitsfile *fptr = NULL;
+	int status = 0;
+	if (siril_fits_create_diskfile(&fptr, filename, &status)) { /* create new FITS file */
+		report_fits_error(status);
+		return 1;
+	}
+
+	char* rownames[] = { "X", "Y" };
+	char* rowtypes[] = { "1E", "1E" };	// rE is float, rD is double
+	if (fits_create_tbl(fptr, BINARY_TBL, nbstars, 2, rownames, rowtypes, NULL, NULL, &status)) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fptr, &status);
+		return 1;
+	}
+
+	fits_update_key(fptr, TINT, "IMAGEW", &rx, "Image width in pixels", &status);
+	fits_update_key(fptr, TINT, "IMAGEH", &ry, "Image height in pixels", &status);
+	if (status)
+		siril_debug_print("Failed to write the IMAGEW and IMAGEH headers to the FITS table\n");
+
+	/* reorganize data per row for saving */
+	float *data = malloc(nbstars * sizeof(float));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		fits_close_file(fptr, &status);
+		return 1;
+	}
+
+	status = 0;
+	for (int i = 0; i < nbstars; i++)
+		data[i] = stars[i]->xpos + 0.5; // asnet convention
+	if (fits_write_col(fptr, TFLOAT, 1, 1, 1, nbstars, data, &status)) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fptr, &status);
+		free(data);
+		return 1;
+	}
+
+	for (int i = 0; i < nbstars; i++)
+		data[i] = ry - stars[i]->ypos + 0.5; // asnet convention
+	if (fits_write_col(fptr, TFLOAT, 2, 1, 1, nbstars, data, &status))
+		report_fits_error(status);
+
+	int retval = status;
+	status = 0;
+	fits_close_file(fptr, &status);
+	free(data);
+	return retval;
 }
 
 int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
@@ -908,12 +1087,57 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 		curr_findstar_args->starfile = star_filename;
 
 	int retval = 0;
-	if (!check_star_list(star_filename, curr_findstar_args))
+	if (!check_starfile_date(args->seq, i, star_filename) ||
+			!check_star_list(star_filename, curr_findstar_args))
 		retval = GPOINTER_TO_INT(findstar_worker(curr_findstar_args));
 
 	g_free(star_filename);
 	free(curr_findstar_args);
 	return retval;
+}
+
+void free_findstar_args(struct starfinder_data *args) {
+#ifdef HAVE_WCSLIB
+	wcsfree(args->ref_wcs);
+#endif
+	if (args->startable)
+		g_free(args->startable);
+	if (args->starfile)
+		g_free(args->starfile);
+	free(args);
+	printf("findstar_args freed\n");
+	return;
+}
+
+gboolean end_findstar_sequence(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+	struct starfinder_data *findstar_args = (struct starfinder_data*) args->user;
+	if (args->has_output && args->load_new_sequence &&
+			args->new_seq_prefix && !args->retval) {
+		gchar *basename = g_path_get_basename(args->seq->seqname);
+		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
+		check_seq();
+		update_sequences_list(seqname);
+		g_free(seqname);
+		g_free(basename);
+	}
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free_findstar_args(findstar_args);
+	printf("findstar_args have been freed\n");
+	free(p);
+	return end_generic(NULL);
+}
+
+int findstar_finalize_hook (struct generic_seq_args *args) {
+	struct starfinder_data *data = (struct starfinder_data *) args->user;
+#ifdef HAVE_WCSLIB
+	if (data->ref_wcs) {
+		if (!wcsfree(data->ref_wcs))
+			free(data->ref_wcs);
+	}
+#endif
+	return 0;
 }
 
 int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
@@ -923,14 +1147,49 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 		args->nb_filtered_images = args->seq->selnum;
 	}
 	args->image_hook = findstar_image_hook;
+	args->finalize_hook = findstar_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("FindStar");
 	args->has_output = FALSE;
 	args->load_new_sequence = FALSE;
 	args->user = findstar_args;
+	args->idle_function = end_findstar_sequence; // needed in order to free ref_wcs
+	args->already_in_a_thread = findstar_args->already_in_thread;
 
-	if (findstar_args->already_in_thread)
-		return GPOINTER_TO_INT(generic_sequence_worker(args));
+	if (findstar_args->save_to_file && findstar_args->save_eqcoords) {
+		/* saving equatorial coordinates is possible if all images are
+		 * plate solved or if the reference is plate solved and
+		 * transformation matrices H from registration are available */
+		fits ref = { 0 };
+		int refidx = sequence_find_refimage(args->seq);
+		// or use sequence_has_wcs(args->seq
+		if (seq_read_frame_metadata(args->seq, refidx, &ref)) {
+			siril_log_message(_("Could not load reference image\n"));
+			free(args);
+			return 1;
+		}
+		if (!has_wcs(&ref))
+			findstar_args->save_eqcoords = FALSE;
+		else {
+			findstar_args->reference_image = refidx;
+#ifdef HAVE_WCSLIB
+			findstar_args->ref_wcs = ref.wcslib;
+#endif
+			if (args->seq->regparam[findstar_args->layer] &&
+					guess_transform_from_H(args->seq->regparam[findstar_args->layer][refidx].H) != NULL_TRANSFORMATION) {
+				findstar_args->reference_H = args->seq->regparam[findstar_args->layer][refidx].H;
+			}
+		}
+#ifdef HAVE_WCSLIB
+		ref.wcslib = NULL;	// don't free it
+#endif
+		clearfits(&ref);
+	}
+	if (findstar_args->already_in_thread) {
+		int retval = GPOINTER_TO_INT(generic_sequence_worker(args));
+		free(args);
+		return retval;
+	}
 	start_in_new_thread(generic_sequence_worker, args);
 	return 0;
 }
@@ -942,31 +1201,74 @@ gpointer findstar_worker(gpointer p) {
 	struct starfinder_data *args = (struct starfinder_data *)p;
 	int retval = 0;
 	int nbstars = 0;
-	//struct timeval t_start, t_end;
-	//gettimeofday(&t_start, NULL);
 	rectangle *selection = NULL;
 	if (com.selection.w != 0 && com.selection.h != 0)
 		selection = &com.selection;
 	gboolean limit_stars = (args->max_stars_fitted > 0);
 	int threads = check_threading(&args->threading);
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
-			selection, args->update_GUI, limit_stars, args->max_stars_fitted, threads);
+			selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
 
+	double fwhm = 0.0;
 	if (stars) {
 		int i = 0;
-		while (stars[i])
-			fwhm_to_arcsec_if_needed(args->im.fit, stars[i++]);
+		double sum = 0.0;
+		while (stars[i]) {
+			sum += stars[i]->fwhmx;
+			fwhm_to_arcsec_if_needed(args->im.fit, stars[i]);
+
+			if (args->starfile && args->save_eqcoords) {
+				sequence *seq = args->im.from_seq;
+				double x = stars[i]->xpos, y = stars[i]->ypos;
+				if (has_wcs(args->im.fit)) {
+					double ra = 0.0, dec = 0.0;
+#ifdef HAVE_WCSLIB
+					pix2wcs2(args->ref_wcs, x, y, &ra, &dec);
+#endif
+					// ra and dec = -1 is the error code
+					stars[i]->ra = ra;
+					stars[i]->dec = dec;
+				}
+				else if (!seq->regparam[args->layer] ||
+						guess_transform_from_H(seq->regparam[args->layer][args->im.index_in_seq].H) == NULL_TRANSFORMATION) {
+					// image was not registered, ignore
+				}
+				else {
+					cvTransfPoint(&x, &y, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H);
+					double ra = 0.0, dec = 0.0;
+#ifdef HAVE_WCSLIB
+					pix2wcs2(args->ref_wcs, x, y, &ra, &dec);
+#endif
+					// ra and dec = -1 is the error code
+					stars[i]->ra = ra;
+					stars[i]->dec = dec;
+				}
+			}
+			i++;
+		}
+		if (i > 0)
+			fwhm = sum / i;
+		else fwhm = 0.0;
+	} else {
+		goto END;
 	}
 
-	if (args->update_GUI && stars) {
-		clear_stars_list(FALSE); // with FALSE it's not a GUI call
-		com.stars = stars;
-	}
-	siril_log_message(_("Found %d stars in %s, channel #%d\n"), nbstars,
-			selection ? _("selection") : _("image"), args->layer);
+	if (args->update_GUI)
+		update_star_list(stars, TRUE);
+
+	siril_log_message(_("Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"), nbstars,
+			com.pref.starfinder_conf.profile == PSF_GAUSSIAN ? _("Gaussian") : _("Moffat"),
+			selection ? _("selection") : _("image"), args->layer, fwhm);
 	if (args->starfile &&
 			save_list(args->starfile, args->max_stars_fitted, stars, nbstars,
-				&com.pref.starfinder_conf, args->update_GUI)) {
+				&com.pref.starfinder_conf, args->layer, args->update_GUI)) {
+		retval = 1;
+	}
+
+	if (args->startable &&
+			save_list_as_FITS_table(args->startable, stars, nbstars,
+				args->im.fit->rx, args->im.fit->ry)) {
+		siril_debug_print("saving list as FITS table failed\n");
 		retval = 1;
 	}
 
@@ -976,7 +1278,7 @@ gpointer findstar_worker(gpointer p) {
 	}
 	else if (!args->update_GUI)
 		free_fitted_stars(stars);
-
+END:
 	if (args->update_GUI)
 		siril_add_idle(end_findstar, args);
 	/*gettimeofday(&t_end, NULL);
@@ -987,3 +1289,46 @@ gpointer findstar_worker(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
+// if channel < 0, returns the max of each channel's robust mean
+// if channel, returns the robust mean for this channel
+// returns 0 for errors
+float measure_image_FWHM(fits *fit, int channel) {
+	float fwhm[3];
+	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
+	gboolean failed = FALSE;
+	int nb_chan = channel < 0 ? (int)fit->naxes[2] : 1;
+	g_assert(nb_chan == 1 || nb_chan == 3);
+#ifdef _OPENMP
+	int *threads = compute_thread_distribution(nb_chan, com.max_thread);
+#pragma omp parallel for num_threads(com.max_thread) if(nb_chan > 1)
+#endif
+	for (int chan = 0; chan < nb_chan; chan++) {
+		int nb_stars;
+		int nb_subthreads;
+#ifdef _OPENMP
+		nb_subthreads = threads[chan];
+#else
+		nb_subthreads = com.max_thread;
+#endif
+		int real_chan = channel < 0 ? chan : channel;
+		psf_star **stars = peaker(&im, real_chan, &com.pref.starfinder_conf, &nb_stars,
+				NULL, FALSE, TRUE, 200, com.pref.starfinder_conf.profile, nb_subthreads);
+		if (stars) {
+			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
+			siril_debug_print("FWHM for channel %d: %.3f\n", real_chan, fwhm[chan]);
+
+			for (int i = 0; i < nb_stars; i++)
+				free_psf(stars[i]);
+			free(stars);
+		}
+		else failed = TRUE;
+	}
+#ifdef _OPENMP
+	free(threads);
+#endif
+	if (failed)
+		return 0.0f;
+	if (nb_chan == 1)
+		return fwhm[0];
+	return max(fwhm[0], max(fwhm[1], fwhm[2]));
+}

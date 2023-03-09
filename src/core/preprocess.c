@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -447,6 +447,8 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 }
 
 void clear_preprocessing_data(struct preprocessing_data *prepro) {
+	if (prepro->bad_pixel_map_file)
+		g_object_unref(prepro->bad_pixel_map_file);
 	if (prepro->use_bias && prepro->bias)
 		clearfits(prepro->bias);
 	if (prepro->use_dark && prepro->dark)
@@ -459,24 +461,19 @@ void clear_preprocessing_data(struct preprocessing_data *prepro) {
 
 static int prepro_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
-	struct preprocessing_data *prepro = args->user;
-	clear_preprocessing_data(prepro);
+	clear_preprocessing_data((struct preprocessing_data *)args->user);
 	free(args->user);
-	return retval;
-}
-
-gpointer prepro_worker(gpointer p) {
-	gpointer retval = generic_sequence_worker(p);
-
-	struct generic_seq_args *args = (struct generic_seq_args *)p;
-	free_sequence(args->seq, TRUE);
-	free(args);
 	return retval;
 }
 
 void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	struct generic_seq_args *args = create_default_seqargs(prepro->seq);
 	args->force_float = !com.pref.force_16bit && prepro->output_seqtype != SEQ_SER;
+	if (!prepro->ignore_exclusion) {
+		siril_debug_print("Ignoring exclusions: frames marked as excluded will still be processed.\n");
+		args->filtering_criterion = seq_filter_included;
+		args->nb_filtered_images = prepro->seq->selnum;
+	}
 	args->compute_size_hook = prepro_compute_size_hook;
 	args->compute_mem_limits_hook = prepro_compute_mem_hook;
 	args->prepare_hook = prepro_prepare_hook;
@@ -484,7 +481,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	args->finalize_hook = prepro_finalize_hook;
 	args->description = _("Preprocessing");
 	args->has_output = TRUE;
-	args->new_seq_prefix = prepro->ppprefix;
+	args->new_seq_prefix = strdup(prepro->ppprefix);
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = prepro->seq->type != SEQ_SER && prepro->output_seqtype == SEQ_SER;
 	args->force_fitseq_output = prepro->seq->type != SEQ_FITSEQ && prepro->output_seqtype == SEQ_FITSEQ;
@@ -494,15 +491,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 			(args->seq->type == SEQ_SER && !args->force_fitseq_output)) ?
 		DATA_USHORT : DATA_FLOAT;
 
-	remove_prefixed_sequence_files(prepro->seq, prepro->ppprefix);
-
-	if (com.script) {
-		args->already_in_a_thread = TRUE;
-		start_in_new_thread(prepro_worker, args);
-	} else {
-		args->already_in_a_thread = FALSE;
-		start_in_new_thread(generic_sequence_worker, args);
-	}
+	start_in_new_thread(generic_sequence_worker, args);
 }
 
 /********** SINGLE IMAGE (from com.uniq) ************/
@@ -593,6 +582,8 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 	// If found -> Try to find $ sign to read the offset value and its multiplier
 
 	gchar *expressioncpy = g_strdup(expression);
+	if (!expressioncpy)
+		return 0;
 	gchar *end = NULL;
 	remove_spaces_from_str(expressioncpy);
 	gchar *mulsignpos = g_strrstr(expressioncpy, "*");
@@ -645,10 +636,14 @@ gboolean check_for_cosme_file_sanity(GFile *file) {
 				&& !g_str_has_prefix(line, "C ")
 				&& !g_str_has_prefix(line, "#")) {
 			g_free(line);
+			g_object_unref(data_input);
+			g_object_unref(input_stream);
 			return FALSE;
 		}
 		g_free(line);
 	}
+	g_object_unref(data_input);
+	g_object_unref(input_stream);
 	return TRUE;
 }
 
@@ -794,8 +789,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				if (bad_pixel_f[0] != '\0') {
 					args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
 					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-						g_object_unref(args->bad_pixel_map_file);
-						args->bad_pixel_map_file = NULL;
+						siril_debug_print("cosme file sanity check failed...\n");
+						has_error = TRUE;
 					}
 				}
 			}
@@ -873,21 +868,25 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
 	GtkToggleButton *debayer = GTK_TOGGLE_BUTTON(lookup_widget("checkButton_pp_dem"));
 	GtkToggleButton *equalize_cfa = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_equalize_cfa"));
+	GtkToggleButton *preprocess_excluded = GTK_TOGGLE_BUTTON(lookup_widget("toggle_preprocess_excluded"));
 	GtkComboBox *output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
 
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	if (test_for_master_files(args)) {
 		siril_log_color_message(_("Some errors have been detected, Please check the logs.\n"), "red");
+		free(args);
 		return;
 	}
-	if (!args->use_bias && !args->use_dark && !args->use_flat)
+	if (!args->use_bias && !args->use_dark && !args->use_flat) {
+		free(args);
 		return;
-
+	}
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 
 	// set output filename (preprocessed file name prefix)
-	args->ppprefix = gtk_entry_get_text(entry);
+	args->ppprefix = strdup(gtk_entry_get_text(entry));
 
+	args->ignore_exclusion = gtk_toggle_button_get_active(preprocess_excluded);
 	args->is_cfa = gtk_toggle_button_get_active(CFA);
 	args->debayer = gtk_toggle_button_get_active(debayer);
 	args->equalize_cfa = gtk_toggle_button_get_active(equalize_cfa);

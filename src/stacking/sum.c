@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -93,7 +93,7 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 #pragma omp atomic
 #endif
 	ssdata->livetime += fit->exposure;
-	
+
 	if (fit->date_obs) {
 		GDateTime *date = g_date_time_ref(fit->date_obs);
 		ssdata->list_date = g_list_prepend(ssdata->list_date, new_date_item(date, fit->exposure));
@@ -181,14 +181,16 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 			import_metadata_from_fitsfile(args->seq->fptr[ref], fit);
 			seq_close_image(args->seq, ref);
 		}
+		fit->livetime = ssdata->livetime;
 	} else if (args->seq->type == SEQ_FITSEQ) {
 		if (!fitseq_set_current_frame(args->seq->fitseq_file, ref))
 			import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, fit);
+		fit->livetime = ssdata->livetime;
 	} else if (args->seq->type == SEQ_SER) {
 		import_metadata_from_serfile(args->seq->ser_file, fit);
+		fit->livetime = fit->exposure * args->nb_filtered_images; // ssdata->livetime is null for ser as fit has no exposure data
 	}
 
-	fit->livetime = ssdata->livetime;
 	fit->stackcnt = args->nb_filtered_images;
 	nbdata = args->seq->ry * args->seq->rx;
 	compute_date_time_keywords(ssdata->list_date, fit);
@@ -205,7 +207,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 				}
 			}
 		} else {
-			double ratio = 1.0 / (double)max;
+			double ratio = 1.0 / (max == 0 ? 1 : (double)max);
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
 				guint64 *from = ssdata->sum[layer];
 				float *to = fit->fpdata[layer];

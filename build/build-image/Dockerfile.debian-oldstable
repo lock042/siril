@@ -75,4 +75,4 @@ RUN git clone https://github.com/LibRaw/LibRaw.git \
     && cd ../.. \
     && rm -rf opencv-4.5.3 opencv.zip \
     && python3 -m pip install meson \
-    && python3 -m pip install ninja
+    && python3 -m pip install ninja!=1.11.1

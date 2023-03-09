@@ -62,6 +62,11 @@ typedef enum {
 	SER_BGR = 101	// SER v3
 } ser_color;
 
+typedef enum {
+	SER_GENERIC_ERROR = -1,
+	SER_OK = 0,
+} ser_error;
+
 /* Endianness of the frame data for 16-bit images */
 typedef enum {
 //	SER_BIG_ENDIAN = 0 /* = FALSE */, SER_LITTLE_ENDIAN = 1 /* = TRUE */

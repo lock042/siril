@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -171,8 +171,7 @@ static gboolean idle_messaging(gpointer p) {
 }
 
 // Send a log message to the console in the UI
-void gui_log_message(const char* msg, const char* color)
-{
+void gui_log_message(const char* msg, const char* color) {
 	if (com.headless)
 		return;
 	time_t now_sec = time(NULL);

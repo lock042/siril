@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@
 #include <string.h>
 #include <locale.h>
 #include <unistd.h>
+#include <fftw3.h>
 #ifdef OS_OSX
 #import <AppKit/AppKit.h>
 #if defined(ENABLE_RELOCATABLE_RESOURCES)
@@ -49,6 +50,7 @@
 #include "core/pipe.h"
 #include "core/signals.h"
 #include "core/siril_app_dirs.h"
+#include "core/siril_language.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
@@ -115,10 +117,22 @@ static void global_initialization() {
 	com.stars = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
+	com.child_is_running = FALSE;
+	com.kernel = NULL;
+	com.kernelsize = 0;
+	com.kernelchannels = 0;
+#ifdef _WIN32
+	com.childhandle = NULL;
+#else
+	com.childpid = 0;
+#endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
 
 	initialize_default_settings();	// com.pref
+#ifdef HAVE_FFTW3F_OMP
+	fftwf_init_threads(); // Should really only be called once so do it at startup
+#endif
 }
 
 static void siril_app_activate(GApplication *application) {
@@ -150,6 +164,9 @@ static void siril_app_activate(GApplication *application) {
 		fprintf(stderr,	_("Could not load or create settings file, exiting.\n"));
 		exit(EXIT_FAILURE);
 	}
+
+	if (com.pref.lang)
+		language_init(com.pref.lang);
 
 	if (main_option_directory) {
 		gchar *cwd_forced;
@@ -228,7 +245,7 @@ static void siril_macos_setenv(const char *progname) {
 
 		g_snprintf(tmp, sizeof(tmp), "%s/../Resources", app_dir);
 		if (realpath(tmp, lib_dir) && !stat(lib_dir, &sb) && S_ISDIR(sb.st_mode))
-			g_print("SiriL is started as MacOS application\n");
+			g_print("Siril is started as MacOS application\n");
 		else
 			return;
 
@@ -262,10 +279,12 @@ static void siril_macos_setenv(const char *progname) {
 		g_setenv("GDK_PIXBUF_MODULE_DIR", tmp, TRUE);
 		g_snprintf(tmp, sizeof(tmp), "%s/etc/fonts", lib_dir);
 		g_setenv("FONTCONFIG_PATH", tmp, TRUE);
+		g_snprintf(tmp, sizeof(tmp), "%s/etc/ca-certificates/cacert.pem", lib_dir);
+		g_setenv("CURL_CA_BUNDLE", tmp, TRUE);
 		if (g_getenv("HOME") != NULL) {
-			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support", g_getenv("HOME"));
+			g_snprintf(tmp, sizeof(tmp), "%s/Library/Application Support/org.free-astro.Siril", g_getenv("HOME"));
 			g_setenv("XDG_CONFIG_HOME", tmp, TRUE);
-			g_snprintf (tmp, sizeof(tmp), "%s/Library/Application Support/SiriL/1.00/cache",
+			g_snprintf (tmp, sizeof(tmp), "%s/Library/Caches/org.free-astro.Siril",
 					g_getenv("HOME"));
 			g_setenv ("XDG_CACHE_HOME", tmp, TRUE);
 

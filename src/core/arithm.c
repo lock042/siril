@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,7 +34,9 @@
  ****************************************************************************/
 
 static int soper_ushort_to_ushort(fits *a, float scalar, image_operator oper) {
-	WORD *data;
+	if (!a) return 1;
+	if (!a->data) return 1;
+	WORD *data = NULL;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
 	data = a->data;
@@ -78,8 +80,10 @@ static int soper_ushort_to_ushort(fits *a, float scalar, image_operator oper) {
 }
 
 static int soper_ushort_to_float(fits *a, float scalar, image_operator oper) {
-	WORD *data;
-	float *result;
+	if (!a) return 1;
+	if (!a->data) return 1;
+	WORD *data = NULL;
+	float *result= NULL;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
 	data = a->data;
@@ -118,11 +122,31 @@ static int soper_ushort_to_float(fits *a, float scalar, image_operator oper) {
 	return 0;
 }
 
-static int soper_float(fits *a, float scalar, image_operator oper) {
-	float *data;
+int soper_unscaled_div_ushort_to_float(fits *a, int scalar) {
+	if (!a) return 1;
+	if (!a->data) return 1;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
 	if (!n) return 1;
-	data = a->fdata;
+	WORD *data = a->data;
+	float *result = malloc(n * sizeof(float));
+	if (!result) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	float operand = 1.0f / (float)scalar;
+	for (i = 0; i < n; ++i) {
+		result[i] = data[i] * operand;
+	}
+	fit_replace_buffer(a, result, DATA_FLOAT);
+	return 0;
+}
+
+static int soper_float(fits *a, float scalar, image_operator oper) {
+	if (!a) return 1;
+	if (!a->fdata) return 1;
+	float *data = a->fdata;
+	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
+	if (!n) return 1;
 	if (oper == OPER_DIV) {
 		scalar = 1.0f / scalar;
 		oper = OPER_MUL;
@@ -170,14 +194,18 @@ int soper(fits *a, float scalar, image_operator oper, gboolean conv_to_float) {
 }
 
 static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor) {
+	if (!a) return 1;
+	if (!a->data) return 1;
+	if (!b) return 1;
 	size_t i, n = a->naxes[0] * a->naxes[1] * a->naxes[2];
-
+	if (!n) return 1;
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
 		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
 		return 1;
 	}
 
 	if (b->type == DATA_USHORT) {
+		if (!b->data) return 1;
 		WORD *abuf = a->data, *bbuf = b->data;
 		if (oper == OPER_DIV) {
 			for (i = 0; i < n; ++i) {
@@ -216,8 +244,7 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 				case OPER_SUB:
 					abuf[i] = truncate_to_WORD(aval - bval);
 					break;
-				case OPER_MUL: // handled above
-				case OPER_DIV:	// handled above
+				default:	// OPER_MUL, OPER_DIV handled above
 					break;
 				}
 
@@ -226,6 +253,7 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 			}
 		}
 	} else if (b->type == DATA_FLOAT) {
+		if (!b->fdata) return 1;
 		WORD *abuf = a->data;
 		float *bbuf = b->fdata;
 		float norm = (a->bitpix == BYTE_IMG) ? UCHAR_MAX_SINGLE : USHRT_MAX_SINGLE;
@@ -267,8 +295,7 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 				case OPER_SUB:
 					abuf[i] = truncate_to_WORD(aval - bval);
 					break;
-				case OPER_MUL:	// handled above
-				case OPER_DIV:	// handled above
+				default:	// OPER_MUL and OPER_DIV handled above
 					break;
 				}
 				if (factor != 1.0f)
@@ -282,8 +309,11 @@ static int imoper_to_ushort(fits *a, fits *b, image_operator oper, float factor)
 }
 
 int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
+	if (!a) return 1;
+	if (!b) return 1;
 	size_t n = a->naxes[0] * a->naxes[1] * a->naxes[2];
-	float *result;
+	if (!n) return 1;
+	float *result = NULL;
 
 	if (memcmp(a->naxes, b->naxes, sizeof a->naxes)) {
 		siril_log_color_message(_("Images must have same dimensions.\n"), "red");
@@ -291,6 +321,7 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 	}
 
 	if (a->type == DATA_FLOAT) {
+		if (!a->fdata) return 1;
 		result = a->fdata;
 	}
 	else if (a->type == DATA_USHORT) {
@@ -301,6 +332,10 @@ int imoper_to_float(fits *a, fits *b, image_operator oper, float factor) {
 		}
 	}
 	else return 1;
+
+	if (b->type == DATA_USHORT && (!b->data)) { free(result); return 1; }
+	if (b->type == DATA_FLOAT && (!b->fdata)) { free(result); return 1; }
+	if (!(b->type == DATA_FLOAT || b->type == DATA_USHORT)) { free(result); return 1; }
 
 	size_t nb_negative = 0;
 	for (size_t i = 0; i < n; ++i) {

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -116,13 +116,13 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, NULL);
+		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
 		if (result) {
 			pos_of_image1.x = result->x0 + com.selection.x;
 			pos_of_image1.y = com.selection.y + com.selection.h - result->y0;
 			if (layer_has_registration(&com.seq, layer) &&
-					(guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > -2) &&
-					(guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > -2)) {
+					guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
+					guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
 				cvTransfPoint(&pos_of_image1.x, &pos_of_image1.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H);
 			}
 			free_psf(result);
@@ -153,13 +153,13 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
-		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, FALSE, NULL, FALSE, NULL);
+		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
 		if (result) {
 			pos_of_image2.x = result->x0 + com.selection.x;
 			pos_of_image2.y = com.selection.y + com.selection.h - result->y0;
 			if (layer_has_registration(&com.seq, layer) &&
-					(guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > -2) &&
-					(guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > -2)) {
+					guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
+					guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
 				cvTransfPoint(&pos_of_image2.x, &pos_of_image2.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H);
 			}
 			free_psf(result);
@@ -281,7 +281,7 @@ static int comet_align_finalize_hook(struct generic_seq_args *args) {
 		g_date_time_unref(cadata->reference_date);
 
 	free(cadata);
-	cadata = NULL;
+	args->user = NULL;
 	return 0;
 }
 
@@ -314,6 +314,8 @@ int register_comet(struct registration_args *regargs) {
 	args->user = cadata;
 
 	generic_sequence_worker(args);
-	return args->retval;
-}
 
+	regargs->retval = args->retval;
+	free(args);
+	return regargs->retval;
+}

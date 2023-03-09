@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -171,7 +171,7 @@ int draw_sensor_tilt(fits *fit) {
 	delete_selected_area();
 
 	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
-	psf_star **stars = peaker(&im, select_vport(gui.cvport), &com.pref.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.max_thread);
+	psf_star **stars = peaker(&im, select_vport(gui.cvport), &com.pref.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.pref.starfinder_conf.profile, com.max_thread);
 
 	if (!compute_tilt_values(fit, nbstars, stars, &m, &m1, &m2, &m3, &m4, &mr1, &mr2)) {
 		float best = min(min(m1, m2), min(m3, m4));
@@ -193,7 +193,7 @@ static int compute_tilt_to_image(image *im, struct tilt_data *t_args) {
 	int nbstars = 0;
 	int layer = im->fit->naxes[2] > 1 ? GLAYER : RLAYER;
 
-	psf_star **stars = peaker(im, layer, &com.pref.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.max_thread);
+	psf_star **stars = peaker(im, layer, &com.pref.starfinder_conf, &nbstars, NULL, FALSE, FALSE, MAX_STARS_FITTED, com.pref.starfinder_conf.profile, com.max_thread);
 
 	float m = 0;
 	float m1 = 0;
@@ -329,7 +329,7 @@ static void set_edge_square(gchar **panel) {
 		return;
 	}
 	int widget_size = com.pref.analysis.mosaic_window / 3;
-	double scale = com.pref.analysis.mosaic_panel / widget_size;
+	double scale = (double) com.pref.analysis.mosaic_panel / widget_size;
 	if (scale < 1.0) scale = 1.0;
 	cairo_surface_set_device_scale(edge_surface, scale, scale);
 	image_width = (int) ((double)image_width / scale);

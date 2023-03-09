@@ -58,6 +58,15 @@ sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86
 mkdir -p etc/fonts/
 cp /etc/fonts/fonts.conf etc/fonts/
 
+# Compile GLib schemas if the subdirectory is present in the AppImage
+# AppRun has to export GSETTINGS_SCHEMA_DIR for this to work
+apt_bundle gnome-settings-daemon-common
+mkdir -p usr/share/glib-2.0/schemas/
+cp /usr/share/glib-2.0/schemas/*.gschema.xml usr/share/glib-2.0/schemas/
+if [ -d usr/share/glib-2.0/schemas/ ] ; then
+  ( cd usr/share/glib-2.0/schemas/ ; glib-compile-schemas . )
+fi
+
 cd -
 
 ########################################################################

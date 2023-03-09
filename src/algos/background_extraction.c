@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -144,12 +144,12 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	int scaling_factor = 4;
 	int width_scaled = round_to_int(width / scaling_factor);
 	int height_scaled = round_to_int(height / scaling_factor);
-	
+
 	double *background_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double *kernel_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double x_scaling = (double)height_scaled / (double)height;
 	double y_scaling = (double)width_scaled / (double)width;
-	
+
 	/* Copy linked list into array */
 	list_array = malloc(n * sizeof(double[3]));
 	l_i = list;
@@ -190,7 +190,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 
 	/* Smoothing */
 	smoothing = 1e-4 * pow(10.0, (smoothing-0.5) * 3);
-	
+
 	for (int i = 0; i < n; i++) {
 		gsl_matrix_set(K, i, i, smoothing * mean);
 	}
@@ -433,7 +433,7 @@ static background_sample *get_sample(float *buf, const int xx,
 		const int yy, const int w, const int h) {
 	size_t size = SAMPLE_SIZE * SAMPLE_SIZE;
 	int radius = SAMPLE_SIZE / 2;
-	background_sample *sample = (background_sample *) g_malloc(sizeof(background_sample));
+	background_sample *sample = malloc(sizeof(background_sample));
 	if (!sample) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -504,14 +504,14 @@ static double get_background_mean(GSList *list, int num_channels) {
 	GSList *l;
 	guint n = g_slist_length(list);
 	double mean = 0.0;
-	
+
 	for (int channel = 0; channel < num_channels; channel++) {
 		for (l = list; l; l = l->next) {
 			background_sample *sample = (background_sample *) l->data;
 			mean += sample->median[channel];
 		}
 	}
-	
+
 	return mean / n / num_channels;
 }
 
@@ -643,6 +643,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 	if (median <= 0.0f) {
 		if (error)
 			*error = "removing the gradient on negative images is not supported";
+		free(image);
 		return NULL;
 	}
 
@@ -657,6 +658,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 	if (nb_per_column == 0) {
 		if (error)
 			*error = "image is smaller than the sample size of the background extraction";
+		free(image);
 		return NULL;
 	}
 
@@ -689,7 +691,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 		/* Store next element's pointer before removing it */
 		GSList *next = g_slist_next(l);
 		if (sample->median[RLAYER] <= 0.0 || sample->median[RLAYER] >= threshold) {
-			g_free(sample);
+			free(sample);
 			list = g_slist_delete_link(list, l);
 		}
 		l = next;
@@ -764,7 +766,7 @@ int get_background_sample_radius() {
 
 void free_background_sample_list(GSList *list) {
 	if (list == NULL) return;
-	g_slist_free_full(list, g_free);
+	g_slist_free_full(list, free);
 }
 
 GSList *add_background_sample(GSList *orig, fits *fit, point pt) {
@@ -844,13 +846,15 @@ gboolean end_background(gpointer p);	// in gui/background_extraction.c
 /* uses samples from com.grad_samples */
 gpointer remove_gradient_from_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
-	gchar *error;
+	gchar *error = NULL;
 	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
 
-	if (!background && !com.script) {
+	if (!background) {
 		PRINT_ALLOC_ERR;
-		set_cursor_waiting(FALSE);
-		return NULL;
+		if (!com.script) {
+			set_cursor_waiting(FALSE);
+		}
+		return GINT_TO_POINTER(1);
 	}
 
 	const size_t n = gfit.naxes[0] * gfit.naxes[1];
@@ -858,7 +862,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 	if (!image) {
 		free(background);
 		PRINT_ALLOC_ERR;
-		return NULL;
+		return GINT_TO_POINTER(1);
 	}
 
 	/* Make sure to update local median. Useful if undo is pressed */
@@ -884,10 +888,14 @@ gpointer remove_gradient_from_image(gpointer p) {
 			queue_error_message_dialog(_("Not enough samples."), error);
 			free(args);
 			siril_add_idle(end_background, NULL);
-			return NULL;
+			return GINT_TO_POINTER(1);
 		}
 		/* remove background */
-		const char *c_name = channel_number_to_name(channel);
+		const char *c_name;
+		if (gfit.naxes[2] > 1)
+			c_name = channel_number_to_name(channel);
+		else
+			c_name = _("monochrome");
 		siril_log_message(_("Background extraction from %s channel.\n"), c_name);
 		convert_fits_to_img(&gfit, image, channel, args->dither);
 		remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
@@ -901,7 +909,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 	free(image);
 	free(background);
 	siril_add_idle(end_background, args);
-	return args;
+	return GINT_TO_POINTER(0);
 }
 
 /** Apply for sequence **/
@@ -1032,13 +1040,20 @@ static int background_mem_limits_hook(struct generic_seq_args *args, gboolean fo
 	return limit;
 }
 
+int bg_extract_finalize_hook(struct generic_seq_args *args) {
+	struct background_data *data = (struct background_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 void apply_background_extraction_to_sequence(struct background_data *background_args) {
 	struct generic_seq_args *args = create_default_seqargs(background_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = background_args->seq->selnum;
 	args->compute_mem_limits_hook = background_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = bg_extract_finalize_hook;
 	args->image_hook = background_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Background Extraction");

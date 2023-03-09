@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -24,6 +24,7 @@
 #include <math.h>
 
 #include "algos/sorting.h"
+#include "algos/siril_wcs.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -95,6 +96,14 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
+				if (regargs->seq->is_variable) {
+					double rx2 = (double)regargs->seq->imgparam[i].rx;
+					double ry2 = (double)regargs->seq->imgparam[i].ry;
+					current_framing.pt[1].x = rx2;
+					current_framing.pt[2].x = rx2;
+					current_framing.pt[2].y = ry2;
+					current_framing.pt[3].y = ry2;
+				}
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, regargs->seq->regparam[regargs->layer][i].H, Href);
 					if (xmin > current_framing.pt[j].x) xmin = current_framing.pt[j].x;
@@ -120,9 +129,18 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			ymax = DBL_MAX;
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+					continue;
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
+				if (regargs->seq->is_variable) {
+					double rx2 = (double)regargs->seq->imgparam[i].rx;
+					double ry2 = (double)regargs->seq->imgparam[i].ry;
+					current_framing.pt[1].x = rx2;
+					current_framing.pt[2].x = rx2;
+					current_framing.pt[2].y = ry2;
+					current_framing.pt[3].y = ry2;
+				}
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);
@@ -152,6 +170,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			n = 0;
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+					continue;
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
@@ -225,7 +244,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	}
 	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
-
+	free_wcs(&fit, FALSE);
 	return apply_reg_prepare_results(args);
 }
 
@@ -244,7 +263,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	// Composing transformation wrt reference image
 	Himg = regargs->seq->regparam[regargs->layer][in_index].H;
-	if (guess_transform_from_H(Himg) == -2)  return 1; // in case H is null and -selected was not passed
+	if (guess_transform_from_H(Himg) == NULL_TRANSFORMATION)
+		return 1; // in case H is null and -selected was not passed
 	cvTransfH(Himg, Htransf, &H);
 
 	if (regargs->interpolation <= OPENCV_LANCZOS4) {
@@ -256,7 +276,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			return 1;
 		}
 	}
-	if (in_index == regargs->reference_image) new_ref_index = out_index; // keeping track of the new ref index in output sequence
+	if (in_index == regargs->reference_image)
+		new_ref_index = out_index; // keeping track of the new ref index in output sequence
 
 
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
@@ -290,7 +311,6 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 
 	// images may have been excluded but selnum wasn't updated
 	fix_selnum(args->seq, FALSE);
-
 
 	if (!args->retval) {
 		for (int i = 0; i < args->nb_filtered_images; i++)
@@ -348,10 +368,6 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		siril_log_message(_("Transformation aborted.\n"));
 	}
 	return regargs->new_total == 0;
-	// TODO: args is never freed because we don't call an end function for
-	// this generic processing function. The register idle is called for
-	// everything else, but does not know this pointer, and we cannot free
-	// it here because it's still used in the generic processing function.
 }
 
 int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
@@ -486,6 +502,7 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.type = args->seq->type;
 	seq.current = -1;
 	seq.is_variable = FALSE;
+	seq.fz = com.pref.comp.fits_enabled;
 	// update with the new numbering
 	seq.reference_image = new_ref_index;
 	seq.needs_saving = TRUE;
@@ -494,21 +511,26 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	new_ref_index = -1; // resetting
 }
 
-int guess_transform_from_H(Homography H) {
-	if (fabs(H.h00 + H.h01 + H.h02 + H.h10 + H.h11 + H.h12 + H.h20 + H.h21 + H.h22) < __DBL_EPSILON__) return -2; //null matrix
-	if (fabs(H.h20) > __DBL_EPSILON__ || fabs(H.h21) > __DBL_EPSILON__) return HOMOGRAPHY_TRANSFORMATION;
-	if (fabs(H.h00 - 1.) < __DBL_EPSILON__ && fabs(H.h11 - 1.) < __DBL_EPSILON__ && fabs(H.h10) < __DBL_EPSILON__ && fabs(H.h01) < __DBL_EPSILON__) {
-		if (fabs(H.h02) > __DBL_EPSILON__ || fabs(H.h12) > __DBL_EPSILON__) return SHIFT_TRANSFORMATION;
-		return -1; //identity matrix
+transformation_type guess_transform_from_H(Homography H) {
+	if (fabs(H.h00 + H.h01 + H.h02 + H.h10 + H.h11 + H.h12 + H.h20 + H.h21 + H.h22) < __DBL_EPSILON__)
+		return NULL_TRANSFORMATION;
+	if (fabs(H.h20) > __DBL_EPSILON__ || fabs(H.h21) > __DBL_EPSILON__)
+		return HOMOGRAPHY_TRANSFORMATION;
+	if (fabs(H.h00 - 1.) < __DBL_EPSILON__ && fabs(H.h11 - 1.) < __DBL_EPSILON__ &&
+			fabs(H.h10) < __DBL_EPSILON__ && fabs(H.h01) < __DBL_EPSILON__) {
+		if (fabs(H.h02) > __DBL_EPSILON__ || fabs(H.h12) > __DBL_EPSILON__)
+			return SHIFT_TRANSFORMATION;
+		return IDENTITY_TRANSFORMATION;
 	}
-	if (fabs(H.h10 - H.h00  + H.h01 + H.h11) < __DBL_EPSILON__) return SIMILARITY_TRANSFORMATION;
+	if (fabs(H.h10 - H.h00  + H.h01 + H.h11) < __DBL_EPSILON__)
+		return SIMILARITY_TRANSFORMATION;
 	return AFFINE_TRANSFORMATION;
 }
 
-void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboolean excludenull) {
-	int val;
-	*min = HOMOGRAPHY_TRANSFORMATION;
-	*max = -3;
+void guess_transform_from_seq(sequence *seq, int layer,
+		transformation_type *min, transformation_type *max, gboolean excludenull) {
+	*min = HOMOGRAPHY_TRANSFORMATION; // highest value
+	*max = UNDEFINED_TRANSFORMATION;  // lowest value
 	gboolean needs_sel_update = FALSE;
 
 	if (!layer_has_registration(seq, layer)) {
@@ -516,11 +538,11 @@ void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboo
 		return;
 	}
 	for (int i = 0; i < seq->number; i++){
-		val = guess_transform_from_H(seq->regparam[layer][i].H);
+		transformation_type val = guess_transform_from_H(seq->regparam[layer][i].H);
 		//siril_debug_print("Image #%d - transf = %d\n", i+1, val);
 		if (*max < val) *max = val;
 		if (*min > val) *min = val;
-		if ((val == -2) && excludenull) {
+		if (val == NULL_TRANSFORMATION && excludenull) {
 			seq->imgparam[i].incl = FALSE;
 			needs_sel_update = TRUE;
 		}
@@ -531,16 +553,16 @@ void guess_transform_from_seq(sequence *seq, int layer, int *min, int *max, gboo
 
 gboolean check_before_applyreg(struct registration_args *regargs) {
 		// check the reference image matrix is not null
-	int checkH = guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
-	if (checkH == -2) {
+	transformation_type checkH = guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
+	if (checkH == NULL_TRANSFORMATION) {
 		siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"), "red");
 		return FALSE;
 	}
 	// check the number of dof if -interp=none
-	int min, max;
+	transformation_type min, max;
 	guess_transform_from_seq(regargs->seq, regargs->layer, &min, &max, TRUE);
 	if (max > SHIFT_TRANSFORMATION && regargs->interpolation == OPENCV_NONE) {
-		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", (max + 1) * 2);
+		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", ((int)max + 1) * 2);
 		return FALSE;
 	}
 
@@ -557,19 +579,19 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 
 	// check that we are not trying to apply identity transform to all the images
-	if (max == -1) {
+	if (max == IDENTITY_TRANSFORMATION) {
 		siril_log_color_message(_("Existing registration data is a set of identity matrices, no transformation would be applied, aborting\n"), "red");
 		return FALSE;
 	}
 
 	// check that we are not trying to apply null transform to all the images
-	if (max == -2 || (regargs->seq->selnum <= 1) ) {
+	if (max == NULL_TRANSFORMATION || (regargs->seq->selnum <= 1) ) {
 		siril_log_color_message(_("Existing registration data is a set of null matrices, no transformation would be applied, aborting\n"), "red");
 		return FALSE;
 	}
 
 	// force -selected if some matrices were null
-	if (min == -2) {
+	if (min == NULL_TRANSFORMATION) {
 		siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
 		regargs->filters.filter_included = TRUE;
 	}
@@ -601,12 +623,9 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		return FALSE;
 	}
 
-	// Remove the files that we are about to create
-	remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
-
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
 	// rx_out/ry_out already account for 2x upscale if any
-	int64_t size = rx_out * ry_out * regargs->seq->nb_layers;
+	int64_t size = (int64_t) rx_out * ry_out * regargs->seq->nb_layers;
 	if (regargs->seq->type == SEQ_SER) {
 		size *= regargs->seq->ser_file->byte_pixel_depth;
 		size *= nb_frames;

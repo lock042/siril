@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 #include "ght.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
+#include "core/siril_log.h"
 
 float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, ght_compute_params *c) {
 	float out;
@@ -373,33 +374,38 @@ int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float 
 	return 0;
 }
 
-void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct ght_compute_params compute_params, gboolean multithreaded) {
-	const gboolean do_channel[3] = {params.do_red, params.do_green, params.do_blue};
+void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {
+	const gboolean do_channel[3] = {params->do_red, params->do_green, params->do_blue};
 	int active_channels = 3;
 	for (size_t i=0;i<3;i++)
 		if (!do_channel[i])
 			active_channels--;
+	if (active_channels == 0) {
+		siril_log_color_message(_("Error: no channels selected. Doing nothing.\n"), "red");
+		return;
+	}
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);
+	struct ght_compute_params compute_params;
 	float factor_red = 0.2126f;
 	float factor_green = 0.7152f;
 	float factor_blue = 0.0722f;
 	// If only working with selected channels, colour mode is forced to independent
 	if (!(do_channel[0] && do_channel[1] && do_channel[2]))
-		if (params.payne_colourstretchmodel == COL_HUMANLUM)
-			params.payne_colourstretchmodel = COL_EVENLUM;
-	if (params.payne_colourstretchmodel == COL_EVENLUM) {
+		if (params->payne_colourstretchmodel == COL_HUMANLUM)
+			params->payne_colourstretchmodel = COL_EVENLUM;
+	if (params->payne_colourstretchmodel == COL_EVENLUM) {
 		factor_red = 1.0f/active_channels;
 		factor_green = 1.0f/active_channels;
 		factor_blue = 1.0f/active_channels;
 	}
 	// Do calcs that can be done prior to the loop
-	GHTsetup(&compute_params, params.B, params.D, params.LP, params.SP, params.HP, params.stretchtype);
+	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
 	if (from->type == DATA_USHORT) {
 		float norm = get_normalized_value(from);
 		float invnorm = 1.0f / norm;
-		if (from->naxes[2] == 3 && params.payne_colourstretchmodel != COL_INDEP) {
+		if (from->naxes[2] == 3 && params->payne_colourstretchmodel != COL_INDEP) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
@@ -408,7 +414,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 				for (size_t chan = 0; chan < 3 ; chan++)
 					L[chan] = (float) from->pdata[chan][i] * invnorm;
 				float x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
-				float z = GHTp(x, &params, &compute_params);
+				float z = GHTp(x, params, &compute_params);
 				for (size_t chan = 0; chan < 3 ; chan++) {
 					if (do_channel[chan])
 						to->pdata[chan][i] = (x == 0.0f) ? 0 : roundf_to_WORD(norm * min(1.0f, max(0.0f, L[chan] * (z / x))));
@@ -426,14 +432,14 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 #endif
 					for (size_t i = 0; i < layersize; i++) {
 						float x = from->pdata[chan][i] * invnorm;
-						to->pdata[chan][i] = (x == 0.0f) ? 0 : roundf_to_WORD(norm * min(1.0f, max(0.0f, GHTp(x, &params, &compute_params))));
+						to->pdata[chan][i] = (x == 0.0f) ? 0 : roundf_to_WORD(norm * min(1.0f, max(0.0f, GHTp(x, params, &compute_params))));
 					}
 				} else
 					memcpy(to->pdata[chan], from->pdata[chan], layersize * sizeof(WORD));
 			}
 		}
 	} else if (from->type == DATA_FLOAT) {
-		if (from->naxes[2] == 3 && params.payne_colourstretchmodel != COL_INDEP) {
+		if (from->naxes[2] == 3 && params->payne_colourstretchmodel != COL_INDEP) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
@@ -442,7 +448,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 				for (size_t chan = 0; chan < 3 ; chan++)
 					L[chan] = (float)from->fpdata[chan][i];
 				float x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
-				float z = GHTp(x, &params, &compute_params);
+				float z = GHTp(x, params, &compute_params);
 				for (size_t chan = 0; chan < 3 ; chan++)
 					if (do_channel[chan])
 						to->fpdata[chan][i] = (x == 0.0f) ? 0.0f : min(1.0f, max(0.0f, L[chan] * (z / x)));
@@ -460,7 +466,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params params, struct gh
 #endif
 					for (size_t i = 0; i < layersize; i++) {
 						float x = (float)from->fpdata[chan][i];
-						to->fpdata[chan][i] = (x == 0.0f) ? 0.0f : min(1.0f, max(0.0f, GHTp(x, &params, &compute_params)));
+						to->fpdata[chan][i] = (x == 0.0f) ? 0.0f : min(1.0f, max(0.0f, GHTp(x, params, &compute_params)));
 					}
 				} else
 					memcpy(to->fpdata[chan], from->fpdata[chan], layersize * sizeof(float));

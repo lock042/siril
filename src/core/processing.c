@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -52,6 +52,7 @@ gpointer generic_sequence_worker(gpointer p) {
 	int *index_mapping = NULL;
 	int nb_frames, excluded_frames = 0, progress = 0;
 	int abort = 0;	// variable for breaking out of loop
+	int* threads_per_image = NULL;
 	gboolean have_seqwriter = FALSE;
 
 	assert(args);
@@ -94,7 +95,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			args->description, args->max_parallel_images);
 
 	// remaining threads distribution per image thread
-	int *threads_per_image = compute_thread_distribution(args->max_parallel_images, com.max_thread);
+	threads_per_image = compute_thread_distribution(args->max_parallel_images, com.max_thread);
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
@@ -170,7 +171,6 @@ gpointer generic_sequence_worker(gpointer p) {
 	for (frame = 0; frame < nb_frames; frame++) {
 		if (abort) continue;
 
-		fits *fit = calloc(1, sizeof(fits));
 		char filename[256];
 		rectangle area = { .x = args->area.x, .y = args->area.y,
 			.w = args->area.w, .h = args->area.h };
@@ -202,12 +202,24 @@ gpointer generic_sequence_worker(gpointer p) {
 		nb_subthreads = threads_per_image[thread_id];
 #endif
 
+		fits *fit = calloc(1, sizeof(fits));
+		if (!fit) {
+			PRINT_ALLOC_ERR;
+			abort = 1;
+			continue;
+		}
+
 		if (args->partial_image) {
-			if (args->regdata_for_partial && (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][input_idx].H) > -2)
-			&& (guess_transform_from_H(args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H) > -2)) { // do not try to transform area if img matrix is null
+			regdata *regparam = NULL;
+			if (args->regdata_for_partial)
+				regparam = args->seq->regparam[args->layer_for_partial];
+			if (regparam &&
+					guess_transform_from_H(regparam[input_idx].H) > NULL_TRANSFORMATION &&
+					guess_transform_from_H(regparam[args->seq->reference_image].H) > NULL_TRANSFORMATION) {
+				// do not try to transform area if img matrix is null
 				selection_H_transform(&area,
-						args->seq->regparam[args->layer_for_partial][args->seq->reference_image].H,
-						args->seq->regparam[args->layer_for_partial][input_idx].H);
+						regparam[args->seq->reference_image].H,
+						regparam[input_idx].H);
 			}
 			// args->area may be modified in hooks
 
@@ -229,7 +241,7 @@ gpointer generic_sequence_worker(gpointer p) {
 					excluded_frames++;
 				}
 				clearfits(fit);
-				free(fit);
+				g_free(fit);
 				// TODO: for seqwriter, we need to notify the failed frame
 				continue;
 			}
@@ -332,20 +344,30 @@ gpointer generic_sequence_worker(gpointer p) {
 	omp_destroy_lock(&args->lock);
 #endif
 the_end:
+#ifdef _OPENMP
+	free(threads_per_image);
+#endif
+
 	if (index_mapping) free(index_mapping);
 	if (!have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
 		siril_log_message(_("Finalizing sequence processing failed.\n"));
 		args->retval = 1;
 	}
-
 	int retval = args->retval;	// so we can free args if needed in the idle
-	if (args->already_in_a_thread) {
+
+	if (!args->already_in_a_thread) {
+		gboolean run_idle;
 		if (args->idle_function)
-			args->idle_function(args);
-	} else {
-		if (args->idle_function)
-			siril_add_idle(args->idle_function, args);
-		else siril_add_idle(end_generic_sequence, args);
+			run_idle = siril_add_idle(args->idle_function, args) > 0;
+		else run_idle = siril_add_idle(end_generic_sequence, args) > 0; // the generic idle
+
+		if (!run_idle) {
+			// some generic cleanup for scripts
+			// should we check for seq = com.seq?
+			free(args->new_seq_prefix);
+			free_sequence(args->seq, TRUE);
+			free(args);
+		}
 	}
 	return GINT_TO_POINTER(retval);
 }
@@ -360,10 +382,16 @@ gboolean end_generic_sequence(gpointer p) {
 		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
 		check_seq();
 		update_sequences_list(seqname);
-		free(seqname);
+		g_free(seqname);
 		g_free(basename);
 	}
-
+	// frees new_seq_prefix. This means that new_seq_prefix (or the seqEntry
+	// string in function-specific structs) *must* always be allocated using
+	// a freeable function, i.e. char* seqEntry = strdup("prefix_"); rather
+	// than char* seqEntry = "prefix_";
+	free(args->new_seq_prefix);
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
 	free(p);
 	return end_generic(NULL);
 }
@@ -417,6 +445,10 @@ int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 int seq_prepare_hook(struct generic_seq_args *args) {
 	int retval = 0;
 	g_assert(args->has_output); // don't call this hook otherwise
+	g_assert(args->new_seq_prefix); // don't call this hook otherwise
+	//removing existing files
+	remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
+	remove_prefixed_star_files(args->seq, args->new_seq_prefix);
 	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
 		gchar *dest;
 		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
@@ -610,7 +642,6 @@ void unreserve_thread() {
  */
 gboolean end_generic(gpointer arg) {
 	stop_processing_thread();
-
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
@@ -730,6 +761,10 @@ int limit_threading(threading_type *threads, int min_iterations_per_thread, size
  */
 int *compute_thread_distribution(int nb_workers, int max) {
 	int *threads = malloc(nb_workers * sizeof(int));
+	if (!threads) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	int base = max / nb_workers;
 	int rem = max % nb_workers;
 	siril_debug_print("distributing %d threads to %d workers\n", max, nb_workers);

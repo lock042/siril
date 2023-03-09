@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -96,7 +96,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	clear_sampling_setting_box();	// clear focal and pixel pitch info
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
-	g_slist_free_full(com.found_object, (GDestroyNotify)free_catalogue_object);
+	g_slist_free(com.found_object);
 	com.found_object = NULL;
 	reset_display_offset();
 	reset_zoom_default();
@@ -153,7 +153,6 @@ void free_image_data() {
 	 * shouldn't it be used here instead of gfit? */
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
-	clearfits(&gfit);
 
 	invalidate_gfit_histogram();
 
@@ -167,6 +166,8 @@ void free_image_data() {
 
 	if (!com.headless)
 		free_image_data_gui();
+
+	clearfits(&gfit);
 }
 
 static gboolean end_read_single_image(gpointer p) {
@@ -195,7 +196,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 	retval = stat_file(filename, &imagetype, &realname);
 	if (retval) {
-		siril_log_message(_("Error opening image %s: file not found or not supported.\n"), filename);
+		siril_log_color_message(_("Error opening image %s: file not found or not supported.\n"), "red", filename);
 		free(realname);
 		return 1;
 	}
@@ -205,7 +206,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 			retval = read_single_sequence(realname, imagetype);
 			single_sequence = TRUE;
 		} else {
-			siril_log_message(_("Cannot open a sequence from here\n"));
+			siril_log_color_message(_("Cannot open a sequence from here\n"), "red");
 			free(realname);
 			return 1;
 		}
@@ -218,7 +219,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		*is_sequence = single_sequence;
 	}
 	if (retval && retval != OPEN_IMAGE_CANCEL)
-		siril_log_message(_("Opening %s failed.\n"), realname);
+		siril_log_color_message(_("Opening %s failed.\n"), "red", realname);
 	if (realname_out)
 		*realname_out = realname;
 	else
@@ -254,20 +255,30 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
  * image, gfit.
  */
 int open_single_image(const char* filename) {
-	int retval;
-	char *realname;
+	int retval = 0;
+	char *realname = NULL;
 	gboolean is_single_sequence;
 
-	/* first, close everything */
-	close_sequence(FALSE);	// closing a sequence if loaded
-	close_single_image();	// close the previous image and free resources
+	/* Check we aren't running a processing thread otherwise it will clobber gfit
+	 * when it finishes and cause a segfault.
+	 */
+	if ((retval = get_thread_run())) {
+		siril_log_message(_("Cannot open another file while the processing thread is still operating on the current one!\n"));
+	}
 
-	/* open the new file */
-	retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
+	/* first, close everything */
+	if (!retval) {
+		close_sequence(FALSE);	// closing a sequence if loaded
+		close_single_image();	// close the previous image and free resources
+
+		/* open the new file */
+		retval = read_single_image(filename, &gfit, &realname, TRUE, &is_single_sequence, TRUE, FALSE);
+	}
 	if (retval) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
+		g_free(realname);
 		return 1;
 	}
 

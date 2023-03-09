@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@
 #include "algos/statistics.h"
 
 static int percentile_clipping(float pixel, const float sig[], float median,
-		guint64 rej[]) {
+		int rej[]) {
 	float plow = sig[0];
 	float phigh = sig[1];
 
@@ -47,7 +47,7 @@ static int percentile_clipping(float pixel, const float sig[], float median,
  * The function returns 0 if no rejections are required, 1 if it's a high
  * rejection and -1 for a low-rejection */
 static int sigma_clipping_float(float pixel, float sigma, float sigmalow,
-		float sigmahigh, float median, guint64 rej[]) {
+		float sigmahigh, float median, int rej[]) {
 
 	if (median - pixel > sigma * sigmalow) {
 		rej[0]++;
@@ -60,11 +60,11 @@ static int sigma_clipping_float(float pixel, float sigma, float sigmalow,
 }
 
 static int line_clipping(float pixel, const float sig[], float sigma, int i, float a,
-		float b, guint64 rej[]) {
+		float b, int rej[]) {
 	float sigmalow = sig[0];
 	float sigmahigh = sig[1];
 
-	if (a * i + b - pixel> sigma * sigmalow) {
+	if (a * i + b - pixel > sigma * sigmalow) {
 		rej[0]++;
 		return -1;
 	} else if (pixel - a * i - b > sigma * sigmahigh) {
@@ -98,7 +98,7 @@ static void grubbs_stat(float *stack, int N, float *GCal, int *max_ind) {
 }
 
 int apply_rejection_float(struct _data_block *data, int nb_frames,
-		struct stacking_args *args, guint64 crej[2]) {
+		struct stacking_args *args, int crej[2]) {
 	int N = nb_frames;	// N is the number of pixels kept from the current stack
 	double median = 0.0;
 	int pixel, output, changed, n, r = 0;
@@ -252,7 +252,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 				data->yf[frame] = stack[frame];
 			}
 			float a, b;
-			siril_fit_linear(data->xf, data->yf, data->m_x, data->m_dx2, N, &b,	&a);
+			siril_fit_linear(data->xf, data->yf, data->m_x, data->m_dx2, N, &b, &a);
 			float sigma = 0.f;
 			for (int frame = 0; frame < N; frame++)
 				sigma += fabsf(stack[frame] - (a * frame + b));

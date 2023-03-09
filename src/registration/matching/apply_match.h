@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2015 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -26,6 +26,6 @@
 #include "core/siril_world_cs.h"
 
 
-int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS trans, double *alpha, double *delta);
+int apply_match(SirilWorldCS *px_cat_center, double *crpix, TRANS *trans, double *alpha, double *delta);
 
 #endif /* SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_ */

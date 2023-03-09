@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -189,33 +189,39 @@ static gboolean siril_update_get_highest(JsonParser *parser,
 	return (*highest_version != NULL);
 }
 
-static gboolean remove_alpha(gchar *str) {
+static void remove_alpha(gchar *str, gboolean *is_rc, gboolean *is_beta) {
 	unsigned long i = 0;
 	unsigned long j = 0;
 	char c;
-	gboolean alpha = FALSE;
+
+	if (g_str_has_prefix(str, "beta")) {
+		*is_rc = FALSE;
+		*is_beta = TRUE;
+	} else if (g_str_has_prefix(str, "rc")) {
+		*is_rc = TRUE;
+		*is_beta = FALSE;
+	} else {
+		*is_rc = FALSE;
+		*is_beta = FALSE;
+	}
 
 	while ((c = str[i++]) != '\0') {
 		if (g_ascii_isdigit(c)) {
 			str[j++] = c;
-			alpha = TRUE;
 		}
 	}
 	str[j] = '\0';
-	return alpha;
 }
 
 /**
  * Check if the version is a patched version.
  * patched version are named like that x.y.z.patch where patch only contains digits.
- * if patch contains alpha char it is because that's a RC version. Not a patched one.
- * WARNINGS: here we just allow RC versions in patch. Indeed, all beta versions have odd numbering
- * and are dev versions.
+ * if patch contains alpha char it is because that's a RC or beta version. Not a patched one.
  * @param version version to be tested
  * @return 0 if the version is not patched. The version of the patch is returned otherwise.
  */
-static guint check_for_patch(gchar *version, gboolean *prerelease) {
-	*prerelease = remove_alpha(version);
+static guint check_for_patch(gchar *version, gboolean *is_rc, gboolean *is_beta) {
+	remove_alpha(version, is_rc, is_beta);
 	return (g_ascii_strtoull(version, NULL, 10));
 }
 
@@ -230,8 +236,9 @@ static version_number get_current_version_number() {
 	if (fullVersionNumber[3] == NULL) {
 		version.patched_version = 0;
 		version.rc_version = FALSE;
+		version.beta_version = FALSE;
 	} else {
-		version.patched_version = check_for_patch(fullVersionNumber[3], &version.rc_version);
+		version.patched_version = check_for_patch(fullVersionNumber[3], &version.rc_version, &version.beta_version);
 	}
 
 	g_strfreev(fullVersionNumber);
@@ -252,7 +259,7 @@ static version_number get_last_version_number(gchar *version_str) {
 	if (v[0] && v[1] && v[2])
 		version.micro_version = g_ascii_strtoull(v[2], NULL, 10);
 	if (v[0] && v[1] && v[2] && v[3]) {
-		version.rc_version = remove_alpha(v[3]);
+		remove_alpha(v[3], &version.rc_version, &version.beta_version);
 		version.patched_version = g_ascii_strtoull(v[3], NULL, 10);
 	}
 
@@ -282,17 +289,19 @@ static int compare_version(version_number v1, version_number v2) {
 			else if (v1.micro_version > v2.micro_version)
 				return 1;
 			else {
-				if ((v1.rc_version && v2.rc_version) || (!v1.rc_version && !v2.rc_version)) {
+				if (v1.beta_version && v2.rc_version) return -1;
+				if (v2.beta_version && v1.rc_version) return 1;
+				if (v1.beta_version && !v2.rc_version && !v2.beta_version) return -1;
+				if (v1.rc_version && !v2.rc_version && !v2.beta_version) return -1;
+				if (v2.rc_version && !v1.rc_version && !v1.beta_version) return 1;
+
+				/* check for patched version */
+				if ((!v1.rc_version && !v2.rc_version) || (!v1.beta_version && !v2.beta_version) ||
+						(v1.rc_version && v2.rc_version) || (v1.beta_version && v2.beta_version)) {
 					if (v1.patched_version < v2.patched_version)
 						return -1;
 					else if (v1.patched_version > v2.patched_version)
 						return 1;
-				} else {
-					if (v1.rc_version && !v2.rc_version) {
-						return -1;
-					} else if (!v1.rc_version && v2.rc_version) {
-						return 1;
-					}
 				}
 			}
 		}
@@ -344,7 +353,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 				/* force the verbose variable */
 				*verbose = TRUE;
 			}
-		} else if (compare_version(current_version, last_version_available)	> 0) {
+		} else if (compare_version(current_version, last_version_available) > 0) {
 			if (*verbose)
 				msg = siril_log_message(_("No update check: this is a development version\n"));
 		} else {
@@ -393,6 +402,9 @@ static void init() {
 		g_fprintf(stdout, "initializing CURL\n");
 		curl_global_init(CURL_GLOBAL_ALL);
 		curl = curl_easy_init();
+		if (g_getenv("CURL_CA_BUNDLE"))
+			if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
+				siril_debug_print("Error in curl_easy_setopt()\n");
 	}
 
 	if (!curl)
@@ -427,9 +439,12 @@ static gchar *get_changelog(gchar *str) {
 	url = g_string_append(url, "/ChangeLog");
 
 	changelog_url = g_string_free(url, FALSE);
-	curl_easy_setopt(curl, CURLOPT_URL, changelog_url);
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, changelog);
+	CURLcode ret;
+	ret = curl_easy_setopt(curl, CURLOPT_URL, changelog_url);
+	ret |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	ret |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, changelog);
+	if (ret)
+		siril_debug_print("Error in curl_easy_setopt()\n");
 	if (curl_easy_perform(curl) == CURLE_OK) {
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
 		if (code == 200) {
@@ -544,14 +559,17 @@ static gpointer fetch_url(gpointer p) {
 	content->data[0] = '\0';
 	content->len = 0;
 
-	curl_easy_setopt(curl, CURLOPT_URL, args->url);
-	curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
-	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	CURLcode retval;
+	retval = curl_easy_setopt(curl, CURLOPT_URL, args->url);
+	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
+	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
+	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
+	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	if (retval)
+		siril_debug_print("Error in curl_easy_setopt()\n");
 
-	CURLcode retval = curl_easy_perform(curl);
+	retval = curl_easy_perform(curl);
 	if (retval == CURLE_OK) {
 		if (retries == DEFAULT_FETCH_RETRIES) set_progress_bar_data(NULL, 0.4);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
@@ -618,7 +636,9 @@ void siril_check_updates(gboolean verbose) {
 	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
 	if (args->verbose)
 		set_cursor_waiting(TRUE);
-	start_in_new_thread(fetch_url, args);
+
+	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
+	g_thread_new("siril-update", fetch_url, args);
 }
 
 #else
@@ -656,9 +676,7 @@ static void siril_check_updates_callback(GObject *source, GAsyncResult *result,
 	gchar *data = NULL;
 	GtkMessageType message_type = GTK_MESSAGE_ERROR;
 
-	if (g_file_load_contents_finish(G_FILE(source), result, &file_contents,
-			&file_length,
-			NULL, &error)) {
+	if (g_file_load_contents_finish(G_FILE(source), result, &file_contents, &file_length, NULL, &error)) {
 		JsonParser *parser;
 		gchar *last_version = NULL;
 		gchar *build_comment = NULL;
@@ -666,10 +684,8 @@ static void siril_check_updates_callback(GObject *source, GAsyncResult *result,
 		gint build_revision = 0;
 
 		parser = json_parser_new();
-		if (!json_parser_load_from_data(parser, file_contents, file_length,
-				&error)) {
-			g_printerr("%s: parsing of %s failed: %s\n", G_STRFUNC,
-					g_file_get_uri(G_FILE(source)), error->message);
+		if (!json_parser_load_from_data(parser, file_contents, file_length, &error)) {
+			g_printerr("%s: parsing of %s failed: %s\n", G_STRFUNC, g_file_get_uri(G_FILE(source)), error->message);
 			g_free(file_contents);
 			g_clear_object(&parser);
 			g_clear_error(&error);

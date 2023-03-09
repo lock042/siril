@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -42,14 +42,17 @@ preferences pref_init = {
 	.script_check_requires = TRUE,
 	.pipe_check_requires = FALSE,
 #ifdef HAVE_JSON_GLIB
-	.check_update = !SIRIL_UNSTABLE,
+ #ifdef SIRIL_UNSTABLE
+	.check_update = FALSE,
+ #else
+	.check_update = TRUE,
+ #endif
 #else
 	.check_update = FALSE,
 #endif
 	.lang = 0,
 	.swap_dir = NULL,
-	.focal = 1000,
-	.pitch = 5,
+	.binning_update = TRUE,
 	.wcs_formalism = WCS_FORMALISM_1,
 	.catalogue_paths[0] = NULL,
 	.catalogue_paths[1] = NULL,
@@ -57,16 +60,23 @@ preferences pref_init = {
 	.catalogue_paths[3] = NULL,
 	.rgb_aladin = FALSE,
 	.copyright = NULL,
-	.starnet_dir = NULL,
+	.starnet_exe = NULL,
+	.starnet_weights = NULL,
+	.gnuplot_dir = NULL,
+	.asnet_dir = NULL,
 	.starfinder_conf = { // starfinder_conf
-		.radius = 10,
-		.adjust = TRUE,
+		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
 		.roundness = 0.5,
 		.focal_length = 0.,
 		.pixel_size_x = 0.,
 		.convergence = 1,
-		.relax_checks = FALSE
+		.relax_checks = FALSE,
+		.profile = PSF_GAUSSIAN,
+		.min_beta = 1.5,
+		.min_A = 0.0,
+		.max_A = 0.0,
+		.max_r = 1.0	// min_r is .roundness
 	},
 	.prepro = {
 		.cfa = FALSE,
@@ -86,12 +96,12 @@ preferences pref_init = {
 		},
 		.bias_lib = NULL,
 		.use_bias_lib = FALSE,
-		.bias_synth = NULL,
-		.use_bias_synth = FALSE,
 		.dark_lib = NULL,
 		.use_dark_lib = FALSE,
 		.flat_lib = NULL,
 		.use_flat_lib = FALSE,
+		.stack_default = NULL,
+		.use_stack_default = TRUE,
 	},
 	.gui = {
 		.first_start = TRUE,
@@ -124,8 +134,10 @@ preferences pref_init = {
 		.catalog[5] = TRUE,
 		.catalog[6] = TRUE,
 		.catalog[7] = TRUE,
+		.catalog[8] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
+		.show_deciasec = FALSE,
 		.reg_settings = 0,
 		.reg_interpolation = OPENCV_LANCZOS4,
 		.reg_clamping = TRUE,
@@ -139,15 +151,28 @@ preferences pref_init = {
 		.top_down = TRUE,
 		.xbayeroff = 0,
 		.ybayeroff = 0,
+		.xtrans_passes = 1
 	},
 	.phot_set = {
 		.gain = 2.3,
 		.inner = 20.0,
 		.outer = 30.0,
+		.auto_inner_factor = 4.2,
+		.auto_outer_factor = 6.3,
 		.aperture = 10.0,
 		.force_radius = FALSE,
-		.minval = -500.0,
+		.minval = -1500.0,
 		.maxval = 60000.0,
+	},
+	.astrometry = {
+		.update_default_scale = TRUE,
+		.percent_scale_range = 20,
+		.sip_correction_order = 0,
+		.radius_degrees = 10.0,
+		.keep_xyls_files = FALSE,
+		.keep_wcs_files = FALSE,
+		.max_seconds_run = 10,
+		.show_asnet_output = FALSE,
 	},
 	.analysis = {
 		.mosaic_panel = 256,
@@ -166,6 +191,13 @@ preferences pref_init = {
 		.fits_method = 0,
 		.fits_quantization = 16.0,
 		.fits_hcompress_scale = 4.0,
+	},
+	.fftw_conf = {
+		.timelimit = 60,
+		.strategy = 1,
+		.multithreaded = TRUE,
+		.wisdom_file = NULL,
+		.fft_cutoff = 15,
 	}
 };
 
@@ -176,20 +208,39 @@ void free_preferences(preferences *pref) {
 	pref->swap_dir = NULL;
 	g_free(pref->copyright);
 	pref->copyright = NULL;
-	g_free(pref->starnet_dir);
-	pref->starnet_dir = NULL;
+	g_free(pref->starnet_exe);
+	pref->starnet_exe = NULL;
+	g_free(pref->starnet_weights);
+	pref->starnet_weights = NULL;
+	g_free(pref->gnuplot_dir);
+	pref->gnuplot_dir = NULL;
+	g_free(pref->asnet_dir);
+	pref->asnet_dir = NULL;
 	g_free(pref->lang);
 	pref->lang = NULL;
 	g_slist_free_full(pref->gui.script_path, g_free);
 	pref->gui.script_path = NULL;
+	g_free(pref->fftw_conf.wisdom_file);
+	pref->fftw_conf.wisdom_file = NULL;
+}
+
+void set_wisdom_file() {
+	if (com.pref.fftw_conf.wisdom_file)
+		g_free(com.pref.fftw_conf.wisdom_file);
+	if (com.pref.fftw_conf.multithreaded)
+		com.pref.fftw_conf.wisdom_file = g_build_filename(g_get_user_cache_dir(), "siril_fftw_threaded.wisdom", NULL);
+	else
+		com.pref.fftw_conf.wisdom_file = g_build_filename(g_get_user_cache_dir(), "siril_fftw.wisdom", NULL);
 }
 
 /* static + dynamic settings initialization */
 void initialize_default_settings() {
 	com.pref = pref_init;
 	com.pref.ext = g_strdup(".fit");
+	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
+	set_wisdom_file();
 }
 
 void update_gain_from_gfit() {
@@ -211,6 +262,7 @@ struct settings_access all_settings[] = {
 	{ "core", "check_updates", STYPE_BOOL, N_("check update at start-up"), &com.pref.check_update },
 	{ "core", "lang", STYPE_STR, N_("active siril language"), &com.pref.lang },
 	{ "core", "swap_dir", STYPE_STRDIR, N_("swap directory"), &com.pref.swap_dir },
+	{ "core", "binning_update", STYPE_BOOL, N_("update pixel size of binned images"), &com.pref.binning_update },
 	{ "core", "wcs_formalism", STYPE_INT, N_("WCS formalism used in FITS header"), &com.pref.wcs_formalism, { .range_int = { 0, 1 } } },
 	{ "core", "catalogue_namedstars", STYPE_STR, N_("Path of the namedstars.dat catalogue"), &com.pref.catalogue_paths[0] },
 	{ "core", "catalogue_unnamedstars", STYPE_STR, N_("Path of the unnamedstars.dat catalogue"), &com.pref.catalogue_paths[1] },
@@ -218,25 +270,49 @@ struct settings_access all_settings[] = {
 	{ "core", "catalogue_nomad", STYPE_STR, N_("Path of the USNO-NOMAD-1e8.dat catalogue"), &com.pref.catalogue_paths[3] },
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
-	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
+	{ "core", "starnet_exe", STYPE_STR, N_("location of the StarNet executable"), &com.pref.starnet_exe },
+	{ "core", "starnet_weights", STYPE_STR, N_("location of the StarNet-torch weights file"), &com.pref.starnet_weights },
+	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
+#ifdef _WIN32
+	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
+#else
+	{ "core", "asnet_dir", STYPE_STR, N_("directory containing the solve-field executable"), &com.pref.asnet_dir },
+#endif
+	{ "core", "fftw_timelimit", STYPE_DOUBLE, N_("FFTW planning timelimit"), &com.pref.fftw_conf.timelimit },
+	{ "core", "fftw_conv_fft_cutoff", STYPE_INT, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
+	{ "core", "fftw_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
+	{ "core", "fftw_timeout", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
 
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
 
-	{ "debayer", "use_debayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
-	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER } } },
+	{ "debayer", "use_bayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
+	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER_4 } } },
 	{ "debayer", "interpolation", STYPE_INT, N_("type of interpolation"), &com.pref.debayer.bayer_inter, { .range_int = { 0, XTRANS } } },
 	{ "debayer", "top_down", STYPE_BOOL, N_("force debayer top-down"), &com.pref.debayer.top_down },
 	{ "debayer", "offset_x", STYPE_INT, N_("Bayer matrix offset X"), &com.pref.debayer.xbayeroff, { .range_int = { 0, 1 } } },
 	{ "debayer", "offset_y", STYPE_INT, N_("Bayer matrix offset Y"), &com.pref.debayer.ybayeroff, { .range_int = { 0, 1 } } },
+	{ "debayer", "xtrans_passes", STYPE_INT, N_("Number of passes for the X-Trans Markesteijn algorithm"), &com.pref.debayer.xtrans_passes, { .range_int = { 1, 4 } } },
 
 	{ "photometry", "gain", STYPE_DOUBLE, N_("electrons per ADU for noise estimation"), &com.pref.phot_set.gain, { .range_double = { 0., 10. } } },
 	{ "photometry", "inner", STYPE_DOUBLE, N_("inner radius for background annulus"), &com.pref.phot_set.inner, { .range_double = { 2., 100. } } },
 	{ "photometry", "outer", STYPE_DOUBLE, N_("outer radius for background annulus"), &com.pref.phot_set.outer, { .range_double = { 3., 200. } } },
+	{ "photometry", "inner_factor", STYPE_DOUBLE, N_("factor for inner radius automatic computation"), &com.pref.phot_set.auto_inner_factor, { .range_double = { 2.0, 50.0 } } },
+	{ "photometry", "outer_factor", STYPE_DOUBLE, N_("factor for outer radius automatic computation"), &com.pref.phot_set.auto_outer_factor, { .range_double = { 2.0, 50.0 } } },
 	{ "photometry", "force_radius", STYPE_BOOL, N_("force flux aperture value"), &com.pref.phot_set.force_radius },
 	{ "photometry", "aperture", STYPE_DOUBLE, N_("forced aperture for flux computation"), &com.pref.phot_set.aperture, { .range_double = { 1., 100. } } },
 	{ "photometry", "minval", STYPE_DOUBLE, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_double = { -65536.0, 65534.0 } } },
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
+
+	{ "astrometry", "asnet_percent_scale_range", STYPE_INT, N_("percent below and above the expected sampling to allow"), &com.pref.astrometry.percent_scale_range, { .range_int = { 0, 10000 } } },
+	{ "astrometry", "asnet_sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 0, 6 } } },
+	{ "astrometry", "asnet_radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 180.0 } } },
+	{ "astrometry", "asnet_keep_xyls", STYPE_BOOL, N_("do not delete .xyls FITS tables"), &com.pref.astrometry.keep_xyls_files },
+	{ "astrometry", "asnet_keep_wcs", STYPE_BOOL, N_("do not delete .wcs result files"), &com.pref.astrometry.keep_wcs_files },
+	{ "astrometry", "asnet_max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
+	{ "astrometry", "asnet_show_output", STYPE_BOOL, N_("show solve-field output in main log"), &com.pref.astrometry.show_asnet_output },
+
+	{ "astrometry", "update_default_scale", STYPE_BOOL, N_("update default focal length and pixel size from the result"), &com.pref.astrometry.update_default_scale },
 
 	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
 	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 1600 } } },
@@ -264,8 +340,8 @@ struct settings_access all_settings[] = {
 	{ "gui_prepro", "use_dark_lib", STYPE_BOOL, N_("use default master dark"), &com.pref.prepro.use_dark_lib },
 	{ "gui_prepro", "flat_lib", STYPE_STR, N_("default master flat"), &com.pref.prepro.flat_lib },
 	{ "gui_prepro", "use_flat_lib", STYPE_BOOL, N_("use default master flat"), &com.pref.prepro.use_flat_lib },
-	{ "gui_prepro", "use_bias_synth", STYPE_BOOL, N_("use synthetic bias"), &com.pref.prepro.use_bias_synth },
-	{ "gui_prepro", "bias_synth", STYPE_STR, N_("value of synthetic bias"), &com.pref.prepro.bias_synth},
+	{ "gui_prepro", "stack_default", STYPE_STR, N_("default stack name"), &com.pref.prepro.stack_default },
+	{ "gui_prepro", "use_stack_default", STYPE_BOOL, N_("use preferred stack name"), &com.pref.prepro.use_stack_default },
 
 	{ "gui_registration", "method", STYPE_INT, N_("index of the selected registration method"), &com.pref.gui.reg_settings, { .range_int = { 0, 7 } } },
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
@@ -300,6 +376,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
+	{ "gui", "show_deciasec", STYPE_BOOL, N_("show tenths of arcseconds on hover"), &com.pref.gui.show_deciasec },
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 

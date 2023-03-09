@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 8
+#define NUMBER_OF_METHODS 7
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -34,6 +34,9 @@ typedef enum {
 } reg_notebook_page;
 
 typedef enum {
+	UNDEFINED_TRANSFORMATION = -3,
+	NULL_TRANSFORMATION = -2,
+	IDENTITY_TRANSFORMATION = -1,
 	SHIFT_TRANSFORMATION,
 	SIMILARITY_TRANSFORMATION,
 	AFFINE_TRANSFORMATION,
@@ -75,7 +78,7 @@ struct registration_args {
 	int new_total;                  // remaining images after registration
 	imgdata *imgparam;		// imgparam for the new sequence
 	regdata *regparam;		// regparam for the new sequence
-	const gchar *prefix;		// prefix of the created sequence if any
+	char *prefix;		// prefix of the created sequence if any
 	gboolean load_new_sequence;	// load the new sequence if success
 	gchar *new_seq_name;
 	opencv_interpolation interpolation; // type of rotation interpolation
@@ -110,7 +113,7 @@ int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
 
 void reset_3stars();
-void _3stars_check_registration_ready();
+int _3stars_check_registration_ready();
 gboolean _3stars_check_selection();
 
 pointf get_velocity();
@@ -144,8 +147,9 @@ int star_align_finalize_hook(struct generic_seq_args *args);
 const char *describe_transformation_type(transformation_type type);
 
 void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
-void guess_transform_from_seq(sequence *seq, int layer, int *mindof, int *maxdof, gboolean excludenull);
-int guess_transform_from_H(Homography H);
+void guess_transform_from_seq(sequence *seq, int layer,
+		transformation_type *min, transformation_type *max, gboolean excludenull);
+transformation_type guess_transform_from_H(Homography H);
 gboolean check_before_applyreg(struct registration_args *regargs);
 gboolean layer_has_registration(sequence *seq, int layer);
 gboolean layer_has_usable_registration(sequence *seq, int layer);
@@ -155,5 +159,7 @@ void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
+
+int minidx(const float *arr, const gboolean *mask, int nb, float *val);
 
 #endif

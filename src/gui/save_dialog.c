@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -63,7 +63,7 @@ static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
 
 static void set_filters_save_dialog(GtkFileChooser *chooser) {
 	GString *all_filter = NULL;
-	const gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS";
+	const gchar *fits_filter = "*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz";
 	const gchar *bmp_filter = "*.bmp;*.BMP";
 	const gchar *netpbm_filter = "*.ppm;*.PPM;*.pnm;*.PNM;*.pgm;*.PGM";
 
@@ -294,6 +294,7 @@ static gchar *get_filename_and_replace_ext() {
 		char *file_no_ext = remove_ext_from_filename(basename);
 		g_free(basename);
 		basename = g_strdup_printf("%s%s", file_no_ext, com.pref.ext);
+		free(file_no_ext);
 	}
 
 	return basename;
@@ -350,6 +351,7 @@ static void filter_changed(gpointer user_data) {
 		g_free(new_filename);
 	}
 
+	g_free(file_no_ext);
 	g_free(filename);
 }
 
@@ -402,7 +404,7 @@ gboolean end_save(gpointer p) {
 	set_cursor_waiting(FALSE);
 	close_dialog();	// is this different from the hide above?
 	update_MenuItem();
-	
+
 	free(args);
 	return FALSE;
 }
@@ -433,6 +435,7 @@ static gboolean initialize_data(gpointer p) {
 	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
 	args->bitspersamples = gtk_toggle_button_get_active(button_8) ? 8 : gtk_toggle_button_get_active(button_32) ? 32 : 16;
 	get_tif_data_from_ui(&gfit, &args->description, &args->copyright, &args->embeded_icc);
+	args->tiff_compression = get_tiff_compression();
 #endif
 	args->entry = GTK_ENTRY(lookup_widget("savetxt"));
 	args->filename = gtk_entry_get_text(args->entry);
@@ -470,7 +473,7 @@ static gpointer mini_save_dialog(gpointer p) {
 #endif
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
-			args->retval = savetif(args->filename, &gfit, args->bitspersamples, args->description, args->copyright, args->embeded_icc);
+			args->retval = savetif(args->filename, &gfit, args->bitspersamples, args->description, args->copyright, args->tiff_compression, args->embeded_icc, TRUE);
 			break;
 #endif
 #ifdef HAVE_LIBPNG
@@ -671,23 +674,25 @@ void on_savetxt_changed(GtkEditable *editable, gpointer user_data) {
 }
 
 void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
-	struct savedial_data *args = malloc(sizeof(struct savedial_data));
+	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
 	if (initialize_data(args)) {
 		start_in_new_thread(mini_save_dialog, args);
 	} else {
+		g_free(args);
 		siril_add_idle(end_generic, NULL);
 	}
 }
 
 void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
-	struct savedial_data *args = malloc(sizeof(struct savedial_data));
+	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
 	if (initialize_data(args)) {
 		start_in_new_thread(mini_save_dialog, args);
 	} else {
+		free(args);
 		siril_add_idle(end_generic, NULL);
 	}
 }
@@ -703,12 +708,13 @@ void on_header_save_as_button_clicked() {
 		if (save_dialog() == GTK_RESPONSE_ACCEPT) {
 			/* now it is not needed for some formats */
 			if (type_of_image & (TYPEBMP | TYPEPNG | TYPEPNM)) {
-				struct savedial_data *args = malloc(sizeof(struct savedial_data));
+				struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 				set_cursor_waiting(TRUE);
 				if (initialize_data(args)) {
 					start_in_new_thread(mini_save_dialog, args);
 				} else {
+					free(args);
 					siril_add_idle(end_generic, NULL);
 				}
 			} else {

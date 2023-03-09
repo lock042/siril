@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -43,6 +43,7 @@ guiinfo gui;	// the gui data struct
 fits gfit;	// currently loaded image
 #endif
 
+#ifndef _WIN32
 #define TMP_FILE1 "/tmp/test_tmp1.ser"
 #define TMP_FILE2 "/tmp/test_tmp2.ser"
 #define TMP_FILE3 "/tmp/test_tmp3.ser"
@@ -50,6 +51,15 @@ fits gfit;	// currently loaded image
 #define TMP_FILE5 "/tmp/test_tmp5.ser"
 #define TMP_FILE6 "/tmp/test_tmp6.ser"
 #define TMP_FILE7 "/tmp/test_tmp7.ser"
+#else
+#define TMP_FILE1 ".\\test_tmp1.ser"
+#define TMP_FILE2 ".\\test_tmp2.ser"
+#define TMP_FILE3 ".\\test_tmp3.ser"
+#define TMP_FILE4 ".\\test_tmp4.ser"
+#define TMP_FILE5 ".\\test_tmp5.ser"
+#define TMP_FILE6 ".\\test_tmp6.ser"
+#define TMP_FILE7 ".\\test_tmp7.ser"
+#endif
 
 static fits *create_image(int w, int h, int layers) {
 	fits *fit = NULL;
@@ -64,11 +74,13 @@ int test_ser_image_number() {
 	CHECK(!ser_create_file(TMP_FILE1, ser, TRUE, NULL), "create file\n");
 	fits *fit = create_image(20, 10, 1);
 	CHECK(!ser_write_frame_from_fit(ser, fit, 0), "writing image\n");
+	fits *fit2 = create_image(20, 10, 1);
+	CHECK(!ser_write_frame_from_fit(ser, fit2, 1), "writing image\n");
+	fits *fit3 = create_image(20, 10, 1);
+	CHECK(!ser_write_frame_from_fit(ser, fit3, 2), "writing image\n");
 	CHECK(!ser_write_and_close(ser), "close file\n");
-
 	CHECK(!ser_open_file(TMP_FILE1, ser), "reopen\n");
-	CHECK(ser->frame_count == 1, "wrong number of frames\n");
-
+	CHECK(ser->frame_count == 3, "wrong number of frames\n");
 	free(ser);
 	CHECK(!unlink(TMP_FILE1), "error unlinking file " TMP_FILE1);
 	fprintf(stdout, "* test 1 passed *\n\n");
@@ -153,11 +165,13 @@ int test_ser_with_holes() {
 	fits *fit = create_image(20, 10, 1);
 	CHECK(!ser_write_frame_from_fit(ser, fit, 0), "writing image\n");
 	fits *fit2 = create_image(20, 10, 1);
-	CHECK(!ser_write_frame_from_fit(ser, fit2, 2), "writing image 2\n");
-	CHECK(ser_write_and_close(ser) == 2, "close file\n");
+	CHECK(!ser_write_frame_from_fit(ser, fit2, 1), "writing image 2\n");
+	fits *fit3 = create_image(20, 10, 1);
+	CHECK(!ser_write_frame_from_fit(ser, fit3, 2), "writing image 3\n");
+	CHECK(!ser_write_and_close(ser), "close file\n");
 
 	CHECK(!ser_open_file(TMP_FILE5, ser), "reopen\n");
-	CHECK(ser->frame_count == 1, "wrong number of frames\n");
+	CHECK(ser->frame_count == 3, "wrong number of frames\n");
 
 	free(ser);
 	CHECK(!unlink(TMP_FILE5), "error unlinking file " TMP_FILE5);
@@ -237,13 +251,16 @@ int test_ser_create_from_copy() {
 	fits *fit2 = create_image(40, 20, 3);
 	set_fits_date(fit2, 200);
 	CHECK(!ser_write_frame_from_fit(ser, fit2, 1), "writing image\n");
+	fits *fit3 = create_image(40, 20, 3);
+	set_fits_date(fit3, 300);
+	CHECK(!ser_write_frame_from_fit(ser, fit3, 2), "writing image\n");
 	CHECK(!ser_write_and_close(ser), "close file\n");
 
 	CHECK(!ser_open_file(TMP_FILE7, ser), "reopen\n");
 	CHECK(ser->color_id == SER_RGB, "wrong image color id\n");
 	CHECK(ser->image_width == 40, "wrong image width\n");
 	CHECK(ser->image_height == 20, "wrong image width\n");
-	CHECK(ser->frame_count == 2, "wrong number of frames\n");
+	CHECK(ser->frame_count == 3, "wrong number of frames\n");
 	CHECK(ser->ts, "no date information in SER\n");
 	CHECK(!strcmp(ser->observer, observer_str), "observer was not copied\n");
 	CHECK(ser->date_utc == utc_time, "UTC time was not copied\n");

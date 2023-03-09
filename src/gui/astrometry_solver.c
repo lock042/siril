@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2017 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 #include <gtk/gtk.h>
 #include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
+#include "algos/annotate.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
@@ -52,7 +53,7 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data
 static void initialize_ips_dialog() {
 	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
 			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg,
-			*catalog_label_pcc, *force_platesolve;
+			*catalog_label_pcc, *force_platesolve, *flip_image, *lasnet;
 	GtkWindow *parent;
 
 	button_ips_ok = lookup_widget("buttonIPS_ok");
@@ -64,6 +65,8 @@ static void initialize_ips_dialog() {
 	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
 	force_platesolve = lookup_widget("force_astrometry_button");
+	flip_image = lookup_widget("checkButton_IPS_flip");
+	lasnet = lookup_widget("localasnet_check_button");
 
 	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
 
@@ -76,34 +79,38 @@ static void initialize_ips_dialog() {
 	gtk_widget_set_visible(catalog_auto, TRUE);
 	gtk_widget_set_visible(frame_cc_bkg, FALSE);
 	gtk_widget_set_visible(force_platesolve, FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(flip_image), single_image_is_loaded());
+	gtk_widget_set_visible(lasnet, TRUE);
 	gtk_widget_grab_focus(button_ips_ok);
 
 	gtk_window_set_title(parent, _("Image Plate Solver"));
 }
 
-static void get_mag_from_GUI(struct astrometry_data *args) {
+void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
 	GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_Mag_Limit"));
-	args->auto_magnitude = gtk_toggle_button_get_active(autobutton);
-	if (!args->auto_magnitude) {
+	gboolean autob = gtk_toggle_button_get_active(autobutton);
+	if (autob)
+		*mag_mode = LIMIT_MAG_AUTO;
+	else {
 		GtkSpinButton *magButton = GTK_SPIN_BUTTON(
 				lookup_widget("GtkSpinIPS_Mag_Limit"));
-		args->forced_magnitude = gtk_spin_button_get_value(magButton);
+		*magnitude_arg = gtk_spin_button_get_value(magButton);
+		*mag_mode = LIMIT_MAG_ABSOLUTE;
 	}
 }
 
+/* effective focal length in mm */
 static double get_focal() {
 	GtkEntry *focal_entry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_focal"));
 	const gchar *value = gtk_entry_get_text(focal_entry);
-
-	return g_ascii_strtod(value, NULL);
+	return g_ascii_strtod(value, NULL);	// 0 is parse error
 }
 
 /* get pixel in µm */
 static double get_pixel() {
 	GtkEntry *pixel_entry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
 	const gchar *value = gtk_entry_get_text(pixel_entry);
-
-	return g_ascii_strtod(value, NULL);
+	return g_ascii_strtod(value, NULL);	// 0 is parse error
 }
 
 static int get_server_from_combobox() {
@@ -116,17 +123,17 @@ static online_catalog get_astrometry_catalog(double fov, double mag, gboolean au
 
 	if (auto_cat) {
 		if (mag <= 6.5) {
-		  ret = BRIGHT_STARS;
+			ret = CAT_BRIGHT_STARS;
 		} else if (fov > 180.0) {
-		  ret = NOMAD;
+			ret = CAT_NOMAD;
 		} else {
-		  ret = GAIADR3;
+			ret = CAT_GAIADR3;
 		}
 		return ret;
 	} else {
 		GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxIPSCatalog"));
 		ret = gtk_combo_box_get_active(box);
-		return (ret < 0 ? NOMAD : ret);
+		return (ret < 0 ? CAT_NOMAD : ret);
 	}
 }
 
@@ -194,6 +201,9 @@ static void update_pixel_size() {
 	float pixel;
 
 	pixel = gfit.pixel_size_x > gfit.pixel_size_y ? gfit.pixel_size_x : gfit.pixel_size_y;
+	if (com.pref.binning_update && gfit.binning_x > 1) {
+		pixel *= gfit.binning_x;
+	}
 
 	if (pixel > 0.f) {
 		gchar *cpixels = g_strdup_printf("%.2lf", (double) pixel);
@@ -231,8 +241,13 @@ static void update_coordinates(SirilWorldCS *world_cs) {
 	gint dec_deg, dec_m;
 	gdouble ra_s, dec_s;
 
-	siril_world_cs_get_ra_hour_min_sec(world_cs, &ra_h, &ra_m, &ra_s);
-	siril_world_cs_get_dec_deg_min_sec(world_cs, &dec_deg, &dec_m, &dec_s);
+	if (world_cs) {
+		siril_world_cs_get_ra_hour_min_sec(world_cs, &ra_h, &ra_m, &ra_s);
+		siril_world_cs_get_dec_deg_min_sec(world_cs, &dec_deg, &dec_m, &dec_s);
+	} else {
+		ra_h = 0; ra_m = 0; ra_s = 0.0;
+		dec_deg = 0; dec_m = 0; dec_s = 0.0;
+	}
 
 	RA_sec = g_strdup_printf("%6.4lf", ra_s);
 	Dec_sec = g_strdup_printf("%6.4lf", dec_s);
@@ -253,8 +268,8 @@ static void update_coordinates(SirilWorldCS *world_cs) {
 
 void update_coords() {
 	SirilWorldCS *world_cs = get_eqs_from_header(&gfit);
+	update_coordinates(world_cs);
 	if (world_cs) {
-		update_coordinates(world_cs);
 		unselect_all_items();
 		siril_world_cs_unref(world_cs);
 	}
@@ -268,11 +283,25 @@ static void update_image_parameters_GUI() {
 	update_coords();
 }
 
+gboolean end_process_sso(gpointer p) {
+	struct astrometry_data *args = (struct astrometry_data *) p;
+	GtkToggleToolButton *button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("annotate_button"));
+	refresh_found_objects();
+	if (!gtk_toggle_tool_button_get_active(button)) {
+		gtk_toggle_tool_button_set_active(button, TRUE);
+	} else {
+		redraw(REDRAW_OVERLAY);
+	}
+	free(args);
+	return end_generic(NULL);
+}
+
 gboolean end_plate_solver(gpointer p) {
 	struct astrometry_data *args = (struct astrometry_data *) p;
 	stop_processing_thread();
 
 	set_cursor_waiting(FALSE);
+	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	if (args->ret) {
 		char *title = siril_log_color_message(_("Plate Solving failed. "
@@ -293,7 +322,6 @@ gboolean end_plate_solver(gpointer p) {
 		delete_selected_area();
 		/* ****** */
 
-		control_window_switch_to_tab(OUTPUT_LOGS);
 		if (args->flip_image || args->for_photometry_cc)
 			redraw(REMAP_ALL);
 		else redraw(REDRAW_OVERLAY);
@@ -309,11 +337,14 @@ gboolean end_plate_solver(gpointer p) {
 
 static void start_image_plate_solve() {
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
-
 	args->for_photometry_cc = FALSE;
+	args->verbose = TRUE;
+	set_cursor_waiting(TRUE);
 	if (!fill_plate_solver_structure_from_GUI(args)) {
-		set_cursor_waiting(TRUE);
-		start_in_new_thread(match_catalog, args);
+		start_in_new_thread(plate_solver, args);
+	} else {
+		free(args);
+		set_cursor_waiting(FALSE);
 	}
 }
 
@@ -328,6 +359,7 @@ static void clear_all_objects() {
 
 static void add_object_to_list() {
 	GtkTreeIter iter;
+	gboolean anyobject = FALSE;
 
 	get_list_IPS();
 	clear_all_objects();
@@ -336,18 +368,27 @@ static void add_object_to_list() {
 		gtk_list_store_append(list_IPS, &iter);
 		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "NED", COLUMN_NAME,
 				platedObject[RESOLVER_NED].name, -1);
+		anyobject = TRUE;
 	}
 
 	if (platedObject[RESOLVER_SIMBAD].name) {
 		gtk_list_store_append(list_IPS, &iter);
 		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "Simbad",
 				COLUMN_NAME, platedObject[RESOLVER_SIMBAD].name, -1);
+		anyobject = TRUE;
 	}
 
 	if (platedObject[RESOLVER_VIZIER].name) {
 		gtk_list_store_append(list_IPS, &iter);
 		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "VizieR",
 				COLUMN_NAME, platedObject[RESOLVER_VIZIER].name, -1);
+		anyobject = TRUE;
+	}
+
+	if (!anyobject) {
+		gtk_list_store_append(list_IPS, &iter);
+		gtk_list_store_set(list_IPS, &iter, COLUMN_RESOLVER, "N/A",
+				COLUMN_NAME, "No object found", -1);
 	}
 
 }
@@ -376,6 +417,10 @@ static void add_object_in_tree_view(const gchar *object) {
 		if (!has_nonzero_coords()) {
 			g_free(result);
 			set_cursor_waiting(FALSE);
+			// the list is empty, it will just write "No object found" as the first entry
+			g_signal_handlers_block_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
+			add_object_to_list();
+			g_signal_handlers_unblock_by_func(GtkTreeViewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 			siril_log_color_message(_("No object found\n"), "red");
 			return;
 		}
@@ -401,12 +446,10 @@ static void add_object_in_tree_view(const gchar *object) {
 
 void on_GtkEntry_IPS_focal_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
-	com.pref.focal = g_ascii_strtod(gtk_editable_get_chars(editable, 0, -1), NULL);
 }
 
 void on_GtkEntry_IPS_pixels_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
-	com.pref.pitch = g_ascii_strtod(gtk_editable_get_chars(editable, 0, -1), NULL);
 }
 
 void on_GtkEntry_IPS_insert_text(GtkEntry *entry, const gchar *text, gint length,
@@ -439,7 +482,6 @@ void on_buttonIPS_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data) {
-
 	GtkTreeModel *treeModel = gtk_tree_view_get_model(tree_view);
 	GtkTreeSelection *selection = gtk_tree_view_get_selection (tree_view);
 	GtkTreeIter iter;
@@ -499,22 +541,37 @@ void on_GtkSearchIPS_activate(GtkEntry *entry, gpointer user_data) {
 	add_object_in_tree_view(gtk_entry_get_text(GTK_ENTRY(entry)));
 }
 
-void on_GtkCheckButton_Mag_Limit_toggled(GtkToggleButton *button,
-		gpointer user_data) {
+void on_GtkCheckButton_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
 	GtkWidget *spinmag;
 
 	spinmag = lookup_widget("GtkSpinIPS_Mag_Limit");
 	gtk_widget_set_sensitive(spinmag, !gtk_toggle_button_get_active(button));
 }
 
-void on_GtkCheckButton_OnlineCat_toggled(GtkToggleButton *button,
-		gpointer user_data) {
+void on_GtkCheckButton_OnlineCat_toggled(GtkToggleButton *button, gpointer user) {
 	GtkWidget *combobox;
 
 	combobox = lookup_widget("ComboBoxIPSCatalog");
 	gtk_widget_set_sensitive(combobox, !gtk_toggle_button_get_active(button));
 }
 
+void on_localasnet_check_button_toggled(GtkToggleButton *button, gpointer user) {
+	GtkWidget *downsample = lookup_widget("downsample_ips_button");
+	GtkWidget *autocrop = lookup_widget("autocrop_ips_button");
+	GtkExpander *catalogues = GTK_EXPANDER(lookup_widget("labelIPSCatalogParameters"));
+	if (gtk_toggle_button_get_active(button)) {
+		// gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(downsample), FALSE);
+		// gtk_widget_set_sensitive(downsample, FALSE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(autocrop), FALSE);
+		gtk_widget_set_sensitive(autocrop, FALSE);
+		gtk_expander_set_expanded(catalogues, FALSE);
+	}
+	else {
+		gtk_widget_set_sensitive(downsample, TRUE);
+		gtk_widget_set_sensitive(autocrop, TRUE);
+		gtk_expander_set_expanded(catalogues, TRUE);
+	}
+}
 
 void open_astrometry_dialog() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
@@ -528,30 +585,59 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->fit = &gfit;
 	args->pixel_size = get_pixel();
 	args->focal_length = get_focal();
-	// args->onlineCatalog requires processed arguments in automatic mode, setting later
-
-	SirilWorldCS *catalog_center = get_center_of_catalog();
-	if (siril_world_cs_get_alpha(catalog_center) == 0.0 && siril_world_cs_get_delta(catalog_center) == 0.0) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"), _("Please enter object coordinates."));
-		set_cursor_waiting(FALSE);
-		return 1;
-	}
-	args->cat_center = catalog_center;
-
+	args->manual = is_detection_manual();
 	args->downsample = is_downsample_activated();
 	args->autocrop = is_autocrop_activated();
 	args->flip_image = flip_image_after_ps();
-	args->manual = is_detection_manual();
-	get_mag_from_GUI(args);
-
-	set_cursor_waiting(TRUE);
+	get_mag_settings_from_GUI(&args->mag_mode, &args->magnitude_arg);
 
 	process_plate_solver_input(args);
+
+	GtkToggleButton *lasnet = GTK_TOGGLE_BUTTON(lookup_widget("localasnet_check_button"));
+	gboolean use_local_asnet = gtk_toggle_button_get_active(lasnet);
+
+	SirilWorldCS *catalog_center = get_center_of_catalog();
+	if (siril_world_cs_get_alpha(catalog_center) == 0.0 &&
+			siril_world_cs_get_delta(catalog_center) == 0.0) {
+		if (use_local_asnet) {
+			args->cat_center = NULL;
+			siril_world_cs_unref(catalog_center);
+		} else {
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("No coordinates"),
+					_("Please enter object coordinates."));
+			siril_world_cs_unref(catalog_center);
+			return 1;
+		}
+	}
+	else args->cat_center = catalog_center;
+
+	if (!args->for_photometry_cc && use_local_asnet) {
+		// non-cropped version of the fov
+		args->used_fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);
+		args->uncentered = FALSE;
+		if (com.selection.w != 0 && com.selection.h != 0)
+			siril_log_message(_("Selection is not used with the astrometry.net solver\n"));
+		args->use_local_cat = TRUE;
+		args->catalog_file = NULL;
+		args->onlineCatalog = CAT_ASNET;
+
+		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
+			args->filename = g_strdup(com.uniq->filename);
+		} else if (sequence_is_loaded()) {
+			args->filename = g_strdup_printf("%s%.5d", com.seq.seqname, com.seq.current + 1);
+		} else {
+			args->filename = g_strdup_printf("image");
+		}
+
+		return 0;
+	}
 
 	GtkToggleButton *auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
 	gboolean auto_cat = gtk_toggle_button_get_active(auto_button);
 
-	args->onlineCatalog = args->for_photometry_cc ? get_photometry_catalog() : get_astrometry_catalog(args->used_fov, args->limit_mag, auto_cat);
+	args->onlineCatalog = args->for_photometry_cc ?
+		get_photometry_catalog_from_GUI() :
+		get_astrometry_catalog(args->used_fov, args->limit_mag, auto_cat);
 	gboolean has_local_cat = local_catalogues_available();
 	gboolean use_local = FALSE;
 
@@ -560,31 +646,30 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 			siril_debug_print("using local star catalogues\n");
 			args->use_local_cat = TRUE;
 			args->catalog_file = NULL;
-			args->onlineCatalog = LOCAL;
+			args->onlineCatalog = CAT_LOCAL;
 			use_local = TRUE;
 		}
 	} else {
-		if (has_local_cat && (args->onlineCatalog == NOMAD || args->onlineCatalog == BRIGHT_STARS || args->onlineCatalog == TYCHO2)) {
+		if (has_local_cat && (args->onlineCatalog == CAT_NOMAD || args->onlineCatalog == CAT_BRIGHT_STARS || args->onlineCatalog == CAT_TYCHO2)) {
 			siril_debug_print("using local star catalogues\n");
 			args->use_local_cat = TRUE;
 			args->catalog_file = NULL;
-			args->onlineCatalog = LOCAL;
+			args->onlineCatalog = CAT_LOCAL;
 			use_local = TRUE;
 		}
 	}
 	if (!use_local) {
 		/* currently the GUI version downloads the catalog here, because
 		 * siril_message_dialog() doesn't use idle function, we could change that */
-		GFile *catalog_file = download_catalog(args->onlineCatalog, catalog_center, args->used_fov * 0.5, args->limit_mag);
+		GFile *catalog_file = download_catalog(args->onlineCatalog,
+				catalog_center, args->used_fov * 0.5, args->limit_mag);
 		if (!catalog_file) {
 			siril_world_cs_unref(catalog_center);
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("No catalog"), _("Cannot download the online star catalog."));
-			set_cursor_waiting(FALSE);
 			return 1;
 		}
 		args->catalog_file = catalog_file;
 	}
-	set_cursor_waiting(FALSE);
 	return 0;
 }
 
@@ -601,19 +686,15 @@ gboolean confirm_delete_wcs_keywords(fits *fit) {
 }
 
 void set_focal_and_pixel_pitch() {
-	GtkEntry *focal, *pitch;
-	gchar *f_str, *p_str;
+	GtkEntry *focal = GTK_ENTRY(lookup_widget("GtkEntry_IPS_focal"));
+	GtkEntry *pitch = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
+	char buf[20];
+	double fl = gfit.focal_length > 0.0 ? gfit.focal_length : com.pref.starfinder_conf.focal_length;
+	sprintf(buf, "%.1f", fl);
+	gtk_entry_set_text(focal, buf);
 
-	focal = GTK_ENTRY(lookup_widget("GtkEntry_IPS_focal"));
-	pitch = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
-
-	f_str = g_strdup_printf("%.1lf", com.pref.focal);
-	p_str = g_strdup_printf("%.2lf", com.pref.pitch);
-
-	gtk_entry_set_text(focal, f_str);
-	gtk_entry_set_text(pitch, p_str);
-
-	g_free(f_str);
-	g_free(p_str);
+	double pixsz = gfit.pixel_size_x > 0.0 ? gfit.pixel_size_x: com.pref.starfinder_conf.pixel_size_x;
+	sprintf(buf, "%.2f", pixsz);
+	gtk_entry_set_text(pitch, buf);
 }
 

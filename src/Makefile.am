@@ -55,6 +55,8 @@ siril_common_SOURCES = \
 	algos/pave.c \
 	algos/photometry.c \
 	algos/photometry.h \
+	algos/photometric_cc.c \
+	algos/photometric_cc.h \
 	algos/PSF.c \
 	algos/PSF.h \
 	algos/quality.c \
@@ -124,7 +126,6 @@ siril_common_SOURCES = \
 	core/siril_update.h \
 	core/siril_world_cs.c \
 	core/siril_world_cs.h \
-	core/sleef.h \
 	core/undo.c \
 	core/undo.h \
 	core/utils.c \
@@ -136,8 +137,6 @@ siril_common_SOURCES = \
 	filters/clahe.h \
 	filters/cosmetic_correction.c \
 	filters/cosmetic_correction.h \
-	filters/deconv.c \
-	filters/deconv.h \
 	filters/fft.c \
 	filters/fft.h \
 	filters/median.c \
@@ -166,6 +165,28 @@ siril_common_SOURCES = \
 	filters/da3d/Utils.hpp \
 	filters/da3d/WeightMap.cpp \
 	filters/da3d/WeightMap.hpp \
+	filters/deconvolution/angleSet.cpp \
+	filters/deconvolution/angleSet.hpp \
+	filters/deconvolution/better_than_std.hpp \
+	filters/deconvolution/chelperfuncs.c \
+	filters/deconvolution/chelperfuncs.h \
+	filters/deconvolution/deconvolution.h \
+	filters/deconvolution/deconvolve.cpp \
+	filters/deconvolution/deconvolve.hpp \
+	filters/deconvolution/edgetaper.hpp \
+	filters/deconvolution/estimate_kernel.cpp \
+	filters/deconvolution/estimate_kernel.hpp \
+	filters/deconvolution/fft.hpp \
+	filters/deconvolution/fftw_allocator.hpp \
+	filters/deconvolution/gf_estimate.cpp \
+	filters/deconvolution/gf_estimate.hpp \
+	filters/deconvolution/image_expr.hpp \
+	filters/deconvolution/image.hpp \
+	filters/deconvolution/labeling.hpp \
+	filters/deconvolution/optimization.hpp \
+	filters/deconvolution/options.hpp \
+	filters/deconvolution/utils.hpp \
+	filters/deconvolution/vec2.hpp \
 	filters/nlbayes/call_nlbayes.cpp \
 	filters/nlbayes/call_nlbayes.h \
 	filters/nlbayes/LibImages.cpp \
@@ -191,6 +212,8 @@ siril_common_SOURCES = \
 	gui/dialog_preview.h \
 	gui/dialogs.c \
 	gui/dialogs.h \
+	gui/documentation.c \
+	gui/documentation.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \
@@ -203,9 +226,11 @@ siril_common_SOURCES = \
 	gui/linear_match.h \
 	gui/menu_gray_geometry.c \
 	gui/menu_gray_geometry.h \
-	gui/menu_gray_psf.c \
+	gui/menu_gray_selection.c \
+	gui/merge_cfa.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
+	gui/newdeconv.c \
 	gui/nina_light_curve.c \
 	gui/nina_light_curve.h \
 	gui/open_dialog.c \
@@ -268,6 +293,8 @@ siril_common_SOURCES = \
 	io/image_formats_libraries.c \
 	io/mp4_output.c \
 	io/mp4_output.h \
+	io/path_parse.c \
+	io/path_parse.h \
 	io/seqfile.c \
 	io/sequence.c \
 	io/sequence.h \
@@ -310,7 +337,6 @@ siril_common_SOURCES = \
 	stacking/sum.c \
 	stacking/sum.h \
 	stacking/upscaling.c \
-	rt/deconvolution.cc \
 	rt/rt_algo.cc \
 	rt/gauss.cc \
 	rt/boxblur.cc

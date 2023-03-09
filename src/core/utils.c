@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -124,6 +124,17 @@ WORD roundf_to_WORD(float f) {
 	if (f < 0.5f) return 0;
 	if (f >= USHRT_MAX - 0.5f) return USHRT_MAX;
 	return (WORD)(f + 0.5f);
+}
+
+/**
+ * Round float value to a short
+ * @param f value to round
+ * @return a truncated and rounded short
+ */
+signed short roundf_to_short(float f) {
+	if (f < SHRT_MIN + 0.5f) return SHRT_MIN;
+	if (f >= SHRT_MAX - 0.5f) return SHRT_MAX;
+	return (signed short)(f + 0.5f);
 }
 
 /**
@@ -262,6 +273,16 @@ WORD float_to_ushort_range(float f) {
 }
 
 /**
+ * convert a siril float [0, 1] to a signed short
+ * @param f value to convert
+ * @return the signed short equivalent
+ * (-SHRT_MAX - 1)
+ */
+signed short float_to_short_range(float f) {
+	return roundf_to_short((f * USHRT_MAX_SINGLE) - SHRT_MAX_SINGLE - 1);
+}
+
+/**
  * convert a siril float [0, 1] to an unsigned char
  * @param f value to convert
  * @return the unsigned char equivalent
@@ -290,6 +311,7 @@ float ushort_to_float_bitpix(fits *fit, WORD value) {
  * @return
  */
 WORD *float_buffer_to_ushort(float *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	WORD *buf = malloc(ndata * sizeof(WORD));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -302,12 +324,51 @@ WORD *float_buffer_to_ushort(float *buffer, size_t ndata) {
 }
 
 /**
+ * convert a float type buffer into a signed short buffer
+ * @param buffer in float
+ * @param ndata
+ * @return
+ */
+signed short *float_buffer_to_short(float *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	signed short *buf = malloc(ndata * sizeof(signed short));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+	} else {
+		for (size_t i = 0; i < ndata; i++) {
+			buf[i] = float_to_short_range(buffer[i]);
+		}
+	}
+	return buf;
+}
+
+/**
+ * convert a ushort type buffer into a signed short buffer
+ * @param buffer in WORD
+ * @param ndata
+ * @return
+ */
+signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
+	signed short *buf = malloc(ndata * sizeof(signed short));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+	} else {
+		for (size_t i = 0; i < ndata; i++) {
+			buf[i] = (buffer[i] - SHRT_MAX_SINGLE - 1);
+		}
+	}
+	return buf;
+}
+
+/**
  * convert a BYTE type buffer into a float buffer
  * @param buffer in BYTE
  * @param ndata
  * @return
  */
 float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -326,6 +387,7 @@ float *uchar_buffer_to_float(BYTE *buffer, size_t ndata) {
  * @return
  */
 float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -344,6 +406,7 @@ float *ushort_buffer_to_float(WORD *buffer, size_t ndata) {
  * @return
  */
 float *ushort8_buffer_to_float(WORD *buffer, size_t ndata) {
+	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	float *buf = malloc(ndata * sizeof(float));
 	if (!buf) {
 		PRINT_ALLOC_ERR;
@@ -593,6 +656,14 @@ const char *get_filename_ext(const char *filename) {
 	g_free(basename);
 
 	p = filename + len;
+	if (g_str_has_suffix(p, ".fz")) {
+		int l = strlen(p);
+		for (int i = l - 1 - 3; i >= 0; i--) {
+			if ((p[i] == '.')) {
+				return (p + i + 1);
+			}
+		}
+	}
 	dot = strrchr(p, '.');
 	if (!dot || dot == p) {
 		return NULL;
@@ -971,7 +1042,7 @@ gchar *get_locale_filename(const gchar *path) {
 #ifdef _WIN32
 	str = g_win32_locale_filename_from_utf8(path);
 	if (!str) {
-		siril_log_color_message("Conversion of the filename to system codepage failed. Please consider removing all wide chars.\n", "red");
+		siril_log_color_message(_("Conversion of the filename to system codepage failed. Please consider removing all wide chars.\n"), "red");
 		return g_strdup(path);
 	}
 #else // _WIN32
@@ -1062,6 +1133,8 @@ char *format_basename(char *root, gboolean can_free) {
 	}
 
 	char *appended = malloc(len + 2);
+	if (!appended)
+		return NULL;
 	sprintf(appended, "%s_", root);
 	if (can_free)
 		free(root);
@@ -1145,7 +1218,7 @@ char **glist_to_array(GList *list, int *arg_count) {
 		if (arg_count)
 			*arg_count = count;
 	}
-	char **array = malloc(count * sizeof(char *));
+	char **array = malloc((count + 1) * sizeof(char *));
 	if (!array) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -1153,6 +1226,7 @@ char **glist_to_array(GList *list, int *arg_count) {
 	GList *orig_list = list;
 	for (int i = 0; i < count && list; list = list->next, i++)
 		array[i] = g_strdup(list->data);
+	array[count] = NULL;
 	g_list_free_full(orig_list, g_free);
 	return array;
 }
@@ -1297,3 +1371,125 @@ g_string_replace (GString     *string,
 }
 #endif
 
+/*
+ * str_replace()
+ *
+ * Substring replacement utility function for use with basic null
+ * terminated char* strings that can't be handled with the glib
+ * functions of similar purpose.
+ *
+ * Calling function must initialize a char* to hold the result.
+ * result is malloc()ed here and is the responsibility of the calling
+ * function to free.
+ */
+
+char *str_replace(char *orig, char *rep, char *with) {
+    char *result; // the return string
+    char *ins;    // the next insert point
+    char *tmp;    // varies
+    int len_rep;  // length of rep (the string to remove)
+    int len_with; // length of with (the string to replace rep with)
+    int len_front; // distance between rep and end of last rep
+    int count;    // number of replacements
+
+
+    // sanity checks and initialization
+    if (!orig || !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if (len_rep == 0)
+        return NULL; // empty rep causes infinite loop during count
+    if (!with)
+        with = "";
+    len_with = strlen(with);
+
+    // count the number of replacements needed
+    ins = orig;
+    for (count = 0; (tmp = strstr(ins, rep)); ++count) {
+        ins = tmp + len_rep;
+    }
+
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+
+    if (!result)
+        return NULL;
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of rep in orig
+    //    orig points to the remainder of orig after "end of rep"
+    while (count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+    strcpy(tmp, orig);
+    return result;
+}
+
+/**
+ * Deblanks a string and replace spaces with char c
+ * Multiple adjacent spaces are replaced only once
+ * @param s string to be deblanked
+ * @param c character to replace spaces
+ */
+void replace_spaces_from_str(gchar *s, gchar c) {
+	gchar *d = s;
+	do {
+		while (g_ascii_isspace(*d)) {
+			++d;
+		}
+		if ((d > s) && g_ascii_isspace(*(d - 1))) {
+			*(d-1) = c;
+			--d;
+		}
+	} while((*s++ = *d++));
+}
+
+/**
+ * Recomposes a string from words, with a space between each.
+ * @param words a NULL-terminated array of words
+ * @return a string to be freed with g_free()
+ */
+gchar *build_string_from_words(char **words) {
+	GString *str = g_string_new(words[0]);
+	int i = 1;
+	while (words[i]) {
+		g_string_append_printf(str, " %s", words[i]);
+		i++;
+	}
+	return g_string_free(str, FALSE);
+}
+
+/**
+ * Appends elements to an existing array.
+ * @param array an NULL-terminated array sufficiently allocated to contain the
+ * extra elements at its end. It will be NULL-terminated after append.
+ * @param elements a NULL-terminated array of elements to add to array
+ */
+void append_elements_to_array(char **array, char **elements) {
+	int i = 0, j = 0;
+	while (array[i]) i++;
+	while (elements[j])
+		array[i++] = elements[j++];
+	array[i] = NULL;
+}
+
+/**
+ * Get the file extension following the fz flag. If the file is
+ * compressed, fz is appended to the file extension.
+ * @param fz flag to know if the fz extension must be appended.
+ * @return a string that must not be freed
+ */
+static const gchar *ext[] = { ".fit.fz", ".fits.fz", ".fts.fz" };
+const gchar *get_com_ext(gboolean fz) {
+    if (fz) {
+        for (int i = 0; i < G_N_ELEMENTS(ext); i++) {
+            if (g_str_has_prefix(ext[i], com.pref.ext)) return ext[i];
+        }
+    }
+    return com.pref.ext;
+}

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -558,7 +559,14 @@ guint64 get_available_memory() {
 
 		char *str = strstr(buffer, "MemAvailable:");
 		if (!str)
+		{
+			// Fallback for kernels < 3.14 or WSL2 where /proc/meminfo does not provide "MemAvailable:" column
+			str = strstr(buffer, "MemFree:");
+		}
+		if (!str)
+		{
 			return (guint64) 0;
+		}
 
 		char *end;
 		str += 13;
@@ -587,25 +595,49 @@ guint64 get_available_memory() {
 
 	return available;
 #elif defined(OS_OSX)
-	guint64 mem = (guint64) 0; /* this is the default value if we can't retrieve any values */
 	vm_size_t page_size;
-	mach_port_t mach_port;
-	mach_msg_type_number_t count;
-	vm_statistics64_data_t vm_stats;
+        vm_statistics64_data_t vm_stats;
 
-	mach_port = mach_host_self();
-	count = sizeof(vm_stats) / sizeof(natural_t);
-	if (KERN_SUCCESS == host_page_size(mach_port, &page_size) &&
-			KERN_SUCCESS == host_statistics64(mach_port, HOST_VM_INFO,
-					(host_info64_t)&vm_stats, &count))	{
-
-		gint64 unused_memory = ((gint64)vm_stats.free_count +
-				(gint64)vm_stats.inactive_count +
-				(gint64)vm_stats.wire_count) * (gint64) page_size;
-
-		mem = (guint64) (unused_memory);
+	mach_port_t mach_port = mach_host_self();
+	mach_msg_type_number_t count = sizeof(vm_stats) / sizeof(natural_t);
+	if (KERN_SUCCESS != host_page_size(mach_port, &page_size) ||
+			KERN_SUCCESS != host_statistics64(mach_port, HOST_VM_INFO64,
+				(host_info64_t)&vm_stats, &count)) {
+		siril_log_message("Failed to call host_statistics64(), available memory could not be computed\n");
+		return 0;
 	}
-	return mem;
+	/* 1) compute what's marked as available */
+	guint64 unused_pages = (guint64)vm_stats.free_count +
+		(guint64)vm_stats.purgeable_count +
+		(guint64)vm_stats.external_page_count;
+	guint64 mem1 = unused_pages * page_size;
+	siril_debug_print("method 1: %.2f GB available\n", mem1 / 1073741824.0);
+
+	/* 2) compute what's left from what's marked as non-available */
+	guint64 physical_memory;
+	int mib[2] = { CTL_HW, HW_MEMSIZE };
+	size_t length = sizeof(guint64);
+	if (sysctl(mib, 2, &physical_memory, &length, NULL, 0) < 0) {
+		siril_debug_print("Failed to call sysctl(HW_MEMSIZE)\n");
+		return mem1;
+	}
+
+	/* active_count is considered used, inactive_count is shared between
+	 * not recently used pages and file cache at least. internal_page_count
+	 * gives us how much of both is actual process use and
+	 * external_page_count is file cache */
+	guint64 used_pages = (guint64)vm_stats.internal_page_count -
+		(guint64)vm_stats.purgeable_count +
+		(guint64)vm_stats.wire_count +
+		(guint64)vm_stats.compressor_page_count;
+
+	guint64 mem2 = physical_memory - used_pages * page_size;
+	siril_debug_print("method 2: %.2f GB available\n", mem2 / 1073741824.0);
+
+	// there's often a slight difference between the two, we might as well take the smallest
+	if (mem1 < mem2)
+		return mem1;
+	return mem2;
 #elif defined(BSD) /* BSD (DragonFly BSD, FreeBSD, OpenBSD, NetBSD). ----------- */
 	/* FIXME: this is incorrect, this returns the available amount of memory at boot, not at runtime */
 	static gboolean initialized = FALSE;
@@ -709,12 +741,16 @@ gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file) {
 
 	/* get the OS limit and extend it if possible */
 #ifdef _WIN32
-	MAX_NO_FILE = min(MAX_NO_FILE_CFITSIO, 2048);
+	MAX_NO_FILE = min(MAX_NO_FILE_CFITSIO, 8192);
 	open_max = _getmaxstdio();
 	if (open_max < MAX_NO_FILE) {
-		/* extend the limit to 2048 if possible
-		 * 2048 is the maximum on WINDOWS */
-		_setmaxstdio(MAX_NO_FILE);
+		/* extend the limit to 8192 if possible
+		 * 8192 is the maximum on WINDOWS */
+		int ret = _setmaxstdio(MAX_NO_FILE);
+		if (ret == -1 && MAX_NO_FILE_CFITSIO > 8192) {
+			/* fallback to 2048 */
+			_setmaxstdio(2048);
+		}
 		open_max = _getmaxstdio();
 	}
 #else
@@ -749,6 +785,8 @@ gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file) {
 	maxfile = min(open_max, MAX_NO_FILE);
 	siril_debug_print("Maximum of files that will be opened=%d\n", maxfile);
 	*nb_allowed_file = maxfile;
+	if (nb_frames > maxfile)
+		siril_log_color_message("Max number of opened files (%d) is larger than required number of images (%d)\n", "red", maxfile, nb_frames);
 
 	return nb_frames < maxfile;
 }
@@ -859,4 +897,26 @@ void log_used_mem(gchar *when) {
 	gchar *mem = g_format_size_full(used, G_FORMAT_SIZE_IEC_UNITS);
 	siril_debug_print("Used memory %s: %s\n", when, mem);
 	g_free(mem);
+}
+
+// Check maximum path length - OSes except for Windows have to work it out, on Windows it's always MAX_PATH
+long get_pathmax(void) {
+#ifndef _WIN32
+	long pathmax = -1;
+
+	errno = 0;
+	pathmax = pathconf("/", _PC_PATH_MAX);
+	if (-1 == pathmax) {
+		if (0 == errno) {
+#define PATHMAX_INFINITE_GUESS 4096
+			pathmax = PATHMAX_INFINITE_GUESS;
+		} else {
+			fprintf(stderr, "pathconf() FAILED, %d, %s\n", errno,
+					strerror(errno));
+		}
+	}
+	return pathmax;
+#else
+	return MAX_PATH;
+#endif
 }

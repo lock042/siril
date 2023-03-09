@@ -21,7 +21,7 @@ struct preprocessing_data {
 	sequence *seq;
 	sequence_type output_seqtype;
 	gboolean allow_32bit_output;
-	const char *ppprefix;	// prefix for output files
+	char *ppprefix;	// prefix for output files
 	gboolean debayer;	// debayer at the end
 	GSList *history;	// generic history to add to the FITS output
 
@@ -33,6 +33,8 @@ struct preprocessing_data {
 	deviant_pixel *dev;	// the runtime list of deviant pixels (icold + ihot long)
 	gboolean is_cfa;	// when replacing pixels, don't use direct neighbours
 
+	gboolean ignore_exclusion; // if true, images marked as excluded will not
+							// be preprocessed
 	int retval;
 };
 

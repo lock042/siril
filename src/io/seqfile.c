@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -110,13 +110,13 @@ sequence * readseqfile(const char *name){
 				 * Such sequences don't exist anymore. */
 				assert(line[2] != '"');
 				if (line[2] == '\'')	/* new format, quoted string */
-					scanformat = "'%511[^']' %d %d %d %d %d %d %d";
-				else scanformat = "%511s %d %d %d %d %d %d %d";
+					scanformat = "'%511[^']' %d %d %d %d %d %d %d %d";
+				else scanformat = "%511s %d %d %d %d %d %d %d %d";
 
 				if(sscanf(line+2, scanformat,
 							filename, &seq->beg, &seq->number,
 							&seq->selnum, &seq->fixed,
-							&seq->reference_image, &version, &seq->is_variable) < 6 ||
+							&seq->reference_image, &version, &seq->is_variable, &seq->fz) < 6 ||
 						allocated != 0){
 					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
 					goto error;
@@ -391,15 +391,16 @@ sequence * readseqfile(const char *name){
 				else if (line[1] == 'F') {
 					seq->type = SEQ_FITSEQ;
 #ifdef HAVE_FFMS2
-					seq->ext = com.pref.ext + 1;
+					seq->ext = get_com_ext(seq->fz) + 1;
 #endif
 					if (seq->fitseq_file) break;
-					seq->fitseq_file = malloc(sizeof(struct ser_struct));
+					seq->fitseq_file = malloc(sizeof(struct fits_sequence));
 					fitseq_init_struct(seq->fitseq_file);
 					GString *fileString = g_string_new(filename);
-					g_string_append(fileString, com.pref.ext);
+					g_string_append(fileString, get_com_ext(seq->fz));
 					seq->fitseq_file->filename = g_string_free(fileString, FALSE);
 					if (fitseq_open(seq->fitseq_file->filename, seq->fitseq_file)) {
+						g_free(seq->fitseq_file->filename);
 						free(seq->fitseq_file);
 						seq->fitseq_file = NULL;
 						goto error;
@@ -453,7 +454,7 @@ sequence * readseqfile(const char *name){
 					}
 					else {
 						film_display_info(seq->film_file);
-						seq->ext = strdup(get_filename_ext(seq->film_file->filename));
+						seq->ext = get_filename_ext(seq->film_file->filename);
 						g_free(filmname);
 					}
 				}
@@ -583,6 +584,7 @@ int writeseqfile(sequence *seq){
 	int i, layer;
 
 	if (!seq->seqname || seq->seqname[0] == '\0') return 1;
+	if (!seq->imgparam) return 1;
 	filename = malloc(strlen(seq->seqname)+5);
 	sprintf(filename, "%s.seq", seq->seqname);
 	seqfile = g_fopen(filename, "w+t");
@@ -596,10 +598,10 @@ int writeseqfile(sequence *seq){
 	free(filename);
 
 	fprintf(seqfile,"#Siril sequence file. Contains list of images, selection, registration data and statistics\n");
-	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size\n");
-	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d\n",
+	fprintf(seqfile,"#S 'sequence_name' start_index nb_images nb_selected fixed_len reference_image version variable_size fz_flag\n");
+	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d %d\n",
 			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed,
-			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable);
+			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable, seq->fz);
 	if (seq->type != SEQ_REGULAR) {
 		char type;
 		switch (seq->type) {
@@ -636,7 +638,7 @@ int writeseqfile(sequence *seq){
 	}
 
 	for (layer = 0; layer < seq->nb_layers; layer++) {
-		if (seq->regparam[layer]) {
+		if (seq->regparam && seq->regparam[layer]) {
 			for (i=0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '*' : '0' + layer,
@@ -655,7 +657,7 @@ int writeseqfile(sequence *seq){
 						seq->regparam[layer][i].H.h20,
 						seq->regparam[layer][i].H.h21,
 						seq->regparam[layer][i].H.h22
-				       );
+					);
 			}
 		}
 		if (seq->stats && seq->stats[layer]) {
@@ -702,7 +704,7 @@ int writeseqfile(sequence *seq){
 						seq->regparam_bkp[layer][i].H.h20,
 						seq->regparam_bkp[layer][i].H.h21,
 						seq->regparam_bkp[layer][i].H.h22
-				       );
+					);
 			}
 		}
 		if (seq->stats_bkp && seq->stats_bkp[layer]) {
@@ -725,7 +727,6 @@ int writeseqfile(sequence *seq){
 						seq->stats_bkp[layer][i]->max,
 						seq->stats_bkp[layer][i]->normValue,
 						seq->stats_bkp[layer][i]->bgnoise);
-
 			}
 		}
 	}

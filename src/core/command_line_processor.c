@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -41,6 +41,7 @@
 #include "io/ser.h"
 #include "livestacking/livestacking.h"
 
+#include "command.h"
 #include "command_line_processor.h"
 
 static const char *cmd_err_to_str(cmd_errors err) {
@@ -413,13 +414,23 @@ static void show_command_help_popup(GtkEntry *entry) {
 			if (!g_ascii_strcasecmp(current->name, command_line[0])) {
 				gchar **token;
 
-				token = g_strsplit_set(current->usage, " ", -1);
+				token = g_strsplit_set(current->usage, " \n", -1);
 				GString *str = g_string_new(token[0]);
 				str = g_string_prepend(str, "<span foreground=\"red\" size=\"larger\"><b>");
 				str = g_string_append(str, "</b>");
 				if (token[1] != NULL) {
-					str = g_string_append(str,
-							current->usage + strlen(token[0]));
+					int i = 1;
+					while (token[i]) {
+						str = g_string_append(str, " ");
+						if (!g_ascii_strcasecmp(current->name, token[i])) {
+							str = g_string_append(str, "\n<b>");
+						}
+						str = g_string_append(str, token[i]);
+						if (!g_ascii_strcasecmp(current->name, token[i])) {
+							str = g_string_append(str, "</b>");
+						}
+						i++;
+					}
 				}
 				str = g_string_append(str, "</span>\n\n\t");
 				str = g_string_append(str, _(current->definition));
@@ -562,9 +573,7 @@ int processcommand(const char *line) {
 			g_object_unref(file);
 			return 1;
 		}
-		/* ensure that everything is closed */
-		process_close(0);
-		/* Then, run script */
+		/* Run the script */
 		siril_log_message(_("Starting script %s\n"), filename);
 		com.script_thread = g_thread_new("script", execute_script, input_stream);
 		g_object_unref(file);
@@ -591,14 +600,18 @@ int processcommand(const char *line) {
 
 // loads the sequence from com.wd
 sequence *load_sequence(const char *name, char **get_filename) {
-	gchar *file = g_strdup(name);
+	gchar *file = NULL;
 	gchar *altfile = NULL;
-	if (!g_str_has_suffix(name, ".seq")) {
-		str_append(&file, ".seq");
-		if (!g_str_has_suffix(name, "_"))
-			altfile = g_strdup_printf("%s_.seq", name);
+	if (name[0] == '.' && g_utf8_strlen(name, -1) == 1 && sequence_is_loaded())
+		file = g_strdup(com.seq.seqname);
+	else {
+		file = g_strdup(name);
+		if (!g_str_has_suffix(name, ".seq")) {
+			str_append(&file, ".seq");
+			if (!g_str_has_suffix(name, "_"))
+				altfile = g_strdup_printf("%s_.seq", name);
+		}
 	}
-
 	if (!is_readable_file(file) && (!altfile || !is_readable_file(altfile))) {
 		if (check_seq()) {
 			siril_log_color_message(_("No sequence `%s' found.\n"), "red", name);
@@ -608,7 +621,7 @@ sequence *load_sequence(const char *name, char **get_filename) {
 		}
 	}
 
-	sequence *seq;
+	sequence *seq = NULL;
 	if ((seq = readseqfile(file))) {
 		if (get_filename) {
 			*get_filename = file;
@@ -648,17 +661,11 @@ static gboolean on_match_selected(GtkEntryCompletion *widget, GtkTreeModel *mode
 	gint cur_pos = gtk_editable_get_position(e);
 	gint p = cur_pos;
 	gchar *end;
-	gint del_end_pos = -1;
 
 	gtk_tree_model_get(model, iter, COMPLETION_COLUMN, &cmd, -1);
 
 	end = s + cur_pos;
-
-	if (end) {
-		del_end_pos = end - s + 1;
-	} else {
-		del_end_pos = cur_pos;
-	}
+	gint del_end_pos = end - s + 1;
 
 	gtk_editable_delete_text(e, 0, del_end_pos);
 	gtk_editable_insert_text(e, cmd, -1, &p);

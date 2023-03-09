@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -58,6 +58,8 @@ struct exportseq_args {
 	char *basename;
 	export_format output;
 	gboolean normalize;
+
+	gboolean tiff_compression; // compression of TIFF files
 
 	int film_fps;		// has to be int for avi or ffmpeg
 	int film_quality;	// [1, 5], for mp4 and webm
@@ -322,7 +324,7 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 		gchar *tmpmsg = g_strdup_printf(_("Processing image %s"), filename);
-		set_progress_bar_data(tmpmsg, (double)cur_nb / (double)nb_frames);
+		set_progress_bar_data(tmpmsg, (double)cur_nb / (nb_frames == 0 ? 1 : (double)nb_frames));
 		g_free(tmpmsg);
 
 		/* we read the full frame */
@@ -471,7 +473,7 @@ static gpointer export_sequence(gpointer ptr) {
 #ifdef HAVE_LIBTIFF
 			case EXPORT_TIFF:
 				snprintf(dest, 255, "%s%05d", args->basename, i + 1);
-				retval = savetif(dest, destfit, 16, NULL, com.pref.copyright, TRUE);
+				retval = savetif(dest, destfit, 16, NULL, com.pref.copyright, args->tiff_compression, TRUE, TRUE);
 				break;
 #endif
 			case EXPORT_SER:
@@ -613,7 +615,7 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 		if (args->film_fps <= 0) args->film_fps = 1;
 	}
 	if (args->output == EXPORT_MP4 || args->output == EXPORT_MP4_H265 || args->output == EXPORT_WEBM_VP9) {
-		GtkAdjustment *adjQual = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder,"adjustment3"));
+		GtkAdjustment *adjQual = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder,"adjustmentqualscale"));
 		GtkToggleButton *checkResize = GTK_TOGGLE_BUTTON(lookup_widget("checkAviResize"));
 		args->film_quality = (int)gtk_adjustment_get_value(adjQual);
 		args->resample = gtk_toggle_button_get_active(checkResize);
@@ -635,6 +637,9 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	else if (args->output == EXPORT_FITS || args->output == EXPORT_TIFF) {
 		// add a trailing '_' for multiple-files sequences
 		args->basename = format_basename(args->basename, TRUE);
+		if (args->output == EXPORT_TIFF) {
+			args->tiff_compression = get_tiff_compression();
+		}
 	}
 	// Display a useful warning because I always forget to remove selection
 	if (args->crop) {

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -58,6 +58,9 @@ static GSList *initialize_script_paths(){
 	g_free(execpath);
 #else
 	list = g_slist_prepend(list, g_build_filename(siril_get_system_data_dir(), "scripts", NULL));
+	if (g_getenv("XDG_CONFIG_HOME") != NULL) {
+		list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), getenv("XDG_CONFIG_HOME"), "scripts", NULL));
+	}
 	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), ".siril", "scripts", NULL));
 	list = g_slist_prepend(list, g_build_filename(g_get_home_dir(), "siril", "scripts", NULL));
 #endif
@@ -161,9 +164,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 			g_object_unref(file);
 			return;
 		}
-		/* ensure that everything is closed */
-		process_close(0);
-		/* Then, run script */
+		/* Run the script */
 		siril_log_message(_("Starting script %s\n"), script_file);
 		com.script_thread = g_thread_new("script", execute_script, input_stream);
 	}
@@ -179,7 +180,7 @@ int initialize_script_menu() {
 
 	if (!menuscript)
 		menuscript = lookup_widget("header_scripts_button");
-	
+
 	script_paths = set_list_to_preferences_dialog(com.pref.gui.script_path);
 
 	GtkWidget *menu = gtk_menu_new();
@@ -291,7 +292,7 @@ void siril_get_on_script_pages() {
 	gchar *lang = NULL;
 	int i = 0;
 
-	if (!g_strcmp0(com.pref.lang, "")) {
+	if (!com.pref.lang || !g_strcmp0(com.pref.lang, "")) {
 		locale = setlocale(LC_MESSAGES, NULL);
 	} else {
 		locale = com.pref.lang;

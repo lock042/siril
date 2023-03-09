@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@
 #include "gui/progress_and_log.h"
 #include "algos/sorting.h"
 
-static gchar *destroot = NULL;
+static char *destroot = NULL;
 static GtkListStore *liststore_convert = NULL;
 static GtkTreeView *tree_view = NULL;
 static GtkTreeModel *model = NULL;
@@ -77,7 +77,7 @@ int count_converted_files() {
 	init_widgets();
 	GtkTreeIter iter;
 	gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
-	
+
 	int count = 0;
 	while (valid) {
 		gtk_tree_model_get(model, &iter, -1);
@@ -97,9 +97,9 @@ static void initialize_convert() {
 	gchar *file_data;
 	GtkTreeIter iter;
 	GList *list = NULL;
-	
+
 	init_widgets();
-	
+
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
@@ -168,9 +168,9 @@ static void initialize_convert() {
 	int nb_allowed;
 	if (!allow_to_open_files(count, &nb_allowed) && output_type == SEQ_REGULAR) {
 		gboolean confirm = siril_confirm_dialog(_("Too many files are being converted."),
-				_("You are about to convert a large amount of files into standard FITS files."
-						"However, your OS limits the number of files that will be processed in the same time."
-						"You may want to convert your input files into a FITS sequence."), _("Convert to FITS Sequence"));
+				_("You are about to convert a large amount of files into standard FITS files. "
+				"However, your OS limits the number of files that will be processed in the same time."
+				"You may want to convert your input files into a FITS sequence."), _("Convert to FITS Sequence"));
 		if (!confirm) return;
 	}
 
@@ -199,7 +199,7 @@ static void initialize_convert() {
 	}
 
 	siril_log_color_message(_("Conversion: processing %d files...\n"), "green", count);
-	
+
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
@@ -214,6 +214,7 @@ static void initialize_convert() {
 	struct _convert_data *args = malloc(sizeof(struct _convert_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
+		g_strfreev(files_to_convert);
 		return;
 	}
 	if (output_type == SEQ_REGULAR) {
@@ -229,7 +230,7 @@ static void initialize_convert() {
 	args->nb_converted_files = 0;
 	args->input_has_a_seq = !no_sequence_to_convert;
 	args->input_has_a_film = there_is_a_film;
-	args->destroot = g_strdup(destroot);
+	args->destroot = strdup(destroot);
 	args->debayer = debayer;
 	args->make_link = symbolic_link;
 	args->output_type = output_type;
@@ -524,24 +525,38 @@ void process_destroot(sequence_type output_type) {
 
 	const gchar *name = gtk_entry_get_text(convroot_entry);
 	if (*name == '\0') {
-		g_free(destroot);
+		free(destroot);
 		destroot = NULL;
 		return;
 	}
-	destroot = g_str_to_ascii(name, NULL); // we want to avoid special char
+	if (destroot) {
+		free(destroot);
+		destroot = NULL;
+	}
+	gchar* temp = g_str_to_ascii(name, NULL); // we want to avoid special char
+	destroot = strdup(temp); // Need to ensure destroot is always allocated
+							 // from the stdlib memory pool not the glib one
+	g_free(temp);
 	gboolean seq_exists = FALSE;
 	if (output_type == SEQ_SER) {
-		if (!g_str_has_suffix(destroot, ".ser"))
-			str_append(&destroot, ".ser");
+		if (!g_str_has_suffix(destroot, ".ser")) {
+			destroot = str_append(&destroot, ".ser");
+		}
 		seq_exists = check_if_seq_exist(destroot, FALSE);
 	}
 	else if (output_type == SEQ_FITSEQ) {
-		if (!g_str_has_suffix(destroot, com.pref.ext))
-			str_append(&destroot, com.pref.ext);
+		if (!g_str_has_suffix(destroot, com.pref.ext)) {
+			destroot = str_append(&destroot, com.pref.ext);
+		}
 		seq_exists = check_if_seq_exist(destroot, FALSE);
 	}
 	else {
-		destroot = format_basename(destroot, TRUE);
+		char* temp = format_basename(destroot, TRUE);
+		if (!temp) {
+			PRINT_ALLOC_ERR;
+			return;
+		}
+		destroot = temp;
 		seq_exists = check_if_seq_exist(destroot, TRUE);
 	}
 

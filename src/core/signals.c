@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -55,13 +55,7 @@ static void signal_handled(int s) {
 			g_printf(ANSI_COLOR_RED"%s"ANSI_COLOR_RESET"\n", visit);
 		}
 
-#if (!defined _WIN32 && defined HAVE_EXECINFO_H)
-		void *stack[STACK_DEPTH];
-
-		size_t size = backtrace(stack, sizeof(stack) / sizeof(void*));
-
-		backtrace_symbols_fd(stack, size, fileno((FILE*) stdout));
-#else
+#ifdef _WIN32
 		unsigned int i;
 		void *stack[STACK_DEPTH];
 		unsigned short size;
@@ -84,6 +78,12 @@ static void signal_handled(int s) {
 		}
 
 		free(symbol);
+#elif HAVE_EXECINFO_H
+		void *stack[STACK_DEPTH];
+
+		size_t size = backtrace(stack, sizeof(stack) / sizeof(void*));
+
+		backtrace_symbols_fd(stack, size, fileno((FILE*) stdout));
 #endif
 	}
 	undo_flush();

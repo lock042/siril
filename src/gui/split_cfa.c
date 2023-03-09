@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -20,9 +20,11 @@
 
 #include "core/siril.h"
 #include "core/command.h"
+#include "core/command_line_processor.h"
 #include "algos/extraction.h"
 #include "io/sequence.h"
 #include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 
@@ -40,7 +42,14 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 
 		set_cursor_waiting(TRUE);
 		args->seq = &com.seq;
-		args->seqEntry = gtk_entry_get_text(entrySplitCFA);
+		args->scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
+		args->seqEntry = strdup(gtk_entry_get_text(entrySplitCFA));
+		if (com.seq.type == SEQ_SER) {
+			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: sequence is SER"),
+						_("Only FITS format is supported for sequence CFA splitting"));
+			free(args);
+			return;
+		}
 		switch (method) {
 			case 0:
 				if (args->seqEntry && args->seqEntry[0] == '\0')
@@ -62,8 +71,11 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				break;
 			default:
 				fprintf(stderr, "unhandled case!\n");
+				free(args);
 		}
 	} else {
+		int scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
+		fprintf(stdout,"Scaling %d\n",scaling);
 		switch (method) {
 			case 0:
 				process_split_cfa(0);
@@ -72,7 +84,17 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				process_extractHa(0);
 				break;
 			case 2:
-				process_extractHaOIII(0);
+				switch (scaling) {
+					case 0:
+						processcommand("extract_HaOIII");
+						break;
+					case 1:
+						processcommand("extract_HaOIII -resample=ha");
+						break;
+					case 2:
+						processcommand("extract_HaOIII -resample=oiii");
+						break;
+				}
 				break;
 			case 3:
 				process_extractGreen(0);
@@ -85,9 +107,13 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 
 void on_combo_split_cfa_method_changed(GtkComboBox *box, gpointer user_data) {
 	GtkWidget *w = lookup_widget("label10");
+	GtkWidget *cb = lookup_widget("combo_haoiii_scaling");
+	GtkWidget *cbl = lookup_widget("labelhaoiiiscaling");
 	GtkWidget *txt = lookup_widget("entrySplitCFA");
 	gint method = gtk_combo_box_get_active(box);
 
+	gtk_widget_set_sensitive(cb, method == 2);
+	gtk_widget_set_sensitive(cbl, method == 2);
 	gtk_widget_set_sensitive(w, method != 2);
 	gtk_widget_set_sensitive(txt, method != 2);
 	switch (method) {

@@ -12,15 +12,14 @@ struct mtf_data {
 	fits *fit;
 	sequence *seq;
 	struct mtf_params params;
-	const gchar *seqEntry;
+	char *seqEntry;
 };
 
 struct ght_data {
 	fits *fit;
 	sequence *seq;
-	struct ght_params params_ght;
-	struct ght_compute_params compute_params;
-	const gchar *seqEntry;
+	struct ght_params *params_ght;
+	char *seqEntry;
 };
 
 typedef enum {
@@ -35,7 +34,9 @@ void compute_histo_for_gfit();
 void invalidate_gfit_histogram();
 void update_gfit_histogram_if_needed();
 void apply_histo_cancel();
-void toggle_histogram_window_visibility();
+void toggle_histogram_window_visibility(int _invocation);
+
+void on_button_histo_close_clicked(GtkButton *button, gpointer user_data); // callback needed
 
 void on_histoMidEntry_changed(GtkEditable *editable, gpointer user_data);
 void on_histoShadEntry_changed(GtkEditable *editable, gpointer user_data);

@@ -20,7 +20,7 @@ struct _convert_data {
 	gboolean input_has_a_seq;
 	gboolean input_has_a_film;
 	gboolean make_link;
-	gchar *destroot;
+	char *destroot;
 	gboolean debayer;
 	sequence_type output_type;
 	gboolean multiple_output;	// multiple SER output

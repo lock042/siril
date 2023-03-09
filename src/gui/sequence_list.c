@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -196,7 +196,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			switch (selected_source) {
 				case r_FWHM:
 					if (is_arcsec) {
-						bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+						bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].fwhm;
@@ -204,7 +204,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 					break;
 				case r_WFWHM:
 					if (is_arcsec) {
-						bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+						bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].weighted_fwhm;
@@ -222,7 +222,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 				case r_NBSTARS:
 					fwhm = seq->regparam[layer][index].number_of_stars;
 					break;
-				default: 
+				default:
 					break;
 			}
 		}
@@ -240,7 +240,6 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 						fwhm_to_arcsec_if_needed(&gfit, psfs[index]);
 						fwhm = psfs[index]->fwhmx_arcsec < 0 ? psfs[index]->fwhmx : psfs[index]->fwhmx_arcsec;
 					} else {
-						fwhm_to_pixels(psfs[index]);
 						fwhm = psfs[index]->fwhmx;
 					}
 					break;
@@ -478,7 +477,12 @@ void fill_sequence_list(sequence *seq, int layer, gboolean as_idle) {
 static gboolean fill_sequence_list_idle(gpointer p) {
 	int i;
 	struct _seq_list *args = (struct _seq_list *)p;
-
+	if (!args)
+		return FALSE;
+	if (!args->seq) {
+		g_free(args);
+		return FALSE;
+	}
 	if (combo == NULL) combo = lookup_widget("plotCombo");
 	if (sourceCombo == NULL) sourceCombo = lookup_widget("plotSourceCombo");
 	if (arcsec == NULL) arcsec = lookup_widget("arcsecPhotometry");
@@ -510,7 +514,7 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 				case r_NBSTARS:
 					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("#Stars"));
 					break;
-				default: 
+				default:
 					break;
 			}
 		} else {
@@ -601,7 +605,7 @@ void exclude_single_frame(int index) {
 void select_unselect_frames_from_list(gboolean *selected, gboolean keep) {
 	gboolean need_ref_update = FALSE;
 
-	for (int i = 0; i <= com.seq.number; i++) { // use real index
+	for (int i = 0; i < com.seq.number; i++) { // use real index
 		com.seq.imgparam[i].incl = (keep) ? selected[i] : !selected[i] && com.seq.imgparam[i].incl;
 		if (!com.seq.imgparam[i].incl && com.seq.reference_image == i) { // reference image is not included anymore
 			need_ref_update = TRUE;
@@ -641,7 +645,7 @@ void toggle_image_selection(int index_in_list, int real_index, gboolean initvalu
 	if (initvalue) {
 		com.seq.imgparam[real_index].incl = FALSE;
 		if (before_change != com.seq.imgparam[real_index].incl) { // decrement only on value change
-			--com.seq.selnum; 
+			--com.seq.selnum;
 			msg = g_strdup_printf(_("Image %d has been unselected from sequence\n"), real_index + 1);
 			if (com.seq.reference_image == real_index) {
 				com.seq.reference_image = -1;  // invalidate to trigger new reference search if ref frame is deselected
@@ -853,6 +857,7 @@ void update_icons_sequence_list(gboolean is_dark) {
 		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame.svg", NULL);
 		w = gtk_image_new_from_file(image);
 	}
+	g_free(image);
 	gtk_button_set_image(GTK_BUTTON(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"))), w);
 	gtk_widget_show(w);
 }
@@ -863,7 +868,7 @@ void update_icons_sequence_list(gboolean is_dark) {
 
 #ifdef _WIN32
 static int ListSequences(const gchar *sDir, const char *sequence_name_to_select,
-		GtkComboBoxText *seqcombo, int *index_of_seq_to_load) {
+		GtkComboBoxText *seqcombo, int *index_of_seq_to_load, gboolean *found) {
 	WIN32_FIND_DATAW fdFile;
 	HANDLE hFind = NULL;
 	char sPath[2048];
@@ -901,6 +906,7 @@ static int ListSequences(const gchar *sDir, const char *sequence_name_to_select,
 						&& !strncmp(filename, sequence_name_to_select,
 							strlen(filename))) {
 					*index_of_seq_to_load = number_of_loaded_sequences;
+					*found = TRUE;
 				}
 				++number_of_loaded_sequences;
 			}
@@ -926,6 +932,7 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	int number_of_loaded_sequences = 0;
 	int index_of_seq_to_load = -1;
 	char *seqname = NULL;
+	gboolean found = FALSE;
 
 	// clear the previous list
 	seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("sequence_list_combobox"));
@@ -941,10 +948,11 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	}
 
 #ifdef _WIN32
-	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load);
+	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load, &found);
 #else
 	struct dirent **list;
 	int i, n;
+
 
 	n = scandir(com.wd, &list, 0, alphasort);
 	if (n < 0)
@@ -959,8 +967,10 @@ int update_sequences_list(const char *sequence_name_to_select) {
 				free_sequence(seq, TRUE);
 				char *filename = list[i]->d_name;
 				gtk_combo_box_text_append_text(seqcombo, filename);
-				if (seqname && !strcmp(filename, seqname))
+				if (seqname && !strcmp(filename, seqname)) {
 					index_of_seq_to_load = number_of_loaded_sequences;
+					found = TRUE;
+				}
 				++number_of_loaded_sequences;
 			}
 		}
@@ -970,15 +980,16 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	free(list);
 #endif
 
-	if (seqname) free(seqname);
-
 	if (!number_of_loaded_sequences) {
 		fprintf(stderr, "No valid sequence found in CWD.\n");
+		if (seqname) free(seqname);
 		return -1;
-	} else {
+	} else if (!seqname || (seqname && found)) {
 		fprintf(stdout, "Loaded %d %s\n", number_of_loaded_sequences,
 				ngettext("sequence", "sequences", number_of_loaded_sequences));
-	}
+	} else return -1;
+
+	if (seqname) free(seqname);
 
 	if (number_of_loaded_sequences > 1 && index_of_seq_to_load < 0) {
 		gtk_combo_box_popup(GTK_COMBO_BOX(seqcombo));

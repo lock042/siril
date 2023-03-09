@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -34,5 +34,7 @@ int imoper(fits *a, fits *b, image_operator oper, gboolean allow_32bits);
 int addmax(fits *a, fits *b);
 int siril_fdiv(fits *a, fits *b, float scalar, gboolean allow_32bits);
 int siril_ndiv(fits *a, fits *b);
+
+int soper_unscaled_div_ushort_to_float(fits *a, int scalar);
 
 #endif /* SRC_CORE_ARITHM_H_ */

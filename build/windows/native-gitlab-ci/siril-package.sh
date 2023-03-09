@@ -1,4 +1,6 @@
 # Package shared ressources
+mkdir -p ${INSTALL_PREFIX}/etc/ssl
+cp -fr ${W64_OUT}/etc/ssl ${INSTALL_PREFIX}/etc
 cp -fr ${W64_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
 cp -fr ${W64_OUT}/share/icons/ ${INSTALL_PREFIX}/share
 cp -fr ${W64_OUT}/share/locale/ ${INSTALL_PREFIX}/share
@@ -12,7 +14,6 @@ cp -fr ${W64_OUT}/bin/gspawn-win64-helper.exe ${INSTALL_PREFIX}/bin/
 cp -fr ${W64_OUT}/bin/gspawn-win64-helper-console.exe ${INSTALL_PREFIX}/bin/
 cp build/windows/crossbuild-gitlab-ci/siril-wrapper.cmd ${INSTALL_PREFIX}/bin/
 # Package lib
-mkdir ${INSTALL_PREFIX}/lib/
 cp -fr ${W64_OUT}/lib/gdk-pixbuf-2.0 ${INSTALL_PREFIX}/lib/
 cp build/windows/loaders.cache ${INSTALL_PREFIX}/lib/gdk-pixbuf-2.0/2.10.0/
 glib-compile-schemas --targetdir=${INSTALL_PREFIX}/share/glib-2.0/schemas ${W64_OUT}/share/glib-2.0/schemas

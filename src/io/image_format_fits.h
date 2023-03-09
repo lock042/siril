@@ -8,6 +8,13 @@
 void read_fits_header(fits *fit);
 int fits_parse_header_string(fits *fit, gchar *description);
 char *copy_header(fits *fit);
+
+typedef struct {
+	char *key;
+	char *value;
+} header_record;
+GSList *read_header_keyvals_strings(fitsfile *fptr);
+
 data_type get_data_type(int bitpix);
 void fit_get_photometry_data(fits *fit);
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float);
@@ -18,19 +25,20 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 		const rectangle *area, gboolean read_date);
 int read_fits_metadata(fits *fit);
 int read_fits_metadata_from_path(const char *filename, fits *fit);
+int read_fits_metadata_from_path_first_HDU(const char *filename, fits *fit);
 void flip_buffer(int bitpix, void *buffer, const rectangle *area);
 int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 		const rectangle *area);
 int siril_fits_compress(fits *f);
 int save_opened_fits(fits *f);
+gchar *set_right_extension(const char *name);
 int savefits(const char*, fits*);
 int copyfits(fits *from, fits *to, unsigned char oper, int layer);
 void copy_fits_metadata(fits *from, fits *to);
 int copy_fits_from_file(char *source, char *destination);
 int save1fits16(const char *filename, fits *fit, int layer);
 int save1fits32(const char *filename, fits *fit, int layer);
-int siril_fits_open_diskfile(fitsfile **fptr, const char *filename, int iomode,
-		int *status);
+int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomode, int *status);
 
 void rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted);
 void rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit);

@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -75,6 +75,7 @@ static float getMedian5x5_float(const float *buf, const int xx, const int yy, co
 
 static WORD* getAverage3x3Line(WORD *buf, const int yy, const int w,
 		const int h, gboolean is_cfa) {
+	g_assert(w > 0 && h > 0);
 	int step, radius, x, xx, y;
 	WORD *cpyline;
 
@@ -97,13 +98,14 @@ static WORD* getAverage3x3Line(WORD *buf, const int yy, const int w,
 				}
 			}
 		}
-		cpyline[xx] = round_to_WORD(value / n);
+		cpyline[xx] = n == 0 ? 0 : round_to_WORD(value / n);
 	}
 	return cpyline;
 }
 
 static float* getAverage3x3Line_float(const float *buf, const int yy, const int w,
 		const int h, gboolean is_cfa) {
+	g_assert(w > 0 && h > 0);
 	int step, radius, x, xx, y;
 	float *cpyline;
 
@@ -126,13 +128,14 @@ static float* getAverage3x3Line_float(const float *buf, const int yy, const int 
 				}
 			}
 		}
-		cpyline[xx] = (value / n);
+		cpyline[xx] = n == 0 ? 0.f : (value / n);
 	}
 	return cpyline;
 }
 
 static float getAverage3x3_float(const float *buf, const int xx, const int yy,
 		const int w, const int h, gboolean is_cfa) {
+	g_assert(w > 0 && h > 0);
 
     const int step = is_cfa ? 2 : 1;
     const int radius = step;
@@ -149,11 +152,12 @@ static float getAverage3x3_float(const float *buf, const int xx, const int yy,
             }
         }
     }
-    return value / n;
+    return n == 0 ? 0.f : value / n;
 }
 
 static float getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
 		const int w, const int h, gboolean is_cfa) {
+	g_assert(w > 0 && h > 0);
 	int step, radius, x, y;
 	float value = 0.f;
 
@@ -175,7 +179,7 @@ static float getAverage3x3_ushort(WORD *buf, const int xx, const int yy,
 			}
 		}
 	}
-	return value / n;
+	return n == 0 ? 0 :value / n;
 }
 
 /* Gives a list of point p containing deviant pixel coordinates, to be freed by
@@ -339,6 +343,12 @@ int cosmeticCorrection(fits *fit, deviant_pixel *dev, int size, gboolean is_cfa)
 }
 
 /**** Autodetect *****/
+static int cosmetic_finalize_hook(struct generic_seq_args *args) {
+	int retval = seq_finalize_hook(args);
+	free(args->user);
+	return retval;
+}
+
 int cosmetic_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct cosmetic_data *c_args = (struct cosmetic_data*) args->user;
@@ -418,7 +428,7 @@ void apply_cosmetic_to_sequence(struct cosmetic_data *cosme_args) {
 	args->nb_filtered_images = cosme_args->seq->selnum;
 	args->compute_mem_limits_hook = cosmetic_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = cosmetic_finalize_hook;
 	args->image_hook = cosmetic_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Cosmetic Correction");
@@ -487,8 +497,6 @@ int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa) {
 			g_clear_error(&error);
 			siril_log_message(_("File [%s] does not exist\n"), g_file_peek_path(file));
 		}
-
-		g_object_unref(file);
 		return 1;
 	}
 
@@ -561,7 +569,7 @@ int apply_cosme_to_image(fits *fit, GFile *file, int is_cfa) {
 		}
 		g_free(line);
 	}
-
+	g_object_unref(data_input);
 	g_object_unref(input_stream);
 
 	return retval;
@@ -571,7 +579,9 @@ int cosme_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct cosme_data *c_args = (struct cosme_data*) args->user;
 
-	return apply_cosme_to_image(fit, c_args->file, c_args->is_cfa);
+	int retval = apply_cosme_to_image(fit, c_args->file, c_args->is_cfa);
+	g_object_unref(c_args->file);
+	return retval;
 }
 
 static int cosme_finalize_hook(struct generic_seq_args *args) {
@@ -595,7 +605,7 @@ void apply_cosme_to_sequence(struct cosme_data *cosme_args) {
 	args->description = _("Cosmetic Correction");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = cosme_args->prefix;
+	args->new_seq_prefix = strdup(cosme_args->prefix);
 	args->load_new_sequence = TRUE;
 	args->user = cosme_args;
 
@@ -780,7 +790,7 @@ void on_button_cosmetic_ok_clicked(GtkButton *button, gpointer user_data) {
 	args->amount = gtk_adjustment_get_value(adjCosmeAmount);
 
 	args->fit = &gfit;
-	args->seqEntry = gtk_entry_get_text(cosmeticSeqEntry);
+	args->seqEntry = strdup(gtk_entry_get_text(cosmeticSeqEntry));
 	set_cursor_waiting(TRUE);
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {

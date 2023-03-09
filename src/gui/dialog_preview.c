@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -64,8 +64,6 @@ static fileChooserPreview *new_preview_object() {
 static gboolean end_update_preview_cb(gpointer p) {
 	struct _updta_preview_data *args = (struct _updta_preview_data *) p;
 
-	stop_processing_thread();
-
 	const char *bytes_str;
 	char *size_str = NULL;
 	char *name_str = NULL;
@@ -73,6 +71,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	GFileType type;
 
 	fileChooserPreview *preview = args->preview;
+	siril_debug_print("preview idle\n");
 
 	if (!preview_allocated || !preview || !(GTK_IS_IMAGE((preview->image)))) {
 		set_cursor_waiting(FALSE);
@@ -82,6 +81,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	name_str = g_path_get_basename(args->filename);
 
 	if (!args->file_info) {
+		g_free(name_str);
 		set_cursor_waiting(FALSE);
 		return FALSE;
 	}
@@ -141,7 +141,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	return FALSE;
 }
 
-static gpointer update_preview_cb_idle(gpointer p) {
+static gpointer update_preview(gpointer p) {
 	uint8_t *buffer = NULL;
 	size_t size;
 	char *mime_type = NULL;
@@ -180,7 +180,6 @@ static gpointer update_preview_cb_idle(gpointer p) {
 			args->description = siril_get_file_info(args->filename, pixbuf);
 
 			cleanup: gdk_pixbuf_loader_close(loader, NULL);
-			free(mime_type);
 			free(buffer);
 			g_object_unref(loader); // This should clean up tmp as well
 		}
@@ -198,7 +197,7 @@ static gpointer update_preview_cb_idle(gpointer p) {
 			args->description = siril_get_file_info(args->filename, pixbuf);
 		}
 	}
-
+	free(mime_type);
 	args->pixbuf = pixbuf;
 	siril_add_idle(end_update_preview_cb, args);
 	return GINT_TO_POINTER(0);
@@ -235,7 +234,8 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer p) {
 	g_free(uri);
 	g_object_unref(file);
 
-	start_in_new_thread(update_preview_cb_idle, data);
+	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
+	g_thread_new("thumbnail", update_preview, data);
 }
 
 void siril_preview_free(fileChooserPreview *preview) {

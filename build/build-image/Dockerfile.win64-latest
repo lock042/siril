@@ -4,8 +4,8 @@ RUN apt-get update -qyy \
         build-essential \
         cmake \
         cpio \
-        g++-mingw-w64-x86-64 \
-        gcc-mingw-w64-x86-64 \
+        g++-mingw-w64-x86-64-posix \
+        gcc-mingw-w64-x86-64-posix \
         git \
         intltool \
         libglib2.0-bin \

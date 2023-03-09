@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "core/command.h"
 #include "core/undo.h"
+#include "core/command.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
 #include "core/siril_log.h"
@@ -39,6 +40,7 @@
 #include "gui/utils.h"
 #include "gui/colors.h"
 #include "gui/callbacks.h"
+#include "gui/documentation.h"
 #include "gui/histogram.h"
 #include "gui/open_dialog.h"
 #include "gui/message_dialog.h"
@@ -73,8 +75,6 @@ void livestacking_action_activate(GSimpleAction *action, GVariant *parameter, gp
 
 	gtk_widget_show(w);
 	gtk_window_set_keep_above(GTK_WINDOW(w), TRUE);
-
-	on_livestacking_start();
 }
 
 void save_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -129,6 +129,10 @@ void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 #ifdef HAVE_JSON_GLIB
 	siril_check_updates(TRUE);
 #endif
+}
+
+void doc_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_get_documentation();
 }
 
 static gboolean is_extended = FALSE;
@@ -343,12 +347,12 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		return;
 	}
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, TRUE, ps, TRUE, NULL);
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 	free(ps);
 	if (!result)
 		return;
 
-	popup_psf_result(result, &com.selection);
+	popup_psf_result(result, &com.selection, &gfit);
 	free_psf(result);
 }
 
@@ -369,14 +373,20 @@ void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer
 		siril_open_dialog("search_objects");
 }
 
+void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (has_wcs(&gfit))
+		process_sso();
+}
+
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		if (has_wcs(&gfit)) {
 			com.found_object = find_objects(&gfit);
 		}
 	} else {
-		g_slist_free_full(com.found_object, (GDestroyNotify) free_catalogue_object);
+		g_slist_free(com.found_object);
 		com.found_object = NULL;
+		purge_temp_user_catalogue();
 	}
 	g_simple_action_set_state(action, state);
 	redraw(REDRAW_OVERLAY);
@@ -515,11 +525,15 @@ void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	siril_open_dialog("starnet_dialog");
 }
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("deconvolution_dialog");
+	siril_open_dialog("bdeconv_dialog");
 }
 
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	toggle_histogram_window_visibility(2);
+}
+
+void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("binxy_dialog");
 }
 
 void resample_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -606,6 +620,10 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("denoise_dialog");
+}
+
+void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("merge_cfa_dialog");
 }
 
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

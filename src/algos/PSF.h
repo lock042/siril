@@ -6,6 +6,9 @@
 #include "algos/star_finder.h"
 
 #define _2_SQRT_2_LOG2 2.35482004503
+#define INV_4_LOG2 0.360673760222241
+#define MOFFAT_BETA_UBOUND 10.		// Max allowable value for Moffat beta
+
 //in siril.h: typedef struct fwhm_struct psf_star;
 
 struct fwhm_struct {
@@ -20,6 +23,11 @@ struct fwhm_struct {
 	double sat; /* Level above which pixels have satured (defined by peaker) */
 	int R; /* Optimized box sixe to enclose sufficient pixels in the background */
 	gboolean has_saturated;
+
+	// Moffat parameters
+	double beta; /* Moffat equation beta parameter */
+	starprofile profile; // Whether the profile is Gaussian or Moffat with beta {free|fixed}
+	// The other parameters B, A, x0, y0, angle, rmse, sat... are the same as for Gaussian
 
 	double xpos, ypos; /* position of the star in the image, not set by Minimization */
 
@@ -38,37 +46,39 @@ struct fwhm_struct {
 	double x_err, y_err;
 	double sx_err, sy_err;
 	double ang_err;
+	double beta_err;
 
 	int layer;
 	char* units;
+
+	double ra, dec;
 };
 
 struct PSF_data {
 	size_t n;
 	double *y;
-	double *sigma;
 	size_t NbRows;
 	size_t NbCols;
 	double rmse;
 	gboolean *mask;
+	gboolean betafree; // not used untill we implement PSF_MOFFAT_BFIXED
+	double beta; //  not used untill we implement PSF_MOFFAT_BFIXED
 };
 
 double psf_get_fwhm(fits *fit, int layer, rectangle *selection, double *roundness);
 
-psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area, gboolean fit_angle,
+psf_star *psf_get_minimisation(fits *fit, int layer, rectangle *area,
 		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
-		psf_error *error);
+		starprofile profile, psf_error *error);
 
-psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, gboolean fit_angle,
-		gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
-		psf_error *error);
+psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int convergence, 
+		gboolean from_peaker, gboolean for_photometry, struct phot_config *phot_set, gboolean verbose,
+		starprofile profile, psf_error *error);
 
 void psf_display_result(psf_star *, rectangle *);
 void fwhm_to_arcsec_if_needed(fits*, psf_star*);
-void fwhm_to_pixels(psf_star *result);
 gboolean get_fwhm_as_arcsec_if_possible(psf_star *star, double *fwhmx, double *fwhmy, char **unit);
-double convert_single_fwhm_to_pixels(double fwhm, double s);
-gboolean convert_single_fwhm_to_arcsec_if_possible(double fwhm, double bin, double px_size, double flenght, double *result);
+gboolean convert_single_fwhm_to_arcsec_if_possible(double fwhm, double bin, double px_size, double flength, double *result);
 
 psf_star *new_psf_star();
 psf_star *duplicate_psf(psf_star *);

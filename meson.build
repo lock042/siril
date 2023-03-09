@@ -1,6 +1,6 @@
 # This file is part of Siril, an astronomy image processor.
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+# Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
 # Reference site is https://free-astro.org/index.php/Siril
 #
 # Siril is free software: you can redistribute it and/or modify
@@ -27,12 +27,12 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.1.0',
+  version : '1.2.0-devbeta2',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
     'c_std=gnu11',
-    'cpp_std=c++11',
+    'cpp_std=c++14',
     'buildtype=debugoptimized',
   ],
 )
@@ -145,7 +145,7 @@ siril_c_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFS
 siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
 
 if platform_linux
-  siril_link_arg += '-rdynamic'
+  siril_link_arg += ['-rdynamic']
 elif platform_bsd
   siril_link_arg += '-Wl,--no-as-needed' # workaround for https://gitlab.com/free-astro/siril/-/issues/614 (Bug#251206)
   siril_link_arg += '-rdynamic'
@@ -262,19 +262,26 @@ if not htmesh_dep.found()
 
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
-  #opt_var.append_compile_args(
+if platform_windows
+  opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
+endif
   sub_proj = cmake.subproject('htmesh', options: opt_var)
 
   htmesh_dep = sub_proj.dependency('htmesh')
   htmesh_inc = sub_proj.include_directories('htmesh')
 else
-  siril_cpp_flag += '-DHAVE_LIBRTPROCESS'
+  siril_cpp_flag += '-DHAVE_HTMESH'
 endif
 
 ## Optional dependencies
 
 openmp_dep = []
 if enable_openmp
+  if platform_linux
+    siril_c_flag += '-DHAVE_FFTW3F_OMP'
+    siril_cpp_flag += '-DHAVE_FFTW3F_OMP'
+    siril_link_arg += ['-lfftw3f_omp']
+  endif
   if platform_osx
     message('Set OpenMP flags for macOS')
     siril_link_arg += ['-lomp']
@@ -364,6 +371,8 @@ endif
 ## General and package configuration
 conf_data = configuration_data()
 
+conf_data.set_quoted('CPU_ARCH', host_cpu_family)
+
 conf_data.set('SIRIL_UNSTABLE', stable ? false : 1)
 conf_data.set('SIRIL_OUTPUT_DEBUG', get_option('buildtype').startswith('debug') ? 1 : false)
 conf_data.set('ENABLE_RELOCATABLE_RESOURCES', relocatable_bundle ? 1 : false)
@@ -394,6 +403,8 @@ elif platform_windows
   conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'windows')
 elif platform_osx
   conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'macos')
+elif platform_bsd
+  conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'bsd')
 else
   conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'other')
 endif

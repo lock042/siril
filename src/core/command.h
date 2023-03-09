@@ -5,19 +5,50 @@
 #  include <config.h>
 #endif
 
+#define MAX_COMMAND_WORDS 50		// max number of words to split in command line input
+
+typedef enum {
+	REQ_CMD_NONE = (1 << 0),
+	REQ_CMD_SINGLE_IMAGE = (1 << 1),
+	REQ_CMD_SEQUENCE = (1 << 2),
+	REQ_CMD_FOR_CFA = (1 << 3),
+	REQ_CMD_FOR_MONO = (1 << 4),
+	REQ_CMD_FOR_RGB = (1 << 5),
+	REQ_CMD_SELECTION = (1 << 6),
+	REQ_CMD_NO_THREAD = (1 << 10)
+} cmd_prerequires;
+
+typedef
+struct {
+	char *name;
+	int nbarg;
+	char *usage;
+	int (* process)(int);
+	char *definition;
+	gboolean scriptable;
+	cmd_prerequires prerequires;
+} command;
+
+extern char *word[MAX_COMMAND_WORDS];  // NULL terminated
+
 int	process_addmax(int nb);
 int	process_autostretch(int nb);
+int	process_autoghs(int nb);
 int	process_asinh(int nb);
 
 int	process_bg(int nb);
 int	process_bgnoise(int nb);
+int	process_binxy(int nb);
 int	process_denoise(int nb);
 gpointer run_nlbayes_on_fit(gpointer p);
 gpointer run_bm3d_on_fit(gpointer p);
 
 int	process_boxselect(int nb);
 
+int	process_calibrate(int nb);
+int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
+int	process_catsearch(int nb);
 int	process_cd(int nb);
 int	process_cdg(int nb);
 int	process_crop(int nb);
@@ -42,7 +73,7 @@ int	process_extractHaOIII(int nb);
 int	process_fdiv(int nb);
 int	process_fft(int nb);
 int	process_fill(int nb);
-int	process_fill2(int nb);
+int	process_ffill(int nb);
 int	process_findcosme(int nb);
 int	process_findhot(int nb);
 int	process_findstar(int nb);
@@ -52,10 +83,13 @@ int	process_fmedian(int nb);
 int	process_fmul(int nb);
 
 int	process_gauss(int nb);
+int	process_getref(int nb);
 int	process_grey_flat(int nb);
 
 int	process_help(int nb);
 int	process_histo(int nb);
+
+int	process_jsonmetadata(int nb);
 
 int	process_imoper(int nb);
 int	process_inspector(int nb);
@@ -67,31 +101,35 @@ int	process_load(int nb);
 int	process_log(int nb);
 int	process_ls(int nb);
 
+int	process_makepsf(int nb);
 int	process_merge(int nb);
 int	process_mirrorx(int nb);
+int	process_mirrorx_single(int nb);
 int	process_mirrory(int nb);
 int	process_mtf(int nb);
 
 int	process_neg(int nb);
 int	process_new(int nb);
 int	process_nomad(int nb);
+int	process_sso();
 int	process_nozero(int nb);
 
 int	process_offset(int nb);
 
-int process_ght(int nb);
-int process_invght(int nb);
-int process_invmodasinh(int nb);
-int process_invmtf(int nb);
-int process_linstretch(int nb);
-int process_modasinh(int nb);
+int	process_ght(int nb);
+int	process_invght(int nb);
+int	process_invmodasinh(int nb);
+int	process_linstretch(int nb);
+int	process_modasinh(int nb);
 
+int	process_parse(int nb);
 int	process_pcc(int nb);
 int	process_pm(int nb);
 int	process_preprocess(int nb);
 int	process_preprocess_single(int nb);
 int	process_psf(int nb);
 
+int	process_rebayer(int nb);
 int	process_register(int nb);
 int	process_resample(int nb);
 int	process_reloadscripts(int nb);
@@ -116,6 +154,7 @@ int	process_savepnm(int nb);
 int	process_savetif(int nb);
 int	process_starnet(int nb);
 #endif
+int	process_sb(int nb);
 int	process_scnr(int nb);
 int	process_select(int nb);
 int	process_seq_applyreg(int nb);
@@ -126,12 +165,23 @@ int	process_seq_extractHa(int nb);
 int	process_seq_extractGreen(int nb);
 int	process_seq_extractHaOIII(int nb);
 int	process_seq_findstar(int nb);
+int	process_seq_fixbanding(int nb);
+int	process_seq_ght(int nb);
 int	process_seq_header(int nb);
+int	process_seq_invght(int nb);
+int	process_seq_invmodasinh(int nb);
+int	process_seq_linstretch(int nb);
+int	process_seq_merge_cfa(int nb);
+int	process_seq_modasinh(int nb);
 int	process_seq_mtf(int nb);
 int	process_seq_psf(int nb);
+int	process_seq_rl(int nb);
+int	process_seq_sb(int nb);
 int	process_seq_split_cfa(int nb);
+int	process_seq_starnet(int nb);
 int	process_seq_stat(int nb);
 int	process_seq_tilt(int nb);
+int	process_seq_wiener(int nb);
 int	process_set(int nb);
 int	process_set_32bits(int nb);
 int	process_set_compress(int nb);
@@ -168,6 +218,7 @@ int	process_unsharp(int nb);
 int	process_visu(int nb);
 
 int	process_wavelet(int nb);
+int	process_wiener(int nb);
 int	process_wrecons(int nb);
 
 /* live stacking specials */
@@ -175,4 +226,5 @@ int process_start_ls(int nb);
 int process_livestack(int nb);
 int process_stop_ls(int nb);
 
+int process_show(int nb);
 #endif
