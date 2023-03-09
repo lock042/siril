@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-09 09:46+0100\n"
 "PO-Revision-Date: 2023-03-10 08:31+0000\n"
-"Last-Translator: Robert MORELLI <r.morelli@laposte.net>\n"
+"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
 "Language: fr\n"
@@ -8738,15 +8738,24 @@ msgid ""
 "Windows), and they must both be in the same directory. You can select either "
 "executable: Siril will automatically find the other one if it exists."
 msgstr ""
+"Sélectionnez l'exécutable StarNet. Fonctionne avec toutes les versions de "
+"ligne de commande StarNet.\n"
+"\n"
+"Pour les anciennes installations StarNet++ v1 qui utilisaient des "
+"exécutables séparés pour traiter les fichiers mono et RVB, les exécutables "
+"<b>doivent</b> conserver leurs noms d'origine <b>mono_starnet++</b> et "
+"<b>rgb_starnet++</b> (avec <b>.exe</b> si vous utilisez Windows), et ils "
+"doivent tous deux se trouver dans le même répertoire. Vous pouvez "
+"sélectionner l'un ou l'autre des exécutables : Siril trouvera "
+"automatiquement l'autre s'il existe."
 
 #: src/gui/siril3.glade:31338
 msgid "Select StarNet executable"
-msgstr ""
+msgstr "Sélectionner l'exécutable StarNet"
 
 #: src/gui/siril3.glade:31352
-#, fuzzy
 msgid "Must point to a valid StarNet executable."
-msgstr "Doit pointer vers un répertoire d'installation Starnet++ valide."
+msgstr "Doit pointer vers un exécutable StarNet valide."
 
 #: src/gui/siril3.glade:31366
 msgid ""
@@ -8754,23 +8763,31 @@ msgid ""
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
 "b> be in the same directory as the StarNet executable."
 msgstr ""
+"Sélectionnez le fichier de poids StarNet. Cela fonctionne <b>uniquement</b> "
+"avec les nouvelles versions de StarNet basées sur Torch. Il est facultatif : "
+"s'il est laissé vide, le fichier de poids <b>doit</b> se trouver dans le "
+"même répertoire que l'exécutable StarNet."
 
 #: src/gui/siril3.glade:31373
-#, fuzzy
 msgid "Select StarNet weights file"
-msgstr "Sélectionnez le fichier de la liste d'étoiles NINA"
+msgstr "Sélectionner le fichier de poids StarNet"
 
 #: src/gui/siril3.glade:31390
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
 msgstr ""
+"Efface l'emplacement des poids du réseau neuronal. Lorsqu'il est effacé, le "
+"fichier des poids <b>doit</b> se trouver dans le même répertoire que "
+"l'exécutable StarNet."
 
 #: src/gui/siril3.glade:31405
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
 msgstr ""
+"Peut pointer vers un fichier de poids de réseau neuronal StarNet.\n"
+"Versions de StarNet basées sur Torch uniquement."
 
 #: src/gui/siril3.glade:31427
 msgid "Select gnuplot binary location."
@@ -10159,22 +10176,19 @@ msgstr ""
 "facteurs sont :\n"
 
 #: src/algos/photometric_cc.c:232
-#, fuzzy
 msgid ""
 "The photometric color calibration has found a solution which may not be "
 "perfect because it did not rely on many stars\n"
 msgstr ""
-"L'étalonnage des couleurs par photométrie a trouvé une solution qui n'est "
-"peut-être pas parfaite car elle ne s'est pas appuyée sur de nombreuses "
-"étoiles.\n"
+"L'étalonnage photométrique des couleurs a trouvé une solution qui n'est peut-"
+"être pas parfaite car elle ne s'appuie pas sur un grand nombre d'étoiles.\n"
 
 #: src/algos/photometric_cc.c:234
-#, fuzzy
 msgid ""
 "The photometric color calibration seems to have found an imprecise solution, "
 "consider correcting the image gradient first\n"
 msgstr ""
-"La correction photométrique des couleurs semble avoir trouvé une solution "
+"L'étalonnage photométrique des couleurs semble avoir trouvé une solution "
 "imprécise, pensez à corriger d'abord le gradient de l'image\n"
 
 #: src/algos/photometric_cc.c:312
@@ -10224,7 +10238,6 @@ msgid "Photometric Color Calibration failed"
 msgstr "Échec de l'étalonnage des couleurs par photométrie"
 
 #: src/algos/photometric_cc.c:402 src/algos/photometric_cc.c:420
-#, fuzzy
 msgid ""
 "Cannot run the standalone photometric color calibration on this image "
 "because it has no WCS data or it is not supported\n"
@@ -10764,14 +10777,13 @@ msgstr ""
 "1.\n"
 
 #: src/core/command.c:514 src/core/command.c:583
-#, fuzzy
 msgid "Error: no StarNet executable set.\n"
-msgstr "Erreur : StarNet ne s'est pas exécuté correctement...\n"
+msgstr "Erreur : aucun exécutable StarNet n'est défini.\n"
 
 #: src/core/command.c:518 src/core/command.c:587
-#, fuzzy, c-format
+#, c-format
 msgid "Error: StarNet executable (%s) is not valid.\n"
-msgstr "Erreur : StarNet ne s'est pas exécuté correctement...\n"
+msgstr "Erreur : L'exécutable StarNet (%s) n'est pas valide.\n"
 
 #: src/core/command.c:550 src/core/command.c:627
 msgid ""
@@ -16782,11 +16794,11 @@ msgstr "copyright utilisateur à mettre dans l'en-tête du fichier"
 
 #: src/core/settings.c:273
 msgid "location of the StarNet executable"
-msgstr ""
+msgstr "emplacement de l'exécutable StarNet"
 
 #: src/core/settings.c:274
 msgid "location of the StarNet-torch weights file"
-msgstr ""
+msgstr "emplacement du fichier des poids de StarNet-torch"
 
 #: src/core/settings.c:275
 msgid "directory of the gnuplot installation"
@@ -17607,26 +17619,27 @@ msgstr "Exécution de StarNet"
 #: src/filters/starnet.c:149
 #, c-format
 msgid "StarNet caught buffer: %s : exit successful\n"
-msgstr ""
+msgstr "StarNet a capturé la mémoire tampon : %s : sortie réussie\n"
 
 #: src/filters/starnet.c:159
 #, c-format
 msgid "Starnet exit not caught, last buffer: %s\n"
-msgstr ""
+msgstr "Sortie Starnet non interceptée, dernier tampon : %s\n"
 
 #: src/filters/starnet.c:227
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning starnet failed during version check: %s\n"
-msgstr "Échec de l'utilisation de starnet : %s\n"
+msgstr ""
+"Échec de la création du processus lors de la vérification de la version : %"
+"s\n"
 
 #: src/filters/starnet.c:253
-#, fuzzy
 msgid "V2 detected\n"
-msgstr "sélectionnées"
+msgstr "V2 detectée\n"
 
 #: src/filters/starnet.c:259
 msgid "V2-torch detected\n"
-msgstr ""
+msgstr "V2-torch détecté\n"
 
 #: src/filters/starnet.c:277 src/filters/starnet.c:705
 #: src/filters/starnet.c:771
@@ -17634,25 +17647,17 @@ msgid "Error: unable to change to Siril working directory...\n"
 msgstr "Erreur : impossible de passer au répertoire de travail Siril...\n"
 
 #: src/filters/starnet.c:360
-#, fuzzy
 msgid "No suitable StarNet executable found.\n"
-msgstr ""
-"Aucun exécutable StarNet approprié n'a été trouvé dans le répertoire "
-"d'installation\n"
+msgstr "Aucun exécutable StarNet approprié n'a été trouvé.\n"
 
 #: src/filters/starnet.c:372
-#, fuzzy
 msgid "No suitable StarNet executable found for a mono image.\n"
 msgstr ""
-"Aucun exécutable StarNet approprié n'a été trouvé dans le répertoire "
-"d'installation\n"
+"Aucun exécutable StarNet approprié n'a été trouvé pour une image mono.\n"
 
 #: src/filters/starnet.c:387
-#, fuzzy
 msgid "No suitable StarNet executable found for a RGB image.\n"
-msgstr ""
-"Aucun exécutable StarNet approprié n'a été trouvé dans le répertoire "
-"d'installation\n"
+msgstr "Aucun exécutable StarNet approprié n'a été trouvé pour une image RVB.\n"
 
 #: src/filters/starnet.c:421 src/filters/starnet.c:447
 #: src/filters/starnet.c:456 src/filters/starnet.c:462
@@ -17678,13 +17683,13 @@ msgstr ""
 "StarNet : -nostarmask invoqué, le masque d'étoile ne sera pas généré...\n"
 
 #: src/filters/starnet.c:490
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Incorrect permissions on the StarNet executable: %s\n"
 "Ensure it is correctly set in Preferences / Miscellaneous.\n"
 msgstr ""
-"Permissions incorrectes sur le répertoire StarNet : %s\n"
-"Vérifiez qu'il est correctement défini dans Préférences / Divers.\n"
+"Autorisations incorrectes sur l'exécutable StarNet : %s\n"
+"Assurez-vous qu'elles sont correctement définies dans Préférences / Divers.\n"
 
 #: src/filters/starnet.c:498
 #, c-format
@@ -17746,11 +17751,12 @@ msgid ""
 "Warning: stride (%d) is greater than at least one of the image dimensions "
 "(%d x %d). Using default stride.\n"
 msgstr ""
+"Attention : le pas (%d) est supérieur à au moins une des dimensions de "
+"l'image (%d x %d). Utilisation du pas par défaut.\n"
 
 #: src/filters/starnet.c:623
-#, fuzzy
 msgid "Error: cannot read the neural net weights file.\n"
-msgstr "Erreur : Impossible de lire les données\n"
+msgstr "Erreur : impossible de lire le fichier des poids du réseau neuronal.\n"
 
 #: src/filters/starnet.c:638
 msgid "Error: StarNet did not execute correctly...\n"
@@ -17769,6 +17775,8 @@ msgid ""
 "Attempting to continue. You will need to clean up the working files "
 "manually.\n"
 msgstr ""
+"Tentative de poursuite. Vous devrez nettoyer manuellement les fichiers de "
+"travail.\n"
 
 #: src/filters/starnet.c:685
 msgid ""
@@ -19097,14 +19105,14 @@ msgid "You don't have permission to write in this directory: %s\n"
 msgstr "Vous n'avez pas la permission d'écrire dans ce dossier : %s\n"
 
 #: src/gui/preferences.c:407
-#, fuzzy, c-format
+#, c-format
 msgid "You don't have permission to execute this file: %s\n"
-msgstr "Vous n'avez pas la permission d'écrire dans ce dossier : %s\n"
+msgstr "Vous n'avez pas la permission d'exécuter ce fichier : %s\n"
 
 #: src/gui/preferences.c:445
-#, fuzzy, c-format
+#, c-format
 msgid "You don't have permission to read this file: %s\n"
-msgstr "Vous n'avez pas la permission d'écrire dans ce dossier : %s\n"
+msgstr "Vous n'avez pas la permission de lire ce fichier : %s\n"
 
 #: src/gui/preferences.c:474
 msgid "Cannot refresh script list"
@@ -19845,15 +19853,14 @@ msgstr ""
 "Vérifiez votre installation de StarNet et la configuration de Siril."
 
 #: src/gui/starnetgui.c:93
-#, fuzzy
 msgid ""
 "Valid StarNet v2-Torch executable found in the configured StarNet "
 "installation directory.\n"
 "StarNet can process mono and RGB images."
 msgstr ""
-"Exécutable StarNet v2 valide trouvé dans le répertoire d'installation "
+"Exécutable StarNet v2-Torch valide trouvé dans le répertoire d'installation "
 "configuré de StarNet.\n"
-"StarNet peut traiter les images mono et RVB."
+"StarNet peut traiter des images mono et RVB."
 
 #: src/gui/starnetgui.c:96
 msgid ""
@@ -22509,6 +22516,8 @@ msgstr ""
 #: src/registration/registration.c:1462
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
 msgstr ""
+"Impossible d'utiliser la sélection de zone sur une séquence avec des tailles "
+"d'image variables\n"
 
 #: src/registration/registration.c:1493
 msgid "The object is not moving, please check your registration data.\n"
