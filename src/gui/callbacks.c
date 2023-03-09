@@ -1708,7 +1708,7 @@ void setup_stretch_sliders() {
 	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_user"));
 	gtk_toggle_button_set_active(button, TRUE);
 	gui.sliders = USER;
-	gui.hi = USHRT_MAX_SINGLE;
+	gui.hi = USHRT_MAX;
 	gui.lo = 0;
 	set_cutoff_sliders_values();
 	redraw(REMAP_ALL);
