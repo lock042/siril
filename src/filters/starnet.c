@@ -286,7 +286,6 @@ END:
 }
 
 void free_starnet_args(starnet_data *args) {
-//	g_free(args->seqname);
 	g_free(args->seqEntry);
 	g_free(args->stride);
 	free(args);

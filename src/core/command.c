@@ -545,7 +545,7 @@ int process_starnet(int nb){
 			int stride = (int) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
 			else if ((stride < 2.0) || (stride > 512) || (stride % 2)) {
-				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
+				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 512, aborting.\n"));
 				free(starnet_args);
 				return CMD_ARG_ERROR;
 			}
@@ -624,18 +624,17 @@ int process_seq_starnet(int nb){
 		}
 		else if (g_str_has_prefix(arg, "-stride=")) {
 			arg += 8;
-			double stride = g_ascii_strtod(arg, &end);
-			int intstride = stride;
+			int stride = (int) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
-			else if ((intstride < 2.0) || (intstride > 256) || (intstride % 2)) {
-				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
+			else if ((stride < 2.0) || (stride > 512) || (stride % 2)) {
+				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 512, aborting.\n"));
 				if (!check_seq_is_comseq(starnet_args->seq))
 					free_sequence(starnet_args->seq, TRUE);
 				free(starnet_args);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
-				sprintf(starnet_args->stride, "%d", intstride);
+				sprintf(starnet_args->stride, "%d", stride);
 				starnet_args->customstride = TRUE;
 			}
 		}
