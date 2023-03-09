@@ -32,6 +32,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/image_display.h"
+#include "gui/callbacks.h"
 #include "gui/utils.h"	// for lookup_widget()
 #include "gui/progress_and_log.h"
 #include "gui/dialogs.h"
