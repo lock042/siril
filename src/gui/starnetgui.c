@@ -176,7 +176,6 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 		sgui_starnet_stride = 256;
 	starnet_data *starnet_args;
 	starnet_args = calloc(1, sizeof(starnet_data));
-	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->seqname = NULL;
 	starnet_args->seq = NULL;
 	starnet_args->starnet_fit = &gfit;
@@ -185,7 +184,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 	starnet_args->upscale = sgui_upscale;
 	starnet_args->linear = sgui_linear;
 	starnet_args->starmask = sgui_starmask;
-	sprintf(starnet_args->stride, "%d", sgui_starnet_stride);
+	starnet_args->stride = g_strdup_printf("%d", sgui_starnet_stride);
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	starnet_args->follow_on = sgui_follow_on;

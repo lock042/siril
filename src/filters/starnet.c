@@ -72,10 +72,6 @@
 fits *current_fit = NULL;
 gboolean verbose = TRUE;
 
-// Wrapper for execve
-char *my_argv[64];
-char *test_argv[3];
-
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
 }
@@ -168,6 +164,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 }
 
 starnet_version starnet_executablecheck(gchar* executable) {
+	char *test_argv[3] = {0};
 	int retval = NIL;
 	gint child_stdout;
 	GPid child_pid;
@@ -211,7 +208,8 @@ starnet_version starnet_executablecheck(gchar* executable) {
 
 	int nb = 0;
 	test_argv[nb++] = executable;
-	test_argv[nb++] = g_strdup("--version");
+	gchar *versionarg = g_strdup("--version");
+	test_argv[nb++] = versionarg;
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
 	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
 	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
@@ -228,6 +226,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
 		FreeConsole(); // and closing it
 #endif
+		g_free(versionarg);
 		return NIL;
 	}
 	// Add a child watch function which will be called when the child process exits.
@@ -266,6 +265,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	}
 	g_object_unref(data_input);
 	g_object_unref(stream);
+	g_free(versionarg);
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
 	FreeConsole(); // and closing it
 #endif
@@ -286,10 +286,8 @@ END:
 }
 
 void free_starnet_args(starnet_data *args) {
-	if (args->seqname)
-		g_free((void*)args->seqname);
-	if (args->seqEntry)
-		g_free((void*)args->seqEntry);
+	g_free(args->seqEntry);
+	g_free(args->stride);
 	free(args);
 	siril_debug_print("starnet_args freed\n");
 }
@@ -311,10 +309,11 @@ gboolean end_and_call_remixer(gpointer p)
 /* StarNet star removal routine */
 
 gpointer do_starnet(gpointer p) {
+	char *my_argv[64] = { 0 };
 	starnet_version version = NIL;
 	int retval = 0;
 	int retval2 = 0;
-	fits workingfit, fit;
+	fits workingfit = { 0 }, fit = { 0 };
 	starnet_data *args = (starnet_data *) p;
 	verbose = (args->seq == NULL); // To suppress log messages during seq working
 	args->follow_on = args->seq ? FALSE : args->follow_on;
@@ -355,6 +354,18 @@ gpointer do_starnet(gpointer p) {
 
 	// Check StarNet version
 	version = starnet_executablecheck(com.pref.starnet_exe);
+
+	// Check image size is sufficient
+	unsigned int minsize = 512;
+	if (args->upscale && version != TORCH)
+		minsize = 256;
+	if (min(current_fit->rx, current_fit->ry) < minsize) {
+		args->too_small = TRUE;
+		if (verbose) {
+			siril_log_color_message(_("Warning: some versions of StarNet fail to process images with dimensions smaller than 512x512. This image may fail. Attempting to continue...\n"), "salmon");
+		}
+	}
+
 	// If v1, check we have the right executable for the number of channels in current_fit
 	if (version == NIL) {
 		siril_log_color_message(_("No suitable StarNet executable found.\n"), "red");
@@ -603,10 +614,7 @@ gpointer do_starnet(gpointer p) {
 		my_argv[nb++] = starlesstif;
 	}
 	if (args->customstride) {
-		unsigned int s = (unsigned int) g_ascii_strtod(args->stride, NULL);
-		if (s > min(current_fit->rx, current_fit->ry)) {
-			siril_log_color_message(_("Warning: stride (%d) is greater than at least one of the image dimensions (%d x %d). Using default stride.\n"), "salmon", s, current_fit->naxes[0], current_fit->naxes[1]);
-		} else if (version & TORCH) {
+		if (version & TORCH) {
 			torcharg_stride = g_strdup_printf("-s %s", args->stride);
 			my_argv[nb++] = torcharg_stride;
 		} else {
@@ -766,10 +774,12 @@ gpointer do_starnet(gpointer p) {
 	}
 
 	CLEANUP:
-	retval2 = g_chdir(currentdir);
-	if (retval2) {
-		siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
-		retval = retval2;
+	if (currentdir) {
+		retval2 = g_chdir(currentdir);
+		if (retval2) {
+			siril_log_color_message(_("Error: unable to change to Siril working directory...\n"), "red");
+			retval = retval2;
+		}
 	}
 	CLEANUP1:
 	if (args->starmask) {
@@ -836,6 +846,8 @@ static int starnet_compute_mem_limits(struct generic_seq_args *args, gboolean fo
 
 static int starnet_finalize_hook(struct generic_seq_args *args) {
 	struct starnet_data *starnet_args = (struct starnet_data *) args->user;
+	if (starnet_args->too_small)
+		siril_log_color_message(_("Warning: some images in the sequence were smaller than 512x512. Some versions of StarNet may fail to process these images.\n"), "salmon");
 	args->new_ser = starnet_args->new_ser_starless;
 	args->new_fitseq = starnet_args->new_fitseq_starless;
 	int retval = seq_finalize_hook(args);
