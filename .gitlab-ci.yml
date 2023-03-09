@@ -289,7 +289,7 @@ siril-macos:
     REP_DIR: /Users/Shared/data
     SIRIL_BUILD: $CI_PIPELINE_IID
     RELEASE_ARCHIVE: jhb-0.29_$ARCHITECTURE.dmg
-    RELEASE_TAG: r7
+    RELEASE_TAG: r8
     RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/toolset/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
     - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename

@@ -42,6 +42,10 @@ srcInclude  = include_directories('src')
 
 warnings = []
 
+have_fftw3fomp = false
+have_fftw3fthreads = false
+have_fftw3fthreadsnolinkerarg = false
+
 enable_openmp    = get_option('openmp')
 enable_json_glib = get_option('json_glib')
 enable_libraw    = get_option('libraw')
@@ -236,7 +240,29 @@ gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
 exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
+
 fftw3f_dep = dependency('fftw3f', required : true)
+# threaded fftw3f
+if cc.links('''#include <fftw3.h>
+               int main () {
+                 fftwf_init_threads();
+                 return 0;
+               }''', dependencies : [fftw3f_dep], name : 'fftw3f linked with pthreads and combined_threads')
+  have_fftw3fthreadsnolinkerarg = true
+elif cc.links('''#include <fftw3.h>
+               int main () {
+                 fftwf_init_threads();
+                 return 0;
+               }''', dependencies : [fftw3f_dep], args : ['-lfftw3f_omp'], name : 'fftw3f linked with openmp')
+  have_fftw3fomp = true
+elif cc.links('''#include <fftw3.h>
+               int main () {
+                 fftwf_init_threads();
+                 return 0;
+               }''', dependencies : [fftw3f_dep], args : ['-lfftw3f_threads'], name : 'fftw3f linked with pthreads')
+  have_fftw3fthreads = true
+endif
+
 cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
@@ -277,11 +303,6 @@ endif
 
 openmp_dep = []
 if enable_openmp
-  if platform_linux
-    siril_c_flag += '-DHAVE_FFTW3F_OMP'
-    siril_cpp_flag += '-DHAVE_FFTW3F_OMP'
-    siril_link_arg += ['-lfftw3f_omp']
-  endif
   if platform_osx
     message('Set OpenMP flags for macOS')
     siril_link_arg += ['-lomp']
@@ -293,6 +314,39 @@ if enable_openmp
 else
   message('OpenMP disabled')
 endif
+
+# Now we know OpenMP availability we can choose FFTW flags
+if enable_openmp
+  if have_fftw3fomp
+    siril_c_flag += '-DHAVE_FFTW3F_OMP'
+    siril_cpp_flag += '-DHAVE_FFTW3F_OMP'
+    siril_link_arg += ['-lfftw3f_omp']
+    message('FFTW linked against OpenMP')
+  elif have_fftw3fthreads
+    siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+    siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
+    siril_link_arg += ['-lfftw3f_threads']
+    message('FFTW linked against pthreads: will use OpenMP callback')
+  elif have_fftw3fthreadsnolinkerarg
+# Note in this instance FFTW has been built with the combined_threads
+# option which means pthreads is in use
+    siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+    siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
+    message('FFTW linked against pthreads: will use OpenMP callback')
+  endif
+elif have_fftw3fthreads
+  siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+  siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
+  siril_link_arg += ['-lfftw3f_threads']
+  message('FFTW linked against pthreads')
+elif have_fftw3fthreadsnolinkerarg
+  siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+  siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
+  message('FFTW linked against pthreads')
+else
+  message('FFTW does not support multithreading')
+endif
+
 
 json_glib_dep = no_dep
 if enable_json_glib

@@ -146,6 +146,15 @@ void load_glade_file() {
 	g_free(gladefile);
 }
 
+#if defined (HAVE_FFTW3F_THREADS) && (_OPENMP)
+void parallel_loop(void *(*work)(char *), char *jobdata, size_t elsize, int njobs, void *data)
+{
+#pragma omp parallel for
+	for (int i = 0; i < njobs; ++i)
+		work(jobdata + elsize * i);
+}
+#endif
+
 static void global_initialization() {
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
@@ -176,8 +185,17 @@ static void global_initialization() {
 		gui.hd_remap_index[i] = NULL;
 
 	initialize_default_settings();	// com.pref
-#ifdef HAVE_FFTW3F_OMP
+#ifdef HAVE_FFTW3F_MULTITHREAD
+	fprintf(stdout, _("Initializing FFTW multithreading support...\n"));
 	fftwf_init_threads(); // Should really only be called once so do it at startup
+#endif
+#if defined (HAVE_FFTW3F_THREADS) && (_OPENMP)
+	// If we are using FFTW built against pthreads but are using OpenMP for other aspects of the
+	// program, replace the parallel loop to avoid competing threads.
+	// See https://www.fftw.org/fftw3_doc/Usage-of-Multi_002dthreaded-FFTW.html
+	void fftw_threads_set_callback(
+		void (*parallel_loop)(void *(*work)(char *), char *jobdata, size_t elsize, int njobs,
+		void *data), void *data);
 #endif
 
 }

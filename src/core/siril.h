@@ -29,6 +29,10 @@
 #define DEBUG_TEST 0
 #endif
 
+#if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
+#define HAVE_FFTW3F_MULTITHREAD
+#endif
+
 #define GLADE_FILE "siril3.glade"
 
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */

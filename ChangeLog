@@ -17,6 +17,7 @@ xx/xx/23
 * Fixed min and max framing borders calculations if the sequence had variable image sizes
 * Reworked GHS commands
 * Added a warning when trying to read one-frame SER files
+* Autodetect libfftw threading support
 * Add support for Torch-based StarNet executables
 
 siril 1.2.0-beta1
