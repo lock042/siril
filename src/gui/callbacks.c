@@ -1701,6 +1701,20 @@ void on_radiobutton_user_toggled(GtkToggleButton *togglebutton,
 	}
 }
 
+// Not a callback as such but this is called from multiple stretch
+// functions in different files, so here is a good place to put it
+
+void setup_stretch_sliders() {
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_user"));
+	gtk_toggle_button_set_active(button, TRUE);
+	gui.sliders = USER;
+	gui.hi = USHRT_MAX;
+	gui.lo = 0;
+	set_cutoff_sliders_values();
+	redraw(REMAP_ALL);
+	redraw_previews();
+}
+
 void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar *txt = gtk_entry_get_text(GTK_ENTRY(editable));
 	if (g_ascii_isalnum(txt[0])) {

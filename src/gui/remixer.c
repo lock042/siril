@@ -717,6 +717,8 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("dialog_star_remix");
 	} else {
+		if (gui.rendering_mode == LINEAR_DISPLAY)
+			setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 		left_loaded = FALSE;
 		right_loaded = FALSE;
 		remix_log_scale = (com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
