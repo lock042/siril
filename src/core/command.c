@@ -519,7 +519,6 @@ int process_starnet(int nb){
 		return CMD_GENERIC_ERROR;
 	}
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
-	memset(starnet_args->stride, 0, sizeof(starnet_args->stride));
 	starnet_args->linear = FALSE;
 	starnet_args->seq = NULL;
 	starnet_args->customstride = FALSE;
@@ -543,16 +542,15 @@ int process_starnet(int nb){
 		}
 		else if (g_str_has_prefix(arg, "-stride=")) {
 			arg += 8;
-			double stride = g_ascii_strtod(arg, &end);
-			int intstride = stride;
+			int stride = (int) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
-			else if ((intstride < 2.0) || (intstride > 512) || (intstride % 2)) {
+			else if ((stride < 2.0) || (stride > 512) || (stride % 2)) {
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 256, aborting.\n"));
 				free(starnet_args);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
-				sprintf(starnet_args->stride, "%d", intstride);
+				starnet_args->stride = g_strdup_printf("%d", stride);
 				starnet_args->customstride = TRUE;
 			}
 		}
@@ -588,6 +586,12 @@ int process_seq_starnet(int nb){
 		return CMD_GENERIC_ERROR;
 	}
 	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	if (!starnet_args)
 		return CMD_ALLOC_ERROR;
