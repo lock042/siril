@@ -195,7 +195,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	}
 	// Not V1: execute file and test output to determine version
 	// Get the starnet installation directory and chdir to it
-	gchar *dir = g_path_get_dirname(com.pref.starnet_exe);
+	gchar *dir = g_path_get_dirname(executable);
 	gchar *currentdir = g_get_current_dir();
 	int retval2 = g_chdir(dir);
 	if (retval2) {
