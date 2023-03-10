@@ -843,7 +843,7 @@ void on_remix_apply_left_clicked(GtkButton *button, gpointer user_data) {
 			memcpy(fit_left.fdata, fit_left_calc.fdata, fit_left.rx * fit_left.ry * fit_left.naxes[2] * sizeof(float));
 			break;
 		case DATA_USHORT:
-			memcpy(fit_left.fdata, fit_left_calc.fdata, fit_left.rx * fit_left.ry * fit_left.naxes[2] * sizeof(WORD));
+			memcpy(fit_left.data, fit_left_calc.data, fit_left.rx * fit_left.ry * fit_left.naxes[2] * sizeof(WORD));
 			break;
 		default:
 			break;
@@ -864,7 +864,7 @@ void on_remix_apply_right_clicked(GtkButton *button, gpointer user_data) {
 			memcpy(fit_right.fdata, fit_right_calc.fdata, fit_right.rx * fit_right.ry * fit_right.naxes[2] * sizeof(float));
 			break;
 		case DATA_USHORT:
-			memcpy(fit_right.fdata, fit_right_calc.fdata, fit_right.rx * fit_right.ry * fit_right.naxes[2] * sizeof(WORD));
+			memcpy(fit_right.data, fit_right_calc.data, fit_right.rx * fit_right.ry * fit_right.naxes[2] * sizeof(WORD));
 			break;
 		default:
 			break;
