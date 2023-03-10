@@ -819,7 +819,8 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 void on_remix_close_clicked(GtkButton *button, gpointer user_data) {
 	close_histograms(TRUE, TRUE);
 	remixer_close();
-	set_cursor_waiting(FALSE);}
+	set_cursor_waiting(FALSE);
+}
 
 void on_remix_reset_left_clicked(GtkButton *button, gpointer user_data) {
 	reset_left();
