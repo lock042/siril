@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -10756,12 +10756,14 @@ Note that luminance based models are not generally invertible.</property>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="spacing">6</property>
                 <property name="homogeneous">True</property>
                 <child>
                   <object class="GtkButtonBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="halign">end</property>
+                    <property name="spacing">6</property>
                     <property name="layout-style">start</property>
                     <child>
                       <object class="GtkButton" id="remix_reset_right">
@@ -10786,6 +10788,9 @@ Note that luminance based models are not generally invertible.</property>
                         <property name="receives-default">True</property>
                         <property name="tooltip-text" translatable="yes">Applies current stretch to the star image and resets the stretch parameters.</property>
                         <signal name="clicked" handler="on_remix_apply_right_clicked" swapped="no"/>
+                        <style>
+                          <class name="suggested-action"/>
+                        </style>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -10806,6 +10811,7 @@ Note that luminance based models are not generally invertible.</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="halign">end</property>
+                    <property name="spacing">6</property>
                     <property name="layout-style">start</property>
                     <child>
                       <object class="GtkButton" id="remix_reset_left">
@@ -10830,6 +10836,9 @@ Note that luminance based models are not generally invertible.</property>
                         <property name="receives-default">True</property>
                         <property name="tooltip-text" translatable="yes">Applies current stretch to the starless image and resets the stretch parameters.</property>
                         <signal name="clicked" handler="on_remix_apply_left_clicked" swapped="no"/>
+                        <style>
+                          <class name="suggested-action"/>
+                        </style>
                       </object>
                       <packing>
                         <property name="expand">True</property>
