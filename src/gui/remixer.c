@@ -717,6 +717,8 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("dialog_star_remix");
 	} else {
+		if (gui.rendering_mode == LINEAR_DISPLAY)
+			setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 		left_loaded = FALSE;
 		right_loaded = FALSE;
 		remix_log_scale = (com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
@@ -724,6 +726,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		gtk_toggle_button_set_active(toggle_log, remix_log_scale);
 		if (invocation == CALL_FROM_STARNET) {
 			copyfits(_fit_left, &fit_left, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+			copy_fits_metadata(_fit_left, &fit_left);
 			clearfits(_fit_left);
 			free(_fit_left);
 			_fit_left = NULL;
@@ -736,6 +739,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			left_changed = TRUE; // Force update on initial draw
 			permit_calculation = TRUE;
 			copyfits(_fit_right, &fit_right, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+			copy_fits_metadata(_fit_right, &fit_right);
 			remix_histo_startup_right();
 			clearfits(_fit_right);
 			free(_fit_right);
@@ -743,6 +747,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			copyfits(&fit_right, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 			right_loaded = TRUE; // Mark RHS image as loaded
 			right_changed = TRUE; // Force update on initial draw
+			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
 			initialise_image();
 
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("remix_filechooser_left")), FALSE);
@@ -1043,6 +1048,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		}
 		else {
 			left_loaded = TRUE;
+			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
 		}
 	} else {
 		close_single_image();
@@ -1098,6 +1104,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		}
 		else {
 			right_loaded = TRUE;
+			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
 		}
 	} else {
 		close_single_image();
