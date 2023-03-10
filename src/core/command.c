@@ -4965,6 +4965,7 @@ int process_subsky(int nb) {
 	sequence *seq = NULL;
 	int degree = 0, samples = 20;
 	double tolerance = 1.0, smooth = 0.5;
+	gboolean dithering;
 	background_interpolation interp;
 	char *prefix = NULL;
 
@@ -4973,12 +4974,14 @@ int process_subsky(int nb) {
 
 	if (is_sequence) {
 		arg_index = 2;
+		dithering = TRUE;
 		seq = load_sequence(word[1], NULL);
 		if (!seq) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
 	} else {
 		if (!single_image_is_loaded()) return CMD_IMAGE_NOT_FOUND;
+		dithering = FALSE;
 	}
 
 	if (!strcmp(word[arg_index], "-rbf"))
@@ -4996,14 +4999,17 @@ int process_subsky(int nb) {
 	arg_index++;
 	while (arg_index < nb && word[arg_index]) {
 		char *arg = word[arg_index];
-		if (g_str_has_prefix(arg, "-prefix=")) {
-			char *value = arg + 8;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
+		if (is_sequence && g_str_has_prefix(arg, "-prefix=")) {
+			if (prefix) {
+				siril_log_message(_("There can be only one prefix argument"));
 				free(prefix);
 				return CMD_ARG_ERROR;
 			}
-			free(prefix); // Required in case we have gone round the loop and prefix was also set in a previous arg
+			char *value = arg + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
+				return CMD_ARG_ERROR;
+			}
 			prefix = strdup(value);
 		}
 		else if (g_str_has_prefix(arg, "-samples=")) {
@@ -5036,6 +5042,12 @@ int process_subsky(int nb) {
 			if (interp != BACKGROUND_INTER_RBF)
 				siril_log_color_message(_("smooth parameter is unused with the polynomial model, ignoring.\n"), "salmon");
 		}
+		else if (is_sequence && !g_strcmp0(arg, "-nodither")) {
+			dithering = FALSE;
+		}
+		else if (!is_sequence && !g_strcmp0(arg, "-dither")) {
+			dithering = TRUE;
+		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 			free(prefix);
@@ -5052,20 +5064,19 @@ int process_subsky(int nb) {
 	args->degree = (poly_order) (degree - 1);
 	args->smoothing = smooth;
 	args->threads = com.max_thread;
+	args->dither = dithering;
 	args->from_ui = FALSE;
+	siril_debug_print("dithering: %s\n", dithering ? "enabled" : "disabled");
 
 	if (is_sequence) {
 		args->seq = seq;
-		args->dither = TRUE;
 		args->seqEntry = prefix ? prefix : strdup("bkg_");
 
 		apply_background_extraction_to_sequence(args);
 	} else {
 		args->seq = NULL;
-		args->dither = FALSE;
 		args->seqEntry = NULL;
 		args->fit = &gfit;
-		g_free(prefix);
 
 		if (!generate_background_samples(samples, tolerance))
 			start_in_new_thread(remove_gradient_from_image, args);
