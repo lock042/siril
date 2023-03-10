@@ -20,6 +20,7 @@ siril 1.2.0-beta2
 * Autodetect libfftw threading support
 * Add support for Torch-based StarNet executables
 * Improve hi/lo slider behaviour in stretch dialogs
+* Star Recomposition tool has independent Apply and Reset controls to facilitate iterative stretches
 
 siril 1.2.0-beta1
 02/24/23
