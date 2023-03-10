@@ -619,14 +619,23 @@ static int remixer_update_preview() {
 	return 0;
 }
 
-void reset_values() {
+void reset_values_left() {
 	leftD = leftB = leftLP = leftSP = leftBP = 0.0f;
 	leftHP = 1.0f;
+	type_left = STRETCH_PAYNE_NORMAL;
+	colour_left = COL_INDEP;
+}
+
+void reset_values_right() {
 	rightD = rightB = rightLP = rightSP = rightBP = 0.0f;
 	rightHP = 1.0f;
-	type_left = STRETCH_PAYNE_NORMAL;
 	type_right = STRETCH_ASINH;
-	colour_left = colour_right = COL_INDEP;
+	colour_right = COL_INDEP;
+}
+
+void reset_values() {
+	reset_values_left();
+	reset_values_right();
 }
 
 void reset_filechoosers() {
@@ -634,39 +643,49 @@ void reset_filechoosers() {
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("remix_filechooser_right")));
 }
 
-void reset_controls_and_values() {
+void reset_left() {
 	GtkSpinButton *spin_remix_D_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_D_left"));
-	GtkSpinButton *spin_remix_D_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_D_right"));
 	GtkSpinButton *spin_remix_B_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_B_left"));
-	GtkSpinButton *spin_remix_B_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_B_right"));
 	GtkSpinButton *spin_remix_LP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_LP_left"));
-	GtkSpinButton *spin_remix_LP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_LP_right"));
 	GtkSpinButton *spin_remix_SP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_left"));
-	GtkSpinButton *spin_remix_SP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_right"));
 	GtkSpinButton *spin_remix_HP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_left"));
-	GtkSpinButton *spin_remix_HP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_right"));
 	GtkSpinButton *spin_remix_BP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_BP_left"));
-	GtkSpinButton *spin_remix_BP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_BP_right"));
-	reset_values();
-
+	reset_values_left();
 	set_notify_block(TRUE);
 	gtk_spin_button_set_value(spin_remix_D_left, leftD);
-	gtk_spin_button_set_value(spin_remix_D_right, rightD);
 	gtk_spin_button_set_value(spin_remix_B_left, leftB);
-	gtk_spin_button_set_value(spin_remix_B_right, rightB);
 	gtk_spin_button_set_value(spin_remix_LP_left, leftLP);
-	gtk_spin_button_set_value(spin_remix_LP_right, rightLP);
 	gtk_spin_button_set_value(spin_remix_SP_left, leftSP);
-	gtk_spin_button_set_value(spin_remix_SP_right, rightSP);
 	gtk_spin_button_set_value(spin_remix_HP_left, leftHP);
-	gtk_spin_button_set_value(spin_remix_HP_right, rightHP);
 	gtk_spin_button_set_value(spin_remix_BP_left, leftBP);
-	gtk_spin_button_set_value(spin_remix_BP_right, rightBP);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_left")), STRETCH_PAYNE_NORMAL);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_PAYNE_NORMAL);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_INDEP);
+	set_notify_block(FALSE);
+}
+
+void reset_right() {
+	GtkSpinButton *spin_remix_D_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_D_right"));
+	GtkSpinButton *spin_remix_B_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_B_right"));
+	GtkSpinButton *spin_remix_LP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_LP_right"));
+	GtkSpinButton *spin_remix_SP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_right"));
+	GtkSpinButton *spin_remix_HP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_right"));
+	GtkSpinButton *spin_remix_BP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_BP_right"));
+	reset_values_right();
+	set_notify_block(TRUE);
+	gtk_spin_button_set_value(spin_remix_D_right, rightD);
+	gtk_spin_button_set_value(spin_remix_B_right, rightB);
+	gtk_spin_button_set_value(spin_remix_LP_right, rightLP);
+	gtk_spin_button_set_value(spin_remix_SP_right, rightSP);
+	gtk_spin_button_set_value(spin_remix_HP_right, rightHP);
+	gtk_spin_button_set_value(spin_remix_BP_right, rightBP);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_PAYNE_NORMAL);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_right")), COL_INDEP);
 	set_notify_block(FALSE);
+}
+
+void reset_controls_and_values() {
+	reset_left();
+	reset_right();
 }
 
 static void remixer_close() {
@@ -786,34 +805,73 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols2")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols2")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols2")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols2")), FALSE);
 
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols1")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols1")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols1")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols1")), FALSE);
 
 		siril_open_dialog("dialog_star_remix");
 	}
 	return 0;
 }
 
-void on_remix_cancel_clicked(GtkButton *button, gpointer user_data) {
-	apply_remix_cancel();
-}
+void on_remix_close_clicked(GtkButton *button, gpointer user_data) {
+	close_histograms(TRUE, TRUE);
+	remixer_close();
+	set_cursor_waiting(FALSE);}
 
-void on_remix_reset_clicked(GtkButton *button, gpointer user_data) {
-	reset_controls_and_values();
+void on_remix_reset_left_clicked(GtkButton *button, gpointer user_data) {
+	reset_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
 }
 
-void on_remix_apply_clicked(GtkButton *button, gpointer user_data) {
-	close_histograms(TRUE, TRUE);
-	remixer_close();
-	set_cursor_waiting(FALSE);
+void on_remix_reset_right_clicked(GtkButton *button, gpointer user_data) {
+	reset_right();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = remixer_update_preview;
+	param->show_preview = TRUE;
+	notify_update((gpointer) param);
+}
+
+void on_remix_apply_left_clicked(GtkButton *button, gpointer user_data) {
+	switch (fit_left.type) {
+		case DATA_FLOAT:
+			memcpy(fit_left.fdata, fit_left_calc.fdata, fit_left.rx * fit_left.ry * fit_left.naxes[2] * sizeof(float));
+			break;
+		case DATA_USHORT:
+			memcpy(fit_left.fdata, fit_left_calc.fdata, fit_left.rx * fit_left.ry * fit_left.naxes[2] * sizeof(WORD));
+			break;
+		default:
+			break;
+	}
+	reset_left();
+	close_histograms(TRUE, FALSE);
+	remix_histo_startup_left();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = remixer_update_preview;
+	param->show_preview = TRUE;
+	notify_update((gpointer) param);
+
+}
+
+void on_remix_apply_right_clicked(GtkButton *button, gpointer user_data) {
+	switch (fit_right.type) {
+		case DATA_FLOAT:
+			memcpy(fit_right.fdata, fit_right_calc.fdata, fit_right.rx * fit_right.ry * fit_right.naxes[2] * sizeof(float));
+			break;
+		case DATA_USHORT:
+			memcpy(fit_right.fdata, fit_right_calc.fdata, fit_right.rx * fit_right.ry * fit_right.naxes[2] * sizeof(WORD));
+			break;
+		default:
+			break;
+	}
+	reset_right();
+	close_histograms(FALSE, TRUE);
+	remix_histo_startup_right();
 }
 
 /*** adjusters **/
@@ -958,6 +1016,13 @@ void on_spin_remix_BP_left_value_changed(GtkSpinButton *button, gpointer user_da
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
+	if (leftBP == 0) {
+		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("eyedropper_SP_left")), TRUE);
+		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("eyedropper_SP_left")), _("This dropper allows you to set the background stretch symmetry point  based on the average value of the current selection. This helps in picking out faint detail above the dark background."));
+	} else {
+		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("eyedropper_SP_left")), FALSE);
+		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("eyedropper_SP_left")), _("Eyedropper disabled with unapplied BP shift"));
+	}
 }
 
 void on_spin_remix_BP_right_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -968,6 +1033,13 @@ void on_spin_remix_BP_right_value_changed(GtkSpinButton *button, gpointer user_d
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
+	if (rightBP == 0) {
+		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("eyedropper_SP_right")), TRUE);
+		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("eyedropper_SP_right")), _("This dropper allows you to set the background stretch symmetry point  based on the average value of the current selection. This helps in picking out faint detail above the dark background."));
+	} else {
+		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("eyedropper_SP_right")), FALSE);
+		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("eyedropper_SP_right")), _("Eyedropper disabled with unapplied BP shift"));
+	}
 }
 
 void on_remix_colour_left_changed(GtkComboBox *combo, gpointer user_data) {
@@ -1224,13 +1296,13 @@ void on_remix_advanced_clicked(GtkButton *button, gpointer user_data) {
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols2")), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols2")), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols2")), TRUE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols2")), TRUE);
+//		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols2")), TRUE);
 
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols1")), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols1")), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols1")), TRUE);
 
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), TRUE);
+//		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), TRUE);
 		gtk_button_set_label(GTK_BUTTON(lookup_widget("remix_advanced")), _("Simple"));
 		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("remix_advanced")), _("Show only simple stretch options. Note that any parameters that have been set while in advanced mode will remain set."));
 		advanced_interface = TRUE;
@@ -1240,13 +1312,13 @@ void on_remix_advanced_clicked(GtkButton *button, gpointer user_data) {
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols2")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols2")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols2")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols2")), FALSE);
+//		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols2")), FALSE);
 
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols1")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols1")), FALSE);
 		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols1")), FALSE);
 
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), FALSE);
+//		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), FALSE);
 		gtk_button_set_label(GTK_BUTTON(lookup_widget("remix_advanced")), _("Advanced"));
 		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("remix_advanced")), _("Show advanced stretch options."));
 		advanced_interface = FALSE;
