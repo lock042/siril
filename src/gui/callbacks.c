@@ -1381,8 +1381,8 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* Due to another bug in glade we write these callbacks here
 	 * In glade there are not sorted as we want */
-	g_signal_connect(lookup_widget("remix_apply"), "delete-event", G_CALLBACK(on_remix_cancel_clicked), NULL);
-	g_signal_connect(lookup_widget("remix_apply"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+	g_signal_connect(lookup_widget("dialog_star_remix"), "delete-event", G_CALLBACK(on_remix_close_clicked), NULL);
+	g_signal_connect(lookup_widget("dialog_star_remix"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(on_button_histo_close_clicked), NULL);
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
