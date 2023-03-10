@@ -1408,7 +1408,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	drawPlot();
 
 	if (g_strcmp0(com.pref.gui.first_start, PACKAGE_VERSION)) {
-		com.pref.gui.first_start = PACKAGE_VERSION;
+		com.pref.gui.first_start = g_strdup(PACKAGE_VERSION);
 		writeinitfile();
 
 		gchar *ver = g_strdup_printf(_("Welcome to %s"), PACKAGE_STRING);
