@@ -14,6 +14,7 @@ v1.2.0-beta2 March 12, 2023
 * Fixed crash when sending a seqplatesolve or seqstarnet command with no other argument
 * Fixed crash in global and 2pass registration, if a selection was active and the sequence had variable image sizes
 * Fixed min and max framing borders calculations if the sequence had variable image sizes
+* Fixed lost metadata with starnet
 * Reworked GHS commands
 * Added a warning when trying to read one-frame SER files
 * Autodetect libfftw threading support
