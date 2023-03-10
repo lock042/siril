@@ -221,9 +221,6 @@ static int readinitfile_libconfig(gchar *path) {
 		if (config_setting_lookup_bool(misc_setting, "is_extended", &com.pref.gui.is_extended) == CONFIG_FALSE) {
 			com.pref.gui.is_extended = TRUE;
 		}
-		if (config_setting_lookup_bool(misc_setting, "first_start_1", &com.pref.gui.first_start) == CONFIG_FALSE) {
-			com.pref.gui.first_start = TRUE;
-		}
 		if (config_setting_lookup_bool(misc_setting, "confirm_quit", &com.pref.gui.silent_quit) == CONFIG_FALSE) {
 			com.pref.gui.silent_quit = FALSE;
 		}
