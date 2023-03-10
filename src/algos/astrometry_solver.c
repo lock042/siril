@@ -2176,6 +2176,8 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	process_plate_solver_input(aargs); // depends on args->fit
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 
+	if (retval)
+		siril_log_color_message(_("Image %s did not solve\n"), "salmon", root);
 	return retval;
 }
 
@@ -2208,6 +2210,8 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->description = "plate solving";
 	seqargs->user = args;
 
+	siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
+			catalog_to_str(args->onlineCatalog));
 	start_in_new_thread(generic_sequence_worker, seqargs);
 }
 

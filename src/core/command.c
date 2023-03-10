@@ -8378,7 +8378,9 @@ int process_pcc(int nb) {
 		next_arg++;
 	}
 
-	if (local_cat && cat != CAT_AUTO && cat != CAT_ASNET) {
+	if (local_cat && cat == CAT_AUTO)
+		cat = CAT_LOCAL;
+	if (local_cat && cat != CAT_LOCAL && cat != CAT_ASNET) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
 				"salmon", catalog_to_str(cat));
 		local_cat = FALSE;
@@ -8532,11 +8534,9 @@ int process_pcc(int nb) {
 
 	if (plate_solve) {
 		args->use_local_cat = local_cat;
-		if (cat == CAT_ASNET) {
-			args->onlineCatalog = CAT_ASNET;
+		if (cat == CAT_ASNET)
 			args->filename = g_strdup(com.uniq->filename);
-		}
-		else args->onlineCatalog = local_cat ? CAT_NOMAD : cat;
+		args->onlineCatalog = cat;
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
@@ -8547,7 +8547,7 @@ int process_pcc(int nb) {
 
 	if (pcc_command) {
 		pcc_args->use_local_cat = local_cat;
-		pcc_args->catalog = local_cat ? CAT_NOMAD : cat;
+		pcc_args->catalog = cat;
 		if (plate_solve) {
 			args->for_photometry_cc = TRUE;
 			args->pcc = pcc_args;
