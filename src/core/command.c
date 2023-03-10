@@ -7670,17 +7670,19 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				}
 				args->cc_from_dark = TRUE;
 				//either we use the default sigmas or we try to read the next two checking for sigma low and high
-				gchar *end1, *end2;
-				args->sigma[0] = g_ascii_strtod(word[i + 1], &end1);
-				args->sigma[1] = g_ascii_strtod(word[i + 2], &end2);
+				if (i + 2 < nb) {
+					gchar *end1, *end2;
+					args->sigma[0] = g_ascii_strtod(word[i + 1], &end1);
+					args->sigma[1] = g_ascii_strtod(word[i + 2], &end2);
 
-				if (word[i + 1] && word[i + 2] && word[i + 1] != end1
-						&& word[i + 2] != end2) {
-					i+= 2;
+					if (word[i + 1] && word[i + 2] && word[i + 1] != end1
+							&& word[i + 2] != end2) {
+						i += 2;
+					}
+
+					if (args->sigma[0] == 0.0) args->sigma[0] = -1.00;
+					if (args->sigma[1] == 0.0) args->sigma[1] = -1.00;
 				}
-
-				if (args->sigma[0] == 0) args->sigma[0] = -1.00;
-				if (args->sigma[1] == 0) args->sigma[1] = -1.00;
 				if (args->sigma[0] > 0)
 					siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"), args->sigma[0]);
 				else
@@ -7693,7 +7695,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				if (word[i + 1] && word[i + 1][0] != '\0') {
 					args->bad_pixel_map_file = g_file_new_for_path(word[i + 1]);
 					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-//						g_object_unref(args->bad_pixel_map_file); // This is unreferenced in check_for_cosme_file_sanity
+						//g_object_unref(args->bad_pixel_map_file); // This is unreferenced in check_for_cosme_file_sanity
 						args->bad_pixel_map_file = NULL;
 						siril_log_message(_("Could not open file %s, aborting.\n"), word[i + 1]);
 						retvalue = 1;
@@ -7708,7 +7710,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 					break;
 				}
 			} else {
-				siril_log_message(_("Unknown argument %s, aborting.\n"), word[i + 1]);
+				siril_log_message(_("Unknown argument %s, aborting.\n"), word[i]);
 				retvalue = CMD_ARG_ERROR;
 				break;
 			}
