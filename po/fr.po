@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-10 09:32+0100\n"
 "PO-Revision-Date: 2023-03-11 10:18+0000\n"
-"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
+"Last-Translator: Robert MORELLI <r.morelli@laposte.net>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
 "Language: fr\n"
@@ -16879,11 +16879,11 @@ msgstr "rayon externe de l'anneau de fond de ciel"
 
 #: src/core/settings.c:300
 msgid "factor for inner radius automatic computation"
-msgstr "facteur pour le calcul automatique du rayon intérieur"
+msgstr "facteur de calcul automatique du rayon intérieur"
 
 #: src/core/settings.c:301
 msgid "factor for outer radius automatic computation"
-msgstr "facteur pour le calcul automatique du rayon extérieur"
+msgstr "facteur de calcul automatique du rayon extérieur"
 
 #: src/core/settings.c:302
 msgid "force flux aperture value"
@@ -17126,7 +17126,7 @@ msgstr "nombre d'éléments des guides de la grille"
 
 #: src/core/settings.c:379
 msgid "show tenths of arcseconds on hover"
-msgstr "affiche les dixièmes de secondes d'arc au survol de la souris"
+msgstr "afficher les dixièmes d'arcsecondes au survol de l'écran"
 
 #: src/core/settings.c:380
 msgid "default display mode"
