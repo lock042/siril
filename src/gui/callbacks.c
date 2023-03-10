@@ -1407,8 +1407,8 @@ void initialize_all_GUI(gchar *supported_files) {
 	// init the Plot tab
 	drawPlot();
 
-	if (com.pref.gui.first_start) {
-		com.pref.gui.first_start = FALSE;
+	if (g_strcmp0(com.pref.gui.first_start, PACKAGE_VERSION)) {
+		com.pref.gui.first_start = g_strdup(PACKAGE_VERSION);
 		writeinitfile();
 
 		gchar *ver = g_strdup_printf(_("Welcome to %s"), PACKAGE_STRING);
