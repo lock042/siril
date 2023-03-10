@@ -666,6 +666,7 @@ gpointer do_starnet(gpointer p) {
 
 	/* we need to copy metadata as they have been removed with readtif     */
 	copy_fits_metadata(current_fit, &workingfit);
+	copy_fits_metadata(current_fit, &fit);
 
 	// Increase bit depth of starless image to 32 bit to improve precision
 	// for subsequent processing. Only if !force_16bit otherwise there is an error on subtraction
@@ -744,19 +745,24 @@ gpointer do_starnet(gpointer p) {
 			} else {
 				if (args->starmask_fit)
 					clearfits(args->starmask_fit);
-				copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
+				retval = copyfits(&fit, args->starmask_fit, (CP_ALLOC | CP_FORMAT | CP_COPYA), 0);
+				if (retval) {
+					siril_log_color_message(_("Error: image copy failed...\n"), "red");
+					goto CLEANUP;
+				}
+				copy_fits_metadata(&fit, args->starmask_fit);
 			}
 		}
 	}
 
 	// All done, now copy the working image back into gfit
 	clearfits(current_fit);
-	retval = copyfits(&workingfit, current_fit, (CP_ALLOC | CP_INIT | CP_FORMAT | CP_COPYA), 0);
+	retval = copyfits(&workingfit, current_fit, (CP_ALLOC | CP_FORMAT | CP_COPYA), 0);
 	if (retval) {
 		siril_log_color_message(_("Error: image copy failed...\n"), "red");
 		goto CLEANUP;
 	}
-
+	copy_fits_metadata(&workingfit, current_fit);
 	// Before CLEANUP so that this doesn't print on failure.
 	if (verbose)
 		siril_log_color_message(_("StarNet: job completed.\n"), "green");
@@ -768,8 +774,18 @@ gpointer do_starnet(gpointer p) {
 			blendargs = calloc(1, sizeof(struct remixargs));
 			blendargs->fit1 = calloc(1, sizeof(fits));
 			blendargs->fit2 = calloc(1, sizeof(fits));
-			copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
-			copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+			retval = copyfits(&workingfit, blendargs->fit1, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+			if (retval) {
+				siril_log_color_message(_("Error: image copy failed...\n"), "red");
+				goto CLEANUP;
+			}
+			copy_fits_metadata(&workingfit, blendargs->fit1);
+			retval = copyfits(&fit, blendargs->fit2, (CP_ALLOC | CP_COPYA |CP_FORMAT), -1);
+			if (retval) {
+				siril_log_color_message(_("Error: image copy failed...\n"), "red");
+				goto CLEANUP;
+			}
+			copy_fits_metadata(&fit, blendargs->fit2);
 		}
 	}
 
