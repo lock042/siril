@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-10 09:32+0100\n"
 "PO-Revision-Date: 2023-03-11 10:18+0000\n"
-"Last-Translator: Robert MORELLI <r.morelli@laposte.net>\n"
+"Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
 "Language: fr\n"
@@ -21593,7 +21593,7 @@ msgstr "Déviation moyenne absolue de l'image."
 
 #: src/pixelMath/pixel_math_runner.c:110
 msgid "Biweight midvariance of the image."
-msgstr "Biweight midvariance de l'image."
+msgstr "Moyenne pondérée de l'image."
 
 #: src/pixelMath/pixel_math_runner.c:111
 msgid "Height in pixels of the specified image."
@@ -21633,7 +21633,7 @@ msgstr "Largeur en pixel d'une image spécifiée."
 
 #: src/pixelMath/pixel_math_runner.c:125
 msgid "Pixel Inversion operator."
-msgstr "Opérateur d'inversion de pixels."
+msgstr "Opérateur d'inversion des pixels."
 
 #: src/pixelMath/pixel_math_runner.c:126
 msgid "Unary Minus operator (sign change)."
@@ -21677,7 +21677,7 @@ msgstr "Opérateur relationnel Plus Petit."
 
 #: src/pixelMath/pixel_math_runner.c:136
 msgid "Less Than Or Equal relational operator."
-msgstr "Opérateur relationnel Plus Petit Ou Égal À."
+msgstr "Opérateur relationnel inférieur ou égal."
 
 #: src/pixelMath/pixel_math_runner.c:137
 msgid "Greater Than relational operator."
