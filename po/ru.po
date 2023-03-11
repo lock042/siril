@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-10 09:32+0100\n"
-"PO-Revision-Date: 2023-03-11 09:36+0000\n"
+"PO-Revision-Date: 2023-03-11 10:18+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -4876,7 +4876,6 @@ msgid "Match stars in selection"
 msgstr "Только в выделении"
 
 #: src/gui/siril3.glade:21740
-#, fuzzy
 msgid ""
 "Check this box if you want to perform the Global Star Alignment algorithm "
 "within the selected area in the reference image. If no selection are done, "
@@ -6028,13 +6027,12 @@ msgstr ""
 "Показывать небесную сетку, если доступна информация мировой системы координат"
 
 #: src/gui/siril3.glade:25800
-#, fuzzy
 msgid ""
 "Switch to PSF/photometry mode. If a sequence is loaded, a right click on the "
 "displayed image applies the PSF/Photometry on the whole sequence."
 msgstr ""
 "Переключиться в режим PSF/фотометрии. Если загружена последовательность, по "
-"щелку правой кнопкой мыши на изображении, к последовательности применяется "
+"щелчку правой кнопкой мыши на изображении, к последовательности применяется "
 "PSF/фотометрия."
 
 #: src/gui/siril3.glade:25824
@@ -19545,7 +19543,7 @@ msgstr ""
 
 #: src/stacking/stackminmax.c:94
 msgid "Stacking: could not read frame, aborting\n"
-msgstr ""
+msgstr "Укладка: не могу прочитать кадр, прерывание.\n"
 
 #: src/stacking/stackminmax.c:142
 msgid "Stacking: image in sequence doesn't has the same dimensions\n"
@@ -19553,7 +19551,7 @@ msgstr ""
 
 #: src/stacking/stackminmax.c:248
 msgid "Stacking failed. Check the log."
-msgstr ""
+msgstr "Укладка не удалась. Подробности в журнале."
 
 #: src/stacking/stackminmax.c:251
 msgid "Stacking complete."
@@ -19564,6 +19562,8 @@ msgid ""
 "Reducing the stacking output to a 16-bit image will result in precision "
 "loss\n"
 msgstr ""
+"Снижение разрядности результата укладки до 16 битного изображения приведёт к "
+"потере точности\n"
 
 #: src/stacking/upscaling.c:136
 msgid "Up-scaling sequence for stacking"
