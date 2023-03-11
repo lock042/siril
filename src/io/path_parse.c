@@ -284,7 +284,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			g_strfreev(subs);
 			continue;
 		}
-		if (strlen(subs[0]) == 1 && subs[1][0] == '\\') { // dealing with Windows drive letter "C:"
+		if (strlen(subs[0]) == 1 && (subs[1][0] == '\\' || subs[1][0] == '/')) {// dealing with Windows drive letter "C:"
 			g_strfreev(subs);
 			continue;
 		}
