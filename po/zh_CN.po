@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-10 09:32+0100\n"
-"PO-Revision-Date: 2023-03-08 12:07+0000\n"
+"PO-Revision-Date: 2023-03-11 10:18+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -222,8 +222,9 @@ msgid ""
 "stacking residuals by cropping the image. If you don't,\n"
 "artifacts may appear."
 msgstr ""
-"请确保移除所有的黑边和叠加所造成的其他异常边缘\n"
-"否则将会造成伪像。"
+"请确保移除所有的黑色边缘和\n"
+"叠加所造成的其他异常边缘\n"
+"否则将会出现伪影。"
 
 #: src/gui/siril3.glade:930 src/gui/siril3.glade:3046 src/gui/siril3.glade:3379
 #: src/gui/siril3.glade:5269
@@ -317,7 +318,7 @@ msgstr "内核大小:"
 msgid ""
 "Kernel Size. This is the odd size of the neighborhood considered for each "
 "pixel."
-msgstr "内核大小。每个像素认定“邻居”的奇数范围值。"
+msgstr "内核大小。这是为每个像素认定“邻居”的奇数范围值。"
 
 #: src/gui/siril3.glade:1590 src/gui/siril3.glade:6755
 #: src/gui/siril3.glade:7531
@@ -1457,9 +1458,8 @@ msgid "Shows a preview of the PSF, if one has been calculated."
 msgstr ""
 
 #: src/gui/siril3.glade:7450
-#, fuzzy
 msgid "Usage tips"
-msgstr "Usage: %s\n"
+msgstr "使用提示"
 
 #: src/gui/siril3.glade:7454
 msgid ""
@@ -1784,7 +1784,7 @@ msgstr "蓝色: "
 
 #: src/gui/siril3.glade:8456
 msgid "Select the color space corresponding to the three extracted images"
-msgstr "选择所要提取之对应的色彩空间"
+msgstr "选择与三个所提取的图像对应的色彩空间"
 
 #: src/gui/siril3.glade:8461 src/gui/siril3.glade:19695 src/core/command.c:5242
 #: src/core/command.c:5246
@@ -1817,10 +1817,12 @@ msgid ""
 "the preferences otherwise.\n"
 "Modified data can be saved in a FITS file."
 msgstr ""
+"与图像相关的信息，从文件中提取（如果可用），否则从首选项中获取。\n"
+"修改后的数据可被保存于 FITS 文件中。"
 
 #: src/gui/siril3.glade:8572
 msgid "Non-square pixels can be entered but will not be used in most cases."
-msgstr ""
+msgstr "可以输入非正方形像素，但在大多数情况下不会被使用。"
 
 #: src/gui/siril3.glade:8574
 msgid "Pixel size (micron): "
@@ -1857,7 +1859,7 @@ msgstr "清空所有，之后所保存的文件头不会包含任何焦距和传
 
 #: src/gui/siril3.glade:8665
 msgid "Computed sampling (arcsec/pixel):"
-msgstr ""
+msgstr "计算所得采样（弧秒/像素）："
 
 #: src/gui/siril3.glade:8678
 msgid "Binning: "
@@ -1874,7 +1876,6 @@ msgid "Real pixel size"
 msgstr "实际像素尺寸"
 
 #: src/gui/siril3.glade:8711
-#, fuzzy
 msgid ""
 "Check this button if binning is not taken into account in the pixel size "
 "value. In this case, the binning value will be used to compute the "
@@ -1882,19 +1883,19 @@ msgid ""
 "WARNING: checking this stores it as a preference, also available in the FITS "
 "option preferences section."
 msgstr ""
-"如果像素合并未被包含在像素尺寸参数中，请选择此项。在此情形下，下面选项的值会"
-"被使用。"
+"如果在像素尺寸值中未考虑像素合并，请选中此项。在此情形下，合并值将用于计算采"
+"样。\n"
+"警告：选中此选项会将其存储为首选项，也可在 FITS 首选项部分中找到。"
 
 #: src/gui/siril3.glade:8734
-#, fuzzy
 msgid "Save as default values"
-msgstr "无法计算自动拉伸参数，使用缺省值\n"
+msgstr "保存为缺省值"
 
 #: src/gui/siril3.glade:8738
 msgid ""
 "Save focal length and pixel size as default values in the settings to be "
 "used for images that do not contain these metadata"
-msgstr ""
+msgstr "将焦距和像素尺寸保存为设置中的缺省值，以用于不包含这些元数据的图像"
 
 #: src/gui/siril3.glade:8772
 msgid "Image compositing"
@@ -2087,9 +2088,8 @@ msgid "Show advanced stretch options"
 msgstr ""
 
 #: src/gui/siril3.glade:9471
-#, fuzzy
 msgid "Resets parameters to default values"
-msgstr "无法计算自动拉伸参数，使用缺省值\n"
+msgstr "重置参数为缺省值"
 
 #: src/gui/siril3.glade:9501
 #, fuzzy
@@ -2582,11 +2582,10 @@ msgstr ""
 "值。"
 
 #: src/gui/siril3.glade:11802
-#, fuzzy
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning."
-msgstr "像素尺寸（微米），假定为正方形像素单元。"
+msgstr "像素尺寸（微米）。假定图像具有方形像素。值已乘以像素合并。"
 
 #: src/gui/siril3.glade:11821
 msgid "Focal length (mm):"
@@ -2602,11 +2601,10 @@ msgid "Pixel size (µm):"
 msgstr "像素尺寸(微米):"
 
 #: src/gui/siril3.glade:11844 src/gui/siril3.glade:11859
-#, fuzzy
 msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
-msgstr "通过焦距和像素尺寸计算而得的图像分辨率。"
+msgstr "通过焦距和像素尺寸自动算出的图像分辨率。单位是弧秒每像素。"
 
 #: src/gui/siril3.glade:11847
 msgid "Resolution: "
@@ -2680,11 +2678,10 @@ msgid "Get Metadata From Image"
 msgstr "获取图像元数据"
 
 #: src/gui/siril3.glade:11993
-#, fuzzy
 msgid ""
 "Click on this button to get focal length, pixel size and RA/Dec pointing "
 "coordinates from the header of the file if they exist."
-msgstr "点此按钮以从文件头获取焦距和像素尺寸信息（如果存在的话）。"
+msgstr "单击此按钮可从文件头中获取焦距、像素尺寸和 RA/Dec 指向坐标（如果存在）。"
 
 #: src/gui/siril3.glade:12021
 #, fuzzy
@@ -2835,7 +2832,6 @@ msgid "Manual detection"
 msgstr "手动侦测"
 
 #: src/gui/siril3.glade:12279
-#, fuzzy
 msgid ""
 "Check this option if you want to pick each stars manually. It could be "
 "useful in some cases where Siril can't find enough stars. Please, try to "
@@ -2844,7 +2840,8 @@ msgid ""
 "your image."
 msgstr ""
 "此选项用于手动选择星点。当Siril无法自动找到足够的星点时可以使用该功能。请尽量"
-"选取图像中较亮的星点。"
+"选取图像中较亮的星点。\n"
+"使用动态 PSF 工具或 findstar 命令，根据图像调整设置。"
 
 #: src/gui/siril3.glade:12289 src/gui/siril3.glade:13486
 msgid "Star Detection"
@@ -3091,9 +3088,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:13354
-#, fuzzy
 msgid "Resets all parameters to defaults."
-msgstr "无法计算自动拉伸参数，使用缺省值\n"
+msgstr "将所有参数重置为缺省值。"
 
 #: src/gui/siril3.glade:13375
 msgid ""
@@ -3273,9 +3269,8 @@ msgstr "噪声评估"
 
 #: src/gui/siril3.glade:14255 src/gui/siril3.glade:14603
 #: src/gui/siril3.glade:26591
-#, fuzzy
 msgid "Aberration Inspector"
-msgstr "减法."
+msgstr "像差检查器"
 
 #: src/gui/siril3.glade:14280
 msgid "Information..."
@@ -3546,14 +3541,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:15168
-#, fuzzy
 msgid "Sequence input marker"
-msgstr "队列名称:"
+msgstr "队列输入标记"
 
 #: src/gui/siril3.glade:15179
-#, fuzzy
 msgid "Sequence output prefix"
-msgstr "输出前缀:"
+msgstr "队列输出前缀"
 
 #: src/gui/siril3.glade:15190
 msgid ""
@@ -3798,9 +3791,8 @@ msgid "column"
 msgstr "列"
 
 #: src/gui/siril3.glade:17044
-#, fuzzy
 msgid "Images"
-msgstr "图像："
+msgstr "图像"
 
 #: src/gui/siril3.glade:17079
 #, fuzzy
@@ -4012,9 +4004,8 @@ msgid "Noise Reduction..."
 msgstr "除去条纹…"
 
 #: src/gui/siril3.glade:17642
-#, fuzzy
 msgid "Open the rotational gradient dialog"
-msgstr "执行旋转渐变。"
+msgstr "打开旋转渐变对话框"
 
 #: src/gui/siril3.glade:17644
 msgid "Rotational Gradient..."
@@ -4030,9 +4021,8 @@ msgid "Geometry"
 msgstr "几何调整"
 
 #: src/gui/siril3.glade:17707
-#, fuzzy
 msgid "Open the background extraction dialog"
-msgstr "通道#%d：背景提取完成。\n"
+msgstr "打开背景提取对话框"
 
 #: src/gui/siril3.glade:17709
 msgid "Background Extraction..."
@@ -4080,9 +4070,8 @@ msgid "Go back to main menu"
 msgstr ""
 
 #: src/gui/siril3.glade:17836
-#, fuzzy
 msgid "Run Starnet++"
-msgstr "开始叠加...\n"
+msgstr "运行Starnet++"
 
 #: src/gui/siril3.glade:17838
 msgid "StarNet Star Removal..."
@@ -4094,9 +4083,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:17853
-#, fuzzy
 msgid "Star Recomposition..."
-msgstr "HSL合成"
+msgstr "星点重构..."
 
 #: src/gui/siril3.glade:17866
 msgid ""
@@ -4124,9 +4112,8 @@ msgid "Full Resynthesis"
 msgstr ""
 
 #: src/gui/siril3.glade:17902
-#, fuzzy
 msgid "Open Dynamic PSF dialog."
-msgstr "打开动态PSF窗口"
+msgstr "打开动态PSF窗口。"
 
 #: src/gui/siril3.glade:17961
 #, fuzzy
@@ -4510,9 +4497,10 @@ msgid ""
 "Only for RAW and FITS input images and SER films.\n"
 "Colour image target also applies to the debayer result for conversion."
 msgstr ""
-"使用设置中定义的拜耳滤镜矩阵模式来Debayer单通道图像(CFA格式)。不仅作用于转"
-"化，也作用于打开的图像。\n"
-"只针对RAW和FITS图像文件，还有SER视频。"
+"使用设置中定义的拜耳滤镜矩阵模式来Debayer单通道图像(CFA格式)。不仅作用于转化"
+"，也作用于打开的图像。\n"
+"只针对RAW和FITS图像文件，还有SER视频。\n"
+"彩色图像目标也适用于用于转换的debayer结果。"
 
 #: src/gui/siril3.glade:20134
 msgid ""
@@ -4801,9 +4789,8 @@ msgid ""
 "WARNING: Do not apply dark optimization on master-dark if master-bias has "
 "not been subtracted previously."
 msgstr ""
-"可选择对扣暗场操作进行优化，所扣的暗场会应用一个系数，\n"
-"使得最终图片（明场减暗场）的噪声最小化。这个选项适用于\n"
-"暗场并非在最理想条件下拍摄的情况。\n"
+"可选择对扣暗场操作进行优化，所扣的暗场会应用一个系数，使得最终图片（明场减暗"
+"场）的噪声最小化。这个选项适用于暗场并非在最理想条件下所拍摄的情况。\n"
 "\n"
 "警告：如若没有先期通过扣主偏置帧来得到主暗场帧，则不要应用暗场优化。"
 
@@ -5165,9 +5152,8 @@ msgid "Homography"
 msgstr "单应性"
 
 #: src/gui/siril3.glade:21852
-#, fuzzy
 msgid "Transformation:"
-msgstr "反双曲线变换"
+msgstr "变换："
 
 #: src/gui/siril3.glade:21864
 msgid "Hit this button for star detection settings"
@@ -5270,9 +5256,8 @@ msgid "Size of alignment region(%):"
 msgstr "对齐区域大小(%):"
 
 #: src/gui/siril3.glade:22334
-#, fuzzy
 msgid "Framing method"
-msgstr "对齐方法:"
+msgstr "取景方法"
 
 #: src/gui/siril3.glade:22347
 msgid ""
@@ -5285,25 +5270,28 @@ msgid ""
 "- \"center of gravity\" determines the best framing position as the center "
 "of gravity (cog) of all the images"
 msgstr ""
+"指定要使用的取景方法：\n"
+"- “当前” 使用当前参考图像\n"
+"- “最大”（边框）根据需要在每个图像周围添加黑色边框，以便在对齐时不会裁剪图像"
+"的任何部分。\n"
+"- “最小”（公共区）将每个图像裁剪到它与队列里所有图像共有的区域。\n"
+"- “重心”（COG）测定最佳取景位置作为所有图像的重心"
 
 #: src/gui/siril3.glade:22355
-#, fuzzy
 msgid "current"
-msgstr "当前红色文件"
+msgstr "当前"
 
 #: src/gui/siril3.glade:22356
-#, fuzzy
 msgid "maximum"
-msgstr "最大掩膜"
+msgstr "最大"
 
 #: src/gui/siril3.glade:22357
-#, fuzzy
 msgid "minimum"
-msgstr "最大掩膜"
+msgstr "最小"
 
 #: src/gui/siril3.glade:22358
 msgid "center of gravity"
-msgstr ""
+msgstr "重心"
 
 #: src/gui/siril3.glade:22441
 msgid "Registration method:"
@@ -5318,12 +5306,10 @@ msgid "Register selected images only"
 msgstr "仅对齐所选中的图像"
 
 #: src/gui/siril3.glade:22499
-#, fuzzy
 msgid "Registering 0 images of the 0 of the sequence"
-msgstr "队列位置：0，叠加图像：0"
+msgstr "队列位置：0，对齐图像：0"
 
 #: src/gui/siril3.glade:22517
-#, fuzzy
 msgid ""
 "Select the set of images to be registered:\n"
 "\n"
@@ -5350,15 +5336,24 @@ msgid ""
 "<b>quality</b>: images with best quality (planetary DFT or Kombat "
 "registrations)"
 msgstr ""
-"选择用于图像叠加的子集：\n"
+"选择将被用于对齐的图像子集：\n"
+"\n"
 "<b>全部</b>：队列中的全部图像都会被叠加\n"
+"\n"
 "<b>已选择</b>：只叠加队列中没有被排除掉的图像\n"
+"\n"
 "<b>FWHM</b>：FWHM最优图像（仅适用于星点对齐）\n"
+"\n"
 "<b>加权FWHM</b>：简单FWHM方法的升级，它通过比较当前帧跟参考帧的星点数量来排除"
 "掉更多不良的帧（仅适用于星点对齐）\n"
 "\n"
 "<b>圆度</b>：圆度最优图像（仅适用于星点对齐）\n"
-"<b>品质</b>：品质最优图像 （行星DFT或者ECC对齐）"
+"\n"
+"<b>背景</b>：背景值最低的图像（仅适用于星点对齐）\n"
+"\n"
+"<b>星数</b>：侦测到最多星点数的图像（仅适用于星点对齐）\n"
+"\n"
+"<b>品质</b>：品质最优图像 （行星DFT或者Kombat对齐）"
 
 #: src/gui/siril3.glade:22536 src/gui/siril3.glade:22665
 #: src/gui/siril3.glade:22805 src/gui/siril3.glade:24466
@@ -5403,9 +5398,8 @@ msgstr "背景"
 #: src/gui/siril3.glade:22542 src/gui/siril3.glade:22671
 #: src/gui/siril3.glade:22811 src/gui/siril3.glade:24472
 #: src/gui/siril3.glade:24601 src/gui/siril3.glade:24741
-#, fuzzy
 msgid "nb stars"
-msgstr "%d 星点"
+msgstr "星数"
 
 #: src/gui/siril3.glade:22543 src/gui/siril3.glade:22672
 #: src/gui/siril3.glade:22812 src/gui/siril3.glade:24473
@@ -5436,7 +5430,6 @@ msgstr "添加另外的过滤"
 #: src/gui/siril3.glade:22646 src/gui/siril3.glade:22786
 #: src/gui/siril3.glade:24447 src/gui/siril3.glade:24576
 #: src/gui/siril3.glade:24716
-#, fuzzy
 msgid ""
 "Select the set of images to be stacked:\n"
 "\n"
@@ -5463,15 +5456,24 @@ msgid ""
 "<b>quality</b>: images with best quality (planetary DFT or Kombat "
 "registrations)"
 msgstr ""
-"选择用于图像叠加的子集：\n"
+"选择将被用于叠加的图像子集：\n"
+"\n"
 "<b>全部</b>：队列中的全部图像都会被叠加\n"
+"\n"
 "<b>已选择</b>：只叠加队列中没有被排除掉的图像\n"
+"\n"
 "<b>FWHM</b>：FWHM最优图像（仅适用于星点对齐）\n"
+"\n"
 "<b>加权FWHM</b>：简单FWHM方法的升级，它通过比较当前帧跟参考帧的星点数量来排除"
 "掉更多不良的帧（仅适用于星点对齐）\n"
 "\n"
 "<b>圆度</b>：圆度最优图像（仅适用于星点对齐）\n"
-"<b>品质</b>：品质最优图像 （行星DFT或者ECC对齐）"
+"\n"
+"<b>背景</b>：背景值最低的图像（仅适用于星点对齐）\n"
+"\n"
+"<b>星数</b>：侦测到最多星点数的图像（仅适用于星点对齐）\n"
+"\n"
+"<b>品质</b>：品质最优图像 （行星DFT或者Kombat对齐）"
 
 #: src/gui/siril3.glade:22759 src/gui/siril3.glade:22886
 #: src/gui/siril3.glade:24689 src/gui/siril3.glade:24816
@@ -5572,16 +5574,15 @@ msgstr ""
 
 #: src/gui/siril3.glade:23128
 msgid "Go register"
-msgstr "执行对齐"
+msgstr "去对齐"
 
 #: src/gui/siril3.glade:23133
 msgid ""
 "Start the registration process. It will register images in the loaded "
 "sequence using the selected method and reference layer (loaded in the 'Image "
 "sequences' tab, current sequence name is at the bottom of the window too)."
-msgstr ""
-"开启对齐处理。将使用所选定的方法和参考通道来对齐队列中的图像（在“图像队列”标"
-"签页中载入，当前队列名称也会在窗口底部显示）。"
+msgstr "开启对齐处理。将使用所选定的方法和参考通道来加载和对齐队列中的图像（在“图像队"
+"列”标签页中载入，当前队列名称也会在窗口底部显示）。"
 
 #: src/gui/siril3.glade:23155
 msgid "Output registration:"
@@ -6111,18 +6112,16 @@ msgid "Noise"
 msgstr "噪声：N/A"
 
 #: src/gui/siril3.glade:24222
-#, fuzzy
 msgid "Number of images"
-msgstr "星点数量"
+msgstr "图像数量"
 
 #: src/gui/siril3.glade:24235
 msgid "Weighing:"
-msgstr ""
+msgstr "权重："
 
 #: src/gui/siril3.glade:24250
-#, fuzzy
 msgid "Create rejection maps"
-msgstr "图像剔除："
+msgstr "创建剔除图"
 
 #: src/gui/siril3.glade:24254
 msgid ""
@@ -6829,9 +6828,8 @@ msgstr ""
 "动检测为RGB文件。"
 
 #: src/gui/siril3.glade:27996
-#, fuzzy
 msgid "Update pixel size of binned image"
-msgstr "叠加图像%d失败"
+msgstr "更新合并图像的像素尺寸"
 
 #: src/gui/siril3.glade:28000
 msgid ""
@@ -6840,6 +6838,9 @@ msgid ""
 "binning (checked), the already multiplied pixel size is given (unchecked).\n"
 "It depends on the acquistion software used to create the FITS."
 msgstr ""
+"用于图像采样计算，像素尺寸可以通过两种不同的方式给出：给出实际像素尺寸，但必"
+"须乘以合并（选中）；给定已经相乘的像素尺寸（未选中）。\n"
+"这取决于用于创建 FITS 的软件。"
 
 #: src/gui/siril3.glade:28021
 msgid "<b>FITS Header</b>"
@@ -6871,7 +6872,6 @@ msgstr ""
 "噪声）值，造成很低的压缩率。"
 
 #: src/gui/siril3.glade:28107
-#, fuzzy
 msgid ""
 "Select an algorithm method for FITS compression:\n"
 "\n"
@@ -6887,19 +6887,10 @@ msgstr ""
 "选择一种FITS压缩算法：\n"
 "\n"
 "* <b>Rice</b>: 一种简单而快速的算法。\n"
-"* <b>GZIP 1</b>: gzip算法用于压缩和解压像素值。Gzip是GNU工程的同名自由软件所"
-"使用的算法。\n"
+"* <b>GZIP 1</b>: "
+"gzip算法用于压缩和解压像素值。Gzip是GNU工程的同名自由软件所使用的算法。\n"
 "* <b>GZIP 2</b>: 进行gzip算法之前对图像阵列中的像素值进行混洗以降低有效值的有"
-"序性。通常对浮点数阵列更加有效。\n"
-"* <b>Hcompress</b>: Briefly, the method used is:\n"
-"\t- 1. a wavelet transform called the H-transform (a Haar transform "
-"generalized to two dimensions), followed by\n"
-"\t- 2. quantization that discards noise in the image while retaining the "
-"signal on all scales, followed by\n"
-"\t- 3. quadtree coding of the quantized coefficients.\n"
-"该技术对于天文图像提供了非常好的压缩比和相对较快的速度。计算以整数运算实现并"
-"且是完全可逆的。因此该算法可用于有损和无损压缩而无需针对无损采用特殊方式（比"
-"如不需要残余文件）"
+"序性。通常对浮点数阵列更加有效。"
 
 #: src/gui/siril3.glade:28119
 msgid "GZIP1"
@@ -7125,14 +7116,15 @@ msgstr ""
 
 #: src/gui/siril3.glade:28714
 msgid "Update default focal length and pixel size from the result"
-msgstr ""
+msgstr "根据结果更新默认焦距和像素尺寸"
 
 #: src/gui/siril3.glade:28718
 msgid ""
 "When an astrometric solution is found, the computed focal length and input "
 "pixel size are stored in the settings as default values for images that "
 "don't have the corresponding medatada."
-msgstr ""
+msgstr "找到天体测量解决方案后，所计算出的焦距和所输入像素尺寸将作为没有相应元数据的"
+"图像的默认值存储在设置中。"
 
 #: src/gui/siril3.glade:28729
 #, fuzzy
@@ -7251,9 +7243,8 @@ msgid "Use the chosen master as default file in the Calibration tab"
 msgstr "将所选的主文件用于预处理标签中的缺省文件"
 
 #: src/gui/siril3.glade:29068
-#, fuzzy
 msgid "Master-flat:"
-msgstr "主平场"
+msgstr "主平场："
 
 #: src/gui/siril3.glade:29080
 #, fuzzy
@@ -7261,9 +7252,8 @@ msgid "Master-bias:"
 msgstr "主偏置:"
 
 #: src/gui/siril3.glade:29092
-#, fuzzy
 msgid "Master-dark:"
-msgstr "主暗场"
+msgstr "主暗场："
 
 #: src/gui/siril3.glade:29103
 msgid ""
@@ -7274,11 +7264,10 @@ msgstr ""
 "=256 或者 =64*$OFFSET"
 
 #: src/gui/siril3.glade:29117
-#, fuzzy
 msgid ""
 "Choose a master-bias that can be used as generic master-bias by clicking on "
 "the button \"Use it as default\""
-msgstr "选择一张主偏置用于缺省主偏置（通过点选“用于缺省”）。"
+msgstr "通过单击“用于缺省”按钮，选择一张主偏置用于缺省主偏置"
 
 #: src/gui/siril3.glade:29139
 msgid ""
@@ -7440,16 +7429,16 @@ msgid "Camera"
 msgstr "相机"
 
 #: src/gui/siril3.glade:30016 src/gui/siril3.glade:30127
-#, fuzzy
 msgid "Analysis Tools"
-msgstr "_分析"
+msgstr "分析工具"
 
 #: src/gui/siril3.glade:30048
 msgid ""
 "Defines the size of the panel used for the mosaic. This size is expressed in "
 "pixels. The higher you set the value, the more stars you will see, but at a "
 "lower resolution."
-msgstr ""
+msgstr "定义用于马赛克的面板的大小。此大小以像素表示。设置的值越高，您看到的星点就越"
+"多，但分辨率越低。"
 
 #: src/gui/siril3.glade:30067
 #, fuzzy
@@ -7462,14 +7451,12 @@ msgid "Window size (px):"
 msgstr "像素尺寸(微米):"
 
 #: src/gui/siril3.glade:30090
-#, fuzzy
 msgid "Defines the size of the window."
-msgstr "缩放至窗口大小"
+msgstr "定义窗口尺寸。"
 
 #: src/gui/siril3.glade:30112
-#, fuzzy
 msgid "<b>Aberration Inspector</b>"
-msgstr "减法."
+msgstr "<b>像差检查器</b>"
 
 #: src/gui/siril3.glade:30141 src/gui/siril3.glade:30567
 msgid "User Interface"
@@ -7779,6 +7766,10 @@ msgid ""
 "is therefore configurable. This parameter sets the minimum size for which "
 "Fourier Transforms will be used."
 msgstr ""
+"Siril 可以通过对每个像素的内核求和或使用傅里叶变换来计算卷积。前者对于大内核"
+"尺寸会非常低效，而后者需要一些设置时间。因此，傅里叶变换对于较大的内核更快，"
+"对于较小的内核求和更快。确切的交叉点将取决于您的硬件，因此是可配置的。此参数"
+"设置将使用傅里叶变换的最小内核尺寸。"
 
 #: src/gui/siril3.glade:31092
 #, fuzzy
@@ -7848,9 +7839,8 @@ msgid "Select StarNet executable"
 msgstr ""
 
 #: src/gui/siril3.glade:31352
-#, fuzzy
 msgid "Must point to a valid StarNet executable."
-msgstr "选择Swap目录"
+msgstr "必须指向有效的 StarNet 可执行文件。"
 
 #: src/gui/siril3.glade:31366
 msgid ""
@@ -8373,14 +8363,13 @@ msgid "Searching %s in SIMBAD(photo)...\n"
 msgstr "检索脚本于： \"%s\"...\n"
 
 #: src/algos/astrometry_solver.c:667
-#, fuzzy
 msgid "Using already downloaded star catalogue\n"
-msgstr "无法下载在线星表。"
+msgstr "使用已下载的星表\n"
 
 #: src/algos/astrometry_solver.c:674 src/algos/astrometry_solver.c:703
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot create catalogue file %s for plate solving (%s)\n"
-msgstr "无法创建日志文件 [%s]\n"
+msgstr "无法创建星表文件%s以用于解析（%s）\n"
 
 #: src/algos/astrometry_solver.c:793
 #, c-format
@@ -8422,9 +8411,9 @@ msgid "Catalog NOMAD size: %d objects\n"
 msgstr "星表 NOMAD 样本量： %d 对象\n"
 
 #: src/algos/astrometry_solver.c:878
-#, fuzzy, c-format
+#, c-format
 msgid "Local catalogs size: %d objects\n"
-msgstr "星表 Gaia %s 样本量：%d 对象\n"
+msgstr "本地星表样本量：%d 对象\n"
 
 #: src/algos/astrometry_solver.c:916
 #, c-format
@@ -8434,9 +8423,9 @@ msgstr ""
 "\n"
 
 #: src/algos/astrometry_solver.c:958
-#, fuzzy, c-format
+#, c-format
 msgid "Catalog Gaia DR3 size: %d objects\n"
-msgstr "星表 Gaia %s 样本量：%d 对象\n"
+msgstr "星表 Gaia DR3 样本量：%d 对象\n"
 
 #: src/algos/astrometry_solver.c:1000
 #, c-format
@@ -8468,9 +8457,9 @@ msgid "Cannot project the star catalog."
 msgstr "无法映射星表。"
 
 #: src/algos/astrometry_solver.c:1337 src/algos/astrometry_solver.c:1340
-#, fuzzy, c-format
+#, c-format
 msgid "Could not load the star catalog (%s)."
-msgstr "无法下载在线星表。"
+msgstr "无法加载星表（%s）。"
 
 #: src/algos/astrometry_solver.c:1365
 #, c-format
@@ -8508,9 +8497,8 @@ msgid "Failed to downsample image, aborting\n"
 msgstr "无法拷贝输入图像，异常终止。\n"
 
 #: src/algos/astrometry_solver.c:1409
-#, fuzzy
 msgid "Not enough memory"
-msgstr "没有足够的采样。"
+msgstr "内存不足"
 
 #: src/algos/astrometry_solver.c:1444
 #, fuzzy, c-format
@@ -8571,9 +8559,8 @@ msgid "Transformation matrix is invalid, solve failed"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:1647
-#, fuzzy
 msgid "Updating homography failed."
-msgstr "更新单应性失败。\n"
+msgstr "更新单应性失败。"
 
 #: src/algos/astrometry_solver.c:1723 src/algos/photometric_cc.c:476
 msgid "Photometric CC"
@@ -8679,9 +8666,9 @@ msgid "Out of memory - aborting"
 msgstr "内存不足 - 异常中止"
 
 #: src/algos/background_extraction.c:931
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to generate background samples for image %d: %s\n"
-msgstr "创建SER文件“%s”失败\n"
+msgstr "无法为图像 %d 生成背景样本： %s\n"
 
 #: src/algos/background_extraction.c:1019 src/algos/demosaicing.c:1284
 #: src/algos/extraction.c:726 src/algos/statistics.c:912
@@ -8699,8 +8686,8 @@ msgid ""
 "Stars: %d, Truncated mean[FWHM]: %.2f, Sensor tilt[FWHM]: %.2f (%.0f%%), Off-"
 "axis aberration[FWHM]: %.2f\n"
 msgstr ""
-"星点: %d, 截断平均值[FWHM]: %.2f, 传感器倾斜[FWHM]: %.2f (%.0f%%), 离轴偏差"
-"[FWHM]: %.2f\n"
+"星点: %d, 截断平均值[FWHM]: %.2f, 传感器倾斜[FWHM]: %.2f (%.0f%%), "
+"离轴像差[FWHM]: %.2f\n"
 
 #: src/algos/ccd-inspector.c:283
 msgid "Tilt evaluation"
@@ -8803,19 +8790,19 @@ msgid "Image %d: error identifying CFA3 filename\n"
 msgstr ""
 
 #: src/algos/demosaicing.c:1361
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: error opening CFA1 file\n"
-msgstr "打开文件失败"
+msgstr "图像 %d：打开 CFA1 文件时出错\n"
 
 #: src/algos/demosaicing.c:1366
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: error opening CFA2 file\n"
-msgstr "打开文件失败"
+msgstr "图像 %d：打开 CFA2 文件时出错\n"
 
 #: src/algos/demosaicing.c:1371
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: error opening CFA3 file\n"
-msgstr "打开文件失败"
+msgstr "图像 %d：打开 CFA3 文件时出错\n"
 
 #: src/algos/demosaicing.c:1410
 msgid "Merge CFA"
@@ -8912,9 +8899,9 @@ msgid "Failed to sample enough pixels for AF type %d.\n"
 msgstr "Failed to sample enough pixels for AF type %d.\n"
 
 #: src/algos/geometry.c:268
-#, fuzzy, c-format
+#, c-format
 msgid "Binning x%d: processing...\n"
-msgstr "除去条纹：处理中...\n"
+msgstr "合并 x%d：处理中...\n"
 
 #: src/algos/geometry.c:287
 #, c-format
@@ -8983,70 +8970,60 @@ msgid ""
 msgstr "警告：环形区域的像素数量不足，请选取更大的区域，\n"
 
 #: src/algos/photometry.c:262
-#, fuzzy
 msgid "no error"
-msgstr "错误"
+msgstr "没有错误"
 
 #: src/algos/photometry.c:264
-#, fuzzy
 msgid "memory allocation"
-msgstr "归一化"
+msgstr "内存分配"
 
 #: src/algos/photometry.c:266
-#, fuzzy
 msgid "unsupported image type"
-msgstr "支持文件类型:"
+msgstr "不支持的文件类型"
 
 #: src/algos/photometry.c:268
-#, fuzzy
 msgid "PSF fit failed"
-msgstr "中位数滤镜已应用"
+msgstr "PSF拟合失败"
 
 #: src/algos/photometry.c:270
-#, fuzzy
 msgid "not in area"
-msgstr "区域中的PSF"
+msgstr "不在区域"
 
 #: src/algos/photometry.c:272
-#, fuzzy
 msgid "inner radius too small"
-msgstr "边角强化半径"
+msgstr "内半径太小"
 
 #: src/algos/photometry.c:274
 msgid "aperture too small"
-msgstr ""
+msgstr "孔径太小"
 
 #: src/algos/photometry.c:276
-#, fuzzy
 msgid "not enough background"
-msgstr "计算背景"
+msgstr "背景不够"
 
 #: src/algos/photometry.c:278
-#, fuzzy
 msgid "statistics failed"
-msgstr "统计信息"
+msgstr "统计失败"
 
 #: src/algos/photometry.c:280
 msgid "invalid measurement error"
-msgstr ""
+msgstr "无效测量错误"
 
 #: src/algos/photometry.c:282
-#, fuzzy
 msgid "pixel out of range"
-msgstr "像素取值范围"
+msgstr "像素超出范围"
 
 #: src/algos/photometry.c:284
 msgid "area too small"
-msgstr ""
+msgstr "区域太小"
 
 #: src/algos/photometry.c:286
 msgid "image is invalid"
-msgstr ""
+msgstr "图像无效"
 
 #: src/algos/photometry.c:288
-#, fuzzy
 msgid "not in image"
-msgstr "未知图像"
+msgstr "不在图像中"
 
 #: src/algos/photometry.c:290
 #, fuzzy
@@ -9058,16 +9035,15 @@ msgstr "未知错误\n"
 msgid ""
 "Gnuplot was not found, the light curve data will be produced in %s but no "
 "image will be created.\n"
-msgstr ""
+msgstr "未找到 Gnuplot，光度曲线数据将以 %s 生成，但不会创建图像。\n"
 
 #: src/algos/photometry.c:324 src/gui/plot.c:718
 msgid "No photometry data found, error\n"
-msgstr ""
+msgstr "未找测光数据，错误\n"
 
 #: src/algos/photometry.c:343
-#, fuzzy
 msgid "There are not enough valid stars to make a photometric analysis.\n"
-msgstr "参考帧中没有足够数量的星点用于执行对齐\n"
+msgstr "没有足够有效的星点用于执行测光分析。\n"
 
 #: src/algos/photometry.c:357 src/gui/plot.c:748
 msgid ""
@@ -9105,18 +9081,18 @@ msgid "%s has been saved.\n"
 msgstr "%s 已保存。\n"
 
 #: src/algos/photometry.c:460
-#, fuzzy, c-format
+#, c-format
 msgid "%s has been generated.\n"
-msgstr "%s 已保存。\n"
+msgstr "%s 已生成。\n"
 
 #: src/algos/photometry.c:467 src/gui/plot.c:825
 msgid "Communicating with gnuplot failed, still creating the data file\n"
-msgstr ""
+msgstr "与 gnuplot 通信失败，仍在创建数据文件\n"
 
 #: src/algos/photometry.c:528
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open file %s: %s\n"
-msgstr "无法打开文件: %s\n"
+msgstr "无法打开文件 %s: %s\n"
 
 #: src/algos/photometry.c:563 src/algos/photometry.c:572
 #: src/algos/photometry.c:584 src/algos/photometry.c:614
@@ -9124,12 +9100,12 @@ msgstr "无法打开文件: %s\n"
 msgid ""
 "The NINA star information file did not contain all expected data (RA and "
 "Dec)\n"
-msgstr ""
+msgstr "NINA恒星信息文件不包含所有期望的数据（RA和Dec）\n"
 
 #: src/algos/photometry.c:594
-#, fuzzy, c-format
+#, c-format
 msgid "Target star identified: %s\n"
-msgstr "无法载入ini文件：%s\n"
+msgstr "目标星已识别：%s\n"
 
 #: src/algos/photometry.c:596
 msgid ""
@@ -9228,9 +9204,9 @@ msgid "blue"
 msgstr "蓝色"
 
 #: src/algos/photometric_cc.c:377
-#, fuzzy, c-format
+#, c-format
 msgid "Photometry radii set to %.1f for inner and %.1f for outer\n"
-msgstr "执行测光于星点 %.1f, %.1f 在图像 %d \n"
+msgstr "测光内半径设置为 %.1f，外半径设置为 %.1f\n"
 
 #: src/algos/photometric_cc.c:380
 msgid "Photometry color calibration in progress..."
@@ -9270,9 +9246,8 @@ msgid ""
 msgstr ""
 
 #: src/algos/photometric_cc.c:464 src/core/command.c:8628
-#, fuzzy
 msgid "Could not download the online star catalog.\n"
-msgstr "无法下载在线星表。"
+msgstr "无法下载在线星表。\n"
 
 #: src/algos/photometric_cc.c:468 src/core/command.c:8631
 #, c-format
@@ -9284,9 +9259,9 @@ msgid "Photometric Color Calibration succeeded.\n"
 msgstr "测光法色彩校准成功。\n"
 
 #: src/algos/photometric_cc.c:501
-#, fuzzy, c-format
+#, c-format
 msgid "Can't open catalog file %s for PCC: %s\n"
-msgstr "无法打开TIFF文件: %s\n"
+msgstr "无法打开星表文件 %s 以用于PCC： %s\n"
 
 #: src/algos/PSF.c:751 src/gui/PSF_list.c:677
 msgid "true reduced"
@@ -9304,7 +9279,7 @@ msgid ""
 msgstr ""
 
 #: src/algos/PSF.c:789
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "PSF fit Result (%s):\n"
 "%s\n"
@@ -9316,13 +9291,13 @@ msgid ""
 "SNR=%.1fdB\n"
 "RMSE=%.3e\n"
 msgstr ""
-"PSF拟合结果：\n"
+"PSF拟合结果（%s）：\n"
 "%s\n"
 "FWHM X=%0.2f%s, FWHM Y=%0.2f%s\n"
-"偏角=%0.2f deg\n"
+"半径=%0.2f%s 偏角=%0.2f deg\n"
 "背景值=%0.6f\n"
 "最高强度=%0.6f\n"
-"星等 (%s)=%0.2f\n"
+"星等 (%s)=%0.4f±%.4f\n"
 "SNR=%.1fdB\n"
 "RMSE=%.3e\n"
 
@@ -9360,9 +9335,9 @@ msgid "Unsupported object type in response: %s\n"
 msgstr "支持的文件类型: %s\n"
 
 #: src/algos/search_objects.c:267
-#, fuzzy, c-format
+#, c-format
 msgid "Found %s at coordinates: %s, %s with magnitude: %0.1lf\n"
-msgstr "无法拷贝图像，异常终止\n"
+msgstr "找到 %s 于坐标：%s,%s，星等：%0.1lf\n"
 
 #: src/algos/search_objects.c:285
 #, c-format
@@ -9370,9 +9345,9 @@ msgid "Found %d Solar System Objects with mag < %0.1lf\n"
 msgstr ""
 
 #: src/algos/search_objects.c:317
-#, fuzzy, c-format
+#, c-format
 msgid "Found %s at coordinates: %s, %s\n"
-msgstr "无法拷贝图像，异常终止\n"
+msgstr "找到 %s 于坐标：%s,%s\n"
 
 #: src/algos/search_objects.c:365
 #, c-format
@@ -9380,9 +9355,9 @@ msgid "Object %s not found or encountered an error processing it\n"
 msgstr ""
 
 #: src/algos/star_finder.c:189 src/algos/star_finder.c:192
-#, fuzzy, c-format
+#, c-format
 msgid "Findstar: processing for channel %d...\n"
-msgstr "星点侦测：执行中...\n"
+msgstr "星点侦测：于通道%d执行中...\n"
 
 #: src/algos/star_finder.c:203
 msgid "Failed to copy the image for processing\n"
@@ -9408,9 +9383,9 @@ msgid "Found %d stars with same settings in %s, skipping detection\n"
 msgstr ""
 
 #: src/algos/star_finder.c:939
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot save star list %s: %s\n"
-msgstr "无法获取快照: %s\n"
+msgstr "无法保存星点列表%s: %s\n"
 
 #: src/algos/star_finder.c:994
 #, c-format
@@ -9428,9 +9403,9 @@ msgid "Could not load reference image\n"
 msgstr "无法载入参考帧\n"
 
 #: src/algos/star_finder.c:1259
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"
-msgstr "找到 %d 星点于 %s，通道 #%d\n"
+msgstr "找到 %d %s 轮廓星于 %s，通道 #%d（FWHM %f）\n"
 
 #: src/algos/star_finder.c:1261
 msgid "selection"
@@ -9441,9 +9416,9 @@ msgid "image"
 msgstr "图像"
 
 #: src/algos/statistics.c:250
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to compute CFA statistics for channel %d\n"
-msgstr "无法拷贝输入图像，异常终止。\n"
+msgstr "无法计算通道 %d 的 CFA 统计信息\n"
 
 #: src/algos/statistics.c:279 src/algos/statistics_float.c:340
 #, fuzzy
@@ -9609,9 +9584,9 @@ msgid "Images must have same data type.\n"
 msgstr "图像必须具有相同的数据类型。\n"
 
 #: src/core/command.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "This command is deprecated: %s should be used instead.\n"
-msgstr "This command can only be used when a sequence is loaded.\n"
+msgstr "此命令已弃用：应改用 %s。\n"
 
 #: src/core/command.c:156
 msgid "Currently loaded image has no FITS header\n"
@@ -9654,11 +9629,11 @@ msgid "Hue range must be [0, 6]\n"
 msgstr "Hue范围必须为 [0, 6]\n"
 
 #: src/core/command.c:249
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Applying saturation enhancement of %d%%, from level %g times (median + "
 "sigma).\n"
-msgstr "Applying saturation enhancement of %d%, from level %g * sigma.\n"
+msgstr "应用饱和度增强于 %d%%，从强度%g倍（中位数+sigma）。\n"
 
 #: src/core/command.c:322 src/core/command.c:324
 #, c-format
@@ -9700,9 +9675,8 @@ msgid "Colour artefact suppression active.\n"
 msgstr ""
 
 #: src/core/command.c:368
-#, fuzzy
 msgid "Starting NL-Bayes denoising..."
-msgstr "开始叠加...\n"
+msgstr "开始NL-Bayes降噪..."
 
 #: src/core/command.c:422
 #, fuzzy
@@ -9809,9 +9783,8 @@ msgid "Invalid Bayer matrix specified!\n"
 msgstr ""
 
 #: src/core/command.c:843
-#, fuzzy
 msgid "Unsaved Bayer pattern merge"
-msgstr "选择相机的Bayer滤镜排列模式。"
+msgstr "未保存的拜耳模式合并"
 
 #: src/core/command.c:844
 msgid "Bayer pattern merge"
@@ -9835,14 +9808,14 @@ msgid "Reference image is undefined, the following would be used:\n"
 msgstr ""
 
 #: src/core/command.c:993
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: '%s'\n"
-msgstr "图像：%s\n"
+msgstr "图像%d：'%s'\n"
 
 #: src/core/command.c:995
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d\n"
-msgstr "图像：%s\n"
+msgstr "图像%d\n"
 
 #: src/core/command.c:998
 #, fuzzy
@@ -10255,9 +10228,9 @@ msgid "Symmetry point SP=%f\n"
 msgstr ""
 
 #: src/core/command.c:2695
-#, fuzzy, c-format
+#, c-format
 msgid "Symmetry point for channel %d: SP=%f\n"
-msgstr "星点侦测：执行中...\n"
+msgstr "通道 %d 的对称点：SP=%f\n"
 
 #: src/core/command.c:2737
 msgid "The target background value must be in the [0, 1] range\n"
@@ -10282,9 +10255,9 @@ msgid "Factor must be a number greater than 0.\n"
 msgstr "裁剪：宽度和高度必须大于0。\n"
 
 #: src/core/command.c:2813
-#, fuzzy, c-format
+#, c-format
 msgid "Scale %lf not allowed. Should be between 0.0 and 5.0.\n"
-msgstr "最大星点数 %s 不被允许。应该介于 %d 和 %d 之间。\n"
+msgstr "不允许缩放 %lf。应介于 0.0 和 5.0 之间。\n"
 
 #: src/core/command.c:2817
 msgid "Scale is 1.0. Not doing anything.\n"
@@ -10318,9 +10291,9 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:2925
-#, fuzzy, c-format
+#, c-format
 msgid "Angle %lf not allowed. Should be between 0.0 and 360.0.\n"
-msgstr "最大星点数 %s 不被允许。应该介于 %d 和 %d 之间。\n"
+msgstr "角度 %lf 不允许。应介于 0.0 和 360.0 之间。\n"
 
 #: src/core/command.c:2963
 msgid "-nocrop option is not valid if a selection is active. Ignoring\n"
@@ -10367,13 +10340,12 @@ msgid "minimum value must be smaller than the maximum\n"
 msgstr "最小值必须小于最大值\n"
 
 #: src/core/command.c:3219
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera "
 "conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"
-msgstr ""
-"Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera "
-"conversion gain: %f e-/ADU, using pixels with values ]%d, %d[\n"
+msgstr "局部背景环半径：%.1f 至 %.1f，孔径：%.1f （%s），相机转换增益：%f e-/ADU，"
+"使用像素值为 ]%f、%f[\n"
 
 #: src/core/command.c:3223
 msgid "forced"
@@ -10415,11 +10387,11 @@ msgid "Wrong parameter values. Sigma must be greater than 0.05, aborting\n"
 msgstr "参数错误，Sigma必须大于0.05，异常终止。\n"
 
 #: src/core/command.c:3351
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Wrong parameter values. Minimum beta must be greater than or equal to 0.0 "
 "and less than %.0f, aborting\n"
-msgstr "参数错误，Sigma必须大于0.05，异常终止。\n"
+msgstr "参数值错误。最小 beta 必须大于等于 0.0 且小于 %.0f，异常终止。\n"
 
 #: src/core/command.c:3362
 msgid ""
@@ -10446,9 +10418,9 @@ msgid ""
 msgstr "参数错误，圆度必须在0到0.95之间，异常终止。\n"
 
 #: src/core/command.c:3398 src/core/command.c:3405 src/core/command.c:3412
-#, fuzzy, c-format
+#, c-format
 msgid "Wrong parameter value %s.\n"
-msgstr "参数错误。\n"
+msgstr "错误的参数值 %s。\n"
 
 #: src/core/command.c:3416
 #, fuzzy
@@ -10461,9 +10433,9 @@ msgid "sigma = %3.2f\n"
 msgstr "sigma = %3.2f\n"
 
 #: src/core/command.c:3440
-#, fuzzy, c-format
+#, c-format
 msgid "roundness range = [%f, %f]\n"
-msgstr "圆度 = %3.2f\n"
+msgstr "圆度范围 = [%f, %f]\n"
 
 #: src/core/command.c:3442
 #, c-format
@@ -10568,9 +10540,9 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:3801
-#, fuzzy, c-format
+#, c-format
 msgid "Coordinates of the star: %.1f, %.1f\n"
-msgstr "第一幅图像中内核的X坐标。"
+msgstr "恆星坐标： %.1f， %.1f\n"
 
 #: src/core/command.c:3816
 #, fuzzy
@@ -10659,9 +10631,8 @@ msgid "Coeff value is incorrect\n"
 msgstr ""
 
 #: src/core/command.c:4284
-#, fuzzy
 msgid "Sigma value is incorrect\n"
-msgstr "图像剔除："
+msgstr "Sigma值不正确\n"
 
 #: src/core/command.c:4300
 msgid "Number of layers MUST be 1 or 3\n"
@@ -10800,9 +10771,9 @@ msgid "The third argument is larger than the number of images.\n"
 msgstr "The first argument must be between 1 and the number of images.\n"
 
 #: src/core/command.c:5168
-#, fuzzy, c-format
+#, c-format
 msgid "Re-adjusting to %d.\n"
-msgstr "读取 %s\n"
+msgstr "重新调整为 %d。\n"
 
 #: src/core/command.c:5192 src/gui/sequence_list.c:627
 #, c-format
@@ -10828,22 +10799,22 @@ msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr "分线程计算所有通道统计信息（%d 线程）\n"
 
 #: src/core/command.c:5821 src/core/command.c:5826
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f\n"
 msgstr ""
-"%s layer: Mean: %0.1lf, Median: %0.1lf, Sigma: %0.1lf, AvgDev: %0.1lf, Min: "
-"%0.1lf, Max: %0.1lf\n"
+"%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
+"bgnoise: %0.1f\n"
 
 #: src/core/command.c:5838 src/core/command.c:5845
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 msgstr ""
-"%s layer: Mean: %0.1lf, Median: %0.1lf, Sigma: %0.1lf, AvgDev: %0.1lf, Min: "
-"%0.1lf, Max: %0.1lf\n"
+"%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
+"bgnoise: %0.1f, avgDev: %0.1f, MAD: %0.1f, sqrt(BWMV): %0.1f\n"
 
 #: src/core/command.c:5931
 #, c-format
@@ -10851,9 +10822,9 @@ msgid "No image appears to be loaded, reloading from '%s'\n"
 msgstr ""
 
 #: src/core/command.c:6034
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to save the JSON file %s: %s\n"
-msgstr "创建SER文件“%s”失败\n"
+msgstr "无法保存 JSON 文件 %s: %s\n"
 
 #: src/core/command.c:6037
 #, c-format
@@ -10866,9 +10837,9 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:6061
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d, %s = %s\n"
-msgstr "图像：%s\n"
+msgstr "图像 %d, %s = %s\n"
 
 #: src/core/command.c:6070
 #, fuzzy
@@ -11008,9 +10979,8 @@ msgstr "对齐：处理中，使用方法：%s\n"
 
 #: src/core/command.c:6668 src/core/command.c:6946
 #: src/registration/registration.c:1535
-#, fuzzy
 msgid "Interpolation clamping active\n"
-msgstr "插值算法:"
+msgstr "插值保持启用\n"
 
 #: src/core/command.c:6691 src/core/command.c:6709 src/core/command.c:6728
 #: src/core/command.c:6747 src/core/command.c:6766 src/core/command.c:6784
@@ -11134,9 +11104,8 @@ msgid "Could not save the stacking result %s\n"
 msgstr "无法保存叠加结果 %s\n"
 
 #: src/core/command.c:7193 src/stacking/stacking.c:627
-#, fuzzy
 msgid "Saving rejection maps\n"
-msgstr "图像剔除："
+msgstr "保存剔除图\n"
 
 #: src/core/command.c:7222 src/stacking/stacking.c:680
 msgid "Stacking failed, please check the log to fix your issue.\n"
@@ -11527,19 +11496,19 @@ msgid "Using pixel size from image: %.2f\n"
 msgstr "使用图像中的像素尺寸：%.2f\n"
 
 #: src/core/command.c:8483
-#, fuzzy, c-format
+#, c-format
 msgid "Using provided focal length: %.2f\n"
-msgstr "叠加图像%d失败"
+msgstr "使用所提供的焦距：%.2f\n"
 
 #: src/core/command.c:8497
-#, fuzzy, c-format
+#, c-format
 msgid "Using focal length from preferences: %.2f\n"
-msgstr "叠加图像%d失败"
+msgstr "使用首选项中的焦距：%.2f\n"
 
 #: src/core/command.c:8499
-#, fuzzy, c-format
+#, c-format
 msgid "Using focal length from image: %.2f\n"
-msgstr "叠加图像%d失败"
+msgstr "使用图像中的焦距：%.2f\n"
 
 #: src/core/command.c:8504 src/core/command.c:8516
 msgid ""
@@ -11665,7 +11634,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:14
-#, fuzzy
 msgid ""
 "Make a selection area in the currently loaded image with the arguments <b>x</"
 "b>, <b>y</b>, <b>width</b> and <b>height</b>, with <b>x</b> and <b>y</b> "
@@ -11679,7 +11647,7 @@ msgstr ""
 "being the coordinates of the top left corner starting at (0, 0), and "
 "<b>width</b> and <b>height</b>, the size of the selection. The <b>-clear</b> "
 "argument deletes any selection area. If no argument is passed, the current "
-"selection is printed."
+"selection is printed"
 
 #: src/core/command_def.h:16
 msgid ""
@@ -12931,7 +12899,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:106
-#, fuzzy
 msgid ""
 "Performs a PSF (Point Spread Function) on the selected star and display the "
 "results. If provided, the <b>channel</b> argument selects the image channel "
@@ -12941,7 +12908,7 @@ msgstr ""
 "Performs a PSF (Point Spread Function) on the selected star and display the "
 "results. If provided, the <b>channel</b> argument selects the image channel "
 "on which the star will be analyzed. It can be omitted for monochrome images "
-"or when run from the GUI with one of the channels active in the view."
+"or when run from the GUI with one of the channels active in the view"
 
 #: src/core/command_def.h:107
 msgid ""
@@ -13513,10 +13480,10 @@ msgid ""
 msgstr "Same command than SPLIT_CFA but for the sequence \"sequencename\""
 
 #: src/core/command_def.h:143
-#, fuzzy
 msgid ""
 "Prints the FITS header value for the given key for all images in the sequence"
-msgstr "主暗场帧将被从队列中所有图像中扣除（减）。"
+msgstr ""
+"Prints the FITS header value for the given key for all images in the sequence"
 
 #: src/core/command_def.h:144
 #, fuzzy
@@ -14301,9 +14268,8 @@ msgid "non-blocking command, no error"
 msgstr ""
 
 #: src/core/command_line_processor.c:54
-#, fuzzy
 msgid "current working directory is invalid"
-msgstr "当前工作目录:"
+msgstr "当前工作目录无效"
 
 #: src/core/command_line_processor.c:56
 #, fuzzy
@@ -14321,9 +14287,8 @@ msgid "invalid arguments"
 msgstr "Invalid argument %s, aborting.\n"
 
 #: src/core/command_line_processor.c:62
-#, fuzzy
 msgid "invalid image area selection"
-msgstr "图像选择："
+msgstr "无效的图像区域选择"
 
 #: src/core/command_line_processor.c:64
 msgid "command succeeded"
@@ -14441,9 +14406,9 @@ msgid "This command cannot be run while live stacking is active, ignoring.\n"
 msgstr "This command cannot be run while live stacking is active, ignoring.\n"
 
 #: src/core/command_line_processor.c:359
-#, fuzzy, c-format
+#, c-format
 msgid "Error in line %d ('%s'): %s.\n"
-msgstr "Error in line %d: '%s'.\n"
+msgstr "Error in line %d ('%s'): %s.\n"
 
 #: src/core/command_line_processor.c:360
 msgid "Exiting batch processing.\n"
@@ -14480,9 +14445,9 @@ msgid "Starting script %s\n"
 msgstr "开始运行脚本%s\n"
 
 #: src/core/command_line_processor.c:589
-#, fuzzy, c-format
+#, c-format
 msgid "Command execution failed: %s.\n"
-msgstr "命令执行失败。\n"
+msgstr "命令执行失败：%s。\n"
 
 #: src/core/command_line_processor.c:638
 #, c-format
@@ -15037,9 +15002,8 @@ msgid "for a total of images processed of %d)\n"
 msgstr "得到总计图像（%d帧）将被叠加\n"
 
 #: src/core/settings.c:252
-#, fuzzy
 msgid "current working directory"
-msgstr "当前工作目录:"
+msgstr "当前工作目录"
 
 #: src/core/settings.c:253
 #, fuzzy
@@ -15105,19 +15069,16 @@ msgid "WCS formalism used in FITS header"
 msgstr ""
 
 #: src/core/settings.c:267
-#, fuzzy
 msgid "Path of the namedstars.dat catalogue"
-msgstr "无法映射星表。"
+msgstr "namedstars.dat星表路径"
 
 #: src/core/settings.c:268
-#, fuzzy
 msgid "Path of the unnamedstars.dat catalogue"
-msgstr "无法下载在线星表。"
+msgstr "unnamedstars.dat星表路径"
 
 #: src/core/settings.c:269
-#, fuzzy
 msgid "Path of the deepstars.dat catalogue"
-msgstr "无法映射星表。"
+msgstr "deepstars.dat星表路径"
 
 #: src/core/settings.c:270
 msgid "Path of the USNO-NOMAD-1e8.dat catalogue"
@@ -15177,9 +15138,8 @@ msgid "use pattern from the file header"
 msgstr "在文件头中无法找到拜耳阵列排列信息。\n"
 
 #: src/core/settings.c:290
-#, fuzzy
 msgid "index of the Bayer pattern"
-msgstr "选择相机的Bayer滤镜排列模式。"
+msgstr "拜耳滤镜模式索引"
 
 #: src/core/settings.c:291
 msgid "type of interpolation"
@@ -15275,12 +15235,11 @@ msgstr "从结果更新缺省的焦距和像素尺寸"
 
 #: src/core/settings.c:317
 msgid "panel size of aberration inspector"
-msgstr ""
+msgstr "像差检查器面板尺寸"
 
 #: src/core/settings.c:318
-#, fuzzy
 msgid "window size of aberration inspector"
-msgstr "减法."
+msgstr "像差检查器窗口尺寸"
 
 #: src/core/settings.c:320
 #, fuzzy
@@ -15391,9 +15350,8 @@ msgid "sigma low value for rejection"
 msgstr ""
 
 #: src/core/settings.c:354
-#, fuzzy
 msgid "sigma high value for rejection"
-msgstr "图像剔除："
+msgstr "用做剔除的sigma高值"
 
 #: src/core/settings.c:355
 msgid "linear low value for rejection"
@@ -15473,9 +15431,8 @@ msgid "show thumbnails in open dialog"
 msgstr "文件选择窗显示缩略图"
 
 #: src/core/settings.c:377
-#, fuzzy
 msgid "size of the thumbnails"
-msgstr "缩略图大小:"
+msgstr "缩略图大小"
 
 #: src/core/settings.c:378
 msgid "number of elements of the grid guides"
@@ -15868,9 +15825,9 @@ msgid "Applying MTF with values %f, %f, %f\n"
 msgstr "应用MTF值%f, %f, %f\n"
 
 #: src/filters/mtf.c:107
-#, fuzzy, c-format
+#, c-format
 msgid "Applying inverse MTF with values %f, %f, %f\n"
-msgstr "应用MTF值%f, %f, %f\n"
+msgstr "应用值为 %f、%f、%f 的反向 MTF\n"
 
 #: src/filters/mtf.c:232 src/filters/mtf.c:249
 #, c-format
@@ -15907,14 +15864,12 @@ msgid "RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"
 msgstr "RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"
 
 #: src/filters/rgradient.c:275
-#, fuzzy
 msgid "Center coordinate selection error"
-msgstr "在所选范围里将参考线剧中"
+msgstr "中心坐标选取错误"
 
 #: src/filters/rgradient.c:276
-#, fuzzy
 msgid "No valid PSF found within selection."
-msgstr "选择范围无参考线"
+msgstr "所选中找不到有效的 PSF。"
 
 #: src/filters/saturation.c:58
 #, c-format
@@ -15922,39 +15877,34 @@ msgid "Saturation enhancement (amount=%4.2lf)"
 msgstr "饱和度增强 (amount=%4.2lf)"
 
 #: src/filters/scnr.c:43
-#, fuzzy
 msgid "average neutral"
-msgstr "中性色调平均化"
+msgstr "平均中性色调"
 
 #: src/filters/scnr.c:45
-#, fuzzy
 msgid "maximum neutral"
-msgstr "中性色调最大化"
+msgstr "最大中性色调"
 
 #: src/filters/scnr.c:47
-#, fuzzy
 msgid "maximum mask"
 msgstr "最大掩膜"
 
 #: src/filters/scnr.c:49
-#, fuzzy
 msgid "additive mask"
 msgstr "累加掩膜"
 
 #: src/filters/scnr.c:63
-#, fuzzy, c-format
+#, c-format
 msgid "SCNR: processing with %s algorithm%s...\n"
-msgstr "SCNR: 处理中...\n"
+msgstr "SCNR: 处理 %s 算法 %s...\n"
 
 #: src/filters/scnr.c:65
-#, fuzzy
 msgid ", preserving lightness"
-msgstr "保持亮度"
+msgstr "，保持亮度"
 
 #: src/filters/scnr.c:177
-#, fuzzy, c-format
+#, c-format
 msgid "SCNR (type=%s, amount=%0.2lf, preserve=%s)"
-msgstr "SCNR (type=%d, amount=%0.2lf, preserve=%s)"
+msgstr "SCNR (type=%s, amount=%0.2lf, preserve=%s)"
 
 #: src/filters/starnet.c:98
 #, fuzzy, c-format
@@ -16023,9 +15973,8 @@ msgid "Error: file path too long!\n"
 msgstr ""
 
 #: src/filters/starnet.c:488
-#, fuzzy
 msgid "Starting StarNet"
-msgstr "开始叠加...\n"
+msgstr "开始StarNet"
 
 #: src/filters/starnet.c:494
 msgid "StarNet: running. Please wait...\n"
@@ -16146,9 +16095,8 @@ msgid "Error: unable to save starmask image as FITS...\n"
 msgstr ""
 
 #: src/filters/starnet.c:768
-#, fuzzy
 msgid "StarNet: job completed.\n"
-msgstr "叠加完成。"
+msgstr "StarNet：工作完成.\n"
 
 #: src/filters/starnet.c:866
 msgid ""
@@ -16167,9 +16115,8 @@ msgid "StarNet"
 msgstr "开始叠加...\n"
 
 #: src/filters/starnet.c:994
-#, fuzzy
 msgid "StarNet: Processing..."
-msgstr "开始预处理"
+msgstr "StarNet：执行中..."
 
 #: src/filters/synthstar.c:361
 #, fuzzy
@@ -16514,9 +16461,8 @@ msgid "Searching for sequences in the current working directory..."
 msgstr "在当前工作目录中搜索队列..."
 
 #: src/gui/callbacks.c:1902
-#, fuzzy
 msgid "This erases the following data, and there's no possible undo:\n"
-msgstr "这将清除之前的图像选择，并且无法撤销。"
+msgstr "这将清除以下数据，且无法撤消：\n"
 
 #: src/gui/callbacks.c:1903
 msgid ""
@@ -16984,9 +16930,8 @@ msgid "No PSF file selected.\n"
 msgstr "%d个文件已选择"
 
 #: src/gui/newdeconv.c:818
-#, fuzzy
 msgid "Kernel estimation complete.\n"
-msgstr "对齐完成。"
+msgstr "内核估算完成。\n"
 
 #: src/gui/newdeconv.c:832
 msgid ""
@@ -17038,14 +16983,12 @@ msgid "No stars detected. Finding suitable non-saturated stars...\n"
 msgstr "在图像中查找目标"
 
 #: src/gui/newdeconv.c:986 src/gui/newdeconv.c:1110
-#, fuzzy
 msgid "No suitable stars detectable in this image. Aborting..."
-msgstr "在图像中查找目标"
+msgstr "在该图像中没有合适的星点。异常终止..."
 
 #: src/gui/newdeconv.c:1021
-#, fuzzy
 msgid "Starting PSF computation..."
-msgstr "HSL合成"
+msgstr "开始PSF计算..."
 
 #: src/gui/newdeconv.c:1035
 #, fuzzy
@@ -17061,14 +17004,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/newdeconv.c:1150
-#, fuzzy
 msgid "Starting PSF estimation..."
-msgstr "开始叠加...\n"
+msgstr "开始估算PSF..."
 
 #: src/gui/newdeconv.c:1177
-#, fuzzy
 msgid "Starting non-blind deconvolution..."
-msgstr "开始叠加...\n"
+msgstr "开始非盲反卷积..."
 
 #: src/gui/newdeconv.c:1185
 #, fuzzy
@@ -17080,9 +17021,8 @@ msgid "Richardson-Lucy halted early by the stopping criterion after iteration"
 msgstr ""
 
 #: src/gui/newdeconv.c:1187
-#, fuzzy
 msgid "Richardson-Lucy deconvolution..."
-msgstr "Lucy-Richardson反卷积：执行中...\n"
+msgstr "Richardson-Lucy反卷积..."
 
 #: src/gui/newdeconv.c:1363
 msgid ""
@@ -17091,9 +17031,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/newdeconv.c:1415
-#, fuzzy
 msgid "Deconvolution. Processing sequence..."
-msgstr "Lucy-Richardson反卷积：执行中...\n"
+msgstr "反卷积。处理队列..."
 
 #: src/gui/nina_light_curve.c:19
 msgid "Light curve with NINA star list"
@@ -18123,9 +18062,8 @@ msgid "Disk Space: N/A"
 msgstr "磁盘空间：N/A"
 
 #: src/io/catalogues.c:136
-#, fuzzy
 msgid "Could not open local NOMAD catalogue\n"
-msgstr "无法下载在线星表。"
+msgstr "无法打开本地NOMAD星表\n"
 
 #: src/io/catalogues.c:142
 #, fuzzy
@@ -18776,14 +18714,12 @@ msgstr ""
 "multiple of 2, fps and file name non nul, quality between 1 and 5."
 
 #: src/io/path_parse.c:33
-#, fuzzy
 msgid "Warning code:"
-msgstr "警告"
+msgstr "警告代码："
 
 #: src/io/path_parse.c:33
-#, fuzzy
 msgid "Error code:"
-msgstr "错误"
+msgstr "错误代码："
 
 #: src/io/path_parse.c:34
 #, fuzzy
@@ -19641,6 +19577,11 @@ msgid ""
 "\t −1 if x &lt; 0\n"
 "\t  0 if x = 0."
 msgstr ""
+"表达式x的符号：\n"
+"\n"
+"\t +1 if x &gt; 0\n"
+"\t −1 if x &lt; 0\n"
+"\t  0 if x = 0."
 
 #: src/pixelMath/pixel_math_runner.c:100
 msgid "Sine of x."
@@ -19668,25 +19609,23 @@ msgstr "表达式x的整数部分（全舍）."
 
 #: src/pixelMath/pixel_math_runner.c:109
 msgid "Average absolute deviation of the image."
-msgstr ""
+msgstr "图像的平均绝对偏差。"
 
 #: src/pixelMath/pixel_math_runner.c:110
 msgid "Biweight midvariance of the image."
 msgstr "图像的双权中方差。"
 
 #: src/pixelMath/pixel_math_runner.c:111
-#, fuzzy
 msgid "Height in pixels of the specified image."
-msgstr "搜索框的像素尺寸。"
+msgstr "指定图像的高度（以像素为单位）。"
 
 #: src/pixelMath/pixel_math_runner.c:112 src/pixelMath/pixel_math_runner.c:114
 msgid "Median absolute deviation of the image."
 msgstr "图像的中位数绝对偏差。"
 
 #: src/pixelMath/pixel_math_runner.c:113
-#, fuzzy
 msgid "Pixel maximum of the image."
-msgstr "像素最大化叠加"
+msgstr "图像的像素最大值。"
 
 #: src/pixelMath/pixel_math_runner.c:115
 msgid "Mean of the image."
@@ -19697,95 +19636,92 @@ msgid "Median of the image."
 msgstr "图像的中位数。"
 
 #: src/pixelMath/pixel_math_runner.c:118
-#, fuzzy
 msgid "Pixel minimum of the image."
-msgstr "像素最小化叠加"
+msgstr "图像的像素最小值。"
 
 #: src/pixelMath/pixel_math_runner.c:119
 msgid "Estimation of Gaussian noise in the image."
-msgstr ""
+msgstr "图像的高斯噪声的估算值。"
 
 #: src/pixelMath/pixel_math_runner.c:120
-#, fuzzy
 msgid "Standard deviation of the image."
-msgstr "在图像中查找目标"
+msgstr "图像的标准偏差。"
 
 #: src/pixelMath/pixel_math_runner.c:121
-#, fuzzy
 msgid "Width in pixels of the specified image."
-msgstr "搜索框的像素尺寸。"
+msgstr "指定图像的宽度（以像素为单位）。"
 
 #: src/pixelMath/pixel_math_runner.c:125
 msgid "Pixel Inversion operator."
-msgstr "像素倒置."
+msgstr "像素倒置。"
 
 #: src/pixelMath/pixel_math_runner.c:126
 msgid "Unary Minus operator (sign change)."
-msgstr "一元减法（符号变化）"
+msgstr "一元减法（符号变化）。"
 
 #: src/pixelMath/pixel_math_runner.c:127
 msgid "Unary Plus operator."
-msgstr "一元加法."
+msgstr "一元加法。"
 
 #: src/pixelMath/pixel_math_runner.c:128
 msgid "Logical NOT operator."
-msgstr "逻辑非."
+msgstr "逻辑非。"
 
 #: src/pixelMath/pixel_math_runner.c:129
 msgid "Exponentiation operator."
-msgstr "幂运算."
+msgstr "幂运算。"
 
 #: src/pixelMath/pixel_math_runner.c:130
 msgid "Multiplication operator."
-msgstr "乘法."
+msgstr "乘法。"
 
 #: src/pixelMath/pixel_math_runner.c:131
 msgid "Division operator."
-msgstr "除法."
+msgstr "除法。"
 
 #: src/pixelMath/pixel_math_runner.c:132
 msgid "Modulus operator."
-msgstr "求模."
+msgstr "求模。"
 
 #: src/pixelMath/pixel_math_runner.c:133
 msgid "Addition operator."
-msgstr "加法."
+msgstr "加法。"
 
 #: src/pixelMath/pixel_math_runner.c:134
 msgid "Subtraction operator."
-msgstr "减法."
+msgstr "减法。"
 
 #: src/pixelMath/pixel_math_runner.c:135
 msgid "Less Than relational operator."
-msgstr "小于."
+msgstr "小于。"
 
 #: src/pixelMath/pixel_math_runner.c:136
 msgid "Less Than Or Equal relational operator."
-msgstr "小于等于."
+msgstr "小于等于。"
 
 #: src/pixelMath/pixel_math_runner.c:137
 msgid "Greater Than relational operator."
-msgstr "大于."
+msgstr "大于。"
 
 #: src/pixelMath/pixel_math_runner.c:138
 msgid "Greater Than Or Equal relational operator."
-msgstr "大于等于."
+msgstr "大于等于。"
 
 #: src/pixelMath/pixel_math_runner.c:139
 msgid "Equal To relational operator."
-msgstr "等于."
+msgstr "等于。"
 
 #: src/pixelMath/pixel_math_runner.c:140
 msgid "Not Equal To relational operator."
-msgstr "不等于."
+msgstr "不等于。"
 
 #: src/pixelMath/pixel_math_runner.c:141
 msgid "Logical AND operator."
-msgstr "逻辑与."
+msgstr "逻辑与。"
 
 #: src/pixelMath/pixel_math_runner.c:142
 msgid "Logical OR operator."
-msgstr "逻辑或."
+msgstr "逻辑或。"
 
 #: src/pixelMath/pixel_math_runner.c:278
 msgid "Syntax error"
@@ -19798,9 +19734,8 @@ msgid_plural "%d x %d pixels (%d channels)"
 msgstr[0] "%d x %d 像素 (%d 通道)"
 
 #: src/pixelMath/pixel_math_runner.c:333 src/pixelMath/pixel_math_runner.c:754
-#, fuzzy
 msgid "Pixel Math result"
-msgstr "像素数学"
+msgstr "像素数学结果"
 
 #: src/pixelMath/pixel_math_runner.c:350
 msgid "R"
@@ -19997,9 +19932,8 @@ msgid "Frame %d:\n"
 msgstr "第%d帧：\n"
 
 #: src/registration/applyreg.c:353
-#, fuzzy
 msgid "Applying registration completed.\n"
-msgstr "对齐完成。"
+msgstr "应用对齐完成。\n"
 
 #: src/registration/applyreg.c:354 src/registration/global.c:474
 #, c-format
@@ -20776,9 +20710,8 @@ msgid "Stacking will use registration data of layer %d\n"
 msgstr "叠加操作将会使用通道 %d 的对齐数据，如果存在的话。\n"
 
 #: src/stacking/stacking.c:277
-#, fuzzy
 msgid "Registration data found"
-msgstr "对齐方法:"
+msgstr "找到对齐数据"
 
 #: src/stacking/stacking.c:278
 msgid ""
