@@ -28,7 +28,7 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 
-static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
+static void display_path_parse_error(pathparse_errors err, const gchar *addstr) {
 	if (!err) return;
 	gchar *startstr = (err < 0) ? _("Warning code:"): _("Error code:");
 	gchar *endstr = (err < 0) ? _("going on") : _("aborting");
@@ -208,7 +208,7 @@ In read mode, it also replaces * by searching the directory for a file matching 
 In write mode, the * is omitted and the token is parsed as per specifier
 In write mode "nofail", it will try to return something no matter what
 */
-gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
+gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *status) {
 	*status = PATHPARSE_ERR_OK;
 	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
 		return g_strdup(expression);
