@@ -6,16 +6,16 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-10 09:32+0100\n"
-"PO-Revision-Date: 2023-03-08 12:07+0000\n"
+"PO-Revision-Date: 2023-03-11 09:36+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7991
@@ -3045,23 +3045,20 @@ msgid "Remove all stars from the list"
 msgstr "Убрать все звезды из списка"
 
 #: src/gui/siril3.glade:13665
-#, fuzzy
 msgid "Live Stacking"
-msgstr "Укладка"
+msgstr "Укладка в реальном времени"
 
 #: src/gui/siril3.glade:13725
-#, fuzzy
 msgid "debayer"
-msgstr "Дебайеризация"
+msgstr "дебайеризация"
 
 #: src/gui/siril3.glade:13730
 msgid "for now only detected in files and automatically enabled"
-msgstr ""
+msgstr "в настоящее время только определяется в файлах и автоматически включена"
 
 #: src/gui/siril3.glade:13743
-#, fuzzy
 msgid "shift-only registration"
-msgstr "Выравнивание вручную"
+msgstr "выравнивание по сдвигу"
 
 #: src/gui/siril3.glade:13747
 msgid ""
@@ -3069,14 +3066,18 @@ msgid ""
 "unchecked for alt-az or heavily drifting mounts. This makes one image "
 "processing much faster."
 msgstr ""
+"При выравнивании изображения только сдвигаются, без вращения, что "
+"существенно ускоряет обработку одного изображения. Следует отключить на альт-"
+"азимутальных монтировках или монтировках с большим дрейфом."
 
 #: src/gui/siril3.glade:13758
 msgid "remove gradient"
-msgstr ""
+msgstr "удалить градиент"
 
 #: src/gui/siril3.glade:13763
 msgid "Apply a linear background gradient removal on calibrated input frames."
 msgstr ""
+"Применить линейное удаление градиента на откалиброванных входящих кадрах."
 
 #: src/gui/siril3.glade:13774
 msgid "use 32 bits"
@@ -3087,28 +3088,28 @@ msgid ""
 "Use 32 bits for image processing. This is slower and generally useless in "
 "terms of quality for live stacking."
 msgstr ""
+"Использовать 32 битную разрядность для обработки изображений. Это медленнее "
+"и в целом бесполезно с точки зрения качества для укладки в реальном времени."
 
 #: src/gui/siril3.glade:13852
 msgid "waiting for input files"
-msgstr ""
+msgstr "ожидание файлов"
 
 #: src/gui/siril3.glade:13861 src/gui/siril3.glade:25033
 msgid "Stacking"
 msgstr "Укладка"
 
 #: src/gui/siril3.glade:13930
-#, fuzzy
 msgid "Master-dark and cosmetic correction"
-msgstr "Включить косметическую коррекцию"
+msgstr "Темновой мастер-кадр и косметическая коррекция"
 
 #: src/gui/siril3.glade:13942
-#, fuzzy
 msgid "Master-flat"
 msgstr "Мастер-кадр плоского поля"
 
 #: src/gui/siril3.glade:13954
 msgid "Stacking with weighted mean"
-msgstr ""
+msgstr "Укладка со взвешенной средней"
 
 #: src/gui/siril3.glade:14003
 msgid "Configuration"
@@ -3116,7 +3117,7 @@ msgstr "Конфигурация"
 
 #: src/gui/siril3.glade:14029 src/livestacking/gui.c:143
 msgid "Idle"
-msgstr ""
+msgstr "Простой"
 
 #: src/gui/siril3.glade:14063 src/gui/siril3.glade:14196
 msgid "Image Information"
@@ -3128,7 +3129,7 @@ msgstr "Параметры"
 
 #: src/gui/siril3.glade:14114
 msgid "Siril Manual"
-msgstr ""
+msgstr "Руководство Siril"
 
 #: src/gui/siril3.glade:14128
 msgid "Check For Updates"
@@ -3218,7 +3219,6 @@ msgid "Registration"
 msgstr "Выравнивание"
 
 #: src/gui/siril3.glade:14485 src/gui/siril3.glade:14617
-#, fuzzy
 msgid "Selection"
 msgstr "Выделение"
 
@@ -3250,9 +3250,8 @@ msgid "Pick a Star"
 msgstr "Выбрать звезду"
 
 #: src/gui/siril3.glade:14559
-#, fuzzy
 msgid "Search Object..."
-msgstr "Найти объект"
+msgstr "Найти объект…"
 
 #: src/gui/siril3.glade:14567
 msgid ""
@@ -3261,9 +3260,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:14570
-#, fuzzy
 msgid "Solar System Objects"
-msgstr "Найти объект"
+msgstr "Объекты Солнечной системы"
 
 #: src/gui/siril3.glade:14627
 msgid "Free aspect ratio"
@@ -3274,9 +3272,8 @@ msgid "Free ratio"
 msgstr "Произвольное соотношение"
 
 #: src/gui/siril3.glade:14639
-#, fuzzy
 msgid "Preserve the original aspect ratio of the image"
-msgstr "Сохраняет данные в исходном канале CIE L* обработанного изображения."
+msgstr "Сохранить первоначальное соотношение сторон изображения"
 
 #: src/gui/siril3.glade:14640 src/gui/siril3.glade:20627
 msgid "Preserve ratio"
@@ -3294,9 +3291,8 @@ msgid "Select the whole image and reset ratio"
 msgstr ""
 
 #: src/gui/siril3.glade:14748
-#, fuzzy
 msgid "Select All"
-msgstr "Выберите папку"
+msgstr "Выбрать всё"
 
 #: src/gui/siril3.glade:14763
 #, fuzzy
@@ -3305,7 +3301,7 @@ msgstr "Линии по центру выделения"
 
 #: src/gui/siril3.glade:14764
 msgid "No guides"
-msgstr ""
+msgstr "Без направляющих"
 
 #: src/gui/siril3.glade:14774
 msgid "Center line guides on the selection"
@@ -17839,7 +17835,7 @@ msgstr ""
 #: src/io/single_image.c:222
 #, c-format
 msgid "Opening %s failed.\n"
-msgstr ""
+msgstr "Не удалось открыть %s.\n"
 
 #: src/io/single_image.c:266
 msgid ""
@@ -17849,12 +17845,12 @@ msgstr ""
 
 #: src/io/single_image.c:278
 msgid "Error opening file"
-msgstr ""
+msgstr "Ошибка при открытии файла"
 
 #: src/io/single_image.c:279
 msgid ""
 "There was an error when opening this image. See the log for more information."
-msgstr ""
+msgstr "При открытии изображения произошла ошибка. Больше информации в журнале."
 
 #: src/livestacking/gui.c:88
 #, fuzzy, c-format
@@ -17863,11 +17859,11 @@ msgstr "Преобразование по asinh"
 
 #: src/livestacking/gui.c:109
 msgid "minutes"
-msgstr ""
+msgstr "минуты"
 
 #: src/livestacking/gui.c:112
 msgid "seconds"
-msgstr ""
+msgstr "секунды"
 
 #: src/livestacking/gui.c:116
 #, c-format
@@ -17880,12 +17876,11 @@ msgstr ""
 #: src/livestacking/gui.c:119
 #, c-format
 msgid "Noise: %0.3f"
-msgstr ""
+msgstr "Шум: %0.3f"
 
 #: src/livestacking/gui.c:122
-#, fuzzy
 msgid "Noise: N/A"
-msgstr "Память: н/д"
+msgstr "Шум: н/д"
 
 #: src/livestacking/gui.c:125
 #, c-format
@@ -17894,39 +17889,42 @@ msgid ""
 "\n"
 "%d %s of cumulative exposure"
 msgstr ""
+"%d изображений уложено\n"
+"\n"
+"%d %s общей экспозиции"
 
 #: src/livestacking/gui.c:136
 msgid "Paused ..."
-msgstr ""
+msgstr "Пауза..."
 
 #: src/livestacking/gui.c:255
 msgid ""
 "COSMETIC CORRECTION: can only use masterdark in livestacking mode - disabling"
 msgstr ""
+"КОСМЕТИЧЕСКАЯ КОРРЕКЦИЯ: можно использовать только темновой мастер кадр при "
+"укладке в реальном времени - отключаем"
 
 #: src/livestacking/gui.c:262
 msgid "COSMETIC CORRECTION: could not read the inputs - disabling"
-msgstr ""
+msgstr "КОСМЕТИЧЕСКАЯ КОРРЕКЦИЯ: не читаются входящие файлы - отключаем"
 
 #: src/livestacking/livestacking.c:116
-#, fuzzy
 msgid "Stopping live stacking engine...\n"
-msgstr "Укладка начинается…\n"
+msgstr "Завершаем укладку в реальном времени…\n"
 
 #: src/livestacking/livestacking.c:217
 #, c-format
 msgid "File not supported for live stacking: %s\n"
-msgstr ""
+msgstr "Файл не поддерживается: %s\n"
 
 #: src/livestacking/livestacking.c:225
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open file: %s"
-msgstr "Не удалось открыть файл %s в формате TIFF\n"
+msgstr "Не удалось открыть файл %s"
 
 #: src/livestacking/livestacking.c:245
-#, fuzzy
 msgid "Starting live stacking"
-msgstr "Укладка начинается…\n"
+msgstr "Начинаем укладку в реальном времени"
 
 #: src/livestacking/livestacking.c:265 src/livestacking/livestacking.c:274
 #, c-format
@@ -17936,11 +17934,11 @@ msgstr ""
 #: src/livestacking/livestacking.c:294
 #, c-format
 msgid "NOT USING DARK: cannot open file '%s'\n"
-msgstr ""
+msgstr "НЕ ИСПОЛЬЗУЕМ ТЕМНОВЫЕ КАДРЫ: не могу открыть файл '%s'\n"
 
 #: src/livestacking/livestacking.c:305 src/livestacking/livestacking.c:332
 msgid "Calibration with color images is not yet supported\n"
-msgstr ""
+msgstr "Калибровка цветными изображениями пока не поддерживается\n"
 
 #: src/livestacking/livestacking.c:317
 #, fuzzy, c-format
@@ -17950,16 +17948,16 @@ msgstr "Включить косметическую коррекцию"
 
 #: src/livestacking/livestacking.c:317
 msgid "with"
-msgstr ""
+msgstr "с"
 
 #: src/livestacking/livestacking.c:317
 msgid "without"
-msgstr ""
+msgstr "без"
 
 #: src/livestacking/livestacking.c:323
 #, c-format
 msgid "NOT USING FLAT: cannot open file '%s'\n"
-msgstr ""
+msgstr "НЕ ИСПОЛЬЗУЕМ КАДРЫ ПЛОСКОГО ПОЛЯ: не могу открыть файл '%s'\n"
 
 #: src/livestacking/livestacking.c:340
 #, c-format
@@ -17972,57 +17970,54 @@ msgid "Preprocessing is ready\n"
 msgstr "Предобработка"
 
 #: src/livestacking/livestacking.c:369
-#, fuzzy
 msgid "Preprocessing not used\n"
-msgstr "Предобработка"
+msgstr "Предобработка не используется\n"
 
 #: src/livestacking/livestacking.c:381
 msgid "live stacking is already running, stop it first\n"
-msgstr ""
+msgstr "укладка в реальном времени уже запущена, сначала остановите её\n"
 
 #: src/livestacking/livestacking.c:500 src/registration/global.c:609
 msgid "Global star registration"
 msgstr ""
 
 #: src/livestacking/livestacking.c:541
-#, fuzzy
 msgid "preprocessing failed\n"
-msgstr "Предобработка"
+msgstr "предобработка не удалась\n"
 
 #: src/livestacking/livestacking.c:551
 msgid "Live stacking waiting for files"
 msgstr ""
 
 #: src/livestacking/livestacking.c:566
-#, fuzzy
 msgid "Failed to open the first image"
-msgstr "Выровнять все фото из последовательности"
+msgstr "Не удалось открыть первое изображение"
 
 #: src/livestacking/livestacking.c:579
 msgid "live stacking will debayer images\n"
-msgstr ""
+msgstr "укладка в реальном времени дебайеризует изображения\n"
 
 #: src/livestacking/livestacking.c:580
 msgid "live stacking will not debayer images\n"
-msgstr ""
+msgstr "укладка в реальном времени не дебайеризует изображения\n"
 
 #: src/livestacking/livestacking.c:599
-#, fuzzy, c-format
+#, c-format
 msgid "Preprocessed image to %s\n"
-msgstr "Предобработка изображения %s"
+msgstr "Предобработка изображенияв %s\n"
 
 #: src/livestacking/livestacking.c:624
 msgid "Failed to rename or make a symbolic link to the input file"
 msgstr ""
+"Не удалось переименовать или создать символическую ссылку на входящий файл"
 
 #: src/livestacking/livestacking.c:644
 msgid "Waiting for second image"
-msgstr ""
+msgstr "Ожидаем второе изображение"
 
 #: src/livestacking/livestacking.c:663
-#, fuzzy
 msgid "Failed to read the sequence, aborting."
-msgstr "Загрузите последовательность"
+msgstr "Не удалось прочитать последовательность, прекращаем."
 
 #: src/livestacking/livestacking.c:670
 #, c-format
@@ -18036,7 +18031,7 @@ msgstr ""
 
 #: src/livestacking/livestacking.c:758
 msgid "Reference image statistics not found\n"
-msgstr ""
+msgstr "Статистика опорного изображения не найдена\n"
 
 #: src/livestacking/livestacking.c:769
 #, fuzzy, c-format
@@ -18064,9 +18059,8 @@ msgid "Images with %ld channels are not supported\n"
 msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:67
-#, fuzzy
 msgid "Absolute value of x."
-msgstr "Автоподбор значения"
+msgstr "Абсолютное значение x."
 
 #: src/pixelMath/pixel_math_runner.c:68
 msgid "Arc cosine of x."
@@ -18098,11 +18092,11 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:75
 msgid "Round x upwards to the nearest integer."
-msgstr ""
+msgstr "Округлить x вверх до ближайшего целого значения."
 
 #: src/pixelMath/pixel_math_runner.c:76
 msgid "Cosine of x."
-msgstr ""
+msgstr "Косинус x."
 
 #: src/pixelMath/pixel_math_runner.c:77
 msgid "Hyperbolic cosine of x."
@@ -18110,11 +18104,11 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:78
 msgid "The constant e=2.718282..."
-msgstr ""
+msgstr "Постоянная e=2.718282..."
 
 #: src/pixelMath/pixel_math_runner.c:79
 msgid "Exponential function."
-msgstr ""
+msgstr "Экспоненциальная функция."
 
 #: src/pixelMath/pixel_math_runner.c:80
 msgid "Factorial function."
@@ -18130,19 +18124,19 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:84
 msgid "Highest integer less than or equal to x."
-msgstr ""
+msgstr "Наибольшее целое значение меньше или равно x."
 
 #: src/pixelMath/pixel_math_runner.c:85
 msgid "Natural logarithm of x."
-msgstr ""
+msgstr "Натуральный логарифм x."
 
 #: src/pixelMath/pixel_math_runner.c:86 src/pixelMath/pixel_math_runner.c:87
 msgid "Base-10 logarithm of x."
-msgstr ""
+msgstr "Десятичный логарифм x."
 
 #: src/pixelMath/pixel_math_runner.c:88
 msgid "Base-2 logarithm of x."
-msgstr ""
+msgstr "Двоичный логарифм x."
 
 #: src/pixelMath/pixel_math_runner.c:89
 msgid "Maximum function."
@@ -18168,11 +18162,11 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:94
 msgid "The constant π=3.141592..."
-msgstr ""
+msgstr "Постоянная π=3.141592..."
 
 #: src/pixelMath/pixel_math_runner.c:95
 msgid "Exponentiation function."
-msgstr ""
+msgstr "Функция возведения в степень."
 
 #: src/pixelMath/pixel_math_runner.c:96
 msgid ""
@@ -18185,20 +18179,19 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:100
 msgid "Sine of x."
-msgstr ""
+msgstr "Синус x."
 
 #: src/pixelMath/pixel_math_runner.c:101
 msgid "Hyperbolic sine of x."
 msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:102
-#, fuzzy
 msgid "Square root of x."
-msgstr "Квадрат. корень"
+msgstr "Квадрат. корень из x."
 
 #: src/pixelMath/pixel_math_runner.c:103
 msgid "Tangent of x."
-msgstr ""
+msgstr "Тангенс x."
 
 #: src/pixelMath/pixel_math_runner.c:104
 msgid "Hyperbolic tangent of x."
@@ -18218,7 +18211,7 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:111
 msgid "Height in pixels of the specified image."
-msgstr ""
+msgstr "Высота указанного изображения в пикселях."
 
 #: src/pixelMath/pixel_math_runner.c:112 src/pixelMath/pixel_math_runner.c:114
 msgid "Median absolute deviation of the image."
@@ -18229,14 +18222,12 @@ msgid "Pixel maximum of the image."
 msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:115
-#, fuzzy
 msgid "Mean of the image."
-msgstr "Добавить фильтр"
+msgstr "Среднее значение изображения."
 
 #: src/pixelMath/pixel_math_runner.c:116 src/pixelMath/pixel_math_runner.c:117
-#, fuzzy
 msgid "Median of the image."
-msgstr "Добавить фильтр"
+msgstr "Медиана изображения."
 
 #: src/pixelMath/pixel_math_runner.c:118
 msgid "Pixel minimum of the image."
@@ -18244,16 +18235,15 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:119
 msgid "Estimation of Gaussian noise in the image."
-msgstr ""
+msgstr "Оценка Гауссовского шума изображения."
 
 #: src/pixelMath/pixel_math_runner.c:120
-#, fuzzy
 msgid "Standard deviation of the image."
-msgstr "Выберите изображение"
+msgstr "Стандартное отклонение изображения."
 
 #: src/pixelMath/pixel_math_runner.c:121
 msgid "Width in pixels of the specified image."
-msgstr ""
+msgstr "Ширина указанного изображения в пикселях."
 
 #: src/pixelMath/pixel_math_runner.c:125
 msgid "Pixel Inversion operator."
@@ -18269,21 +18259,19 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:128
 msgid "Logical NOT operator."
-msgstr ""
+msgstr "Логический оператор НЕ."
 
 #: src/pixelMath/pixel_math_runner.c:129
 msgid "Exponentiation operator."
-msgstr ""
+msgstr "Оператор возведения в степень."
 
 #: src/pixelMath/pixel_math_runner.c:130
-#, fuzzy
 msgid "Multiplication operator."
-msgstr "Мультипликативная"
+msgstr "Оператор умножения."
 
 #: src/pixelMath/pixel_math_runner.c:131
-#, fuzzy
 msgid "Division operator."
-msgstr "Деление"
+msgstr "Оператор деления."
 
 #: src/pixelMath/pixel_math_runner.c:132
 msgid "Modulus operator."
@@ -18291,48 +18279,47 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:133
 msgid "Addition operator."
-msgstr ""
+msgstr "Оператор сложения."
 
 #: src/pixelMath/pixel_math_runner.c:134
-#, fuzzy
 msgid "Subtraction operator."
-msgstr "Вычитание"
+msgstr "Оператор вычитания."
 
 #: src/pixelMath/pixel_math_runner.c:135
 msgid "Less Than relational operator."
-msgstr ""
+msgstr "Оператор сравнения МЕНЬШЕ."
 
 #: src/pixelMath/pixel_math_runner.c:136
 msgid "Less Than Or Equal relational operator."
-msgstr ""
+msgstr "Оператор сравнения МЕНЬШЕ ИЛИ РАВЕН."
 
 #: src/pixelMath/pixel_math_runner.c:137
 msgid "Greater Than relational operator."
-msgstr ""
+msgstr "Оператор сравнения БОЛЬШЕ."
 
 #: src/pixelMath/pixel_math_runner.c:138
 msgid "Greater Than Or Equal relational operator."
-msgstr ""
+msgstr "Оператор сравнения БОЛЬШЕ ИЛИ РАВЕН."
 
 #: src/pixelMath/pixel_math_runner.c:139
 msgid "Equal To relational operator."
-msgstr ""
+msgstr "Оператор сравнения РАВЕН."
 
 #: src/pixelMath/pixel_math_runner.c:140
 msgid "Not Equal To relational operator."
-msgstr ""
+msgstr "Оператор сравнения НЕ РАВЕН."
 
 #: src/pixelMath/pixel_math_runner.c:141
 msgid "Logical AND operator."
-msgstr ""
+msgstr "Логический оператор И."
 
 #: src/pixelMath/pixel_math_runner.c:142
 msgid "Logical OR operator."
-msgstr ""
+msgstr "Логический оператор ИЛИ."
 
 #: src/pixelMath/pixel_math_runner.c:278
 msgid "Syntax error"
-msgstr ""
+msgstr "Синтаксическая ошибка"
 
 #: src/pixelMath/pixel_math_runner.c:284
 #, c-format
