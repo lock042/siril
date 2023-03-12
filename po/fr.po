@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-11 11:18+0100\n"
-"PO-Revision-Date: 2023-03-11 10:18+0000\n"
-"Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"PO-Revision-Date: 2023-03-11 15:35+0000\n"
+"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2672,25 +2672,27 @@ msgid "Star Stretch Parameters"
 msgstr "Paramètres d'étirement des étoiles"
 
 #: src/gui/siril3.glade:10774
-#, fuzzy
 msgid "Resets stretch parameters for the star image"
-msgstr "Réinitialise les paramètres aux valeurs par défaut"
+msgstr "Réinitialise les paramètres d'étirement de l'image avec les étoiles"
 
 #: src/gui/siril3.glade:10789
 msgid ""
 "Applies current stretch to the star image and resets the stretch parameters."
 msgstr ""
+"Applique l'étirement actuel à l'image avec les étoiles et réinitialise les "
+"paramètres d'étirement."
 
 #: src/gui/siril3.glade:10822
-#, fuzzy
 msgid "Resets stretch parameters for the starless image"
-msgstr "Réinitialise les paramètres aux valeurs par défaut"
+msgstr "Réinitialise les paramètres d'étirement pour l'image sans étoile"
 
 #: src/gui/siril3.glade:10837
 msgid ""
 "Applies current stretch to the starless image and resets the stretch "
 "parameters."
 msgstr ""
+"Applique l'étirement actuel à l'image sans étoile et réinitialise les "
+"paramètres d'étirement."
 
 #: src/gui/siril3.glade:10879 src/gui/linear_match.c:201
 msgid "Linear Match"
@@ -9617,12 +9619,14 @@ msgstr ""
 #: src/algos/astrometry_solver.c:2180
 #, c-format
 msgid "Image %s did not solve\n"
-msgstr ""
+msgstr "L'image %s n'a pas été résolue\n"
 
 #: src/algos/astrometry_solver.c:2213
 #, c-format
 msgid "Running sequence plate solving using the %s catalogue\n"
 msgstr ""
+"Résolution astrométrique de la séquence en cours d'exécution à l'aide du "
+"catalogue %s\n"
 
 #: src/algos/background_extraction.c:126
 #, c-format
@@ -11889,7 +11893,7 @@ msgstr ""
 
 #: src/core/command.c:5004
 msgid "There can be only one prefix argument"
-msgstr ""
+msgstr "Il ne peut y avoir qu'un seul argument de préfixe"
 
 #: src/core/command.c:5043
 msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
@@ -15332,7 +15336,6 @@ msgstr ""
 "faites sur les extractions par filtre"
 
 #: src/core/command_def.h:158
-#, fuzzy
 msgid ""
 "Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
 "Dithering, required for low dynamic gradients, can be disabled with <b>-"
@@ -15342,6 +15345,8 @@ msgid ""
 "specified with <b>-prefix=</b> option"
 msgstr ""
 "Même commande que SUBSKY mais pour la séquence <b>sequencename</b>.\n"
+"L'ajout de diffusion d'erreur, nécessaire pour les gradients peu dynamiques, "
+"peut être désactivée avec <b>-nodither</b>.\n"
 "\n"
 "Le nom de la séquence de sortie commence par le préfixe \"bkg_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
@@ -15807,7 +15812,6 @@ msgid "Stop the live stacking session. Only possible after START_LS"
 msgstr "Arrête la session de livestacking. Uniquement possible après START_LS"
 
 #: src/core/command_def.h:181
-#, fuzzy
 msgid ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
@@ -15821,11 +15825,13 @@ msgid ""
 msgstr ""
 "Calcule un de fond de ciel synthétique en utilisant soit le modèle de "
 "fonction polynomiale de <b>degree</b> degrés ou le modèle RBF (si <b>-rbf</"
-"b> est fourni à la place) et le soustrait de l'image. Le nombre "
-"d'échantillons par ligne horizontale et la tolérance pour exclure les zones "
-"plus lumineuses peuvent être ajustés avec les arguments facultatifs. La "
-"tolérance est en unités MAD : médiane + tolérance * MAD. Pour RBF, le "
-"paramètre de lissage supplémentaire est également disponible"
+"b> est fourni à la place) et le soustrait de l'image. \n"
+"Le nombre d'échantillons par ligne horizontale et la tolérance pour exclure "
+"les zones plus lumineuses peuvent être ajustés avec les arguments "
+"facultatifs. La tolérance est en unités MAD : médiane + tolérance * MAD. \n"
+"L'ajout de diffusion d'erreur, nécessaire pour les gradients peu dynamiques, "
+"peut être activée avec <b>-dither</b>.\n"
+"Pour RBF, le paramètre de lissage supplémentaire est également disponible"
 
 #: src/core/command_def.h:182
 msgid ""
@@ -19414,19 +19420,18 @@ msgid "Show advanced stretch options."
 msgstr "Afficher les options avancées d'étirement."
 
 #: src/gui/remixer.c:1022 src/gui/remixer.c:1039
-#, fuzzy
 msgid ""
 "This dropper allows you to set the background stretch symmetry point  based "
 "on the average value of the current selection. This helps in picking out "
 "faint detail above the dark background."
 msgstr ""
-"Ce bouton vous permet de définir le point de symétrie de l'étirement de "
-"l'arrière-plan en fonction de la valeur moyenne de la sélection actuelle. "
-"Cela permet de faire ressortir les détails légers sur un fond sombre."
+"Cette pipette vous permet de définir le point de symétrie de l'étirement du "
+"fond du ciel sur la base de la valeur moyenne de la sélection actuelle. Cela "
+"permet de faire ressortir de faibles détails sur un arrière-plan sombre."
 
 #: src/gui/remixer.c:1025 src/gui/remixer.c:1042
 msgid "Eyedropper disabled with unapplied BP shift"
-msgstr ""
+msgstr "Pipette désactivée en cas de décalage BP non appliqué"
 
 #: src/gui/remixer.c:1103 src/gui/remixer.c:1159
 msgid "Error: image could not be loaded"
@@ -19720,7 +19725,6 @@ msgstr ""
 "préférences où de nombreuses options sont disponibles"
 
 #: src/gui/siril_intro.c:39
-#, fuzzy
 msgid ""
 "You can get more scripts by clicking on the \"Get scripts\" item in the menu"
 msgstr ""
@@ -19728,7 +19732,6 @@ msgstr ""
 "dans le menu"
 
 #: src/gui/siril_intro.c:40
-#, fuzzy
 msgid ""
 "A brand new documentation set is also available via the menu \"Siril Manual\""
 msgstr ""
@@ -19749,10 +19752,8 @@ msgid "You can open a single image or FITS/SER sequence"
 msgstr "Vous pouvez ouvrir une image ou une séquence FITS/SER"
 
 #: src/gui/siril_intro.c:43
-#, fuzzy
 msgid "Here is a list of the most recent FITS files you’ve opened"
-msgstr ""
-"Voici la liste des fichiers FITS les plus récents que vous avez ouverts"
+msgstr "Voici la liste des fichiers FITS les plus récents que vous avez ouverts"
 
 #: src/gui/siril_intro.c:44
 msgid "Processing algorithms are all in this single menu"
@@ -19803,21 +19804,19 @@ msgstr ""
 "aperçu de toutes les commandes, tapez \"help\""
 
 #: src/gui/siril_intro.c:52
-#, fuzzy
 msgid ""
 "Basic viewing operations are available in the main toolbar. Zooming is "
 "available with Ctrl-Scroll up and down"
 msgstr ""
 "Les opérations de visualisation de base sont disponibles dans la barre "
-"d'outils principale. Le zoom est maintenant disponible avec la combinaison "
-"Ctrl-Molette de la souris"
+"d'outils principale. Le zoom est disponible avec la combinaison Ctrl-Molette "
+"de la souris"
 
 #: src/gui/siril_intro.c:53
-#, fuzzy
 msgid "To pan your image you can use Ctrl-Click (and drag)"
 msgstr ""
-"Pour naviguer dans votre image, vous pouvez maintenant utiliser Ctrl-clic "
-"(et faire glisser)"
+"Pour naviguer dans votre image, vous pouvez utiliser Ctrl-clic (et faire "
+"glisser)"
 
 #: src/gui/siril_intro.c:54
 msgid "Enjoy using the new Siril"

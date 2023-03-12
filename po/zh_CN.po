@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-11 11:18+0100\n"
-"PO-Revision-Date: 2023-03-11 10:18+0000\n"
+"PO-Revision-Date: 2023-03-11 15:35+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -1164,9 +1164,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:6362 src/gui/siril3.glade:7244
-#, fuzzy
 msgid "fwhm / \""
-msgstr "fwhm: N/A"
+msgstr "fwhm / \""
 
 #: src/gui/siril3.glade:6373
 msgid ""
@@ -2975,7 +2974,7 @@ msgstr "星等"
 
 #: src/gui/siril3.glade:13090
 msgid "Beta"
-msgstr ""
+msgstr "Beta"
 
 #: src/gui/siril3.glade:13110
 msgid "r"
@@ -5140,15 +5139,18 @@ msgid ""
 msgstr ""
 "<b>平移</b>是2自由度（x/y）的严格映射，适用于无失真，无缩放，无场旋的情况。这"
 "里需要至少1对可匹配的星点来进行校准计算。\n"
+"\n"
 "<b>同构</b>是4自由度（缩放，场旋和x/y）的较严格映射，适用于无失真的情况。这里"
 "需要至少2对可匹配的星点来进行校准计算。\n"
+"\n"
 "<b>仿射</b>是6自由度（双缩放，裁剪，场旋和x/y）的较严格映射，适用于较小失真的"
 "情况。这里需要至少3对可匹配的星点来进行校准计算。\n"
+"\n"
 "<b>单应性</b>是缺省的8自由度映射，适用大多数情况，尤其是广域图像。这里需要至"
 "少4对可匹配的星点来进行校准计算。\n"
 "\n"
-"<b>警告</b>：初始的星点匹配采用了相似三角形算法，结果导致最低的匹配星点数需要"
-"至少3（平移/同构/仿射）和4（单应矩阵）。"
+"<b>警告</b>：初始的星点匹配采用了相似三角形算法，因此最低的匹配星点数需要至少"
+"3（<b>平移</b>、<b>同构</b>和<b>仿射</b>）和4（<b>单应性</b>）。"
 
 #: src/gui/siril3.glade:21911
 msgid "Shift"
@@ -6811,9 +6813,8 @@ msgid "Default Type:"
 msgstr "缺省类型:"
 
 #: src/gui/siril3.glade:28007
-#, fuzzy
 msgid "Allow FITS cubes to have images of different sizes"
-msgstr "试图在SER文件中加入不是一致尺寸的图像\n"
+msgstr "允许 FITS 矩阵具有不同尺寸的图像"
 
 #: src/gui/siril3.glade:28011
 msgid ""
@@ -7868,9 +7869,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:31449
-#, fuzzy
 msgid "Select StarNet weights file"
-msgstr "请先选择一个区域\n"
+msgstr "选择StarNet权重文件"
 
 #: src/gui/siril3.glade:31466
 msgid ""
@@ -8279,87 +8279,87 @@ msgstr "将会清空用户目录。这意味着手动加入的文件也将被删
 
 #: src/algos/astrometry_solver.c:95
 msgid "Tycho-2"
-msgstr ""
+msgstr "Tycho-2"
 
 #: src/algos/astrometry_solver.c:97
 msgid "NOMAD"
-msgstr ""
+msgstr "NOMAD"
 
 #: src/algos/astrometry_solver.c:99
-#, fuzzy
 msgid "Gaia DR3"
-msgstr "Gaia EDR3"
+msgstr "Gaia DR3"
 
 #: src/algos/astrometry_solver.c:101
 msgid "PPMXL"
-msgstr ""
+msgstr "PPMXL"
 
 #: src/algos/astrometry_solver.c:103
-#, fuzzy
 msgid "bright stars"
-msgstr "%d 星点"
+msgstr "亮星"
 
 #: src/algos/astrometry_solver.c:109
 msgid "local Tycho-2+NOMAD"
-msgstr ""
+msgstr "本地 Tycho-2+NOMAD"
 
 #: src/algos/astrometry_solver.c:111
-#, fuzzy
 msgid "local astrometry.net"
-msgstr "天体测量"
+msgstr "本地 astrometry.net"
 
 #: src/algos/astrometry_solver.c:113 src/gui/callbacks.c:1217
-#, fuzzy
 msgid "unknown"
-msgstr "未知错误\n"
+msgstr "未知"
 
 #: src/algos/astrometry_solver.c:363
 #, c-format
 msgid "Failed to download page %s (error %ld)\n"
-msgstr ""
+msgstr "无法下载页面 %s（错误 %ld）\n"
 
 #: src/algos/astrometry_solver.c:384
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Fetch failed with code %ld\n"
 "%s\n"
-msgstr "Fetch failed with code %ld for URL %s\n"
+msgstr ""
+"获取失败，代码为 %ld\n"
+"%s\n"
 
 #: src/algos/astrometry_solver.c:391
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Fetch failed with code %ld\n"
 "%s"
-msgstr "Fetch failed with code %ld for URL %s\n"
+msgstr ""
+"获取失败，代码为 %ld\n"
+"%s"
 
 #: src/algos/astrometry_solver.c:392
 msgid "Online service error"
-msgstr ""
+msgstr "在线服务错误"
 
 #: src/algos/astrometry_solver.c:415 src/core/siril_update.c:659
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading url: [%s] - %s\n"
-msgstr "Error loading url: %s: %s\n"
+msgstr "加载网址时出错： [%s] - %s\n"
 
 #: src/algos/astrometry_solver.c:456 src/algos/astrometry_solver.c:553
-#, fuzzy, c-format
+#, c-format
 msgid "URL: %s \n"
-msgstr "链接：%s\n"
+msgstr "网址：%s. \n"
 
 #: src/algos/astrometry_solver.c:490
-#, fuzzy, c-format
+#, c-format
 msgid "Searching %s in CDSESAME...\n"
-msgstr "检索脚本于： \"%s\"...\n"
+msgstr "正在 CDSESAME 中搜索 %s...\n"
 
 #: src/algos/astrometry_solver.c:498
-#, fuzzy, c-format
+#, c-format
 msgid "Searching %s in VIZIER...\n"
-msgstr "检索脚本于： \"%s\"...\n"
+msgstr "正在 VIZIER 中搜索 %s...\n"
 
 #: src/algos/astrometry_solver.c:507
-#, fuzzy, c-format
+#, c-format
 msgid "Searching %s in SIMBAD...\n"
-msgstr "检索脚本于： \"%s\"...\n"
+msgstr "正在 SIMBAD 中搜索 %s...\n"
 
 #: src/algos/astrometry_solver.c:530
 #, c-format
@@ -8404,7 +8404,7 @@ msgid "Resolution:%*.3lf arcsec/px\n"
 msgstr "分辨率：%*.3lf 角秒/像素\n"
 
 #: src/algos/astrometry_solver.c:799
-#, fuzzy, c-format
+#, c-format
 msgid "Focal length:%*.2lf mm\n"
 msgstr "焦距：%*.2lf mm\n"
 
@@ -8436,9 +8436,7 @@ msgstr "本地星表样本量：%d 对象\n"
 #: src/algos/astrometry_solver.c:916
 #, c-format
 msgid "Catalog TYCHO-2 size: %d objects\n"
-msgstr ""
-"星表 TYCHO-2 样本量： %d 对象\n"
-"\n"
+msgstr "星表 TYCHO-2 样本量： %d 对象\n"
 
 #: src/algos/astrometry_solver.c:958
 #, c-format
@@ -8461,12 +8459,10 @@ msgid "Catalog APASS size: %d objects\n"
 msgstr "星表 APASS 样本量： %d 对象\n"
 
 #: src/algos/astrometry_solver.c:1297 src/algos/astrometry_solver.c:1351
-#, fuzzy
 msgid "Cancelled"
-msgstr "取消"
+msgstr "已取消"
 
 #: src/algos/astrometry_solver.c:1307
-#, fuzzy
 msgid "Could not download the online star catalogue."
 msgstr "无法下载在线星表。"
 
@@ -8524,9 +8520,9 @@ msgid "There are not enough stars picked in the image. At least %d are needed."
 msgstr "图像中没有足够数量的被选星点，至少需要 %d 个星点。"
 
 #: src/algos/astrometry_solver.c:1450
-#, fuzzy, c-format
+#, c-format
 msgid "Using %d detected stars from image.\n"
-msgstr "叠加图像%d失败"
+msgstr "使用 %d 从图像中检测到的星点。\n"
 
 #: src/algos/astrometry_solver.c:1469 src/gui/callbacks.c:1572
 #, c-format
@@ -8615,9 +8611,8 @@ msgid "Astrometry.net solving blindly for scales [%s, %s]\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:1974
-#, fuzzy
 msgid "No astrometric solution found\n"
-msgstr "发现天体测量信息"
+msgstr "未找到天体测量解决方案\n"
 
 #: src/algos/astrometry_solver.c:2006
 #, c-format
@@ -8760,11 +8755,10 @@ msgid "Color calibration factors:\n"
 msgstr "色彩校准因子:\n"
 
 #: src/algos/demosaicing.c:949
-#, fuzzy
 msgid ""
 "FITS header does not contain a proper XTRANS pattern, demosaicing cannot be "
 "done\n"
-msgstr "FITS文件头不包含恰当的XTRANS模式，去马赛克无法完成"
+msgstr "FITS文件头不包含恰当的XTRANS模式，去马赛克无法完成\n"
 
 #: src/algos/demosaicing.c:966
 #, c-format
@@ -8851,9 +8845,8 @@ msgid "Y dimensions incompatible\n"
 msgstr ""
 
 #: src/algos/demosaicing.c:1445
-#, fuzzy
 msgid "Channels not all mono\n"
-msgstr "通道提取"
+msgstr "通道并非全部为单色\n"
 
 #: src/algos/demosaicing.c:1447
 #, fuzzy
@@ -9054,9 +9047,8 @@ msgid "not in image"
 msgstr "不在图像中"
 
 #: src/algos/photometry.c:290
-#, fuzzy
 msgid "unknown error"
-msgstr "未知错误\n"
+msgstr "未知错误"
 
 #: src/algos/photometry.c:321
 #, c-format
@@ -9786,9 +9778,8 @@ msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
 msgstr ""
 
 #: src/core/command.c:816
-#, fuzzy
 msgid "Error loading files!\n"
-msgstr "打开文件失败"
+msgstr "加载文件出错！\n"
 
 #: src/core/command.c:821
 msgid "Reconstructing RGGB Bayer matrix.\n"
@@ -9846,24 +9837,21 @@ msgid "Image %d\n"
 msgstr "图像%d\n"
 
 #: src/core/command.c:998
-#, fuzzy
 msgid ""
 "Warning: this image is excluded from the sequence main processing list\n"
-msgstr "将队列里所有的图像包含在批量处理之内"
+msgstr "警告：此图像已从队列主处理列表中排除\n"
 
 #: src/core/command.c:1027
 msgid "Error: will not clear the PSF while a sequence is running.\n"
 msgstr ""
 
 #: src/core/command.c:1036
-#, fuzzy
 msgid "Deconvolution kernel cleared.\n"
-msgstr "反卷积已应用"
+msgstr "反卷积内核已清除。\n"
 
 #: src/core/command.c:1041
-#, fuzzy
 msgid "Save PSF to file:\n"
-msgstr "保存文件"
+msgstr "将 PSF 保存到文件：\n"
 
 #: src/core/command.c:1053 src/core/command.c:1125
 msgid ""
@@ -9884,9 +9872,8 @@ msgid "spectral irregularity method\n"
 msgstr ""
 
 #: src/core/command.c:1072
-#, fuzzy
 msgid "multiscale estimation\n"
-msgstr "噪声评估"
+msgstr "多尺度估算\n"
 
 #: src/core/command.c:1080 src/core/command.c:1360 src/core/command.c:1465
 #, fuzzy
@@ -9918,9 +9905,8 @@ msgid "symmetric kernel\n"
 msgstr ""
 
 #: src/core/command.c:1165
-#, fuzzy
 msgid "Manual PSF generation:\n"
-msgstr "手动对齐"
+msgstr "手动生成 PSF：\n"
 
 #: src/core/command.c:1172
 msgid "Gaussian PSF\n"
@@ -10219,7 +10205,7 @@ msgstr ""
 msgid ""
 "This command is only supported with single FITS images, for the first HDU, "
 "not a FITS cube.\n"
-msgstr ""
+msgstr "对于第一个 HDU，仅单个 FITS 图像支持此命令，而不支持 FITS 矩阵\n"
 
 #: src/core/command.c:2501 src/core/command.c:2515 src/core/command.c:4553
 #: src/core/command.c:8807 src/pixelMath/pixel_math_runner.c:1092
@@ -12477,7 +12463,6 @@ msgstr ""
 "convert files in another directory with the <b>-out=</b> option"
 
 #: src/core/command_def.h:77
-#, fuzzy
 msgid ""
 "Stretches the image linearly to a new black point BP.\n"
 "\n"
@@ -12487,11 +12472,13 @@ msgid ""
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
 msgstr ""
-"Applies midtones transfer function to the current loaded image.\n"
+"Stretches the image linearly to a new black point BP.\n"
 "\n"
-"Three parameters are needed, <b>low</b>, <b>midtones</b> and <b>high</b> "
-"where midtones balance parameter defines a nonlinear histogram stretch in "
-"the [0,1] range"
+"There is one mandatory argument:\n"
+"<b>BP</b> provides the new black point to stretch to.\n"
+"Optionally the parameter <b>[channels]</b> may be used to specify the "
+"channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
+"default is all channels"
 
 #: src/core/command_def.h:78
 msgid ""
@@ -12704,7 +12691,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:92
-#, fuzzy
 msgid ""
 "Applies midtones transfer function to the current loaded image.\n"
 "\n"
@@ -12719,7 +12705,10 @@ msgstr ""
 "\n"
 "Three parameters are needed, <b>low</b>, <b>midtones</b> and <b>high</b> "
 "where midtones balance parameter defines a nonlinear histogram stretch in "
-"the [0,1] range"
+"the [0,1] range.\n"
+"Optionally the parameter <b>[channels]</b> may be used to specify the "
+"channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
+"default is all channels"
 
 #: src/core/command_def.h:94
 msgid ""
@@ -12955,7 +12944,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:108
-#, fuzzy
 msgid ""
 "Finds and optionally performs geometric transforms on images of the sequence "
 "given in argument so that they may be superimposed on the reference image. "
@@ -12997,29 +12985,46 @@ msgid ""
 "If created, the output sequence name starts with the prefix \"r_\" unless "
 "otherwise specified with <b>-prefix=</b> option"
 msgstr ""
-"Performs geometric transforms on images of the sequence given in argument so "
-"that they may be superimposed on the reference image. Using stars for "
-"registration, this algorithm only works with deepsky images.\n"
+"Finds and optionally performs geometric transforms on images of the sequence "
+"given in argument so that they may be superimposed on the reference image. "
+"Using stars for registration, this algorithm only works with deep sky "
+"images. Star detection options can be changed using <b>SETFINDSTAR</b> or "
+"the <i>Dynamic PSF</i> dialog. The detection is done on the green layer for "
+"colour images, unless specified by the <b>-layer=</b> option with an "
+"argument ranging from 0 to 2 for red to blue.\n"
 "\n"
-"The output sequence name starts with the prefix <b>\"r_\"</b> unless "
-"otherwise specified with <b>-prefix=</b> option.\n"
-"The option <b>-drizzle</b> activates the sub-pixel stacking, either by up-"
-"scaling by 2 the images created in the rotated sequence or by setting a flag "
-"that will proceed to the up-scaling during stacking if <b>-norot</b> is "
-"passed.\n"
-"The option <b>-transf=</b> specifies the use of either <b>\"shift\"</b>, "
-"<b>\"similarity\"</b>, <b>\"affine\"</b> or <b>\"homography\"</b> "
-"transformations respectively, homography being the default unless <b>-norot</"
-"b> is passed, which uses shift as default.\n"
+"The <b>-2pass</b> and <b>-noout</b> options will only compute the transforms "
+"but not generate the transformed images, <b>-2pass</b> adds a preliminary "
+"pass to the algorithm to find a good reference image before computing the "
+"transforms.<b>-nostarlist</b> disables saving the star lists to disk.\n"
+"\n"
+"The option <b>-transf=</b> specifies the use of either <b>shift</b>, "
+"<b>similarity</b>, <b>affine</b> or <b>homography</b> (default) "
+"transformations respectively.\n"
+"The option <b>-drizzle</b> activates the sub-pixel stacking by up-scaling by "
+"2 the generated images.\n"
 "The option <b>-minpairs=</b> will specify the minimum number of star pairs a "
 "frame must have with the reference frame, otherwise the frame will be "
-"dropped.\n"
+"dropped and excluded from the sequence.\n"
 "The option <b>-maxstars=</b> will specify the maximum number of star to find "
-"within each frame (must be between 100 and 2000). A larger value will enable "
-"to find more stars and perform a more accurate registration but will take "
-"more time to run.\n"
-"The registration is done on the green layer for RGB images unless specified "
-"by <b>-layer=</b> option (0, 1 or 2 for R, G and B respectively).\n"
+"within each frame (must be between 100 and 2000). With more stars, a more "
+"accurate registration can be computed, but will take more time to run.\n"
+"\n"
+"The pixel interpolation method can be specified with the <b>-interp=</b> "
+"argument followed by one of the methods in the list <b>no</b>[ne], "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea]}. If <b>none</b> is passed, the transformation is forced to "
+"shift and a pixel-wise shift is applied to each image without any "
+"interpolation.\n"
+"Clamping of the bicubic and lanczos4 interpolation methods is the default, "
+"to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument.\n"
+"\n"
+"All images of the sequence will be registered unless the option "
+"<b>-selected</b> is passed, in that case the excluded images will not be "
+"processed\n"
+"\n"
+"If created, the output sequence name starts with the prefix \"r_\" unless "
+"otherwise specified with <b>-prefix=</b> option"
 
 #: src/core/command_def.h:109
 msgid "Rescans the scripts folders and updates scripts menu"
@@ -13113,7 +13118,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:115
-#, fuzzy
 msgid ""
 "Applies a chromatic noise reduction filter. It removes green tint in the "
 "current image. This filter is based on PixInsight's SCNR and it is also the "
@@ -13126,14 +13130,14 @@ msgid ""
 "take an <b>amount</b> argument, a value between 0 and 1, defaulting to 1"
 msgstr ""
 "Applies a chromatic noise reduction filter. It removes green tint in the "
-"current image. This filter is based on PixInsight's SCNR Average Neutral "
-"algorithm and it is the same filter used by HLVG plugin in Photoshop.\n"
-"With the command, lightness is always preserved. For image processing "
-"without L* preservation, use the graphical tool and uncheck the "
-"corresponding box.\n"
+"current image. This filter is based on PixInsight's SCNR and it is also the "
+"same filter used by HLVG plugin in Photoshop.\n"
+"Lightness is preserved by default but this can be disabled with the "
+"<b>-nopreserve</b> switch.\n"
 "\n"
-"<b>Type</b> can take values 0 for Average Neutral Protection or 1 for "
-"Maximum Neutral Protection, defaulting to 0"
+"<b>Type</b> can take values 0 for average neutral, 1 for maximum neutral, 2 "
+"for maximum mask, 3 for additive mask, defaulting to 0. The last two can "
+"take an <b>amount</b> argument, a value between 0 and 1, defaulting to 1"
 
 #: src/core/command_def.h:116
 msgid ""
@@ -13262,34 +13266,34 @@ msgstr ""
 "<b>filename</b>.pgm for gray-level image"
 
 #: src/core/command_def.h:125
-#, fuzzy
 msgid ""
 "Saves current image under the form of a uncompressed TIFF file with 16-bit "
 "per channel: <b>filename</b>.tif. The option <b>-astro</b> allows saving in "
 "Astro-tiff format, while <b>-deflate</b> enables compression"
 msgstr ""
 "Saves current image under the form of a uncompressed TIFF file with 16-bit "
-"per channel: <b>filename</b>.tif"
+"per channel: <b>filename</b>.tif. The option <b>-astro</b> allows saving in "
+"Astro-tiff format, while <b>-deflate</b> enables compression"
 
 #: src/core/command_def.h:126
-#, fuzzy
 msgid ""
 "Same command as SAVETIF but the output file is saved in 32-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
 "format, while <b>-deflate</b> enables compression"
 msgstr ""
 "Same command as SAVETIF but the output file is saved in 32-bit per channel: "
-"<b>filename</b>.tif"
+"<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
+"format, while <b>-deflate</b> enables compression"
 
 #: src/core/command_def.h:127
-#, fuzzy
 msgid ""
 "Same command as SAVETIF but the output file is saved in 8-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
 "format, while <b>-deflate</b> enables compression"
 msgstr ""
 "Same command as SAVETIF but the output file is saved in 8-bit per channel: "
-"<b>filename</b>.tif"
+"<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
+"format, while <b>-deflate</b> enables compression"
 
 #: src/core/command_def.h:128
 msgid ""
@@ -13302,16 +13306,14 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:129
-#, fuzzy
 msgid ""
 "This command allows easy mass selection of images in the sequence "
 "<b>sequencename</b> (from <b>from</b> to <b>to</b> included)"
 msgstr ""
-"This command allows easy mass selection of images in the loaded sequence "
-"(from <b>from</b> to <b>to</b> included)"
+"This command allows easy mass selection of images in the sequence "
+"<b>sequencename</b> (from <b>from</b> to <b>to</b> included)"
 
 #: src/core/command_def.h:130
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using registration "
@@ -13350,29 +13352,43 @@ msgid ""
 "selected or with best FWHM, with some of the <b>-filter-*</b> options.\n"
 "See the command reference for the complete documentation on this command"
 msgstr ""
-"Performs geometric transforms on images of the sequence given in argument so "
-"that they may be superimposed on the reference image. Using stars for "
-"registration, this algorithm only works with deepsky images.\n"
+"Applies geometric transforms on images of the sequence given in argument so "
+"that they may be superimposed on the reference image, using registration "
+"data previously computed.\n"
 "\n"
 "The output sequence name starts with the prefix <b>\"r_\"</b> unless "
 "otherwise specified with <b>-prefix=</b> option.\n"
-"The option <b>-drizzle</b> activates the sub-pixel stacking, either by up-"
-"scaling by 2 the images created in the rotated sequence or by setting a flag "
-"that will proceed to the up-scaling during stacking if <b>-norot</b> is "
-"passed.\n"
-"The option <b>-transf=</b> specifies the use of either <b>\"shift\"</b>, "
-"<b>\"similarity\"</b>, <b>\"affine\"</b> or <b>\"homography\"</b> "
-"transformations respectively, homography being the default unless <b>-norot</"
-"b> is passed, which uses shift as default.\n"
-"The option <b>-minpairs=</b> will specify the minimum number of star pairs a "
-"frame must have with the reference frame, otherwise the frame will be "
-"dropped.\n"
-"The option <b>-maxstars=</b> will specify the maximum number of star to find "
-"within each frame (must be between 100 and 2000). A larger value will enable "
-"to find more stars and perform a more accurate registration but will take "
-"more time to run.\n"
-"The registration is done on the green layer for RGB images unless specified "
-"by <b>-layer=</b> option (0, 1 or 2 for R, G and B respectively).\n"
+"\n"
+"The option <b>-drizzle</b> activates up-scaling by 2 the images created in "
+"the transformed sequence.\n"
+"\n"
+"The pixel interpolation method can be specified with the <b>-interp=</b> "
+"argument followed by one of the methods in the list <b>no</b>[ne], "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea]}. If <b>none</b> is passed, the transformation is forced to "
+"shift and a pixel-wise shift is applied to each image without any "
+"interpolation.\n"
+"Clamping of the bicubic and lanczos4 interpolation methods is the default, "
+"to avoid artefacts, but can be disabled with the <b>-noclamp</b> argument.\n"
+"\n"
+"The registration is done on the first layer for which data exists for RGB "
+"images unless specified by <b>-layer=</b> option (0, 1 or 2 for R, G and B "
+"respectively).\n"
+"\n"
+"Automatic framing of the output sequence can be specified using "
+"<b>-framing=</b> keyword followed by one of the methods in the list { "
+"current | min | max | cog } :\n"
+"<b>-framing=max</b> (bounding box) adds a black border around each image as "
+"required so that no part of the image is cropped when registered.\n"
+"<b>-framing=min</b> (common area) crops each image to the area it has in "
+"common with all images of the sequence.\n"
+"<b>-framing=cog</b> determines the best framing position as the center of "
+"gravity (cog) of all the images.\n"
+"\n"
+"Filtering out images:\n"
+"Images to be registered can be selected based on some filters, like those "
+"selected or with best FWHM, with some of the <b>-filter-*</b> options.\n"
+"See the command reference for the complete documentation on this command"
 
 #: src/core/command_def.h:131
 msgid ""
@@ -13493,7 +13509,6 @@ msgstr ""
 "specified with <b>-prefix=</b> option"
 
 #: src/core/command_def.h:141
-#, fuzzy
 msgid ""
 "Same command as FIXBANDING but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -13501,10 +13516,11 @@ msgid ""
 "specified with <b>-prefix=</b> option.\n"
 "<b>-vertical</b> option enables to perform vertical banding removal"
 msgstr ""
-"Same command as FIND_COSME but for the sequence <b>sequencename</b>.\n"
+"Same command as FIXBANDING but for the sequence <b>sequencename</b>.\n"
 "\n"
-"The output sequence name starts with the prefix \"cc_\" unless otherwise "
-"specified with <b>-prefix=</b> option"
+"The output sequence name starts with the prefix \"unband_\" unless otherwise "
+"specified with <b>-prefix=</b> option.\n"
+"<b>-vertical</b> option enables to perform vertical banding removal"
 
 #: src/core/command_def.h:142
 #, fuzzy
@@ -13519,28 +13535,34 @@ msgstr ""
 "Prints the FITS header value for the given key for all images in the sequence"
 
 #: src/core/command_def.h:144
-#, fuzzy
 msgid ""
 "Same command as INVGHT but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
-msgstr "Same command than SPLIT_CFA but for the sequence \"sequencename\""
+msgstr ""
+"Same command as INVGHT but the sequence must be specified as the first "
+"argument. In addition, the optional argument <b>-prefix=</b> can be used to "
+"set a custom prefix"
 
 #: src/core/command_def.h:145
-#, fuzzy
 msgid ""
 "Same command as INVMODASINH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
-msgstr "Same command than FIND_COSME but for the sequence \"sequencename\""
+msgstr ""
+"Same command as INVMODASINH but the sequence must be specified as the first "
+"argument. In addition, the optional argument <b>-prefix=</b> can be used to "
+"set a custom prefix"
 
 #: src/core/command_def.h:146
-#, fuzzy
 msgid ""
 "Same command as LINSTRETCH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
-msgstr "Same command than SPLIT_CFA but for the sequence \"sequencename\""
+msgstr ""
+"Same command as LINSTRETCH but the sequence must be specified as the first "
+"argument. In addition, the optional argument <b>-prefix=</b> can be used to "
+"set a custom prefix"
 
 #: src/core/command_def.h:147
 msgid ""
@@ -13561,15 +13583,16 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:148
-#, fuzzy
 msgid ""
 "Same command as MODASINH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
-msgstr "Same command than SPLIT_CFA but for the sequence \"sequencename\""
+msgstr ""
+"Same command as MODASINH but the sequence must be specified as the first "
+"argument. In addition, the optional argument <b>-prefix=</b> can be used to "
+"set a custom prefix"
 
 #: src/core/command_def.h:149
-#, fuzzy
 msgid ""
 "Same command as MTF but for the sequence <b>sequencename</b>.\n"
 "\n"
@@ -13583,7 +13606,11 @@ msgstr ""
 "Same command as MTF but for the sequence <b>sequencename</b>.\n"
 "\n"
 "The output sequence name starts with the prefix \"mtf_\" unless otherwise "
-"specified with <b>-prefix=</b> option"
+"specified with <b>-prefix=</b> option.\n"
+"\n"
+"Optionally the parameter <b>[channels]</b> may be used to specify the "
+"channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
+"default is all channels"
 
 #: src/core/command_def.h:150
 msgid ""
@@ -13731,7 +13758,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:157
-#, fuzzy
 msgid ""
 "Same command as STAT for sequence <b>sequencename</b>.\n"
 "\n"
@@ -13746,11 +13772,12 @@ msgstr ""
 "\n"
 "The <b>output</b> is saved as a csv file given in second argument.\n"
 "The optional parameter defines the number of statistical values computed: "
-"<b>basic</b>, <b>main</b> or <b>full</b> (more detailed but longer to "
-"compute)"
+"<b>basic</b>, <b>main</b> (default) or <b>full</b> (more detailed but longer "
+"to compute).\n"
+"If <b>-cfa</b> is passed and the images are CFA, statistics are made on per-"
+"filter extractions"
 
 #: src/core/command_def.h:158
-#, fuzzy
 msgid ""
 "Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
 "Dithering, required for low dynamic gradients, can be disabled with <b>-"
@@ -13760,6 +13787,8 @@ msgid ""
 "specified with <b>-prefix=</b> option"
 msgstr ""
 "Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
+"Dithering, required for low dynamic gradients, can be disabled with "
+"<b>-nodither</b>.\n"
 "\n"
 "The output sequence name starts with the prefix \"bkg_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
@@ -13970,7 +13999,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:173
-#, fuzzy
 msgid ""
 "Splits the color image into three distinct files (one for each color) and "
 "save them in <b>file1</b>.fit, <b>file2</b>.fit and <b>file3</b>.fit files. "
@@ -13978,8 +14006,11 @@ msgid ""
 "<b>lab</b> to perform an HSL, HSV or CieLAB extraction. If no option are "
 "provided, the extraction is of RGB type"
 msgstr ""
-"拆分彩色图像为三个独立的文件（每个对应一个色彩）并保存为 <b>fileR</b>.fit, "
-"<b>fileG</b>.fit and <b>fileB</b>.fit files"
+"Splits the color image into three distinct files (one for each color) and "
+"save them in <b>file1</b>.fit, <b>file2</b>.fit and <b>file3</b>.fit files. "
+"A last argument can optionally be supplied, <b>-hsl</b>, <b>-hsv</b> or "
+"<b>lab</b> to perform an HSL, HSV or CieLAB extraction. If no option are "
+"provided, the extraction is of RGB type"
 
 #: src/core/command_def.h:174
 msgid ""
@@ -13988,7 +14019,6 @@ msgid ""
 msgstr "拆分CFA图像为四个独立的文件（每个对应一个通道）保存之"
 
 #: src/core/command_def.h:175
-#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -14057,6 +14087,9 @@ msgstr ""
 "(Winsorized) is used.\n"
 "The <b>sigma low</b> and <b>sigma high</b> parameters of rejection are "
 "mandatory unless <b>none</b> is selected.\n"
+"Optionally, rejection maps can be created, showing where pixels were "
+"rejected in one (<b>-rejmap</b>) or two (<b>-rejmaps</b>, for low and high "
+"rejections) newly created images.\n"
 "\n"
 "Normalization of input images:\n"
 "For med|median and rej|mean stacking types, different types of normalization "
@@ -14067,20 +14100,22 @@ msgstr ""
 "applied by default.\n"
 "<b>-fastnorm</b> option specifies to use faster estimators for location and "
 "scale than the default IKSS.\n"
+"<b>-rgb_equal</b> will use normalization to equalize color image "
+"backgrounds, useful if pcc and unlinked autostretch will not be used.\n"
 "\n"
 "Other options for rejection stacking:\n"
 "<b>-weight_from_noise</b> is an option to add larger weights to frames with "
 "lower background noise.\n"
 "<b>-weight_from_nbstack</b> weights input images based on how many images "
 "were used to create them, useful for live stacking.\n"
-"<b>-output_norm</b> applies a normalization at the end of the stacking to "
-"rescale result in the [0, 1] range.\n"
-"<b>-rgb_equal</b> equalizes the RGB channels of the stacked image (color-"
-"only).\n"
+"<b>-weight_from_nbstars</b> or <b>-weight_from_wfwhm</b> weight input images "
+"based on number of stars or wFWHM computed during registration step.\n"
 "\n"
 "Outputs:\n"
 "Result image name can be set with the <b>-out=</b> option. Otherwise, it "
-"will be named as <b>sequencename</b>_stacked.fit\n"
+"will be named as <b>sequencename</b>_stacked.fit.\n"
+"<b>-output_norm</b> applies a normalization to rescale result in the [0, 1] "
+"range (median and mean stacking only).\n"
 "\n"
 "Filtering out images:\n"
 "Images to be stacked can be selected based on some filters, like manual "
@@ -14129,7 +14164,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:178
-#, fuzzy
 msgid ""
 "Initialize a livestacking session, using the optional calibration files and "
 "wait for input files to be provided by the LIVESTACK command until STOP_LS "
@@ -14139,25 +14173,27 @@ msgid ""
 msgstr ""
 "Initialize a livestacking session, using the optional calibration files and "
 "wait for input files to be provided by the LIVESTACK command until STOP_LS "
-"is called"
+"is called. Default processing will use shift-only registration and 16-bit "
+"processing because it's faster, it can be changed to rotation with "
+"<b>-rotate</b> and <b>-32bits</b>"
 
 #: src/core/command_def.h:179
-#, fuzzy
 msgid ""
 "Returns statistics of the current image, the basic list by default or the "
 "main list if <b>main</b> is passed. If a selection is made, statistics are "
 "computed within the selection. If <b>-cfa</b> is passed and the image is "
 "CFA, statistics are made on per-filter extractions"
 msgstr ""
-"Returns global statistics of the current image. If a selection is made, the "
-"command returns statistics within the selection"
+"Returns statistics of the current image, the basic list by default or the "
+"main list if <b>main</b> is passed. If a selection is made, statistics are "
+"computed within the selection. If <b>-cfa</b> is passed and the image is "
+"CFA, statistics are made on per-filter extractions"
 
 #: src/core/command_def.h:180
 msgid "Stop the live stacking session. Only possible after START_LS"
 msgstr "Stop the live stacking session. Only possible after START_LS"
 
 #: src/core/command_def.h:181
-#, fuzzy
 msgid ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
@@ -14171,10 +14207,13 @@ msgid ""
 msgstr ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
-"provided instead) and subtracts it from the image. The number of samples per "
-"horizontal line and the tolerance to exclude brighter areas can be adjusted "
-"with the optional arguments. Tolerance is in mad units: median + tolerance * "
-"mad. For RBF, the additional smoothing parameter is also available"
+"provided instead) and subtracts it from the image.\n"
+"The number of samples per horizontal line and the tolerance to exclude "
+"brighter areas can be adjusted with the optional arguments. Tolerance is in "
+"mad units: median + tolerance * mad.\n"
+"Dithering, required for low dynamic gradients, can be enabled with "
+"<b>-dither</b>.\n"
+"For RBF, the additional smoothing parameter is also available"
 
 #: src/core/command_def.h:182
 msgid ""
@@ -14229,13 +14268,12 @@ msgstr ""
 "drawing"
 
 #: src/core/command_def.h:189
-#, fuzzy
 msgid ""
 "Allows easy mass unselection of images in the sequence <b>sequencename</b> "
 "(from <b>from</b> to <b>to</b> included). See SELECT"
 msgstr ""
-"Allows easy mass unselection of images in the loaded sequence (from <b>from</"
-"b> to <b>to</b> included). See SELECT"
+"Allows easy mass unselection of images in the sequence <b>sequencename</b> ("
+"from <b>from</b> to <b>to</b> included). See SELECT"
 
 #: src/core/command_def.h:190
 msgid "Reset the magnitude calibration to 0. See SETMAG"
@@ -14520,9 +14558,9 @@ msgid "value %f is out of range [%f, %f] for %s.%s\n"
 msgstr ""
 
 #: src/core/initfile.c:367
-#, fuzzy, c-format
+#, c-format
 msgid "unknown error in config file for %s.%s\n"
-msgstr "链接：无法打开工作目录 %s\n"
+msgstr "%s.%s 的配置文件中出现未知错误。\n"
 
 #: src/core/initfile.c:376
 #, c-format
@@ -14530,14 +14568,14 @@ msgid "directory `%s' for config key %s.%s doesn't exist, not using it.\n"
 msgstr ""
 
 #: src/core/initfile.c:414
-#, fuzzy, c-format
+#, c-format
 msgid "unknown settings variable %s.%s\n"
-msgstr "Unknown option provided: %s\n"
+msgstr "未知设置变量 %s.%s\n"
 
 #: src/core/initfile.c:433
-#, fuzzy, c-format
+#, c-format
 msgid "Settings could not be loaded from %s: %s\n"
-msgstr "无法载入图像%d位于队列%s\n"
+msgstr "无法从 %s： %s 加载设置\n"
 
 #: src/core/initfile.c:454
 #, fuzzy, c-format
@@ -14572,9 +14610,9 @@ msgid "Continuing without configuration file\n"
 msgstr ""
 
 #: src/core/initfile.c:556
-#, fuzzy, c-format
+#, c-format
 msgid "Could not save the settings in %s: %s\n"
-msgstr "无法保存叠加结果 %s\n"
+msgstr "无法将设置保存于 %s： %s\n"
 
 #: src/core/OS_utils.c:225
 msgid "Error while computing available free disk space.\n"
@@ -14640,12 +14678,10 @@ msgid "Error reading from %s, disabling cgroups memory limits\n"
 msgstr ""
 
 #: src/core/OS_utils.c:487
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Questionable parallel processing detection - openmp reports %d %s, glib %d.\n"
-msgstr ""
-"Questionable parallel processing efficiency - openmp reports %d %s. Possibly "
-"broken opencv/openblas installation.\n"
+msgstr "有问题的并行处理检测 - openmp 报告 %d %s，glib %d。\n"
 
 #: src/core/OS_utils.c:494
 #, c-format
@@ -14653,9 +14689,9 @@ msgid "Using cgroups limit on the number of processors: %d\n"
 msgstr ""
 
 #: src/core/OS_utils.c:500
-#, fuzzy, c-format
+#, c-format
 msgid "Parallel processing enabled: using %d logical %s%s.\n"
-msgstr "并行计算%s：使用 %d 逻辑 %s%s。\n"
+msgstr "并行计算已启用：使用 %d 逻辑 %s%s。\n"
 
 #: src/core/OS_utils.c:503
 msgid ", nesting not supported"
@@ -14716,14 +14752,14 @@ msgid "Images must have same dimensions\n"
 msgstr "图像必须具有相同的尺寸\n"
 
 #: src/core/preprocess.c:182 src/core/preprocess.c:194
-#, fuzzy, c-format
+#, c-format
 msgid "Dark optimization of image %d failed\n"
-msgstr "暗场优化： k0=%.3f\n"
+msgstr "图像 %d 的暗场优化失败\n"
 
 #: src/core/preprocess.c:190
-#, fuzzy, c-format
+#, c-format
 msgid "Dark optimization of image %d: k0=%.3f\n"
-msgstr "暗场优化： k0=%.3f\n"
+msgstr "图像 %d 的暗场优化： k0=%.3f\n"
 
 #: src/core/preprocess.c:348
 #, c-format
@@ -15055,9 +15091,8 @@ msgid "don't use 32 bits for pixel depth"
 msgstr ""
 
 #: src/core/settings.c:255
-#, fuzzy
 msgid "allow FITS cubes to have different sizes"
-msgstr "叠加错误：图像拥有不同的尺寸\n"
+msgstr "允许 FITS 矩阵具有不同的尺寸"
 
 #: src/core/settings.c:256
 msgid "memory mode (0 ratio, 1 amount)"
@@ -15531,9 +15566,9 @@ msgid "list of pixel math presets"
 msgstr "像素数学"
 
 #: src/core/settings.c:432
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown settings variable %s.%s\n"
-msgstr "Unknown option provided: %s\n"
+msgstr "未知设置变量 %s.%s\n"
 
 #: src/core/signals.c:49
 msgid "Please report this bug to: "
@@ -15591,24 +15626,24 @@ msgid "RGB alignment (PSF)"
 msgstr "RGB对齐(PSF)"
 
 #: src/core/siril_log.c:94
-#, fuzzy, c-format
+#, c-format
 msgid "%d h %02d min %.2d s"
-msgstr "%s: %d h %02d min %.2d s.\n"
+msgstr "%d h %02d min %.2d s"
 
 #: src/core/siril_log.c:98
-#, fuzzy, c-format
+#, c-format
 msgid "%d min %02d s"
-msgstr "%s: %d min %02d s.\n"
+msgstr "%d min %02d s"
 
 #: src/core/siril_log.c:101
-#, fuzzy, c-format
+#, c-format
 msgid "%.2lf ms"
-msgstr "%s: %.2lf ms.\n"
+msgstr "%.2lf ms"
 
 #: src/core/siril_log.c:103
-#, fuzzy, c-format
+#, c-format
 msgid "%.2lf s"
-msgstr "%s: %.2lf s.\n"
+msgstr "%.2lf s"
 
 #: src/core/siril_log.c:114
 msgid "Execution time"
@@ -16145,9 +16180,9 @@ msgid ""
 msgstr ""
 
 #: src/filters/starnet.c:934
-#, fuzzy, c-format
+#, c-format
 msgid "Starnet: Processing image %d\n"
-msgstr "预处理图像 %s\n"
+msgstr "Starnet：处理图像 %d\n"
 
 #: src/filters/starnet.c:984
 #, fuzzy
@@ -16451,9 +16486,9 @@ msgid "B&W"
 msgstr "黑白"
 
 #: src/gui/callbacks.c:1257
-#, fuzzy, c-format
+#, c-format
 msgid "Binning %d x %d is not supported\n"
-msgstr "该合并模式不被支持\n"
+msgstr "不支持合并 %d x %d\n"
 
 #: src/gui/callbacks.c:1397
 #, c-format
@@ -16823,9 +16858,9 @@ msgid "Crop confirmation"
 msgstr "设置"
 
 #: src/gui/menu_gray_geometry.c:65
-#, fuzzy, c-format
+#, c-format
 msgid "Rotation (%.1lfdeg, cropped=%s, clamped=%s)"
-msgstr "旋转（%.1lf度, 裁剪=%s）"
+msgstr "旋转（%.1lf度，裁剪=%s，箝位=%s）"
 
 #: src/gui/menu_gray_geometry.c:84
 #, fuzzy
@@ -17404,7 +17439,7 @@ msgid "Clear the Log"
 msgstr "清除日志"
 
 #: src/gui/PSF_list.c:287
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Average Gaussian PSF\n"
 "\n"
@@ -17419,7 +17454,7 @@ msgid ""
 msgstr ""
 "高斯平均 PSF\n"
 "\n"
-"N:\t%d stars\n"
+"N:\t%d stars （%d 过曝并排除）\n"
 "B:\t%.6f\n"
 "A:\t%.6f\n"
 "FWHMx:\t%.2f%s\n"
@@ -17429,7 +17464,7 @@ msgstr ""
 "rmse:\t%.3e\n"
 
 #: src/gui/PSF_list.c:293
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Average Moffat PSF\n"
 "\n"
@@ -17443,11 +17478,12 @@ msgid ""
 "Angle:\t%.2f deg\n"
 "rmse:\t%.3e\n"
 msgstr ""
-"高斯平均 PSF\n"
+"Moffat平均 PSF\n"
 "\n"
-"N:\t%d stars\n"
+"N:\t%d stars（%d 过曝并排除）\n"
 "B:\t%.6f\n"
 "A:\t%.6f\n"
+"Beta:\t%.2f\n"
 "FWHMx:\t%.2f%s\n"
 "FWHMy:\t%.2f%s\n"
 "圆度:\t%.3f\n"
@@ -17498,7 +17534,7 @@ msgid "N/A"
 msgstr "N/A"
 
 #: src/gui/PSF_list.c:725
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "PSF fit Result (%s%s):\n"
 "\n"
@@ -17527,13 +17563,15 @@ msgid ""
 "RMSE:\n"
 "\t\tRMSE=%.3e"
 msgstr ""
+"PSF 拟合结果 （%s%s）：\n"
+"\n"
 "质心坐标：\n"
 "\t\t%s\n"
 "\n"
-"半宽:\n"
+"半宽最大值:\n"
 "\t\tFWHMx=%.2f%s\n"
 "\t\tFWHMy=%.2f%s\n"
-"\n"
+"\t\tr=%.2f\n"
 "偏角:\n"
 "\t\t%0.2fdeg\n"
 "\n"
@@ -18123,9 +18161,9 @@ msgid "Error: number of trixels reported by file is out of limits.\n"
 msgstr ""
 
 #: src/io/catalogues.c:702
-#, fuzzy, c-format
+#, c-format
 msgid "Can't open temporary file %s for output. [%s]\n"
-msgstr "无法打开TIFF文件: %s\n"
+msgstr "无法打开临时文件 %s 进行输出。[%s]\n"
 
 #: src/io/catalogues.c:750
 #, fuzzy
@@ -18436,9 +18474,9 @@ msgid "Reading NetPBM: file %s, %ld layer(s), %ux%u pixels\n"
 msgstr "读取NetPBM：文件名 %s, %ld layer(s), %ux%u pixels\n"
 
 #: src/io/image_formats_internal.c:610
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening file %s\n"
-msgstr "打开文件失败"
+msgstr "打开文件 %s 时出错\n"
 
 #: src/io/image_formats_internal.c:649 src/io/image_formats_internal.c:688
 #, c-format
@@ -18560,9 +18598,9 @@ msgid "Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 msgstr "保存JPG：文件名 %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:1015
-#, fuzzy, c-format
+#, c-format
 msgid "Error opening the file %s\n"
-msgstr "打开文件失败"
+msgstr "打开文件 %s 时出错\n"
 
 #: src/io/image_formats_libraries.c:1131
 #, c-format
@@ -18866,9 +18904,9 @@ msgstr ""
 "fixed size index (%d). Cannot load.\n"
 
 #: src/io/sequence.c:206
-#, fuzzy, c-format
+#, c-format
 msgid "Checking sequences in the directory: %s.\n"
-msgstr "搜索或打开目录出错。\n"
+msgstr "正在检查目录中的队列： %s。\n"
 
 #: src/io/sequence.c:209 src/io/sequence.c:339
 msgid "Current working directory is not set, aborting.\n"
@@ -18962,23 +19000,23 @@ msgid "internal sequence"
 msgstr "内部队列"
 
 #: src/io/sequence.c:1636
-#, fuzzy, c-format
+#, c-format
 msgid "Photometry analysis failed for image %d (%s)\n"
-msgstr "测光分析失败于图像 %d\n"
+msgstr "图像 %d（%s）的测光分析失败\n"
 
 #: src/io/sequence.c:1659
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use a larger "
 "area?)\n"
-msgstr "无法侦测到星点于图像 %d 坐标 %d,%d （选择一个更大的范围？）\n"
+msgstr "无法侦测到星点于图像 %d 坐标 %d,%d：错误 %s（选择一个更大的范围？）\n"
 
 #: src/io/sequence.c:1663
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use 'follow star' "
 "option?)\n"
-msgstr "无法侦测到星点于图像 %d 坐标 %d,%d （启用“跟随星点移动”选项？）\n"
+msgstr "无法侦测到星点于图像 %d 坐标 %d,%d：错误 %s（启用“跟随星点移动”选项？）\n"
 
 #: src/io/sequence.c:1732
 msgid ""
@@ -19066,14 +19104,14 @@ msgid ""
 msgstr ""
 
 #: src/io/sequence.c:2045
-#, fuzzy, c-format
+#, c-format
 msgid "Registration data cleared for layer %d\n"
-msgstr "该通道中没有对准数据"
+msgstr "已清除图层 %d 的对齐数据\n"
 
 #: src/io/sequence.c:2055
-#, fuzzy, c-format
+#, c-format
 msgid "Registration (back-up) data cleared for layer %d\n"
-msgstr "该通道中没有对准数据"
+msgstr "清除图层 %d 的对齐（备份）数据\n"
 
 #: src/io/sequence.c:2062
 #, c-format
@@ -19081,9 +19119,9 @@ msgid "Statistics data cleared for layer %d\n"
 msgstr ""
 
 #: src/io/sequence.c:2068
-#, fuzzy, c-format
+#, c-format
 msgid "Statistics data (back-up) cleared for layer %d\n"
-msgstr "该通道中没有对准数据"
+msgstr "已清除图层 %d 的统计数据（备份）\n"
 
 #: src/io/sequence_export.c:124
 #, c-format
@@ -19311,12 +19349,15 @@ msgid "seconds"
 msgstr "秒"
 
 #: src/livestacking/gui.c:116
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Noise: %0.3f\n"
 "\n"
 "Last image processing time: %s"
-msgstr "对齐：处理图像 %s"
+msgstr ""
+"噪声：%0.3f\n"
+"\n"
+"最后图像处理时间： %s"
 
 #: src/livestacking/gui.c:119
 #, c-format
@@ -19796,9 +19837,9 @@ msgid "Error in pixel math expression '%s' at character %d\n"
 msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:874
-#, fuzzy, c-format
+#, c-format
 msgid "A maximum of %d images can be used in a single expression.\n"
-msgstr "Only Siril FITS images can be used with partial image reading.\n"
+msgstr "单个表达式中最多可以使用 %d 帧图像。\n"
 
 #: src/pixelMath/pixel_math_runner.c:916
 msgid "Incompatible parameters"
@@ -19904,9 +19945,9 @@ msgid "Saving the transformation matrices"
 msgstr "负片变换"
 
 #: src/registration/3stars.c:526
-#, fuzzy, c-format
+#, c-format
 msgid "Processing star #%d\n"
-msgstr "处理图像 %s"
+msgstr "处理星点 #%d\n"
 
 #: src/registration/3stars.c:532
 #, fuzzy
@@ -19929,9 +19970,9 @@ msgstr "负片变换"
 #: src/registration/3stars.c:611 src/registration/3stars.c:634
 #: src/registration/3stars.c:660 src/registration/3stars.c:671
 #: src/registration/3stars.c:696
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot perform star matching: Image %d skipped\n"
-msgstr "无法执行星点匹配：尝试#%d。跳过图像 %d \n"
+msgstr "无法执行星点匹配：跳过图像 %d\n"
 
 #. for display purposes
 #: src/registration/3stars.c:621 src/registration/global.c:949
@@ -20138,7 +20179,7 @@ msgstr "参考帧：最亮恒星极限为%d\n"
 #: src/registration/global.c:214
 #, c-format
 msgid "FWHMx:%*.2f %s\n"
-msgstr "FWHMx:%*.2f %s\n"
+msgstr "FWHMx：%*.2f %s\n"
 
 #: src/registration/global.c:215
 #, c-format
@@ -20257,18 +20298,18 @@ msgid "dy:%+*.2f px\n"
 msgstr "y轴平移：%+*.2f px\n"
 
 #: src/registration/global.c:697
-#, fuzzy, c-format
+#, c-format
 msgid "FWHM:%*.2f %s\n"
-msgstr "FWHMx:%*.2f %s\n"
+msgstr "FWHM：%*.2f %s\n"
 
 #: src/registration/global.c:698
-#, fuzzy, c-format
+#, c-format
 msgid "roundness:%*.2f\n"
-msgstr "圆度 = %3.2f\n"
+msgstr "圆度：%*.2f\n"
 
 #: src/registration/global.c:906
 msgid "The number of stars has capped, readapting threshold and filtering\n"
-msgstr ""
+msgstr "星点数量达到上限，重新调整阈值和过滤\n"
 
 #: src/registration/global.c:977
 #, c-format
@@ -20831,9 +20872,9 @@ msgid " (fast)"
 msgstr ""
 
 #: src/stacking/stacking.c:347
-#, fuzzy, c-format
+#, c-format
 msgid "Input normalization ....... %s%s\n"
-msgstr "归一化 …………… %s\n"
+msgstr "输入归一化 ....... %s%s\n"
 
 #: src/stacking/stacking.c:350
 #, fuzzy
