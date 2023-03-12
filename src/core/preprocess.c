@@ -725,7 +725,6 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				set_progress_bar_data(error, PROGRESS_DONE);
 				if (args->bias)
 					free(args->bias);
-				gtk_entry_set_text(entry, "");
 				args->use_bias = FALSE;
 				has_error = TRUE;
 			}
@@ -771,7 +770,6 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				if (args->dark)
 					clearfits(args->dark);
 				args->dark = NULL; // in order to be sure it is freed
-				gtk_entry_set_text(entry, "");
 				args->use_dark = FALSE;
 				has_error = TRUE;
 			}
@@ -878,7 +876,6 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				set_progress_bar_data(error, PROGRESS_DONE);
 				if (args->flat)
 					free(args->flat);
-				gtk_entry_set_text(entry, "");
 				args->use_flat = FALSE;
 				has_error = TRUE;
 			}
