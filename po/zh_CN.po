@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-11 11:18+0100\n"
-"PO-Revision-Date: 2023-03-11 15:35+0000\n"
+"PO-Revision-Date: 2023-03-12 21:45+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -522,7 +522,7 @@ msgstr "图层数:"
 
 #: src/gui/siril3.glade:2515
 msgid "Number of wavelet layers that will be used"
-msgstr "小波图层数量"
+msgstr "将使用的小波图层数量"
 
 #: src/gui/siril3.glade:2540 src/gui/siril3.glade:2564
 msgid "Compute wavelets"
@@ -530,27 +530,27 @@ msgstr "计算小波"
 
 #: src/gui/siril3.glade:2615
 msgid "Layer 1"
-msgstr ""
+msgstr "图层1"
 
 #: src/gui/siril3.glade:2685
 msgid "Layer 2"
-msgstr ""
+msgstr "图层2"
 
 #: src/gui/siril3.glade:2755
 msgid "Layer 3"
-msgstr ""
+msgstr "图层3"
 
 #: src/gui/siril3.glade:2825
 msgid "Layer 4"
-msgstr ""
+msgstr "图层4"
 
 #: src/gui/siril3.glade:2895
 msgid "Layer 5"
-msgstr ""
+msgstr "图层5"
 
 #: src/gui/siril3.glade:2965
 msgid "Layer 6"
-msgstr ""
+msgstr "图层6"
 
 #: src/gui/siril3.glade:3031
 msgid "Adjust"
@@ -1903,11 +1903,11 @@ msgstr "图像合成"
 
 #: src/gui/siril3.glade:8827
 msgid "Multi-layer image composition"
-msgstr "多通道图像合成"
+msgstr "多图层图像合成"
 
 #: src/gui/siril3.glade:8850
 msgid "Layer alignments"
-msgstr "通道对齐"
+msgstr "图层对齐"
 
 #. don't destroy it on removal from grid
 #: src/gui/siril3.glade:8892 src/compositing/compositing.c:187
@@ -1918,15 +1918,14 @@ msgstr "未载入"
 
 #: src/gui/siril3.glade:8957
 msgid "Adjust layers brightness"
-msgstr "调整通道亮度"
+msgstr "调整图层亮度"
 
 #: src/gui/siril3.glade:8961
 msgid ""
 "Automatically adjust the brightness of the colours picked for layers so that "
 "they don't overflow when compositing (based on max value for each image). "
 "Colour hues are unchanged."
-msgstr ""
-"自动调整各个通道的亮度，使之在合成中不会溢出（基于每幅图像的最大值）。色调不"
+msgstr "自动调整各个图层的亮度，使之在合成中不会溢出（基于每幅图像的最大值）。色调不"
 "会改变。"
 
 #: src/gui/siril3.glade:8972
@@ -1963,7 +1962,7 @@ msgstr "CIE L*a*b* 合成"
 
 #: src/gui/siril3.glade:9038
 msgid "Align layers on this reference layer:"
-msgstr "基于这个参考通道来对齐其他通道:"
+msgstr "基于此参考图层来对齐其他图层："
 
 #: src/gui/siril3.glade:9048
 msgid "Align"
@@ -1992,7 +1991,7 @@ msgstr "单星对齐（深空）"
 
 #: src/gui/siril3.glade:9106
 msgid "For LRGB composition, the reference layer should be luminance."
-msgstr "在执行LRGB合成时，应选择明度通道为参考通道。"
+msgstr "在执行LRGB合成时，应选择明度作为参考图层。"
 
 #: src/gui/siril3.glade:9108 src/gui/callbacks.c:714
 msgid "Luminance"
@@ -2035,11 +2034,11 @@ msgstr "规则: "
 
 #: src/gui/siril3.glade:9263
 msgid "modulus"
-msgstr "modulus"
+msgstr "模数"
 
 #: src/gui/siril3.glade:9277
 msgid "phase"
-msgstr "phase"
+msgstr "相位"
 
 #: src/gui/siril3.glade:9287
 msgid "Centered"
@@ -3361,9 +3360,8 @@ msgid ""
 "Will use registration data if any are available on the registration layer, "
 "otherwise if the checkbox 'follow star movement' is checked in the "
 "registration tab, it will run with this option."
-msgstr ""
-"如果该通道已进行对齐，则对其数据会被使用，另外如果对齐页面里的“跟随星点移"
-"动”选择框被选择，本功能会被执行。"
+msgstr "如果该图层已进行对齐，则对其数据会被使用，另外如果对齐页面里的“跟随星点移动”"
+"选择框被选择，本功能会被执行。"
 
 #: src/gui/siril3.glade:14618
 msgid "PSF for the Sequence"
@@ -4815,7 +4813,7 @@ msgstr "均衡CFA"
 #: src/gui/siril3.glade:21062
 msgid ""
 "This option equalizes the mean intensity of RGB layers in a CFA flat image."
-msgstr "该选项用以均衡CFA图像中RGB通道的平均强度。"
+msgstr "该选项用以均衡CFA图像中RGB图层的平均强度。"
 
 #: src/gui/siril3.glade:21074
 msgid "Auto evaluate normalisation value"
@@ -4916,8 +4914,9 @@ msgid ""
 msgstr ""
 "输入坏像素图文件名，或者点击浏览按钮。该文件是通过在一张暗场或者主暗场上使用"
 "命令<i>find_hot</i> 来得到。文件的结构是这样的：\n"
-"* 行 <i>P x y type</i> 用于修正坐标为（x, y）的像素，type为字符(<i>C</i>或"
-"<i>H</i>)用于表示该像素为冷还是热点。\n"
+"\n"
+"* 行 <i>P x y type</i> 用于修正坐标为（x, "
+"y）的像素，type为字符(<i>C</i>或<i>H</i>)用于表示该像素为冷还是热点。\n"
 "* 行 <i>C x 0 type</i> 用于修正<i>x</i>坐标处的坏列。\n"
 "* 行 <i>L y 0 type</i> 用于修正<i>y</i>坐标处的坏行。"
 
@@ -4968,16 +4967,12 @@ msgid "Debayer before saving"
 msgstr "保存前执行Debayer"
 
 #: src/gui/siril3.glade:21557
-#, fuzzy
 msgid ""
 "Check this option if you want to apply a demosaicing algorithm to your FITS "
 "images right after they were preprocessed. By doing this, you skip one "
 "manual step which can take some time."
-msgstr ""
-"如果要在预处理后的FITS图像上应用去马赛克算法，请选中此选项。这样您可以跳过一"
-"个需要花费时间的手动步骤。\n"
-"\n"
-"警告：此选项仅适用于FITS图像，SER队列可以实时去马赛克。"
+msgstr "如果要在预处理后的FITS图像上应用去马赛克算法，请选中此选项。这样您可以跳过一"
+"个需要花费时间的手动步骤。"
 
 #: src/gui/siril3.glade:21570
 msgid ""
@@ -5027,9 +5022,9 @@ msgid ""
 "When processing images, registration data is taken from the default layer if "
 "available (for RGB images: Green, else fallback to Blue then Red)."
 msgstr ""
-"每次对齐操作只能在一个通道中完成，也就是说是针对于单色图像的操作。\n"
-"名字中有(*)所标注的为对齐数据已经可用的通道。\n"
-"当图像被处理时，对齐数据是从可用的缺省通道所获取的（对于RBG图像：绿色，然后是"
+"每次对齐操作只能在一个图层中完成，因此在单色图像上也是如此。\n"
+"名字中有(*)所标注的为对齐数据已经可用的图层。\n"
+"当图像被处理时，对齐数据是从可用的缺省图层所获取的（对于RBG图像：绿色，然后是"
 "蓝色和红色）。"
 
 #: src/gui/siril3.glade:21751
@@ -5075,8 +5070,8 @@ msgid ""
 "<b>WARNING</b>: Make sure to draw a selection with a sufficient number of "
 "stars."
 msgstr ""
-"点选此项以在参考帧上所选定的范围内执行全局星点对齐算法。\n"
-"如果没有选定区域，本选项会被忽略。\n"
+"点选此项以在参考帧上所选定的范围内执行全局星点对齐算法。如果没有选定区域，本"
+"选项会被忽略。\n"
 "\n"
 "<b>警告</b>：请确定所画的区域内有足够的星点。"
 
@@ -5598,8 +5593,7 @@ msgid ""
 "Start the registration process. It will register images in the loaded "
 "sequence using the selected method and reference layer (loaded in the 'Image "
 "sequences' tab, current sequence name is at the bottom of the window too)."
-msgstr ""
-"开启对齐处理。将使用所选定的方法和参考通道来加载和对齐队列中的图像（在“图像队"
+msgstr "开启对齐处理。将使用所选定的方法和参考图层来加载和对齐队列中的图像（在“图像队"
 "列”标签页中载入，当前队列名称也会在窗口底部显示）。"
 
 #: src/gui/siril3.glade:23231
@@ -5626,8 +5620,8 @@ msgid ""
 "displayed once on the selected registration layer."
 msgstr ""
 "在当前图像之上以50%透明度显示参考帧。\n"
-"若要开启本选项，参考帧必须已经设定好，\n"
-"并且至少已经在所选择的对齐通道上显示过一次。"
+"若要开启本选项，参考帧必须已经设定好，并且至少已经在所选择的对齐图层上显示过"
+"一次。"
 
 #: src/gui/siril3.glade:23321
 msgid "Set reference image first"
@@ -5825,7 +5819,6 @@ msgid "Plot"
 msgstr "图表"
 
 #: src/gui/siril3.glade:23965
-#, fuzzy
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
 "Pixel values are added in an image normalized to 32-bit values.\n"
@@ -5865,6 +5858,7 @@ msgstr ""
 "包含七种已实现的算法：\n"
 "- Percentile Clipping\n"
 "- Sigma Clipping\n"
+"- MAD Clipping\n"
 "- Median Sigma Clipping\n"
 "- Winsorized Sigma Clipping\n"
 "- Linear Fit Clipping\n"
@@ -5873,9 +5867,7 @@ msgstr ""
 "\n"
 "<b>中位数</b>：该方式传统用于暗/平/偏置场的叠加，不过我们现在建议使用含有像素"
 "剔除的平均数叠加算法。\n"
-"叠加时每个像素的中位数会被计算。\n"
-"由于该方法应只用于暗/平/偏置帧的叠加，\n"
-"对齐操作所统计的位移数据不会在此叠加奏效。\n"
+"叠加中像素的中值是针对每个像素计算的。\n"
 "\n"
 "<b>像素最大化</b>：该方式主要用于构建长曝光的星轨图像。\n"
 "图像中的像素点会被相同坐标中的更亮的点所代替。\n"
@@ -5908,7 +5900,6 @@ msgid "Method:"
 msgstr "方法:"
 
 #: src/gui/siril3.glade:24040
-#, fuzzy
 msgid ""
 "If one of these items is selected, a normalisation process will be applied "
 "to all input images before stacking.\n"
@@ -5929,12 +5920,12 @@ msgid ""
 msgstr ""
 "如果其中的一种被选中，所有图像在被叠加之前会被应用归一化处理。\n"
 "\n"
-"- 归一化 会匹配所有输入图像的背景平均值，然后归一化会执行累乘或累加。要注意\n"
-"两种操作一般都会导致更小的结果，但是累乘归一化主要用于将被执行乘/除的图像，\n"
-"例如平场。\n"
+"- 归一化，会匹配所有输入图像的背景平均值，然后归一化会执行累乘或累加。要注意"
+"两种操作一般都会导致相似的结果，但是累乘归一化主要用于将被执行乘/除的图像，例"
+"如平场。\n"
 "\n"
-"- 拉伸 会通过衡量所有输入图像来匹配弥散值。将有可能增加信噪比。\n"
-"因此该项是累加归一化的缺省配置。\n"
+"- 拉伸，会通过衡量所有输入图像来匹配弥散值。将有可能增加信噪比。因此该项是累"
+"加归一化的缺省配置。\n"
 "\n"
 "<b>偏置和暗场不应使用归一化处理。而平场必须应用累乘归一化处理。</b>"
 
@@ -6551,8 +6542,8 @@ msgid ""
 "reference.\n"
 "If the selection is empty, the whole image will be used as reference."
 msgstr ""
-"请选定一个表现了均匀的舒适的白色参考的区域。如果不选择，整幅图像将被作为参"
-"考。"
+"请选定一个表现了均匀的舒适的白色参考的区域。\n"
+"如果不选择，整幅图像将被作为参考。"
 
 #: src/gui/siril3.glade:27412
 msgid ""
@@ -6681,19 +6672,20 @@ msgid ""
 "regardless of the method selected in the preferences."
 msgstr ""
 "选择一种去马赛克的插值算法。 \n"
-"* <b>Fast Debayer</b> 是 Siril 中可用的最快算法。但是，下面列出的其他算法通常"
-"要好得多。 \n"
+"\n"
+"* <b>Fast Debayer</b> 是 Siril "
+"中可用的最快算法。但是，下面列出的其他算法通常要好得多。 \n"
 "* <b>VNG4</b> 基于阈值的可变梯度数，在源像素周围5x5的范围中对相邻像素采样。它"
 "对于图像中的平坦区域（比如天空背景）效果很好，但是在高对比区域（比如星点）会"
 "产生伪影。 \n"
 "* <b>AHD</b> 自适应均匀定向，另外一种著名的去马赛克算法。然而它通常会在背景中"
 "产生伪色和造成奇怪的星点。 \n"
 "* <b>AMaZE</b> 混叠最小化和拉链效应祛除，用于低噪声图像会得到很好的效果。 \n"
-"* <b>DCB</b> 双线性矫正，一种较晚近的算法，跟AHD一样会在背景中产生些许伪"
-"影。 \n"
+"* <b>DCB</b> 双线性矫正，一种较晚近的算法，跟AHD一样会在背景中产生些许伪影。 "
+"\n"
 "* <b>HPHD</b> 异质性投影硬决策，一种效果不错的老算法，但是非常慢。 \n"
-"* <b>IGV</b> and <b>LMMSE</b> 对高噪声图像效果很好。不过IGV会丢失部分色彩信"
-"息，而LMMSE是最耗费计算资源（需要巨量内存）的算法之一。 \n"
+"* <b>IGV</b> and <b>LMMSE</b> 对高噪声图像效果很好。不过IGV会丢失部分色彩信息"
+"，而LMMSE是最耗费计算资源（需要巨量内存）的算法之一。 \n"
 "* <b>RCD</b> 比例纠正去马赛克，相较于其他算法更加着重于平滑色彩修正误差。它处"
 "理圆形边缘（比如星点）效果优良，因此成为Siril的缺省算法。 \n"
 "\n"
@@ -6970,11 +6962,12 @@ msgid "Catalogue"
 msgstr "星表"
 
 #: src/gui/siril3.glade:28481
-#, fuzzy
 msgid ""
 "Purge Solar Sys\n"
 "user Catalog"
-msgstr "清空用户星表"
+msgstr ""
+"清除太阳系天体\n"
+"用户星表"
 
 #: src/gui/siril3.glade:28486
 #, fuzzy
@@ -6984,11 +6977,12 @@ msgid ""
 msgstr "通过删除文件来清空用户星表。该操作不可逆"
 
 #: src/gui/siril3.glade:28498
-#, fuzzy
 msgid ""
 "Purge Deep Sky\n"
 "user Catalog"
-msgstr "清空用户星表"
+msgstr ""
+"清除深空\n"
+"用户星表"
 
 #: src/gui/siril3.glade:28503
 #, fuzzy
@@ -7334,10 +7328,8 @@ msgid ""
 "If your X-Trans model is not recognized, you can also enter the coordinate "
 "values ​​of the AF square and the sample. For more information you can contact "
 "us on our forum."
-msgstr ""
-"If your X-Trans model is not recognized, you can also enter the coordinate "
-"values ​​of the AF square and the sample. For more information you can contact "
-"us on our forum."
+msgstr "如果无法识别 X-Trans 模式，您还可以输入 AF "
+"正方形和样本的坐标值。欲了解更多信息，您可以在我们的论坛上与我们联系。"
 
 #: src/gui/siril3.glade:29404
 msgid "AF pixels:"
@@ -8864,22 +8856,20 @@ msgstr "Extract_Ha无法在非拜耳阵列的图像上执行！\n"
 
 #: src/algos/extraction.c:173
 msgid "XTRANS pattern not supported for this feature.\n"
-msgstr "XTRANS pattern not supported for this feature.\n"
+msgstr "此功能不支持 XTRANS 模式。\n"
 
 #: src/algos/extraction.c:249 src/algos/extraction.c:293
 msgid "Extract_Green does not work on non-Bayer filter camera images!\n"
-msgstr ""
-"Extract_Green无法在非拜耳阵列的图像上执行！\n"
-"\n"
+msgstr "Extract_Green无法在非拜耳阵列的图像上执行！\n"
 
 #: src/algos/extraction.c:478
 #, c-format
 msgid "Image %d not found for writing\n"
-msgstr "Image %d not found for writing\n"
+msgstr "找不到用于写入的图像 %d\n"
 
 #: src/algos/extraction.c:541
 msgid "Extract Ha and OIII"
-msgstr "Extract Ha and OIII"
+msgstr "提取 Ha 和 OIII"
 
 #: src/algos/extraction.c:557 src/algos/extraction.c:602
 msgid "Split CFA does not work on non-Bayer filter camera images!\n"
@@ -9476,7 +9466,7 @@ msgstr "wavelet_transform_data: bad plane number\n"
 
 #: src/compositing/align_rgb.c:151 src/compositing/compositing.c:656
 msgid "Error in layers alignment."
-msgstr "通道对齐错误。"
+msgstr "图层对齐错误。"
 
 #: src/compositing/align_rgb.c:153 src/compositing/compositing.c:657
 #: src/registration/registration.c:1583
@@ -9547,7 +9537,7 @@ msgstr "图像载入"
 
 #: src/compositing/compositing.c:602
 msgid "You must at least load two layers before!\n"
-msgstr "必须先期载入至少两个通道！\n"
+msgstr "必须先期载入至少两个图层！\n"
 
 #: src/compositing/compositing.c:603 src/filters/wavelets.c:257
 #: src/filters/wavelets.c:266 src/filters/wavelets.c:327
@@ -9581,7 +9571,7 @@ msgstr "无需要校准，无溢出\n"
 #: src/compositing/compositing.c:1216
 #, c-format
 msgid "Readjusting layer %d to %g times bright\n"
-msgstr "重新调整图层 %d 到 %g 倍明亮\n"
+msgstr "重新调整图层 %d 到 %g 倍亮\n"
 
 #: src/core/arithm.c:183
 msgid "Cannot divide by zero, aborting."
@@ -9638,7 +9628,7 @@ msgstr "位置参数 %s，异常终止\n"
 #: src/core/command.c:8614 src/core/command.c:8828 src/core/command.c:8902
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
-msgstr "Invalid argument %s, aborting.\n"
+msgstr "无效参数 %s，异常终止。\n"
 
 #: src/core/command.c:230
 msgid "Background factor must be positive\n"
@@ -9658,74 +9648,73 @@ msgstr "应用饱和度增强于 %d%%，从强度%g倍（中位数+sigma）。\n
 #: src/core/command.c:322 src/core/command.c:324
 #, c-format
 msgid "NL-Bayes denoise (mod=%.3f"
-msgstr ""
+msgstr "NL-Bayes降噪（mod=%.3f"
 
 #: src/core/command.c:326 src/core/command.c:328
-#, fuzzy, c-format
+#, c-format
 msgid ", DA3D enabled"
-msgstr "启用"
+msgstr "，DA3D启用"
 
 #: src/core/command.c:330 src/core/command.c:332
-#, fuzzy, c-format
+#, c-format
 msgid ", SOS enabled (iters=%d, rho=%.3f)"
-msgstr "反卷积 (iter=%d, sig=%.3f)"
+msgstr "，SOS启用（iters=%d, rho=%.3f）"
 
 #: src/core/command.c:334 src/core/command.c:336
-#, fuzzy, c-format
+#, c-format
 msgid ", VST enabled"
-msgstr "启用"
+msgstr "，VST启用"
 
 #: src/core/command.c:339 src/core/command.c:341
-#, fuzzy, c-format
+#, c-format
 msgid ", CC enabled)"
-msgstr "启用"
+msgstr "，CC启用）"
 
 #: src/core/command.c:345
 #, c-format
 msgid ")"
-msgstr ""
+msgstr "）"
 
 #: src/core/command.c:357
 #, c-format
 msgid "Error, this can't happen!"
-msgstr ""
+msgstr "错误，这不可能发生！"
 
 #: src/core/command.c:365
 msgid "Colour artefact suppression active.\n"
-msgstr ""
+msgstr "彩色伪影抑制启用。\n"
 
 #: src/core/command.c:368
 msgid "Starting NL-Bayes denoising..."
 msgstr "开始NL-Bayes降噪..."
 
 #: src/core/command.c:422
-#, fuzzy
 msgid "NL-Bayes execution time"
-msgstr "总执行时间"
+msgstr "NL-Bayes执行时间"
 
 #: src/core/command.c:460
 msgid "Error: modulation must be > 0.0 and <= 1.0.\n"
-msgstr ""
+msgstr "错误：调制必须> 0.0 且 <= 1.0。\n"
 
 #: src/core/command.c:470
-#, fuzzy
 msgid "Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"
-msgstr "参数错误。Auto必须设置为on或off，异常终止。\n"
+msgstr "rho 参数错误：必须严格> 0 和 < 1，异常终止。\n"
 
 #: src/core/command.c:483
 msgid "Error: SOS iterations must be >= 1. Defaulting to 1.\n"
-msgstr ""
+msgstr "错误：SOS 迭代必须为 >= 1。默认为 1。\n"
 
 #: src/core/command.c:486
 msgid ""
 "Note: high number of SOS iterations. Processing time may be lengthy...\n"
-msgstr ""
+msgstr "注意：SOS 迭代次数很多。处理时间可能很长...\n"
 
 #: src/core/command.c:493
 msgid ""
 "Error: will not carry out DA3D or SOS iterations with Anscombe transform VST "
 "selected. aborting.\n"
-msgstr ""
+msgstr "错误：在选择了安斯科姆变换 VST 的情况下，不会执行 DA3D 或 SOS "
+"迭代。异常中止。\n"
 
 #: src/core/command.c:498
 msgid "Will apply generalised Anscombe variance stabilising transform.\n"
@@ -9733,28 +9722,26 @@ msgstr "将应用广义安斯科姆方差稳定变换。\n"
 
 #: src/core/command.c:500
 msgid "Will carry out final stage DA3D denoising.\n"
-msgstr ""
+msgstr "将进行最后阶段的DA3D降噪。\n"
 
 #: src/core/command.c:502
 msgid "Will not carry out both DA3D and SOS. SOS iterations set to 1.\n"
-msgstr ""
+msgstr "不会同时执行DA3D和SOS。SOS 迭代设置为 1。\n"
 
 #: src/core/command.c:514 src/core/command.c:581
-#, fuzzy
 msgid "Error: no StarNet executable set.\n"
-msgstr "在当前工作目录中搜索队列...\n"
+msgstr "错误：没有 StarNet 可执行文件。\n"
 
 #: src/core/command.c:518 src/core/command.c:585
-#, fuzzy, c-format
+#, c-format
 msgid "Error: StarNet executable (%s) is not valid.\n"
-msgstr "Error: command %s is not available\n"
+msgstr "错误： StarNet 可执行文件 （%s） 无效。\n"
 
 #: src/core/command.c:548 src/core/command.c:630
-#, fuzzy
 msgid ""
 "Error in stride parameter: must be a positive even integer, max 512, "
 "aborting.\n"
-msgstr "参数错误。半径必须在3到50之间，异常终止。\n"
+msgstr "步幅参数错误：必须是正偶数，最大值为 512，异常终止。\n"
 
 #: src/core/command.c:563 src/core/command.c:649 src/core/command.c:3151
 #: src/core/command.c:3215
@@ -9762,20 +9749,17 @@ msgid "Error parsing arguments, aborting.\n"
 msgstr "解析参数错误，异常终止。\n"
 
 #: src/core/command.c:573 src/core/command.c:660
-#, fuzzy
 msgid ""
 "starnet command unavailable as Siril has not been compiled with libtiff.\n"
-msgstr ""
-"Rotation is only possible when Siril has been compiled with OpenCV support.\n"
+msgstr "starnet 命令不可用，因为 Siril 尚未使用 libtiff 编译。\n"
 
 #: src/core/command.c:607 src/core/command.c:979 src/core/command.c:1875
-#, fuzzy
 msgid "Error: cannot open sequence\n"
-msgstr "在此无法打开队列\n"
+msgstr "错误：无法打开队列\n"
 
 #: src/core/command.c:793
 msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
-msgstr ""
+msgstr "错误，需要至少 4 个参数来指定 4 个文件！\n"
 
 #: src/core/command.c:816
 msgid "Error loading files!\n"
@@ -9783,23 +9767,23 @@ msgstr "加载文件出错！\n"
 
 #: src/core/command.c:821
 msgid "Reconstructing RGGB Bayer matrix.\n"
-msgstr ""
+msgstr "重建RGGB拜耳矩阵。\n"
 
 #: src/core/command.c:824
 msgid "Reconstructing BGGR Bayer matrix.\n"
-msgstr ""
+msgstr "重建BGGR拜耳矩阵。\n"
 
 #: src/core/command.c:827
 msgid "Reconstructing GBRG Bayer matrix.\n"
-msgstr ""
+msgstr "重构GBRG拜耳矩阵。\n"
 
 #: src/core/command.c:830
 msgid "Reconstructing GRBG Bayer matrix.\n"
-msgstr ""
+msgstr "重建GRBG拜耳矩阵。\n"
 
 #: src/core/command.c:832 src/core/command.c:5600
 msgid "Invalid Bayer matrix specified!\n"
-msgstr ""
+msgstr "指定的拜耳矩阵无效！\n"
 
 #: src/core/command.c:843
 msgid "Unsaved Bayer pattern merge"
@@ -9811,7 +9795,7 @@ msgstr "Bayer模式合并"
 
 #: src/core/command.c:871
 msgid "Could not understand the requested operator\n"
-msgstr "Could not understand the requested operator\n"
+msgstr "无法理解所请求的运算符\n"
 
 #: src/core/command.c:924
 msgid "Multiplying by a coefficient less than or equal to 0 is not possible.\n"
@@ -9824,7 +9808,7 @@ msgstr "熵：%.3f\n"
 
 #: src/core/command.c:985
 msgid "Reference image is undefined, the following would be used:\n"
-msgstr ""
+msgstr "参考图像未定义，将使用以下内容：\n"
 
 #: src/core/command.c:993
 #, c-format
@@ -9843,7 +9827,7 @@ msgstr "警告：此图像已从队列主处理列表中排除\n"
 
 #: src/core/command.c:1027
 msgid "Error: will not clear the PSF while a sequence is running.\n"
-msgstr ""
+msgstr "错误：在队列运行时不会清除 PSF。\n"
 
 #: src/core/command.c:1036
 msgid "Deconvolution kernel cleared.\n"
@@ -9902,7 +9886,7 @@ msgstr ""
 
 #: src/core/command.c:1140
 msgid "symmetric kernel\n"
-msgstr ""
+msgstr "对称内核\n"
 
 #: src/core/command.c:1165
 msgid "Manual PSF generation:\n"
@@ -9910,20 +9894,19 @@ msgstr "手动生成 PSF：\n"
 
 #: src/core/command.c:1172
 msgid "Gaussian PSF\n"
-msgstr ""
+msgstr "高斯PSF\n"
 
 #: src/core/command.c:1176
 msgid "Moffat PSF\n"
-msgstr ""
+msgstr "Moffat PSF\n"
 
 #: src/core/command.c:1180
-#, fuzzy
 msgid "Disc PSF\n"
-msgstr "动态PSF"
+msgstr "Disc PSF\n"
 
 #: src/core/command.c:1184
 msgid "Airy disc PSF\n"
-msgstr ""
+msgstr "艾里班PSF\n"
 
 #: src/core/command.c:1205 src/core/command.c:1309
 #, fuzzy
@@ -9970,9 +9953,8 @@ msgid "Load PSF from file:\n"
 msgstr ""
 
 #: src/core/command.c:1328
-#, fuzzy
 msgid "Error loading PSF.\n"
-msgstr "打开文件失败"
+msgstr "加载 PSF 时出错。\n"
 
 #: src/core/command.c:1373 src/core/command.c:1480
 #, fuzzy
@@ -10100,7 +10082,7 @@ msgstr "目标背景值必须在 [0, 1] 区间\n"
 
 #: src/core/command.c:2098
 msgid "Stretch must be greater than or equal to 1\n"
-msgstr "Stretch must be greater than or equal to 1\n"
+msgstr "拉伸必须大于等于1\n"
 
 #: src/core/command.c:2128
 msgid "Clip limit must be > 0.\n"
@@ -10156,16 +10138,14 @@ msgstr "无法载入队列“%s”以用于合并\n"
 #: src/core/command.c:2331
 #, c-format
 msgid "Sequence `%s' is invalid, could not merge\n"
-msgstr "Sequence `%s' is invalid, could not merge\n"
+msgstr "队列 '%s' 无效，无法合并\n"
 
 #: src/core/command.c:2342
 #, c-format
 msgid ""
 "All sequences must be the same format for merging. Sequence `%s' is "
 "different\n"
-msgstr ""
-"All sequences must be the same format for merging. Sequence `%s' is "
-"different\n"
+msgstr "所有队列必须具有相同的格式以合并。队列 '%s' 不同\n"
 
 #: src/core/command.c:2389 src/core/command.c:2428
 #, c-format
@@ -10188,7 +10168,7 @@ msgstr "完成合并队列时出错。\n"
 
 #: src/core/command.c:2464
 msgid "This type of sequence cannot be created by Siril, aborting the merge\n"
-msgstr "This type of sequence cannot be created by Siril, aborting the merge\n"
+msgstr "Siril 无法创建这种类型的队列，从而中止合并\n"
 
 #: src/core/command.c:2484 src/io/single_image.c:199
 #, c-format
@@ -10318,9 +10298,8 @@ msgid "Angle is 0.0 or 360.0 degrees. Doing nothing...\n"
 msgstr ""
 
 #: src/core/command.c:3051 src/core/command.c:3277
-#, fuzzy
 msgid "Wrong magnitude value.\n"
-msgstr "星等（绝对）"
+msgstr "错误的星等值。\n"
 
 #: src/core/command.c:3062 src/core/command.c:3652 src/core/command.c:3831
 #: src/core/siril_actions.c:649
@@ -10521,9 +10500,8 @@ msgid "Rescale can only be done in the [0, 1] range.\n"
 msgstr "目标背景值必须在 [0, 1] 区间\n"
 
 #: src/core/command.c:3607
-#, fuzzy
 msgid "Image must have same dimension\n"
-msgstr "图像必须具有相同的维度"
+msgstr "图像必须具有相同的维度\n"
 
 #: src/core/command.c:3661
 msgid ""
@@ -10581,7 +10559,7 @@ msgstr ""
 #: src/core/command.c:3887
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
-msgstr "于队列中执行PSF，通道 %d\n"
+msgstr "于队列中执行PSF，图层 %d\n"
 
 #: src/core/command.c:3928
 #, fuzzy
@@ -10620,7 +10598,7 @@ msgstr "背景噪声值（通道：#%d）: %d（%.3e）\n"
 #: src/core/command.c:4157
 #, c-format
 msgid "The file %s has been created for the %s layer.\n"
-msgstr "文件 %s 被创建基于通道 %s \n"
+msgstr "文件 %s 已创建基于图层 %s\n"
 
 #: src/core/command.c:4168
 msgid "Clearing tilt information\n"
@@ -10651,7 +10629,7 @@ msgstr "Sigma值不正确\n"
 
 #: src/core/command.c:4300
 msgid "Number of layers MUST be 1 or 3\n"
-msgstr "通道数必须为1或3\n"
+msgstr "图层数必须为1或3\n"
 
 #: src/core/command.c:4304
 #, fuzzy
@@ -10679,7 +10657,7 @@ msgstr "Fill2: select a region or provide x, y, width, height\n"
 #. handling mono case
 #: src/core/command.c:4398 src/core/command.c:6529 src/core/command.c:6925
 msgid "This sequence is mono, ignoring layer number.\n"
-msgstr "队列位单色，忽略通道数.\n"
+msgstr "队列为单色，忽略图层数。\n"
 
 #: src/core/command.c:4405 src/core/command.c:6537
 #, c-format
@@ -11008,9 +10986,8 @@ msgid "Could not parse argument `%s' to the filter `%s', aborting.\n"
 msgstr "Could not parse argument `%s' to the filter `%s', aborting.\n"
 
 #: src/core/command.c:6835
-#, fuzzy
 msgid "No registration data exists for this sequence, aborting\n"
-msgstr "该通道中没有对准数据"
+msgstr "该队列中没有对齐数据，异常终止\n"
 
 #: src/core/command.c:6921
 #, fuzzy, c-format
@@ -11021,12 +10998,11 @@ msgstr "未知的转化类型 %s，异常终止\n"
 #, c-format
 msgid ""
 "Registration data does not exist for layer #%d, will use layer #%d instead.\n"
-msgstr ""
+msgstr "图层 #%d 的对齐数据不存在，将改用图层 #%d。\n"
 
 #: src/core/command.c:6959
-#, fuzzy
 msgid "Registration: Applying existing data"
-msgstr "对齐：处理中，使用方法：%s\n"
+msgstr "对齐：应用现有数据"
 
 #: src/core/command.c:6981
 #, fuzzy
@@ -11115,7 +11091,8 @@ msgstr "叠加操作未使用像素剔除算法\n"
 msgid ""
 "Stacking has detected registration data on layer %d with more than simple "
 "shifts. You should apply existing registration before stacking\n"
-msgstr ""
+msgstr "叠加检测到图层 %d 上的对齐数据，不仅仅是简单的平移。"
+"您应该在叠加前应用已存在的对齐\n"
 
 #: src/core/command.c:7197
 #, c-format
@@ -12189,6 +12166,22 @@ msgid ""
 "\n"
 "See also the command CLEARSTAR"
 msgstr ""
+"Detects stars in the currently loaded image, having a level greater than a "
+"threshold computed by Siril.\n"
+"After that, a PSF is applied and Siril rejects all detected structures that "
+"don't fulfill a set of prescribed detection criteria, that can be tuned with "
+"command SETFINDSTAR.\n"
+"Finally, a circle is drawn around detected stars.\n"
+"\n"
+"Optional parameter <b>-out=</b> enables to save the results to the given "
+"path.\n"
+"Option <b>-layer=</b> specifies the layer onto which the detection is "
+"performed (for color images only).\n"
+" You can also limit the max number of stars detected by passing a value to "
+"option <b>-maxstars=</b>.\n"
+"\n"
+"\n"
+"See also the command CLEARSTAR"
 
 #: src/core/command_def.h:52
 msgid ""
@@ -12320,22 +12313,22 @@ msgstr ""
 "histo_[channel name].dat in the working directory"
 
 #: src/core/command_def.h:66
-#, fuzzy
 msgid ""
 "Adds the image in memory to the image <b>filename</b> given in argument.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
 msgstr ""
-"Adds the image in memory to the image <b>filename</b> given in argument"
+"Adds the image in memory to the image <b>filename</b> given in argument.\n"
+"Result will be in 32 bits per channel if allowed in the preferences"
 
 #: src/core/command_def.h:67
-#, fuzzy
 msgid ""
 "Divides the image in memory by the image <b>filename</b> given in argument.\n"
 "Result will be in 32 bits per channel if allowed in the preferences. See "
 "also FDIV"
 msgstr ""
-"Divides the image in memory by the image <b>filename</b> given in argument. "
-"See also FDIV"
+"Divides the image in memory by the image <b>filename</b> given in argument.\n"
+"Result will be in 32 bits per channel if allowed in the preferences. See "
+"also FDIV"
 
 #: src/core/command_def.h:68
 msgid ""
@@ -12415,13 +12408,14 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:72
-#, fuzzy
 msgid ""
 "Multiplies the image in memory by the image <b>filename</b> given in "
 "argument.\n"
 "Result will be in 32 bits per channel if allowed in the preferences"
 msgstr ""
-"Multiplies the image in memory by the image <b>filename</b> given in argument"
+"Multiplies the image in memory by the image <b>filename</b> given in "
+"argument.\n"
+"Result will be in 32 bits per channel if allowed in the preferences"
 
 #: src/core/command_def.h:73
 msgid ""
@@ -14305,17 +14299,16 @@ msgstr ""
 "threshold"
 
 #: src/core/command_def.h:196
-#, fuzzy
 msgid ""
 "Computes the wavelet transform on (<b>nbr_layers</b>=1...6) layer(s) using "
 "linear (<b>type</b>=1) or bspline (<b>type</b>=2) version of the 'à trous' "
 "algorithm. The result is stored in a file as a structure containing the "
 "layers, ready for weighted reconstruction with WRECONS"
 msgstr ""
-"Computes the wavelet transform on <b>nbr_plan</b> plans using linear "
-"(<b>type</b>=1) or bspline (<b>type</b>=2) version of the 'à trous' "
+"Computes the wavelet transform on (<b>nbr_layers</b>=1...6) layer(s) using "
+"linear (<b>type</b>=1) or bspline (<b>type</b>=2) version of the 'à trous' "
 "algorithm. The result is stored in a file as a structure containing the "
-"planes, ready for weighted reconstruction with WRECONS"
+"layers, ready for weighted reconstruction with WRECONS"
 
 #: src/core/command_def.h:197
 msgid ""
@@ -14326,20 +14319,18 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:198
-#, fuzzy
 msgid ""
 "Reconstructs to current image from the layers previously computed with "
 "wavelets and weighted with coefficients <b>c1</b>, <b>c2</b>, ..., <b>cn</b> "
 "according to the number of layers used for wavelet transform"
 msgstr ""
-"Reconstructs to current image from the planes previously computed with "
+"Reconstructs to current image from the layers previously computed with "
 "wavelets and weighted with coefficients <b>c1</b>, <b>c2</b>, ..., <b>cn</b> "
-"according to the number of planes used for wavelet transform"
+"according to the number of layers used for wavelet transform"
 
 #: src/core/command_line_processor.c:50
-#, fuzzy
 msgid "unknown command name"
-msgstr "unknown command line parameter '%c'\n"
+msgstr "unknown command name"
 
 #: src/core/command_line_processor.c:52
 msgid "non-blocking command, no error"
@@ -14350,19 +14341,16 @@ msgid "current working directory is invalid"
 msgstr "当前工作目录无效"
 
 #: src/core/command_line_processor.c:56
-#, fuzzy
 msgid "command cannot be used in a script"
-msgstr "This command cannot be used in a script: %s\n"
+msgstr "命令不能在脚本中使用"
 
 #: src/core/command_line_processor.c:58
-#, fuzzy
 msgid "invalid number of arguments"
-msgstr "Incorrect number of arguments\n"
+msgstr "invalid number of arguments"
 
 #: src/core/command_line_processor.c:60
-#, fuzzy
 msgid "invalid arguments"
-msgstr "Invalid argument %s, aborting.\n"
+msgstr "Invalid arguments"
 
 #: src/core/command_line_processor.c:62
 msgid "invalid image area selection"
@@ -14393,33 +14381,28 @@ msgid "invalid input image"
 msgstr "未知图像"
 
 #: src/core/command_line_processor.c:75
-#, fuzzy
 msgid "load an image or sequence first"
-msgstr "请先载入图像或队列。\n"
+msgstr "首先加载图像或队列"
 
 #: src/core/command_line_processor.c:77
-#, fuzzy
 msgid "command is only for a loaded single image"
-msgstr "This command cannot be applied on rgb images.\n"
+msgstr "command is only for a loaded single image"
 
 #: src/core/command_line_processor.c:79
 msgid "command is only for a sequence"
 msgstr ""
 
 #: src/core/command_line_processor.c:81
-#, fuzzy
 msgid "command is not for monochrome images"
-msgstr "This command cannot be applied on monochrome images.\n"
+msgstr "command is not for monochrome images"
 
 #: src/core/command_line_processor.c:83
-#, fuzzy
 msgid "command is not for color images"
-msgstr "命令过长或不完整\n"
+msgstr "command is not for color images"
 
 #: src/core/command_line_processor.c:85
-#, fuzzy
 msgid "command is only for OSC CFA images"
-msgstr "This command cannot be applied on rgb images.\n"
+msgstr "command is only for OSC CFA images"
 
 #: src/core/command_line_processor.c:87
 #, fuzzy
@@ -14427,9 +14410,8 @@ msgid "file not found"
 msgstr "文件未找到"
 
 #: src/core/command_line_processor.c:89
-#, fuzzy
 msgid "command is only for plate solved images"
-msgstr "This command cannot be applied on rgb images.\n"
+msgstr "command is only for plate solved images"
 
 #: src/core/command_line_processor.c:91
 msgid "command requires a preliminary step"
@@ -14441,9 +14423,8 @@ msgid "memory allocation error"
 msgstr "归一化"
 
 #: src/core/command_line_processor.c:95
-#, fuzzy
 msgid "a processing is already running"
-msgstr "预处理就绪\n"
+msgstr "一个处理已在运行"
 
 #: src/core/command_line_processor.c:142
 #, c-format
@@ -14998,9 +14979,7 @@ msgstr "所提供的过滤器选项不允许对至少2帧图像进行处理。\n
 msgid ""
 "The reference image is not in the selected set of images. To avoid issues, "
 "please change it or change the filtering parameters.\n"
-msgstr ""
-"参考帧不在所选定的队列里。请重新选择或者改变过滤参数。\n"
-"\n"
+msgstr "参考帧不在所选定的队列里。请重新选择或者改变过滤参数。\n"
 
 #: src/core/sequence_filtering.c:356
 #, c-format
@@ -15208,9 +15187,8 @@ msgid "pixel size in µm for radius adjustment"
 msgstr "像素尺寸（以μm为单位），用于半径调整"
 
 #: src/core/settings.c:289
-#, fuzzy
 msgid "use pattern from the file header"
-msgstr "在文件头中无法找到拜耳阵列排列信息。\n"
+msgstr "使用文件头中的模式"
 
 #: src/core/settings.c:290
 msgid "index of the Bayer pattern"
@@ -15284,9 +15262,8 @@ msgid "degrees of the polynomial correction"
 msgstr "多项式修正的阶数"
 
 #: src/core/settings.c:309
-#, fuzzy
 msgid "radius around the target coordinates (degrees)"
-msgstr "无法拷贝图像，异常终止\n"
+msgstr "目标坐标周围的半径（度）"
 
 #: src/core/settings.c:310
 msgid "do not delete .xyls FITS tables"
@@ -15317,14 +15294,12 @@ msgid "window size of aberration inspector"
 msgstr "像差检查器窗口尺寸"
 
 #: src/core/settings.c:320
-#, fuzzy
 msgid "FITS compression enabled"
-msgstr "FITS压缩启用\n"
+msgstr "FITS压缩启用"
 
 #: src/core/settings.c:321
-#, fuzzy
 msgid "FITS compression method"
-msgstr "FITS压缩启用\n"
+msgstr "FITS压缩方法"
 
 #: src/core/settings.c:322
 msgid "quantization factor for 32-bit float"
@@ -15987,9 +15962,8 @@ msgid "Spawning starnet failed: %s\n"
 msgstr "无法载入ini文件：%s\n"
 
 #: src/filters/starnet.c:139
-#, fuzzy
 msgid "Running StarNet"
-msgstr "开始叠加...\n"
+msgstr "运行StarNet"
 
 #: src/filters/starnet.c:145
 #, c-format
@@ -16007,9 +15981,8 @@ msgid "Spawning starnet failed during version check: %s\n"
 msgstr "无法载入ini文件：%s\n"
 
 #: src/filters/starnet.c:252
-#, fuzzy
 msgid "V2 detected\n"
-msgstr "已选择"
+msgstr "检测到 V2\n"
 
 #: src/filters/starnet.c:258
 msgid "V2-torch detected\n"
@@ -16028,19 +16001,16 @@ msgid ""
 msgstr ""
 
 #: src/filters/starnet.c:371
-#, fuzzy
 msgid "No suitable StarNet executable found.\n"
-msgstr "选择Swap目录"
+msgstr "未找到适当的 StarNet 可执行文件。\n"
 
 #: src/filters/starnet.c:383
-#, fuzzy
 msgid "No suitable StarNet executable found for a mono image.\n"
-msgstr "选择Swap目录"
+msgstr "找不到适合单色图像的 StarNet 可执行文件。\n"
 
 #: src/filters/starnet.c:398
-#, fuzzy
 msgid "No suitable StarNet executable found for a RGB image.\n"
-msgstr "选择Swap目录"
+msgstr "找不到适合 RGB 映像的 StarNet 可执行文件。\n"
 
 #: src/filters/starnet.c:432 src/filters/starnet.c:458
 #: src/filters/starnet.c:467 src/filters/starnet.c:473
@@ -16120,11 +16090,8 @@ msgid "Error: unable to save working StarNet input file...\n"
 msgstr "在当前工作目录中搜索队列...\n"
 
 #: src/filters/starnet.c:631
-#, fuzzy
 msgid "Error: cannot read the neural net weights file.\n"
-msgstr ""
-"无法读取数据\n"
-"\n"
+msgstr "错误：无法读取神经网络权重文件。\n"
 
 #: src/filters/starnet.c:646
 msgid "Error: StarNet did not execute correctly...\n"
@@ -16185,9 +16152,8 @@ msgid "Starnet: Processing image %d\n"
 msgstr "Starnet：处理图像 %d\n"
 
 #: src/filters/starnet.c:984
-#, fuzzy
 msgid "StarNet"
-msgstr "开始叠加...\n"
+msgstr "StarNet"
 
 #: src/filters/starnet.c:994
 msgid "StarNet: Processing..."
@@ -16199,9 +16165,8 @@ msgid "Star synthesis (full star mask creation): processing...\n"
 msgstr "%s通道提取：执行中...\n"
 
 #: src/filters/synthstar.c:388
-#, fuzzy
 msgid "No stars detected in the image.\n"
-msgstr "在图像中查找目标"
+msgstr "图像中未检测到星点。\n"
 
 #: src/filters/synthstar.c:391
 #, c-format
@@ -16287,9 +16252,8 @@ msgstr ""
 "最后，请注意解析算法只能作用于线性图像。"
 
 #: src/gui/astrometry_solver.c:424
-#, fuzzy
 msgid "No object found\n"
-msgstr "无映射"
+msgstr "未找到对象\n"
 
 #: src/gui/astrometry_solver.c:511
 msgid ""
@@ -16615,7 +16579,8 @@ msgid ""
 "may notify the developers that the extension you are trying to use should be "
 "recognized for this type."
 msgstr ""
-"文件扩展名'%s'不被支持。请确认输入了正确的扩展名。\n"
+"文件扩展名'%s'不被支持。\n"
+"请确认输入了正确的扩展名。\n"
 "如果确认无错，那么你需要安装第三方软件来激活这种文件类型，详见README\n"
 "如果你所试图载入的文件类型在支持列表内，那么可以向开发团队提交一个缺陷报告。"
 
@@ -17000,9 +16965,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/newdeconv.c:780
-#, fuzzy
 msgid "No PSF file selected.\n"
-msgstr "%d个文件已选择"
+msgstr "未选择 PSF 文件。\n"
 
 #: src/gui/newdeconv.c:818
 msgid "Kernel estimation complete.\n"
@@ -17053,9 +17017,8 @@ msgstr ""
 
 #. User wants PSF from stars but has not selected any stars
 #: src/gui/newdeconv.c:970 src/gui/newdeconv.c:1094
-#, fuzzy
 msgid "No stars detected. Finding suitable non-saturated stars...\n"
-msgstr "在图像中查找目标"
+msgstr "未检测到星点。寻找合适的非饱和星点...\n"
 
 #: src/gui/newdeconv.c:986 src/gui/newdeconv.c:1110
 msgid "No suitable stars detectable in this image. Aborting..."
@@ -17066,9 +17029,8 @@ msgid "Starting PSF computation..."
 msgstr "开始PSF计算..."
 
 #: src/gui/newdeconv.c:1035
-#, fuzzy
 msgid "Deconvolution PSF generated.\n"
-msgstr "反卷积已应用"
+msgstr "反卷积PSF生成。\n"
 
 #. Refuse to process the image using previous PSF if there is no previous PSF defined
 #. Refuse to process the sequence using previous PSF if there is no previous PSF defined
@@ -17118,9 +17080,8 @@ msgid "_OK"
 msgstr "_OK"
 
 #: src/gui/nina_light_curve.c:27
-#, fuzzy
 msgid "Select the NINA star list file"
-msgstr "请先选择一个区域\n"
+msgstr "选择NINA星表文件"
 
 #: src/gui/nina_light_curve.c:32
 #, fuzzy
@@ -17162,9 +17123,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/nina_light_curve.c:83
-#, fuzzy
 msgid "The currently loaded image must be plate solved"
-msgstr "当前所载入的图像没有FITS头\n"
+msgstr "当前所加载的图像必须是已解析的"
 
 #: src/gui/nina_light_curve.c:104
 msgid ""
@@ -17611,7 +17571,9 @@ msgstr "预览%d"
 msgid ""
 "Load\n"
 "sequences"
-msgstr "读取队列"
+msgstr ""
+"加载\n"
+"队列"
 
 #: src/gui/remixer.c:379
 #, fuzzy
@@ -17639,9 +17601,8 @@ msgid "Eyedropper disabled with unapplied BP shift"
 msgstr ""
 
 #: src/gui/remixer.c:1103 src/gui/remixer.c:1159
-#, fuzzy
 msgid "Error: image could not be loaded"
-msgstr "错误：统计信息计算失败。\n"
+msgstr "错误：无法加载图像"
 
 #: src/gui/remixer.c:1104 src/gui/remixer.c:1160
 #, fuzzy
@@ -18503,11 +18464,8 @@ msgid "Error: memory allocation failure.\n"
 msgstr "错误：统计信息计算失败。\n"
 
 #: src/io/image_formats_internal.c:865
-#, fuzzy
 msgid "Error: Cannot read the data\n"
-msgstr ""
-"无法读取数据\n"
-"\n"
+msgstr "错误：无法读取数据\n"
 
 #: src/io/image_formats_internal.c:890
 #, c-format
@@ -18664,7 +18622,7 @@ msgstr "这是一个由%d帧图像所组成的队列：读取第一帧。\n"
 #: src/io/image_formats_libraries.c:1956
 #, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels\n"
-msgstr "读取HEIF：文件名 %s, %ld layer(s), %ux%u pixels\n"
+msgstr "读取HEIF：文件名 %s, %ld 图层， %ux%u 像素\n"
 
 #: src/io/image_format_fits.c:395
 #, c-format
@@ -18715,14 +18673,14 @@ msgid ""
 msgstr "文件 %s 不是FITS格式，或者没有FITS扩展名。\n"
 
 #: src/io/image_format_fits.c:1830
-#, fuzzy, c-format
+#, c-format
 msgid "Reading FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
-msgstr "保存FITS：文件 %s, %ld通道，%ux%u像素，%d位\n"
+msgstr "保存FITS：文件 %s, %ld图层，%ux%u像素，%d位\n"
 
 #: src/io/image_format_fits.c:1916
 #, c-format
 msgid "FITS read partial: there is no layer %d in the image %s\n"
-msgstr "FITS read partial: there is no layer %d in the image %s\n"
+msgstr "FITS 部分读取：未找到图层 %d 于图像 %s 中\n"
 
 #: src/io/image_format_fits.c:1924
 #, c-format
@@ -18752,7 +18710,7 @@ msgstr "转化中遇到未知的FITS压缩方法\n"
 #: src/io/image_format_fits.c:2297
 #, c-format
 msgid "Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
-msgstr "保存FITS：文件 %s, %ld通道，%ux%u像素，%d位\n"
+msgstr "保存FITS：文件 %s, %ld图层，%ux%u像素，%d位\n"
 
 #: src/io/image_format_fits.c:2394
 #, c-format
@@ -18887,7 +18845,7 @@ msgstr "队列文件 %s 似乎已损坏\n"
 #, c-format
 msgid ""
 "%s: Copying registration data from non-demosaiced layer to green layer\n"
-msgstr "%s: 从未去马赛克通道拷贝对齐数据到绿色通道\n"
+msgstr "%s: 从未去马赛克图层拷贝对齐数据到绿色图层\n"
 
 #: src/io/seqfile.c:574
 #, c-format
@@ -19031,15 +18989,15 @@ msgstr "执行测光于星点 %.1f, %.1f 在图像 %d \n"
 
 #: src/io/sequence.c:1792
 msgid "No registration data stored for this layer"
-msgstr "该通道中没有对准数据"
+msgstr "该图层中没有对齐数据"
 
 #: src/io/sequence.c:1793
 msgid ""
 "Some registration data was found for another layer.\n"
 "Do you want to save the psf data as registration data for this layer?"
 msgstr ""
-"某些其他通道的对准数据被发现。\n"
-"是否要将本通道的psf数据作为对准数据保存？"
+"某些其他图层的对齐数据被发现。\n"
+"是否要将psf数据作为本图层的对齐数据保存？"
 
 #: src/io/sequence.c:1870 src/registration/3stars.c:267
 #, fuzzy
@@ -19093,7 +19051,7 @@ msgstr ""
 #, c-format
 msgid ""
 "Sequence drift could not be checked as sequence has no regdata on layer %d\n"
-msgstr ""
+msgstr "无法检查队列漂移，因为队列在图层 %d 上没有对齐数据\n"
 
 #: src/io/sequence.c:2031
 #, c-format
@@ -19116,7 +19074,7 @@ msgstr "清除图层 %d 的对齐（备份）数据\n"
 #: src/io/sequence.c:2062
 #, c-format
 msgid "Statistics data cleared for layer %d\n"
-msgstr ""
+msgstr "已清除图层 %d 的统计数据\n"
 
 #: src/io/sequence.c:2068
 #, c-format
@@ -19126,7 +19084,7 @@ msgstr "已清除图层 %d 的统计数据（备份）\n"
 #: src/io/sequence_export.c:124
 #, c-format
 msgid "Using registration information from layer %d to export sequence\n"
-msgstr "Using registration information from layer %d to export sequence\n"
+msgstr "使用图层 %d 中的对齐信息导出队列\n"
 
 #: src/io/sequence_export.c:197
 #, c-format
@@ -19305,7 +19263,7 @@ msgstr "这个类型的拜耳滤镜排列模式尚未被支持。\n"
 
 #: src/io/ser.c:1078
 msgid "For a demosaiced image, layer has to be R, G or B (0 to 2).\n"
-msgstr "For a demosaiced image, layer has to be R, G or B (0 to 2).\n"
+msgstr "对于去马赛克图像，图层必须为 R、G 或 B（0 到 2）。\n"
 
 #: src/io/ser.c:1177
 msgid "Trying to add an image of different size in a SER\n"
@@ -19473,9 +19431,8 @@ msgid "Live stacking waiting for files"
 msgstr "实时叠加正在等待文件"
 
 #: src/livestacking/livestacking.c:566
-#, fuzzy
 msgid "Failed to open the first image"
-msgstr "无法载入第一帧图像\n"
+msgstr "无法打开第一帧图像"
 
 #: src/livestacking/livestacking.c:579
 msgid "live stacking will debayer images\n"
@@ -19893,9 +19850,8 @@ msgid "Make sure you load the first selected image"
 msgstr "请确保载入第一幅图像"
 
 #: src/registration/3stars.c:136
-#, fuzzy
 msgid "Make sure you load an image which is included"
-msgstr "请确保您的图像为CFA模式。\n"
+msgstr "确保载入已包含的图像"
 
 #: src/registration/3stars.c:150
 msgid "Draw a selection around the star"
@@ -19963,9 +19919,8 @@ msgid ""
 msgstr "参考帧中未找到星点。请重新选择参考帧\n"
 
 #: src/registration/3stars.c:548
-#, fuzzy
 msgid "Saving the transformation matrices\n"
-msgstr "负片变换"
+msgstr "保存变换矩阵\n"
 
 #: src/registration/3stars.c:611 src/registration/3stars.c:634
 #: src/registration/3stars.c:660 src/registration/3stars.c:671
@@ -19996,14 +19951,13 @@ msgid "Total: %d failed, %d registered.\n"
 msgstr "总计： %d 失败， %d 已对齐。\n"
 
 #: src/registration/applyreg.c:54
-#, fuzzy, c-format
+#, c-format
 msgid "Applying existing registration from layer #%d to transform the images\n"
-msgstr "Using registration information from layer %d to export sequence\n"
+msgstr "应用图层 #%d 中的现有对齐数据来转换图像\n"
 
 #: src/registration/applyreg.c:58
-#, fuzzy
 msgid "No registration data exists for this layer\n"
-msgstr "该通道中没有对准数据"
+msgstr "此图层中没有对齐数据\n"
 
 #: src/registration/applyreg.c:192
 #, c-format
@@ -20152,7 +20106,7 @@ msgstr "无效"
 #: src/registration/global.c:86 src/registration/registration.c:256
 #: src/registration/registration.c:533
 msgid "Recomputing already existing registration for this layer\n"
-msgstr "对该通道重新计算已经存在的对齐数据\n"
+msgstr "对该图层重新计算已经存在的对齐数据\n"
 
 #: src/registration/global.c:145
 msgid "Registering a sequence opened as CFA is a bad idea.\n"
@@ -20518,9 +20472,8 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "叠加 %d 个图像于队列 %d"
 
 #: src/registration/registration.c:1162
-#, fuzzy
 msgid "Failed to determine registration method...\n"
-msgstr "选择范围无参考线"
+msgstr "无法确定对齐方法...\n"
 
 #: src/registration/registration.c:1205
 msgid "Debayer the sequence for registration"
@@ -20535,9 +20488,8 @@ msgid "Select an area in image first, and select images in the sequence"
 msgstr "先在图像中选定一个区域，再于队列中选定一幅图像"
 
 #: src/registration/registration.c:1230
-#, fuzzy
 msgid "Select a layer with existing registration"
-msgstr "对齐后的队列执行Debayer"
+msgstr "选择一个具有对齐数据的图层"
 
 #: src/registration/registration.c:1232
 msgid "Select an area in image first"
@@ -20636,7 +20588,7 @@ msgstr ""
 
 #: src/stacking/median_and_mean.c:1009
 msgid "No registration layer passed, ignoring registration data!\n"
-msgstr "No registration layer passed, ignoring registration data!\n"
+msgstr "没有传递已对齐的图层，忽略对齐数据！\n"
 
 #. no image has been loaded
 #: src/stacking/median_and_mean.c:1023
@@ -20794,9 +20746,9 @@ msgid "Stacking result will be stored as a 32-bit image\n"
 msgstr "叠加结果将被保存为32位图像\n"
 
 #: src/stacking/stacking.c:206
-#, fuzzy, c-format
+#, c-format
 msgid "Stacking will use registration data of layer %d\n"
-msgstr "叠加操作将会使用通道 %d 的对齐数据，如果存在的话。\n"
+msgstr "叠加操作将会使用图层 %d 的对齐数据\n"
 
 #: src/stacking/stacking.c:277
 msgid "Registration data found"
@@ -20818,9 +20770,9 @@ msgid "Stacking: processing...\n"
 msgstr "叠加：处理中...\n"
 
 #: src/stacking/stacking.c:303
-#, fuzzy, c-format
+#, c-format
 msgid "Integration of %d images on %d of the sequence:\n"
-msgstr "叠加 %d 个图像于队列 %d"
+msgstr "叠加 %d 个图像于 %d 队列：\n"
 
 #: src/stacking/stacking.c:307
 msgid "Pixel combination ......... average\n"
