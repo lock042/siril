@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "gui/message_dialog.h"
+#include "core/siril_log.h"
 #include "gui/utils.h"
 
 
@@ -55,6 +56,7 @@ void siril_get_documentation() {
 	}
 	/* Use the tag when documentation will be tagged */
 	gchar *url = g_build_path("/", GET_DOCUMENTATION_URL, "/", lang, "/latest", NULL);
+	control_window_switch_to_tab(OUTPUT_LOGS);
 	siril_log_message(_("Siril documentation URL: %s\n"), url);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
