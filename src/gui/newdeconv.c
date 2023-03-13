@@ -264,7 +264,7 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 	/* Use the tag when documentation will be tagged */
 	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, "latest", DECONVOLUTION_TIPS_URL);
-	siril_debug_print("URL: %s\n", url);
+	siril_log_message(_("Deconvolution usage hints and tips URL: %s\n"), url);
 #if GTK_CHECK_VERSION(3, 22, 0)
 	GtkWidget* win = lookup_widget("control_window");
 	ret = gtk_show_uri_on_window(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), url,
