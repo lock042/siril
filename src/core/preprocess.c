@@ -572,7 +572,6 @@ int preprocess_given_image(char *file, struct preprocessing_data *args) {
 		free(filename_noext);
 		g_free(dest_filename);
 	}
-	clearfits(&fit);
 	return ret;
 }
 
@@ -890,6 +889,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			}
 		}
 	}
+	clearfits(&reffit);
 	return has_error;
 }
 
@@ -975,6 +975,20 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	long icold = 0L, ihot = 0L;
 	double rate, total;
 	fits fit = { 0 };
+	fits reffit = { 0 };
+	int status;
+	gboolean isseq = FALSE;
+	if (sequence_is_loaded()) {
+		// loading the sequence reference image's metadata
+		int image_to_load = sequence_find_refimage(&com.seq);
+		if (seq_read_frame_metadata(&com.seq, image_to_load, &reffit)) {
+			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+			return;
+		}
+		isseq = TRUE;
+	} else {
+		reffit = gfit;
+	}
 
 	set_cursor_waiting(TRUE);
 	sig[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox")));
@@ -985,12 +999,14 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	label[1] = GTK_LABEL(lookup_widget("GtkLabelHotCC"));
 	entry = GTK_ENTRY(lookup_widget("darkname_entry"));
 	filename = gtk_entry_get_text(entry);
-	if (readfits(filename, &fit, NULL, !com.pref.force_16bit)) {
+	gchar *expression = path_parse(&reffit, filename, PATHPARSE_MODE_READ, &status);
+	if (status || readfits(expression, &fit, NULL, !com.pref.force_16bit)) {
 		str[0] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
 		str[1] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
 		gtk_label_set_markup(label[0], str[0]);
 		gtk_label_set_markup(label[1], str[1]);
 		set_cursor_waiting(FALSE);
+		g_free(expression);
 		return;
 	}
 	find_deviant_pixels(&fit, sig, &icold, &ihot, TRUE);
@@ -1022,4 +1038,7 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	g_free(str[0]);
 	g_free(str[1]);
 	set_cursor_waiting(FALSE);
+	g_free(expression);
+	if (isseq)
+		clearfits(&reffit);
 }
