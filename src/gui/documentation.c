@@ -55,6 +55,7 @@ void siril_get_documentation() {
 	}
 	/* Use the tag when documentation will be tagged */
 	gchar *url = g_build_path("/", GET_DOCUMENTATION_URL, "/", lang, "/latest", NULL);
+	siril_log_message(_("Siril documentation URL: %s\n"), url);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	GtkWidget* win = lookup_widget("control_window");
