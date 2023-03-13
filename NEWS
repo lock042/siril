@@ -2,6 +2,7 @@ siril 1.2.0-beta3
 xx/xx/xx
 
 * Fixed crash in seqstarnet when processing single-file sequences (SER, FITSEQ)
+* Fixed hang in seqstarnet when processing a single-file sequence with no star mask
 
 v1.2.0-beta2 March 12, 2023
 
