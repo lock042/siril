@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-11 11:18+0100\n"
-"PO-Revision-Date: 2023-03-12 21:45+0000\n"
+"PO-Revision-Date: 2023-03-16 00:55+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -270,8 +270,9 @@ msgid "Protect from Highlights"
 msgstr "Защитить от светов"
 
 #: src/gui/siril3.glade:1270
+#, fuzzy
 msgid "Bright pixels are ignored."
-msgstr ""
+msgstr "Яркие пиксели игнорируются."
 
 #: src/gui/siril3.glade:1290
 msgid "1/Sigma Factor"
@@ -312,7 +313,7 @@ msgstr ""
 #: src/gui/siril3.glade:1590 src/gui/siril3.glade:6755
 #: src/gui/siril3.glade:7531
 msgid "Iterations"
-msgstr "Итераций"
+msgstr "Кол-во итераций"
 
 #: src/gui/siril3.glade:1602
 msgid ""
@@ -378,7 +379,7 @@ msgstr "Центр по X:"
 #: src/gui/siril3.glade:2008
 #, fuzzy
 msgid "X coordinate of the center of polar coordinates."
-msgstr "Координата X начала выделенного фона"
+msgstr "Центр полярных координат по X."
 
 #: src/gui/siril3.glade:2027
 msgid "Y centre:"
@@ -387,7 +388,7 @@ msgstr "Центр по Y:"
 #: src/gui/siril3.glade:2039
 #, fuzzy
 msgid "Y coordinate of the center of polar coordinates."
-msgstr "Координата X начала выделенного фона"
+msgstr "Центр полярных координат по Y."
 
 #: src/gui/siril3.glade:2090
 msgid "StarNet Star Removal"
@@ -4997,6 +4998,7 @@ msgid "Registration channel: "
 msgstr "Канал выравнивания: "
 
 #: src/gui/siril3.glade:21723
+#, fuzzy
 msgid ""
 "Layer on which the registration is done. It can only be done on one layer at "
 "a time, so on monochrome images.\n"
@@ -5005,6 +5007,13 @@ msgid ""
 "When processing images, registration data is taken from the default layer if "
 "available (for RGB images: Green, else fallback to Blue then Red)."
 msgstr ""
+"Слой, на котором выполняется выравнивание. Это может быть сделано на одном "
+"слое за раз, т.е., на Ч/Б изображениях.\n"
+"Символ (*) после имени слоя обозначает, что для этого него доступны данные "
+"выравнивания.\n"
+"При обработке изображений данные выравнивания берутся со слоя по умолчанию, "
+"если таковой доступен (для изображений RGB — зелёный, в противном случае "
+"запасные слои, сначала синий, потом красный)."
 
 #: src/gui/siril3.glade:21751
 msgid "Follow star movement"
@@ -6080,7 +6089,7 @@ msgstr "Введите 'help', чтобы посмотреть список по
 
 #: src/gui/siril3.glade:25314
 msgid "Displays manual of the command written in the console."
-msgstr ""
+msgstr "Руководство к команде, введённой в командной строке."
 
 #: src/gui/siril3.glade:25326
 msgid "Stop"
@@ -6120,12 +6129,16 @@ msgid ""
 "put them in black to see in which part of the image the threshold is "
 "exceeded."
 msgstr ""
+"Вместо сохранения белыми пикселей со значениями выше &quot;hi&quot;, "
+"выделите их чёрным, чтобы увидеть, где превышен порог."
 
 #: src/gui/siril3.glade:25502
 msgid ""
 "Instead of keeping pixels with values above the \"hi\" value white, put them "
 "in black to see in which part of the image the threshold is exceeded."
 msgstr ""
+"Вместо сохранения белыми пикселей со значениями выше \"hi\", выделите их "
+"чёрным, чтобы увидеть, где превышен порог."
 
 #: src/gui/siril3.glade:25542
 msgid "High value"
@@ -6156,10 +6169,17 @@ msgid ""
 "to display your data. Stretch your histogram before to work on an external "
 "tool.</b>"
 msgstr ""
+"Режим просмотра: список содержит все режимы просмотра, доступные в Siril.\n"
+"\n"
+"<b>ВНИМАНИЕ: только Линейный режим отображает реальные значения пикселей ("
+"когда ползунки находятся в минимальном и максимальном положениях). Остальные "
+"режимы это только удобный способ отобразить данные. Растяните гистограмму "
+"прежде чем работать с внешними инструментами.</b>"
 
 #: src/gui/siril3.glade:25779
 msgid "Chain/unchain channels in autostretch viewer mode.\n"
 msgstr ""
+"Заблокировать/разблокировать каналы в режиме автоматического растягивания.\n"
 
 #: src/gui/siril3.glade:25805
 msgid "Switch to normal and negative view"
@@ -6293,7 +6313,7 @@ msgid ""
 "Displays the amount of disk space available on the file system containing "
 "the working directory."
 msgstr ""
-"Показывать объем доступного свободного места на диске, где расположен "
+"Показывать объём доступного свободного места на диске, где расположен "
 "рабочий каталог."
 
 #. Must be short !!
@@ -6337,6 +6357,8 @@ msgid ""
 "By clicking on this option, you will use your own color calibration factors. "
 "This option is disabled by default."
 msgstr ""
+"Использовать собственные коэффициенты для калибровки цвета. По умолчанию эта "
+"опция отключена."
 
 #: src/gui/siril3.glade:27290
 #, fuzzy
@@ -8466,7 +8488,7 @@ msgstr ""
 #: src/algos/demosaicing.c:1240 src/algos/extraction.c:163 src/io/ser.c:833
 #: src/io/ser.c:1064
 msgid "No Bayer pattern found in the header file.\n"
-msgstr ""
+msgstr "Шаблон Байера не найден в заголовке файла.\n"
 
 #: src/algos/demosaicing.c:1243 src/algos/extraction.c:166 src/io/ser.c:837
 #: src/io/ser.c:1068
@@ -8633,7 +8655,7 @@ msgstr ""
 #: src/algos/geometry.c:355 src/algos/geometry.c:408
 #, c-format
 msgid "Rotation (%s interpolation, angle=%g): processing...\n"
-msgstr "Вращение (интерполяция \"%s\", угол=%g): обработка…\n"
+msgstr "Вращение (интерполяция \"%s\", угол=%g): выполняется…\n"
 
 #: src/algos/geometry.c:356 src/algos/geometry.c:387
 msgid "No"
@@ -9106,7 +9128,7 @@ msgstr ""
 #: src/algos/star_finder.c:1167 src/registration/applyreg.c:240
 #: src/registration/comet.c:240 src/registration/global.c:139
 msgid "Could not load reference image\n"
-msgstr ""
+msgstr "Не удаётся загрузить опорное изображение\n"
 
 #: src/algos/star_finder.c:1259
 #, fuzzy, c-format
@@ -13964,16 +13986,19 @@ msgid "type of interpolation"
 msgstr "тип интерполяции"
 
 #: src/core/settings.c:292
+#, fuzzy
 msgid "force debayer top-down"
-msgstr ""
+msgstr "принудительная дебайеризация сверху вниз"
 
 #: src/core/settings.c:293
+#, fuzzy
 msgid "Bayer matrix offset X"
-msgstr ""
+msgstr "Смещение шаблона Байера по X"
 
 #: src/core/settings.c:294
+#, fuzzy
 msgid "Bayer matrix offset Y"
-msgstr ""
+msgstr "Смещение шаблона Байера по Y"
 
 #: src/core/settings.c:295
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
@@ -14245,16 +14270,17 @@ msgstr ""
 #: src/core/settings.c:375
 #, fuzzy
 msgid "warn when launching a script"
-msgstr "Загрузка скрипта: %s\n"
+msgstr "предупреждать при загрузке скрипта"
 
 #: src/core/settings.c:376
 #, fuzzy
 msgid "show thumbnails in open dialog"
-msgstr "Показывать миниатюры при выборе файлов"
+msgstr "показывать миниатюры при выборе файлов"
 
 #: src/core/settings.c:377
+#, fuzzy
 msgid "size of the thumbnails"
-msgstr "Размер миниатюр"
+msgstr "размер миниатюр"
 
 #: src/core/settings.c:378
 msgid "number of elements of the grid guides"
@@ -14279,33 +14305,39 @@ msgid "index of the compass position over grid"
 msgstr ""
 
 #: src/core/settings.c:384
+#, fuzzy
 msgid "show Messier objects in annotations"
-msgstr ""
+msgstr "показывать объекты каталога Мессье в аннотациях"
 
 #: src/core/settings.c:385
+#, fuzzy
 msgid "show NGC objects in annotations"
-msgstr ""
+msgstr "показывать объекты каталога NGC в аннотациях"
 
 #: src/core/settings.c:386
+#, fuzzy
 msgid "show IC objects in annotations"
-msgstr ""
+msgstr "показывать объекты каталога IC в аннотациях"
 
 #: src/core/settings.c:387
+#, fuzzy
 msgid "show LDN objects in annotations"
-msgstr ""
+msgstr "показывать объекты каталога LDN в аннотациях"
 
 #: src/core/settings.c:388
+#, fuzzy
 msgid "show SH2 objects in annotations"
-msgstr ""
+msgstr "показывать объекты каталога SH2 в аннотациях"
 
 #: src/core/settings.c:389
 #, fuzzy
 msgid "show stars in annotations"
-msgstr "Только в выделении"
+msgstr "показать звёзды в аннотациях"
 
 #: src/core/settings.c:390
+#, fuzzy
 msgid "show user objects in annotations"
-msgstr ""
+msgstr "показать пользовательские объекты в аннотациях"
 
 #: src/core/settings.c:392
 #, fuzzy
@@ -14469,18 +14501,18 @@ msgid "Redo: %s\n"
 msgstr "Вернуть: %s\n"
 
 #: src/core/undo.c:351
-#, c-format
+#, c-format, fuzzy
 msgid "Undo: \"%s\""
-msgstr ""
+msgstr "Отменить: \"%s\""
 
 #: src/core/undo.c:355
 msgid "Nothing to undo"
 msgstr ""
 
 #: src/core/undo.c:357
-#, c-format
+#, c-format, fuzzy
 msgid "Redo: \"%s\""
-msgstr ""
+msgstr "Вернуть: \"%s\""
 
 #: src/core/undo.c:361
 msgid "Nothing to redo"
@@ -14491,19 +14523,19 @@ msgid "Unknown error\n"
 msgstr "Неизвестная ошибка\n"
 
 #: src/core/utils.c:994
-#, c-format
+#, c-format, fuzzy
 msgid "'%s' No such file or directory\n"
-msgstr ""
+msgstr "'%s' Нет такого файла или директории\n"
 
 #: src/core/utils.c:997
-#, c-format
+#, c-format, fuzzy
 msgid "'%s' is not a directory\n"
-msgstr ""
+msgstr "'%s' не директория\n"
 
 #: src/core/utils.c:1000
-#, c-format
+#, c-format, fuzzy
 msgid "You don't have permission to write in this directory: '%s'\n"
-msgstr ""
+msgstr "Отсутствуют права на запись в директорию: '%s'\n"
 
 #: src/core/utils.c:1022
 #, c-format
@@ -14511,9 +14543,9 @@ msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr ""
 
 #: src/core/utils.c:1025
-#, c-format
+#, c-format, fuzzy
 msgid "Could not change directory to '%s'.\n"
-msgstr ""
+msgstr "Не удаётся изменить директорию на '%s'.\n"
 
 #: src/core/utils.c:1045
 msgid ""
@@ -14547,8 +14579,9 @@ msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
 msgstr "Преобразование по asinh: (stretch=%6.1lf, bp=%7.5lf)"
 
 #: src/filters/banding.c:186
+#, fuzzy
 msgid "Banding Reducing: processing...\n"
-msgstr ""
+msgstr "Уменьшение полошения: выполняется...\n"
 
 #: src/filters/banding.c:408
 #, c-format
@@ -14556,9 +14589,9 @@ msgid "Canon Banding Reduction (amount=%.2lf)"
 msgstr "Уменьшение полошения (кол-во=%.2lf)"
 
 #: src/filters/banding.c:410
-#, c-format
+#, c-format, fuzzy
 msgid "Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"
-msgstr ""
+msgstr "Уменьшение полошения (кол-во=%.2lf, защитить=TRUE, 1/сигма=%.2lf)"
 
 #: src/filters/clahe.c:59
 #, c-format
@@ -14568,7 +14601,7 @@ msgstr ""
 #: src/filters/cosmetic_correction.c:366
 #, c-format
 msgid "Image %d: %ld pixel corrected (%ld + %ld)\n"
-msgstr "Фото %d: %ld пикселей скорректировано (%ld + %ld)\n"
+msgstr "Изображение %d: %ld пикселей исправлено (%ld + %ld)\n"
 
 #: src/filters/cosmetic_correction.c:463
 msgid "Cosmetic Correction: processing...\n"
@@ -14596,8 +14629,9 @@ msgid "Fourier Transform: processing...\n"
 msgstr "Преобразование Фурье: выполняется…\n"
 
 #: src/filters/fft.c:534
+#, fuzzy
 msgid "There is something wrong in your files\n"
-msgstr ""
+msgstr "В ваших файлах что-то не так\n"
 
 #: src/filters/fft.c:549 src/gui/newdeconv.c:1025 src/gui/newdeconv.c:1245
 msgid "Siril FFT wisdom updated successfully...\n"
@@ -14644,7 +14678,7 @@ msgstr "Медианный фильтр: выполняется…\n"
 
 #: src/filters/median.c:465 src/filters/median.c:756
 msgid "Median filter applied"
-msgstr "Медианный фильтр применен"
+msgstr "Медианный фильтр применён"
 
 #: src/filters/mtf.c:35
 #, c-format
@@ -14663,27 +14697,32 @@ msgstr ""
 
 #: src/filters/rgradient.c:69
 msgid "Rotational gradient: processing...\n"
-msgstr ""
+msgstr "Вращательный градиент: выполняется…\n"
 
 #. only used for progress bar
 #. only used for progress bar
 #: src/filters/rgradient.c:84
+#, fuzzy
 msgid "Rotational gradient in progress..."
-msgstr ""
+msgstr "Вращательный градиент применяется…"
 
 #: src/filters/rgradient.c:164 src/filters/rgradient.c:176
 msgid "Rotational gradient complete."
-msgstr ""
+msgstr "Вращательный градиент применён."
 
 #: src/filters/rgradient.c:250
+#, fuzzy
 msgid "Wrong center coordinates"
-msgstr ""
+msgstr "Неверные координаты центра"
 
 #: src/filters/rgradient.c:251
+#, fuzzy
 msgid ""
 "The coordinates cannot be greater than the size of the image. Please change "
 "their values and retry."
 msgstr ""
+"Координаты не могут быть больше, чем размер изображения. Пожалуйста, "
+"измените значения координат и попробуйте снова."
 
 #: src/filters/rgradient.c:256
 #, c-format
@@ -17444,7 +17483,7 @@ msgstr ""
 #: src/io/image_format_fits.c:2297
 #, c-format
 msgid "Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
-msgstr ""
+msgstr "Сохранение FITS: файл %s, слоёв %ld, пикселей %u×%u, битов %d\n"
 
 #: src/io/image_format_fits.c:2394
 #, c-format
@@ -17459,9 +17498,9 @@ msgstr ""
 #: src/io/image_format_fits.c:3148 src/io/ser.c:1359
 msgid "frame"
 msgid_plural "frames"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "кадр"
+msgstr[1] "кадра"
+msgstr[2] "кадров"
 
 #: src/io/image_format_fits.c:3148 src/io/image_format_fits.c:3153
 #: src/io/ser.c:1359
@@ -17638,7 +17677,7 @@ msgstr ""
 #: src/io/sequence.c:532
 #, c-format
 msgid "Sequence loaded: %s (%d->%d)\n"
-msgstr ""
+msgstr "Загружена последовательность: %s (%d->%d)\n"
 
 #: src/io/sequence.c:759 src/io/sequence.c:887
 #, c-format
@@ -17677,7 +17716,7 @@ msgstr ""
 #: src/io/sequence.c:1414
 #, c-format
 msgid "Closing sequence %s\n"
-msgstr ""
+msgstr "Закрываем последовательность %s\n"
 
 #: src/io/sequence.c:1523
 msgid "internal sequence"
@@ -18817,31 +18856,32 @@ msgstr ""
 
 #: src/registration/global.c:147
 msgid "Reference Image:\n"
-msgstr "Опорное фото:\n"
+msgstr "Опорное изображение:\n"
 
 #: src/registration/global.c:157
 #, c-format
 msgid "Found %d stars in reference, channel #%d\n"
-msgstr ""
+msgstr "Найдено %d звёзд на опорном изображении, канал №%d\n"
 
 #: src/registration/global.c:162
 msgid "There are not enough stars in reference image to perform alignment\n"
 msgstr ""
+"На опорном изображении недостаточно звёзд, чтобы выполнить выравнивание\n"
 
 #: src/registration/global.c:209
 #, c-format
 msgid "Reference Image: Limiting to %d brightest stars\n"
-msgstr ""
+msgstr "Опорное изображение: ограничение до %d ярчайших звёзд\n"
 
 #: src/registration/global.c:214
 #, c-format
 msgid "FWHMx:%*.2f %s\n"
-msgstr ""
+msgstr "FWHMx:%*.2f %s\n"
 
 #: src/registration/global.c:215
 #, c-format
 msgid "FWHMy:%*.2f %s\n"
-msgstr ""
+msgstr "FWHMy:%*.2f %s\n"
 
 #: src/registration/global.c:245
 #, c-format
@@ -18884,17 +18924,17 @@ msgstr ""
 #: src/registration/global.c:324
 #, c-format
 msgid "Found %d stars in image %d, channel #%d\n"
-msgstr ""
+msgstr "Найдено %d звёзд на изображении %d, канал №%d\n"
 
 #: src/registration/global.c:328
 #, c-format
 msgid "Not enough stars. Image %d skipped\n"
-msgstr ""
+msgstr "Недостаточно звёзд. Пропускаем изображение %d\n"
 
 #: src/registration/global.c:336
 #, c-format
 msgid "Target Image: Limiting to %d brightest stars\n"
-msgstr ""
+msgstr "Целевое изображение: ограничение до %d ярчайших звёзд\n"
 
 #: src/registration/global.c:488
 msgid "Registration aborted.\n"
@@ -18904,7 +18944,7 @@ msgstr "Выравнивание прервано.\n"
 #: src/registration/global.c:674
 #, c-format
 msgid "Matching stars in image %d: done\n"
-msgstr ""
+msgstr "Сопоставление звёзд на изображении %d: завершено\n"
 
 #: src/registration/global.c:675
 #, c-format
@@ -18944,17 +18984,17 @@ msgstr "вращение:%+*.3f°\n"
 #: src/registration/global.c:695
 #, c-format
 msgid "dx:%+*.2f px\n"
-msgstr ""
+msgstr "dx:%+*.2f px\n"
 
 #: src/registration/global.c:696
 #, c-format
 msgid "dy:%+*.2f px\n"
-msgstr ""
+msgstr "dy:%+*.2f px\n"
 
 #: src/registration/global.c:697
 #, c-format
 msgid "FWHM:%*.2f %s\n"
-msgstr ""
+msgstr "FWHM:%*.2f %s\n"
 
 #: src/registration/global.c:698
 #, c-format
@@ -19088,9 +19128,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/registration.c:142
-#, fuzzy
 msgid "1-2-3 Stars Registration (deep-sky)"
-msgstr "По одной звезде (дальний космос)"
+msgstr "1-2-3 звезды (дальний космос)"
 
 #: src/registration/registration.c:148
 msgid "Image Pattern Alignment (planetary - full disk)"
@@ -19098,16 +19137,15 @@ msgstr "По паттерну (полный диск планет)"
 
 #: src/registration/registration.c:150
 msgid "KOMBAT (planetary surfaces or full disk)"
-msgstr ""
+msgstr "KOMBAT (поверхности планет или полный диск)"
 
 #: src/registration/registration.c:152
 msgid "Comet/Asteroid Registration"
 msgstr "По комете/астероиду"
 
 #: src/registration/registration.c:154
-#, fuzzy
 msgid "Apply Existing Registration"
-msgstr "Применить трансформацию гистограммы"
+msgstr "Применить существующее выравнивание"
 
 #: src/registration/registration.c:174
 #, c-format
