@@ -369,6 +369,10 @@ void set_iter_of_clicked_psf(double x, double y) {
 			if (!path) return;
 			gtk_tree_selection_unselect_all(selection);
 			gtk_tree_selection_select_path(selection, path);
+			// Workaround to flush the events queue, may help with glitches in the TreeView
+			while(gtk_events_pending()) {
+				gtk_main_iteration();
+			}
 			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
 			gtk_tree_path_free(path);
 			gui.selected_star = get_index_of_selected_star(xpos, ypos);
