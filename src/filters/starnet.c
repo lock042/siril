@@ -922,7 +922,8 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	starnet_data *seqdata = (starnet_data *) args->user;
 	seqdata->force_ser = args->force_ser_output;
 	seqdata->starnet_fit = fit;
-	seqdata->starmask_fit = calloc(1, sizeof(fits));
+	if (seqdata->starmask)
+		seqdata->starmask_fit = calloc(1, sizeof(fits));
 	seqdata->imgnumber = o;
 	siril_log_color_message(_("Starnet: Processing image %d\n"), "green", o + 1);
 	do_starnet(seqdata);
