@@ -79,22 +79,15 @@ static gboolean end_stacking(gpointer p);
 static void stacking_args_deep_copy(struct stacking_args *from, struct stacking_args *to);
 static void stacking_args_deep_free(struct stacking_args *args);
 
-void initialize_stacking_default() {
-	com.pref.stack.sigma_low = 4.0;
-	com.pref.stack.sigma_high = 3.0;
-	com.pref.stack.linear_low = 5.0;
-	com.pref.stack.linear_high = 5.0;
-	com.pref.stack.percentile_low = 0.2;
-	com.pref.stack.percentile_high = 0.1;
-}
-
 void initialize_stacking_methods() {
 	GtkComboBoxText *stackcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxstack_methods"));
 	GtkComboBoxText *rejectioncombo = GTK_COMBO_BOX_TEXT(lookup_widget("comborejection"));
+	GtkComboBoxText *weightingcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboweighing"));
 	GtkSpinButton *low = GTK_SPIN_BUTTON(lookup_widget("stack_siglow_button"));
 	GtkSpinButton *high = GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button"));
 	gtk_combo_box_set_active(GTK_COMBO_BOX(stackcombo), com.pref.stack.method);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(rejectioncombo), com.pref.stack.rej_method);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(weightingcombo), com.pref.stack.weighting_method);
 	switch (gtk_combo_box_get_active(GTK_COMBO_BOX(rejectioncombo))) {
 	case PERCENTILE:
 		gtk_spin_button_set_value(low, com.pref.stack.percentile_low);
@@ -118,7 +111,6 @@ void initialize_stacking_methods() {
 	default:
 		return;
 	}
-
 }
 
 gboolean evaluate_stacking_should_output_32bits(const stack_method method,
@@ -726,6 +718,10 @@ void on_combonormalize_changed (GtkComboBox *box, gpointer user_data) {
 	GtkWidget *fast_norm = lookup_widget("checkfastnorm");
 	gtk_widget_set_sensitive(force_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 	gtk_widget_set_sensitive(fast_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
+}
+
+void on_comboweighing_changed (GtkComboBox *box, gpointer user_data) {
+	com.pref.stack.weighting_method = gtk_combo_box_get_active(box);
 }
 
 void on_stack_siglow_button_value_changed(GtkSpinButton *button, gpointer user_data) {
