@@ -186,6 +186,7 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("annotate_button", "astrometry_dark.svg");
 		update_theme_button("wcs_grid_button", "wcs-grid_dark.svg");
 		update_theme_button("photometry_button", "photometry_dark.svg");
+		update_theme_button("cut_button", "cut_dark.svg");
 
 		update_theme_button("rotate90_anticlock_button", "rotate-acw_dark.svg");
 		update_theme_button("rotate90_clock_button", "rotate-cw_dark.svg");
@@ -202,6 +203,7 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("annotate_button", "astrometry.svg");
 		update_theme_button("wcs_grid_button", "wcs-grid.svg");
 		update_theme_button("photometry_button", "photometry.svg");
+		update_theme_button("cut_button", "cut.svg");
 
 		update_theme_button("rotate90_anticlock_button", "rotate-acw.svg");
 		update_theme_button("rotate90_clock_button", "rotate-cw.svg");
