@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-11 11:18+0100\n"
-"PO-Revision-Date: 2023-03-16 00:55+0000\n"
+"PO-Revision-Date: 2023-03-16 09:03+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -76,12 +76,16 @@ msgid ""
 "How many times (in averrage deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a cold pixel."
 msgstr ""
+"Во сколько раз (в средних единицах отклонения) значение пикселя должно "
+"отличаться от соседних, чтобы рассматривать пиксель как холодный."
 
 #: src/gui/siril3.glade:237 src/gui/siril3.glade:267
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a cold pixel."
 msgstr ""
+"Во сколько раз (в средних единицах отклонения) значение пикселя должно "
+"отличаться от соседних, чтобы рассматривать пиксель как холодный."
 
 #: src/gui/siril3.glade:283 src/gui/siril3.glade:21296
 msgid "Hot Sigma:"
@@ -92,12 +96,16 @@ msgid ""
 "How many times (in averrage deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a hot pixel."
 msgstr ""
+"Во сколько раз (в средних единицах отклонения) значение пикселя должно "
+"отличаться от соседних, чтобы рассматривать пиксель как горячий."
 
 #: src/gui/siril3.glade:303 src/gui/siril3.glade:333
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a hot pixel."
 msgstr ""
+"Во сколько раз (в средних единицах отклонения) значение пикселя должно "
+"отличаться от соседних, чтобы рассматривать пиксель как горячий."
 
 #: src/gui/siril3.glade:352 src/gui/siril3.glade:1215 src/gui/siril3.glade:5163
 #: src/gui/siril3.glade:5431
@@ -121,6 +129,8 @@ msgid ""
 "Check if the target frames are CFA images.\n"
 "Uncheck if images come from a monochrome sensor."
 msgstr ""
+"Выберете, если целевые кадры это изображения CFA. \n"
+"Отключите, если изображения получены на Ч/Б сенсор."
 
 #: src/gui/siril3.glade:425 src/gui/siril3.glade:1363 src/gui/siril3.glade:2292
 #: src/gui/siril3.glade:3947 src/gui/siril3.glade:7728
@@ -135,6 +145,9 @@ msgid ""
 "If a sequence is loaded and this is activated, perform the processing on all "
 "images of the sequence instead of only the loaded image."
 msgstr ""
+"Если загружена последовательность и активен этот пункт, выполнить обработку "
+"всех изображений в последовательности, а не только непосредственно "
+"загруженное изображение."
 
 #: src/gui/siril3.glade:443 src/gui/siril3.glade:1382 src/gui/siril3.glade:3964
 #: src/gui/siril3.glade:7868 src/gui/siril3.glade:15948
@@ -146,6 +159,8 @@ msgstr "Префикс вывода:"
 msgid ""
 "Prefix of the image names resulting from the cosmetic correction process."
 msgstr ""
+"Префикс названий изображений, полученных по завершении процесса "
+"косметической коррекции."
 
 #: src/gui/siril3.glade:566
 msgid "Binning"
@@ -189,21 +204,23 @@ msgstr "Отмена"
 
 #: src/gui/siril3.glade:804
 msgid "Tiles Grid Size"
-msgstr ""
+msgstr "Размер ячейки"
 
 #: src/gui/siril3.glade:843
 msgid ""
 "Sets size of grid for histogram equalization. Input image will be divided "
 "into equally sized rectangular tiles. "
 msgstr ""
+"Устанавливает размер сетки для выравнивания гистограммы. Изображение будет "
+"разделено на прямоугольные ячейки одинакового размера "
 
 #: src/gui/siril3.glade:864
 msgid "Clip Limit"
-msgstr ""
+msgstr "Предел обрезки"
 
 #: src/gui/siril3.glade:899
 msgid "Sets threshold for contrast limiting."
-msgstr ""
+msgstr "Пороговое значение для ограничения контраста."
 
 #. Try to have 3 lines here.
 #: src/gui/siril3.glade:917
@@ -212,6 +229,9 @@ msgid ""
 "stacking residuals by cropping the image. If you don't,\n"
 "artifacts may appear."
 msgstr ""
+"Убедитесь что все чёрные границы и другие остатки\n"
+"укладки изображения обрезаны. В противном случае\n"
+"возможно появление артефактов."
 
 #: src/gui/siril3.glade:930 src/gui/siril3.glade:3046 src/gui/siril3.glade:3379
 #: src/gui/siril3.glade:5269
@@ -220,7 +240,7 @@ msgstr "Предпросмотр"
 
 #: src/gui/siril3.glade:993
 msgid "Wavelets Layers Extraction"
-msgstr "Извлечение вейвлетных слоев"
+msgstr "Извлечение вейвлетных слоёв"
 
 #: src/gui/siril3.glade:1029
 msgid "Apply wavelet extraction."
@@ -250,7 +270,7 @@ msgstr "В-сплайн"
 
 #: src/gui/siril3.glade:1099
 msgid "Nb. of Layers: "
-msgstr "Кол-во слоев: "
+msgstr "Кол-во слоёв: "
 
 #: src/gui/siril3.glade:1111 src/gui/siril3.glade:18478
 #: src/gui/siril3.glade:18749
@@ -283,6 +303,8 @@ msgid ""
 "Background for lines is computed using pixels in SigmaFactor * StdDev only. "
 "Higher value will give a better protection."
 msgstr ""
+"Фон строк вычисляется используя только пиксели в приделах «коэффициент сигма "
+"* стандартное отклонение». Большие значения дают лучшую защиту."
 
 #: src/gui/siril3.glade:1342
 msgid "Vertical banding"
@@ -290,11 +312,13 @@ msgstr "Вертикальное полошение"
 
 #: src/gui/siril3.glade:1346
 msgid "Check this box if banding is vertical."
-msgstr ""
+msgstr "Выберете, если полошение вертикальное."
 
 #: src/gui/siril3.glade:1394
 msgid "Prefix of the image names resulting from the unband process."
 msgstr ""
+"Префикс названий изображений, полученных по завершении процесса уменьшения "
+"полошения."
 
 #: src/gui/siril3.glade:1472
 msgid "Median Filter"
@@ -309,6 +333,8 @@ msgid ""
 "Kernel Size. This is the odd size of the neighborhood considered for each "
 "pixel."
 msgstr ""
+"Размер ядра. Это нечётный размер окружения, рассматриваемый для каждого "
+"пикселя."
 
 #: src/gui/siril3.glade:1590 src/gui/siril3.glade:6755
 #: src/gui/siril3.glade:7531
@@ -321,6 +347,9 @@ msgid ""
 "This is useful when modulation parameter is different to 1 helping the whole "
 "process to converge to better result."
 msgstr ""
+"Количество итераций алгоритма.\n"
+"Это полезно, когда параметр модуляции отличен от 1, помогая всему процессу "
+"сойтись к лучшему результату."
 
 #: src/gui/siril3.glade:1648 src/gui/siril3.glade:8246
 msgid "Modulation"
@@ -332,6 +361,9 @@ msgid ""
 "When this parameter is equal to 1, no modulation is applied.\n"
 "If the parameters is null, so no filter is apply at all."
 msgstr ""
+"Параметр модуляции устанавливается в диапазоне [0, 1].\n"
+"Когда этот параметр равен 1, модуляция не применяется.\n"
+"Если параметр равен null, тогда фильтр вообще не применяется."
 
 #: src/gui/siril3.glade:1701 src/gui/siril3.glade:8915
 msgid "Use Luminance"
@@ -377,7 +409,6 @@ msgid "X centre:"
 msgstr "Центр по X:"
 
 #: src/gui/siril3.glade:2008
-#, fuzzy
 msgid "X coordinate of the center of polar coordinates."
 msgstr "Центр полярных координат по X."
 
@@ -386,7 +417,6 @@ msgid "Y centre:"
 msgstr "Центр по Y:"
 
 #: src/gui/siril3.glade:2039
-#, fuzzy
 msgid "Y coordinate of the center of polar coordinates."
 msgstr "Центр полярных координат по Y."
 
@@ -496,7 +526,7 @@ msgstr "Отменить все примененные изменения"
 
 #: src/gui/siril3.glade:2473
 msgid "Select an algorithm type to perform wavelets"
-msgstr ""
+msgstr "Тип алгоритма для вейвлетного преобразования"
 
 #: src/gui/siril3.glade:2492
 msgid "Type:"
@@ -504,11 +534,11 @@ msgstr "Тип:"
 
 #: src/gui/siril3.glade:2504
 msgid "Nb of layers:"
-msgstr "Кол-во слоев:"
+msgstr "Кол-во слоёв:"
 
 #: src/gui/siril3.glade:2515
 msgid "Number of wavelet layers that will be used"
-msgstr "Количество используемых вейвлетных слоев"
+msgstr "Количество используемых вейвлетных слоёв"
 
 #: src/gui/siril3.glade:2540 src/gui/siril3.glade:2564
 msgid "Compute wavelets"
@@ -552,7 +582,7 @@ msgstr "Коэффициент растягивания"
 
 #: src/gui/siril3.glade:3287
 msgid "The parameter stretch factor allows to adjust the non-linearity factor."
-msgstr ""
+msgstr "Коэффициент растягивания позволяет настроить коэффициент нелинейности."
 
 #: src/gui/siril3.glade:3309
 msgid "Black Point"
@@ -560,7 +590,7 @@ msgstr "Точка чёрного"
 
 #: src/gui/siril3.glade:3345
 msgid "Constant value that is subtracted from the image."
-msgstr ""
+msgstr "Постоянное значение, которое будет вычтено из изображения."
 
 #: src/gui/siril3.glade:3361
 msgid "Human-weighted luminance"
@@ -581,12 +611,16 @@ msgid "Close the window."
 msgstr "Закрыть это окно."
 
 #: src/gui/siril3.glade:3450
+#, fuzzy
 msgid ""
 "This will confirm the background model previously applied with the "
 "<b>Compute Background</b> button. However, in the case of a sequence, if the "
 "<b>Apply to sequence</b> button is checked, this will compute the model and "
 "apply it to the whole sequence."
 msgstr ""
+"Это подтвердит модель фона, ранее применённую кнопкой <b>Вычислить фон</b>. "
+"В случае последовательности, если выбрано <b>Применить к последовательности</"
+"b>, будет вычислена модель и применена ко всей последовательности."
 
 #: src/gui/siril3.glade:3484
 msgid "Choose between interpolation methods."
@@ -598,7 +632,7 @@ msgstr "Радиально-базисная функция (RBF)"
 
 #: src/gui/siril3.glade:3489
 msgid "Polynomial"
-msgstr "Полином"
+msgstr "Полиномиальная функция"
 
 #: src/gui/siril3.glade:3519
 msgid "Smoothing"
@@ -606,9 +640,8 @@ msgstr "Сглаживание"
 
 #: src/gui/siril3.glade:3531 src/gui/siril3.glade:3668
 #: src/gui/siril3.glade:3695
-#, fuzzy
 msgid "Number of sample per line that will be automatically placed."
-msgstr "Количество используемых вейвлетных слоев"
+msgstr "Количество автоматически создаваемых образцов в строке."
 
 #: src/gui/siril3.glade:3560
 msgid ""
@@ -624,7 +657,7 @@ msgstr "страница 1"
 
 #: src/gui/siril3.glade:3594
 msgid "Degree order: "
-msgstr "Степень полинома: "
+msgstr "Степень функции: "
 
 #: src/gui/siril3.glade:3606
 msgid ""
@@ -632,6 +665,9 @@ msgid ""
 "By default the value is of 4.\n"
 "The higher the degree order is, the more complex the gradient can be removed."
 msgstr ""
+"Укажите степень полиномиальной функции, используемой при подгонке.\n"
+"По умолчанию это значение 4.\n"
+"Чем выше степень, тем более комплексные градиенты могут быть удалены."
 
 #: src/gui/siril3.glade:3656
 msgid "Samples per line"
@@ -802,7 +838,7 @@ msgstr "ICC-профиль"
 
 #: src/gui/siril3.glade:4503
 msgid "Embed sRGB ICC profile in the image"
-msgstr ""
+msgstr "Встроить профиль sRGB ICC в изображение"
 
 #: src/gui/siril3.glade:4515
 msgid "<b>Embedded Data</b>"
@@ -883,11 +919,11 @@ msgstr "Желтый-зеленый / Зеленый-циановый"
 
 #: src/gui/siril3.glade:5134
 msgid "Cyan"
-msgstr "Циановый"
+msgstr "Голубой"
 
 #: src/gui/siril3.glade:5135
 msgid "Cyan-Blue / Blue-Magenta"
-msgstr "Циановый-синий / Синий-пурпурный"
+msgstr "Голубой-синий / Синий-пурпурный"
 
 #: src/gui/siril3.glade:5136
 msgid "Magenta / Pink"
@@ -902,11 +938,12 @@ msgid ""
 "Value of 0 means no change, negative reduces the color saturation, positive "
 "increases it."
 msgstr ""
+"При значении 0 насыщенность остаётся прежней, отрицательные значения "
+"уменьшают насыщенность, положительные — увеличивают."
 
 #: src/gui/siril3.glade:5220
-#, fuzzy
 msgid "Background factor"
-msgstr "Извлечение фона"
+msgstr "Коэффициент фона"
 
 #: src/gui/siril3.glade:5256
 msgid ""
@@ -914,6 +951,8 @@ msgid ""
 "stronger is the saturation effect. While a high value will preserve the "
 "background."
 msgstr ""
+"Это коэффициент, умножаемый на фоновое значение. Чем меньше значение, тем "
+"сильнее эффект насыщенности. В то время как высокое значение сохранит фон."
 
 #: src/gui/siril3.glade:5319
 msgid "Subtractive Chromatic Green Noise Reduction"
@@ -928,23 +967,24 @@ msgid ""
 "Average Neutral Protection is the default option. This is the recommended "
 "option in most cases."
 msgstr ""
+"Средний нейтральный это опция по умолчанию. Эта рекомендованная опция для "
+"большинства случаев."
 
 #: src/gui/siril3.glade:5401
 msgid "Average Neutral"
-msgstr ""
+msgstr "Средний нейтральный"
 
 #: src/gui/siril3.glade:5402
 msgid "Maximum Neutral"
-msgstr ""
+msgstr "Максимальный нейтральный"
 
 #: src/gui/siril3.glade:5403
 msgid "Maximum Mask"
-msgstr ""
+msgstr "Максимальная маска"
 
 #: src/gui/siril3.glade:5404
-#, fuzzy
 msgid "Additive Mask"
-msgstr "Аддитивная"
+msgstr "Аддитивная маска"
 
 #: src/gui/siril3.glade:5482
 msgid "Preserve lightness"
@@ -963,11 +1003,15 @@ msgstr ""
 "значения."
 
 #: src/gui/siril3.glade:5706
+#, fuzzy
 msgid ""
 "Alternatively, for true colour rendering,\n"
 "select a filter from the list or\n"
 "enter a visible wavelength in nm"
 msgstr ""
+"В противном случае для правильной цветопередачи,\n"
+"выберите фильтр из списка или\n"
+"введите видимую длину волны в нм"
 
 #: src/gui/siril3.glade:5876 src/gui/newdeconv.c:1136 src/gui/newdeconv.c:1471
 msgid "Deconvolution"
