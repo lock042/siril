@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2
 
 Copyright (C) The free-astro development team, 2019
 
@@ -11198,6 +11198,11 @@ Note that luminance based models are not generally invertible.</property>
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="pixbuf">pixmaps/cm.svg</property>
+  </object>
+  <object class="GtkImage" id="image_cut">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">pixmaps/cut.svg</property>
   </object>
   <object class="GtkImage" id="image_export">
     <property name="visible">True</property>
@@ -25878,6 +25883,20 @@ WARNING: This option should not be checked for master stacking.</property>
                     <property name="action-name">win.photometry</property>
                     <property name="use-underline">True</property>
                     <property name="icon-widget">photometry</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToggleToolButton" id="cut_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">IRIS "Cut" function</property>
+                    <property name="action-name">win.cut</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-widget">image_cut</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

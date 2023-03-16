@@ -166,6 +166,7 @@ src_files = [
   'gui/callbacks.c',
   'gui/colors.c',
   'gui/conversion.c',
+  'gui/cut.c',
   'gui/dialog_preview.c',
   'gui/dialogs.c',
   'gui/documentation.c',

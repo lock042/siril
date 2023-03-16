@@ -711,6 +711,18 @@ static void draw_selection(const draw_data_t* dd) {
 	}
 }
 
+static void draw_cut_line(const draw_data_t* dd) {
+	cairo_t *cr = dd->cr;
+	static double dash_format[] = { 4.0, 2.0 };
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	cairo_set_dash(cr, dash_format, 2, 0);
+	cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
+	cairo_save(cr);
+	cairo_move_to(cr, gui.start.x, gui.start.y);
+	cairo_line_to(cr, com.cut_point.x, com.cut_point.y);
+	cairo_restore(cr);
+}
+
 static void draw_stars(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	int i = 0;
@@ -1636,6 +1648,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* selection rectangle */
 	draw_selection(&dd);
+
+	/* cut line */
+	draw_cut_line(&dd);
 
 	/* detected stars and highlight the selected star */
 	g_mutex_lock(&com.mutex);

@@ -208,6 +208,7 @@ siril_common_SOURCES = \
 	gui/conversion.h \
 	gui/colors.c \
 	gui/colors.h \
+	gui/cut.c \
 	gui/dialog_preview.c \
 	gui/dialog_preview.h \
 	gui/dialogs.c \

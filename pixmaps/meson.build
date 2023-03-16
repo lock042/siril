@@ -12,6 +12,8 @@ siril_icons = [
   'chain.svg',
   'cm.svg',
   'curve.svg',
+  'cut.svg',
+  'cut_dark.svg',
   'export_dark.svg',
   'export.svg',
   'eyedropper.svg',

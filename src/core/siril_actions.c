@@ -651,3 +651,9 @@ void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	}
 	rgb_align(0);
 }
+
+void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	mouse_status = MOUSE_ACTION_CUT_SELECT;
+	siril_debug_print("Mouse status MOUSE_ACTION_CUT_SELECT\n");
+}
+

@@ -28,11 +28,20 @@ typedef enum {
 	MOUSE_ACTION_SELECT_PREVIEW1,
 	MOUSE_ACTION_SELECT_PREVIEW2,
 	MOUSE_ACTION_DRAW_SAMPLES,
-	MOUSE_ACTION_PHOTOMETRY
+	MOUSE_ACTION_PHOTOMETRY,
+	MOUSE_ACTION_CUT_SELECT
 } mouse_status_enum;
+
+typedef struct cut_args {
+	pointi start;
+	pointi finish;
+} cut_args;
 
 void init_mouse();
 
 extern mouse_status_enum mouse_status;	// defined in registration_preview.c
+
+extern gpointer cut_profile(gpointer p); // graph a pixel intensity profile between two point,
+										 // like the IRIS cut function. Defined in cut.c
 
 #endif

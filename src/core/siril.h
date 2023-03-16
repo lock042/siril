@@ -556,6 +556,7 @@ struct guiinf {
 
 	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
+	cut_method cutting;			// NO_CUT if not cutting, CUT_UNCONSTRAINED or CUT_VERT_OR_HORIZ as required
 	pointi start;			// where the mouse was originally clicked to
 	pointi origin;			// where the selection was originally located
 	gboolean freezeX, freezeY;	// locked axis during modification of a selection
@@ -606,6 +607,7 @@ struct cominf {
 	int max_thread;			// max total number of threads used for parallel execution
 
 	rectangle selection;		// coordinates of the selection rectangle
+	pointi cut_point;			// point dragged while selecting the cut line
 
 	psf_star **stars;		// list of stars detected in the current image
 	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it
