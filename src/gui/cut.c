@@ -5,6 +5,8 @@
 gpointer cut_profile(gpointer p) {
 	cut_args *args = (cut_args *) p;
 	int retval = 0;
+	com.cut_point.x = -1;
+	com.cut_point.y = -1;
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }

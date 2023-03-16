@@ -712,6 +712,10 @@ static void draw_selection(const draw_data_t* dd) {
 }
 
 static void draw_cut_line(const draw_data_t* dd) {
+	if (!(mouse_status == MOUSE_ACTION_CUT_SELECT))
+		return;
+	if (com.cut_point.x == -1 || com.cut_point.y == -1)
+		return;
 	cairo_t *cr = dd->cr;
 	static double dash_format[] = { 4.0, 2.0 };
 	cairo_set_line_width(cr, 1.5 / dd->zoom);
@@ -720,6 +724,7 @@ static void draw_cut_line(const draw_data_t* dd) {
 	cairo_save(cr);
 	cairo_move_to(cr, gui.start.x, gui.start.y);
 	cairo_line_to(cr, com.cut_point.x, com.cut_point.y);
+	cairo_stroke(cr);
 	cairo_restore(cr);
 }
 
