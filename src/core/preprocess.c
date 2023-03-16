@@ -654,7 +654,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 	args->bias_level = FLT_MAX;
 	args->bad_pixel_map_file = NULL;
 	fits reffit = { 0 };
-	if (args->seq) {
+	gboolean isseq = (args->seq != NULL);
+	if (isseq) {
 		// loading the sequence reference image's metadata in case it's needed
 		int image_to_load = sequence_find_refimage(args->seq);
 		if (seq_read_frame_metadata(args->seq, image_to_load, &reffit)) {
@@ -889,7 +890,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			}
 		}
 	}
-	clearfits(&reffit);
+	if (isseq)
+		clearfits(&reffit);
 	return has_error;
 }
 
