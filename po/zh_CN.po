@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-11 11:18+0100\n"
-"PO-Revision-Date: 2023-03-16 09:03+0000\n"
+"PO-Revision-Date: 2023-03-17 13:39+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -587,7 +587,7 @@ msgstr "从图像中所减去的连续值。"
 
 #: src/gui/siril3.glade:3361
 msgid "Human-weighted luminance"
-msgstr "肉眼明度权重"
+msgstr "人眼加权明度"
 
 #: src/gui/siril3.glade:3365
 msgid ""
@@ -2087,7 +2087,7 @@ msgstr "选择相位文件"
 
 #: src/gui/siril3.glade:9396
 msgid "Inverse Transform"
-msgstr "反变换"
+msgstr "反向变换"
 
 #: src/gui/siril3.glade:9422
 msgid "Star Recomposition"
@@ -2141,10 +2141,9 @@ msgid ""
 "point, lowlight and highlight preservation. The inverse hyperbolic and "
 "arcsinh stretches are also available."
 msgstr ""
-"选择拉伸类型。线性执行简单的线性拉伸到新的黑点。广义双曲线拉伸使用拉伸强度、"
-"局部强度、对称点以及阴影和高光保留区域的参数执行双曲线拉伸。改良化反双曲正弦"
-"拉伸使用对称点、低光和高光保留的附加参数执行反双曲正弦拉伸。反双曲和反双曲正"
-"弦拉伸也可使用。"
+"选择拉伸类型。广义双曲线拉伸使用拉伸强度、局部强度、对称点以及阴影和高光保留"
+"区域的参数执行双曲线拉伸。改良的反双曲正弦拉伸使用对称点、低光和高光保留的附"
+"加参数执行反双曲正弦拉伸。反双曲和反双曲正弦拉伸也可使用。"
 
 #: src/gui/siril3.glade:9583 src/gui/siril3.glade:10192
 #: src/gui/siril3.glade:16033
@@ -2154,17 +2153,17 @@ msgstr "广义双曲变换"
 #: src/gui/siril3.glade:9584 src/gui/siril3.glade:10193
 #: src/gui/siril3.glade:16034
 msgid "Inverse generalised hyperbolic transform"
-msgstr "反广义双曲变换"
+msgstr "反向广义双曲变换"
 
 #: src/gui/siril3.glade:9585 src/gui/siril3.glade:10194
 #: src/gui/siril3.glade:16035
 msgid "Modified arcsinh transform"
-msgstr "改良的反正弦变换"
+msgstr "改良的反双曲正弦变换"
 
 #: src/gui/siril3.glade:9586 src/gui/siril3.glade:10195
 #: src/gui/siril3.glade:16036
 msgid "Inverse modified arcsinh transform"
-msgstr "反改良的反正弦变换"
+msgstr "反向改良的反双曲正弦变换"
 
 #: src/gui/siril3.glade:9614 src/gui/siril3.glade:10223
 #: src/gui/siril3.glade:16064
@@ -2181,42 +2180,43 @@ msgid ""
 "which applies the stretch independently to each channel of the pixel.\n"
 "Note that luminance based models are not generally invertible."
 msgstr ""
+"为彩色拉伸设置拉伸模型。选项包括：均等加权明度，基于 R、G 和 B 通道均等加权所"
+"得的明度值计算拉伸；人眼加权明度，根据人眼对R、G和B通道的相对灵敏度进行加权所"
+"得的明度值计算拉伸；和独立通道值，它将拉伸独立应用于像素的每个通道。 \n"
+"请注意，基于明度的模型通常不是可逆的。"
 
 #: src/gui/siril3.glade:9634 src/gui/siril3.glade:10243
 #: src/gui/siril3.glade:16083
-#, fuzzy
 msgid "Independent channel values"
-msgstr "绿色通道"
+msgstr "独立通道值"
 
 #: src/gui/siril3.glade:9635 src/gui/siril3.glade:10244
 #: src/gui/siril3.glade:16084
-#, fuzzy
 msgid "Human weighted luminance"
-msgstr "肉眼明度权重"
+msgstr "人眼加权明度"
 
 #: src/gui/siril3.glade:9636 src/gui/siril3.glade:10245
 #: src/gui/siril3.glade:16085
-#, fuzzy
 msgid "Even weighted luminance"
-msgstr "肉眼明度权重"
+msgstr "均等加权明度"
 
 #: src/gui/siril3.glade:9670 src/gui/siril3.glade:10279
 #: src/gui/siril3.glade:16141
-#, fuzzy
 msgid "Stretch factor (ln(D+1))"
-msgstr "拉伸因子"
+msgstr "拉伸因子 (ln(D+1))"
 
 #: src/gui/siril3.glade:9681 src/gui/siril3.glade:9706
 msgid ""
 "Independently controls the contrast added (the slope of the stretch) at SP, "
 "thus adjusting the amount of stretch applied to the rest of the image. "
 "Increasing D increases the intensity of stars in the resulting composition."
-msgstr ""
+msgstr "独立控制在SP处添加的对比度（拉伸的斜率），从而调整应用于图像其余部分的拉伸量"
+"。增加D会增加构图结果中星点的强度。"
 
 #: src/gui/siril3.glade:9740 src/gui/siril3.glade:10350
 #: src/gui/siril3.glade:16210
 msgid "Local stretch intensity (b)"
-msgstr ""
+msgstr "局部拉伸强度 （b）"
 
 #: src/gui/siril3.glade:9751 src/gui/siril3.glade:9775
 msgid ""
@@ -2225,11 +2225,13 @@ msgid ""
 "peak brightness above SP, but may bloat their PSF; it will reduce the "
 "intensity of stars below SP."
 msgstr ""
+"通过更改变换本身的形式来控制拉伸聚焦的紧密程度。增加b将增加峰值亮度高于SP的星"
+"点的强度，但可能会使其PSF膨胀；它将降低峰值亮度低于SP星点的强度。"
 
 #: src/gui/siril3.glade:9810 src/gui/siril3.glade:10420
 #: src/gui/siril3.glade:16279
 msgid "Symmetry point (SP)"
-msgstr ""
+msgstr "对称点 （SP）"
 
 #: src/gui/siril3.glade:9821 src/gui/siril3.glade:9867
 msgid ""
@@ -2237,20 +2239,21 @@ msgid ""
 "recomposition, increasing SP reduces the intensity of stars with peak "
 "brightness below SP and therefore the amount of stars that show in the "
 "resulting composition."
-msgstr ""
+msgstr "设置拉伸聚焦的对称点。对于星点重绘，增加SP会降低峰值亮度低于SP的星点的强度，"
+"从而降低构图结果中显示的星点数量。"
 
 #: src/gui/siril3.glade:9841
 msgid ""
 "Allows setting SP from the current selection. This is best suited for use "
 "with the background image, where it can effectively pick out faint detail "
 "above the background. It is not generally useful with the star mask image."
-msgstr ""
+msgstr "允许从当前选择中设置 SP。这最适合与背景图像一起使用，它可以有效地挑选出背景上"
+"的微弱细节。它通常对星点掩膜图像没有用处。"
 
 #: src/gui/siril3.glade:9902 src/gui/siril3.glade:10512
 #: src/gui/siril3.glade:16370
-#, fuzzy
 msgid "Shadow protection point (LP)"
-msgstr "高光裁剪"
+msgstr "阴影保护点 （LP）"
 
 #: src/gui/siril3.glade:9913 src/gui/siril3.glade:9938
 #: src/gui/siril3.glade:10523 src/gui/siril3.glade:10548
@@ -2264,19 +2267,23 @@ msgid ""
 "definition in the background. This parameter must be greater than or equal "
 "to 0 and not greater than SP."
 msgstr ""
+"设置一个值，低于该值将修改拉伸以保留阴影中的对比度。这是通过在 LP 下方执行线"
+"性拉伸来完成的，方法是保留图像其余部分的对比度。将LP移向SP会改变对比度保留的"
+"范围和数量，净效果是将整体拉伸推向更高的亮度水平，同时保持背景中的对比度和清"
+"晰度。此参数必须大于等于 0 且不大于 SP。"
 
 #: src/gui/siril3.glade:9973 src/gui/siril3.glade:10583
 #: src/gui/siril3.glade:16439
-#, fuzzy
 msgid "Highlight protection point (HP)"
-msgstr "高光裁剪"
+msgstr "高光保护点（HP）"
 
 #: src/gui/siril3.glade:9984
 msgid ""
 "Sets a value above which the stretch is modified to preserve contrast in the "
 "highlights / stars. The star mask HP can be set to quite a low value to "
 "prevent bloat of brighter stars."
-msgstr ""
+msgstr "设置一个值，超过该值将修改拉伸以保留高光/星点中的对比度。星点掩膜HP可以设置为"
+"相当低的值，以防止亮星膨胀。"
 
 #: src/gui/siril3.glade:10010
 msgid ""
@@ -2284,13 +2291,13 @@ msgid ""
 "highlights / stars. This can be set to quite a low value in star "
 "recomposition mode to prevent bloat of brighter stars while boosting the "
 "brightness of fainter ones."
-msgstr ""
+msgstr "设置一个值，超过该值将修改拉伸以保留高光/星点中的对比度。在星点重绘模式下，这"
+"可以设置为相当低的值，以防止亮星膨胀，同时提高暗星的亮度。"
 
 #: src/gui/siril3.glade:10045 src/gui/siril3.glade:10655
 #: src/gui/siril3.glade:16509
-#, fuzzy
 msgid "Black Point (BP)"
-msgstr "黑点"
+msgstr "黑点（BP）"
 
 #: src/gui/siril3.glade:10056 src/gui/siril3.glade:10082
 #: src/gui/siril3.glade:10666 src/gui/siril3.glade:10692
@@ -2298,18 +2305,18 @@ msgid ""
 "Black point adjustment. This is a constant value that is subtracted from the "
 "image after the initial hyperbolic stretch. BP adjustment may result in "
 "clipping the shadows."
-msgstr ""
+msgstr "黑点调节。这是一个常量值，在初始双曲拉伸后从图像中减去。BP调节可能会导致阴影"
+"裁剪。"
 
 #: src/gui/siril3.glade:10149
 msgid ""
 "Expands to show a mini histogram and transfer function display for the "
 "background image."
-msgstr ""
+msgstr "展开以显示背景图像的迷你直方图和变换函数。"
 
 #: src/gui/siril3.glade:10152
-#, fuzzy
 msgid "Background Histogram"
-msgstr "背景因子"
+msgstr "背景直方图"
 
 #: src/gui/siril3.glade:10290 src/gui/siril3.glade:10315
 #: src/gui/siril3.glade:16152
@@ -2321,6 +2328,9 @@ msgid ""
 "brightness. When this is set to zero, the stretch will be the identity "
 "transform, but any ordered black point adjustment will still occur."
 msgstr ""
+"独立控制在SP处添加的对比度（拉伸的斜率），从而调整应用于图像其余部分的拉伸量"
+"。它不会改变拉伸的形态，只有量变，并且应与b一起使用以控制对比度和亮度的分布。"
+"当此值设置为零时，拉伸将是恒等变换，但仍会发生任何已设的黑点调节。"
 
 #: src/gui/siril3.glade:10361 src/gui/siril3.glade:10385
 #: src/gui/siril3.glade:16221
@@ -2335,6 +2345,11 @@ msgid ""
 "(with small D) can still be used for precise placement of additional "
 "contrast."
 msgstr ""
+"通过更改变换本身的形态来控制拉伸聚焦的紧密程度。对于集中拉伸（例如线性数据上"
+"的初始拉伸），较大的正值b会将拉伸聚焦在直方图峰值内，同时将拉伸从峰值散焦（例"
+"如亮星）。对于非线性图像的调整，较低或负值将更均匀地分布对比度和亮度。作为一"
+"般规则，b 的值将随着拉伸序列接近完成而减小，尽管较大的值（带有较小的 "
+"D）仍可用于精确定位额外的对比度。"
 
 #: src/gui/siril3.glade:10431 src/gui/siril3.glade:10477
 #: src/gui/siril3.glade:16290
@@ -12322,17 +12337,17 @@ msgid ""
 msgstr ""
 "基于 ghsastro.co.uk 团队工作的反广义双曲拉伸。 \n"
 " \n"
-"参数 <b>-D=</b> 定义拉伸的强度，介于 0 和 10 之间。这是唯一的强制性参数。以下"
-"可选参数可进一步定制拉伸： \n"
+"参数 <b>-D=</b> 定义拉伸的强度，介于 0 和 10 "
+"之间。这是唯一的强制性参数。以下可选参数可进一步定制拉伸： \n"
 "<b>B4</b> 定义焦点附近的拉伸强度，介于 -5 和 15 之间; \n"
-"<b>LP</b> 定义一个介于 0 和 LP 之间的阴影保留范围，其中拉伸将是线性的，保留阴"
-"影细节; \n"
+"<b>LP</b> 定义一个介于 0 和 LP "
+"之间的阴影保留范围，其中拉伸将是线性的，保留阴影细节; \n"
 "<b>SP</b> 定义拉伸的对称点，介于 0 和 1 之间，这是拉伸最强烈的点; \n"
-"<b>HP</b> 定义 HP 和 1 之间的区域，其中拉伸是线性的，保留高光细节并防止星光膨"
-"胀。 \n"
+"<b>HP</b> 定义 HP 和 1 "
+"之间的区域，其中拉伸是线性的，保留高光细节并防止星光膨胀。 \n"
 "如果省略 B，则 LP 和 SP 默认为 0.0，HP 默认为 1.0。 \n"
 "可以传递一个可选参数（<b>-human</b>、<b>-even</b> 或 <b>-independent</b>）来"
-"选择人类加权或偶数加权亮度或用于颜色拉伸的独立颜色通道。对于单色图像，将忽略"
+"选择人眼加权或均等加权明度或用于彩色拉伸的独立颜色通道。对于单色图像，将忽略"
 "该参数。 \n"
 "可选参数 <b>[channels]</b> 可用于指定要应用拉伸的通道：可以是 R、G、B、RG、"
 "RB 或 GB。默认值为所有通道"
@@ -12404,17 +12419,17 @@ msgid ""
 msgstr ""
 "基于 ghsastro.co.uk 团队工作的反广义双曲拉伸。\n"
 "\n"
-"参数 <b>-D=</b> 定义拉伸的强度，介于 0 和 10 之间。这是唯一的强制性参数。以下"
-"可选参数可进一步定制拉伸： \n"
+"参数 <b>-D=</b> 定义拉伸的强度，介于 0 和 10 "
+"之间。这是唯一的强制性参数。以下可选参数可进一步定制拉伸： \n"
 "<b>B4</b> 定义焦点附近的拉伸强度，介于 -5 和 15 之间;\n"
-"<b>LP</b> 定义一个介于 0 和 LP 之间的阴影保留范围，其中拉伸将是线性的，保留阴"
-"影细节;\n"
+"<b>LP</b> 定义一个介于 0 和 LP "
+"之间的阴影保留范围，其中拉伸将是线性的，保留阴影细节;\n"
 "<b>SP</b> 定义拉伸的对称点，介于 0 和 1 之间，这是拉伸最强烈的点;\n"
-"<b>HP</b> 定义 HP 和 1 之间的区域，其中拉伸是线性的，保留高光细节并防止星光膨"
-"胀。\n"
+"<b>HP</b> 定义 HP 和 1 "
+"之间的区域，其中拉伸是线性的，保留高光细节并防止星光膨胀。\n"
 "如果省略 B，则 LP 和 SP 默认为 0.0，HP 默认为 1.0。\n"
 "可以传递一个可选参数（<b>-human</b>、<b>-even</b> 或 <b>-independent</b>）来"
-"选择人类加权或偶数加权亮度或用于颜色拉伸的独立颜色通道。对于单色图像，将忽略"
+"选择人眼加权或均等加权明度或用于彩色拉伸的独立颜色通道。对于单色图像，将忽略"
 "该参数。\n"
 "可选参数 <b>[channels]</b> 可用于指定要应用拉伸的通道：可以是 R、G、B、RG、"
 "RB 或 GB。默认值为所有通道"
@@ -16972,7 +16987,8 @@ msgstr "红色通道"
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model.\n"
-msgstr ""
+msgstr "并非所有彩色通道都被选中。不能使用人眼明度彩色模型：设置为均等加权明度彩色模"
+"型。\n"
 
 #: src/gui/histogram.c:955
 #, c-format
