@@ -7510,6 +7510,8 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	fits reffit = { 0 };
 	int bitpix;
+	char *realname = NULL;
+	image_type imagetype;
 	if (seq) {
 		if (seq->type == SEQ_SER) {
 			// to be able to check allow_32bit_output. Overridden by -fitseq if required
@@ -7527,9 +7529,13 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		}
 	}
 	else {
-		if (read_fits_metadata_from_path(word[1], &reffit)) {
+		if (stat_file(word[1], &imagetype, &realname)) {
+			siril_log_color_message(_("Error opening image %s: file not found or not supported.\n"), "red", word[1]);
+			retvalue = CMD_FILE_NOT_FOUND;
+			goto prepro_parse_end;
+		}
+		if (read_fits_metadata_from_path(realname, &reffit)) {
 			siril_log_message(_("Could not load the image, aborting.\n"));
-			clearfits(&reffit);
 			retvalue = CMD_INVALID_IMAGE;
 			goto prepro_parse_end;
 		}
@@ -7735,6 +7741,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 
 prepro_parse_end:
 	clearfits(&reffit);
+	free(realname);
 	if (retvalue) {
 		clear_preprocessing_data(args);
 		free(args);
