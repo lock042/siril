@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-11 11:18+0100\n"
-"PO-Revision-Date: 2023-02-26 20:23+0000\n"
+"PO-Revision-Date: 2023-03-12 21:45+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application/de/>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1769,7 +1769,6 @@ msgstr ""
 "Allgemeinen hilfreich und daher ist die Defaulteinstellung \"aktiv\"."
 
 #: src/gui/siril3.glade:8012
-#, fuzzy
 msgid "Independent Channels"
 msgstr "Unabhängige Kanäle"
 
@@ -2669,25 +2668,27 @@ msgid "Star Stretch Parameters"
 msgstr "Streckungsparameter für Sterne"
 
 #: src/gui/siril3.glade:10774
-#, fuzzy
 msgid "Resets stretch parameters for the star image"
-msgstr "Parameter zu Standartwerten zurücksetzen"
+msgstr "Stretch-Parameter für das Sternenbild zurücksetzen"
 
 #: src/gui/siril3.glade:10789
 msgid ""
 "Applies current stretch to the star image and resets the stretch parameters."
 msgstr ""
+"Wendet die aktuelle Streckung auf das Sternbild an und setzt die "
+"Streckungsparameter zurück."
 
 #: src/gui/siril3.glade:10822
-#, fuzzy
 msgid "Resets stretch parameters for the starless image"
-msgstr "Parameter zu Standartwerten zurücksetzen"
+msgstr "Setzt die Streckparameter für das sternlose Bild zurück"
 
 #: src/gui/siril3.glade:10837
 msgid ""
 "Applies current stretch to the starless image and resets the stretch "
 "parameters."
 msgstr ""
+"Wendet die aktuelle Streckung auf das sternlose Bild an und setzt die "
+"Streckungsparameter zurück."
 
 #: src/gui/siril3.glade:10879 src/gui/linear_match.c:201
 msgid "Linear Match"
@@ -8014,7 +8015,6 @@ msgid "Location of local astrometry.net solver"
 msgstr "Verzeichnis des lokalen astrometry.net-Lösers"
 
 #: src/gui/siril3.glade:28988
-#, fuzzy
 msgid ""
 "Select astrometry.net location.\n"
 "On UNIX-based systems, it is generally in the PATH variable and not "
@@ -8025,8 +8025,8 @@ msgstr ""
 "Wählen Sie den Speicherort von astrometry.net.\n"
 "Auf UNIX-basierten Systemen befindet er sich im Allgemeinen in der PATH-"
 "Variable und die Angabe ist nicht erforderlich.\n"
-"Unter Windows müssen Sie auf den Speicherort des Ordners cygwin_ansvr "
-"verweisen."
+"Unter Windows müssen Sie nur dann auf den Speicherort des Ordners "
+"cygwin_ansvr verweisen, wenn er nicht in %LOCALAPPDATA% installiert wurde."
 
 #: src/gui/siril3.glade:28995
 msgid "Select astrometry.net installation directory"
@@ -8719,15 +8719,24 @@ msgid ""
 "Windows), and they must both be in the same directory. You can select either "
 "executable: Siril will automatically find the other one if it exists."
 msgstr ""
+"Ausführbare StarNet-Datei auswählen. Funktioniert mit allen StarNet-"
+"Kommandozeilenversionen.\n"
+"\n"
+"Für ältere Installationen von StarNet++ V1 die unterschiedliche ausführbare "
+"Dateien zur Verarbeitung von Mini- und RGB-Dateien beinhalten, <b>müssen</b> "
+"die Dateien ihren Originaldateinamen behalten <b>mono_starnet++</b> und "
+"<b>rgb_starnet++</b> (mit <b>.exe</b> falls Windows verwendet wird) und "
+"beide müssen im selben Verzeichnis liegen. Sie können eine der beiden "
+"Dateien auswählen: Siril wird die andere automatisch finden, falls sie "
+"vorhanden ist."
 
 #: src/gui/siril3.glade:31414
 msgid "Select StarNet executable"
-msgstr ""
+msgstr "Auswahl der ausführbaren StarNet-Datei"
 
 #: src/gui/siril3.glade:31428
-#, fuzzy
 msgid "Must point to a valid StarNet executable."
-msgstr "Muss auf ein gültiges Starnet++-Installationsverzeichnis verweisen."
+msgstr "Muss auf eine gültiges ausführbare Starnet++-Datei verweisen."
 
 #: src/gui/siril3.glade:31442
 msgid ""
@@ -8735,23 +8744,31 @@ msgid ""
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
 "b> be in the same directory as the StarNet executable."
 msgstr ""
+"Wählen Sie die StarNet Gewichtungsdatei. Dies funktioniert <b>nur</b> mit "
+"den neuen \"Torch\"-basierten StarNet-Versionen. Diese Angabe ist optional: "
+"Wenn Sie es leer lassen, <b>muss</b> sich die Gewichtungsdatei im selben "
+"Verzeichnis wie die ausführbare StarNet-Datei befinden."
 
 #: src/gui/siril3.glade:31449
-#, fuzzy
 msgid "Select StarNet weights file"
-msgstr "Datei für NINA Sternlisten auswählen"
+msgstr "StarNet-Gewichtungsdatei auswählen"
 
 #: src/gui/siril3.glade:31466
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
 msgstr ""
+"Löscht die Angabe der neuronalen Netzgewichte. Wenn diese Option deaktiviert "
+"ist, <b>muss</b> sich die Gewichtungsdatei im selben Verzeichnis wie die "
+"ausführbare StarNet-Datei befinden."
 
 #: src/gui/siril3.glade:31481
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
 msgstr ""
+"Kann auf eine neuronale Netzgewichtungsdatei von StarNet++ verweisen.\n"
+"Nur für Torch-basierte StarNet-Versionen."
 
 #: src/gui/siril3.glade:31503
 msgid "Select gnuplot binary location."
@@ -9085,7 +9102,7 @@ msgstr "Erfolgreich geladen '%s'\n"
 #: src/main.c:189
 #, c-format
 msgid "Initializing FFTW multithreading support...\n"
-msgstr ""
+msgstr "FFTW-Multithreading-Unterstützung wird initialisiert...\n"
 
 #: src/main.c:351 src/core/command.c:7088 src/core/command_line_processor.c:617
 #: src/gui/single_image.c:82
@@ -9562,12 +9579,12 @@ msgstr ""
 #: src/algos/astrometry_solver.c:2180
 #, c-format
 msgid "Image %s did not solve\n"
-msgstr ""
+msgstr "Bild %s konnte nicht gelöst werden\n"
 
 #: src/algos/astrometry_solver.c:2213
 #, c-format
 msgid "Running sequence plate solving using the %s catalogue\n"
-msgstr ""
+msgstr "Astrometrische Lösung der Sequenz wird mit dem Katalog %s ausgeführt\n"
 
 #: src/algos/background_extraction.c:126
 #, c-format
@@ -10140,7 +10157,6 @@ msgstr ""
 "Faktoren:\n"
 
 #: src/algos/photometric_cc.c:232
-#, fuzzy
 msgid ""
 "The photometric color calibration has found a solution which may not be "
 "perfect because it did not rely on many stars\n"
@@ -10149,13 +10165,12 @@ msgstr ""
 "nicht perfekt ist, weil sie sich nicht auf viele Sterne stützt\n"
 
 #: src/algos/photometric_cc.c:234
-#, fuzzy
 msgid ""
 "The photometric color calibration seems to have found an imprecise solution, "
 "consider correcting the image gradient first\n"
 msgstr ""
 "Die photometrische Farbkorrektur scheint eine ungenaue Lösung gefunden zu "
-"haben, erwägen Sie, zuerst den Bildgradienten zu korrigieren\n"
+"haben, versuchen Sie, zuerst den Bildgradienten zu korrigieren\n"
 
 #: src/algos/photometric_cc.c:312
 msgid "White balance factors:\n"
@@ -10203,14 +10218,13 @@ msgid "Photometric Color Calibration failed"
 msgstr "Photometrische Farbkalibrierung fehlerhaft"
 
 #: src/algos/photometric_cc.c:402 src/algos/photometric_cc.c:420
-#, fuzzy
 msgid ""
 "Cannot run the standalone photometric color calibration on this image "
 "because it has no WCS data or it is not supported\n"
 msgstr ""
 "Die eigenständige photometrische Farbkorrektur kann für dieses Bild nicht "
-"ausgeführt werden, da es keine WCS-Daten hat oder diese nicht unterstützt "
-"wird\n"
+"ausgeführt werden, da es keine WCS-Daten hat oder das Bildformat nicht "
+"unterstützt wird\n"
 
 #: src/algos/photometric_cc.c:410
 msgid "Error computing FWHM for photometry settings adjustment\n"
@@ -10249,9 +10263,8 @@ msgid "The %s catalog has been successfully downloaded.\n"
 msgstr "Der Katalog %s wurde erfolgreich heruntergeladen.\n"
 
 #: src/algos/photometric_cc.c:488
-#, fuzzy
 msgid "Photometric Color Calibration succeeded.\n"
-msgstr "Photometrische Farbkalibrierung abgeschlossen"
+msgstr "Photometrische Farbkalibrierung abgeschlossen.\n"
 
 #: src/algos/photometric_cc.c:501
 #, c-format
@@ -10702,9 +10715,8 @@ msgid "NL-Bayes execution time"
 msgstr "NL-Bayes Ausführungsdauer"
 
 #: src/core/command.c:460
-#, fuzzy
 msgid "Error: modulation must be > 0.0 and <= 1.0.\n"
-msgstr "Fehler: SOS Wiederholungen müssen >=1 sein.  Setze Default 1.\n"
+msgstr "Fehler: Die Modulation muss > 0,0 und <= 1,0 sein.\n"
 
 #: src/core/command.c:470
 msgid "Error in rho parameter: must be strictly > 0 and < 1, aborting.\n"
@@ -10747,23 +10759,21 @@ msgstr ""
 "werden auf 1 gesetzt.\n"
 
 #: src/core/command.c:514 src/core/command.c:581
-#, fuzzy
 msgid "Error: no StarNet executable set.\n"
-msgstr "Fehler: StarNet++ wurde nicht korrekt ausgeführt...\n"
+msgstr "Fehler: Keine ausführbare StarNet++-Datei konfiguriert.\n"
 
 #: src/core/command.c:518 src/core/command.c:585
-#, fuzzy, c-format
+#, c-format
 msgid "Error: StarNet executable (%s) is not valid.\n"
-msgstr "Fehler: StarNet++ wurde nicht korrekt ausgeführt...\n"
+msgstr "Fehler: Keine gültige StarNet++-Datei gefunden.\n"
 
 #: src/core/command.c:548 src/core/command.c:630
-#, fuzzy
 msgid ""
 "Error in stride parameter: must be a positive even integer, max 512, "
 "aborting.\n"
 msgstr ""
-"Fehler im Parameter stride: muss eine positive gerade Ganzzahl sein, maximal "
-"256, Abbruch.\n"
+"Fehler im Parameter Schrittweite (stride): Es muss eine positive gerade "
+"Ganzzahl sein, maximal 256, Abbruch.\n"
 
 #: src/core/command.c:563 src/core/command.c:649 src/core/command.c:3151
 #: src/core/command.c:3215
@@ -11062,44 +11072,36 @@ msgid "Missing argument to %s, aborting.\n"
 msgstr "Fehlender Wert für %s. Abbruch.\n"
 
 #: src/core/command.c:1811
-#, fuzzy
 msgid "Error: BP must be specified between 0.0 and 1.0 using -BP=\n"
-msgstr "SP muss zwischen 0 und 1 sein\n"
+msgstr "Fehler: BP muss zwischen 0,0 und 1,0 angegeben werden. Verwende -BP=\n"
 
 #: src/core/command.c:1815
-#, fuzzy
 msgid "Error: BP must be >= 0.0 and <= 1.0.\n"
-msgstr "Fehler: SOS Wiederholungen müssen >=1 sein.  Setze Default 1.\n"
+msgstr "Fehler: BP muss >= 0,0 und <= 1,0 liegen.\n"
 
 #: src/core/command.c:1825
-#, fuzzy
 msgid "Error: D must be specified between 0.0 and 1.0 using -D=\n"
-msgstr "D muss zwischen 0 und 10 sein\n"
+msgstr "Fehler: D muss zwischen 0,0 und 1,0 angegeben werden. Verwende -D=\n"
 
 #: src/core/command.c:1831
-#, fuzzy
 msgid "Error: B must be >= 0.0 and <= 15.0.\n"
-msgstr "Fehler: SOS Wiederholungen müssen >=1 sein.  Setze Default 1.\n"
+msgstr "Fehler: B muss >= 0,0 und <= 15,0 liegen.\n"
 
 #: src/core/command.c:1838
-#, fuzzy
 msgid "Error: D must be > 0.0 and <= 10.0.\n"
-msgstr "D muss zwischen 0 und 10 sein\n"
+msgstr "Fehler: D muss > 0,0 und <= 10,0 liegen.\n"
 
 #: src/core/command.c:1842
-#, fuzzy
 msgid "Error: SP must be >= 0.0 and <= 1.0.\n"
-msgstr "Fehler: SOS Wiederholungen müssen >=1 sein.  Setze Default 1.\n"
+msgstr "Fehler: SP muss >= 0,0 und <= 1,0 liegen.\n"
 
 #: src/core/command.c:1846
-#, fuzzy
 msgid "Error: LP must be >= 0.0 and <= SP.\n"
-msgstr "Fehler: SOS Wiederholungen müssen >=1 sein.  Setze Default 1.\n"
+msgstr "Fehler: LP muss >= 0,0 und <= SP liegen.\n"
 
 #: src/core/command.c:1850
-#, fuzzy
 msgid "Error: HP must be >= SP and <= 1.0.\n"
-msgstr "Fehler: SOS Wiederholungen müssen >=1 sein.  Setze Default 1.\n"
+msgstr "Fehler: HP muss >= SP und <= 1.0 liegen.\n"
 
 #: src/core/command.c:2009 src/core/command.c:8020 src/filters/wavelets.c:255
 #: src/filters/wavelets.c:325
@@ -11828,7 +11830,7 @@ msgstr ""
 
 #: src/core/command.c:5004
 msgid "There can be only one prefix argument"
-msgstr ""
+msgstr "Es kann nur ein Präfix-Argument geben"
 
 #: src/core/command.c:5043
 msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
@@ -13479,7 +13481,6 @@ msgstr ""
 "aus. Das erste Bild hat den Index 0"
 
 #: src/core/command_def.h:60
-#, fuzzy
 msgid ""
 "Generalised hyperbolic stretch based on the work of the ghsastro.co.uk "
 "team.\n"
@@ -13504,28 +13505,31 @@ msgid ""
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
 msgstr ""
-"Inverse verallgemeinerte hyperbolische Streckung auf der Grundlage der "
-"Arbeit des Teams von ghsastro.co.uk.\n"
+"Verallgemeinerte hyperbolische Streckung auf der Grundlage der Arbeit des "
+"Teams von ghsastro.co.uk.\n"
 "\n"
-"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder <b>-"
-"independent</b>, kann übergeben werden, um entweder menschlich gewichtete "
-"oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle für "
-"Farbstrecken auszuwählen. (Das Argument wird bei monochromen Bildern "
-"ignoriert.))\n"
-"Es gibt eine Reihe von zwingenden Argumenten:\n"
-"<b>D</b> definiert die Stärke der Dehnung, die zwischen 0 und 10 liegt;\n"
-"<b>B</b> definiert die Intensität der Dehnung in der Nähe des Brennpunkts, "
-"zwischen -5 und 15;\n"
+"Das Argument <b>-D=</b> definiert die Stärke der Streckung, zwischen 0 und "
+"10. Dies ist das einzige obligatorische Argument. Mit den folgenden "
+"optionalen Argumenten lässt sich die Dehnung weiter anpassen:\n"
+"<b>B</b> bestimmt die Intensität der Streckung in der Nähe des "
+"Symmetriepunktes, zwischen -5 und 15;\n"
 "<b>LP</b> definiert einen schattenerhaltenden Bereich zwischen 0 und SP, in "
 "dem die Dehnung linear erfolgt und die Schattendetails erhalten bleiben;\n"
 "<b>SP</b> definiert den Symmetriepunkt der Dehnung zwischen 0 und 1, also "
 "den Punkt, an dem die Dehnung am stärksten ist;\n"
 "<b>HP</b> definiert einen Bereich zwischen HP und 1, in dem die Streckung "
 "linear ist, wodurch die Details der Glanzlichter erhalten bleiben und eine "
-"Aufblähung der Sterne verhindert wird\n"
+"Aufblähung der Sterne verhindert wird.\n"
+"Wenn B, LP und SP weggelassen werden, ist der Standardwert 0,0 und HP ist "
+"der Standardwert 1,0.\n"
+"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder "
+"<b>-independent</b>), kann übergeben werden, um entweder menschlich "
+"gewichtete oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle "
+"für Farbstrecken auszuwählen. Das Argument wird bei monochromen Bildern "
+"ignoriert.\n"
 "Optional kann der Parameter <b>[channels]</b> verwendet werden, um die "
 "Kanäle anzugeben, auf die die Dehnung angewendet werden soll: dies können R, "
-"G, B, RG, RB oder GB sein. Die Voreinstellung ist alle Kanäle"
+"G, B, RG, RB oder GB sein. Die Voreinstellung ist alle Kanäle."
 
 #: src/core/command_def.h:61
 msgid "Equalizes the mean intensity of RGB layers in a CFA image"
@@ -13572,7 +13576,6 @@ msgstr ""
 "Mitte für eine genauere Betrachtung zeigt"
 
 #: src/core/command_def.h:69
-#, fuzzy
 msgid ""
 "Inverse generalised hyperbolic stretch based on the work of the ghsastro.co."
 "uk team.\n"
@@ -13600,14 +13603,11 @@ msgstr ""
 "Inverse verallgemeinerte hyperbolische Streckung auf der Grundlage der "
 "Arbeit des Teams von ghsastro.co.uk.\n"
 "\n"
-"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder <b>-"
-"independent</b>, kann übergeben werden, um entweder menschlich gewichtete "
-"oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle für "
-"Farbstrecken auszuwählen. (Das Argument wird bei Monobildern ignoriert.))\n"
-"Es gibt eine Reihe von zwingenden Argumenten:\n"
-"<b>D</b> definiert die Stärke der Dehnung, die zwischen 0 und 10 liegt;\n"
-"<b>B</b> definiert die Intensität der Dehnung in der Nähe des Brennpunkts, "
-"zwischen -5 und 15;\n"
+"Das Argument <b>D</b> definiert die Stärke der Streckung, die zwischen 0 und "
+"10 liegt; dies ist das einzige obligatorische Argument. Die folgenden "
+"optionalen Argumente passen den Stretch weiter an:\n"
+"<b>B</b> definiert die Intensität der Dehnung in der Nähe des "
+"Symmetriepunktes, zwischen -5 und 15;\n"
 "<b>LP</b> definiert einen schattenerhaltenden Bereich zwischen 0 und SP, in "
 "dem die Dehnung linear erfolgt und die Schattendetails erhalten bleiben;\n"
 "<b>SP</b> definiert den Symmetriepunkt der Dehnung zwischen 0 und 1, also "
@@ -13615,6 +13615,12 @@ msgstr ""
 "<b>HP</b> definiert einen Bereich zwischen HP und 1, in dem die Streckung "
 "linear ist, wodurch die Details der Glanzlichter erhalten bleiben und eine "
 "Aufblähung der Sterne verhindert wird.\n"
+"Wenn B, LP und SP weggelassen werden, ist der Standardwert 0,0 und HP ist "
+"der Standardwert 1,0.\n"
+"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder "
+"<b>-independent</b>), kann übergeben werden, um entweder menschlich "
+"gewichtete oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle "
+"für Farbstrecken auszuwählen. Das Argument wird bei Monobildern ignoriert.\n"
 "Optional kann der Parameter <b>[channels]</b> verwendet werden, um die "
 "Kanäle anzugeben, auf die die Dehnung angewendet werden soll: dies können R, "
 "G, B, RG, RB oder GB sein. Die Voreinstellung ist alle Kanäle"
@@ -13624,7 +13630,6 @@ msgid "Inverse of the midtones transfer function"
 msgstr "Inverse Übertragungsfunktion der Mitteltöne"
 
 #: src/core/command_def.h:71
-#, fuzzy
 msgid ""
 "Inverse modified arcsinh stretch based on the work of the ghsastro.co.uk "
 "team.\n"
@@ -13650,21 +13655,23 @@ msgstr ""
 "Inverse verallgemeinerte hyperbolische Streckung auf der Grundlage der "
 "Arbeit des Teams von ghsastro.co.uk.\n"
 "\n"
-"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder <b>-"
-"independent</b>, kann übergeben werden, um entweder menschlich gewichtete "
-"oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle für "
-"Farbstrecken auszuwählen. (Das Argument wird bei Monobildern ignoriert.))\n"
-"Es gibt eine Reihe von zwingenden Argumenten:\n"
-"<b>D</b> definiert die Stärke der Dehnung, die zwischen 0 und 10 liegt;\n"
-"<b>B</b> definiert die Intensität der Dehnung in der Nähe des Brennpunkts, "
-"zwischen -5 und 15;\n"
+"Der Parameter <b>D</b> definiert die Stärke der Streckung, die zwischen 0 "
+"und 10 liegt. Dies ist das einzige obligatorische Argument. Die folgenden "
+"Optionen passen den Stretch weiter an:\n"
 "<b>LP</b> definiert einen schattenerhaltenden Bereich zwischen 0 und SP, in "
-"dem die Dehnung linear erfolgt und die Schattendetails erhalten bleiben;\n"
-"<b>SP</b> definiert den Symmetriepunkt der Dehnung zwischen 0 und 1, also "
+"dem die Streckung linear erfolgt und die Schattendetails erhalten bleiben;\n"
+"<b>SP</b> definiert den Symmetriepunkt der Streckung zwischen 0 und 1, also "
 "den Punkt, an dem die Dehnung am stärksten ist;\n"
 "<b>HP</b> definiert einen Bereich zwischen HP und 1, in dem die Streckung "
 "linear ist, wodurch die Details der Glanzlichter erhalten bleiben und eine "
 "Aufblähung der Sterne verhindert wird.\n"
+"Wenn B, LP und SP weggelassen werden, ist der Standardwert 0,0 und HP ist "
+"der Standardwert 1,0.\n"
+"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder "
+"<b>-independent</b>), kann übergeben werden, um entweder menschlich "
+"gewichtete oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle "
+"für Farbstreckungen auszuwählen. Das Argument wird bei Monobildern ignoriert."
+"\n"
 "Optional kann der Parameter <b>[channels]</b> verwendet werden, um die "
 "Kanäle anzugeben, auf die die Dehnung angewendet werden soll: dies können R, "
 "G, B, RG, RB oder GB sein. Die Voreinstellung ist alle Kanäle"
@@ -13971,7 +13978,6 @@ msgid "Flips the image about the horizontal axis"
 msgstr "Dreht das Bild um die horizontale Achse"
 
 #: src/core/command_def.h:91
-#, fuzzy
 msgid ""
 "Modified arcsinh stretch based on the work of the ghsastro.co.uk team.\n"
 "\n"
@@ -13997,19 +14003,23 @@ msgstr ""
 "uk-Teams. Diese Funktion ähnelt der einfachen asinh-Streckung, bietet aber "
 "zusätzliche Parameter für die Feinabstimmung.\n"
 "\n"
-"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder <b>-"
-"independent</b>, kann übergeben werden, um entweder menschlich gewichtete "
-"oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle für "
-"Farbstrecken auszuwählen. (Das Argument wird bei Monobildern ignoriert.))\n"
-"Es gibt eine Reihe von zwingenden Argumenten:\n"
-"<b>D</b> definiert die Stärke der Dehnung, die zwischen 0 und 10 liegt;\n"
+"Der Parameter <b>D</b> definiert die Stärke der Streckung, die zwischen 0 "
+"und 10 liegt. Dies ist das einzige obligatorische Argument. Die folgenden "
+"Optionen passen den Stretch weiter an:\n"
 "<b>LP</b> definiert einen schattenerhaltenden Bereich zwischen 0 und SP, in "
-"dem die Dehnung linear erfolgt und die Schattendetails erhalten bleiben;\n"
-"<b>SP</b> definiert den Symmetriepunkt der Dehnung zwischen 0 und 1, also "
+"dem die Streckung linear erfolgt und die Schattendetails erhalten bleiben;\n"
+"<b>SP</b> definiert den Symmetriepunkt der Streckung zwischen 0 und 1, also "
 "den Punkt, an dem die Dehnung am stärksten ist;\n"
 "<b>HP</b> definiert einen Bereich zwischen HP und 1, in dem die Streckung "
 "linear ist, wodurch die Details der Glanzlichter erhalten bleiben und eine "
-"Aufblähung der Sterne verhindert wird\n"
+"Aufblähung der Sterne verhindert wird.\n"
+"Wenn B, LP und SP weggelassen werden, ist der Standardwert 0,0 und HP ist "
+"der Standardwert 1,0.\n"
+"Ein optionales Argument (entweder <b>-human</b>, <b>-even</b> oder "
+"<b>-independent</b>), kann übergeben werden, um entweder menschlich "
+"gewichtete oder geradzahlig gewichtete Luminanz oder unabhängige Farbkanäle "
+"für Farbstreckungen auszuwählen. Das Argument wird bei Monobildern ignoriert."
+"\n"
 "Optional kann der Parameter <b>[channels]</b> verwendet werden, um die "
 "Kanäle anzugeben, auf die die Dehnung angewendet werden soll: dies können R, "
 "G, B, RG, RB oder GB sein. Die Voreinstellung ist alle Kanäle"
@@ -14677,7 +14687,6 @@ msgstr ""
 "<b>filename</b>.pgm für Graustufenbild"
 
 #: src/core/command_def.h:125
-#, fuzzy
 msgid ""
 "Saves current image under the form of a uncompressed TIFF file with 16-bit "
 "per channel: <b>filename</b>.tif. The option <b>-astro</b> allows saving in "
@@ -14685,10 +14694,10 @@ msgid ""
 msgstr ""
 "Speichert das aktuelle Bild als unkomprimierte TIFF-Datei mit 16-bit je "
 "Kanal ab: <b>filename</b>.tif. Die Option <b>-astro</b> erlaubt es die Datei "
-"im Astro-TIFF-Format zu speichern"
+"im Astro-TIFF-Format zu speichern, während <b>-deflate</b> die Kompression "
+"aktiviert"
 
 #: src/core/command_def.h:126
-#, fuzzy
 msgid ""
 "Same command as SAVETIF but the output file is saved in 32-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
@@ -14696,10 +14705,10 @@ msgid ""
 msgstr ""
 "Gleicher Befehl wie SAVETIF, aber die Datei wird mit 32-Bit je Kanal "
 "gespeichert: <b>filename</b>.tif. Die Option <b>-astro</b> erlaubt es die "
-"Datei im Astro-TIFF-Format zu speichern"
+"Datei im Astro-TIFF-Format zu speichern, während <b>-deflate</b> die "
+"Kompression aktiviert"
 
 #: src/core/command_def.h:127
-#, fuzzy
 msgid ""
 "Same command as SAVETIF but the output file is saved in 8-bit per channel: "
 "<b>filename</b>.tif. The option <b>-astro</b> allows saving in Astro-tiff "
@@ -14707,7 +14716,8 @@ msgid ""
 msgstr ""
 "Gleicher Befehl wie SAVETIF, aber die Ausgabedatei wird in 8 Bit pro Kanal "
 "gespeichert: <b>Dateiname</b>.tif. Die Option <b>-astro</b> erlaubt es die "
-"Datei im Astro-TIFF-Format zu speichern"
+"Datei im Astro-TIFF-Format zu speichern, während <b>-deflate</b> die "
+"Kompression aktiviert"
 
 #: src/core/command_def.h:128
 msgid ""
@@ -14972,12 +14982,11 @@ msgstr ""
 "Die <b>-vertical</b> Option ermöglicht die Entfernung vertikaler Bänder"
 
 #: src/core/command_def.h:142
-#, fuzzy
 msgid ""
 "Same command as GHT but the sequence must be specified as the first argument"
 msgstr ""
-"Dasselbe wir der Befehl <b>rl</b>, gilt jedoch für eine Sequenz, die als "
-"erstes Argument angegeben werden muss"
+"Dasselbe wie der Befehl GHT, aber die Sequenz muss als erstes Argument "
+"angegeben werden"
 
 #: src/core/command_def.h:143
 msgid ""
@@ -14987,34 +14996,36 @@ msgstr ""
 "der Sequenz"
 
 #: src/core/command_def.h:144
-#, fuzzy
 msgid ""
 "Same command as INVGHT but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
 msgstr ""
-"Dasselbe wir der Befehl <b>rl</b>, gilt jedoch für eine Sequenz, die als "
-"erstes Argument angegeben werden muss"
+"Dasselbe wir der Befehl INVGHT, aber die Sequenz muss als erstes Argument "
+"angegeben werden. Zusätzlich kann ein optionales Argument <b>-prefix</b> "
+"verwendet werden um ein benutzerspezifisches Prefix festzulegen"
 
 #: src/core/command_def.h:145
-#, fuzzy
 msgid ""
 "Same command as INVMODASINH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
 msgstr ""
-"Dasselbe wir der Befehl <b>rl</b>, gilt jedoch für eine Sequenz, die als "
-"erstes Argument angegeben werden muss"
+"Dasselbe wir der Befehl INVMODASINH , gilt jedoch für eine Sequenz, die als "
+"erstes Argument angegeben werden muss. Zusätzlich kann ein optionales "
+"Argument <b>-prefix</b> verwendet werden um ein benutzerspezifisches Prefix "
+"festzulegen"
 
 #: src/core/command_def.h:146
-#, fuzzy
 msgid ""
 "Same command as LINSTRETCH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
 msgstr ""
-"Dasselbe wir der Befehl <b>rl</b>, gilt jedoch für eine Sequenz, die als "
-"erstes Argument angegeben werden muss"
+"Dasselbe wir der Befehl LINSTRETCH , gilt jedoch für eine Sequenz, die als "
+"erstes Argument angegeben werden muss. Zusätzlich kann ein optionales "
+"Argument <b>-prefix</b> verwendet werden um ein benutzerspezifisches Prefix "
+"festzulegen"
 
 #: src/core/command_def.h:147
 msgid ""
@@ -15050,14 +15061,15 @@ msgstr ""
 "solange es nicht mit der Option <b>-prefixout=</b> anders angegeben wird"
 
 #: src/core/command_def.h:148
-#, fuzzy
 msgid ""
 "Same command as MODASINH but the sequence must be specified as the first "
 "argument. In addition, the optional argument <b>-prefix=</b> can be used to "
 "set a custom prefix"
 msgstr ""
-"Dasselbe wir der Befehl <b>rl</b>, gilt jedoch für eine Sequenz, die als "
-"erstes Argument angegeben werden muss"
+"Dasselbe wir der Befehl MODASINH , gilt jedoch für eine Sequenz, die als "
+"erstes Argument angegeben werden muss. Zusätzlich kann ein optionales "
+"Argument <b>-prefix</b> verwendet werden um ein benutzerspezifisches Prefix "
+"festzulegen"
 
 #: src/core/command_def.h:149
 msgid ""
@@ -15261,7 +15273,6 @@ msgstr ""
 "pro Filter erstellt"
 
 #: src/core/command_def.h:158
-#, fuzzy
 msgid ""
 "Same command as SUBSKY but for the sequence <b>sequencename</b>.\n"
 "Dithering, required for low dynamic gradients, can be disabled with <b>-"
@@ -15271,9 +15282,11 @@ msgid ""
 "specified with <b>-prefix=</b> option"
 msgstr ""
 "Gleicher Befehl wie SUBSKY aber für die Sequenz <b>sequencename</b>.\n"
+"Dithering, welches für schwache dynamische Gradienten erforderlich ist, kann "
+"mit <b>-nodither</b> deaktiviert werden.\n"
 "\n"
-"Der Ausgabename der Sequenz beginnt mit dem Prefix \"bkg_\", sofern nicht "
-"mit der Option <b>-prefix=</b> anders angegeben"
+"Der Name der Ausgabesequenz beginnt mit dem Prefix \"bkg_\", sofern er nicht "
+"mit der Option <b>-prefix=</b> anders festgelegt wird"
 
 #: src/core/command_def.h:159
 msgid ""
@@ -15741,7 +15754,6 @@ msgid "Stop the live stacking session. Only possible after START_LS"
 msgstr "Beendet die Live-Stacking-Sitzung. Nur möglich nach START_LS"
 
 #: src/core/command_def.h:181
-#, fuzzy
 msgid ""
 "Computes a synthetic background gradient using either the polynomial "
 "function model of <b>degree</b> degrees or the RBF model (if <b>-rbf</b> is "
@@ -15754,12 +15766,15 @@ msgid ""
 "For RBF, the additional smoothing parameter is also available"
 msgstr ""
 "Berechnet einen synthetischen Hintergrundgradienten unter Verwendung des "
-"Polynomfunktionsmodells von <b>degree</b> Grad oder des RBF-Modells (falls "
+"Polynomfunktionsmodells des Grades <b>degree</b> oder des RBF-Modells (falls "
 "<b>-rbf</b> stattdessen angegeben) und subtrahiert ihn vom Bild. \n"
 "Die Anzahl der Stichproben pro horizontaler Linie und die Toleranz zum "
 "Ausschluss hellerer Bereiche können mit den optionalen Argumenten "
 "eingestellt werden. Die Toleranz wird in mad-Einheiten: Median + Toleranz * "
-"mad angegeben. Für RBF ist auch der zusätzliche Glättungsparameter verfügbar"
+"mad angegeben.\n"
+"Dithering, notwendig für schwache dynamische Gradienten, kann durch die "
+"Option <b>-dither</b> deaktiviert werden.\n"
+"Für RBF ist auch der zusätzliche Glättungsparameter verfügbar"
 
 #: src/core/command_def.h:182
 msgid ""
@@ -16777,11 +16792,11 @@ msgstr "Copyright des Benutzers zum Eintragen in den Datei-Header"
 
 #: src/core/settings.c:273
 msgid "location of the StarNet executable"
-msgstr ""
+msgstr "Speicherort der ausführbaren StarNet-Datei"
 
 #: src/core/settings.c:274
 msgid "location of the StarNet-torch weights file"
-msgstr ""
+msgstr "Speicherort der StarNet-Torch Gewichtungsdatei"
 
 #: src/core/settings.c:275
 msgid "directory of the gnuplot installation"
@@ -17101,7 +17116,7 @@ msgstr "Anzahl der Elemente der Gitterlinien"
 
 #: src/core/settings.c:379
 msgid "show tenths of arcseconds on hover"
-msgstr ""
+msgstr "Zehntel-Bogensekunden anzeigen, wenn der Mauszeiger darüber schwebt"
 
 #: src/core/settings.c:380
 msgid "default display mode"
@@ -17583,9 +17598,9 @@ msgid "SCNR (type=%s, amount=%0.2lf, preserve=%s)"
 msgstr "SCNR (Typ=%s, Stärke=%0.2lf, Erhaltung=%s)"
 
 #: src/filters/starnet.c:98
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning starnet failed: %s\n"
-msgstr "Zielstern erkannt: %s\n"
+msgstr "Start von StarNet gescheitert: %s\n"
 
 #: src/filters/starnet.c:139
 msgid "Running StarNet"
@@ -17594,26 +17609,25 @@ msgstr "StarNet läuft"
 #: src/filters/starnet.c:145
 #, c-format
 msgid "StarNet caught buffer: %s : exit successful\n"
-msgstr ""
+msgstr "StarNet Buffer abgefangen: %s : Erfolgreich abgeschlossen\n"
 
 #: src/filters/starnet.c:155
 #, c-format
 msgid "Starnet exit not caught, last buffer: %s\n"
-msgstr ""
+msgstr "StarNet Buffer nicht abgefangen, letzter Buffer: %s\n"
 
 #: src/filters/starnet.c:225
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning starnet failed during version check: %s\n"
-msgstr "Zielstern erkannt: %s\n"
+msgstr "Start von StarNet fehlgeschlagen bei der Versionsprüfung: %s\n"
 
 #: src/filters/starnet.c:252
-#, fuzzy
 msgid "V2 detected\n"
-msgstr "Ausgewählter Bereich"
+msgstr "V2 erkannt\n"
 
 #: src/filters/starnet.c:258
 msgid "V2-torch detected\n"
-msgstr ""
+msgstr "V2-Torch erkannt\n"
 
 #: src/filters/starnet.c:277 src/filters/starnet.c:714
 #: src/filters/starnet.c:796
@@ -17625,21 +17639,21 @@ msgid ""
 "Warning: some versions of StarNet fail to process images with dimensions "
 "smaller than 512x512. This image may fail. Attempting to continue...\n"
 msgstr ""
+"Warnung: Einige Versionen von StarNet++ können Bilder mit Abmessungen "
+"kleiner als 512x512 nicht verarbeiten. Dieses Bild kann fehlschlagen. "
+"Versuche fortzufahren...\n"
 
 #: src/filters/starnet.c:371
-#, fuzzy
 msgid "No suitable StarNet executable found.\n"
-msgstr "Keine gültige ausführbare Datei im StarNet++-Verzeichnis gefunden\n"
+msgstr "Keine gültige ausführbare StarNet-Datei gefunden.\n"
 
 #: src/filters/starnet.c:383
-#, fuzzy
 msgid "No suitable StarNet executable found for a mono image.\n"
-msgstr "Keine gültige ausführbare Datei im StarNet++-Verzeichnis gefunden\n"
+msgstr "Keine gültige ausführbare StarNet++-Datei für Monobilder gefunden.\n"
 
 #: src/filters/starnet.c:398
-#, fuzzy
 msgid "No suitable StarNet executable found for a RGB image.\n"
-msgstr "Keine gültige ausführbare Datei im StarNet++-Verzeichnis gefunden\n"
+msgstr "Keine gültige ausführbare StarNet++-Datei für RGB-Bilder gefunden.\n"
 
 #: src/filters/starnet.c:432 src/filters/starnet.c:458
 #: src/filters/starnet.c:467 src/filters/starnet.c:473
@@ -17664,12 +17678,12 @@ msgid "StarNet: -nostarmask invoked, star mask will not be generated...\n"
 msgstr "StarNet++: -nostarmask aufgerufen, Sternmaske wird nicht erzeugt...\n"
 
 #: src/filters/starnet.c:501
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Incorrect permissions on the StarNet executable: %s\n"
 "Ensure it is correctly set in Preferences / Miscellaneous.\n"
 msgstr ""
-"Falsche Berechtigungen für das StarNet++-Verzeichnis: %s\n"
+"Falsche Berechtigungen für die StarNet++-Datei: %s\n"
 "Vergewissern Sie sich, dass dies unter Einstellungen / Verschiedenes korrekt "
 "eingestellt ist.\n"
 
@@ -17705,9 +17719,8 @@ msgstr ""
 "Clipping-Spitzen.\n"
 
 #: src/filters/starnet.c:576
-#, fuzzy
 msgid "Error: unable to find the MTF stretch factors...\n"
-msgstr "Fehler: kann nicht in das Arbeitsverzeichnis von Siril wechseln...\n"
+msgstr "Fehler: Die MTF-Stretchfaktoren können nicht ermittelt werden...\n"
 
 #: src/filters/starnet.c:581
 msgid ""
@@ -17726,34 +17739,34 @@ msgid "Error: image resize failed...\n"
 msgstr "Fehler: Bildgröße anpassen ist fehlgeschlagen...\n"
 
 #: src/filters/starnet.c:599
-#, fuzzy
 msgid "Error: unable to save working StarNet input file...\n"
-msgstr "Fehler: Arbeitsdatei kann nicht entfernt werden...\n"
+msgstr "Fehler: Die StarNet-Eingabedatei kann nicht gespeichert werden...\n"
 
 #: src/filters/starnet.c:631
-#, fuzzy
 msgid "Error: cannot read the neural net weights file.\n"
-msgstr "Kann die Daten nicht lesen\n"
+msgstr ""
+"Fehler: Die Datei mit den Gewichtungen des neuronalen Netzes kann nicht "
+"gelesen werden.\n"
 
 #: src/filters/starnet.c:646
 msgid "Error: StarNet did not execute correctly...\n"
 msgstr "Fehler: StarNet++ wurde nicht korrekt ausgeführt...\n"
 
 #: src/filters/starnet.c:654
-#, fuzzy
 msgid "Error: unable to read StarNet output file...\n"
-msgstr "Fehler: Arbeitsdatei kann nicht entfernt werden...\n"
+msgstr "Fehler: StarNet-Ausgabedatei kann nicht gelesen werden...\n"
 
 #: src/filters/starnet.c:663
-#, fuzzy
 msgid "Error: unable to remove temporary working file...\n"
-msgstr "Fehler: Arbeitsdatei kann nicht entfernt werden...\n"
+msgstr "Fehler: temporäre Arbeitsdatei kann nicht gelöscht werden...\n"
 
 #: src/filters/starnet.c:664
 msgid ""
 "Attempting to continue. You will need to clean up the working files "
 "manually.\n"
 msgstr ""
+"Ich versuche, fortzufahren. Sie müssen die Arbeitsdateien manuell bereinigen."
+"\n"
 
 #: src/filters/starnet.c:694
 msgid ""
@@ -17790,20 +17803,21 @@ msgid ""
 "Warning: some images in the sequence were smaller than 512x512. Some "
 "versions of StarNet may fail to process these images.\n"
 msgstr ""
+"Achtung: Einige Bilder in der Sequenz waren kleiner als 512x512. Einige "
+"Versionen von StarNet können diese Bilder möglicherweise nicht verarbeiten.\n"
 
 #: src/filters/starnet.c:934
-#, fuzzy, c-format
+#, c-format
 msgid "Starnet: Processing image %d\n"
-msgstr "Vorverarbeitung von Bild %s\n"
+msgstr "StarNet++: Verarbeitung von Bild %d\n"
 
 #: src/filters/starnet.c:984
 msgid "StarNet"
 msgstr "StarNet"
 
 #: src/filters/starnet.c:994
-#, fuzzy
 msgid "StarNet: Processing..."
-msgstr "Sternbearbeitung"
+msgstr "StarNet++: Verarbeitung..."
 
 #: src/filters/synthstar.c:361
 msgid "Star synthesis (full star mask creation): processing...\n"
@@ -18416,22 +18430,22 @@ msgstr "Histogramm-Übertragungen. (Mitte=%.3f, lo=%.3f, hi=%.3f)"
 #: src/gui/histogram.c:961
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS Pivot: %.3f, Stärke: %.2f, Lokal: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:964
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS INV Pivot: %.3f, Stärke: %.2f, Lokal: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:967
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS ASINH Pivot: %.3f, Stärke: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:970
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS ASINH INV Pivot: %.3f, Stärke: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:973
 #, c-format
@@ -19100,14 +19114,14 @@ msgid "You don't have permission to write in this directory: %s\n"
 msgstr "Sie haben keine Schreib-Berechtigung im Verzeichnis: %s\n"
 
 #: src/gui/preferences.c:408
-#, fuzzy, c-format
+#, c-format
 msgid "You don't have permission to execute this file: %s\n"
-msgstr "Sie haben keine Schreib-Berechtigung im Verzeichnis: %s\n"
+msgstr "Sie haben keine Berechtigung um diese Datei auszuführen: %s\n"
 
 #: src/gui/preferences.c:446
-#, fuzzy, c-format
+#, c-format
 msgid "You don't have permission to read this file: %s\n"
-msgstr "Sie haben keine Schreib-Berechtigung im Verzeichnis: %s\n"
+msgstr "Sie haben keine Berechtigung um diese Datei zu lesen: %s\n"
 
 #: src/gui/preferences.c:475
 msgid "Cannot refresh script list"
@@ -19358,20 +19372,19 @@ msgid "Show advanced stretch options."
 msgstr "Zeige weitere Optionen zur Streckung/Dehnung."
 
 #: src/gui/remixer.c:1022 src/gui/remixer.c:1039
-#, fuzzy
 msgid ""
 "This dropper allows you to set the background stretch symmetry point  based "
 "on the average value of the current selection. This helps in picking out "
 "faint detail above the dark background."
 msgstr ""
-"Mit dieser Pipette können Sie den Symmetriepunkt für die Hintergrunddehnung "
-"auf der Grundlage des Durchschnittswerts der aktuellen Auswahl festlegen. "
-"Dies hilft dabei, schwache Details über dem dunklen Hintergrund "
-"hervorzuheben."
+"Mit dieser Pipette können Sie den Symmetriepunkt für die "
+"Hintergrundstreckung auf der Grundlage des Durchschnittswerts der aktuellen "
+"Auswahl festlegen. Dies hilft dabei, schwache Details über dem dunklen "
+"Hintergrund hervorzuheben."
 
 #: src/gui/remixer.c:1025 src/gui/remixer.c:1042
 msgid "Eyedropper disabled with unapplied BP shift"
-msgstr ""
+msgstr "Pipette deaktiviert mit nicht angewandter Schwarzpunkt-Verschiebung"
 
 #: src/gui/remixer.c:1103 src/gui/remixer.c:1159
 msgid "Error: image could not be loaded"
@@ -19662,19 +19675,18 @@ msgstr ""
 "Einstellungsdialog, wo viele der Optionen verfügbar sind"
 
 #: src/gui/siril_intro.c:39
-#, fuzzy
 msgid ""
 "You can get more scripts by clicking on the \"Get scripts\" item in the menu"
 msgstr ""
 "Sie können weitere Skripte erhalten, indem Sie auf den Punkt \"Skripte "
-"abrufen\" im Menü klicken"
+"laden\" im Menü klicken"
 
 #: src/gui/siril_intro.c:40
-#, fuzzy
 msgid ""
 "A brand new documentation set is also available via the menu \"Siril Manual\""
 msgstr ""
-"Eine neue Dokumentation ist auch über das Menü \"Siril Handbuch\" verfügbar."
+"Ein brandneues Dokumentationspaket ist auch über das Menü \"Siril Handbuch\" "
+"verfügbar."
 
 #: src/gui/siril_intro.c:41
 msgid ""
@@ -19690,10 +19702,8 @@ msgid "You can open a single image or FITS/SER sequence"
 msgstr "Sie können ein einzelnes Bild oder eine FITS/SER-Sequenz öffnen"
 
 #: src/gui/siril_intro.c:43
-#, fuzzy
 msgid "Here is a list of the most recent FITS files you’ve opened"
-msgstr ""
-"Hier sind die neuesten FITS-Dateien aufgelistet, die Sie geöffnet haben"
+msgstr "Hier sind die letzten FITS-Dateien aufgelistet, die Sie geöffnet haben"
 
 #: src/gui/siril_intro.c:44
 msgid "Processing algorithms are all in this single menu"
@@ -19745,16 +19755,14 @@ msgstr ""
 "Befehle zu erhalten, geben Sie \"help\" ein"
 
 #: src/gui/siril_intro.c:52
-#, fuzzy
 msgid ""
 "Basic viewing operations are available in the main toolbar. Zooming is "
 "available with Ctrl-Scroll up and down"
 msgstr ""
 "Grundlegende Anzeigeoperationen sind in der Hauptsymbolleiste verfügbar. Das "
-"Zoomen ist jetzt mit Control + Bild nach oben bzw. Bild nachunten verfügbar"
+"Zoomen ist jetzt mit Strg+ Hochscrollen bzw. Herunterscrollen verfügbar"
 
 #: src/gui/siril_intro.c:53
-#, fuzzy
 msgid "To pan your image you can use Ctrl-Click (and drag)"
 msgstr ""
 "Um Ihr Bild zu verschieben, können Sie jetzt Strg-Klick (und Ziehen) "
@@ -19858,15 +19866,14 @@ msgstr ""
 "Überprüfen Sie Ihre StarNet-Installation und Siril-Konfiguration."
 
 #: src/gui/starnetgui.c:93
-#, fuzzy
 msgid ""
 "Valid StarNet v2-Torch executable found in the configured StarNet "
 "installation directory.\n"
 "StarNet can process mono and RGB images."
 msgstr ""
-"Gültige ausführbare StarNet v2-Datei, die sich im konfigurierten StarNet-"
-"Installationsverzeichnis befindet.\n"
-"StarNet kann Mono- und RGB-Bilder verarbeiten."
+"Gültige ausführbare StarNet v2-Torch-Datei gefunden, die sich im "
+"konfigurierten StarNet-Installationsverzeichnis befindet.\n"
+"StarNet++ kann Mono- und RGB-Bilder verarbeiten."
 
 #: src/gui/starnetgui.c:96
 msgid ""
@@ -19945,11 +19952,10 @@ msgid "Failed to read the local NOMAD catalogue\n"
 msgstr "Lesen des lokalen NOMAD Katalogs ist fehlgeschlagen\n"
 
 #: src/io/catalogues.c:385
-#, fuzzy
 msgid "Error: number of trixels reported by file is out of limits.\n"
 msgstr ""
-"Fehler: Die von der Wavelets-Datei gemeldete Anzahl von Plänen liegt "
-"außerhalb des zulässigen Bereichs.\n"
+"Fehler: Die Anzahl der von der Datei gemeldeten Trixel ist nicht mehr "
+"zulässig.\n"
 
 #: src/io/catalogues.c:702
 #, c-format
@@ -20314,9 +20320,8 @@ msgid "Sorry but Siril cannot open the PIC file: %s.\n"
 msgstr "SIRIL kann dieses PIC-Format nicht öffnen: %s.\n"
 
 #: src/io/image_formats_internal.c:852
-#, fuzzy
 msgid "Error: seek failure in file.\n"
-msgstr "Fehler: Bildgröße anpassen ist fehlgeschlagen...\n"
+msgstr "Fehler: Suchfehler in der Datei.\n"
 
 #: src/io/image_formats_internal.c:858
 msgid "Error: memory allocation failure.\n"
@@ -20734,10 +20739,9 @@ msgstr ""
 "Größe (%d). Laden nicht möglich.\n"
 
 #: src/io/sequence.c:206
-#, fuzzy, c-format
+#, c-format
 msgid "Checking sequences in the directory: %s.\n"
-msgstr ""
-"Fehler bei der Suche nach Sequenzen oder beim Öffnen des Verzeichnisses.\n"
+msgstr "Überprüfen von Sequenzen im Verzeichnis: %s.\n"
 
 #: src/io/sequence.c:209 src/io/sequence.c:339
 msgid "Current working directory is not set, aborting.\n"
@@ -20762,6 +20766,9 @@ msgid ""
 "Cannot load SER sequence. Need at least 2 frames to be usable in Siril. "
 "Please convert the SER file into FITS file.\n"
 msgstr ""
+"SER-Sequenz kann nicht geladen werden. Es werden mindestens 2 Bilder "
+"benötigt, um in Siril verwendet werden zu können. Bitte konvertieren Sie die "
+"SER-Datei in eine FITS-Datei.\n"
 
 #: src/io/sequence.c:501
 msgid "Deprecated sequence"
@@ -22508,6 +22515,8 @@ msgstr ""
 #: src/registration/registration.c:1463
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
 msgstr ""
+"Die Bereichsauswahl kann nicht für eine Sequenz mit variablen Bildgrößen "
+"verwendet werden.\n"
 
 #: src/registration/registration.c:1494
 msgid "The object is not moving, please check your registration data.\n"

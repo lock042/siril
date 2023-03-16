@@ -870,12 +870,14 @@ static int starnet_finalize_hook(struct generic_seq_args *args) {
 	starnet_args->new_ser_starless = NULL;
 	starnet_args->new_fitseq_starless = NULL;
 
-	args->new_ser = starnet_args->new_ser_starmask;
-	args->new_fitseq = starnet_args->new_fitseq_starmask;
-	retval |= seq_finalize_hook(args);
-	starnet_args->new_ser_starmask = NULL;
-	starnet_args->new_fitseq_starmask = NULL;
-	seqwriter_set_number_of_outputs(1);
+	if (starnet_args->starmask) {
+		args->new_ser = starnet_args->new_ser_starmask;
+		args->new_fitseq = starnet_args->new_fitseq_starmask;
+		retval |= seq_finalize_hook(args);
+		starnet_args->new_ser_starmask = NULL;
+		starnet_args->new_fitseq_starmask = NULL;
+		seqwriter_set_number_of_outputs(1);
+	}
 	free_starnet_args(starnet_args);
 	return retval;
 }
@@ -890,21 +892,12 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 		retval1 = ser_write_frame_from_fit(seqdata->new_ser_starless, seqdata->starnet_fit, out_index);
 		if (seqdata->starmask) {
 			retval2 = ser_write_frame_from_fit(seqdata->new_ser_starmask, seqdata->starmask_fit, out_index);
-			free(seqdata->starmask_fit);
 		}
 		// the two fits are freed by the writing thread
 	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
 		retval1 = fitseq_write_image(seqdata->new_fitseq_starless, seqdata->starnet_fit, out_index);
 		if (seqdata->starmask) {
 			retval2 = fitseq_write_image(seqdata->new_fitseq_starmask, seqdata->starmask_fit, out_index);
-			free(seqdata->starmask_fit);
-		}
-		// the two fits are freed by the writing thread
-		if (!retval1 && !retval2) {
-			/* special case because it's not done in the generic */
-			clearfits(fit);
-			free(fit);
-			fit = NULL;
 		}
 	} else {
 		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, "starless_", in_index);
@@ -929,7 +922,8 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	starnet_data *seqdata = (starnet_data *) args->user;
 	seqdata->force_ser = args->force_ser_output;
 	seqdata->starnet_fit = fit;
-	seqdata->starmask_fit = calloc(1, sizeof(fits));
+	if (seqdata->starmask)
+		seqdata->starmask_fit = calloc(1, sizeof(fits));
 	seqdata->imgnumber = o;
 	siril_log_color_message(_("Starnet: Processing image %d\n"), "green", o + 1);
 	do_starnet(seqdata);
@@ -955,19 +949,24 @@ static int starnet_prepare_hook(struct generic_seq_args *args) {
 	starnet_args->new_fitseq_starless = args->new_fitseq;
 	free(args->new_seq_prefix);
 
-	args->new_seq_prefix = strdup("starmask_");
-	if (starnet_basic_prepare_hook(args))
-		return 1;
-	starnet_args->new_ser_starmask = args->new_ser;
-	starnet_args->new_fitseq_starmask = args->new_fitseq;
-	free(args->new_seq_prefix);
-
+	if (starnet_args->starmask) {
+		args->new_seq_prefix = strdup("starmask_");
+		if (starnet_basic_prepare_hook(args))
+			return 1;
+		starnet_args->new_ser_starmask = args->new_ser;
+		starnet_args->new_fitseq_starmask = args->new_fitseq;
+		free(args->new_seq_prefix);
+	}
 	// Set the prefix for the sequence we want loaded afterwards
 	args->new_seq_prefix = strdup("starless_");
 	args->new_ser = NULL;
 	args->new_fitseq = NULL;
 
-	seqwriter_set_number_of_outputs(2);
+	if (starnet_args->starmask)
+		seqwriter_set_number_of_outputs(2);
+	else
+		seqwriter_set_number_of_outputs(1);
+
 	return 0;
 }
 void apply_starnet_to_sequence(struct starnet_data *seqdata) {

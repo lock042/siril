@@ -141,7 +141,6 @@ struct outliers {
 };
 
 
-void initialize_stacking_default();
 void initialize_stacking_methods();
 gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 		sequence *seq, int nb_img_to_stack, gchar **err);

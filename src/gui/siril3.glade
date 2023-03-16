@@ -24297,6 +24297,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <item translatable="yes">Noise</item>
                                                             <item translatable="yes">Number of images</item>
                                                             </items>
+                                                            <signal name="changed" handler="on_comboweighing_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
