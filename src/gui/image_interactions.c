@@ -577,16 +577,13 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			com.cut_point.x = tmp.x;
 			com.cut_point.y = tmp.y;
 			siril_debug_print("Cutting to: %u, %u\n", com.cut_point.x, com.cut_point.y);
-			cut_args *args = calloc(1, sizeof(cut_args));
-			args->start = gui.start;
-			args->finish = com.cut_point;
 			gui.cutting = CUT_NOT_CUTTING;
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 			redraw(REDRAW_OVERLAY);
 			// Deselect the Cut button once the cut is made
 			GtkToggleToolButton *cut_button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("cut_button"));
 			gtk_toggle_tool_button_set_active(cut_button, FALSE);
-			start_in_new_thread(cut_profile, args);
+			start_in_new_thread(cut_profile, NULL);
 		}
 	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click
 		if (inside) {
