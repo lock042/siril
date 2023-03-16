@@ -285,6 +285,12 @@ static GdkModifierType get_primary() {
 			GDK_MODIFIER_INTENT_PRIMARY_ACCELERATOR);
 }
 
+static GdkModifierType get_altgr() {
+	return gdk_keymap_get_modifier_mask(
+			gdk_keymap_get_for_display(gdk_display_get_default()),
+			GDK_MODIFIER_INTENT_SHIFT_GROUP);
+}
+
 void enforce_ratio_and_clamp() {
 	if (gui.ratio > 0.0
 		&& !(gui.freezeX && gui.freezeY)) {
@@ -448,12 +454,14 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					}
 					break;
 				case MOUSE_ACTION_CUT_SELECT:
-					if (get_primary())
+					if (get_altgr()) {
+						printf("altgr\n");
 						gui.cutting = CUT_VERT_OR_HORIZ;
-					else
+					} else {
 						gui.cutting = CUT_UNCONSTRAINED;
-					gui.start.x = (int)(event->x);
-					gui.start.y = (int)(event->y);
+					}
+					gui.start.x = zoomed.x;
+					gui.start.y = zoomed.y;
 					siril_debug_print("Cutting from: %u, %u\n", gui.start.x, gui.start.y);
 					break;
 				default:
@@ -562,22 +570,25 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 			redraw(REDRAW_OVERLAY);
 		} else if (mouse_status == MOUSE_ACTION_CUT_SELECT) {
-			pointi finish;
-			finish.x = (int)(event->x);
-			finish.y = (int)(event->y);
-			siril_debug_print("Cutting to: %u, %u\n", finish.x, finish.y);
+			pointi tmp;
+			tmp.x = zoomed.x;
+			tmp.y = zoomed.y;
 			if (gui.cutting == CUT_VERT_OR_HORIZ) {
-				if (abs(finish.y - gui.start.y) > abs(finish.x - gui.start.x)) {
-					finish.x = gui.start.x;
+				if (abs(tmp.y - gui.start.y) > abs(tmp.x - gui.start.x)) {
+					tmp.x = gui.start.x;
 				} else {
-					finish.y = gui.start.y;
+					tmp.y = gui.start.y;
 				}
 			}
+			com.cut_point.x = tmp.x;
+			com.cut_point.y = tmp.y;
+			siril_debug_print("Cutting to: %u, %u\n", com.cut_point.x, com.cut_point.y);
 			cut_args *args = calloc(1, sizeof(cut_args));
 			args->start = gui.start;
-			args->finish = finish;
+			args->finish = com.cut_point;
 			gui.cutting = CUT_NOT_CUTTING;
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+			redraw(REDRAW_OVERLAY);
 			// Deselect the Cut button once the cut is made
 			GtkToggleToolButton *cut_button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("cut_button"));
 			gtk_toggle_tool_button_set_active(cut_button, FALSE);
@@ -757,9 +768,18 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		adjust_vport_size_to_image();
 		redraw(REDRAW_OVERLAY);
 	} else if (gui.cutting) {	// button 1 down, dragging a line for the pixel profile cut
-		siril_debug_print(".");
-		com.cut_point.x = (int)(event->x);
-		com.cut_point.y = (int)(event->y);
+		pointi tmp;
+		tmp.x = zoomed.x;
+		tmp.y = zoomed.y;
+			if (gui.cutting == CUT_VERT_OR_HORIZ) {
+				if (abs(tmp.y - gui.start.y) > abs(tmp.x - gui.start.x)) {
+					tmp.x = gui.start.x;
+				} else {
+					tmp.y = gui.start.y;
+				}
+			}
+			com.cut_point.x = tmp.x;
+			com.cut_point.y = tmp.y;
 		redraw(REDRAW_OVERLAY);
 	} else if (gui.drawing) {	// with button 1 down
 		if (!gui.freezeX) {
