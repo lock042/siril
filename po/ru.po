@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-11 11:18+0100\n"
-"PO-Revision-Date: 2023-03-16 09:03+0000\n"
+"PO-Revision-Date: 2023-03-17 13:39+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -2021,7 +2021,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:9277
 msgid "phase"
-msgstr "фаза"
+msgstr "phase"
 
 #: src/gui/siril3.glade:9287
 msgid "Centered"
@@ -2111,15 +2111,13 @@ msgstr ""
 
 #: src/gui/siril3.glade:9583 src/gui/siril3.glade:10192
 #: src/gui/siril3.glade:16033
-#, fuzzy
 msgid "Generalised hyperbolic transform"
-msgstr "Инвертировать"
+msgstr "Обобщённая гиперболическая трансформация"
 
 #: src/gui/siril3.glade:9584 src/gui/siril3.glade:10193
 #: src/gui/siril3.glade:16034
-#, fuzzy
 msgid "Inverse generalised hyperbolic transform"
-msgstr "Инвертировать"
+msgstr "Инвертированная обобщённая гиперболическая трансформация"
 
 #: src/gui/siril3.glade:9585 src/gui/siril3.glade:10194
 #: src/gui/siril3.glade:16035
@@ -2932,13 +2930,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:12705
-#, fuzzy
 msgid "No Selection"
-msgstr "Выделение"
+msgstr "Без выделения"
 
 #: src/gui/siril3.glade:12866
 msgid "Dynamic PSF"
-msgstr ""
+msgstr "Динамическая PSF"
 
 #: src/gui/siril3.glade:12937
 #, fuzzy
@@ -3377,6 +3374,9 @@ msgid ""
 "Search and display solar system objects with mag<20.0.\n"
 "This research has made use of IMCCE's SkyBoT VO tool."
 msgstr ""
+"Найти и показать объекты Солнечной системы со звёздной величиной <20.0.\n"
+"В этом исследовании использовался инструмент SkyBoT VO от Института небесной "
+"механики и вычисления эфемерид (IMCCE)."
 
 #: src/gui/siril3.glade:14646
 msgid "Solar System Objects"
@@ -3407,16 +3407,15 @@ msgstr "Соотношение сторон выделения"
 
 #: src/gui/siril3.glade:14823
 msgid "Select the whole image and reset ratio"
-msgstr ""
+msgstr "Выбрать изображение целиком и сбросить соотношение сторон"
 
 #: src/gui/siril3.glade:14824
 msgid "Select All"
 msgstr "Выбрать всё"
 
 #: src/gui/siril3.glade:14839
-#, fuzzy
 msgid "No guides on the selection"
-msgstr "Линии по центру выделения"
+msgstr "Выделение без направляющих"
 
 #: src/gui/siril3.glade:14840
 msgid "No guides"
@@ -3427,9 +3426,8 @@ msgid "Center line guides on the selection"
 msgstr "Линии по центру выделения"
 
 #: src/gui/siril3.glade:14851
-#, fuzzy
 msgid "Center lines"
-msgstr "По центру"
+msgstr "Линии по центру"
 
 #: src/gui/siril3.glade:14862
 msgid "3 thirds grid guides on the selection"
@@ -3445,7 +3443,7 @@ msgstr "Сетка по пятым долям выделения"
 
 #: src/gui/siril3.glade:14875
 msgid "Rule of fifths"
-msgstr ""
+msgstr "Правило пятой"
 
 #: src/gui/siril3.glade:14891 src/gui/siril3.glade:18724
 #: src/gui/menu_gray_geometry.c:59
@@ -3463,29 +3461,28 @@ msgid "Rotate&Crop"
 msgstr "Вращение и обрезка"
 
 #: src/gui/siril3.glade:14923
-#, fuzzy
 msgid "RGB align"
-msgstr "Нейтрализация фона"
+msgstr "Выравнивание RGB"
 
 #: src/gui/siril3.glade:14956
 msgid "Merge CFA Elements"
-msgstr "Совместить элементы CFA"
+msgstr "Совместить каналы CFA"
 
 #: src/gui/siril3.glade:15043
 msgid "CFA0"
-msgstr ""
+msgstr "CFA0"
 
 #: src/gui/siril3.glade:15054
 msgid "CFA1"
-msgstr ""
+msgstr "CFA1"
 
 #: src/gui/siril3.glade:15065
 msgid "CFA2"
-msgstr ""
+msgstr "CFA2"
 
 #: src/gui/siril3.glade:15076
 msgid "CFA3"
-msgstr ""
+msgstr "CFA3"
 
 #: src/gui/siril3.glade:15088
 msgid ""
@@ -3512,9 +3509,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:15147
-#, fuzzy
 msgid "Input Files"
-msgstr "Добавить файлы"
+msgstr "Входящие файлы"
 
 #: src/gui/siril3.glade:15176
 msgid ""
@@ -3525,19 +3521,19 @@ msgstr ""
 
 #: src/gui/siril3.glade:15180
 msgid "RGGB"
-msgstr ""
+msgstr "RGGB"
 
 #: src/gui/siril3.glade:15181
 msgid "BGGR"
-msgstr ""
+msgstr "BGGR"
 
 #: src/gui/siril3.glade:15182
 msgid "GBRG"
-msgstr ""
+msgstr "GBRG"
 
 #: src/gui/siril3.glade:15183
 msgid "GRBG"
-msgstr ""
+msgstr "GRBG"
 
 #: src/gui/siril3.glade:15193
 msgid "Bayer Pattern"
@@ -3568,6 +3564,8 @@ msgstr ""
 #: src/gui/siril3.glade:15283
 msgid "Prefix of the image names resulting from the merge CFA process."
 msgstr ""
+"Префикс названий изображений, полученных по завершении процесса совмещения "
+"каналов CFA."
 
 #: src/gui/siril3.glade:15325
 msgid ""
@@ -3878,9 +3876,8 @@ msgid "32 bits"
 msgstr "32 бита"
 
 #: src/gui/siril3.glade:17472
-#, fuzzy
 msgid "Open the inverse hyperbolic sine dialog"
-msgstr "Инвертировать"
+msgstr "Диалог преобразования по asinh"
 
 #: src/gui/siril3.glade:17474
 msgid "Asinh Transformation..."
@@ -3892,9 +3889,8 @@ msgid "Open the generalized hyperbolic transform dialog"
 msgstr "Инвертировать"
 
 #: src/gui/siril3.glade:17489
-#, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations..."
-msgstr "Трансформация гистограммы…"
+msgstr "Обобщённая гиперболическая трансформация..."
 
 #: src/gui/siril3.glade:17502
 #, fuzzy
@@ -3929,9 +3925,8 @@ msgid "Remove Green Noise..."
 msgstr ""
 
 #: src/gui/siril3.glade:17572
-#, fuzzy
 msgid "Compute the inverse of the image"
-msgstr "Добавить фильтр"
+msgstr "Инвертировать изображение"
 
 #: src/gui/siril3.glade:17574 src/gui/colors.c:312
 msgid "Negative Transformation"
@@ -7559,9 +7554,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:31168
-#, fuzzy
 msgid "<b>FFTW Options</b>"
-msgstr "<b>Сжатие FITS</b>"
+msgstr "<b>Настройки FFTW</b>"
 
 #: src/gui/siril3.glade:31196 src/gui/siril3.glade:31631
 msgid "Miscellaneous"
@@ -15609,9 +15603,8 @@ msgid "Could not compute autostretch parameters, using default values\n"
 msgstr ""
 
 #: src/gui/histogram.c:1041
-#, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations"
-msgstr "Трансформация гистограммы…"
+msgstr "Обобщённая гиперболическая трансформация"
 
 #: src/gui/histogram.c:1069 src/gui/histogram.c:1458
 msgid "Clicking on the histogram sets SP"
