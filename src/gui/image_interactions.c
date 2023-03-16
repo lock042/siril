@@ -285,12 +285,6 @@ static GdkModifierType get_primary() {
 			GDK_MODIFIER_INTENT_PRIMARY_ACCELERATOR);
 }
 
-static GdkModifierType get_altgr() {
-	return gdk_keymap_get_modifier_mask(
-			gdk_keymap_get_for_display(gdk_display_get_default()),
-			GDK_MODIFIER_INTENT_SHIFT_GROUP);
-}
-
 void enforce_ratio_and_clamp() {
 	if (gui.ratio > 0.0
 		&& !(gui.freezeX && gui.freezeY)) {
@@ -454,7 +448,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					}
 					break;
 				case MOUSE_ACTION_CUT_SELECT:
-					if (get_altgr()) {
+					if (event->state & GDK_SHIFT_MASK) {
 						printf("altgr\n");
 						gui.cutting = CUT_VERT_OR_HORIZ;
 					} else {
@@ -768,6 +762,10 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		adjust_vport_size_to_image();
 		redraw(REDRAW_OVERLAY);
 	} else if (gui.cutting) {	// button 1 down, dragging a line for the pixel profile cut
+		if (event->state & GDK_SHIFT_MASK)
+			gui.cutting = CUT_VERT_OR_HORIZ;
+		else
+			gui.cutting = CUT_UNCONSTRAINED;
 		pointi tmp;
 		tmp.x = zoomed.x;
 		tmp.y = zoomed.y;
