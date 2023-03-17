@@ -98,7 +98,7 @@ static command commands[] = {
 #ifndef _WIN32
 	{"ls", 0, "ls", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
 #endif
-	{"makepsf", 1, "makepsf clear [-ks=]\n"
+	{"makepsf", 1, "makepsf clear\n"
 				"makepsf load filename\n"
 				"makepsf save\n"
 				"makepsf blind [-l0] [-si] [-multiscale] [-lambda=] [-comp=] [-ks=]\n"

@@ -1022,7 +1022,7 @@ int process_makepsf(int nb) {
 		free(data);
 		return CMD_WRONG_N_ARG;
 	}
-	if (g_str_has_prefix(arg, "clear")) {
+	if (!g_strcmp0(arg, "clear")) {
 		if (get_thread_run()) {
 			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
 			free(data);
@@ -1037,7 +1037,7 @@ int process_makepsf(int nb) {
 		free(data);
 		return CMD_OK;
 	} else {
-		if (g_str_has_prefix(arg, "save")) {
+		if (!g_strcmp0(arg, "save")) {
 			siril_log_message(_("Save PSF to file:\n"));
 			on_bdeconv_savekernel_clicked(NULL, NULL);
 			free(data);
@@ -1048,7 +1048,7 @@ int process_makepsf(int nb) {
 			com.kernel = NULL;
 			com.kernelsize = 0;
 		}
-		if (g_str_has_prefix(arg, "blind")) {
+		if (!g_strcmp0(arg, "blind")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
 				free(data);
@@ -1060,15 +1060,15 @@ int process_makepsf(int nb) {
 				char *arg = word[i], *end;
 				if (!word[i])
 					break;
-				if (g_str_has_prefix(arg, "-l0")) {
+				if (!g_strcmp0(arg, "-l0")) {
 					siril_log_message(_("ℓ0 descent prior method\n"));
 					data->blindtype = 1;
 				}
-				else if (g_str_has_prefix(arg, "-si")) {
+				else if (!g_strcmp0(arg, "-si")) {
 					siril_log_message(_("spectral irregularity method\n"));
 					data->blindtype = 0;
 				}
-				else if (g_str_has_prefix(arg, "-multiscale")) {
+				else if (!g_strcmp0(arg, "-multiscale")) {
 					siril_log_message(_("multiscale estimation\n"));
 					data->multiscale = TRUE;
 				}
@@ -1112,6 +1112,9 @@ int process_makepsf(int nb) {
 					if (!error) {
 						data->ks = ks;
 					}
+				} else {
+					siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+					return CMD_ARG_ERROR;
 				}
 			}
 			if (error) {
@@ -1120,7 +1123,7 @@ int process_makepsf(int nb) {
 			}
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
-		} else if (g_str_has_prefix(arg, "stars")) {
+		} else if (!g_strcmp0(arg, "stars")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
 				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
 				free(data);
@@ -1136,8 +1139,8 @@ int process_makepsf(int nb) {
 					char *arg = word[i], *end;
 					if (!word[i])
 						break;
-					if (g_str_has_prefix(arg, "-sym")) {
-					siril_log_message(_("symmetric kernel\n"));
+					if (!g_strcmp0(arg, "-sym")) {
+						siril_log_message(_("symmetric kernel\n"));
 						data->symkern = TRUE;
 					}
 					else if (g_str_has_prefix(arg, "-ks=")) {
@@ -1152,6 +1155,9 @@ int process_makepsf(int nb) {
 						if (!error) {
 							data->ks = ks;
 						}
+					} else {
+						siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+						return CMD_ARG_ERROR;
 					}
 				}
 				if (error) {
@@ -1161,26 +1167,26 @@ int process_makepsf(int nb) {
 				start_in_new_thread(estimate_only,data);
 				return CMD_OK;
 			}
-		} else if (g_str_has_prefix(arg, "manual")) {
+		} else if (!g_strcmp0(arg, "manual")) {
 			siril_log_message(_("Manual PSF generation:\n"));
 			data->psftype = PSF_MANUAL;
 			for (int i = 2; i < nb; i++) {
 				char *arg = word[i], *end;
 				if (!word[i])
 					break;
-				if (g_str_has_prefix(arg, "-gaussian")) {
+				if (!g_strcmp0(arg, "-gaussian")) {
 					siril_log_message(_("Gaussian PSF\n"));
 					data->profile = 0;
 				}
-				else if (g_str_has_prefix(arg, "-moffat")) {
+				else if (!g_strcmp0(arg, "-moffat")) {
 					siril_log_message(_("Moffat PSF\n"));
 					data->profile = 1;
 				}
-				else if (g_str_has_prefix(arg, "-disc")) {
+				else if (!g_strcmp0(arg, "-disc")) {
 					siril_log_message(_("Disc PSF\n"));
 					data->profile = 2;
 				}
-				else if (g_str_has_prefix(arg, "-airy")) {
+				else if (!g_strcmp0(arg, "-airy")) {
 					siril_log_message(_("Airy disc PSF\n"));
 					data->profile = 3;
 				}
@@ -1313,6 +1319,9 @@ int process_makepsf(int nb) {
 					if (!error) {
 						data->airy_obstruction = val;
 					}
+				} else {
+					siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+					return CMD_ARG_ERROR;
 				}
 			}
 			if (error) {
@@ -1321,7 +1330,7 @@ int process_makepsf(int nb) {
 			}
 			start_in_new_thread(estimate_only,data);
 			return CMD_OK;
-		} else if (g_str_has_prefix(arg, "load")) {
+		} else if (!g_strcmp0(arg, "load")) {
 			siril_log_message(_("Load PSF from file:\n"));
 			if (word[2] && word[2][0] != '\0') {
 				if (load_kernel(word[2])) {
@@ -1333,6 +1342,9 @@ int process_makepsf(int nb) {
 			data->psftype = PSF_PREVIOUS;
 			free(data);
 			return CMD_OK;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
 		}
 	}
 	free(data);
@@ -1344,9 +1356,9 @@ int process_deconvolve(int nb, nonblind_t type) {
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
-	if (type == 0)
+	if (type == DECONV_SB)
 		data->finaliters = 1;
-	if (type == 2)
+	if (type == DECONV_WIENER)
 		data->alpha = 1.f / 500.f;
 	for (int i = 1; i < nb; i++) {
 		char *arg = word[i], *end;
@@ -1405,14 +1417,17 @@ int process_deconvolve(int nb, nonblind_t type) {
 				data->stepsize = stepsize;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-tv")) {
+		else if (!g_strcmp0(arg, "-tv")) {
 			 data->regtype = REG_TV_GRAD;
 		}
-		else if (g_str_has_prefix(arg, "-mul")) {
+		else if (!g_strcmp0(arg, "-mul")) {
 			data->rl_method = RL_MULT;
 		}
-		else if (g_str_has_prefix(arg, "-fh")) {
+		else if (!g_strcmp0(arg, "-fh")) {
 			data->regtype = REG_FH_GRAD;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
 		}
 	}
 
@@ -1449,9 +1464,9 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
-	if (type == 0)
+	if (type == DECONV_SB)
 		data->finaliters = 1;
-	if (type == 2)
+	if (type == DECONV_WIENER)
 		data->alpha = 1.f / 500.f;
 	for (int i = 2; i < nb; i++) {
 		char *arg = word[i], *end;
@@ -1518,14 +1533,17 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 				data->stepsize = stepsize;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-tv")) {
+		else if (!g_strcmp0(arg, "-tv")) {
 			 data->regtype = REG_TV_GRAD;
 		}
-		else if (g_str_has_prefix(arg, "-mul")) {
+		else if (!g_strcmp0(arg, "-mul")) {
 			data->rl_method = RL_MULT;
 		}
-		else if (g_str_has_prefix(arg, "-fh")) {
+		else if (!g_strcmp0(arg, "-fh")) {
 			data->regtype = REG_FH_GRAD;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			return CMD_ARG_ERROR;
 		}
 	}
 
