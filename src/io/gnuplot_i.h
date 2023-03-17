@@ -535,4 +535,12 @@ void gnuplot_plot_xrgb_datfile_to_png(
 	char const *curve_title,
 	char const* png_filename);
 
+void gnuplot_multiplot_3xy(
+	gnuplot_ctrl * handle,
+	double *x,
+	double *y1,
+	double *y2,
+	double *y3,
+	int n);
+
 #endif

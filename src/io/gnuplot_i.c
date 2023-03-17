@@ -1089,4 +1089,39 @@ void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename
 			    handle->pstyle);
 }
 
+void gnuplot_multiplot_3xy(gnuplot_ctrl * handle, double *x, double *y1, double *y2, double *y3, int n)
+{
+    int     i ;
+    FILE*   tmpfd ;
+    char const * tmpfname;
+
+    if (handle==NULL || x==NULL || y1==NULL || y2 == NULL || y3 == NULL || (n<1)) return ;
+
+    /* Open temporary file for output   */
+    tmpfname = gnuplot_tmpfile(handle);
+    tmpfd = g_fopen(tmpfname, "w");
+
+    if (tmpfd == NULL) {
+        fprintf(stderr,"cannot create temporary file: exiting plot") ;
+        return ;
+    }
+
+    /* Write data to this file  */
+    for (i=0 ; i<n; i++) {
+        fprintf(tmpfd, "%.18e %.18e %.18e %.18e\n", x[i], y1[i], y2[i], y3[i]) ;
+    }
+    fclose(tmpfd) ;
+
+	char *curve_title = strdup("Title");
+	gnuplot_cmd(handle, "set multiplot layout 3,1 rowsfirst");
+	gnuplot_cmd(handle, "plot \"%s\" using ($1):($2) title \"%s\" with %s", tmpfname,
+		curve_title, handle->pstyle);
+	gnuplot_cmd(handle, "plot \"%s\" using ($1):($3) title \"%s\" with %s", tmpfname,
+		curve_title, handle->pstyle);
+	gnuplot_cmd(handle, "plot \"%s\" using ($1):($4) title \"%s\" with %s", tmpfname,
+		curve_title, handle->pstyle);
+	gnuplot_cmd(handle, "unset multiplot");
+	free(curve_title);
+}
+
 /* vim: set ts=4 et sw=4 tw=75 */
