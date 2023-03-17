@@ -184,10 +184,14 @@ gpointer cut_profile(gpointer p) {
 END:
 	// Clean up
 	free(x);
+	x = NULL;
 	free(r);
+	r = NULL;
 	free(g);
+	g = NULL;
 	free(b);
-
+	b = NULL;
+	printf("Setting the idle...\n");
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }

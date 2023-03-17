@@ -363,6 +363,10 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		/* else, click on gray image */
 		if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 			// Reset the cut line if one has been drawn
+			com.cut_start.x = -1;
+			com.cut_start.y = -1;
+			com.cut_point.x = -1;
+			com.cut_point.y = -1;
 			point pt;
 			int radius, s;
 			gboolean right, left, bottom, top;
@@ -573,7 +577,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 			redraw(REDRAW_OVERLAY);
 		} else if (mouse_status == MOUSE_ACTION_CUT_SELECT) {
-/*			pointi tmp;
+			pointi tmp;
 			tmp.x = zoomed.x;
 			tmp.y = zoomed.y;
 			if (gui.cutting == CUT_VERT_OR_HORIZ) {
@@ -582,15 +586,15 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 				} else {
 					tmp.y = gui.start.y;
 				}
-			}*/
+			}
+			com.cut_point.x = tmp.x;
+			com.cut_point.y = tmp.y;
 			cut_args *cut_data = malloc(sizeof(cut_args));
 			cut_data->start.x = com.cut_start.x;
 			cut_data->start.y = com.cut_start.y;
 			cut_data->finish.x = com.cut_point.x;
 			cut_data->finish.y = com.cut_point.y;
 			cut_data->display_graph = TRUE;
-//			com.cut_point.x = tmp.x;
-//			com.cut_point.y = tmp.y;
 			gui.cutting = CUT_NOT_CUTTING;
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 			redraw(REDRAW_OVERLAY);
