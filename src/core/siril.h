@@ -607,6 +607,7 @@ struct cominf {
 	int max_thread;			// max total number of threads used for parallel execution
 
 	rectangle selection;		// coordinates of the selection rectangle
+	pointi cut_start;			// point marking start of cut line
 	pointi cut_point;			// point dragged while selecting the cut line
 
 	psf_star **stars;		// list of stars detected in the current image

@@ -51,10 +51,10 @@ float interpw(fits* fit, float x, float y, int chan) {
 }
 
 float interp(fits *fit, float x, float y, int chan) {
+	float val;
 	switch (fit->type) {
 		case DATA_FLOAT:
-			float val = interpf(fit, x, y, chan);
-			printf("%.1f %.1f %.3e\n", x, y, val);
+			val = interpf(fit, x, y, chan);
 			return val;
 			break;
 		case DATA_USHORT:
@@ -183,6 +183,11 @@ gpointer cut_profile(gpointer p) {
 
 END:
 	// Clean up
+	free(x);
+	free(r);
+	free(g);
+	free(b);
+
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }

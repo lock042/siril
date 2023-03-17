@@ -360,7 +360,6 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			}
 		}
 
-
 		/* else, click on gray image */
 		if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 			// Reset the cut line if one has been drawn
@@ -457,19 +456,21 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					break;
 				case MOUSE_ACTION_CUT_SELECT:
 					if (event->state & GDK_SHIFT_MASK) {
-						printf("altgr\n");
 						gui.cutting = CUT_VERT_OR_HORIZ;
 					} else {
 						gui.cutting = CUT_UNCONSTRAINED;
 					}
-					gui.start.x = zoomed.x;
-					gui.start.y = zoomed.y;
-					siril_debug_print("Cutting from: %u, %u\n", gui.start.x, gui.start.y);
+					com.cut_start.x = zoomed.x;
+					com.cut_start.y = zoomed.y;
 					break;
 				default:
 					break;
 			}
 		} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
+			com.cut_start.x = -1;
+			com.cut_start.y = -1;
+			com.cut_point.x = -1;
+			com.cut_point.y = -1;
 			if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 				point pt;
 				int radius = (int) (25 / 2);
@@ -572,7 +573,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 			redraw(REDRAW_OVERLAY);
 		} else if (mouse_status == MOUSE_ACTION_CUT_SELECT) {
-			pointi tmp;
+/*			pointi tmp;
 			tmp.x = zoomed.x;
 			tmp.y = zoomed.y;
 			if (gui.cutting == CUT_VERT_OR_HORIZ) {
@@ -581,15 +582,15 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 				} else {
 					tmp.y = gui.start.y;
 				}
-			}
+			}*/
 			cut_args *cut_data = malloc(sizeof(cut_args));
-			cut_data->start.x = gui.start.x;
-			cut_data->start.y = gui.start.y;
-			cut_data->finish.x = tmp.x;
-			cut_data->finish.y = tmp.y;
+			cut_data->start.x = com.cut_start.x;
+			cut_data->start.y = com.cut_start.y;
+			cut_data->finish.x = com.cut_point.x;
+			cut_data->finish.y = com.cut_point.y;
 			cut_data->display_graph = TRUE;
-			com.cut_point.x = tmp.x;
-			com.cut_point.y = tmp.y;
+//			com.cut_point.x = tmp.x;
+//			com.cut_point.y = tmp.y;
 			gui.cutting = CUT_NOT_CUTTING;
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 			redraw(REDRAW_OVERLAY);
@@ -780,15 +781,15 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		pointi tmp;
 		tmp.x = zoomed.x;
 		tmp.y = zoomed.y;
-			if (gui.cutting == CUT_VERT_OR_HORIZ) {
-				if (abs(tmp.y - gui.start.y) > abs(tmp.x - gui.start.x)) {
-					tmp.x = gui.start.x;
-				} else {
-					tmp.y = gui.start.y;
-				}
+		if (gui.cutting == CUT_VERT_OR_HORIZ) {
+			if (abs(tmp.y - gui.start.y) > abs(tmp.x - gui.start.x)) {
+				tmp.x = gui.start.x;
+			} else {
+				tmp.y = gui.start.y;
 			}
-			com.cut_point.x = tmp.x;
-			com.cut_point.y = tmp.y;
+		}
+		com.cut_point.x = tmp.x;
+		com.cut_point.y = tmp.y;
 		redraw(REDRAW_OVERLAY);
 	} else if (gui.drawing) {	// with button 1 down
 		if (!gui.freezeX) {
