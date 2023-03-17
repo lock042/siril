@@ -505,4 +505,34 @@ int gnuplot_write_multi_csv(
     int                 numColumns,
     char const      *   title);
 
+void gnuplot_plot_xy_from_datfile(
+	gnuplot_ctrl * handle,
+	char const* tmp_filename,
+	char const* title);
+
+void gnuplot_plot_xy_datfile_to_png(
+	gnuplot_ctrl * handle,
+	char const* dat_filename,
+	char const *curve_title,
+	char const* png_filename);
+
+int gnuplot_write_xrgb_dat(
+    char const *        fileName,
+    double const    *   x,
+    double const    *   r,
+    double const    *   g,
+    double const    *   b,
+    int                 n,
+    char const      *   title);
+
+void gnuplot_plot_xrgb_from_datfile(
+	gnuplot_ctrl * handle,
+	char const* tmp_filename);
+
+void gnuplot_plot_xrgb_datfile_to_png(
+	gnuplot_ctrl * handle,
+	char const* dat_filename,
+	char const *curve_title,
+	char const* png_filename);
+
 #endif

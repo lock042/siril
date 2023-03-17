@@ -570,7 +570,7 @@ void gnuplot_plot_xy(
     }
     fclose(tmpfd) ;
 
-    gnuplot_plot_atmpfile(handle,tmpfname,title,0);
+    gnuplot_plot_xy_from_datfile(handle,tmpfname,title);
     return ;
 }
 
@@ -842,7 +842,48 @@ int gnuplot_write_xy_dat(
     /* Write data to this file  */
     for (i=0 ; i<n; i++)
     {
-        fprintf(fileHandle, "%.18e %.18e\n", x[i], y[i]) ;
+        fprintf(fileHandle, "%8.6f %8.6f\n", x[i], y[i]) ;
+    }
+
+    fclose(fileHandle) ;
+
+    return 0;
+}
+
+int gnuplot_write_xrgb_dat(
+    char const *        fileName,
+    double const    *   x,
+    double const    *   r,
+    double const    *   g,
+    double const    *   b,
+    int                 n,
+    char const      *   title)
+{
+    int     i ;
+    FILE*   fileHandle;
+
+    if (fileName==NULL || x==NULL || r==NULL || g == NULL || b == NULL || (n<1))
+    {
+        return -1;
+    }
+
+    fileHandle = g_fopen(fileName, "w");
+
+    if (fileHandle == NULL)
+    {
+        return -1;
+    }
+
+    // Write Comment.
+    if (title != NULL)
+    {
+        fprintf(fileHandle, "%s\n", title) ;
+    }
+
+    /* Write data to this file  */
+    for (i=0 ; i<n; i++)
+    {
+        fprintf(fileHandle, "%8.6f %8.6f %8.6f %8.6f\n", x[i], r[i], g[i], b[i]) ;
     }
 
     fclose(fileHandle) ;
@@ -978,6 +1019,52 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle)
     return tmp_filename;
 }
 
+void gnuplot_plot_xy_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title)
+{
+    char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
+    title                  = (title == NULL)      ? "(none)" : title;
+    gnuplot_cmd(handle, "%s \"%s\" using ($1):($2) title \"%s\" with %s",
+		   cmd, tmp_filename, title, handle->pstyle);
+    handle->nplots++ ;
+    return ;
+}
+
+void gnuplot_plot_xrgb_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
+{
+    char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
+    gnuplot_cmd(handle, "%s for [col=2:4] \"%s\" using ($1):col with %s title columnheader",
+		   cmd, tmp_filename, handle->pstyle);
+    handle->nplots++ ;
+    return ;
+}
+void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
+		char const *curve_title, char const* png_filename)
+{
+    gnuplot_cmd(handle, "set term png size 800,600");
+    gnuplot_cmd(handle, "set output \"%s\"", png_filename);
+
+    if (curve_title && curve_title[0] != '\0')
+	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2) title \"%s\" with %s", dat_filename,
+			    curve_title, handle->pstyle);
+    else
+	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
+			    handle->pstyle);
+}
+
+void gnuplot_plot_xrgb_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
+		char const *curve_title, char const* png_filename)
+{
+    gnuplot_cmd(handle, "set term png size 800,600");
+    gnuplot_cmd(handle, "set output \"%s\"", png_filename);
+
+    if (curve_title && curve_title[0] != '\0')
+	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2):($3):($4) title \"%s\" with %s", dat_filename,
+			    curve_title, handle->pstyle);
+    else
+	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
+			    handle->pstyle);
+}
+
 void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title, int x_offset)
 {
     char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
@@ -995,7 +1082,7 @@ void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename
     gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
     if (curve_title && curve_title[0] != '\0')
-	    gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename,
+	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2) title \"%s\" with %s", dat_filename,
 			    offset, curve_title, handle->pstyle);
     else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,

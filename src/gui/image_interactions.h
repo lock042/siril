@@ -35,6 +35,7 @@ typedef enum {
 typedef struct cut_args {
 	pointi start;
 	pointi finish;
+	gboolean display_graph;
 } cut_args;
 
 void init_mouse();
