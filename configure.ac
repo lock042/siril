@@ -168,7 +168,7 @@ if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
 					     AC_MSG_ERROR([opencv not found.]))])
 else
 	AC_MSG_ERROR([no C++ compiler found])
-	fi
+fi
 
 PKG_CHECK_MODULES(LIBRTPROCESS, [rtprocess], have_rtprocess="yes", have_rtprocess="no")
 if test "x$have_rtprocess" = "xno"; then

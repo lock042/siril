@@ -287,7 +287,7 @@ void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
 	if (args.psftype == PSF_BLIND) {
 		gtk_widget_set_visible(lookup_widget("bdeconv_psfcontrols"), FALSE);
 		switch (args.blindtype) {
-			case 0:
+			case BLIND_SI:
 				gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), FALSE);
 				gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), TRUE);
 				args.intermediatedeconvolutionweight = 15.f;
@@ -295,7 +295,7 @@ void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
 				args.lambda = 1.f / 15.f;
 				gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gflambda")), 15.);
 				break;
-			case 1:
+			case BLIND_L0:
 				gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), TRUE);
 				gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), FALSE);
 				args.lambda = 1.f / 3000.f;
@@ -308,7 +308,7 @@ void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
 void on_bdeconv_nonblindtype_changed(GtkComboBox *combo, gpointer user_data) {
 	args.nonblindtype = gtk_combo_box_get_active(combo);
 	switch (args.nonblindtype) {
-		case 0:
+		case DECONV_SB:
 			args.finaliters = 1; // Default niters for Split Bregman
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), (double) args.finaliters);
 			args.alpha = 3000.f;
@@ -324,7 +324,7 @@ void on_bdeconv_nonblindtype_changed(GtkComboBox *combo, gpointer user_data) {
 			gtk_widget_set_visible(lookup_widget("bdeconv_finaliters"), TRUE);
 			gtk_widget_set_visible(lookup_widget("bdeconv_iterlabel"), TRUE);
 			break;
-		case 1:
+		case DECONV_RL:
 			args.finaliters = 10; // Default niters for RL. Reduce this if using the multiplicative
 			// algorithm in order to avoid burning holes round your stars!
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), (double) args.finaliters);
@@ -341,7 +341,7 @@ void on_bdeconv_nonblindtype_changed(GtkComboBox *combo, gpointer user_data) {
 			gtk_widget_set_visible(lookup_widget("bdeconv_finaliters"), TRUE);
 			gtk_widget_set_visible(lookup_widget("bdeconv_iterlabel"), TRUE);
 			break;
-		case 2:
+		case DECONV_WIENER:
 			args.alpha = 500.f;
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), (double) args.alpha);
 			gtk_widget_set_visible(lookup_widget("regul_label"), FALSE);
@@ -1232,10 +1232,12 @@ gpointer deconvolve(gpointer p) {
 			memcpy(the_fit->fdata, args.fdata, args.ndata * sizeof(float));
 			if (com.pref.force_16bit)
 				fit_replace_buffer(the_fit, float_buffer_to_ushort(the_fit->fdata, args.ndata), DATA_USHORT);
+			else invalidate_stats_from_fit(the_fit);
 		} else {
 			for (size_t i = 0 ; i < args.ndata ; i++) {
 				the_fit->data[i] = roundf_to_WORD(args.fdata[i] * USHRT_MAX_SINGLE);
 			}
+			invalidate_stats_from_fit(the_fit);
 		}
 	}
 ENDDECONV:
