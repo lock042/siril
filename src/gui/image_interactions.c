@@ -360,8 +360,15 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			}
 		}
 
+
 		/* else, click on gray image */
 		if (event->button == GDK_BUTTON_PRIMARY) {	// left click
+			// Reset the cut line if one has been drawn
+			point pt;
+			int radius, s;
+			gboolean right, left, bottom, top;
+			rectangle area;
+			struct phot_config *ps = NULL;
 			switch (mouse_status) {
 				case MOUSE_ACTION_SELECT_REG_AREA:
 					if (gui.drawing) {
@@ -379,10 +386,10 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 							gui.freezeX = gui.freezeY = FALSE;
 							// The order matters if the selection is so small that edge detection overlaps
 							// and need to be the same as in the on_drawingarea_motion_notify_event()
-							gboolean right = is_over_the_right_side_of_sel(zoomed, zoom);
-							gboolean left = is_over_the_left_side_of_sel(zoomed, zoom);
-							gboolean bottom = is_over_the_bottom_of_sel(zoomed, zoom);
-							gboolean top = is_over_the_top_of_sel(zoomed, zoom);
+							right = is_over_the_right_side_of_sel(zoomed, zoom);
+							left = is_over_the_left_side_of_sel(zoomed, zoom);
+							bottom = is_over_the_bottom_of_sel(zoomed, zoom);
+							top = is_over_the_top_of_sel(zoomed, zoom);
 							if (right || left || bottom || top) {
 								// Freeze one axis when grabbing an edge far enough from a corner
 								if (right) {
@@ -413,8 +420,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					redraw(REDRAW_OVERLAY);
 					break;
 				case MOUSE_ACTION_DRAW_SAMPLES:
-					point pt;
-					int radius = get_background_sample_radius();
+					radius = get_background_sample_radius();
 
 					pt.x = (gdouble) zoomed.x;
 					pt.y = (gdouble) zoomed.y;
@@ -428,12 +434,14 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					}
 					break;
 				case MOUSE_ACTION_PHOTOMETRY:
-					int s = com.pref.phot_set.outer * 1.2;
-					rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
+					s = com.pref.phot_set.outer * 1.2;
+					area.x = zoomed.x - s;
+					area.y = zoomed.y - s;
+					area.w = s * 2;
+					area.h = s * 2;
 					if (area.x - area.w > 0 && area.x + area.w < gfit.rx
 							&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
-
-						struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+						ps = phot_set_adjusted_for_image(&gfit);
 						gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 						free(ps);
 						if (gui.qphot) {
