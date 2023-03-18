@@ -4064,7 +4064,7 @@ int process_seq_crop(int nb) {
 
 	args->seq = seq;
 	args->area = area;
-	args->prefix = "cropped_";
+	args->prefix = strdup("cropped_");
 
 	if (nb > startoptargs) {
 		for (int i = startoptargs; i < nb; i++) {
@@ -6471,7 +6471,7 @@ int process_register(int nb) {
 	reg_args->matchSelection = FALSE;
 	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
-	reg_args->prefix = "r_";
+	reg_args->prefix = strdup("r_");
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
@@ -6842,7 +6842,7 @@ int process_seq_applyreg(int nb) {
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
-	reg_args->prefix = "r_";
+	reg_args->prefix = strdup("r_");
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_LANCZOS4;
 	reg_args->clamp = TRUE;
