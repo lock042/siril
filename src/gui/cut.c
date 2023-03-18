@@ -2,6 +2,7 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "gui/image_interactions.h"
+#include "gui/dialogs.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "io/gnuplot_i.h"
@@ -194,4 +195,24 @@ END:
 	printf("Setting the idle...\n");
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
+}
+
+//// GUI callbacks ////
+
+void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
+	cut_args *cut_data = malloc(sizeof(cut_args));
+	cut_data->start.x = com.cut_start.x;
+	cut_data->start.y = com.cut_start.y;
+	cut_data->finish.x = com.cut_point.x;
+	cut_data->finish.y = com.cut_point.y;
+	cut_data->display_graph = TRUE;
+	start_in_new_thread(cut_profile, cut_data);
+	siril_close_dialog("cut_dialog");
+}
+
+void on_cut_cancel_button_pressed(GtkButton *button, gpointer user_data) {
+
+}
+
+void on_cut_dialog_show(GtkButton *button, gpointer user_data) {
 }

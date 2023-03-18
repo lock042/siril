@@ -43,6 +43,7 @@ static const SirilDialogEntry entries[] =
 	{"color_calibration", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cosmetic_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"crop_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"cut_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"bdeconv_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"dialog_FFT", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"dialog_star_remix", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},

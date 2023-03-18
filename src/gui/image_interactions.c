@@ -31,6 +31,7 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "gui/open_dialog.h"
+#include "gui/dialogs.h"
 #include "gui/PSF_list.h"
 #include "image_interactions.h"
 #include "image_display.h"
@@ -515,7 +516,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 	// same as evpos but rounded to integer and clamped to image bounds
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
-
 	if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 		if (gui.translating) {
 			gui.translating = FALSE;
@@ -589,20 +589,13 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			}
 			com.cut_point.x = tmp.x;
 			com.cut_point.y = tmp.y;
-			cut_args *cut_data = malloc(sizeof(cut_args));
-			cut_data->start.x = com.cut_start.x;
-			cut_data->start.y = com.cut_start.y;
-			cut_data->finish.x = com.cut_point.x;
-			cut_data->finish.y = com.cut_point.y;
-			cut_data->display_graph = TRUE;
 			gui.cutting = CUT_NOT_CUTTING;
 			mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 			redraw(REDRAW_OVERLAY);
 			// Deselect the Cut button once the cut is made
 			GtkToggleToolButton *cut_button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("cut_button"));
 			gtk_toggle_tool_button_set_active(cut_button, FALSE);
-
-			start_in_new_thread(cut_profile, cut_data);
+			siril_open_dialog("cut_dialog");
 		}
 	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click
 		if (inside) {
