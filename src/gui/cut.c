@@ -3,6 +3,7 @@
 #include "core/siril_log.h"
 #include "gui/image_interactions.h"
 #include "gui/dialogs.h"
+#include "gui/utils.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "io/gnuplot_i.h"
@@ -143,7 +144,12 @@ gpointer cut_profile(gpointer p) {
 			}
 		}
 	}
-	if (gfit.naxes[2] == 1)
+	if (gfit.naxes[2] == 3 && args->mode == MONO) {
+		for (int i = 0 ; i < nbr_points ; i++) {
+			r[i] = (r[i] + g[i] + b[i]) / 3.0;
+		}
+	}
+	if (gfit.naxes[2] == 1 || args->mode == MONO)
 		retval = gnuplot_write_xy_dat(filename, x, r, nbr_points, "x L");
 	else
 		retval = gnuplot_write_xrgb_dat(filename, x, r, g, b, nbr_points, "x R G B");
@@ -192,7 +198,7 @@ END:
 	g = NULL;
 	free(b);
 	b = NULL;
-	printf("Setting the idle...\n");
+	free(args);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
@@ -200,11 +206,20 @@ END:
 //// GUI callbacks ////
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
+	GtkToggleButton* cut_mono = (GtkToggleButton*)lookup_widget("cut_radio_mono");
+	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
+	GtkToggleButton* cut_spectroscopy = (GtkToggleButton*)lookup_widget("cut_radio_spectroscopy");
 	cut_args *cut_data = malloc(sizeof(cut_args));
 	cut_data->start.x = com.cut_start.x;
 	cut_data->start.y = com.cut_start.y;
 	cut_data->finish.x = com.cut_point.x;
 	cut_data->finish.y = com.cut_point.y;
+	if (gtk_toggle_button_get_active(cut_mono))
+		cut_data->mode = MONO;
+	else if (gtk_toggle_button_get_active(cut_color))
+		cut_data->mode = COLOR;
+	else if (gtk_toggle_button_get_active(cut_spectroscopy))
+		cut_data->mode = SPECTROSCOPY;
 	cut_data->display_graph = TRUE;
 	start_in_new_thread(cut_profile, cut_data);
 	siril_close_dialog("cut_dialog");

@@ -581,10 +581,10 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			tmp.x = zoomed.x;
 			tmp.y = zoomed.y;
 			if (gui.cutting == CUT_VERT_OR_HORIZ) {
-				if (abs(tmp.y - gui.start.y) > abs(tmp.x - gui.start.x)) {
-					tmp.x = gui.start.x;
+				if (abs(tmp.y - com.cut_start.y) > abs(tmp.x - com.cut_start.x)) {
+					tmp.x = com.cut_start.x;
 				} else {
-					tmp.y = gui.start.y;
+					tmp.y = com.cut_start.y;
 				}
 			}
 			com.cut_point.x = tmp.x;
@@ -779,10 +779,10 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		tmp.x = zoomed.x;
 		tmp.y = zoomed.y;
 		if (gui.cutting == CUT_VERT_OR_HORIZ) {
-			if (abs(tmp.y - gui.start.y) > abs(tmp.x - gui.start.x)) {
-				tmp.x = gui.start.x;
+			if (abs(tmp.y - com.cut_start.y) > abs(tmp.x - com.cut_start.x)) {
+				tmp.x = com.cut_start.x;
 			} else {
-				tmp.y = gui.start.y;
+				tmp.y = com.cut_start.y;
 			}
 		}
 		com.cut_point.x = tmp.x;

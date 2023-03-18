@@ -32,10 +32,17 @@ typedef enum {
 	MOUSE_ACTION_CUT_SELECT
 } mouse_status_enum;
 
+typedef enum {
+	MONO,
+	COLOR,
+	SPECTROSCOPY
+} cut_mode;
+
 typedef struct cut_args {
 	pointi start;
 	pointi finish;
 	gboolean display_graph;
+	cut_mode mode;
 } cut_args;
 
 void init_mouse();
