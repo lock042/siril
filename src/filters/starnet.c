@@ -82,11 +82,6 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	g_autoptr(GError) error = NULL;
 	int retval = -1;
 
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
-	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
-#endif
-
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
@@ -96,9 +91,6 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-		FreeConsole(); // and closing it
-#endif
 		return retval;
 	}
 	// Add a child watch function which will be called when the child process exits.
@@ -157,9 +149,6 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 #endif
 	g_object_unref(data_input);
 	g_object_unref(stream);
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-	FreeConsole(); // and closing it
-#endif
 	return retval;
 }
 
@@ -210,10 +199,6 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	test_argv[nb++] = executable;
 	gchar *versionarg = g_strdup("--version");
 	test_argv[nb++] = versionarg;
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
-	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
-#endif
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, test_argv, NULL,
 			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
@@ -223,9 +208,6 @@ starnet_version starnet_executablecheck(gchar* executable) {
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed during version check: %s\n"), "red", error->message);
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-		FreeConsole(); // and closing it
-#endif
 		g_free(versionarg);
 		return NIL;
 	}
@@ -266,9 +248,6 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	g_free(versionarg);
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-	FreeConsole(); // and closing it
-#endif
 
 	retval2 = g_chdir(currentdir);
 	if (retval2) {
