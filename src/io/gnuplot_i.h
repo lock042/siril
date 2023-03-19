@@ -101,6 +101,7 @@ gnuplot_ctrl * gnuplot_init(void);
  */
 /*--------------------------------------------------------------------------*/
 void gnuplot_close(gnuplot_ctrl * handle);
+gboolean gnuplot_close_idle(gpointer p);
 
 /*-------------------------------------------------------------------------*/
 /**

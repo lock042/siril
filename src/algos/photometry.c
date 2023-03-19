@@ -454,15 +454,16 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 				gnuplot_setstyle(gplot, "errorbars");
 				if (display_graph) {
 					gnuplot_plot_xyyerr_from_datfile(gplot, filename, "relative magnitude", julian0);
+					gnuplot_close_idle(gplot);
 				} else {
 					gchar *image_name = replace_ext(filename, ".png");
 					gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
 					siril_log_message(_("%s has been generated.\n"), image_name);
 					g_free(image_name);
+					gnuplot_close(gplot);
 				}
 				g_free(title);
 				g_free(xlabel);
-				gnuplot_close(gplot);
 			}
 			else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
 		}

@@ -44,6 +44,7 @@
 #include <unistd.h>
 
 #ifdef _WIN32
+#include <windows.h>
 #include <io.h>
 #endif // #ifdef _WIN32
 
@@ -51,6 +52,7 @@
 #include <glib/gstdio.h>
 
 #include "gui/plot.h"
+#include "core/siril_log.h"
 
 #ifdef _WIN32
 #ifndef pclose
@@ -69,39 +71,39 @@ static gboolean gnuplot_is_in_path = FALSE;
 
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_bin() {
-	if (gnuplot_is_in_path)
-		return g_strdup(GNUPLOT_BIN);
-	return g_build_filename(com.pref.gnuplot_dir, GNUPLOT_BIN, NULL);
+    if (gnuplot_is_in_path)
+        return g_strdup(GNUPLOT_BIN);
+    return g_build_filename(com.pref.gnuplot_dir, GNUPLOT_BIN, NULL);
 }
 
 #if defined (_WIN32) || defined(OS_OSX)
 gboolean gnuplot_is_available() {
-	gchar *bin = siril_get_gnuplot_bin();
-	if (!bin) return FALSE;
+    gchar *bin = siril_get_gnuplot_bin();
+    if (!bin) return FALSE;
 
-	gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
-	g_free(bin);
+    gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
+    g_free(bin);
 
-	return is_available;
+    return is_available;
 }
 
 #else
 /* returns true if the command gnuplot is available */
 gboolean gnuplot_is_available() {
-	gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", GNUPLOT_BIN);
+    gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", GNUPLOT_BIN);
 
-	int retval = system(str);
-	g_free(str);
-	if (WIFEXITED(retval)) {
-		gnuplot_is_in_path = TRUE;
-		return 0 == WEXITSTATUS(retval);
-	}
+    int retval = system(str);
+    g_free(str);
+    if (WIFEXITED(retval)) {
+        gnuplot_is_in_path = TRUE;
+        return 0 == WEXITSTATUS(retval);
+    }
 
-	gchar *bin = siril_get_gnuplot_bin();
-	gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
-	g_free(bin);
+    gchar *bin = siril_get_gnuplot_bin();
+    gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
+    g_free(bin);
 
-	return is_available;
+    return is_available;
 }
 #endif
 
@@ -141,29 +143,30 @@ void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char
 
 FILE *siril_popen(const gchar *command, const gchar *type) {
 #ifdef _WIN32
-	wchar_t *wcommand, *wtype;
-	FILE *f;
+    wchar_t *wcommand, *wtype;
+    FILE *f;
 
-	wcommand = g_utf8_to_utf16(command, -1, NULL, NULL, NULL);
-	if (wcommand == NULL) {
-		return NULL;
-	}
+    wcommand = g_utf8_to_utf16(command, -1, NULL, NULL, NULL);
+    if (wcommand == NULL) {
+        return NULL;
+    }
 
-	wtype = g_utf8_to_utf16(type, -1, NULL, NULL, NULL);
-	if (wtype == NULL) {
-		g_free(wcommand);
-		return NULL;
-	}
-	f = _wpopen(wcommand, wtype);
+    wtype = g_utf8_to_utf16(type, -1, NULL, NULL, NULL);
+    if (wtype == NULL) {
+        g_free(wcommand);
+        return NULL;
+    }
+    f = _wpopen(wcommand, wtype);
 
-	g_free(wcommand);
-	g_free(wtype);
+    g_free(wcommand);
+    g_free(wtype);
 
-	return f;
+    return f;
 #else
-	return popen(command, type);
+    return popen(command, type);
 #endif
 }
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -183,13 +186,6 @@ gnuplot_ctrl * gnuplot_init(void)
     gnuplot_ctrl *  handle ;
     int i;
 
-#ifndef _WIN32
-    if (getenv("DISPLAY") == NULL) {
-        fprintf(stderr, "cannot find DISPLAY variable: is it set?\n") ;
-    }
-#endif // #ifndef _WIN32
-
-
     /*
      * Structure initialization:
      */
@@ -199,16 +195,25 @@ gnuplot_ctrl * gnuplot_init(void)
     handle->ntmp = 0 ;
 
     gchar *bin = siril_get_gnuplot_bin();
-#ifdef _WIN32 // quoting to deal with the space in C:\Program Files
-    gchar* bin2 = g_shell_quote(bin);
-    bin2[0] = '\"'; // replacing with " as we can't be sure if g_shell_quote use single or double
-    bin2[strlen(bin2) - 1] = '\"';
-    printf("%s\n",bin2);
-    handle->gnucmd = siril_popen(bin2, "w");
-    g_free(bin2);
-#else
-    handle->gnucmd = siril_popen(bin, "w");
-#endif
+    // passing the option --persist keeps the plot opened even after gnuplot process has been closed
+    gchar* bin2[3] = { bin , "--persist", NULL};
+    printf("%s\n", bin2[0]);
+    /* call gnuplot */
+    gint child_stdin;
+    GPid child_pid;
+    g_autoptr(GError) error = NULL;
+
+    g_spawn_async_with_pipes(NULL, bin2, NULL,
+            G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
+            NULL, NULL, &child_pid, &child_stdin, NULL,
+            NULL, &error);
+    if (error != NULL) {
+        siril_log_color_message(_("Spawning gnuplot failed: %s\n"), "red", error->message);
+        g_free(bin);
+        return NULL;
+    }
+
+    handle->gnucmd = fdopen(child_stdin, "w");
     g_free(bin);
     if (handle->gnucmd == NULL) {
         fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
@@ -230,33 +235,63 @@ gnuplot_ctrl * gnuplot_init(void)
   @param    handle Gnuplot session control handle.
   @return   void
 
-  Kills the child PID and deletes all opened temporary files.
+  Closes gnuplot by calling an exit command and deletes all opened temporary files.
   It is mandatory to call this function to close the handle, otherwise
   temporary files are not cleaned and child process might survive.
+  This is meant to be called when plot are not displayed
 
  */
 /*--------------------------------------------------------------------------*/
 
 void gnuplot_close(gnuplot_ctrl * handle)
 {
-
-    if (pclose(handle->gnucmd) == -1) {
-        fprintf(stderr, "problem closing communication to gnuplot\n") ;
-        return ;
-    }
+    siril_debug_print("closing gnuplot in normal mode\n");
+    gnuplot_cmd(handle, "exit");
     if (handle->ntmp) {
-		for (int i = 0; i < handle->ntmp; i++) {
+        for (int i = 0; i < handle->ntmp; i++) {
             if (g_remove(handle->tmp_filename_tbl[i]))
-				fprintf(stderr, "Error removing tmpfile\n");
+                fprintf(stderr, "Error removing tmpfile\n");
             free(handle->tmp_filename_tbl[i]);
             handle->tmp_filename_tbl[i] = NULL;
 
         }
     }
-    free(handle) ;
+    free(handle);
     return ;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Closes a gnuplot session previously opened by gnuplot_init()
+  @param    handle Gnuplot session control handle.
+  @return   gboolean
+
+  Closes gnuplot by calling an exit command and deletes all opened temporary files. The waiting time defined at start is to allow for the plot to be 
+  effectively executed before exiting.
+  It is mandatory to call this function to close the handle, otherwise
+  temporary files are not cleaned and child process might survive.
+  This is meant to be called when plot are displayed
+
+ */
+/*--------------------------------------------------------------------------*/
+
+gboolean gnuplot_close_idle(gpointer p) {
+    siril_debug_print("closing gnuplot in idle mode\n");
+    gnuplot_ctrl *handle = (gnuplot_ctrl *) p;
+    g_usleep(1.0 * 1e6);
+    gnuplot_cmd(handle, "exit");
+    if (handle->ntmp) {
+        for (int i = 0; i < handle->ntmp; i++) {
+            if (g_remove(handle->tmp_filename_tbl[i]))
+                fprintf(stderr, "Error removing tmpfile\n");
+            free(handle->tmp_filename_tbl[i]);
+            handle->tmp_filename_tbl[i] = NULL;
+
+        }
+    }
+    free(handle);
+    return FALSE;
+}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -433,9 +468,9 @@ void gnuplot_reverse_yaxis(gnuplot_ctrl * h)
 void gnuplot_resetplot(gnuplot_ctrl * h)
 {
     if (h->ntmp) {
-		for (int i = 0; i < h->ntmp; i++) {
+        for (int i = 0; i < h->ntmp; i++) {
             if (g_remove(h->tmp_filename_tbl[i]) == -1)
-				siril_debug_print("g_remove() failed\n");
+                siril_debug_print("g_remove() failed\n");
             free(h->tmp_filename_tbl[i]);
             h->tmp_filename_tbl[i] = NULL;
 
@@ -599,7 +634,7 @@ void gnuplot_plot_xyyerr(
     double          *   yerr,
     int                 n,
     char            *   title,
-    int			x_offset /* the entire part of julian date, useful for plotting */
+    int             x_offset /* the entire part of julian date, useful for plotting */
 )
 {
     int     i ;
@@ -851,28 +886,28 @@ int gnuplot_write_xy_dat(
 }
 
 int gnuplot_write_xyyerr_dat(char const *fileName, double const *x,
-		double const *y, double const *yerr, int n, char const *title) {
-	if (!fileName || !x || !y || !yerr || n < 1) {
-		return -1;
-	}
+        double const *y, double const *yerr, int n, char const *title) {
+    if (!fileName || !x || !y || !yerr || n < 1) {
+        return -1;
+    }
 
-	FILE *fileHandle = g_fopen(fileName, "w");
-	if (!fileHandle) {
-		perror("creating data file");
-		return -1;
-	}
+    FILE *fileHandle = g_fopen(fileName, "w");
+    if (!fileHandle) {
+        perror("creating data file");
+        return -1;
+    }
 
-	// Write Comment.
-	if (title)
-		fprintf(fileHandle, "# %s\n", title);
+    // Write Comment.
+    if (title)
+        fprintf(fileHandle, "# %s\n", title);
 
-	/* Write data to this file  */
-	for (int i=0; i<n; i++) {
-		fprintf(fileHandle, "%14.6f %8.6f %8.6f\n", x[i], y[i], yerr[i]);
-	}
+    /* Write data to this file  */
+    for (int i=0; i<n; i++) {
+        fprintf(fileHandle, "%14.6f %8.6f %8.6f\n", x[i], y[i], yerr[i]);
+    }
 
-	fclose(fileHandle);
-	return 0;
+    fclose(fileHandle);
+    return 0;
 }
 
 int gnuplot_write_multi_csv(
@@ -966,7 +1001,7 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle)
     unx_fd = mkstemp(tmp_filename);
     if (unx_fd == -1)
     {
-    	free(tmp_filename);
+        free(tmp_filename);
         return NULL;
     }
     close(unx_fd);
@@ -983,23 +1018,23 @@ void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char
     char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
     title                  = (title == NULL)      ? "(none)" : title;
     gnuplot_cmd(handle, "%s \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s",
-		   cmd, tmp_filename, x_offset, title, handle->pstyle);
+           cmd, tmp_filename, x_offset, title, handle->pstyle);
     handle->nplots++ ;
     return ;
 }
 
 void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
-		char const *curve_title, int offset, char const* png_filename)
+        char const *curve_title, int offset, char const* png_filename)
 {
     gnuplot_cmd(handle, "set term png size 800,600");
     gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
     if (curve_title && curve_title[0] != '\0')
-	    gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename,
-			    offset, curve_title, handle->pstyle);
+        gnuplot_cmd(handle, "plot \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s", dat_filename,
+                offset, curve_title, handle->pstyle);
     else
-	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
-			    handle->pstyle);
+        gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
+                handle->pstyle);
 }
 
 /* vim: set ts=4 et sw=4 tw=75 */

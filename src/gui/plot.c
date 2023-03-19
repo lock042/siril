@@ -809,11 +809,6 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	/*  data are computed, now plot the graph. */
 
 	if (use_gnuplot) {
-		/* First, close the graph if already exists */
-		if (gplot != NULL) {
-			gnuplot_close(gplot);
-		}
-
 		if ((gplot = gnuplot_init())) {
 			/* Plotting light curve */
 			gnuplot_set_title(gplot, _("Light Curve"));
@@ -821,6 +816,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 			gnuplot_reverse_yaxis(gplot);
 			gnuplot_setstyle(gplot, "errorbars");
 			gnuplot_plot_xyyerr(gplot, x, vmag, err, nb_valid_images, "", 0);
+			gnuplot_close_idle(gplot);
 		}
 		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
 	}
