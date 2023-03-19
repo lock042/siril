@@ -1838,17 +1838,6 @@ gboolean asnet_is_available() {
 }
 #endif
 
-static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
-	//#if GLIB_CHECK_VERSION(2,70,0)
-	//siril_debug_print("Child %" G_PID_FORMAT " exited %s\n", pid,
-	//		g_spawn_check_wait_status (status, NULL) ? "normally" : "abnormally");
-	//#else
-	//siril_debug_print("Child %" G_PID_FORMAT " exited %s\n", pid,
-	//		g_spawn_check_exit_status (status, NULL) ? "normally" : "abnormally");
-	//#endif
-	g_spawn_close_pid(pid);
-}
-
 static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 #ifdef _WIN32
 	gchar *asnet_shell = siril_get_asnet_bash();
@@ -1928,7 +1917,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	g_autoptr(GError) error = NULL;
 
 	g_spawn_async_with_pipes(NULL, sfargs, NULL,
-			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
+			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			&child_stderr, &error);
 	if (error != NULL) {
@@ -1944,9 +1933,6 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #endif
 		return 1;
 	}
-
-	// Add a child watch function which will be called when the child process exits.
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32

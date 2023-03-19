@@ -72,9 +72,6 @@
 fits *current_fit = NULL;
 gboolean verbose = TRUE;
 
-static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
-	g_spawn_close_pid(pid);
-}
 
 static int exec_prog_starnet(char **argv, starnet_version version) {
 	gint child_stdout;
@@ -84,7 +81,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, argv, NULL,
-			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
+			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			NULL, &error);
@@ -93,8 +90,6 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
 		return retval;
 	}
-	// Add a child watch function which will be called when the child process exits.
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -201,7 +196,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	test_argv[nb++] = versionarg;
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, test_argv, NULL,
-			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
+			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			NULL, &error);
@@ -211,8 +206,6 @@ starnet_version starnet_executablecheck(gchar* executable) {
 		g_free(versionarg);
 		return NIL;
 	}
-	// Add a child watch function which will be called when the child process exits.
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
