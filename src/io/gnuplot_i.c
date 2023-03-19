@@ -137,36 +137,6 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle);
  */
 void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title, int x_offset);
 
-/*---------------------------------------------------------------------------
-                            Function codes
- ---------------------------------------------------------------------------*/
-
-FILE *siril_popen(const gchar *command, const gchar *type) {
-#ifdef _WIN32
-    wchar_t *wcommand, *wtype;
-    FILE *f;
-
-    wcommand = g_utf8_to_utf16(command, -1, NULL, NULL, NULL);
-    if (wcommand == NULL) {
-        return NULL;
-    }
-
-    wtype = g_utf8_to_utf16(type, -1, NULL, NULL, NULL);
-    if (wtype == NULL) {
-        g_free(wcommand);
-        return NULL;
-    }
-    f = _wpopen(wcommand, wtype);
-
-    g_free(wcommand);
-    g_free(wtype);
-
-    return f;
-#else
-    return popen(command, type);
-#endif
-}
-
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -270,7 +240,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
   effectively executed before exiting.
   It is mandatory to call this function to close the handle, otherwise
   temporary files are not cleaned and child process might survive.
-  This is meant to be called when plot are displayed
+  This is meant to be called when plot are displayed with g_idle_add
 
  */
 /*--------------------------------------------------------------------------*/
@@ -278,7 +248,6 @@ void gnuplot_close(gnuplot_ctrl * handle)
 gboolean gnuplot_close_idle(gpointer p) {
     siril_debug_print("closing gnuplot in idle mode\n");
     gnuplot_ctrl *handle = (gnuplot_ctrl *) p;
-    g_usleep(1.0 * 1e6);
     gnuplot_cmd(handle, "exit");
     if (handle->ntmp) {
         for (int i = 0; i < handle->ntmp; i++) {

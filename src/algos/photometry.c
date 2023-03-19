@@ -454,7 +454,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 				gnuplot_setstyle(gplot, "errorbars");
 				if (display_graph) {
 					gnuplot_plot_xyyerr_from_datfile(gplot, filename, "relative magnitude", julian0);
-					gnuplot_close_idle(gplot);
+					g_idle_add(gnuplot_close_idle, gplot); // called in idle to let the plotting finish before closing gnuplot
 				} else {
 					gchar *image_name = replace_ext(filename, ".png");
 					gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
