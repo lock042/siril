@@ -81,7 +81,7 @@ gpointer cut_profile(gpointer p) {
 	delta.y = args->finish.y - args->start.y;
 	printf("sx: %d, sy: %d, fx: %d, fy:%d\n", args->start.x, args->start.y, args->finish.x, args->finish.y);
 	printf("dx: %d dy: %d\n", delta.x, delta.y);
-	double *r = NULL, *g = NULL, *b = NULL;
+	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
 	double length = sqrtf(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.f) {
 		retval = 1;
@@ -97,7 +97,7 @@ gpointer cut_profile(gpointer p) {
 		g = malloc(nbr_points * sizeof(double));
 		b = malloc(nbr_points * sizeof(double));
 	}
-	double *x = malloc(nbr_points * sizeof(double));
+	x = malloc(nbr_points * sizeof(double));
 	int w = gfit.rx;
 	int h = gfit.ry;
 	for (int i = 0 ; i < nbr_points ; i++) {
@@ -223,9 +223,19 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("cut_dialog");
 }
 
-void on_cut_cancel_button_pressed(GtkButton *button, gpointer user_data) {
-
+void on_cut_cancel_button_clicked(GtkButton *button, gpointer user_data) {
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+		siril_close_dialog("cut_dialog");
 }
 
 void on_cut_dialog_show(GtkButton *button, gpointer user_data) {
+}
+
+void on_cut_button_toggled(GtkToggleButton *button, gpointer user_data) {
+	if (gtk_toggle_tool_button_get_active(button)) {
+		mouse_status = MOUSE_ACTION_CUT_SELECT;
+	} else {
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+		siril_close_dialog("cut_dialog");
+	}
 }

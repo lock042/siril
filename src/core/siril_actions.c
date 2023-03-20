@@ -652,15 +652,3 @@ void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	rgb_align(0);
 }
 
-void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkToggleToolButton *cut_button = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("cut_button"));
-	if (gtk_toggle_tool_button_get_active(cut_button)) {
-		com.cut_start.x = -1;
-		com.cut_start.y = -1;
-		com.cut_point.x = -1;
-		com.cut_point.y = -1;
-		mouse_status = MOUSE_ACTION_CUT_SELECT;
-		siril_debug_print("Mouse status MOUSE_ACTION_CUT_SELECT\n");
-	}
-}
-
