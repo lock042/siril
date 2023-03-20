@@ -141,6 +141,7 @@ void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Opens up a gnuplot session, ready to receive commands.
+  @param    keep_plot_alive Flag to keep plots opened after gnuplot process is closed
   @return   Newly allocated gnuplot control structure.
 
   This opens up a new gnuplot session, ready for input. The struct
@@ -151,7 +152,7 @@ void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char
  */
 /*--------------------------------------------------------------------------*/
 
-gnuplot_ctrl * gnuplot_init(void)
+gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive)
 {
     gnuplot_ctrl *  handle ;
     int i;
@@ -165,8 +166,11 @@ gnuplot_ctrl * gnuplot_init(void)
     handle->ntmp = 0 ;
 
     gchar *bin = siril_get_gnuplot_bin();
+    gchar* bin2[3];
+    bin2[0] = bin;
+    bin2[2] = NULL;
     // passing the option --persist keeps the plot opened even after gnuplot process has been closed
-    gchar* bin2[3] = { bin , "--persist", NULL};
+    bin2[1] = (keep_plot_alive) ? "--persist" : NULL;
     printf("%s\n", bin2[0]);
     /* call gnuplot */
     gint child_stdin;
@@ -470,7 +474,7 @@ void gnuplot_resetplot(gnuplot_ctrl * h)
     double          d[50] ;
     int             i ;
 
-    h = gnuplot_init() ;
+    h = gnuplot_init(TRUE) ;
     for (i=0 ; i<50 ; i++) {
         d[i] = (double)(i*i) ;
     }
@@ -533,7 +537,7 @@ void gnuplot_plot_x(
     double          y[50] ;
     int             i ;
 
-    h = gnuplot_init() ;
+    h = gnuplot_init(TRUE) ;
     for (i=0 ; i<50 ; i++) {
         x[i] = (double)(i)/10.0 ;
         y[i] = x[i] * x[i] ;
@@ -677,7 +681,7 @@ void gnuplot_plot_once(
 
   if (x==NULL || n<1) return ;
 
-  if ((handle = gnuplot_init()) == NULL) return ;
+  if ((handle = gnuplot_init(TRUE)) == NULL) return ;
   if (style!=NULL) {
       gnuplot_setstyle(handle, style);
   } else {

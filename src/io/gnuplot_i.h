@@ -44,7 +44,7 @@
   @brief    gnuplot session handle (opaque type).
 
   This structure holds all necessary information to talk to a gnuplot
-  session. It is built and returned by gnuplot_init() and later used
+  session. It is built and returned by gnuplot_init(flag) and later used
   by all functions in this module to communicate with the session, then
   meant to be closed by gnuplot_close().
 
@@ -77,6 +77,7 @@ gboolean gnuplot_is_available();
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Opens up a gnuplot session, ready to receive commands.
+  @param    keep_plot_alive Flag to keep plots opened after gnuplot process is closed
   @return   Newly allocated gnuplot control structure.
 
   This opens up a new gnuplot session, ready for input. The struct
@@ -86,11 +87,11 @@ gboolean gnuplot_is_available();
   The session must be closed using gnuplot_close().
  */
 /*--------------------------------------------------------------------------*/
-gnuplot_ctrl * gnuplot_init(void);
+gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive);
 
 /*-------------------------------------------------------------------------*/
 /**
-  @brief    Closes a gnuplot session previously opened by gnuplot_init()
+  @brief    Closes a gnuplot session previously opened by gnuplot_init(flag)
   @param    handle Gnuplot session control handle.
   @return   void
 
@@ -245,7 +246,7 @@ void gnuplot_resetplot(gnuplot_ctrl * h);
     double          d[50] ;
     int             i ;
 
-    h = gnuplot_init() ;
+    h = gnuplot_init(TRUE) ;
     for (i=0 ; i<50 ; i++) {
         d[i] = (double)(i*i) ;
     }
@@ -277,7 +278,7 @@ void gnuplot_plot_x(gnuplot_ctrl * handle, double * d, int n, char * title);
     double          y[50] ;
     int             i ;
 
-    h = gnuplot_init() ;
+    h = gnuplot_init(TRUE) ;
     for (i=0 ; i<50 ; i++) {
         x[i] = (double)(i)/10.0 ;
         y[i] = x[i] * x[i] ;
@@ -355,7 +356,7 @@ void gnuplot_plot_once(
     gnuplot_ctrl    *   h ;
     double              a, b ;
 
-    h = gnuplot_init() ;
+    h = gnuplot_init(TRUE) ;
     gnuplot_plot_slope(h, 1.0, 0.0, "unity slope") ;
     sleep(2) ;
     gnuplot_close(h) ;
@@ -386,7 +387,7 @@ void gnuplot_plot_slope(
         gnuplot_ctrl    *h ;
         char            eq[80] ;
 
-        h = gnuplot_init() ;
+        h = gnuplot_init(TRUE) ;
         strcpy(eq, "sin(x) * cos(2*x)") ;
         gnuplot_plot_equation(h, eq, "sine wave", normal) ;
         gnuplot_close(h) ;
