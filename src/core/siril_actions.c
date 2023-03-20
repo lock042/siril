@@ -652,3 +652,13 @@ void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	rgb_align(0);
 }
 
+void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkToggleToolButton *button = (GtkToggleToolButton*) lookup_widget("cut_button");
+	if (gtk_toggle_tool_button_get_active(button)) {
+		mouse_status = MOUSE_ACTION_CUT_SELECT;
+	} else {
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+		siril_close_dialog("cut_dialog");
+	}
+}
+

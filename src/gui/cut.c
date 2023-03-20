@@ -227,15 +227,3 @@ void on_cut_cancel_button_clicked(GtkButton *button, gpointer user_data) {
 		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 		siril_close_dialog("cut_dialog");
 }
-
-void on_cut_dialog_show(GtkButton *button, gpointer user_data) {
-}
-
-void on_cut_button_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (gtk_toggle_tool_button_get_active(button)) {
-		mouse_status = MOUSE_ACTION_CUT_SELECT;
-	} else {
-		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
-		siril_close_dialog("cut_dialog");
-	}
-}

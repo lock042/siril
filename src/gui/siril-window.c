@@ -62,6 +62,7 @@ static GActionEntry image_entries[] = {
 	{ "ccd-inspector", ccd_inspector_activate },
 	{ "astrometry", astrometry_activate },
 	{ "photometry", photometry_activate, NULL, "false", photometry_state },
+	{ "cut", cut_activate },
 	{ "image-information", image_information_activate },
 	{ "dyn-psf", dyn_psf_activate },
 	{ "annotate-object", annotate_object_activate, NULL, "false", annotate_object_state },
