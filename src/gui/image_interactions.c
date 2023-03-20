@@ -363,11 +363,6 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 
 		/* else, click on gray image */
 		if (event->button == GDK_BUTTON_PRIMARY) {	// left click
-			// Reset the cut line if one has been drawn
-			com.cut_start.x = -1;
-			com.cut_start.y = -1;
-			com.cut_point.x = -1;
-			com.cut_point.y = -1;
 			point pt;
 			int radius, s;
 			gboolean right, left, bottom, top;
@@ -460,6 +455,12 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					}
 					break;
 				case MOUSE_ACTION_CUT_SELECT:
+					// Reset the cut line before setting new coords in order to avoid
+					// drawing artefacts
+					com.cut_start.x = -1;
+					com.cut_start.y = -1;
+					com.cut_point.x = -1;
+					com.cut_point.y = -1;
 					if (event->state & GDK_SHIFT_MASK) {
 						gui.cutting = CUT_VERT_OR_HORIZ;
 					} else {
@@ -472,6 +473,7 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					break;
 			}
 		} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
+			// Reset the cut line if one has been drawn
 			com.cut_start.x = -1;
 			com.cut_start.y = -1;
 			com.cut_point.x = -1;

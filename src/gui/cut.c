@@ -220,10 +220,11 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		cut_data->mode = SPECTROSCOPY;
 	cut_data->display_graph = TRUE;
 	start_in_new_thread(cut_profile, cut_data);
-	siril_close_dialog("cut_dialog");
 }
 
-void on_cut_cancel_button_clicked(GtkButton *button, gpointer user_data) {
-		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
-		siril_close_dialog("cut_dialog");
+void on_cut_close_button_clicked(GtkButton *button, gpointer user_data) {
+	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+	GtkToggleToolButton *toolbutton = (GtkToggleToolButton*) lookup_widget("cut_button");
+	gtk_toggle_tool_button_set_active(toolbutton, FALSE);
+	siril_close_dialog("cut_dialog");
 }
