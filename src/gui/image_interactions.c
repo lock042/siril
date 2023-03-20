@@ -594,7 +594,9 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			gui.cutting = CUT_NOT_CUTTING;
 			redraw(REDRAW_OVERLAY);
 			// Deselect the Cut button once the cut is made
-			siril_open_dialog("cut_dialog");
+			GtkWidget *cut_dialog = lookup_widget("cut_dialog");
+			if (!gtk_widget_is_visible(cut_dialog))
+				siril_open_dialog("cut_dialog");
 		}
 	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click
 		if (inside) {
