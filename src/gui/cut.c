@@ -70,11 +70,6 @@ float interp(fits *fit, float x, float y, int chan) {
 
 gpointer cut_profile(gpointer p) {
 	cut_args *args = (cut_args *) p;
-	// Ensure the line measured from the drawingarea is the same row order as the FITS pixeldata
-	if (gfit.top_down || g_str_has_prefix(gfit.row_order, "TOP-DOWN")) {
-		args->start.y = gfit.ry - 1 - args->start.y;
-		args->finish.y = gfit.ry - 1 - args->finish.y;
-	}
 	int retval = 0;
 	char *filename = "cut.dat";
 	gboolean use_gnuplot = gnuplot_is_available();
@@ -211,9 +206,12 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* cut_spectroscopy = (GtkToggleButton*)lookup_widget("cut_radio_spectroscopy");
 	cut_args *cut_data = malloc(sizeof(cut_args));
 	cut_data->start.x = com.cut_start.x;
-	cut_data->start.y = com.cut_start.y;
 	cut_data->finish.x = com.cut_point.x;
-	cut_data->finish.y = com.cut_point.y;
+	// Reverse the y coordinates to look up the correct point in gfit.
+	// This can't be done in the image_interactions callbacks otherwise
+	// the cut preview line is drawn with the wrong orientation.
+	cut_data->start.y = gfit.ry - 1 - com.cut_start.y;
+	cut_data->finish.y = gfit.ry - 1 - com.cut_point.y;
 	if (gtk_toggle_button_get_active(cut_mono))
 		cut_data->mode = MONO;
 	else if (gtk_toggle_button_get_active(cut_color))
