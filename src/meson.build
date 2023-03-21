@@ -253,7 +253,7 @@ siril_gui = executable('siril', 'main.c', win_res,
                        c_args : siril_c_flag,
                        cpp_args : siril_cpp_flag,
                        install : true,
-                       win_subsystem : stable ? 'windows' : 'console',
+                       win_subsystem : 'console',
                       )
 
 ################################################################################
