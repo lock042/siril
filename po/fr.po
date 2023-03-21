@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-11 11:18+0100\n"
-"PO-Revision-Date: 2023-03-16 09:03+0000\n"
-"Last-Translator: Frank Soldano <f.soldano38@orange.fr>\n"
+"PO-Revision-Date: 2023-03-23 09:02+0000\n"
+"Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
 "Language: fr\n"
@@ -1501,7 +1501,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:7101
 msgid "Samples per outer loop"
-msgstr "Échantillons par ligneÉchantillons par boucle externe"
+msgstr "Échantillons par boucle externe"
 
 #: src/gui/siril3.glade:7113
 msgid "Outer loop iterations"
@@ -6215,7 +6215,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:23187
 msgid "Accumulate reg. data"
-msgstr "Cumul données alignment"
+msgstr "Cumul données alignement"
 
 #: src/gui/siril3.glade:23190
 msgid ""
@@ -8594,7 +8594,7 @@ msgstr "Auto ajustement HD"
 
 #: src/gui/siril3.glade:31060
 msgid "Multithreaded FFTW"
-msgstr "FFTW multithreaée"
+msgstr "FFTW multithreadée"
 
 #: src/gui/siril3.glade:31064
 msgid ""
