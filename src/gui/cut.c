@@ -260,7 +260,7 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	int sy = (int) gtk_spin_button_get_value(starty);
 	int fx = (int) gtk_spin_button_get_value(finishx);
 	int fy = (int) gtk_spin_button_get_value(finishy);
-	printf("start (%d, %d) finish (%d, %d)\n", sx, sy, fx, fy);
+	siril_debug_print("start (%d, %d) finish (%d, %d)\n", sx, sy, fx, fy);
 	com.cut_start.x = sx;
 	com.cut_start.y = sy;
 	com.cut_point.x = fx;
