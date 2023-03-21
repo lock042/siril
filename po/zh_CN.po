@@ -5033,7 +5033,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:21589
 msgid "Calibrate all frames"
-msgstr ""
+msgstr "校准所有帧"
 
 #: src/gui/siril3.glade:21593
 msgid "Force calibration of all frames even if marked as excluded."
