@@ -10,8 +10,10 @@
 #include "gui/image_display.h"
 
 typedef enum {
-	HORIZONTAL,
-	VERTICAL
+	RIGHT,
+	LEFT,
+	UP,
+	DOWN
 } cut_direction;
 
 double wavenumber1 = 0.0, wavenumber2 = 0.0;
@@ -30,7 +32,7 @@ gboolean spectroscopy_selections_are_valid() {
 	return a && b && c;
 }
 
-float interpf(fits* fit, float x, float y, int chan) {
+double interpf(fits* fit, double x, double y, int chan) {
 	if (chan >= fit->naxes[2])
 		return -9999.f;
 	int w = fit->rx;
@@ -47,10 +49,10 @@ float interpf(fits* fit, float x, float y, int chan) {
 	float interp1 = (x - x0) * val00 + (x1 - x) * val01;
 	float interp2 = (x - x0) * val10 + (x1 - x) * val11;
 	float interp = (y - y0) * interp1 + (y1 - y) * interp2;
-	return interp;
+	return (double) interp;
 }
 
-float interpw(fits* fit, float x, float y, int chan) {
+double interpw(fits* fit, double x, double y, int chan) {
 	if (chan >= fit->naxes[2])
 		return -9999.f;
 	int w = fit->rx;
@@ -67,52 +69,63 @@ float interpw(fits* fit, float x, float y, int chan) {
 	float interp1 = (x - x0) * val00 + (x1 - x) * val01;
 	float interp2 = (x - x0) * val10 + (x1 - x) * val11;
 	float interp = (y - y0) * interp1 + (y1 - y) * interp2;
-	return interp;
+	return (double) interp;
 }
 
-double interp(fits *fit, double x, double y, int chan) {
-	switch (fit->type) {
-		case DATA_FLOAT:
-			return (double) interpf(fit, x, y, chan);
-			break;
-		case DATA_USHORT:
-			return (double) interpw(fit, x, y, chan);
-			break;
-		default:
-			return -9999.0;
-			break;
+double interp(fits *fit, double x, double y, int chan, int num, double dx, double dy) {
+	double val = 0.0;
+	int hw = (num - 1) / 2;
+	for (int i = -hw ; i < hw + 1 ; i++) {
+		switch (fit->type) {
+			case DATA_FLOAT:
+				val += interpf(fit, x + (i * dy), y + (i * dx), chan);
+				break;
+			case DATA_USHORT:
+				val += interpw(fit, x + (i * dy), y + (i * dx), chan);
+				break;
+			default:
+				return -9999.0;
+				break;
+		}
 	}
-}
-
-float nointerpf(fits *fit, int x, int y, int chan) {
-	int w = gfit.rx;
-	int h = gfit.ry;
-	float val;
-	val = gfit.fdata[x + y * w + w * h * chan];
-	return val;
-
-}
-
-float nointerpw(fits *fit, int x, int y, int chan) {
-	int w = gfit.rx;
-	int h = gfit.ry;
-	float val;
-	val = gfit.data[x + y * w + w * h * chan];
+	val /= num;
 	return val;
 }
 
-double nointerp(fits *fit, int x, int y, int chan) {
-	switch (fit->type) {
-		case DATA_FLOAT:
-			return (double) nointerpf(fit, x, y, chan);
-			break;
-		case DATA_USHORT:
-			return (double) nointerpw(fit, x, y, chan);
-			break;
-		default:
-			return -9999.0;
-			break;
+double nointerpf(fits *fit, int x, int y, int chan) {
+	int w = gfit.rx;
+	int h = gfit.ry;
+	double val = (double) gfit.fdata[x + y * w + w * h * chan];
+	return val;
+}
+
+double nointerpw(fits *fit, int x, int y, int chan) {
+	int w = gfit.rx;
+	int h = gfit.ry;
+	double val = (double) gfit.data[x + y * w + w * h * chan];
+	return val;
+}
+
+double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
+	double val = 0.0;
+	int hw = (num - 1) / 2;
+	for (int i = -hw ; i < hw + 1 ; i++) {
+		switch (fit->type) {
+			case DATA_FLOAT:
+				// Note the mismatch of x and dy etc is intentional, we are integrating
+				// perpendicular to the cut line
+				val += (double) nointerpf(fit, x + (i * dy), y + (i * dx), chan);
+				break;
+			case DATA_USHORT:
+				val += (double) nointerpw(fit, x + (i * dy), y + (i * dx), chan);
+				break;
+			default:
+				return -9999.0;
+				break;
+		}
 	}
+	val /= num;
+	return val;
 }
 
 gpointer cut_profile(gpointer p) {
@@ -126,8 +139,6 @@ gpointer cut_profile(gpointer p) {
 	pointi delta;
 	delta.x = args->finish.x - args->start.x;
 	delta.y = args->finish.y - args->start.y;
-	printf("sx: %d, sy: %d, fx: %d, fy:%d\n", args->start.x, args->start.y, args->finish.x, args->finish.y);
-	printf("dx: %d dy: %d\n", delta.x, delta.y);
 	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
 	double length = sqrtf(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.f) {
@@ -135,9 +146,12 @@ gpointer cut_profile(gpointer p) {
 		goto END;
 	}
 	int nbr_points = (int) length;
+	printf("sx: %d, sy: %d, fx: %d, fy:%d\n", args->start.x, args->start.y, args->finish.x, args->finish.y);
+	printf("dx: %d dy: %d len: %.3f\n", delta.x, delta.y, length);
 	double point_spacing = length / nbr_points;
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
+	gboolean hv = ((point_spacing_x == 1.f) || (point_spacing_y == 1.f) || (point_spacing_x == -1.f) || (point_spacing_y == -1.f));
 
 	r = malloc(nbr_points * sizeof(double));
 	if (gfit.naxes[2] > 1) {
@@ -147,20 +161,27 @@ gpointer cut_profile(gpointer p) {
 	x = malloc(nbr_points * sizeof(double));
 	for (int i = 0 ; i < nbr_points ; i++) {
 		x[i] = i * point_spacing;
-		if (abs(point_spacing_x == 1.f) || abs(point_spacing_y == 1.f)) {
+		if (hv) {
+			printf("width: %d\n", width);
 			// Horizontal / vertical, no interpolation
-			r[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 0);
+			r[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 0, width, (int) point_spacing_x, (int) point_spacing_y);
 		} else {
 			// Neither horizontal nor vertical: interpolate
-			r[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 0);
+			r[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i),
+						  (double) (args->start.y + point_spacing_y * i), 0,
+						  width, point_spacing_x, point_spacing_y);
 		}
 		if (gfit.naxes[2] > 1) {
 			if (abs(point_spacing_x == 1.f) || abs(point_spacing_y == 1.f)) { // Horizontal, no interpolation
-				g[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 1);
-				b[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 2);
+				g[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 1,
+								width, (int) point_spacing_x, (int) point_spacing_y);
+				b[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 2,
+								width,  (int) point_spacing_x, (int) point_spacing_y);
 			} else { // Neither horizontal nor vertical: interpolate (simple bilinear interpolation)
-				g[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 1);
-				b[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 2);
+				g[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 1,
+							  width, point_spacing_x, point_spacing_y);
+				b[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 2,
+							  width, point_spacing_x, point_spacing_y);
 			}
 		}
 	}
