@@ -84,36 +84,30 @@ double interp(fits *fit, double x, double y, int chan) {
 	}
 }
 
-float nointerpf(fits *fit, int x, int y, int chan, cut_direction direction) {
+float nointerpf(fits *fit, int x, int y, int chan) {
 	int w = gfit.rx;
 	int h = gfit.ry;
 	float val;
-	if (direction == HORIZONTAL)
-		val = gfit.fdata[x + y * w + w * h * chan];
-	else
-		val = (float) gfit.data[x + y * w + w * h * chan];
+	val = gfit.fdata[x + y * w + w * h * chan];
 	return val;
 
 }
 
-float nointerpw(fits *fit, int x, int y, int chan, cut_direction direction) {
+float nointerpw(fits *fit, int x, int y, int chan) {
 	int w = gfit.rx;
 	int h = gfit.ry;
 	float val;
-	if (direction == HORIZONTAL)
-		val = gfit.fdata[x + y * w + w * h * chan];
-	else
-		val = (float) gfit.data[x + y * w + w * h * chan];
+	val = gfit.data[x + y * w + w * h * chan];
 	return val;
 }
 
-double nointerp(fits *fit, int x, int y, int chan, cut_direction direction) {
+double nointerp(fits *fit, int x, int y, int chan) {
 	switch (fit->type) {
 		case DATA_FLOAT:
-			return (double) nointerpf(fit, x, y, chan, direction);
+			return (double) nointerpf(fit, x, y, chan);
 			break;
 		case DATA_USHORT:
-			return (double) nointerpw(fit, x, y, chan, direction);
+			return (double) nointerpw(fit, x, y, chan);
 			break;
 		default:
 			return -9999.0;
@@ -151,29 +145,20 @@ gpointer cut_profile(gpointer p) {
 		b = malloc(nbr_points * sizeof(double));
 	}
 	x = malloc(nbr_points * sizeof(double));
-	int w = gfit.rx;
-	int h = gfit.ry;
 	for (int i = 0 ; i < nbr_points ; i++) {
 		x[i] = i * point_spacing;
-		if (abs(point_spacing_x == 1.f)) {
-			// Horizontal, no interpolation
-			r[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 0, HORIZONTAL);
-		} else if (abs(point_spacing_y == 1.f)) {
-			// Vertical, no interpolation
-			r[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 0, VERTICAL);
+		if (abs(point_spacing_x == 1.f) || abs(point_spacing_y == 1.f)) {
+			// Horizontal / vertical, no interpolation
+			r[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 0);
 		} else {
 			// Neither horizontal nor vertical: interpolate
 			r[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 0);
 		}
 		if (gfit.naxes[2] > 1) {
-			if (abs(point_spacing_x == 1.f)) { // Horizontal, no interpolation
-				g[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 1, HORIZONTAL);
-				b[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 2, HORIZONTAL);
-			} else if (abs(point_spacing_y == 1.f)) { // Vertical, no interpolation
-				g[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 1, VERTICAL);
-				b[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 2, VERTICAL);
+			if (abs(point_spacing_x == 1.f) || abs(point_spacing_y == 1.f)) { // Horizontal, no interpolation
+				g[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 1);
+				b[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 2);
 			} else { // Neither horizontal nor vertical: interpolate (simple bilinear interpolation)
-				r[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 0);
 				g[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 1);
 				b[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 2);
 			}
@@ -195,7 +180,7 @@ gpointer cut_profile(gpointer p) {
 		siril_log_message(_("%s has been saved.\n"), filename);
 	}
 	if (use_gnuplot) {
-		gnuplot_ctrl *gplot = gnuplot_init();
+		gnuplot_ctrl *gplot = gnuplot_init(TRUE);
 		if (gplot) {
 			/* Plotting cut profile */
 			gchar *title = g_strdup_printf(_("Data Cut Profile"));
@@ -218,7 +203,7 @@ gpointer cut_profile(gpointer p) {
 			}
 			g_free(title);
 			g_free(xlabel);
-//			gnuplot_close(gplot);
+			gnuplot_close(gplot);
 		}
 		else siril_log_message(_("Communicating with gnuplot failed\n"));
 	}
