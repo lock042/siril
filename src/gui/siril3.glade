@@ -26230,7 +26230,7 @@ WARNING: This option should not be checked for master stacking.</property>
                   <object class="GtkToggleToolButton" id="cut_button">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">IRIS "Cut" function</property>
+                    <property name="tooltip-text" translatable="yes">Make a brightness profile cut, showing a graph of the pixel value along a line between two points</property>
                     <property name="action-name">win.cut</property>
                     <property name="use-underline">True</property>
                     <property name="icon-widget">image_cut</property>
