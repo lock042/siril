@@ -46,7 +46,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <io.h>
-#endif // #ifdef _WIN32
+#endif
 
 #include <glib.h> // g_get_tmp_dir
 #include <glib/gstdio.h>
@@ -55,17 +55,10 @@
 #include "core/siril_log.h"
 
 #ifdef _WIN32
-#ifndef pclose
-#define pclose(f) _pclose(f)
-#endif /*pclose*/
-
 #define GNUPLOT_BIN "gnuplot.exe"
-
 #else
-
 #define GNUPLOT_BIN "gnuplot"
-
-#endif /*_WIN32*/
+#endif
 
 static gboolean gnuplot_is_in_path = FALSE;
 
@@ -219,7 +212,6 @@ gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive)
 
 void gnuplot_close(gnuplot_ctrl * handle)
 {
-    siril_debug_print("closing gnuplot in normal mode\n");
     gnuplot_cmd(handle, "exit");
     if (handle->ntmp) {
         for (int i = 0; i < handle->ntmp; i++) {
@@ -240,11 +232,10 @@ void gnuplot_close(gnuplot_ctrl * handle)
   @param    handle Gnuplot session control handle.
   @return   gboolean
 
-  Closes gnuplot by calling an exit command and deletes all opened temporary files. The waiting time defined at start is to allow for the plot to be 
-  effectively executed before exiting.
+  Closes gnuplot by calling an exit command and deletes all opened temporary files. 
   It is mandatory to call this function to close the handle, otherwise
   temporary files are not cleaned and child process might survive.
-  This is meant to be called when plot are displayed with g_idle_add
+  This is meant to be called with g_idle_add, when plot are displayed and need to survive
 
  */
 /*--------------------------------------------------------------------------*/
@@ -252,17 +243,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
 gboolean gnuplot_close_idle(gpointer p) {
     siril_debug_print("closing gnuplot in idle mode\n");
     gnuplot_ctrl *handle = (gnuplot_ctrl *) p;
-    gnuplot_cmd(handle, "exit");
-    if (handle->ntmp) {
-        for (int i = 0; i < handle->ntmp; i++) {
-            if (g_remove(handle->tmp_filename_tbl[i]))
-                fprintf(stderr, "Error removing tmpfile\n");
-            free(handle->tmp_filename_tbl[i]);
-            handle->tmp_filename_tbl[i] = NULL;
-
-        }
-    }
-    free(handle);
+    gnuplot_close(handle);
     return FALSE;
 }
 
