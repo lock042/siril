@@ -9,6 +9,11 @@
 #include "io/gnuplot_i.h"
 #include "gui/image_display.h"
 
+typedef enum {
+	HORIZONTAL,
+	VERTICAL
+} cut_direction;
+
 double wavenumber1 = 0.0, wavenumber2 = 0.0;
 int width = 1;
 
@@ -65,18 +70,53 @@ float interpw(fits* fit, float x, float y, int chan) {
 	return interp;
 }
 
-float interp(fits *fit, float x, float y, int chan) {
-	float val;
+double interp(fits *fit, double x, double y, int chan) {
 	switch (fit->type) {
 		case DATA_FLOAT:
-			val = interpf(fit, x, y, chan);
-			return val;
+			return (double) interpf(fit, x, y, chan);
 			break;
 		case DATA_USHORT:
-			return interpw(fit, x, y, chan);
+			return (double) interpw(fit, x, y, chan);
 			break;
 		default:
-			return -9999.f;
+			return -9999.0;
+			break;
+	}
+}
+
+float nointerpf(fits *fit, int x, int y, int chan, cut_direction direction) {
+	int w = gfit.rx;
+	int h = gfit.ry;
+	float val;
+	if (direction == HORIZONTAL)
+		val = gfit.fdata[x + y * w + w * h * chan];
+	else
+		val = (float) gfit.data[x + y * w + w * h * chan];
+	return val;
+
+}
+
+float nointerpw(fits *fit, int x, int y, int chan, cut_direction direction) {
+	int w = gfit.rx;
+	int h = gfit.ry;
+	float val;
+	if (direction == HORIZONTAL)
+		val = gfit.fdata[x + y * w + w * h * chan];
+	else
+		val = (float) gfit.data[x + y * w + w * h * chan];
+	return val;
+}
+
+double nointerp(fits *fit, int x, int y, int chan, cut_direction direction) {
+	switch (fit->type) {
+		case DATA_FLOAT:
+			return (double) nointerpf(fit, x, y, chan, direction);
+			break;
+		case DATA_USHORT:
+			return (double) nointerpw(fit, x, y, chan, direction);
+			break;
+		default:
+			return -9999.0;
 			break;
 	}
 }
@@ -115,36 +155,23 @@ gpointer cut_profile(gpointer p) {
 	int h = gfit.ry;
 	for (int i = 0 ; i < nbr_points ; i++) {
 		x[i] = i * point_spacing;
-		if (abs(point_spacing_x == 1.f)) { // Horizontal, no interpolation
-			if (gfit.type == DATA_FLOAT)
-				r[i] = gfit.fdata[args->start.x + (i * sign(point_spacing_x)) + args->start.y * w];
-			else
-				r[i] = gfit.data[args->start.x + (i * sign(point_spacing_x)) + args->start.y * w];
-		} else if (abs(point_spacing_y == 1.f)) { // Vertical, no interpolation
-			if (gfit.type == DATA_FLOAT)
-				r[i] = gfit.fdata[args->start.x + (args->start.y + i * sign(point_spacing_y)) * w];
-			else
-				r[i] = gfit.data[args->start.x + i + (args->start.y + i * sign(point_spacing_y)) * w];
-		} else { // Neither horizontal nor vertical: interpolate
+		if (abs(point_spacing_x == 1.f)) {
+			// Horizontal, no interpolation
+			r[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 0, HORIZONTAL);
+		} else if (abs(point_spacing_y == 1.f)) {
+			// Vertical, no interpolation
+			r[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 0, VERTICAL);
+		} else {
+			// Neither horizontal nor vertical: interpolate
 			r[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 0);
 		}
 		if (gfit.naxes[2] > 1) {
 			if (abs(point_spacing_x == 1.f)) { // Horizontal, no interpolation
-				if (gfit.type == DATA_FLOAT) {
-					g[i] = gfit.fdata[args->start.x + (i * sign(point_spacing_x)) + args->start.y * w + w * h];
-					b[i] = gfit.fdata[args->start.x + (i * sign(point_spacing_x)) + args->start.y * w + w * h * 2];
-				} else {
-					g[i] = gfit.data[args->start.x + (i * sign(point_spacing_x)) + args->start.y * w + w * h];
-					b[i] = gfit.data[args->start.x + (i * sign(point_spacing_x)) + args->start.y * w + w * h * 2];
-				}
+				g[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 1, HORIZONTAL);
+				b[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 2, HORIZONTAL);
 			} else if (abs(point_spacing_y == 1.f)) { // Vertical, no interpolation
-				if (gfit.type == DATA_FLOAT) {
-					g[i] = gfit.fdata[args->start.x + (args->start.y + i * sign(point_spacing_y)) * w + w * h];
-					b[i] = gfit.fdata[args->start.x + (args->start.y + i * sign(point_spacing_y)) * w + w * h * 2];
-				} else {
-					g[i] = gfit.data[args->start.x + i + (args->start.y + i * sign(point_spacing_y)) * w + w * h];
-					b[i] = gfit.data[args->start.x + i + (args->start.y + i * sign(point_spacing_y)) * w + w * h * 2];
-				}
+				g[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 1, VERTICAL);
+				b[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 2, VERTICAL);
 			} else { // Neither horizontal nor vertical: interpolate (simple bilinear interpolation)
 				r[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 0);
 				g[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 1);
