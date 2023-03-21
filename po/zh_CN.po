@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-11 11:18+0100\n"
-"PO-Revision-Date: 2023-03-21 09:43+0000\n"
+"PO-Revision-Date: 2023-03-23 09:02+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -4291,7 +4291,7 @@ msgstr "插值保持"
 msgid ""
 "Apply a clamping factor to Bicubic and Lanczos-4 interpolation in order to "
 "prevent ringing artefacts"
-msgstr "对双三次和 Lanczos-4 插值应用凝集因子，以防止环状伪影"
+msgstr "对双三次和 Lanczos-4 插值应用保持系数，以防止环状伪影"
 
 #: src/gui/siril3.glade:18668
 msgid "Angle (°)"
@@ -4589,22 +4589,22 @@ msgid "Conversion"
 msgstr "转化"
 
 #: src/gui/siril3.glade:20338
-#, fuzzy
 msgid "Clean Sequence"
-msgstr "裁剪整个队列"
+msgstr "清理队列"
 
 #: src/gui/siril3.glade:20342
 msgid ""
 "This button clears selection, registration and/or statistics data stored in "
 "the loaded sequence. You can specify to clear only registration, statistics "
 "and/or selection with the button on the right.\n"
-msgstr ""
+msgstr "此按钮可清除存储已载入队列中的选择、对齐和/或统计数据。您可以使用右侧的按钮指"
+"定仅清除对齐、统计信息和/或选择。\n"
 
 #: src/gui/siril3.glade:20358
 msgid ""
 "You can specify to clear only registration, statistics and/or selection by "
 "checking the option you want."
-msgstr ""
+msgstr "您可以通过选中所需的选项来指定仅清除对齐、统计信息和/或选择。"
 
 #: src/gui/siril3.glade:20396
 msgid "Search sequences"
@@ -4922,7 +4922,7 @@ msgstr "像素的数值被认为是“有缺陷的”所需要达到的标准背
 
 #: src/gui/siril3.glade:21282 src/gui/siril3.glade:31093
 msgid "Estimate"
-msgstr "预估"
+msgstr "Estimate"
 
 #: src/gui/siril3.glade:21286
 msgid ""
@@ -5037,21 +5037,19 @@ msgstr "校准所有帧"
 
 #: src/gui/siril3.glade:21593
 msgid "Force calibration of all frames even if marked as excluded."
-msgstr ""
+msgstr "强制校准所有帧，即使标记为已排除。"
 
 #: src/gui/siril3.glade:21607
 msgid "Output sequence"
 msgstr "输出队列"
 
 #: src/gui/siril3.glade:21633
-#, fuzzy
 msgid "Calibration is an optional step to apply to a sequence of images."
-msgstr "针对一个图像队列的预处理是一个可选的步骤。"
+msgstr "针对一个图像队列的校准是一个可选的步骤。"
 
 #: src/gui/siril3.glade:21635
-#, fuzzy
 msgid "Calibration"
-msgstr "色彩校准"
+msgstr "校准"
 
 #: src/gui/siril3.glade:21711
 msgid "Registration channel: "
@@ -5076,7 +5074,6 @@ msgid "Follow star movement"
 msgstr "跟随星点移动"
 
 #: src/gui/siril3.glade:21754
-#, fuzzy
 msgid ""
 "Use this option to use the position of the star(s) found in the previous "
 "image as new centre for the current image registration. This allows the "
@@ -5086,20 +5083,20 @@ msgid ""
 "parallelized, it will run on one CPU core only."
 msgstr ""
 "本选项用于将之前图像中找到的星点的位置作为当前图像的中心来对齐。这将允许所选"
-"择区域可以更小，对齐更快，并且统计大量的星点。\n"
+"择区域可以更小，对齐更快，并考虑平移或具有大量星点的图像。\n"
 "警告：开启本选项会要求对齐操作非并行，因此只能使用一个CPU核心来运行。"
 
 #: src/gui/siril3.glade:21768
-#, fuzzy
 msgid "Shift only"
-msgstr "平移"
+msgstr "仅平移"
 
 #: src/gui/siril3.glade:21771
 msgid ""
 "Use this option to compute only shifts (so no rotation) even if more than "
 "one star is selected. When only one star is selected, this is activated by "
 "default."
-msgstr ""
+msgstr "使用此选项仅计算平移（因此不计算旋转），即使选择了多颗星也是如此。当仅选择一"
+"颗星时，本选项被默认激活。"
 
 #: src/gui/siril3.glade:21812
 msgid "Match stars in selection"
@@ -5290,7 +5287,6 @@ msgid "Star #3:"
 msgstr "第三颗星:"
 
 #: src/gui/siril3.glade:22328
-#, fuzzy
 msgid ""
 "Indicate relative distance (in percentage vs total image size) over which to "
 "look for the alignment pattern.\n"
@@ -5305,7 +5301,7 @@ msgstr ""
 "\n"
 "缺省设置下，只会在整个图像的25%范围内寻找参考帧里所存在的模式。\n"
 "\n"
-"设置更高的比例会获得更大的对齐宽容度，而更低的比例会获得更快的对齐速度。"
+"设置更高的比例会获得更大的对齐宽容度，而更低的比例会获得更快的计算速度。"
 
 #: src/gui/siril3.glade:22348
 msgid "Size of alignment region(%):"
@@ -5447,7 +5443,6 @@ msgstr "圆度"
 #: src/gui/siril3.glade:22617 src/gui/siril3.glade:22746
 #: src/gui/siril3.glade:22886 src/gui/siril3.glade:24547
 #: src/gui/siril3.glade:24676 src/gui/siril3.glade:24816
-#, fuzzy
 msgid "background"
 msgstr "背景"
 
@@ -5476,7 +5471,7 @@ msgstr "队列里图像数量的百分比。"
 msgid ""
 "Choose between % and k-σ to keep given percentage of images or to compute "
 "the allowable threshold using k-σ clipping."
-msgstr ""
+msgstr "在 % 和 k-σ 之间进行选择以保留给定百分比的图像或使用 k-σ 裁剪计算允许的阈值。"
 
 #: src/gui/siril3.glade:22692 src/gui/siril3.glade:22819
 #: src/gui/siril3.glade:24622 src/gui/siril3.glade:24749
@@ -5571,9 +5566,8 @@ msgstr ""
 "相当于Drizzle因子的平方倍数量的需求。"
 
 #: src/gui/siril3.glade:23049
-#, fuzzy
 msgid "Save transformation in seq file only"
-msgstr "将对齐数据存入seq文件"
+msgstr "仅将转换保存在 seq 文件中"
 
 #: src/gui/siril3.glade:23053
 msgid ""
@@ -5585,6 +5579,10 @@ msgid ""
 "prior to applying the transformations using the Apply Existing Registration "
 "method."
 msgstr ""
+"选中此框时，转换后的图像不会另存为新对齐的队列。 \n"
+" \n"
+"在这两种情况下，转换矩阵都保存到队列文件中。然后，在使用“应用现有对齐方法”应"
+"用转换之前，可以检查对齐数据并取消选择某些图像。"
 
 #: src/gui/siril3.glade:23075
 msgid "Prefix:"
@@ -5611,6 +5609,14 @@ msgid ""
 "In current Siril implementations, we have included a clamping mechanism that "
 "prevents negative interpolated values and ringing artifacts for most images."
 msgstr ""
+"激活双三次和 Lancsoz4 插值算法的保持机制 \n"
+"\n"
+"Lanczos和双三次插值算法的主要问题是产生强烈的底射伪影（环形）。这些伪像是由插"
+"值函数的负瓣落在高对比度边缘和孤立的明亮像素（如星点）引起的。这通常只发生在"
+"线性数据中。\n"
+"\n"
+"在当前的 Siril "
+"实现中，我们包含一个保持机制，可以防止大多数图像出现负插值和环形伪影。"
 
 #: src/gui/siril3.glade:23187
 msgid "Accumulate reg. data"
@@ -5812,12 +5818,12 @@ msgstr "选择将被显示的测光数据。"
 
 #: src/gui/siril3.glade:23798
 msgid "NINA exoplanet"
-msgstr ""
+msgstr "NINA 系外行星"
 
 #: src/gui/siril3.glade:23802
 msgid ""
 "Process a light curve using the list of stars from the NINA exoplanet plugin"
-msgstr ""
+msgstr "使用来自NINA系外行星插件的恒星列表处理光度曲线"
 
 #: src/gui/siril3.glade:23826
 msgid "Julian Date"
@@ -6149,20 +6155,27 @@ msgid ""
 "<b>Number of images</b> weighs individual frames based on their integration "
 "time."
 msgstr ""
+"有四种加权方法可供选择：\n"
+" \n"
+"<b>星点数量</b> 根据对齐步骤中计算的星点数对各帧进行加权。\n"
+"\n"
+"<b>加权FWHM</b> 根据对齐步骤中计算的 wFWHM 对各帧进行加权。\n"
+"\n"
+"<b>噪声</b> 根据背景噪声值对各帧进行加权。\n"
+"\n"
+"<b>图像数量</b> 根据各帧的积分时间对齐进行加权。"
 
 #: src/gui/siril3.glade:24295 src/gui/plot.c:1544 src/gui/plot.c:1572
 msgid "Number of stars"
 msgstr "星点数量"
 
 #: src/gui/siril3.glade:24296
-#, fuzzy
 msgid "Weighed FWHM"
 msgstr "加权FWHM"
 
 #: src/gui/siril3.glade:24297
-#, fuzzy
 msgid "Noise"
-msgstr "噪声：N/A"
+msgstr "噪声"
 
 #: src/gui/siril3.glade:24298
 msgid "Number of images"
@@ -6174,23 +6187,24 @@ msgstr "权重："
 
 #: src/gui/siril3.glade:24326
 msgid "Create rejection maps"
-msgstr "创建剔除图"
+msgstr "创建剔除映射"
 
 #: src/gui/siril3.glade:24330
 msgid ""
 "Compute and create rejection maps during stacking. These are images showing "
 "how many images were rejected for each pixel of the result image, divided by "
 "the number of stacked images."
-msgstr ""
+msgstr "在叠加期间计算和创建剔除映射。这些图像显示结果图像的每个像素被剔除的图像数除"
+"以已叠加的图像的数量。"
 
 #: src/gui/siril3.glade:24342
 msgid "Merge L+H"
-msgstr ""
+msgstr "合并 L+H"
 
 #: src/gui/siril3.glade:24347
 msgid ""
 "Create only one rejection map that will be the sum of the low and high maps"
-msgstr ""
+msgstr "仅创建一个剔除映射，该映射将是低映射和高映射的总和"
 
 #: src/gui/siril3.glade:24378
 msgid "Pixel rejection:"
@@ -6330,7 +6344,7 @@ msgstr "隐藏控制面板，仅显示图像面板（切换）。"
 
 #: src/gui/siril3.glade:25451
 msgid "Click to Set the name of the item to clipboard (green-ed label)"
-msgstr ""
+msgstr "单击以将项目的名称设置为剪贴板（绿色标签）"
 
 #: src/gui/siril3.glade:25452
 msgid "Sequence:"
@@ -6378,7 +6392,6 @@ msgid "User"
 msgstr "自定义"
 
 #: src/gui/siril3.glade:25729
-#, fuzzy
 msgid ""
 "Display mode: this list presents all the visual modes available in Siril.\n"
 "\n"
@@ -6387,9 +6400,10 @@ msgid ""
 "to display your data. Stretch your histogram before to work on an external "
 "tool.</b>"
 msgstr ""
-"显示模式：Siril所支持的预览模式列表。\n"
+"显示模式：Siril所支持的所有视觉模式列表。\n"
 "\n"
-"<b>警告：只有线性模式会显示真实的像素值（当滑块位于最大和最小的位置）。 其他模式仅是为预览提供的便利。使用外部工具处理之前请先完成直方图拉伸。</b>"
+"<b>警告：只有线性模式会显示真实的像素值（当滑块位于最大和最小的位置）。 "
+"其他模式只是显示数据的便捷方式。使用外部工具处理之前请先完成直方图拉伸。</b>"
 
 #: src/gui/siril3.glade:25779
 msgid "Chain/unchain channels in autostretch viewer mode.\n"
@@ -6415,7 +6429,8 @@ msgstr "显示坐标网格（若WCS信息可用）"
 msgid ""
 "Switch to PSF/photometry mode. If a sequence is loaded, a right click on the "
 "displayed image applies the PSF/Photometry on the whole sequence."
-msgstr ""
+msgstr "切换到 PSF/测光模式。如果已载入队列，则右键单击显示的图像会将PSF/"
+"测光模式应用于整个队列。"
 
 #: src/gui/siril3.glade:25900
 msgid "Shrink the image"
@@ -6794,11 +6809,12 @@ msgid ""
 "Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly "
 "better but slower."
 msgstr ""
+"X-Trans的通过次数 \n"
+"Markesteijn 去马赛克算法，1 是缺省算法，3 可能稍微好一点但速度更慢。"
 
 #: src/gui/siril3.glade:27855
-#, fuzzy
 msgid "X-Trans demosaicing quality"
-msgstr "基于品质"
+msgstr "X-Trans 去马赛克品质"
 
 #: src/gui/siril3.glade:27869
 msgid "1"
@@ -6857,7 +6873,8 @@ msgid ""
 "This can be useful to open scientific FITS files that were not created by "
 "Siril and that contain multiple images of different dimensions, which would "
 "otherwise considered as invalid Siril FITSEQ files."
-msgstr ""
+msgstr "这对于打开不是由Siril创建的科学FITS文件很有用，并且包含多个不同尺寸的图像，"
+"否则将被视为无效的Siril FITSEQ文件。"
 
 #: src/gui/siril3.glade:28029
 msgid "<b>FITS Format</b>"
@@ -6904,7 +6921,6 @@ msgid "Enabled"
 msgstr "已启用"
 
 #: src/gui/siril3.glade:28161
-#, fuzzy
 msgid ""
 "While floating-point format images may be losslessly compressed (using gzip, "
 "since Rice only compresses integer arrays), these images often do not "
@@ -6917,12 +6933,12 @@ msgid ""
 "however, it preserves too much of the noise (or even amplifies the noise) in "
 "the pixel values, resulting in poor compression."
 msgstr ""
-"虽然浮点格式的图像可以被无损压缩（使用gzip，因为Rice和Hcompress只压缩整数数"
-"组），但是由于像素值的噪声过高，并且像素值的小数部分的实际有效比特很少并包含"
-"着不可压缩的随机比特模式，因而导致这些图像通常不会被压缩的很好。为了得到更高"
-"的压缩率，这些噪声需要被除去，但不能损失有用的信息。如该值太大，一个像素值欠"
-"采样的结果是图像的信息丢失。如果该值太小，这将会保留相当多的噪声（甚至会放大"
-"噪声）值，造成很低的压缩率。"
+"虽然浮点格式的图像可以被无损压缩（使用gzip，因为Rice只压缩整数数组），但是由"
+"于像素值的噪声过高，并且像素值的小数部分的实际有效比特很少并包含着不可压缩的"
+"随机比特模式，因而导致这些图像通常不会被压缩的很好。为了得到更高的压缩率，这"
+"些噪声需要被除去，但不能损失有用的信息。如该值太大，一个像素值欠采样的结果是"
+"图像的信息丢失。如果该值太小，这将会保留相当多的噪声（甚至会放大噪声）值，造"
+"成很低的压缩率。"
 
 #: src/gui/siril3.glade:28183
 msgid ""
@@ -7001,7 +7017,6 @@ msgid "Astrometry"
 msgstr "天体测量"
 
 #: src/gui/siril3.glade:28453
-#, fuzzy
 msgid "Catalogue"
 msgstr "星表"
 
@@ -7010,15 +7025,14 @@ msgid ""
 "Purge Solar Sys\n"
 "user Catalog"
 msgstr ""
-"清除太阳系天体\n"
+"清除太阳系\n"
 "用户星表"
 
 #: src/gui/siril3.glade:28486
-#, fuzzy
 msgid ""
 "Purge the SOLAR SYSTEM user catalog by deleting the file. The operation "
 "cannot be undone"
-msgstr "通过删除文件来清空用户星表。该操作不可逆"
+msgstr "通过删除文件来清除太阳系用户星表。操作无法撤消"
 
 #: src/gui/siril3.glade:28498
 msgid ""
@@ -7029,11 +7043,10 @@ msgstr ""
 "用户星表"
 
 #: src/gui/siril3.glade:28503
-#, fuzzy
 msgid ""
 "Purge the DEEP SKY user catalog by deleting the file. The operation cannot "
 "be undone"
-msgstr "通过删除文件来清空用户星表。该操作不可逆"
+msgstr "通过删除文件来清除深空用户星表。该操作无法撤销"
 
 #: src/gui/siril3.glade:28528
 msgid "Annotations"
@@ -7111,6 +7124,9 @@ msgid ""
 "\n"
 "<b>namedstars.dat</b>: the brightest stars, all of them have names."
 msgstr ""
+"这四个来自 KStars 的星表用于解析和天体测量。\n"
+"\n"
+"<b>namedstars.dat</b>：亮星，都拥有名称。"
 
 #: src/gui/siril3.glade:28667
 msgid ""
@@ -7119,24 +7135,24 @@ msgid ""
 "\n"
 "<b>unnamedstars.dat</b>: also bright stars, but down to magnitude 8"
 msgstr ""
+"这四个来自 KStars 的星表用于解析和天体测量。\n"
+"\n"
+"<b>unnamedstars.dat</b>：8等以下的亮星"
 
 #: src/gui/siril3.glade:28683
-#, fuzzy
 msgid ""
 "Specify the location of the namedstars.dat star catalogue on your system."
-msgstr "无法映射星表。"
+msgstr "给出 namedstars.dat 星表在您系统中的位置。"
 
 #: src/gui/siril3.glade:28696
-#, fuzzy
 msgid ""
 "Specify the location of the unnamedstars.dat star catalogue on your system."
-msgstr "无法下载在线星表。"
+msgstr "给出 unnamedstars.dat 星表在您系统中的位置。"
 
 #: src/gui/siril3.glade:28709
-#, fuzzy
 msgid ""
 "Specify the location of the deepstars.dat star catalogue on your system."
-msgstr "无法映射星表。"
+msgstr "给出 deepstars.dat 星表在您系统中的位置。"
 
 #: src/gui/siril3.glade:28722
 msgid ""
@@ -7146,12 +7162,14 @@ msgid ""
 "<b>deepstars.dat</b>: fainter stars extracted from The Tycho-2 Catalogue of "
 "the 2.5 Million Brightest Stars, down to magnitude 12.5"
 msgstr ""
+"这四个来自 KStars 的星表用于解析和天体测量。\n"
+"\n"
+"<b>deepstars.dat</b>：从Tycho-2星表中提取的250万颗最亮恒星星表，低至12.5等"
 
 #: src/gui/siril3.glade:28738
-#, fuzzy
 msgid ""
 "Specify the location of the USNO-NOMAD-1e8.dat star catalogue on your system."
-msgstr "无法映射星表。"
+msgstr "给出 USNO-NOMAD-1e8.dat 星表在您系统中的位置。"
 
 #: src/gui/siril3.glade:28751
 msgid ""
@@ -7162,12 +7180,18 @@ msgid ""
 "B-V photometric information and star proper motion in a compact binary form, "
 "down to magnitude 18."
 msgstr ""
+"这四个来自 KStars 的星表用于解析和天体测量。\n"
+"\n"
+"<b>USNO-NOMAD-1e8.dat</b>： 从巨大的NOMAD星表的摘录仅限于B-V光度学信息和恒星"
+"自运动，以紧凑的二进制格式，低至18等。"
 
 #: src/gui/siril3.glade:28770
 msgid ""
 "<b>Local Star Catalogues</b> (<a href=\"https://free-astro.org/index.php?"
 "title=Siril:Star_Catalogues\">more info</a>)"
 msgstr ""
+"<b>本地星表</b>（<a href=\"https://free-astro.org/index.php?title=Siril:"
+"Star_Catalogues\">更多信息</a>）"
 
 #: src/gui/siril3.glade:28790
 msgid "Update default focal length and pixel size from the result"
@@ -7183,9 +7207,8 @@ msgstr ""
 "图像的默认值存储在设置中。"
 
 #: src/gui/siril3.glade:28805
-#, fuzzy
 msgid "General Platesolving"
-msgstr "打开解析对话框"
+msgstr "常规解析"
 
 #: src/gui/siril3.glade:28840
 msgid "Degrees of the polynomial correction:"
@@ -7193,54 +7216,57 @@ msgstr "多项式修正的阶数:"
 
 #: src/gui/siril3.glade:28852
 msgid "Sampling tolerance (%):"
-msgstr ""
+msgstr "采样容差（%）："
 
 #: src/gui/siril3.glade:28863
 msgid ""
 "Percent below and above the expected sampling to allow. Given sampling is "
 "multiplied or divided by 1 + this / 100."
-msgstr ""
+msgstr "允许低于和高于预期采样的百分比。给定采样乘以或除以 1 + 该值 / 100。"
 
 #: src/gui/siril3.glade:28878
 msgid ""
 "Allowed search radius around the target coordinates for the solve (degrees). "
 "Unused for blind (no target passed) solves."
-msgstr ""
+msgstr "求解的目标坐标周围允许的搜索半径（度）。不可用于盲解（未传递目标）。"
 
 #: src/gui/siril3.glade:28895
 msgid "Target radius (degree)"
-msgstr ""
+msgstr "目标半径（度）"
 
 #: src/gui/siril3.glade:28904
 msgid "Do not delete .xyls FITS tables"
-msgstr ""
+msgstr "不要删除 .xyls FITS 表"
 
 #: src/gui/siril3.glade:28908
 msgid ""
 "The list of stars is passed to solve-field as a FITS table, check this to "
 "keep the file in the working directory."
-msgstr ""
+msgstr "作为 FITS 表传递到 solve-field "
+"的星点列表，勾选此选项以将文件保留在工作目录中。"
 
 #: src/gui/siril3.glade:28918
 msgid "Do not delete .wcs result files"
-msgstr ""
+msgstr "不要删除 .wcs 结果文件"
 
 #: src/gui/siril3.glade:28922
 msgid ""
 "The results from solve-field are stored in a FITS header with a file name "
 "ending in .wcs. Check this to not remove this file."
-msgstr ""
+msgstr "solve-field 的结果存储在文件名以 .wcs 结尾的 FITS "
+"头中。勾选此选项以不删除该文件。"
 
 #: src/gui/siril3.glade:28935
 msgid "Maximum seconds to try solving:"
-msgstr ""
+msgstr "尝试求解的最大秒数："
 
 #: src/gui/siril3.glade:28946
 msgid ""
 "Allowed time for the solve for each catalog file. It can be used as the "
 "total solve time only if solve-field is configured to do so in its "
 "configuration file."
-msgstr ""
+msgstr "允许求解每个星表文件的时间。仅当 solve-field "
+"在其配置文件中配置为总求解时间时，它才能用作总求解时间。"
 
 #: src/gui/siril3.glade:28961
 msgid ""
@@ -7252,7 +7278,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:28977
 msgid "Location of local astrometry.net solver"
-msgstr ""
+msgstr "本地 astrometry.net 解析器的位置"
 
 #: src/gui/siril3.glade:28988
 msgid ""
@@ -7262,26 +7288,28 @@ msgid ""
 "On Windows, you must point to the location of cygwin_ansvr folder only if "
 "not installed in %LOCALAPPDATA%."
 msgstr ""
+"选择 astrometry.net 位置。\n"
+"在基于 UNIX 的系统上，它通常位于 PATH 变量中，不是必需的。\n"
+"在 Windows 上，仅当未安装于 %LOCALAPPDATA% 时，必须指向 cygwin_ansvr "
+"文件夹的位置。"
 
 #: src/gui/siril3.glade:28995
-#, fuzzy
 msgid "Select astrometry.net installation directory"
-msgstr "选择Swap目录"
+msgstr "选择 astrometry.net 安装目录"
 
 #: src/gui/siril3.glade:29004
 msgid "Show solve-field output"
-msgstr ""
+msgstr "显示 solve-field 输出"
 
 #: src/gui/siril3.glade:29008
 msgid ""
 "Show the output of solve-field, the astrometry.net local solver, in the main "
 "Siril log."
-msgstr ""
+msgstr "在主 Siril 日志中显示 solve-field（astrometry.net 本地解析器）的输出。"
 
 #: src/gui/siril3.glade:29033
-#, fuzzy
 msgid "Astrometry.net Platesolving"
-msgstr "打开解析对话框"
+msgstr "Astrometry.net 解析"
 
 #: src/gui/siril3.glade:29067 src/gui/siril3.glade:29691
 msgid "Pre-processing"
@@ -7294,16 +7322,14 @@ msgstr "用于缺省"
 
 #: src/gui/siril3.glade:29100 src/gui/siril3.glade:29115
 #: src/gui/siril3.glade:29130
-#, fuzzy
 msgid "Use the chosen master as default file in the Calibration tab"
-msgstr "将所选的主文件用于预处理标签中的缺省文件"
+msgstr "在“校准”标签中使用选定的主文件作为缺省文件"
 
 #: src/gui/siril3.glade:29144
 msgid "Master-flat:"
 msgstr "主平场："
 
 #: src/gui/siril3.glade:29156
-#, fuzzy
 msgid "Master-bias:"
 msgstr "主偏置:"
 
@@ -7342,9 +7368,8 @@ msgid "Dark/Bias/Flat Libraries"
 msgstr "暗场/偏置/平场库"
 
 #: src/gui/siril3.glade:29316
-#, fuzzy
 msgid "Default name:"
-msgstr "缺省类型:"
+msgstr "缺省名称:"
 
 #: src/gui/siril3.glade:29328
 msgid ""
@@ -7356,16 +7381,20 @@ msgid ""
 "specicified).\n"
 "If sequence name does not have the suffix \"_\", it is automatically added"
 msgstr ""
+"用于命名叠加结果的缺省名称。\n"
+"这可以是使用关键字 $seqname$ "
+"的表达式，该关键字将在叠加操作结束时赋值为当前队列名称。\n"
+"示例：$seqname$stacked 将导致名为“r_pp_light_”的队列生成“r_pp_light_stacked”"
+"（若没有指定任何内容，这将是缺省行为）。\n"
+"如果队列名称没有后缀“_”，则自动添加"
 
 #: src/gui/siril3.glade:29348
-#, fuzzy
 msgid "Use this name as default in the Stacking tab"
-msgstr "将所选的主文件用于预处理标签中的缺省文件"
+msgstr "在“叠加”标签中使用此名称作为缺省名"
 
 #: src/gui/siril3.glade:29366
-#, fuzzy
 msgid "Stacking default"
-msgstr "叠加结果"
+msgstr "叠加缺省名"
 
 #: src/gui/siril3.glade:29383
 msgid ""
@@ -7496,14 +7525,12 @@ msgstr ""
 "多，但分辨率越低。"
 
 #: src/gui/siril3.glade:30143
-#, fuzzy
 msgid "Panel size (px):"
-msgstr "像素尺寸(微米):"
+msgstr "面板尺寸（像素）："
 
 #: src/gui/siril3.glade:30155
-#, fuzzy
 msgid "Window size (px):"
-msgstr "像素尺寸(微米):"
+msgstr "窗口尺寸（像素）："
 
 #: src/gui/siril3.glade:30166
 msgid "Defines the size of the window."
@@ -7598,40 +7625,33 @@ msgid "Image Thumbnails"
 msgstr "缩略图"
 
 #: src/gui/siril3.glade:30519
-#, fuzzy
 msgid "Default screen transfer function"
-msgstr "中间调变换函数"
+msgstr "缺省屏幕变换函数"
 
 #: src/gui/siril3.glade:30537
-#, fuzzy
 msgid "Autostretch"
 msgstr "自动拉伸"
 
 #: src/gui/siril3.glade:30554
-#, fuzzy
 msgid "Image Display"
-msgstr "图像处理"
+msgstr "图像显示"
 
 #: src/gui/siril3.glade:30586
-#, fuzzy
 msgid "Default display mode"
-msgstr "显示模式"
+msgstr "缺省显示模式"
 
 #: src/gui/siril3.glade:30616
-#, fuzzy
 msgid "Histogram Display"
-msgstr "直方图"
+msgstr "直方图显示"
 
 #: src/gui/siril3.glade:30688
-#, fuzzy
 msgid ""
 "The paths written in this text box will be checked in order to load scripts "
 "that have been put inside. Write a path per line with as many lines you "
 "want. However you have to keep in mind that more paths are checked the "
 "longer is the startup."
-msgstr ""
-"该文本窗口中的路径用于读取脚本文件。每行存放一个路径，行数不限。但请注意，更"
-"多的路径会造成启动时更长的检索时间。"
+msgstr "该文本窗口中的路径用于加载脚本文件。每行存放一个路径，行数不限。但请注意，更"
+"多的路径则会使启动时间更长。"
 
 #: src/gui/siril3.glade:30701
 msgid "<b>Scripts Storage Directories</b>"
@@ -7726,7 +7746,7 @@ msgstr "<b>内存管理</b>"
 
 #: src/gui/siril3.glade:30970
 msgid "Default bit depth for HD AutoStretch"
-msgstr ""
+msgstr "HD自动拉伸的缺省位深"
 
 #: src/gui/siril3.glade:30986
 msgid ""
@@ -7737,36 +7757,38 @@ msgid ""
 "will apply from the next viewer mode change, and can be applied now using "
 "the button to the right."
 msgstr ""
+"设置HD自动拉伸显示模式的缺省位深。更高的位深需要成倍增加的LUT内存，并且需要更"
+"长的时间来重新计算它，但在显示具有非常窄直方图峰值的图像时，可以更好地平滑量"
+"子化伪影。默认位深将从下一次查看器模式更改开始应用，现在可以使用右侧的按钮应"
+"用。"
 
 #: src/gui/siril3.glade:31003
-#, fuzzy
 msgid "Apply bit depth"
-msgstr "执行拆分CFA"
+msgstr "应用位深"
 
 #: src/gui/siril3.glade:31007
-#, fuzzy
 msgid "Set the selected HD AutoStretch bit depth now"
-msgstr "自动拉伸"
+msgstr "立即设置选定的HD自动拉伸位深"
 
 #: src/gui/siril3.glade:31030
-#, fuzzy
 msgid "HD AutoStretch"
-msgstr "自动拉伸"
+msgstr "HD自动拉伸"
 
 #: src/gui/siril3.glade:31060
 msgid "Multithreaded FFTW"
-msgstr ""
+msgstr "多线程FFTW"
 
 #: src/gui/siril3.glade:31064
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
-msgstr ""
+msgstr "如果选中，FFTW将使用多个线程。这通常是对大图像的加速，但在FFTW首次对给定大小"
+"的图像进行操作时会增加初始规划时间。"
 
 #: src/gui/siril3.glade:31079 src/core/settings.c:283
 msgid "FFTW planning strategy"
-msgstr ""
+msgstr "FFTW规划策略"
 
 #: src/gui/siril3.glade:31090
 msgid ""
@@ -7782,22 +7804,29 @@ msgid ""
 "and planning level takes longer to generate if you have selected "
 "multithreaded FFTW."
 msgstr ""
+"设置 FFTW 规划策略。FFTW生成并存储wisdom，以帮助其优化给定尺寸的FFT计算。对于"
+"每个连续级别的规划策略，在第一次遇到未知FFT尺寸时，将做更多的工作来找到最佳计"
+"算策略。第一次计算会逐渐变慢，但wisdom被存储起来，将使后续运行更快。对于大多"
+"数用户来说，缺省的 Patient 策略很好。如果您经常处理许多不同大小的图像，"
+"Estimate 或 Measure 可能会更好；如果您的所有图像大小始终完全相同，"
+"您可能希望尝试 Exhaustive。请注意，如果选择了多线程 "
+"FFTW，则生成给定大小和计划级别的初始计划需要更长的时间。"
 
 #: src/gui/siril3.glade:31094
 msgid "Measure"
-msgstr ""
+msgstr "Measure"
 
 #: src/gui/siril3.glade:31095
 msgid "Patient"
-msgstr ""
+msgstr "Patient"
 
 #: src/gui/siril3.glade:31096
 msgid "Exhaustive"
-msgstr ""
+msgstr "Exhaustive"
 
 #: src/gui/siril3.glade:31109
 msgid "FFTW planning time limit (seconds)"
-msgstr ""
+msgstr "FFTW 规划时间限制（秒）"
 
 #: src/gui/siril3.glade:31120
 msgid ""
@@ -7806,10 +7835,13 @@ msgid ""
 "FFTW is in the middle of an uninterruptible operation. If set to 0, a "
 "minimum planning level of Estimate will always be completed."
 msgstr ""
+"通知 FFTW 最多花费此秒数来规划 FFT。在实践中，如果在FFTW处于不间断操作的过程"
+"中达到时间限制，则可能会略微超过此限制。如果设置为 0，将始终完成“ "
+"Estimate”的最低计划级别。"
 
 #: src/gui/siril3.glade:31135
 msgid "Minimum PSF size to use FFT convolutions"
-msgstr ""
+msgstr "用于 FFT 卷积的最小 PSF 尺寸"
 
 #: src/gui/siril3.glade:31146
 msgid ""
@@ -7827,9 +7859,8 @@ msgstr ""
 "设置将使用傅里叶变换的最小内核尺寸。"
 
 #: src/gui/siril3.glade:31168
-#, fuzzy
 msgid "<b>FFTW Options</b>"
-msgstr "<b>FITS 压缩</b>"
+msgstr "<b>FFTW 选项</b>"
 
 #: src/gui/siril3.glade:31196 src/gui/siril3.glade:31631
 msgid "Miscellaneous"
@@ -7854,13 +7885,12 @@ msgid "Restore to Default"
 msgstr "恢复为缺省值"
 
 #: src/gui/siril3.glade:31256
-#, fuzzy
 msgid "Restore the default swap storage directory"
-msgstr "恢复为缺省的swap目录"
+msgstr "恢复为缺省的swap存储目录"
 
 #: src/gui/siril3.glade:31275
 msgid "<b>Swap Storage Directory</b>"
-msgstr "<b>Swap目录</b>"
+msgstr "<b>Swap存储目录</b>"
 
 #: src/gui/siril3.glade:31302
 msgid "Don't ask before quitting"
@@ -7868,7 +7898,7 @@ msgstr "退出前不询问"
 
 #: src/gui/siril3.glade:31317
 msgid "Don't ask before saving when display is not linear"
-msgstr ""
+msgstr "当显示不是线性时，保存前不要询问"
 
 #: src/gui/siril3.glade:31360
 msgid "Play introduction"
@@ -7888,10 +7918,17 @@ msgid ""
 "Windows), and they must both be in the same directory. You can select either "
 "executable: Siril will automatically find the other one if it exists."
 msgstr ""
+"选择 StarNet 可执行文件。适用于所有 StarNet 命令行版本。\n"
+"\n"
+"对于使用单独的可执行文件来处理单色和 RGB 文件的旧 StarNet++ v1 "
+"安装，可执行文件<b>必须</b>保留其原始名称 <b>mono_starnet++</b> 和 "
+"<b>rgb_starnet++</b>（如果使用 Windows，则使用 <b>."
+"exe</b>），并且它们必须位于同一目录中。您可以选择任一可执行文件：Siril "
+"将自动查找另一个可执行文件（如果存在）。"
 
 #: src/gui/siril3.glade:31414
 msgid "Select StarNet executable"
-msgstr ""
+msgstr "选择 StarNet 可执行文件"
 
 #: src/gui/siril3.glade:31428
 msgid "Must point to a valid StarNet executable."
@@ -7903,31 +7940,36 @@ msgid ""
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
 "b> be in the same directory as the StarNet executable."
 msgstr ""
+"选择 StarNet 权重文件。这<b>仅</b>适用于新的 Torch-based StarNet "
+"版本。它是可选的：如果留空，则权重文件<b>必须</b>与 StarNet "
+"可执行文件位于同一目录中。"
 
 #: src/gui/siril3.glade:31449
 msgid "Select StarNet weights file"
-msgstr "选择StarNet权重文件"
+msgstr "选择 StarNet 权重文件"
 
 #: src/gui/siril3.glade:31466
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
-msgstr ""
+msgstr "清除神经网络权重位置。清除后，权重文件<b>必须</b>与 StarNet "
+"可执行文件位于同一目录中。"
 
 #: src/gui/siril3.glade:31481
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
 msgstr ""
+"可以指向 StarNet 神经网络权重文件。\n"
+"仅用于 Torch-based StarNet 版本。"
 
 #: src/gui/siril3.glade:31503
 msgid "Select gnuplot binary location."
-msgstr ""
+msgstr "选择 gnuplot 二进制位置。"
 
 #: src/gui/siril3.glade:31508
-#, fuzzy
 msgid "Select gnuplot installation directory"
-msgstr "选择Swap目录"
+msgstr "选择 gnuplot 安装目录"
 
 #: src/gui/siril3.glade:31521
 msgid ""
@@ -7935,11 +7977,12 @@ msgid ""
 "Not necessary if the path of gnuplot is stored in the PATH variable (UNIX-"
 "like)."
 msgstr ""
+"必须指向有效的 gnuplot 安装目录。\n"
+"如果 gnuplot 的路径存储在 PATH 变量（类 UNIX）中，则不需要。"
 
 #: src/gui/siril3.glade:31541
-#, fuzzy
 msgid "Software Location"
-msgstr "软件更新"
+msgstr "软件位置"
 
 #: src/gui/siril3.glade:31564
 msgid "Copyright when saving image as TIFF"
@@ -8178,11 +8221,11 @@ msgstr "运行于控制台模式，命令交互和日志输入通过命名管道
 
 #: src/main-cli.c:107 src/main.c:109
 msgid "specify the path for the read pipe, the one receiving commands"
-msgstr ""
+msgstr "指定读取管道的路径，即接收命令的路径"
 
 #: src/main-cli.c:108 src/main.c:110
 msgid "specify the path for the write pipe, the one outputing messages"
-msgstr ""
+msgstr "指定写入管道的路径，即输出消息的路径"
 
 #: src/main-cli.c:109 src/main.c:111
 msgid ""
@@ -8241,7 +8284,7 @@ msgstr "成功载入'%s'\n"
 #: src/main.c:189
 #, c-format
 msgid "Initializing FFTW multithreading support...\n"
-msgstr ""
+msgstr "正在初始化 FFTW 多线程支持...\n"
 
 #: src/main.c:351 src/core/command.c:7088 src/core/command_line_processor.c:617
 #: src/gui/single_image.c:82
@@ -8258,12 +8301,12 @@ msgstr "文件 [%s] 不存在\n"
 
 #: src/algos/annotate.c:246
 msgid "Stars file did not contain the expected header for NINA-style format\n"
-msgstr ""
+msgstr "星点文件不包含 NINA 样式格式的预期文件头\n"
 
 #: src/algos/annotate.c:256 src/algos/annotate.c:279
 #, c-format
 msgid "Malformed line: %s\n"
-msgstr ""
+msgstr "格式错误的行： %s\n"
 
 #: src/algos/annotate.c:429 src/core/command.c:4388 src/core/command.c:6138
 #: src/core/command.c:6244 src/core/command.c:6366 src/core/command.c:7191
@@ -8273,45 +8316,43 @@ msgid "Cannot create output folder: %s\n"
 msgstr "无法创建输出目录: %s\n"
 
 #: src/algos/annotate.c:454
-#, fuzzy
 msgid "Error: failed to write output to user catalogue.\n"
-msgstr "创建SER文件“%s”失败\n"
+msgstr "错误：无法将输出写入用户星表。\n"
 
 #: src/algos/annotate.c:503
 #, c-format
 msgid ""
 "The object was already found in the %s catalog under the name %s, not adding "
 "it again\n"
-msgstr ""
+msgstr "已在 %s 星表中以 %s 的名称找到该天体，无需再次添加\n"
 
 #: src/algos/annotate.c:626
-#, fuzzy
 msgid "Catalog deletion"
-msgstr "目录删除"
+msgstr "星表删除"
 
 #: src/algos/annotate.c:627
-#, fuzzy
 msgid ""
 "You are about to purge your SOLAR SYSTEM user catalog. This means the file "
 "containing the manually added objects will be deleted. This operation cannot "
 "be undone."
-msgstr "将会清空用户目录。这意味着手动加入的文件也将被删除，该操作不可逆。"
+msgstr "您将要清除您的太阳系用户星表。这意味着包含手动添加的天体的文件将被删除。此操"
+"作无法撤消。"
 
 #: src/algos/annotate.c:629 src/algos/annotate.c:656
 msgid "Purge Catalogue"
-msgstr "清空目录"
+msgstr "清除星表"
 
 #: src/algos/annotate.c:653
 msgid "Catalogue deletion"
-msgstr "目录删除"
+msgstr "星表删除"
 
 #: src/algos/annotate.c:654
-#, fuzzy
 msgid ""
 "You are about to purge your DEEP SKY user catalogue. This means the file "
 "containing the manually added objects will be deleted. This operation cannot "
 "be undone."
-msgstr "将会清空用户目录。这意味着手动加入的文件也将被删除，该操作不可逆。"
+msgstr "您将要清除您的深空用户星表。这意味着包含手动添加的天体的文件将被删除。此操作"
+"无法撤消。"
 
 #: src/algos/astrometry_solver.c:95
 msgid "Tycho-2"
@@ -11102,17 +11143,16 @@ msgid "Output filename option is not allowed in this context, ignoring.\n"
 msgstr "Output filename option is not allowed in this context, ignoring.\n"
 
 #: src/core/command.c:7067
-#, fuzzy
 msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
-msgstr "Weighting is allowed only with average stacking, ignoring.\n"
+msgstr "Rejection maps can only be created with rejection stacking, ignoring.\n"
 
 #: src/core/command.c:7069
-#, fuzzy
 msgid ""
 "Rejection maps can only be created if rejection has been activated, "
 "ignoring.\n"
 msgstr ""
-"Weighting is allowed only if normalization has been activated, ignoring.\n"
+"Rejection maps can only be created if rejection has been activated, ignoring."
+"\n"
 
 #: src/core/command.c:7077
 #, c-format
@@ -11143,7 +11183,7 @@ msgstr "无法保存叠加结果 %s\n"
 
 #: src/core/command.c:7204 src/stacking/stacking.c:627
 msgid "Saving rejection maps\n"
-msgstr "保存剔除图\n"
+msgstr "保存剔除映射\n"
 
 #: src/core/command.c:7233 src/stacking/stacking.c:680
 msgid "Stacking failed, please check the log to fix your issue.\n"
@@ -15663,7 +15703,7 @@ msgstr "选择范围无参考线"
 
 #: src/core/settings.c:348
 msgid "use clamping method with Lanczos and Cubic interpolation"
-msgstr ""
+msgstr "对 Lanczos 和 Cubic 插值使用保持机制"
 
 #: src/core/settings.c:350
 #, fuzzy
@@ -21135,15 +21175,15 @@ msgstr "剔除参数 ………… 下限=%.3f 上限=%.3f\n"
 
 #: src/stacking/stacking.c:395
 msgid "Creating rejection maps ... no\n"
-msgstr ""
+msgstr "创建剔除映射 ... 无\n"
 
 #: src/stacking/stacking.c:398
 msgid "Creating rejection maps ... yes (merged)\n"
-msgstr ""
+msgstr "创建剔除映射 ... 是（合并）\n"
 
 #: src/stacking/stacking.c:399
 msgid "Creating rejection maps ... yes\n"
-msgstr ""
+msgstr "创建剔除映射 ... 是\n"
 
 #: src/stacking/stacking.c:405
 #, fuzzy
