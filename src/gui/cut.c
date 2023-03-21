@@ -7,6 +7,9 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "io/gnuplot_i.h"
+#include "gui/image_display.h"
+
+cut_args cut_data = { 0 };
 
 int sign(double x) {
 	return x < 0. ? -1 : x > 0. ? 1 : 0;
@@ -193,7 +196,6 @@ END:
 	g = NULL;
 	free(b);
 	b = NULL;
-	free(args);
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
@@ -204,22 +206,18 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* cut_mono = (GtkToggleButton*)lookup_widget("cut_radio_mono");
 	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
 	GtkToggleButton* cut_spectroscopy = (GtkToggleButton*)lookup_widget("cut_radio_spectroscopy");
-	cut_args *cut_data = malloc(sizeof(cut_args));
-	cut_data->start.x = com.cut_start.x;
-	cut_data->finish.x = com.cut_point.x;
-	// Reverse the y coordinates to look up the correct point in gfit.
-	// This can't be done in the image_interactions callbacks otherwise
-	// the cut preview line is drawn with the wrong orientation.
-	cut_data->start.y = gfit.ry - 1 - com.cut_start.y;
-	cut_data->finish.y = gfit.ry - 1 - com.cut_point.y;
+	cut_data.start.x = com.cut_start.x;
+	cut_data.finish.x = com.cut_point.x;
+	cut_data.start.y = gfit.ry - 1 - com.cut_start.y;
+	cut_data.finish.y = gfit.ry - 1 - com.cut_point.y;
 	if (gtk_toggle_button_get_active(cut_mono))
-		cut_data->mode = MONO;
+		cut_data.mode = MONO;
 	else if (gtk_toggle_button_get_active(cut_color))
-		cut_data->mode = COLOR;
+		cut_data.mode = COLOR;
 	else if (gtk_toggle_button_get_active(cut_spectroscopy))
-		cut_data->mode = SPECTROSCOPY;
-	cut_data->display_graph = TRUE;
-	start_in_new_thread(cut_profile, cut_data);
+		cut_data.mode = SPECTROSCOPY;
+	cut_data.display_graph = TRUE;
+	start_in_new_thread(cut_profile, &cut_data);
 }
 
 void on_cut_close_button_clicked(GtkButton *button, gpointer user_data) {
@@ -227,4 +225,50 @@ void on_cut_close_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleToolButton *toolbutton = (GtkToggleToolButton*) lookup_widget("cut_button");
 	gtk_toggle_tool_button_set_active(toolbutton, FALSE);
 	siril_close_dialog("cut_dialog");
+}
+
+void match_adjustments_to_gfit() {
+	GtkAdjustment *sxa = (GtkAdjustment*) lookup_adjustment("adj_cut_xstart");
+	GtkAdjustment *fxa = (GtkAdjustment*) lookup_adjustment("adj_cut_xfinish");
+	GtkAdjustment *sya = (GtkAdjustment*) lookup_adjustment("adj_cut_ystart");
+	GtkAdjustment *fya = (GtkAdjustment*) lookup_adjustment("adj_cut_yfinish");
+	gtk_adjustment_set_upper(sxa, gfit.rx);
+	gtk_adjustment_set_upper(fxa, gfit.rx);
+	gtk_adjustment_set_upper(sya, gfit.ry);
+	gtk_adjustment_set_upper(fya, gfit.ry);
+}
+
+void on_cut_manual_coords_button_clicked(GtkButton* button, gpointer user_data) {
+	match_adjustments_to_gfit();
+	g_signal_handlers_block_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
+	GtkWidget *cut_coords_dialog = lookup_widget("cut_coords_dialog");
+	if (!gtk_widget_is_visible(cut_coords_dialog))
+		siril_open_dialog("cut_coords_dialog");
+}
+
+void on_cut_coords_dialog_hide(GtkWindow *window, gpointer user_data) {
+	siril_open_dialog("cut_dialog");
+	g_signal_handlers_unblock_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
+}
+
+void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
+	GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
+	GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
+	GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
+	int sx = (int) gtk_spin_button_get_value(startx);
+	int sy = (int) gtk_spin_button_get_value(starty);
+	int fx = (int) gtk_spin_button_get_value(finishx);
+	int fy = (int) gtk_spin_button_get_value(finishy);
+	printf("start (%d, %d) finish (%d, %d)\n", sx, sy, fx, fy);
+	com.cut_start.x = sx;
+	com.cut_start.y = sy;
+	com.cut_point.x = fx;
+	com.cut_point.y = fy;
+	redraw(REDRAW_OVERLAY);
+	siril_close_dialog("cut_coords_dialog");
+}
+
+void on_cut_coords_cancel_button_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("cut_coords_dialog");
 }

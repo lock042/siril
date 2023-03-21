@@ -32,6 +32,7 @@ typedef enum {
 
 
 GtkWidget* lookup_widget (const gchar *widget_name);
+GtkAdjustment* lookup_adjustment(const gchar *adjustment_name);
 void control_window_switch_to_tab(main_tabs tab);
 GtkWidget* popover_new(GtkWidget *widget, const gchar *text);
 GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbuf *pixbuf);

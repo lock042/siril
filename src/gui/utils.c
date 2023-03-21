@@ -71,6 +71,11 @@ GtkWidget* lookup_widget(const gchar *widget_name) {
 	return GTK_WIDGET(gtk_builder_get_object(gui.builder, widget_name));
 }
 
+GtkAdjustment* lookup_adjustment(const gchar *adjustment_name) {
+	return GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, adjustment_name));
+}
+
+
 void control_window_switch_to_tab(main_tabs tab) {
 	if (com.script)
 		return;
