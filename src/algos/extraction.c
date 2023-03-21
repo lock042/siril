@@ -414,14 +414,16 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 static int dual_prepare(struct generic_seq_args *args) {
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 	// we call the generic prepare twice with different prefixes
-	args->new_seq_prefix = "Ha_";
+	args->new_seq_prefix = "Ha_"; // This is OK here, it does not get freed in the
+	// end_generic_sequence later
 	if (extract_prepare_hook(args))
 		return 1;
 	// but we copy the result between each call
 	cfa_args->new_ser_ha = args->new_ser;
 	cfa_args->new_fitseq_ha = args->new_fitseq;
 
-	args->new_seq_prefix = "OIII_";
+	args->new_seq_prefix = "OIII_"; // This is OK here, it does not get freed in the
+	// end_generic_sequence later
 	if (extract_prepare_hook(args))
 		return 1;
 	cfa_args->new_ser_oiii = args->new_ser;
