@@ -468,6 +468,19 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					}
 					com.cut_start.x = zoomed.x;
 					com.cut_start.y = zoomed.y;
+					// This is a new cut line so reset any spectroscopic wavenumber points
+					com.cut_wn1.x = -1;
+					com.cut_wn1.y = -1;
+					com.cut_wn2.x = -1;
+					com.cut_wn2.y = -1;
+					GtkLabel* label_wn1_x = (GtkLabel*) lookup_widget("label_wn1_x");
+					GtkLabel* label_wn1_y = (GtkLabel*) lookup_widget("label_wn1_y");
+					GtkLabel* label_wn2_x = (GtkLabel*) lookup_widget("label_wn2_x");
+					GtkLabel* label_wn2_y = (GtkLabel*) lookup_widget("label_wn2_y");
+					gtk_label_set_text(label_wn1_x, "");
+					gtk_label_set_text(label_wn1_y, "");
+					gtk_label_set_text(label_wn2_x, "");
+					gtk_label_set_text(label_wn2_y, "");
 					break;
 				default:
 					break;
@@ -600,6 +613,8 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 		} else if (mouse_status == MOUSE_ACTION_CUT_WN1) {
 			com.cut_wn1.x = zoomed.x;
 			com.cut_wn1.y = zoomed.y;
+			// Snap the selected pixel to the closest point on the line
+			com.cut_wn1 = closest_point_on_line(com.cut_wn1, com.cut_start, com.cut_point);
 			GtkLabel* label_wn1_x = (GtkLabel*) lookup_widget("label_wn1_x");
 			GtkLabel* label_wn1_y = (GtkLabel*) lookup_widget("label_wn1_y");
 			gchar* l1x = g_strdup_printf("%d", com.cut_wn1.x);
@@ -608,10 +623,12 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			gtk_label_set_text(label_wn1_y, l1y);
 			g_free(l1x);
 			g_free(l1y);
-			mouse_status = MOUSE_ACTION_CUT_SELECT;
+			mouse_status = MOUSE_ACTION_NONE;
 		} else if (mouse_status == MOUSE_ACTION_CUT_WN2) {
 			com.cut_wn2.x = zoomed.x;
 			com.cut_wn2.y = zoomed.y;
+			// Snap the selected pixel to the closest point on the line
+			com.cut_wn2 = closest_point_on_line(com.cut_wn2, com.cut_start, com.cut_point);
 			GtkLabel* label_wn2_x = (GtkLabel*) lookup_widget("label_wn2_x");
 			GtkLabel* label_wn2_y = (GtkLabel*) lookup_widget("label_wn2_y");
 			gchar* l2x = g_strdup_printf("%d", com.cut_wn2.x);
@@ -620,7 +637,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			gtk_label_set_text(label_wn2_y, l2y);
 			g_free(l2x);
 			g_free(l2y);
-			mouse_status = MOUSE_ACTION_CUT_SELECT;
+			mouse_status = MOUSE_ACTION_NONE;
 		}
 	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click
 		if (inside) {

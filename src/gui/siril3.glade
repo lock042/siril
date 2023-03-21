@@ -8354,7 +8354,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Pick a point on the cut line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber.</property>
+                <property name="tooltip-text" translatable="yes">Pick a point on the cut line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the cut line and are reset if the cut line is moved.</property>
                 <signal name="clicked" handler="on_cut_wavenumber1_clicked" swapped="no"/>
               </object>
               <packing>
@@ -8368,7 +8368,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Pick a point on the cut line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber.</property>
+                <property name="tooltip-text" translatable="yes">Pick a point on the cut line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the cut line and are reset if the cut line is moved.</property>
                 <signal name="clicked" handler="on_cut_wavenumber2_clicked" swapped="no"/>
               </object>
               <packing>

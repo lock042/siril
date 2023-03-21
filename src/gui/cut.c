@@ -18,6 +18,13 @@ int sign(double x) {
 	return x < 0. ? -1 : x > 0. ? 1 : 0;
 }
 
+gboolean spectroscopy_selections_are_valid() {
+	gboolean a = (wavenumber1 != wavenumber2) && (wavenumber1 > 0.0) && (wavenumber2 > 0.0);
+	gboolean b = (com.cut_wn1.x >= 0) && (com.cut_wn1.y >= 0) && (com.cut_wn2.x >= 0) && (com.cut_wn2.y >= 0) && (com.cut_wn1.x < gfit.rx) && (com.cut_wn1.y < gfit.ry) && (com.cut_wn2.x < gfit.rx) && (com.cut_wn2.y < gfit.ry);
+	gboolean c = (!(com.cut_wn1.x == com.cut_wn2.x) && (com.cut_wn1.y == com.cut_wn2.y));
+	return a && b && c;
+}
+
 float interpf(fits* fit, float x, float y, int chan) {
 	if (chan >= fit->naxes[2])
 		return -9999.f;
@@ -254,6 +261,8 @@ void on_cut_spectroscopic_button_clicked(GtkButton* button, gpointer user_data) 
 	GtkWidget *cut_spectroscopy_dialog = lookup_widget("cut_spectroscopy_dialog");
 	if (!gtk_widget_is_visible(cut_spectroscopy_dialog))
 		siril_open_dialog("cut_spectroscopy_dialog");
+	mouse_status = MOUSE_ACTION_NONE;
+
 }
 
 void on_cut_spectro_cancel_button_clicked(GtkButton *button, gpointer user_data) {
@@ -307,6 +316,5 @@ void on_cut_spectro_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	wavenumber1 = gtk_spin_button_get_value(cut_spin_wavenumber1);
 	wavenumber2 = gtk_spin_button_get_value(cut_spin_wavenumber2);
 	width = (int) gtk_spin_button_get_value(cut_spin_width);
-	siril_debug_print("wn1 loc (%d, %d) wn %.3f; wn2 loc (%d, %d) wn %.3f; width %d\n", com.cut_wn1.x, com.cut_wn1.y, wavenumber1, com.cut_wn2.x, com.cut_wn2.y, wavenumber2, width);
 	siril_close_dialog("cut_spectroscopy_dialog");
 }

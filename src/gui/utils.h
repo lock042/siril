@@ -19,6 +19,7 @@
  */
 #ifndef SRC_GUI_UTILS_H_
 #define SRC_GUI_UTILS_H_
+#include "core/siril.h"
 
 typedef enum {
 	FILE_CONVERSION,
@@ -46,5 +47,7 @@ void widget_set_class(GtkWidget *entry, const char *class_to_add, const char *cl
 
 void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg);
 int select_vport(int vport);
+pointi closest_point_on_line(pointi in, pointi p1, pointi p2);
+
 
 #endif /* SRC_GUI_UTILS_H_ */
