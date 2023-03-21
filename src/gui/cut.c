@@ -9,6 +9,9 @@
 #include "io/gnuplot_i.h"
 #include "gui/image_display.h"
 
+double wavenumber1 = 0.0, wavenumber2 = 0.0;
+int width = 1;
+
 cut_args cut_data = { 0 };
 
 int sign(double x) {
@@ -257,6 +260,10 @@ void on_cut_spectro_cancel_button_clicked(GtkButton *button, gpointer user_data)
 	siril_close_dialog("cut_spectroscopy_dialog");
 }
 
+void on_cut_coords_cancel_button_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("cut_coords_dialog");
+}
+
 void on_cut_coords_dialog_hide(GtkWindow *window, gpointer user_data) {
 	siril_open_dialog("cut_dialog");
 	g_signal_handlers_unblock_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
@@ -264,6 +271,7 @@ void on_cut_coords_dialog_hide(GtkWindow *window, gpointer user_data) {
 
 void on_cut_spectroscopy_dialog_hide(GtkWindow *window, gpointer user_data) {
 	siril_open_dialog("cut_dialog");
+	mouse_status = MOUSE_ACTION_CUT_SELECT;
 	g_signal_handlers_unblock_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
 }
 
@@ -285,6 +293,20 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("cut_coords_dialog");
 }
 
-void on_cut_coords_cancel_button_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("cut_coords_dialog");
+void on_cut_wavenumber1_clicked(GtkButton *button, gpointer user_data) {
+	mouse_status = MOUSE_ACTION_CUT_WN1;
+}
+void on_cut_wavenumber2_clicked(GtkButton *button, gpointer user_data) {
+	mouse_status = MOUSE_ACTION_CUT_WN2;
+}
+
+void on_cut_spectro_apply_button_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton* cut_spin_wavenumber1 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber1");
+	GtkSpinButton* cut_spin_wavenumber2 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber2");
+	GtkSpinButton* cut_spin_width = (GtkSpinButton*) lookup_widget("cut_spin_width");
+	wavenumber1 = gtk_spin_button_get_value(cut_spin_wavenumber1);
+	wavenumber2 = gtk_spin_button_get_value(cut_spin_wavenumber2);
+	width = (int) gtk_spin_button_get_value(cut_spin_width);
+	siril_debug_print("wn1 loc (%d, %d) wn %.3f; wn2 loc (%d, %d) wn %.3f; width %d\n", com.cut_wn1.x, com.cut_wn1.y, wavenumber1, com.cut_wn2.x, com.cut_wn2.y, wavenumber2, width);
+	siril_close_dialog("cut_spectroscopy_dialog");
 }

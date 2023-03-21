@@ -597,6 +597,30 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			GtkWidget *cut_dialog = lookup_widget("cut_dialog");
 			if (!gtk_widget_is_visible(cut_dialog))
 				siril_open_dialog("cut_dialog");
+		} else if (mouse_status == MOUSE_ACTION_CUT_WN1) {
+			com.cut_wn1.x = zoomed.x;
+			com.cut_wn1.y = zoomed.y;
+			GtkLabel* label_wn1_x = (GtkLabel*) lookup_widget("label_wn1_x");
+			GtkLabel* label_wn1_y = (GtkLabel*) lookup_widget("label_wn1_y");
+			gchar* l1x = g_strdup_printf("%d", com.cut_wn1.x);
+			gchar* l1y = g_strdup_printf("%d", com.cut_wn1.y);
+			gtk_label_set_text(label_wn1_x, l1x);
+			gtk_label_set_text(label_wn1_y, l1y);
+			g_free(l1x);
+			g_free(l1y);
+			mouse_status = MOUSE_ACTION_CUT_SELECT;
+		} else if (mouse_status == MOUSE_ACTION_CUT_WN2) {
+			com.cut_wn2.x = zoomed.x;
+			com.cut_wn2.y = zoomed.y;
+			GtkLabel* label_wn2_x = (GtkLabel*) lookup_widget("label_wn2_x");
+			GtkLabel* label_wn2_y = (GtkLabel*) lookup_widget("label_wn2_y");
+			gchar* l2x = g_strdup_printf("%d", com.cut_wn2.x);
+			gchar* l2y = g_strdup_printf("%d", com.cut_wn2.y);
+			gtk_label_set_text(label_wn2_x, l2x);
+			gtk_label_set_text(label_wn2_y, l2y);
+			g_free(l2x);
+			g_free(l2y);
+			mouse_status = MOUSE_ACTION_CUT_SELECT;
 		}
 	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click
 		if (inside) {
