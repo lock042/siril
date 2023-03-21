@@ -246,7 +246,23 @@ void on_cut_manual_coords_button_clicked(GtkButton* button, gpointer user_data) 
 		siril_open_dialog("cut_coords_dialog");
 }
 
+void on_cut_spectroscopic_button_clicked(GtkButton* button, gpointer user_data) {
+	g_signal_handlers_block_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
+	GtkWidget *cut_spectroscopy_dialog = lookup_widget("cut_spectroscopy_dialog");
+	if (!gtk_widget_is_visible(cut_spectroscopy_dialog))
+		siril_open_dialog("cut_spectroscopy_dialog");
+}
+
+void on_cut_spectro_cancel_button_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("cut_spectroscopy_dialog");
+}
+
 void on_cut_coords_dialog_hide(GtkWindow *window, gpointer user_data) {
+	siril_open_dialog("cut_dialog");
+	g_signal_handlers_unblock_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
+}
+
+void on_cut_spectroscopy_dialog_hide(GtkWindow *window, gpointer user_data) {
 	siril_open_dialog("cut_dialog");
 	g_signal_handlers_unblock_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
 }
