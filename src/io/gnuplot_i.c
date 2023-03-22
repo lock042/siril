@@ -553,13 +553,19 @@ void gnuplot_plot_xy(
         return ;
     }
 
+    // Write Title
+    if (title != NULL)
+    {
+        fprintf(tmpfd, "%s\n", title) ;
+    }
+
     /* Write data to this file  */
     for (i=0 ; i<n; i++) {
         fprintf(tmpfd, "%.18e %.18e\n", x[i], y[i]) ;
     }
     fclose(tmpfd) ;
 
-    gnuplot_plot_xy_from_datfile(handle,tmpfname,title);
+    gnuplot_plot_xy_from_datfile(handle,tmpfname);
     return ;
 }
 
@@ -822,10 +828,10 @@ int gnuplot_write_xy_dat(
         return -1;
     }
 
-    // Write Comment.
+    // Write Title
     if (title != NULL)
     {
-        fprintf(fileHandle, "# %s\n", title) ;
+        fprintf(fileHandle, "%s\n", title) ;
     }
 
     /* Write data to this file  */
@@ -1008,12 +1014,11 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle)
     return tmp_filename;
 }
 
-void gnuplot_plot_xy_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title)
+void gnuplot_plot_xy_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
     char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
-    title                  = (title == NULL)      ? "(none)" : title;
-    gnuplot_cmd(handle, "%s \"%s\" using ($1):($2) title \"%s\" with %s",
-		   cmd, tmp_filename, title, handle->pstyle);
+    gnuplot_cmd(handle, "%s \"%s\" using ($1):($2) with %s title columnheader",
+		   cmd, tmp_filename, handle->pstyle);
     handle->nplots++ ;
     return ;
 }

@@ -124,22 +124,6 @@ double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
 	return val;
 }
 
-/*
-void calc_zero_and_spacing(double *zero, double *spectro_spacing) {
-	point wndelta = { (double) com.cut_wn2.x - com.cut_wn1.x , (double) com.cut_wn2.y - com.cut_wn1.y };
-	double wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
-	double wndiff = wavenumber2 - wavenumber1;
-	*spectro_spacing = wndiff / wndiff_dist;
-	wndelta.x = com.cut_wn1.x - com.cut_start.x;
-	wndelta.y = com.cut_wn1.y - com.cut_start.x;
-	wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y); // This is the absolute distance - fails if a marker
-	// is set outside the line segment
-	*zero = wavenumber1 - wndiff_dist * *spectro_spacing;
-	printf("zero %.3f spacing %.3f\n", *zero, *spectro_spacing);
-	return;
-}
-*/
-
 void calc_zero_and_spacing(double *zero, double *spectro_spacing) {
 	point wndelta = { (double) com.cut_wn2.x - com.cut_wn1.x , (double) com.cut_wn2.y - com.cut_wn1.y };
 	double wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
@@ -149,11 +133,8 @@ void calc_zero_and_spacing(double *zero, double *spectro_spacing) {
 	// To calculate the zero we will work from whichever of x or y has the biggest difference
 	double z2_z1 = wndelta.y > wndelta.x ? wndelta.y : wndelta.x;
 	double z1_z0 = wndelta.y > wndelta.x ? com.cut_wn1.y - com.cut_start.y : com.cut_wn1.x - com.cut_start.x;
-	double m_n = wndiff;
-	double n = wavenumber1;
-	double o = n - ( ( z1_z0 * m_n ) / z2_z1 );
-	*zero = o;
-	printf("zero %.3f spacing %.3f\n", *zero, *spectro_spacing);
+	*zero = wavenumber1 - ( ( z1_z0 * wndiff ) / z2_z1 );
+	// printf("zero %.3f spacing %.3f\n", *zero, *spectro_spacing);
 	return;
 }
 gpointer cut_profile(gpointer p) {
@@ -250,7 +231,7 @@ gpointer cut_profile(gpointer p) {
 			gnuplot_setstyle(gplot, "lines");
 			if (args->display_graph) {
 				if (gfit.naxes[2] == 1)
-					gnuplot_plot_xy_from_datfile(gplot, filename, "L");
+					gnuplot_plot_xy_from_datfile(gplot, filename);
 				else
 					gnuplot_plot_xrgb_from_datfile(gplot, filename);
 			} else {

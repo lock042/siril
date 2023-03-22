@@ -509,8 +509,7 @@ int gnuplot_write_multi_csv(
 
 void gnuplot_plot_xy_from_datfile(
 	gnuplot_ctrl * handle,
-	char const* tmp_filename,
-	char const* title);
+	char const* tmp_filename);
 
 void gnuplot_plot_xy_datfile_to_png(
 	gnuplot_ctrl * handle,
