@@ -368,10 +368,20 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_cut_wavenumber1_clicked(GtkButton *button, gpointer user_data) {
+	set_cursor("crosshair");
 	mouse_status = MOUSE_ACTION_CUT_WN1;
 }
 void on_cut_wavenumber2_clicked(GtkButton *button, gpointer user_data) {
+	set_cursor("crosshair");
 	mouse_status = MOUSE_ACTION_CUT_WN2;
+}
+
+void on_cut_spin_width_value_changed(GtkSpinButton *button, gpointer user_data) {
+	int n = (int) gtk_spin_button_get_value(button);
+	if (!(n % 2)) {
+		n++;
+		gtk_spin_button_set_value(button, n);
+	}
 }
 
 void on_cut_spectro_apply_button_clicked(GtkButton *button, gpointer user_data) {

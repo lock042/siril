@@ -623,6 +623,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			gtk_label_set_text(label_wn1_y, l1y);
 			g_free(l1x);
 			g_free(l1y);
+			set_cursor("default");
 			mouse_status = MOUSE_ACTION_NONE;
 		} else if (mouse_status == MOUSE_ACTION_CUT_WN2) {
 			com.cut_wn2.x = zoomed.x;
@@ -637,6 +638,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			gtk_label_set_text(label_wn2_y, l2y);
 			g_free(l2x);
 			g_free(l2y);
+			set_cursor("default");
 			mouse_status = MOUSE_ACTION_NONE;
 		}
 	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click

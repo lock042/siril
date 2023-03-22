@@ -8287,10 +8287,10 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
   </object>
   <object class="GtkAdjustment" id="cut_width_spin">
     <property name="lower">1</property>
-    <property name="upper">20</property>
+    <property name="upper">49</property>
     <property name="value">1</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">1</property>
+    <property name="step-increment">2</property>
+    <property name="page-increment">2</property>
   </object>
   <object class="GtkDialog" id="cut_spectroscopy_dialog">
     <property name="can-focus">False</property>
@@ -8364,6 +8364,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">Set the width of the cut. The median pixel value perpendicular to the cut will be used.</property>
                 <property name="adjustment">cut_width_spin</property>
+                <signal name="value-changed" handler="on_cut_spin_width_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">1</property>
