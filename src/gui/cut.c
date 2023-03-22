@@ -124,18 +124,38 @@ double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
 	return val;
 }
 
-void calc_zero_and_offset(double *zero, double *spectro_spacing) {
+/*
+void calc_zero_and_spacing(double *zero, double *spectro_spacing) {
 	point wndelta = { (double) com.cut_wn2.x - com.cut_wn1.x , (double) com.cut_wn2.y - com.cut_wn1.y };
 	double wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
 	double wndiff = wavenumber2 - wavenumber1;
 	*spectro_spacing = wndiff / wndiff_dist;
 	wndelta.x = com.cut_wn1.x - com.cut_start.x;
 	wndelta.y = com.cut_wn1.y - com.cut_start.x;
-	wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
+	wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y); // This is the absolute distance - fails if a marker
+	// is set outside the line segment
 	*zero = wavenumber1 - wndiff_dist * *spectro_spacing;
+	printf("zero %.3f spacing %.3f\n", *zero, *spectro_spacing);
 	return;
 }
+*/
 
+void calc_zero_and_spacing(double *zero, double *spectro_spacing) {
+	point wndelta = { (double) com.cut_wn2.x - com.cut_wn1.x , (double) com.cut_wn2.y - com.cut_wn1.y };
+	double wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
+	double wndiff = wavenumber2 - wavenumber1;
+	*spectro_spacing = wndiff / wndiff_dist;
+
+	// To calculate the zero we will work from whichever of x or y has the biggest difference
+	double z2_z1 = wndelta.y > wndelta.x ? wndelta.y : wndelta.x;
+	double z1_z0 = wndelta.y > wndelta.x ? com.cut_wn1.y - com.cut_start.y : com.cut_wn1.x - com.cut_start.x;
+	double m_n = wndiff;
+	double n = wavenumber1;
+	double o = n - ( ( z1_z0 * m_n ) / z2_z1 );
+	*zero = o;
+	printf("zero %.3f spacing %.3f\n", *zero, *spectro_spacing);
+	return;
+}
 gpointer cut_profile(gpointer p) {
 	cut_args *args = (cut_args *) p;
 	int retval = 0;
@@ -168,7 +188,7 @@ gpointer cut_profile(gpointer p) {
 	gboolean xscale = spectroscopy_selections_are_valid();
 	double zero = 0.0, spectro_spacing = 1.0;
 	if (xscale)
-		calc_zero_and_offset(&zero, &spectro_spacing);
+		calc_zero_and_spacing(&zero, &spectro_spacing);
 	for (int i = 0 ; i < nbr_points ; i++) {
 		if (xscale) {
 			x[i] = zero + i * spectro_spacing;
@@ -217,13 +237,15 @@ gpointer cut_profile(gpointer p) {
 		gnuplot_ctrl *gplot = gnuplot_init(TRUE);
 		if (gplot) {
 			/* Plotting cut profile */
-			gchar *title = g_strdup_printf(_("Data Cut Profile"));
-			gnuplot_set_title(gplot, title);
-			gchar *xlabel = NULL;
-			if (xscale)
+			gchar *xlabel = NULL, *title = NULL;
+			if (xscale) {
+				title = g_strdup_printf(_("Spectrogram"));
 				xlabel = g_strdup_printf(_("Wavenumber"));
-			else
+			} else {
+				title = g_strdup_printf(_("Data Cut Profile"));
 				xlabel = g_strdup_printf(_("Distance along cut"));
+			}
+			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (args->display_graph) {
@@ -274,19 +296,15 @@ static void update_spectro_coords() {
 //// GUI callbacks ////
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
-	GtkToggleButton* cut_mono = (GtkToggleButton*)lookup_widget("cut_radio_mono");
 	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
-	GtkToggleButton* cut_spectroscopy = (GtkToggleButton*)lookup_widget("cut_radio_spectroscopy");
 	cut_data.start.x = com.cut_start.x;
 	cut_data.finish.x = com.cut_point.x;
 	cut_data.start.y = gfit.ry - 1 - com.cut_start.y;
 	cut_data.finish.y = gfit.ry - 1 - com.cut_point.y;
-	if (gtk_toggle_button_get_active(cut_mono))
-		cut_data.mode = MONO;
-	else if (gtk_toggle_button_get_active(cut_color))
+	if (gtk_toggle_button_get_active(cut_color))
 		cut_data.mode = COLOR;
-	else if (gtk_toggle_button_get_active(cut_spectroscopy))
-		cut_data.mode = SPECTROSCOPY;
+	else
+		cut_data.mode = MONO;
 	cut_data.display_graph = TRUE;
 	start_in_new_thread(cut_profile, &cut_data);
 }

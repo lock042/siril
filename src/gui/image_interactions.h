@@ -36,8 +36,7 @@ typedef enum {
 
 typedef enum {
 	MONO,
-	COLOR,
-	SPECTROSCOPY
+	COLOR
 } cut_mode;
 
 typedef struct cut_args {
