@@ -330,6 +330,11 @@ void on_cut_spectroscopic_button_clicked(GtkButton* button, gpointer user_data) 
 
 }
 
+void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
+	GtkWidget* colorbutton = lookup_widget("cut_radio_color");
+	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
+}
+
 void on_cut_spectro_cancel_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("cut_spectroscopy_dialog");
 }
