@@ -9,13 +9,6 @@
 #include "io/gnuplot_i.h"
 #include "gui/image_display.h"
 
-typedef enum {
-	RIGHT,
-	LEFT,
-	UP,
-	DOWN
-} cut_direction;
-
 double wavenumber1 = 0.0, wavenumber2 = 0.0;
 int width = 1;
 
@@ -28,7 +21,7 @@ int sign(double x) {
 gboolean spectroscopy_selections_are_valid() {
 	gboolean a = (wavenumber1 != wavenumber2) && (wavenumber1 > 0.0) && (wavenumber2 > 0.0);
 	gboolean b = (com.cut_wn1.x >= 0) && (com.cut_wn1.y >= 0) && (com.cut_wn2.x >= 0) && (com.cut_wn2.y >= 0) && (com.cut_wn1.x < gfit.rx) && (com.cut_wn1.y < gfit.ry) && (com.cut_wn2.x < gfit.rx) && (com.cut_wn2.y < gfit.ry);
-	gboolean c = (!(com.cut_wn1.x == com.cut_wn2.x) && (com.cut_wn1.y == com.cut_wn2.y));
+	gboolean c = (!((com.cut_wn1.x == com.cut_wn2.x) && (com.cut_wn1.y == com.cut_wn2.y)));
 	return a && b && c;
 }
 
@@ -128,6 +121,18 @@ double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
 	return val;
 }
 
+void calc_zero_and_offset(double *zero, double *spectro_spacing) {
+	point wndelta = { (double) com.cut_wn2.x - com.cut_wn1.x , (double) com.cut_wn2.y - com.cut_wn1.y };
+	double wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
+	double wndiff = wavenumber2 - wavenumber1;
+	*spectro_spacing = wndiff / wndiff_dist;
+	wndelta.x = com.cut_wn1.x - com.cut_start.x;
+	wndelta.y = com.cut_wn1.y - com.cut_start.x;
+	wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
+	*zero = wavenumber1 - wndiff_dist * *spectro_spacing;
+	return;
+}
+
 gpointer cut_profile(gpointer p) {
 	cut_args *args = (cut_args *) p;
 	int retval = 0;
@@ -146,8 +151,6 @@ gpointer cut_profile(gpointer p) {
 		goto END;
 	}
 	int nbr_points = (int) length;
-	printf("sx: %d, sy: %d, fx: %d, fy:%d\n", args->start.x, args->start.y, args->finish.x, args->finish.y);
-	printf("dx: %d dy: %d len: %.3f\n", delta.x, delta.y, length);
 	double point_spacing = length / nbr_points;
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
@@ -159,10 +162,17 @@ gpointer cut_profile(gpointer p) {
 		b = malloc(nbr_points * sizeof(double));
 	}
 	x = malloc(nbr_points * sizeof(double));
+	gboolean xscale = spectroscopy_selections_are_valid();
+	double zero = 0.0, spectro_spacing = 1.0;
+	if (xscale)
+		calc_zero_and_offset(&zero, &spectro_spacing);
 	for (int i = 0 ; i < nbr_points ; i++) {
-		x[i] = i * point_spacing;
+		if (xscale) {
+			x[i] = zero + i * spectro_spacing;
+		} else {
+			x[i] = i * point_spacing;
+		}
 		if (hv) {
-			printf("width: %d\n", width);
 			// Horizontal / vertical, no interpolation
 			r[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 0, width, (int) point_spacing_x, (int) point_spacing_y);
 		} else {
@@ -206,7 +216,11 @@ gpointer cut_profile(gpointer p) {
 			/* Plotting cut profile */
 			gchar *title = g_strdup_printf(_("Data Cut Profile"));
 			gnuplot_set_title(gplot, title);
-			gchar *xlabel = g_strdup_printf(_("Distance along cut"));
+			gchar *xlabel = NULL;
+			if (xscale)
+				xlabel = g_strdup_printf(_("Wavenumber"));
+			else
+				xlabel = g_strdup_printf(_("Distance along cut"));
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (args->display_graph) {
