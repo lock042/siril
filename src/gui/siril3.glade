@@ -8196,10 +8196,11 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
           </packing>
         </child>
         <child>
-          <object class="GtkBox">
+          <!-- n-columns=2 n-rows=3 -->
+          <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="orientation">vertical</property>
+            <property name="column-homogeneous">True</property>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
@@ -8209,9 +8210,8 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
@@ -8225,9 +8225,8 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="draw-indicator">True</property>
               </object>
               <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -8237,57 +8236,44 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">Generates separate R, G and B profiles along the cut. Not applicable for mono images</property>
-                <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">cut_radio_mono</property>
               </object>
               <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
-              <object class="GtkBox">
+              <object class="GtkButton" id="cut_manual_coords_button">
+                <property name="label" translatable="yes">Manual coordinates</property>
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="homogeneous">True</property>
-                <child>
-                  <object class="GtkButton" id="cut_manual_coords_button">
-                    <property name="label" translatable="yes">Manual coordinates</property>
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">True</property>
-                    <property name="tooltip-text" translatable="yes">Enter coordinates for the start and end points of the cut line manually</property>
-                    <signal name="clicked" handler="on_cut_manual_coords_button_clicked" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="cut_spectroscopic_button">
-                    <property name="label" translatable="yes">Spectrometric data</property>
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">True</property>
-                    <property name="tooltip-text" translatable="yes">Enter data relating to cutting along a spectrum</property>
-                    <signal name="clicked" handler="on_cut_spectroscopic_button_clicked" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Enter coordinates for the start and end points of the cut line manually</property>
+                <signal name="clicked" handler="on_cut_manual_coords_button_clicked" swapped="no"/>
               </object>
               <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">4</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
               </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="cut_spectroscopic_button">
+                <property name="label" translatable="yes">Spectrometric data</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Enter data relating to cutting along a spectrum</property>
+                <signal name="clicked" handler="on_cut_spectroscopic_button_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
