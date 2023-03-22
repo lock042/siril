@@ -1,9 +1,12 @@
 #include <math.h>
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "gui/message_dialog.h"
 #include "gui/image_interactions.h"
 #include "gui/dialogs.h"
 #include "gui/utils.h"
+#include "gui/progress_and_log.h"
+#include "algos/PSF.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "io/gnuplot_i.h"
@@ -257,6 +260,17 @@ END:
 	return GINT_TO_POINTER(retval);
 }
 
+static void update_spectro_coords() {
+	GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
+	GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
+	GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
+	GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
+	gtk_spin_button_set_value(startx, com.cut_start.x);
+	gtk_spin_button_set_value(starty, com.cut_start.y);
+	gtk_spin_button_set_value(finishx, com.cut_point.x);
+	gtk_spin_button_set_value(finishy, com.cut_point.y);
+}
+
 //// GUI callbacks ////
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
@@ -299,8 +313,12 @@ void on_cut_manual_coords_button_clicked(GtkButton* button, gpointer user_data) 
 	match_adjustments_to_gfit();
 	g_signal_handlers_block_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
 	GtkWidget *cut_coords_dialog = lookup_widget("cut_coords_dialog");
+	if (com.cut_start.x != -1) // If there is a cut line already made, show the
+							   // endpoint coordinates in the dialog
+		update_spectro_coords();
 	if (!gtk_widget_is_visible(cut_coords_dialog))
 		siril_open_dialog("cut_coords_dialog");
+	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 }
 
 void on_cut_spectroscopic_button_clicked(GtkButton* button, gpointer user_data) {
@@ -322,6 +340,7 @@ void on_cut_coords_cancel_button_clicked(GtkButton *button, gpointer user_data) 
 
 void on_cut_coords_dialog_hide(GtkWindow *window, gpointer user_data) {
 	siril_open_dialog("cut_dialog");
+	mouse_status = MOUSE_ACTION_CUT_SELECT;
 	g_signal_handlers_unblock_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
 }
 
@@ -346,7 +365,6 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	com.cut_point.x = fx;
 	com.cut_point.y = fy;
 	redraw(REDRAW_OVERLAY);
-	siril_close_dialog("cut_coords_dialog");
 }
 
 void on_cut_wavenumber1_clicked(GtkButton *button, gpointer user_data) {
@@ -364,4 +382,58 @@ void on_cut_spectro_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	wavenumber2 = gtk_spin_button_get_value(cut_spin_wavenumber2);
 	width = (int) gtk_spin_button_get_value(cut_spin_width);
 	siril_close_dialog("cut_spectroscopy_dialog");
+}
+
+void on_start_select_from_star_clicked(GtkToolButton *button, gpointer user_data) {
+	psf_star *result = NULL;
+	int layer = 0; // Detect stars in layer 0 (mono or red) as this will always be present
+
+	if (com.selection.h && com.selection.w) {
+		set_cursor_waiting(TRUE);
+		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		if (result) {
+			com.cut_start.x = result->x0 + com.selection.x;
+			com.cut_start.y = com.selection.y + com.selection.h - result->y0;
+			GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
+			GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
+			gtk_spin_button_set_value(startx, com.cut_start.x);
+			gtk_spin_button_set_value(starty, com.cut_start.y);
+		} else {
+			siril_message_dialog(GTK_MESSAGE_ERROR,
+						_("No star detected"),
+						_("Siril cannot set the start coordinate as no star has been detected in the selection"));
+		}
+		free_psf(result);
+	} else {
+		siril_message_dialog(GTK_MESSAGE_ERROR,
+					_("No selection"),
+					_("Siril cannot set the start coordinate as no selection is made"));
+	}
+}
+
+void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) {
+	psf_star *result = NULL;
+	int layer = 0; // Detect stars in layer 0 (mono or red) as this will always be present
+
+	if (com.selection.h && com.selection.w) {
+		set_cursor_waiting(TRUE);
+		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		if (result) {
+			com.cut_point.x = result->x0 + com.selection.x;
+			com.cut_point.y = com.selection.y + com.selection.h - result->y0;
+			GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
+			GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
+			gtk_spin_button_set_value(finishx, com.cut_point.x);
+			gtk_spin_button_set_value(finishy, com.cut_point.y);
+		} else {
+			siril_message_dialog(GTK_MESSAGE_ERROR,
+						_("No star detected"),
+						_("Siril cannot set the start coordinate as no star has been detected in the selection"));
+		}
+		free_psf(result);
+	} else {
+		siril_message_dialog(GTK_MESSAGE_ERROR,
+					_("No selection"),
+					_("Siril cannot set the start coordinate as no selection is made"));
+	}
 }

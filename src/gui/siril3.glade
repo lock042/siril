@@ -1002,6 +1002,13 @@ artifacts may appear.</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_cut_ystart">
+    <property name="lower">-1</property>
+    <property name="upper">1</property>
+    <property name="value">-1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkDialog" id="cut_coords_dialog">
     <property name="can-focus">False</property>
     <property name="type-hint">dialog</property>
@@ -1018,7 +1025,7 @@ artifacts may appear.</property>
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="cut_coords_cancel_button">
-                <property name="label" translatable="yes">Cancel</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -1052,7 +1059,7 @@ artifacts may appear.</property>
           </packing>
         </child>
         <child>
-          <!-- n-columns=3 n-rows=3 -->
+          <!-- n-columns=4 n-rows=3 -->
           <object class="GtkGrid" id="cut_controls_manualcoords">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1086,7 +1093,7 @@ artifacts may appear.</property>
               <object class="GtkLabel" id="cut_finishlabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Finish</property>
+                <property name="label" translatable="yes">End</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
@@ -1153,6 +1160,59 @@ artifacts may appear.</property>
               </packing>
             </child>
             <child>
+              <object class="GtkToolbar">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="show-arrow">False</property>
+                <child>
+                  <object class="GtkToolButton" id="start_select_from_star">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Find a star in the current selection and set the start point to its location</property>
+                    <property name="label" translatable="yes">*</property>
+                    <property name="use-underline">True</property>
+                    <signal name="clicked" handler="on_start_select_from_star_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolbar">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="show-arrow">False</property>
+                <child>
+                  <object class="GtkToolButton" id="end_select_from_star">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Find a star in the current selection and set the end point to its location</property>
+                    <property name="label" translatable="yes">*</property>
+                    <property name="use-underline">True</property>
+                    <signal name="clicked" handler="on_end_select_from_star_clicked" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
               <placeholder/>
             </child>
           </object>
@@ -1164,13 +1224,6 @@ artifacts may appear.</property>
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkAdjustment" id="adj_cut_ystart">
-    <property name="lower">-1</property>
-    <property name="upper">1</property>
-    <property name="value">-1</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_diameter">
     <property name="lower">1</property>
@@ -8195,23 +8248,6 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               </packing>
             </child>
             <child>
-              <object class="GtkRadioButton" id="cut_radio_spectrometry">
-                <property name="label" translatable="yes">Spectrometry</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">For use with images made with a spectrograph or spectrographic filter</property>
-                <property name="active">True</property>
-                <property name="draw-indicator">True</property>
-                <property name="group">cut_radio_mono</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -8233,7 +8269,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 </child>
                 <child>
                   <object class="GtkButton" id="cut_spectroscopic_button">
-                    <property name="label" translatable="yes">Spectroscopic setup</property>
+                    <property name="label" translatable="yes">Spectrometric data</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
@@ -8286,7 +8322,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="cut_spectro_cancel_button">
-                <property name="label" translatable="yes">Cancel</property>
+                <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
