@@ -1039,7 +1039,16 @@ int process_makepsf(int nb) {
 	} else {
 		if (!g_strcmp0(arg, "save")) {
 			siril_log_message(_("Save PSF to file:\n"));
-			on_bdeconv_savekernel_clicked(NULL, NULL);
+			if (!word[2] || word[2][0] == '\0') {
+				on_bdeconv_savekernel_clicked(NULL, NULL);
+			} else {
+				if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".tif"))) {
+					siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\" or \".tif\"\n"), "red");
+					free(data);
+					return CMD_ARG_ERROR;
+				}
+				save_kernel(word[2]);
+			}
 			free(data);
 			return CMD_OK;
 		}
@@ -1353,6 +1362,7 @@ int process_makepsf(int nb) {
 
 int process_deconvolve(int nb, nonblind_t type) {
 	gboolean error = FALSE;
+	gboolean kernel_loaded = FALSE;
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
@@ -1364,7 +1374,16 @@ int process_deconvolve(int nb, nonblind_t type) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(arg, "-alpha=")) {
+		if (g_str_has_prefix(arg, "-loadpsf=")) {
+			arg += 9;
+			if (arg[0] != '\0' && load_kernel(arg)) {
+				siril_log_message(_("Error loading PSF.\n"));
+				free(data);
+				return CMD_FILE_NOT_FOUND;
+			}
+			kernel_loaded = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-alpha=")) {
 			arg += 7;
 			float alpha = (float) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
@@ -1436,13 +1455,16 @@ int process_deconvolve(int nb, nonblind_t type) {
 		return CMD_ARG_ERROR;
 	}
 	// Guess the user's intentions for a kernel:
-	// Order of preference is: if com.stars is populated, assume the user wants to make
-	// PSF from stars. If not, if com.kernel is already populated then use it. If not,
+	// Order of preference is: if a PSF has specifically been loaded, use that, else
+	// if com.stars is populated, assume the user wants to make a PSF from stars and
+	// use that. If not, if com.kernel is already populated then use it. Otherwise,
 	// do a blind deconvolution using the default parameters (and default l0 method).
 	// A manual PSF, if required, must be created using the makepsf command and then rl
 	// will detect it as an existing kernel and use it.
 
-	if (com.stars && com.stars[0])
+	if (kernel_loaded)
+		data->psftype = PSF_PREVIOUS; // use loaded (existing) kernel
+	else if (com.stars && com.stars[0])
 		data->psftype = PSF_STARS; // PSF from stars
 	else if (com.kernel && (com.kernelsize != 0))
 		data->psftype = PSF_PREVIOUS; // use existing kernel
@@ -1461,6 +1483,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 	gboolean error = FALSE;
+	gboolean kernel_loaded = FALSE;
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
@@ -1472,7 +1495,16 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(arg, "-alpha=")) {
+		if (g_str_has_prefix(arg, "-loadpsf=")) {
+			arg += 9;
+			if (arg[0] != '\0' && load_kernel(arg)) {
+				siril_log_message(_("Error loading PSF.\n"));
+				free(data);
+				return CMD_FILE_NOT_FOUND;
+			}
+			kernel_loaded = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-alpha=")) {
 			arg += 7;
 			float alpha = (float) g_ascii_strtod(arg, &end);
 			if (arg == end) error = TRUE;
@@ -1554,13 +1586,11 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 		return CMD_ARG_ERROR;
 	}
 	// Guess the user's intentions for a kernel:
-	// Order of preference is: if com.stars is populated, assume the user wants to make
-	// PSF from stars. If not, if com.kernel is already populated then use it. If not,
-	// do a blind deconvolution using the default parameters (and default l0 method).
-	// A manual PSF, if required, must be created using the makepsf command and then rl
-	// will detect it as an existing kernel and use it.
+	// Order of preference is the same as process_deconvolve() above.
 
-	if (com.stars && com.stars[0])
+	if (kernel_loaded)
+		data->psftype = PSF_PREVIOUS; // use loaded (existing) kernel
+	else if (com.stars && com.stars[0])
 		data->psftype = PSF_STARS; // PSF from stars
 	else if (com.kernel && (com.kernelsize != 0))
 		data->psftype = PSF_PREVIOUS; // use existing kernel

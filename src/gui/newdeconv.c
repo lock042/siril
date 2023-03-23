@@ -630,13 +630,18 @@ int save_kernel(gchar* filename) {
 		siril_log_color_message(_("Error preparing PSF for save.\n"), "red");
 		return retval;
 	}
+
+	if (g_str_has_suffix(filename, ".fit") || g_str_has_suffix(filename, ".fits")) {
+		retval = savefits(filename, save_fit);
+	} else {
 #ifdef HAVE_LIBTIFF
-	retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution PSF", NULL, FALSE, FALSE, TRUE);
+		retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution PSF", NULL, FALSE, FALSE, TRUE);
 #else
-	// This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
-	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving PSF in FITS format.\n"), "salmon");
-	retval = savefits(filename, save_fit);
+		// This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
+		siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving PSF in FITS format.\n"), "salmon");
+		retval = savefits(filename, save_fit);
 #endif
+	}
 	clearfits(save_fit); // also frees copy_kernel
 	free(save_fit);
 	return retval;
