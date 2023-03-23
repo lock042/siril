@@ -8146,7 +8146,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
   </object>
   <object class="GtkDialog" id="cut_dialog">
     <property name="can-focus">False</property>
-    <property name="title" translatable="yes">Cut</property>
+    <property name="title" translatable="yes">Profile</property>
     <property name="window-position">center</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
@@ -8207,7 +8207,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="label" translatable="yes">&lt;b&gt;Type of Cut&lt;/b&gt;</property>
+                <property name="label" translatable="yes">&lt;b&gt;Type of Profile&lt;/b&gt;</property>
                 <property name="use-markup">True</property>
               </object>
               <packing>
@@ -8221,7 +8221,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Generates a single luminance profile along the cut</property>
+                <property name="tooltip-text" translatable="yes">Generates a single luminance profile along the profile line</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
               </object>
@@ -8236,7 +8236,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Generates separate R, G and B profiles along the cut. Not applicable for mono images</property>
+                <property name="tooltip-text" translatable="yes">Generates separate R, G and B profiles along the profile line. Not applicable for mono images</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">cut_radio_mono</property>
               </object>
@@ -8251,7 +8251,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Enter coordinates for the start and end points of the cut line manually</property>
+                <property name="tooltip-text" translatable="yes">Enter coordinates for the start and end points of the profile manually</property>
                 <signal name="clicked" handler="on_cut_manual_coords_button_clicked" swapped="no"/>
               </object>
               <packing>
@@ -8265,7 +8265,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Enter data relating to cutting along a spectrum</property>
+                <property name="tooltip-text" translatable="yes">Enter data relating to profiling along a spectrum</property>
                 <signal name="clicked" handler="on_cut_spectroscopic_button_clicked" swapped="no"/>
               </object>
               <packing>
@@ -8274,7 +8274,19 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkCheckButton" id="cut_measure_profile">
+                <property name="label" translatable="yes">Measure profile</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">If checked, the length of drawn profile lines will be written to the log, in arcsec if sufficient metadata is available and otherwise in pixels.</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_cut_measure_profile_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
             </child>
           </object>
           <packing>
@@ -8352,7 +8364,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Cut width (px)</property>
+                <property name="label" translatable="yes">Profile width (px)</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
@@ -8378,7 +8390,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Pick a point on the cut line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the cut line and are reset if the cut line is moved.</property>
+                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
                 <signal name="clicked" handler="on_cut_wavenumber1_clicked" swapped="no"/>
               </object>
               <packing>
@@ -8392,7 +8404,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Pick a point on the cut line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the cut line and are reset if the cut line is moved.</property>
+                <property name="tooltip-text" translatable="yes">Pick a point on the profile line corresponding to a known wavenumber. Typically this would be a known spectral line or, for true spectrograph images, the start or central wavenumber. Note: these points snap to the profile line and are reset if the profile line is moved.</property>
                 <signal name="clicked" handler="on_cut_wavenumber2_clicked" swapped="no"/>
               </object>
               <packing>
@@ -8492,6 +8504,7 @@ Frobenius norm of the Hessian uses a second order regularization term. It is mor
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">The wavenumber is the spatial frequency 1 / λ</property>
                 <property name="label" translatable="yes">wavenumber</property>
               </object>
               <packing>

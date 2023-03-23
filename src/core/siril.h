@@ -611,6 +611,7 @@ struct cominf {
 	pointi cut_point;			// point dragged while selecting the cut line
 	pointi cut_wn1;				// point for wavenumber 1 for spectroscopic cut
 	pointi cut_wn2;				// point for wavenumber 2 for spectroscopic cut
+	gboolean cut_measure;		// Whether or not to measure cuts
 
 	psf_star **stars;		// list of stars detected in the current image
 	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it

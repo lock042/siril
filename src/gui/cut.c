@@ -451,3 +451,7 @@ void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) 
 					_("Siril cannot set the start coordinate as no selection is made"));
 	}
 }
+
+void on_cut_measure_profile_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.cut_measure = gtk_toggle_button_get_active(button);
+}
