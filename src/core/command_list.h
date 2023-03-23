@@ -101,9 +101,9 @@ static command commands[] = {
 	{"makepsf", 1, "makepsf clear\n"
 				"makepsf load filename\n"
 				"makepsf save [filename]\n"
-				"makepsf blind [-l0] [-si] [-multiscale] [-lambda=] [-comp=] [-ks=]\n"
-				"makepsf stars [-sym] [-ks=]\n"
-				"makepsf manual { -gaussian | -moffat | -disc | -airy } [-fwhm=] [-angle=] [-ratio=] [-beta=] [-dia=] [-fl=] [-wl=] [-pixelsize=] [-obstruct=] [-ks=]", process_makepsf, STR_MAKEPSF, TRUE, REQ_CMD_NONE},
+				"makepsf blind [-l0] [-si] [-multiscale] [-lambda=] [-comp=] [-ks=] [-savepsf=]\n"
+				"makepsf stars [-sym] [-ks=] [-savepsf=]\n"
+				"makepsf manual { -gaussian | -moffat | -disc | -airy } [-fwhm=] [-angle=] [-ratio=] [-beta=] [-dia=] [-fl=] [-wl=] [-pixelsize=] [-obstruct=] [-ks=] [-savepsf=]", process_makepsf, STR_MAKEPSF, TRUE, REQ_CMD_NONE},
 	{"merge", 3, "merge sequence1 sequence2 [sequence3 ...] output_sequence", process_merge, STR_MERGE, TRUE, REQ_CMD_NONE},
 	{"merge_cfa", 5, "merge_cfa file_CFA0 file_CFA1 file_CFA2 file_CFA3 bayerpattern", process_rebayer, STR_REBAYER, TRUE, REQ_CMD_NONE},
 	{"mirrorx", 0, "mirrorx [-bottomup]", process_mirrorx, STR_MIRRORX, TRUE, REQ_CMD_SINGLE_IMAGE},

@@ -417,15 +417,14 @@ gpointer do_starnet(gpointer p) {
 		imagenoextorig = g_strdup_printf("image");
 	}
 	imagenoext = g_strdup(imagenoextorig);
-	// for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
-    //     *q = *c == ' ' ? '_' : *c;
-	// if (g_strcmp0(imagenoext, imagenoextorig) && verbose)
-	// 	siril_log_color_message(_("StarNet: spaces detected in filename. StarNet can't handle these so they have been replaced by underscores.\n"), "salmon");
 	starlessnoext = g_strdup_printf("%s%s", starlessprefix, imagenoext);
 	starmasknoext = g_strdup_printf("%s%s", starmaskprefix, imagenoext);
 	imagenoext = g_strdup_printf("%s%s", starnetprefix, imagenoext);
-	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
-	imagenoext = remove_ext_from_filename(imagenoext);
+	temp = g_build_filename(com.wd, imagenoext, NULL);
+	g_free(imagenoext);
+	imagenoext = remove_ext_from_filename(temp);
+	g_free(temp);
+	temp = NULL;
 	temptif = g_strdup_printf("%s.tif", imagenoext);
 	if (strlen(temptif) > pathmax) {
 		retval = 1;

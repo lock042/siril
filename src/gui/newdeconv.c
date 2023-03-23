@@ -650,12 +650,11 @@ int save_kernel(gchar* filename) {
 void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	// Only allocate as much space for filenames as required - we determine the max pathlength
 	long pathmax = get_pathmax();
-	gchar filename[pathmax];
-	char *imagenoext;
-	char *imagenoextorig;
+	gchar *filename = NULL;
+	gchar *imagenoext = NULL;
+	gchar *imagenoextorig = NULL;
+	gchar *temp = NULL;
 	gchar kernelsuffix[10] = "_PSF";
-	// Initialise the filename strings as empty strings
-	memset(filename, 0, sizeof(filename));
 	// Set up paths and filenames
 	if (single_image_is_loaded())
 		imagenoextorig = g_path_get_basename(com.uniq->filename);
@@ -664,23 +663,25 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	else
 		imagenoextorig = g_strdup_printf("deconvolution");
 	imagenoext = g_strdup(imagenoextorig);
-	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
-        *q = *c == ' ' ? '_' : *c;
-	if (g_strcmp0(imagenoext, imagenoextorig))
-		siril_log_color_message(_("Deconvolution: spaces detected in filename. These have been replaced by underscores.\n"), "salmon");
 	g_free(imagenoextorig);
 	imagenoext = g_strdup_printf("%s_%s", build_timestamp_filename(), imagenoext);
-	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
-	imagenoext = remove_ext_from_filename(imagenoext);
-	strncat(filename, imagenoext, sizeof(filename) - strlen(imagenoext));
-	strncat(filename, kernelsuffix, 10);
-#ifdef HAVE_LIBTIFF
-	strncat(filename, ".tif", 5);
-#else
-	strncat(filename, ".fit", 5);
-#endif
-	save_kernel(filename);
+	temp = g_build_filename(com.wd, imagenoext, NULL);
 	g_free(imagenoext);
+	imagenoext = remove_ext_from_filename(temp);
+	g_free(temp);
+	temp = g_strdup_printf("%s%s", imagenoext, kernelsuffix);
+#ifdef HAVE_LIBTIFF
+	filename = g_strdup_printf("%s.tif", temp);
+#else
+	filename = g_strdup_printf("%s.fit", temp);
+#endif
+	if (strlen(filename) > pathmax) {
+		siril_log_color_message(_("Error: file path too long!\n"), "red");
+	} else {
+		save_kernel(filename);
+	}
+	g_free(imagenoext);
+	g_free(temp);
 	return;
 }
 
