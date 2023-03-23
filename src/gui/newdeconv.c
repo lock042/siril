@@ -487,8 +487,8 @@ static void calculate_parameters() {
 	if (com.stars && com.stars[0]) {
 		int i = 0;
 		double FWHMx = 0.0, FWHMy = 0.0, beta = 0.0, angle = 0.0;
-		gboolean unit_is_arcsec;
-		int n = 0, layer;
+		gboolean unit_is_arcsec = FALSE;
+		int n = 0, layer = 0;
 		starprofile profiletype = PSF_GAUSSIAN;
 		while (com.stars[i]) {
 			double fwhmx, fwhmy;
