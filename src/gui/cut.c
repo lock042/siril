@@ -1,3 +1,23 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
+ * Reference site is https://free-astro.org/index.php/Siril
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <math.h>
 #include "core/siril.h"
 #include "core/siril_log.h"
@@ -20,6 +40,34 @@ cut_args cut_data = { 0 };
 int sign(double x) {
 	return x < 0. ? -1 : x > 0. ? 1 : 0;
 }
+
+void measure_line() {
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	point delta = { com.cut_point.x - com.cut_start.x, com.cut_point.y - com.cut_start.y };
+	double pixdist = sqrt(delta.x * delta.x + delta.y * delta.y);
+	gboolean unit_is_as = (gfit.focal_length > 0.0) && (gfit.pixel_size_x > 0.0) && (gfit.pixel_size_y == gfit.pixel_size_x);
+	if (unit_is_as) {
+		double bin_X = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
+		double conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) gfit.pixel_size_x / gfit.focal_length) * bin_X;
+		double asdist = pixdist * conversionfactor;
+		if (asdist < 60.0) {
+			siril_log_message(_("Length of profile: %.1f\"\n"), asdist);
+		} else {
+			int min = (int) asdist / 60;
+			double sec = asdist - (min * 60);
+			if (asdist < 3600) {
+				siril_log_message(_("Length of profile: %d\' %.1f\"\n"), min, sec);
+			} else {
+				int deg = (int) asdist / 3600;
+				min -= (deg * 60);
+				siril_log_message(_("Length of profile: %dº %d\' %.0f\"\n"), deg, min, sec);
+			}
+		}
+	} else {
+		siril_log_message(_("Length of profile: %.1f px\n"), pixdist);
+	}
+}
+
 
 gboolean spectroscopy_selections_are_valid() {
 	gboolean a = (wavenumber1 != wavenumber2) && (wavenumber1 > 0.0) && (wavenumber2 > 0.0);
@@ -454,4 +502,8 @@ void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) 
 
 void on_cut_measure_profile_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.cut_measure = gtk_toggle_button_get_active(button);
+}
+
+void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data) {
+	measure_line();
 }

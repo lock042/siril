@@ -23,7 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/command.h"
-#include "core/siril_log.h"
+#include "gui/cut.h"
 #include "core/processing.h"
 #include "core/undo.h"
 #include "core/siril_world_cs.h"
@@ -608,31 +608,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 			// If the measurement checkbox is checked, print the measurement to the log
 			if (com.cut_measure) {
-				control_window_switch_to_tab(OUTPUT_LOGS);
-				point delta = { com.cut_point.x - com.cut_start.x, com.cut_point.y - com.cut_start.y };
-				double pixdist = sqrt(delta.x * delta.x + delta.y * delta.y);
-				gboolean unit_is_as = (gfit.focal_length > 0.0) && (gfit.pixel_size_x > 0.0) && (gfit.pixel_size_y == gfit.pixel_size_x);
-				if (unit_is_as) {
-					double bin_X = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
-					double conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) gfit.pixel_size_x / gfit.focal_length) * bin_X;
-					double asdist = pixdist * conversionfactor;
-					if (asdist < 60.0) {
-						siril_log_message(_("Length of profile: %.1f\"\n"), asdist);
-					} else {
-						int min = (int) asdist / 60;
-						double sec = asdist - (min * 60);
-						if (asdist < 3600) {
-							siril_log_message(_("Length of profile: %d\' %.1f\"\n"), min, sec);
-						} else {
-							int deg = (int) asdist / 3600;
-							min -= (deg * 60);
-							siril_log_message(_("Length of profile: %dº %d\' %.0f\"\n"), deg, min, sec);
-						}
-					}
-				} else {
-					siril_log_message(_("Length of profile: %.1f px\n"), pixdist);
-				}
-
+				measure_line();
 			}
 			gui.cutting = CUT_NOT_CUTTING;
 			redraw(REDRAW_OVERLAY);
