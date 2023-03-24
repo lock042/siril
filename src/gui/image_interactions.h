@@ -31,7 +31,7 @@ typedef enum {
 	MOUSE_ACTION_PHOTOMETRY,
 	MOUSE_ACTION_CUT_SELECT,
 	MOUSE_ACTION_CUT_WN1,
-	MOUSE_ACTION_CUT_WN2
+	MOUSE_ACTION_CUT_WN2,
 } mouse_status_enum;
 
 typedef enum {

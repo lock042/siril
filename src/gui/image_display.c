@@ -714,7 +714,7 @@ static void draw_selection(const draw_data_t* dd) {
 static void draw_cut_line(const draw_data_t* dd) {
 //	if (!(mouse_status == MOUSE_ACTION_CUT_SELECT))
 //		return;
-	if (com.cut_point.x == -1 || com.cut_point.y == -1)
+	if (com.cut.cut_end.x == -1 || com.cut.cut_end.y == -1)
 		return;
 	cairo_t *cr = dd->cr;
 	static double dash_format[] = { 4.0, 2.0 };
@@ -722,8 +722,23 @@ static void draw_cut_line(const draw_data_t* dd) {
 	cairo_set_dash(cr, dash_format, 2, 0);
 	cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
 	cairo_save(cr);
-	cairo_move_to(cr, com.cut_start.x, com.cut_start.y);
-	cairo_line_to(cr, com.cut_point.x, com.cut_point.y);
+	cairo_move_to(cr, com.cut.cut_start.x, com.cut.cut_start.y);
+	cairo_line_to(cr, com.cut.cut_end.x, com.cut.cut_end.y);
+	cairo_stroke(cr);
+	cairo_restore(cr);
+}
+
+static void draw_measurement_line(const draw_data_t* dd) {
+	if (gui.measure_start.x == -1)
+		return;
+	cairo_t *cr = dd->cr;
+	static double dash_format[] = { 4.0, 2.0 };
+	cairo_set_line_width(cr, 1.5 / dd->zoom);
+	cairo_set_dash(cr, dash_format, 2, 0);
+	cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
+	cairo_save(cr);
+	cairo_move_to(cr, gui.measure_start.x, gui.measure_start.y);
+	cairo_line_to(cr, gui.measure_end.x, gui.measure_end.y);
 	cairo_stroke(cr);
 	cairo_restore(cr);
 }
@@ -1656,6 +1671,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 	/* cut line */
 	draw_cut_line(&dd);
+
+	/* draw measurement line */
+	draw_measurement_line(&dd);
 
 	/* detected stars and highlight the selected star */
 	g_mutex_lock(&com.mutex);

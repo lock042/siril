@@ -41,9 +41,9 @@ int sign(double x) {
 	return x < 0. ? -1 : x > 0. ? 1 : 0;
 }
 
-void measure_line() {
+void measure_line(pointi start, pointi finish) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	point delta = { com.cut_point.x - com.cut_start.x, com.cut_point.y - com.cut_start.y };
+	point delta = { finish.x - start.x, finish.y - start.y };
 	double pixdist = sqrt(delta.x * delta.x + delta.y * delta.y);
 	gboolean unit_is_as = (gfit.focal_length > 0.0) && (gfit.pixel_size_x > 0.0) && (gfit.pixel_size_y == gfit.pixel_size_x);
 	if (unit_is_as) {
@@ -51,28 +51,28 @@ void measure_line() {
 		double conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) gfit.pixel_size_x / gfit.focal_length) * bin_X;
 		double asdist = pixdist * conversionfactor;
 		if (asdist < 60.0) {
-			siril_log_message(_("Length of profile: %.1f\"\n"), asdist);
+			siril_log_message(_("Measurement: %.1f\"\n"), asdist);
 		} else {
 			int min = (int) asdist / 60;
 			double sec = asdist - (min * 60);
 			if (asdist < 3600) {
-				siril_log_message(_("Length of profile: %d\' %.1f\"\n"), min, sec);
+				siril_log_message(_("Measurement: %d\' %.1f\"\n"), min, sec);
 			} else {
 				int deg = (int) asdist / 3600;
 				min -= (deg * 60);
-				siril_log_message(_("Length of profile: %dº %d\' %.0f\"\n"), deg, min, sec);
+				siril_log_message(_("Measurement: %dº %d\' %.0f\"\n"), deg, min, sec);
 			}
 		}
 	} else {
-		siril_log_message(_("Length of profile: %.1f px\n"), pixdist);
+		siril_log_message(_("Measurement: %.1f px\n"), pixdist);
 	}
 }
 
 
 gboolean spectroscopy_selections_are_valid() {
 	gboolean a = (wavenumber1 != wavenumber2) && (wavenumber1 > 0.0) && (wavenumber2 > 0.0);
-	gboolean b = (com.cut_wn1.x >= 0) && (com.cut_wn1.y >= 0) && (com.cut_wn2.x >= 0) && (com.cut_wn2.y >= 0) && (com.cut_wn1.x < gfit.rx) && (com.cut_wn1.y < gfit.ry) && (com.cut_wn2.x < gfit.rx) && (com.cut_wn2.y < gfit.ry);
-	gboolean c = (!((com.cut_wn1.x == com.cut_wn2.x) && (com.cut_wn1.y == com.cut_wn2.y)));
+	gboolean b = (com.cut.cut_wn1.x >= 0) && (com.cut.cut_wn1.y >= 0) && (com.cut.cut_wn2.x >= 0) && (com.cut.cut_wn2.y >= 0) && (com.cut.cut_wn1.x < gfit.rx) && (com.cut.cut_wn1.y < gfit.ry) && (com.cut.cut_wn2.x < gfit.rx) && (com.cut.cut_wn2.y < gfit.ry);
+	gboolean c = (!((com.cut.cut_wn1.x == com.cut.cut_wn2.x) && (com.cut.cut_wn1.y == com.cut.cut_wn2.y)));
 	return a && b && c;
 }
 
@@ -173,14 +173,14 @@ double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
 }
 
 void calc_zero_and_spacing(double *zero, double *spectro_spacing) {
-	point wndelta = { (double) com.cut_wn2.x - com.cut_wn1.x , (double) com.cut_wn2.y - com.cut_wn1.y };
+	point wndelta = { (double) com.cut.cut_wn2.x - com.cut.cut_wn1.x , (double) com.cut.cut_wn2.y - com.cut.cut_wn1.y };
 	double wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
 	double wndiff = wavenumber2 - wavenumber1;
 	*spectro_spacing = wndiff / wndiff_dist;
 
 	// To calculate the zero we will work from whichever of x or y has the biggest difference
 	double z2_z1 = wndelta.y > wndelta.x ? wndelta.y : wndelta.x;
-	double z1_z0 = wndelta.y > wndelta.x ? com.cut_wn1.y - com.cut_start.y : com.cut_wn1.x - com.cut_start.x;
+	double z1_z0 = wndelta.y > wndelta.x ? com.cut.cut_wn1.y - com.cut.cut_start.y : com.cut.cut_wn1.x - com.cut.cut_start.x;
 	*zero = wavenumber1 - ( ( z1_z0 * wndiff ) / z2_z1 );
 	// printf("zero %.3f spacing %.3f\n", *zero, *spectro_spacing);
 	return;
@@ -316,20 +316,20 @@ static void update_spectro_coords() {
 	GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
 	GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
 	GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
-	gtk_spin_button_set_value(startx, com.cut_start.x);
-	gtk_spin_button_set_value(starty, com.cut_start.y);
-	gtk_spin_button_set_value(finishx, com.cut_point.x);
-	gtk_spin_button_set_value(finishy, com.cut_point.y);
+	gtk_spin_button_set_value(startx, com.cut.cut_start.x);
+	gtk_spin_button_set_value(starty, com.cut.cut_start.y);
+	gtk_spin_button_set_value(finishx, com.cut.cut_end.x);
+	gtk_spin_button_set_value(finishy, com.cut.cut_end.y);
 }
 
 //// GUI callbacks ////
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
-	cut_data.start.x = com.cut_start.x;
-	cut_data.finish.x = com.cut_point.x;
-	cut_data.start.y = gfit.ry - 1 - com.cut_start.y;
-	cut_data.finish.y = gfit.ry - 1 - com.cut_point.y;
+	cut_data.start.x = com.cut.cut_start.x;
+	cut_data.finish.x = com.cut.cut_end.x;
+	cut_data.start.y = gfit.ry - 1 - com.cut.cut_start.y;
+	cut_data.finish.y = gfit.ry - 1 - com.cut.cut_end.y;
 	if (gtk_toggle_button_get_active(cut_color))
 		cut_data.mode = COLOR;
 	else
@@ -360,7 +360,7 @@ void on_cut_manual_coords_button_clicked(GtkButton* button, gpointer user_data) 
 	match_adjustments_to_gfit();
 	g_signal_handlers_block_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
 	GtkWidget *cut_coords_dialog = lookup_widget("cut_coords_dialog");
-	if (com.cut_start.x != -1) // If there is a cut line already made, show the
+	if (com.cut.cut_start.x != -1) // If there is a cut line already made, show the
 							   // endpoint coordinates in the dialog
 		update_spectro_coords();
 	if (!gtk_widget_is_visible(cut_coords_dialog))
@@ -412,10 +412,10 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	int fx = (int) gtk_spin_button_get_value(finishx);
 	int fy = (int) gtk_spin_button_get_value(finishy);
 	siril_debug_print("start (%d, %d) finish (%d, %d)\n", sx, sy, fx, fy);
-	com.cut_start.x = sx;
-	com.cut_start.y = sy;
-	com.cut_point.x = fx;
-	com.cut_point.y = fy;
+	com.cut.cut_start.x = sx;
+	com.cut.cut_start.y = sy;
+	com.cut.cut_end.x = fx;
+	com.cut.cut_end.y = fy;
 	redraw(REDRAW_OVERLAY);
 }
 
@@ -454,12 +454,12 @@ void on_start_select_from_star_clicked(GtkToolButton *button, gpointer user_data
 		set_cursor_waiting(TRUE);
 		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
 		if (result) {
-			com.cut_start.x = result->x0 + com.selection.x;
-			com.cut_start.y = com.selection.y + com.selection.h - result->y0;
+			com.cut.cut_start.x = result->x0 + com.selection.x;
+			com.cut.cut_start.y = com.selection.y + com.selection.h - result->y0;
 			GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
 			GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
-			gtk_spin_button_set_value(startx, com.cut_start.x);
-			gtk_spin_button_set_value(starty, com.cut_start.y);
+			gtk_spin_button_set_value(startx, com.cut.cut_start.x);
+			gtk_spin_button_set_value(starty, com.cut.cut_start.y);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("No star detected"),
@@ -481,12 +481,12 @@ void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) 
 		set_cursor_waiting(TRUE);
 		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
 		if (result) {
-			com.cut_point.x = result->x0 + com.selection.x;
-			com.cut_point.y = com.selection.y + com.selection.h - result->y0;
+			com.cut.cut_end.x = result->x0 + com.selection.x;
+			com.cut.cut_end.y = com.selection.y + com.selection.h - result->y0;
 			GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
 			GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
-			gtk_spin_button_set_value(finishx, com.cut_point.x);
-			gtk_spin_button_set_value(finishy, com.cut_point.y);
+			gtk_spin_button_set_value(finishx, com.cut.cut_end.x);
+			gtk_spin_button_set_value(finishy, com.cut.cut_end.y);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("No star detected"),
@@ -501,9 +501,9 @@ void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) 
 }
 
 void on_cut_measure_profile_toggled(GtkToggleButton *button, gpointer user_data) {
-	com.cut_measure = gtk_toggle_button_get_active(button);
+	com.cut.cut_measure = gtk_toggle_button_get_active(button);
 }
 
 void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data) {
-	measure_line();
+	measure_line(com.cut.cut_start, com.cut.cut_end);
 }

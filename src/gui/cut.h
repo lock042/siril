@@ -21,6 +21,6 @@
 #ifndef SRC_GUI_CUT_H_
 #define SRC_GUI_CUT_H_
 
-void measure_line();
+void measure_line(pointi start, pointi finish);
 
 #endif

@@ -362,8 +362,16 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			}
 		}
 
+		/* if Alt is pressed, prepare to measure */
+		else if (event->button == GDK_BUTTON_PRIMARY && (event->state & GDK_MOD1_MASK)) {
+			gui.measure_start.x = zoomed.x;
+			gui.measure_start.y = zoomed.y;
+			gui.measure_end.x = zoomed.x;
+			gui.measure_end.y = zoomed.y;
+		}
+
 		/* else, click on gray image */
-		if (event->button == GDK_BUTTON_PRIMARY) {	// left click
+		else if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 			point pt;
 			int radius, s;
 			gboolean right, left, bottom, top;
@@ -458,22 +466,22 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				case MOUSE_ACTION_CUT_SELECT:
 					// Reset the cut line before setting new coords in order to avoid
 					// drawing artefacts
-					com.cut_start.x = -1;
-					com.cut_start.y = -1;
-					com.cut_point.x = -1;
-					com.cut_point.y = -1;
+					com.cut.cut_start.x = -1;
+					com.cut.cut_start.y = -1;
+					com.cut.cut_end.x = -1;
+					com.cut.cut_end.y = -1;
 					if (event->state & GDK_SHIFT_MASK) {
 						gui.cutting = CUT_VERT_OR_HORIZ;
 					} else {
 						gui.cutting = CUT_UNCONSTRAINED;
 					}
-					com.cut_start.x = zoomed.x;
-					com.cut_start.y = zoomed.y;
+					com.cut.cut_start.x = zoomed.x;
+					com.cut.cut_start.y = zoomed.y;
 					// This is a new cut line so reset any spectroscopic wavenumber points
-					com.cut_wn1.x = -1;
-					com.cut_wn1.y = -1;
-					com.cut_wn2.x = -1;
-					com.cut_wn2.y = -1;
+					com.cut.cut_wn1.x = -1;
+					com.cut.cut_wn1.y = -1;
+					com.cut.cut_wn2.x = -1;
+					com.cut.cut_wn2.y = -1;
 					GtkLabel* label_wn1_x = (GtkLabel*) lookup_widget("label_wn1_x");
 					GtkLabel* label_wn1_y = (GtkLabel*) lookup_widget("label_wn1_y");
 					GtkLabel* label_wn2_x = (GtkLabel*) lookup_widget("label_wn2_x");
@@ -488,10 +496,10 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			}
 		} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
 			// Reset the cut line if one has been drawn
-			com.cut_start.x = -1;
-			com.cut_start.y = -1;
-			com.cut_point.x = -1;
-			com.cut_point.y = -1;
+			com.cut.cut_start.x = -1;
+			com.cut.cut_start.y = -1;
+			com.cut.cut_end.x = -1;
+			com.cut.cut_end.y = -1;
 			if (mouse_status == MOUSE_ACTION_DRAW_SAMPLES) {
 				point pt;
 				int radius = (int) (25 / 2);
@@ -532,7 +540,19 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 	// same as evpos but rounded to integer and clamped to image bounds
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
 	gboolean inside = clamp2image(&zoomed);
-	if (event->button == GDK_BUTTON_PRIMARY) {	// left click
+
+	/* if Alt is pressed, carry out the measurement */
+	if (event->button == GDK_BUTTON_PRIMARY && gui.measure_start.x != -1) {
+		gui.measure_end.x = zoomed.x;
+		gui.measure_end.y = zoomed.y;
+		measure_line(gui.measure_start, gui.measure_end);
+		gui.measure_start.x = -1;
+		gui.measure_start.y = -1;
+		gui.measure_end.x = -1;
+		gui.measure_end.y = -1;
+	}
+
+	else if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 		if (gui.translating) {
 			gui.translating = FALSE;
 		} else if (gui.drawing && mouse_status == MOUSE_ACTION_SELECT_REG_AREA) {
@@ -597,18 +617,18 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			tmp.x = zoomed.x;
 			tmp.y = zoomed.y;
 			if (gui.cutting == CUT_VERT_OR_HORIZ) {
-				if (abs(tmp.y - com.cut_start.y) > abs(tmp.x - com.cut_start.x)) {
-					tmp.x = com.cut_start.x;
+				if (abs(tmp.y - com.cut.cut_start.y) > abs(tmp.x - com.cut.cut_start.x)) {
+					tmp.x = com.cut.cut_start.x;
 				} else {
-					tmp.y = com.cut_start.y;
+					tmp.y = com.cut.cut_start.y;
 				}
 			}
-			com.cut_point.x = tmp.x;
-			com.cut_point.y = tmp.y;
+			com.cut.cut_end.x = tmp.x;
+			com.cut.cut_end.y = tmp.y;
 
 			// If the measurement checkbox is checked, print the measurement to the log
-			if (com.cut_measure) {
-				measure_line();
+			if (com.cut.cut_measure) {
+				measure_line(com.cut.cut_start, com.cut.cut_end);
 			}
 			gui.cutting = CUT_NOT_CUTTING;
 			redraw(REDRAW_OVERLAY);
@@ -617,14 +637,14 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			if (!gtk_widget_is_visible(cut_dialog))
 				siril_open_dialog("cut_dialog");
 		} else if (mouse_status == MOUSE_ACTION_CUT_WN1) {
-			com.cut_wn1.x = zoomed.x;
-			com.cut_wn1.y = zoomed.y;
+			com.cut.cut_wn1.x = zoomed.x;
+			com.cut.cut_wn1.y = zoomed.y;
 			// Snap the selected pixel to the closest point on the line
-			com.cut_wn1 = closest_point_on_line(com.cut_wn1, com.cut_start, com.cut_point);
+			com.cut.cut_wn1 = closest_point_on_line(com.cut.cut_wn1, com.cut.cut_start, com.cut.cut_end);
 			GtkLabel* label_wn1_x = (GtkLabel*) lookup_widget("label_wn1_x");
 			GtkLabel* label_wn1_y = (GtkLabel*) lookup_widget("label_wn1_y");
-			gchar* l1x = g_strdup_printf("%d", com.cut_wn1.x);
-			gchar* l1y = g_strdup_printf("%d", com.cut_wn1.y);
+			gchar* l1x = g_strdup_printf("%d", com.cut.cut_wn1.x);
+			gchar* l1y = g_strdup_printf("%d", com.cut.cut_wn1.y);
 			gtk_label_set_text(label_wn1_x, l1x);
 			gtk_label_set_text(label_wn1_y, l1y);
 			g_free(l1x);
@@ -632,14 +652,14 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			set_cursor("default");
 			mouse_status = MOUSE_ACTION_NONE;
 		} else if (mouse_status == MOUSE_ACTION_CUT_WN2) {
-			com.cut_wn2.x = zoomed.x;
-			com.cut_wn2.y = zoomed.y;
+			com.cut.cut_wn2.x = zoomed.x;
+			com.cut.cut_wn2.y = zoomed.y;
 			// Snap the selected pixel to the closest point on the line
-			com.cut_wn2 = closest_point_on_line(com.cut_wn2, com.cut_start, com.cut_point);
+			com.cut.cut_wn2 = closest_point_on_line(com.cut.cut_wn2, com.cut.cut_start, com.cut.cut_end);
 			GtkLabel* label_wn2_x = (GtkLabel*) lookup_widget("label_wn2_x");
 			GtkLabel* label_wn2_y = (GtkLabel*) lookup_widget("label_wn2_y");
-			gchar* l2x = g_strdup_printf("%d", com.cut_wn2.x);
-			gchar* l2y = g_strdup_printf("%d", com.cut_wn2.y);
+			gchar* l2x = g_strdup_printf("%d", com.cut.cut_wn2.x);
+			gchar* l2y = g_strdup_printf("%d", com.cut.cut_wn2.y);
 			gtk_label_set_text(label_wn2_x, l2x);
 			gtk_label_set_text(label_wn2_y, l2y);
 			g_free(l2x);
@@ -714,6 +734,11 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 	gtk_label_set_text(GTK_LABEL(lookup_widget("label-rgb")), "");
 
 	if (inside) {
+		if (gui.measure_start.x != -1) {
+			gui.measure_end.x = zoomed.x;
+			gui.measure_end.y = zoomed.y;
+			redraw(REDRAW_OVERLAY);
+		}
 		if (gui.cvport == RGB_VPORT) {
 			static gchar buffer[256] = { 0 };
 			if (gfit.type == DATA_USHORT) {
@@ -829,14 +854,14 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		tmp.x = zoomed.x;
 		tmp.y = zoomed.y;
 		if (gui.cutting == CUT_VERT_OR_HORIZ) {
-			if (abs(tmp.y - com.cut_start.y) > abs(tmp.x - com.cut_start.x)) {
-				tmp.x = com.cut_start.x;
+			if (abs(tmp.y - com.cut.cut_start.y) > abs(tmp.x - com.cut.cut_start.x)) {
+				tmp.x = com.cut.cut_start.x;
 			} else {
-				tmp.y = com.cut_start.y;
+				tmp.y = com.cut.cut_start.y;
 			}
 		}
-		com.cut_point.x = tmp.x;
-		com.cut_point.y = tmp.y;
+		com.cut.cut_end.x = tmp.x;
+		com.cut.cut_end.y = tmp.y;
 		redraw(REDRAW_OVERLAY);
 	} else if (gui.drawing) {	// with button 1 down
 		if (!gui.freezeX) {

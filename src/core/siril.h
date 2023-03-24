@@ -478,6 +478,14 @@ typedef struct {
 	int x, y;
 } pointi;
 
+typedef struct cut_struct {
+	pointi cut_start;			// point marking start of cut line
+	pointi cut_end;			// point dragged while selecting the cut line
+	pointi cut_wn1;				// point for wavenumber 1 for spectroscopic cut
+	pointi cut_wn2;				// point for wavenumber 2 for spectroscopic cut
+	gboolean cut_measure;		// Whether or not to measure cuts
+} cut_struct;
+
 struct historic_struct {
 	char *filename;
 	char history[FLEN_VALUE];
@@ -540,6 +548,9 @@ struct guiinf {
 	gboolean show_wcs_grid;		// show the equatorial grid over the image
 
 	psf_star *qphot;		// quick photometry result, highlight a star
+
+	pointi measure_start;	// quick alt-drag measurement
+	pointi measure_end;
 
 	void (*draw_extra)(draw_data_t *dd);
 
@@ -607,11 +618,8 @@ struct cominf {
 	int max_thread;			// max total number of threads used for parallel execution
 
 	rectangle selection;		// coordinates of the selection rectangle
-	pointi cut_start;			// point marking start of cut line
-	pointi cut_point;			// point dragged while selecting the cut line
-	pointi cut_wn1;				// point for wavenumber 1 for spectroscopic cut
-	pointi cut_wn2;				// point for wavenumber 2 for spectroscopic cut
-	gboolean cut_measure;		// Whether or not to measure cuts
+	cut_struct cut;				// Struct to hold data relating to intensity
+								// profile cuts
 
 	psf_star **stars;		// list of stars detected in the current image
 	gboolean star_is_seqdata;	// the only star in stars belongs to seq, don't free it

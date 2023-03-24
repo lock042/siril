@@ -1631,10 +1631,11 @@ void load_main_window_state() {
 				gtk_window_resize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), w, h);
 			}
 		}
-		com.cut_start.x = -1;
-		com.cut_start.y = -1;
-		com.cut_point.x = -1;
-		com.cut_point.y = -1;
+		com.cut.cut_start.x = -1;
+		com.cut.cut_start.y = -1;
+		com.cut.cut_end.x = -1;
+		com.cut.cut_end.y = -1;
+		gui.measure_start.x = -1;
 
 		/* Now we handle the main panel */
 		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
