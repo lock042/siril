@@ -42,10 +42,11 @@ int sign(double x) {
 }
 
 void measure_line(point start, point finish) {
-	control_window_switch_to_tab(OUTPUT_LOGS);
 	int deg = -1;
 	point delta = { finish.x - start.x, finish.y - start.y };
 	double pixdist = sqrt(delta.x * delta.x + delta.y * delta.y);
+	if (pixdist == 0.) return;
+	control_window_switch_to_tab(OUTPUT_LOGS);
 	gboolean unit_is_as = (gfit.focal_length > 0.0) && (gfit.pixel_size_x > 0.0) && (gfit.pixel_size_y == gfit.pixel_size_x);
 	if (unit_is_as) {
 		double bin_X = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
