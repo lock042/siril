@@ -352,7 +352,16 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 	//		event->x, event->y, zoomed.x, zoomed.y, inside ? "" : " not");
 
 	if (inside) {
-		if (event->state & get_primary()) {
+		/* if Alt is pressed, prepare to measure */
+		if (event->button == GDK_BUTTON_PRIMARY && (event->state & GDK_SHIFT_MASK) && (event->state & GDK_CONTROL_MASK)) {
+			gui.measure_start.x = zoomed.x;
+			gui.measure_start.y = zoomed.y;
+			gui.measure_end.x = zoomed.x;
+			gui.measure_end.y = zoomed.y;
+		}
+
+		/* Ctrl click to drag */
+		else if (event->state & get_primary()) {
 			if (event->button == GDK_BUTTON_PRIMARY) {
 				// viewport translation
 				gui.translating = TRUE;
@@ -360,14 +369,6 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				gui.start.y = (int)(event->y);
 				return TRUE;
 			}
-		}
-
-		/* if Alt is pressed, prepare to measure */
-		else if (event->button == GDK_BUTTON_PRIMARY && (event->state & GDK_MOD1_MASK)) {
-			gui.measure_start.x = zoomed.x;
-			gui.measure_start.y = zoomed.y;
-			gui.measure_end.x = zoomed.x;
-			gui.measure_end.y = zoomed.y;
 		}
 
 		/* else, click on gray image */
