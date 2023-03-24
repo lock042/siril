@@ -380,7 +380,9 @@ gpointer tri_cut(gpointer p) {
 			}
 		}
 	}
-	retval = gnuplot_write_xrgb_dat(filename, x, r[0], r[1], r[2], nbr_points, "x L-1 L0 L+1");
+	gchar *titletext = g_strdup_printf("x L(-%dpx) L L(+%dpx)", (int) step, (int) step);
+	retval = gnuplot_write_xrgb_dat(filename, x, r[0], r[1], r[2], nbr_points, titletext);
+	g_free(titletext);
 	if (retval) {
 		if (com.script)
 			siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
@@ -392,7 +394,7 @@ gpointer tri_cut(gpointer p) {
 			/* Plotting cut profile */
 			gchar *xlabel = NULL, *title = NULL;
 			title = g_strdup_printf(_("Data Cut Profile"));
-			xlabel = g_strdup_printf(_("Distance along cut"));
+			xlabel = g_strdup_printf(_("Distance along cut / px"));
 			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
