@@ -659,6 +659,8 @@ void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 		siril_open_dialog("cut_dialog");
 	} else {
 		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+		siril_close_dialog("cut_coords_dialog");
+		siril_close_dialog("cut_spectroscopy_dialog");
 		siril_close_dialog("cut_dialog");
 	}
 }
