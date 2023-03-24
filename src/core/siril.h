@@ -479,10 +479,10 @@ typedef struct {
 } pointi;
 
 typedef struct cut_struct {
-	pointi cut_start;			// point marking start of cut line
-	pointi cut_end;			// point dragged while selecting the cut line
-	pointi cut_wn1;				// point for wavenumber 1 for spectroscopic cut
-	pointi cut_wn2;				// point for wavenumber 2 for spectroscopic cut
+	point cut_start;			// point marking start of cut line
+	point cut_end;			// point dragged while selecting the cut line
+	point cut_wn1;				// point for wavenumber 1 for spectroscopic cut
+	point cut_wn2;				// point for wavenumber 2 for spectroscopic cut
 	gboolean cut_measure;		// Whether or not to measure cuts
 } cut_struct;
 
@@ -549,8 +549,8 @@ struct guiinf {
 
 	psf_star *qphot;		// quick photometry result, highlight a star
 
-	pointi measure_start;	// quick alt-drag measurement
-	pointi measure_end;
+	point measure_start;	// quick alt-drag measurement
+	point measure_end;
 
 	void (*draw_extra)(draw_data_t *dd);
 

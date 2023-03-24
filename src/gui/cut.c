@@ -41,8 +41,9 @@ int sign(double x) {
 	return x < 0. ? -1 : x > 0. ? 1 : 0;
 }
 
-void measure_line(pointi start, pointi finish) {
+void measure_line(point start, point finish) {
 	control_window_switch_to_tab(OUTPUT_LOGS);
+	int deg = -1;
 	point delta = { finish.x - start.x, finish.y - start.y };
 	double pixdist = sqrt(delta.x * delta.x + delta.y * delta.y);
 	gboolean unit_is_as = (gfit.focal_length > 0.0) && (gfit.pixel_size_x > 0.0) && (gfit.pixel_size_y == gfit.pixel_size_x);
@@ -58,7 +59,7 @@ void measure_line(pointi start, pointi finish) {
 			if (asdist < 3600) {
 				siril_log_message(_("Measurement: %d\' %.1f\"\n"), min, sec);
 			} else {
-				int deg = (int) asdist / 3600;
+				deg = (int) asdist / 3600;
 				min -= (deg * 60);
 				siril_log_message(_("Measurement: %dº %d\' %.0f\"\n"), deg, min, sec);
 			}
@@ -66,6 +67,8 @@ void measure_line(pointi start, pointi finish) {
 	} else {
 		siril_log_message(_("Measurement: %.1f px\n"), pixdist);
 	}
+	if (deg > 10.0)
+		siril_log_color_message(_("Warning: angular measurement > 10º. Error is > 1%\n"), "salmon");
 }
 
 
@@ -193,7 +196,7 @@ gpointer cut_profile(gpointer p) {
 	if (!use_gnuplot) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	}
-	pointi delta;
+	point delta;
 	delta.x = args->finish.x - args->start.x;
 	delta.y = args->finish.y - args->start.y;
 	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;

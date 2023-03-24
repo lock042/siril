@@ -256,8 +256,8 @@ int select_vport(int vport) {
 	return vport == RGB_VPORT ? GREEN_VPORT : vport;
 }
 
-pointi closest_point_on_line(pointi in, pointi p1, pointi p2) {
-	pointi out = { 0 };
+point closest_point_on_line(point in, point p1, point p2) {
+	point out = { 0 };
 	if (p1.x == p2.x) {
 		out.x = p1.x;
 		out.y = in.y;
@@ -265,18 +265,18 @@ pointi closest_point_on_line(pointi in, pointi p1, pointi p2) {
 		out.x = in.x;
 		out.y = p1.y;
 	} else {
-		double a = (double) in.x;
-		double b = (double) in.y;
-		double x1 = (double) p1.x;
-		double y1 = (double) p1.y;
-		double x2 = (double) p2.x;
-		double y2 = (double) p2.y;
+		double a = in.x;
+		double b = in.y;
+		double x1 = p1.x;
+		double y1 = p1.y;
+		double x2 = p2.x;
+		double y2 = p2.y;
 		double m1 = (y2-y1)/(x2-x1);
 		double m2 = -1.0 / m1;
 		double x = (m1*x1-m2*a+b-y1)/(m1-m2);
 		double y = m2*(x-a)+b;
-		out.x = (int) x;
-		out.y = (int) y;
+		out.x = x;
+		out.y = y;
 	}
 	return out;
 }
