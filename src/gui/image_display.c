@@ -716,16 +716,48 @@ static void draw_cut_line(const draw_data_t* dd) {
 //		return;
 	if (com.cut.cut_end.x == -1 || com.cut.cut_end.y == -1)
 		return;
+	gboolean tri = gtk_toggle_button_get_active((GtkToggleButton*)lookup_widget("cut_tri_cut"));
+	GtkSpinButton *spin_step = (GtkSpinButton*) lookup_widget("cut_tricut_step");
+	double offstartx, offstarty, offendx, offendy, step;
+
 	cairo_t *cr = dd->cr;
 	static double dash_format[] = { 4.0, 2.0 };
 	cairo_set_line_width(cr, 1.5 / dd->zoom);
 	cairo_set_dash(cr, dash_format, 2, 0);
-	cairo_set_source_rgb(cr, 0.8, 1.0, 0.8);
-	cairo_save(cr);
-	cairo_move_to(cr, com.cut.cut_start.x, com.cut.cut_start.y);
-	cairo_line_to(cr, com.cut.cut_end.x, com.cut.cut_end.y);
-	cairo_stroke(cr);
-	cairo_restore(cr);
+
+	if (tri) {
+		point delta;
+		delta.x = com.cut.cut_end.x - com.cut.cut_start.x;
+		delta.y = com.cut.cut_end.y - com.cut.cut_start.y;
+		double length = sqrt(delta.x * delta.x + delta.y * delta.y);
+		if (length < 1.) return;
+		int nbr_points = (int) length;
+		double point_spacing_x = delta.x / nbr_points;
+		double point_spacing_y = delta.y / nbr_points;
+		step = gtk_spin_button_get_value(spin_step);
+		double line_r[3] = { 0.58, 0.0, 0.34 }; // These colours match the 3 lines plotted by GNUplot
+		double line_g[3] = { 0.0, 0.62, 0.70 };
+		double line_b[3] = { 0.83, 0.45, 0.91 };
+		for (int offset = -1 ; offset < 2 ; offset++) {
+			offstartx = com.cut.cut_start.x - (offset * point_spacing_y * step);
+			offstarty = com.cut.cut_start.y + (offset * point_spacing_x * step);
+			offendx = com.cut.cut_end.x - (offset * point_spacing_y * step);
+			offendy = com.cut.cut_end.y + (offset * point_spacing_x * step);
+			cairo_set_source_rgb(cr, line_r[offset+1], line_g[offset+1], line_b[offset+1]);
+			cairo_save(cr);
+			cairo_move_to(cr, offstartx, offstarty);
+			cairo_line_to(cr, offendx, offendy);
+			cairo_stroke(cr);
+			cairo_restore(cr);
+		}
+	} else {
+		cairo_set_source_rgb(cr, 0.0, 0.62, 0.70); // This matches the single line plotted by GNUplot
+		cairo_save(cr);
+		cairo_move_to(cr, com.cut.cut_start.x, com.cut.cut_start.y);
+		cairo_line_to(cr, com.cut.cut_end.x, com.cut.cut_end.y);
+		cairo_stroke(cr);
+		cairo_restore(cr);
+	}
 }
 
 static void draw_measurement_line(const draw_data_t* dd) {

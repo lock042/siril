@@ -189,6 +189,7 @@ void calc_zero_and_spacing(double *zero, double *spectro_spacing) {
 	// printf("zero %.3f spacing %.3f\n", *zero, *spectro_spacing);
 	return;
 }
+
 gpointer cut_profile(gpointer p) {
 	cut_args *args = (cut_args *) p;
 	int retval = 0;
@@ -201,7 +202,7 @@ gpointer cut_profile(gpointer p) {
 	delta.x = args->finish.x - args->start.x;
 	delta.y = args->finish.y - args->start.y;
 	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
-	double length = sqrtf(delta.x * delta.x + delta.y * delta.y);
+	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.f) {
 		retval = 1;
 		goto END;
@@ -315,6 +316,106 @@ END:
 	return GINT_TO_POINTER(retval);
 }
 
+gpointer tri_cut(gpointer p) {
+	cut_args *args = (cut_args *) p;
+	int retval = 0;
+	char *filename = "cut.dat";
+	GtkSpinButton *spin_step = (GtkSpinButton*) lookup_widget("cut_tricut_step");
+	double step = gtk_spin_button_get_value(spin_step);
+	gboolean use_gnuplot = gnuplot_is_available();
+	gnuplot_ctrl *gplot = NULL;
+	if (use_gnuplot) {
+		gplot = gnuplot_init(TRUE);
+	} else {
+		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
+	}
+	point delta;
+	delta.x = args->finish.x - args->start.x;
+	delta.y = args->finish.y - args->start.y;
+	double *x = NULL, *r[3] = { 0 };
+	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
+	if (length < 1.f) {
+		retval = 1;
+		goto END;
+	}
+	int nbr_points = (int) length;
+	double point_spacing = length / nbr_points;
+	double point_spacing_x = (double) delta.x / nbr_points;
+	double point_spacing_y = (double) delta.y / nbr_points;
+	gboolean hv = ((point_spacing_x == 1.f) || (point_spacing_y == 1.f) || (point_spacing_x == -1.f) || (point_spacing_y == -1.f));
+	for (int i = 0 ; i < 3 ; i++)
+		r[i] = malloc(nbr_points * sizeof(double));
+	x = malloc(nbr_points * sizeof(double));
+	for (int offset = -1 ; offset < 2 ; offset++) {
+		double offstartx = args->start.x - (offset * point_spacing_y * step);
+		double offstarty = args->start.y + (offset * point_spacing_x * step);
+		for (int i = 0 ; i < nbr_points ; i++) {
+			x[i] = i * point_spacing;
+			if (hv) {
+				// Horizontal / vertical, no interpolation
+				r[offset+1][i] = nointerp(&gfit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 0, width, (int) point_spacing_x, (int) point_spacing_y);
+			} else {
+				// Neither horizontal nor vertical: interpolate
+				r[offset+1][i] = interp(&gfit, (double) (offstartx + point_spacing_x * i),
+							(double) (offstarty + point_spacing_y * i), 0,
+							width, point_spacing_x, point_spacing_y);
+			}
+			if (gfit.naxes[2] > 1) {
+				if (abs(point_spacing_x == 1.) || abs(point_spacing_y == 1.)) { // Horizontal, no interpolation
+					r[offset+1][i] += nointerp(&gfit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 1,
+									width, (int) point_spacing_x, (int) point_spacing_y);
+					r[offset+1][i] += nointerp(&gfit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 2,
+									width,  (int) point_spacing_x, (int) point_spacing_y);
+				} else { // Neither horizontal nor vertical: interpolate (simple bilinear interpolation)
+					r[offset+1][i] += interp(&gfit, (double) (offstartx + point_spacing_x * i), (double) (offstarty + point_spacing_y * i), 1,
+								width, point_spacing_x, point_spacing_y);
+					r[offset+1][i] += interp(&gfit, (double) (offstartx + point_spacing_x * i), (double) (offstarty + point_spacing_y * i), 2,
+								width, point_spacing_x, point_spacing_y);
+				}
+			}
+		}
+		if (gfit.naxes[2] == 3) {
+			for (int i = 0 ; i < nbr_points ; i++) {
+				r[offset+1][i] /= 3.0;
+			}
+		}
+	}
+	retval = gnuplot_write_xrgb_dat(filename, x, r[0], r[1], r[2], nbr_points, "x L-1 L0 L+1");
+	if (retval) {
+		if (com.script)
+			siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
+	} else {
+		siril_log_message(_("%s has been saved.\n"), filename);
+	}
+	if (use_gnuplot) {
+		if (gplot) {
+			/* Plotting cut profile */
+			gchar *xlabel = NULL, *title = NULL;
+			title = g_strdup_printf(_("Data Cut Profile"));
+			xlabel = g_strdup_printf(_("Distance along cut"));
+			gnuplot_set_title(gplot, title);
+			gnuplot_set_xlabel(gplot, xlabel);
+			gnuplot_setstyle(gplot, "lines");
+			gnuplot_plot_xrgb_from_datfile(gplot, filename);
+			g_free(title);
+			g_free(xlabel);
+		}
+	}
+	else siril_log_message(_("Communicating with gnuplot failed\n"));
+
+END:
+	gnuplot_close(gplot);
+	// Clean up
+	free(x);
+	x = NULL;
+	for (int i = 0 ; i < 3 ; i++) {
+		free(r[i]);
+		r[i] = NULL;
+	}
+	siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(retval);
+}
+
 static void update_spectro_coords() {
 	GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
 	GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
@@ -330,16 +431,21 @@ static void update_spectro_coords() {
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
+	GtkToggleButton* tri = (GtkToggleButton*)lookup_widget("cut_tri_cut");
 	cut_data.start.x = com.cut.cut_start.x;
 	cut_data.finish.x = com.cut.cut_end.x;
 	cut_data.start.y = gfit.ry - 1 - com.cut.cut_start.y;
 	cut_data.finish.y = gfit.ry - 1 - com.cut.cut_end.y;
-	if (gtk_toggle_button_get_active(cut_color))
-		cut_data.mode = COLOR;
-	else
-		cut_data.mode = MONO;
-	cut_data.display_graph = TRUE;
-	start_in_new_thread(cut_profile, &cut_data);
+	if (gtk_toggle_button_get_active(tri))
+		start_in_new_thread(tri_cut, &cut_data);
+	else {
+		if (gtk_toggle_button_get_active(cut_color))
+			cut_data.mode = COLOR;
+		else
+			cut_data.mode = MONO;
+		cut_data.display_graph = TRUE;
+		start_in_new_thread(cut_profile, &cut_data);
+	}
 }
 
 void on_cut_close_button_clicked(GtkButton *button, gpointer user_data) {
@@ -510,4 +616,12 @@ void on_cut_measure_profile_toggled(GtkToggleButton *button, gpointer user_data)
 
 void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data) {
 	measure_line(com.cut.cut_start, com.cut.cut_end);
+}
+
+void on_cut_tricut_step_value_changed(GtkSpinButton *button, gpointer user_data) {
+	redraw(REDRAW_OVERLAY);
+}
+
+void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
+	redraw(REDRAW_OVERLAY);
 }
