@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-23 10:07+0100\n"
-"PO-Revision-Date: 2023-03-11 10:18+0000\n"
+"PO-Revision-Date: 2023-03-27 08:39+0000\n"
 "Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
-"Language-Team: Italian <https://weblate.pixls.us/projects/siril/siril-"
-"application/it/>\n"
+"Language-Team: Italian <https://weblate.pixls.us/projects/siril/"
+"siril-application/it/>\n"
 "Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2663,25 +2663,27 @@ msgid "Star Stretch Parameters"
 msgstr "Parametri di stretch delle stelle"
 
 #: src/gui/siril3.glade:10774
-#, fuzzy
 msgid "Resets stretch parameters for the star image"
-msgstr "Ripristina i parametri ai valori di default"
+msgstr "Ripristina i parametri di stretch per la immagine stelle"
 
 #: src/gui/siril3.glade:10789
 msgid ""
 "Applies current stretch to the star image and resets the stretch parameters."
 msgstr ""
+"Applica lo stretch corrente all'immagine stella e reimposta i parametri di "
+"stretch."
 
 #: src/gui/siril3.glade:10822
-#, fuzzy
 msgid "Resets stretch parameters for the starless image"
-msgstr "Ripristina i parametri ai valori di default"
+msgstr "Ripristina i parametri di stretch per l'immagine senza stelle"
 
 #: src/gui/siril3.glade:10837
 msgid ""
 "Applies current stretch to the starless image and resets the stretch "
 "parameters."
 msgstr ""
+"Applica i parametri attuali di stretch per l'immagine senza stelle e resetta "
+"i parametri di stretch."
 
 #: src/gui/siril3.glade:10879 src/gui/linear_match.c:201
 msgid "Linear Match"
@@ -9587,12 +9589,12 @@ msgstr ""
 #: src/algos/astrometry_solver.c:2156
 #, c-format
 msgid "Image %s did not solve\n"
-msgstr ""
+msgstr "L'immagine %s non è stata risolta\n"
 
 #: src/algos/astrometry_solver.c:2189
 #, c-format
 msgid "Running sequence plate solving using the %s catalogue\n"
-msgstr ""
+msgstr "Lancio il plate-solving della sequenza usando il catalogo %s\n"
 
 #: src/algos/background_extraction.c:126
 #, c-format
@@ -10224,9 +10226,8 @@ msgid "Photometry color calibration in progress..."
 msgstr "Calibrazione del colore fotometrica in elaborazione ..."
 
 #: src/algos/photometric_cc.c:385
-#, fuzzy
 msgid "Photometric Color Calibration succeeded"
-msgstr "Calibrazione Fotometrica del Colore riuscita.\n"
+msgstr "Calibrazione Fotometrica del Colore riuscita"
 
 #: src/algos/photometric_cc.c:387
 msgid "Photometric Color Calibration failed"
@@ -11838,7 +11839,7 @@ msgstr "L’ordine di grado polinomiale deve essere compreso nel range [1, 4].\n
 
 #: src/core/command.c:5004
 msgid "There can be only one prefix argument"
-msgstr ""
+msgstr "Può esserci soltanto un prefisso dell'argomento"
 
 #: src/core/command.c:5043
 msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
@@ -17656,7 +17657,7 @@ msgstr "Programma di (pre-)elaborazione dell'immagine astronomica"
 
 #: src/gui/about_dialog.c:81
 msgid "translator-credits"
-msgstr "crediti-traduttori"
+msgstr "translator-crediti"
 
 #: src/gui/about_dialog.c:83
 msgid "Visit the Siril website"
