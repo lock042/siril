@@ -9020,7 +9020,7 @@ int process_profile(int nb) {
 		}
 		else if (g_str_has_prefix(arg, "-filename=")) {
 			arg += 10;
-			filename = g_strdup(arg);
+			filename = strdup(arg);
 		}
 	}
 	com.cut.cut_start.x = start.x;
@@ -9040,6 +9040,7 @@ int process_profile(int nb) {
 	com.cut.mode = mode;
 	com.cut.cut_measure = FALSE;
 	com.cut.filename = filename;
+	com.cut.fit = &gfit;
 
 	if (tri)
 		tri_cut(NULL);
