@@ -21,6 +21,7 @@
 #include <math.h>
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/siril_date.h"
 #include "gui/message_dialog.h"
 #include "gui/image_interactions.h"
 #include "gui/dialogs.h"
@@ -29,6 +30,8 @@
 #include "algos/PSF.h"
 #include "core/proto.h"
 #include "core/processing.h"
+#include "io/single_image.h"
+#include "io/sequence.h"
 #include "io/gnuplot_i.h"
 #include "gui/image_display.h"
 
@@ -89,6 +92,7 @@ void initialize_com_cut() {
 	com.cut.step = 1;
 	com.cut.display_graph = TRUE;
 	com.cut.filename = NULL;
+	com.cut.save_dat = FALSE;
 }
 
 int sign(double x) {
@@ -256,7 +260,30 @@ gpointer cut_profile(gpointer p) {
 		gplot = gnuplot_init(TRUE);
 	}
 	if (!com.cut.filename) {
-		com.cut.filename = profile_tmpfile();
+		siril_debug_print("Generating filename ");
+		if (com.cut.save_dat) {
+		siril_debug_print("for storage: ");
+			if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
+				siril_debug_print("from current image: ");
+				gchar* temp = g_path_get_basename(com.uniq->filename);
+				gchar* temp2 = g_strdup_printf("%s%s", build_timestamp_filename(), temp);
+				com.cut.filename = replace_ext(temp2, ".dat");
+				g_free(temp);
+				g_free(temp2);
+				siril_debug_print("%s\n", com.cut.filename);
+			} /*else if (sequence_is_loaded()) {
+				com.cut.filename = g_strdup_printf("%s%s%.5d", build_timestamp_filename(), args->seq->seqname, args->imgnumber + 1);
+			}*/ else {
+				com.cut.filename = g_strdup_printf("%s_image", build_timestamp_filename());
+				siril_debug_print("%s\n", com.cut.filename);
+			}
+		} else {
+			siril_debug_print("for tempoary use: ");
+			gchar* temp = profile_tmpfile();
+			com.cut.filename = g_strdup_printf("%s.dat", temp);
+			g_free(temp);
+			siril_debug_print("%s\n", com.cut.filename);
+		}
 	}
 	point delta;
 	delta.x = com.cut.cut_end.x - com.cut.cut_start.x;
@@ -394,7 +421,30 @@ gpointer tri_cut(gpointer p) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), com.cut.filename);
 	}
 	if (!com.cut.filename) {
-		com.cut.filename = profile_tmpfile();
+		siril_debug_print("Generating filename ");
+		if (com.cut.save_dat) {
+		siril_debug_print("for storage: ");
+			if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
+				siril_debug_print("from current image: ");
+				gchar* temp = g_path_get_basename(com.uniq->filename);
+				gchar* temp2 = g_strdup_printf("%s%s", build_timestamp_filename(), temp);
+				com.cut.filename = replace_ext(temp2, ".dat");
+				g_free(temp);
+				g_free(temp2);
+				siril_debug_print("%s\n", com.cut.filename);
+			} /*else if (sequence_is_loaded()) {
+				com.cut.filename = g_strdup_printf("%s%s%.5d", build_timestamp_filename(), args->seq->seqname, args->imgnumber + 1);
+			}*/ else {
+				com.cut.filename = g_strdup_printf("%s_image", build_timestamp_filename());
+				siril_debug_print("%s\n", com.cut.filename);
+			}
+		} else {
+			siril_debug_print("for tempoary use: ");
+			gchar* temp = profile_tmpfile();
+			com.cut.filename = g_strdup_printf("%s.dat", temp);
+			g_free(temp);
+			siril_debug_print("%s\n", com.cut.filename);
+		}
 	}
 	point delta;
 	delta.x = com.cut.cut_end.x - com.cut.cut_start.x;
@@ -702,4 +752,8 @@ void on_cut_tricut_step_value_changed(GtkSpinButton *button, gpointer user_data)
 void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.cut.tri = gtk_toggle_button_get_active(button);
 	redraw(REDRAW_OVERLAY);
+}
+
+void on_cut_save_checkbutton_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.cut.save_dat = gtk_toggle_button_get_active(button);
 }

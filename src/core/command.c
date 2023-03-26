@@ -8930,6 +8930,7 @@ int process_profile(int nb) {
 	gboolean tri = FALSE;
 	gboolean colorplot = FALSE;
 	gboolean display_graph = FALSE;
+	gboolean save_dat = FALSE;
 	cut_mode mode = { 0 };
 	char* filename = NULL;
 	int spacing = 1;
@@ -9020,7 +9021,10 @@ int process_profile(int nb) {
 		}
 		else if (g_str_has_prefix(arg, "-filename=")) {
 			arg += 10;
-			filename = strdup(arg);
+			if (filename)
+				g_free(filename);
+			filename = g_strdup(arg);
+			save_dat = TRUE;
 		}
 	}
 	com.cut.cut_start.x = start.x;
@@ -9040,6 +9044,7 @@ int process_profile(int nb) {
 	com.cut.mode = mode;
 	com.cut.cut_measure = FALSE;
 	com.cut.filename = filename;
+	com.cut.save_dat = save_dat;
 	com.cut.fit = &gfit;
 
 	if (tri)

@@ -1030,7 +1030,7 @@ artifacts may appear.</property>
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=4 -->
+          <!-- n-columns=2 n-rows=5 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1150,6 +1150,24 @@ artifacts may appear.</property>
                 <property name="left-attach">1</property>
                 <property name="top-attach">3</property>
               </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cut_save_checkbutton">
+                <property name="label" translatable="yes">Save profile datafile</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Saves the GNUplot data file used to generate the profile in the working directory. The filename is based on the current image and includes a timestamp.</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_cut_save_checkbutton_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>

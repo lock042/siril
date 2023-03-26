@@ -498,6 +498,7 @@ typedef struct cut_struct {
 	gboolean display_graph;
 	char* filename;
 	fits* fit;
+	gboolean save_dat;
 } cut_struct;
 
 struct historic_struct {
