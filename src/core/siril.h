@@ -478,12 +478,25 @@ typedef struct {
 	int x, y;
 } pointi;
 
+typedef enum {
+	MONO,
+	COLOR
+} cut_mode;
+
 typedef struct cut_struct {
 	point cut_start;			// point marking start of cut line
 	point cut_end;			// point dragged while selecting the cut line
 	point cut_wn1;				// point for wavenumber 1 for spectroscopic cut
 	point cut_wn2;				// point for wavenumber 2 for spectroscopic cut
 	gboolean cut_measure;		// Whether or not to measure cuts
+	double wavenumber1;
+	double wavenumber2;
+	gboolean tri;
+	cut_mode mode;
+	int width;
+	int step;
+	gboolean display_graph;
+	char* filename;
 } cut_struct;
 
 struct historic_struct {

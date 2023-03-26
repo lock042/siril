@@ -32,10 +32,25 @@
 #include "io/gnuplot_i.h"
 #include "gui/image_display.h"
 
-double wavenumber1 = 0.0, wavenumber2 = 0.0;
-int width = 1;
-
-cut_args cut_data = { 0 };
+void initialize_com_cut() {
+	com.cut.cut_start.x = -1;
+	com.cut.cut_start.y = -1;
+	com.cut.cut_end.x = -1;
+	com.cut.cut_end.y = -1;
+	com.cut.cut_wn1.x = -1;
+	com.cut.cut_wn1.y = -1;
+	com.cut.cut_wn2.x = -1;
+	com.cut.cut_wn2.y = -1;
+	com.cut.cut_measure = FALSE;
+	com.cut.wavenumber1 = -1;
+	com.cut.wavenumber2 = -1;
+	com.cut.tri = FALSE;
+	com.cut.mode = MONO;
+	com.cut.width = 1;
+	com.cut.step = 1;
+	com.cut.display_graph = TRUE;
+	com.cut.filename = NULL;
+}
 
 int sign(double x) {
 	return x < 0. ? -1 : x > 0. ? 1 : 0;
@@ -74,7 +89,7 @@ void measure_line(point start, point finish) {
 
 
 gboolean spectroscopy_selections_are_valid() {
-	gboolean a = (wavenumber1 != wavenumber2) && (wavenumber1 > 0.0) && (wavenumber2 > 0.0);
+	gboolean a = (com.cut.wavenumber1 != com.cut.wavenumber2) && (com.cut.wavenumber1 > 0.0) && (com.cut.wavenumber2 > 0.0);
 	gboolean b = (com.cut.cut_wn1.x >= 0) && (com.cut.cut_wn1.y >= 0) && (com.cut.cut_wn2.x >= 0) && (com.cut.cut_wn2.y >= 0) && (com.cut.cut_wn1.x < gfit.rx) && (com.cut.cut_wn1.y < gfit.ry) && (com.cut.cut_wn2.x < gfit.rx) && (com.cut.cut_wn2.y < gfit.ry);
 	gboolean c = (!((com.cut.cut_wn1.x == com.cut.cut_wn2.x) && (com.cut.cut_wn1.y == com.cut.cut_wn2.y)));
 	return a && b && c;
@@ -179,28 +194,30 @@ double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
 void calc_zero_and_spacing(double *zero, double *spectro_spacing) {
 	point wndelta = { (double) com.cut.cut_wn2.x - com.cut.cut_wn1.x , (double) com.cut.cut_wn2.y - com.cut.cut_wn1.y };
 	double wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
-	double wndiff = wavenumber2 - wavenumber1;
+	double wndiff = com.cut.wavenumber2 - com.cut.wavenumber1;
 	*spectro_spacing = wndiff / wndiff_dist;
 
 	// To calculate the zero we will work from whichever of x or y has the biggest difference
 	double z2_z1 = wndelta.y > wndelta.x ? wndelta.y : wndelta.x;
 	double z1_z0 = wndelta.y > wndelta.x ? com.cut.cut_wn1.y - com.cut.cut_start.y : com.cut.cut_wn1.x - com.cut.cut_start.x;
-	*zero = wavenumber1 - ( ( z1_z0 * wndiff ) / z2_z1 );
+	*zero = com.cut.wavenumber1 - ( ( z1_z0 * wndiff ) / z2_z1 );
 	// printf("zero %.3f spacing %.3f\n", *zero, *spectro_spacing);
 	return;
 }
 
 gpointer cut_profile(gpointer p) {
-	cut_args *args = (cut_args *) p;
 	int retval = 0;
-	char *filename = "cut.dat";
+	if (!com.cut.filename)
+		com.cut.filename = g_strdup("cut.dat");
+	double starty = gfit.ry - 1 - com.cut.cut_start.y;
+	double endy = gfit.ry - 1 - com.cut.cut_end.y;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
-		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
+		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), com.cut.filename);
 	}
 	point delta;
-	delta.x = args->finish.x - args->start.x;
-	delta.y = args->finish.y - args->start.y;
+	delta.x = com.cut.cut_end.x - com.cut.cut_start.x;
+	delta.y = endy - starty;
 	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.f) {
@@ -211,6 +228,7 @@ gpointer cut_profile(gpointer p) {
 	double point_spacing = length / nbr_points;
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
+	printf("delta %f %f length %f nbr_points %d \n", delta.x, delta.y, length, nbr_points);
 	gboolean hv = ((point_spacing_x == 1.f) || (point_spacing_y == 1.f) || (point_spacing_x == -1.f) || (point_spacing_y == -1.f));
 
 	r = malloc(nbr_points * sizeof(double));
@@ -231,41 +249,41 @@ gpointer cut_profile(gpointer p) {
 		}
 		if (hv) {
 			// Horizontal / vertical, no interpolation
-			r[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 0, width, (int) point_spacing_x, (int) point_spacing_y);
+			r[i] = nointerp(&gfit, com.cut.cut_start.x + point_spacing_x * i, starty + point_spacing_y * i, 0, com.cut.width, (int) point_spacing_x, (int) point_spacing_y);
 		} else {
 			// Neither horizontal nor vertical: interpolate
-			r[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i),
-						  (double) (args->start.y + point_spacing_y * i), 0,
-						  width, point_spacing_x, point_spacing_y);
+			r[i] = interp(&gfit, (double) (com.cut.cut_start.x + point_spacing_x * i),
+						  (double) (starty + point_spacing_y * i), 0,
+						  com.cut.width, point_spacing_x, point_spacing_y);
 		}
 		if (gfit.naxes[2] > 1) {
 			if (abs(point_spacing_x == 1.f) || abs(point_spacing_y == 1.f)) { // Horizontal, no interpolation
-				g[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 1,
-								width, (int) point_spacing_x, (int) point_spacing_y);
-				b[i] = nointerp(&gfit, args->start.x + point_spacing_x * i, args->start.y + point_spacing_y * i, 2,
-								width,  (int) point_spacing_x, (int) point_spacing_y);
+				g[i] = nointerp(&gfit, com.cut.cut_start.x + point_spacing_x * i, starty + point_spacing_y * i, 1,
+								com.cut.width, (int) point_spacing_x, (int) point_spacing_y);
+				b[i] = nointerp(&gfit, com.cut.cut_start.x + point_spacing_x * i, starty + point_spacing_y * i, 2,
+								com.cut.width,  (int) point_spacing_x, (int) point_spacing_y);
 			} else { // Neither horizontal nor vertical: interpolate (simple bilinear interpolation)
-				g[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 1,
-							  width, point_spacing_x, point_spacing_y);
-				b[i] = interp(&gfit, (double) (args->start.x + point_spacing_x * i), (double) (args->start.y + point_spacing_y * i), 2,
-							  width, point_spacing_x, point_spacing_y);
+				g[i] = interp(&gfit, (double) (com.cut.cut_start.x + point_spacing_x * i), (double) (starty + point_spacing_y * i), 1,
+							  com.cut.width, point_spacing_x, point_spacing_y);
+				b[i] = interp(&gfit, (double) (com.cut.cut_start.x + point_spacing_x * i), (double) (starty + point_spacing_y * i), 2,
+							  com.cut.width, point_spacing_x, point_spacing_y);
 			}
 		}
 	}
-	if (gfit.naxes[2] == 3 && args->mode == MONO) {
+	if (gfit.naxes[2] == 3 && com.cut.mode == MONO) {
 		for (int i = 0 ; i < nbr_points ; i++) {
 			r[i] = (r[i] + g[i] + b[i]) / 3.0;
 		}
 	}
-	if (gfit.naxes[2] == 1 || args->mode == MONO)
-		retval = gnuplot_write_xy_dat(filename, x, r, nbr_points, "x L");
+	if (gfit.naxes[2] == 1 || com.cut.mode == MONO)
+		retval = gnuplot_write_xy_dat(com.cut.filename, x, r, nbr_points, "x L");
 	else
-		retval = gnuplot_write_xrgb_dat(filename, x, r, g, b, nbr_points, "x R G B");
+		retval = gnuplot_write_xrgb_dat(com.cut.filename, x, r, g, b, nbr_points, "x R G B");
 	if (retval) {
 		if (com.script)
-			siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
+			siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", com.cut.filename);
 	} else {
-		siril_log_message(_("%s has been saved.\n"), filename);
+		siril_log_message(_("%s has been saved.\n"), com.cut.filename);
 	}
 	if (use_gnuplot) {
 		gnuplot_ctrl *gplot = gnuplot_init(TRUE);
@@ -282,17 +300,17 @@ gpointer cut_profile(gpointer p) {
 			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
-			if (args->display_graph) {
+			if (com.cut.display_graph) {
 				if (gfit.naxes[2] == 1)
-					gnuplot_plot_xy_from_datfile(gplot, filename);
+					gnuplot_plot_xy_from_datfile(gplot, com.cut.filename);
 				else
-					gnuplot_plot_xrgb_from_datfile(gplot, filename);
+					gnuplot_plot_xrgb_from_datfile(gplot, com.cut.filename);
 			} else {
-				gchar *imagename = replace_ext(filename, ".png");
+				gchar *imagename = replace_ext(com.cut.filename, ".png");
 				if (gfit.naxes[2] == 1)
-					gnuplot_plot_xy_datfile_to_png(gplot, filename, "test", imagename);
+					gnuplot_plot_xy_datfile_to_png(gplot, com.cut.filename, "test", imagename);
 				else
-					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, "test", imagename);
+					gnuplot_plot_xrgb_datfile_to_png(gplot, com.cut.filename, "test", imagename);
 				g_free(imagename);
 			}
 			g_free(title);
@@ -304,6 +322,8 @@ gpointer cut_profile(gpointer p) {
 
 END:
 	// Clean up
+	g_free(com.cut.filename);
+	com.cut.filename = NULL;
 	free(x);
 	x = NULL;
 	free(r);
@@ -317,9 +337,11 @@ END:
 }
 
 gpointer tri_cut(gpointer p) {
-	cut_args *args = (cut_args *) p;
 	int retval = 0;
-	char *filename = "cut.dat";
+	double starty = gfit.ry - 1 - com.cut.cut_start.y;
+	double endy = gfit.ry - 1 - com.cut.cut_end.y;
+	if (!com.cut.filename)
+		com.cut.filename = g_strdup("cut.dat");
 	GtkSpinButton *spin_step = (GtkSpinButton*) lookup_widget("cut_tricut_step");
 	double step = gtk_spin_button_get_value(spin_step);
 	gboolean use_gnuplot = gnuplot_is_available();
@@ -327,11 +349,11 @@ gpointer tri_cut(gpointer p) {
 	if (use_gnuplot) {
 		gplot = gnuplot_init(TRUE);
 	} else {
-		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
+		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), com.cut.filename);
 	}
 	point delta;
-	delta.x = args->finish.x - args->start.x;
-	delta.y = args->finish.y - args->start.y;
+	delta.x = com.cut.cut_end.x - com.cut.cut_start.x;
+	delta.y = endy - starty;
 	double *x = NULL, *r[3] = { 0 };
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.f) {
@@ -347,30 +369,30 @@ gpointer tri_cut(gpointer p) {
 		r[i] = malloc(nbr_points * sizeof(double));
 	x = malloc(nbr_points * sizeof(double));
 	for (int offset = -1 ; offset < 2 ; offset++) {
-		double offstartx = args->start.x - (offset * point_spacing_y * step);
-		double offstarty = args->start.y + (offset * point_spacing_x * step);
+		double offstartx = com.cut.cut_start.x - (offset * point_spacing_y * step);
+		double offstarty = starty + (offset * point_spacing_x * step);
 		for (int i = 0 ; i < nbr_points ; i++) {
 			x[i] = i * point_spacing;
 			if (hv) {
 				// Horizontal / vertical, no interpolation
-				r[offset+1][i] = nointerp(&gfit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 0, width, (int) point_spacing_x, (int) point_spacing_y);
+				r[offset+1][i] = nointerp(&gfit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 0, com.cut.width, (int) point_spacing_x, (int) point_spacing_y);
 			} else {
 				// Neither horizontal nor vertical: interpolate
 				r[offset+1][i] = interp(&gfit, (double) (offstartx + point_spacing_x * i),
 							(double) (offstarty + point_spacing_y * i), 0,
-							width, point_spacing_x, point_spacing_y);
+							com.cut.width, point_spacing_x, point_spacing_y);
 			}
 			if (gfit.naxes[2] > 1) {
 				if (abs(point_spacing_x == 1.) || abs(point_spacing_y == 1.)) { // Horizontal, no interpolation
 					r[offset+1][i] += nointerp(&gfit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 1,
-									width, (int) point_spacing_x, (int) point_spacing_y);
+									com.cut.width, (int) point_spacing_x, (int) point_spacing_y);
 					r[offset+1][i] += nointerp(&gfit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 2,
-									width,  (int) point_spacing_x, (int) point_spacing_y);
+									com.cut.width,  (int) point_spacing_x, (int) point_spacing_y);
 				} else { // Neither horizontal nor vertical: interpolate (simple bilinear interpolation)
 					r[offset+1][i] += interp(&gfit, (double) (offstartx + point_spacing_x * i), (double) (offstarty + point_spacing_y * i), 1,
-								width, point_spacing_x, point_spacing_y);
+								com.cut.width, point_spacing_x, point_spacing_y);
 					r[offset+1][i] += interp(&gfit, (double) (offstartx + point_spacing_x * i), (double) (offstarty + point_spacing_y * i), 2,
-								width, point_spacing_x, point_spacing_y);
+								com.cut.width, point_spacing_x, point_spacing_y);
 				}
 			}
 		}
@@ -381,13 +403,13 @@ gpointer tri_cut(gpointer p) {
 		}
 	}
 	gchar *titletext = g_strdup_printf("x L(-%dpx) L L(+%dpx)", (int) step, (int) step);
-	retval = gnuplot_write_xrgb_dat(filename, x, r[0], r[1], r[2], nbr_points, titletext);
+	retval = gnuplot_write_xrgb_dat(com.cut.filename, x, r[0], r[1], r[2], nbr_points, titletext);
 	g_free(titletext);
 	if (retval) {
 		if (com.script)
-			siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
+			siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", com.cut.filename);
 	} else {
-		siril_log_message(_("%s has been saved.\n"), filename);
+		siril_log_message(_("%s has been saved.\n"), com.cut.filename);
 	}
 	if (use_gnuplot) {
 		if (gplot) {
@@ -398,7 +420,7 @@ gpointer tri_cut(gpointer p) {
 			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
-			gnuplot_plot_xrgb_from_datfile(gplot, filename);
+			gnuplot_plot_xrgb_from_datfile(gplot, com.cut.filename);
 			g_free(title);
 			g_free(xlabel);
 		}
@@ -408,6 +430,8 @@ gpointer tri_cut(gpointer p) {
 END:
 	gnuplot_close(gplot);
 	// Clean up
+	g_free(com.cut.filename);
+	com.cut.filename = NULL;
 	free(x);
 	x = NULL;
 	for (int i = 0 ; i < 3 ; i++) {
@@ -434,19 +458,15 @@ static void update_spectro_coords() {
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
 	GtkToggleButton* tri = (GtkToggleButton*)lookup_widget("cut_tri_cut");
-	cut_data.start.x = com.cut.cut_start.x;
-	cut_data.finish.x = com.cut.cut_end.x;
-	cut_data.start.y = gfit.ry - 1 - com.cut.cut_start.y;
-	cut_data.finish.y = gfit.ry - 1 - com.cut.cut_end.y;
 	if (gtk_toggle_button_get_active(tri))
-		start_in_new_thread(tri_cut, &cut_data);
+		start_in_new_thread(tri_cut, NULL);
 	else {
 		if (gtk_toggle_button_get_active(cut_color))
-			cut_data.mode = COLOR;
+			com.cut.mode = COLOR;
 		else
-			cut_data.mode = MONO;
-		cut_data.display_graph = TRUE;
-		start_in_new_thread(cut_profile, &cut_data);
+			com.cut.mode = MONO;
+		com.cut.display_graph = TRUE;
+		start_in_new_thread(cut_profile, NULL);
 	}
 }
 
@@ -552,9 +572,9 @@ void on_cut_spectro_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	GtkSpinButton* cut_spin_wavenumber1 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber1");
 	GtkSpinButton* cut_spin_wavenumber2 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber2");
 	GtkSpinButton* cut_spin_width = (GtkSpinButton*) lookup_widget("cut_spin_width");
-	wavenumber1 = gtk_spin_button_get_value(cut_spin_wavenumber1);
-	wavenumber2 = gtk_spin_button_get_value(cut_spin_wavenumber2);
-	width = (int) gtk_spin_button_get_value(cut_spin_width);
+	com.cut.wavenumber1 = gtk_spin_button_get_value(cut_spin_wavenumber1);
+	com.cut.wavenumber2 = gtk_spin_button_get_value(cut_spin_wavenumber2);
+	com.cut.width = (int) gtk_spin_button_get_value(cut_spin_width);
 	siril_close_dialog("cut_spectroscopy_dialog");
 }
 
@@ -621,9 +641,11 @@ void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data)
 }
 
 void on_cut_tricut_step_value_changed(GtkSpinButton *button, gpointer user_data) {
+	com.cut.step = gtk_spin_button_get_value(button);
 	redraw(REDRAW_OVERLAY);
 }
 
 void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.cut.tri = gtk_toggle_button_get_active(button);
 	redraw(REDRAW_OVERLAY);
 }

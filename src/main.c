@@ -59,6 +59,7 @@
 #include "io/conversion.h"
 #include "io/single_image.h"
 #include "gui/utils.h"
+#include "gui/cut.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
 #include "gui/siril_css.h"
@@ -171,7 +172,7 @@ static void global_initialization() {
 #endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
-
+	initialize_com_cut();
 	gui.selected_star = -1;
 	gui.qphot = NULL;
 	gui.draw_extra = NULL;

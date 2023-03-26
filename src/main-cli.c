@@ -59,6 +59,7 @@
 #include "io/single_image.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
+#include "gui/cut.h"
 #include "gui/progress_and_log.h"
 #include "registration/registration.h"
 
@@ -128,7 +129,7 @@ static void global_initialization() {
 #endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
-
+	initialize_com_cut();
 	initialize_default_settings();	// com.pref
 #ifdef HAVE_FFTW3F_OMP
 	fftwf_init_threads(); // Should really only be called once so do it at startup
