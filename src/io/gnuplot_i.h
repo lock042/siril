@@ -56,6 +56,7 @@
 typedef struct _GNUPLOT_CTRL_ {
     /** Pipe to gnuplot process */
     FILE    * gnucmd ;
+	FILE    * gnumon ;
 
     /** Number of currently active plots */
     int       nplots ;
@@ -66,6 +67,8 @@ typedef struct _GNUPLOT_CTRL_ {
     char*      tmp_filename_tbl[GP_MAX_TMP_FILES] ;
     /** Number of temporary files */
     int       ntmp ;
+	GThread*  thread;
+	int 	  child_fd;
 } gnuplot_ctrl ;
 
 /*---------------------------------------------------------------------------
