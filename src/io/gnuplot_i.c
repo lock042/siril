@@ -173,9 +173,8 @@ void gnuplot_exit(gnuplot_ctrl * handle)
 /*--------------------------------------------------------------------------*/
 
 gpointer tmpwatcher (gpointer user_data) {
-	printf("tmpwatcher started\n");
+	siril_debug_print("tmpwatcher started\n");
 	gnuplot_ctrl* handle = (gnuplot_ctrl*) user_data;
-	printf("%d\n", handle->ntmp);
 	GInputStream *stream = NULL;
 #ifdef _WIN32
 	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(data->child_fd), FALSE);
