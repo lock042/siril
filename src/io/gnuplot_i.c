@@ -44,9 +44,9 @@
 #include <unistd.h>
 
 #ifdef _WIN32
+#include <winsock2.h>
 #include <windows.h>
 #include <io.h>
-#include <winsock2.h>
 #include <fcntl.h>
 #include <gio/gwin32inputstream.h>
 #else
@@ -177,7 +177,7 @@ gpointer tmpwatcher (gpointer user_data) {
 	gnuplot_ctrl* handle = (gnuplot_ctrl*) user_data;
 	GInputStream *stream = NULL;
 #ifdef _WIN32
-	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(data->child_fd), FALSE);
+	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(handle->child_fd), FALSE);
 #else
 	stream = g_unix_input_stream_new(handle->child_fd, FALSE);
 #endif
