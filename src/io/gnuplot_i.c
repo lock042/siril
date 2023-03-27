@@ -245,7 +245,7 @@ gpointer tmpwatcher (gpointer user_data) {
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Opens up a gnuplot session, ready to receive commands.
-  @param    keep_plot_alive Flag to keep plots opened after gnuplot process is closed
+  @param    None
   @return   Newly allocated gnuplot control structure.
 
   This opens up a new gnuplot session, ready for input. The struct
@@ -256,7 +256,7 @@ gpointer tmpwatcher (gpointer user_data) {
  */
 /*--------------------------------------------------------------------------*/
 
-gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive)
+gnuplot_ctrl * gnuplot_init()
 {
     gnuplot_ctrl *  handle ;
     int i;
@@ -275,7 +275,7 @@ gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive)
     bin2[0] = bin;
     bin2[2] = NULL;
     // passing the option --persist keeps the plot opened even after gnuplot process has been closed
-	bin2[1] = (keep_plot_alive) ? "--persist" : NULL;
+	bin2[1] = "--persist";
     printf("%s\n", bin2[0]);
     /* call gnuplot */
     gint child_stdin, child_stdout, child_stderr;
@@ -351,28 +351,6 @@ void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char *filename)
 	printf("Calling gnuplot_cmd\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
-}
-
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief    Closes a gnuplot session previously opened by gnuplot_init()
-  @param    handle Gnuplot session control handle.
-  @return   gboolean
-
-  Closes gnuplot by calling an exit command and deletes all opened temporary files.
-  It is mandatory to call this function to close the handle, otherwise
-  temporary files are not cleaned and child process might survive.
-  This is meant to be called with g_idle_add, when plot are displayed and need to survive
-
- */
-/*--------------------------------------------------------------------------*/
-
-gboolean gnuplot_close_idle(gpointer p) {
-    siril_debug_print("closing gnuplot in idle mode\n");
-    gnuplot_ctrl *handle = (gnuplot_ctrl *) p;
-    gnuplot_close(handle);
-    return FALSE;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -583,7 +561,7 @@ void gnuplot_resetplot(gnuplot_ctrl * h)
     double          d[50] ;
     int             i ;
 
-    h = gnuplot_init(TRUE) ;
+    h = gnuplot_init() ;
     for (i=0 ; i<50 ; i++) {
         d[i] = (double)(i*i) ;
     }
@@ -647,7 +625,7 @@ void gnuplot_plot_x(
     double          y[50] ;
     int             i ;
 
-    h = gnuplot_init(TRUE) ;
+    h = gnuplot_init() ;
     for (i=0 ; i<50 ; i++) {
         x[i] = (double)(i)/10.0 ;
         y[i] = x[i] * x[i] ;
@@ -793,7 +771,7 @@ void gnuplot_plot_once(
 
   if (x==NULL || n<1) return ;
 
-  if ((handle = gnuplot_init(TRUE)) == NULL) return ;
+  if ((handle = gnuplot_init()) == NULL) return ;
   if (style!=NULL) {
       gnuplot_setstyle(handle, style);
   } else {

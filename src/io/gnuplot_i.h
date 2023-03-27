@@ -80,7 +80,7 @@ gboolean gnuplot_is_available();
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Opens up a gnuplot session, ready to receive commands.
-  @param    keep_plot_alive Flag to keep plots opened after gnuplot process is closed
+  @param    None
   @return   Newly allocated gnuplot control structure.
 
   This opens up a new gnuplot session, ready for input. The struct
@@ -90,7 +90,7 @@ gboolean gnuplot_is_available();
   The session must be closed using gnuplot_close().
  */
 /*--------------------------------------------------------------------------*/
-gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive);
+gnuplot_ctrl * gnuplot_init();
 
 /*-------------------------------------------------------------------------*/
 /**
