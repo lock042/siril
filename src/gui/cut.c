@@ -19,6 +19,7 @@
 */
 
 #include <math.h>
+#include "algos/extraction.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
@@ -527,7 +528,145 @@ gpointer tri_cut(gpointer p) {
 				gnuplot_plot_xrgb_from_datfile(gplot, com.cut.filename);
 			} else {
 				gchar *imagename = replace_ext(g_path_get_basename(com.cut.filename), ".png");
-				gnuplot_plot_xrgb_datfile_to_png(gplot, com.cut.filename, "test", imagename);
+				gnuplot_plot_xrgb_datfile_to_png(gplot, com.cut.filename, title, imagename);
+				g_free(imagename);
+			}
+			com.cut.filename = NULL;
+			g_free(title);
+			g_free(xlabel);
+		}
+	}
+	else siril_log_message(_("Communicating with gnuplot failed\n"));
+
+END:
+	gnuplot_close(gplot);
+	// Clean up
+	if (tmpfile)
+		g_unlink(com.cut.filename);
+	g_free(com.cut.filename);
+	com.cut.filename = NULL;
+	free(x);
+	x = NULL;
+	for (int i = 0 ; i < 3 ; i++) {
+		free(r[i]);
+		r[i] = NULL;
+	}
+	siril_add_idle(end_generic, NULL);
+	return GINT_TO_POINTER(retval);
+}
+
+gpointer cfa_cut(gpointer p) {
+	int retval = 0, ret = 0;
+	gboolean tmpfile = FALSE;
+	gboolean use_gnuplot = gnuplot_is_available();
+	gnuplot_ctrl *gplot = NULL;
+
+	// Split com.cut.fit into 4 x Bayer sub-patterns cfa[0123]
+	fits cfa[4];
+	memset(cfa, 0, 4 * sizeof(fits));
+	if (com.cut.fit->type == DATA_USHORT) {
+		if ((ret = split_cfa_ushort(com.cut.fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
+			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
+			return GINT_TO_POINTER(1);
+		}
+	} else {
+		if ((ret = split_cfa_float(com.cut.fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
+			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
+			return GINT_TO_POINTER(1);
+		}
+	}
+
+	if (use_gnuplot) {
+		gplot = gnuplot_init(TRUE);
+	} else {
+		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), com.cut.filename);
+	}
+
+	if (!com.cut.filename) {
+		siril_debug_print("Generating filename ");
+		if (com.cut.save_dat) {
+		siril_debug_print("for storage: ");
+			if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
+				siril_debug_print("from current image: ");
+				gchar* temp = g_path_get_basename(com.uniq->filename);
+				gchar* temp2 = g_strdup_printf("%s%s", build_timestamp_filename(), temp);
+				com.cut.filename = replace_ext(temp2, ".dat");
+				g_free(temp);
+				g_free(temp2);
+				siril_debug_print("%s\n", com.cut.filename);
+			} /*else if (sequence_is_loaded()) {
+				com.cut.filename = g_strdup_printf("%s%s%.5d", build_timestamp_filename(), args->seq->seqname, args->imgnumber + 1);
+			}*/ else {
+				com.cut.filename = g_strdup_printf("%s_image", build_timestamp_filename());
+				siril_debug_print("%s\n", com.cut.filename);
+			}
+		} else {
+			siril_debug_print("for temporary use: ");
+			gchar* temp = profile_tmpfile();
+			com.cut.filename = g_strdup_printf("%s.dat", temp);
+			g_free(temp);
+			tmpfile = TRUE;
+			siril_debug_print("%s\n", com.cut.filename);
+		}
+	}
+
+	// Coordinates of profile start and endpoints in CFA space
+	point cut_start_cfa = { (int) (com.cut.cut_start.x / 2) , (int) (com.cut.cut_start.y / 2) };
+	point cut_end_cfa = { (int) (com.cut.cut_end.x / 2) , (int) (com.cut.cut_end.y / 2) };
+	double starty = (com.cut.fit->ry % 2) - 1 - cut_start_cfa.y;
+	double endy = (com.cut.fit->ry % 2) - 1 - cut_end_cfa.y;
+	point delta = { cut_end_cfa.x - cut_start_cfa.x, endy - starty };
+	double *x = NULL, *r[4] = { 0 };
+	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
+	if (length < 1.f) {
+		retval = 1;
+		goto END;
+	}
+	int nbr_points = (int) length;
+	double point_spacing = length / nbr_points;
+	double point_spacing_x = (double) delta.x / nbr_points;
+	double point_spacing_y = (double) delta.y / nbr_points;
+	gboolean hv = ((point_spacing_x == 1.f) || (point_spacing_y == 1.f) || (point_spacing_x == -1.f) || (point_spacing_y == -1.f));
+	for (int i = 0 ; i < 4 ; i++)
+		r[i] = malloc(nbr_points * sizeof(double));
+	x = malloc(nbr_points * sizeof(double));
+	for (int j = 0 ; j < 4 ; j++) {
+		for (int i = 0 ; i < nbr_points ; i++) {
+			x[i] = i * point_spacing;
+			if (hv) {
+				// Horizontal / vertical, no interpolation
+				r[j][i] = nointerp(&cfa[j], cut_start_cfa.x + point_spacing_x * i, cut_start_cfa.y + point_spacing_y * i,
+								   0, 1, (int) point_spacing_x, (int) point_spacing_y);
+			} else {
+				// Neither horizontal nor vertical: interpolate
+				r[j][i] = interp(&cfa[j], (double) (cut_start_cfa.x + point_spacing_x * i), (double) (cut_start_cfa.y + point_spacing_y * i),
+								 0, 1, point_spacing_x, point_spacing_y);
+			}
+		}
+	}
+	gchar *titletext = g_strdup("x CFA0 CFA1 CFA2 CFA3");
+	retval = gnuplot_write_xcfa_dat(com.cut.filename, x, r[0], r[1], r[2], r[3], nbr_points, titletext);
+	g_free(titletext);
+	if (retval) {
+		if (com.script)
+			siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", com.cut.filename);
+	} else {
+		siril_log_message(_("%s has been saved.\n"), com.cut.filename);
+	}
+	if (use_gnuplot) {
+		if (gplot) {
+			/* Plotting cut profile */
+			gchar *xlabel = NULL, *title = NULL;
+			title = g_strdup_printf(_("Data Cut Profile"));
+			xlabel = g_strdup_printf(_("Distance along cut / px"));
+			gnuplot_set_title(gplot, title);
+			gnuplot_set_xlabel(gplot, xlabel);
+			gnuplot_setstyle(gplot, "lines");
+			if (com.cut.display_graph) {
+				gnuplot_plot_xcfa_from_datfile(gplot, com.cut.filename);
+			} else {
+				gchar *imagename = replace_ext(g_path_get_basename(com.cut.filename), ".png");
+				gnuplot_plot_xcfa_datfile_to_png(gplot, com.cut.filename, title, imagename);
 				g_free(imagename);
 			}
 			com.cut.filename = NULL;
@@ -569,11 +708,20 @@ static void update_spectro_coords() {
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
-	GtkToggleButton* tri = (GtkToggleButton*)lookup_widget("cut_tri_cut");
 	com.cut.fit = &gfit;
-	if (gtk_toggle_button_get_active(tri))
+	if (com.cut.tri) {
+		siril_debug_print("Tri-profile\n");
 		start_in_new_thread(tri_cut, NULL);
-	else {
+	} else if (com.cut.cfa) {
+		if ((com.cut.fit->naxes[2] > 1) || (com.cut.fit->bayer_pattern == NULL))
+			siril_message_dialog(GTK_MESSAGE_ERROR,
+					_("Invalid file for this profiling mode"),
+					_("CFA mode requires a mono image file with a Bayer pattern (before debayering is carried out)."));
+		else {
+			siril_debug_print("CFA profiling\n");
+			start_in_new_thread(cfa_cut, NULL);
+		}
+	} else {
 		if (gtk_toggle_button_get_active(cut_color))
 			com.cut.mode = COLOR;
 		else
@@ -760,6 +908,17 @@ void on_cut_tricut_step_value_changed(GtkSpinButton *button, gpointer user_data)
 
 void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.cut.tri = gtk_toggle_button_get_active(button);
+	if (com.cut.tri)
+		com.cut.cfa = FALSE;
+	redraw(REDRAW_OVERLAY);
+}
+
+void on_cut_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
+	com.cut.cfa = gtk_toggle_button_get_active(button);
+	if (com.cut.cfa) {
+		siril_debug_print("CFA mode enabled\n");
+		com.cut.tri = FALSE;
+	}
 	redraw(REDRAW_OVERLAY);
 }
 

@@ -1128,7 +1128,6 @@ artifacts may appear.</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile and do not use spectrometric data.</property>
-                <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">cut_radio_mono</property>
                 <signal name="toggled" handler="on_cut_tri_cut_toggled" swapped="no"/>
@@ -1162,12 +1161,25 @@ artifacts may appear.</property>
                 <signal name="toggled" handler="on_cut_save_checkbutton_toggled" swapped="no"/>
               </object>
               <packing>
-                <property name="left-attach">0</property>
+                <property name="left-attach">1</property>
                 <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkRadioButton" id="cut_cfa">
+                <property name="label" translatable="yes">CFA</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile and do not use spectrometric data.</property>
+                <property name="draw-indicator">True</property>
+                <property name="group">cut_radio_mono</property>
+                <signal name="toggled" handler="on_cut_cfa_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">4</property>
+              </packing>
             </child>
           </object>
           <packing>

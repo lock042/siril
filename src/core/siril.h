@@ -492,6 +492,7 @@ typedef struct cut_struct {
 	double wavenumber1;
 	double wavenumber2;
 	gboolean tri;
+	gboolean cfa;
 	cut_mode mode;
 	int width;
 	int step;

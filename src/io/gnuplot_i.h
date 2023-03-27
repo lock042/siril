@@ -542,11 +542,31 @@ int gnuplot_write_xrgb_dat(
     int                 n,
     char const      *   title);
 
+int gnuplot_write_xcfa_dat(
+    char const *        fileName,
+    double const    *   x,
+    double const    *   cfa0,
+    double const    *   cfa1,
+    double const    *   cfa2,
+    double const    *   cfa3,
+    int                 n,
+    char const      *   title);
+
 void gnuplot_plot_xrgb_from_datfile(
 	gnuplot_ctrl * handle,
 	char const* tmp_filename);
 
 void gnuplot_plot_xrgb_datfile_to_png(
+	gnuplot_ctrl * handle,
+	char const* dat_filename,
+	char const *curve_title,
+	char const* png_filename);
+
+void gnuplot_plot_xcfa_from_datfile(
+	gnuplot_ctrl * handle,
+	char const* tmp_filename);
+
+void gnuplot_plot_xcfa_datfile_to_png(
 	gnuplot_ctrl * handle,
 	char const* dat_filename,
 	char const *curve_title,

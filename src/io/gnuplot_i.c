@@ -998,6 +998,48 @@ int gnuplot_write_xrgb_dat(
     return 0;
 }
 
+int gnuplot_write_xcfa_dat(
+    char const *        fileName,
+    double const    *   x,
+    double const    *   cfa0,
+    double const    *   cfa1,
+    double const    *   cfa2,
+    double const    *   cfa3,
+    int                 n,
+    char const      *   title)
+{
+    int     i ;
+    FILE*   fileHandle;
+
+    if (fileName==NULL || x==NULL || cfa0==NULL || cfa1 == NULL || cfa2 == NULL || cfa3 == NULL || (n<1))
+    {
+        return -1;
+    }
+
+    fileHandle = g_fopen(fileName, "w");
+
+    if (fileHandle == NULL)
+    {
+        return -1;
+    }
+
+    // Write Comment.
+    if (title != NULL)
+    {
+        fprintf(fileHandle, "%s\n", title) ;
+    }
+
+    /* Write data to this file  */
+    for (i=0 ; i<n; i++)
+    {
+        fprintf(fileHandle, "%8.6f %8.6f %8.6f %8.6f %8.6f\n", x[i], cfa0[i], cfa1[i], cfa2[i], cfa3[i]) ;
+    }
+
+    fclose(fileHandle) ;
+
+    return 0;
+}
+
 int gnuplot_write_xyyerr_dat(char const *fileName, double const *x,
         double const *y, double const *yerr, int n, char const *title) {
     if (!fileName || !x || !y || !yerr || n < 1) {
@@ -1143,6 +1185,16 @@ void gnuplot_plot_xrgb_from_datfile(gnuplot_ctrl * handle, char const* tmp_filen
     handle->nplots++ ;
     return ;
 }
+
+void gnuplot_plot_xcfa_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
+{
+    char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
+    gnuplot_cmd(handle, "%s for [col=2:5] \"%s\" using ($1):col with %s title columnheader",
+		   cmd, tmp_filename, handle->pstyle);
+    handle->nplots++ ;
+    return ;
+}
+
 void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
 		char const *curve_title, char const* png_filename)
 {
@@ -1165,6 +1217,20 @@ void gnuplot_plot_xrgb_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
 
     if (curve_title && curve_title[0] != '\0')
 	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2):($3):($4) title \"%s\" with %s", dat_filename,
+			    curve_title, handle->pstyle);
+    else
+	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
+			    handle->pstyle);
+}
+
+void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
+		char const *curve_title, char const* png_filename)
+{
+    gnuplot_cmd(handle, "set term png size 800,600");
+    gnuplot_cmd(handle, "set output \"%s\"", png_filename);
+
+    if (curve_title && curve_title[0] != '\0')
+	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2):($3):($4):($5) title \"%s\" with %s", dat_filename,
 			    curve_title, handle->pstyle);
     else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
