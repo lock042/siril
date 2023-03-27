@@ -238,6 +238,7 @@ gpointer tmpwatcher (gpointer user_data) {
 		g_free(buffer);
 		buffer = NULL;
 	}
+	return GINT_TO_POINTER(1);
 }
 
 /*-------------------------------------------------------------------------*/
