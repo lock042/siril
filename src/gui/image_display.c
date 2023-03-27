@@ -714,7 +714,7 @@ static void draw_selection(const draw_data_t* dd) {
 static void draw_cut_line(const draw_data_t* dd) {
 //	if (!(mouse_status == MOUSE_ACTION_CUT_SELECT))
 //		return;
-	if (com.cut.cut_end.x == -1 || com.cut.cut_end.y == -1)
+	if (com.cut.cut_end.x == -1 || com.cut.cut_end.y == -1 || com.cut.seq)
 		return;
 	gboolean tri = gtk_toggle_button_get_active((GtkToggleButton*)lookup_widget("cut_tri_cut"));
 	GtkSpinButton *spin_step = (GtkSpinButton*) lookup_widget("cut_tricut_step");

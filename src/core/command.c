@@ -9046,6 +9046,47 @@ int process_profile(int nb) {
 			save_dat = TRUE;
 		}
 	}
+	if (start.x == finish.x && start.y == finish.y) {
+		siril_log_message(_("Error: start and finish points are the same.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wn1.x > -1.0 && wn1.x == wn2.x && wn1.y == wn2.y) {
+		siril_log_message(_("Error: wavenumber points are the same.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wn1.x > -1.0 && wavenumber1 == -1.0) {
+		siril_log_message(_("Error: wavenumber for -wn1= is not set.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wn2.x > -1.0 && wavenumber2 == -1.0) {
+		siril_log_message(_("Error: wavenumber for -wn2= is not set.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wavenumber1 >=0.0 && (wn1.x < 0.0 || wn1.y < 0.0)) {
+		siril_log_message(_("Error: wavenumber1 set but corresponding location is not set.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wavenumber2 >=0.0 && (wn2.x < 0.0 || wn2.y < 0.0)) {
+		siril_log_message(_("Error: wavenumber2 set but corresponding location is not set.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if ((wn1.x < 0.0 || wn2.y < 0.0 || wn2.x < 0.0 || wn2.y < 0.0) && (!(wn1.x == -1.0 && wn1.y == -1.0 && wn2.x == -1.0 && wn2.y == -1.0))) {
+		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wn1.x > gfit.rx - 1 || wn2.x > gfit.rx - 1 || wn1.y > gfit.ry - 1 || wn2.y > gfit.ry - 1) {
+		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (start.x > gfit.rx - 1 || start.y > gfit.ry - 1 || finish.x > gfit.rx - 1 || finish.y > gfit.ry - 1) {
+		siril_log_message(_("Error: profile line endpoint outside image dimensions.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (spacing != 1 && !tri) {
+		siril_log_message(_("Error: spacing is set but tri-profile mode is not selected.\n"));
+		return CMD_ARG_ERROR;
+	}
+
 	com.cut.cut_start.x = start.x;
 	com.cut.cut_start.y = start.y;
 	com.cut.cut_end.x = finish.x;
@@ -9066,6 +9107,7 @@ int process_profile(int nb) {
 	com.cut.filename = filename;
 	com.cut.save_dat = save_dat;
 	com.cut.fit = &gfit;
+	com.cut.seq = NULL;
 
 	if (cfa)
 		cfa_cut(NULL);
@@ -9077,3 +9119,188 @@ int process_profile(int nb) {
 	return CMD_OK;
 }
 
+int process_seq_profile(int nb) {
+	gboolean tri = FALSE, cfa = FALSE;
+	gboolean colorplot = FALSE;
+	gboolean display_graph = FALSE;
+	gboolean save_dat = FALSE;
+	cut_mode mode = { 0 };
+	int spacing = 1;
+	int width = 1;
+	point start = {-1.0, -1.0}, finish = {-1.0, -1.0};
+	point wn1 = {-1.0, -1.0}, wn2 = {-1.0, -1.0};
+	double wavenumber1 = -1.0, wavenumber2 = -1.0;
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+	for (int i = 2; i < nb; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		if (g_str_has_prefix(arg, "-tri")) {
+			if (colorplot) {
+				siril_log_message(_("Error: color plot and tri-profile are mutually exclusive.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (cfa) {
+				siril_log_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"));
+				return CMD_ARG_ERROR;
+			}
+			tri = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-cfa")) {
+			if (colorplot) {
+				siril_log_message(_("Error: color plot and CFA mode are mutually exclusive.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (tri) {
+				siril_log_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if ((com.cut.fit->naxes[2] > 1) || (com.cut.fit->bayer_pattern == NULL) || (com.cut.fit->bayer_pattern[0] == '\0')) {
+				siril_log_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"));
+				return CMD_ARG_ERROR;
+			}
+			cfa = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-savedat")) {
+			save_dat = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-colorplot")) {
+			if (tri) {
+				siril_log_message(_("Error: color plot and tri-profile are mutually exclusive.\n"));
+				return CMD_ARG_ERROR;
+			}
+			colorplot = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-width=")) {
+			arg += 7;
+			width = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-spacing=")) {
+			arg += 9;
+			spacing = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavenumber1=")) {
+			arg += 13;
+			wavenumber1 = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-wavenumber2=")) {
+			arg += 13;
+			wavenumber2 = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-from=")) {
+			gchar *value;
+			value = arg + 6;
+			start.x = (double) g_ascii_strtoull(value, &end, 10);
+			if (end == value) return CMD_ARG_ERROR;
+			if (*end != ',') return CMD_ARG_ERROR;
+			end++;
+			value = end;
+			start.y = (double) g_ascii_strtoull(value, &end, 10);
+			if (end == value) return CMD_ARG_ERROR;
+		}
+		else if (g_str_has_prefix(arg, "-to=") ){
+			gchar *value;
+			value = arg + 4;
+			finish.x = (double) g_ascii_strtoull(value, &end, 10);
+			if (end == value) return CMD_ARG_ERROR;
+			if (*end != ',') return CMD_ARG_ERROR;
+			end++;
+			value = end;
+			finish.y = (double) g_ascii_strtoull(value, &end, 10);
+			if (end == value) return CMD_ARG_ERROR;
+		}
+		else if (g_str_has_prefix(arg, "-wn1at=")) {
+			gchar *value;
+			value = arg + 6;
+			wn1.x = (double) g_ascii_strtoull(value, &end, 10);
+			if (end == value) return CMD_ARG_ERROR;
+			if (*end != ',') return CMD_ARG_ERROR;
+			end++;
+			value = end;
+			wn1.y = (double) g_ascii_strtoull(value, &end, 10);
+			if (end == value) return CMD_ARG_ERROR;
+		}
+		else if (g_str_has_prefix(arg, "-wn2at=")) {
+			gchar *value;
+			value = arg + 6;
+			wn2.x = (double) g_ascii_strtoull(value, &end, 10);
+			if (end == value) return CMD_ARG_ERROR;
+			if (*end != ',') return CMD_ARG_ERROR;
+			end++;
+			value = end;
+			wn2.y = (double) g_ascii_strtoull(value, &end, 10);
+			if (end == value) return CMD_ARG_ERROR;
+		}
+	}
+	if (start.x == finish.x && start.y == finish.y) {
+		siril_log_message(_("Error: start and finish points are the same.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wn1.x > -1.0 && wn1.x == wn2.x && wn1.y == wn2.y) {
+		siril_log_message(_("Error: wavenumber points are the same.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wn1.x > -1.0 && wavenumber1 == -1.0) {
+		siril_log_message(_("Error: wavenumber for -wn1= is not set.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wn2.x > -1.0 && wavenumber2 == -1.0) {
+		siril_log_message(_("Error: wavenumber for -wn2= is not set.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wavenumber1 >=0.0 && (wn1.x < 0.0 || wn1.y < 0.0)) {
+		siril_log_message(_("Error: wavenumber1 set but corresponding location is not set.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wavenumber2 >=0.0 && (wn2.x < 0.0 || wn2.y < 0.0)) {
+		siril_log_message(_("Error: wavenumber2 set but corresponding location is not set.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if ((wn1.x < 0.0 || wn2.y < 0.0 || wn2.x < 0.0 || wn2.y < 0.0) && (!(wn1.x == -1.0 && wn1.y == -1.0 && wn2.x == -1.0 && wn2.y == -1.0))) {
+		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (wn1.x > gfit.rx - 1 || wn2.x > gfit.rx - 1 || wn1.y > gfit.ry - 1 || wn2.y > gfit.ry - 1) {
+		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (start.x > gfit.rx - 1 || start.y > gfit.ry - 1 || finish.x > gfit.rx - 1 || finish.y > gfit.ry - 1) {
+		siril_log_message(_("Error: profile line endpoint outside image dimensions.\n"));
+		return CMD_ARG_ERROR;
+	}
+	if (spacing != 1 && !tri) {
+		siril_log_message(_("Error: spacing is set but tri-profile mode is not selected.\n"));
+		return CMD_ARG_ERROR;
+	}
+
+	com.cut.cut_start.x = start.x;
+	com.cut.cut_start.y = start.y;
+	com.cut.cut_end.x = finish.x;
+	com.cut.cut_end.y = finish.y;
+	com.cut.cut_wn1.x = wn1.x;
+	com.cut.cut_wn1.y = wn1.y;
+	com.cut.cut_wn2.x = wn2.x;
+	com.cut.cut_wn2.y = wn2.y;
+	com.cut.wavenumber1 = wavenumber1;
+	com.cut.wavenumber2 = wavenumber2;
+	com.cut.tri = tri;
+	com.cut.cfa = cfa;
+	com.cut.width = width;
+	com.cut.step = spacing;
+	com.cut.display_graph = display_graph;
+	com.cut.mode = mode;
+	com.cut.cut_measure = FALSE;
+	com.cut.save_dat = save_dat;
+	com.cut.seq = seq;
+
+	apply_cut_to_sequence(seq);
+
+	return CMD_OK;
+}

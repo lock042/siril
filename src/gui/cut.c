@@ -28,6 +28,7 @@
 #include "gui/dialogs.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "algos/demosaicing.h"
 #include "algos/PSF.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -79,6 +80,8 @@ char* profile_tmpfile()
 
 void initialize_com_cut() {
 	com.cut.fit = &gfit;
+	com.cut.seq = NULL;
+	com.cut.imgnumber = -1;
 	com.cut.cut_start.x = -1;
 	com.cut.cut_start.y = -1;
 	com.cut.cut_end.x = -1;
@@ -262,23 +265,21 @@ gpointer cut_profile(gpointer p) {
 	if (!use_gnuplot) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), com.cut.filename);
 	} else {
-		gplot = gnuplot_init(TRUE);
+		gplot = gnuplot_init();
 	}
 	if (!com.cut.filename) {
 		siril_debug_print("Generating filename ");
-		if (com.cut.save_dat) {
-		siril_debug_print("for storage: ");
+		if (com.cut.save_dat || com.cut.seq) {
+			siril_debug_print("for storage: ");
 			if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 				siril_debug_print("from current image: ");
 				gchar* temp = g_path_get_basename(com.uniq->filename);
-				gchar* temp2 = g_strdup_printf("%s%s", build_timestamp_filename(), temp);
-				com.cut.filename = replace_ext(temp2, ".dat");
+				com.cut.filename = g_strdup_printf("%s%s.dat", build_timestamp_filename(), temp);
 				g_free(temp);
-				g_free(temp2);
 				siril_debug_print("%s\n", com.cut.filename);
-			} /*else if (sequence_is_loaded()) {
-				com.cut.filename = g_strdup_printf("%s%s%.5d", build_timestamp_filename(), args->seq->seqname, args->imgnumber + 1);
-			}*/ else {
+			} else if (com.cut.seq) {
+				com.cut.filename = g_strdup_printf("%s%.5d.dat", com.cut.seq->seqname, com.cut.imgnumber + 1);
+			} else {
 				com.cut.filename = g_strdup_printf("%s_image", build_timestamp_filename());
 				siril_debug_print("%s\n", com.cut.filename);
 			}
@@ -356,8 +357,8 @@ gpointer cut_profile(gpointer p) {
 	else
 		retval = gnuplot_write_xrgb_dat(com.cut.filename, x, r, g, b, nbr_points, "x R G B");
 	if (retval) {
-		if (com.script)
-			siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", com.cut.filename);
+		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", com.cut.filename);
+		goto END;
 	} else {
 		siril_log_message(_("%s has been saved.\n"), com.cut.filename);
 	}
@@ -425,14 +426,14 @@ gpointer tri_cut(gpointer p) {
 	gboolean use_gnuplot = gnuplot_is_available();
 	gnuplot_ctrl *gplot = NULL;
 	if (use_gnuplot) {
-		gplot = gnuplot_init(TRUE);
+		gplot = gnuplot_init();
 	} else {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), com.cut.filename);
 	}
 	if (!com.cut.filename) {
 		siril_debug_print("Generating filename ");
-		if (com.cut.save_dat) {
-		siril_debug_print("for storage: ");
+		if (com.cut.save_dat || com.cut.seq) {
+			siril_debug_print("for storage: ");
 			if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 				siril_debug_print("from current image: ");
 				gchar* temp = g_path_get_basename(com.uniq->filename);
@@ -441,9 +442,9 @@ gpointer tri_cut(gpointer p) {
 				g_free(temp);
 				g_free(temp2);
 				siril_debug_print("%s\n", com.cut.filename);
-			} /*else if (sequence_is_loaded()) {
-				com.cut.filename = g_strdup_printf("%s%s%.5d", build_timestamp_filename(), args->seq->seqname, args->imgnumber + 1);
-			}*/ else {
+			} else if (com.cut.seq) {
+				com.cut.filename = g_strdup_printf("%s%s%.5d", build_timestamp_filename(), com.cut.seq->seqname, com.cut.imgnumber + 1);
+			} else {
 				com.cut.filename = g_strdup_printf("%s_image", build_timestamp_filename());
 				siril_debug_print("%s\n", com.cut.filename);
 			}
@@ -511,8 +512,8 @@ gpointer tri_cut(gpointer p) {
 	retval = gnuplot_write_xrgb_dat(com.cut.filename, x, r[0], r[1], r[2], nbr_points, titletext);
 	g_free(titletext);
 	if (retval) {
-		if (com.script)
-			siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", com.cut.filename);
+		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", com.cut.filename);
+		goto END;
 	} else {
 		siril_log_message(_("%s has been saved.\n"), com.cut.filename);
 	}
@@ -568,25 +569,27 @@ gpointer cfa_cut(gpointer p) {
 	if (com.cut.fit->type == DATA_USHORT) {
 		if ((ret = split_cfa_ushort(com.cut.fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
 			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
-			return GINT_TO_POINTER(1);
+			retval = 1;
+			goto END;
 		}
 	} else {
 		if ((ret = split_cfa_float(com.cut.fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
 			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
-			return GINT_TO_POINTER(1);
+			retval = 1;
+			goto END;
 		}
 	}
 
 	if (use_gnuplot) {
-		gplot = gnuplot_init(TRUE);
+		gplot = gnuplot_init();
 	} else {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), com.cut.filename);
 	}
 
 	if (!com.cut.filename) {
 		siril_debug_print("Generating filename ");
-		if (com.cut.save_dat) {
-		siril_debug_print("for storage: ");
+		if (com.cut.save_dat || com.cut.seq) {
+			siril_debug_print("for storage: ");
 			if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 				siril_debug_print("from current image: ");
 				gchar* temp = g_path_get_basename(com.uniq->filename);
@@ -595,9 +598,9 @@ gpointer cfa_cut(gpointer p) {
 				g_free(temp);
 				g_free(temp2);
 				siril_debug_print("%s\n", com.cut.filename);
-			} /*else if (sequence_is_loaded()) {
-				com.cut.filename = g_strdup_printf("%s%s%.5d", build_timestamp_filename(), args->seq->seqname, args->imgnumber + 1);
-			}*/ else {
+			} else if (com.cut.seq) {
+				com.cut.filename = g_strdup_printf("%s%s%.5d", build_timestamp_filename(), com.cut.seq->seqname, com.cut.imgnumber + 1);
+			} else {
 				com.cut.filename = g_strdup_printf("%s_image", build_timestamp_filename());
 				siril_debug_print("%s\n", com.cut.filename);
 			}
@@ -649,8 +652,9 @@ gpointer cfa_cut(gpointer p) {
 	retval = gnuplot_write_xcfa_dat(com.cut.filename, x, r[0], r[1], r[2], r[3], nbr_points, titletext);
 	g_free(titletext);
 	if (retval) {
-		if (com.script)
-			siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", com.cut.filename);
+		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", com.cut.filename);
+		retval = 1;
+		goto END;
 	} else {
 		siril_log_message(_("%s has been saved.\n"), com.cut.filename);
 	}
@@ -712,11 +716,13 @@ static void update_spectro_coords() {
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
 	com.cut.fit = &gfit;
+	sensor_pattern pattern = get_bayer_pattern(com.cut.fit);
+	com.cut.seq = NULL;
 	if (com.cut.tri) {
 		siril_debug_print("Tri-profile\n");
 		start_in_new_thread(tri_cut, NULL);
 	} else if (com.cut.cfa) {
-		if ((com.cut.fit->naxes[2] > 1) || (com.cut.fit->bayer_pattern == NULL) || (com.cut.fit->bayer_pattern[0] == '\0'))
+		if ((com.cut.fit->naxes[2] > 1) || (!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 					_("Invalid file for this profiling mode"),
 					_("CFA mode requires a mono image file with a Bayer pattern (before debayering is carried out)."));
@@ -936,4 +942,69 @@ void on_cut_button_toggled(GtkToggleToolButton *button, gpointer user_data) {
 					_("This functionality relies on GNUplot to generate graphs. Without it, profile data files can still be produced but you will need to use external software to display them."));
 		no_gnuplot_warning_given = TRUE;
 	}
+}
+
+//// Sequence Processing ////
+
+static int cut_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_input_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_input_image, NULL, &MB_avail);
+	if (com.cut.cfa)
+		required = 2 * MB_per_input_image;
+	else
+		required = MB_per_input_image;
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+			thread_limit = com.max_thread;
+
+		limit = thread_limit;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	}
+	limit = (limit >= 1 ? 1 : 0);
+	return limit;
+}
+
+int cut_finalize_hook(struct generic_seq_args *args) {
+	initialize_com_cut();
+	return 0;
+}
+
+int cut_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+	int ret = 0;
+	com.cut.fit = fit;
+	com.cut.imgnumber = i;
+	if (com.cut.cfa)
+		ret = GPOINTER_TO_INT(cfa_cut(NULL));
+	else if (com.cut.tri)
+		ret = GPOINTER_TO_INT(tri_cut(NULL));
+	else
+		ret = GPOINTER_TO_INT(cut_profile(NULL));
+	return ret;
+}
+
+void apply_cut_to_sequence(sequence* cut_sequence) {
+	com.cut.seq = cut_sequence;
+	struct generic_seq_args *args = create_default_seqargs(com.cut.seq);
+	args->seq = com.cut.seq;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = com.cut.seq->selnum;
+	args->compute_mem_limits_hook = cut_compute_mem_limits;
+	args->finalize_hook = cut_finalize_hook;
+	args->image_hook = cut_image_hook;
+	args->description = _("Intensity Profile");
+	args->has_output = FALSE;
+	args->load_new_sequence = FALSE;
+	args->force_ser_output = FALSE;
+	args->stop_on_error = FALSE;
+
+	start_in_new_thread(generic_sequence_worker, args);
 }

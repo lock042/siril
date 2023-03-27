@@ -262,7 +262,7 @@ void gnuplot_resetplot(gnuplot_ctrl * h);
     double          d[50] ;
     int             i ;
 
-    h = gnuplot_init(TRUE) ;
+    h = gnuplot_init() ;
     for (i=0 ; i<50 ; i++) {
         d[i] = (double)(i*i) ;
     }
@@ -294,7 +294,7 @@ void gnuplot_plot_x(gnuplot_ctrl * handle, double * d, int n, char * title);
     double          y[50] ;
     int             i ;
 
-    h = gnuplot_init(TRUE) ;
+    h = gnuplot_init() ;
     for (i=0 ; i<50 ; i++) {
         x[i] = (double)(i)/10.0 ;
         y[i] = x[i] * x[i] ;
@@ -372,7 +372,7 @@ void gnuplot_plot_once(
     gnuplot_ctrl    *   h ;
     double              a, b ;
 
-    h = gnuplot_init(TRUE) ;
+    h = gnuplot_init() ;
     gnuplot_plot_slope(h, 1.0, 0.0, "unity slope") ;
     sleep(2) ;
     gnuplot_close(h) ;
@@ -403,7 +403,7 @@ void gnuplot_plot_slope(
         gnuplot_ctrl    *h ;
         char            eq[80] ;
 
-        h = gnuplot_init(TRUE) ;
+        h = gnuplot_init() ;
         strcpy(eq, "sin(x) * cos(2*x)") ;
         gnuplot_plot_equation(h, eq, "sine wave", normal) ;
         gnuplot_close(h) ;

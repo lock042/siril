@@ -499,6 +499,8 @@ typedef struct cut_struct {
 	gboolean display_graph;
 	char* filename;
 	fits* fit;
+	sequence* seq;
+	int imgnumber;
 	gboolean save_dat;
 } cut_struct;
 

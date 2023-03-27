@@ -177,6 +177,7 @@ static command commands[] = {
 	{"seqmerge_cfa", 2, "seqmerge_cfa sequencename bayerpattern [-prefixin=] [-prefixout=]", process_seq_merge_cfa, STR_SEQMERGE_CFA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqmodasinh", 2, "seqmodasinh sequence -D= [-LP=] [-SP=] [-HP=] [-human | -even | -independent] [channels] [-prefix=]", process_seq_modasinh, STR_SEQINVMODASINH, TRUE, REQ_CMD_NONE},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [channels] [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE, REQ_CMD_NONE},
+	{"seqprofile", 0, "profile sequence -from=x,y -to=x,y [-tri] [-cfa] [-savedat] [-colorplot] [-width=] [-spacing=] [-wavenumber1= -wn1at=x,y -wavenumber2= -wn2at=x,y]", process_seq_profile, STR_SEQPROFILE, TRUE, REQ_CMD_NONE},
 	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
 	{"seqplatesolve", 1, "seqplatesolve sequencename [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-downscale]", process_pcc, STR_SEQPLATESOLVE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqrl", 1, "seqrl sequencename [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul]", process_seq_rl, STR_SEQRL, TRUE, REQ_CMD_NONE},
