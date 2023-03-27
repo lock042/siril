@@ -69,6 +69,7 @@ typedef struct _GNUPLOT_CTRL_ {
     int       ntmp ;
 	GThread*  thread;
 	int 	  child_fd;
+	gboolean running;
 } gnuplot_ctrl ;
 
 /*---------------------------------------------------------------------------
