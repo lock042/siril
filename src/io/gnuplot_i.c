@@ -218,6 +218,7 @@ gpointer tmpwatcher (gpointer user_data) {
 				g_object_unref(data_input);
 				g_object_unref(stream);
 				gnuplot_exit(handle);
+				handle->running = FALSE;
 				return GINT_TO_POINTER(1);
 			}
 		} else if (g_str_has_prefix(buffer, "Terminate")) {
@@ -231,15 +232,12 @@ gpointer tmpwatcher (gpointer user_data) {
 			g_object_unref(data_input);
 			g_object_unref(stream);
 			gnuplot_exit(handle);
+			handle->running = FALSE;
 			return GINT_TO_POINTER(1);
 		}
 		g_free(buffer);
 		buffer = NULL;
 	}
-	siril_debug_print("exiting tmpwatcher\n");
-	g_object_unref(data_input);
-	g_object_unref(stream);
-	return GINT_TO_POINTER(1);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -291,7 +289,7 @@ gnuplot_ctrl * gnuplot_init()
         g_free(bin);
         return NULL;
     }
-
+	handle->running = TRUE;
     handle->gnucmd = fdopen(child_stdin, "w");
 	handle->gnumon = fdopen(child_stderr, "r");
 	handle->child_fd = child_stderr;
@@ -329,6 +327,10 @@ gnuplot_ctrl * gnuplot_init()
 void gnuplot_close(gnuplot_ctrl * handle)
 {
 	gnuplot_cmd(handle, "print \"Terminate\"");
+	while (TRUE) {
+		if (!handle->running)
+			break;
+	}
 }
 
 /*-------------------------------------------------------------------------*/

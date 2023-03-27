@@ -251,6 +251,7 @@ void calc_zero_and_spacing(double *zero, double *spectro_spacing) {
 gpointer cut_profile(gpointer p) {
 	int retval = 0;
 	gnuplot_ctrl *gplot = NULL;
+	gboolean tmpfile = FALSE;
 	double starty = com.cut.fit->ry - 1 - com.cut.cut_start.y;
 	double endy = com.cut.fit->ry - 1 - com.cut.cut_end.y;
 	gboolean use_gnuplot = gnuplot_is_available();
@@ -278,9 +279,10 @@ gpointer cut_profile(gpointer p) {
 				siril_debug_print("%s\n", com.cut.filename);
 			}
 		} else {
-			siril_debug_print("for tempoary use: ");
+			siril_debug_print("for temporary use: ");
 			gchar* temp = profile_tmpfile();
 			com.cut.filename = g_strdup_printf("%s.dat", temp);
+			tmpfile = TRUE;
 			g_free(temp);
 			siril_debug_print("%s\n", com.cut.filename);
 		}
@@ -372,7 +374,6 @@ gpointer cut_profile(gpointer p) {
 			gnuplot_setstyle(gplot, "lines");
 			if (com.cut.display_graph) {
 				if (com.cut.fit->naxes[2] == 1)
-//					gnuplot_plot_xy(gplot, x, r, nbr_points, "Test");
 					gnuplot_plot_xy_from_datfile(gplot, com.cut.filename);
 					else
 					gnuplot_plot_xrgb_from_datfile(gplot, com.cut.filename);
@@ -393,7 +394,10 @@ gpointer cut_profile(gpointer p) {
 
 END:
 	// Clean up
-	free(com.cut.filename);
+	if (tmpfile) {
+		g_unlink(com.cut.filename);
+	}
+	g_free(com.cut.filename);
 	com.cut.filename = NULL;
 	free(x);
 	x = NULL;
@@ -440,10 +444,11 @@ gpointer tri_cut(gpointer p) {
 				siril_debug_print("%s\n", com.cut.filename);
 			}
 		} else {
-			siril_debug_print("for tempoary use: ");
+			siril_debug_print("for temporary use: ");
 			gchar* temp = profile_tmpfile();
 			com.cut.filename = g_strdup_printf("%s.dat", temp);
 			g_free(temp);
+			tmpfile = TRUE;
 			siril_debug_print("%s\n", com.cut.filename);
 		}
 	}
@@ -523,6 +528,7 @@ gpointer tri_cut(gpointer p) {
 				gnuplot_plot_xrgb_datfile_to_png(gplot, com.cut.filename, "test", imagename);
 				g_free(imagename);
 			}
+			com.cut.filename = NULL;
 			g_free(title);
 			g_free(xlabel);
 		}

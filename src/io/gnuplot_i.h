@@ -69,6 +69,7 @@ typedef struct _GNUPLOT_CTRL_ {
     int       ntmp ;
 	GThread*  thread;
 	int 	  child_fd;
+	gboolean running;
 } gnuplot_ctrl ;
 
 /*---------------------------------------------------------------------------
@@ -105,7 +106,19 @@ gnuplot_ctrl * gnuplot_init();
  */
 /*--------------------------------------------------------------------------*/
 void gnuplot_close(gnuplot_ctrl * handle);
-gboolean gnuplot_close_idle(gpointer p);
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Deletes a gnuplot temporary file
+  @param    handle Gnuplot session control handle.
+  @return   void
+
+  Deletes a temporary file created using gnuplot_tmpfile().
+
+ */
+/*--------------------------------------------------------------------------*/
+void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char * filename);
+
 
 /*-------------------------------------------------------------------------*/
 /**
