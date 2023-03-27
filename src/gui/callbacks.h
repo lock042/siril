@@ -66,6 +66,7 @@ void set_viewer_mode_widgets_sensitive(gboolean sensitive);
 /*****************************************************************************
 *      P U B L I C      C A L L B A C K      F U N C T I O N S               *
  ****************************************************************************/
+void setup_stretch_sliders();
 void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_radiobutton_user_toggled(GtkToggleButton *togglebutton, gpointer user_data);

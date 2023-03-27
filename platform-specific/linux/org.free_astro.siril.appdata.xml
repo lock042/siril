@@ -90,8 +90,32 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
-    <release version="1.2.0~beta" date="2023-02-24">
-      <url type="details">https://www.siril.org/download/1.2.0-beta</url>
+    <release version="1.2.0~beta2" date="2023-03-12">
+      <url type="details">https://siril.org/download/1.2.0-beta2</url>
+      <description>
+        <p>
+          Second beta release, of the 1.2.0 series. Many improvement and bug fixes
+          have been implemented in this version.
+          The most outstanding fixes are:
+        </p>
+        <ul>
+          <li>
+          Fixed crash when converting sequence to SER
+          </li>
+          <li>
+          Fixed PCC progress bar which never terminated
+          </li>
+          <li>
+          Fixed crash when using deconvolution on a sequence
+          </li>
+          <li>
+          Fixed a lot of StarNet bugs
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.0~beta1" date="2023-02-24">
+      <url type="details">https://siril.org/download/1.2.0-beta1</url>
       <description>
         <p>
           First beta release, of the 1.2.0 series. Many improvement, bug fixes

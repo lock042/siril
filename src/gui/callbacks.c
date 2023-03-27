@@ -1381,8 +1381,8 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* Due to another bug in glade we write these callbacks here
 	 * In glade there are not sorted as we want */
-	g_signal_connect(lookup_widget("remix_apply"), "delete-event", G_CALLBACK(on_remix_cancel_clicked), NULL);
-	g_signal_connect(lookup_widget("remix_apply"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+	g_signal_connect(lookup_widget("dialog_star_remix"), "delete-event", G_CALLBACK(on_remix_close_clicked), NULL);
+	g_signal_connect(lookup_widget("dialog_star_remix"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(on_button_histo_close_clicked), NULL);
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
@@ -1407,8 +1407,8 @@ void initialize_all_GUI(gchar *supported_files) {
 	// init the Plot tab
 	drawPlot();
 
-	if (com.pref.gui.first_start) {
-		com.pref.gui.first_start = FALSE;
+	if (g_strcmp0(com.pref.gui.first_start, PACKAGE_VERSION)) {
+		com.pref.gui.first_start = g_strdup(PACKAGE_VERSION);
 		writeinitfile();
 
 		gchar *ver = g_strdup_printf(_("Welcome to %s"), PACKAGE_STRING);
@@ -1699,6 +1699,20 @@ void on_radiobutton_user_toggled(GtkToggleButton *togglebutton,
 		redraw(REMAP_ALL);
 		redraw_previews();
 	}
+}
+
+// Not a callback as such but this is called from multiple stretch
+// functions in different files, so here is a good place to put it
+
+void setup_stretch_sliders() {
+	GtkToggleButton *button = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_user"));
+	gtk_toggle_button_set_active(button, TRUE);
+	gui.sliders = USER;
+	gui.hi = USHRT_MAX;
+	gui.lo = 0;
+	set_cutoff_sliders_values();
+	redraw(REMAP_ALL);
+	redraw_previews();
 }
 
 void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {

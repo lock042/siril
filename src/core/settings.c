@@ -27,6 +27,7 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "io/catalogues.h"
+#include "stacking/stacking.h"
 
 /* the settings as initialized in static.
  * the dynamic fields are set in initialize_default_settings() */
@@ -104,7 +105,7 @@ preferences pref_init = {
 		.use_stack_default = TRUE,
 	},
 	.gui = {
-		.first_start = TRUE,
+		.first_start = NULL,
 		.silent_quit = FALSE,
 		.silent_linear = FALSE,
 		.remember_windows = TRUE,
@@ -179,8 +180,9 @@ preferences pref_init = {
 		.mosaic_window = 381,
 	},
 	.stack = {
-		.method = 0,
+		.method = STACK_SUM,
 		.normalisation_method = ADDITIVE_SCALING,
+		.weighting_method = NO_WEIGHT,
 		.rej_method = WINSORIZED,
 		.sigma_low = 3.0, .sigma_high = 3.0,
 		.linear_low = 5.0, .linear_high = 5.0,
@@ -347,9 +349,10 @@ struct settings_access all_settings[] = {
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
 	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
 
-	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, 4 } } },
+	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, STACK_MIN } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },
 	{ "gui_stack", "rejection", STYPE_INT, N_("index of the rejection method"), &com.pref.stack.rej_method, { .range_int = { 0, GESDT } } },
+	{ "gui_stack", "weighting", STYPE_INT, N_("index of the weighting method"), &com.pref.stack.weighting_method, { .range_int = { 0, NBSTACK_WEIGHT } } },
 	{ "gui_stack", "sigma_low", STYPE_DOUBLE, N_("sigma low value for rejection"), &com.pref.stack.sigma_low, { .range_double = { 0., 20. } } },
 	{ "gui_stack", "sigma_high", STYPE_DOUBLE, N_("sigma high value for rejection"), &com.pref.stack.sigma_high, { .range_double = { 0., 20. } } },
 	{ "gui_stack", "linear_low", STYPE_DOUBLE, N_("linear low value for rejection"), &com.pref.stack.linear_low, { .range_double = { 0., 20. } } },
@@ -357,7 +360,7 @@ struct settings_access all_settings[] = {
 	{ "gui_stack", "percentile_low", STYPE_DOUBLE, N_("percentile low value for rejection"), &com.pref.stack.percentile_low, { .range_double = { 0., 100. } } },
 	{ "gui_stack", "percentile_high", STYPE_DOUBLE, N_("percentile high value for rejection"), &com.pref.stack.percentile_high, { .range_double = { 0., 100. } } },
 
-	{ "gui", "first_start", STYPE_BOOL, N_("first start of siril"), &com.pref.gui.first_start },
+	{ "gui", "first_start", STYPE_STR, N_("first start of siril"), &com.pref.gui.first_start },
 	{ "gui", "silent_quit", STYPE_BOOL, N_("don't confirm quit when exiting"), &com.pref.gui.silent_quit },
 	{ "gui", "silent_linear", STYPE_BOOL, N_("don't confirm save when non linear mode"), &com.pref.gui.silent_linear },
 	{ "gui", "remember_windows", STYPE_BOOL, N_("remember window position"), &com.pref.gui.remember_windows },

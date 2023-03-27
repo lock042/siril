@@ -4064,7 +4064,7 @@ int process_seq_crop(int nb) {
 
 	args->seq = seq;
 	args->area = area;
-	args->prefix = "cropped_";
+	args->prefix = strdup("cropped_");
 
 	if (nb > startoptargs) {
 		for (int i = startoptargs; i < nb; i++) {
@@ -4965,6 +4965,7 @@ int process_subsky(int nb) {
 	sequence *seq = NULL;
 	int degree = 0, samples = 20;
 	double tolerance = 1.0, smooth = 0.5;
+	gboolean dithering;
 	background_interpolation interp;
 	char *prefix = NULL;
 
@@ -4973,12 +4974,14 @@ int process_subsky(int nb) {
 
 	if (is_sequence) {
 		arg_index = 2;
+		dithering = TRUE;
 		seq = load_sequence(word[1], NULL);
 		if (!seq) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
 	} else {
 		if (!single_image_is_loaded()) return CMD_IMAGE_NOT_FOUND;
+		dithering = FALSE;
 	}
 
 	if (!strcmp(word[arg_index], "-rbf"))
@@ -4996,14 +4999,17 @@ int process_subsky(int nb) {
 	arg_index++;
 	while (arg_index < nb && word[arg_index]) {
 		char *arg = word[arg_index];
-		if (g_str_has_prefix(arg, "-prefix=")) {
-			char *value = arg + 8;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
+		if (is_sequence && g_str_has_prefix(arg, "-prefix=")) {
+			if (prefix) {
+				siril_log_message(_("There can be only one prefix argument"));
 				free(prefix);
 				return CMD_ARG_ERROR;
 			}
-			free(prefix); // Required in case we have gone round the loop and prefix was also set in a previous arg
+			char *value = arg + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
+				return CMD_ARG_ERROR;
+			}
 			prefix = strdup(value);
 		}
 		else if (g_str_has_prefix(arg, "-samples=")) {
@@ -5036,6 +5042,12 @@ int process_subsky(int nb) {
 			if (interp != BACKGROUND_INTER_RBF)
 				siril_log_color_message(_("smooth parameter is unused with the polynomial model, ignoring.\n"), "salmon");
 		}
+		else if (is_sequence && !g_strcmp0(arg, "-nodither")) {
+			dithering = FALSE;
+		}
+		else if (!is_sequence && !g_strcmp0(arg, "-dither")) {
+			dithering = TRUE;
+		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 			free(prefix);
@@ -5052,20 +5064,19 @@ int process_subsky(int nb) {
 	args->degree = (poly_order) (degree - 1);
 	args->smoothing = smooth;
 	args->threads = com.max_thread;
+	args->dither = dithering;
 	args->from_ui = FALSE;
+	siril_debug_print("dithering: %s\n", dithering ? "enabled" : "disabled");
 
 	if (is_sequence) {
 		args->seq = seq;
-		args->dither = TRUE;
 		args->seqEntry = prefix ? prefix : strdup("bkg_");
 
 		apply_background_extraction_to_sequence(args);
 	} else {
 		args->seq = NULL;
-		args->dither = FALSE;
 		args->seqEntry = NULL;
 		args->fit = &gfit;
-		g_free(prefix);
 
 		if (!generate_background_samples(samples, tolerance))
 			start_in_new_thread(remove_gradient_from_image, args);
@@ -6460,7 +6471,7 @@ int process_register(int nb) {
 	reg_args->matchSelection = FALSE;
 	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
-	reg_args->prefix = "r_";
+	reg_args->prefix = strdup("r_");
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
@@ -6831,7 +6842,7 @@ int process_seq_applyreg(int nb) {
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
-	reg_args->prefix = "r_";
+	reg_args->prefix = strdup("r_");
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_LANCZOS4;
 	reg_args->clamp = TRUE;
@@ -7117,7 +7128,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.apply_nbstars_weights = arg->apply_nbstars_weights;
 
 	// manage registration data
-	if (!stack_regdata_is_valid(&args)) {
+	if (!test_regdata_is_valid_and_shift(args.seq, args.reglayer)) {
 		siril_log_color_message(_("Stacking has detected registration data on layer %d with more than simple shifts. You should apply existing registration before stacking\n"), "red", args.reglayer);
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
@@ -7499,6 +7510,8 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	fits reffit = { 0 };
 	int bitpix;
+	char *realname = NULL;
+	image_type imagetype;
 	if (seq) {
 		if (seq->type == SEQ_SER) {
 			// to be able to check allow_32bit_output. Overridden by -fitseq if required
@@ -7516,9 +7529,13 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		}
 	}
 	else {
-		if (read_fits_metadata_from_path(word[1], &reffit)) {
+		if (stat_file(word[1], &imagetype, &realname)) {
+			siril_log_color_message(_("Error opening image %s: file not found or not supported.\n"), "red", word[1]);
+			retvalue = CMD_FILE_NOT_FOUND;
+			goto prepro_parse_end;
+		}
+		if (read_fits_metadata_from_path(realname, &reffit)) {
 			siril_log_message(_("Could not load the image, aborting.\n"));
-			clearfits(&reffit);
 			retvalue = CMD_INVALID_IMAGE;
 			goto prepro_parse_end;
 		}
@@ -7670,17 +7687,19 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				}
 				args->cc_from_dark = TRUE;
 				//either we use the default sigmas or we try to read the next two checking for sigma low and high
-				gchar *end1, *end2;
-				args->sigma[0] = g_ascii_strtod(word[i + 1], &end1);
-				args->sigma[1] = g_ascii_strtod(word[i + 2], &end2);
+				if (i + 2 < nb) {
+					gchar *end1, *end2;
+					args->sigma[0] = g_ascii_strtod(word[i + 1], &end1);
+					args->sigma[1] = g_ascii_strtod(word[i + 2], &end2);
 
-				if (word[i + 1] && word[i + 2] && word[i + 1] != end1
-						&& word[i + 2] != end2) {
-					i+= 2;
+					if (word[i + 1] && word[i + 2] && word[i + 1] != end1
+							&& word[i + 2] != end2) {
+						i += 2;
+					}
+
+					if (args->sigma[0] == 0.0) args->sigma[0] = -1.00;
+					if (args->sigma[1] == 0.0) args->sigma[1] = -1.00;
 				}
-
-				if (args->sigma[0] == 0) args->sigma[0] = -1.00;
-				if (args->sigma[1] == 0) args->sigma[1] = -1.00;
 				if (args->sigma[0] > 0)
 					siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"), args->sigma[0]);
 				else
@@ -7693,7 +7712,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				if (word[i + 1] && word[i + 1][0] != '\0') {
 					args->bad_pixel_map_file = g_file_new_for_path(word[i + 1]);
 					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-//						g_object_unref(args->bad_pixel_map_file); // This is unreferenced in check_for_cosme_file_sanity
+						//g_object_unref(args->bad_pixel_map_file); // This is unreferenced in check_for_cosme_file_sanity
 						args->bad_pixel_map_file = NULL;
 						siril_log_message(_("Could not open file %s, aborting.\n"), word[i + 1]);
 						retvalue = 1;
@@ -7708,7 +7727,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 					break;
 				}
 			} else {
-				siril_log_message(_("Unknown argument %s, aborting.\n"), word[i + 1]);
+				siril_log_message(_("Unknown argument %s, aborting.\n"), word[i]);
 				retvalue = CMD_ARG_ERROR;
 				break;
 			}
@@ -7722,6 +7741,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 
 prepro_parse_end:
 	clearfits(&reffit);
+	free(realname);
 	if (retvalue) {
 		clear_preprocessing_data(args);
 		free(args);
@@ -8378,7 +8398,9 @@ int process_pcc(int nb) {
 		next_arg++;
 	}
 
-	if (local_cat && cat != CAT_AUTO && cat != CAT_ASNET) {
+	if (local_cat && cat == CAT_AUTO)
+		cat = CAT_LOCAL;
+	if (local_cat && cat != CAT_LOCAL && cat != CAT_ASNET) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
 				"salmon", catalog_to_str(cat));
 		local_cat = FALSE;
@@ -8532,11 +8554,9 @@ int process_pcc(int nb) {
 
 	if (plate_solve) {
 		args->use_local_cat = local_cat;
-		if (cat == CAT_ASNET) {
-			args->onlineCatalog = CAT_ASNET;
+		if (cat == CAT_ASNET)
 			args->filename = g_strdup(com.uniq->filename);
-		}
-		else args->onlineCatalog = local_cat ? CAT_NOMAD : cat;
+		args->onlineCatalog = cat;
 		args->cat_center = target_coords;
 		args->downsample = downsample;
 		args->autocrop = TRUE;
@@ -8547,7 +8567,7 @@ int process_pcc(int nb) {
 
 	if (pcc_command) {
 		pcc_args->use_local_cat = local_cat;
-		pcc_args->catalog = local_cat ? CAT_NOMAD : cat;
+		pcc_args->catalog = cat;
 		if (plate_solve) {
 			args->for_photometry_cc = TRUE;
 			args->pcc = pcc_args;

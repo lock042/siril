@@ -958,6 +958,7 @@ gboolean estimate_idle(gpointer arg) {
 }
 
 gpointer estimate_only(gpointer p) {
+	int retval = 0;
 	if (p != NULL) {
 		estk_data *command_data = (estk_data *) p;
 		memcpy(&args, command_data, sizeof(estk_data));
@@ -983,13 +984,13 @@ gpointer estimate_only(gpointer p) {
 		free(input_image);
 		if (!com.stars || nb_stars == 0) {
 			siril_log_color_message(_("No suitable stars detectable in this image. Aborting..."), "red");
+			retval = 1;
 			goto ENDEST;
 		} else {
 			stars_need_clearing = TRUE;
 		}
 	}
 
-	int retval = 0;
 	args.nchans = the_fit->naxes[2];
 	cppmaxthreads = com.max_thread;
 	cppfftwflags = com.pref.fftw_conf.strategy;
@@ -1049,7 +1050,7 @@ void set_deconvolve_params() {
 }
 
 gboolean deconvolve_idle(gpointer arg) {
-	set_progress_bar_data("Ready.", 0.);
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	if (args.fdata) {
 		free(args.fdata);
 		args.fdata = NULL;

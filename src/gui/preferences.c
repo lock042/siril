@@ -311,6 +311,9 @@ void initialize_starnet_executable(const gchar *path) {
 			gtk_widget_set_sensitive(starnet_weights, FALSE);
 			gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
 		}
+	} else {
+		gtk_widget_set_sensitive(starnet_weights, FALSE);
+		gtk_widget_set_sensitive(starnet_weights_reset, FALSE);
 	}
 }
 

@@ -1506,6 +1506,21 @@ void cum_shifts(sequence *seq, int frame, int layer, double shiftx, double shift
 	}
 }
 
+// Checks that the number of degrees of freedoms is not more than shift
+// returns FALSE if not
+gboolean test_regdata_is_valid_and_shift(sequence *seq, int reglayer) {
+	if (!layer_has_registration(seq, reglayer)) return TRUE;
+	transformation_type regmin, regmax;
+	guess_transform_from_seq(seq, reglayer, &regmin, &regmax, FALSE);
+	if (regmax > SHIFT_TRANSFORMATION)
+		return FALSE;
+	else if (regmax == SHIFT_TRANSFORMATION) {
+		siril_log_color_message(_("This operation will use registration data of layer %d\n"),
+				"salmon", reglayer);
+	}
+	return TRUE;
+}
+
 /* internal sequence are a set of 1-layer images already loaded elsewhere, and
  * directly referenced as fits *.
  * This is used in LRGV composition.

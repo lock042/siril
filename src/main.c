@@ -224,6 +224,9 @@ static void siril_app_activate(GApplication *application) {
 		com.script = TRUE;
 		com.headless = TRUE;
 	}
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); //hiding the console
+#endif
 
 	global_initialization();
 

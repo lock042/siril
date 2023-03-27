@@ -208,7 +208,7 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 
 		args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryBkgSeq"))));
 		if (args->seqEntry && args->seqEntry[0] == '\0')
-			args->seqEntry = "bkg_";
+			args->seqEntry = strdup("bkg_");
 		args->seq = &com.seq;
 		/* now we uncheck the button */
 		gtk_toggle_button_set_active(seq_button, FALSE);
