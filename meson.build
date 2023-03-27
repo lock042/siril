@@ -601,13 +601,21 @@ else # not meson.is_cross_build() or meson.has_exe_wrapper()
     glib_networking_works_run = cc.run(
       '''#include <gio/gio.h>
       int main() {
-        return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
+        if (!g_tls_backend_supports_tls (g_tls_backend_get_default ()))
+	  return 1;
+	GFile *file = g_file_new_for_uri("https://localhost/test");
+	GError *error = NULL;
+	gchar *content = NULL;
+	g_file_load_contents(file, NULL, &content, NULL, NULL, &error);
+	return error->code == G_IO_ERROR_NOT_SUPPORTED;
       }''',
       dependencies: gio_dep,
     )
     glib_networking_works = (glib_networking_works_run.compiled() and
                              glib_networking_works_run.returncode() == 0)
-    if not glib_networking_works and meson.is_cross_build()
+    if (glib_networking_works)
+      message('glib-networking detected.')
+    elif meson.is_cross_build()
         # Since cross-platform test runs may be unreliable, let's be
         # flexible and pass the test with a warning.
         glib_networking_works = true

@@ -279,23 +279,20 @@ AC_MSG_RESULT($have_glib_networking)
 AC_LANG([C++])
 
 if test "x$have_glib_networking" = "xno"; then
-  AC_MSG_NOTICE(([glib-networking not found]),
-      [Test for glib-networking failed. This is required.])
+  AC_MSG_NOTICE([glib-networking not found])
 elif test "x$have_glib_networking" != "xyes"; then
-  warning_glib_networking="
-WARNING: Test for glib-networking cannot be performed while cross-compiling.
+  AC_MSG_WARN([Test for glib-networking cannot be performed while cross-compiling.
          Make sure glib-networking is installed, otherwise Siril will not be able
          to open remote HTTPS (or other protocol using SSL/TLS) files.
          HTTPS is becoming the expected standard and should not be considered
-         optional anymore."
+         optional anymore.])
 fi
 
 dnl checking libcurl
 curl_avail=no
 m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
-		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])] curl_avail=yes,
-		     AC_MSG_WARN([libcurl not found]))
+		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])] curl_avail=yes, [])
 
 if test "x$curl_avail" = "xno" && test "x$have_glib_networking" != "xyes"; then
 	AC_MSG_WARN([no networking library found, either glib-networking or curl are required])

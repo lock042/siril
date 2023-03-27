@@ -126,8 +126,10 @@ void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-#ifdef HAVE_JSON_GLIB
+#if defined(HAVE_JSON_GLIB) && defined(HAVE_NETWORKING)
 	siril_check_updates(TRUE);
+#else
+	siril_log_message(_("Cannot check for updates with this version, missing dependency\n"));
 #endif
 }
 
