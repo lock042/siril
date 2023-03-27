@@ -621,6 +621,7 @@ void gnuplot_plot_x(
     fclose(tmpfd) ;
 
     gnuplot_plot_atmpfile(handle,tmpfname,title,0);
+	gnuplot_rmtmpfile(handle,tmpfname);
     return ;
 }
 
@@ -686,6 +687,7 @@ void gnuplot_plot_xy(
     fclose(tmpfd) ;
 
     gnuplot_plot_atmpfile(handle,tmpfname,title,0);
+	gnuplot_rmtmpfile(handle,tmpfname);
     return ;
 }
 
