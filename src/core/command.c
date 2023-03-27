@@ -8927,7 +8927,7 @@ display:
 }
 
 int process_profile(int nb) {
-	gboolean tri = FALSE;
+	gboolean tri = FALSE, cfa = FALSE;
 	gboolean colorplot = FALSE;
 	gboolean display_graph = FALSE;
 	gboolean save_dat = FALSE;
@@ -8947,7 +8947,26 @@ int process_profile(int nb) {
 				siril_log_message(_("Error: color plot and tri-profile are mutually exclusive.\n"));
 				return CMD_ARG_ERROR;
 			}
+			if (cfa) {
+				siril_log_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"));
+				return CMD_ARG_ERROR;
+			}
 			tri = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-cfa")) {
+			if (colorplot) {
+				siril_log_message(_("Error: color plot and CFA mode are mutually exclusive.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if (tri) {
+				siril_log_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"));
+				return CMD_ARG_ERROR;
+			}
+			if ((com.cut.fit->naxes[2] > 1) || (com.cut.fit->bayer_pattern == NULL) || (com.cut.fit->bayer_pattern[0] == '\0')) {
+				siril_log_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"));
+				return CMD_ARG_ERROR;
+			}
+			cfa = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-graph")) {
 			display_graph = TRUE;
@@ -9038,6 +9057,7 @@ int process_profile(int nb) {
 	com.cut.wavenumber1 = wavenumber1;
 	com.cut.wavenumber2 = wavenumber2;
 	com.cut.tri = tri;
+	com.cut.cfa = cfa;
 	com.cut.width = width;
 	com.cut.step = spacing;
 	com.cut.display_graph = display_graph;
@@ -9047,7 +9067,9 @@ int process_profile(int nb) {
 	com.cut.save_dat = save_dat;
 	com.cut.fit = &gfit;
 
-	if (tri)
+	if (cfa)
+		cfa_cut(NULL);
+	else if (tri)
 		tri_cut(NULL);
 	else
 		cut_profile(NULL);

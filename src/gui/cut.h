@@ -25,5 +25,6 @@ void measure_line(point start, point finish);
 void initialize_com_cut();
 gpointer cut_profile(gpointer p);
 gpointer tri_cut(gpointer p);
+gpointer cfa_cut(gpointer p);
 
 #endif
