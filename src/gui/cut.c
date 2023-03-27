@@ -32,6 +32,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "io/single_image.h"
+#include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/gnuplot_i.h"
 #include "gui/image_display.h"
@@ -613,8 +614,8 @@ gpointer cfa_cut(gpointer p) {
 	// Coordinates of profile start and endpoints in CFA space
 	point cut_start_cfa = { (int) (com.cut.cut_start.x / 2) , (int) (com.cut.cut_start.y / 2) };
 	point cut_end_cfa = { (int) (com.cut.cut_end.x / 2) , (int) (com.cut.cut_end.y / 2) };
-	double starty = (com.cut.fit->ry % 2) - 1 - cut_start_cfa.y;
-	double endy = (com.cut.fit->ry % 2) - 1 - cut_end_cfa.y;
+	double starty = (com.cut.fit->ry / 2) - 1 - cut_start_cfa.y;
+	double endy = (com.cut.fit->ry / 2) - 1 - cut_end_cfa.y;
 	point delta = { cut_end_cfa.x - cut_start_cfa.x, endy - starty };
 	double *x = NULL, *r[4] = { 0 };
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
@@ -635,11 +636,11 @@ gpointer cfa_cut(gpointer p) {
 			x[i] = i * point_spacing;
 			if (hv) {
 				// Horizontal / vertical, no interpolation
-				r[j][i] = nointerp(&cfa[j], cut_start_cfa.x + point_spacing_x * i, cut_start_cfa.y + point_spacing_y * i,
+				r[j][i] = nointerp(&cfa[j], cut_start_cfa.x + point_spacing_x * i, starty + point_spacing_y * i,
 								   0, 1, (int) point_spacing_x, (int) point_spacing_y);
 			} else {
 				// Neither horizontal nor vertical: interpolate
-				r[j][i] = interp(&cfa[j], (double) (cut_start_cfa.x + point_spacing_x * i), (double) (cut_start_cfa.y + point_spacing_y * i),
+				r[j][i] = interp(&cfa[j], (double) (cut_start_cfa.x + point_spacing_x * i), (double) (starty + point_spacing_y * i),
 								 0, 1, point_spacing_x, point_spacing_y);
 			}
 		}
@@ -685,10 +686,12 @@ END:
 	com.cut.filename = NULL;
 	free(x);
 	x = NULL;
-	for (int i = 0 ; i < 3 ; i++) {
+	for (int i = 0 ; i < 4 ; i++) {
 		free(r[i]);
 		r[i] = NULL;
+		clearfits(&cfa[i]);
 	}
+	siril_debug_print("Finished CFA plot\n");
 	siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }

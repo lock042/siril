@@ -154,7 +154,6 @@ void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char
 void gnuplot_exit(gnuplot_ctrl * handle)
 {
     gnuplot_cmd(handle, "exit");
-    free(handle);
     return ;
 }
 
@@ -165,10 +164,6 @@ void gnuplot_exit(gnuplot_ctrl * handle)
   @param    gpointer user_data. Pointer to gnuplot_ctrl handle.
   @return   GINT_TO_POINTER(1)
 
-  NOTE:
-  TODO:		This function currently triggers an Address Sanitizer error with
-			debug builds. It runs correctly without Address Sanitizer active.
-			Need to see if there is a way to fix its interaction with AS.
 */
 /*--------------------------------------------------------------------------*/
 
@@ -188,11 +183,11 @@ gpointer tmpwatcher (gpointer user_data) {
 					NULL, NULL))) {
 		siril_debug_print("No. of tmp files: %d\n", handle->ntmp);
 		siril_debug_print("Buffer: %s\n", buffer);
-		if (!handle->ntmp)
-			continue;
 		gchar *arg = buffer;
-		if (g_str_has_prefix(buffer, "Done ")) {
-			siril_debug_print("Received Done message ntmp = %d\n", handle->ntmp);
+		if (g_str_has_prefix(buffer, "Reap ")) {
+			siril_debug_print("Received Reap message ntmp = %d\n", handle->ntmp);
+			if (!handle->ntmp)
+				continue;
 			arg += 5;
 			for (int i = 0 ; i < handle->ntmp ; i++) {
 				siril_debug_print("%s / %s\n", arg, handle->tmp_filename_tbl[i]);
@@ -218,7 +213,7 @@ gpointer tmpwatcher (gpointer user_data) {
 				g_object_unref(data_input);
 				g_object_unref(stream);
 				gnuplot_exit(handle);
-				handle->running = FALSE;
+				free(handle);
 				return GINT_TO_POINTER(1);
 			}
 		} else if (g_str_has_prefix(buffer, "Terminate")) {
@@ -232,7 +227,7 @@ gpointer tmpwatcher (gpointer user_data) {
 			g_object_unref(data_input);
 			g_object_unref(stream);
 			gnuplot_exit(handle);
-			handle->running = FALSE;
+			handle->running = FALSE; // Don't free the handle here, it will be freed in gnuplot_close()
 			return GINT_TO_POINTER(1);
 		}
 		g_free(buffer);
@@ -332,6 +327,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
 		if (!handle->running)
 			break;
 	}
+	free(handle);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -350,7 +346,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
 
 void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char *filename)
 {
-	gchar *cmd = g_strdup_printf("print \"Done %s\"", filename);
+	gchar *cmd = g_strdup_printf("print \"Reap %s\"", filename);
 	siril_debug_print("Calling gnuplot_cmd\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
