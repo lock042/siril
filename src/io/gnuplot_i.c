@@ -44,8 +44,15 @@
 #include <unistd.h>
 
 #ifdef _WIN32
+#include <winsock2.h>
 #include <windows.h>
 #include <io.h>
+#include <fcntl.h>
+#include <gio/gwin32inputstream.h>
+#else
+#include <sys/types.h> // for waitpid(2)
+#include <sys/wait.h> // for waitpid(2)
+#include <gio/gunixinputstream.h>
 #endif
 
 #include <glib.h> // g_get_tmp_dir
@@ -130,6 +137,110 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle);
  */
 void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title, int x_offset);
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Closes a gnuplot session previously opened by gnuplot_init()
+  @param    handle Gnuplot session control handle.
+  @return   void
+
+  Closes gnuplot by calling an exit command and deletes all opened temporary files.
+  It is mandatory to call this function to close the handle, otherwise
+  temporary files are not cleaned and child process might survive.
+  This is meant to be called when plot are not displayed
+
+ */
+/*--------------------------------------------------------------------------*/
+
+void gnuplot_exit(gnuplot_ctrl * handle)
+{
+    gnuplot_cmd(handle, "exit");
+    free(handle);
+    return ;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    gnuplot tmpfile watcher. Monitors for tmp files that are finished
+			with and closes them when required.
+  @param    gpointer user_data. Pointer to gnuplot_ctrl handle.
+  @return   GINT_TO_POINTER(1)
+
+  NOTE:
+  TODO:		This function currently triggers an Address Sanitizer error with
+			debug builds. It runs correctly without Address Sanitizer active.
+			Need to see if there is a way to fix its interaction with AS.
+*/
+/*--------------------------------------------------------------------------*/
+
+gpointer tmpwatcher (gpointer user_data) {
+	printf("tmpwatcher started\n");
+	gnuplot_ctrl* handle = (gnuplot_ctrl*) user_data;
+	GInputStream *stream = NULL;
+#ifdef _WIN32
+	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(handle->child_fd), FALSE);
+#else
+	stream = g_unix_input_stream_new(handle->child_fd, FALSE);
+#endif
+	gchar *buffer;
+	gsize length = 0;
+	GDataInputStream *data_input = g_data_input_stream_new(stream);
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
+					NULL, NULL))) {
+		printf("No. of tmp files: %d\n", handle->ntmp);
+		printf("Buffer: %s\n", buffer);
+		if (!handle->ntmp)
+			continue;
+		gchar *arg = buffer;
+		if (g_str_has_prefix(buffer, "Done ")) {
+			printf("Received Done message ntmp = %d\n", handle->ntmp);
+			arg += 5;
+			for (int i = 0 ; i < handle->ntmp ; i++) {
+				printf("%s / %s\n", arg, handle->tmp_filename_tbl[i]);
+				if (!g_strcmp0(arg, handle->tmp_filename_tbl[i])) {
+					g_unlink(handle->tmp_filename_tbl[i]);
+					printf("Reaped file: i = %d, filename = %s\n", i, arg);
+					g_free(handle->tmp_filename_tbl[i]);
+					handle->tmp_filename_tbl[i] = NULL;
+					for (int j = i ; j < handle->ntmp - 1 ; j++) {
+						g_free(handle->tmp_filename_tbl[j]);
+						handle->tmp_filename_tbl[j] = g_strdup(handle->tmp_filename_tbl[j+1]);
+					}
+					g_free(handle->tmp_filename_tbl[handle->ntmp - 1]);
+					handle->tmp_filename_tbl[handle->ntmp - 1] = NULL;
+					handle->ntmp = handle->ntmp - 1;
+					break;
+				}
+			}
+			if (handle->ntmp == 0) {
+				// Close the gnuplot handle when the temp file
+				// counter drops to 0
+				g_free(buffer);
+				g_object_unref(data_input);
+				g_object_unref(stream);
+				gnuplot_exit(handle);
+				return GINT_TO_POINTER(1);
+			}
+		} else if (g_str_has_prefix(buffer, "Terminate")) {
+			if (handle->ntmp) {
+				for (int i = 0 ; i < handle->ntmp ; i++) {
+					g_unlink(handle->tmp_filename_tbl[i]);
+				}
+				handle->ntmp = 0;
+			}
+			g_free(buffer);
+			g_object_unref(data_input);
+			g_object_unref(stream);
+			gnuplot_exit(handle);
+			return GINT_TO_POINTER(1);
+		}
+		g_free(buffer);
+		buffer = NULL;
+	}
+	printf("exiting tmpwatcher\n");
+	g_object_unref(data_input);
+	g_object_unref(stream);
+	return GINT_TO_POINTER(1);
+}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -157,23 +268,24 @@ gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive)
     handle->nplots = 0 ;
     gnuplot_setstyle(handle, "points") ;
     handle->ntmp = 0 ;
+	handle->thread = NULL;
 
     gchar *bin = siril_get_gnuplot_bin();
     gchar* bin2[3];
     bin2[0] = bin;
     bin2[2] = NULL;
     // passing the option --persist keeps the plot opened even after gnuplot process has been closed
-    bin2[1] = (keep_plot_alive) ? "--persist" : NULL;
+	bin2[1] = (keep_plot_alive) ? "--persist" : NULL;
     printf("%s\n", bin2[0]);
     /* call gnuplot */
-    gint child_stdin;
+    gint child_stdin, child_stdout, child_stderr;
     GPid child_pid;
     g_autoptr(GError) error = NULL;
 
     g_spawn_async_with_pipes(NULL, bin2, NULL,
             G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
-            NULL, NULL, &child_pid, &child_stdin, NULL,
-            NULL, &error);
+            NULL, NULL, &child_pid, &child_stdin, &child_stdout,
+            &child_stderr, &error);
     if (error != NULL) {
         siril_log_color_message(_("Spawning gnuplot failed: %s\n"), "red", error->message);
         g_free(bin);
@@ -181,6 +293,10 @@ gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive)
     }
 
     handle->gnucmd = fdopen(child_stdin, "w");
+	handle->gnumon = fdopen(child_stderr, "r");
+	handle->child_fd = child_stderr;
+	handle->thread = g_thread_new("gplotwatcher", tmpwatcher, handle);
+
     g_free(bin);
     if (handle->gnucmd == NULL) {
         fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
@@ -212,19 +328,31 @@ gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive)
 
 void gnuplot_close(gnuplot_ctrl * handle)
 {
-    gnuplot_cmd(handle, "exit");
-    if (handle->ntmp) {
-        for (int i = 0; i < handle->ntmp; i++) {
-            if (g_remove(handle->tmp_filename_tbl[i]))
-                fprintf(stderr, "Error removing tmpfile\n");
-            free(handle->tmp_filename_tbl[i]);
-            handle->tmp_filename_tbl[i] = NULL;
-
-        }
-    }
-    free(handle);
-    return ;
+	gnuplot_cmd(handle, "print \"Terminate\"");
 }
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Notifies the tmpwatcher that a temporary file can be reaped
+  @param    handle Gnuplot session control handle.
+  @param    filename Filename to reap.
+  @return   void
+
+  Notifed the tmpwatcher thread to reap a temporary file, remove it from the
+  list of GNUplot temporary files in the index and decrement the count
+
+ */
+/*--------------------------------------------------------------------------*/
+
+
+void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char *filename)
+{
+	gchar *cmd = g_strdup_printf("print \"Done %s\"", filename);
+	printf("Calling gnuplot_cmd\n");
+	gnuplot_cmd(handle, cmd);
+	g_free(cmd);
+}
+
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -495,6 +623,7 @@ void gnuplot_plot_x(
     fclose(tmpfd) ;
 
     gnuplot_plot_atmpfile(handle,tmpfname,title,0);
+	gnuplot_rmtmpfile(handle,tmpfname);
     return ;
 }
 
@@ -566,6 +695,7 @@ void gnuplot_plot_xy(
     fclose(tmpfd) ;
 
     gnuplot_plot_xy_from_datfile(handle,tmpfname);
+	gnuplot_rmtmpfile(handle,tmpfname);
     return ;
 }
 
@@ -619,6 +749,7 @@ void gnuplot_plot_xyyerr(
     fclose(tmpfd) ;
 
     gnuplot_plot_atmpfile(handle,tmpfname,title, x_offset);
+	gnuplot_rmtmpfile(handle,tmpfname);
     return ;
 }
 

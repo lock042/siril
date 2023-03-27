@@ -372,7 +372,8 @@ gpointer cut_profile(gpointer p) {
 			gnuplot_setstyle(gplot, "lines");
 			if (com.cut.display_graph) {
 				if (com.cut.fit->naxes[2] == 1)
-					gnuplot_plot_xy_from_datfile(gplot, com.cut.filename);
+					gnuplot_plot_xy(gplot, x, r, nbr_points, "Test");
+//					gnuplot_plot_xy_from_datfile(gplot, com.cut.filename);
 					else
 					gnuplot_plot_xrgb_from_datfile(gplot, com.cut.filename);
 			} else {
