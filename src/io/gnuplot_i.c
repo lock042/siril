@@ -173,7 +173,7 @@ void gnuplot_exit(gnuplot_ctrl * handle)
 /*--------------------------------------------------------------------------*/
 
 gpointer tmpwatcher (gpointer user_data) {
-	printf("tmpwatcher started\n");
+	siril_debug_print("tmpwatcher started\n");
 	gnuplot_ctrl* handle = (gnuplot_ctrl*) user_data;
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -186,36 +186,38 @@ gpointer tmpwatcher (gpointer user_data) {
 	GDataInputStream *data_input = g_data_input_stream_new(stream);
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
-		printf("No. of tmp files: %d\n", handle->ntmp);
-		if(!handle->ntmp)
+		siril_debug_print("No. of tmp files: %d\n", handle->ntmp);
+		siril_debug_print("Buffer: %s\n", buffer);
+		if (!handle->ntmp)
 			continue;
 		gchar *arg = buffer;
 		if (g_str_has_prefix(buffer, "Done ")) {
-			printf("Received Done message ntmp = %d\n", handle->ntmp);
+			siril_debug_print("Received Done message ntmp = %d\n", handle->ntmp);
 			arg += 5;
 			for (int i = 0 ; i < handle->ntmp ; i++) {
-				printf("%s / %s\n", arg, handle->tmp_filename_tbl[i]);
+				siril_debug_print("%s / %s\n", arg, handle->tmp_filename_tbl[i]);
 				if (!g_strcmp0(arg, handle->tmp_filename_tbl[i])) {
 					g_unlink(handle->tmp_filename_tbl[i]);
-					printf("Reaped file: i = %d, filename = %s\n", i, arg);
+					siril_debug_print("Reaped file: i = %d, filename = %s\n", i, arg);
+					g_free(handle->tmp_filename_tbl[i]);
+					handle->tmp_filename_tbl[i] = NULL;
 					for (int j = i ; j < handle->ntmp - 1 ; j++) {
 						g_free(handle->tmp_filename_tbl[j]);
 						handle->tmp_filename_tbl[j] = g_strdup(handle->tmp_filename_tbl[j+1]);
 					}
 					g_free(handle->tmp_filename_tbl[handle->ntmp - 1]);
 					handle->tmp_filename_tbl[handle->ntmp - 1] = NULL;
-					handle->ntmp--;
+					handle->ntmp = handle->ntmp - 1;
 					break;
 				}
 			}
 			if (handle->ntmp == 0) {
 				// Close the gnuplot handle when the temp file
 				// counter drops to 0
-				gnuplot_exit(handle);
 				g_free(buffer);
 				g_object_unref(data_input);
 				g_object_unref(stream);
-				g_thread_exit(NULL);
+				gnuplot_exit(handle);
 				return GINT_TO_POINTER(1);
 			}
 		} else if (g_str_has_prefix(buffer, "Terminate")) {
@@ -225,16 +227,16 @@ gpointer tmpwatcher (gpointer user_data) {
 				}
 				handle->ntmp = 0;
 			}
-			gnuplot_exit(handle);
 			g_free(buffer);
 			g_object_unref(data_input);
 			g_object_unref(stream);
-			g_thread_exit(NULL);
+			gnuplot_exit(handle);
 			return GINT_TO_POINTER(1);
 		}
 		g_free(buffer);
 		buffer = NULL;
 	}
+	siril_debug_print("exiting tmpwatcher\n");
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	return GINT_TO_POINTER(1);
