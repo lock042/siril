@@ -173,7 +173,7 @@ void gnuplot_exit(gnuplot_ctrl * handle)
 /*--------------------------------------------------------------------------*/
 
 gpointer tmpwatcher (gpointer user_data) {
-	siril_debug_print("tmpwatcher started\n");
+	printf("tmpwatcher started\n");
 	gnuplot_ctrl* handle = (gnuplot_ctrl*) user_data;
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -186,14 +186,18 @@ gpointer tmpwatcher (gpointer user_data) {
 	GDataInputStream *data_input = g_data_input_stream_new(stream);
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
+		printf("No. of tmp files: %d\n", handle->ntmp);
+		if(!handle->ntmp)
+			continue;
 		gchar *arg = buffer;
 		if (g_str_has_prefix(buffer, "Done ")) {
-			siril_debug_print("Received Done message ntmp = %d\n", handle->ntmp);
+			printf("Received Done message ntmp = %d\n", handle->ntmp);
 			arg += 5;
 			for (int i = 0 ; i < handle->ntmp ; i++) {
+				printf("%s / %s\n", arg, handle->tmp_filename_tbl[i]);
 				if (!g_strcmp0(arg, handle->tmp_filename_tbl[i])) {
 					g_unlink(handle->tmp_filename_tbl[i]);
-					siril_debug_print("Reaped file: i = %d, filename = %s\n", i, arg);
+					printf("Reaped file: i = %d, filename = %s\n", i, arg);
 					for (int j = i ; j < handle->ntmp - 1 ; j++) {
 						g_free(handle->tmp_filename_tbl[j]);
 						handle->tmp_filename_tbl[j] = g_strdup(handle->tmp_filename_tbl[j+1]);
@@ -269,7 +273,7 @@ gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive)
     bin2[0] = bin;
     bin2[2] = NULL;
     // passing the option --persist keeps the plot opened even after gnuplot process has been closed
-    bin2[1] = (keep_plot_alive) ? "--persist" : NULL;
+	bin2[1] = (keep_plot_alive) ? "--persist" : NULL;
     printf("%s\n", bin2[0]);
     /* call gnuplot */
     gint child_stdin, child_stdout, child_stderr;
@@ -289,7 +293,7 @@ gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive)
     handle->gnucmd = fdopen(child_stdin, "w");
 	handle->gnumon = fdopen(child_stderr, "r");
 	handle->child_fd = child_stderr;
-	handle->thread = g_thread_new("gnuplot_thread_watcher", tmpwatcher, handle);
+	handle->thread = g_thread_new("gplotwatcher", tmpwatcher, handle);
 
     g_free(bin);
     if (handle->gnucmd == NULL) {
@@ -342,6 +346,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
 void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char *filename)
 {
 	gchar *cmd = g_strdup_printf("print \"Done %s\"", filename);
+	printf("Calling gnuplot_cmd\n");
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
 }
@@ -734,6 +739,7 @@ void gnuplot_plot_xyyerr(
     fclose(tmpfd) ;
 
     gnuplot_plot_atmpfile(handle,tmpfname,title, x_offset);
+	gnuplot_rmtmpfile(handle,tmpfname);
     return ;
 }
 
