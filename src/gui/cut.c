@@ -716,7 +716,7 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		siril_debug_print("Tri-profile\n");
 		start_in_new_thread(tri_cut, NULL);
 	} else if (com.cut.cfa) {
-		if ((com.cut.fit->naxes[2] > 1) || (com.cut.fit->bayer_pattern == NULL))
+		if ((com.cut.fit->naxes[2] > 1) || (com.cut.fit->bayer_pattern == NULL) || (com.cut.fit->bayer_pattern[0] == '\0'))
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 					_("Invalid file for this profiling mode"),
 					_("CFA mode requires a mono image file with a Bayer pattern (before debayering is carried out)."));
@@ -919,7 +919,7 @@ void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
 void on_cut_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.cut.cfa = gtk_toggle_button_get_active(button);
 	if (com.cut.cfa) {
-		siril_debug_print("CFA mode enabled\n");
+
 		com.cut.tri = FALSE;
 	}
 	redraw(REDRAW_OVERLAY);
