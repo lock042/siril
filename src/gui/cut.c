@@ -35,6 +35,8 @@
 #include "io/gnuplot_i.h"
 #include "gui/image_display.h"
 
+static gboolean no_gnuplot_warning_given = FALSE;
+
 char* profile_tmpfile()
 {
     static char const * tmp_filename_template = "profile_tmpdatafile_XXXXXX";
@@ -763,4 +765,13 @@ void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_cut_save_checkbutton_toggled(GtkToggleButton *button, gpointer user_data) {
 	com.cut.save_dat = gtk_toggle_button_get_active(button);
+}
+
+void on_cut_button_toggled(GtkToggleToolButton *button, gpointer user_data) {
+	if ((!gnuplot_is_available()) && (!(no_gnuplot_warning_given))) {
+		siril_message_dialog(GTK_MESSAGE_WARNING,
+					_("GNUplot not available"),
+					_("This functionality relies on GNUplot to generate graphs. Without it, profile data files can still be produced but you will need to use external software to display them."));
+		no_gnuplot_warning_given = TRUE;
+	}
 }

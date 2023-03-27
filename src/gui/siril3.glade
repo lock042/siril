@@ -26617,6 +26617,7 @@ WARNING: This option should not be checked for master stacking.</property>
                     <property name="action-name">win.cut</property>
                     <property name="use-underline">True</property>
                     <property name="icon-widget">image_cut</property>
+                    <signal name="toggled" handler="on_cut_button_toggled" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
