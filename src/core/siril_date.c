@@ -220,3 +220,13 @@ gchar *date_time_to_date(GDateTime *datetime) {
 	return g_date_time_format(datetime, format);
 }
 
+/**
+ * Get the date only from a datetime object.
+ * @param datetime a GDateTime
+ * @return a newly allocated string formatted as year-month-day_hour-minutes-seconds in numbers.
+ */
+gchar *date_time_to_date_time(GDateTime *datetime) {
+	gchar *format = "%Y-%m-%d_%H-%M-%S";
+	return g_date_time_format(datetime, format);
+}
+
