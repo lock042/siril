@@ -1017,6 +1017,7 @@ int process_makepsf(int nb) {
 	estk_data* data = malloc(sizeof(estk_data));
 	reset_conv_args(data);
 	gboolean save_on_complete = FALSE;
+	gboolean stars_need_clearing = FALSE;
 	char *filename = NULL;
 
 	char *arg = word[1];
@@ -1157,7 +1158,7 @@ int process_makepsf(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			if (!save_on_complete) {
-				start_in_new_thread(estimate_only,data);
+				estimate_only(data);
 			} else {
 				estimate_only(data);
 				save_kernel(filename);
@@ -1171,72 +1172,94 @@ int process_makepsf(int nb) {
 				return CMD_GENERIC_ERROR;
 			}
 			if (!(com.stars && com.stars[0])) {
-				siril_log_message(_("Error: requested to generate PSF from stars but no stars have been selected. Run findstar first.\n"));
-				free(data);
-				return CMD_ARG_ERROR;
-			} else {
-				data->psftype = PSF_STARS;
-				for (int i = 2; i < nb; i++) {
-					char *arg = word[i], *end;
-					if (!word[i])
-						break;
-					if (!g_strcmp0(arg, "-sym")) {
-						siril_log_message(_("symmetric kernel\n"));
-						data->symkern = TRUE;
-					}
-					else if (g_str_has_prefix(arg, "-ks=")) {
-						arg += 4;
-						int ks = (int) g_ascii_strtod(arg, &end);
-						if (arg == end) error = TRUE;
-						else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
-							siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
-							free(data);
-							free(filename);
-							return CMD_ARG_ERROR;
-						}
-						if (!error) {
-							data->ks = ks;
-						}
-					}
-					else if (g_str_has_prefix(arg, "-savepsf=")) {
-						if (filename) {
-							free(filename);
-							filename = NULL;
-						}
-						arg += 9;
-						if (arg[0] == '\0') {
-							siril_log_message(_("Error: no flename specified, aborting.\n"));
-							free(data);
-							return CMD_ARG_ERROR;
-						} else {
-							if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".tif"))) {
-								siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\" or \".tif\"\n"), "red");
-								free(data);
-								return CMD_ARG_ERROR;
-							}
-							filename = strdup(arg);
-							save_on_complete = TRUE;
-						}
-					} else {
-						siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-						free(filename);
+				// User wants PSF from stars but has not selected any stars
+				siril_log_message(_("No stars detected. Finding suitable non-saturated stars...\n"));
+				star_finder_params sfpar;
+				memcpy(&sfpar, &com.pref.starfinder_conf, sizeof(star_finder_params));
+				sfpar.min_A = 0.07;
+				sfpar.max_A = 0.7;
+				sfpar.profile = PSF_MOFFAT_BFREE;
+				image *input_image = calloc(1, sizeof(image));
+				input_image->fit = &gfit;
+				input_image->from_seq = NULL;
+				input_image->index_in_seq = -1;
+				int nb_stars;
+				int chan = input_image->fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
+				com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
+				free(input_image);
+				if (!com.stars || nb_stars == 0) {
+					siril_log_color_message(_("No suitable stars detectable in this image. Aborting...\n"), "red");
+					free(data);
+					return CMD_GENERIC_ERROR;
+				} else {
+					siril_log_message(_("Found %d suitably bright, non-saturated stars.\n"), nb_stars);
+					stars_need_clearing = TRUE;
+				}
+			}
+			data->psftype = PSF_STARS;
+			for (int i = 2; i < nb; i++) {
+				char *arg = word[i], *end;
+				if (!word[i])
+					break;
+				if (!g_strcmp0(arg, "-sym")) {
+					siril_log_message(_("symmetric kernel\n"));
+					data->symkern = TRUE;
+				}
+				else if (g_str_has_prefix(arg, "-ks=")) {
+					arg += 4;
+					int ks = (int) g_ascii_strtod(arg, &end);
+					if (arg == end) error = TRUE;
+					else if ((ks < 3) || !(ks %2) || (ks > min(gfit.rx, gfit.ry))) {
+						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width): aborting.\n"));
 						free(data);
+						free(filename);
 						return CMD_ARG_ERROR;
 					}
+					if (!error) {
+						data->ks = ks;
+					}
 				}
-				if (error) {
+				else if (g_str_has_prefix(arg, "-savepsf=")) {
+					if (filename) {
+						free(filename);
+						filename = NULL;
+					}
+					arg += 9;
+					if (arg[0] == '\0') {
+						siril_log_message(_("Error: no flename specified, aborting.\n"));
+						free(data);
+						return CMD_ARG_ERROR;
+					} else {
+						if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".tif"))) {
+							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\" or \".tif\"\n"), "red");
+							free(data);
+							return CMD_ARG_ERROR;
+						}
+						filename = strdup(arg);
+						save_on_complete = TRUE;
+					}
+				} else {
+					siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+					free(filename);
 					free(data);
 					return CMD_ARG_ERROR;
 				}
-				if (!save_on_complete) {
-					start_in_new_thread(estimate_only,data);
-				} else {
-					estimate_only(data);
-					save_kernel(filename);
-				}
-				free(filename);
-				return CMD_OK;
 			}
+			if (error) {
+				free(data);
+				return CMD_ARG_ERROR;
+			}
+			if (!save_on_complete) {
+				estimate_only(data);
+			} else {
+				estimate_only(data);
+				save_kernel(filename);
+			}
+			if (stars_need_clearing) {
+				clear_stars_list(FALSE);
+			}
+			free(filename);
+			return CMD_OK;
 		} else if (!g_strcmp0(arg, "manual")) {
 			siril_log_message(_("Manual PSF generation:\n"));
 			data->psftype = PSF_MANUAL;
@@ -1430,7 +1453,7 @@ int process_makepsf(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			if (!save_on_complete) {
-				start_in_new_thread(estimate_only,data);
+				estimate_only(data);
 			} else {
 				estimate_only(data);
 				save_kernel(filename);
