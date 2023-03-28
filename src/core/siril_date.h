@@ -29,5 +29,6 @@ double date_time_to_Julian(GDateTime *dt);
 GDateTime *FITS_date_to_date_time(gchar *date);
 gchar *date_time_to_FITS_date(GDateTime *date);
 gchar *date_time_to_date(GDateTime *datetime);
+gchar *date_time_to_date_time(GDateTime *datetime);
 
 #endif /* SRC_CORE_SIRIL_DATE_H_ */
