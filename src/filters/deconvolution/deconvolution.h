@@ -93,6 +93,8 @@ EXTERNC typedef struct estk_data {
 	float airy_pixelsize;
 	float airy_pixelscale;
 	float airy_obstruction;
+	gboolean save_after; // for the makepsf -savepsf= option
+	char* savepsf_filename; // for the makepsf -savepsf= option
 } estk_data;
 
 #ifdef __cplusplus

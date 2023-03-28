@@ -97,6 +97,8 @@ void reset_conv_args(estk_data* args) {
 	siril_debug_print("Resetting deconvolution args\n");
 
 	// Basic image and kernel parameters
+	args->savepsf_filename = NULL;
+	args->save_after = FALSE;
 	args->psftype = PSF_BLIND;
 	the_fit = &gfit;
 	imageorientation = get_imageorientation();
@@ -573,7 +575,6 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	calculate_parameters();
 	initialize_airy_parameters();
 	control_window_switch_to_tab(OUTPUT_LOGS);
-
 }
 
 void check_orientation() {
@@ -1032,12 +1033,18 @@ gpointer estimate_only(gpointer p) {
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 		}
 	}
+	siril_log_color_message(_("Deconvolution PSF generated.\n"), "green");
 ENDEST:
 	if (stars_need_clearing) {
 		clear_stars_list(FALSE);
 		stars_need_clearing = FALSE;
 	}
-	siril_log_color_message(_("Deconvolution PSF generated.\n"), "green");
+	if(!retval && args.save_after) {
+		save_kernel(args.savepsf_filename);
+		free(args.savepsf_filename);
+		args.savepsf_filename = NULL;
+		args.save_after = FALSE;
+	}
 	siril_add_idle(estimate_idle, NULL);
 	return GINT_TO_POINTER(retval);
 }

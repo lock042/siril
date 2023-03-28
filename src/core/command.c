@@ -1016,7 +1016,6 @@ int process_makepsf(int nb) {
 	gboolean error = FALSE;
 	estk_data* data = malloc(sizeof(estk_data));
 	reset_conv_args(data);
-	gboolean save_on_complete = FALSE;
 	gboolean stars_need_clearing = FALSE;
 	char *filename = NULL;
 
@@ -1144,8 +1143,8 @@ int process_makepsf(int nb) {
 							free(data);
 							return CMD_ARG_ERROR;
 						}
-						filename = strdup(arg);
-						save_on_complete = TRUE;
+						data->savepsf_filename = strdup(arg);
+						data->save_after = TRUE;
 					}
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
@@ -1157,13 +1156,7 @@ int process_makepsf(int nb) {
 				free(filename);
 				return CMD_ARG_ERROR;
 			}
-			if (!save_on_complete) {
-				estimate_only(data);
-			} else {
-				estimate_only(data);
-				save_kernel(filename);
-			}
-			free(filename);
+			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
 		} else if (!g_strcmp0(arg, "stars")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
@@ -1235,8 +1228,8 @@ int process_makepsf(int nb) {
 							free(data);
 							return CMD_ARG_ERROR;
 						}
-						filename = strdup(arg);
-						save_on_complete = TRUE;
+						data->savepsf_filename = strdup(arg);
+						data->save_after = TRUE;
 					}
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
@@ -1249,12 +1242,7 @@ int process_makepsf(int nb) {
 				free(data);
 				return CMD_ARG_ERROR;
 			}
-			if (!save_on_complete) {
-				estimate_only(data);
-			} else {
-				estimate_only(data);
-				save_kernel(filename);
-			}
+			start_in_new_thread(estimate_only, data);
 			if (stars_need_clearing) {
 				clear_stars_list(FALSE);
 			}
@@ -1439,8 +1427,8 @@ int process_makepsf(int nb) {
 							free(data);
 							return CMD_ARG_ERROR;
 						}
-						filename = strdup(arg);
-						save_on_complete = TRUE;
+						data->savepsf_filename = strdup(arg);
+						data->save_after = TRUE;
 					}
 				} else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
@@ -1452,12 +1440,7 @@ int process_makepsf(int nb) {
 				free(filename);
 				return CMD_ARG_ERROR;
 			}
-			if (!save_on_complete) {
-				estimate_only(data);
-			} else {
-				estimate_only(data);
-				save_kernel(filename);
-			}
+			start_in_new_thread(estimate_only,data);
 			free(filename);
 			return CMD_OK;
 		} else if (!g_strcmp0(arg, "load")) {
