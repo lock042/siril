@@ -1156,7 +1156,12 @@ int process_makepsf(int nb) {
 				free(filename);
 				return CMD_ARG_ERROR;
 			}
-			start_in_new_thread(estimate_only, data);
+			if (!save_on_complete) {
+				start_in_new_thread(estimate_only,data);
+			} else {
+				estimate_only(data);
+				save_kernel(filename);
+			}
 			return CMD_OK;
 		} else if (!g_strcmp0(arg, "stars")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
@@ -1222,7 +1227,12 @@ int process_makepsf(int nb) {
 					free(data);
 					return CMD_ARG_ERROR;
 				}
+			if (!save_on_complete) {
 				start_in_new_thread(estimate_only,data);
+			} else {
+				estimate_only(data);
+				save_kernel(filename);
+			}
 				return CMD_OK;
 			}
 		} else if (!g_strcmp0(arg, "manual")) {
