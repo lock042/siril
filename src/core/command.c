@@ -1162,6 +1162,7 @@ int process_makepsf(int nb) {
 				estimate_only(data);
 				save_kernel(filename);
 			}
+			free(filename);
 			return CMD_OK;
 		} else if (!g_strcmp0(arg, "stars")) {
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
@@ -1227,12 +1228,13 @@ int process_makepsf(int nb) {
 					free(data);
 					return CMD_ARG_ERROR;
 				}
-			if (!save_on_complete) {
-				start_in_new_thread(estimate_only,data);
-			} else {
-				estimate_only(data);
-				save_kernel(filename);
-			}
+				if (!save_on_complete) {
+					start_in_new_thread(estimate_only,data);
+				} else {
+					estimate_only(data);
+					save_kernel(filename);
+				}
+				free(filename);
 				return CMD_OK;
 			}
 		} else if (!g_strcmp0(arg, "manual")) {
@@ -1433,6 +1435,7 @@ int process_makepsf(int nb) {
 				estimate_only(data);
 				save_kernel(filename);
 			}
+			free(filename);
 			return CMD_OK;
 		} else if (!g_strcmp0(arg, "load")) {
 			siril_log_message(_("Load PSF from file:\n"));
