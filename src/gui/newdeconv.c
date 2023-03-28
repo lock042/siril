@@ -99,6 +99,8 @@ void reset_conv_args(estk_data* args) {
 	// Basic image and kernel parameters
 	args->savepsf_filename = NULL;
 	args->save_after = FALSE;
+	args->stars_need_clearing = FALSE;
+	args->recalc_ks = FALSE;
 	args->psftype = PSF_BLIND;
 	the_fit = &gfit;
 	imageorientation = get_imageorientation();
@@ -525,7 +527,8 @@ static void calculate_parameters() {
 				}
 			i++;
 		}
-		if (i <= 0 || n <= 0) return;
+		if (i <= 0 || n <= 0)
+			return;
 		/* compute average */
 		args.psf_fwhm = (float) FWHMx / (float) n;
 		FWHMy = (float) FWHMy / (float) n;
@@ -537,23 +540,26 @@ static void calculate_parameters() {
 			args.psf_fwhm /= (float) conversionfactor;
 		}
 		args.psf_angle = (float) angle / (float) n;
-		if (com.stars[0]->profile == PSF_GAUSSIAN)
-			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("Gaussian"));
-		else
-			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("Moffat"));
-		char temp[10];
-		sprintf(temp, "%.2f", args.psf_fwhm);
-		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starfwhm_text")), temp);
-		sprintf(temp, "%.2f", args.psf_ratio);
-		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starratio_text")), temp);
-		sprintf(temp, "%.2f", args.psf_angle);
-		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starangle_text")), temp);
-		sprintf(temp, "%.2f", args.psf_beta);
-		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starbeta_text")), temp);
-		return;
-	} else {
+		if (!com.headless && !com.script) {
+			if (com.stars[0]->profile == PSF_GAUSSIAN)
+				gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("Gaussian"));
+			else
+				gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("Moffat"));
+			char temp[10];
+			sprintf(temp, "%.2f", args.psf_fwhm);
+			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starfwhm_text")), temp);
+			sprintf(temp, "%.2f", args.psf_ratio);
+			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starratio_text")), temp);
+			sprintf(temp, "%.2f", args.psf_angle);
+			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starangle_text")), temp);
+			sprintf(temp, "%.2f", args.psf_beta);
+			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starbeta_text")), temp);
+			return;
+		}
+	} else if (!com.headless && !com.script) {
 		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("No stars selected"));
 	}
+	return;
 }
 
 void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -970,7 +976,6 @@ gpointer estimate_only(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
-	gboolean stars_need_clearing = FALSE;
 	if (args.psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
 		// User wants PSF from stars but has not selected any stars
 		siril_log_message(_("No stars detected. Finding suitable non-saturated stars...\n"));
@@ -993,7 +998,22 @@ gpointer estimate_only(gpointer p) {
 			retval = 1;
 			goto ENDEST;
 		} else {
-			stars_need_clearing = TRUE;
+			args.stars_need_clearing = TRUE;
+		}
+		siril_log_message(_("Found %d suitably bright, non-saturated stars.\n"), nb_stars);
+
+		calculate_parameters(); // Calculates some parameters based on detected stars
+		if (args.recalc_ks && args.ks < (int)(args.psf_fwhm * 4.f)) {
+			int newks = (int)(args.psf_fwhm * 4.f);
+			if (!(newks%2))
+				newks++;
+			args.ks = newks;
+			siril_log_message(_("Kernel size not large enough to fit PSF generated from detected stars. Increasing kernel size to %d. To override, specify kernel size using the -ks= option.\n"), newks);
+		} else if (args.ks < (int)(args.psf_fwhm * 4.f)) {
+			int recc_ks = (int)(args.psf_fwhm * 4.f);
+				if (!(recc_ks%2))
+					recc_ks++;
+			siril_log_message(_("Warning: PSF generated from the stars detected in this image appears to be too big for the specified kernel size. Recommend increasing kernel size to %d.\n"), recc_ks);
 		}
 	}
 
@@ -1035,9 +1055,9 @@ gpointer estimate_only(gpointer p) {
 	}
 	siril_log_color_message(_("Deconvolution PSF generated.\n"), "green");
 ENDEST:
-	if (stars_need_clearing) {
+	if (args.stars_need_clearing) {
 		clear_stars_list(FALSE);
-		stars_need_clearing = FALSE;
+		args.stars_need_clearing = FALSE;
 	}
 	if(!retval && args.save_after) {
 		save_kernel(args.savepsf_filename);

@@ -1016,7 +1016,6 @@ int process_makepsf(int nb) {
 	gboolean error = FALSE;
 	estk_data* data = malloc(sizeof(estk_data));
 	reset_conv_args(data);
-	gboolean stars_need_clearing = FALSE;
 	char *filename = NULL;
 
 	char *arg = word[1];
@@ -1159,35 +1158,12 @@ int process_makepsf(int nb) {
 			start_in_new_thread(estimate_only, data);
 			return CMD_OK;
 		} else if (!g_strcmp0(arg, "stars")) {
+			data->recalc_ks = FALSE;
+			gboolean force_ks = FALSE;
 			if (!(single_image_is_loaded() || sequence_is_loaded())) {
-				siril_log_message(_("Error: image or sequence must be loaded to carry out blind PSF estimation. Aborting...\n"));
+				siril_log_message(_("Error: image or sequence must be loaded to carry out stars-based PSF estimation. Aborting...\n"));
 				free(data);
 				return CMD_GENERIC_ERROR;
-			}
-			if (!(com.stars && com.stars[0])) {
-				// User wants PSF from stars but has not selected any stars
-				siril_log_message(_("No stars detected. Finding suitable non-saturated stars...\n"));
-				star_finder_params sfpar;
-				memcpy(&sfpar, &com.pref.starfinder_conf, sizeof(star_finder_params));
-				sfpar.min_A = 0.07;
-				sfpar.max_A = 0.7;
-				sfpar.profile = PSF_MOFFAT_BFREE;
-				image *input_image = calloc(1, sizeof(image));
-				input_image->fit = &gfit;
-				input_image->from_seq = NULL;
-				input_image->index_in_seq = -1;
-				int nb_stars;
-				int chan = input_image->fit->naxes[2] > 1 ? 1 : 0; // G channel for color, mono channel for mono
-				com.stars = peaker(input_image, chan, &sfpar, &nb_stars, NULL, FALSE, FALSE, MAX_STARS, com.pref.starfinder_conf.profile, com.max_thread);
-				free(input_image);
-				if (!com.stars || nb_stars == 0) {
-					siril_log_color_message(_("No suitable stars detectable in this image. Aborting...\n"), "red");
-					free(data);
-					return CMD_GENERIC_ERROR;
-				} else {
-					siril_log_message(_("Found %d suitably bright, non-saturated stars.\n"), nb_stars);
-					stars_need_clearing = TRUE;
-				}
 			}
 			data->psftype = PSF_STARS;
 			for (int i = 2; i < nb; i++) {
@@ -1209,6 +1185,7 @@ int process_makepsf(int nb) {
 						return CMD_ARG_ERROR;
 					}
 					if (!error) {
+						force_ks = TRUE;
 						data->ks = ks;
 					}
 				}
@@ -1242,10 +1219,10 @@ int process_makepsf(int nb) {
 				free(data);
 				return CMD_ARG_ERROR;
 			}
-			start_in_new_thread(estimate_only, data);
-			if (stars_need_clearing) {
-				clear_stars_list(FALSE);
+			if (!force_ks) {
+				data->recalc_ks = TRUE;
 			}
+			start_in_new_thread(estimate_only, data);
 			free(filename);
 			return CMD_OK;
 		} else if (!g_strcmp0(arg, "manual")) {
