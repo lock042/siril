@@ -897,6 +897,7 @@ void on_start_select_from_star_clicked(GtkToolButton *button, gpointer user_data
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
 		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		set_cursor_waiting(FALSE);
 		if (result) {
 			gui.cut.cut_start.x = result->x0 + com.selection.x;
 			gui.cut.cut_start.y = com.selection.y + com.selection.h - result->y0;
@@ -904,6 +905,7 @@ void on_start_select_from_star_clicked(GtkToolButton *button, gpointer user_data
 			GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
 			gtk_spin_button_set_value(startx, gui.cut.cut_start.x);
 			gtk_spin_button_set_value(starty, gui.cut.cut_start.y);
+			redraw(REDRAW_OVERLAY);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("No star detected"),
@@ -924,6 +926,7 @@ void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) 
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
 		result = psf_get_minimisation(gui.cut.fit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		set_cursor_waiting(FALSE);
 		if (result) {
 			gui.cut.cut_end.x = result->x0 + com.selection.x;
 			gui.cut.cut_end.y = com.selection.y + com.selection.h - result->y0;
@@ -931,6 +934,7 @@ void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) 
 			GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
 			gtk_spin_button_set_value(finishx, gui.cut.cut_end.x);
 			gtk_spin_button_set_value(finishy, gui.cut.cut_end.y);
+			redraw(REDRAW_OVERLAY);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("No star detected"),
