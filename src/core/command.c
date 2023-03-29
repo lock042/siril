@@ -8963,14 +8963,18 @@ int process_profile(int nb) {
 				siril_log_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"));
 				return CMD_ARG_ERROR;
 			}
-			if ((gfit.naxes[2] > 1) || (gfit.bayer_pattern == NULL) || (gfit.bayer_pattern[0] == '\0')) {
-				siril_log_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"));
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
+			if ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))) {
+				siril_log_color_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"), "red");
 				return CMD_ARG_ERROR;
 			}
 			cfa = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-graph")) {
 			display_graph = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-savedat")) {
+			save_dat = TRUE;
 		}
 		else if (g_str_has_prefix(arg, "-colorplot")) {
 			if (tri) {
@@ -9123,11 +9127,8 @@ int process_profile(int nb) {
 }
 
 int process_seq_profile(int nb) {
-	return 0;
-}
-/*	gboolean tri = FALSE, cfa = FALSE;
+	gboolean tri = FALSE, cfa = FALSE;
 	gboolean colorplot = FALSE;
-	gboolean display_graph = FALSE;
 	gboolean save_dat = FALSE;
 	cut_mode mode = { 0 };
 	int spacing = 1;
@@ -9165,10 +9166,6 @@ int process_seq_profile(int nb) {
 			}
 			if (tri) {
 				siril_log_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"));
-				return CMD_ARG_ERROR;
-			}
-			if ((com.cut.fit->naxes[2] > 1) || (com.cut.fit->bayer_pattern == NULL) || (com.cut.fit->bayer_pattern[0] == '\0')) {
-				siril_log_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"));
 				return CMD_ARG_ERROR;
 			}
 			cfa = TRUE;
@@ -9285,28 +9282,30 @@ int process_seq_profile(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	com.cut.cut_start.x = start.x;
-	com.cut.cut_start.y = start.y;
-	com.cut.cut_end.x = finish.x;
-	com.cut.cut_end.y = finish.y;
-	com.cut.cut_wn1.x = wn1.x;
-	com.cut.cut_wn1.y = wn1.y;
-	com.cut.cut_wn2.x = wn2.x;
-	com.cut.cut_wn2.y = wn2.y;
-	com.cut.wavenumber1 = wavenumber1;
-	com.cut.wavenumber2 = wavenumber2;
-	com.cut.tri = tri;
-	com.cut.cfa = cfa;
-	com.cut.width = width;
-	com.cut.step = spacing;
-	com.cut.display_graph = display_graph;
-	com.cut.mode = mode;
-	com.cut.cut_measure = FALSE;
-	com.cut.save_dat = save_dat;
-	com.cut.seq = seq;
+	cut_struct *arg = calloc(1, sizeof(cut_struct));
 
-	apply_cut_to_sequence(seq);
+	arg->cut_start.x = start.x;
+	arg->cut_start.y = start.y;
+	arg->cut_end.x = finish.x;
+	arg->cut_end.y = finish.y;
+	arg->cut_wn1.x = wn1.x;
+	arg->cut_wn1.y = wn1.y;
+	arg->cut_wn2.x = wn2.x;
+	arg->cut_wn2.y = wn2.y;
+	arg->wavenumber1 = wavenumber1;
+	arg->wavenumber2 = wavenumber2;
+	arg->tri = tri;
+	arg->cfa = cfa;
+	arg->width = width;
+	arg->step = spacing;
+	arg->display_graph = FALSE;
+	arg->mode = mode;
+	arg->cut_measure = FALSE;
+	arg->save_dat = save_dat;
+	arg->seq = seq;
+
+	apply_cut_to_sequence(arg);
 
 	return CMD_OK;
 }
-*/
+

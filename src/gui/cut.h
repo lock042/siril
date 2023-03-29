@@ -26,7 +26,7 @@ void initialize_cut_struct(cut_struct *arg);
 gpointer cut_profile(gpointer p);
 gpointer tri_cut(gpointer p);
 gpointer cfa_cut(gpointer p);
-void apply_cut_to_sequence(sequence* cut_sequence);
+void apply_cut_to_sequence(cut_struct *cut_args);
 
 
 #endif

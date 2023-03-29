@@ -259,8 +259,8 @@ gpointer cut_profile(gpointer p) {
 	int retval = 0;
 	gnuplot_ctrl *gplot = NULL;
 	gboolean tmpfile = FALSE;
-	char *filename, *tempfilename, *imagefilename;
-	gchar* temp;
+	char *filename = NULL, *tempfilename = NULL, *imagefilename = NULL;
+	gchar *temp = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
 	gboolean use_gnuplot = gnuplot_is_available();
@@ -274,12 +274,12 @@ gpointer cut_profile(gpointer p) {
 	} else {
 		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 			temp = g_path_get_basename(com.uniq->filename);
-			filename = g_strdup_printf("%s%s.dat", build_timestamp_filename(), temp);
+			filename = g_strdup_printf("profile_%s_%s.dat", temp, build_timestamp_filename());
 			g_free(temp);
 		} else if (arg->seq) {
-			filename = g_strdup_printf("%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
+			filename = g_strdup_printf("profile_%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
 		} else {
-			filename = g_strdup_printf("%s_image", build_timestamp_filename());
+			filename = g_strdup_printf("profile_%s", build_timestamp_filename());
 			siril_debug_print("%s\n", arg->filename);
 		}
 		tempfilename = profile_tmpfile();
@@ -423,9 +423,11 @@ END:
 	g = NULL;
 	free(b);
 	b = NULL;
+	gboolean in_sequence = (arg->seq != NULL);
 	if (arg != &gui.cut)
 		free(arg);
-	siril_add_idle(end_generic, NULL);
+	if (!in_sequence)
+		siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -433,8 +435,8 @@ gpointer tri_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
 	int retval = 0;
 	gboolean tmpfile = FALSE;
-	char *filename, *tempfilename, *imagefilename;
-	gchar* temp;
+	char *filename = NULL, *tempfilename = NULL, *imagefilename = NULL;
+	gchar *temp = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
 	GtkSpinButton *spin_step = (GtkSpinButton*) lookup_widget("cut_tricut_step");
@@ -451,13 +453,13 @@ gpointer tri_cut(gpointer p) {
 	} else {
 		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 			temp = g_path_get_basename(com.uniq->filename);
-			filename = g_strdup_printf("%s%s.dat", build_timestamp_filename(), temp);
+			filename = g_strdup_printf("profile_%s_%s.dat", temp, build_timestamp_filename());
 			g_free(temp);
 			temp = NULL;
 		} else if (arg->seq) {
-			filename = g_strdup_printf("%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
+			filename = g_strdup_printf("profile_%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
 		} else {
-			filename = g_strdup_printf("%s_image", build_timestamp_filename());
+			filename = g_strdup_printf("profile_%s", build_timestamp_filename());
 			siril_debug_print("%s\n", arg->filename);
 		}
 		tempfilename = profile_tmpfile();
@@ -547,6 +549,7 @@ gpointer tri_cut(gpointer p) {
 				gnuplot_plot_xrgb_from_datfile(gplot, filename);
 			} else {
 				gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
+				siril_log_message(_("%s has been saved.\n"), imagefilename);
 			}
 			g_free(title);
 			g_free(xlabel);
@@ -572,10 +575,12 @@ END:
 		free(r[i]);
 		r[i] = NULL;
 	}
+	gboolean in_sequence = (arg->seq != NULL);
 	if (arg != &gui.cut)
 		free(arg);
 
-	siril_add_idle(end_generic, NULL);
+	if (!in_sequence)
+		siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -583,14 +588,27 @@ gpointer cfa_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
 	int retval = 0, ret = 0;
 	gboolean tmpfile = FALSE;
-	char *filename, *tempfilename, *imagefilename;
-	gchar *temp;
-	gboolean use_gnuplot = gnuplot_is_available();
-	gnuplot_ctrl *gplot = NULL;
-
-	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
+	double *x = NULL, *r[4] = { 0 };
+	char *filename = NULL, *tempfilename = NULL, *imagefilename = NULL;
+	gchar *temp = NULL;
 	fits cfa[4];
 	memset(cfa, 0, 4 * sizeof(fits));
+	gboolean use_gnuplot = gnuplot_is_available();
+	gnuplot_ctrl *gplot = NULL;
+	if (use_gnuplot) {
+		gplot = gnuplot_init();
+	} else {
+		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), arg->filename);
+	}
+
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(arg->fit->bayer_pattern);
+	if ((arg->fit->naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))) {
+		siril_log_color_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"), "red");
+		retval = 1;
+		goto END;
+	}
+
+	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
 	if (arg->fit->type == DATA_USHORT) {
 		if ((ret = split_cfa_ushort(arg->fit, &cfa[0], &cfa[1], &cfa[2], &cfa[3]))) {
 			siril_log_color_message(_("Error: failed to split FITS into CFA sub-patterns.\n"), "red");
@@ -604,24 +622,17 @@ gpointer cfa_cut(gpointer p) {
 			goto END;
 		}
 	}
-
-	if (use_gnuplot) {
-		gplot = gnuplot_init();
-	} else {
-		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), arg->filename);
-	}
-
 	if (arg->filename) {
 		filename = arg->filename;
 	} else {
 		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 			temp = g_path_get_basename(com.uniq->filename);
-			filename = g_strdup_printf("%s%s.dat", build_timestamp_filename(), temp);
+			filename = g_strdup_printf("profile_%s_%s.dat", temp, build_timestamp_filename());
 			g_free(temp);
 		} else if (arg->seq) {
-			filename = g_strdup_printf("%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
+			filename = g_strdup_printf("profile_%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
 		} else {
-			filename = g_strdup_printf("%s_image", build_timestamp_filename());
+			filename = g_strdup_printf("profile_%s", build_timestamp_filename());
 			siril_debug_print("%s\n", arg->filename);
 		}
 		tempfilename = profile_tmpfile();
@@ -644,7 +655,6 @@ gpointer cfa_cut(gpointer p) {
 	double starty = (arg->fit->ry / 2) - 1 - cut_start_cfa.y;
 	double endy = (arg->fit->ry / 2) - 1 - cut_end_cfa.y;
 	point delta = { cut_end_cfa.x - cut_start_cfa.x, endy - starty };
-	double *x = NULL, *r[4] = { 0 };
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (length < 1.f) {
 		retval = 1;
@@ -696,6 +706,7 @@ gpointer cfa_cut(gpointer p) {
 				gnuplot_plot_xcfa_from_datfile(gplot, filename);
 			} else {
 				gnuplot_plot_xcfa_datfile_to_png(gplot, filename, title, imagefilename);
+				siril_log_message(_("%s has been saved.\n"), imagefilename);
 			}
 			g_free(title);
 			g_free(xlabel);
@@ -722,9 +733,11 @@ END:
 		r[i] = NULL;
 		clearfits(&cfa[i]);
 	}
+	gboolean in_sequence = (arg->seq != NULL);
 	if (arg != &gui.cut)
 		free(arg);
-	siril_add_idle(end_generic, NULL);
+	if (!in_sequence)
+		siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -982,14 +995,17 @@ void on_cut_button_toggled(GtkToggleToolButton *button, gpointer user_data) {
 }
 
 //// Sequence Processing ////
-/*
+
 static int cut_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	cut_struct* arg = (cut_struct*) args->user;
 	unsigned int MB_per_input_image, MB_avail, required;
 	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_input_image, NULL, &MB_avail);
 	if (arg->cfa)
 		required = 2 * MB_per_input_image;
 	else
 		required = MB_per_input_image;
+	// TODO: this doesn't account for the memory taken up by each copy of the GNUplot
+	// process, which feels dangerous...
 	if (limit > 0) {
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
@@ -1006,44 +1022,49 @@ static int cut_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		g_free(mem_per_thread);
 		g_free(mem_available);
 	}
-	limit = (limit >= 1 ? 1 : 0);
 	return limit;
 }
 
-int cut_finalize_hook(struct generic_seq_args *args) {
-	cut_struct* arg = (cut_struct*) args->user;
-	initialize_cut_struct(arg);
-	return 0;
+gboolean cut_idle_function(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+	cut_struct *data = (cut_struct *) args->user;
+	free(data);
+	gboolean retval = end_generic_sequence(args);
+	return retval;
 }
 
 int cut_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+	cut_struct *cut_args = (cut_struct*) args->user;
 	int ret = 0;
-	arg->fit = fit;
-	arg->imgnumber = i;
-	if (arg->cfa)
-		ret = GPOINTER_TO_INT(cfa_cut(NULL));
-	else if (arg->tri)
-		ret = GPOINTER_TO_INT(tri_cut(NULL));
+	cut_struct *private_args = malloc(sizeof(cut_struct));
+	memcpy(private_args, cut_args, sizeof(cut_struct));
+	private_args->fit = fit;
+	private_args->imgnumber = i;
+	if (private_args->cfa)
+		ret = GPOINTER_TO_INT(cfa_cut(private_args));
+	else if (private_args->tri)
+		ret = GPOINTER_TO_INT(tri_cut(private_args));
 	else
-		ret = GPOINTER_TO_INT(cut_profile(NULL));
+		ret = GPOINTER_TO_INT(cut_profile(private_args));
+	printf("image_worker ret: %d\n", ret);
 	return ret;
 }
 
-void apply_cut_to_sequence(sequence* cut_sequence) {
-	arg->seq = cut_sequence;
-	struct generic_seq_args *args = create_default_seqargs(arg->seq);
-	args->seq = arg->seq;
+void apply_cut_to_sequence(cut_struct* cut_args) {
+	struct generic_seq_args *args = create_default_seqargs(cut_args->seq);
+	args->seq = cut_args->seq;
 	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = arg->seq->selnum;
+	args->nb_filtered_images = args->seq->selnum;
 	args->compute_mem_limits_hook = cut_compute_mem_limits;
-	args->finalize_hook = cut_finalize_hook;
 	args->image_hook = cut_image_hook;
+	args->idle_function = cut_idle_function;
 	args->description = _("Intensity Profile");
 	args->has_output = FALSE;
 	args->load_new_sequence = FALSE;
 	args->force_ser_output = FALSE;
 	args->stop_on_error = FALSE;
+	args->user = cut_args;
 
 	start_in_new_thread(generic_sequence_worker, args);
 }
-*/
+

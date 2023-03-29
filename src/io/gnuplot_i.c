@@ -1226,8 +1226,7 @@ void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
     gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
     if (curve_title && curve_title[0] != '\0')
-	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2):($3):($4):($5) title \"%s\" with %s", dat_filename,
-			    curve_title, handle->pstyle);
+	    gnuplot_cmd(handle, "plot for [col=2:5] \"%s\" using ($1):col with %s title columnheader", dat_filename, handle->pstyle);
     else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
 			    handle->pstyle);
