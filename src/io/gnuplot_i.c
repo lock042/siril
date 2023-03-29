@@ -60,7 +60,6 @@
 
 #include "gui/plot.h"
 #include "core/siril_log.h"
-#include "core/portable_usleep.h"
 
 #ifdef _WIN32
 #define GNUPLOT_BIN "gnuplot.exe"
@@ -325,7 +324,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
 {
 	gnuplot_cmd(handle, "print \"Terminate\"");
 	while (TRUE) {
-		portable_usleep(1000);
+		g_usleep(1000);
 	if (!handle->running)
 			break;
 	}
