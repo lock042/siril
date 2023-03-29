@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-23 10:07+0100\n"
-"PO-Revision-Date: 2023-03-27 08:39+0000\n"
+"PO-Revision-Date: 2023-03-30 12:31+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -164,11 +164,12 @@ msgstr ""
 
 #: src/gui/siril3.glade:566
 msgid "Binning"
-msgstr ""
+msgstr "Биннинг"
 
 #: src/gui/siril3.glade:631
+#, fuzzy
 msgid "Binning factor:"
-msgstr ""
+msgstr "Коэф-т биннинга:"
 
 #: src/gui/siril3.glade:663
 #, fuzzy
@@ -303,7 +304,7 @@ msgid ""
 "Higher value will give a better protection."
 msgstr ""
 "Фон строк вычисляется используя только пиксели в приделах «коэффициент сигма "
-"* стандартное отклонение». Большие значения дают лучшую защиту."
+"* стандартное отклонение». Бо́льшие значения дают лучшую защиту."
 
 #: src/gui/siril3.glade:1342
 msgid "Vertical banding"
@@ -689,24 +690,34 @@ msgid ""
 "mad). By decreasing this value, Siril will be more restrictive to select "
 "background samples."
 msgstr ""
+"Коэффициент допуска общей выбраковки образца, в единицах mad (медиана + "
+"коэффициент допуска * mad). При уменьшении этого значения, выбор образцов "
+"фона будет более ограниченным."
 
 #: src/gui/siril3.glade:3755
 msgid ""
 "Tolerance of global sample rejection, in sigma units. By decreasing this "
 "value, Siril will be more restrictive to select background samples."
 msgstr ""
+"Допуск общей выбраковки образца, в единицах стандартного отклонения. При "
+"уменьшении этого значения, выбор образцов фона будет более ограниченным."
 
 #: src/gui/siril3.glade:3770
 msgid "Add dither"
 msgstr "Подмешать шум"
 
 #: src/gui/siril3.glade:3774
+#, fuzzy
 msgid ""
 "Hit this option when color banding is produced after background extraction.\n"
 "Dither is an intentionally applied form of noise used to randomize "
 "quantization error, preventing large-scale patterns such as color banding in "
 "images."
 msgstr ""
+"Нажмите, если после извлечения фона появляется цветовое полошение.\n"
+"Этот намеренно привнесённый шум, используется для рандомизации ошибок "
+"квантования, предотвращая появление крупномасштабных градиентов на "
+"изображениях, таких как цветовое полошение."
 
 #: src/gui/siril3.glade:3791
 msgid "Generate"
@@ -714,7 +725,7 @@ msgstr "Создать"
 
 #: src/gui/siril3.glade:3795
 msgid "Click here to generate the automatically defined samples."
-msgstr ""
+msgstr "Нажмите здесь, чтобы создать автоматически определённые образцы."
 
 #: src/gui/siril3.glade:3811 src/gui/siril3.glade:8647
 #: src/gui/siril3.glade:8787 src/gui/siril3.glade:19964
@@ -739,6 +750,7 @@ msgid "Interpolation Method"
 msgstr "Метод интерполяции"
 
 #: src/gui/siril3.glade:3875
+#, fuzzy
 msgid ""
 "Choose the type of correction you want apply:\n"
 "Subtraction: it is mainly used to correct additive effects, such as "
@@ -747,6 +759,13 @@ msgid ""
 "vignetting or differential atmospheric absorption for example. However, this "
 "kind of operation should be done by master-flat correction."
 msgstr ""
+"Выберите тип коррекции:\n"
+"Вычитание: главным образом корректируются аддитивные эффекты, вызванные "
+"световым загрязнением или Луной.\n"
+"Деление: главным образом используется для коррекции мультипликативных "
+"эффектов, как виньетирование или дифференциальное поглощение атмосферы, "
+"например. Однако, такие операции должны корректироваться с помощью мастер-"
+"кадров плоского поля."
 
 #: src/gui/siril3.glade:3882
 msgid "Subtraction"
@@ -770,6 +789,9 @@ msgid ""
 "correction. The model is always computed from the original image kept in "
 "memory allowing the user to work iteratively."
 msgstr ""
+"Будет рассчитан синтетический фон и применён выбранный тип коррекции. Модель "
+"всегда рассчитывается для загруженного в память изображения, позволяет "
+"пользователю работать итеративно."
 
 #: src/gui/siril3.glade:3924
 msgid "Show original image"
@@ -792,10 +814,11 @@ msgstr "Сохранить"
 #: src/gui/siril3.glade:4280
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
 msgstr ""
+"шаблон имени для конвертированных изображений (&apos;dest&apos; в dest1.fit)"
 
 #: src/gui/siril3.glade:4281
 msgid "root name of the converted images (the 'dest' in dest1.fit)"
-msgstr ""
+msgstr "шаблон имени для конвертированных изображений ( 'dest' в dest1.fit)"
 
 #: src/gui/siril3.glade:4296
 msgid "<b>Filename</b>"
@@ -1015,25 +1038,26 @@ msgstr ""
 
 #: src/gui/siril3.glade:5876 src/gui/newdeconv.c:1136 src/gui/newdeconv.c:1471
 msgid "Deconvolution"
-msgstr "Обратная свёртка"
+msgstr "Реконструкция"
 
 #: src/gui/siril3.glade:5910
 msgid ""
 "Generate the kernel and use it to deconvolve the current image or sequence"
 msgstr ""
+"Создать ядро и использовать его для реконструкции текущего изображения или "
+"последовательности"
 
 #: src/gui/siril3.glade:5972
-#, fuzzy
 msgid "Blind deconvolution"
-msgstr "Обратная свёртка"
+msgstr "Реконструкция вслепую"
 
 #: src/gui/siril3.glade:5976
 msgid "Estimates a PSF from the image"
-msgstr ""
+msgstr "Оценивает PSF по изображению"
 
 #: src/gui/siril3.glade:5989
 msgid "PSF from stars"
-msgstr ""
+msgstr "PSF по звёздам"
 
 #: src/gui/siril3.glade:5993
 msgid ""
@@ -1041,14 +1065,17 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
+"Моделирует PSF на основе усреднённых параметров PSF найденных звёзд. Если "
+"звёзды не были обнаружены, будет сделана попытка определить звёзды на "
+"изображении в подходящем диапазоне максимальной яркости."
 
 #: src/gui/siril3.glade:6006
 msgid "Manual PSF"
-msgstr ""
+msgstr "PSF вручную"
 
 #: src/gui/siril3.glade:6010
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr ""
+msgstr "Использовать PSF, определённую вручную на основе выбранных параметров."
 
 #: src/gui/siril3.glade:6025
 msgid ""
@@ -1066,17 +1093,19 @@ msgstr ""
 
 #: src/gui/siril3.glade:6040
 msgid "Previous PSF"
-msgstr ""
+msgstr "Предыдущая PSF"
 
 #: src/gui/siril3.glade:6044
 msgid "Reuse the previously calculated PSF."
-msgstr ""
+msgstr "Повторно использовать ранее рассчитанную PSF."
 
 #: src/gui/siril3.glade:6059
 msgid ""
 "Select a PSF to load from file. The PSF must be square and should ideally "
 "have odd length / width."
 msgstr ""
+"Выберите PSF, чтобы загрузить из файла. Она должна быть квадратной и, в "
+"идеале, иметь нечётное соотношение длина / ширина."
 
 #: src/gui/siril3.glade:6073
 msgid "Load PSF from file"
@@ -1088,7 +1117,7 @@ msgstr "Создать PSF"
 
 #: src/gui/siril3.glade:6091
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
-msgstr ""
+msgstr "Создать и отобразить PSF, но не выполнять реконструкцию"
 
 #: src/gui/siril3.glade:6113
 msgid "Save PSF to a file"
@@ -1103,6 +1132,8 @@ msgid ""
 "Takes a PSF directly from the image fitted to the current dimension. The PSF "
 "size will be the minimum of the selection width and height."
 msgstr ""
+"Получает PSF непосредственно из изображения, подогнанного под текущий "
+"размер. Размером PSF будет минимум длины и ширины выделения."
 
 #: src/gui/siril3.glade:6151
 msgid "PSF Source"
@@ -1114,42 +1145,47 @@ msgstr "Общие параметры PSF"
 
 #: src/gui/siril3.glade:6202
 msgid "PSF size"
-msgstr ""
+msgstr "Размер PSF"
 
 #: src/gui/siril3.glade:6214
 msgid ""
 "Make sure the size is big enough not to crop off any significant parts of "
 "the PSF."
 msgstr ""
+"Убедитесь, что размер достаточен, чтобы не обрезать значительные части PSF."
 
 #: src/gui/siril3.glade:6264 src/gui/siril3.glade:7232
 msgid "Profile"
 msgstr "Профиль"
 
 #: src/gui/siril3.glade:6275
+#, fuzzy
 msgid ""
 "Gaussian and Moffat profiles are good models for star shapes. Disc profiles "
 "can be used to improve out-of-focus issues. Airy disc models the inherent "
 "diffraction of your telescope."
 msgstr ""
+"Хорошими моделями для формы звёзд являются профили Гаусса и Моффата. "
+"Дисковые профили можно использовать для улучшения проблем, связанных с "
+"расфокусировкой. Диск Эйри моделирует дифракцию, присущую вашему телескопу."
 
 #: src/gui/siril3.glade:6278 src/gui/siril3.glade:13387
 #: src/algos/star_finder.c:1260 src/gui/newdeconv.c:540
 msgid "Gaussian"
-msgstr ""
+msgstr "Гаусс"
 
 #: src/gui/siril3.glade:6279 src/gui/siril3.glade:13388
 #: src/algos/star_finder.c:1260 src/gui/newdeconv.c:542
 msgid "Moffat"
-msgstr ""
+msgstr "Моффат"
 
 #: src/gui/siril3.glade:6280
 msgid "Disc"
-msgstr ""
+msgstr "Диск"
 
 #: src/gui/siril3.glade:6281
 msgid "Airy Disc"
-msgstr ""
+msgstr "Диск Эйри"
 
 #: src/gui/siril3.glade:6335 src/gui/siril3.glade:7256
 msgid "Ratio"
@@ -1160,17 +1196,19 @@ msgid ""
 "For elliptical PSFs, this gives the ratio of the shorter and longer "
 "dimensions."
 msgstr ""
+"Для эллиптических PSF показывает соотношение меньшего и большего измерений."
 
 #: src/gui/siril3.glade:6362 src/gui/siril3.glade:7244
-#, fuzzy
 msgid "fwhm / \""
-msgstr "Память: н/д"
+msgstr "fwhm / \""
 
 #: src/gui/siril3.glade:6373
 msgid ""
 "Full width at half maximum. For disc profiles this is just the diameter of "
 "the disc. For elliptical PSFs this is the longer PSF dimension."
 msgstr ""
+"Полуширина. Для профилей дисков это диаметр диска. Для эллиптических PSF это "
+"наибольшее измерение PSF."
 
 #: src/gui/siril3.glade:6389 src/gui/siril3.glade:7268
 msgid "Angle / º"
@@ -1178,7 +1216,7 @@ msgstr "Угол / °"
 
 #: src/gui/siril3.glade:6400
 msgid "For elliptical PSFs, the angle from the x axis in degrees."
-msgstr ""
+msgstr "Для эллиптических PSF угол (в градусах) от оси x."
 
 #: src/gui/siril3.glade:6415 src/gui/siril3.glade:7280
 msgid "beta (β)"
@@ -1189,6 +1227,8 @@ msgid ""
 "For Moffat profiles, this sets the value of beta. See the astrometry "
 "documentation for information on this parameter."
 msgstr ""
+"Устанавливает значение бета (β) для профилей Моффата. Для получения "
+"информации об этом параметре смотрите документацию по астрометрии."
 
 #: src/gui/siril3.glade:6458
 msgid "Pixel Size / μm"
@@ -1222,14 +1262,16 @@ msgid ""
 "Telescope focal length (this should account for any multiplication factor "
 "introduced by Barlows or field flatteners)"
 msgstr ""
+"Фокусное расстояние телескопа (необходимо учитывать любой коэффициент "
+"умножения, привносимый линзами Барлоу или спрямителями поля)"
 
 #: src/gui/siril3.glade:6552
 msgid "Diameter of the telescope primary aperture"
-msgstr ""
+msgstr "Диаметр главной апертуры телескопа"
 
 #: src/gui/siril3.glade:6569
 msgid "Central Obstruction / %"
-msgstr ""
+msgstr "Центральное экранирование / %"
 
 #: src/gui/siril3.glade:6580
 msgid ""
@@ -1237,6 +1279,9 @@ msgid ""
 "This is zero for refractors, typically around 10-20% for fast Newtonians and "
 "may be as much as 40% for a Corrected Dall-Kirkham."
 msgstr ""
+"Устанавливает центральное экранирование как процент от общей площади "
+"апертуры. Для рефракторов это 0, обычно около 10-20% для быстрых рефлектор и "
+"может достигать 40% для модифицированных телескопов Долла-Киркхема."
 
 #: src/gui/siril3.glade:6603
 msgid "Manual PSF Parameters"
@@ -1247,14 +1292,16 @@ msgid ""
 "Regularization parameter for PSF estimation. Try decreasing this value for "
 "noisy images."
 msgstr ""
+"Параметр регуляризации для оценки PSF. Для шумных изображений попытайтесь "
+"уменьшить это значение."
 
 #: src/gui/siril3.glade:6650
 msgid "Lambda (λ)"
-msgstr ""
+msgstr "Лямбда (λ)"
 
 #: src/gui/siril3.glade:6663
 msgid "Blind Deconvolution PSF Estimation"
-msgstr ""
+msgstr "Оценка PSF для реконструкции вслепую"
 
 #: src/gui/siril3.glade:6697
 #, fuzzy
@@ -1269,11 +1316,11 @@ msgstr ""
 
 #: src/gui/siril3.glade:6715
 msgid "These settings can be left alone in the vast majority of cases. "
-msgstr ""
+msgstr "В большинстве случаев эти настройки можно не изменять. "
 
 #: src/gui/siril3.glade:6729
 msgid "Gamma (γ)"
-msgstr ""
+msgstr "Гамма (γ)"
 
 #: src/gui/siril3.glade:6740
 msgid "PSF estimation regularisation parameter"
@@ -1284,6 +1331,8 @@ msgid ""
 "Number of iterations for PSF estimation. Do not reduce this below 2. There "
 "is negligible benefit in increasing it beyond 3."
 msgstr ""
+"Кол-во итераций для оценки PSF. Не уменьшайте ниже 2. Увеличение более 3 "
+"даёт небольшую выгоду."
 
 #: src/gui/siril3.glade:6781
 #, fuzzy
@@ -1296,7 +1345,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:6808
 msgid "Lambda min"
-msgstr ""
+msgstr "Лямбда (мин.)"
 
 #: src/gui/siril3.glade:6819
 msgid "Minimum value of lambda for multiscale PSF estimation"
@@ -1305,7 +1354,7 @@ msgstr ""
 #: src/gui/siril3.glade:6835
 #, fuzzy
 msgid "Scale factor"
-msgstr "Коэффициент растягивания"
+msgstr "Коэффициент"
 
 #: src/gui/siril3.glade:6846
 msgid "Scale factor between successive scales of multiscale PSF estimation"
@@ -1330,9 +1379,8 @@ msgid "Kernel threshold"
 msgstr "Порог ядра"
 
 #: src/gui/siril3.glade:6912
-#, fuzzy
 msgid "Better kernel"
-msgstr "Узор матрицы: "
+msgstr "Лучшее ядро"
 
 #: src/gui/siril3.glade:6924
 #, fuzzy
@@ -1361,12 +1409,11 @@ msgstr ""
 
 #: src/gui/siril3.glade:6997
 msgid "These settings should almost always be left at the default value."
-msgstr ""
+msgstr "Эти настройки практически всегда должны оставаться по умолчанию."
 
 #: src/gui/siril3.glade:6998 src/gui/siril3.glade:7180
-#, fuzzy
 msgid "Expert Settings"
-msgstr "Параметры"
+msgstr "Дополнительные параметры"
 
 #: src/gui/siril3.glade:7016
 msgid "ℓ0 Descent Method"
@@ -1427,17 +1474,20 @@ msgstr ""
 
 #: src/gui/siril3.glade:7339
 msgid "Symmetrical PSF"
-msgstr ""
+msgstr "Симметричная PSF"
 
 #: src/gui/siril3.glade:7343
 msgid ""
 "If checked, a PSF defined from stars will be circularly symmetric. If "
 "unchecked the PSF may be elongated and have a defined rotation angle."
 msgstr ""
+"Если флажок установлен, PSF, определённая по звёздам будет симметричной. "
+"Если флажок снят, PSF может быть вытянутой и иметь определённый угол "
+"поворота."
 
 #: src/gui/siril3.glade:7364
 msgid "PSF from Stars"
-msgstr ""
+msgstr "PSF по звёздам"
 
 #: src/gui/siril3.glade:7396
 msgid "PSF Generation"
@@ -1449,7 +1499,7 @@ msgstr "Предпросмотр PSF"
 
 #: src/gui/siril3.glade:7436
 msgid "Shows a preview of the PSF, if one has been calculated."
-msgstr ""
+msgstr "Предпросмотр PSF, если она была рассчитана."
 
 #: src/gui/siril3.glade:7450
 msgid "Usage tips"
@@ -1460,6 +1510,8 @@ msgid ""
 "Opens a page in the online Siril documentation with usage tips and examples "
 "of settings that can work for different types of image."
 msgstr ""
+"Открыть документацию Siril с советами по использованию и примерами настроек, "
+"которые могут работать с различными типами изображений."
 
 #: src/gui/siril3.glade:7510
 msgid ""
@@ -1471,11 +1523,11 @@ msgstr ""
 
 #: src/gui/siril3.glade:7514
 msgid "Split Bregman method with TV regularization"
-msgstr ""
+msgstr "Метод Брэгмана с регуляризацией"
 
 #: src/gui/siril3.glade:7515
 msgid "Richardson-Lucy method with TV regularization"
-msgstr ""
+msgstr "Метод Ричардсона-Люси с регуляризацией"
 
 #: src/gui/siril3.glade:7516
 msgid "Wiener filter"
@@ -1485,10 +1537,12 @@ msgstr "Фильтр Винера"
 msgid ""
 "Number of iterations for final deconvolution if using an iterative method"
 msgstr ""
+"Кол-во итераций для окончательной реконструкции, если выбран итеративный "
+"метод"
 
 #: src/gui/siril3.glade:7556
 msgid "Regularization parameter for the final non-blind stage deconvolution"
-msgstr ""
+msgstr "Параметр регуляризации для завершающей стадии реконструкции"
 
 #: src/gui/siril3.glade:7571
 msgid ""
@@ -1518,12 +1572,11 @@ msgstr ""
 
 #: src/gui/siril3.glade:7605
 msgid "Alpha (α)"
-msgstr ""
+msgstr "Альфа (α)"
 
 #: src/gui/siril3.glade:7614
-#, fuzzy
 msgid "Stopping criterion"
-msgstr "Кадрирование по выделению"
+msgstr "Критерий остановки"
 
 #: src/gui/siril3.glade:7618
 msgid ""
@@ -1534,7 +1587,7 @@ msgstr ""
 #: src/gui/siril3.glade:7631
 #, fuzzy
 msgid "Regularization"
-msgstr "Нейтрализация фона"
+msgstr "Регуляризация"
 
 #: src/gui/siril3.glade:7643
 msgid "Gradient descent step size"
@@ -1545,12 +1598,18 @@ msgid "Algorithm method"
 msgstr "Алгоритм"
 
 #: src/gui/siril3.glade:7666
+#, fuzzy
 msgid ""
 "If in doubt, use Gradient Descent. It is more gradual and has a controllable "
 "step size that can help to avoid ringing artefacts around stars. For "
 "stretched images Mulitiplicative may give good results and require fewer "
 "iterations."
 msgstr ""
+"Если сомневаетесь, используйте градиентный спуск. Этот алгоритм более "
+"ступенчатый и имеет контролируемый размер шага, позволяющий избежать "
+"кольцевых артефактов вокруг звёзд. Для растянутых изображений "
+"мультипликативный алгоритм может дать хорошие результаты и потребует меньше "
+"итераций."
 
 #: src/gui/siril3.glade:7669 src/gui/siril3.glade:24051
 msgid "Multiplicative"
@@ -1558,7 +1617,7 @@ msgstr "Мультипликативный"
 
 #: src/gui/siril3.glade:7670
 msgid "Gradient Descent"
-msgstr ""
+msgstr "Градиентный спуск"
 
 #: src/gui/siril3.glade:7683
 msgid ""
@@ -1568,15 +1627,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:7700
-#, fuzzy
 msgid "Non-Blind Deconvolution"
-msgstr "Обратная свёртка"
+msgstr "Реконструкция"
 
 #: src/gui/siril3.glade:7732
 msgid ""
 "Deconvolve the currently loaded sequence. If no sequence is loaded, the "
 "current image will be deconvolved."
 msgstr ""
+"Реконструировать загруженную последовательность. Если последовательность не "
+"загружено, будет реконструировано текущее изображение."
 
 #: src/gui/siril3.glade:7747
 msgid "Sequence prefix:"
@@ -1585,6 +1645,8 @@ msgstr "Префикс вывода:"
 #: src/gui/siril3.glade:7759
 msgid "Provides a custom prefix to use when deconvolving a sequence."
 msgstr ""
+"Префикс названий изображений, полученных в ходе реконструкции "
+"последовательности."
 
 #: src/gui/siril3.glade:7786
 msgid "Crop sequence"
@@ -1592,7 +1654,7 @@ msgstr "Кадрировать последовательность"
 
 #: src/gui/siril3.glade:7851
 msgid "Prefix of the image names resulting from the cropping process."
-msgstr ""
+msgstr "Префикс имён файлов, полученных в результате кадрирования."
 
 #: src/gui/siril3.glade:7915
 msgid "Image Denoising"
@@ -1630,8 +1692,9 @@ msgid "Color Denoising"
 msgstr "Обработка"
 
 #: src/gui/siril3.glade:8053
+#, fuzzy
 msgid "No secondary denoising stage"
-msgstr ""
+msgstr "Без вторичной стадии подавления шума"
 
 #: src/gui/siril3.glade:8057
 msgid ""
@@ -1748,16 +1811,19 @@ msgid "Channel Extraction"
 msgstr "Извлечение канала"
 
 #: src/gui/siril3.glade:8378
+#, fuzzy
 msgid "File name for the first FITS file to save."
-msgstr ""
+msgstr "Имя первого сохраняемого файла FITS."
 
 #: src/gui/siril3.glade:8392
+#, fuzzy
 msgid "File name for the second FITS file to save."
-msgstr ""
+msgstr "Имя первого сохраняемого файла FITS."
 
 #: src/gui/siril3.glade:8406
+#, fuzzy
 msgid "File name for the third FITS file to save."
-msgstr ""
+msgstr "Имя третьего сохраняемого файла FITS."
 
 #. RGB
 #: src/gui/siril3.glade:8421 src/gui/colors.c:332
@@ -1803,11 +1869,15 @@ msgid "Information"
 msgstr "Информация"
 
 #: src/gui/siril3.glade:8548
+#, fuzzy
 msgid ""
 "Information related to the image, extracted from the file if available, from "
 "the preferences otherwise.\n"
 "Modified data can be saved in a FITS file."
 msgstr ""
+"Информация, связанная с изображением, которая получена из файла (при "
+"возможности), или из настроек в противном случае.\n"
+"Изменённые данные можно сохранить в файле, формата FITS."
 
 #: src/gui/siril3.glade:8572
 msgid "Non-square pixels can be entered but will not be used in most cases."
@@ -1822,12 +1892,16 @@ msgid ""
 "If the focal length is not automatically loaded, using file's header, you "
 "can update the field by yourself."
 msgstr ""
+"Если фокусное расстояние не загружено автоматически из заголовка файла, вы "
+"можете обновить это поле самостоятельно."
 
 #: src/gui/siril3.glade:8603
 msgid ""
 "If the Pixel X size is not automatically loaded, using file's header, you "
 "can update the field by yourself."
 msgstr ""
+"Если ширина пикселя не загружена автоматически из заголовка файла, вы можете "
+"обновить это поле самостоятельно."
 
 #: src/gui/siril3.glade:8621
 msgid "Focal length (mm): "
@@ -1838,12 +1912,16 @@ msgid ""
 "If the Pixel Y size is not automatically loaded, using file's header, you "
 "can update the field by yourself."
 msgstr ""
+"Если высота пискеля не загружена автоматически из заголовка файла, вы можете "
+"обновить это поле самостоятельно."
 
 #: src/gui/siril3.glade:8651
 msgid ""
 "Clear all the fields. If you save your image after, the header will not "
 "contain any data about the focal length or sensor size."
 msgstr ""
+"Очистить все поля. Если после этого сохранить изображение, в заголовке не "
+"будет данных о фокусном расстоянии или размере сенсора."
 
 #: src/gui/siril3.glade:8665
 msgid "Computed sampling (arcsec/pixel):"
@@ -1851,7 +1929,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:8678
 msgid "Binning: "
-msgstr ""
+msgstr "Биннинг: "
 
 #: src/gui/siril3.glade:8689
 msgid ""
@@ -1881,6 +1959,8 @@ msgid ""
 "Save focal length and pixel size as default values in the settings to be "
 "used for images that do not contain these metadata"
 msgstr ""
+"Сохранить фокусное расстояние и размер пикселя как значения по умолчанию, "
+"которые будут применяться к изображениям, не содержащим этих метаданных"
 
 #: src/gui/siril3.glade:8772
 msgid "Image compositing"
@@ -1892,7 +1972,7 @@ msgstr "Многослойное совмещение изображения"
 
 #: src/gui/siril3.glade:8850
 msgid "Layer alignments"
-msgstr "Выравнивание слоев"
+msgstr "Выравнивание слоёв"
 
 #. don't destroy it on removal from grid
 #: src/gui/siril3.glade:8892 src/compositing/compositing.c:187
@@ -1974,6 +2054,7 @@ msgstr "Регистрация по одной звезде (дальний ко
 #: src/gui/siril3.glade:9106
 msgid "For LRGB composition, the reference layer should be luminance."
 msgstr ""
+"Для совмещения LRGB изображений, опорным слоем должен быть «Светимость»."
 
 #: src/gui/siril3.glade:9108 src/gui/callbacks.c:714
 msgid "Luminance"
@@ -1990,7 +2071,7 @@ msgstr "Красный"
 #: src/gui/siril3.glade:19400 src/gui/siril3.glade:27158
 #: src/gui/callbacks.c:720
 msgid "Green"
-msgstr "Зеленый"
+msgstr "Зелёный"
 
 #: src/gui/siril3.glade:9111 src/gui/siril3.glade:12772
 #: src/gui/siril3.glade:19568 src/gui/siril3.glade:27217
@@ -2008,7 +2089,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:9238
 msgid "Name of the phase file: "
-msgstr ""
+msgstr "Название файла фазы: "
 
 #: src/gui/siril3.glade:9250
 msgid "Order: "
@@ -2016,11 +2097,11 @@ msgstr "Порядок: "
 
 #: src/gui/siril3.glade:9263
 msgid "modulus"
-msgstr ""
+msgstr "modulus"
 
 #: src/gui/siril3.glade:9277
 msgid "phase"
-msgstr "фаза"
+msgstr "phase"
 
 #: src/gui/siril3.glade:9287
 msgid "Centered"
@@ -2036,9 +2117,8 @@ msgid "Magnitude of the image: "
 msgstr "Добавить фильтр"
 
 #: src/gui/siril3.glade:9337
-#, fuzzy
 msgid "Phase of the image: "
-msgstr "Добавить фильтр"
+msgstr "Фаза изображения: "
 
 #: src/gui/siril3.glade:9351
 #, fuzzy
@@ -2046,9 +2126,8 @@ msgid "Select Magnitude"
 msgstr "Выберите изображение"
 
 #: src/gui/siril3.glade:9365
-#, fuzzy
 msgid "Select Phase"
-msgstr "Выберите изображение"
+msgstr "Выберите фазу"
 
 #: src/gui/siril3.glade:9396
 msgid "Inverse Transform"
@@ -2067,11 +2146,11 @@ msgstr "Гистограмма"
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/siril3.glade:9452 src/gui/remixer.c:701 src/gui/remixer.c:1323
 msgid "Advanced"
-msgstr ""
+msgstr "Больше"
 
 #: src/gui/siril3.glade:9456
 msgid "Show advanced stretch options"
-msgstr ""
+msgstr "Показать больше настроек растягивания"
 
 #: src/gui/siril3.glade:9509 src/gui/siril3.glade:10116
 msgid ""
@@ -2088,15 +2167,13 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:9543
-#, fuzzy
 msgid "Star Histogram"
-msgstr "Гистограмма"
+msgstr "Гистограмма звёзд"
 
 #: src/gui/siril3.glade:9564 src/gui/siril3.glade:10173
 #: src/gui/siril3.glade:16014
-#, fuzzy
 msgid "Type of stretch"
-msgstr "Тип алгоритма"
+msgstr "Тип растягивания"
 
 #: src/gui/siril3.glade:9579 src/gui/siril3.glade:10188
 msgid ""
@@ -2120,21 +2197,18 @@ msgstr "Инвертированная обобщённая гиперболич
 
 #: src/gui/siril3.glade:9585 src/gui/siril3.glade:10194
 #: src/gui/siril3.glade:16035
-#, fuzzy
 msgid "Modified arcsinh transform"
-msgstr "Обратное преобразование"
+msgstr "Модифицированная трансформация по arcsinh"
 
 #: src/gui/siril3.glade:9586 src/gui/siril3.glade:10195
 #: src/gui/siril3.glade:16036
-#, fuzzy
 msgid "Inverse modified arcsinh transform"
-msgstr "Обратное преобразование"
+msgstr "Обратная модифицированная трансформация по arcsinh"
 
 #: src/gui/siril3.glade:9614 src/gui/siril3.glade:10223
 #: src/gui/siril3.glade:16064
-#, fuzzy
 msgid "Colour stretch model"
-msgstr "Насыщенность"
+msgstr "Цветовая модель растягивания"
 
 #: src/gui/siril3.glade:9629 src/gui/siril3.glade:10238
 msgid ""
@@ -2160,13 +2234,12 @@ msgstr ""
 #: src/gui/siril3.glade:9636 src/gui/siril3.glade:10245
 #: src/gui/siril3.glade:16085
 msgid "Even weighted luminance"
-msgstr ""
+msgstr "Равновзвешенная светимость"
 
 #: src/gui/siril3.glade:9670 src/gui/siril3.glade:10279
 #: src/gui/siril3.glade:16141
-#, fuzzy
 msgid "Stretch factor (ln(D+1))"
-msgstr "Коэффициент растягивания"
+msgstr "Коэффициент растягивания (ln(D+1))"
 
 #: src/gui/siril3.glade:9681 src/gui/siril3.glade:9706
 msgid ""
@@ -2178,7 +2251,7 @@ msgstr ""
 #: src/gui/siril3.glade:9740 src/gui/siril3.glade:10350
 #: src/gui/siril3.glade:16210
 msgid "Local stretch intensity (b)"
-msgstr ""
+msgstr "Локальная интенсивность растягивания (b)"
 
 #: src/gui/siril3.glade:9751 src/gui/siril3.glade:9775
 msgid ""
@@ -2191,7 +2264,7 @@ msgstr ""
 #: src/gui/siril3.glade:9810 src/gui/siril3.glade:10420
 #: src/gui/siril3.glade:16279
 msgid "Symmetry point (SP)"
-msgstr ""
+msgstr "Точка симметрии (SP)"
 
 #: src/gui/siril3.glade:9821 src/gui/siril3.glade:9867
 msgid ""
@@ -2210,9 +2283,8 @@ msgstr ""
 
 #: src/gui/siril3.glade:9902 src/gui/siril3.glade:10512
 #: src/gui/siril3.glade:16370
-#, fuzzy
 msgid "Shadow protection point (LP)"
-msgstr "Обрезка светов"
+msgstr "Точка сохранения теней (LP)"
 
 #: src/gui/siril3.glade:9913 src/gui/siril3.glade:9938
 #: src/gui/siril3.glade:10523 src/gui/siril3.glade:10548
@@ -2229,9 +2301,8 @@ msgstr ""
 
 #: src/gui/siril3.glade:9973 src/gui/siril3.glade:10583
 #: src/gui/siril3.glade:16439
-#, fuzzy
 msgid "Highlight protection point (HP)"
-msgstr "Обрезка светов"
+msgstr "Точка сохранения светов (HP)"
 
 #: src/gui/siril3.glade:9984
 msgid ""
@@ -2250,9 +2321,8 @@ msgstr ""
 
 #: src/gui/siril3.glade:10045 src/gui/siril3.glade:10655
 #: src/gui/siril3.glade:16509
-#, fuzzy
 msgid "Black Point (BP)"
-msgstr "Точка чёрного"
+msgstr "Точка чёрного (BP)"
 
 #: src/gui/siril3.glade:10056 src/gui/siril3.glade:10082
 #: src/gui/siril3.glade:10666 src/gui/siril3.glade:10692
@@ -2269,9 +2339,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:10152
-#, fuzzy
 msgid "Background Histogram"
-msgstr "Извлечение фона"
+msgstr "Гистограмма фона"
 
 #: src/gui/siril3.glade:10290 src/gui/siril3.glade:10315
 #: src/gui/siril3.glade:16152
@@ -2330,19 +2399,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:10721
-#, fuzzy
 msgid "Background Stretch Parameters"
-msgstr "Параметры изображения"
+msgstr "Параметры растягивание фона"
 
 #: src/gui/siril3.glade:10737
-#, fuzzy
 msgid "Star Stretch Parameters"
-msgstr "Параметры изображения"
+msgstr "Параметры растягивания звёзд"
 
 #: src/gui/siril3.glade:10774
-#, fuzzy
 msgid "Resets stretch parameters for the star image"
-msgstr "Сбросить к значениям по умолчанию"
+msgstr "Сбросить параметры растягивания для изображения звёзд"
 
 #: src/gui/siril3.glade:10789
 msgid ""
@@ -2350,9 +2416,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:10822
-#, fuzzy
 msgid "Resets stretch parameters for the starless image"
-msgstr "Сбросить к значениям по умолчанию"
+msgstr "Сбросить параметры растягивания для изображения без звёзд"
 
 #: src/gui/siril3.glade:10837
 msgid ""
@@ -2369,8 +2434,9 @@ msgid "Close the dialog."
 msgstr "Закрыть этот диалог."
 
 #: src/gui/siril3.glade:10914
+#, fuzzy
 msgid "Computes a linear function between a reference image and a target."
-msgstr ""
+msgstr "Вычисляет линейную функцию между опорным и целевым изображениями."
 
 #: src/gui/siril3.glade:10948
 msgid "Reference: "
@@ -2378,11 +2444,11 @@ msgstr "Опорный кадр: "
 
 #: src/gui/siril3.glade:10960
 msgid "Choose the reference image. This image must have same dimensions."
-msgstr ""
+msgstr "Выберите опорный кадр, имеющий такие же размеры."
 
 #: src/gui/siril3.glade:10962
 msgid "Choose Reference Image"
-msgstr "Выберете опорное фото"
+msgstr "Выберете опорный кадр"
 
 #: src/gui/siril3.glade:10986
 msgid "Reject low"
@@ -2394,6 +2460,8 @@ msgid ""
 "The algorithm will ignore all reference pixels whose values are outside of "
 "the [low, high] range."
 msgstr ""
+"Алгоритм игнорирует все опорные пиксели, чьи значения за приделами диапазона "
+"[нижняя граница, верхняя граница]."
 
 #: src/gui/siril3.glade:11045
 msgid "Reject high"
@@ -2482,7 +2550,6 @@ msgid "Reference image"
 msgstr "Опорное изображение"
 
 #: src/gui/siril3.glade:11537
-#, fuzzy
 msgid ""
 "If set, the current image will be the reference image for registration.\n"
 "Only one image can be the reference image in a sequence, setting it will "
@@ -2595,6 +2662,8 @@ msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning."
 msgstr ""
+"Размер пикселя в микрометрах. Предполагается, что изображение сформировано "
+"квадратными пикселями. Значение уже умножено на биннинг камеры."
 
 #: src/gui/siril3.glade:11897
 msgid "Focal length (mm):"
@@ -2857,6 +2926,12 @@ msgid ""
 "Use the Dynamic PSF tool, or the findstar command, adjusting the settings to "
 "your image."
 msgstr ""
+"Установите этот флажое, если хотите указать каждую звезду вручную. Это может "
+"быть полезно в некоторых случаях, когда Siril не находит достаточного "
+"количества звёзд. Пожалуйста, попытайтесь выбрать самые яркие звёзды на "
+"изображении. \n"
+"Используйте инструмент «Динамическая PSF» или команду findstar, подбирая "
+"настройки под изображение."
 
 #: src/gui/siril3.glade:12365 src/gui/siril3.glade:13562
 msgid "Star Detection"
@@ -2925,15 +3000,16 @@ msgid "Normalized Real [0, 1]"
 msgstr "Нормализованное действительное число [0, 1]"
 
 #: src/gui/siril3.glade:12664
-#, fuzzy
 msgid "Per CFA channel"
-msgstr "Красный канал"
+msgstr "На канал CFA"
 
 #: src/gui/siril3.glade:12669
 msgid ""
 "Compute statistics on pixels that have the same filter as the corresponding "
 "channel, for CFA (non-demosaiced) images."
 msgstr ""
+"Рассчитывает статистику по пикселям, которые имеют тот же фильтр, что и "
+"соответствующий канал, для изображений CFA (недебайеризованных)."
 
 #: src/gui/siril3.glade:12705
 msgid "No Selection"
@@ -2944,27 +3020,24 @@ msgid "Dynamic PSF"
 msgstr "Динамическая PSF"
 
 #: src/gui/siril3.glade:12937
-#, fuzzy
 msgid "Ch."
-msgstr "Каналы…"
+msgstr "Канал"
 
 #: src/gui/siril3.glade:12951 src/gui/siril3.glade:16824
 msgid "B"
-msgstr ""
+msgstr "B"
 
 #: src/gui/siril3.glade:12971
 msgid "A"
-msgstr ""
+msgstr "A"
 
 #: src/gui/siril3.glade:12991
-#, fuzzy
 msgid "x0"
-msgstr "0"
+msgstr "x0"
 
 #: src/gui/siril3.glade:13011
-#, fuzzy
 msgid "y0"
-msgstr "0"
+msgstr "y0"
 
 #: src/gui/siril3.glade:13031
 msgid "FWHMx"
@@ -2996,27 +3069,33 @@ msgstr "RMSE"
 
 #: src/gui/siril3.glade:13169 src/gui/siril3.glade:17033
 msgid "index"
-msgstr ""
+msgstr "индекс"
 
 #: src/gui/siril3.glade:13189
-#, fuzzy
 msgid "Center selected star"
-msgstr "Удалить выделенные файлы"
+msgstr "Отцентрировать выделенную звезду"
 
 #: src/gui/siril3.glade:13193
+#, fuzzy
 msgid ""
 "If checked, a star selected from the list will be centered in the display. "
 "The current zoom level will not be altered. This does not apply to stars "
 "selected by clicking their PSF in the main display."
 msgstr ""
+"Если флажок установлен, звезда, выбранная из списка будет установлена по "
+"центру. Текущий уровень масштабирования не будет изменён. Это не относится к "
+"звёздам, выбранным нажатием на их PSF на основном экране."
 
 #: src/gui/siril3.glade:13213 src/gui/siril3.glade:13265
 #: src/gui/siril3.glade:13278 src/gui/siril3.glade:13291
 #: src/gui/siril3.glade:13340
+#, fuzzy
 msgid ""
 "Changes of these four values should be tested on one representative image "
 "before using them for registration."
 msgstr ""
+"Изменение этих четырёх значений сначала надо проверить на одном типичном "
+"изображении, прежде чем использовать их для регистрации."
 
 #: src/gui/siril3.glade:13226
 msgid ""
@@ -3025,6 +3104,7 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:13244
+#, fuzzy
 msgid ""
 "Threshold value above the noise for star detection.\n"
 "The median and standard deviation of the image are computed, then the "
@@ -3033,6 +3113,12 @@ msgid ""
 "less dim stars, which should be done only when images have a lot of signal "
 "or low noise (high S/N)."
 msgstr ""
+"Пороговое значение выше уровня шума для определения звёзд.\n"
+"Вычисляются медиана и стандартное отклонение (σ) изображения, после чего "
+"порог рассчитывается как: медиана + [порог] + σ.\n"
+"Значение порога по умолчанию - 1.00. Увеличение этого значения приведёт к "
+"обнаружению менее тусклые звёзд, что следует делать только когда на "
+"изображениях много сигнала или мало шума (высокое соотношение сигнал/шум)."
 
 #: src/gui/siril3.glade:13267
 msgid "Radius: "
@@ -3054,6 +3140,11 @@ msgid ""
 "The default value is 0.5, suitable for stars twice as big in one direction "
 "as the other."
 msgstr ""
+"Пороговое значение для округлости звезды. Уменьшите это значение, если "
+"звёзды на изображениях имеют небольшие хвосты. В противном случае увеличьте, "
+"если звёзды очень округлые, чтобы избежать ложноположительных данных.\n"
+"Значение по умолчанию установлено в 0.5, пригодно для звёзд, больших в два "
+"раза в одном направлении, чем в другом."
 
 #: src/gui/siril3.glade:13322
 msgid "Relax PSF checks"
@@ -3069,11 +3160,11 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:13342
-#, fuzzy
 msgid "Convergence:"
-msgstr "Конвертация"
+msgstr "Сходимость:"
 
 #: src/gui/siril3.glade:13353
+#, fuzzy
 msgid ""
 "Convergence criterion for PSF fitting.\n"
 "Default value of 1 should work on most cases. However for images with strong "
@@ -3082,15 +3173,21 @@ msgid ""
 "This should normally be the case only for stacked images. Increasing this "
 "value may signicantly impact star finding computation time."
 msgstr ""
+"Критерий сходимости для подгонки PSF.\n"
+"Значение по умолчанию (1) должно работать в большинстве случаев. Однако, для "
+"изображений с сильной комой может быть необходимо увеличить это значение для "
+"обеспечения большего количества итераций.\n"
+"В норме это следует делать только для сложенных изображений. Увеличение "
+"этого значения может существенно повлиять на время вычисления поиска звезды."
 
 #: src/gui/siril3.glade:13374
-#, fuzzy
 msgid "Profile type:"
-msgstr "Поддерживаемые форматы:"
+msgstr "Тип профиля:"
 
 #: src/gui/siril3.glade:13401
+#, fuzzy
 msgid "Minimum beta:"
-msgstr ""
+msgstr "Минимальная бета:"
 
 #: src/gui/siril3.glade:13411
 msgid ""
@@ -3115,9 +3212,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:13487
-#, fuzzy
 msgid "Amplitude range"
-msgstr "Амплитуда"
+msgstr "Диапазон амплитуд"
 
 #: src/gui/siril3.glade:13491
 msgid ""
@@ -3128,9 +3224,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:13503
-#, fuzzy
 msgid "Roundness range"
-msgstr "Округлость"
+msgstr "Диапазон округлости"
 
 #: src/gui/siril3.glade:13507
 msgid ""
@@ -3147,11 +3242,11 @@ msgstr ""
 
 #: src/gui/siril3.glade:13617
 msgid "Estimate sensor tilt"
-msgstr ""
+msgstr "Оценить наклон сенсора"
 
 #: src/gui/siril3.glade:13655
 msgid "Export PSF parameters in an ASCII file"
-msgstr ""
+msgstr "Экспортировать параметры PSF в файл ASCII"
 
 #: src/gui/siril3.glade:13679
 msgid "Add star to list from selection"
@@ -3159,11 +3254,11 @@ msgstr "Добавить звезду из выделения в список"
 
 #: src/gui/siril3.glade:13693
 msgid "Remove selected star from the list"
-msgstr "Убрать выбранные звезды из списка"
+msgstr "Убрать выбранные звёзды из списка"
 
 #: src/gui/siril3.glade:13707
 msgid "Remove all stars from the list"
-msgstr "Убрать все звезды из списка"
+msgstr "Убрать все звёзды из списка"
 
 #: src/gui/siril3.glade:13741
 msgid "Live Stacking"
@@ -3247,7 +3342,7 @@ msgstr "Данные об изображении"
 
 #: src/gui/siril3.glade:14165 src/gui/siril3.glade:27531
 msgid "Preferences"
-msgstr "Параметры"
+msgstr "Настройки"
 
 #: src/gui/siril3.glade:14190
 msgid "Siril Manual"
@@ -3259,7 +3354,7 @@ msgstr "Проверка обновлений"
 
 #: src/gui/siril3.glade:14218
 msgid "Get Scripts"
-msgstr "Скачать скрипты"
+msgstr "Скачать сценарии"
 
 #: src/gui/siril3.glade:14232
 msgid "Keyboard Shortcuts"
@@ -3296,7 +3391,7 @@ msgstr "Заголовок FITS…"
 
 #: src/gui/siril3.glade:14384
 msgid "Dynamic PSF..."
-msgstr ""
+msgstr "Динамическая PSF..."
 
 #: src/gui/siril3.glade:14417 src/gui/siril3.glade:30534
 #: src/gui/siril3.glade:30601
@@ -3329,11 +3424,11 @@ msgstr "Гистограмма"
 
 #: src/gui/siril3.glade:14497
 msgid "Exclude frame %d"
-msgstr "Исключить изображение %d"
+msgstr "Исключить кадр %d"
 
 #: src/gui/siril3.glade:14506 src/gui/siril3.glade:14515
 msgid "Show frame %d"
-msgstr "Показать изображение %d"
+msgstr "Показать кадр %d"
 
 #: src/gui/siril3.glade:14531 src/gui/siril3.glade:23565
 #: src/gui/siril3.glade:23863
@@ -3362,6 +3457,10 @@ msgid ""
 "otherwise if the checkbox 'follow star movement' is checked in the "
 "registration tab, it will run with this option."
 msgstr ""
+"Будут использованы данные регистрации, если таковые доступны на "
+"соответствующем слое. В противном случае, если установлен флажок «Следовать "
+"за движением звезды» на вкладке «Регистрация», то команда будет запущена с "
+"этой опцией."
 
 #: src/gui/siril3.glade:14618
 msgid "PSF for the Sequence"
@@ -3491,39 +3590,54 @@ msgid "CFA3"
 msgstr "CFA3"
 
 #: src/gui/siril3.glade:15088
+#, fuzzy
 msgid ""
 "Select the image containing the CFA0 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA0 prefix."
 msgstr ""
+"Выберите изображение, содержащее подшаблон CFA0. Если изображение было "
+"создано с помощью функции Siril «Split CFA», то оно будет иметь префикс CFA0."
 
 #: src/gui/siril3.glade:15102
 msgid ""
 "Select the image containing the CFA1 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA1 prefix."
 msgstr ""
+"Выберите изображение, содержащее подшаблон CFA1. Если изображение было "
+"создано с помощью функции Siril «Split CFA», то оно будет иметь префикс CFA1."
 
 #: src/gui/siril3.glade:15116
+#, fuzzy
 msgid ""
 "Select the image containing the CFA2 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA2 prefix."
 msgstr ""
+"Выберите изображение, содержащее подшаблон CFA2. Если изображение было "
+"создано с помощью функции Siril «Split CFA», то оно будет иметь префикс CFA2."
 
 #: src/gui/siril3.glade:15130
+#, fuzzy
 msgid ""
 "Select the image containing the CFA3 Bayer subpattern. If this has been "
 "produced using Siril's Split CFA function it will have the CFA3 prefix."
 msgstr ""
+"Выберите изображение, содержащее подшаблон CFA3. Если изображение было "
+"создано с помощью функции Siril «Split CFA», то оно будет иметь префикс CFA3."
 
 #: src/gui/siril3.glade:15147
 msgid "Input Files"
 msgstr "Входящие файлы"
 
 #: src/gui/siril3.glade:15176
+#, fuzzy
 msgid ""
 "Sets the Bayer pattern header to be applied to the result. This must match "
 "the Bayer pattern of the image that the original Bayer subchannels were "
 "split from."
 msgstr ""
+"Задает заголовок шаблона Байера, который будет применён к результату. Это "
+"должно соответствовать шаблону Байера того изображения, из которого были "
+"выделены исходные подканалы."
 
 #: src/gui/siril3.glade:15180
 msgid "RGGB"
@@ -3546,11 +3660,15 @@ msgid "Bayer Pattern"
 msgstr "Шаблон Байера"
 
 #: src/gui/siril3.glade:15212
+#, fuzzy
 msgid ""
 "Merges separated CFA images for a sequence. You should have the sequence for "
 "CFA0 loaded to start with, and ensure filenames are consistent across images "
 "for all CFA channels."
 msgstr ""
+"Объединяет разделённые изображения CFA в последовательность. Для начала у "
+"вас должна быть загружена последовательность для CFA0 и убедитесь, что имена "
+"файлов, содержащих изображения каждого канала CFA совпадают."
 
 #: src/gui/siril3.glade:15244
 msgid "Sequence input marker"
@@ -3561,11 +3679,15 @@ msgid "Sequence output prefix"
 msgstr "Префикс вывода"
 
 #: src/gui/siril3.glade:15266
+#, fuzzy
 msgid ""
 "Identifier prefix used to denote CFA number in the separate CFA channel "
 "images. This should be set to whatever sequence prefix was used when the "
 "split_cfa process was run (default: CFA_)."
 msgstr ""
+"Префикс, используемый для обозначения номера CFA в отдельных изображениях "
+"канала CFA. Для этого следует установить любой префикс последовательности, "
+"который использовался при запуске процесса split_cfa (по умолчанию: CFA_)."
 
 #: src/gui/siril3.glade:15283
 msgid "Prefix of the image names resulting from the merge CFA process."
@@ -3574,6 +3696,7 @@ msgstr ""
 "каналов CFA."
 
 #: src/gui/siril3.glade:15325
+#, fuzzy
 msgid ""
 "You must have the CFA0 sequence selected in the main window sequence tab.\n"
 "\n"
@@ -3593,11 +3716,29 @@ msgid ""
 "unable to merge the remaining CFA channels for that image. All sequence "
 "filtering should be done either before split_cfa or after merge_cfa."
 msgstr ""
+"У вас должна быть выбрана последовательность CFA0 на вкладке "
+"\"Последовательность\" главного окна.\n"
+"\n"
+"Отдельные суб-последовательности CFA, должны быть обработаны точно таким же "
+"образом.\n"
+"\n"
+"Файлы <b>должны</b> находиться в одном каталоге и <b>должны</b> отличаться "
+"только именем канала CFA. Т.е. если файл <i>r_pp_CFA_0_Light_0001.fit</i> "
+"содержит изображение канала CFA0, соответствующие изображения для других "
+"каналов CFA должны быть <i>r_pp_CFA_1_Light_0001.fit</i>, "
+"<i>r_pp_CFA_2_Light_0001.fit</i> и <i>r_pp_CFA_3_Light_0001.fit</i>.\n"
+"\n"
+"Каждое изображение в последовательности будет обработано только в том "
+"случае, если будут найдены соответствующие изображения оставшихся 3 каналов "
+"CFA. Требуются как G1, так и G2. Примечание: это означает, что если вы "
+"отбросите изображение, содержащее один канал CFA изображения между split_cfa "
+"и merge_cfa, merge_cfa не сможет объединить остальные каналы CFA для этого "
+"изображения. Вся фильтрация последовательностей должна выполняться либо до "
+"split_cfa, либо после merge_cfa."
 
 #: src/gui/siril3.glade:15350
-#, fuzzy
 msgid "Sequences"
-msgstr "Последовательность"
+msgstr "Последовательности"
 
 #: src/gui/siril3.glade:15383 src/gui/histogram.c:1037
 msgid "Histogram Transformation"
@@ -3613,11 +3754,11 @@ msgstr "Увеличить по горизонтали"
 
 #: src/gui/siril3.glade:15507
 msgid "Reset zooms to 1."
-msgstr ""
+msgstr "Сбросить масштаб к 1."
 
 #: src/gui/siril3.glade:15526
 msgid "Logarithmic scale"
-msgstr "Логарифмический масштаб"
+msgstr "Логарифмическая шкала"
 
 #: src/gui/siril3.glade:15530
 msgid ""
@@ -3776,9 +3917,8 @@ msgid "Variable"
 msgstr "Переменная"
 
 #: src/gui/siril3.glade:16936
-#, fuzzy
 msgid "Chan."
-msgstr "Каналы…"
+msgstr "Канал"
 
 #: src/gui/siril3.glade:16947
 msgid "Path"
@@ -3970,11 +4110,11 @@ msgstr "Косметическая коррекция…"
 
 #: src/gui/siril3.glade:17658
 msgid "Open the deconvolution dialog"
-msgstr "Диалог обратной свёртки"
+msgstr "Диалог реконструкции"
 
 #: src/gui/siril3.glade:17660
 msgid "Deconvolution..."
-msgstr "Обратная свёртка…"
+msgstr "Реконструкция..."
 
 #: src/gui/siril3.glade:17673
 msgid "Open the fast Fourier transform dialog"
@@ -4154,7 +4294,7 @@ msgstr "Отражение по вертикали"
 
 #: src/gui/siril3.glade:18193
 msgid "Binning..."
-msgstr ""
+msgstr "Биннинг..."
 
 #: src/gui/siril3.glade:18207
 #, fuzzy
@@ -4211,12 +4351,12 @@ msgstr "Бикубическая"
 #: src/gui/siril3.glade:18498 src/gui/siril3.glade:18770
 #: src/gui/siril3.glade:23140 src/algos/geometry.c:300 src/algos/geometry.c:397
 msgid "Pixel Area Relation"
-msgstr ""
+msgstr "Отношение площади пикселя"
 
 #: src/gui/siril3.glade:18499 src/gui/siril3.glade:18771
 #: src/gui/siril3.glade:23141
 msgid "Lanczos-4"
-msgstr "Lanczos-4"
+msgstr "Ланцош-4"
 
 #: src/gui/siril3.glade:18560 src/gui/siril3.glade:18790
 #: src/gui/siril3.glade:23165
@@ -4565,11 +4705,9 @@ msgid "Search sequences"
 msgstr "Найти последовательности"
 
 #: src/gui/siril3.glade:20400
-#, fuzzy
 msgid ""
 "Search current directory for sequences of FITS images, SER or film videos."
-msgstr ""
-"Поиск последовательностей FITS, SER или видеофайлов в текущем каталоге."
+msgstr "Поиск последовательностей FITS, SER или видеофайлов в текущем каталоге."
 
 #: src/gui/siril3.glade:20415
 msgid "Open Frame List"
@@ -4593,6 +4731,7 @@ msgid "Base name for the exported sequence"
 msgstr "Базовое имя для экспортированной последовательности"
 
 #: src/gui/siril3.glade:20505
+#, fuzzy
 msgid ""
 "Export sequence format.\n"
 "MP4 and WEBM replace GIF for Web publication, AVI is uncompressed 8 bits. To "
@@ -4603,29 +4742,44 @@ msgid ""
 "For SER and TIFF, if input images are 32 bits, they are converted to 16, "
 "with a loss of precision."
 msgstr ""
+"Формат экспорта.\n"
+"MP4 и WEBM заменили GIF для публикации в Сети. AVI это несжатый 8 битный "
+"формат. Для создания 8 битных изображений в этих форматах, линейное "
+"масштабирование осуществляется с использованием низкого и высокого значений "
+"отсечки.\n"
+"Изображения FITS это последовательность из одиночных изображений FITS. Куб "
+"FITS это последовательность изображений в одном файле FITS.\n"
+"При сохранении в форматах SER и TIFF, если входящие изображения 32 битные, "
+"они конвертируются в 16 битные с потерей точности."
 
 #: src/gui/siril3.glade:20512
-#, fuzzy
 msgid "FITS cube"
-msgstr "Последовательности FITS"
+msgstr "Куб FITS"
 
 #: src/gui/siril3.glade:20549
 msgid "Export sequence"
 msgstr "Экспортировать"
 
 #: src/gui/siril3.glade:20553
+#, fuzzy
 msgid ""
 "Export the loaded sequence in the selected format. It can be used to store a "
 "sequence in another format, make animated movies, or store a lighter version "
 "of a sequence with less images. Images of the exported selection can be "
 "cropped and selected with the same criteria as the stacking image selection."
 msgstr ""
+"Экспортировать загруженную последовательность в выбранный формат. Эту "
+"функцию можно использовать для хранения последовательности в другом формате, "
+"создания анимаций, или хранения облеченной версии последовательности с "
+"меньшим количеством изображений. В экспортированном выделении изображения "
+"могут быть обрезаны и отфильтрованы по тем же критериям, как при укладке."
 
 #: src/gui/siril3.glade:20564
 msgid "Normalize images"
 msgstr "Нормализовать изображения"
 
 #: src/gui/siril3.glade:20568
+#, fuzzy
 msgid ""
 "Activate image normalisation for the export. This will make all images the "
 "same brightness and is thus recommended for sequences with inconsistent "
@@ -4634,6 +4788,12 @@ msgid ""
 "take some time, only the first export of a sequence.\n"
 "\t\t\t"
 msgstr ""
+"Включить нормализацию изображений при экспорте. Это сделает яркость всех "
+"изображений одинаковой, поэтому рекомендуется для последовательностей с "
+"несогласующимися выдержками или значениями пикселей.\n"
+"Первый раз перед экспортом, вычисление будет выполнено для всех изображений, "
+"поэтому это может занять некоторое время.\n"
+"\t\t\t"
 
 #: src/gui/siril3.glade:20585 src/io/sequence_export.c:681
 msgid "Select area to crop"
@@ -4665,8 +4825,8 @@ msgid ""
 "Check this box if you want to resize exported sequence. Note that this will "
 "degrade image quality."
 msgstr ""
-"Выберите, если хотите изменить размер экспортированной последовательности. "
-"Помните, что ухудшает качество изображений."
+"Установите этот флажок, если хотите изменить размер экспортированной "
+"последовательности. Помните, что это ухудшает качество изображений."
 
 #: src/gui/siril3.glade:20705
 msgid "Full HD"
@@ -4693,11 +4853,15 @@ msgid "Height of output video"
 msgstr "Высота видео"
 
 #: src/gui/siril3.glade:20783
+#, fuzzy
 msgid ""
 "Film quality: lower value will use more compression and less bitrate, also "
 "resulting in smaller file size. Values above 2 could be useful for fast-"
 "moving images like bright time-lapses."
 msgstr ""
+"Качество видео: более низкое значение использует большее сжатие и меньший "
+"битрейт, что приводит к файлам меньшего размера. Значения более 2 могут быть "
+"полезны для быстро движущихся изображений, как яркие тайм-лапсы."
 
 #: src/gui/siril3.glade:20808
 msgid "Sequence export"
@@ -4891,7 +5055,6 @@ msgstr "Данные CFA"
 
 #: src/gui/siril3.glade:21246 src/gui/siril3.glade:21270
 #: src/gui/siril3.glade:21300 src/gui/siril3.glade:21314
-#, fuzzy
 msgid ""
 "How many times the standard deviation, the pixel value must differ to be "
 "considered as defective."
@@ -4904,7 +5067,6 @@ msgid "Estimate"
 msgstr "Оценить"
 
 #: src/gui/siril3.glade:21286
-#, fuzzy
 msgid ""
 "Click on this button to evaluate the number of deviant pixels. If values are "
 "higher than 1% of the total of pixels, you will be encouraged to change "
@@ -4927,7 +5089,6 @@ msgid "Using Master-Dark"
 msgstr "Использовать темновой мастер-кадр"
 
 #: src/gui/siril3.glade:21405
-#, fuzzy
 msgid ""
 "Enter the bad pixel map file name here, or use the browse button. This file "
 "is generally created by the command <i>find_hot</i> applied on a dark frame "
@@ -4948,19 +5109,18 @@ msgstr ""
 "* Строка <i>P x y тип</i> исправляет пиксель с координатами x, y. Тип это "
 "произвольный символ (<i>C</i> или <i>H</i>), указывающий Siril холодный "
 "данный пиксель или горячий.\n"
-"* Строка <i>C x 0 тип</i> исправляет дефектную колонку с координатами <i>x</"
-"i>.\n"
-"* Строка <i>L y 0 тип</i> исправляет дефектную строку с координатами <i>y</"
-"i>."
+"* Строка <i>C x 0 тип</i> исправляет дефектную колонку с координатами "
+"<i>x</i>.\n"
+"* Строка <i>L y 0 тип</i> исправляет дефектную строку с координатами "
+"<i>y</i>."
 
 #: src/gui/siril3.glade:21424
-#, fuzzy
 msgid ""
 "Load the bad pixel map file. This file must be ended by the <i>*.lst</i> "
 "extension."
 msgstr ""
-"Загрузить файл с картой дефектных пикселей. Файл должен иметь расширение "
-"<i>*.lst</i>."
+"Загрузить файл с картой дефектных пикселей. Файл должен иметь расширение <i>*"
+".lst</i>."
 
 #: src/gui/siril3.glade:21451
 msgid "Bad Pixel Map"
@@ -5005,7 +5165,6 @@ msgid "Debayer before saving"
 msgstr "Дебайеризация перед сохранением"
 
 #: src/gui/siril3.glade:21557
-#, fuzzy
 msgid ""
 "Check this option if you want to apply a demosaicing algorithm to your FITS "
 "images right after they were preprocessed. By doing this, you skip one "
@@ -5031,7 +5190,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:21589
 msgid "Calibrate all frames"
-msgstr "Калибровать все изображения"
+msgstr "Калибровать все кадры"
 
 #: src/gui/siril3.glade:21593
 msgid "Force calibration of all frames even if marked as excluded."
@@ -5067,7 +5226,7 @@ msgid ""
 "available (for RGB images: Green, else fallback to Blue then Red)."
 msgstr ""
 "Слой, в котором выполняется регистрация. Это может быть сделано на одном "
-"слое за раз, т.е., на Ч/Б изображениях.\n"
+"слое за раз, т.е., на монохромных изображениях.\n"
 "Символ (*) после имени слоя обозначает, что для этого него доступны данные "
 "регистрации.\n"
 "При обработке изображений данные регистрации берутся со слоя по умолчанию, "
@@ -5101,11 +5260,15 @@ msgid "Shift only"
 msgstr "Только смещение"
 
 #: src/gui/siril3.glade:21771
+#, fuzzy
 msgid ""
 "Use this option to compute only shifts (so no rotation) even if more than "
 "one star is selected. When only one star is selected, this is activated by "
 "default."
 msgstr ""
+"Используйте эту опцию для вычисления только смещения (т.е. без вращения), "
+"даже если выбрано более одной звезды. Когда выбрана одна звезда, эта опция "
+"включена по умолчанию."
 
 #: src/gui/siril3.glade:21812
 msgid "Match stars in selection"
@@ -5137,13 +5300,15 @@ msgid ""
 "reference frame. If a given light frame has less star pairs, it will not be "
 "registered."
 msgstr ""
+"Минимальное количество пар звёзд (по отношению к опорному), которое должно "
+"быть на данном кадре. Если количество пар звёзд меньше, то кадр не будет "
+"зарегистрирован."
 
 #: src/gui/siril3.glade:21870
 msgid "Maximum Stars Fitted:"
 msgstr "Максимальное кол-во звёзд:"
 
 #: src/gui/siril3.glade:21881
-#, fuzzy
 msgid ""
 "The maximum number of stars to be searched for in each frame (default 2000). "
 "The larger this value, the more stars will potentially be detected, "
@@ -5192,7 +5357,7 @@ msgstr "Сдвиг"
 
 #: src/gui/siril3.glade:21912
 msgid "Similarity"
-msgstr ""
+msgstr "Сходство"
 
 #: src/gui/siril3.glade:21913
 msgid "Affine"
@@ -5200,7 +5365,7 @@ msgstr "Аффинное"
 
 #: src/gui/siril3.glade:21914
 msgid "Homography"
-msgstr ""
+msgstr "Гомография"
 
 #: src/gui/siril3.glade:21928
 msgid "Transformation:"
@@ -5209,7 +5374,7 @@ msgstr "Преобразование:"
 #: src/gui/siril3.glade:21940
 #, fuzzy
 msgid "Hit this button for star detection settings"
-msgstr "Нажмите здесь, чтобы вернуть отменённую операцию"
+msgstr "Настройки определения звёзд"
 
 #: src/gui/siril3.glade:22000
 msgid "Pick object in #1"
@@ -5221,6 +5386,9 @@ msgid ""
 "image, then click on this button. The pixel coordinates of the object will "
 "be computed and displayed."
 msgstr ""
+"Укажите область вокруг астероида или ядра кометы на первом выбранном "
+"изображении, после чего нажмите эту кнопку. Будут рассчитаны и показаны "
+"координаты объекта (в пикселях)."
 
 #: src/gui/siril3.glade:22014
 msgid "Pick object in #2"
@@ -5232,26 +5400,25 @@ msgid ""
 "image, then click on this button. The pixel coordinates of the object will "
 "be computed and displayed."
 msgstr ""
+"Укажите область вокруг астероида или ядра кометы на последнем выбранном "
+"изображении, после чего нажмите эту кнопку. Будут рассчитаны и показаны "
+"координаты объекта (в пикселях)."
 
 #: src/gui/siril3.glade:22030
-#, fuzzy
 msgid "Core X-coordinates of the first image."
-msgstr "Добавить фильтр"
+msgstr "Координаты центра первого изображения по X."
 
 #: src/gui/siril3.glade:22046
-#, fuzzy
 msgid "Core X-coordinates of the second image."
-msgstr "Добавить фильтр"
+msgstr "Координаты центра второго изображения по X."
 
 #: src/gui/siril3.glade:22062
-#, fuzzy
 msgid "Core Y-coordinates of the first image."
-msgstr "Добавить фильтр"
+msgstr "Координаты центра первого изображения по Y."
 
 #: src/gui/siril3.glade:22077
-#, fuzzy
 msgid "Core Y-coordinates of the second image."
-msgstr "Добавить фильтр"
+msgstr "Координаты центра второго изображения по Y."
 
 #: src/gui/siril3.glade:22112 src/gui/siril3.glade:22126
 msgid "Comet velocity in pixel per hour."
@@ -5286,6 +5453,7 @@ msgid "Star #3:"
 msgstr "Звезда №3:"
 
 #: src/gui/siril3.glade:22328
+#, fuzzy
 msgid ""
 "Indicate relative distance (in percentage vs total image size) over which to "
 "look for the alignment pattern.\n"
@@ -5296,6 +5464,14 @@ msgid ""
 "Higher values give more tolerance in alignment and smaller numbers lead to "
 "faster computations."
 msgstr ""
+"Отобразить относительную дистанцию (в процентах от общего размера "
+"изображения) на которой искать паттерн для выравнивания.\n"
+"\n"
+"По умолчанию поиск паттерн осуществляется лишь на 25% от общего размера "
+"изображения, вокруг зоны расположения паттерна на опорном кадре.\n"
+"\n"
+"Более высокие значения обеспечивают больший допуск в выравнивании, а меньшие "
+"значения обеспечивают более быстрые вычисления."
 
 #: src/gui/siril3.glade:22348
 msgid "Size of alignment region(%):"
@@ -5306,6 +5482,7 @@ msgid "Framing method"
 msgstr "Кадрирование"
 
 #: src/gui/siril3.glade:22423
+#, fuzzy
 msgid ""
 "Specifies the framing method to be used:\n"
 "- \"current\" uses the current reference image\n"
@@ -5316,6 +5493,15 @@ msgid ""
 "- \"center of gravity\" determines the best framing position as the center "
 "of gravity (cog) of all the images"
 msgstr ""
+"Доступные методы кадрирования:\n"
+"- \"текущее\" использует текущее опорное изображение\n"
+"- \"максимум\" (ограничивающая рамка) добавляет чёрную границу вокруг кадров "
+"таким образом, чтобы ни одна часть изображения не была обрезана при "
+"регистрации.\n"
+"- \"минимум\" (общая область) кадрирует каждый кадр до участка, общего для "
+"всех изображений в последовательности.\n"
+"- \"центр тяжести\" определяет наилучшее положение области кадрирования как "
+"центр тяжести (центр тяж.) всех изображений"
 
 #: src/gui/siril3.glade:22431
 msgid "current"
@@ -5339,11 +5525,11 @@ msgstr "Способ регистрации:"
 
 #: src/gui/siril3.glade:22553
 msgid "Register all images from sequence"
-msgstr "Выровнять все фото из последовательности"
+msgstr "Зарегистрировать все фото из последовательности"
 
 #: src/gui/siril3.glade:22554
 msgid "Register selected images only"
-msgstr "Выровнять только выбранные фото"
+msgstr "Зарегистрировать только выбранные изображения"
 
 #: src/gui/siril3.glade:22575
 msgid "Registering 0 images of the 0 of the sequence"
@@ -5460,7 +5646,7 @@ msgstr "с лучшим качеством"
 #: src/gui/siril3.glade:24692 src/gui/siril3.glade:24832
 #: src/registration/registration.c:111 src/stacking/stacking.c:70
 msgid "Percents of the images of the sequence."
-msgstr ""
+msgstr "Процент изображений от последовательности."
 
 #: src/gui/siril3.glade:22661 src/gui/siril3.glade:22789
 #: src/gui/siril3.glade:22929 src/gui/siril3.glade:24592
@@ -5469,6 +5655,8 @@ msgid ""
 "Choose between % and k-σ to keep given percentage of images or to compute "
 "the allowable threshold using k-σ clipping."
 msgstr ""
+"Выберите между % и k-σ, чтобы сохранить данную долю изображений или "
+"рассчитать порог, используя обрезку по k-σ."
 
 #: src/gui/siril3.glade:22692 src/gui/siril3.glade:22819
 #: src/gui/siril3.glade:24623 src/gui/siril3.glade:24750
@@ -5577,13 +5765,13 @@ msgid ""
 "prior to applying the transformations using the Apply Existing Registration "
 "method."
 msgstr ""
-"Когда активно, преобразованные изображения не сохраняются в новую, "
-"выравненную последовательность.\n"
+"Когда этот флажок установлен, преобразованные изображения не сохраняются в "
+"новую, выравненную последовательность.\n"
 "\n"
 "В обоих случаях матрицы преобразования сохраняются в файле "
-"последовательности. Затем можно проконтролировать данные регистрации и "
+"последовательности. После, можно проконтролировать данные регистрации и "
 "исключить некоторые изображения, прежде чем преобразовать с помощью метода "
-"«Применить существующую регистрацию»."
+"\"Применить существующую регистрацию\"."
 
 #: src/gui/siril3.glade:23075
 msgid "Prefix:"
@@ -5613,7 +5801,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:23187
 msgid "Accumulate reg. data"
-msgstr ""
+msgstr "Сохранить данные регистрации"
 
 #: src/gui/siril3.glade:23190
 msgid ""
@@ -5626,7 +5814,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:23204
 msgid "Go register"
-msgstr "Выровнять"
+msgstr "Перейти к регистрации"
 
 #: src/gui/siril3.glade:23209
 msgid ""
@@ -5652,7 +5840,7 @@ msgstr "Автоматическая регистрация изображени
 
 #: src/gui/siril3.glade:23301
 msgid "Display reference image"
-msgstr "Показывать опорное фото"
+msgstr "Показать опорное изображение"
 
 #: src/gui/siril3.glade:23306
 #, fuzzy
@@ -5668,13 +5856,15 @@ msgstr ""
 
 #: src/gui/siril3.glade:23321
 msgid "Set reference image first"
-msgstr "Укажите опорное фото"
+msgstr "Укажите опорное изображение"
 
 #: src/gui/siril3.glade:23350
 msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the X axis."
 msgstr ""
+"Измените это значение колесом мыши или клавишами \"Вверх/Вниз\" чтобы "
+"выравнять текущее и опорное изображения по оси X."
 
 #: src/gui/siril3.glade:23351
 msgid "X translation:"
@@ -5685,6 +5875,8 @@ msgid ""
 "Change this value, using mouse wheel or up and down arrows, to align the "
 "image with the reference image on the Y axis."
 msgstr ""
+"Измените это значение колесом мыши или клавишами \"Вверх/Вниз\" чтобы "
+"выравнять текущее и опорное изображения по оси Y."
 
 #: src/gui/siril3.glade:23387
 msgid "Y translation:"
@@ -5695,10 +5887,13 @@ msgid "Set first preview"
 msgstr "Установить первый предпросмотр"
 
 #: src/gui/siril3.glade:23450 src/gui/siril3.glade:23492
+#, fuzzy
 msgid ""
 "Allows a preview area to be displayed just below. After clicking on this "
 "button, click on the image to position the preview area's centre"
 msgstr ""
+"Отображает область предпросмотра ниже. После нажатия на эту кнопку, нажмите "
+"на изображение, чтобы расположить центр области предпросмотра"
 
 #: src/gui/siril3.glade:23488
 msgid "Set second preview"
@@ -5723,6 +5918,10 @@ msgid ""
 "Circle marker: the value for the reference frame.\n"
 "Cross marker: the value for the currently loaded frame."
 msgstr ""
+"Фиолетовая кривая: фактический график согласно селекторам X и Y.\n"
+"Зелёная кривая: отсортированные значения в порядке уменьшения качества.\n"
+"Окружность: значение опорного кадра.\n"
+"Крест: значение загруженного в настоящий момент изображения."
 
 #: src/gui/siril3.glade:23625
 msgid "Clear all"
@@ -5730,7 +5929,7 @@ msgstr "Очистить всё"
 
 #: src/gui/siril3.glade:23630
 msgid "Clear all curves displayed in photometry."
-msgstr ""
+msgstr "Очистить все кривые, отображаемые в фотометрии."
 
 #: src/gui/siril3.glade:23642
 msgid "Clear latest"
@@ -5738,7 +5937,7 @@ msgstr "Очистить последнее"
 
 #: src/gui/siril3.glade:23647
 msgid "Clear the last curve added in photometry."
-msgstr ""
+msgstr "Очистить последнюю кривую, добавленную в фотометрию."
 
 #: src/gui/siril3.glade:23659
 msgid "Export to CSV"
@@ -5746,7 +5945,7 @@ msgstr "Экспорт в CSV"
 
 #: src/gui/siril3.glade:23664
 msgid "Export displayed plot to a CSV file."
-msgstr ""
+msgstr "Экспортировать отображаемый график в файл CSV."
 
 #: src/gui/siril3.glade:23675
 msgid "Save Plot"
@@ -5754,7 +5953,7 @@ msgstr "Сохранить график"
 
 #: src/gui/siril3.glade:23680
 msgid "Save current plot to png file"
-msgstr ""
+msgstr "Сохранить текущий график в файл png"
 
 #: src/gui/siril3.glade:23698
 msgid "legend"
@@ -5803,7 +6002,7 @@ msgstr "Y:"
 
 #: src/gui/siril3.glade:23776
 msgid "Select which information to display from photometry data."
-msgstr ""
+msgstr "Выберите информацию из данных фотометрии для отображения."
 
 #: src/gui/siril3.glade:23798
 msgid "NINA exoplanet"
@@ -5813,6 +6012,7 @@ msgstr "Экзопланеты (из NINA)"
 msgid ""
 "Process a light curve using the list of stars from the NINA exoplanet plugin"
 msgstr ""
+"Обработать световую кривую, использую список звёзд из плагина экзопланет NINA"
 
 #: src/gui/siril3.glade:23826
 msgid "Julian Date"
@@ -5824,7 +6024,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:23860
 msgid "Select the source of graph information."
-msgstr ""
+msgstr "Источник информации для графика."
 
 #: src/gui/siril3.glade:23864 src/gui/siril3.glade:29706
 #: src/gui/siril3.glade:30079
@@ -5835,9 +6035,10 @@ msgstr "Фотометрия"
 #. Plotting light curve
 #: src/gui/siril3.glade:23876 src/gui/plot.c:814
 msgid "Light Curve"
-msgstr ""
+msgstr "Световая кривая"
 
 #: src/gui/siril3.glade:23880
+#, fuzzy
 msgid ""
 "Plot a graph of the variable star. The variable star must be analysed in "
 "first, then other PSF are applied to references. A maximum of 6 references "
@@ -5845,6 +6046,10 @@ msgid ""
 "displayed graph.\n"
 "WARNING: gnuplot must be installed."
 msgstr ""
+"Построить график переменной звезды. Сначала должна быть проанализирована "
+"переменная звезда, после другие PSF применены к образцам. Допустимо 6 "
+"образцов максимум. Для включения функции, выберите тип графика «Величина».\n"
+"ВНИМАНИЕ: должен быть установлен gnuplot."
 
 #: src/gui/siril3.glade:23911
 msgid "Show all relevant graphs using registration and / or photometry data."
@@ -5857,6 +6062,7 @@ msgid "Plot"
 msgstr "График"
 
 #: src/gui/siril3.glade:23965
+#, fuzzy
 msgid ""
 "<b>Sum</b>: This is the simplest method.\n"
 "Pixel values are added in an image normalized to 32-bit values.\n"
@@ -5888,6 +6094,37 @@ msgid ""
 "Pixels of the image are replaced by pixels at the same coordinates if "
 "intensity is lower."
 msgstr ""
+"<b>Суммирующая</b>: Простейший метод.\n"
+"Значения пикселей добавляются к изображению, нормализованному до 32 бит.\n"
+"Соотношение сигнал/шум (SNR) возрастает как квадратный корень из кол-ва "
+"кадров.\n"
+"\n"
+"<b>Усредняющая с выбраковкой</b>: Используется для последовательного "
+"удаления отклоняющихся пикселей.\n"
+"Реализовано семь способов:\n"
+"- Percentile Clipping\n"
+"- Sigma Clipping\n"
+"- MAD Clipping\n"
+"- Median Sigma Clipping\n"
+"- Winsorized Sigma Clipping\n"
+"- Linear Fit Clipping\n"
+"- Generalized Extreme Studentized Deviate Test\n"
+"После выбраковки пикселей, вычисляется среднее значение стека.\n"
+"\n"
+"<b>Медианная</b>: Этот метод используется в основном для укладки "
+"калибровочных кадров, хотя сейчас мы рекомендуем для этого усредняющую "
+"укладку с выбраковкой.\n"
+"Для каждого пикселя вычисляется медианное значение всех пикселей в стеке.\n"
+"\n"
+"<b>Максимум</b>: В основном применяется для создания изображений треков "
+"звёзд.\n"
+"Пиксели изображения замещаются пикселями с такими же координатами, если их "
+"интенсивность выше.\n"
+"\n"
+"<b>Минимум</b>: Этот метод может быть полезен, чтобы выбрать область, "
+"которая будет обрезана после укладки.\n"
+"Пиксели изображения замещаются пикселями с такими же координатами, если их "
+"интенсивность ниже."
 
 #: src/gui/siril3.glade:23990 src/stacking/sum.c:252
 msgid "Sum stacking"
@@ -5895,7 +6132,7 @@ msgstr "Сумма"
 
 #: src/gui/siril3.glade:23991
 msgid "Average stacking with rejection"
-msgstr "Усредняющая с выбраковкой пикселей"
+msgstr "Среднее с выбраковкой пикселей"
 
 #: src/gui/siril3.glade:23992
 msgid "Median stacking"
@@ -5979,7 +6216,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:24105
 msgid "Normalisation:"
-msgstr "Нормировка:"
+msgstr "Нормализация:"
 
 #: src/gui/siril3.glade:24196 src/stacking/stacking.c:849
 msgid "Sigma low: "
@@ -6030,9 +6267,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:24262
-#, fuzzy
 msgid "No rejection"
-msgstr "Коррекция"
+msgstr "Без выбраковки"
 
 #: src/gui/siril3.glade:24263
 msgid "Percentile Clipping"
@@ -6096,14 +6332,12 @@ msgid "Number of stars"
 msgstr "Кол-во звёзд"
 
 #: src/gui/siril3.glade:24296
-#, fuzzy
 msgid "Weighed FWHM"
-msgstr "С взвешенным FWHM"
+msgstr "Со взвешенной FWHM"
 
 #: src/gui/siril3.glade:24297
-#, fuzzy
 msgid "Noise"
-msgstr "Память: н/д"
+msgstr "Шум"
 
 #: src/gui/siril3.glade:24298
 msgid "Number of images"
@@ -6111,12 +6345,11 @@ msgstr "Кол-во изображений"
 
 #: src/gui/siril3.glade:24312
 msgid "Weighing:"
-msgstr ""
+msgstr "Присвоение веса:"
 
 #: src/gui/siril3.glade:24327
-#, fuzzy
 msgid "Create rejection maps"
-msgstr "Выравнивание фотографий"
+msgstr "Создать карты выбраковки"
 
 #: src/gui/siril3.glade:24331
 msgid ""
@@ -6124,20 +6357,24 @@ msgid ""
 "how many images were rejected for each pixel of the result image, divided by "
 "the number of stacked images."
 msgstr ""
+"Рассчитать и создать карты выбраковки пикселей в ходе укладки. Это "
+"изображения, показывающие, сколько изображений было выбраковано для каждого "
+"пикселя в результирующем изображении, разделённые на количество уложенных "
+"изображений."
 
 #: src/gui/siril3.glade:24343
 msgid "Merge L+H"
-msgstr ""
+msgstr "Слить L+H"
 
 #: src/gui/siril3.glade:24348
+#, fuzzy
 msgid ""
 "Create only one rejection map that will be the sum of the low and high maps"
-msgstr ""
+msgstr "Создать одну карту выбраковки, которая суммирует низкую и высокую карты"
 
 #: src/gui/siril3.glade:24379
-#, fuzzy
 msgid "Pixel rejection:"
-msgstr "Выбраковка:"
+msgstr "Выбраковка пикселей:"
 
 #: src/gui/siril3.glade:24506
 msgid "Stacking 0 images of the 0 of the sequence"
@@ -6153,7 +6390,7 @@ msgstr "Укладка последовательности"
 
 #: src/gui/siril3.glade:24966
 msgid "Output Normalisation"
-msgstr "Нормировка вывода"
+msgstr "Нормализация вывода"
 
 #: src/gui/siril3.glade:24969
 msgid ""
@@ -6162,6 +6399,11 @@ msgid ""
 "\n"
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
+"Если флажок установлен, то окончательное изображение будет нормализовано в "
+"диапазоне [0, 1] при работе с точностью 32 бита, или [0, 65535] в противном "
+"случае.\n"
+"\n"
+"ПРЕДУПРЕЖДЕНИЕ: При укладке мастер-кадров этот флажок должен быть снят."
 
 #: src/gui/siril3.glade:24983
 msgid "RGB equalization"
@@ -6174,6 +6416,10 @@ msgid ""
 "\n"
 "WARNING: This option should not be checked for master stacking."
 msgstr ""
+"Если флажок установлен, то каналы в окончательном изображении буду выравнены "
+"(только для цветных изображений).\n"
+"\n"
+"ПРЕДУПРЕЖДЕНИЕ: При укладке мастер-кадров этот флажок должен быть снят."
 
 #. Must be short
 #: src/gui/siril3.glade:25008
@@ -6209,12 +6455,16 @@ msgid ""
 "Stacking of images, either summing, median, mean with rejection or pixel "
 "minimum/maximum."
 msgstr ""
+"Укладка изображений посредством суммирования, по медиане, среднему с "
+"выбраковкой пикселей и минимальному/максимальному значениям пикселей."
 
 #: src/gui/siril3.glade:25145
 msgid ""
 "Siril output window, displays messages about what has been done and in "
 "response to command inputs."
 msgstr ""
+"Информационное окно, в котором отображаются сообщения о том, что было "
+"сделано и результаты введённых команд."
 
 #: src/gui/siril3.glade:25206
 msgid "Export the log"
@@ -6236,11 +6486,11 @@ msgstr "Журнал"
 msgid ""
 "Input command. Typing \"help\" here will bring the list of supported "
 "commands."
-msgstr "Введите 'help', чтобы посмотреть список поддерживаемых команд."
+msgstr "Введите \"help\", чтобы посмотреть список поддерживаемых команд."
 
 #: src/gui/siril3.glade:25300
 msgid "Type \"help\" for the list of supported commands"
-msgstr "Введите 'help', чтобы посмотреть список поддерживаемых команд"
+msgstr "Введите \"help\", чтобы посмотреть список поддерживаемых команд"
 
 #: src/gui/siril3.glade:25315
 msgid "Displays manual of the command written in the console."
@@ -6394,7 +6644,7 @@ msgstr "Открыть"
 
 #: src/gui/siril3.glade:26098
 msgid "Open an image or a SER/AVI sequence"
-msgstr "Открыть фото или последовательность SER/AVI"
+msgstr "Открыть изображение или последовательность SER/AVI"
 
 #: src/gui/siril3.glade:26114
 msgid "Open recent images (only FITS and SER files)"
@@ -6425,13 +6675,13 @@ msgid ""
 "Menu of the script files. This menu appears only when the script paths "
 "defined in the preferences are set to the existing script folders."
 msgstr ""
-"Меню скриптов. Появляется только если пути к скриптам правильно указаны в "
+"Меню сценариев. Появляется только если пути к сценариям правильно указаны в "
 "настройках."
 
 #: src/gui/siril3.glade:26294 src/gui/siril3.glade:30658
 #: src/gui/siril3.glade:30808
 msgid "Scripts"
-msgstr "Скрипты"
+msgstr "Сценарии"
 
 #: src/gui/siril3.glade:26353
 msgid "Bit-depth select button"
@@ -6516,24 +6766,20 @@ msgstr ""
 "опция отключена."
 
 #: src/gui/siril3.glade:27291
-#, fuzzy
 msgid "x coordinate of the start of the white reference selection"
-msgstr "Координата X начала выделенного фона"
+msgstr "координата X начала выделения образца белого"
 
 #: src/gui/siril3.glade:27309
-#, fuzzy
 msgid "y coordinate of the start of the white reference selection"
-msgstr "Координата Y начала выделенного фона"
+msgstr "координата Y начала выделения образца белого"
 
 #: src/gui/siril3.glade:27327
-#, fuzzy
 msgid "Width of the white reference selection"
-msgstr "Ширина выделенного фона"
+msgstr "Ширина образца белого"
 
 #: src/gui/siril3.glade:27345
-#, fuzzy
 msgid "Height of the white reference selection"
-msgstr "Высота выделенного фона"
+msgstr "Высота образца белого"
 
 #: src/gui/siril3.glade:27384
 msgid ""
@@ -6541,18 +6787,25 @@ msgid ""
 "reference.\n"
 "If the selection is empty, the whole image will be used as reference."
 msgstr ""
+"Необходимо указать выделение, содержащее подходящее среднее значение образца "
+"белого цвета.\n"
+"Если выделение не сделано, как образец используется изображение целиком."
 
 #: src/gui/siril3.glade:27413
 msgid ""
 "Lower rejection bound for white selection. Pixels below this value are not "
 "taken into account. Black pixels are always excluded from computation."
 msgstr ""
+"Нижний предел выбраковки для образца белого. Пиксели, со значениями меньше "
+"этого не учитываются. Чёрные пиксели всегда исключаются из расчёта."
 
 #: src/gui/siril3.glade:27430
 msgid ""
 "Upper rejection bound for white selection. Pixels above this value are not "
 "taken into account. Saturated pixels are always excluded from computation."
 msgstr ""
+"Верхний предел выбраковки для образца белого. Пиксели, со значениями больше "
+"этого не учитываются. Насыщенные пиксели всегда исключаются из расчёта."
 
 #: src/gui/siril3.glade:27446
 msgid "Lower limit: "
@@ -6706,11 +6959,11 @@ msgstr "Смещение по Y:"
 
 #: src/gui/siril3.glade:27823
 msgid "X offset of Bayer array."
-msgstr "Смещение по X шаблона Байера."
+msgstr "Смещение шаблона Байера по X."
 
 #: src/gui/siril3.glade:27838
 msgid "Y offset of Bayer array."
-msgstr "Смещение по Y шаблона Байера."
+msgstr "Смещение шаблона Байера по Y."
 
 #: src/gui/siril3.glade:27853 src/gui/siril3.glade:27867
 msgid ""
@@ -6738,6 +6991,7 @@ msgstr "Параметры FITS"
 #: src/gui/siril3.glade:27949
 msgid "Choose the type of extension used by Siril. By default it is .fit."
 msgstr ""
+"Выберите тип расширения файла, используемого Siril. По умолчанию это .fit."
 
 #: src/gui/siril3.glade:27954
 msgid ".fit"
@@ -6863,7 +7117,7 @@ msgstr "Уровень квантования"
 
 #: src/gui/siril3.glade:28238
 msgid "Tile dimensions"
-msgstr ""
+msgstr "Размер мозаики"
 
 #: src/gui/siril3.glade:28251
 msgid "HCompress scale factor"
@@ -6988,37 +7242,48 @@ msgid "World Coordinate System"
 msgstr "Мировая система координат"
 
 #: src/gui/siril3.glade:28652
+#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
 "\n"
 "<b>namedstars.dat</b>: the brightest stars, all of them have names."
 msgstr ""
+"Эти четыре каталога из KStars используются для решения изображений и "
+"астрометрии.\n"
+"\n"
+"<b>namedstars.dat</b>: ярчайшие звёзды, все имеющие имена."
 
 #: src/gui/siril3.glade:28668
+#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
 "\n"
 "<b>unnamedstars.dat</b>: also bright stars, but down to magnitude 8"
 msgstr ""
+"Эти четыре каталога из KStars используются для решения изображений и "
+"астрометрии.\n"
+"\n"
+"<b>unnamedstars.dat</b>: тоже яркие звёзды, но до 8-й звёздной величины"
 
 #: src/gui/siril3.glade:28684
 msgid ""
 "Specify the location of the namedstars.dat star catalogue on your system."
-msgstr "Расположение каталога namedstars.dat."
+msgstr "Расположение каталога звёзд namedstars.dat в вашей системе."
 
 #: src/gui/siril3.glade:28697
 msgid ""
 "Specify the location of the unnamedstars.dat star catalogue on your system."
-msgstr "Расположение каталога unnamedstars.dat."
+msgstr "Расположение каталога звёзд unnamedstars.dat в вашей системе."
 
 #: src/gui/siril3.glade:28710
 msgid ""
 "Specify the location of the deepstars.dat star catalogue on your system."
-msgstr "Расположение каталога deepstars.dat."
+msgstr "Расположение каталога звёзд deepstars.dat в вашей системе."
 
 #: src/gui/siril3.glade:28723
+#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
@@ -7026,13 +7291,19 @@ msgid ""
 "<b>deepstars.dat</b>: fainter stars extracted from The Tycho-2 Catalogue of "
 "the 2.5 Million Brightest Stars, down to magnitude 12.5"
 msgstr ""
+"Эти четыре каталога из KStars используются для решения изображений и "
+"астрометрии.\n"
+"\n"
+"<b>deepstars.dat</b>: более слабые звёзды, извлечённые из каталога Tycho-2 "
+"из 2,5 миллионов самых ярких звёзд, вплоть до звёздной величины 12,5"
 
 #: src/gui/siril3.glade:28739
 msgid ""
 "Specify the location of the USNO-NOMAD-1e8.dat star catalogue on your system."
-msgstr "Расположение каталога USNO-NOMAD-1e8.dat."
+msgstr "Расположение каталога звёзд USNO-NOMAD-1e8.dat в вашей системе."
 
 #: src/gui/siril3.glade:28752
+#, fuzzy
 msgid ""
 "These four catalogues from KStars are used for plate solving and "
 "astrometry.\n"
@@ -7041,6 +7312,12 @@ msgid ""
 "B-V photometric information and star proper motion in a compact binary form, "
 "down to magnitude 18."
 msgstr ""
+"Эти четыре каталога из KStars используются для решения изображений и "
+"астрометрии.\n"
+"\n"
+"<b>USNO-NOMAD-1e8.dat</b>: выборка из огромного каталога NOMAD, ограниченная "
+"фотометрической информацией B-V и собственным движением звёзд в компактном "
+"двойном формате, вплоть до 18-й звёздной величины."
 
 #: src/gui/siril3.glade:28771
 msgid ""
@@ -7055,11 +7332,15 @@ msgid "Update default focal length and pixel size from the result"
 msgstr "Обновить фокусное расстояние и размер пикселя из результатов"
 
 #: src/gui/siril3.glade:28795
+#, fuzzy
 msgid ""
 "When an astrometric solution is found, the computed focal length and input "
 "pixel size are stored in the settings as default values for images that "
 "don't have the corresponding medatada."
 msgstr ""
+"Когда астрометрическое решение найдено, рассчитанное фокусное расстояние и "
+"входящий размер пикселя сохраняются в настройках как значения по умолчанию "
+"для изображений, которые не имеют соответствующих метаданных."
 
 #: src/gui/siril3.glade:28806
 msgid "General Platesolving"
@@ -7067,7 +7348,7 @@ msgstr "Настройки решателя"
 
 #: src/gui/siril3.glade:28841
 msgid "Degrees of the polynomial correction:"
-msgstr "Степени коррекции полинома:"
+msgstr "Степени полиномиальной коррекции:"
 
 #: src/gui/siril3.glade:28853
 msgid "Sampling tolerance (%):"
@@ -7080,57 +7361,76 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:28879
+#, fuzzy
 msgid ""
 "Allowed search radius around the target coordinates for the solve (degrees). "
 "Unused for blind (no target passed) solves."
 msgstr ""
+"Допустимый радиус поиска вокруг целевых координат для решения (градусы). Не "
+"используется для решений вслепую (без указания целевого объекта)."
 
 #: src/gui/siril3.glade:28896
 msgid "Target radius (degree)"
 msgstr "Радиус цели (градусы)"
 
 #: src/gui/siril3.glade:28905
+#, fuzzy
 msgid "Do not delete .xyls FITS tables"
-msgstr ""
+msgstr "Не удалять таблицы .xyls"
 
 #: src/gui/siril3.glade:28909
+#, fuzzy
 msgid ""
 "The list of stars is passed to solve-field as a FITS table, check this to "
 "keep the file in the working directory."
 msgstr ""
+"Список звёзд, переданный команде solve-field в виде таблицы FITS. Установите "
+"этот флажок, чтобы сохранить файл в рабочей директории."
 
 #: src/gui/siril3.glade:28919
 msgid "Do not delete .wcs result files"
 msgstr "Не удалять файлы .wcs"
 
 #: src/gui/siril3.glade:28923
+#, fuzzy
 msgid ""
 "The results from solve-field are stored in a FITS header with a file name "
 "ending in .wcs. Check this to not remove this file."
 msgstr ""
+"Результаты команды solve-filed сохранятся в заголовке FITS в файле, "
+"заканчивающимся на .wcs. Установите этот флажок, чтобы не удалять этот файл."
 
 #: src/gui/siril3.glade:28936
 msgid "Maximum seconds to try solving:"
 msgstr "Максимальное кол-во секунд для попытки решения:"
 
 #: src/gui/siril3.glade:28947
+#, fuzzy
 msgid ""
 "Allowed time for the solve for each catalog file. It can be used as the "
 "total solve time only if solve-field is configured to do so in its "
 "configuration file."
 msgstr ""
+"Отведённое время на решение для каждого файла каталога. Оно может быть "
+"использовано в качестве общего времени решения только в том случае, если "
+"команда solve-field настроена на это в своём файле конфигурации."
 
 #: src/gui/siril3.glade:28962
+#, fuzzy
 msgid ""
 "Astrometry.net can use a polynomial correction (SIP) to work with optical "
 "aberrations, this is the order of the polynomial model. 0 disables it."
 msgstr ""
+"Astrometry.net может использовать полиномиальную коррекцию (SIP) для работы "
+"с оптическими искажениями. Это степень полиномиальной модели. Значение 0 "
+"отключает коррекцию."
 
 #: src/gui/siril3.glade:28978
 msgid "Location of local astrometry.net solver"
 msgstr "Расположение локального решателя astrometry.net"
 
 #: src/gui/siril3.glade:28989
+#, fuzzy
 msgid ""
 "Select astrometry.net location.\n"
 "On UNIX-based systems, it is generally in the PATH variable and not "
@@ -7138,21 +7438,28 @@ msgid ""
 "On Windows, you must point to the location of cygwin_ansvr folder only if "
 "not installed in %LOCALAPPDATA%."
 msgstr ""
+"Укажите расположение astrometry.net.\n"
+"На UNIX-подобных системах он обычно находится в переменной PATH и не "
+"является необходимым.\n"
+"На WIndows необходимо указать расположение папки cygwin_ansvr, только если "
+"он не установлен в %LOCALAPPDATA%."
 
 #: src/gui/siril3.glade:28996
-#, fuzzy
 msgid "Select astrometry.net installation directory"
-msgstr "Выберите каталог подкачки"
+msgstr "Выберите директорию, где установлен astrometry.net"
 
 #: src/gui/siril3.glade:29005
 msgid "Show solve-field output"
-msgstr ""
+msgstr "Показать вывод solve-field"
 
 #: src/gui/siril3.glade:29009
+#, fuzzy
 msgid ""
 "Show the output of solve-field, the astrometry.net local solver, in the main "
 "Siril log."
 msgstr ""
+"Показывает вывод solve-field, локального решателя astrometry.net, в основном "
+"журнале Siril."
 
 #: src/gui/siril3.glade:29034
 msgid "Astrometry.net Platesolving"
@@ -7185,10 +7492,13 @@ msgid "Master-dark:"
 msgstr "Темновой мастер-кадр:"
 
 #: src/gui/siril3.glade:29180
+#, fuzzy
 msgid ""
 "Instead of an image, you can also specify a uniform level to be subtracted, "
 "starting with an \"=\" sign, such as =256 or =64*$OFFSET"
 msgstr ""
+"Вместо изображения, можно указать равномерный уровень, начинающийся со знака "
+"\"=\" (например, =256 или =64*$OFFSET), который будет вычтен из изображения"
 
 #: src/gui/siril3.glade:29194
 msgid ""
@@ -7366,6 +7676,8 @@ msgid ""
 "pixels. The higher you set the value, the more stars you will see, but at a "
 "lower resolution."
 msgstr ""
+"Определяет размер панели (в пикселях), используемой для мозаики. Чем большим "
+"будет значение, тем больше звёзд вы увидите, но с меньшим разрешением."
 
 #: src/gui/siril3.glade:30144
 msgid "Panel size (px):"
@@ -7392,6 +7704,7 @@ msgid ""
 "Change the theme of the interface. This feature may not work on all "
 "architectures."
 msgstr ""
+"Изменяет тему интерфейса. Эта функция может работать не на всех архитектурах."
 
 #: src/gui/siril3.glade:30258 src/core/siril_language.c:152
 msgid "System Language"
@@ -7406,6 +7719,8 @@ msgid ""
 "Set the scale of the fonts. 90 is the smallest scale you can have while the "
 "maximum is at 150."
 msgstr ""
+"Устанавливает масштаб шрифтов. Минимальный масштаб - 90, а максимально "
+"возможный - 150."
 
 #: src/gui/siril3.glade:30319
 msgid "Font scale:"
@@ -7500,19 +7815,19 @@ msgstr ""
 
 #: src/gui/siril3.glade:30702
 msgid "<b>Scripts Storage Directories</b>"
-msgstr "<b>Каталоги хранения скриптов</b>"
+msgstr "<b>Каталоги хранения сценариев</b>"
 
 #: src/gui/siril3.glade:30719
 msgid "Rescans the scripts folders and updates scripts menu."
-msgstr ""
+msgstr "Пересматривает директории со сценариями и обновляет меню сценариев."
 
 #: src/gui/siril3.glade:30750
 msgid "Show warning before script execution"
-msgstr "Показывать предупреждение перед выполнением скрипта"
+msgstr "Показывать предупреждение перед выполнением сценария"
 
 #: src/gui/siril3.glade:30766
 msgid "\"Requires\" command is mandatory in scripts"
-msgstr "Команда «Requires» обязательна в скриптах"
+msgstr "Команда \"requires\" обязательна в сценариях"
 
 #: src/gui/siril3.glade:30770
 msgid ""
@@ -7523,6 +7838,12 @@ msgid ""
 "<span foreground=\"red\"><b>WARNING: uncheck this option only if you know "
 "what you are doing!</b></span>"
 msgstr ""
+"Если флажок установлен, сценарии, не содержащие команду \"requires\" не "
+"будут выполняться. Это необходимо для обеспечения совместимости между "
+"сценариями и Siril.\n"
+"\n"
+"<span foreground=\"red\"><b>ПРЕДУПРЕЖДЕНИЕ: снимайте этот флажок только если "
+"вы знаете, что делаете!</b></span>"
 
 #: src/gui/siril3.glade:30791 src/gui/siril3.glade:31339
 msgid "Warning Dialogs"
@@ -7971,7 +8292,7 @@ msgstr "Перейти на вкладку «Последовательност�
 #: src/gui/siril-shortcuts.ui:246
 msgctxt "shortcut window"
 msgid "Switch to the Pre-Processing page"
-msgstr "Перейти на вкладку «Калиборовка»"
+msgstr "Перейти на вкладку «Калибровка»"
 
 #: src/gui/siril-shortcuts.ui:253
 msgctxt "shortcut window"
@@ -8122,7 +8443,6 @@ msgid ""
 msgstr ""
 
 #: src/algos/annotate.c:626
-#, fuzzy
 msgid "Catalog deletion"
 msgstr "Удаление каталога"
 
@@ -8132,6 +8452,9 @@ msgid ""
 "containing the manually added objects will be deleted. This operation cannot "
 "be undone."
 msgstr ""
+"Вы собираетесь очистить пользовательский каталог Солнечной системы. Это "
+"означает, что файл, содержащий объекты, добавленные вручную, будет удален. "
+"Эта операция не может быть отменена."
 
 #: src/algos/annotate.c:629 src/algos/annotate.c:656
 msgid "Purge Catalogue"
@@ -8147,28 +8470,29 @@ msgid ""
 "containing the manually added objects will be deleted. This operation cannot "
 "be undone."
 msgstr ""
+"Вы собираетесь очистить пользовательский каталог глубокого космоса. Это "
+"означает, что файл, содержащий объекты, добавленные вручную, будет удален. "
+"Эта операция не может быть отменена."
 
 #: src/algos/astrometry_solver.c:95
 msgid "Tycho-2"
-msgstr ""
+msgstr "Tycho-2"
 
 #: src/algos/astrometry_solver.c:97
 msgid "NOMAD"
-msgstr ""
+msgstr "NOMAD"
 
 #: src/algos/astrometry_solver.c:99
-#, fuzzy
 msgid "Gaia DR3"
 msgstr "Gaia EDR3"
 
 #: src/algos/astrometry_solver.c:101
 msgid "PPMXL"
-msgstr ""
+msgstr "PPMXL"
 
 #: src/algos/astrometry_solver.c:103
-#, fuzzy
 msgid "bright stars"
-msgstr "%d звезда"
+msgstr "яркие звёзды"
 
 #: src/algos/astrometry_solver.c:109
 msgid "local Tycho-2+NOMAD"
@@ -8180,9 +8504,8 @@ msgid "local astrometry.net"
 msgstr "Астрометрия"
 
 #: src/algos/astrometry_solver.c:113 src/gui/callbacks.c:1217
-#, fuzzy
 msgid "unknown"
-msgstr "Неизвестная ошибка\n"
+msgstr "неизвестный"
 
 #: src/algos/astrometry_solver.c:363
 #, c-format
@@ -8275,64 +8598,63 @@ msgid "Resolution:%*.3lf arcsec/px\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:799
-#, fuzzy, c-format
+#, c-format
 msgid "Focal length:%*.2lf mm\n"
-msgstr "Фокусное:%*.2lf мм\n"
+msgstr "Фокусное расстояние:%*.2lf мм\n"
 
 #: src/algos/astrometry_solver.c:800
 #, c-format
 msgid "Pixel size:%*.2lf µm\n"
-msgstr ""
+msgstr "Размер пикселя:%*.2lf мкм\n"
 
 #: src/algos/astrometry_solver.c:803
 #, c-format
 msgid "Field of view:    %s x %s\n"
-msgstr ""
+msgstr "Поле зрения:    %s × %s\n"
 
 #: src/algos/astrometry_solver.c:809
 #, c-format
 msgid "Image center: alpha: %s, delta: %s\n"
-msgstr ""
+msgstr "Центр изображения: α: %s, δ: %s\n"
 
 #: src/algos/astrometry_solver.c:844
 #, c-format
 msgid "Catalog NOMAD size: %d objects\n"
-msgstr ""
+msgstr "Размер каталога NOMAD: %d объектов\n"
 
 #: src/algos/astrometry_solver.c:878
 #, c-format
 msgid "Local catalogs size: %d objects\n"
-msgstr ""
+msgstr "Размер локальных каталогов: %d объектов\n"
 
 #: src/algos/astrometry_solver.c:916
 #, c-format
 msgid "Catalog TYCHO-2 size: %d objects\n"
-msgstr ""
+msgstr "Размер каталога TYCHO-2: %d объектов\n"
 
 #: src/algos/astrometry_solver.c:958
 #, c-format
 msgid "Catalog Gaia DR3 size: %d objects\n"
-msgstr ""
+msgstr "Размер каталога Gaia DR3: %d объектов\n"
 
 #: src/algos/astrometry_solver.c:1000
 #, c-format
 msgid "Catalog PPMXL size: %d objects\n"
-msgstr ""
+msgstr "Размер каталога PPMXL: %d объектов\n"
 
 #: src/algos/astrometry_solver.c:1042
 #, c-format
 msgid "Catalog Bright stars size: %d objects\n"
-msgstr ""
+msgstr "Размер каталога ярких звёзд: %d объектов\n"
 
 #: src/algos/astrometry_solver.c:1084
 #, c-format
 msgid "Catalog APASS size: %d objects\n"
-msgstr ""
+msgstr "Размер каталога APASS: %d объектов\n"
 
 #: src/algos/astrometry_solver.c:1297 src/algos/astrometry_solver.c:1351
-#, fuzzy
 msgid "Cancelled"
-msgstr "Отмена"
+msgstr "Отменено"
 
 #: src/algos/astrometry_solver.c:1307
 msgid "Could not download the online star catalogue."
@@ -8345,7 +8667,7 @@ msgstr ""
 #: src/algos/astrometry_solver.c:1337 src/algos/astrometry_solver.c:1340
 #, c-format
 msgid "Could not load the star catalog (%s)."
-msgstr "Не могу загрузить каталог звёзд (%s)."
+msgstr "Не удалось загрузить каталог звёзд (%s)."
 
 #: src/algos/astrometry_solver.c:1365
 #, c-format
@@ -8383,9 +8705,8 @@ msgid "Failed to downsample image, aborting\n"
 msgstr "Выровнять все фото из последовательности"
 
 #: src/algos/astrometry_solver.c:1409
-#, fuzzy
 msgid "Not enough memory"
-msgstr "Недостаточно пространства на диске"
+msgstr "Недостаточно памяти"
 
 #: src/algos/astrometry_solver.c:1444
 #, c-format
@@ -8395,7 +8716,7 @@ msgstr ""
 #: src/algos/astrometry_solver.c:1450
 #, c-format
 msgid "Using %d detected stars from image.\n"
-msgstr "Используем %d звёзд, обнаруженных на изображении.\n"
+msgstr "Используем %d звёзд, найденных на изображении.\n"
 
 #: src/algos/astrometry_solver.c:1469 src/gui/callbacks.c:1572
 #, c-format
@@ -8547,7 +8868,7 @@ msgid "monochrome"
 msgstr ""
 
 #: src/algos/background_extraction.c:899
-#, fuzzy, c-format
+#, c-format
 msgid "Background extraction from %s channel.\n"
 msgstr "Извлечение фона из канала %s.\n"
 
@@ -8583,9 +8904,8 @@ msgid ""
 msgstr ""
 
 #: src/algos/ccd-inspector.c:283
-#, fuzzy
 msgid "Tilt evaluation"
-msgstr "Выйти из приложения"
+msgstr "Оценка наклона сенсора"
 
 #: src/algos/colors.c:530
 msgid "Siril cannot extract layers. Make sure your image is in RGB mode.\n"
@@ -8795,11 +9115,11 @@ msgstr ""
 
 #: src/algos/geometry.c:295 src/algos/geometry.c:390
 msgid "Nearest-Neighbor"
-msgstr ""
+msgstr "Ближайший сосед"
 
 #: src/algos/geometry.c:304 src/algos/geometry.c:403
 msgid "Lanczos4"
-msgstr "Lanczos4"
+msgstr "Ланцош-4"
 
 #: src/algos/geometry.c:317
 #, c-format
@@ -8829,7 +9149,7 @@ msgstr "Кадрировать последовательность"
 
 #: src/algos/noise.c:57
 msgid "Noise standard deviation: calculating...\n"
-msgstr ""
+msgstr "Стандартное отклонение шума: вычисляем...\n"
 
 #: src/algos/noise.c:73 src/algos/noise.c:77
 #, c-format
@@ -8929,11 +9249,11 @@ msgstr ""
 
 #: src/algos/photometry.c:324 src/gui/plot.c:718
 msgid "No photometry data found, error\n"
-msgstr ""
+msgstr "Не найдены данные фотометрии, ошибка\n"
 
 #: src/algos/photometry.c:343
 msgid "There are not enough valid stars to make a photometric analysis.\n"
-msgstr ""
+msgstr "Недостаточно надёжных звёзд для выполнения фотометрического анализа.\n"
 
 #: src/algos/photometry.c:357 src/gui/plot.c:748
 msgid ""
@@ -8951,7 +9271,7 @@ msgstr ""
 #: src/algos/photometry.c:362 src/gui/plot.c:753
 #, c-format
 msgid "Using %d stars to calibrate the light curve\n"
-msgstr ""
+msgstr "Используется %d звёзд для калибровки световой кривой\n"
 
 #: src/algos/photometry.c:434
 #, c-format
@@ -8971,9 +9291,9 @@ msgid "%s has been saved.\n"
 msgstr "%s сохранен.\n"
 
 #: src/algos/photometry.c:461
-#, fuzzy, c-format
+#, c-format
 msgid "%s has been generated.\n"
-msgstr "%s сохранен.\n"
+msgstr "%s создан.\n"
 
 #: src/algos/photometry.c:468 src/gui/plot.c:821
 msgid "Communicating with gnuplot failed, still creating the data file\n"
@@ -9039,9 +9359,9 @@ msgstr[2] ""
 #, c-format
 msgid "%d star excluded from the calculation\n"
 msgid_plural "%d stars excluded from the calculation\n"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%d звезда исключена из расчёта\n"
+msgstr[1] "%d звезды исключены из расчёта\n"
+msgstr[2] "%d звёзд исключено из расчёта\n"
 
 #: src/algos/photometric_cc.c:198
 msgid "No valid stars found.\n"
@@ -9079,7 +9399,7 @@ msgstr "не удалось вычислить статистику изобра
 #: src/algos/photometric_cc.c:370
 #, c-format
 msgid "Normalizing on %s channel.\n"
-msgstr "Нормировка в канале: %s.\n"
+msgstr "Нормализация в канале: %s.\n"
 
 #: src/algos/photometric_cc.c:370 src/core/utils.c:616
 msgid "red"
@@ -9087,7 +9407,7 @@ msgstr "красный"
 
 #: src/algos/photometric_cc.c:370 src/core/utils.c:618
 msgid "green"
-msgstr "зеленый"
+msgstr "зелёный"
 
 #: src/algos/photometric_cc.c:370 src/core/utils.c:620
 msgid "blue"
@@ -9139,19 +9459,17 @@ msgid ""
 msgstr ""
 
 #: src/algos/photometric_cc.c:465 src/core/command.c:8648
-#, fuzzy
 msgid "Could not download the online star catalog.\n"
-msgstr "Загрузите последовательность"
+msgstr "Не удалось загрузить удалённый каталог звёзд.\n"
 
 #: src/algos/photometric_cc.c:469 src/core/command.c:8651
 #, c-format
 msgid "The %s catalog has been successfully downloaded.\n"
-msgstr ""
+msgstr "Каталог %s успешно загружен.\n"
 
 #: src/algos/photometric_cc.c:489
-#, fuzzy
 msgid "Photometric Color Calibration succeeded.\n"
-msgstr "Фотометрическая калибровка цвета не удалась"
+msgstr "Фотометрическая калибровка цвета успешно завершена.\n"
 
 #: src/algos/photometric_cc.c:502
 #, fuzzy, c-format
@@ -9172,6 +9490,8 @@ msgid ""
 "\n"
 "beta=%0.2f\n"
 msgstr ""
+"\n"
+"бета=%0.2f\n"
 
 #: src/algos/PSF.c:789
 #, c-format
@@ -9206,7 +9526,7 @@ msgstr ""
 
 #: src/algos/reconstr.c:219
 msgid "Unknown transform\n"
-msgstr ""
+msgstr "Неизвестное преобразование\n"
 
 #. For now, do nothing. Bmag and Vmag are aimed at beeing saved in a cstars, as target data. See the next MR...
 #: src/algos/search_objects.c:74
@@ -9220,24 +9540,24 @@ msgid "Unsupported object type in response: %s\n"
 msgstr "Поддерживаемые форматы: %s\n"
 
 #: src/algos/search_objects.c:267
-#, fuzzy, c-format
+#, c-format
 msgid "Found %s at coordinates: %s, %s with magnitude: %0.1lf\n"
-msgstr "Не удалось скопировать результат\n"
+msgstr "Найден %s с координатами %s, %s и блеском: %0.1lf\n"
 
 #: src/algos/search_objects.c:285
 #, c-format
 msgid "Found %d Solar System Objects with mag < %0.1lf\n"
-msgstr ""
+msgstr "Найдено %d объектов Солнечной системы с блеком < %0.1lf\n"
 
 #: src/algos/search_objects.c:317
-#, fuzzy, c-format
+#, c-format
 msgid "Found %s at coordinates: %s, %s\n"
-msgstr "Не удалось скопировать результат\n"
+msgstr "Найден %s в координатах: %s, %s\n"
 
 #: src/algos/search_objects.c:365
 #, c-format
 msgid "Object %s not found or encountered an error processing it\n"
-msgstr ""
+msgstr "Объект %s не найден или произошла ошибка его обработки\n"
 
 #: src/algos/star_finder.c:189 src/algos/star_finder.c:192
 #, c-format
@@ -9245,18 +9565,16 @@ msgid "Findstar: processing for channel %d...\n"
 msgstr "Поиск звёзд: обработка канала %d...\n"
 
 #: src/algos/star_finder.c:203
-#, fuzzy
 msgid "Failed to copy the image for processing\n"
-msgstr "Выровнять все фото из последовательности"
+msgstr "Не удалось скопировать изображение для обработки\n"
 
 #: src/algos/star_finder.c:209
 msgid "Could not apply Gaussian filter, aborting\n"
-msgstr ""
+msgstr "Не удалось применить фильтр Гаусса, прекращаем\n"
 
 #: src/algos/star_finder.c:232
-#, fuzzy
 msgid "Selection is larger than image\n"
-msgstr "Создать три изображения"
+msgstr "Выделение больше изображения\n"
 
 #: src/algos/star_finder.c:706
 msgid ""
@@ -9281,12 +9599,12 @@ msgstr "Файл %s создан.\n"
 
 #: src/algos/star_finder.c:1152
 msgid "FindStar"
-msgstr ""
+msgstr "FindStar"
 
 #: src/algos/star_finder.c:1167 src/registration/applyreg.c:240
 #: src/registration/comet.c:240 src/registration/global.c:139
 msgid "Could not load reference image\n"
-msgstr "Не удаётся загрузить опорное изображение\n"
+msgstr "Не удалось загрузить опорное изображение\n"
 
 #: src/algos/star_finder.c:1259
 #, fuzzy, c-format
@@ -9294,9 +9612,8 @@ msgid "Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"
 msgstr "Поиск звезд: обработка…\n"
 
 #: src/algos/star_finder.c:1261
-#, fuzzy
 msgid "selection"
-msgstr "Выделение"
+msgstr "выделение"
 
 #: src/algos/star_finder.c:1261
 msgid "image"
@@ -9305,12 +9622,11 @@ msgstr "изображение"
 #: src/algos/statistics.c:250
 #, c-format
 msgid "Failed to compute CFA statistics for channel %d\n"
-msgstr "Не удалось вычислить статистику CFA канала %d\n"
+msgstr "Не удалось вычислить статистику CFA для канала %d\n"
 
 #: src/algos/statistics.c:279 src/algos/statistics_float.c:340
-#, fuzzy
 msgid "Failed to compute CFA statistics\n"
-msgstr "Выровнять все фото из последовательности"
+msgstr "Не удалось вычислить статистику CFA\n"
 
 #: src/algos/statistics.c:745
 #, fuzzy
@@ -9320,12 +9636,13 @@ msgstr "Не удалось открыть файл %s в формате TIFF\n"
 #: src/algos/statistics.c:881
 #, c-format
 msgid "Statistic file %s was successfully created.\n"
-msgstr "Файл статистики %s успешно сохранен.\n"
+msgstr "Файл статистики %s успешно создан.\n"
 
 #: src/algos/statistics.c:984 src/registration/global.c:311
 msgid ""
 "It looks like your sequence contains a mix of monochrome and RGB images.\n"
 msgstr ""
+"Похоже, что в последовательности смешаны монохромные и RGB изображения.\n"
 
 #: src/algos/statistics.c:1010 src/algos/statistics.c:1080
 msgid ""
@@ -9343,7 +9660,7 @@ msgstr ""
 
 #: src/compositing/align_rgb.c:151 src/compositing/compositing.c:656
 msgid "Error in layers alignment."
-msgstr ""
+msgstr "Ошибка в выравнивании слоёв."
 
 #: src/compositing/align_rgb.c:153 src/compositing/compositing.c:657
 #: src/registration/registration.c:1583
@@ -9352,7 +9669,7 @@ msgstr "Регистрация завершена."
 
 #: src/compositing/compositing.c:462
 msgid "Could not display image, unloading it\n"
-msgstr ""
+msgstr "Не удалось отобразить изображение, выгружаем\n"
 
 #: src/compositing/compositing.c:470
 msgid "Unsaved compositing result"
@@ -9370,11 +9687,11 @@ msgstr "<span foreground=\"red\">ОШИБКА</span>"
 
 #: src/compositing/compositing.c:528
 msgid "Cannot load the file, See the log for more information."
-msgstr ""
+msgstr "Не удалось загрузить файл. Больше информации в журнале."
 
 #: src/compositing/compositing.c:533
 msgid "Only single channel images can be load"
-msgstr ""
+msgstr "Только одноканальные изображения могут быть загружены"
 
 #: src/compositing/compositing.c:551
 msgid "The first loaded image should have the greatest sizes for now\n"
@@ -9392,7 +9709,7 @@ msgstr ""
 #: src/compositing/compositing.c:557
 #, c-format
 msgid "Resizing the loaded image from %dx%d to %dx%d\n"
-msgstr ""
+msgstr "Изменение размера загруженного изображения с %d×%d на %d×%d\n"
 
 #: src/compositing/compositing.c:560
 #, c-format
@@ -9410,7 +9727,7 @@ msgstr ""
 
 #: src/compositing/compositing.c:570
 msgid "Image loaded"
-msgstr "Фото загружено"
+msgstr "Изображение загружено"
 
 #: src/compositing/compositing.c:602
 msgid "You must at least load two layers before!\n"
@@ -9452,13 +9769,13 @@ msgstr ""
 
 #: src/core/arithm.c:183
 msgid "Cannot divide by zero, aborting."
-msgstr ""
+msgstr "Нельзя разделить на ноль, прерывание."
 
 #: src/core/arithm.c:203 src/core/arithm.c:319 src/core/arithm.c:406
 #: src/filters/fft.c:525 src/gui/linear_match.c:46 src/gui/linear_match.c:89
 #: src/gui/remixer.c:412 src/livestacking/livestacking.c:689
 msgid "Images must have same dimensions.\n"
-msgstr ""
+msgstr "Размеры изображений должны быть одинаковы.\n"
 
 #: src/core/arithm.c:385
 msgid ""
@@ -9468,20 +9785,20 @@ msgstr ""
 
 #: src/core/arithm.c:410
 msgid "Images must have same data type.\n"
-msgstr ""
+msgstr "Тип данных изображений должен быть одинаков.\n"
 
 #: src/core/command.c:126
 #, c-format
 msgid "This command is deprecated: %s should be used instead.\n"
-msgstr ""
+msgstr "Устаревшая команда: используйте %s.\n"
 
 #: src/core/command.c:156
 msgid "Currently loaded image has no FITS header\n"
-msgstr ""
+msgstr "У текущего изображения нет заголовка FITS\n"
 
 #: src/core/command.c:158
 msgid "=FITS header for currently loaded image=\n"
-msgstr ""
+msgstr "= Заголовок FITS текущего изображения =\n"
 
 #: src/core/command.c:190 src/core/command.c:558 src/core/command.c:642
 #: src/core/command.c:730 src/core/command.c:2807 src/core/command.c:2857
@@ -9492,9 +9809,9 @@ msgstr ""
 #: src/core/command.c:5912 src/core/command.c:5948 src/core/command.c:6147
 #: src/core/command.c:6253 src/core/command.c:6375 src/core/command.c:6616
 #: src/core/command.c:6944 src/core/command.c:7736
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown parameter %s, aborting.\n"
-msgstr "Не удалось открыть файл %s в формате TIFF\n"
+msgstr "Неизвестный параметр %s, прерывание.\n"
 
 #: src/core/command.c:223 src/core/command.c:673 src/core/command.c:904
 #: src/core/command.c:963 src/core/command.c:1586 src/core/command.c:1591
@@ -9503,14 +9820,13 @@ msgstr "Не удалось открыть файл %s в формате TIFF\n"
 #: src/core/command.c:2727 src/core/command.c:3806 src/core/command.c:4531
 #: src/core/command.c:4536 src/core/command.c:7815 src/core/command.c:8393
 #: src/core/command.c:8621 src/core/command.c:8835 src/core/command.c:8909
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid argument %s, aborting.\n"
-msgstr "Не удалось открыть файл %s в формате TIFF\n"
+msgstr "Неверный аргумент %s, прерывание.\n"
 
 #: src/core/command.c:230
-#, fuzzy
 msgid "Background factor must be positive\n"
-msgstr "Извлечение фона"
+msgstr "Коэффициент фона должен быть положительным\n"
 
 #: src/core/command.c:239
 msgid "Hue range must be [0, 6]\n"
@@ -9551,7 +9867,7 @@ msgstr "Включено"
 #: src/core/command.c:345
 #, c-format
 msgid ")"
-msgstr ""
+msgstr ")"
 
 #: src/core/command.c:357
 #, c-format
@@ -9636,36 +9952,35 @@ msgstr ""
 
 #: src/core/command.c:607 src/core/command.c:979 src/core/command.c:1875
 msgid "Error: cannot open sequence\n"
-msgstr "Ошибка: не открывается последовательность\n"
+msgstr "Ошибка: не удалось открыть последовательность\n"
 
 #: src/core/command.c:793
 msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
-msgstr ""
+msgstr "Ошибка, требуются по крайней мере 4 аргумента, для указания 4 файлов!\n"
 
 #: src/core/command.c:816
-#, fuzzy
 msgid "Error loading files!\n"
-msgstr "Ошибка при загрузке URL %s: %s\n"
+msgstr "Ошибка при загрузке файлов!\n"
 
 #: src/core/command.c:821
 msgid "Reconstructing RGGB Bayer matrix.\n"
-msgstr ""
+msgstr "Восстановление шаблона Байера RGGB.\n"
 
 #: src/core/command.c:824
 msgid "Reconstructing BGGR Bayer matrix.\n"
-msgstr ""
+msgstr "Восстановление шаблона Байера BGGR.\n"
 
 #: src/core/command.c:827
 msgid "Reconstructing GBRG Bayer matrix.\n"
-msgstr ""
+msgstr "Восстановление шаблона Байера GBRG.\n"
 
 #: src/core/command.c:830
 msgid "Reconstructing GRBG Bayer matrix.\n"
-msgstr ""
+msgstr "Восстановление шаблона Байера GRBG.\n"
 
 #: src/core/command.c:832 src/core/command.c:5600
 msgid "Invalid Bayer matrix specified!\n"
-msgstr ""
+msgstr "Указан неверный шаблон Байера!\n"
 
 #: src/core/command.c:843
 #, fuzzy
@@ -9683,7 +9998,7 @@ msgstr ""
 
 #: src/core/command.c:924
 msgid "Multiplying by a coefficient less than or equal to 0 is not possible.\n"
-msgstr ""
+msgstr "Невозможно умножить на коэффициент меньший или равный 0.\n"
 
 #: src/core/command.c:955
 #, c-format
@@ -9714,14 +10029,12 @@ msgid "Error: will not clear the PSF while a sequence is running.\n"
 msgstr ""
 
 #: src/core/command.c:1036
-#, fuzzy
 msgid "Deconvolution kernel cleared.\n"
-msgstr "Обратная свёртка применена"
+msgstr "Ядро реконструкции очищено.\n"
 
 #: src/core/command.c:1041
-#, fuzzy
 msgid "Save PSF to file:\n"
-msgstr "Сохранить файл"
+msgstr "Сохранить PSF в файл:\n"
 
 #: src/core/command.c:1053 src/core/command.c:1125
 msgid ""
@@ -9770,12 +10083,11 @@ msgstr ""
 
 #: src/core/command.c:1140
 msgid "symmetric kernel\n"
-msgstr ""
+msgstr "симметричное ядро\n"
 
 #: src/core/command.c:1165
-#, fuzzy
 msgid "Manual PSF generation:\n"
-msgstr "Выравнивание вручную"
+msgstr "Создание PSF вручную:\n"
 
 #: src/core/command.c:1172
 msgid "Gaussian PSF\n"
@@ -9854,11 +10166,11 @@ msgstr ""
 
 #: src/core/command.c:1628 src/core/command.c:4034
 msgid "Crop: x and y must be positive values.\n"
-msgstr ""
+msgstr "Кадрирование: x и y должны быть положительными.\n"
 
 #: src/core/command.c:1634 src/core/command.c:4040
 msgid "Crop: width and height must be greater than 0.\n"
-msgstr ""
+msgstr "Кадрирование: ширина и высота должны быть больше 0.\n"
 
 #: src/core/command.c:1638 src/core/command.c:4056
 #, c-format
@@ -9868,17 +10180,19 @@ msgstr ""
 #: src/core/command.c:1643 src/core/command.c:4046
 msgid "Crop: select a region or provide x, y, width, height\n"
 msgstr ""
+"Кадрирование: выберите область или введите координаты x и y, ширину и "
+"высоту\n"
 
 #: src/core/command.c:1651 src/gui/menu_gray_geometry.c:266
 #, c-format
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
-msgstr ""
+msgstr "Кадрирование (x=%d, y=%d, ш=%d, в=%d)"
 
 #: src/core/command.c:1696 src/core/command.c:4353 src/core/command.c:4366
 #: src/core/command.c:4757 src/core/command.c:4775 src/core/command.c:4787
 #: src/core/command.c:8074
 msgid "Wrong parameters.\n"
-msgstr "Некорректные параметры.\n"
+msgstr "Неверные параметры.\n"
 
 #: src/core/command.c:1755 src/core/command.c:2795 src/core/command.c:2802
 #: src/core/command.c:2829 src/core/command.c:2934 src/core/command.c:3015
@@ -9972,7 +10286,7 @@ msgstr ""
 #: src/core/command.c:2217
 #, c-format
 msgid "Link: %s\n"
-msgstr ""
+msgstr "Ссылка: %s\n"
 
 #: src/core/command.c:2221 src/core/command.c:2271
 #, c-format
@@ -10059,9 +10373,9 @@ msgstr ""
 
 #: src/core/command.c:2501 src/core/command.c:2515 src/core/command.c:4553
 #: src/core/command.c:8814 src/pixelMath/pixel_math_runner.c:1092
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open file: %s\n"
-msgstr "Не удалось открыть файл %s в формате TIFF\n"
+msgstr "Не удалось открыть файл: %s\n"
 
 #: src/core/command.c:2507 src/core/command.c:2536
 msgid "Image data is already bottom-up\n"
@@ -10089,16 +10403,16 @@ msgstr "Не удалось открыть файл %s в формате TIFF\n"
 #: src/core/command.c:2680
 #, c-format
 msgid "Symmetry point SP=%f\n"
-msgstr ""
+msgstr "Точка симметрии SP=%f\n"
 
 #: src/core/command.c:2695
 #, c-format
 msgid "Symmetry point for channel %d: SP=%f\n"
-msgstr "Точка симметрии канала %d: ТС=%f\n"
+msgstr "Точка симметрии канала %d: SP=%f\n"
 
 #: src/core/command.c:2737
 msgid "The target background value must be in the [0, 1] range\n"
-msgstr ""
+msgstr "Целевое значение фона должно быть в диапазоне [0, 1]\n"
 
 #: src/core/command.c:2742
 #, c-format
@@ -10280,7 +10594,7 @@ msgstr ""
 #: src/core/command.c:3398 src/core/command.c:3405 src/core/command.c:3412
 #, c-format
 msgid "Wrong parameter value %s.\n"
-msgstr "Некорректное значение %s.\n"
+msgstr "Неверное значение %s.\n"
 
 #: src/core/command.c:3416
 #, fuzzy
@@ -10290,7 +10604,7 @@ msgstr "Исходные параметры"
 #: src/core/command.c:3437
 #, c-format
 msgid "sigma = %3.2f\n"
-msgstr ""
+msgstr "σ = %3.2f\n"
 
 #: src/core/command.c:3440
 #, c-format
@@ -10310,11 +10624,11 @@ msgstr "радиус = %d\n"
 #: src/core/command.c:3450
 #, c-format
 msgid "amplitude range = [%f, %f]\n"
-msgstr ""
+msgstr "диапазон амплитуды = [%f, %f]\n"
 
 #: src/core/command.c:3452
 msgid "amplitude range unlimited\n"
-msgstr ""
+msgstr "диапазон амплитуды = [%f, %f]\n"
 
 #: src/core/command.c:3457
 #, c-format
@@ -10483,31 +10797,30 @@ msgid "Coeff value is incorrect\n"
 msgstr ""
 
 #: src/core/command.c:4284
-#, fuzzy
 msgid "Sigma value is incorrect\n"
-msgstr "Выравнивание фотографий"
+msgstr "Значение σ некорректно\n"
 
 #: src/core/command.c:4300
 msgid "Number of layers MUST be 1 or 3\n"
-msgstr ""
+msgstr "Кол-во слоёв ДОЛЖНО быть 1 или 3\n"
 
 #: src/core/command.c:4304
 msgid "Width and Height must be positive values.\n"
-msgstr ""
+msgstr "Ширина и высота должны быть положительными.\n"
 
 #: src/core/command.c:4317
 msgid "new empty image"
-msgstr ""
+msgstr "новое пустое изображение"
 
 #: src/core/command.c:4327
 #, c-format
 msgid "Values must be positive and less than %d.\n"
-msgstr ""
+msgstr "Значения должны быть положительными и меньше чем %d.\n"
 
 #: src/core/command.c:4339 src/core/command.c:4770
 #, c-format
 msgid "Value must be positive and less than %d.\n"
-msgstr ""
+msgstr "Значение должно быть положительным и меньше чем %d.\n"
 
 #: src/core/command.c:4358
 msgid "Fill2: select a region or provide x, y, width, height\n"
@@ -10634,7 +10947,7 @@ msgstr ""
 
 #: src/core/command.c:5250
 msgid "CieLAB"
-msgstr ""
+msgstr "CieLAB"
 
 #: src/core/command.c:5606
 #, c-format
@@ -10726,9 +11039,9 @@ msgid "Conversion: processing %d RAW files...\n"
 msgstr "Конвертация: обработка %d файлов RAW…\n"
 
 #: src/core/command.c:6261
-#, fuzzy, c-format
+#, c-format
 msgid "Link: error opening working directory %s.\n"
-msgstr "Конвертация: рабочий каталог не указан.\n"
+msgstr "Ссылка: ошибка при открытии рабочего каталога %s.\n"
 
 #: src/core/command.c:6283
 #, fuzzy
@@ -10739,19 +11052,18 @@ msgstr "Не найдено RAW-файлов для конвертировани
 #, c-format
 msgid "Link: processing %d FITS file...\n"
 msgid_plural "Link: processing %d FITS files...\n"
-msgstr[0] "Конвертация: обработка %d файла…\n"
-msgstr[1] "Конвертация: обработка %d файлов…\n"
-msgstr[2] "Конвертация: обработка %d файлов…\n"
+msgstr[0] "Конвертация: обработка %d FITS-файла…\n"
+msgstr[1] "Конвертация: обработка %d FITS-файлов…\n"
+msgstr[2] "Конвертация: обработка %d FITS-файлов…\n"
 
 #: src/core/command.c:6304
-#, fuzzy
 msgid "Link: no working directory set.\n"
-msgstr "Конвертация: рабочий каталог не указан.\n"
+msgstr "Ссылка: рабочий каталог не указан.\n"
 
 #: src/core/command.c:6383
 #, c-format
 msgid "Convert: error opening working directory %s.\n"
-msgstr "Конвертация: ошибка открытия рабочей директории %s.\n"
+msgstr "Конвертация: ошибка открытия рабочего каталога %s.\n"
 
 #: src/core/command.c:6405
 msgid "No files were found for convert\n"
@@ -10761,9 +11073,9 @@ msgstr "Не найдены файлы для конвертирования\n"
 #, c-format
 msgid "Convert: processing %d FITS file...\n"
 msgid_plural "Convert: processing %d FITS files...\n"
-msgstr[0] "Конвертация: обработка %d файла FITS…\n"
-msgstr[1] "Конвертация: обработка %d файлов FITS…\n"
-msgstr[2] "Конвертация: обработка %d файлов FITS…\n"
+msgstr[0] "Конвертация: обработка %d FITS-файла…\n"
+msgstr[1] "Конвертация: обработка %d FITS-файлов…\n"
+msgstr[2] "Конвертация: обработка %d FITS-файлов…\n"
 
 #: src/core/command.c:6426
 msgid "Convert: no working directory set.\n"
@@ -10780,9 +11092,8 @@ msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
 msgstr ""
 
 #: src/core/command.c:6624 src/registration/registration.c:146
-#, fuzzy
 msgid "Two-Pass Global Star Alignment (deep-sky)"
-msgstr "Всё звездное небо (дальний космос)"
+msgstr "Всё звездное небо за 2 шага (дальний космос)"
 
 #: src/core/command.c:6627 src/registration/registration.c:144
 msgid "Global Star Alignment (deep-sky)"
@@ -10866,60 +11177,64 @@ msgstr "В этом контексте недоступны параметры �
 #: src/core/command.c:6987 src/core/command.c:6997 src/core/command.c:7005
 #: src/core/command.c:7013
 msgid "Weighting is allowed only with average stacking, ignoring.\n"
-msgstr ""
+msgstr "Присвоение веса возможно только при укладке по средней, игнорируем.\n"
 
 #: src/core/command.c:6989 src/core/command.c:7015
 msgid ""
 "Weighting is allowed only if normalization has been activated, ignoring.\n"
 msgstr ""
+"Присвоение веса возможно только при включённой нормализации, игнорируем.\n"
 
 #: src/core/command.c:6991 src/core/command.c:6999 src/core/command.c:7007
 #: src/core/command.c:7017
 msgid "Only one weighting method can be used\n"
-msgstr ""
+msgstr "Можно использовать лишь один метод присвоения веса\n"
 
 #: src/core/command.c:7023
-#, fuzzy
 msgid "Fast normalization is allowed only with average stacking, ignoring.\n"
-msgstr "В этом контексте недоступны параметры нормировки, игнорируем.\n"
+msgstr ""
+"Быстрая нормализация возможна только при укладке по средней, игнорируем.\n"
 
 #: src/core/command.c:7025
-#, fuzzy
 msgid ""
 "Fast normalization is allowed only if normalization has been activated, "
 "ignoring.\n"
-msgstr "В этом контексте недоступны параметры нормировки, игнорируем.\n"
+msgstr ""
+"Быстрая нормализация возможна только при включённой нормализации, игнорируем."
+"\n"
 
 #: src/core/command.c:7031
 msgid "Normalization options are not allowed in this context, ignoring.\n"
-msgstr "В этом контексте недоступны параметры нормировки, игнорируем.\n"
+msgstr "В этом контексте недоступны параметры нормализации, игнорируем.\n"
 
 #: src/core/command.c:7045
-#, fuzzy
 msgid "RGB equalization is allowed only with average stacking, ignoring.\n"
-msgstr "В этом контексте недоступны параметры нормировки, игнорируем.\n"
+msgstr "Выравнивание RGB возможно только при укладке по средней, игнорируем.\n"
 
 #: src/core/command.c:7047
 msgid ""
 "RGB equalization is allowed only if normalization has been activated, "
 "ignoring.\n"
 msgstr ""
+"Выравнивание RGB возможно только при включённой нормализации, игнорируем.\n"
 
 #: src/core/command.c:7063
 msgid "Output filename option is not allowed in this context, ignoring.\n"
 msgstr ""
 
 #: src/core/command.c:7067
-#, fuzzy
 msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
-msgstr "В этом контексте недоступны параметры нормировки, игнорируем.\n"
+msgstr ""
+"Карты выбраковки могут быть созданы только при укладке с выбраковкой, "
+"игнорируем.\n"
 
 #: src/core/command.c:7069
-#, fuzzy
 msgid ""
 "Rejection maps can only be created if rejection has been activated, "
 "ignoring.\n"
-msgstr "В этом контексте недоступны параметры нормировки, игнорируем.\n"
+msgstr ""
+"Карты выбраковки могут быть созданы только при включённой выбраковке, "
+"игнорируем.\n"
 
 #: src/core/command.c:7077
 #, c-format
@@ -10929,11 +11244,11 @@ msgstr ""
 #: src/core/command.c:7096
 #, c-format
 msgid "Stacking sequence %s\n"
-msgstr ""
+msgstr "Укладка последовательности %s\n"
 
 #: src/core/command.c:7110
 msgid "Not using rejection for stacking\n"
-msgstr ""
+msgstr "Выбраковка при укладке не используется\n"
 
 #: src/core/command.c:7132
 #, c-format
@@ -10945,12 +11260,11 @@ msgstr ""
 #: src/core/command.c:7197
 #, c-format
 msgid "Could not save the stacking result %s\n"
-msgstr ""
+msgstr "Не удалось сохранить результат укладки %s\n"
 
 #: src/core/command.c:7204 src/stacking/stacking.c:619
-#, fuzzy
 msgid "Saving rejection maps\n"
-msgstr "Выравнивание фотографий"
+msgstr "Сохранение карт выбраковки\n"
 
 #: src/core/command.c:7233 src/stacking/stacking.c:672
 msgid "Stacking failed, please check the log to fix your issue.\n"
@@ -10966,7 +11280,7 @@ msgstr "Ошибка при поиске последовательностей 
 
 #: src/core/command.c:7269
 msgid "Starting stacking of found sequences...\n"
-msgstr ""
+msgstr "Начинается укладка найденных последовательностей...\n"
 
 #: src/core/command.c:7281
 #, c-format
@@ -11095,7 +11409,7 @@ msgstr "Активен режим обработки с точностью 16 б
 
 #: src/core/command.c:7808
 msgid "32-bit per channel in processed images mode is active\n"
-msgstr "Активен режим обработки с точностью 32 бит на канал\n"
+msgstr "Активен режим обработки с точностью 32 бита на канал\n"
 
 #: src/core/command.c:7824
 msgid "Please specify the type of compression and quantization value.\n"
@@ -11172,12 +11486,12 @@ msgstr ""
 
 #: src/core/command.c:7930
 msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
-msgstr ""
+msgstr "********* СПИСОК ДОСТУПНЫХ КОМАНД *********\n"
 
 #: src/core/command.c:7938
-#, fuzzy, c-format
+#, c-format
 msgid "Can be used in a script: %s\n"
-msgstr "Загрузка скрипта: %s\n"
+msgstr "Можно использовать в сценарии: %s\n"
 
 #: src/core/command.c:7938 src/core/command_line_processor.c:442
 msgid "YES"
@@ -11185,7 +11499,7 @@ msgstr "ДА"
 
 #: src/core/command.c:7938 src/core/command_line_processor.c:445
 msgid "NO"
-msgstr ""
+msgstr "НЕТ"
 
 #: src/core/command.c:7948
 #, c-format
@@ -11532,6 +11846,8 @@ msgstr ""
 #: src/core/command_def.h:18
 msgid "Lists Siril capabilities, based on compilation and runtime"
 msgstr ""
+"Команда показывает список возможностей Siril на основе данных о компиляции и "
+"среде, в которой исполняется программа"
 
 #: src/core/command_def.h:19
 msgid ""
@@ -11704,7 +12020,7 @@ msgstr ""
 
 #: src/core/command_def.h:37
 msgid "Quits the application"
-msgstr "Выйти из приложения"
+msgstr "Выход из приложения"
 
 #: src/core/command_def.h:38
 msgid "Extracts <b>NbPlans</b> planes of wavelet domain"
@@ -12022,8 +12338,8 @@ msgstr ""
 msgid ""
 "Process the provided image for live stacking. Only possible after START_LS"
 msgstr ""
-"Обработать предоставленное изображение для укладки на лету. Возможно только "
-"после команды START_LS"
+"Обрабатывает изображение в ходе укладки на лету. Возможна только после "
+"START_LS"
 
 #: src/core/command_def.h:79
 msgid ""
@@ -13156,7 +13472,7 @@ msgstr ""
 
 #: src/core/command_def.h:180
 msgid "Stop the live stacking session. Only possible after START_LS"
-msgstr "Остановить укладку на лету. Возможно только после команды START_LS"
+msgstr "Останавливает сессию укладки на лету. Возможно только после START_LS"
 
 #: src/core/command_def.h:181
 msgid ""
@@ -13284,13 +13600,12 @@ msgid "current working directory is invalid"
 msgstr "Изменить текущий рабочий каталог"
 
 #: src/core/command_line_processor.c:56
-#, fuzzy
 msgid "command cannot be used in a script"
-msgstr "Загрузка скрипта: %s\n"
+msgstr "команда не может быть использована в сценарии"
 
 #: src/core/command_line_processor.c:58
 msgid "invalid number of arguments"
-msgstr "некорректное число аргументов"
+msgstr "неверное число аргументов"
 
 #: src/core/command_line_processor.c:60
 #, fuzzy
@@ -13390,7 +13705,7 @@ msgstr "Использование: %s\n"
 #: src/core/command_line_processor.c:156
 #, c-format
 msgid "This command cannot be used in a script: %s\n"
-msgstr ""
+msgstr "Эта команда не может быть использована в сценарии: %s\n"
 
 #. process the command
 #: src/core/command_line_processor.c:198
@@ -13441,8 +13756,9 @@ msgid "Please enter an existing command before hitting this button"
 msgstr ""
 
 #: src/core/command_line_processor.c:438
+#, fuzzy
 msgid "Can be used in a script: "
-msgstr ""
+msgstr "Можно использовать в сценарии: "
 
 #: src/core/command_line_processor.c:457
 msgid "No help for this command"
@@ -13452,7 +13768,7 @@ msgstr "Для этой команды нет справки"
 #: src/core/command_line_processor.c:577 src/gui/script_menu.c:168
 #, c-format
 msgid "Starting script %s\n"
-msgstr "Запускается скрипт %s\n"
+msgstr "Запускается сценарий %s\n"
 
 #: src/core/command_line_processor.c:589
 #, fuzzy, c-format
@@ -13719,17 +14035,17 @@ msgstr "Предобработка изображения %s"
 #: src/core/preprocess.c:522
 #, c-format
 msgid "Saving image %s"
-msgstr ""
+msgstr "Сохранение изображения %s"
 
 #: src/core/preprocess.c:552
-#, fuzzy, c-format
+#, c-format
 msgid "Pre-processing image %s\n"
-msgstr "Предобработка изображения %s"
+msgstr "Предобработка изображения %s\n"
 
 #: src/core/preprocess.c:570
-#, fuzzy, c-format
+#, c-format
 msgid "Saving image %s\n"
-msgstr "Предобработка изображения %s"
+msgstr "Сохранение изображения %s\n"
 
 #. offset is specified as a level not a file
 #: src/core/preprocess.c:679
@@ -13819,7 +14135,7 @@ msgstr ""
 
 #: src/core/preprocess.c:960
 msgid "Error in preprocessing."
-msgstr "Ошибка при предварительной обработке."
+msgstr "Ошибка в ходе предобработки."
 
 #: src/core/preprocess.c:1021 src/core/preprocess.c:1033
 msgid ""
@@ -14015,13 +14331,12 @@ msgid "for a total of images processed of %d)\n"
 msgstr ""
 
 #: src/core/settings.c:254
-#, fuzzy
 msgid "current working directory"
-msgstr "Изменить текущий рабочий каталог"
+msgstr "текущий рабочий каталог"
 
 #: src/core/settings.c:255
 msgid "FITS file extension"
-msgstr ""
+msgstr "расширение файла FITS"
 
 #: src/core/settings.c:256
 msgid "don't use 32 bits for pixel depth"
@@ -14146,7 +14461,7 @@ msgstr ""
 
 #: src/core/settings.c:291
 msgid "use pattern from the file header"
-msgstr ""
+msgstr "шаблон из заголовка файла"
 
 #: src/core/settings.c:292
 #, fuzzy
@@ -14158,17 +14473,14 @@ msgid "type of interpolation"
 msgstr "тип интерполяции"
 
 #: src/core/settings.c:294
-#, fuzzy
 msgid "force debayer top-down"
 msgstr "принудительная дебайеризация сверху вниз"
 
 #: src/core/settings.c:295
-#, fuzzy
 msgid "Bayer matrix offset X"
 msgstr "Смещение шаблона Байера по X"
 
 #: src/core/settings.c:296
-#, fuzzy
 msgid "Bayer matrix offset Y"
 msgstr "Смещение шаблона Байера по Y"
 
@@ -14278,9 +14590,8 @@ msgstr "Коэффициент масштаба HCompress"
 
 #. the GUI part, not as useful but still required to be listed in order to be saved in the ini file
 #: src/core/settings.c:328
-#, fuzzy
 msgid "type of sensor for cosmetic correction"
-msgstr "Включить косметическую коррекцию"
+msgstr "тип сенсора для косметической коррекции"
 
 #: src/core/settings.c:329
 #, fuzzy
@@ -14298,14 +14609,12 @@ msgid "if no X-Trans model found, use this"
 msgstr ""
 
 #: src/core/settings.c:339
-#, fuzzy
 msgid "default master bias"
-msgstr "Мастер-кадр шума считывания"
+msgstr "мастер-кадр шума считывания по умолчанию"
 
 #: src/core/settings.c:340
-#, fuzzy
 msgid "use default master bias"
-msgstr "Восстановить исходные параметры"
+msgstr "использовать мастер-кадр шума считывания по умолчанию"
 
 #: src/core/settings.c:341
 msgid "default master dark"
@@ -14313,21 +14622,19 @@ msgstr "темновой мастер-кадр по умолчанию"
 
 #: src/core/settings.c:342
 msgid "use default master dark"
-msgstr ""
+msgstr "использовать темновой мастер-кадр по умолчанию"
 
 #: src/core/settings.c:343
-#, fuzzy
 msgid "default master flat"
-msgstr "Мастер-кадр плоского поля"
+msgstr "мастер-кадр плоского поля по умолчанию"
 
 #: src/core/settings.c:344
 msgid "use default master flat"
-msgstr ""
+msgstr "использовать мастер-кадр плоского поля по умолчанию"
 
 #: src/core/settings.c:345
-#, fuzzy
 msgid "default stack name"
-msgstr "Режим показа"
+msgstr "название стопки по умолчанию"
 
 #: src/core/settings.c:346
 msgid "use preferred stack name"
@@ -14394,7 +14701,7 @@ msgstr ""
 
 #: src/core/settings.c:363
 msgid "first start of siril"
-msgstr ""
+msgstr "первый запуск siril"
 
 #: src/core/settings.c:364
 msgid "don't confirm quit when exiting"
@@ -14405,27 +14712,25 @@ msgid "don't confirm save when non linear mode"
 msgstr ""
 
 #: src/core/settings.c:366
-#, fuzzy
 msgid "remember window position"
-msgstr "Запоминать размер и положение окна"
+msgstr "запоминать положение окна"
 
 #: src/core/settings.c:367 src/core/settings.c:368 src/core/settings.c:369
 #: src/core/settings.c:370
-#, fuzzy
 msgid "main window position"
-msgstr "Запоминать размер и положение окна"
+msgstr "положение главного окна"
 
 #: src/core/settings.c:371
 msgid "position of the two sides separator"
-msgstr ""
+msgstr "положение двухстороннего разделителя"
 
 #: src/core/settings.c:372
 msgid "main window is extended"
-msgstr ""
+msgstr "главное окно расширено"
 
 #: src/core/settings.c:373
 msgid "main window is maximized"
-msgstr ""
+msgstr "главное окно развёрнуто"
 
 #: src/core/settings.c:374
 #, fuzzy
@@ -14434,28 +14739,25 @@ msgstr "Удалить выбранный файл"
 
 #: src/core/settings.c:375
 msgid "font scale in percent"
-msgstr ""
+msgstr "масштаб шрифта в процентах"
 
 #: src/core/settings.c:376
 msgid "icon style"
-msgstr ""
+msgstr "стиль иконок"
 
 #: src/core/settings.c:377
 msgid "list of script directories"
-msgstr ""
+msgstr "список каталогов со сценариями"
 
 #: src/core/settings.c:378
-#, fuzzy
 msgid "warn when launching a script"
-msgstr "предупреждать при загрузке скрипта"
+msgstr "предупреждать при запуске сценария"
 
 #: src/core/settings.c:379
-#, fuzzy
 msgid "show thumbnails in open dialog"
 msgstr "показывать миниатюры при выборе файлов"
 
 #: src/core/settings.c:380
-#, fuzzy
 msgid "size of the thumbnails"
 msgstr "размер миниатюр"
 
@@ -14468,51 +14770,42 @@ msgid "show tenths of arcseconds on hover"
 msgstr ""
 
 #: src/core/settings.c:383
-#, fuzzy
 msgid "default display mode"
-msgstr "Режим показа"
+msgstr "режим показа по умолчанию"
 
 #: src/core/settings.c:384
-#, fuzzy
 msgid "default histogram display mode"
-msgstr "Режим показа"
+msgstr "режим показа гистограмы по умолчанию"
 
 #: src/core/settings.c:386
 msgid "index of the compass position over grid"
 msgstr ""
 
 #: src/core/settings.c:387
-#, fuzzy
 msgid "show Messier objects in annotations"
 msgstr "показывать объекты каталога Мессье в аннотациях"
 
 #: src/core/settings.c:388
-#, fuzzy
 msgid "show NGC objects in annotations"
 msgstr "показывать объекты каталога NGC в аннотациях"
 
 #: src/core/settings.c:389
-#, fuzzy
 msgid "show IC objects in annotations"
 msgstr "показывать объекты каталога IC в аннотациях"
 
 #: src/core/settings.c:390
-#, fuzzy
 msgid "show LDN objects in annotations"
 msgstr "показывать объекты каталога LDN в аннотациях"
 
 #: src/core/settings.c:391
-#, fuzzy
 msgid "show SH2 objects in annotations"
 msgstr "показывать объекты каталога SH2 в аннотациях"
 
 #: src/core/settings.c:392
-#, fuzzy
 msgid "show stars in annotations"
 msgstr "показать звёзды в аннотациях"
 
 #: src/core/settings.c:393
-#, fuzzy
 msgid "show user objects in annotations"
 msgstr "показать пользовательские объекты в аннотациях"
 
@@ -14549,7 +14842,7 @@ msgstr ""
 
 #: src/core/siril_actions.c:345 src/gui/PSF_list.c:623
 msgid "Current selection is too large"
-msgstr ""
+msgstr "Текущее выделение слишком велико"
 
 #: src/core/siril_actions.c:346 src/gui/PSF_list.c:624
 msgid "To determine the PSF, please make a selection around a star."
@@ -14568,17 +14861,16 @@ msgid ""
 msgstr ""
 
 #: src/core/siril_actions.c:442
-#, fuzzy
 msgid "Load another image"
-msgstr "Добавить фильтр"
+msgstr "Загрузить другое изображение"
 
 #: src/core/siril_actions.c:642
 msgid "RGB alignment (DFT)"
-msgstr ""
+msgstr "Выравнивание RGB (DFT)"
 
 #: src/core/siril_actions.c:647
 msgid "RGB alignment (PSF)"
-msgstr ""
+msgstr "Выравнивание RGB (PSF)"
 
 #: src/core/siril_log.c:94
 #, c-format
@@ -14607,7 +14899,7 @@ msgstr "Длительность выполнения"
 #: src/core/siril_update.c:344
 #, fuzzy
 msgid "No update check: cannot fetch version file\n"
-msgstr "Недоступно: эта версия сейчас в разработке\n"
+msgstr "Проверка обновления отсутствует: не удается получить файл версии\n"
 
 #: src/core/siril_update.c:347
 #, c-format
@@ -14636,22 +14928,22 @@ msgstr "Обновление приложения"
 
 #: src/core/siril_update.c:514
 msgid "Unable to check updates! Please Check your network connection\n"
-msgstr ""
+msgstr "Не удалось проверить обновления! Проверьте сетевое соединение\n"
 
 #: src/core/siril_update.c:518
 #, c-format
 msgid "Unable to check updates! Error: %ld\n"
-msgstr ""
+msgstr "Не удалось проверить обновления! Ошибка: %ld\n"
 
 #: src/core/siril_update.c:594
 #, c-format
 msgid "Error: %ld. Wait %us before retry\n"
-msgstr ""
+msgstr "Ошибка: %ld. Подождите %u с перед повтором\n"
 
 #: src/core/siril_update.c:613
 #, c-format
 msgid "Cannot retrieve information from the update URL. Error: [%ld]\n"
-msgstr ""
+msgstr "Не удалось получить информацию об обновлении. Ошибка: [%ld]\n"
 
 #: src/core/siril_update.c:636
 msgid "Looking for updates..."
@@ -14660,12 +14952,12 @@ msgstr "Поиск обновлений…"
 #: src/core/undo.c:56
 #, c-format
 msgid "File I/O Error: Unable to create swap file in %s: [%s]\n"
-msgstr ""
+msgstr "Ошибка ввода/вывода: Не удалось создать файл подкачки в %s: [%s]\n"
 
 #: src/core/undo.c:68 src/core/undo.c:76
 #, c-format
 msgid "File I/O Error: Unable to write swap file in %s: [%s]\n"
-msgstr ""
+msgstr "Ошибка ввода/вывода: Не удалось записать файл подкачки в %s: [%s]\n"
 
 #: src/core/undo.c:307
 #, c-format
@@ -14678,7 +14970,7 @@ msgid "Redo: %s\n"
 msgstr "Вернуть: %s\n"
 
 #: src/core/undo.c:351
-#, fuzzy, c-format
+#, c-format
 msgid "Undo: \"%s\""
 msgstr "Отменить: \"%s\""
 
@@ -14687,7 +14979,7 @@ msgid "Nothing to undo"
 msgstr ""
 
 #: src/core/undo.c:357
-#, fuzzy, c-format
+#, c-format
 msgid "Redo: \"%s\""
 msgstr "Вернуть: \"%s\""
 
@@ -14700,19 +14992,19 @@ msgid "Unknown error\n"
 msgstr "Неизвестная ошибка\n"
 
 #: src/core/utils.c:994
-#, fuzzy, c-format
+#, c-format
 msgid "'%s' No such file or directory\n"
-msgstr "'%s' Нет такого файла или директории\n"
+msgstr "'%s' Нет такого файла или каталога\n"
 
 #: src/core/utils.c:997
-#, fuzzy, c-format
+#, c-format
 msgid "'%s' is not a directory\n"
-msgstr "'%s' не директория\n"
+msgstr "'%s' не каталог\n"
 
 #: src/core/utils.c:1000
-#, fuzzy, c-format
+#, c-format
 msgid "You don't have permission to write in this directory: '%s'\n"
-msgstr "Отсутствуют права на запись в директорию: '%s'\n"
+msgstr "Отсутствуют права на запись в каталог: '%s'\n"
 
 #: src/core/utils.c:1022
 #, c-format
@@ -14720,9 +15012,9 @@ msgid "Setting CWD (Current Working Directory) to '%s'\n"
 msgstr ""
 
 #: src/core/utils.c:1025
-#, fuzzy, c-format
+#, c-format
 msgid "Could not change directory to '%s'.\n"
-msgstr "Не удаётся изменить директорию на '%s'.\n"
+msgstr "Не удалось сменить каталог на '%s'.\n"
 
 #: src/core/utils.c:1045
 msgid ""
@@ -14756,7 +15048,6 @@ msgid "Asinh Transformation: (stretch=%6.1lf, bp=%7.5lf)"
 msgstr "Преобразование по asinh: (stretch=%6.1lf, bp=%7.5lf)"
 
 #: src/filters/banding.c:186
-#, fuzzy
 msgid "Banding Reducing: processing...\n"
 msgstr "Уменьшение полошения: выполняется...\n"
 
@@ -14766,9 +15057,9 @@ msgid "Canon Banding Reduction (amount=%.2lf)"
 msgstr "Уменьшение полошения (кол-во=%.2lf)"
 
 #: src/filters/banding.c:410
-#, fuzzy, c-format
+#, c-format
 msgid "Canon Banding Reduction (amount=%.2lf, Protect=TRUE, invsigma=%.2lf)"
-msgstr "Уменьшение полошения (кол-во=%.2lf, защитить=TRUE, 1/сигма=%.2lf)"
+msgstr "Уменьшение полошения (кол-во=%.2lf, защитить=TRUE, 1/σ=%.2lf)"
 
 #: src/filters/clahe.c:59
 #, c-format
@@ -14806,7 +15097,6 @@ msgid "Fourier Transform: processing...\n"
 msgstr "Преобразование Фурье: выполняется…\n"
 
 #: src/filters/fft.c:534
-#, fuzzy
 msgid "There is something wrong in your files\n"
 msgstr "В ваших файлах что-то не так\n"
 
@@ -14842,7 +15132,7 @@ msgstr ""
 
 #: src/filters/ght.c:384
 msgid "Error: no channels selected. Doing nothing.\n"
-msgstr ""
+msgstr "Ошибка: каналы не выбраны. Ничего не делаем.\n"
 
 #: src/filters/median.c:85
 #, c-format
@@ -14879,7 +15169,6 @@ msgstr "Вращательный градиент: выполняется…\n"
 #. only used for progress bar
 #. only used for progress bar
 #: src/filters/rgradient.c:84
-#, fuzzy
 msgid "Rotational gradient in progress..."
 msgstr "Вращательный градиент применяется…"
 
@@ -14888,12 +15177,10 @@ msgid "Rotational gradient complete."
 msgstr "Вращательный градиент применён."
 
 #: src/filters/rgradient.c:250
-#, fuzzy
 msgid "Wrong center coordinates"
 msgstr "Неверные координаты центра"
 
 #: src/filters/rgradient.c:251
-#, fuzzy
 msgid ""
 "The coordinates cannot be greater than the size of the image. Please change "
 "their values and retry."
@@ -14922,20 +15209,19 @@ msgstr ""
 
 #: src/filters/scnr.c:43
 msgid "average neutral"
-msgstr ""
+msgstr "средний нейтральный"
 
 #: src/filters/scnr.c:45
 msgid "maximum neutral"
-msgstr ""
+msgstr "максимальный нейтральный"
 
 #: src/filters/scnr.c:47
 msgid "maximum mask"
-msgstr ""
+msgstr "максимальная маска"
 
 #: src/filters/scnr.c:49
-#, fuzzy
 msgid "additive mask"
-msgstr "Аддитивная"
+msgstr "аддитивная маска"
 
 #: src/filters/scnr.c:63
 #, c-format
@@ -15194,8 +15480,9 @@ msgid "Remapping output to floating point range 0.0 to 1.0\n"
 msgstr ""
 
 #: src/filters/wavelets.c:178
+#, fuzzy
 msgid "Could not copy image, aborting\n"
-msgstr ""
+msgstr "Не удалось скопировать изображение, прекращаем\n"
 
 #: src/filters/wavelets.c:183
 #, c-format
@@ -15203,9 +15490,8 @@ msgid "Extracting %s..."
 msgstr "Извлечение %s…"
 
 #: src/filters/wavelets.c:226
-#, fuzzy
 msgid "Wavelets Transformation"
-msgstr "Инвертировать"
+msgstr "Вейвлетные преобразования"
 
 #: src/gui/about_dialog.c:57
 #, c-format
@@ -15214,6 +15500,9 @@ msgid ""
 "This is an unstable development release\n"
 "commit %s\n"
 msgstr ""
+"%s\n"
+"Это нестабильная версия, находящаяся в разработке\n"
+"commit %s\n"
 
 #: src/gui/about_dialog.c:80
 msgid "Astronomical image (pre-)processing program"
@@ -15246,9 +15535,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/astrometry_solver.c:424
-#, fuzzy
 msgid "No object found\n"
-msgstr "Нет проекции"
+msgstr "Объект не найден\n"
 
 #: src/gui/astrometry_solver.c:511
 msgid ""
@@ -15257,7 +15545,7 @@ msgstr ""
 
 #: src/gui/astrometry_solver.c:512 src/gui/astrometry_solver.c:606
 msgid "No coordinates"
-msgstr ""
+msgstr "Координаты отсутствуют"
 
 #: src/gui/astrometry_solver.c:522
 msgid "There are no keywords stored in the FITS header.\n"
@@ -15265,11 +15553,11 @@ msgstr ""
 
 #: src/gui/astrometry_solver.c:523
 msgid "No metadata"
-msgstr "Нет метаданных"
+msgstr "Метаданные отсутствуют"
 
 #: src/gui/astrometry_solver.c:607
 msgid "Please enter object coordinates."
-msgstr ""
+msgstr "Пожалуйста, введите координаты объекта."
 
 #: src/gui/astrometry_solver.c:619
 msgid "Selection is not used with the astrometry.net solver\n"
@@ -15277,11 +15565,11 @@ msgstr ""
 
 #: src/gui/astrometry_solver.c:668
 msgid "No catalog"
-msgstr "Нет каталога"
+msgstr "Каталог отсутствует"
 
 #: src/gui/astrometry_solver.c:668
 msgid "Cannot download the online star catalog."
-msgstr ""
+msgstr "Не удалось загрузить удалённый каталог звёзд."
 
 #: src/gui/astrometry_solver.c:680
 msgid "Astrometric solution detected"
@@ -15294,9 +15582,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/astrometry_solver.c:683
-#, fuzzy
 msgid "Process"
-msgstr "Обработка…"
+msgstr "Обработка"
 
 #: src/gui/background_extraction.c:83 src/gui/background_extraction.c:94
 #: src/gui/siril_preview.c:70 src/gui/siril_preview.c:81
@@ -15305,7 +15592,7 @@ msgstr ""
 
 #: src/gui/background_extraction.c:184
 msgid "Polynomial order seems too high."
-msgstr ""
+msgstr "Степень полинома видимо слишком велика."
 
 #: src/gui/background_extraction.c:185
 msgid ""
@@ -15320,9 +15607,8 @@ msgid "Extract Background"
 msgstr "Извлечь фон"
 
 #: src/gui/background_extraction.c:195
-#, fuzzy
 msgid "Using wrong interpolation method"
-msgstr "Загрузка способа выравнивания: %s\n"
+msgstr "Использование неверного метода интерполяции"
 
 #: src/gui/background_extraction.c:196
 msgid ""
@@ -15339,11 +15625,11 @@ msgstr "Извлечение фона (коррекция: %s)"
 
 #: src/gui/background_extraction.c:225
 msgid "No Background model computed"
-msgstr ""
+msgstr "Модель фона не вычислена"
 
 #: src/gui/background_extraction.c:226
 msgid "You must first compute the background model."
-msgstr ""
+msgstr "Сначала вы должны вычислить модель фона."
 
 #: src/gui/callbacks.c:282
 #, c-format
@@ -15395,6 +15681,8 @@ msgstr "- нет -"
 msgid ""
 "This sequence name already exists!! Please change the name before converting."
 msgstr ""
+"Последовательность с таким названием уже существует!! Пожалуйста, измените "
+"имя перед конвертацией."
 
 #: src/gui/callbacks.c:747
 #, c-format
@@ -15404,7 +15692,7 @@ msgstr "Ш: %d пикселей В: %d пикселей. Соотношение:
 #: src/gui/callbacks.c:765
 #, c-format
 msgid "fwhm: %.2f px, r: %.2f"
-msgstr ""
+msgstr "fwhm: %.2f пикс., r: %.2f"
 
 #: src/gui/callbacks.c:767 src/gui/callbacks.c:769
 #, c-format
@@ -15413,13 +15701,15 @@ msgstr "fwhm: н/д"
 
 #: src/gui/callbacks.c:833
 msgid "Cannot convert a sequence file"
-msgstr ""
+msgstr "Не удалось преобразовать файл последовательности"
 
 #: src/gui/callbacks.c:834
 msgid ""
 "A sequence file cannot be converted to 32 bits. This operation can only be "
 "done on a single file."
 msgstr ""
+"Файл последовательности не может быть преобразован в 32 бита. Эта операция "
+"может быть выполнена только с одиночным файлом."
 
 #: src/gui/callbacks.c:839
 msgid "Precision loss"
@@ -15431,6 +15721,9 @@ msgid ""
 "accuracy. Getting back to 32 bits will not recover this loss.\n"
 "Are you sure you want to convert your data?"
 msgstr ""
+"Конвертация изображения из 32 бит в 16 бит может привести к потере точности "
+"вычислений. Возврат к 32 битам не восстановит эту потерю.\n"
+"Вы уверены, что хотите конвертировать ваши данные?"
 
 #: src/gui/callbacks.c:842
 msgid "Convert to 16 bits"
@@ -15443,7 +15736,7 @@ msgstr "Ч/Б"
 #: src/gui/callbacks.c:1257
 #, c-format
 msgid "Binning %d x %d is not supported\n"
-msgstr ""
+msgstr "Бинниг %d × %d не поддерживается\n"
 
 #: src/gui/callbacks.c:1397
 #, c-format
@@ -15486,7 +15779,7 @@ msgstr "Выйти"
 #: src/gui/callbacks.c:1804
 #, c-format
 msgid "Selected %s sequence %s..."
-msgstr ""
+msgstr "Выбрано %s в последовательности %s..."
 
 #: src/gui/callbacks.c:1853
 msgid "Searching for sequences in the current working directory..."
@@ -15530,26 +15823,29 @@ msgstr "Очистить данные"
 
 #: src/gui/callbacks.c:1919
 msgid "The requested data of the sequence has been cleaned."
-msgstr ""
+msgstr "Были очищены запрошенные данные последовательности."
 
 #: src/gui/conversion.c:109
 msgid "Invalid char"
-msgstr ""
+msgstr "Недопустимый символ"
 
 #: src/gui/conversion.c:109
 msgid ""
 "Please remove invalid characters in the sequence name before trying to "
 "convert images into a new sequence again."
 msgstr ""
+"Пожалуйста, удалите недопустимые символы в названии последовательности, "
+"прежде чем снова пытаться преобразовать изображения в новую "
+"последовательность."
 
 #: src/gui/conversion.c:115
 #, c-format
 msgid "A file named %s already exists. Do you want to replace it?\n"
-msgstr ""
+msgstr "Файл %s уже существует. Хотите заменить его?\n"
 
 #: src/gui/conversion.c:117
 msgid "The file already exists. Replacing it will overwrite its contents."
-msgstr ""
+msgstr "Файл уже существует. Замена приведёт к перезаписи содержимого."
 
 #: src/gui/conversion.c:118
 msgid "Replace File"
@@ -15558,7 +15854,7 @@ msgstr "Заменить файл"
 #: src/gui/conversion.c:144
 #, c-format
 msgid "Filetype is not supported, cannot convert: %s\n"
-msgstr ""
+msgstr "Тип файла не поддерживается, нельзя конвертировать: %s\n"
 
 #: src/gui/conversion.c:145
 #, c-format
@@ -15571,10 +15867,18 @@ msgid ""
 "may notify the developers that the extension you are trying to use should be "
 "recognized for this type."
 msgstr ""
+"Файл с расширением '%s' не поддерживается.\n"
+"Убедитесь, что ввели расширение правильно.\n"
+"Если это так, возможно вам необходимо установить стороннее программное "
+"обеспечение, для включения преобразования этого типа файлов. посмотрите файл "
+"README.\n"
+"Если тип файла, который вы пытаетесь загрузить, указан среди поддерживаемых "
+"форматов, вы можете уведомить разработчиков о том, что расширение, которое "
+"вы пытаетесь использовать, должно быть распознано для этого типа."
 
 #: src/gui/conversion.c:170
 msgid "Too many files are being converted."
-msgstr ""
+msgstr "Конвертируется слишком много файлов."
 
 #: src/gui/conversion.c:171
 msgid ""
@@ -15582,6 +15886,10 @@ msgid ""
 "However, your OS limits the number of files that will be processed in the "
 "same time.You may want to convert your input files into a FITS sequence."
 msgstr ""
+"Вы собираетесь конвертировать большое количество файлов в стандартные файлы "
+"FITS. Однако ваша операционная система ограничивает количество файлов, "
+"которые будут обрабатываться одновременно. Возможно, вы захотите "
+"конвертироват свои входные файлы в последовательность FITS."
 
 #: src/gui/conversion.c:173
 msgid "Convert to FITS Sequence"
@@ -15592,15 +15900,19 @@ msgid ""
 "Symbolic links cannot be used when demosaicing the images, new images will "
 "be created\n"
 msgstr ""
+"Символические ссылки не могут использоваться при дебайеризациии изображений, "
+"будут созданы новые изображения\n"
 
 #: src/gui/conversion.c:189 src/gui/conversion.c:195
 msgid "A conflict has been detected."
-msgstr ""
+msgstr "Обнаружен конфликт."
 
 #: src/gui/conversion.c:190
 msgid ""
 "Creating multiple sequences can only be done with only sequences as input."
 msgstr ""
+"Создание нескольких последовательностей может быть выполнено только при "
+"использовании последовательностей в качестве входных данных."
 
 #: src/gui/conversion.c:201
 #, c-format
@@ -15611,9 +15923,9 @@ msgstr "Конвертация: обработка %d файлов…\n"
 #, c-format
 msgid "%d file was ignored while drag and drop\n"
 msgid_plural "%d files were ignored while drag and drop\n"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%d файл был проигнорирован при перетаскивании\n"
+msgstr[1] "%d файла были проигнорированы при перетаскивании\n"
+msgstr[2] "%d файлов было проигнорировано при перетаскивании\n"
 
 #: src/gui/conversion.c:418
 msgid ""
@@ -15642,12 +15954,12 @@ msgstr[2] "Выбрано %d файлов"
 #: src/gui/photometric_cc.c:200 src/gui/photometric_cc.c:218
 #: src/gui/remixer.c:1217 src/gui/remixer.c:1260
 msgid "There is no selection"
-msgstr ""
+msgstr "Выделение отсутствует"
 
 #: src/gui/colors.c:51 src/gui/colors.c:137 src/gui/colors.c:259
 #: src/gui/photometric_cc.c:201 src/gui/photometric_cc.c:219
 msgid "Make a selection of the background area"
-msgstr ""
+msgstr "Выделите область с образцом фона"
 
 #: src/gui/colors.c:145
 msgid "Background neutralization"
@@ -15655,7 +15967,7 @@ msgstr "Нейтрализация фона"
 
 #: src/gui/colors.c:173 src/gui/colors.c:270
 msgid "Make a selection of the white reference area"
-msgstr ""
+msgstr "Выделите область с образцом белого"
 
 #: src/gui/colors.c:232
 msgid "Color Calibration: processing...\n"
@@ -15685,15 +15997,15 @@ msgstr "Папка"
 
 #: src/gui/documentation.c:68 src/gui/newdeconv.c:277 src/gui/script_menu.c:321
 msgid "Could not show link"
-msgstr ""
+msgstr "Не удалось отобразить ссылку"
 
 #: src/gui/documentation.c:69 src/gui/newdeconv.c:278 src/gui/script_menu.c:322
 msgid "Please go to <a href=\""
-msgstr ""
+msgstr "Перейти по <a href=\""
 
 #: src/gui/histogram.c:228
 msgid "Toggles whether to apply the stretch to the monochrome channel"
-msgstr ""
+msgstr "Применить растяжение к монохромному каналу"
 
 #: src/gui/histogram.c:251 src/gui/sequence_list.c:127
 msgid "Red channel"
@@ -15808,9 +16120,8 @@ msgid "Cannot compute linear coefficients."
 msgstr ""
 
 #: src/gui/menu_gray_geometry.c:59
-#, fuzzy
 msgid "Crop confirmation"
-msgstr "Информация"
+msgstr "Подтверждение кадрирования"
 
 #: src/gui/menu_gray_geometry.c:65
 #, c-format
@@ -15818,12 +16129,10 @@ msgid "Rotation (%.1lfdeg, cropped=%s, clamped=%s)"
 msgstr ""
 
 #: src/gui/menu_gray_geometry.c:84
-#, fuzzy
 msgid "Rotation (90 deg)"
 msgstr "Вращение (90°)"
 
 #: src/gui/menu_gray_geometry.c:94
-#, fuzzy
 msgid "Rotation (-90 deg)"
 msgstr "Вращение (-90°)"
 
@@ -15836,17 +16145,17 @@ msgid "Mirror Y"
 msgstr "Отражение по Y"
 
 #: src/gui/menu_gray_geometry.c:183
-#, c-format
+#, c-format, fuzzy
 msgid "Binning x%d (%s)"
-msgstr ""
+msgstr "Биннинг x%d (%s)"
 
 #: src/gui/menu_gray_geometry.c:183
 msgid "average"
-msgstr ""
+msgstr "среднее"
 
 #: src/gui/menu_gray_geometry.c:183
 msgid "sum"
-msgstr ""
+msgstr "сумма"
 
 #: src/gui/menu_gray_geometry.c:212
 #, c-format
@@ -15906,9 +16215,8 @@ msgid "Stars must all be modeled with the same profile type"
 msgstr ""
 
 #: src/gui/newdeconv.c:554
-#, fuzzy
 msgid "No stars selected"
-msgstr "Выбранные"
+msgstr "Звёзды не выбраны"
 
 #: src/gui/newdeconv.c:604
 msgid "Error: no PSF has been computed, nothing to save.\n"
@@ -16017,14 +16325,12 @@ msgid "No suitable stars detectable in this image. Aborting..."
 msgstr "На изображении не обнаружено подходящих звёзд. Прерывание…"
 
 #: src/gui/newdeconv.c:1021
-#, fuzzy
 msgid "Starting PSF computation..."
-msgstr "Совмещение в HSL"
+msgstr "Расчёт PSF..."
 
 #: src/gui/newdeconv.c:1035
-#, fuzzy
 msgid "Deconvolution PSF generated.\n"
-msgstr "Обратная свёртка применена"
+msgstr "PSF для реконструкции создана.\n"
 
 #. Refuse to process the image using previous PSF if there is no previous PSF defined
 #. Refuse to process the sequence using previous PSF if there is no previous PSF defined
@@ -16136,9 +16442,8 @@ msgid "Something went wrong while saving plot"
 msgstr ""
 
 #: src/gui/open_dialog.c:77 src/pixelMath/pixel_math_runner.c:1070
-#, fuzzy
 msgid "FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"
-msgstr "Файлы FITS (*.fit, *.fits, *.fts, *.fits.fz)"
+msgstr "Файлы FITS (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"
 
 #: src/gui/open_dialog.c:116
 msgid "Graphics Files (*.bmp"
@@ -16168,13 +16473,12 @@ msgid "All supported files"
 msgstr "Все поддерживаемые файлы"
 
 #: src/gui/open_dialog.c:298
-#, fuzzy
 msgid "Cosmetic correction file (*.lst)"
-msgstr "Косметическая коррекция"
+msgstr "Файл косметической коррекция (*.lst)"
 
 #: src/gui/open_dialog.c:323
 msgid "Format not supported."
-msgstr ""
+msgstr "Формат не поддерживается."
 
 #: src/gui/open_dialog.c:324
 msgid ""
@@ -16227,7 +16531,7 @@ msgstr "Сигнал/шум"
 
 #: src/gui/plot.c:615 src/gui/plot.c:1287 src/gui/plot.c:1571
 msgid "Frames"
-msgstr ""
+msgstr "Кадры"
 
 #: src/gui/plot.c:713
 #, c-format
@@ -16256,7 +16560,7 @@ msgstr "Предобработка изображения %s"
 
 #: src/gui/plot.c:1486 src/gui/plot.c:1519 src/gui/plot.c:1547
 msgid "Star roundness (1 is round)"
-msgstr ""
+msgstr "Округлость звёзд (1 - круглая)"
 
 #: src/gui/plot.c:1489 src/gui/plot.c:1522 src/gui/plot.c:1550
 msgid "FWHM ('')"
@@ -16332,7 +16636,7 @@ msgstr "Исключить выбранные точки"
 #: src/gui/preferences.c:390
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
-msgstr "Отсутствуют права на запись в директорию: %s\n"
+msgstr "Отсутствуют права на запись в каталог %s\n"
 
 #: src/gui/preferences.c:408
 #, c-format
@@ -16346,7 +16650,7 @@ msgstr "Отсутствуют права на чтение файла: %s\n"
 
 #: src/gui/preferences.c:475
 msgid "Cannot refresh script list"
-msgstr "Не удалось обновить список скриптов"
+msgstr "Не удалось обновить список сценариев"
 
 #: src/gui/preferences.c:697
 msgid ""
@@ -16361,10 +16665,12 @@ msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
 msgstr ""
+"Установка значения квантования в 0 имеет смысл только при сжатии GZIP, а "
+"GZIP 2 часто обеспечивает лучшее сжатие изображений с плавающей точкой."
 
 #: src/gui/preferences.c:718
 msgid "Wrong value"
-msgstr "Некорректное значение"
+msgstr "Неверное значение"
 
 #: src/gui/preferences.c:739
 msgid "Reset all preferences"
@@ -16504,7 +16810,7 @@ msgstr ""
 
 #: src/gui/PSF_list.c:740
 msgid "PSF and quick photometry results"
-msgstr ""
+msgstr "PSF и результаты быстрой фотометрии"
 
 #: src/gui/PSF_list.c:829
 msgid "Nothing to export"
@@ -16562,7 +16868,7 @@ msgstr "Не удалось загрузить изображение"
 
 #: src/gui/remixer.c:1115 src/gui/remixer.c:1171
 msgid "Error: images do not match"
-msgstr ""
+msgstr "Ошибка: изображения не совпадают"
 
 #: src/gui/remixer.c:1116 src/gui/remixer.c:1172
 msgid "Image width, height, bit depth and number of channels must match"
@@ -16571,7 +16877,7 @@ msgstr ""
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 #: src/gui/remixer.c:1307
 msgid "Simple"
-msgstr ""
+msgstr "Меньше"
 
 #: src/gui/remixer.c:1308
 msgid ""
@@ -16677,25 +16983,25 @@ msgstr ""
 
 #: src/gui/script_menu.c:135
 msgid "Run Script"
-msgstr "Выполнить скрипт"
+msgstr "Выполнить сценарий"
 
 #: src/gui/script_menu.c:197
 #, c-format
 msgid "Searching scripts in: \"%s\"...\n"
-msgstr "Поиск скриптов в: \"%s\"...\n"
+msgstr "Поиск сценариев в: \"%s\"...\n"
 
 #: src/gui/script_menu.c:210
 #, c-format
 msgid "Loading script: %s\n"
-msgstr "Загрузка скрипта: %s\n"
+msgstr "Загрузка сценария: %s\n"
 
 #: src/gui/script_menu.c:232
 msgid "Cannot refresh the scripts if the list is empty.\n"
-msgstr "Нельзя обновить список скриптов, если список пуст.\n"
+msgstr "Нельзя обновить сценарии, если список пуст.\n"
 
 #: src/gui/sequence_list.c:123
 msgid "B&W channel"
-msgstr "Градации серого"
+msgstr "Ч/Б канал"
 
 #: src/gui/sequence_list.c:128
 msgid "Green channel"
@@ -16715,7 +17021,7 @@ msgstr "Выбрать все изображения в последовател
 
 #: src/gui/sequence_list.c:394
 msgid "Unselected all images from sequence\n"
-msgstr ""
+msgstr "Отменено выделение всех изображений в последовательности\n"
 
 #: src/gui/sequence_list.c:515
 msgid "#Stars"
@@ -16724,7 +17030,7 @@ msgstr ""
 #: src/gui/sequence_list.c:581
 #, c-format
 msgid "%s image %d in sequence %s\n"
-msgstr ""
+msgstr "%s изображение %d в последовательности %s\n"
 
 #: src/gui/sequence_list.c:582
 msgid "Excluding"
@@ -16773,11 +17079,11 @@ msgstr[2] "последовательностей"
 
 #: src/gui/single_image.c:74
 msgid "An image (or sequence) is already loaded"
-msgstr ""
+msgstr "Изображение (или последовательность) уже загружено"
 
 #: src/gui/single_image.c:75
 msgid "Are you sure you want to close everything and open the new image?"
-msgstr ""
+msgstr "Уверены, что хотите закрыть всё и открыть новое изображение?"
 
 #: src/gui/siril_css.c:48
 #, c-format
@@ -16827,7 +17133,7 @@ msgstr ""
 msgid ""
 "You can get more scripts by clicking on the \"Get scripts\" item in the menu"
 msgstr ""
-"Можно скачать дополнительные скрипты, выбрав в меню пункт «Скачать скрипты»"
+"Можно скачать дополнительные сценарии, выбрав в меню пункт «Скачать сценарии»"
 
 #: src/gui/siril_intro.c:40
 msgid ""
@@ -16906,7 +17212,6 @@ msgstr ""
 "менять прокруткой колеса мыши с зажатой клавишей Ctrl"
 
 #: src/gui/siril_intro.c:53
-#, fuzzy
 msgid "To pan your image you can use Ctrl-Click (and drag)"
 msgstr "Чтобы перемещаться по изображению, нажмите Ctrl, щёлкните и потащите"
 
@@ -18490,7 +18795,7 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:84
 msgid "Highest integer less than or equal to x."
-msgstr "Наибольшее целое значение меньше или равно x."
+msgstr "Наибольшее целое значение меньшее или равное x."
 
 #: src/pixelMath/pixel_math_runner.c:85
 msgid "Natural logarithm of x."
