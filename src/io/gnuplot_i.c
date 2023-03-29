@@ -206,6 +206,8 @@ gpointer tmpwatcher (gpointer user_data) {
 					break;
 				}
 			}
+/* This would auto-close gnuplot when handle->ntmp drops to 0
+ * On balance I don't think this is desirable
 			if (handle->ntmp == 0) {
 				// Close the gnuplot handle when the temp file
 				// counter drops to 0
@@ -216,6 +218,7 @@ gpointer tmpwatcher (gpointer user_data) {
 				free(handle);
 				return GINT_TO_POINTER(1);
 			}
+*/
 		} else if (g_str_has_prefix(buffer, "Terminate")) {
 			if (handle->ntmp) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
