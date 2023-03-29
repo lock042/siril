@@ -260,6 +260,7 @@ gpointer cut_profile(gpointer p) {
 	gnuplot_ctrl *gplot = NULL;
 	gboolean tmpfile = FALSE;
 	char *filename, *tempfilename, *imagefilename;
+	gchar* temp;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
 	gboolean use_gnuplot = gnuplot_is_available();
@@ -272,7 +273,7 @@ gpointer cut_profile(gpointer p) {
 		filename = arg->filename;
 	} else {
 		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
-			gchar* temp = g_path_get_basename(com.uniq->filename);
+			temp = g_path_get_basename(com.uniq->filename);
 			filename = g_strdup_printf("%s%s.dat", build_timestamp_filename(), temp);
 			g_free(temp);
 		} else if (arg->seq) {
@@ -285,7 +286,10 @@ gpointer cut_profile(gpointer p) {
 		if (!(arg->save_dat || arg->seq))
 			tmpfile = TRUE;
 	}
-	imagefilename = replace_ext(g_path_get_basename(filename), ".png");
+	temp = g_path_get_basename(filename);
+	imagefilename = replace_ext(temp, ".png");
+	g_free(temp);
+	temp = NULL;
 	if (tmpfile) {
 		g_free(filename);
 		filename = g_strdup(tempfilename);
@@ -390,8 +394,6 @@ gpointer cut_profile(gpointer p) {
 					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
 				}
 				siril_log_message(_("%s has been saved.\n"), imagefilename);
-				g_free(imagefilename);
-				imagefilename = NULL;
 			}
 			g_free(title);
 			g_free(xlabel);
@@ -409,6 +411,8 @@ END:
 	}
 	g_free(arg->filename);
 	arg->filename = NULL;
+	free(imagefilename);
+	imagefilename = NULL;
 	g_free(filename);
 	filename = NULL;
 	free(x);
@@ -429,6 +433,8 @@ gpointer tri_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
 	int retval = 0;
 	gboolean tmpfile = FALSE;
+	char *filename, *tempfilename, *imagefilename;
+	gchar* temp;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
 	GtkSpinButton *spin_step = (GtkSpinButton*) lookup_widget("cut_tricut_step");
@@ -440,32 +446,32 @@ gpointer tri_cut(gpointer p) {
 	} else {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), arg->filename);
 	}
-	if (!arg->filename) {
-		siril_debug_print("Generating filename ");
-		if (arg->save_dat || arg->seq) {
-			siril_debug_print("for storage: ");
-			if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
-				siril_debug_print("from current image: ");
-				gchar* temp = g_path_get_basename(com.uniq->filename);
-				gchar* temp2 = g_strdup_printf("%s%s", build_timestamp_filename(), temp);
-				arg->filename = replace_ext(temp2, ".dat");
-				g_free(temp);
-				g_free(temp2);
-				siril_debug_print("%s\n", arg->filename);
-			} else if (arg->seq) {
-				arg->filename = g_strdup_printf("%s%s%.5d", build_timestamp_filename(), arg->seq->seqname, arg->imgnumber + 1);
-			} else {
-				arg->filename = g_strdup_printf("%s_image", build_timestamp_filename());
-				siril_debug_print("%s\n", arg->filename);
-			}
-		} else {
-			siril_debug_print("for temporary use: ");
-			gchar* temp = profile_tmpfile();
-			arg->filename = g_strdup_printf("%s.dat", temp);
+	if (arg->filename) {
+		filename = arg->filename;
+	} else {
+		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
+			temp = g_path_get_basename(com.uniq->filename);
+			filename = g_strdup_printf("%s%s.dat", build_timestamp_filename(), temp);
 			g_free(temp);
-			tmpfile = TRUE;
+			temp = NULL;
+		} else if (arg->seq) {
+			filename = g_strdup_printf("%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
+		} else {
+			filename = g_strdup_printf("%s_image", build_timestamp_filename());
 			siril_debug_print("%s\n", arg->filename);
 		}
+		tempfilename = profile_tmpfile();
+		if (!(arg->save_dat || arg->seq))
+			tmpfile = TRUE;
+	}
+	temp = g_path_get_basename(filename);
+	imagefilename = replace_ext(temp, ".png");
+	g_free(temp);
+	temp = NULL;
+	if (tmpfile) {
+		g_free(filename);
+		filename = g_strdup(tempfilename);
+		free(tempfilename);
 	}
 	point delta;
 	delta.x = arg->cut_end.x - arg->cut_start.x;
@@ -519,13 +525,14 @@ gpointer tri_cut(gpointer p) {
 		}
 	}
 	gchar *titletext = g_strdup_printf("x L(-%dpx) L L(+%dpx)", (int) step, (int) step);
-	retval = gnuplot_write_xrgb_dat(arg->filename, x, r[0], r[1], r[2], nbr_points, titletext);
+	retval = gnuplot_write_xrgb_dat(filename, x, r[0], r[1], r[2], nbr_points, titletext);
 	g_free(titletext);
 	if (retval) {
 		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", arg->filename);
 		goto END;
 	} else {
-		siril_log_message(_("%s has been saved.\n"), arg->filename);
+		if(!tmpfile)
+			siril_log_message(_("%s has been saved.\n"), filename);
 	}
 	if (use_gnuplot) {
 		if (gplot) {
@@ -537,13 +544,10 @@ gpointer tri_cut(gpointer p) {
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
-				gnuplot_plot_xrgb_from_datfile(gplot, arg->filename);
+				gnuplot_plot_xrgb_from_datfile(gplot, filename);
 			} else {
-				gchar *imagename = replace_ext(g_path_get_basename(arg->filename), ".png");
-				gnuplot_plot_xrgb_datfile_to_png(gplot, arg->filename, title, imagename);
-				g_free(imagename);
+				gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
 			}
-			arg->filename = NULL;
 			g_free(title);
 			g_free(xlabel);
 		}
@@ -553,10 +557,15 @@ gpointer tri_cut(gpointer p) {
 END:
 	gnuplot_close(gplot);
 	// Clean up
-	if (tmpfile)
-		g_unlink(arg->filename);
-	g_free(arg->filename);
-	arg->filename = NULL;
+	if (tmpfile) {
+		siril_debug_print("Unlinking temporary file %s\n", filename);
+		if (g_unlink(filename))
+			siril_debug_print("Error in g_unlink()\n");
+	}
+	g_free(filename);
+	filename = NULL;
+	free(imagefilename);
+	imagefilename = NULL;
 	free(x);
 	x = NULL;
 	for (int i = 0 ; i < 3 ; i++) {
@@ -574,6 +583,8 @@ gpointer cfa_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
 	int retval = 0, ret = 0;
 	gboolean tmpfile = FALSE;
+	char *filename, *tempfilename, *imagefilename;
+	gchar *temp;
 	gboolean use_gnuplot = gnuplot_is_available();
 	gnuplot_ctrl *gplot = NULL;
 
@@ -600,32 +611,31 @@ gpointer cfa_cut(gpointer p) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), arg->filename);
 	}
 
-	if (!arg->filename) {
-		siril_debug_print("Generating filename ");
-		if (arg->save_dat || arg->seq) {
-			siril_debug_print("for storage: ");
-			if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
-				siril_debug_print("from current image: ");
-				gchar* temp = g_path_get_basename(com.uniq->filename);
-				gchar* temp2 = g_strdup_printf("%s%s", build_timestamp_filename(), temp);
-				arg->filename = replace_ext(temp2, ".dat");
-				g_free(temp);
-				g_free(temp2);
-				siril_debug_print("%s\n", arg->filename);
-			} else if (arg->seq) {
-				arg->filename = g_strdup_printf("%s%s%.5d", build_timestamp_filename(), arg->seq->seqname, arg->imgnumber + 1);
-			} else {
-				arg->filename = g_strdup_printf("%s_image", build_timestamp_filename());
-				siril_debug_print("%s\n", arg->filename);
-			}
-		} else {
-			siril_debug_print("for temporary use: ");
-			gchar* temp = profile_tmpfile();
-			arg->filename = g_strdup_printf("%s.dat", temp);
+	if (arg->filename) {
+		filename = arg->filename;
+	} else {
+		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
+			temp = g_path_get_basename(com.uniq->filename);
+			filename = g_strdup_printf("%s%s.dat", build_timestamp_filename(), temp);
 			g_free(temp);
-			tmpfile = TRUE;
+		} else if (arg->seq) {
+			filename = g_strdup_printf("%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
+		} else {
+			filename = g_strdup_printf("%s_image", build_timestamp_filename());
 			siril_debug_print("%s\n", arg->filename);
 		}
+		tempfilename = profile_tmpfile();
+		if (!(arg->save_dat || arg->seq))
+			tmpfile = TRUE;
+	}
+	temp = g_path_get_basename(filename);
+	imagefilename = replace_ext(temp, ".png");
+	g_free(temp);
+	temp = NULL;
+	if (tmpfile) {
+		g_free(filename);
+		filename = g_strdup(tempfilename);
+		free(tempfilename);
 	}
 
 	// Coordinates of profile start and endpoints in CFA space
@@ -663,14 +673,15 @@ gpointer cfa_cut(gpointer p) {
 		}
 	}
 	gchar *titletext = g_strdup("x CFA0 CFA1 CFA2 CFA3");
-	retval = gnuplot_write_xcfa_dat(arg->filename, x, r[0], r[1], r[2], r[3], nbr_points, titletext);
+	retval = gnuplot_write_xcfa_dat(filename, x, r[0], r[1], r[2], r[3], nbr_points, titletext);
 	g_free(titletext);
 	if (retval) {
-		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", arg->filename);
+		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
 		retval = 1;
 		goto END;
 	} else {
-		siril_log_message(_("%s has been saved.\n"), arg->filename);
+		if (!tmpfile)
+			siril_log_message(_("%s has been saved.\n"), filename);
 	}
 	if (use_gnuplot) {
 		if (gplot) {
@@ -682,13 +693,10 @@ gpointer cfa_cut(gpointer p) {
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
-				gnuplot_plot_xcfa_from_datfile(gplot, arg->filename);
+				gnuplot_plot_xcfa_from_datfile(gplot, filename);
 			} else {
-				gchar *imagename = replace_ext(g_path_get_basename(arg->filename), ".png");
-				gnuplot_plot_xcfa_datfile_to_png(gplot, arg->filename, title, imagename);
-				g_free(imagename);
+				gnuplot_plot_xcfa_datfile_to_png(gplot, filename, title, imagefilename);
 			}
-			arg->filename = NULL;
 			g_free(title);
 			g_free(xlabel);
 		}
@@ -698,10 +706,15 @@ gpointer cfa_cut(gpointer p) {
 END:
 	gnuplot_close(gplot);
 	// Clean up
-	if (tmpfile)
-		g_unlink(arg->filename);
-	g_free(arg->filename);
+	if (tmpfile) {
+		siril_debug_print("Unlinking temporary file %s\n", filename);
+		if (g_unlink(filename))
+			siril_debug_print("Error in g_unlink()\n");
+	}
+	g_free(filename);
 	arg->filename = NULL;
+	free(imagefilename);
+	imagefilename = NULL;
 	free(x);
 	x = NULL;
 	for (int i = 0 ; i < 4 ; i++) {
