@@ -825,7 +825,13 @@ void on_cut_sequence_apply_from_gui() {
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton* apply_to_sequence = (GtkToggleButton*)lookup_widget("cut_apply_to_sequence");
 	if (gtk_toggle_button_get_active(apply_to_sequence)) {
-		on_cut_sequence_apply_from_gui();
+		if (sequence_is_loaded())
+			on_cut_sequence_apply_from_gui();
+		else
+			siril_message_dialog(GTK_MESSAGE_ERROR,
+					_("No sequence is loaded"),
+					_("The Apply to sequence option is checked, but no sequence is loaded."));
+
 	} else {
 		GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
 		gui.cut.fit = &gfit;
@@ -1029,6 +1035,22 @@ void on_cut_save_png_toggled(GtkToggleButton *button, gpointer user_data) {
 	gui.cut.save_png_too = gtk_toggle_button_get_active(button);
 }
 
+void on_cut_apply_to_sequence_toggled(GtkToggleButton *button, gpointer user_data) {
+	// The sequence mode will always save PNGs, so we set the option at the same time.
+	// It's not really necessary as the structure member isn't used, but it keeps
+	// things consistent for the user.
+	GtkToggleButton *pngbutton = (GtkToggleButton*) lookup_widget("cut_save_png");
+	GtkWidget *measurebutton = (GtkWidget*) lookup_widget("cut_measure_profile");
+	if (gtk_toggle_button_get_active(button)) {
+		gtk_toggle_button_set_active(pngbutton, TRUE);
+		gui.cut.save_png_too = TRUE;
+		gtk_toggle_button_set_active((GtkToggleButton*) measurebutton, FALSE);
+		gtk_widget_set_sensitive(measurebutton, FALSE);
+		gui.cut.cut_measure = FALSE;
+	} else {
+		gtk_widget_set_sensitive(measurebutton, TRUE);
+	}
+}
 
 void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data) {
 	measure_line(&gui.cut, gui.cut.cut_start, gui.cut.cut_end);
