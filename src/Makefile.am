@@ -100,6 +100,8 @@ siril_common_SOURCES = \
 	core/OS_utils.h \
 	core/pipe.c \
 	core/pipe.h \
+	core/portable_usleep.cpp \
+	core/portable_usleep.h \
 	core/preprocess.c \
 	core/preprocess.h \
 	core/processing.c \

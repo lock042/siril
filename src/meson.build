@@ -60,6 +60,7 @@ src_files = [
   'core/initfile.c',
   'core/OS_utils.c',
   'core/pipe.c',
+  'core/portable_usleep.cpp',
   'core/preprocess.c',
   'core/processing.c',
   'core/sequence_filtering.c',

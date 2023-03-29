@@ -60,6 +60,7 @@
 
 #include "gui/plot.h"
 #include "core/siril_log.h"
+#include "core/portable_usleep.h"
 
 #ifdef _WIN32
 #define GNUPLOT_BIN "gnuplot.exe"
@@ -182,7 +183,7 @@ gpointer tmpwatcher (gpointer user_data) {
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
 		siril_debug_print("No. of tmp files: %d\n", handle->ntmp);
-		siril_debug_print("Buffer: %s\n", buffer);
+		printf("Buffer: %s\n", buffer);
 		gchar *arg = buffer;
 		if (g_str_has_prefix(buffer, "Reap ")) {
 			siril_debug_print("Received Reap message ntmp = %d\n", handle->ntmp);
@@ -270,7 +271,7 @@ gnuplot_ctrl * gnuplot_init()
     bin2[2] = NULL;
     // passing the option --persist keeps the plot opened even after gnuplot process has been closed
 	bin2[1] = "--persist";
-    printf("%s\n", bin2[0]);
+    siril_debug_print("GNUplot executable: %s\n", bin2[0]);
     /* call gnuplot */
     gint child_stdin, child_stdout, child_stderr;
     GPid child_pid;
@@ -324,7 +325,8 @@ void gnuplot_close(gnuplot_ctrl * handle)
 {
 	gnuplot_cmd(handle, "print \"Terminate\"");
 	while (TRUE) {
-		if (!handle->running)
+		portable_usleep(1000);
+	if (!handle->running)
 			break;
 	}
 	free(handle);
