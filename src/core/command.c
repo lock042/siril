@@ -9113,6 +9113,7 @@ int process_profile(int nb) {
 	arg->cut_measure = FALSE;
 	arg->filename = filename;
 	arg->save_dat = save_dat;
+	arg->save_png_too = TRUE;
 	arg->fit = &gfit;
 	arg->seq = NULL;
 
@@ -9241,6 +9242,8 @@ int process_seq_profile(int nb) {
 			if (end == value) return CMD_ARG_ERROR;
 		}
 	}
+
+	// Check args are cromulent
 	if (start.x == finish.x && start.y == finish.y) {
 		siril_log_message(_("Error: start and finish points are the same.\n"));
 		return CMD_ARG_ERROR;
@@ -9302,6 +9305,7 @@ int process_seq_profile(int nb) {
 	arg->mode = mode;
 	arg->cut_measure = FALSE;
 	arg->save_dat = save_dat;
+	arg->save_png_too = FALSE;
 	arg->seq = seq;
 
 	apply_cut_to_sequence(arg);

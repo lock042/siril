@@ -100,6 +100,7 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->display_graph = TRUE;
 	arg->filename = NULL;
 	arg->save_dat = FALSE;
+	arg->save_png_too = FALSE;
 }
 
 int sign(double x) {
@@ -309,7 +310,6 @@ gpointer cut_profile(gpointer p) {
 	double point_spacing = length / nbr_points;
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
-	printf("delta %f %f length %f nbr_points %d \n", delta.x, delta.y, length, nbr_points);
 	gboolean hv = ((point_spacing_x == 1.f) || (point_spacing_y == 1.f) || (point_spacing_x == -1.f) || (point_spacing_y == -1.f));
 
 	r = malloc(nbr_points * sizeof(double));
@@ -364,7 +364,7 @@ gpointer cut_profile(gpointer p) {
 		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
 		goto END;
 	} else {
-		if (!tmpfile)
+		if (!(tmpfile || ((arg->seq) && !arg->save_dat)))
 			siril_log_message(_("%s has been saved.\n"), filename);
 	}
 	if (use_gnuplot) {
@@ -383,10 +383,19 @@ gpointer cut_profile(gpointer p) {
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
-				if (arg->fit->naxes[2] == 1)
+				if (arg->fit->naxes[2] == 1) {
 					gnuplot_plot_xy_from_datfile(gplot, filename);
-					else
+					if (arg->save_png_too) {
+						gnuplot_plot_xy_datfile_to_png(gplot, filename, title, imagefilename);
+						siril_log_message(_("%s has been saved.\n"), imagefilename);
+					}
+				} else {
 					gnuplot_plot_xrgb_from_datfile(gplot, filename);
+					if (arg->save_png_too) {
+						gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
+						siril_log_message(_("%s has been saved.\n"), imagefilename);
+					}
+				}
 			} else {
 				if (arg->fit->naxes[2] == 1) {
 					gnuplot_plot_xy_datfile_to_png(gplot, filename, title, imagefilename);
@@ -404,7 +413,7 @@ gpointer cut_profile(gpointer p) {
 
 END:
 	// Clean up
-	if (tmpfile) {
+	if (tmpfile || (arg->seq != NULL && !arg->save_dat)) {
 		siril_debug_print("Unlinking temporary file %s\n", filename);
 		if (g_unlink(filename))
 			siril_debug_print("Error in g_unlink()\n");
@@ -533,7 +542,7 @@ gpointer tri_cut(gpointer p) {
 		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", arg->filename);
 		goto END;
 	} else {
-		if(!tmpfile)
+		if (!(tmpfile || ((arg->seq) && !arg->save_dat)))
 			siril_log_message(_("%s has been saved.\n"), filename);
 	}
 	if (use_gnuplot) {
@@ -547,6 +556,10 @@ gpointer tri_cut(gpointer p) {
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
 				gnuplot_plot_xrgb_from_datfile(gplot, filename);
+				if (arg->save_png_too) {
+					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
+					siril_log_message(_("%s has been saved.\n"), imagefilename);
+				}
 			} else {
 				gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
 				siril_log_message(_("%s has been saved.\n"), imagefilename);
@@ -560,7 +573,7 @@ gpointer tri_cut(gpointer p) {
 END:
 	gnuplot_close(gplot);
 	// Clean up
-	if (tmpfile) {
+	if (tmpfile || (arg->seq != NULL && !arg->save_dat)) {
 		siril_debug_print("Unlinking temporary file %s\n", filename);
 		if (g_unlink(filename))
 			siril_debug_print("Error in g_unlink()\n");
@@ -690,7 +703,7 @@ gpointer cfa_cut(gpointer p) {
 		retval = 1;
 		goto END;
 	} else {
-		if (!tmpfile)
+		if (!(tmpfile || ((arg->seq) && !arg->save_dat)))
 			siril_log_message(_("%s has been saved.\n"), filename);
 	}
 	if (use_gnuplot) {
@@ -704,6 +717,10 @@ gpointer cfa_cut(gpointer p) {
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
 				gnuplot_plot_xcfa_from_datfile(gplot, filename);
+				if (arg->save_png_too) {
+					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
+					siril_log_message(_("%s has been saved.\n"), imagefilename);
+				}
 			} else {
 				gnuplot_plot_xcfa_datfile_to_png(gplot, filename, title, imagefilename);
 				siril_log_message(_("%s has been saved.\n"), imagefilename);
@@ -717,7 +734,7 @@ gpointer cfa_cut(gpointer p) {
 END:
 	gnuplot_close(gplot);
 	// Clean up
-	if (tmpfile) {
+	if (tmpfile || (arg->seq != NULL && !arg->save_dat)) {
 		siril_debug_print("Unlinking temporary file %s\n", filename);
 		if (g_unlink(filename))
 			siril_debug_print("Error in g_unlink()\n");
@@ -753,31 +770,87 @@ static void update_spectro_coords() {
 }
 
 //// GUI callbacks ////
+void apply_cut_to_sequence(cut_struct* cut_args);
+
+void on_cut_sequence_apply_from_gui() {
+	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
+	cut_struct *arg = calloc(1, sizeof(cut_struct));
+	memcpy(arg, &gui.cut, sizeof(cut_struct));
+	arg->save_png_too = FALSE;
+	arg->fit = NULL;
+	arg->seq = &com.seq;
+	if (gtk_toggle_button_get_active(cut_color))
+		arg->mode = COLOR;
+	else
+		arg->mode = MONO;
+	arg->display_graph = FALSE;
+	arg->cut_measure = FALSE;
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	// Check args are cromulent
+	if (arg->cut_start.x == arg->cut_end.x && arg->cut_start.y == arg->cut_end.y) {
+		siril_log_message(_("Error: start and finish points are the same.\n"));
+		return;
+	}
+	if (arg->cut_wn1.x > -1.0 && arg->cut_wn1.x == arg->cut_wn2.x && arg->cut_wn1.y == arg->cut_wn2.y) {
+		siril_log_message(_("Error: wavenumber points are the same.\n"));
+		return;
+	}
+	if (arg->cut_wn1.x > -1.0 && arg->wavenumber1 == -1.0) {
+		siril_log_message(_("Error: wavenumber for -wn1= is not set.\n"));
+		return;
+	}
+	if (arg->cut_wn2.x > -1.0 && arg->wavenumber2 == -1.0) {
+		siril_log_message(_("Error: wavenumber for -wn2= is not set.\n"));
+		return;
+	}
+	if (arg->wavenumber1 >=0.0 && (arg->cut_wn1.x < 0.0 || arg->cut_wn1.y < 0.0)) {
+		siril_log_message(_("Error: wavenumber1 set but corresponding location is not set.\n"));
+		return;
+	}
+	if (arg->wavenumber2 >=0.0 && (arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0)) {
+		siril_log_message(_("Error: wavenumber2 set but corresponding location is not set.\n"));
+		return;
+	}
+	if ((arg->cut_wn1.x < 0.0 || arg->cut_wn2.y < 0.0 || arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0) && (!(arg->cut_wn1.x == -1.0 && arg->cut_wn1.y == -1.0 && arg->cut_wn2.x == -1.0 && arg->cut_wn2.y == -1.0))) {
+		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		return;
+	}
+	if (arg->step != 1 && !arg->tri) {
+		siril_log_message(_("Error: spacing is set but tri-profile mode is not selected.\n"));
+		return;
+	}
+	apply_cut_to_sequence(arg);
+}
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
-	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
-	gui.cut.fit = &gfit;
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
-	gui.cut.seq = NULL;
-	if (gui.cut.tri) {
-		siril_debug_print("Tri-profile\n");
-		start_in_new_thread(tri_cut, &gui.cut);
-	} else if (gui.cut.cfa) {
-		if ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))))
-			siril_message_dialog(GTK_MESSAGE_ERROR,
-					_("Invalid file for this profiling mode"),
-					_("CFA mode requires a mono image file with a Bayer pattern (before debayering is carried out)."));
-		else {
-			siril_debug_print("CFA profiling\n");
-			start_in_new_thread(cfa_cut, &gui.cut);
-		}
+	GtkToggleButton* apply_to_sequence = (GtkToggleButton*)lookup_widget("cut_apply_to_sequence");
+	if (gtk_toggle_button_get_active(apply_to_sequence)) {
+		on_cut_sequence_apply_from_gui();
 	} else {
-		if (gtk_toggle_button_get_active(cut_color))
-			gui.cut.mode = COLOR;
-		else
-			gui.cut.mode = MONO;
-		gui.cut.display_graph = TRUE;
-		start_in_new_thread(cut_profile, &gui.cut);
+		GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
+		gui.cut.fit = &gfit;
+		sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
+		gui.cut.seq = NULL;
+		if (gui.cut.tri) {
+			siril_debug_print("Tri-profile\n");
+			start_in_new_thread(tri_cut, &gui.cut);
+		} else if (gui.cut.cfa) {
+			if ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))))
+				siril_message_dialog(GTK_MESSAGE_ERROR,
+						_("Invalid file for this profiling mode"),
+						_("CFA mode requires a mono image file with a Bayer pattern (before debayering is carried out)."));
+			else {
+				siril_debug_print("CFA profiling\n");
+				start_in_new_thread(cfa_cut, &gui.cut);
+			}
+		} else {
+			if (gtk_toggle_button_get_active(cut_color))
+				gui.cut.mode = COLOR;
+			else
+				gui.cut.mode = MONO;
+			gui.cut.display_graph = TRUE;
+			start_in_new_thread(cut_profile, &gui.cut);
+		}
 	}
 }
 
@@ -952,6 +1025,11 @@ void on_cut_measure_profile_toggled(GtkToggleButton *button, gpointer user_data)
 	gui.cut.cut_measure = gtk_toggle_button_get_active(button);
 }
 
+void on_cut_save_png_toggled(GtkToggleButton *button, gpointer user_data) {
+	gui.cut.save_png_too = gtk_toggle_button_get_active(button);
+}
+
+
 void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data) {
 	measure_line(&gui.cut, gui.cut.cut_start, gui.cut.cut_end);
 }
@@ -971,7 +1049,6 @@ void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (gui.cut.tri) {
 		gui.cut.cfa = FALSE;
 	}
-	printf("cfa: %d tri: %d\n", gui.cut.cfa, gui.cut.tri);
 	redraw(REDRAW_OVERLAY);
 }
 
@@ -1043,6 +1120,20 @@ int cut_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, recta
 	cut_struct *private_args = malloc(sizeof(cut_struct));
 	memcpy(private_args, cut_args, sizeof(cut_struct));
 	private_args->fit = fit;
+
+	// Check points are not out of bounds. The >=0 criterion is checked earlier
+	// but we have to check <fit.rx and <fit.ry for every image in case of
+	// sequences with variable image sizes. (It probably doesn't make sense to
+	// profile such a sequence but at least we should ensure we don't segfault.)
+
+	if (private_args->cut_wn1.x > fit->rx - 1 || private_args->cut_wn2.x > fit->rx - 1 || private_args->cut_wn1.y > fit->ry - 1 || private_args->cut_wn2.y > fit->ry - 1) {
+		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		return 1;
+	}
+	if (private_args->cut_start.x > fit->rx - 1 || private_args->cut_start.y > fit->ry - 1 || private_args->cut_end.x > fit->rx - 1 || private_args->cut_end.y > fit->ry - 1) {
+		siril_log_message(_("Error: profile line endpoint outside image dimensions.\n"));
+		return 1;
+	}
 	private_args->imgnumber = i;
 	if (private_args->cfa)
 		ret = GPOINTER_TO_INT(cfa_cut(private_args));

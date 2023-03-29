@@ -497,6 +497,7 @@ typedef struct cut_struct {
 	int width;
 	int step;
 	gboolean display_graph;
+	gboolean save_png_too; // Only takes effect if display_graph == TRUE - ignored otherwise
 	char* filename;
 	fits* fit;
 	sequence* seq;

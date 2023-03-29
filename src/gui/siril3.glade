@@ -1034,7 +1034,7 @@ artifacts may appear.</property>
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=5 -->
+          <!-- n-columns=2 n-rows=6 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1183,6 +1183,36 @@ artifacts may appear.</property>
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cut_apply_to_sequence">
+                <property name="label" translatable="yes">Apply to sequence</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Apply to the current sequence. If this is selected, plots will be generated in .png format in the working directory: the GNUplot window will not appear.</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_cut_apply_to_sequence_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="cut_save_png">
+                <property name="label" translatable="yes">Save plot as .png</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Saves the plot in .png format as well as opening the GNUplot window</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_cut_save_png_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">5</property>
               </packing>
             </child>
           </object>
