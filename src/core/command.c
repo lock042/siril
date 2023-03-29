@@ -8931,6 +8931,7 @@ int process_profile(int nb) {
 	gboolean colorplot = FALSE;
 	gboolean display_graph = FALSE;
 	gboolean save_dat = FALSE;
+	cut_struct *arg = NULL;
 	cut_mode mode = { 0 };
 	char* filename = NULL;
 	int spacing = 1;
@@ -8962,7 +8963,7 @@ int process_profile(int nb) {
 				siril_log_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"));
 				return CMD_ARG_ERROR;
 			}
-			if ((com.cut.fit->naxes[2] > 1) || (com.cut.fit->bayer_pattern == NULL) || (com.cut.fit->bayer_pattern[0] == '\0')) {
+			if ((gfit.naxes[2] > 1) || (gfit.bayer_pattern == NULL) || (gfit.bayer_pattern[0] == '\0')) {
 				siril_log_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"));
 				return CMD_ARG_ERROR;
 			}
@@ -9087,40 +9088,44 @@ int process_profile(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	com.cut.cut_start.x = start.x;
-	com.cut.cut_start.y = start.y;
-	com.cut.cut_end.x = finish.x;
-	com.cut.cut_end.y = finish.y;
-	com.cut.cut_wn1.x = wn1.x;
-	com.cut.cut_wn1.y = wn1.y;
-	com.cut.cut_wn2.x = wn2.x;
-	com.cut.cut_wn2.y = wn2.y;
-	com.cut.wavenumber1 = wavenumber1;
-	com.cut.wavenumber2 = wavenumber2;
-	com.cut.tri = tri;
-	com.cut.cfa = cfa;
-	com.cut.width = width;
-	com.cut.step = spacing;
-	com.cut.display_graph = display_graph;
-	com.cut.mode = mode;
-	com.cut.cut_measure = FALSE;
-	com.cut.filename = filename;
-	com.cut.save_dat = save_dat;
-	com.cut.fit = &gfit;
-	com.cut.seq = NULL;
+	arg = calloc(1, sizeof(cut_struct));
+
+	arg->cut_start.x = start.x;
+	arg->cut_start.y = start.y;
+	arg->cut_end.x = finish.x;
+	arg->cut_end.y = finish.y;
+	arg->cut_wn1.x = wn1.x;
+	arg->cut_wn1.y = wn1.y;
+	arg->cut_wn2.x = wn2.x;
+	arg->cut_wn2.y = wn2.y;
+	arg->wavenumber1 = wavenumber1;
+	arg->wavenumber2 = wavenumber2;
+	arg->tri = tri;
+	arg->cfa = cfa;
+	arg->width = width;
+	arg->step = spacing;
+	arg->display_graph = display_graph;
+	arg->mode = mode;
+	arg->cut_measure = FALSE;
+	arg->filename = filename;
+	arg->save_dat = save_dat;
+	arg->fit = &gfit;
+	arg->seq = NULL;
 
 	if (cfa)
-		cfa_cut(NULL);
+		start_in_new_thread(cfa_cut, arg);
 	else if (tri)
-		tri_cut(NULL);
+		start_in_new_thread(tri_cut, arg);
 	else
-		cut_profile(NULL);
+		start_in_new_thread(cut_profile, arg);
 
 	return CMD_OK;
 }
 
 int process_seq_profile(int nb) {
-	gboolean tri = FALSE, cfa = FALSE;
+	return 0;
+}
+/*	gboolean tri = FALSE, cfa = FALSE;
 	gboolean colorplot = FALSE;
 	gboolean display_graph = FALSE;
 	gboolean save_dat = FALSE;
@@ -9304,3 +9309,4 @@ int process_seq_profile(int nb) {
 
 	return CMD_OK;
 }
+*/

@@ -714,7 +714,7 @@ static void draw_selection(const draw_data_t* dd) {
 static void draw_cut_line(const draw_data_t* dd) {
 //	if (!(mouse_status == MOUSE_ACTION_CUT_SELECT))
 //		return;
-	if (com.cut.cut_end.x == -1 || com.cut.cut_end.y == -1 || com.cut.seq)
+	if (gui.cut.cut_end.x == -1 || gui.cut.cut_end.y == -1 || gui.cut.seq)
 		return;
 	gboolean tri = gtk_toggle_button_get_active((GtkToggleButton*)lookup_widget("cut_tri_cut"));
 	GtkSpinButton *spin_step = (GtkSpinButton*) lookup_widget("cut_tricut_step");
@@ -727,8 +727,8 @@ static void draw_cut_line(const draw_data_t* dd) {
 
 	if (tri) {
 		point delta;
-		delta.x = com.cut.cut_end.x - com.cut.cut_start.x;
-		delta.y = com.cut.cut_end.y - com.cut.cut_start.y;
+		delta.x = gui.cut.cut_end.x - gui.cut.cut_start.x;
+		delta.y = gui.cut.cut_end.y - gui.cut.cut_start.y;
 		double length = sqrt(delta.x * delta.x + delta.y * delta.y);
 		if (length < 1.) return;
 		int nbr_points = (int) length;
@@ -739,10 +739,10 @@ static void draw_cut_line(const draw_data_t* dd) {
 		double line_g[3] = { 0.0, 0.62, 0.70 };
 		double line_b[3] = { 0.83, 0.45, 0.91 };
 		for (int offset = -1 ; offset < 2 ; offset++) {
-			offstartx = com.cut.cut_start.x + (offset * point_spacing_y * step);
-			offstarty = com.cut.cut_start.y - (offset * point_spacing_x * step);
-			offendx = com.cut.cut_end.x + (offset * point_spacing_y * step);
-			offendy = com.cut.cut_end.y - (offset * point_spacing_x * step);
+			offstartx = gui.cut.cut_start.x + (offset * point_spacing_y * step);
+			offstarty = gui.cut.cut_start.y - (offset * point_spacing_x * step);
+			offendx = gui.cut.cut_end.x + (offset * point_spacing_y * step);
+			offendy = gui.cut.cut_end.y - (offset * point_spacing_x * step);
 			cairo_set_source_rgb(cr, line_r[offset+1], line_g[offset+1], line_b[offset+1]);
 			cairo_save(cr);
 			cairo_move_to(cr, offstartx, offstarty);
@@ -753,8 +753,8 @@ static void draw_cut_line(const draw_data_t* dd) {
 	} else {
 		cairo_set_source_rgb(cr, 0.0, 0.62, 0.70); // This matches the single line plotted by GNUplot
 		cairo_save(cr);
-		cairo_move_to(cr, com.cut.cut_start.x, com.cut.cut_start.y);
-		cairo_line_to(cr, com.cut.cut_end.x, com.cut.cut_end.y);
+		cairo_move_to(cr, gui.cut.cut_start.x, gui.cut.cut_start.y);
+		cairo_line_to(cr, gui.cut.cut_end.x, gui.cut.cut_end.y);
 		cairo_stroke(cr);
 		cairo_restore(cr);
 	}

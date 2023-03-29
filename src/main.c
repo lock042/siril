@@ -172,7 +172,6 @@ static void global_initialization() {
 #endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
-	initialize_com_cut();
 	gui.selected_star = -1;
 	gui.qphot = NULL;
 	gui.draw_extra = NULL;

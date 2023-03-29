@@ -21,8 +21,8 @@
 #ifndef SRC_GUI_CUT_H_
 #define SRC_GUI_CUT_H_
 
-void measure_line(point start, point finish);
-void initialize_com_cut();
+void measure_line(cut_struct *arg, point start, point finish);
+void initialize_cut_struct(cut_struct *arg);
 gpointer cut_profile(gpointer p);
 gpointer tri_cut(gpointer p);
 gpointer cfa_cut(gpointer p);

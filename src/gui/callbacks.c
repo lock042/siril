@@ -32,6 +32,7 @@
 #include "core/siril_language.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "gui/cut.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "algos/annotate.h"
@@ -1631,12 +1632,12 @@ void load_main_window_state() {
 				gtk_window_resize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), w, h);
 			}
 		}
+		initialize_cut_struct(&gui.cut);
 
 		gui.measure_start.x = -1;
 		gui.measure_start.y = -1;
 		gui.measure_end.x = -1;
 		gui.measure_end.y = -1;
-
 
 		/* Now we handle the main panel */
 		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
