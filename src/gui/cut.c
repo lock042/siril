@@ -864,6 +864,7 @@ void on_cut_spin_width_value_changed(GtkSpinButton *button, gpointer user_data) 
 		n++;
 		gtk_spin_button_set_value(button, n);
 	}
+	gui.cut.width = n;
 }
 
 void on_cut_spectro_apply_button_clicked(GtkButton *button, gpointer user_data) {
@@ -939,7 +940,12 @@ void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data)
 }
 
 void on_cut_tricut_step_value_changed(GtkSpinButton *button, gpointer user_data) {
-	gui.cut.step = gtk_spin_button_get_value(button);
+	int n = (int) gtk_spin_button_get_value(button);
+	if (!(n % 2)) {
+		n++;
+		gtk_spin_button_set_value(button, n);
+	}
+	gui.cut.step = n;
 	redraw(REDRAW_OVERLAY);
 }
 
