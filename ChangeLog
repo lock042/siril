@@ -8,6 +8,7 @@ xx/xx/xx
 * Fixed stream setting for all versions of ffmpeg (mp4 export crash)
 * Changed Windows to build in console mode even for stable releases
 * Changed gnuplot initialization to keep plots open after stopping main process (and fixed leak)
+* Add intensity profiling function
 
 
 siril 1.2.0-beta2
