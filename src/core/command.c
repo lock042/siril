@@ -7129,7 +7129,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.apply_nbstars_weights = arg->apply_nbstars_weights;
 
 	// manage registration data
-	if (!stack_regdata_is_valid(&args)) {
+	if (!test_regdata_is_valid_and_shift(args.seq, args.reglayer)) {
 		siril_log_color_message(_("Stacking has detected registration data on layer %d with more than simple shifts. You should apply existing registration before stacking\n"), "red", args.reglayer);
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;

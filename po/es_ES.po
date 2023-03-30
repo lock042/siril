@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-23 10:07+0100\n"
-"PO-Revision-Date: 2023-02-27 17:34+0000\n"
-"Last-Translator: Joaquin Manuel Llano Montero <joaquinllano@gmail.com>\n"
-"Language-Team: Spanish <https://weblate.pixls.us/projects/siril/siril-"
-"application/es/>\n"
+"PO-Revision-Date: 2023-03-27 08:39+0000\n"
+"Last-Translator: Pablo Cesar Campos <pcamposs@live.com>\n"
+"Language-Team: Spanish <https://weblate.pixls.us/projects/siril/"
+"siril-application/es/>\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -188,7 +188,7 @@ msgstr "Media neutral"
 
 #: src/gui/siril3.glade:678
 msgid "Sum"
-msgstr ""
+msgstr "Suma"
 
 #: src/gui/siril3.glade:725 src/gui/siril3.glade:17630
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -301,7 +301,7 @@ msgstr "Proteger de las luces altas"
 
 #: src/gui/siril3.glade:1270
 msgid "Bright pixels are ignored."
-msgstr ""
+msgstr "Pixeles brillantes son ignorados"
 
 #: src/gui/siril3.glade:1290
 msgid "1/Sigma Factor"
@@ -430,7 +430,7 @@ msgstr "Coordenada Y del centro de las coordenadas polares."
 
 #: src/gui/siril3.glade:2090
 msgid "StarNet Star Removal"
-msgstr ""
+msgstr "StarNet Eliminación de estrellas"
 
 #: src/gui/siril3.glade:2122 src/gui/siril3.glade:2536
 #: src/gui/siril3.glade:12606
@@ -438,9 +438,8 @@ msgid "Execute"
 msgstr "Ejecutar"
 
 #: src/gui/siril3.glade:2126
-#, fuzzy
 msgid "Apply StarNet"
-msgstr "Aplicar división CFA"
+msgstr "AplicarStarNet"
 
 #: src/gui/siril3.glade:2156
 msgid "Pre-stretch linear image"
@@ -521,6 +520,8 @@ msgid ""
 "Apply StarNet to all images in the current sequence. Starless and, if "
 "selected, star mask, sequences will be generated."
 msgstr ""
+"Aplicar StarNet a todas las imágenes de la secuencia actual. Se generarán "
+"secuencias sin estrellas y, si se selecciona, con máscara de estrellas."
 
 #: src/gui/siril3.glade:2372
 msgid "Wavelets control"

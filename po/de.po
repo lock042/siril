@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-23 10:07+0100\n"
-"PO-Revision-Date: 2023-03-12 21:45+0000\n"
+"PO-Revision-Date: 2023-03-27 08:39+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application/de/>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -5209,7 +5209,7 @@ msgstr "Breite des ausgegebenen Videos"
 
 #: src/gui/siril3.glade:20743
 msgid "x"
-msgstr "x"
+msgstr ""
 
 #: src/gui/siril3.glade:20756
 msgid "Height of output video"
@@ -7500,7 +7500,7 @@ msgstr "Qualität der X-Trans-Demosaikierung"
 
 #: src/gui/siril3.glade:27870
 msgid "1"
-msgstr "1"
+msgstr ""
 
 #: src/gui/siril3.glade:27905
 msgid "FITS/SER Debayer"
@@ -10214,9 +10214,8 @@ msgid "Photometry color calibration in progress..."
 msgstr "Photometrische Farbkalibrierung in arbeit..."
 
 #: src/algos/photometric_cc.c:385
-#, fuzzy
 msgid "Photometric Color Calibration succeeded"
-msgstr "Photometrische Farbkalibrierung abgeschlossen.\n"
+msgstr "Photometrische Farbkalibrierung abgeschlossen"
 
 #: src/algos/photometric_cc.c:387
 msgid "Photometric Color Calibration failed"
@@ -16429,9 +16428,8 @@ msgstr ""
 "des Bildes"
 
 #: src/core/preprocess.c:700
-#, fuzzy
 msgid "NOT USING OFFSET: could not parse the expression\n"
-msgstr "KEIN Offset-Frame definiert: kann Datei nicht öffnen"
+msgstr "KEIN OFFSET VERWENDET: Der Ausdruck konnte nicht geparst werden\n"
 
 #: src/core/preprocess.c:704
 msgid "Opening offset image..."
@@ -16450,9 +16448,8 @@ msgid "NOT USING OFFSET: cannot open the file"
 msgstr "KEIN Offset-Frame definiert: kann Datei nicht öffnen"
 
 #: src/core/preprocess.c:746
-#, fuzzy
 msgid "NOT USING DARK: could not parse the expression"
-msgstr "KEIN Dark-Frame-Benutzung: kann Datei nicht öffnen"
+msgstr "KEIN DARK BENUTZT: Der Ausdruck konnte nicht geparst werden"
 
 #: src/core/preprocess.c:749 src/livestacking/gui.c:209
 msgid "Opening dark image..."
@@ -16477,9 +16474,8 @@ msgstr ""
 "werden"
 
 #: src/core/preprocess.c:855
-#, fuzzy
 msgid "NOT USING FLAT: could not parse the expression"
-msgstr "KEIN Flat-Frame definiert: kann Datei nicht öffnen"
+msgstr "KEIN FLAT GENUTZT: Der Ausdruck konnte nicht geparst werden"
 
 #: src/core/preprocess.c:858 src/livestacking/gui.c:280
 msgid "Opening flat image..."
@@ -16890,11 +16886,11 @@ msgstr "Außenradius für den Hintergrundring"
 
 #: src/core/settings.c:302
 msgid "factor for inner radius automatic computation"
-msgstr "Faktor für die automatische Berechnung des inneren Radius"
+msgstr "Faktor für die automatische Berechnung des Innenradius"
 
 #: src/core/settings.c:303
 msgid "factor for outer radius automatic computation"
-msgstr "Faktor für die automatische Berechnung des äußeren Radius"
+msgstr "Faktor für die automatische Berechnung des Außenradius"
 
 #: src/core/settings.c:304
 msgid "force flux aperture value"
@@ -17044,9 +17040,8 @@ msgid "index of the rejection method"
 msgstr "Index des Ausschlussverfahrens"
 
 #: src/core/settings.c:355
-#, fuzzy
 msgid "index of the weighting method"
-msgstr "Index des Ausschlussverfahrens"
+msgstr "Index der Gewichtungsmethode"
 
 #: src/core/settings.c:356
 msgid "sigma low value for rejection"
