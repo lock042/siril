@@ -15,7 +15,7 @@
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfs",
         "--filesystem=xdg-run/gvfsd",
-		"--share=network"
+        "--share=network"
     ],
     "modules": [
         {
@@ -102,7 +102,7 @@
                         ]
                     }
                 }
-            },           
+            },
             "config-opts": [
                 "--enable-float",
                 "--enable-threads",
@@ -276,7 +276,7 @@
                 }
             ]
         },
-        
+
         "shared-modules/intltool/intltool-0.51.json",
         {
             "name": "siril",
