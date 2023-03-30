@@ -1916,6 +1916,8 @@ void on_clean_sequence_button_clicked(GtkButton *button, gpointer user_data) {
 			adjust_sellabel();
 			reset_plot();
 			set_layers_for_registration();
+			if (cleanstat)
+				notify_gfit_modified();
 			siril_message_dialog(GTK_MESSAGE_INFO, _("Sequence"), _("The requested data of the sequence has been cleaned."));
 		}
 	}
