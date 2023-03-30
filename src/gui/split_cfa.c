@@ -53,12 +53,12 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		switch (method) {
 			case 0:
 				if (args->seqEntry && args->seqEntry[0] == '\0')
-					args->seqEntry = "CFA_";
+					args->seqEntry = strdup("CFA_");
 				apply_split_cfa_to_sequence(args);
 				break;
 			case 1:
 				if (args->seqEntry && args->seqEntry[0] == '\0')
-					args->seqEntry = "Ha_";
+					args->seqEntry = strdup("Ha_");
 				apply_extractHa_to_sequence(args);
 				break;
 			case 2:
@@ -66,7 +66,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				break;
 			case 3:
 				if (args->seqEntry && args->seqEntry[0] == '\0')
-					args->seqEntry = "Green_";
+					args->seqEntry = strdup("Green_");
 				apply_extractGreen_to_sequence(args);
 				break;
 			default:

@@ -60,7 +60,7 @@ typedef enum {
 	PATHPARSE_MODE_WRITE_NOFAIL
 } pathparse_mode;
 
-gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status);
+gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *status);
 gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, gboolean createdir, int *status);
 
 #endif /* SRC_IO_PATH_PARSE_H_ */

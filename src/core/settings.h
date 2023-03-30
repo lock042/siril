@@ -148,6 +148,7 @@ struct stack_config {
 	int method;		// 0=sum, 1=median, 2=average, 3=pixel max, 4=pixel min
 	int normalisation_method;
 	int rej_method;
+	int weighting_method;
 	double sigma_low, sigma_high;
 	double linear_low, linear_high;
 	double percentile_low, percentile_high;

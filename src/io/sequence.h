@@ -63,6 +63,7 @@ int	sequence_find_refimage(sequence *seq);
 void	check_or_allocate_regparam(sequence *seq, int layer);
 void	set_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down);
 void 	cum_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down);
+gboolean test_regdata_is_valid_and_shift(sequence *seq, int reglayer);
 sequence *create_internal_sequence(int size);
 void	internal_sequence_set(sequence *seq, int index, fits *fit);
 int	internal_sequence_find_index(sequence *seq, const fits *fit);

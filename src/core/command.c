@@ -4193,7 +4193,7 @@ int process_seq_crop(int nb) {
 
 	args->seq = seq;
 	args->area = area;
-	args->prefix = "cropped_";
+	args->prefix = strdup("cropped_");
 
 	if (nb > startoptargs) {
 		for (int i = startoptargs; i < nb; i++) {
@@ -6600,7 +6600,7 @@ int process_register(int nb) {
 	reg_args->matchSelection = FALSE;
 	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
-	reg_args->prefix = "r_";
+	reg_args->prefix = strdup("r_");
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
@@ -6971,7 +6971,7 @@ int process_seq_applyreg(int nb) {
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
-	reg_args->prefix = "r_";
+	reg_args->prefix = strdup("r_");
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_LANCZOS4;
 	reg_args->clamp = TRUE;
@@ -7257,7 +7257,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.apply_nbstars_weights = arg->apply_nbstars_weights;
 
 	// manage registration data
-	if (!stack_regdata_is_valid(&args)) {
+	if (!test_regdata_is_valid_and_shift(args.seq, args.reglayer)) {
 		siril_log_color_message(_("Stacking has detected registration data on layer %d with more than simple shifts. You should apply existing registration before stacking\n"), "red", args.reglayer);
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
@@ -7639,6 +7639,8 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	fits reffit = { 0 };
 	int bitpix;
+	char *realname = NULL;
+	image_type imagetype;
 	if (seq) {
 		if (seq->type == SEQ_SER) {
 			// to be able to check allow_32bit_output. Overridden by -fitseq if required
@@ -7656,9 +7658,13 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		}
 	}
 	else {
-		if (read_fits_metadata_from_path(word[1], &reffit)) {
+		if (stat_file(word[1], &imagetype, &realname)) {
+			siril_log_color_message(_("Error opening image %s: file not found or not supported.\n"), "red", word[1]);
+			retvalue = CMD_FILE_NOT_FOUND;
+			goto prepro_parse_end;
+		}
+		if (read_fits_metadata_from_path(realname, &reffit)) {
 			siril_log_message(_("Could not load the image, aborting.\n"));
-			clearfits(&reffit);
 			retvalue = CMD_INVALID_IMAGE;
 			goto prepro_parse_end;
 		}
@@ -7864,6 +7870,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 
 prepro_parse_end:
 	clearfits(&reffit);
+	free(realname);
 	if (retvalue) {
 		clear_preprocessing_data(args);
 		free(args);
