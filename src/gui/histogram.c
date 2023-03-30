@@ -911,7 +911,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			args->params = params;
 			args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq"))));
 			if (args->seqEntry && args->seqEntry[0] == '\0')
-				args->seqEntry = "mtf_";
+				args->seqEntry = strdup("stretch_");
 			args->seq = &com.seq;
 		/* here it is a bit tricky.
 		 * It is better to first close the window as it is a liveview tool
@@ -925,13 +925,23 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 			apply_mtf_to_sequence(args);
 		} else if (invocation == GHT_STRETCH) {
 			struct ght_data *args = malloc(sizeof(struct ght_data));
-			struct ght_params params = { .B = _B, .D = _D, .LP = _LP, .SP = _SP, .HP = _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
-			args->params_ght = &params;
+			struct ght_params *params = malloc(sizeof(struct ght_params));
+			params->B = _B;
+			params->D = _D;
+			params->LP = _LP;
+			params->SP = _SP;
+			params->HP = _HP;
+			params->BP = _BP;
+			params->stretchtype = _stretchtype;
+			params->payne_colourstretchmodel = _payne_colourstretchmodel;
+			params->do_red = do_channel[0];
+			params->do_green = do_channel[1];
+			params->do_blue = do_channel[2];
+			args->params_ght = params;
 			const gchar* temp = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryMTFSeq")));
 			args->seqEntry = strdup(temp);
-			g_free((gchar *) temp);
 			if (args->seqEntry && args->seqEntry[0] == '\0')
-				args->seqEntry = strdup("ght_");
+				args->seqEntry = strdup("stretch_");
 			args->seq = &com.seq;
 		/* here it is a bit tricky.
 		 * It is better to first close the window as it is a liveview tool

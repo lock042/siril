@@ -28,7 +28,7 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 
-static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
+static void display_path_parse_error(pathparse_errors err, const gchar *addstr) {
 	if (!err) return;
 	gchar *startstr = (err < 0) ? _("Warning code:"): _("Error code:");
 	gchar *endstr = (err < 0) ? _("going on") : _("aborting");
@@ -208,7 +208,7 @@ In read mode, it also replaces * by searching the directory for a file matching 
 In write mode, the * is omitted and the token is parsed as per specifier
 In write mode "nofail", it will try to return something no matter what
 */
-gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
+gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *status) {
 	*status = PATHPARSE_ERR_OK;
 	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
 		return g_strdup(expression);
@@ -284,7 +284,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			g_strfreev(subs);
 			continue;
 		}
-		if (strlen(subs[0]) == 1 && subs[1][0] == '\\') { // dealing with Windows drive letter "C:"
+		if (strlen(subs[0]) == 1 && (subs[1][0] == '\\' || subs[1][0] == '/')) {// dealing with Windows drive letter "C:"
 			g_strfreev(subs);
 			continue;
 		}
@@ -376,6 +376,35 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 					strncpy(buf, fmtdate, FLEN_VALUE - 1);
 					g_date_time_unref(read_time);
 					g_date_time_unref(read_time_corr);
+					g_free(fmtdate);
+				}
+			}
+		} else if (g_str_has_prefix(subs[1],"dt")) { // case dt (datetime)
+			char val[FLEN_VALUE];
+			if (!headerkeys) {
+				*status = 1;
+			} else {
+				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+				display_path_parse_error(*status, key);
+			}
+			if (*status > 0) {
+				g_strfreev(subs);
+				goto free_and_exit;
+			}
+			if (*status == 0) {
+				GDateTime *read_time = FITS_date_to_date_time(val);
+				if (!read_time) {
+					*status = nofail * PATHPARSE_ERR_WRONG_DATE;
+					display_path_parse_error(*status, key);
+					if (status > 0) {
+						g_strfreev(subs);
+						goto free_and_exit;
+					}
+				}
+				if (*status == 0) {
+					gchar *fmtdate = date_time_to_date_time(read_time);
+					strncpy(buf, fmtdate, FLEN_VALUE - 1);
+					g_date_time_unref(read_time);
 					g_free(fmtdate);
 				}
 			}

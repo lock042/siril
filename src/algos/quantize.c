@@ -1396,8 +1396,10 @@ row of the image.
 #pragma omp parallel num_threads(threads) if (threads>1)
 #endif
 	{
+#ifdef _OPENMP
 		if (threads > 1 && omp_get_num_threads() != threads)
 			siril_debug_print("actual number of threads: %d of %d requested (level %d)\n", omp_get_num_threads(), threads, omp_get_level());
+#endif
 		float *rowpix, v1;
 		double mean, stdev;
 		float *differences;

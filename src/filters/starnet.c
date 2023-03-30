@@ -72,9 +72,6 @@
 fits *current_fit = NULL;
 gboolean verbose = TRUE;
 
-static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
-	g_spawn_close_pid(pid);
-}
 
 static int exec_prog_starnet(char **argv, starnet_version version) {
 	gint child_stdout;
@@ -82,27 +79,17 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	g_autoptr(GError) error = NULL;
 	int retval = -1;
 
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
-	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
-#endif
-
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, argv, NULL,
-			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
+			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			NULL, &error);
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-		FreeConsole(); // and closing it
-#endif
 		return retval;
 	}
-	// Add a child watch function which will be called when the child process exits.
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -157,9 +144,6 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 #endif
 	g_object_unref(data_input);
 	g_object_unref(stream);
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-	FreeConsole(); // and closing it
-#endif
 	return retval;
 }
 
@@ -210,27 +194,18 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	test_argv[nb++] = executable;
 	gchar *versionarg = g_strdup("--version");
 	test_argv[nb++] = versionarg;
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-	AllocConsole(); // opening a console to get starnet stdout when in stable (no console build)
-	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); // and hiding it
-#endif
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, test_argv, NULL,
-			G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH |
+			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
 			NULL, &error);
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed during version check: %s\n"), "red", error->message);
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-		FreeConsole(); // and closing it
-#endif
 		g_free(versionarg);
 		return NIL;
 	}
-	// Add a child watch function which will be called when the child process exits.
-	g_child_watch_add(child_pid, child_watch_cb, NULL);
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -266,9 +241,6 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	g_free(versionarg);
-#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
-	FreeConsole(); // and closing it
-#endif
 
 	retval2 = g_chdir(currentdir);
 	if (retval2) {
@@ -870,12 +842,14 @@ static int starnet_finalize_hook(struct generic_seq_args *args) {
 	starnet_args->new_ser_starless = NULL;
 	starnet_args->new_fitseq_starless = NULL;
 
-	args->new_ser = starnet_args->new_ser_starmask;
-	args->new_fitseq = starnet_args->new_fitseq_starmask;
-	retval |= seq_finalize_hook(args);
-	starnet_args->new_ser_starmask = NULL;
-	starnet_args->new_fitseq_starmask = NULL;
-	seqwriter_set_number_of_outputs(1);
+	if (starnet_args->starmask) {
+		args->new_ser = starnet_args->new_ser_starmask;
+		args->new_fitseq = starnet_args->new_fitseq_starmask;
+		retval |= seq_finalize_hook(args);
+		starnet_args->new_ser_starmask = NULL;
+		starnet_args->new_fitseq_starmask = NULL;
+		seqwriter_set_number_of_outputs(1);
+	}
 	free_starnet_args(starnet_args);
 	return retval;
 }
@@ -890,21 +864,12 @@ static int starnet_save_hook(struct generic_seq_args *args, int out_index, int i
 		retval1 = ser_write_frame_from_fit(seqdata->new_ser_starless, seqdata->starnet_fit, out_index);
 		if (seqdata->starmask) {
 			retval2 = ser_write_frame_from_fit(seqdata->new_ser_starmask, seqdata->starmask_fit, out_index);
-			free(seqdata->starmask_fit);
 		}
 		// the two fits are freed by the writing thread
 	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
 		retval1 = fitseq_write_image(seqdata->new_fitseq_starless, seqdata->starnet_fit, out_index);
 		if (seqdata->starmask) {
 			retval2 = fitseq_write_image(seqdata->new_fitseq_starmask, seqdata->starmask_fit, out_index);
-			free(seqdata->starmask_fit);
-		}
-		// the two fits are freed by the writing thread
-		if (!retval1 && !retval2) {
-			/* special case because it's not done in the generic */
-			clearfits(fit);
-			free(fit);
-			fit = NULL;
 		}
 	} else {
 		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, "starless_", in_index);
@@ -929,7 +894,8 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 	starnet_data *seqdata = (starnet_data *) args->user;
 	seqdata->force_ser = args->force_ser_output;
 	seqdata->starnet_fit = fit;
-	seqdata->starmask_fit = calloc(1, sizeof(fits));
+	if (seqdata->starmask)
+		seqdata->starmask_fit = calloc(1, sizeof(fits));
 	seqdata->imgnumber = o;
 	siril_log_color_message(_("Starnet: Processing image %d\n"), "green", o + 1);
 	do_starnet(seqdata);
@@ -955,19 +921,24 @@ static int starnet_prepare_hook(struct generic_seq_args *args) {
 	starnet_args->new_fitseq_starless = args->new_fitseq;
 	free(args->new_seq_prefix);
 
-	args->new_seq_prefix = strdup("starmask_");
-	if (starnet_basic_prepare_hook(args))
-		return 1;
-	starnet_args->new_ser_starmask = args->new_ser;
-	starnet_args->new_fitseq_starmask = args->new_fitseq;
-	free(args->new_seq_prefix);
-
+	if (starnet_args->starmask) {
+		args->new_seq_prefix = strdup("starmask_");
+		if (starnet_basic_prepare_hook(args))
+			return 1;
+		starnet_args->new_ser_starmask = args->new_ser;
+		starnet_args->new_fitseq_starmask = args->new_fitseq;
+		free(args->new_seq_prefix);
+	}
 	// Set the prefix for the sequence we want loaded afterwards
 	args->new_seq_prefix = strdup("starless_");
 	args->new_ser = NULL;
 	args->new_fitseq = NULL;
 
-	seqwriter_set_number_of_outputs(2);
+	if (starnet_args->starmask)
+		seqwriter_set_number_of_outputs(2);
+	else
+		seqwriter_set_number_of_outputs(1);
+
 	return 0;
 }
 void apply_starnet_to_sequence(struct starnet_data *seqdata) {

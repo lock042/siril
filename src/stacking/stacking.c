@@ -79,22 +79,15 @@ static gboolean end_stacking(gpointer p);
 static void stacking_args_deep_copy(struct stacking_args *from, struct stacking_args *to);
 static void stacking_args_deep_free(struct stacking_args *args);
 
-void initialize_stacking_default() {
-	com.pref.stack.sigma_low = 4.0;
-	com.pref.stack.sigma_high = 3.0;
-	com.pref.stack.linear_low = 5.0;
-	com.pref.stack.linear_high = 5.0;
-	com.pref.stack.percentile_low = 0.2;
-	com.pref.stack.percentile_high = 0.1;
-}
-
 void initialize_stacking_methods() {
 	GtkComboBoxText *stackcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxstack_methods"));
 	GtkComboBoxText *rejectioncombo = GTK_COMBO_BOX_TEXT(lookup_widget("comborejection"));
+	GtkComboBoxText *weightingcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboweighing"));
 	GtkSpinButton *low = GTK_SPIN_BUTTON(lookup_widget("stack_siglow_button"));
 	GtkSpinButton *high = GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button"));
 	gtk_combo_box_set_active(GTK_COMBO_BOX(stackcombo), com.pref.stack.method);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(rejectioncombo), com.pref.stack.rej_method);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(weightingcombo), com.pref.stack.weighting_method);
 	switch (gtk_combo_box_get_active(GTK_COMBO_BOX(rejectioncombo))) {
 	case PERCENTILE:
 		gtk_spin_button_set_value(low, com.pref.stack.percentile_low);
@@ -118,7 +111,6 @@ void initialize_stacking_methods() {
 	default:
 		return;
 	}
-
 }
 
 gboolean evaluate_stacking_should_output_32bits(const stack_method method,
@@ -194,20 +186,6 @@ gpointer stack_function_handler(gpointer p) {
 	return GINT_TO_POINTER(args->retval);
 }
 
-// Checks that the number of degrees of freedoms is not more than shift
-// returns FALSE if not
-gboolean stack_regdata_is_valid(struct stacking_args *args) {
-	if (!layer_has_registration(args->seq, args->reglayer)) return TRUE;
-	transformation_type regmin, regmax;
-	guess_transform_from_seq(args->seq, args->reglayer, &regmin, &regmax, FALSE);
-	if (regmax > SHIFT_TRANSFORMATION)
-		return FALSE;
-	else if (regmax == SHIFT_TRANSFORMATION) {
-		siril_log_color_message(_("Stacking will use registration data of layer %d\n"), "salmon", args->reglayer);
-	}
-	return TRUE;
-}
-
 /* starts a summing operation using data stored in the stackparam structure
  * function is not reentrant but can be called again after it has returned and the thread is running */
 static void start_stacking() {
@@ -273,7 +251,7 @@ static void start_stacking() {
 	stackparam.seq = &com.seq;
 	stackparam.reglayer = get_registration_layer(stackparam.seq);
 	// checking regdata is absent, or if present, is only shift
-	if (!stack_regdata_is_valid(&stackparam)) {
+	if (!test_regdata_is_valid_and_shift(stackparam.seq, stackparam.reglayer)) {
 		int confirm = siril_confirm_dialog(_("Registration data found"),
 			_("Stacking has detected registration data with more than simple shifts.\n"
 			"Normally, you should apply existing registration before stacking."),
@@ -726,6 +704,10 @@ void on_combonormalize_changed (GtkComboBox *box, gpointer user_data) {
 	GtkWidget *fast_norm = lookup_widget("checkfastnorm");
 	gtk_widget_set_sensitive(force_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 	gtk_widget_set_sensitive(fast_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
+}
+
+void on_comboweighing_changed (GtkComboBox *box, gpointer user_data) {
+	com.pref.stack.weighting_method = gtk_combo_box_get_active(box);
 }
 
 void on_stack_siglow_button_value_changed(GtkSpinButton *button, gpointer user_data) {
