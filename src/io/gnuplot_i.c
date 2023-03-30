@@ -1189,38 +1189,31 @@ void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filen
     gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
     if (curve_title && curve_title[0] != '\0')
-	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2) title \"%s\" with %s", dat_filename,
-			    curve_title, handle->pstyle);
+	    gnuplot_cmd(handle, "plot ($2) \"%s\" using ($1) with %s title \"%s\"", dat_filename,
+			    handle->pstyle, curve_title);
     else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
 			    handle->pstyle);
 }
 
 void gnuplot_plot_xrgb_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
-		char const *curve_title, char const* png_filename)
+		char const* png_filename)
 {
     gnuplot_cmd(handle, "set term png size 800,600");
     gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
-    if (curve_title && curve_title[0] != '\0')
-	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2):($3):($4) title \"%s\" with %s", dat_filename,
-			    curve_title, handle->pstyle);
-    else
-	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
-			    handle->pstyle);
+	gnuplot_cmd(handle, "plot for [col=2:4] \"%s\" using ($1):col with %s title columnheader",
+				dat_filename, handle->pstyle);
 }
 
 void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename,
-		char const *curve_title, char const* png_filename)
+		char const* png_filename)
 {
     gnuplot_cmd(handle, "set term png size 800,600");
     gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
-    if (curve_title && curve_title[0] != '\0')
-	    gnuplot_cmd(handle, "plot for [col=2:5] \"%s\" using ($1):col with %s title columnheader", dat_filename, handle->pstyle);
-    else
-	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
-			    handle->pstyle);
+	gnuplot_cmd(handle, "plot for [col=2:5] \"%s\" using ($1):col with %s title columnheader",
+				dat_filename, handle->pstyle);
 }
 
 void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title, int x_offset)

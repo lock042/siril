@@ -559,7 +559,6 @@ void gnuplot_plot_xrgb_from_datfile(
 void gnuplot_plot_xrgb_datfile_to_png(
 	gnuplot_ctrl * handle,
 	char const* dat_filename,
-	char const *curve_title,
 	char const* png_filename);
 
 void gnuplot_plot_xcfa_from_datfile(
@@ -569,7 +568,6 @@ void gnuplot_plot_xcfa_from_datfile(
 void gnuplot_plot_xcfa_datfile_to_png(
 	gnuplot_ctrl * handle,
 	char const* dat_filename,
-	char const *curve_title,
 	char const* png_filename);
 
 void gnuplot_multiplot_3xy(

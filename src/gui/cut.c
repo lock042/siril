@@ -356,10 +356,11 @@ gpointer cut_profile(gpointer p) {
 			r[i] = (r[i] + g[i] + b[i]) / 3.0;
 		}
 	}
-	if (arg->fit->naxes[2] == 1 || arg->mode == MONO)
+	if (arg->fit->naxes[2] == 1 || arg->mode == MONO) {
 		retval = gnuplot_write_xy_dat(filename, x, r, nbr_points, "x L");
-	else
+	} else {
 		retval = gnuplot_write_xrgb_dat(filename, x, r, g, b, nbr_points, "x R G B");
+	}
 	if (retval) {
 		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
 		goto END;
@@ -383,24 +384,24 @@ gpointer cut_profile(gpointer p) {
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
-				if (arg->fit->naxes[2] == 1) {
+				if (arg->fit->naxes[2] == 1 || (arg->fit->naxes[2] == 3 && arg->mode == MONO)) {
 					gnuplot_plot_xy_from_datfile(gplot, filename);
 					if (arg->save_png_too) {
-						gnuplot_plot_xy_datfile_to_png(gplot, filename, title, imagefilename);
+						gnuplot_plot_xy_datfile_to_png(gplot, filename, "L", imagefilename);
 						siril_log_message(_("%s has been saved.\n"), imagefilename);
 					}
 				} else {
 					gnuplot_plot_xrgb_from_datfile(gplot, filename);
 					if (arg->save_png_too) {
-						gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
+						gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 						siril_log_message(_("%s has been saved.\n"), imagefilename);
 					}
 				}
 			} else {
 				if (arg->fit->naxes[2] == 1) {
-					gnuplot_plot_xy_datfile_to_png(gplot, filename, title, imagefilename);
+					gnuplot_plot_xy_datfile_to_png(gplot, filename, "L", imagefilename);
 				} else {
-					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
+					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 				}
 				siril_log_message(_("%s has been saved.\n"), imagefilename);
 			}
@@ -557,11 +558,11 @@ gpointer tri_cut(gpointer p) {
 			if (arg->display_graph) {
 				gnuplot_plot_xrgb_from_datfile(gplot, filename);
 				if (arg->save_png_too) {
-					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
+					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 					siril_log_message(_("%s has been saved.\n"), imagefilename);
 				}
 			} else {
-				gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
+				gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 				siril_log_message(_("%s has been saved.\n"), imagefilename);
 			}
 			g_free(title);
@@ -718,11 +719,11 @@ gpointer cfa_cut(gpointer p) {
 			if (arg->display_graph) {
 				gnuplot_plot_xcfa_from_datfile(gplot, filename);
 				if (arg->save_png_too) {
-					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, title, imagefilename);
+					gnuplot_plot_xcfa_datfile_to_png(gplot, filename, imagefilename);
 					siril_log_message(_("%s has been saved.\n"), imagefilename);
 				}
 			} else {
-				gnuplot_plot_xcfa_datfile_to_png(gplot, filename, title, imagefilename);
+				gnuplot_plot_xcfa_datfile_to_png(gplot, filename, imagefilename);
 				siril_log_message(_("%s has been saved.\n"), imagefilename);
 			}
 			g_free(title);
