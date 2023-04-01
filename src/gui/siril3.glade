@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.38.2 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -16083,6 +16083,7 @@ Each image in the sequence will only be processed if the corresponding images fo
                               <item translatable="yes">Independent channel values</item>
                               <item translatable="yes">Human weighted luminance</item>
                               <item translatable="yes">Even weighted luminance</item>
+                              <item translatable="yes">Saturation stretch</item>
                             </items>
                             <signal name="changed" handler="on_payne_colour_stretch_model_changed" swapped="no"/>
                           </object>

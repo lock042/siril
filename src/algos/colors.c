@@ -239,6 +239,26 @@ void rgb_to_hsl(double r, double g, double b, double *h, double *s, double *l) {
 	*h = 0.0;
 	*s = 0.0;	// init values
 
+
+	v = max(r, g);
+	v = max(v, b);
+	m = min(r, g);
+	m = min(m, b);
+	*h = 0.0;
+	*s = 0.0;	// init values
+
+	if ((*l = (m + v) / 2.0) <= 0.0) {
+		*l = 0.0;
+		return;
+	}
+	if ((*s = vm = v - m) > 0.0) {
+		*s /= (*l <= 0.5) ? (v + m) : (2.0 - v - m);
+	} else
+		return;
+
+	r2 = (v - r) / vm;
+	g2 = (v - g) / vm;
+	b2 = (v - b) / vm;
 	if ((*l = (m + v) / 2.0) <= 0.0) {
 		*l = 0.0;
 		return;
@@ -260,6 +280,121 @@ void rgb_to_hsl(double r, double g, double b, double *h, double *s, double *l) {
 		*h = (r == m ? 3.0 + g2 : 5.0 - r2);
 
 	*h /= 6;
+}
+
+// Single precision versions of the above
+void hsl_to_rgbf(float h, float s, float l, float * r, float * g,
+		float * b) {
+	float v;
+
+	assert(h >= 0.f && h <= 1.f);
+	if (h >= 1.f) h -= 1.f;		// this code doesn't work for h = 1
+	v = (l <= 0.5f) ? (l * (1.f + s)) : (l + s - l * s);
+	if (v <= 0.f) {
+		*r = *g = *b = 0.f;
+	} else {
+		float m;
+		float sv;
+		int sextant;
+		float fract, vsf, mid1, mid2;
+
+		m = l + l - v;
+		sv = (v - m) / v;
+		h *= 6.f;
+		sextant = h;
+		fract = h - sextant;
+		vsf = v * sv * fract;
+		mid1 = m + vsf;
+		mid2 = v - vsf;
+		switch (sextant) {
+			case 0:
+				*r = v;
+				*g = mid1;
+				*b = m;
+				break;
+			case 1:
+				*r = mid2;
+				*g = v;
+				*b = m;
+				break;
+			case 2:
+				*r = m;
+				*g = v;
+				*b = mid1;
+				break;
+			case 3:
+				*r = m;
+				*g = mid2;
+				*b = v;
+				break;
+			case 4:
+				*r = mid1;
+				*g = m;
+				*b = v;
+				break;
+			case 5:
+				*r = v;
+				*g = m;
+				*b = mid2;
+				break;
+		}
+	}
+}
+
+void rgb_to_hslf(float r, float g, float b, float *h, float *s, float *l) {
+	float v;
+	float m;
+	float vm;
+	float r2, g2, b2;
+
+	v = max(r, g);
+	v = max(v, b);
+	m = min(r, g);
+	m = min(m, b);
+	*h = 0.f;
+	*s = 0.f;	// init values
+
+
+	v = max(r, g);
+	v = max(v, b);
+	m = min(r, g);
+	m = min(m, b);
+	*h = 0.f;
+	*s = 0.f;	// init values
+
+	if ((*l = (m + v) / 2.f) <= 0.f) {
+		*l = 0.f;
+		return;
+	}
+	if ((*s = vm = v - m) > 0.f) {
+		*s /= (*l <= 0.5f) ? (v + m) : (2.f - v - m);
+	} else
+		return;
+
+	r2 = (v - r) / vm;
+	g2 = (v - g) / vm;
+	b2 = (v - b) / vm;
+	if ((*l = (m + v) / 2.f) <= 0.f) {
+		*l = 0.f;
+		return;
+	}
+	if ((*s = vm = v - m) > 0.f) {
+		*s /= (*l <= 0.5f) ? (v + m) : (2.f - v - m);
+	} else
+		return;
+
+	r2 = (v - r) / vm;
+	g2 = (v - g) / vm;
+	b2 = (v - b) / vm;
+
+	if (r == v)
+		*h = (g == m ? 5.f + b2 : 1.f - g2);
+	else if (g == v)
+		*h = (b == m ? 1.f + r2 : 3.f - b2);
+	else
+		*h = (r == m ? 3.f + g2 : 5.f - r2);
+
+	*h /= 6.f;
 }
 
 /* all variables are between 0 and 1. h takes 0 for grey */

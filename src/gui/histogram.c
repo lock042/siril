@@ -157,7 +157,10 @@ static void histo_recompute() {
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
-		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, &params_ght, TRUE);
+		if (_payne_colourstretchmodel == COL_SAT)
+			apply_sat_ght_to_fits(get_preview_gfit_backup(), &gfit, &params_ght, TRUE);
+		else
+			apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, &params_ght, TRUE);
 	}
 	notify_gfit_modified();
 }
@@ -799,7 +802,10 @@ static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct ght_data *m_args = (struct ght_data*) args->user;
-	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
+	if (_payne_colourstretchmodel == COL_SAT)
+		apply_sat_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
+	else
+		apply_linked_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
 	return 0;
 }
 
@@ -846,6 +852,11 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 			siril_log_message(_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model.\n"));
 			_payne_colourstretchmodel = COL_EVENLUM;
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_EVENLUM);
+		}
+		if (_payne_colourstretchmodel == COL_SAT) {
+			siril_log_message(_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model.\n"));
+			_payne_colourstretchmodel = COL_INDEP;
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
 		}
 	}
 
@@ -1479,6 +1490,11 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 			siril_log_message(_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model.\n"));
 		gtk_combo_box_set_active(combo, COL_EVENLUM);
 		_payne_colourstretchmodel = COL_EVENLUM;
+		}
+		if (_payne_colourstretchmodel == COL_SAT) {
+			siril_log_message(_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model.\n"));
+		gtk_combo_box_set_active(combo, COL_INDEP);
+		_payne_colourstretchmodel = COL_INDEP;
 		}
 	}
 	set_cursor_waiting(TRUE);

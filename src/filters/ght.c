@@ -22,6 +22,7 @@
 #include "ght.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
+#include "algos/colors.h"
 #include "core/siril_log.h"
 
 float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, ght_compute_params *c) {
@@ -484,7 +485,6 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 		memcpy(to->fdata, buf, ndata * sizeof(float));
 	} else if (from && from->type == DATA_USHORT) {
 		float norm = get_normalized_value(from);
-		printf("norm = %f\n", norm);
 		float invnorm = 1.0f / norm;
 		for (size_t i = 0 ; i < ndata ; i++)
 			buf[i] = (float) from->data[i] * invnorm;
@@ -495,6 +495,52 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 		}
 		for (size_t i = 0 ; i < ndata ; i++)
 			to->data[i] = roundf_to_WORD(buf[i] * norm);
+	}
+	free(buf);
+	invalidate_stats_from_fit(to);
+	return;
+}
+
+void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {
+	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
+	g_assert(from->type == to->type);
+	if (from->naxes[2] == 1)
+		return;
+	printf("Applying sat GHT\n");
+	size_t npixels = from->rx * from->ry;
+	size_t ndata = npixels * from->naxes[2];
+	float* buf = malloc(ndata * sizeof(float));
+	float* pbuf[3];
+	for (long i = 0 ; i < from->naxes[2]; i++)
+		pbuf[i] = buf + i * npixels;
+	if (from && from->type == DATA_FLOAT) {
+		for (long i = 0 ; i < npixels ; i++)
+			rgb_to_hslf(from->fpdata[0][i], from->fpdata[1][i], from->fpdata[2][i], &pbuf[0][i], &pbuf[1][i], &pbuf[2][i]);
+		apply_linked_ght_to_fbuf_indep(pbuf[1], npixels, 1, params, multithreaded);
+		for (long i = 0 ; i < npixels ; i++) {
+			hsl_to_rgbf(pbuf[0][i], pbuf[1][i], pbuf[2][i], &to->fpdata[0][i], &to->fpdata[1][i], &to->fpdata[2][i]);
+		}
+	} else if (from && from->type == DATA_USHORT) {
+		float* buf2 = malloc(ndata * sizeof(float));
+		float* pbuf2[3];
+		for (long i = 0 ; i < from->naxes[2]; i++)
+			pbuf2[i] = buf2 + i * npixels;
+		float norm = get_normalized_value(from);
+		float invnorm = 1.0f / norm;
+		for (long i = 0 ; i < npixels ; i++) {
+			pbuf2[0][i] = (float) from->pdata[0][i] * invnorm;
+			pbuf2[1][i] = (float) from->pdata[1][i] * invnorm;
+			pbuf2[2][i] = (float) from->pdata[2][i] * invnorm;
+			rgb_to_hslf(pbuf2[0][i], pbuf2[1][i], pbuf2[2][i], &pbuf[0][i], &pbuf[1][i], &pbuf[2][i]);
+		}
+		apply_linked_ght_to_fbuf_indep(pbuf[1], npixels, 1, params, multithreaded);
+		for (long i = 0 ; i < npixels ; i++) {
+			hsl_to_rgbf(pbuf[0][i], pbuf[1][i], pbuf[2][i], &pbuf2[0][i], &pbuf2[1][i], &pbuf2[2][i]);
+			to->pdata[0][i] = roundf_to_WORD(pbuf2[0][i] * norm);
+			to->pdata[1][i] = roundf_to_WORD(pbuf2[1][i] * norm);
+			to->pdata[2][i] = roundf_to_WORD(pbuf2[2][i] * norm);
+		}
+		free(buf2);
 	}
 	free(buf);
 	invalidate_stats_from_fit(to);
