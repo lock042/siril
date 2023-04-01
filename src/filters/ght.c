@@ -506,7 +506,6 @@ void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean mu
 	g_assert(from->type == to->type);
 	if (from->naxes[2] == 1)
 		return;
-	printf("Applying sat GHT\n");
 	size_t npixels = from->rx * from->ry;
 	size_t ndata = npixels * from->naxes[2];
 	float* buf = malloc(ndata * sizeof(float));
@@ -514,9 +513,15 @@ void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean mu
 	for (long i = 0 ; i < from->naxes[2]; i++)
 		pbuf[i] = buf + i * npixels;
 	if (from && from->type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
 		for (long i = 0 ; i < npixels ; i++)
 			rgb_to_hslf(from->fpdata[0][i], from->fpdata[1][i], from->fpdata[2][i], &pbuf[0][i], &pbuf[1][i], &pbuf[2][i]);
 		apply_linked_ght_to_fbuf_indep(pbuf[1], npixels, 1, params, multithreaded);
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
 		for (long i = 0 ; i < npixels ; i++) {
 			hsl_to_rgbf(pbuf[0][i], pbuf[1][i], pbuf[2][i], &to->fpdata[0][i], &to->fpdata[1][i], &to->fpdata[2][i]);
 		}
