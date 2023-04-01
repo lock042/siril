@@ -146,7 +146,6 @@ static void histo_startup() {
 }
 
 static void histo_close(gboolean revert, gboolean update_image_if_needed) {
-	printf("Histo close\n");
 	if (revert) {
 
 		for (int i = 0; i < gfit.naxes[2]; i++) {
@@ -162,7 +161,6 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 	}
 	// free data
 	if(!sequence_working) {
-		printf("Clearing HSL\n");
 		clear_hsl();
 	}
 	clear_backup();
@@ -185,9 +183,9 @@ static void hsl_to_gfit (float* h, float* s, float* l) {
 		for (size_t i = 0 ; i < npixels ; i++) {
 			float r, g, b;
 			hsl_to_rgbf(h[i], s[i], l[i], &r, &g, &b);
-			gfit.pdata[0][i] = roundf_to_WORD(r);
-			gfit.pdata[1][i] = roundf_to_WORD(g);
-			gfit.pdata[2][i] = roundf_to_WORD(b);
+			gfit.pdata[0][i] = roundf_to_WORD(r * USHRT_MAX_SINGLE);
+			gfit.pdata[1][i] = roundf_to_WORD(g * USHRT_MAX_SINGLE);
+			gfit.pdata[2][i] = roundf_to_WORD(b * USHRT_MAX_SINGLE);
 		}
 	}
 }
@@ -225,7 +223,6 @@ static void histo_recompute() {
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
 		if (_payne_colourstretchmodel == COL_SAT) {
-//			apply_sat_ght_to_fits(get_preview_gfit_backup(), &gfit, &params_ght, TRUE);
 			apply_linked_ght_to_fbuf_indep(satbuf_orig, satbuf_working, gfit.rx * gfit.ry, 1, &params_ght, TRUE);
 			hsl_to_gfit(huebuf, satbuf_working, lumbuf);
 		} else {
@@ -430,7 +427,6 @@ gsl_histogram* computeHisto(fits *fit, int layer) {
 
 // create a new histogram object for the passed float buffer (used for sat)
 gsl_histogram* computeHistoSat(float* buf) {
-	printf("Creating saturation histogram\n");
 	size_t i, ndata, size;
 
 	size = get_histo_size(&gfit);
@@ -939,12 +935,10 @@ static void setup_hsl() {
 	if (lumbuf)
 		free(lumbuf);
 	lumbuf = malloc(gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float));
-	printf("HSL buffers malloced\n");
 	gfit_to_hsl();
 }
 
 static void clear_hsl() {
-	printf("Ready to clear HSL, huebuf %p, satbuf_orig %p, satbuf_working %p, lumbuf %p\n", huebuf, satbuf_orig, satbuf_working, lumbuf);
 	free(huebuf);
 	huebuf = NULL;
 	free(satbuf_orig);
@@ -953,7 +947,6 @@ static void clear_hsl() {
 	satbuf_working = NULL;
 	free(lumbuf);
 	lumbuf = NULL;
-	printf("HSL cleared, huebuf %p, satbuf_orig %p, satbuf_working %p, lumbuf %p\n", huebuf, satbuf_orig, satbuf_working, lumbuf);
 }
 
 
