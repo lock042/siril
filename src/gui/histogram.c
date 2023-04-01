@@ -612,7 +612,8 @@ static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 
 static void apply_ght_to_histo(gsl_histogram *histo, float norm,
 		float m, float lo, float hi) {
-
+	if (_payne_colourstretchmodel == COL_SAT)
+		return; // This function doesn't work with saturation stretching
 	size_t int_norm = (size_t)norm;
 	gsl_histogram *mtf_histo = gsl_histogram_alloc(int_norm + 1);
 
