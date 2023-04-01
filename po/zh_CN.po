@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-23 10:07+0100\n"
-"PO-Revision-Date: 2023-03-27 08:39+0000\n"
+"PO-Revision-Date: 2023-04-01 14:21+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -15846,37 +15846,35 @@ msgstr "网格上罗盘位置的指标"
 
 #: src/core/settings.c:387
 msgid "show Messier objects in annotations"
-msgstr ""
+msgstr "在标记中显示梅西叶天体"
 
 #: src/core/settings.c:388
 msgid "show NGC objects in annotations"
-msgstr ""
+msgstr "在标记中显示NGC天体"
 
 #: src/core/settings.c:389
 msgid "show IC objects in annotations"
-msgstr ""
+msgstr "在标记中显示IC天体"
 
 #: src/core/settings.c:390
 msgid "show LDN objects in annotations"
-msgstr ""
+msgstr "在标记中显示LDN天体"
 
 #: src/core/settings.c:391
 msgid "show SH2 objects in annotations"
-msgstr ""
+msgstr "在标记中显示SH2天体"
 
 #: src/core/settings.c:392
-#, fuzzy
 msgid "show stars in annotations"
-msgstr "匹配所选范围里的星点"
+msgstr "在标记中显示恒星"
 
 #: src/core/settings.c:393
 msgid "show user objects in annotations"
-msgstr ""
+msgstr "在标记中显示用户天体"
 
 #: src/core/settings.c:395
-#, fuzzy
 msgid "list of pixel math presets"
-msgstr "像素数学"
+msgstr "像素数学预设列表"
 
 #: src/core/settings.c:435
 #, c-format
@@ -16294,9 +16292,9 @@ msgid "SCNR (type=%s, amount=%0.2lf, preserve=%s)"
 msgstr "SCNR (type=%s, amount=%0.2lf, preserve=%s)"
 
 #: src/filters/starnet.c:90
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning starnet failed: %s\n"
-msgstr "无法载入ini文件：%s\n"
+msgstr "生成 starnet 失败：%s\n"
 
 #: src/filters/starnet.c:126
 msgid "Running StarNet"
@@ -16305,17 +16303,17 @@ msgstr "运行StarNet"
 #: src/filters/starnet.c:132
 #, c-format
 msgid "StarNet caught buffer: %s : exit successful\n"
-msgstr ""
+msgstr "StarNet 捕获缓冲区： %s ： 退出成功\n"
 
 #: src/filters/starnet.c:142
 #, c-format
 msgid "Starnet exit not caught, last buffer: %s\n"
-msgstr ""
+msgstr "未捕获 StarNet 退出，最后一个缓冲区：%s\n"
 
 #: src/filters/starnet.c:205
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning starnet failed during version check: %s\n"
-msgstr "无法载入ini文件：%s\n"
+msgstr "版本检查期间生成 StarNet 失败： %s\n"
 
 #: src/filters/starnet.c:227
 msgid "V2 detected\n"
@@ -16498,9 +16496,8 @@ msgid "StarNet: Processing..."
 msgstr "StarNet：执行中..."
 
 #: src/filters/synthstar.c:361
-#, fuzzy
 msgid "Star synthesis (full star mask creation): processing...\n"
-msgstr "%s通道提取：执行中...\n"
+msgstr "星点合成（完全星点掩膜创建）：执行中...\n"
 
 #: src/filters/synthstar.c:388
 msgid "No stars detected in the image.\n"
@@ -16509,25 +16506,25 @@ msgstr "图像中未检测到星点。\n"
 #: src/filters/synthstar.c:391
 #, c-format
 msgid "Synthesizing %d stars...\n"
-msgstr ""
+msgstr "合成 %d 颗星点...\n"
 
 #: src/filters/synthstar.c:666
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
-msgstr ""
+msgstr "星点合成（去饱和度剪切的星点轮廓）：执行中...\n"
 
 #: src/filters/synthstar.c:722
 #, c-format
 msgid "Star synthesis: desaturating stars in channel %u...\n"
-msgstr ""
+msgstr "星点合成：通道%u中的星点去饱和...\n"
 
 #: src/filters/synthstar.c:761
 #, c-format
 msgid "Star synthesis: %d stars desaturated\n"
-msgstr ""
+msgstr "星点合成：%d 颗星已去饱和\n"
 
 #: src/filters/synthstar.c:773
 msgid "Remapping output to floating point range 0.0 to 1.0\n"
-msgstr ""
+msgstr "将输出重新映射到浮点范围 0.0 到 1.0\n"
 
 #: src/filters/wavelets.c:178
 msgid "Could not copy image, aborting\n"
@@ -16616,7 +16613,7 @@ msgstr "请输入目标的坐标。"
 
 #: src/gui/astrometry_solver.c:619
 msgid "Selection is not used with the astrometry.net solver\n"
-msgstr ""
+msgstr "所选区域未与 astrometry.net 解析器一起使用\n"
 
 #: src/gui/astrometry_solver.c:668
 msgid "No catalog"
@@ -16703,21 +16700,21 @@ msgstr "设置范围 scalemin=%d, scalemax=%d\n"
 #: src/gui/callbacks.c:332
 msgid ""
 "Current image is not 32 bit. Standard 16 bit AutoStretch will be used.\n"
-msgstr ""
+msgstr "当前图像不是 32 位。将使用标准的 16 位自动拉伸。\n"
 
 #: src/gui/callbacks.c:335 src/gui/callbacks.c:356
 #, c-format
 msgid "The AutoStretch display mode will use a %d bit LUT\n"
-msgstr ""
+msgstr "自动拉伸显示模式将使用%d位 LUT\n"
 
 #: src/gui/callbacks.c:339 src/gui/callbacks.c:359
 msgid "The AutoStretch display mode will use a 16 bit LUT\n"
-msgstr ""
+msgstr "自动拉伸显示模式将使用16位 LUT\n"
 
 #: src/gui/callbacks.c:370
 #, c-format
 msgid "Setting HD AutoStretch display mode bit depth to %d...\n"
-msgstr ""
+msgstr "将HD自动拉伸显示模式位深设置为 %d...\n"
 
 #: src/gui/callbacks.c:449
 #, c-format
@@ -16870,13 +16867,12 @@ msgid "Clear Sequence Data?"
 msgstr "清除队列数据？"
 
 #: src/gui/callbacks.c:1909
-#, fuzzy
 msgid "Clear Data"
-msgstr "清除"
+msgstr "清除数据"
 
 #: src/gui/callbacks.c:1919
 msgid "The requested data of the sequence has been cleaned."
-msgstr ""
+msgstr "队列的请求数据已被清除。"
 
 #: src/gui/conversion.c:109
 msgid "Invalid char"
@@ -16927,15 +16923,13 @@ msgid "Too many files are being converted."
 msgstr "要转化的文件太多了。"
 
 #: src/gui/conversion.c:171
-#, fuzzy
 msgid ""
 "You are about to convert a large amount of files into standard FITS files. "
 "However, your OS limits the number of files that will be processed in the "
 "same time.You may want to convert your input files into a FITS sequence."
-msgstr ""
-"You are about to convert a large amount of files into standard FITS files."
-"However, your OS limits the number of files that will be processed in the "
-"same time.You may want to convert your input files into a FITS sequence."
+msgstr "您将要将大量文件转换为标准 FITS "
+"文件。但是，您的操作系统会限制将在同一时间内处理的文件数。"
+"您可能希望将输入文件转换为 FITS 队列。"
 
 #: src/gui/conversion.c:173
 msgid "Convert to FITS Sequence"
@@ -17063,27 +17057,27 @@ msgstr "直方图变换 (mid=%.3f, lo=%.3f, hi=%.3f)"
 #: src/gui/histogram.c:971
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:974
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:977
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:980
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:983
 #, c-format
 msgid "GHS LINEAR BP: %.2f"
-msgstr ""
+msgstr "GHS LINEAR BP: %.2f"
 
 #: src/gui/histogram.c:1031
 msgid "Could not compute autostretch parameters, using default values\n"
@@ -17130,7 +17124,7 @@ msgstr "广义双曲拉伸函数"
 msgid ""
 "Error: memory allocaton failure when instantiating HD LUTs. Reverting to "
 "standard 16 bit LUTs.\n"
-msgstr ""
+msgstr "错误：实例化 HD LUT 时内存分配失败。恢复为标准 16 位 LUT。\n"
 
 #: src/gui/image_display.c:532
 #, c-format
@@ -17158,9 +17152,8 @@ msgid "Cannot compute linear coefficients."
 msgstr "无法计算线性系数。"
 
 #: src/gui/menu_gray_geometry.c:59
-#, fuzzy
 msgid "Crop confirmation"
-msgstr "设置"
+msgstr "裁剪确认"
 
 #: src/gui/menu_gray_geometry.c:65
 #, c-format
@@ -17168,14 +17161,12 @@ msgid "Rotation (%.1lfdeg, cropped=%s, clamped=%s)"
 msgstr "旋转（%.1lf度，裁剪=%s，箝位=%s）"
 
 #: src/gui/menu_gray_geometry.c:84
-#, fuzzy
 msgid "Rotation (90 deg)"
-msgstr "旋转（90.0度）"
+msgstr "旋转（90度）"
 
 #: src/gui/menu_gray_geometry.c:94
-#, fuzzy
 msgid "Rotation (-90 deg)"
-msgstr "旋转（-90.0度）"
+msgstr "旋转（-90度）"
 
 #: src/gui/menu_gray_geometry.c:154
 msgid "Mirror X"
@@ -17192,11 +17183,11 @@ msgstr "像素合并x%d (%s)"
 
 #: src/gui/menu_gray_geometry.c:183
 msgid "average"
-msgstr ""
+msgstr "平均数"
 
 #: src/gui/menu_gray_geometry.c:183
 msgid "sum"
-msgstr ""
+msgstr "求和"
 
 #: src/gui/menu_gray_geometry.c:212
 #, c-format
@@ -17256,9 +17247,8 @@ msgid "Stars must all be modeled with the same profile type"
 msgstr ""
 
 #: src/gui/newdeconv.c:554
-#, fuzzy
 msgid "No stars selected"
-msgstr "已选择"
+msgstr "无星点选择"
 
 #: src/gui/newdeconv.c:604
 msgid "Error: no PSF has been computed, nothing to save.\n"
