@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-23 10:07+0100\n"
-"PO-Revision-Date: 2023-03-30 12:31+0000\n"
+"PO-Revision-Date: 2023-04-01 14:21+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -6697,7 +6697,7 @@ msgstr "Сохранить текущее изображение под друг
 
 #: src/gui/siril3.glade:26444
 msgid "Take a snapshot of your displayed image."
-msgstr "Сделать снимок показываемого изображения."
+msgstr "Сделать снимок текущего вида изображения."
 
 #: src/gui/siril3.glade:26496
 msgid ""
