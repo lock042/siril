@@ -21,6 +21,7 @@
 #include <glib.h>
 #include "ght.h"
 #include "core/proto.h"
+#include "core/arithm.h"
 #include "algos/statistics.h"
 #include "algos/colors.h"
 #include "core/siril_log.h"
@@ -419,20 +420,11 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, size_t layersize, size_t nchans, 
 			}
 		}
 		// Calculate RGBBlend (can be disabled by setting m_CB to 0.f) and populate into to->fpdata;
-		float sfmax = max(max(sf[0], sf[1]), sf[2]);
-		float tfmax = max(max(tf[0], tf[1]), tf[2]);
-		float d = sfmax - tfmax;
-		if (tfmax + m_CB * d > 1.f) {
-			float k = (d != 0.f) ? min(m_CB, (1.f - tfmax) / d) : m_CB;
-			for (size_t chan = 0; chan < 3 ; chan++)
-				if (do_channel[chan])
-					fpbuf[chan][i] = (1.f - k) * tf[chan] + k * sf[chan];
-		}
-		else {
-			for (size_t chan = 0; chan < 3 ; chan++)
-				if (do_channel[chan])
-					fpbuf[chan][i] = (1.f - m_CB) * tf[chan] + m_CB * sf[chan];
-		}
+		blend_data data;
+		memcpy(data.sf, sf, 3 * sizeof(float));
+		memcpy(data.tf, tf, 3 * sizeof(float));
+		memcpy(data.do_channel, do_channel, 3 * sizeof(gboolean));
+		rgbblend(&data, &fpbuf[0][i], &fpbuf[1][i], &fpbuf[2][i], m_CB);
 	}
 }
 

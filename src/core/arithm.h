@@ -28,6 +28,11 @@ typedef enum {
 	OPER_DIV
 } image_operator;
 
+typedef struct blend_data {
+	float sf[3]; // Luminance stretched values
+	float tf[3]; // Independently stretched values
+	gboolean do_channel[3]; // Whether or not to do each channel
+} blend_data;
 
 int soper(fits *a, float scalar, image_operator oper, gboolean conv_to_float);
 int imoper(fits *a, fits *b, image_operator oper, gboolean allow_32bits);
@@ -37,4 +42,5 @@ int siril_ndiv(fits *a, fits *b);
 
 int soper_unscaled_div_ushort_to_float(fits *a, int scalar);
 
+void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB);
 #endif /* SRC_CORE_ARITHM_H_ */
