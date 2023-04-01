@@ -995,12 +995,14 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
 	if (gfit.naxes[2] == 3 && !(do_channel[0] && do_channel[1] && do_channel[2])) {
 		if (_payne_colourstretchmodel == COL_HUMANLUM) {
-			siril_log_message(_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model.\n"));
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+				_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model."));
 			_payne_colourstretchmodel = COL_EVENLUM;
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_EVENLUM);
 		}
 		if (_payne_colourstretchmodel == COL_SAT) {
-			siril_log_message(_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model.\n"));
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+				_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model."));
 			_payne_colourstretchmodel = COL_INDEP;
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
 		}
@@ -1655,12 +1657,14 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 	if (_payne_colourstretchmodel != COL_SAT) {
 		if (!(do_channel[0] && do_channel[1] && do_channel[2])) {
 			if (_payne_colourstretchmodel == COL_HUMANLUM) {
-				siril_log_message(_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model.\n"));
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+				_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model."));
 			gtk_combo_box_set_active(combo, COL_EVENLUM);
 			_payne_colourstretchmodel = COL_EVENLUM;
 			}
 			if (_payne_colourstretchmodel == COL_SAT) {
-				siril_log_message(_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model.\n"));
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+				_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model."));
 			gtk_combo_box_set_active(combo, COL_INDEP);
 			_payne_colourstretchmodel = COL_INDEP;
 			}
