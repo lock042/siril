@@ -486,6 +486,9 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 	} else if (from && from->type == DATA_USHORT) {
 		float norm = get_normalized_value(from);
 		float invnorm = 1.0f / norm;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
 		for (size_t i = 0 ; i < ndata ; i++)
 			buf[i] = (float) from->data[i] * invnorm;
 		if (from->naxes[2] == 3 && params->stretchtype != STRETCH_LINEAR && params->payne_colourstretchmodel != COL_INDEP) {
@@ -493,6 +496,9 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 		} else {
 			apply_linked_ght_to_fbuf_indep(buf, npixels, from->naxes[2], params, multithreaded);
 		}
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
 		for (size_t i = 0 ; i < ndata ; i++)
 			to->data[i] = roundf_to_WORD(buf[i] * norm);
 	}
@@ -532,6 +538,9 @@ void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean mu
 			pbuf2[i] = buf2 + i * npixels;
 		float norm = get_normalized_value(from);
 		float invnorm = 1.0f / norm;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
 		for (long i = 0 ; i < npixels ; i++) {
 			pbuf2[0][i] = (float) from->pdata[0][i] * invnorm;
 			pbuf2[1][i] = (float) from->pdata[1][i] * invnorm;
@@ -539,6 +548,9 @@ void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean mu
 			rgb_to_hslf(pbuf2[0][i], pbuf2[1][i], pbuf2[2][i], &pbuf[0][i], &pbuf[1][i], &pbuf[2][i]);
 		}
 		apply_linked_ght_to_fbuf_indep(pbuf[1], npixels, 1, params, multithreaded);
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
 		for (long i = 0 ; i < npixels ; i++) {
 			hsl_to_rgbf(pbuf[0][i], pbuf[1][i], pbuf[2][i], &pbuf2[0][i], &pbuf2[1][i], &pbuf2[2][i]);
 			to->pdata[0][i] = roundf_to_WORD(pbuf2[0][i] * norm);
