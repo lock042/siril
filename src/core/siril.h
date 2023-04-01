@@ -591,6 +591,7 @@ struct cominf {
 	single *uniq;			// currently loaded image, if outside sequence
 
 	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
+	gsl_histogram *sat_hist;
 					      // TODO: move in ffit?
 
 	gboolean headless;		// pure console, no GUI

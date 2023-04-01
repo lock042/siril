@@ -436,12 +436,13 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, size_t layersize, size_t nchans, 
 	}
 }
 
-void apply_linked_ght_to_fbuf_indep(float* fbuf, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded) {
+void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded) {
 	const gboolean do_channel[3] = { params->do_red, params->do_green, params->do_blue };
 	int active_channels = 3;
-	float* fpbuf[nchans];
+	float *fpbuf[nchans], *fpout[nchans];
 	for (size_t chan = 0; chan < nchans; chan++) {
-		fpbuf[chan] = fbuf + chan * layersize;
+		fpbuf[chan] = in + chan * layersize;
+		fpout[chan] = out + chan * layersize;
 		if (!do_channel[chan])
 			active_channels--;
 	}
@@ -463,7 +464,7 @@ void apply_linked_ght_to_fbuf_indep(float* fbuf, size_t layersize, size_t nchans
 #endif
 			for (size_t i = 0; i < layersize; i++) {
 				float x = (float) fpbuf[chan][i];
-				fpbuf[chan][i] = (x == 0.0f) ? 0.0f : min(1.0f, max(0.0f, GHTp(x, params, &compute_params)));
+				fpout[chan][i] = (x == 0.0f) ? 0.0f : min(1.0f, max(0.0f, GHTp(x, params, &compute_params)));
 			}
 		}
 	}
@@ -480,7 +481,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 		if (from->naxes[2] == 3 && params->stretchtype != STRETCH_LINEAR && params->payne_colourstretchmodel != COL_INDEP) {
 			apply_linked_ght_to_fbuf_lum(buf, npixels, from->naxes[2], params, multithreaded);
 		} else {
-			apply_linked_ght_to_fbuf_indep(buf, npixels, from->naxes[2], params, multithreaded);
+			apply_linked_ght_to_fbuf_indep(buf, buf, npixels, from->naxes[2], params, multithreaded);
 		}
 		memcpy(to->fdata, buf, ndata * sizeof(float));
 	} else if (from && from->type == DATA_USHORT) {
@@ -494,7 +495,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 		if (from->naxes[2] == 3 && params->stretchtype != STRETCH_LINEAR && params->payne_colourstretchmodel != COL_INDEP) {
 			apply_linked_ght_to_fbuf_lum(buf, npixels, from->naxes[2], params, multithreaded);
 		} else {
-			apply_linked_ght_to_fbuf_indep(buf, npixels, from->naxes[2], params, multithreaded);
+			apply_linked_ght_to_fbuf_indep(buf, buf, npixels, from->naxes[2], params, multithreaded);
 		}
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
@@ -524,7 +525,7 @@ void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean mu
 #endif
 		for (long i = 0 ; i < npixels ; i++)
 			rgb_to_hslf(from->fpdata[0][i], from->fpdata[1][i], from->fpdata[2][i], &pbuf[0][i], &pbuf[1][i], &pbuf[2][i]);
-		apply_linked_ght_to_fbuf_indep(pbuf[1], npixels, 1, params, multithreaded);
+		apply_linked_ght_to_fbuf_indep(pbuf[1], pbuf[1], npixels, 1, params, multithreaded);
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
@@ -547,7 +548,7 @@ void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean mu
 			pbuf2[2][i] = (float) from->pdata[2][i] * invnorm;
 			rgb_to_hslf(pbuf2[0][i], pbuf2[1][i], pbuf2[2][i], &pbuf[0][i], &pbuf[1][i], &pbuf[2][i]);
 		}
-		apply_linked_ght_to_fbuf_indep(pbuf[1], npixels, 1, params, multithreaded);
+		apply_linked_ght_to_fbuf_indep(pbuf[1], pbuf[1], npixels, 1, params, multithreaded);
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
