@@ -23,6 +23,8 @@
 
 void measure_line(cut_struct *arg, point start, point finish);
 void initialize_cut_struct(cut_struct *arg);
+gboolean cut_struct_is_valid(cut_struct *arg);
+void free_cut_args(cut_struct *arg);
 gpointer cut_profile(gpointer p);
 gpointer tri_cut(gpointer p);
 gpointer cfa_cut(gpointer p);

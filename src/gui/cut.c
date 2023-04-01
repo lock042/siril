@@ -50,7 +50,7 @@ char* profile_tmpfile()
 #endif // #ifndef _WIN32
 
 /* Due to a Windows behavior and Mingw temp file name,
- * we escapes the special characters by inserting a '\' before them */
+ * we escape the special characters by inserting a '\' before them */
 #ifdef _WIN32
     gchar *tmp = g_build_filename(tmp_dir, tmp_filename_template, NULL);
     tmp_filename = g_strescape(tmp, NULL);
@@ -94,13 +94,84 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->wavenumber1 = -1;
 	arg->wavenumber2 = -1;
 	arg->tri = FALSE;
-	arg->mode = MONO;
+	arg->mode = CUT_MONO;
 	arg->width = 1;
 	arg->step = 1;
 	arg->display_graph = TRUE;
 	arg->filename = NULL;
 	arg->save_dat = FALSE;
 	arg->save_png_too = FALSE;
+}
+
+void free_cut_args(cut_struct *arg) {
+	if (arg->filename) {
+		g_free(arg->filename);
+	}
+	free(arg);
+	return;
+}
+
+gboolean cut_struct_is_valid(cut_struct *arg) {
+	// checking mutually exclusive choices
+	if (arg->tri && arg->cfa) {
+		siril_log_color_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"), "red");
+		return FALSE;
+	}
+	if (arg->tri && arg->mode == CUT_COLOR) {
+		siril_log_color_message(_("Error: color plot and tri-profile are mutually exclusive.\n"), "red");
+		return FALSE;
+	}
+	if (arg->cfa && arg->mode == CUT_COLOR) {
+		siril_log_color_message(_("Error: color plot and CFA mode are mutually exclusive.\n"), "red");
+		return FALSE;
+	}
+		if (arg->cut_start.x == arg->cut_end.x && arg->cut_start.y == arg->cut_end.y) {
+		siril_log_message(_("Error: start and finish points are the same.\n"));
+		return FALSE;
+	}
+	// Check args are cromulent
+	int rx = (arg->seq) ? arg->seq->rx : gfit.rx;
+	int ry = (arg->seq) ? arg->seq->ry : gfit.ry;
+
+	if (arg->cut_wn1.x > -1.0 && arg->cut_wn1.x == arg->cut_wn2.x && arg->cut_wn1.y == arg->cut_wn2.y) {
+		siril_log_message(_("Error: wavenumber points are the same.\n"));
+		return FALSE;
+	}
+	if (arg->cut_wn1.x > -1.0 && arg->wavenumber1 == -1.0) {
+		siril_log_message(_("Error: wavenumber for -wn1= is not set.\n"));
+		return FALSE;
+	}
+	if (arg->cut_wn2.x > -1.0 && arg->wavenumber2 == -1.0) {
+		siril_log_message(_("Error: wavenumber for -wn2= is not set.\n"));
+		return FALSE;
+	}
+	if (arg->wavenumber1 >=0.0 && (arg->cut_wn1.x < 0.0 || arg->cut_wn1.y < 0.0)) {
+		siril_log_message(_("Error: wavenumber1 set but corresponding location is not set.\n"));
+		return FALSE;
+	}
+	if (arg->wavenumber2 >=0.0 && (arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0)) {
+		siril_log_message(_("Error: wavenumber2 set but corresponding location is not set.\n"));
+		return FALSE;
+	}
+	if ((arg->cut_wn1.x < 0.0 || arg->cut_wn2.y < 0.0 || arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0) &&
+		(!(arg->cut_wn1.x == -1.0 && arg->cut_wn1.y == -1.0 && arg->cut_wn2.x == -1.0 && arg->cut_wn2.y == -1.0))) {
+		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		return FALSE;
+	}
+	if (arg->cut_wn1.x > rx - 1 || arg->cut_wn2.x > rx - 1 || arg->cut_wn1.y > ry - 1 || arg->cut_wn2.y > ry - 1) {
+		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		return FALSE;
+	}
+	if (arg->cut_start.x > rx - 1 || arg->cut_start.y > ry - 1 || arg->cut_end.x > rx - 1 || arg->cut_end.y > ry - 1) {
+		siril_log_message(_("Error: profile line endpoint outside image dimensions.\n"));
+		return FALSE;
+	}
+	if (arg->step != 1 && !arg->tri) {
+		siril_log_message(_("Error: spacing is set but tri-profile mode is not selected.\n"));
+		return FALSE;
+	}
+	return TRUE;
+
 }
 
 int sign(double x) {
@@ -137,7 +208,6 @@ void measure_line(cut_struct *arg, point start, point finish) {
 	if (deg > 10.0)
 		siril_log_color_message(_("Warning: angular measurement > 10º. Error is > 1%\n"), "salmon");
 }
-
 
 gboolean spectroscopy_selections_are_valid(cut_struct *arg) {
 	gboolean a = (arg->wavenumber1 != arg->wavenumber2) && (arg->wavenumber1 > 0.0) && (arg->wavenumber2 > 0.0);
@@ -351,12 +421,12 @@ gpointer cut_profile(gpointer p) {
 			}
 		}
 	}
-	if (arg->fit->naxes[2] == 3 && arg->mode == MONO) {
+	if (arg->fit->naxes[2] == 3 && arg->mode == CUT_MONO) {
 		for (int i = 0 ; i < nbr_points ; i++) {
 			r[i] = (r[i] + g[i] + b[i]) / 3.0;
 		}
 	}
-	if (arg->fit->naxes[2] == 1 || arg->mode == MONO) {
+	if (arg->fit->naxes[2] == 1 || arg->mode == CUT_MONO) {
 		retval = gnuplot_write_xy_dat(filename, x, r, nbr_points, "x L");
 	} else {
 		retval = gnuplot_write_xrgb_dat(filename, x, r, g, b, nbr_points, "x R G B");
@@ -384,7 +454,7 @@ gpointer cut_profile(gpointer p) {
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
-				if (arg->fit->naxes[2] == 1 || (arg->fit->naxes[2] == 3 && arg->mode == MONO)) {
+				if (arg->fit->naxes[2] == 1 || (arg->fit->naxes[2] == 3 && arg->mode == CUT_MONO)) {
 					gnuplot_plot_xy_from_datfile(gplot, filename);
 					if (arg->save_png_too) {
 						gnuplot_plot_xy_datfile_to_png(gplot, filename, "L", imagefilename);
@@ -781,9 +851,9 @@ void on_cut_sequence_apply_from_gui() {
 	arg->fit = NULL;
 	arg->seq = &com.seq;
 	if (gtk_toggle_button_get_active(cut_color))
-		arg->mode = COLOR;
+		arg->mode = CUT_COLOR;
 	else
-		arg->mode = MONO;
+		arg->mode = CUT_MONO;
 	arg->display_graph = FALSE;
 	arg->cut_measure = FALSE;
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -852,9 +922,9 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			}
 		} else {
 			if (gtk_toggle_button_get_active(cut_color))
-				gui.cut.mode = COLOR;
+				gui.cut.mode = CUT_COLOR;
 			else
-				gui.cut.mode = MONO;
+				gui.cut.mode = CUT_MONO;
 			gui.cut.display_graph = TRUE;
 			start_in_new_thread(cut_profile, &gui.cut);
 		}
@@ -946,6 +1016,7 @@ void on_cut_wavenumber1_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor("crosshair");
 	mouse_status = MOUSE_ACTION_CUT_WN1;
 }
+
 void on_cut_wavenumber2_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor("crosshair");
 	mouse_status = MOUSE_ACTION_CUT_WN2;

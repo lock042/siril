@@ -479,8 +479,8 @@ typedef struct {
 } pointi;
 
 typedef enum {
-	MONO,
-	COLOR
+	CUT_MONO,
+	CUT_COLOR
 } cut_mode;
 
 typedef struct cut_struct {
