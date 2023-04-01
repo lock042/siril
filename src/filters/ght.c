@@ -406,25 +406,33 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, size_t layersize, size_t nchans, 
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 	for (size_t i = 0 ; i < layersize ; i++) {
-		float f[3] = { 0.f }, sf[3] = { 0.f }, tf[3] = { 0.f };
+		float f[3];
+#pragma omp simd
 		for (size_t chan = 0; chan < 3 ; chan++)
 			f[chan] = fpbuf[chan][i];
 		float fbar = (int) do_channel[0] * factor_red * f[0] + (int) do_channel[1] * factor_green * f[1] + (int) do_channel[2] * factor_blue * f[2];
 		float sfbar = GHTp(fbar, params, &compute_params);
 		float stretch_factor = (fbar == 0.f) ? 0.f : sfbar / fbar;
+		blend_data data;
+		memcpy(data.do_channel, do_channel, 3 * sizeof(gboolean));
 		//Calculate the luminance and independent channel stretches for the pixel
+#pragma omp simd
 		for (size_t chan = 0; chan < 3 ; chan++) {
-			if (do_channel[chan]) {
-				sf[chan] = f[chan] * stretch_factor;
-				tf[chan] = GHTp(f[chan], params, &compute_params);
+			data.sf[chan] = f[chan] * stretch_factor;
+		}
+		if (m_CB) {
+			for (size_t chan = 0; chan < 3 ; chan++) {
+				if (do_channel[chan]) {
+					data.tf[chan] = GHTp(f[chan], params, &compute_params);
+				}
+			}
+			rgbblend(&data, &fpbuf[0][i], &fpbuf[1][i], &fpbuf[2][i], m_CB);
+		} else {
+#pragma omp simd
+			for (size_t chan = 0 ; chan < 3 ; chan++) {
+				fpbuf[chan][i] = (do_channel[chan]) ? data.sf[chan] : fpbuf[chan][i];
 			}
 		}
-		// Calculate RGBBlend (can be disabled by setting m_CB to 0.f) and populate into to->fpdata;
-		blend_data data;
-		memcpy(data.sf, sf, 3 * sizeof(float));
-		memcpy(data.tf, tf, 3 * sizeof(float));
-		memcpy(data.do_channel, do_channel, 3 * sizeof(gboolean));
-		rgbblend(&data, &fpbuf[0][i], &fpbuf[1][i], &fpbuf[2][i], m_CB);
 	}
 }
 
