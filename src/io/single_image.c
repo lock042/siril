@@ -66,8 +66,10 @@ void close_single_image() {
 	 * with previews
 	 */
 	free_image_data();
-	free_cut_args(&gui.cut);
-	initialize_cut_struct(&gui.cut);
+	if (!com.script) {
+		free_cut_args(&gui.cut);
+		initialize_cut_struct(&gui.cut);
+	}
 }
 
 static gboolean free_image_data_idle(gpointer p) {
