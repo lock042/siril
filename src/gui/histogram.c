@@ -715,8 +715,6 @@ static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 
 static void apply_ght_to_histo(gsl_histogram *histo, float norm,
 		float m, float lo, float hi) {
-	if (_payne_colourstretchmodel == COL_SAT)
-		return; // This function doesn't work with saturation stretching
 	size_t int_norm = (size_t)norm;
 	gsl_histogram *mtf_histo = gsl_histogram_alloc(int_norm + 1);
 
@@ -801,9 +799,14 @@ static void update_histo_mtf() {
 			if (invocation == HISTO_STRETCH) {
 				apply_mtf_to_histo(com.layers_hist[i], norm, _midtones, _shadows, _highlights);
 			} else if (invocation == GHT_STRETCH) {
-				apply_ght_to_histo(com.layers_hist[i], norm, _SP, _BP, 1.0f);
+				if (_payne_colourstretchmodel != COL_SAT)
+					apply_ght_to_histo(com.layers_hist[i], norm, _SP, _BP, 1.0f);
 			}
 		}
+	}
+	if (invocation == GHT_STRETCH && _payne_colourstretchmodel == COL_SAT) {
+		gsl_histogram_memcpy(com.sat_hist, hist_sat_backup);
+		apply_ght_to_histo(com.sat_hist, norm, _SP, _BP, 1.0f);
 	}
 	size_t data = gfit.naxes[0] * gfit.naxes[1] * gfit.naxes[2];
 	_update_clipped_pixels(data);
