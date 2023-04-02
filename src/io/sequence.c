@@ -45,6 +45,7 @@
 #include "core/siril_log.h"
 #include "io/conversion.h"
 #include "gui/utils.h"
+#include "gui/cut.h"
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/plot.h"

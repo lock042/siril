@@ -107,7 +107,8 @@ void free_cut_args(cut_struct *arg) {
 	if (arg->filename) {
 		g_free(arg->filename);
 	}
-	free(arg);
+	if (arg != &gui.cut)
+		free(arg);
 	return;
 }
 
