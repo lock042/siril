@@ -130,7 +130,7 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 		siril_log_message(_("Error: start and finish points are the same.\n"));
 		return FALSE;
 	}
-	if (arg->seq->is_variable) {
+	if (sequence_is_loaded() && arg->seq && arg->seq->is_variable) {
 		siril_log_message(_("Error: variable image size in sequence.\n"));
 		return FALSE;
 	}
@@ -371,6 +371,7 @@ gpointer cut_profile(gpointer p) {
 		if (!(arg->save_dat || arg->seq))
 			tmpfile = TRUE;
 	}
+	printf("Filename: %s\n", filename);
 	temp = g_path_get_basename(filename);
 	imagefilename = replace_ext(temp, ".png");
 	g_free(temp);
@@ -696,13 +697,6 @@ gpointer cfa_cut(gpointer p) {
 	} else {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), arg->filename);
 	}
-
-/*	sensor_pattern pattern = get_cfa_pattern_index_from_string(arg->fit->bayer_pattern);
-	if ((arg->fit->naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))) {
-		siril_log_color_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"), "red");
-		retval = 1;
-		goto END;
-	}*/
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
 	if (arg->fit->type == DATA_USHORT) {
