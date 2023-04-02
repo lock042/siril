@@ -9051,6 +9051,17 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 				break;
 			}
 		}
+		else if (g_str_has_prefix(arg, "-filename=")) {
+			if (start == 2) {
+				*err = CMD_ARG_ERROR;
+				break;
+			}
+			arg += 10;
+			if (cut_args->filename)
+				g_free(cut_args->filename);
+			cut_args->filename = g_strdup(arg);
+			cut_args->save_dat = TRUE;
+		}
 	}
 	if (cut_args->vport == -1) {
 		if (nb_layers == 1) {
@@ -9093,6 +9104,10 @@ int process_seq_profile(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
 	}
 
 	cut_struct *cut_args = parse_cut_args(nb, seq, &err);

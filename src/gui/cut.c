@@ -141,7 +141,7 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 		siril_log_message(_("Error: start and finish points are the same.\n"));
 		return FALSE;
 	}
-	if (sequence_is_loaded() && arg->seq && arg->seq->is_variable) {
+	if (arg->seq && arg->seq->is_variable) {
 		siril_log_message(_("Error: variable image size in sequence.\n"));
 		return FALSE;
 	}
@@ -553,8 +553,6 @@ END:
 	arg->filename = NULL;
 	free(imagefilename);
 	imagefilename = NULL;
-	g_free(filename);
-	filename = NULL;
 	g_free(legend);
 	legend = NULL;
 	free(x);
