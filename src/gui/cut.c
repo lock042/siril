@@ -224,7 +224,7 @@ gboolean spectroscopy_selections_are_valid(cut_struct *arg) {
 
 double interpf(fits* fit, double x, double y, int chan) {
 	if (chan >= fit->naxes[2])
-		return -9999.f;
+		return -DBL_MAX;
 	int w = fit->rx;
 	int h = fit->ry;
 	int npixels = w * h;
@@ -244,7 +244,7 @@ double interpf(fits* fit, double x, double y, int chan) {
 
 double interpw(fits* fit, double x, double y, int chan) {
 	if (chan >= fit->naxes[2])
-		return -9999.f;
+		return -DBL_MAX;
 	int w = fit->rx;
 	int h = fit->ry;
 	int npixels = w * h;
@@ -264,17 +264,25 @@ double interpw(fits* fit, double x, double y, int chan) {
 
 double interp(fits *fit, double x, double y, int chan, int num, double dx, double dy) {
 	double val = 0.0;
+	double tmp;
 	int hw = (num - 1) / 2;
 	for (int i = -hw ; i < hw + 1 ; i++) {
 		switch (fit->type) {
 			case DATA_FLOAT:
-				val += interpf(fit, x + (i * dy), y + (i * dx), chan);
+				tmp = interpf(fit, x + (i * dy), y + (i * dx), chan);
+				if (tmp == -DBL_MAX)
+					return tmp;
+				val += tmp;
 				break;
 			case DATA_USHORT:
-				val += interpw(fit, x + (i * dy), y + (i * dx), chan);
+
+				tmp = interpw(fit, x + (i * dy), y + (i * dx), chan);
+				if (tmp == -DBL_MAX)
+					return tmp;
+				val += tmp;
 				break;
 			default:
-				return -9999.0;
+				return -DBL_MAX;
 				break;
 		}
 	}
@@ -304,13 +312,13 @@ double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
 			case DATA_FLOAT:
 				// Note the mismatch of x and dy etc is intentional, we are integrating
 				// perpendicular to the cut line
-				val += (double) nointerpf(fit, x + (i * dy), y + (i * dx), chan);
+				val += nointerpf(fit, x + (i * dy), y + (i * dx), chan);
 				break;
 			case DATA_USHORT:
-				val += (double) nointerpw(fit, x + (i * dy), y + (i * dx), chan);
+				val += nointerpw(fit, x + (i * dy), y + (i * dx), chan);
 				break;
 			default:
-				return -9999.0;
+				return -DBL_MAX;
 				break;
 		}
 	}
@@ -862,39 +870,8 @@ void on_cut_sequence_apply_from_gui() {
 	arg->cut_measure = FALSE;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	// Check args are cromulent
-	if (arg->cut_start.x == arg->cut_end.x && arg->cut_start.y == arg->cut_end.y) {
-		siril_log_message(_("Error: start and finish points are the same.\n"));
-		return;
-	}
-	if (arg->cut_wn1.x > -1.0 && arg->cut_wn1.x == arg->cut_wn2.x && arg->cut_wn1.y == arg->cut_wn2.y) {
-		siril_log_message(_("Error: wavenumber points are the same.\n"));
-		return;
-	}
-	if (arg->cut_wn1.x > -1.0 && arg->wavenumber1 == -1.0) {
-		siril_log_message(_("Error: wavenumber for -wn1= is not set.\n"));
-		return;
-	}
-	if (arg->cut_wn2.x > -1.0 && arg->wavenumber2 == -1.0) {
-		siril_log_message(_("Error: wavenumber for -wn2= is not set.\n"));
-		return;
-	}
-	if (arg->wavenumber1 >=0.0 && (arg->cut_wn1.x < 0.0 || arg->cut_wn1.y < 0.0)) {
-		siril_log_message(_("Error: wavenumber1 set but corresponding location is not set.\n"));
-		return;
-	}
-	if (arg->wavenumber2 >=0.0 && (arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0)) {
-		siril_log_message(_("Error: wavenumber2 set but corresponding location is not set.\n"));
-		return;
-	}
-	if ((arg->cut_wn1.x < 0.0 || arg->cut_wn2.y < 0.0 || arg->cut_wn2.x < 0.0 || arg->cut_wn2.y < 0.0) && (!(arg->cut_wn1.x == -1.0 && arg->cut_wn1.y == -1.0 && arg->cut_wn2.x == -1.0 && arg->cut_wn2.y == -1.0))) {
-		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
-		return;
-	}
-	if (arg->step != 1 && !arg->tri) {
-		siril_log_message(_("Error: spacing is set but tri-profile mode is not selected.\n"));
-		return;
-	}
-	apply_cut_to_sequence(arg);
+	if (cut_struct_is_valid(arg))
+		apply_cut_to_sequence(arg);
 }
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
