@@ -478,6 +478,7 @@ gpointer cut_profile(gpointer p) {
 		}
 	}
 	if (arg->fit->naxes[2] == 1 || arg->mode == CUT_MONO) {
+		legend = strdup("x Mono");
 		retval = gnuplot_write_xy_dat(filename, x, r, nbr_points, legend);
 	} else {
 		retval = gnuplot_write_xrgb_dat(filename, x, r, g, b, nbr_points, "x R G B");
