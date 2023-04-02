@@ -21,7 +21,7 @@
 #ifndef SRC_GUI_CUT_H_
 #define SRC_GUI_CUT_H_
 
-void measure_line(cut_struct *arg, point start, point finish);
+void measure_line(fits* fit, point start, point finish);
 void initialize_cut_struct(cut_struct *arg);
 gboolean cut_struct_is_valid(cut_struct *arg);
 void free_cut_args(cut_struct *arg);

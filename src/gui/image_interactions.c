@@ -546,7 +546,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 	if (event->button == GDK_BUTTON_PRIMARY && gui.measure_start.x != -1.) {
 		gui.measure_end.x = zoomed.x;
 		gui.measure_end.y = zoomed.y;
-		measure_line(&gui.cut, gui.measure_start, gui.measure_end);
+		measure_line(&gfit, gui.measure_start, gui.measure_end);
 		gui.measure_start.x = -1.;
 		gui.measure_start.y = -1.;
 		gui.measure_end.x = -1.;
@@ -629,7 +629,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 			// If the measurement checkbox is checked, print the measurement to the log
 			if (gui.cut.cut_measure) {
-				measure_line(&gui.cut, gui.cut.cut_start, gui.cut.cut_end);
+				measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end);
 			}
 			gui.cutting = CUT_NOT_CUTTING;
 			redraw(REDRAW_OVERLAY);

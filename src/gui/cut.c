@@ -130,6 +130,11 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 		siril_log_message(_("Error: start and finish points are the same.\n"));
 		return FALSE;
 	}
+	if (arg->seq->is_variable) {
+		siril_log_message(_("Error: variable image size in sequence.\n"));
+		return FALSE;
+	}
+
 	// Check args are cromulent
 	int rx = (arg->seq) ? arg->seq->rx : gfit.rx;
 	int ry = (arg->seq) ? arg->seq->ry : gfit.ry;
@@ -179,16 +184,16 @@ int sign(double x) {
 	return x < 0. ? -1 : x > 0. ? 1 : 0;
 }
 
-void measure_line(cut_struct *arg, point start, point finish) {
+void measure_line(fits *fit, point start, point finish) {
 	int deg = -1;
 	point delta = { finish.x - start.x, finish.y - start.y };
 	double pixdist = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (pixdist == 0.) return;
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	gboolean unit_is_as = (arg->fit->focal_length > 0.0) && (arg->fit->pixel_size_x > 0.0) && (arg->fit->pixel_size_y == arg->fit->pixel_size_x);
+	gboolean unit_is_as = (fit->focal_length > 0.0) && (fit->pixel_size_x > 0.0) && (fit->pixel_size_y == fit->pixel_size_x);
 	if (unit_is_as) {
-		double bin_X = com.pref.binning_update ? (double) arg->fit->binning_x : 1.0;
-		double conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) arg->fit->pixel_size_x / arg->fit->focal_length) * bin_X;
+		double bin_X = com.pref.binning_update ? (double) fit->binning_x : 1.0;
+		double conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) fit->pixel_size_x / fit->focal_length) * bin_X;
 		double asdist = pixdist * conversionfactor;
 		if (asdist < 60.0) {
 			siril_log_message(_("Measurement: %.1f\"\n"), asdist);
@@ -520,8 +525,6 @@ gpointer tri_cut(gpointer p) {
 	gchar *temp = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
-	GtkSpinButton *spin_step = (GtkSpinButton*) lookup_widget("cut_tricut_step");
-	double step = gtk_spin_button_get_value(spin_step);
 	gboolean use_gnuplot = gnuplot_is_available();
 	gnuplot_ctrl *gplot = NULL;
 	if (use_gnuplot) {
@@ -574,8 +577,8 @@ gpointer tri_cut(gpointer p) {
 		r[i] = malloc(nbr_points * sizeof(double));
 	x = malloc(nbr_points * sizeof(double));
 	for (int offset = -1 ; offset < 2 ; offset++) {
-		double offstartx = arg->cut_start.x - (offset * point_spacing_y * step);
-		double offstarty = starty + (offset * point_spacing_x * step);
+		double offstartx = arg->cut_start.x - (offset * point_spacing_y * arg->step);
+		double offstarty = starty + (offset * point_spacing_x * arg->step);
 		for (int i = 0 ; i < nbr_points ; i++) {
 			x[i] = i * point_spacing;
 			if (hv) {
@@ -607,7 +610,7 @@ gpointer tri_cut(gpointer p) {
 			}
 		}
 	}
-	gchar *titletext = g_strdup_printf("x L(-%dpx) L L(+%dpx)", (int) step, (int) step);
+	gchar *titletext = g_strdup_printf("x L(-%dpx) L L(+%dpx)", (int) arg->step, (int) arg->step);
 	retval = gnuplot_write_xrgb_dat(filename, x, r[0], r[1], r[2], nbr_points, titletext);
 	g_free(titletext);
 	if (retval) {
@@ -686,12 +689,12 @@ gpointer cfa_cut(gpointer p) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), arg->filename);
 	}
 
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(arg->fit->bayer_pattern);
+/*	sensor_pattern pattern = get_cfa_pattern_index_from_string(arg->fit->bayer_pattern);
 	if ((arg->fit->naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))) {
 		siril_log_color_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"), "red");
 		retval = 1;
 		goto END;
-	}
+	}*/
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
 	if (arg->fit->type == DATA_USHORT) {
@@ -907,20 +910,13 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	} else {
 		GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
 		gui.cut.fit = &gfit;
-		sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
 		gui.cut.seq = NULL;
 		if (gui.cut.tri) {
 			siril_debug_print("Tri-profile\n");
 			start_in_new_thread(tri_cut, &gui.cut);
 		} else if (gui.cut.cfa) {
-			if ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))))
-				siril_message_dialog(GTK_MESSAGE_ERROR,
-						_("Invalid file for this profiling mode"),
-						_("CFA mode requires a mono image file with a Bayer pattern (before debayering is carried out)."));
-			else {
-				siril_debug_print("CFA profiling\n");
-				start_in_new_thread(cfa_cut, &gui.cut);
-			}
+			siril_debug_print("CFA profiling\n");
+			start_in_new_thread(cfa_cut, &gui.cut);
 		} else {
 			if (gtk_toggle_button_get_active(cut_color))
 				gui.cut.mode = CUT_COLOR;
@@ -973,7 +969,11 @@ void on_cut_spectroscopic_button_clicked(GtkButton* button, gpointer user_data) 
 
 void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	GtkWidget* colorbutton = lookup_widget("cut_radio_color");
+	GtkWidget* cfabutton = lookup_widget("cut_cfa");
 	gtk_widget_set_sensitive(colorbutton, (gui.cut.fit->naxes[2] == 3));
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
+	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
+		gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 }
 
 void on_cut_spectro_cancel_button_clicked(GtkButton *button, gpointer user_data) {
@@ -1126,7 +1126,7 @@ void on_cut_apply_to_sequence_toggled(GtkToggleButton *button, gpointer user_dat
 }
 
 void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data) {
-	measure_line(&gui.cut, gui.cut.cut_start, gui.cut.cut_end);
+	measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end);
 }
 
 void on_cut_tricut_step_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -1150,7 +1150,6 @@ void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
 void on_cut_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
 	gui.cut.cfa = gtk_toggle_button_get_active(button);
 	if (gui.cut.cfa) {
-
 		gui.cut.tri = FALSE;
 	}
 	printf("cfa: %d tri: %d\n", gui.cut.cfa, gui.cut.tri);
