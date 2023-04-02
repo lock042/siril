@@ -356,6 +356,7 @@ void calc_zero_and_spacing(cut_struct *arg, double *zero, double *spectro_spacin
 
 gpointer cut_profile(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
+	gchar* legend = NULL;
 	int retval = 0;
 	gnuplot_ctrl *gplot = NULL;
 	gboolean tmpfile = FALSE;
@@ -459,35 +460,37 @@ gpointer cut_profile(gpointer p) {
 			}
 		}
 	}
-	char* legend = NULL;
-	if (arg->fit->naxes[2] == 3 && arg->mode == CUT_MONO) {
-		// For GUI operations, set output based on current vport
-		if (!com.headless && !com.script && arg->vport == -1)
-			arg->vport = gui.cvport;
-		// Now the vport is defined, set the data to a channel or even luminance
-		if (arg->vport == 0) {
-			legend = strdup("x R");
-		} else if (arg->vport == 1) {
-			for (int i = 0 ; i < nbr_points ; i++)
-				r[i] = g[i];
-			legend = strdup("x G");
-		} else if (arg->vport == 2) {
-			for (int i = 0 ; i < nbr_points ; i++)
-				r[i] = b[i];
-			legend = strdup("x B");
-		} else {
-			for (int i = 0 ; i < nbr_points ; i++) {
-				r[i] = (r[i] + g[i] + b[i]) / 3.0;
+	if (arg->mode == CUT_MONO) {
+		if (arg->fit->naxes[2] == 3) {
+			// Now the vport is defined, set the data to a channel or even luminance
+			if (arg->vport == 0) {
+				printf("vport R\n");
+				legend = g_strdup("x R");
+			} else if (arg->vport == 1) {
+				for (int i = 0 ; i < nbr_points ; i++)
+					r[i] = g[i];
+				printf("vport G\n");
+				legend = g_strdup("x G");
+			} else if (arg->vport == 2) {
+				for (int i = 0 ; i < nbr_points ; i++)
+					r[i] = b[i];
+				printf("vport B\n");
+				legend = g_strdup("x B");
+			} else {
+				for (int i = 0 ; i < nbr_points ; i++) {
+					r[i] = (r[i] + g[i] + b[i]) / 3.0;
+				}
+				printf("vport L\n");
+				legend = g_strdup("x L");
 			}
-			legend = strdup("x L");
+		} else if (arg->fit->naxes[2] == 1) {
+			legend = g_strdup("x Mono");
 		}
-	}
-	if (arg->fit->naxes[2] == 1 || arg->mode == CUT_MONO) {
-		legend = strdup("x Mono");
 		retval = gnuplot_write_xy_dat(filename, x, r, nbr_points, legend);
 	} else {
 		retval = gnuplot_write_xrgb_dat(filename, x, r, g, b, nbr_points, "x R G B");
 	}
+	printf("legend: %s\n", legend);
 	if (retval) {
 		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
 		goto END;
@@ -514,7 +517,7 @@ gpointer cut_profile(gpointer p) {
 				if (arg->fit->naxes[2] == 1 || (arg->fit->naxes[2] == 3 && arg->mode == CUT_MONO)) {
 					gnuplot_plot_xy_from_datfile(gplot, filename);
 					if (arg->save_png_too) {
-						gnuplot_plot_xy_datfile_to_png(gplot, filename, "L", imagefilename);
+						gnuplot_plot_xy_datfile_colheader_to_png(gplot, filename, legend, imagefilename);
 						siril_log_message(_("%s has been saved.\n"), imagefilename);
 					}
 				} else {
@@ -526,7 +529,7 @@ gpointer cut_profile(gpointer p) {
 				}
 			} else {
 				if (arg->fit->naxes[2] == 1) {
-					gnuplot_plot_xy_datfile_to_png(gplot, filename, legend, imagefilename);
+					gnuplot_plot_xy_datfile_colheader_to_png(gplot, filename, legend, imagefilename);
 				} else {
 					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 				}
@@ -552,7 +555,7 @@ END:
 	imagefilename = NULL;
 	g_free(filename);
 	filename = NULL;
-	free(legend);
+	g_free(legend);
 	legend = NULL;
 	free(x);
 	x = NULL;
@@ -933,6 +936,7 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
 		gui.cut.fit = &gfit;
 		gui.cut.seq = NULL;
+		gui.cut.vport = gui.cvport;
 		if (gui.cut.tri) {
 			siril_debug_print("Tri-profile\n");
 			start_in_new_thread(tri_cut, &gui.cut);

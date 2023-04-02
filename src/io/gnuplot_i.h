@@ -533,6 +533,12 @@ void gnuplot_plot_xy_datfile_to_png(
 	char const *curve_title,
 	char const* png_filename);
 
+void gnuplot_plot_xy_datfile_colheader_to_png(
+	gnuplot_ctrl * handle,
+	char const* dat_filename,
+	char const *curve_title,
+	char const* png_filename);
+
 int gnuplot_write_xrgb_dat(
     char const *        fileName,
     double const    *   x,

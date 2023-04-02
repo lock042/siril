@@ -1189,8 +1189,22 @@ void gnuplot_plot_xy_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filen
     gnuplot_cmd(handle, "set output \"%s\"", png_filename);
 
     if (curve_title && curve_title[0] != '\0')
-	    gnuplot_cmd(handle, "plot ($2) \"%s\" using ($1) with %s title \"%s\"", dat_filename,
+	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2) with %s title \"%s\"", dat_filename,
 			    handle->pstyle, curve_title);
+    else
+	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
+			    handle->pstyle);
+}
+
+void gnuplot_plot_xy_datfile_colheader_to_png(gnuplot_ctrl * handle, char const* dat_filename,
+		char const *curve_title, char const* png_filename)
+{
+    gnuplot_cmd(handle, "set term png size 800,600");
+    gnuplot_cmd(handle, "set output \"%s\"", png_filename);
+
+    if (curve_title && curve_title[0] != '\0')
+	    gnuplot_cmd(handle, "plot \"%s\" using ($1):($2) with %s title columnheader", dat_filename,
+			    handle->pstyle);
     else
 	    gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
 			    handle->pstyle);
