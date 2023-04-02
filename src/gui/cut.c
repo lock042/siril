@@ -114,6 +114,8 @@ void free_cut_args(cut_struct *arg) {
 }
 
 gboolean cut_struct_is_valid(cut_struct *arg) {
+	// define # layers
+	int nb_layers = (arg->seq) ? arg->seq->nb_layers : arg->fit->naxes[2];
 	// checking mutually exclusive choices
 	if (arg->tri && arg->cfa) {
 		siril_log_color_message(_("Error: CFA mode and tri-profile are mutually exclusive.\n"), "red");
@@ -123,11 +125,11 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 		siril_log_color_message(_("Error: color plot and tri-profile are mutually exclusive.\n"), "red");
 		return FALSE;
 	}
-	if (arg->fit->naxes[2] == 1 && arg->mode == CUT_COLOR) {
+	if (nb_layers == 1 && arg->mode == CUT_COLOR) {
 		siril_log_color_message(_("Error: mono image is loaded: color mode is unavailable.\n"), "red");
 		return FALSE;
 	}
-	if (arg->fit->naxes[2] == 1 && arg->vport > 0) {
+	if (nb_layers == 1 && arg->vport > 0) {
 		siril_log_color_message(_("Error: mono image is loaded: colored layers cannot be specified.\n"), "red");
 		return FALSE;
 	}
@@ -185,11 +187,9 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 		siril_log_message(_("Error: spacing is set but tri-profile mode is not selected.\n"));
 		return FALSE;
 	}
-	if (arg->fit) {
-		if (arg->vport < 0 || arg->vport > arg->fit->naxes[2]) {
-			siril_log_message(_("Error: layer out of range.\n"));
-			return FALSE;
-		}
+	if (arg->vport < 0 || arg->vport > nb_layers) {
+		siril_log_message(_("Error: layer out of range.\n"));
+		return FALSE;
 	}
 	return TRUE;
 

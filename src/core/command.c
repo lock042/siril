@@ -8950,6 +8950,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		cut_args->seq = seq;
 	else
 		cut_args->fit = &gfit;
+	int nb_layers = (cut_args->seq) ? cut_args->seq->nb_layers : cut_args->fit->naxes[2];
 	for (int i = start; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
@@ -8978,9 +8979,6 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			}
 			cut_args->cfa = TRUE;
 		}
-		else if (g_str_has_prefix(word[i], "-graph")) {
-			cut_args->display_graph = TRUE;
-		}
 		else if (g_str_has_prefix(word[i], "-savedat")) {
 			cut_args->save_dat = TRUE;
 		}
@@ -9001,7 +8999,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			else if (g_str_has_prefix(arg, "blue"))
 				cut_args->vport = 2;
 			else if (g_str_has_prefix(arg, "lum")) {
-				if (cut_args->fit->naxes[2] == 1) {
+				if (nb_layers == 1) {
 					cut_args->vport = 0;
 					cut_args->mode = CUT_MONO;
 				} else {
@@ -9053,20 +9051,13 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 				break;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-filename=")) {
-			arg += 10;
-			if (cut_args->filename)
-				g_free(cut_args->filename);
-			cut_args->filename = g_strdup(arg);
-			cut_args->save_dat = TRUE;
-		}
 	}
 	if (cut_args->vport == -1) {
-		if (cut_args->fit->naxes[2] == 1) {
+		if (nb_layers == 1) {
 			cut_args->vport = 0;
 			cut_args->mode = CUT_MONO;
 		} else {
-			cut_args->vport = 0;
+			cut_args->vport = 3;
 			cut_args->mode = CUT_COLOR;
 		}
 	}
@@ -9087,8 +9078,6 @@ int process_profile(int nb) {
 
 	cut_args->save_png_too = TRUE;
 
-	if (!cut_struct_is_valid(cut_args))
-		return CMD_ARG_ERROR;
 	if (cut_args->cfa)
 		start_in_new_thread(cfa_cut, cut_args);
 	else if (cut_args->tri)

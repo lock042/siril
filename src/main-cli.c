@@ -59,7 +59,6 @@
 #include "io/single_image.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
-#include "gui/cut.h"
 #include "gui/progress_and_log.h"
 #include "registration/registration.h"
 
