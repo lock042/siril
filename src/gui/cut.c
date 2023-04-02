@@ -362,7 +362,10 @@ gpointer cut_profile(gpointer p) {
 			filename = g_strdup_printf("profile_%s_%s.dat", temp, build_timestamp_filename());
 			g_free(temp);
 		} else if (arg->seq) {
-			filename = g_strdup_printf("profile_%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
+			char* seq_image_canonical_name = calloc(256, 1);
+			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
+			filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
+			free(seq_image_canonical_name);
 		} else {
 			filename = g_strdup_printf("profile_%s", build_timestamp_filename());
 			siril_debug_print("%s\n", arg->filename);
@@ -550,7 +553,10 @@ gpointer tri_cut(gpointer p) {
 			g_free(temp);
 			temp = NULL;
 		} else if (arg->seq) {
-			filename = g_strdup_printf("profile_%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
+			char* seq_image_canonical_name = calloc(256, 1);
+			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
+			filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
+			free(seq_image_canonical_name);
 		} else {
 			filename = g_strdup_printf("profile_%s", build_timestamp_filename());
 			siril_debug_print("%s\n", arg->filename);
@@ -720,7 +726,10 @@ gpointer cfa_cut(gpointer p) {
 			filename = g_strdup_printf("profile_%s_%s.dat", temp, build_timestamp_filename());
 			g_free(temp);
 		} else if (arg->seq) {
-			filename = g_strdup_printf("profile_%s%.5d.dat", arg->seq->seqname, arg->imgnumber + 1);
+			char* seq_image_canonical_name = calloc(256, 1);
+			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
+			filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
+			free(seq_image_canonical_name);
 		} else {
 			filename = g_strdup_printf("profile_%s", build_timestamp_filename());
 			siril_debug_print("%s\n", arg->filename);
