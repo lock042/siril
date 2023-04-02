@@ -381,6 +381,11 @@ gpointer cut_profile(gpointer p) {
 			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
 			filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
 			free(seq_image_canonical_name);
+		} else if (sequence_is_loaded()) {
+			char* seq_image_canonical_name = calloc(256, 1);
+			seq_get_image_filename(&com.seq, com.seq.current, seq_image_canonical_name);
+			filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
+			free(seq_image_canonical_name);
 		} else {
 			filename = g_strdup_printf("profile_%s", build_timestamp_filename());
 			siril_debug_print("%s\n", arg->filename);
