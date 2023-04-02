@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-03-23 10:07+0100\n"
-"PO-Revision-Date: 2023-04-01 14:21+0000\n"
+"PO-Revision-Date: 2023-04-04 04:39+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -710,8 +710,8 @@ msgid ""
 "images."
 msgstr ""
 "当色彩混合在背景提取之后执行时，需点选此项。\n"
-"抖色是有意加入的噪声形式，可使量化误差随机化，用于预防图像中出现像彩色条带这"
-"样的大范围模式化错误。"
+"抖色是有意加入的噪声形式，可使量子化误差随机化，用于预防图像中出现像彩色条带"
+"这样的大范围模式化错误。"
 
 #: src/gui/siril3.glade:3791
 msgid "Generate"
@@ -5895,7 +5895,7 @@ msgstr "测光"
 #. Plotting light curve
 #: src/gui/siril3.glade:23876 src/gui/plot.c:814
 msgid "Light Curve"
-msgstr "光变曲线"
+msgstr "光度曲线"
 
 #: src/gui/siril3.glade:23880
 msgid ""
@@ -15654,7 +15654,7 @@ msgstr "FITS压缩方法"
 
 #: src/core/settings.c:324
 msgid "quantization factor for 32-bit float"
-msgstr "32 位浮点数的量化因子"
+msgstr "32 位浮点数的量子化因子"
 
 #: src/core/settings.c:325
 msgid "Hcompress scale factor"
@@ -17089,28 +17089,27 @@ msgstr "广义双曲拉伸变换"
 
 #: src/gui/histogram.c:1079 src/gui/histogram.c:1468
 msgid "Clicking on the histogram sets SP"
-msgstr ""
+msgstr "点击直方图以设置 SP"
 
 #. Prevent spamming the warning log message
 #: src/gui/histogram.c:1360
 msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
-msgstr ""
+msgstr "阴影保护点不能设置为高于拉伸焦点\n"
 
 #: src/gui/histogram.c:1400 src/gui/remixer.c:1218 src/gui/remixer.c:1261
-#, fuzzy
 msgid "Make a selection of the point or area to set SP"
-msgstr "请先选择一个白点参考区域"
+msgstr "选择要设置 SP 的点或区域"
 
 #. Prevent spamming the warning log message
 #: src/gui/histogram.c:1439
 msgid ""
 "Highlight preservation point cannot be set lower than stretch focal point\n"
-msgstr ""
+msgstr "高光保持点不能设置为低于拉伸焦点\n"
 
 #: src/gui/histogram.c:1466
 msgid "Clicking on the linear stretch histogram sets BP"
-msgstr ""
+msgstr "点击线性拉伸直方图以设置 BP"
 
 #: src/gui/histogram.c:1568
 msgid "Midtone Transfer Function"
@@ -17221,18 +17220,18 @@ msgstr "_不再显示此对话框"
 msgid ""
 "Warning: telescope aperture obtained from FITS header data may be "
 "incorrect.\n"
-msgstr ""
+msgstr "警告：从FITS头数据所获取的望远镜口径可能不正确。\n"
 
 #: src/gui/newdeconv.c:459
 msgid ""
 "Warning: telescope focal length obtained from FITS header data may be "
 "incorrect.\n"
-msgstr ""
+msgstr "警告：从FITS头数据所获取的望远镜焦距可能不正确。\n"
 
 #: src/gui/newdeconv.c:462
 msgid ""
 "Warning: sensor pixel size obtained from FITS header data may be incorrect.\n"
-msgstr "警告：从 FITS 文件头数据所获取的传感器像素尺寸可能不正确。\n"
+msgstr "警告：从FITS头数据所获取的传感器像素尺寸可能不正确。\n"
 
 #: src/gui/newdeconv.c:505 src/gui/PSF_list.c:249
 msgid "Stars FWHM must have the same units."
@@ -17240,11 +17239,11 @@ msgstr "星点FWHM必须拥有相同的单位。"
 
 #: src/gui/newdeconv.c:510 src/gui/PSF_list.c:254
 msgid "Stars properties must all be computed on the same layer"
-msgstr ""
+msgstr "星点属性必须全部在同一图层上计算"
 
 #: src/gui/newdeconv.c:515 src/gui/PSF_list.c:259
 msgid "Stars must all be modeled with the same profile type"
-msgstr ""
+msgstr "星点必须全部使用相同的配置类型建模"
 
 #: src/gui/newdeconv.c:554
 msgid "No stars selected"
@@ -17252,47 +17251,48 @@ msgstr "无星点选择"
 
 #: src/gui/newdeconv.c:604
 msgid "Error: no PSF has been computed, nothing to save.\n"
-msgstr ""
+msgstr "错误：未计算任何 PSF，无需保存任何内容。\n"
 
 #: src/gui/newdeconv.c:630
-#, fuzzy
 msgid "Error preparing PSF for save.\n"
-msgstr "打开BMP文件错误。\n"
+msgstr "准备保存 PSF 时出错。\n"
 
 #. This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
 #: src/gui/newdeconv.c:637
 msgid ""
 "This copy of Siril was compiled without libtiff support: saving PSF in FITS "
 "format.\n"
-msgstr ""
+msgstr "这个 Siril 的副本是在没有 libtiff 支持的情况下编译的：以 FITS 格式保存 PSF。"
+"\n"
 
 #: src/gui/newdeconv.c:665
 msgid ""
 "Deconvolution: spaces detected in filename. These have been replaced by "
 "underscores.\n"
-msgstr ""
+msgstr "反卷积：在文件名中检测到空格。这些已被下划线取代。\n"
 
 #: src/gui/newdeconv.c:697
 msgid "Error: PSF file does not contain a square PSF. Cannot load this file.\n"
-msgstr ""
+msgstr "错误： PSF 文件不包含方形 PSF。无法加载此文件。\n"
 
 #: src/gui/newdeconv.c:698
 msgid "Wrong PSF size"
-msgstr ""
+msgstr "错误的 PSF 尺寸"
 
 #: src/gui/newdeconv.c:707
 #, c-format
 msgid ""
 "Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping by "
 "1 pixel in each direction. This may not produce optimum results.\n"
-msgstr ""
+msgstr "警告：PSF 文件为偶数 （%d x %d）。PSF 应该始终是奇数。每个方向裁剪 1 "
+"个像素。这可能不会产生最佳结果。\n"
 
 #. If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
 #: src/gui/newdeconv.c:754
 msgid ""
 "The selected PSF is RGB but the loaded image is monochrome. The PSF will be "
 "converted to monochrome (luminance).\n"
-msgstr ""
+msgstr "选定的 PSF 为 RGB，但载入的图像是单色的。PSF 将转换为单色（亮度）。\n"
 
 #: src/gui/newdeconv.c:780
 msgid "No PSF file selected.\n"
@@ -17306,17 +17306,17 @@ msgstr "内核估算完成。\n"
 msgid ""
 "Error: no stars detected. Run findstar or select stars using Dynamic PSF "
 "dialog first.\n"
-msgstr ""
+msgstr "错误：未检测到星点。首先使用动态 PSF 对话框运行侦测星点或选择星点。\n"
 
 #: src/gui/newdeconv.c:860
 msgid ""
 "Warning: focal length appears likely to be incorrect. Continuing anyway...\n"
-msgstr ""
+msgstr "警告：焦距似乎不正确。无论如何继续...\n"
 
 #: src/gui/newdeconv.c:862
 msgid ""
 "Warning: diameter appears likely to be incorrect. Continuing anyway...\n"
-msgstr ""
+msgstr "警告：口径似乎不正确。无论如何继续...\n"
 
 #: src/gui/newdeconv.c:864
 msgid ""
@@ -17338,15 +17338,15 @@ msgstr ""
 msgid ""
 "Error: no PSF defined. Select blind deconvolution or define a PSF from "
 "selection or psf parameters.\n"
-msgstr ""
+msgstr "错误：未定义 PSF。选择盲解反卷积或从选择或 psf 参数定义 PSF。\n"
 
 #: src/gui/newdeconv.c:898
 msgid "PSF made in bottom up orientation.\n"
-msgstr ""
+msgstr "PSF以自下而上的方向生成。\n"
 
 #: src/gui/newdeconv.c:900
 msgid "PSF made in top down orientation.\n"
-msgstr ""
+msgstr "PSF以自上而下的方向生成。\n"
 
 #. User wants PSF from stars but has not selected any stars
 #: src/gui/newdeconv.c:970 src/gui/newdeconv.c:1094
@@ -17371,7 +17371,7 @@ msgstr "反卷积PSF生成。\n"
 msgid ""
 "Error: trying to use previous PSF but no PSF has been generated. "
 "Aborting...\n"
-msgstr ""
+msgstr "错误：尝试使用以前的 PSF，但尚未生成 PSF。异常中止...\n"
 
 #: src/gui/newdeconv.c:1150
 msgid "Starting PSF estimation..."
@@ -17382,13 +17382,12 @@ msgid "Starting non-blind deconvolution..."
 msgstr "开始非盲反卷积..."
 
 #: src/gui/newdeconv.c:1185
-#, fuzzy
 msgid "Wiener deconvolution..."
-msgstr "反卷积…"
+msgstr "Wiener 反卷积…"
 
 #: src/gui/newdeconv.c:1186
 msgid "Richardson-Lucy halted early by the stopping criterion after iteration"
-msgstr ""
+msgstr "Richardson-Lucy 在迭代后因停止判据提前停止"
 
 #: src/gui/newdeconv.c:1187
 msgid "Richardson-Lucy deconvolution..."
@@ -17398,7 +17397,7 @@ msgstr "Richardson-Lucy反卷积..."
 msgid ""
 "Image row order has changed since PSF was generated. The PSF orientation "
 "will be updated to match before applying to this image."
-msgstr ""
+msgstr "自生成 PSF 以来，图像行顺序已更改。在应用于此图像之前，PSF 方向将更新以匹配。"
 
 #: src/gui/newdeconv.c:1415
 msgid "Deconvolution. Processing sequence..."
@@ -17406,7 +17405,7 @@ msgstr "反卷积。处理队列..."
 
 #: src/gui/nina_light_curve.c:19
 msgid "Light curve with NINA star list"
-msgstr ""
+msgstr "NINA 恒星列表的光度曲线"
 
 #: src/gui/nina_light_curve.c:20 src/io/image_formats_libraries.c:1740
 msgid "_OK"
@@ -17417,43 +17416,42 @@ msgid "Select the NINA star list file"
 msgstr "选择NINA星表文件"
 
 #: src/gui/nina_light_curve.c:32
-#, fuzzy
 msgid "CSV file (*.csv)"
-msgstr "SER文件 (*.ser)"
+msgstr "CSV文件 (*.csv)"
 
 #: src/gui/nina_light_curve.c:36
 msgid ""
 "Process a sequence to get a light curve on a star using the list of "
 "reference stars created by the NINA exoplanet plugin"
-msgstr ""
+msgstr "处理队列以使用NINA系外行星插件创建的参考恒星列表获得恒星上的光度曲线"
 
 #: src/gui/nina_light_curve.c:40
 msgid "Use comparative stars selected for their color"
-msgstr ""
+msgstr "使用根据颜色选择的比较星"
 
 #: src/gui/nina_light_curve.c:41
 msgid "Use comparative stars selected by the AAVSO"
-msgstr ""
+msgstr "使用AAVSO选择的比较星"
 
 #: src/gui/nina_light_curve.c:42
 msgid "Display the light curve"
-msgstr ""
+msgstr "显示光度曲线"
 
 #: src/gui/nina_light_curve.c:48
 msgid ""
 "Color similar to the target mean they will get extincted the same way by the "
 "changing atmosphere"
-msgstr ""
+msgstr "与目标相似的颜色意味着它们会因不断变化的大气而以相同的方式灭绝"
 
 #: src/gui/nina_light_curve.c:49
 msgid "The AAVSO gives stars that are know to not be variable"
-msgstr ""
+msgstr "AAVSO给出了已知不是变星的恒星"
 
 #: src/gui/nina_light_curve.c:50
 msgid ""
 "if not checked, a PNG image of the graph will be generated instead (if "
 "gnuplot is available, for both cases)"
-msgstr ""
+msgstr "如果未选中，将生成图表的 PNG 图像（如果 gnuplot 可用，对于两种情况）"
 
 #: src/gui/nina_light_curve.c:83
 msgid "The currently loaded image must be plate solved"
@@ -17463,16 +17461,15 @@ msgstr "当前所加载的图像必须是已解析的"
 msgid ""
 "The sequence seems to have a heavy drift, the computation of a light curve "
 "may not be accurate or possible"
-msgstr ""
+msgstr "队列似乎有一个很大的漂移，光度曲线的计算可能不准确或不可能"
 
 #: src/gui/nina_light_curve.c:120 src/gui/plot.c:828
 msgid "Something went wrong while saving plot"
 msgstr "保存时产生错误"
 
 #: src/gui/open_dialog.c:77 src/pixelMath/pixel_math_runner.c:1070
-#, fuzzy
 msgid "FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"
-msgstr "FITS文件 (*.fit, *.fits, *.fts, *.fits.fz)"
+msgstr "FITS文件 (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"
 
 #: src/gui/open_dialog.c:116
 msgid "Graphics Files (*.bmp"
@@ -17519,20 +17516,19 @@ msgstr "主校准帧不可以选择FITS队列，请选择一个单一的FITS文�
 msgid ""
 "There is no valid WCS information in the header. Let's make a plate "
 "solving.\n"
-msgstr ""
+msgstr "头中没有有效的 WCS 信息。让我们来做一个解析。\n"
 
 #: src/gui/photometric_cc.c:55
 msgid "Plate solving will be recomputed for image\n"
-msgstr ""
+msgstr "将重新计算图像的解析\n"
 
 #: src/gui/photometric_cc.c:56
 msgid "Existing plate solve (WCS information) will be resused for image\n"
-msgstr ""
+msgstr "现有的解析（WCS 信息）将重新用于图像\n"
 
 #: src/gui/photometric_cc.c:68
-#, fuzzy
 msgid "Using remote APASS instead of local NOMAD catalogue\n"
-msgstr "创建SER文件“%s”失败\n"
+msgstr "使用远程APASS而不是本地NOMAD星表\n"
 
 #: src/gui/photometric_cc.c:166
 msgid "Photometric Color Calibration"
@@ -17543,9 +17539,8 @@ msgid "(online catalogue)"
 msgstr "（在线星表）"
 
 #: src/gui/photometric_cc.c:247
-#, fuzzy
 msgid "(local catalogue)"
-msgstr "星表"
+msgstr "（本地星表）"
 
 #: src/gui/plot.c:119 src/gui/plot.c:1492 src/gui/sequence_list.c:534
 msgid "Amplitude"
@@ -17569,14 +17564,15 @@ msgid ""
 "Gnuplot was not found, the light curve data will be produced in %s but no "
 "image will be created. You can specify the path to gnuplot in the Siril "
 "preferences.\n"
-msgstr ""
+msgstr "未找到 Gnuplot，光度曲线数据将生成于 %s，但不会创建图像。您可以在 Siril "
+"首选项中指定 gnuplot 的路径。\n"
 
 #: src/gui/plot.c:807
 #, c-format
 msgid ""
 "Calibrated data for %d points of the light curve, %d excluded because of "
 "invalid calibration\n"
-msgstr ""
+msgstr "光曲线 %d 点的校准数据，由于校准无效，排除了 %d\n"
 
 #: src/gui/plot.c:1193
 #, c-format
@@ -17633,14 +17629,12 @@ msgid "wFWHM (px)"
 msgstr "wFWHM (px)"
 
 #: src/gui/plot.c:1528 src/gui/plot.c:1556
-#, fuzzy
 msgid "Shift on X axis"
-msgstr "星点在X轴的坐标"
+msgstr "在X轴的平移"
 
 #: src/gui/plot.c:1531 src/gui/plot.c:1559
-#, fuzzy
 msgid "Shift on Y axis"
-msgstr "星点在Y轴的坐标"
+msgstr "在Y轴的平移"
 
 #: src/gui/plot.c:1880
 #, c-format
@@ -17653,18 +17647,16 @@ msgid "Show Frame %d"
 msgstr "显示第%d帧"
 
 #: src/gui/plot.c:1919
-#, fuzzy
 msgid "Zoom to selection"
-msgstr "无选择"
+msgstr "缩放至所选区"
 
 #: src/gui/plot.c:1920
-#, fuzzy
 msgid "Only keep points within selection"
-msgstr "选择范围无参考线"
+msgstr "仅保留选区内的点"
 
 #: src/gui/plot.c:1925
 msgid "Exclude selected points"
-msgstr ""
+msgstr "排除所选的点"
 
 #: src/gui/preferences.c:390
 #, c-format
@@ -17672,31 +17664,31 @@ msgid "You don't have permission to write in this directory: %s\n"
 msgstr "当前用户对目录%s没有写权限\n"
 
 #: src/gui/preferences.c:408
-#, fuzzy, c-format
+#, c-format
 msgid "You don't have permission to execute this file: %s\n"
-msgstr "当前用户对目录%s没有写权限\n"
+msgstr "您没有权限以执行该文件： %s\n"
 
 #: src/gui/preferences.c:446
-#, fuzzy, c-format
+#, c-format
 msgid "You don't have permission to read this file: %s\n"
-msgstr "当前用户对目录%s没有写权限\n"
+msgstr "您没有权限以读取该文件： %s\n"
 
 #: src/gui/preferences.c:475
 msgid "Cannot refresh script list"
 msgstr "无法刷新脚本列表"
 
 #: src/gui/preferences.c:697
-#, fuzzy
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
-msgstr "内半径必须小于外半径，请更改参数。"
+msgstr "内半径必须小于外半径，请在测光签中更改。"
 
 #: src/gui/preferences.c:706
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
-msgstr ""
+msgstr "将量子化设置为 0 仅对 GZIP 压缩有意义，GZIP 2 "
+"通常会对浮点图像产生更好的压缩。"
 
 #: src/gui/preferences.c:718
 msgid "Wrong value"
@@ -17918,46 +17910,46 @@ msgstr "星点重绘"
 
 #: src/gui/remixer.c:702 src/gui/remixer.c:1324
 msgid "Show advanced stretch options."
-msgstr ""
+msgstr "显示高级拉伸选项。"
 
 #: src/gui/remixer.c:1022 src/gui/remixer.c:1039
 msgid ""
 "This dropper allows you to set the background stretch symmetry point  based "
 "on the average value of the current selection. This helps in picking out "
 "faint detail above the dark background."
-msgstr ""
+msgstr "此滴管允许您根据当前选区的平均值设置背景拉伸对称点。这有助于挑选出深色背景上"
+"方的微弱细节。"
 
 #: src/gui/remixer.c:1025 src/gui/remixer.c:1042
 msgid "Eyedropper disabled with unapplied BP shift"
-msgstr ""
+msgstr "吸管因未应用BP平移而禁用"
 
 #: src/gui/remixer.c:1103 src/gui/remixer.c:1159
 msgid "Error: image could not be loaded"
 msgstr "错误：无法加载图像"
 
 #: src/gui/remixer.c:1104 src/gui/remixer.c:1160
-#, fuzzy
 msgid "Image loading failed"
-msgstr "图像载入"
+msgstr "图像载入失败"
 
 #: src/gui/remixer.c:1115 src/gui/remixer.c:1171
 msgid "Error: images do not match"
-msgstr ""
+msgstr "错误：图像不匹配"
 
 #: src/gui/remixer.c:1116 src/gui/remixer.c:1172
 msgid "Image width, height, bit depth and number of channels must match"
-msgstr ""
+msgstr "图像宽度、高度、位深和通道数必须匹配"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 #: src/gui/remixer.c:1307
 msgid "Simple"
-msgstr ""
+msgstr "简单"
 
 #: src/gui/remixer.c:1308
 msgid ""
 "Show only simple stretch options. Note that any parameters that have been "
 "set while in advanced mode will remain set."
-msgstr ""
+msgstr "仅显示简单的拉伸选项。请注意，在高级模式下设置的任何参数都将保持设置状态。"
 
 #: src/gui/save_dialog.c:76
 msgid "FITS Files (*.fit, *.fits, *.fts)"
@@ -18177,7 +18169,8 @@ msgstr "欢迎来到Siril最新版本。请花点时间来阅读新版本的提�
 msgid ""
 "The RGB tab is now ready for processing. You can select and work on this tab "
 "which is open by default if the image is RGB."
-msgstr ""
+msgstr "RGB 标签现在已准备好进行处理。您可以选择并工作于此标签，如果图像是RGB，则默认"
+"情况下打开该标签。"
 
 #: src/gui/siril_intro.c:36
 msgid ""
@@ -18201,31 +18194,28 @@ msgstr ""
 "作"
 
 #: src/gui/siril_intro.c:39
-#, fuzzy
 msgid ""
 "You can get more scripts by clicking on the \"Get scripts\" item in the menu"
-msgstr "您可以通过点击“获取脚本”菜单项来获得更多的脚本"
+msgstr "您可以通过点击菜单中的“获取脚本”选项来获得更多的脚本"
 
 #: src/gui/siril_intro.c:40
 msgid ""
 "A brand new documentation set is also available via the menu \"Siril Manual\""
-msgstr ""
+msgstr "全新的文档集也可通过菜单“Siril 手册”获得"
 
 #: src/gui/siril_intro.c:41
-#, fuzzy
 msgid ""
 "You can change your working directory by hitting this button. The working "
 "directory is shown right below the title at the center of the headerbar"
-msgstr "您可以通过点此按钮来更改工作目录。工作目录显示在上部状态栏中标题的右侧"
+msgstr "您可以通过点此按钮来更改工作目录。工作目录显示在标题栏中心的标题右下方"
 
 #: src/gui/siril_intro.c:42
 msgid "You can open a single image or FITS/SER sequence"
 msgstr "不可以打开单独的图像或者FITS/SER队列"
 
 #: src/gui/siril_intro.c:43
-#, fuzzy
 msgid "Here is a list of the most recent FITS files you’ve opened"
-msgstr "这里显示您最近所打开过的FITS文件"
+msgstr "这里显示您最近所打开过的FITS文件列表"
 
 #: src/gui/siril_intro.c:44
 msgid "Processing algorithms are all in this single menu"
@@ -18240,14 +18230,12 @@ msgid "Use this button to redo an operation"
 msgstr "用此按钮实现恢复操作"
 
 #: src/gui/siril_intro.c:47
-#, fuzzy
 msgid ""
 "Siril works in 32-bit per channel precision by default. You can change it in "
 "Preferences and you can change the currently loaded image precision with "
 "this selector"
-msgstr ""
-"Siril目前缺省运行于32位/通道模式。您可以在首选项改变，也可以在此更改当前载入"
-"图像的模式"
+msgstr "Siril目前缺省运行于32位/通道模式。您可以在首选项改变，也可以在此更改当前载入"
+"图像的精度"
 
 #: src/gui/siril_intro.c:48
 msgid "Save your work as many times as needed by choosing a new name ..."
@@ -18270,29 +18258,26 @@ msgid ""
 msgstr "像往常一样，您可以输入 Siril 命令。要概览所有命令，请键入“help”"
 
 #: src/gui/siril_intro.c:52
-#, fuzzy
 msgid ""
 "Basic viewing operations are available in the main toolbar. Zooming is "
 "available with Ctrl-Scroll up and down"
-msgstr "主工具条上提供基础的预览操作。缩放现在可以通过Ctrl-Scroll和上下箭头"
+msgstr "主工具栏中提供基础的预览操作。缩放可以通过Ctrl上下滚动"
 
 #: src/gui/siril_intro.c:53
-#, fuzzy
 msgid "To pan your image you can use Ctrl-Click (and drag)"
-msgstr "浏览图像全景可以使用Ctrl-Click（以及拖拽）"
+msgstr "浏览图像全貌可以使用Ctrl单击（并拖拽）"
 
 #: src/gui/siril_intro.c:54
 msgid "Enjoy using the new Siril"
 msgstr "欢迎使用新Siril"
 
 #: src/gui/split_cfa.c:48
-#, fuzzy
 msgid "Error: sequence is SER"
-msgstr "导出队列"
+msgstr "错误：队列为 SER"
 
 #: src/gui/split_cfa.c:49
 msgid "Only FITS format is supported for sequence CFA splitting"
-msgstr ""
+msgstr "队列 CFA 拆分仅支持 FITS 格式"
 
 #: src/gui/statistics_list.c:47
 msgid "mean"
@@ -18440,13 +18425,12 @@ msgid "Could not open local NOMAD catalogue\n"
 msgstr "无法打开本地NOMAD星表\n"
 
 #: src/io/catalogues.c:142
-#, fuzzy
 msgid "Failed to read the local NOMAD catalogue\n"
-msgstr "创建SER文件“%s”失败\n"
+msgstr "无法读取本地 NOMAD 星表\n"
 
 #: src/io/catalogues.c:385
 msgid "Error: number of trixels reported by file is out of limits.\n"
-msgstr ""
+msgstr "错误：文件报告的 trixel 数量超出限制。\n"
 
 #: src/io/catalogues.c:702
 #, c-format
@@ -18454,9 +18438,8 @@ msgid "Can't open temporary file %s for output. [%s]\n"
 msgstr "无法打开临时文件 %s 进行输出。[%s]\n"
 
 #: src/io/catalogues.c:750
-#, fuzzy
 msgid "Error writing output...\n"
-msgstr "Error while converting, unknown output\n"
+msgstr "写入输出时出错...\n"
 
 #: src/io/conversion.c:157
 msgid "BMP images, "
@@ -18631,13 +18614,13 @@ msgstr "视频错误：不兼容的格式\n"
 msgid ""
 "Several images were found in the FITS file but they have different "
 "parameters, which is not allowed.\n"
-msgstr ""
+msgstr "在 FITS 文件中找到了几个图像，但它们具有不同的参数，这是不允许的。\n"
 
 #: src/io/fits_sequence.c:107
 msgid ""
 "Several images were found in the FITS file but they have different "
 "parameters.\n"
-msgstr ""
+msgstr "在 FITS 文件中发现了几个图像，但它们具有不同的参数。\n"
 
 #: src/io/fits_sequence.c:157
 #, c-format
@@ -18691,16 +18674,16 @@ msgstr "打开BMP文件错误。\n"
 #: src/io/image_formats_internal.c:215
 #, c-format
 msgid "readbmp: %ld header bytes read instead of 54\n"
-msgstr ""
+msgstr "读取BMP：%ld 头字节读取而不是 54\n"
 
 #: src/io/image_formats_internal.c:225
 msgid "readbmp: file reports negative, zero or excessive dimensions\n"
-msgstr ""
+msgstr "读取BMP：文件报告负数、零尺寸或超额尺寸\n"
 
 #: src/io/image_formats_internal.c:251
 #, c-format
 msgid "readbmp: could not read all data: (%zu, %lu)\n"
-msgstr ""
+msgstr "读取BMP： 无法读取所有数据： （%zu， %lu）\n"
 
 #: src/io/image_formats_internal.c:272
 msgid ""
@@ -18765,7 +18748,7 @@ msgstr "保存NetPBM：文件名 %s, %ld layer(s), %ux%u pixels\n"
 
 #: src/io/image_formats_internal.c:790
 msgid "Wrong magic cookie in PIC file. This image is not supported.\n"
-msgstr "Wrong magic cookie in PIC file. This image is not supported.\n"
+msgstr "PIC文件中错误的magic cookie。不支持此图像。\n"
 
 #: src/io/image_formats_internal.c:831
 #, c-format
@@ -18773,14 +18756,12 @@ msgid "Sorry but Siril cannot open the PIC file: %s.\n"
 msgstr "抱歉，Siril无法打开PIC文件：%s\n"
 
 #: src/io/image_formats_internal.c:852
-#, fuzzy
 msgid "Error: seek failure in file.\n"
-msgstr "错误：统计信息计算失败。\n"
+msgstr "错误：文件中查找失败。\n"
 
 #: src/io/image_formats_internal.c:858
-#, fuzzy
 msgid "Error: memory allocation failure.\n"
-msgstr "错误：统计信息计算失败。\n"
+msgstr "错误：内存分配失败。\n"
 
 #: src/io/image_formats_internal.c:865
 msgid "Error: Cannot read the data\n"
@@ -18801,7 +18782,7 @@ msgstr "（观测）日期：%s\n"
 #: src/io/image_formats_internal.c:902
 #, c-format
 msgid "Time (of observation): %s\n"
-msgstr "（观测时间）： %s\n"
+msgstr "（观测）时间： %s\n"
 
 #: src/io/image_formats_libraries.c:83 src/io/image_formats_libraries.c:166
 #: src/io/image_formats_libraries.c:249 src/io/image_formats_libraries.c:327
@@ -19084,25 +19065,24 @@ msgid "Error code:"
 msgstr "错误代码："
 
 #: src/io/path_parse.c:34
-#, fuzzy
 msgid "going on"
-msgstr "没有可撤销的"
+msgstr "进行中"
 
 #: src/io/path_parse.c:34
 msgid "aborting"
-msgstr ""
+msgstr "异常终止"
 
 #: src/io/path_parse.c:43
 msgid "Header is empty"
-msgstr ""
+msgstr "文件头为空"
 
 #: src/io/path_parse.c:47
 msgid "Wrong reserved keyword: "
-msgstr ""
+msgstr "错误的保留关键字： "
 
 #: src/io/path_parse.c:51
 msgid "Library not defined in preferences: "
-msgstr ""
+msgstr "首选项中未定义的库： "
 
 #: src/io/path_parse.c:55
 msgid "Key not found: "
@@ -19122,30 +19102,28 @@ msgstr "不支持的格式： "
 
 #: src/io/path_parse.c:74
 msgid "More than one match for: "
-msgstr ""
+msgstr "多个匹配项： "
 
 #: src/io/path_parse.c:77
 msgid "No match found for: "
-msgstr ""
+msgstr "未找到匹配项： "
 
 #: src/io/path_parse.c:80
 msgid "Problem with path: "
-msgstr ""
+msgstr "有问题的路径： "
 
 #: src/io/path_parse.c:83
-#, fuzzy
 msgid "Could not create temp FITS for header update: "
-msgstr "无法创建命名管道 "
+msgstr "无法为头更新创建临时 FITS： "
 
 #: src/io/path_parse.c:87
-#, fuzzy
 msgid "Internal error"
-msgstr "语法错误"
+msgstr "内部错误"
 
 #: src/io/path_parse.c:184
-#, fuzzy, c-format
+#, c-format
 msgid "Using most recent matching file: %s\n"
-msgstr "读取配置文件： '%s'\n"
+msgstr "使用最新的匹配文件： %s\n"
 
 #: src/io/seqfile.c:129
 msgid ""
@@ -19204,7 +19182,8 @@ msgstr "未找到队列，请确认工作目录或者改变设置中的FITS扩�
 msgid ""
 "Cannot load SER sequence. Need at least 2 frames to be usable in Siril. "
 "Please convert the SER file into FITS file.\n"
-msgstr ""
+msgstr "无法载入 SER 队列。至少需要 2 个帧才能在 Siril 中使用。请将 SER 文件转换为 "
+"FITS 文件。\n"
 
 #: src/io/sequence.c:501
 msgid "Deprecated sequence"
@@ -20148,9 +20127,8 @@ msgid "Make sure you load the first image"
 msgstr "请确保载入第一幅图像"
 
 #: src/registration/3stars.c:131
-#, fuzzy
 msgid "Make sure you load the first selected image"
-msgstr "请确保载入第一幅图像"
+msgstr "请确保载入第一幅所选的图像"
 
 #: src/registration/3stars.c:136
 msgid "Make sure you load an image which is included"
@@ -20161,9 +20139,8 @@ msgid "Draw a selection around the star"
 msgstr "围绕星点画选择框"
 
 #: src/registration/3stars.c:188
-#, fuzzy
 msgid "No star found, make another selection"
-msgstr "选择范围无参考线"
+msgstr "未找到星，请重新选择"
 
 #: src/registration/3stars.c:211
 msgid "Star analysis failed"
@@ -20194,14 +20171,12 @@ msgid ""
 msgstr "%s: 没有足够的内存来执行操作（每线程需求%s，而仅%s可用)\n"
 
 #: src/registration/3stars.c:472
-#, fuzzy
 msgid "Creating the aligned image sequence"
-msgstr "创建图像旋转队列"
+msgstr "创建对齐的图像队列"
 
 #: src/registration/3stars.c:472
-#, fuzzy
 msgid "Saving the transformation matrices"
-msgstr "负片变换"
+msgstr "保存变换矩阵"
 
 #: src/registration/3stars.c:526
 #, c-format
@@ -20288,9 +20263,9 @@ msgid_plural "%d images processed.\n"
 msgstr[0] "%d 图像已处理。\n"
 
 #: src/registration/applyreg.c:357
-#, fuzzy, c-format
+#, c-format
 msgid "Total: %d failed, %d exported.\n"
-msgstr "总计： %d 失败， %d 已对齐。\n"
+msgstr "总计： %d 失败， %d 已导出。\n"
 
 #: src/registration/applyreg.c:368
 #, fuzzy
@@ -20374,7 +20349,7 @@ msgstr "Siril在对齐操作时无法降DATE-OBS关键字转化为有效的日�
 
 #: src/registration/comet.c:182
 msgid "Dates of the two images are identical"
-msgstr ""
+msgstr "两幅图像的日期相同"
 
 #: src/registration/comet.c:183
 #, fuzzy
@@ -21195,26 +21170,24 @@ msgid "Creating rejection maps ... yes\n"
 msgstr "创建剔除映射 ... 是\n"
 
 #: src/stacking/stacking.c:397
-#, fuzzy
 msgid "Image weighting ........... from noise\n"
-msgstr "像素剔除 ………… none\n"
+msgstr "图像加权 ........... 来自噪声\n"
 
 #: src/stacking/stacking.c:399
 msgid "Image weighting ........... from image count\n"
-msgstr ""
+msgstr "图像加权 ........... 来自图像计数\n"
 
 #: src/stacking/stacking.c:401
 msgid "Image weighting ........... from weighted FWHM\n"
-msgstr ""
+msgstr "图像加权 ........... 来自加权的FWHM\n"
 
 #: src/stacking/stacking.c:403
 msgid "Image weighting ........... from star count\n"
-msgstr ""
+msgstr "图像加权 ........... 来自星点计数\n"
 
 #: src/stacking/stacking.c:404
-#, fuzzy
 msgid "Image weighting ........... disabled\n"
-msgstr "归一化 …………… %s\n"
+msgstr "图像加权 ........... 已禁用\n"
 
 #: src/stacking/stacking.c:408
 msgid "RGB equalization .......... enabled\n"
