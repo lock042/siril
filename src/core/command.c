@@ -8948,6 +8948,8 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 	*err = CMD_OK;
 	if (seq)
 		cut_args->seq = seq;
+	else
+		cut_args->fit = &gfit;
 	for (int i = start; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
@@ -8982,9 +8984,6 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		else if (g_str_has_prefix(word[i], "-savedat")) {
 			cut_args->save_dat = TRUE;
 		}
-		else if (g_str_has_prefix(word[i], "-colorplot")) {
-			cut_args->mode = CUT_COLOR;
-		}
 		else if (g_str_has_prefix(word[i], "-width=")) {
 			arg += 7;
 			cut_args->width = g_ascii_strtod(arg, &end);
@@ -8992,6 +8991,27 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		else if (g_str_has_prefix(arg, "-spacing=")) {
 			arg += 9;
 			cut_args->step = g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-layer=")) {
+			arg += 7;
+			if (g_str_has_prefix(arg, "red"))
+				cut_args->vport = 0;
+			else if (g_str_has_prefix(arg, "green"))
+				cut_args->vport = 1;
+			else if (g_str_has_prefix(arg, "blue"))
+				cut_args->vport = 2;
+			else if (g_str_has_prefix(arg, "lum")) {
+				if (cut_args->fit->naxes[2] == 1) {
+					cut_args->vport = 0;
+					cut_args->mode = CUT_MONO;
+				} else {
+					cut_args->vport = 3;
+					cut_args->mode = CUT_MONO;
+				}
+			} else if (g_str_has_prefix(arg, "col")) {
+				cut_args->vport = 0;
+				cut_args->mode = CUT_COLOR;
+			}
 		}
 		else if (g_str_has_prefix(arg, "-wavenumber1=")) {
 			arg += 13;
@@ -9041,7 +9061,18 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			cut_args->save_dat = TRUE;
 		}
 	}
-	if (*err || !cut_struct_is_valid(cut_args)) {
+	if (cut_args->vport == -1) {
+		if (cut_args->fit->naxes[2] == 1) {
+			cut_args->vport = 0;
+			cut_args->mode = CUT_MONO;
+		} else {
+			cut_args->vport = 0;
+			cut_args->mode = CUT_COLOR;
+		}
+	}
+	if (!cut_struct_is_valid(cut_args))
+		*err = CMD_ARG_ERROR;
+	if (*err) {
 		free_cut_args(cut_args);
 		cut_args = NULL;
 	}
@@ -9056,6 +9087,8 @@ int process_profile(int nb) {
 
 	cut_args->save_png_too = TRUE;
 
+	if (!cut_struct_is_valid(cut_args))
+		return CMD_ARG_ERROR;
 	if (cut_args->cfa)
 		start_in_new_thread(cfa_cut, cut_args);
 	else if (cut_args->tri)

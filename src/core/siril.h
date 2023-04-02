@@ -503,6 +503,7 @@ typedef struct cut_struct {
 	sequence* seq;
 	int imgnumber;
 	gboolean save_dat;
+	int vport;
 } cut_struct;
 
 struct historic_struct {

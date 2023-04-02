@@ -101,6 +101,7 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->filename = NULL;
 	arg->save_dat = FALSE;
 	arg->save_png_too = FALSE;
+	arg->vport = -1;
 }
 
 void free_cut_args(cut_struct *arg) {
@@ -120,6 +121,14 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 	}
 	if (arg->tri && arg->mode == CUT_COLOR) {
 		siril_log_color_message(_("Error: color plot and tri-profile are mutually exclusive.\n"), "red");
+		return FALSE;
+	}
+	if (arg->fit->naxes[2] == 1 && arg->mode == CUT_COLOR) {
+		siril_log_color_message(_("Error: mono image is loaded: color mode is unavailable.\n"), "red");
+		return FALSE;
+	}
+	if (arg->fit->naxes[2] == 1 && arg->vport > 0) {
+		siril_log_color_message(_("Error: mono image is loaded: colored layers cannot be specified.\n"), "red");
 		return FALSE;
 	}
 	if (arg->cfa && arg->mode == CUT_COLOR) {
@@ -175,6 +184,12 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 	if (arg->step != 1 && !arg->tri) {
 		siril_log_message(_("Error: spacing is set but tri-profile mode is not selected.\n"));
 		return FALSE;
+	}
+	if (arg->fit) {
+		if (arg->vport < 0 || arg->vport > arg->fit->naxes[2]) {
+			siril_log_message(_("Error: layer out of range.\n"));
+			return FALSE;
+		}
 	}
 	return TRUE;
 
@@ -439,13 +454,31 @@ gpointer cut_profile(gpointer p) {
 			}
 		}
 	}
+	char* legend = NULL;
 	if (arg->fit->naxes[2] == 3 && arg->mode == CUT_MONO) {
-		for (int i = 0 ; i < nbr_points ; i++) {
-			r[i] = (r[i] + g[i] + b[i]) / 3.0;
+		// For GUI operations, set output based on current vport
+		if (!com.headless && !com.script && arg->vport == -1)
+			arg->vport = gui.cvport;
+		// Now the vport is defined, set the data to a channel or even luminance
+		if (arg->vport == 0) {
+			legend = strdup("x R");
+		} else if (arg->vport == 1) {
+			for (int i = 0 ; i < nbr_points ; i++)
+				r[i] = g[i];
+			legend = strdup("x G");
+		} else if (arg->vport == 2) {
+			for (int i = 0 ; i < nbr_points ; i++)
+				r[i] = b[i];
+			legend = strdup("x B");
+		} else {
+			for (int i = 0 ; i < nbr_points ; i++) {
+				r[i] = (r[i] + g[i] + b[i]) / 3.0;
+			}
+			legend = strdup("x L");
 		}
 	}
 	if (arg->fit->naxes[2] == 1 || arg->mode == CUT_MONO) {
-		retval = gnuplot_write_xy_dat(filename, x, r, nbr_points, "x L");
+		retval = gnuplot_write_xy_dat(filename, x, r, nbr_points, legend);
 	} else {
 		retval = gnuplot_write_xrgb_dat(filename, x, r, g, b, nbr_points, "x R G B");
 	}
@@ -487,7 +520,7 @@ gpointer cut_profile(gpointer p) {
 				}
 			} else {
 				if (arg->fit->naxes[2] == 1) {
-					gnuplot_plot_xy_datfile_to_png(gplot, filename, "L", imagefilename);
+					gnuplot_plot_xy_datfile_to_png(gplot, filename, legend, imagefilename);
 				} else {
 					gnuplot_plot_xrgb_datfile_to_png(gplot, filename, imagefilename);
 				}
@@ -513,6 +546,8 @@ END:
 	imagefilename = NULL;
 	g_free(filename);
 	filename = NULL;
+	free(legend);
+	legend = NULL;
 	free(x);
 	x = NULL;
 	free(r);
@@ -521,6 +556,7 @@ END:
 	g = NULL;
 	free(b);
 	b = NULL;
+	arg->vport = -1;
 	gboolean in_sequence = (arg->seq != NULL);
 	if (arg != &gui.cut)
 		free(arg);
