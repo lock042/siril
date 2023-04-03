@@ -159,6 +159,7 @@
 #define STR_SEQSTAT N_("Same command as STAT for sequence <b>sequencename</b>.\n\nThe <b>output</b> is saved as a csv file given in second argument.\nThe optional parameter defines the number of statistical values computed: <b>basic</b>, <b>main</b> (default) or <b>full</b> (more detailed but longer to compute).\nIf <b>-cfa</b> is passed and the images are CFA, statistics are made on per-filter extractions")
 #define STR_SEQSUBSKY N_("Same command as SUBSKY but for the sequence <b>sequencename</b>.\nDithering, required for low dynamic gradients, can be disabled with <b>-nodither</b>.\n\nThe output sequence name starts with the prefix \"bkg_\" unless otherwise specified with <b>-prefix=</b> option")
 #define STR_SEQTILT N_("Same command as TILT but for the loaded sequence or the sequence <b>sequencename</b>.\n\nIt generally gives better result")
+#define STR_SEQUNSETMAG N_("Resets the magnitude calibration and reference star for the sequence. See SEQSETMAG")
 #define STR_SEQWIENER N_("The same as the <b>wiener</b> command, but applies to a sequence which must be specified as the first argument")
 #define STR_SET N_("Update a setting value, using its variable name, with the given value, or a set of values using an existing ini file with <b>-import=</b> option.\nSee <b>get</b> to get values or the list of variables")
 #define STR_SET16 N_("Disables images to be saved with 32 bits per channel on processing. It uses 16 bits instead")
@@ -190,7 +191,6 @@
 
 #define STR_UNSELECT N_("Allows easy mass unselection of images in the sequence <b>sequencename</b> (from <b>from</b> to <b>to</b> included). See SELECT")
 #define STR_UNSETMAG N_("Reset the magnitude calibration to 0. See SETMAG")
-#define STR_SEQUNSETMAG N_("Resets the magnitude calibration and reference star for the sequence. See SEQSETMAG")
 #define STR_UNSHARP N_("Applies to the working image an unsharp mask with sigma <b>sigma</b> and coefficient <b>multi</b>")
 
 #define STR_VISU N_("Displays an image with <b>low</b> and <b>high</b> as the low and high threshold")
