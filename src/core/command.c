@@ -9009,6 +9009,10 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			} else if (g_str_has_prefix(arg, "col")) {
 				cut_args->vport = 0;
 				cut_args->mode = CUT_COLOR;
+			} else {
+				siril_log_message(_("Incorrect option follows -layer=, aborting.\n"));
+				*err = CMD_ARG_ERROR;
+				break;
 			}
 		}
 		else if (g_str_has_prefix(arg, "-wavenumber1=")) {

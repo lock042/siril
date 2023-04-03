@@ -672,8 +672,12 @@ gpointer tri_cut(gpointer p) {
 		}
 	}
 	gchar *titletext = NULL;
-	if (arg->vport == 0)
-		titletext = g_strdup_printf("x R(-%dpx) R R(+%dpx)", (int) arg->step, (int) arg->step);
+	if (arg->vport == 0) {
+		if (arg->fit->naxes[2] == 3)
+			titletext = g_strdup_printf("x R(-%dpx) R R(+%dpx)", (int) arg->step, (int) arg->step);
+		else
+			titletext = g_strdup_printf("x Mono(-%dpx) Mono Mono(+%dpx)", (int) arg->step, (int) arg->step);
+	}
 	else if (arg->vport == 1)
 		titletext = g_strdup_printf("x G(-%dpx) G G(+%dpx)", (int) arg->step, (int) arg->step);
 	else if (arg->vport == 2)
