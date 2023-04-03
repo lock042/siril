@@ -1767,7 +1767,11 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			} else {
 				return CMD_ARG_ERROR;
 			}
-		} else {
+		}
+		else if (g_str_has_prefix(arg, "-sat")) {
+			stretch_colourmodel = COL_SAT;
+		}
+		else {
 			if (stretchtype == STRETCH_LINEAR) {
 				return CMD_ARG_ERROR;
 			}
@@ -1779,9 +1783,6 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			}
 			else if (g_str_has_prefix(arg, "-indep")) {
 				stretch_colourmodel = COL_INDEP;
-			}
-			else if (g_str_has_prefix(arg, "-sat")) {
-				stretch_colourmodel = COL_SAT;
 			}
 			else if (g_str_has_prefix(arg,"-D=")) {
 				arg += 3;
@@ -1854,6 +1855,10 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			return CMD_ARG_ERROR;
 		}
 		BP = 0.0;
+		if (stretch_colourmodel == COL_SAT && (!(do_red && do_green && do_blue))) {
+			siril_log_message(_("Error: saturation stretch requires that all channels must be selected.\n"));
+			return CMD_ARG_ERROR;
+		}
 	}
 
 	set_cursor_waiting(TRUE);

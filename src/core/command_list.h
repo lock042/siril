@@ -88,7 +88,7 @@ static command commands[] = {
 				"light_curve sequencename channel [-autoring] -ninastars=file", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE}, /* logarifies current image */
 	{"link", 1, "link basename [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
-	{"linstretch", 1, "linstretch -BP= [channels]", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"linstretch", 1, "linstretch -BP= [-sat] [channels]", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"livestack", 1, "livestack filename", process_livestack, STR_LIVESTACK, TRUE, REQ_CMD_NONE},
 	{"load", 1, "load filename[.ext]", process_load, STR_LOAD, TRUE, REQ_CMD_NONE},
 	// specific loads are not required, but could be used to force the
@@ -172,7 +172,7 @@ static command commands[] = {
 	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vertical]", process_seq_fixbanding, STR_SEQFIXBANDING, TRUE, REQ_CMD_NONE},
 	{"seqinvght", 2, "seqinvght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_invght, STR_SEQINVGHT, TRUE, REQ_CMD_NONE},
 	{"seqinvmodasinh", 2, "seqinvmodasinh sequence -D= [-LP=] [-SP=] [-HP=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_invmodasinh, STR_SEQINVMODASINH, TRUE, REQ_CMD_NONE},
-	{"seqlinstretch", 2, "seqlinstretch sequence -BP= [channels] [-prefix=]", process_seq_linstretch, STR_SEQLINSTRETCH, TRUE, REQ_CMD_NONE},
+	{"seqlinstretch", 2, "seqlinstretch sequence -BP= [channels] [-sat] [-prefix=]", process_seq_linstretch, STR_SEQLINSTRETCH, TRUE, REQ_CMD_NONE},
 	{"seqmerge_cfa", 2, "seqmerge_cfa sequencename bayerpattern [-prefixin=] [-prefixout=]", process_seq_merge_cfa, STR_SEQMERGE_CFA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqmodasinh", 2, "seqmodasinh sequence -D= [-LP=] [-SP=] [-HP=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_modasinh, STR_SEQINVMODASINH, TRUE, REQ_CMD_NONE},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [channels] [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE, REQ_CMD_NONE},
