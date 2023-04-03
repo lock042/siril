@@ -78,6 +78,49 @@ static char* profile_tmpfile()
     return tmp_filename;
 }
 
+void reset_cut_gui_filedependent() { // Searated out to avoid having to repeat too much after opening a new file
+	GtkWidget *colorbutton = (GtkWidget*) lookup_widget("cut_radio_color");
+	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
+	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
+	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
+		gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
+}
+
+static void reset_cut_gui() {
+	GtkToggleButton *radio_mono = (GtkToggleButton*) lookup_widget("cut_radio_mono");
+	gtk_toggle_button_set_active(radio_mono, TRUE);
+	GtkToggleButton *measure = (GtkToggleButton*) lookup_widget("cut_measure_profile");
+	gtk_toggle_button_set_active(measure, FALSE);
+	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
+	gtk_toggle_button_set_active(save_dat, FALSE);
+	GtkToggleButton *save_png = (GtkToggleButton*) lookup_widget("cut_save_png");
+	gtk_toggle_button_set_active(save_png, FALSE);
+	GtkSpinButton *cut_startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
+	GtkSpinButton *cut_starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
+	GtkSpinButton *cut_finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
+	GtkSpinButton *cut_finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
+	gtk_spin_button_set_value(cut_startx, -1);
+	gtk_spin_button_set_value(cut_starty, -1);
+	gtk_spin_button_set_value(cut_finishx, -1);
+	gtk_spin_button_set_value(cut_finishy, -1);
+	GtkSpinButton *cut_width = (GtkSpinButton*) lookup_widget("cut_spin_width");
+	GtkSpinButton *cut_wn1 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber1");
+	GtkSpinButton *cut_wn2 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber2");
+	gtk_spin_button_set_value(cut_width, 1);
+	gtk_spin_button_set_value(cut_wn1, -1);
+	gtk_spin_button_set_value(cut_wn2, -1);
+	GtkLabel *wn1x = (GtkLabel*) lookup_widget("label_wn1_x");
+	GtkLabel *wn1y = (GtkLabel*) lookup_widget("label_wn1_y");
+	GtkLabel *wn2x = (GtkLabel*) lookup_widget("label_wn2_x");
+	GtkLabel *wn2y = (GtkLabel*) lookup_widget("label_wn2_y");
+	gtk_label_set_text(wn1x, "");
+	gtk_label_set_text(wn1y, "");
+	gtk_label_set_text(wn2x, "");
+	gtk_label_set_text(wn2y, "");
+	reset_cut_gui_filedependent();
+}
+
 void initialize_cut_struct(cut_struct *arg) {
 	arg->fit = &gfit;
 	arg->seq = NULL;
@@ -102,6 +145,8 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->save_dat = FALSE;
 	arg->save_png_too = FALSE;
 	arg->vport = -1;
+	if (!com.script)
+		reset_cut_gui();
 }
 
 void free_cut_args(cut_struct *arg) {
@@ -194,11 +239,11 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 	return TRUE;
 
 }
-
-int sign(double x) {
+/*
+static int sign(double x) {
 	return x < 0. ? -1 : x > 0. ? 1 : 0;
 }
-
+*/
 void measure_line(fits *fit, point start, point finish) {
 	int deg = -1;
 	point delta = { finish.x - start.x, finish.y - start.y };
@@ -891,6 +936,7 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		gui.cut.fit = &gfit;
 		gui.cut.seq = NULL;
 		gui.cut.vport = gui.cvport;
+		gui.cut.display_graph = TRUE;
 		if (gui.cut.tri) {
 			siril_debug_print("Tri-profile\n");
 			start_in_new_thread(tri_cut, &gui.cut);
@@ -898,11 +944,13 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			siril_debug_print("CFA profiling\n");
 			start_in_new_thread(cfa_cut, &gui.cut);
 		} else {
-			if (gtk_toggle_button_get_active(cut_color))
+			if (gtk_toggle_button_get_active(cut_color)) {
+				siril_debug_print("Color profiling\n");
 				gui.cut.mode = CUT_COLOR;
-			else
+			} else {
+				siril_debug_print("Mono profiling\n");
 				gui.cut.mode = CUT_MONO;
-			gui.cut.display_graph = TRUE;
+			}
 			start_in_new_thread(cut_profile, &gui.cut);
 		}
 	}
@@ -950,7 +998,7 @@ void on_cut_spectroscopic_button_clicked(GtkButton* button, gpointer user_data) 
 void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	GtkWidget* colorbutton = lookup_widget("cut_radio_color");
 	GtkWidget* cfabutton = lookup_widget("cut_cfa");
-	gtk_widget_set_sensitive(colorbutton, (gui.cut.fit->naxes[2] == 3));
+	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
 	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
 	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
 		gtk_widget_set_sensitive(cfabutton, !cfa_disabled);

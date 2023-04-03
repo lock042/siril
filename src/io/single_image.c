@@ -305,6 +305,8 @@ int open_single_image(const char* filename) {
 			else end_open_single_image(NULL);
 		}
 	}
+	if (!com.script)
+		reset_cut_gui_filedependent();
 	return retval;
 }
 
