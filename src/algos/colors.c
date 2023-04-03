@@ -239,26 +239,6 @@ void rgb_to_hsl(double r, double g, double b, double *h, double *s, double *l) {
 	*h = 0.0;
 	*s = 0.0;	// init values
 
-
-	v = max(r, g);
-	v = max(v, b);
-	m = min(r, g);
-	m = min(m, b);
-	*h = 0.0;
-	*s = 0.0;	// init values
-
-	if ((*l = (m + v) / 2.0) <= 0.0) {
-		*l = 0.0;
-		return;
-	}
-	if ((*s = vm = v - m) > 0.0) {
-		*s /= (*l <= 0.5) ? (v + m) : (2.0 - v - m);
-	} else
-		return;
-
-	r2 = (v - r) / vm;
-	g2 = (v - g) / vm;
-	b2 = (v - b) / vm;
 	if ((*l = (m + v) / 2.0) <= 0.0) {
 		*l = 0.0;
 		return;
@@ -354,26 +334,6 @@ void rgb_to_hslf(float r, float g, float b, float *h, float *s, float *l) {
 	*h = 0.f;
 	*s = 0.f;	// init values
 
-
-	v = max(r, g);
-	v = max(v, b);
-	m = min(r, g);
-	m = min(m, b);
-	*h = 0.f;
-	*s = 0.f;	// init values
-
-	if ((*l = (m + v) / 2.f) <= 0.f) {
-		*l = 0.f;
-		return;
-	}
-	if ((*s = vm = v - m) > 0.f) {
-		*s /= (*l <= 0.5f) ? (v + m) : (2.f - v - m);
-	} else
-		return;
-
-	r2 = (v - r) / vm;
-	g2 = (v - g) / vm;
-	b2 = (v - b) / vm;
 	if ((*l = (m + v) / 2.f) <= 0.f) {
 		*l = 0.f;
 		return;
