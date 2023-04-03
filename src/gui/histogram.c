@@ -953,6 +953,11 @@ static void clear_hsl() {
 	satbuf_working = NULL;
 	free(lumbuf);
 	lumbuf = NULL;
+	gsl_histogram_free(com.sat_hist);
+	com.sat_hist = NULL;
+	gsl_histogram_free(hist_sat_backup);
+	hist_sat_backup = NULL;
+
 }
 
 
@@ -1659,8 +1664,8 @@ void on_payneType_changed(GtkComboBox *combo, gpointer user_data) {
 }
 
 void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_data) {
-	_payne_colourstretchmodel = gtk_combo_box_get_active(combo);
-	if (_payne_colourstretchmodel == COL_SAT) {
+	int tmp = gtk_combo_box_get_active(combo);
+	if (tmp == COL_SAT) {
 		if (gfit.naxes[2] != 3) {
 			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
 			_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model."));
@@ -1671,12 +1676,13 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 			reset_cursors_and_values();
 			histo_close(TRUE, TRUE);
 			setup_hsl();
+			_payne_colourstretchmodel= tmp;
 			histo_startup();
 			set_cursor_waiting(FALSE);
 		}
 	} else {
 		if (!(do_channel[0] && do_channel[1] && do_channel[2])) {
-			if (_payne_colourstretchmodel == COL_HUMANLUM) {
+			if (tmp == COL_HUMANLUM) {
 			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
 				_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model."));
 			gtk_combo_box_set_active(combo, COL_EVENLUM);
@@ -1688,6 +1694,7 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 	reset_cursors_and_values();
 	histo_close(TRUE, TRUE);
 	clear_hsl();
+	_payne_colourstretchmodel = tmp;
 	histo_startup();
 	set_cursor_waiting(FALSE);
 }
