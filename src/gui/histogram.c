@@ -922,7 +922,7 @@ static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct ght_data *m_args = (struct ght_data*) args->user;
-	if (_payne_colourstretchmodel == COL_SAT)
+	if (m_args->params_ght->payne_colourstretchmodel == COL_SAT)
 		apply_sat_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
 	else
 		apply_linked_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
