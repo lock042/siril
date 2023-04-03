@@ -558,18 +558,13 @@ END:
 	}
 	g_free(arg->filename);
 	arg->filename = NULL;
-	free(imagefilename);
-	imagefilename = NULL;
+	g_free(filename);
+	g_free(imagefilename);
 	g_free(legend);
-	legend = NULL;
 	free(x);
-	x = NULL;
 	free(r);
-	r = NULL;
 	free(g);
-	g = NULL;
 	free(b);
-	b = NULL;
 	arg->vport = -1;
 	gboolean in_sequence = (arg->seq != NULL);
 	if (arg != &gui.cut)
@@ -705,20 +700,17 @@ END:
 		if (g_unlink(filename))
 			siril_debug_print("Error in g_unlink()\n");
 	}
+	g_free(arg->filename);
+	arg->filename = NULL;
 	g_free(filename);
-	filename = NULL;
-	free(imagefilename);
-	imagefilename = NULL;
+	g_free(imagefilename);
 	free(x);
-	x = NULL;
 	for (int i = 0 ; i < 3 ; i++) {
 		free(r[i]);
-		r[i] = NULL;
 	}
 	gboolean in_sequence = (arg->seq != NULL);
 	if (arg != &gui.cut)
 		free(arg);
-
 	if (!in_sequence)
 		siril_add_idle(end_generic, NULL);
 	return GINT_TO_POINTER(retval);
@@ -834,15 +826,13 @@ END:
 		if (g_unlink(filename))
 			siril_debug_print("Error in g_unlink()\n");
 	}
-	g_free(filename);
+	g_free(arg->filename);
 	arg->filename = NULL;
-	free(imagefilename);
-	imagefilename = NULL;
+	g_free(filename);
+	g_free(imagefilename);
 	free(x);
-	x = NULL;
 	for (int i = 0 ; i < 4 ; i++) {
 		free(r[i]);
-		r[i] = NULL;
 		clearfits(&cfa[i]);
 	}
 	gboolean in_sequence = (arg->seq != NULL);
