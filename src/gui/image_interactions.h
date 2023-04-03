@@ -34,6 +34,12 @@ typedef enum {
 	MOUSE_ACTION_CUT_WN2,
 } mouse_status_enum;
 
+typedef enum {
+	CUT_NOT_CUTTING,
+	CUT_UNCONSTRAINED,
+	CUT_VERT_OR_HORIZ
+} cut_method;
+
 void init_mouse();
 
 extern mouse_status_enum mouse_status;	// defined in registration_preview.c

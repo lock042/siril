@@ -43,6 +43,7 @@
 #include "registration_preview.h"
 
 mouse_status_enum mouse_status;
+cut_method cutting;
 
 // caching widgets
 static GtkWidget *rotation_dlg = NULL;
@@ -472,9 +473,9 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					gui.cut.cut_end.x = -1.;
 					gui.cut.cut_end.y = -1.;
 					if (event->state & GDK_SHIFT_MASK) {
-						gui.cutting = CUT_VERT_OR_HORIZ;
+						cutting = CUT_VERT_OR_HORIZ;
 					} else {
-						gui.cutting = CUT_UNCONSTRAINED;
+						cutting = CUT_UNCONSTRAINED;
 					}
 					gui.cut.cut_start.x = zoomed.x;
 					gui.cut.cut_start.y = zoomed.y;
@@ -617,7 +618,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			point tmp;
 			tmp.x = zoomed.x;
 			tmp.y = zoomed.y;
-			if (gui.cutting == CUT_VERT_OR_HORIZ) {
+			if (cutting == CUT_VERT_OR_HORIZ) {
 				if (abs(tmp.y - gui.cut.cut_start.y) > abs(tmp.x - gui.cut.cut_start.x)) {
 					tmp.x = gui.cut.cut_start.x;
 				} else {
@@ -631,7 +632,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			if (gui.cut.cut_measure) {
 				measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end);
 			}
-			gui.cutting = CUT_NOT_CUTTING;
+			cutting = CUT_NOT_CUTTING;
 			redraw(REDRAW_OVERLAY);
 			// Deselect the Cut button once the cut is made
 			GtkWidget *cut_dialog = lookup_widget("cut_dialog");
@@ -846,15 +847,15 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 		gui.display_offset.y += delta.y;
 		adjust_vport_size_to_image();
 		redraw(REDRAW_OVERLAY);
-	} else if (gui.cutting) {	// button 1 down, dragging a line for the pixel profile cut
+	} else if (cutting) {	// button 1 down, dragging a line for the pixel profile cut
 		if (event->state & GDK_SHIFT_MASK)
-			gui.cutting = CUT_VERT_OR_HORIZ;
+			cutting = CUT_VERT_OR_HORIZ;
 		else
-			gui.cutting = CUT_UNCONSTRAINED;
+			cutting = CUT_UNCONSTRAINED;
 		pointi tmp;
 		tmp.x = zoomed.x;
 		tmp.y = zoomed.y;
-		if (gui.cutting == CUT_VERT_OR_HORIZ) {
+		if (cutting == CUT_VERT_OR_HORIZ) {
 			if (abs(tmp.y - gui.cut.cut_start.y) > abs(tmp.x - gui.cut.cut_start.x)) {
 				tmp.x = gui.cut.cut_start.x;
 			} else {

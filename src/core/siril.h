@@ -589,7 +589,6 @@ struct guiinf {
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
 	cut_struct cut;				// Struct to hold data relating to intensity
 								// profile cuts
-	cut_method cutting;
 	pointi start;			// where the mouse was originally clicked to
 	pointi origin;			// where the selection was originally located
 	gboolean freezeX, freezeY;	// locked axis during modification of a selection

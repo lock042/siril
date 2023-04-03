@@ -86,11 +86,6 @@ typedef enum {
 	TORCH = 8,
 } starnet_version;
 
-typedef enum {
-	CUT_NOT_CUTTING,
-	CUT_UNCONSTRAINED,
-	CUT_VERT_OR_HORIZ
-} cut_method;
 
 /***********************************************************************************************/
 
