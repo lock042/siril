@@ -638,18 +638,20 @@ gpointer tri_cut(gpointer p) {
 	for (int offset = -1 ; offset < 2 ; offset++) {
 		double offstartx = arg->cut_start.x - (offset * point_spacing_y * arg->step);
 		double offstarty = starty + (offset * point_spacing_x * arg->step);
+		gboolean single_channel = (arg->vport == 0 || arg->vport == 1 || arg->vport == 2);
+		gboolean redvport = arg->vport < 3 ? arg->vport : 0;
 		for (int i = 0 ; i < nbr_points ; i++) {
 			x[i] = i * point_spacing;
 			if (hv) {
 				// Horizontal / vertical, no interpolation
-				r[offset+1][i] = nointerp(arg->fit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 0, arg->width, (int) point_spacing_x, (int) point_spacing_y);
+				r[offset+1][i] = nointerp(arg->fit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, redvport, arg->width, (int) point_spacing_x, (int) point_spacing_y);
 			} else {
 				// Neither horizontal nor vertical: interpolate
 				r[offset+1][i] = interp(arg->fit, (double) (offstartx + point_spacing_x * i),
-							(double) (offstarty + point_spacing_y * i), 0,
+							(double) (offstarty + point_spacing_y * i), redvport,
 							arg->width, point_spacing_x, point_spacing_y);
 			}
-			if (arg->fit->naxes[2] > 1) {
+			if (arg->fit->naxes[2] > 1 && (!single_channel)) {
 				if (abs(point_spacing_x == 1.) || abs(point_spacing_y == 1.)) { // Horizontal, no interpolation
 					r[offset+1][i] += nointerp(arg->fit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, 1,
 									arg->width, (int) point_spacing_x, (int) point_spacing_y);
@@ -669,7 +671,16 @@ gpointer tri_cut(gpointer p) {
 			}
 		}
 	}
-	gchar *titletext = g_strdup_printf("x L(-%dpx) L L(+%dpx)", (int) arg->step, (int) arg->step);
+	gchar *titletext = NULL;
+	if (arg->vport == 0)
+		titletext = g_strdup_printf("x R(-%dpx) R R(+%dpx)", (int) arg->step, (int) arg->step);
+	else if (arg->vport == 1)
+		titletext = g_strdup_printf("x G(-%dpx) G G(+%dpx)", (int) arg->step, (int) arg->step);
+	else if (arg->vport == 2)
+		titletext = g_strdup_printf("x B(-%dpx) B B(+%dpx)", (int) arg->step, (int) arg->step);
+	else
+		titletext = g_strdup_printf("x L(-%dpx) L L(+%dpx)", (int) arg->step, (int) arg->step);
+
 	retval = gnuplot_write_xrgb_dat(filename, x, r[0], r[1], r[2], nbr_points, titletext);
 	g_free(titletext);
 	if (retval) {
