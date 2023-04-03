@@ -418,7 +418,7 @@ gpointer cut_profile(gpointer p) {
 	delta.y = endy - starty;
 	double *x = NULL, *r = NULL, *g = NULL, *b = NULL;
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
-	if (length < 1.f) {
+	if (length < 1.) {
 		retval = 1;
 		goto END;
 	}
@@ -426,7 +426,7 @@ gpointer cut_profile(gpointer p) {
 	double point_spacing = length / nbr_points;
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
-	gboolean hv = ((point_spacing_x == 1.f) || (point_spacing_y == 1.f) || (point_spacing_x == -1.f) || (point_spacing_y == -1.f));
+	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
 
 	r = malloc(nbr_points * sizeof(double));
 	if (arg->fit->naxes[2] > 1) {
@@ -454,7 +454,7 @@ gpointer cut_profile(gpointer p) {
 						  arg->width, point_spacing_x, point_spacing_y);
 		}
 		if (arg->fit->naxes[2] > 1) {
-			if (abs(point_spacing_x == 1.f) || abs(point_spacing_y == 1.f)) { // Horizontal, no interpolation
+			if (abs(point_spacing_x == 1.) || abs(point_spacing_y == 1.)) { // Horizontal, no interpolation
 				g[i] = nointerp(arg->fit, arg->cut_start.x + point_spacing_x * i, starty + point_spacing_y * i, 1,
 								arg->width, (int) point_spacing_x, (int) point_spacing_y);
 				b[i] = nointerp(arg->fit, arg->cut_start.x + point_spacing_x * i, starty + point_spacing_y * i, 2,
@@ -601,7 +601,7 @@ gpointer tri_cut(gpointer p) {
 	delta.y = endy - starty;
 	double *x = NULL, *r[3] = { 0 };
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
-	if (length < 1.f) {
+	if (length < 1.) {
 		retval = 1;
 		goto END;
 	}
@@ -609,7 +609,7 @@ gpointer tri_cut(gpointer p) {
 	double point_spacing = length / nbr_points;
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
-	gboolean hv = ((point_spacing_x == 1.f) || (point_spacing_y == 1.f) || (point_spacing_x == -1.f) || (point_spacing_y == -1.f));
+	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
 	for (int i = 0 ; i < 3 ; i++)
 		r[i] = malloc(nbr_points * sizeof(double));
 	x = malloc(nbr_points * sizeof(double));
@@ -764,7 +764,7 @@ gpointer cfa_cut(gpointer p) {
 	double endy = (arg->fit->ry / 2) - 1 - cut_end_cfa.y;
 	point delta = { cut_end_cfa.x - cut_start_cfa.x, endy - starty };
 	double length = sqrt(delta.x * delta.x + delta.y * delta.y);
-	if (length < 1.f) {
+	if (length < 1.) {
 		retval = 1;
 		goto END;
 	}
@@ -772,7 +772,7 @@ gpointer cfa_cut(gpointer p) {
 	double point_spacing = length / nbr_points;
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
-	gboolean hv = ((point_spacing_x == 1.f) || (point_spacing_y == 1.f) || (point_spacing_x == -1.f) || (point_spacing_y == -1.f));
+	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
 	for (int i = 0 ; i < 4 ; i++)
 		r[i] = malloc(nbr_points * sizeof(double));
 	x = malloc(nbr_points * sizeof(double));
