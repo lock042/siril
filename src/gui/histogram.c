@@ -131,7 +131,7 @@ static void init_toggles() {
 }
 
 static void histo_startup() {
-	if (gfit.naxes[2] == 3)
+	if (gfit.naxes[2] == 3 && _payne_colourstretchmodel == COL_SAT)
 		setup_hsl();
 	init_toggles();
 	do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
@@ -142,7 +142,8 @@ static void histo_startup() {
 	compute_histo_for_gfit();
 	for (int i = 0; i < gfit.naxes[2]; i++)
 		hist_backup[i] = gsl_histogram_clone(com.layers_hist[i]);
-	hist_sat_backup = gsl_histogram_clone(com.sat_hist);
+	if (com.sat_hist)
+		hist_sat_backup = gsl_histogram_clone(com.sat_hist);
 }
 
 static void histo_close(gboolean revert, gboolean update_image_if_needed) {
@@ -160,7 +161,7 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 		}
 	}
 	// free data
-	if(!sequence_working) {
+	if(!sequence_working && !revert) {
 		clear_hsl();
 	}
 	clear_backup();
@@ -886,7 +887,7 @@ void compute_histo_for_gfit() {
 		if (!com.layers_hist[i])
 			set_histogram(computeHisto(&gfit, i), i);
 	}
-	if (nb_layers == 3)
+	if (nb_layers == 3 && satbuf_working)
 		set_sat_histogram(computeHistoSat(satbuf_working));
 	set_histo_toggles_names();
 }
@@ -939,6 +940,8 @@ static void setup_hsl() {
 		free(lumbuf);
 	lumbuf = malloc(gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float));
 	gfit_to_hsl();
+	set_sat_histogram(computeHistoSat(satbuf_working));
+	hist_sat_backup = gsl_histogram_clone(com.sat_hist);
 }
 
 static void clear_hsl() {
@@ -1657,7 +1660,21 @@ void on_payneType_changed(GtkComboBox *combo, gpointer user_data) {
 
 void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_data) {
 	_payne_colourstretchmodel = gtk_combo_box_get_active(combo);
-	if (_payne_colourstretchmodel != COL_SAT) {
+	if (_payne_colourstretchmodel == COL_SAT) {
+		if (gfit.naxes[2] != 3) {
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+			_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model."));
+			gtk_combo_box_set_active(combo, COL_INDEP);
+			_payne_colourstretchmodel = COL_INDEP;
+		} else {
+			set_cursor_waiting(TRUE);
+			reset_cursors_and_values();
+			histo_close(TRUE, TRUE);
+			setup_hsl();
+			histo_startup();
+			set_cursor_waiting(FALSE);
+		}
+	} else {
 		if (!(do_channel[0] && do_channel[1] && do_channel[2])) {
 			if (_payne_colourstretchmodel == COL_HUMANLUM) {
 			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
@@ -1665,16 +1682,13 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 			gtk_combo_box_set_active(combo, COL_EVENLUM);
 			_payne_colourstretchmodel = COL_EVENLUM;
 			}
-			if (_payne_colourstretchmodel == COL_SAT) {
-			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
-				_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model."));
-			gtk_combo_box_set_active(combo, COL_INDEP);
-			_payne_colourstretchmodel = COL_INDEP;
-			}
 		}
 	}
 	set_cursor_waiting(TRUE);
-	histo_update_preview();
+	reset_cursors_and_values();
+	histo_close(TRUE, TRUE);
+	clear_hsl();
+	histo_startup();
 	set_cursor_waiting(FALSE);
 }
 
