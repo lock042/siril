@@ -142,8 +142,11 @@ static void histo_startup() {
 	compute_histo_for_gfit();
 	for (int i = 0; i < gfit.naxes[2]; i++)
 		hist_backup[i] = gsl_histogram_clone(com.layers_hist[i]);
-	if (com.sat_hist)
+	if (com.sat_hist) {
+		if (hist_sat_backup)
+			gsl_histogram_free(hist_sat_backup);
 		hist_sat_backup = gsl_histogram_clone(com.sat_hist);
+	}
 }
 
 static void histo_close(gboolean revert, gboolean update_image_if_needed) {
@@ -941,6 +944,8 @@ static void setup_hsl() {
 	lumbuf = malloc(gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float));
 	gfit_to_hsl();
 	set_sat_histogram(computeHistoSat(satbuf_working));
+	if (hist_sat_backup)
+		gsl_histogram_free(hist_sat_backup);
 	hist_sat_backup = gsl_histogram_clone(com.sat_hist);
 }
 
