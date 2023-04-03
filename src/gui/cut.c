@@ -40,7 +40,7 @@
 
 static gboolean no_gnuplot_warning_given = FALSE;
 
-char* profile_tmpfile()
+static char* profile_tmpfile()
 {
     static char const * tmp_filename_template = "profile_tmpdatafile_XXXXXX";
     char *              tmp_filename = NULL;
@@ -230,14 +230,14 @@ void measure_line(fits *fit, point start, point finish) {
 		siril_log_color_message(_("Warning: angular measurement > 10º. Error is > 1%\n"), "salmon");
 }
 
-gboolean spectroscopy_selections_are_valid(cut_struct *arg) {
+static gboolean spectroscopy_selections_are_valid(cut_struct *arg) {
 	gboolean a = (arg->wavenumber1 != arg->wavenumber2) && (arg->wavenumber1 > 0.0) && (arg->wavenumber2 > 0.0);
 	gboolean b = (arg->cut_wn1.x >= 0) && (arg->cut_wn1.y >= 0) && (arg->cut_wn2.x >= 0) && (arg->cut_wn2.y >= 0) && (arg->cut_wn1.x < arg->fit->rx) && (arg->cut_wn1.y < arg->fit->ry) && (arg->cut_wn2.x < arg->fit->rx) && (arg->cut_wn2.y < arg->fit->ry);
 	gboolean c = (!((arg->cut_wn1.x == arg->cut_wn2.x) && (arg->cut_wn1.y == arg->cut_wn2.y)));
 	return a && b && c;
 }
 
-double interpf(fits* fit, double x, double y, int chan) {
+static double interpf(fits* fit, double x, double y, int chan) {
 	if (chan >= fit->naxes[2])
 		return -DBL_MAX;
 	int w = fit->rx;
@@ -259,7 +259,7 @@ double interpf(fits* fit, double x, double y, int chan) {
 	return (double) interp;
 }
 
-double interpw(fits* fit, double x, double y, int chan) {
+static double interpw(fits* fit, double x, double y, int chan) {
 	if (chan >= fit->naxes[2])
 		return -DBL_MAX;
 	int w = fit->rx;
@@ -281,7 +281,7 @@ double interpw(fits* fit, double x, double y, int chan) {
 	return (double) interp;
 }
 
-double interp(fits *fit, double x, double y, int chan, int num, double dx, double dy) {
+static double interp(fits *fit, double x, double y, int chan, int num, double dx, double dy) {
 	double val = 0.0;
 	int hw = (num - 1) / 2;
 	for (int i = -hw ; i < hw + 1 ; i++) {
@@ -302,7 +302,7 @@ double interp(fits *fit, double x, double y, int chan, int num, double dx, doubl
 	return val;
 }
 
-double nointerpf(fits *fit, int x, int y, int chan) {
+static double nointerpf(fits *fit, int x, int y, int chan) {
 	int w = fit->rx;
 	int h = fit->ry;
 	if (x < 0 || x > w-1 || y < 0 || y > h-1)
@@ -311,7 +311,7 @@ double nointerpf(fits *fit, int x, int y, int chan) {
 	return val;
 }
 
-double nointerpw(fits *fit, int x, int y, int chan) {
+static double nointerpw(fits *fit, int x, int y, int chan) {
 	int w = fit->rx;
 	int h = fit->ry;
 	if (x < 0 || x > w-1 || y < 0 || y > h-1)
@@ -320,7 +320,7 @@ double nointerpw(fits *fit, int x, int y, int chan) {
 	return val;
 }
 
-double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
+static double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
 	double val = 0.0;
 	int hw = (num - 1) / 2;
 	for (int i = -hw ; i < hw + 1 ; i++) {
@@ -342,7 +342,7 @@ double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
 	return val;
 }
 
-void calc_zero_and_spacing(cut_struct *arg, double *zero, double *spectro_spacing) {
+static void calc_zero_and_spacing(cut_struct *arg, double *zero, double *spectro_spacing) {
 	point wndelta = { (double) arg->cut_wn2.x - arg->cut_wn1.x , (double) arg->cut_wn2.y - arg->cut_wn1.y };
 	double wndiff_dist = sqrt(wndelta.x * wndelta.x + wndelta.y * wndelta.y);
 	double wndiff = arg->wavenumber2 - arg->wavenumber1;
@@ -355,56 +355,62 @@ void calc_zero_and_spacing(cut_struct *arg, double *zero, double *spectro_spacin
 	return;
 }
 
+static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **imagefilename, gboolean *hastmpfile) {
+	gchar *temp = NULL, *tempfilename = NULL;
+	if (arg->filename) {
+		*filename = g_strdup(arg->filename);
+	} else {
+		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
+			temp = g_path_get_basename(com.uniq->filename);
+			*filename = g_strdup_printf("profile_%s_%s.dat", temp, build_timestamp_filename());
+			g_free(temp);
+			temp = NULL;
+		} else if (arg->seq) {
+			char* seq_image_canonical_name = calloc(256, 1);
+			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
+			*filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
+			free(seq_image_canonical_name);
+		} else if (sequence_is_loaded()) { // when sequence is loaded in the GUI and we only apply cut to the currently loaded image
+			char* seq_image_canonical_name = calloc(256, 1);
+			seq_get_image_filename(&com.seq, com.seq.current, seq_image_canonical_name);
+			*filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
+			free(seq_image_canonical_name);
+		} else {
+			*filename = g_strdup_printf("profile_%s", build_timestamp_filename());
+			siril_debug_print("%s\n", arg->filename);
+		}
+		tempfilename = profile_tmpfile();
+		if (!(arg->save_dat || arg->seq))
+			*hastmpfile = TRUE;
+	}
+	printf("Filename: %s\n", *filename);
+	temp = g_path_get_basename(*filename);
+	*imagefilename = replace_ext(temp, ".png");
+	g_free(temp);
+	temp = NULL;
+	if (*hastmpfile) {
+		g_free(*filename);
+		*filename = g_strdup(tempfilename);
+		free(tempfilename);
+	}
+}
+
 gpointer cut_profile(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
 	gchar* legend = NULL;
 	int retval = 0;
 	gnuplot_ctrl *gplot = NULL;
 	gboolean tmpfile = FALSE;
-	char *filename = NULL, *tempfilename = NULL, *imagefilename = NULL;
-	gchar *temp = NULL;
+	gchar *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
+
+	build_profile_filenames(arg, &filename, &imagefilename, &tmpfile);
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
-		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), arg->filename);
+		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
 		gplot = gnuplot_init();
-	}
-	if (arg->filename) {
-		filename = arg->filename;
-	} else {
-		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
-			temp = g_path_get_basename(com.uniq->filename);
-			filename = g_strdup_printf("profile_%s_%s.dat", temp, build_timestamp_filename());
-			g_free(temp);
-		} else if (arg->seq) {
-			char* seq_image_canonical_name = calloc(256, 1);
-			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
-			filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
-			free(seq_image_canonical_name);
-		} else if (sequence_is_loaded()) {
-			char* seq_image_canonical_name = calloc(256, 1);
-			seq_get_image_filename(&com.seq, com.seq.current, seq_image_canonical_name);
-			filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
-			free(seq_image_canonical_name);
-		} else {
-			filename = g_strdup_printf("profile_%s", build_timestamp_filename());
-			siril_debug_print("%s\n", arg->filename);
-		}
-		tempfilename = profile_tmpfile();
-		if (!(arg->save_dat || arg->seq))
-			tmpfile = TRUE;
-	}
-	printf("Filename: %s\n", filename);
-	temp = g_path_get_basename(filename);
-	imagefilename = replace_ext(temp, ".png");
-	g_free(temp);
-	temp = NULL;
-	if (tmpfile) {
-		g_free(filename);
-		filename = g_strdup(tempfilename);
-		free(tempfilename);
 	}
 
 	point delta;
@@ -577,47 +583,19 @@ gpointer tri_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
 	int retval = 0;
 	gboolean tmpfile = FALSE;
-	char *filename = NULL, *tempfilename = NULL, *imagefilename = NULL;
-	gchar *temp = NULL;
+	char *filename = NULL, *imagefilename = NULL;
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
 	gboolean use_gnuplot = gnuplot_is_available();
 	gnuplot_ctrl *gplot = NULL;
-	if (use_gnuplot) {
+
+	build_profile_filenames(arg, &filename, &imagefilename, &tmpfile);
+	if (!use_gnuplot) {
+		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
+	} else {
 		gplot = gnuplot_init();
-	} else {
-		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), arg->filename);
 	}
-	if (arg->filename) {
-		filename = arg->filename;
-	} else {
-		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
-			temp = g_path_get_basename(com.uniq->filename);
-			filename = g_strdup_printf("profile_%s_%s.dat", temp, build_timestamp_filename());
-			g_free(temp);
-			temp = NULL;
-		} else if (arg->seq) {
-			char* seq_image_canonical_name = calloc(256, 1);
-			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
-			filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
-			free(seq_image_canonical_name);
-		} else {
-			filename = g_strdup_printf("profile_%s", build_timestamp_filename());
-			siril_debug_print("%s\n", arg->filename);
-		}
-		tempfilename = profile_tmpfile();
-		if (!(arg->save_dat || arg->seq))
-			tmpfile = TRUE;
-	}
-	temp = g_path_get_basename(filename);
-	imagefilename = replace_ext(temp, ".png");
-	g_free(temp);
-	temp = NULL;
-	if (tmpfile) {
-		g_free(filename);
-		filename = g_strdup(tempfilename);
-		free(tempfilename);
-	}
+
 	point delta;
 	delta.x = arg->cut_end.x - arg->cut_start.x;
 	delta.y = endy - starty;
@@ -751,16 +729,17 @@ gpointer cfa_cut(gpointer p) {
 	int retval = 0, ret = 0;
 	gboolean tmpfile = FALSE;
 	double *x = NULL, *r[4] = { 0 };
-	char *filename = NULL, *tempfilename = NULL, *imagefilename = NULL;
-	gchar *temp = NULL;
+	char *filename = NULL,*imagefilename = NULL;
 	fits cfa[4];
 	memset(cfa, 0, 4 * sizeof(fits));
 	gboolean use_gnuplot = gnuplot_is_available();
 	gnuplot_ctrl *gplot = NULL;
-	if (use_gnuplot) {
-		gplot = gnuplot_init();
+
+	build_profile_filenames(arg, &filename, &imagefilename, &tmpfile);
+	if (!use_gnuplot) {
+		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
-		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), arg->filename);
+		gplot = gnuplot_init();
 	}
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
@@ -776,35 +755,6 @@ gpointer cfa_cut(gpointer p) {
 			retval = 1;
 			goto END;
 		}
-	}
-	if (arg->filename) {
-		filename = arg->filename;
-	} else {
-		if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
-			temp = g_path_get_basename(com.uniq->filename);
-			filename = g_strdup_printf("profile_%s_%s.dat", temp, build_timestamp_filename());
-			g_free(temp);
-		} else if (arg->seq) {
-			char* seq_image_canonical_name = calloc(256, 1);
-			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
-			filename = g_strdup_printf("profile_%s.dat", seq_image_canonical_name);
-			free(seq_image_canonical_name);
-		} else {
-			filename = g_strdup_printf("profile_%s", build_timestamp_filename());
-			siril_debug_print("%s\n", arg->filename);
-		}
-		tempfilename = profile_tmpfile();
-		if (!(arg->save_dat || arg->seq))
-			tmpfile = TRUE;
-	}
-	temp = g_path_get_basename(filename);
-	imagefilename = replace_ext(temp, ".png");
-	g_free(temp);
-	temp = NULL;
-	if (tmpfile) {
-		g_free(filename);
-		filename = g_strdup(tempfilename);
-		free(tempfilename);
 	}
 
 	// Coordinates of profile start and endpoints in CFA space
@@ -1240,7 +1190,7 @@ static int cut_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 	return limit;
 }
 
-gboolean cut_idle_function(gpointer p) {
+static gboolean cut_idle_function(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *) p;
 	cut_struct *data = (cut_struct *) args->user;
 	free(data);
@@ -1248,7 +1198,7 @@ gboolean cut_idle_function(gpointer p) {
 	return retval;
 }
 
-int cut_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+static int cut_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	cut_struct *cut_args = (cut_struct*) args->user;
 	int ret = 0;
 	cut_struct *private_args = malloc(sizeof(cut_struct));
