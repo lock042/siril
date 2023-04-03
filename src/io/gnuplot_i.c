@@ -42,6 +42,7 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <unistd.h>
+#include <math.h>	// Required for definition of NAN
 
 #ifdef _WIN32
 #include <winsock2.h>

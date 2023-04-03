@@ -247,6 +247,8 @@ double interpf(fits* fit, double x, double y, int chan) {
 	int x1 = (int)(x) + 1;
 	int y0 = (int)(y);
 	int y1 = (int)(y) + 1;
+	if (x0 < 0 || x1 > w-1 || y0 < 0 || y1 > h-1)
+		return NAN;
 	float val00 = fit->fdata[x0 + y0 * w + npixels * chan];
 	float val01 = fit->fdata[x1 + y0 * w + npixels * chan];
 	float val10 = fit->fdata[x0 + y1 * w + npixels * chan];
@@ -267,6 +269,8 @@ double interpw(fits* fit, double x, double y, int chan) {
 	int x1 = (int)(x) + 1;
 	int y0 = (int)(y);
 	int y1 = (int)(y) + 1;
+	if (x0 < 0 || x1 > w-1 || y0 < 0 || y1 > h-1)
+		return NAN;
 	float val00 = (float) fit->data[x0 + y0 * w + npixels * chan];
 	float val01 = (float) fit->data[x1 + y0 * w + npixels * chan];
 	float val10 = (float) fit->data[x0 + y1 * w + npixels * chan];
@@ -279,25 +283,18 @@ double interpw(fits* fit, double x, double y, int chan) {
 
 double interp(fits *fit, double x, double y, int chan, int num, double dx, double dy) {
 	double val = 0.0;
-	double tmp;
 	int hw = (num - 1) / 2;
 	for (int i = -hw ; i < hw + 1 ; i++) {
 		switch (fit->type) {
 			case DATA_FLOAT:
-				tmp = interpf(fit, x + (i * dy), y + (i * dx), chan);
-				if (tmp == -DBL_MAX)
-					return tmp;
-				val += tmp;
+				val += interpf(fit, x + (i * dy), y + (i * dx), chan);
 				break;
 			case DATA_USHORT:
 
-				tmp = interpw(fit, x + (i * dy), y + (i * dx), chan);
-				if (tmp == -DBL_MAX)
-					return tmp;
-				val += tmp;
+				val = interpw(fit, x + (i * dy), y + (i * dx), chan);
 				break;
 			default:
-				return -DBL_MAX;
+				return NAN;
 				break;
 		}
 	}
@@ -308,6 +305,8 @@ double interp(fits *fit, double x, double y, int chan, int num, double dx, doubl
 double nointerpf(fits *fit, int x, int y, int chan) {
 	int w = fit->rx;
 	int h = fit->ry;
+	if (x < 0 || x > w-1 || y < 0 || y > h-1)
+		return NAN;
 	double val = (double) fit->fdata[x + y * w + w * h * chan];
 	return val;
 }
@@ -315,6 +314,8 @@ double nointerpf(fits *fit, int x, int y, int chan) {
 double nointerpw(fits *fit, int x, int y, int chan) {
 	int w = fit->rx;
 	int h = fit->ry;
+	if (x < 0 || x > w-1 || y < 0 || y > h-1)
+		return NAN;
 	double val = (double) fit->data[x + y * w + w * h * chan];
 	return val;
 }
@@ -333,7 +334,7 @@ double nointerp(fits *fit, int x, int y, int chan, int num, int dx, int dy) {
 				val += nointerpw(fit, x + (i * dy), y + (i * dx), chan);
 				break;
 			default:
-				return -DBL_MAX;
+				return NAN;
 				break;
 		}
 	}
