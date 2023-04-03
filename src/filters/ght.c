@@ -405,7 +405,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 	if (from->type == DATA_USHORT) {
 		float norm = get_normalized_value(from);
 		float invnorm = 1.0f / norm;
-		if (from->naxes[2] == 3 && params->payne_colourstretchmodel != COL_INDEP) {
+		if (from->naxes[2] == 3 && params->stretchtype != STRETCH_LINEAR && params->payne_colourstretchmodel != COL_INDEP) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
@@ -439,7 +439,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 			}
 		}
 	} else if (from->type == DATA_FLOAT) {
-		if (from->naxes[2] == 3 && params->payne_colourstretchmodel != COL_INDEP) {
+		if (from->naxes[2] == 3 && params->stretchtype != STRETCH_LINEAR && params->payne_colourstretchmodel != COL_INDEP) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif

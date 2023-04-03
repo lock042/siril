@@ -10,11 +10,12 @@
         "--share=network",
         "--socket=fallback-x11",
         "--socket=wayland",
-        "--filesystem=home",
+        "--filesystem=host",
         /* Needed for gvfs to work */
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfs",
-        "--filesystem=xdg-run/gvfsd"
+        "--filesystem=xdg-run/gvfsd",
+        "--share=network"
     ],
     "modules": [
         {
@@ -101,7 +102,7 @@
                         ]
                     }
                 }
-            },           
+            },
             "config-opts": [
                 "--enable-float",
                 "--enable-threads",
@@ -275,7 +276,7 @@
                 }
             ]
         },
-        
+
         "shared-modules/intltool/intltool-0.51.json",
         {
             "name": "siril",

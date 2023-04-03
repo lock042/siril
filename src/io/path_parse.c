@@ -379,6 +379,35 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 					g_free(fmtdate);
 				}
 			}
+		} else if (g_str_has_prefix(subs[1],"dt")) { // case dt (datetime)
+			char val[FLEN_VALUE];
+			if (!headerkeys) {
+				*status = 1;
+			} else {
+				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+				display_path_parse_error(*status, key);
+			}
+			if (*status > 0) {
+				g_strfreev(subs);
+				goto free_and_exit;
+			}
+			if (*status == 0) {
+				GDateTime *read_time = FITS_date_to_date_time(val);
+				if (!read_time) {
+					*status = nofail * PATHPARSE_ERR_WRONG_DATE;
+					display_path_parse_error(*status, key);
+					if (status > 0) {
+						g_strfreev(subs);
+						goto free_and_exit;
+					}
+				}
+				if (*status == 0) {
+					gchar *fmtdate = date_time_to_date_time(read_time);
+					strncpy(buf, fmtdate, FLEN_VALUE - 1);
+					g_date_time_unref(read_time);
+					g_free(fmtdate);
+				}
+			}
 		} else if (g_str_has_prefix(subs[1], "ra") || g_str_has_prefix(subs[1], "dec")) { // case ra and dec (str), ran and decn (num)
 			gboolean is_ra = g_str_has_prefix(subs[1],"ra");
 			gboolean is_float = g_str_has_suffix(subs[1],"n");
