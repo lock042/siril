@@ -1680,3 +1680,47 @@ float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
 	*newsize = j;
 	return buf;
 }
+
+float *extract_CFA_buffer_area_float(fits *fit, int layer, rectangle *bounds, size_t *newsize) {
+	BYTE pattern[36];	// red is 0, green is 1, blue is 2
+	int pattern_size;	// 2 or 6
+	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+		return NULL;
+	siril_debug_print("CFA buffer extraction with area\n");
+
+	// alloc buffer
+	size_t npixels = bounds->w * bounds->h;
+	float *buf = malloc(npixels * sizeof(float));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	float *input = fit->fdata;
+
+	// copy the pixels top-down
+	size_t j = 0;
+	int start_y = fit->ry - bounds->y - bounds-> h;
+	int pattern_y = start_y % pattern_size;
+	for (int y = start_y; y < fit->ry - bounds->y; y++) {
+		int pattern_idx_y = pattern_y * pattern_size;
+		size_t i = y * fit->rx + bounds->x;
+		for (int x = bounds->x; x < bounds->x + bounds->w; x++) {
+			int pattern_idx = pattern_idx_y + x % pattern_size;
+			if (pattern[pattern_idx] == layer)
+				buf[j++] = input[i];
+			i++;
+		}
+		pattern_y = (pattern_y + 1) % pattern_size;
+	}
+
+	void *tmp = realloc(buf, j * sizeof(float));
+	if (!tmp) {
+		free(buf);
+		PRINT_ALLOC_ERR;
+		return NULL;
+	} else {
+		buf = tmp;
+	}
+	*newsize = j;
+	return buf;
+}
