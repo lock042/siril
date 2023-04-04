@@ -1681,9 +1681,10 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 			reset_cursors_and_values();
 			histo_close(TRUE, TRUE);
 			setup_hsl();
-			_payne_colourstretchmodel= tmp;
+			_payne_colourstretchmodel = tmp;
 			histo_startup();
 			set_cursor_waiting(FALSE);
+			return;
 		}
 	} else {
 		if (!(do_channel[0] && do_channel[1] && do_channel[2])) {
@@ -1694,14 +1695,17 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 			_payne_colourstretchmodel = COL_EVENLUM;
 			}
 		}
+		if (_payne_colourstretchmodel == COL_SAT) {
+			set_cursor_waiting(TRUE);
+			reset_cursors_and_values();
+			histo_close(TRUE, TRUE);
+			clear_hsl();
+			_payne_colourstretchmodel = tmp;
+			histo_startup();
+			set_cursor_waiting(FALSE);
+			return;
+		}
 	}
-	set_cursor_waiting(TRUE);
-	reset_cursors_and_values();
-	histo_close(TRUE, TRUE);
-	clear_hsl();
-	_payne_colourstretchmodel = tmp;
-	histo_startup();
-	set_cursor_waiting(FALSE);
 }
 
 gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,

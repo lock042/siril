@@ -409,7 +409,7 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, size_t layersize, size_t nchans, 
 		float f[3];
 #pragma omp simd
 		for (size_t chan = 0; chan < 3 ; chan++)
-			f[chan] = fpbuf[chan][i];
+			f[chan] = max(0.f, min(1.f, fpbuf[chan][i]));
 		float fbar = (int) do_channel[0] * factor_red * f[0] + (int) do_channel[1] * factor_green * f[1] + (int) do_channel[2] * factor_blue * f[2];
 		float sfbar = GHTp(fbar, params, &compute_params);
 		float stretch_factor = (fbar == 0.f) ? 0.f : sfbar / fbar;
@@ -463,8 +463,10 @@ void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, siz
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
 			for (size_t i = 0; i < layersize; i++) {
-				float x = (float) fpbuf[chan][i];
-				fpout[chan][i] = (x == 0.0f) ? 0.0f : min(1.0f, max(0.0f, GHTp(x, params, &compute_params)));
+				// GHT is intended to operate on values in [0.f, 1.f]
+				// Clip to this range.
+				float x = min(1.f, max(0.f, fpbuf[chan][i]));
+				fpout[chan][i] = (x == 0.0f) ? 0.0f : GHTp(x, params, &compute_params);
 			}
 		}
 	}
