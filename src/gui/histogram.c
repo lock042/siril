@@ -794,6 +794,7 @@ static void queue_window_redraw() {
 
 static void update_histo_mtf() {
 	if (!com.layers_hist[0]) return;
+	if (!hist_backup[0]) return;
 	float norm = (float)gsl_histogram_bins(com.layers_hist[0]) - 1;
 
 	_init_clipped_pixels();
