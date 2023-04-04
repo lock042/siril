@@ -2,7 +2,8 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site imessage_dialog(GTK_MESSAGE_ERROR, _("Error"),
+						_(s https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -504,18 +505,15 @@ static void calculate_parameters() {
 				profiletype = com.stars[i]->profile;
 			}
 			else if (is_as != unit_is_arcsec) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
-						_("Stars FWHM must have the same units."));
+				siril_log_color_message(_("Error: all stars' FWHM must have the same units.\n"), "red");
 				return;
 			}
 			else if (layer != com.stars[i]->layer ) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
-						_("Stars properties must all be computed on the same layer"));
+				siril_log_color_message(_("Error: stars' properties must all be computed on the same layer"), "red");
 				return;
 			}
 			else if (profiletype != com.stars[i]->profile) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
-						_("Stars must all be modeled with the same profile type"));
+				siril_log_color_message(_("Error: stars must all be modeled with the same profile type"), "red");
 				return;
 			}
 			if (!com.stars[i]->has_saturated) {
@@ -707,7 +705,8 @@ int load_kernel(gchar* filename) {
 	if (load_fit.rx != load_fit.ry){
 		retval = 1;
 		char *msg = siril_log_color_message(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"), "red");
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
+		if (!com.script )
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
 		bad_load = TRUE;
 		goto ENDSAVE;
 	}
@@ -724,7 +723,7 @@ int load_kernel(gchar* filename) {
 	}
 	com.kernelchannels = load_fit.naxes[2];
 	args.kchans = com.kernelchannels;
-	if (!com.headless)
+	if (!com.headless && !com.script)
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")), com.kernelsize);
 
 	int npixels = com.kernelsize * com.kernelsize;
@@ -782,7 +781,8 @@ int load_kernel(gchar* filename) {
 	com.pref.debayer.open_debayer = original_debayer_setting;
 	clearfits(&load_fit);
 	ENDSAVE:
-	DrawPSF();
+	if (!com.script && !com.headless)
+		DrawPSF();
 	return retval;
 }
 
@@ -914,7 +914,8 @@ int get_kernel() {
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
 	com.kernelchannels = (!com.kernel) ? 0 : args.kchans;
 	if (args.psftype != PSF_PREVIOUS) {
-		DrawPSF();
+		if (!com.script && !com.headless)
+			DrawPSF();
 	}
 END:
 	return retval;
@@ -1066,6 +1067,10 @@ ENDEST:
 		args.save_after = FALSE;
 	}
 	siril_add_idle(estimate_idle, NULL);
+	if (com.script) {
+		free(args.fdata);
+		args.fdata = NULL;
+	}
 	return GINT_TO_POINTER(retval);
 }
 
@@ -1083,10 +1088,8 @@ void set_deconvolve_params() {
 
 gboolean deconvolve_idle(gpointer arg) {
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	if (args.fdata) {
-		free(args.fdata);
-		args.fdata = NULL;
-	}
+	free(args.fdata);
+	args.fdata = NULL;
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -1110,7 +1113,8 @@ gpointer deconvolve(gpointer p) {
 	gboolean stars_need_clearing = FALSE;
 	check_orientation();
 	if (sequence_is_running == 0)
-		DrawPSF();
+		if (!com.script && !com.headless)
+			DrawPSF();
 	args.nchans = the_fit->naxes[2];
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;
@@ -1144,7 +1148,6 @@ gpointer deconvolve(gpointer p) {
 		} else
 			stars_need_clearing = TRUE;
 	}
-
 	int fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 	cppmaxthreads = fftw_max_thread;
 	cppfftwflags = com.pref.fftw_conf.strategy;
@@ -1153,7 +1156,6 @@ gpointer deconvolve(gpointer p) {
 
 	set_cursor_waiting(TRUE);
 	set_wisdom_file();
-	siril_debug_print("Multi: %d, wisdom: %s\n", com.pref.fftw_conf.multithreaded, com.pref.fftw_conf.wisdom_file);
 	if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("Siril FFT wisdom imported successfully...\n"));
@@ -1165,7 +1167,8 @@ gpointer deconvolve(gpointer p) {
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
 	if (the_fit == &gfit)
-		undo_save_state(&gfit, _("Deconvolution"));
+		if (!com.script && !com.headless)
+			undo_save_state(&gfit, _("Deconvolution"));
 	args.ndata = the_fit->rx * the_fit->ry * the_fit->naxes[2];
 	args.fdata = malloc(args.ndata * sizeof(float));
 	if (the_fit->type == DATA_FLOAT)
@@ -1289,10 +1292,8 @@ ENDDECONV:
 	if (sequence_is_running == 0)
 		siril_add_idle(deconvolve_idle, NULL);
 	else {
-		if (args.fdata) {
-			free(args.fdata);
-			args.fdata = NULL;
-		}
+		free(args.fdata);
+		args.fdata = NULL;
 	}
 	return GINT_TO_POINTER(retval);
 }
