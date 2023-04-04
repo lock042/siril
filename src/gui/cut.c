@@ -1009,7 +1009,18 @@ void on_cut_spectro_cancel_button_clicked(GtkButton *button, gpointer user_data)
 }
 
 void on_cut_coords_cancel_button_clicked(GtkButton *button, gpointer user_data) {
+	GtkSpinButton* startx = (GtkSpinButton*) lookup_widget("cut_xstart_spin");
+	GtkSpinButton* finishx = (GtkSpinButton*) lookup_widget("cut_xfinish_spin");
+	GtkSpinButton* starty = (GtkSpinButton*) lookup_widget("cut_ystart_spin");
+	GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
 	siril_close_dialog("cut_coords_dialog");
+	// Reset coords widgets to match the values in the struct gui.cut
+	// Do this after the dialog is closed in order to avoid potential 
+	// momentary flickering of the widget values
+	gtk_spin_button_set_value(startx, gui.cut.cut_start.x);
+	gtk_spin_button_set_value(starty, gui.cut.cut_start.y);
+	gtk_spin_button_set_value(finishx, gui.cut.cut_end.x);
+	gtk_spin_button_set_value(finishy, gui.cut.cut_end.y);
 }
 
 void on_cut_coords_dialog_hide(GtkWindow *window, gpointer user_data) {
@@ -1034,11 +1045,16 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	int fx = (int) gtk_spin_button_get_value(finishx);
 	int fy = (int) gtk_spin_button_get_value(finishy);
 	siril_debug_print("start (%d, %d) finish (%d, %d)\n", sx, sy, fx, fy);
+	// Update the struct gui.cut with the entered values
+	// This is all done at once when Apply is clicked rather than individually in the
+	// GtkSpinButton callbacks in order to avoid the endpoints jumping about and the 
+	// line looking like it's in the wrong place.
 	gui.cut.cut_start.x = sx;
 	gui.cut.cut_start.y = sy;
 	gui.cut.cut_end.x = fx;
 	gui.cut.cut_end.y = fy;
 	redraw(REDRAW_OVERLAY);
+	siril_close_dialog("cut_coords_dialog");
 }
 
 void on_cut_wavenumber1_clicked(GtkButton *button, gpointer user_data) {
