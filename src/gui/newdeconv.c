@@ -2,8 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site imessage_dialog(GTK_MESSAGE_ERROR, _("Error"),
-						_(s https://free-astro.org/index.php/Siril
+ * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -655,37 +654,43 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	// Only allocate as much space for filenames as required - we determine the max pathlength
 	long pathmax = get_pathmax();
 	gchar *filename = NULL;
-	gchar *imagenoext = NULL;
-	gchar *imagenoextorig = NULL;
-	gchar *temp = NULL;
+	gchar *temp1 = NULL;
+	gchar *temp2 = NULL;
+	gchar *temp3 = NULL;
+	gchar *temp4 = NULL;
+	gchar *temp5 = NULL;
+	gchar *temp6 = NULL;
 	gchar kernelsuffix[10] = "_PSF";
 	// Set up paths and filenames
 	if (single_image_is_loaded())
-		imagenoextorig = g_path_get_basename(com.uniq->filename);
+		temp1 = g_path_get_basename(com.uniq->filename);
 	else if (sequence_is_loaded())
-		imagenoextorig = g_strdup(com.seq.seqname);
+		temp1 = g_strdup(com.seq.seqname);
 	else
-		imagenoextorig = g_strdup_printf("deconvolution");
-	imagenoext = g_strdup(imagenoextorig);
-	g_free(imagenoextorig);
-	imagenoext = g_strdup_printf("%s_%s", build_timestamp_filename(), imagenoext);
-	temp = g_build_filename(com.wd, imagenoext, NULL);
-	g_free(imagenoext);
-	imagenoext = remove_ext_from_filename(temp);
-	g_free(temp);
-	temp = g_strdup_printf("%s%s", imagenoext, kernelsuffix);
+		temp1 = g_strdup_printf("deconvolution");
+	temp2 = build_timestamp_filename();
+	temp3 = g_strdup_printf("%s_%s", temp2, temp1);
+	temp4 = g_build_filename(com.wd, temp3, NULL);
+	temp5 = remove_ext_from_filename(temp4);
+	temp6 = g_strdup_printf("%s%s", temp5, kernelsuffix);
 #ifdef HAVE_LIBTIFF
-	filename = g_strdup_printf("%s.tif", temp);
+	filename = g_strdup_printf("%s.tif", temp6);
 #else
-	filename = g_strdup_printf("%s.fit", temp);
+	filename = g_strdup_printf("%s.fit", temp6);
 #endif
 	if (strlen(filename) > pathmax) {
 		siril_log_color_message(_("Error: file path too long!\n"), "red");
 	} else {
 		save_kernel(filename);
 	}
-	g_free(imagenoext);
-	g_free(temp);
+	g_free(temp1);
+	g_free(temp2);
+	g_free(temp3);
+	g_free(temp4);
+	g_free(temp5);
+	g_free(temp6);
+	g_free(filename);
+
 	return;
 }
 
