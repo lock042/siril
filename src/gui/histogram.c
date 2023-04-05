@@ -963,9 +963,7 @@ static void clear_hsl() {
 	com.sat_hist = NULL;
 	gsl_histogram_free(hist_sat_backup);
 	hist_sat_backup = NULL;
-
 }
-
 
 /* Callback functions */
 
@@ -997,7 +995,7 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			}
 		}
 	}
-	if (_payne_colourstretchmodel == COL_SAT && gfit.naxes[2] == 3) {
+	if (invocation == GHT_STRETCH && _payne_colourstretchmodel == COL_SAT && gfit.naxes[2] == 3) {
 		display_histo(com.sat_hist, cr, -1, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
 		if (gtk_toggle_tool_button_get_active(toggleOrig))
 			display_histo(hist_sat_backup, cr, -2, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
@@ -1044,7 +1042,7 @@ void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
-	histo_close(TRUE, TRUE);
+	histo_close(FALSE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
 }
