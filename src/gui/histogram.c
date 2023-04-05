@@ -1705,6 +1705,15 @@ void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_dat
 			histo_startup();
 			set_cursor_waiting(FALSE);
 			return;
+		} else {
+			_payne_colourstretchmodel = tmp;
+			update_histo_mtf();
+			queue_window_redraw();
+			update_image *param = malloc(sizeof(update_image));
+			param->update_preview_fn = histo_update_preview;
+			param->show_preview = TRUE; // no need of preview button. This is always in preview
+			notify_update((gpointer) param);
+			return;
 		}
 	}
 }
