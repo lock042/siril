@@ -1042,7 +1042,7 @@ void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
 	reset_cursors_and_values();
-	histo_close(FALSE, TRUE);
+	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
 }
