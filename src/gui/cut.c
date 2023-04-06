@@ -84,7 +84,7 @@ void reset_cut_gui_filedependent() { // Searated out to avoid having to repeat t
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
 	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
 	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
-		gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
+	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 }
 
 static void reset_cut_gui() {

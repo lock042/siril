@@ -1410,6 +1410,11 @@ void initialize_all_GUI(gchar *supported_files) {
 	// init the Plot tab
 	drawPlot();
 
+	// init the cut structure
+	initialize_cut_struct(&gui.cut);
+	gui.measure_start = (point){ -1., -1. };
+	gui.measure_end = (point){ -1., -1. };
+
 	if (g_strcmp0(com.pref.gui.first_start, PACKAGE_VERSION)) {
 		com.pref.gui.first_start = g_strdup(PACKAGE_VERSION);
 		writeinitfile();
@@ -1632,12 +1637,6 @@ void load_main_window_state() {
 				gtk_window_resize(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), w, h);
 			}
 		}
-		initialize_cut_struct(&gui.cut);
-
-		gui.measure_start.x = -1;
-		gui.measure_start.y = -1;
-		gui.measure_end.x = -1;
-		gui.measure_end.y = -1;
 
 		/* Now we handle the main panel */
 		GtkPaned *paned = GTK_PANED(lookup_widget("main_panel"));
