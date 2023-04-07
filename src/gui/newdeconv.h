@@ -12,6 +12,7 @@ typedef struct deconvolution_sequence_data {
 } deconvolution_sequence_data;
 
 void reset_conv_args(estk_data* args);
+void reset_conv_kernel();
 
 int load_kernel(gchar* filename);
 int save_kernel(gchar* filename);
