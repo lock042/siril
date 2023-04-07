@@ -512,6 +512,12 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime), NULL, &status);
 
 	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "EXPSTART", &(fit->expstart), NULL, &status);
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "EXPEND", &(fit->expend), NULL, &status);
+
+	status = 0;
 	__tryToFindKeywords(fit->fptr, TSTRING, FILTER, &fit->filter, &status);
 
 	status = 0;

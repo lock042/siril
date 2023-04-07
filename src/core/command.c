@@ -1896,7 +1896,11 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			} else {
 				return CMD_ARG_ERROR;
 			}
-		} else {
+		}
+		else if (g_str_has_prefix(arg, "-sat")) {
+			stretch_colourmodel = COL_SAT;
+		}
+		else {
 			if (stretchtype == STRETCH_LINEAR) {
 				return CMD_ARG_ERROR;
 			}
@@ -1906,7 +1910,7 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			else if (g_str_has_prefix(arg, "-even")) {
 				stretch_colourmodel = COL_EVENLUM;
 			}
-			else if (g_str_has_prefix(arg, "-independent")) {
+			else if (g_str_has_prefix(arg, "-indep")) {
 				stretch_colourmodel = COL_INDEP;
 			}
 			else if (g_str_has_prefix(arg,"-D=")) {
@@ -1980,6 +1984,10 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			return CMD_ARG_ERROR;
 		}
 		BP = 0.0;
+		if (stretch_colourmodel == COL_SAT && (!(do_red && do_green && do_blue))) {
+			siril_log_message(_("Error: saturation stretch requires that all channels must be selected.\n"));
+			return CMD_ARG_ERROR;
+		}
 	}
 
 	set_cursor_waiting(TRUE);
@@ -2032,6 +2040,13 @@ int process_seq_ghs(int nb, int stretchtype) {
 			free_sequence(seq, TRUE);
 		return retval;
 	}
+	if (params->payne_colourstretchmodel == COL_SAT && seq->nb_layers != 3) {
+		siril_log_message(_("Error: cannot apply saturation stretch to mono images.\n"));
+		free(params);
+		free(seqdata->seqEntry);
+		free(seqdata);
+		return CMD_ARG_ERROR;
+	}
 	if (!seqdata->seqEntry)
 		seqdata->seqEntry = strdup("stretch_");
 
@@ -2071,7 +2086,16 @@ int process_ghs(int nb, int stretchtype) {
 		free (params);
 		return retval;
 	}
-	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+	if (params->payne_colourstretchmodel == COL_SAT && gfit.naxes[2] != 3) {
+		siril_log_message(_("Error: cannot apply saturation stretch to a mono image.\n"));
+		free(params);
+		return CMD_ARG_ERROR;
+	}
+
+	if (params->payne_colourstretchmodel == COL_SAT)
+		apply_sat_ght_to_fits(&gfit, &gfit, params, TRUE);
+	else
+		apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 	char log[100];
 	switch (stretchtype) {
 		case STRETCH_PAYNE_NORMAL:
@@ -4193,7 +4217,7 @@ int process_seq_crop(int nb) {
 
 	args->seq = seq;
 	args->area = area;
-	args->prefix = "cropped_";
+	args->prefix = strdup("cropped_");
 
 	if (nb > startoptargs) {
 		for (int i = startoptargs; i < nb; i++) {
@@ -6600,7 +6624,7 @@ int process_register(int nb) {
 	reg_args->matchSelection = FALSE;
 	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
-	reg_args->prefix = "r_";
+	reg_args->prefix = strdup("r_");
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
 	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
@@ -6971,7 +6995,7 @@ int process_seq_applyreg(int nb) {
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->no_output = FALSE;
 	reg_args->x2upscale = FALSE;
-	reg_args->prefix = "r_";
+	reg_args->prefix = strdup("r_");
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_LANCZOS4;
 	reg_args->clamp = TRUE;
@@ -7257,7 +7281,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.apply_nbstars_weights = arg->apply_nbstars_weights;
 
 	// manage registration data
-	if (!stack_regdata_is_valid(&args)) {
+	if (!test_regdata_is_valid_and_shift(args.seq, args.reglayer)) {
 		siril_log_color_message(_("Stacking has detected registration data on layer %d with more than simple shifts. You should apply existing registration before stacking\n"), "red", args.reglayer);
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
@@ -7639,6 +7663,8 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	fits reffit = { 0 };
 	int bitpix;
+	char *realname = NULL;
+	image_type imagetype;
 	if (seq) {
 		if (seq->type == SEQ_SER) {
 			// to be able to check allow_32bit_output. Overridden by -fitseq if required
@@ -7656,9 +7682,13 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 		}
 	}
 	else {
-		if (read_fits_metadata_from_path(word[1], &reffit)) {
+		if (stat_file(word[1], &imagetype, &realname)) {
+			siril_log_color_message(_("Error opening image %s: file not found or not supported.\n"), "red", word[1]);
+			retvalue = CMD_FILE_NOT_FOUND;
+			goto prepro_parse_end;
+		}
+		if (read_fits_metadata_from_path(realname, &reffit)) {
 			siril_log_message(_("Could not load the image, aborting.\n"));
-			clearfits(&reffit);
 			retvalue = CMD_INVALID_IMAGE;
 			goto prepro_parse_end;
 		}
@@ -7864,6 +7894,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 
 prepro_parse_end:
 	clearfits(&reffit);
+	free(realname);
 	if (retvalue) {
 		clear_preprocessing_data(args);
 		free(args);

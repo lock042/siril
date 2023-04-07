@@ -590,7 +590,6 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("entryExportSeq"));
 	const char *bname = gtk_entry_get_text(entry);
 	gboolean normalize = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("exportNormalize")));
-	struct exportseq_args *args;
 
 	if (bname[0] == '\0') {
 		widget_set_class(GTK_WIDGET(entry), "warning", "");
@@ -598,7 +597,17 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	}
 	if (selected == -1) return;
 
-	args = malloc(sizeof(struct exportseq_args));
+	// checking regdata is absent, or if present, is only shift
+	if (!test_regdata_is_valid_and_shift(&com.seq, get_registration_layer(&com.seq))) {
+		int confirm = siril_confirm_dialog(_("Registration data found"),
+			_("Export has detected registration data with more than simple shifts.\n"
+			"Normally, you should apply existing registration before exporting."),
+			_("Export anyway"));
+		if (!confirm)
+			return;
+	}
+
+	struct exportseq_args *args = malloc(sizeof(struct exportseq_args));
 	args->seq = &com.seq;
 	get_sequence_filtering_from_gui(&args->filtering_criterion, &args->filtering_parameter);
 	args->basename = g_str_to_ascii(bname, NULL);

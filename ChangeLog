@@ -3,6 +3,13 @@ xx/xx/xx
 
 * Fixed crash in seqstarnet when processing single-file sequences (SER, FITSEQ)
 * Fixed hang in seqstarnet when processing a single-file sequence with no star mask
+* Fixed using default masters names in calibrate (GUI)
+* Fixed invoking external programs in CLI mode (Windows only)
+* Fixed stream setting for all versions of ffmpeg (mp4 export crash)
+* Added special formatter to parse date-time in path parsing
+* Changed Windows to build in console mode even for stable releases
+* Changed gnuplot initialization to keep plots open after stopping main process (and fixed leak)
+
 
 siril 1.2.0-beta2
 03/12/23

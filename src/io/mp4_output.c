@@ -473,16 +473,17 @@ struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fp
 	video_st->fmt = (AVOutputFormat *)video_st->oc->oformat;
 	video_st->quality = quality;
 	/* disable unwanted features, is this the correct way? */
-	video_st->fmt->audio_codec = AV_CODEC_ID_NONE;
+	// video_st->fmt->audio_codec = AV_CODEC_ID_NONE;
+	enum AVCodecID codecid;
 	switch(type) {
 	case EXPORT_WEBM_VP9:
-		video_st->fmt->video_codec = AV_CODEC_ID_VP9;
+		codecid = AV_CODEC_ID_VP9;
 		break;
 	case EXPORT_MP4:
-		video_st->fmt->video_codec = AV_CODEC_ID_H264;
+		codecid = AV_CODEC_ID_H264;
 		break;
 	case EXPORT_MP4_H265:
-		video_st->fmt->video_codec = AV_CODEC_ID_H265;
+		codecid = AV_CODEC_ID_H265;
 		break;
 	default:
 		free(video_st);
@@ -494,7 +495,7 @@ struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fp
 
 	/* Add the video stream and initialize the codecs. */
 	if (video_st->fmt->video_codec != AV_CODEC_ID_NONE) {
-		if (add_stream(video_st, &video_codec, video_st->fmt->video_codec, dst_w, dst_h, fps)) {
+		if (add_stream(video_st, &video_codec, codecid, dst_w, dst_h, fps)) {
 			avformat_free_context(video_st->oc);
 			free(video_st);
 			siril_log_message("Could not add the video stream in the output film, aborting\n");
