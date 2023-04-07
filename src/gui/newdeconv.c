@@ -71,7 +71,7 @@ static void DrawPSF();
 static cairo_surface_t *surface = NULL;
 
 //set below flag to zero to avoid kernel printout to stdout
-#define DEBUG_PSF 1
+#define DEBUG_PSF 0
 
 orientation_t get_imageorientation() {
 	orientation_t result;
