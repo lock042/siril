@@ -28,6 +28,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
+#include "algos/colors.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
@@ -56,7 +57,7 @@
 static int invocation = NO_STRETCH_SET_YET;
 
 static gboolean closing = FALSE;
-
+static gboolean sequence_working = FALSE;
 // Parameters for use in calculations
 static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0f;
 static gboolean do_channel[3];
@@ -77,6 +78,7 @@ static GtkToggleToolButton *toggleGrid = NULL, *toggleCurve = NULL, *toggleOrig 
 
 /* the original histogram, used as starting point of each computation */
 static gsl_histogram *hist_backup[MAXVPORT] = { NULL, NULL, NULL, NULL };
+static gsl_histogram *hist_sat_backup = NULL;
 
 static float _midtones, _shadows, _highlights;
 
@@ -84,7 +86,13 @@ static gboolean _click_on_histo = FALSE;
 static ScaleType _type_of_scale;
 static gboolean lp_warning_given, hp_warning_given = FALSE;
 
+float *huebuf = NULL, *satbuf_orig = NULL, *satbuf_working = NULL, *lumbuf = NULL;
+
 static void set_histogram(gsl_histogram *histo, int layer);
+
+static void setup_hsl();
+static void clear_hsl();
+static void set_sat_histogram(gsl_histogram *histo);
 
 static int get_width_of_histo() {
 	return gtk_widget_get_allocated_width(lookup_widget("drawingarea_histograms"));
@@ -100,6 +108,10 @@ static void clear_hist_backup() {
 			gsl_histogram_free(hist_backup[i]);
 			hist_backup[i] = NULL;
 		}
+	}
+	if (hist_sat_backup) {
+		gsl_histogram_free(hist_sat_backup);
+		hist_sat_backup = NULL;
 	}
 }
 
@@ -119,15 +131,36 @@ static void init_toggles() {
 }
 
 static void histo_startup() {
+	if (gfit.naxes[2] == 3 && _payne_colourstretchmodel == COL_SAT)
+		setup_hsl();
+
 	init_toggles();
 	do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
 	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
 	do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
-	copy_gfit_to_backup();
+	if (gfit.naxes[2] == 3 && !(do_channel[0] && do_channel[1] && do_channel[2])) {
+		if (_payne_colourstretchmodel == COL_HUMANLUM && invocation == GHT_STRETCH) {
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+				_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model."));
+			_payne_colourstretchmodel = COL_EVENLUM;
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_EVENLUM);
+		}
+		if (_payne_colourstretchmodel == COL_SAT && invocation == GHT_STRETCH) {
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+				_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model."));
+			_payne_colourstretchmodel = COL_INDEP;
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
+		}
+	}	copy_gfit_to_backup();
 	// also get the backup histogram
 	compute_histo_for_gfit();
 	for (int i = 0; i < gfit.naxes[2]; i++)
 		hist_backup[i] = gsl_histogram_clone(com.layers_hist[i]);
+	if (com.sat_hist) {
+		if (hist_sat_backup)
+			gsl_histogram_free(hist_sat_backup);
+		hist_sat_backup = gsl_histogram_clone(com.sat_hist);
+	}
 }
 
 static void histo_close(gboolean revert, gboolean update_image_if_needed) {
@@ -137,14 +170,64 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 			set_histogram(hist_backup[i], i);
 			hist_backup[i] = NULL;
 		}
-		if (!copy_backup_to_gfit() && update_image_if_needed) {
+		set_sat_histogram(hist_sat_backup);
+		hist_sat_backup = NULL;
+		if (is_preview_active() && !copy_backup_to_gfit() && update_image_if_needed) {
 			set_cursor_waiting(TRUE);
 			notify_gfit_modified();
 		}
 	}
 	// free data
+	if(!sequence_working && !revert) {
+		clear_hsl();
+	}
 	clear_backup();
 	clear_hist_backup();
+}
+
+static void hsl_to_gfit (float* h, float* s, float* l) {
+	size_t npixels = gfit.rx * gfit.ry;
+	if (gfit.type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++) {
+			hsl_to_rgbf(h[i], s[i], l[i], &gfit.fpdata[0][i], &gfit.fpdata[1][i], &gfit.fpdata[2][i]);
+		}
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++) {
+			float r, g, b;
+			hsl_to_rgbf(h[i], s[i], l[i], &r, &g, &b);
+			gfit.pdata[0][i] = roundf_to_WORD(r * USHRT_MAX_SINGLE);
+			gfit.pdata[1][i] = roundf_to_WORD(g * USHRT_MAX_SINGLE);
+			gfit.pdata[2][i] = roundf_to_WORD(b * USHRT_MAX_SINGLE);
+		}
+	}
+}
+
+static void gfit_to_hsl() {
+	size_t npixels = gfit.rx * gfit.ry;
+	if (gfit.type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++)
+			rgb_to_hslf(gfit.fpdata[0][i], gfit.fpdata[1][i], gfit.fpdata[2][i], &huebuf[i], &satbuf_orig[i], &lumbuf[i]);
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++) {
+			float r = (float) gfit.pdata[0][i] / USHRT_MAX_SINGLE;
+			float g = (float) gfit.pdata[1][i] / USHRT_MAX_SINGLE;
+			float b = (float) gfit.pdata[2][i] / USHRT_MAX_SINGLE;
+			rgb_to_hslf(r, g, b, &huebuf[i], &satbuf_orig[i], &lumbuf[i]);
+		}
+	}
+	memcpy(satbuf_working, satbuf_orig, npixels * sizeof(float));
 }
 
 static void histo_recompute() {
@@ -157,7 +240,12 @@ static void histo_recompute() {
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
-		apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, &params_ght, TRUE);
+		if (_payne_colourstretchmodel == COL_SAT) {
+			apply_linked_ght_to_fbuf_indep(satbuf_orig, satbuf_working, gfit.rx * gfit.ry, 1, &params_ght, TRUE);
+			hsl_to_gfit(huebuf, satbuf_working, lumbuf);
+		} else {
+			apply_linked_ght_to_fits(get_preview_gfit_backup(), &gfit, &params_ght, TRUE);
+		}
 	}
 	notify_gfit_modified();
 }
@@ -309,7 +397,7 @@ size_t get_histo_size(fits *fit) {
 	return (size_t)USHRT_MAX;
 }
 
-// create a new hitogram object for the passed fit and layer
+// create a new histogram object for the passed fit and layer
 gsl_histogram* computeHisto(fits *fit, int layer) {
 	g_assert(layer < 3);
 	size_t i, ndata, size;
@@ -352,6 +440,39 @@ gsl_histogram* computeHisto(fits *fit, int layer) {
 		gsl_histogram_free(histo_thr);
 	}
 
+	return histo;
+}
+
+// create a new histogram object for the passed float buffer (used for sat)
+gsl_histogram* computeHistoSat(float* buf) {
+	size_t i, ndata, size;
+
+	size = get_histo_size(&gfit);
+	gsl_histogram *histo = gsl_histogram_alloc(size + 1);
+	gsl_histogram_set_ranges_uniform(histo, 0, 1.0 + 1.0 / size);
+	ndata = gfit.naxes[0] * gfit.naxes[1];
+
+#ifdef _OPENMP
+#pragma omp parallel num_threads(com.max_thread)
+#endif
+	{
+		gsl_histogram *histo_thr = gsl_histogram_alloc(size + 1);
+		gsl_histogram_set_ranges_uniform(histo_thr, 0, 1.0 + 1.0 / size);
+
+#ifdef _OPENMP
+#pragma omp for private(i) schedule(static)
+#endif
+		for (i = 0; i < ndata; i++) {
+			gsl_histogram_increment(histo_thr, (double) buf[i]);
+		}
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+		{
+			gsl_histogram_add(histo, histo_thr);
+		}
+		gsl_histogram_free(histo_thr);
+	}
 	return histo;
 }
 
@@ -499,6 +620,7 @@ void display_scale(cairo_t *cr, int width, int height) {
 
 void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 		int height, double zoomH, double zoomV, gboolean isOrig) {
+	if (!histo) return;
 	if (width <= 0) return;
 	int current_bin;
 	size_t norm = gsl_histogram_bins(histo) - 1;
@@ -529,12 +651,14 @@ void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 	}
 	if (gfit.naxis == 2)
 		cairo_set_source_rgb(cr, 255.0, 255.0, 255.0);
+	else if (layer < 0)
+		cairo_set_source_rgb(cr, 255.0, 255.0, 0.0);
 	else
 		cairo_set_source_rgb(cr, histo_color_r[layer], histo_color_g[layer],
 				histo_color_b[layer]);
 	cairo_set_dash(cr, NULL, 0, 0);
 	cairo_set_line_width(cr, 1.5);
-	if (isOrig)
+	if (isOrig || layer == -2)
 		cairo_set_line_width(cr, 0.5);
 
 	// first loop builds the bins and finds the maximum
@@ -609,7 +733,6 @@ static void apply_mtf_to_histo(gsl_histogram *histo, float norm,
 
 static void apply_ght_to_histo(gsl_histogram *histo, float norm,
 		float m, float lo, float hi) {
-
 	size_t int_norm = (size_t)norm;
 	gsl_histogram *mtf_histo = gsl_histogram_alloc(int_norm + 1);
 
@@ -685,6 +808,7 @@ static void queue_window_redraw() {
 
 static void update_histo_mtf() {
 	if (!com.layers_hist[0]) return;
+	if (!hist_backup[0]) return;
 	float norm = (float)gsl_histogram_bins(com.layers_hist[0]) - 1;
 
 	_init_clipped_pixels();
@@ -694,9 +818,14 @@ static void update_histo_mtf() {
 			if (invocation == HISTO_STRETCH) {
 				apply_mtf_to_histo(com.layers_hist[i], norm, _midtones, _shadows, _highlights);
 			} else if (invocation == GHT_STRETCH) {
-				apply_ght_to_histo(com.layers_hist[i], norm, _SP, _BP, 1.0f);
+				if (_payne_colourstretchmodel != COL_SAT)
+					apply_ght_to_histo(com.layers_hist[i], norm, _SP, _BP, 1.0f);
 			}
 		}
+	}
+	if (invocation == GHT_STRETCH && _payne_colourstretchmodel == COL_SAT) {
+		gsl_histogram_memcpy(com.sat_hist, hist_sat_backup);
+		apply_ght_to_histo(com.sat_hist, norm, _SP, _BP, 1.0f);
 	}
 	size_t data = gfit.naxes[0] * gfit.naxes[1] * gfit.naxes[2];
 	_update_clipped_pixels(data);
@@ -714,6 +843,12 @@ static void set_histogram(gsl_histogram *histo, int layer) {
 	if (com.layers_hist[layer])
 		gsl_histogram_free(com.layers_hist[layer]);
 	com.layers_hist[layer] = histo;
+}
+
+static void set_sat_histogram(gsl_histogram *histo) {
+	if (com.sat_hist)
+		gsl_histogram_free(com.sat_hist);
+	com.sat_hist = histo;
 }
 
 static gboolean on_gradient(GdkEvent *event, int width, int height) {
@@ -770,6 +905,8 @@ void compute_histo_for_gfit() {
 		if (!com.layers_hist[i])
 			set_histogram(computeHisto(&gfit, i), i);
 	}
+	if (nb_layers == 3 && satbuf_working)
+		set_sat_histogram(computeHistoSat(satbuf_working));
 	set_histo_toggles_names();
 }
 
@@ -778,6 +915,7 @@ void invalidate_gfit_histogram() {
 	for (int layer = 0; layer < MAXVPORT; layer++) {
 		set_histogram(NULL, layer);
 	}
+	set_sat_histogram(NULL);
 }
 
 /* call from main thread */
@@ -799,8 +937,46 @@ static int mtf_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct ght_data *m_args = (struct ght_data*) args->user;
-	apply_linked_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
+	if (m_args->params_ght->payne_colourstretchmodel == COL_SAT)
+		apply_sat_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
+	else
+		apply_linked_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
 	return 0;
+}
+
+static void setup_hsl() {
+	if (huebuf)
+		free(huebuf);
+	huebuf = malloc(gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float));
+	if (satbuf_orig)
+		free(satbuf_orig);
+	satbuf_orig = malloc(gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float));
+	if (satbuf_working)
+		free(satbuf_working);
+	satbuf_working = malloc(gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float));
+	if (lumbuf)
+		free(lumbuf);
+	lumbuf = malloc(gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float));
+	gfit_to_hsl();
+	set_sat_histogram(computeHistoSat(satbuf_working));
+	if (hist_sat_backup)
+		gsl_histogram_free(hist_sat_backup);
+	hist_sat_backup = gsl_histogram_clone(com.sat_hist);
+}
+
+static void clear_hsl() {
+	free(huebuf);
+	huebuf = NULL;
+	free(satbuf_orig);
+	satbuf_orig = NULL;
+	free(satbuf_working);
+	satbuf_working = NULL;
+	free(lumbuf);
+	lumbuf = NULL;
+	gsl_histogram_free(com.sat_hist);
+	com.sat_hist = NULL;
+	gsl_histogram_free(hist_sat_backup);
+	hist_sat_backup = NULL;
 }
 
 /* Callback functions */
@@ -833,6 +1009,11 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 			}
 		}
 	}
+	if (invocation == GHT_STRETCH && _payne_colourstretchmodel == COL_SAT && gfit.naxes[2] == 3) {
+		display_histo(com.sat_hist, cr, -1, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
+		if (gtk_toggle_tool_button_get_active(toggleOrig))
+			display_histo(hist_sat_backup, cr, -2, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
+	}
 	display_scale(cr, width, height);
 	return FALSE;
 }
@@ -842,10 +1023,17 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
 	do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
 	if (gfit.naxes[2] == 3 && !(do_channel[0] && do_channel[1] && do_channel[2])) {
-		if (_payne_colourstretchmodel == COL_HUMANLUM) {
-			siril_log_message(_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model.\n"));
+		if (_payne_colourstretchmodel == COL_HUMANLUM && invocation == GHT_STRETCH) {
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+				_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model."));
 			_payne_colourstretchmodel = COL_EVENLUM;
 			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_EVENLUM);
+		}
+		if (_payne_colourstretchmodel == COL_SAT && invocation == GHT_STRETCH) {
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+				_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model."));
+			_payne_colourstretchmodel = COL_INDEP;
+			gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), COL_INDEP);
 		}
 	}
 
@@ -904,6 +1092,7 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 	if (gtk_toggle_button_get_active(seq_button)
 			&& sequence_is_loaded()) {
 		/* Apply to the whole sequence */
+		sequence_working = TRUE;
 		if (invocation == HISTO_STRETCH) {
 			struct mtf_data *args = malloc(sizeof(struct mtf_data));
 			struct mtf_params params = { .shadows = _shadows, .midtones = _midtones, .highlights = _highlights, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2] };
@@ -966,22 +1155,42 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 				_midtones, _shadows, _highlights);
 		} else if (invocation == GHT_STRETCH) {
 			siril_debug_print("Applying generalised hyperbolic stretch (D=%2.3f, B=%2.3f, LP=%2.3f, SP=%2.3f, HP=%2.3f", _D, _B, _LP, _SP, _HP);
-			switch (_stretchtype) {
-				case STRETCH_PAYNE_NORMAL:
-					undo_save_state(get_preview_gfit_backup(), _("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
-					break;
-				case STRETCH_PAYNE_INVERSE:
-					undo_save_state(get_preview_gfit_backup(), _("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
-					break;
-				case STRETCH_ASINH:
-					undo_save_state(get_preview_gfit_backup(), _("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
-					break;
-				case STRETCH_INVASINH:
-					undo_save_state(get_preview_gfit_backup(), _("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
-					break;
-				case STRETCH_LINEAR:
-					undo_save_state(get_preview_gfit_backup(), _("GHS LINEAR BP: %.2f"), _BP);
-					break;
+			if (_payne_colourstretchmodel != COL_SAT) {
+				switch (_stretchtype) {
+					case STRETCH_PAYNE_NORMAL:
+						undo_save_state(get_preview_gfit_backup(), _("GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						break;
+					case STRETCH_PAYNE_INVERSE:
+						undo_save_state(get_preview_gfit_backup(), _("GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						break;
+					case STRETCH_ASINH:
+						undo_save_state(get_preview_gfit_backup(), _("GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						break;
+					case STRETCH_INVASINH:
+						undo_save_state(get_preview_gfit_backup(), _("GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						break;
+					case STRETCH_LINEAR:
+						undo_save_state(get_preview_gfit_backup(), _("GHS LINEAR BP: %.2f"), _BP);
+						break;
+				}
+			} else {
+				switch (_stretchtype) {
+					case STRETCH_PAYNE_NORMAL:
+						undo_save_state(get_preview_gfit_backup(), _("GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						break;
+					case STRETCH_PAYNE_INVERSE:
+						undo_save_state(get_preview_gfit_backup(), _("GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"), _SP, _D, _B, _LP, _HP);
+						break;
+					case STRETCH_ASINH:
+						undo_save_state(get_preview_gfit_backup(), _("GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						break;
+					case STRETCH_INVASINH:
+						undo_save_state(get_preview_gfit_backup(), _("GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"), _SP, _D, _LP, _HP);
+						break;
+					case STRETCH_LINEAR:
+						undo_save_state(get_preview_gfit_backup(), _("GHS LINEAR SAT BP: %.2f"), _BP);
+						break;
+				}
 			}
 		}
 		clear_backup();
@@ -1473,17 +1682,52 @@ void on_payneType_changed(GtkComboBox *combo, gpointer user_data) {
 }
 
 void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_data) {
-	_payne_colourstretchmodel = gtk_combo_box_get_active(combo);
-	if (!(do_channel[0] && do_channel[1] && do_channel[2])) {
-		if (_payne_colourstretchmodel == COL_HUMANLUM) {
-			siril_log_message(_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model.\n"));
-		gtk_combo_box_set_active(combo, COL_EVENLUM);
-		_payne_colourstretchmodel = COL_EVENLUM;
+	int tmp = gtk_combo_box_get_active(combo);
+	if (tmp == COL_SAT) {
+		if (gfit.naxes[2] != 3) {
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+			_("Not all colour channels are selected. Saturation stretch cannot be used: setting independent channels colour model."));
+			gtk_combo_box_set_active(combo, COL_INDEP);
+			_payne_colourstretchmodel = COL_INDEP;
+		} else {
+			set_cursor_waiting(TRUE);
+			reset_cursors_and_values();
+			histo_close(TRUE, TRUE);
+			setup_hsl();
+			_payne_colourstretchmodel = tmp;
+			histo_startup();
+			set_cursor_waiting(FALSE);
+			return;
+		}
+	} else {
+		if (!(do_channel[0] && do_channel[1] && do_channel[2])) {
+			if (tmp == COL_HUMANLUM) {
+			siril_message_dialog( GTK_MESSAGE_WARNING, _("Channels warning"),
+				_("Not all colour channels are selected. Human luminance colour model cannot be used: setting even weighted luminance colour model."));
+			gtk_combo_box_set_active(combo, COL_EVENLUM);
+			_payne_colourstretchmodel = COL_EVENLUM;
+			}
+		}
+		if (_payne_colourstretchmodel == COL_SAT) {
+			set_cursor_waiting(TRUE);
+			reset_cursors_and_values();
+			histo_close(TRUE, TRUE);
+			clear_hsl();
+			_payne_colourstretchmodel = tmp;
+			histo_startup();
+			set_cursor_waiting(FALSE);
+			return;
+		} else {
+			_payne_colourstretchmodel = tmp;
+			update_histo_mtf();
+			queue_window_redraw();
+			update_image *param = malloc(sizeof(update_image));
+			param->update_preview_fn = histo_update_preview;
+			param->show_preview = TRUE; // no need of preview button. This is always in preview
+			notify_update((gpointer) param);
+			return;
 		}
 	}
-	set_cursor_waiting(TRUE);
-	histo_update_preview();
-	set_cursor_waiting(FALSE);
 }
 
 gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
@@ -1582,6 +1826,8 @@ int ght_finalize_hook(struct generic_seq_args *args) {
 	int retval = seq_finalize_hook(args);
 	free(ghtp);
 	free(data);
+	clear_hsl();
+	sequence_working = FALSE;
 	return retval;
 }
 
