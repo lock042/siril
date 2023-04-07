@@ -637,7 +637,7 @@ int save_kernel(gchar* filename) {
 		return retval;
 	}
 
-	if (g_str_has_suffix(filename, ".fit") || g_str_has_suffix(filename, ".fits")) {
+	if (g_str_has_suffix(filename, ".fit") || g_str_has_suffix(filename, ".fits" || g_str_has_suffix(filename, ".fts"))) {
 		retval = savefits(filename, save_fit);
 	} else {
 #ifdef HAVE_LIBTIFF
