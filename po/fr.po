@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-07 09:46+0200\n"
-"PO-Revision-Date: 2023-03-27 08:39+0000\n"
+"PO-Revision-Date: 2023-04-07 10:58+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4174,7 +4174,6 @@ msgid "Linear stretch (BP shift)"
 msgstr "Étirement linéaire (décalage du BP)"
 
 #: src/gui/siril3.glade:16081
-#, fuzzy
 msgid ""
 "Set the stretch model for colour stretches. The options are: evenly weighted "
 "luminance, which calculates the stretch based on a luminance value weighting "
@@ -4187,20 +4186,22 @@ msgid ""
 "Note: human-weighted luminance is not allowed if less than 3 colour channels "
 "are selected as it doesn't make sense."
 msgstr ""
-"Définissez le modèle d'étirement pour les étirements de couleur. Les options "
-"sont les suivantes : luminance à pondération égale, qui calcule l'étirement "
-"sur la base d'une valeur de luminance pondérant les canaux R, G et B de "
-"manière égale ; luminance à pondération humaine, qui effectue l'étirement "
-"sur la base d'une valeur de luminance pondérant les canaux R, G et B selon "
-"la sensibilité relative de l'œil humain ; et valeurs de canal indépendantes, "
-"qui applique l'étirement indépendamment à chaque canal du pixel. Remarque : "
-"la luminance pondérée par l'homme n'est pas autorisée si moins de 3 canaux "
-"de couleur sont sélectionnés, car cela n'a pas de sens."
+"Définir le modèle d'étirement pour les étirements d'images en couleur. Les "
+"options sont les suivantes : luminance à pondération égale, qui calcule "
+"l'étirement sur la base d'une valeur de luminance pondérant les canaux R, V "
+"et B de manière égale ; luminance à pondération humaine, qui étire sur la "
+"base d'une valeur de luminance pondérant les canaux R, V et B en fonction de "
+"la sensibilité relative de l'œil humain ; valeurs de canal indépendantes, "
+"qui applique l'étirement indépendamment à chaque canal du pixel ; et "
+"saturation, qui applique l'étirement à la composante S dans l'espace HSL. En "
+"mode saturation, la courbe de l'histogramme de saturation est représentée en "
+"jaune.\n"
+"Remarque : la luminance pondérée par l'homme n'est pas autorisée si moins de "
+"3 canaux de couleur sont sélectionnés, car cela n'a pas de sens."
 
 #: src/gui/siril3.glade:16089
-#, fuzzy
 msgid "Saturation stretch"
-msgstr "Saturation : "
+msgstr "Étirement de la saturation"
 
 #: src/gui/siril3.glade:16118
 msgid "Stretch Parameters"
@@ -11181,14 +11182,20 @@ msgstr "Erreur : HP doit être >= SP et <= 1.0.\n"
 msgid ""
 "Error: saturation stretch requires that all channels must be selected.\n"
 msgstr ""
+"Erreur : l'étirement de la saturation exige que tous les canaux soient "
+"sélectionnés.\n"
 
 #: src/core/command.c:1915
 msgid "Error: cannot apply saturation stretch to mono images.\n"
 msgstr ""
+"Erreur : impossible d'appliquer l'étirement de la saturation aux images mono."
+"\n"
 
 #: src/core/command.c:1961
 msgid "Error: cannot apply saturation stretch to a mono image.\n"
 msgstr ""
+"Erreur : impossible d'appliquer l'étirement de la saturation à une image "
+"mono.\n"
 
 #: src/core/command.c:2033 src/core/command.c:8051 src/filters/wavelets.c:255
 #: src/filters/wavelets.c:325
@@ -13580,7 +13587,6 @@ msgstr ""
 "argument. La première image a l'index 0"
 
 #: src/core/command_def.h:60
-#, fuzzy
 msgid ""
 "Generalised hyperbolic stretch based on the work of the ghsastro.co.uk "
 "team.\n"
@@ -13624,10 +13630,14 @@ msgstr ""
 "étoiles.\n"
 "S'ils sont omis, B, LP et SP ont une valeur par défaut de 0,0 et HP a une "
 "valeur par défaut de 1,0.\n"
-"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou <b>-independent</"
-"b>) peut être passé pour sélectionner soit la luminance pondérée humaine, "
-"soit la luminance pondérée paire ou canaux de couleur indépendants pour les "
-"étirements de couleur. L'argument est ignoré pour les images monochromes.\n"
+"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou "
+"<b>-independent</b>) peut être passé pour sélectionner soit la luminance "
+"pondérée humaine, soit la luminance pondérée paire ou canaux de couleur "
+"indépendants pour les étirements de couleur. L'argument est ignoré pour les "
+"images monochromes. Alternativement, l'argument <b>-sat</b> spécifie que "
+"l'étirement est effectué sur la saturation de l'image - l'image doit être en "
+"couleur et tous les canaux doivent être sélectionnés pour que cela "
+"fonctionne.\n"
 "Facultativement, le paramètre <b>[channels]</b> peut être utilisé pour "
 "spécifier les canaux auxquels appliquer l'étirement : cela peut être R, G, "
 "B, RG, RB ou GB. La valeur par défaut est tous les canaux"
@@ -13676,7 +13686,6 @@ msgstr ""
 "de l'image et le centre pour une inspection plus approfondie"
 
 #: src/core/command_def.h:69
-#, fuzzy
 msgid ""
 "Inverse generalised hyperbolic stretch based on the work of the ghsastro.co."
 "uk team.\n"
@@ -13720,10 +13729,14 @@ msgstr ""
 "étoiles.\n"
 "S'ils sont omis, B, LP et SP ont une valeur par défaut de 0,0 et HP a une "
 "valeur par défaut de 1,0.\n"
-"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou <b>-independent</"
-"b>) peut être passé pour sélectionner soit la luminance pondérée humaine, "
-"soit la luminance pondérée paire ou canaux de couleur indépendants pour les "
-"étirements de couleur. L'argument est ignoré pour les images monochromes.\n"
+"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou "
+"<b>-independent</b>) peut être passé pour sélectionner soit la luminance "
+"pondérée humaine, soit la luminance pondérée paire ou canaux de couleur "
+"indépendants pour les étirements de couleur. L'argument est ignoré pour les "
+"images monochromes. Alternativement, l'argument <b>-sat</b> spécifie que "
+"l'étirement est effectué sur la saturation de l'image - l'image doit être en "
+"couleur et tous les canaux doivent être sélectionnés pour que cela "
+"fonctionne.\n"
 "Facultativement, le paramètre <b>[channels]</b> peut être utilisé pour "
 "spécifier les canaux auxquels appliquer l'étirement : cela peut être R, G, "
 "B, RG, RB ou GB. La valeur par défaut est tous les canaux"
@@ -13733,7 +13746,6 @@ msgid "Inverse of the midtones transfer function"
 msgstr "Inverse de la fonction de transfert des tons moyens"
 
 #: src/core/command_def.h:71
-#, fuzzy
 msgid ""
 "Inverse modified arcsinh stretch based on the work of the ghsastro.co.uk "
 "team.\n"
@@ -13773,10 +13785,14 @@ msgstr ""
 "étoiles.\n"
 "S'ils sont omis, LP et SP ont une valeur par défaut de 0,0 et HP a une "
 "valeur par défaut de 1,0.\n"
-"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou <b>-independent</"
-"b>) peut être passé pour sélectionner soit la luminance pondérée humaine, "
-"soit la luminance pondérée paire ou canaux de couleur indépendants pour les "
-"étirements de couleur. L'argument est ignoré pour les images monochromes.\n"
+"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou "
+"<b>-independent</b>) peut être passé pour sélectionner soit la luminance "
+"pondérée humaine, soit la luminance pondérée paire ou canaux de couleur "
+"indépendants pour les étirements de couleur. L'argument est ignoré pour les "
+"images monochromes. Alternativement, l'argument <b>-sat</b> spécifie que "
+"l'étirement est effectué sur la saturation de l'image - l'image doit être en "
+"couleur et tous les canaux doivent être sélectionnés pour que cela "
+"fonctionne.\n"
 "Facultativement, le paramètre <b>[channels]</b> peut être utilisé pour "
 "spécifier les canaux auxquels appliquer l'étirement : cela peut être R, G, "
 "B, RG, RB ou GB. La valeur par défaut est tous les canaux"
@@ -13852,7 +13868,6 @@ msgstr ""
 "<b>-out=</b>"
 
 #: src/core/command_def.h:77
-#, fuzzy
 msgid ""
 "Stretches the image linearly to a new black point BP.\n"
 "\n"
@@ -13869,9 +13884,12 @@ msgstr ""
 "\n"
 "Il y a un argument obligatoire :\n"
 "<b>BP</b> fournit le nouveau point noir vers lequel s'étirer\n"
-"En option, le paramètre <b>[channels]</b> peut être utilisé pour spécifier "
-"les canaux auxquels appliquer l'étirement : il peut s'agir de R, G, B, RG, "
-"RB ou GB. La valeur par défaut est tous les canaux"
+"Le paramètre <b>[channels]</b> peut être utilisé pour spécifier les canaux "
+"auxquels appliquer l'étirement : il peut s'agir de R, G, B, RG, RB ou GB. La "
+"valeur par défaut est tous les canaux.\n"
+"En option, le paramètre <b>-sat</b> peut être utilisé pour appliquer "
+"l'étirement linéaire au canal de saturation de l'image. Cette argument ne "
+"fonctionne que si tous les canaux sont sélectionnés."
 
 #: src/core/command_def.h:78
 msgid ""
@@ -14061,23 +14079,21 @@ msgid "Merges several sequences into one"
 msgstr "Fusionne plusieurs séquences en une seule"
 
 #: src/core/command_def.h:88
-#, fuzzy
 msgid ""
 "Flips the image about the horizontal axis. Option <b>-bottomup</b> will only "
 "flip it if it's not already bottom-up"
 msgstr ""
-"Retourne l'image autour de l'axe vertical. L'option <b>-bottomup</b> ne le "
-"renverra que s'il n'est pas déjà bottom-up"
+"Retourne l'image autour de l'axe horizontal. L'option <b>-bottomup</b> ne "
+"retourne l'image que si elle n'est pas déjà bottom-up"
 
 #: src/core/command_def.h:89
-#, fuzzy
 msgid ""
 "Flips the image about the horizontal axis, only if needed (if it's not "
 "already bottom-up). It takes the image file name as argument, allowing it to "
 "avoid reading image data entirely if no flip is required. Image is "
 "overwritten if a flip was made"
 msgstr ""
-"Retourne l'image autour de l'axe vertical, seulement si nécessaire (si ce "
+"Retourne l'image autour de l'axe horizontal, seulement si nécessaire (si ce "
 "n'est pas déjà retourné). Elle prend le nom du fichier image comme argument, "
 "ce qui lui permet d'éviter de lire entièrement les données de l'image si "
 "aucun retournement n'est nécessaire. L'image est écrasée si un retournement "
@@ -14088,7 +14104,6 @@ msgid "Flips the image about the vertical axis"
 msgstr "Fait pivoter l'image autour d'un axe vertical"
 
 #: src/core/command_def.h:91
-#, fuzzy
 msgid ""
 "Modified arcsinh stretch based on the work of the ghsastro.co.uk team.\n"
 "\n"
@@ -14128,10 +14143,14 @@ msgstr ""
 "étoiles.\n"
 "S'ils sont omis, LP et SP ont une valeur par défaut de 0,0 et HP a une "
 "valeur par défaut de 1,0.\n"
-"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou <b>-independent</"
-"b>) peut être passé pour sélectionner soit la luminance pondérée humaine, "
-"soit la luminance pondérée paire ou canaux de couleur indépendants pour les "
-"étirements de couleur. L'argument est ignoré pour les images monochromes.\n"
+"Un argument facultatif (soit <b>-human</b>, <b>-even</b> ou "
+"<b>-independent</b>) peut être passé pour sélectionner soit la luminance "
+"pondérée humaine, soit la luminance pondérée paire ou canaux de couleur "
+"indépendants pour les étirements de couleur. L'argument est ignoré pour les "
+"images monochromes. Alternativement, l'argument <b>-sat</b> spécifie que "
+"l'étirement est effectué sur la saturation de l'image - l'image doit être en "
+"couleur et tous les canaux doivent être sélectionnés pour que cela "
+"fonctionne.\n"
 "Facultativement, le paramètre <b>[channels]</b> peut être utilisé pour "
 "spécifier les canaux auxquels appliquer l'étirement : cela peut être R, G, "
 "B, RG, RB ou GB. La valeur par défaut est tous les canaux"
@@ -18528,29 +18547,26 @@ msgstr "Veuillez-vous rentre à <a href=\""
 
 #: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1027
 #: src/gui/histogram.c:1033 src/gui/histogram.c:1688 src/gui/histogram.c:1705
-#, fuzzy
 msgid "Channels warning"
-msgstr "Extraction des canaux"
+msgstr "Avertissement sur les canaux"
 
 #: src/gui/histogram.c:144 src/gui/histogram.c:1028 src/gui/histogram.c:1706
-#, fuzzy
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
 msgstr ""
 "Tous les canaux de couleur ne sont pas sélectionnés. Le modèle de couleur de "
 "luminance humaine ne peut pas être utilisé : réglage sur le modèle de "
-"Luminance pondérée uniforme.\n"
+"Luminance pondérée uniforme."
 
 #: src/gui/histogram.c:150 src/gui/histogram.c:1034 src/gui/histogram.c:1689
-#, fuzzy
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
 msgstr ""
-"Tous les canaux de couleur ne sont pas sélectionnés. Le modèle de couleur de "
-"luminance humaine ne peut pas être utilisé : réglage sur le modèle de "
-"Luminance pondérée uniforme.\n"
+"Tous les canaux de couleur ne sont pas sélectionnés. L'étirement de la "
+"saturation ne peut pas être utilisé : réglage sur le modèle des canaux "
+"indépendants."
 
 #: src/gui/histogram.c:316
 msgid "Toggles whether to apply the stretch to the monochrome channel"
@@ -18591,29 +18607,29 @@ msgid "GHS LINEAR BP: %.2f"
 msgstr "GHS LINEAR BP : %.2f"
 
 #: src/gui/histogram.c:1179
-#, fuzzy, c-format
+#, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS pivot : %.3f, montant : %.2f, local : %.2f [%.2f %.2f]"
+msgstr "GHS SAT pivot : %.3f, montant : %.2f, local : %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1182
-#, fuzzy, c-format
+#, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS INV pivot : %.3f, montant : %.2f, local : %.2f [%.2f %.2f]"
+msgstr "GHS INV SAT pivot : %.3f, montant : %.2f, local : %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1185
-#, fuzzy, c-format
+#, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH pivot : %.3f, montant : %.2f [%.2f %.2f]"
+msgstr "GHS ASINH SAT pivot : %.3f, montant : %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1188
-#, fuzzy, c-format
+#, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH INV pivot : %.3f, montant : %.2f [%.2f %.2f]"
+msgstr "GHS ASINH INV SAT pivot : %.3f, montant : %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1191
-#, fuzzy, c-format
+#, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
-msgstr "GHS LINEAR BP : %.2f"
+msgstr "GHS LINEAR SAT BP : %.2f"
 
 #: src/gui/histogram.c:1240
 msgid "Could not compute autostretch parameters, using default values\n"
@@ -20992,9 +21008,9 @@ msgid "Closing sequence %s\n"
 msgstr "Fermeture de la séquence %s\n"
 
 #: src/io/sequence.c:1518
-#, fuzzy, c-format
+#, c-format
 msgid "This operation will use registration data of layer %d\n"
-msgstr "L'empilement utilisera les données d'enregistrement du canal %d\n"
+msgstr "Cette opération utilisera les données d'alignement du canal %d\n"
 
 #: src/io/sequence.c:1538
 msgid "internal sequence"
@@ -21204,19 +21220,18 @@ msgid "Registration data found"
 msgstr "Données d'alignement trouvées"
 
 #: src/io/sequence_export.c:603
-#, fuzzy
 msgid ""
 "Export has detected registration data with more than simple shifts.\n"
 "Normally, you should apply existing registration before exporting."
 msgstr ""
 "L'empilement a détecté des données d'alignement avec plus qu'une simple "
 "translation.\n"
-"Normalement, vous devriez appliquer l'alignement existant avant l'empilement."
+"Normalement, vous devriez appliquer l'alignement existant avant "
+"l'exportation."
 
 #: src/io/sequence_export.c:605
-#, fuzzy
 msgid "Export anyway"
-msgstr "Empiler quand même"
+msgstr "Exporter quand même"
 
 #: src/io/sequence_export.c:637
 msgid "Width or height cannot be null. Not resizing.\n"
