@@ -429,3 +429,23 @@ int addmax(fits *a, fits *b) {
 	return 0;
 }
 
+void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB) {
+	float *out[3];
+	out[0] = r;
+	out[1] = g;
+	out[2] = b;
+	float sfmax = max(max(data->sf[0], data->sf[1]), data->sf[2]);
+	float tfmax = max(max(data->tf[0], data->tf[1]), data->tf[2]);
+	float d = sfmax - tfmax;
+	if (tfmax + m_CB * d > 1.f) {
+		float k = (d != 0.f) ? min(m_CB, (1.f - tfmax) / d) : m_CB;
+		for (size_t chan = 0; chan < 3 ; chan++)
+			if (data->do_channel[chan])
+				*out[chan] = (1.f - k) * data->tf[chan] + k * data->sf[chan];
+	}
+	else {
+		for (size_t chan = 0; chan < 3 ; chan++)
+			if (data->do_channel[chan])
+				*out[chan] = (1.f - m_CB) * data->tf[chan] + m_CB * data->sf[chan];
+	}
+}

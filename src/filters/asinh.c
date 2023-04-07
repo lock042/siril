@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "algos/statistics.h"
+#include "core/arithm.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"
@@ -64,7 +65,7 @@ static int asinh_update_preview() {
 
 int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminance) {
 	WORD *buf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
-
+	float m_CB = 1.f;
 	float norm = get_normalized_value(fit);
 	float invnorm = 1.0f / norm;
 	float asinh_beta = asinh(beta);
@@ -78,20 +79,32 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 #pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->rx * 16)
 #endif
 		for (i = 0; i < n; i++) {
+			blend_data data;
+#pragma omp simd
+			for (int i = 0 ; i < 3 ; i++)
+				data.do_channel[i] = TRUE;
 			float r = buf[RLAYER][i] * invnorm;
 			float g = buf[GLAYER][i] * invnorm;
 			float b = buf[BLAYER][i] * invnorm;
+			float rout, gout, bout;
 			float rprime = max(0, (r - offset) / (1.0f - offset));
 			float gprime = max(0, (g - offset) / (1.0f - offset));
 			float bprime = max(0, (b - offset) / (1.0f - offset));
 
 			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
-
+			data.tf[0] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
+			data.tf[1] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
+			data.tf[2] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
 			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
+			data.sf[0] = min(1.0f, max(0.0f, (rprime * k)));
+			data.sf[1] = min(1.0f, max(0.0f, (gprime * k)));
+			data.sf[2] = min(1.0f, max(0.0f, (bprime * k)));
 
-			buf[RLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(rprime) * k)));
-			buf[GLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(gprime) * k)));
-			buf[BLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f,(bprime) * k)));
+			rgbblend(&data, &rout, &gout, &bout, m_CB);
+
+			buf[RLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f, rout)));
+			buf[GLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f, gout)));
+			buf[BLAYER][i] = roundf_to_WORD(norm * min(1.0f, max(0.0f, bout)));
 		}
 	} else {
 #ifdef _OPENMP
@@ -111,6 +124,7 @@ int asinhlut_ushort(fits *fit, float beta, float offset, gboolean human_luminanc
 static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_luminance) {
 	float *buf[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
 
+	float m_CB = 1.f;
 	float asinh_beta = asinhf(beta);
 	float factor_red = human_luminance ? 0.2126f : 0.3333f;
 	float factor_green = human_luminance ? 0.7152f : 0.3333f;
@@ -119,9 +133,13 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 	size_t i, n = fit->naxes[0] * fit->naxes[1];
 	if (fit->naxes[2] > 1) {
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->ry * 16)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (i = 0; i < n; i++) {
+			blend_data data;
+#pragma omp simd
+			for (int i = 0 ; i < 3 ; i++)
+				data.do_channel[i] = TRUE;
 			float r = buf[RLAYER][i];
 			float g = buf[GLAYER][i];
 			float b = buf[BLAYER][i];
@@ -130,16 +148,19 @@ static int asinhlut_float(fits *fit, float beta, float offset, gboolean human_lu
 			float bprime = max(0.0f, (b - offset) / (1.0f - offset));
 
 			float x = factor_red * rprime + factor_green * gprime + factor_blue * bprime;
-
+			data.tf[0] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
+			data.tf[1] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
+			data.tf[2] = (rprime == 0.f) ? 0.f : (beta == 0.f) ? 1.f : asinhf(beta * rprime) / (rprime * asinh_beta);
 			float k = (x == 0.0f) ? 0.0f : (beta == 0.0f) ? 1.0f : asinhf(beta * x) / (x * asinh_beta);
+			data.sf[0] = min(1.0f, max(0.0f, (rprime * k)));
+			data.sf[1] = min(1.0f, max(0.0f, (gprime * k)));
+			data.sf[2] = min(1.0f, max(0.0f, (bprime * k)));
 
-			buf[RLAYER][i] = min(1.0f, max(0.0f, (rprime * k)));
-			buf[GLAYER][i] = min(1.0f, max(0.0f, (gprime * k)));
-			buf[BLAYER][i] = min(1.0f, max(0.0f, (bprime * k)));
+			rgbblend(&data, &buf[RLAYER][i], &buf[GLAYER][i], &buf[BLAYER][i], m_CB);
 		}
 	} else {
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(dynamic, fit->ry * 16)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 		for (i = 0; i < n; i++) {
 			float x, k;

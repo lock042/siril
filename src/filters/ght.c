@@ -21,7 +21,9 @@
 #include <glib.h>
 #include "ght.h"
 #include "core/proto.h"
+#include "core/arithm.h"
 #include "algos/statistics.h"
+#include "algos/colors.h"
 #include "core/siril_log.h"
 
 float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, ght_compute_params *c) {
@@ -374,105 +376,193 @@ int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float 
 	return 0;
 }
 
-void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {
-	const gboolean do_channel[3] = {params->do_red, params->do_green, params->do_blue};
+void apply_linked_ght_to_fbuf_lum(float* fbuf, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded) {
+	const gboolean do_channel[3] = { params->do_red, params->do_green, params->do_blue };
 	int active_channels = 3;
-	for (size_t i=0;i<3;i++)
-		if (!do_channel[i])
+	float m_CB = 1.f; // This could be set to 0.f to switch off RGBBlend
+	float* fpbuf[nchans];
+	for (size_t chan = 0; chan < nchans; chan++) {
+		fpbuf[chan] = fbuf + chan * layersize;
+		if (!do_channel[chan])
 			active_channels--;
+	}
 	if (active_channels == 0) {
 		siril_log_color_message(_("Error: no channels selected. Doing nothing.\n"), "red");
 		return;
 	}
-	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
-	const size_t layersize = from->naxes[0] * from->naxes[1];
-	g_assert(from->type == to->type);
-	struct ght_compute_params compute_params;
-	float factor_red = 0.2126f;
-	float factor_green = 0.7152f;
-	float factor_blue = 0.0722f;
-	// If only working with selected channels, colour mode is forced to independent
+	struct ght_compute_params compute_params = { 0 };
+	// Independent stretching of mono or RGB channels
+	// If only working with selected channels, human-weighted luminance no longer makes sense so luminance
+	// based stretches are forced to even weighting
 	if (!(do_channel[0] && do_channel[1] && do_channel[2]))
 		if (params->payne_colourstretchmodel == COL_HUMANLUM)
 			params->payne_colourstretchmodel = COL_EVENLUM;
-	if (params->payne_colourstretchmodel == COL_EVENLUM) {
-		factor_red = 1.0f/active_channels;
-		factor_green = 1.0f/active_channels;
-		factor_blue = 1.0f/active_channels;
-	}
+	float factor_red = params->payne_colourstretchmodel == COL_EVENLUM ? 1.f / active_channels : 0.2126f;
+	float factor_green = params->payne_colourstretchmodel == COL_EVENLUM ? 1.f / active_channels : 0.7152f;
+	float factor_blue = params->payne_colourstretchmodel == COL_EVENLUM ? 1.f / active_channels : 0.0722f;
 	// Do calcs that can be done prior to the loop
 	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
-	if (from->type == DATA_USHORT) {
-		float norm = get_normalized_value(from);
-		float invnorm = 1.0f / norm;
-		if (from->naxes[2] == 3 && params->stretchtype != STRETCH_LINEAR && params->payne_colourstretchmodel != COL_INDEP) {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
-			for (size_t i = 0 ; i < layersize ; i++) {
-				float L[3] = { 0.0f };
-				for (size_t chan = 0; chan < 3 ; chan++)
-					L[chan] = (float) from->pdata[chan][i] * invnorm;
-				float x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
-				float z = GHTp(x, params, &compute_params);
-				for (size_t chan = 0; chan < 3 ; chan++) {
-					if (do_channel[chan])
-						to->pdata[chan][i] = (x == 0.0f) ? 0 : roundf_to_WORD(norm * min(1.0f, max(0.0f, L[chan] * (z / x))));
+	for (size_t i = 0 ; i < layersize ; i++) {
+		float f[3];
+#pragma omp simd
+		for (size_t chan = 0; chan < 3 ; chan++)
+			f[chan] = max(0.f, min(1.f, fpbuf[chan][i]));
+		float fbar = (int) do_channel[0] * factor_red * f[0] + (int) do_channel[1] * factor_green * f[1] + (int) do_channel[2] * factor_blue * f[2];
+		float sfbar = GHTp(fbar, params, &compute_params);
+		float stretch_factor = (fbar == 0.f) ? 0.f : sfbar / fbar;
+		blend_data data;
+		memcpy(data.do_channel, do_channel, 3 * sizeof(gboolean));
+		//Calculate the luminance and independent channel stretches for the pixel
+#pragma omp simd
+		for (size_t chan = 0; chan < 3 ; chan++) {
+			data.sf[chan] = f[chan] * stretch_factor;
+		}
+		if (m_CB) {
+			for (size_t chan = 0; chan < 3 ; chan++) {
+				if (do_channel[chan]) {
+					data.tf[chan] = GHTp(f[chan], params, &compute_params);
 				}
 			}
-			for (size_t chan = 0 ; chan < 3; chan++) {
-				if (!do_channel[chan])
-					memcpy(to->pdata[chan], from->pdata[chan], layersize * sizeof(WORD));
-			}
+			rgbblend(&data, &fpbuf[0][i], &fpbuf[1][i], &fpbuf[2][i], m_CB);
 		} else {
-			for (size_t chan = 0; chan < from->naxes[2]; chan++) {
-				if (do_channel[chan]) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
-#endif
-					for (size_t i = 0; i < layersize; i++) {
-						float x = from->pdata[chan][i] * invnorm;
-						to->pdata[chan][i] = (x == 0.0f) ? 0 : roundf_to_WORD(norm * min(1.0f, max(0.0f, GHTp(x, params, &compute_params))));
-					}
-				} else
-					memcpy(to->pdata[chan], from->pdata[chan], layersize * sizeof(WORD));
-			}
-		}
-	} else if (from->type == DATA_FLOAT) {
-		if (from->naxes[2] == 3 && params->stretchtype != STRETCH_LINEAR && params->payne_colourstretchmodel != COL_INDEP) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
-#endif
-			for (size_t i = 0 ; i < layersize ; i++) {
-				float L[3] = { 0.0f };
-				for (size_t chan = 0; chan < 3 ; chan++)
-					L[chan] = (float)from->fpdata[chan][i];
-				float x = (int) do_channel[0] * factor_red * L[0] + (int) do_channel[1] * factor_green * L[1] + (int) do_channel[2] * factor_blue * L[2];
-				float z = GHTp(x, params, &compute_params);
-				for (size_t chan = 0; chan < 3 ; chan++)
-					if (do_channel[chan])
-						to->fpdata[chan][i] = (x == 0.0f) ? 0.0f : min(1.0f, max(0.0f, L[chan] * (z / x)));
-			}
-			for (size_t chan = 0 ; chan < 3; chan++) {
-				if (!do_channel[chan])
-					memcpy(to->fpdata[chan], from->fpdata[chan], layersize * sizeof(float));
-			}
-
-		} else {
-			for (size_t chan=0; chan < from->naxes[2]; chan++) {
-				if (do_channel[chan]) {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
-#endif
-					for (size_t i = 0; i < layersize; i++) {
-						float x = (float)from->fpdata[chan][i];
-						to->fpdata[chan][i] = (x == 0.0f) ? 0.0f : min(1.0f, max(0.0f, GHTp(x, params, &compute_params)));
-					}
-				} else
-					memcpy(to->fpdata[chan], from->fpdata[chan], layersize * sizeof(float));
+#pragma omp simd
+			for (size_t chan = 0 ; chan < 3 ; chan++) {
+				fpbuf[chan][i] = (do_channel[chan]) ? data.sf[chan] : fpbuf[chan][i];
 			}
 		}
 	}
-	else return;
+}
+
+void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded) {
+	const gboolean do_channel[3] = { params->do_red, params->do_green, params->do_blue };
+	int active_channels = 3;
+	float *fpbuf[nchans], *fpout[nchans];
+	for (size_t chan = 0; chan < nchans; chan++) {
+		fpbuf[chan] = in + chan * layersize;
+		fpout[chan] = out + chan * layersize;
+		if (!do_channel[chan])
+			active_channels--;
+	}
+	if (active_channels == 0) {
+		siril_log_color_message(_("Error: no channels selected. Doing nothing.\n"), "red");
+		return;
+	}
+	struct ght_compute_params compute_params;
+
+	// Do calcs that can be done prior to the loop
+	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
+
+	// Independent stretching of mono or RGB channels
+	for (size_t chan=0; chan < nchans; chan++) {
+		if (do_channel[chan]) {
+			// Stretch the channel
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+			for (size_t i = 0; i < layersize; i++) {
+				// GHT is intended to operate on values in [0.f, 1.f]
+				// Clip to this range.
+				float x = min(1.f, max(0.f, fpbuf[chan][i]));
+				fpout[chan][i] = (x == 0.0f) ? 0.0f : GHTp(x, params, &compute_params);
+			}
+		}
+	}
+}
+
+void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {
+	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
+	g_assert(from->type == to->type);
+	size_t npixels = from->rx * from->ry;
+	size_t ndata = npixels * from->naxes[2];
+	float* buf = malloc(ndata * sizeof(float));
+	if (from && from->type == DATA_FLOAT) {
+		memcpy(buf, from->fdata, ndata * sizeof(float));
+		if (from->naxes[2] == 3 && params->stretchtype != STRETCH_LINEAR && params->payne_colourstretchmodel != COL_INDEP) {
+			apply_linked_ght_to_fbuf_lum(buf, npixels, from->naxes[2], params, multithreaded);
+		} else {
+			apply_linked_ght_to_fbuf_indep(buf, buf, npixels, from->naxes[2], params, multithreaded);
+		}
+		memcpy(to->fdata, buf, ndata * sizeof(float));
+	} else if (from && from->type == DATA_USHORT) {
+		float norm = get_normalized_value(from);
+		float invnorm = 1.0f / norm;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+		for (size_t i = 0 ; i < ndata ; i++)
+			buf[i] = (float) from->data[i] * invnorm;
+		if (from->naxes[2] == 3 && params->stretchtype != STRETCH_LINEAR && params->payne_colourstretchmodel != COL_INDEP) {
+			apply_linked_ght_to_fbuf_lum(buf, npixels, from->naxes[2], params, multithreaded);
+		} else {
+			apply_linked_ght_to_fbuf_indep(buf, buf, npixels, from->naxes[2], params, multithreaded);
+		}
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+		for (size_t i = 0 ; i < ndata ; i++)
+			to->data[i] = roundf_to_WORD(buf[i] * norm);
+	}
+	free(buf);
 	invalidate_stats_from_fit(to);
+	return;
+}
+
+void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {
+	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
+	g_assert(from->type == to->type);
+	if (from->naxes[2] == 1)
+		return;
+	size_t npixels = from->rx * from->ry;
+	size_t ndata = npixels * from->naxes[2];
+	float* buf = malloc(ndata * sizeof(float));
+	float* pbuf[3];
+	for (long i = 0 ; i < from->naxes[2]; i++)
+		pbuf[i] = buf + i * npixels;
+	if (from && from->type == DATA_FLOAT) {
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+		for (long i = 0 ; i < npixels ; i++)
+			rgb_to_hslf(from->fpdata[0][i], from->fpdata[1][i], from->fpdata[2][i], &pbuf[0][i], &pbuf[1][i], &pbuf[2][i]);
+		apply_linked_ght_to_fbuf_indep(pbuf[1], pbuf[1], npixels, 1, params, multithreaded);
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+		for (long i = 0 ; i < npixels ; i++) {
+			hsl_to_rgbf(pbuf[0][i], pbuf[1][i], pbuf[2][i], &to->fpdata[0][i], &to->fpdata[1][i], &to->fpdata[2][i]);
+		}
+	} else if (from && from->type == DATA_USHORT) {
+		float* buf2 = malloc(ndata * sizeof(float));
+		float* pbuf2[3];
+		for (long i = 0 ; i < from->naxes[2]; i++)
+			pbuf2[i] = buf2 + i * npixels;
+		float norm = get_normalized_value(from);
+		float invnorm = 1.0f / norm;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+		for (long i = 0 ; i < npixels ; i++) {
+			pbuf2[0][i] = (float) from->pdata[0][i] * invnorm;
+			pbuf2[1][i] = (float) from->pdata[1][i] * invnorm;
+			pbuf2[2][i] = (float) from->pdata[2][i] * invnorm;
+			rgb_to_hslf(pbuf2[0][i], pbuf2[1][i], pbuf2[2][i], &pbuf[0][i], &pbuf[1][i], &pbuf[2][i]);
+		}
+		apply_linked_ght_to_fbuf_indep(pbuf[1], pbuf[1], npixels, 1, params, multithreaded);
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
+#endif
+		for (long i = 0 ; i < npixels ; i++) {
+			hsl_to_rgbf(pbuf[0][i], pbuf[1][i], pbuf[2][i], &pbuf2[0][i], &pbuf2[1][i], &pbuf2[2][i]);
+			to->pdata[0][i] = roundf_to_WORD(pbuf2[0][i] * norm);
+			to->pdata[1][i] = roundf_to_WORD(pbuf2[1][i] * norm);
+			to->pdata[2][i] = roundf_to_WORD(pbuf2[2][i] * norm);
+		}
+		free(buf2);
+	}
+	free(buf);
+	invalidate_stats_from_fit(to);
+	return;
 }
