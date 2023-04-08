@@ -125,7 +125,7 @@ static command commands[] = {
 	{"pm", 1, "pm \"expression\" [-rescale [low] [high]]", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
 	{"preprocess", 1, "preprocess sequencename [-bias=filename] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-all] [-prefix=] [-fitseq]", process_preprocess, STR_CALIBRATE, TRUE, REQ_CMD_NONE},
 	{"preprocess_single", 1, "preprocess_single imagename [-bias=filename] [-dark=filename] [-flat=filename] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]", process_preprocess_single, STR_CALIBRATE_SINGLE, TRUE, REQ_CMD_NONE},
-	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [-wavenumber1= -wn1at=x,y -wavenumber2= -wn2at=x,y]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [-wavenumber1= -wn1at=x,y -wavenumber2= -wn2at=x,y] [-title \"My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"register", 1, "register sequencename [-2pass] [-noout] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=] [-nostarlist] [-interp=] [-noclamp] [-selected]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
@@ -177,7 +177,7 @@ static command commands[] = {
 	{"seqmerge_cfa", 2, "seqmerge_cfa sequencename bayerpattern [-prefixin=] [-prefixout=]", process_seq_merge_cfa, STR_SEQMERGE_CFA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqmodasinh", 2, "seqmodasinh sequence -D= [-LP=] [-SP=] [-HP=] [-human | -even | -independent] [channels] [-prefix=]", process_seq_modasinh, STR_SEQINVMODASINH, TRUE, REQ_CMD_NONE},
 	{"seqmtf", 4, "seqmtf sequencename low mid high [channels] [-prefix=]", process_seq_mtf, STR_SEQMTF, TRUE, REQ_CMD_NONE},
-	{"seqprofile", 3, "profile sequence -from=x,y -to=x,y [-tri] [-cfa] [-savedat] [-layer=] [-width=] [-spacing=] [-wavenumber1= -wn1at=x,y -wavenumber2= -wn2at=x,y]", process_seq_profile, STR_SEQPROFILE, TRUE, REQ_CMD_NONE},
+	{"seqprofile", 3, "profile sequence -from=x,y -to=x,y [-tri] [-cfa] [-savedat] [-layer=] [-width=] [-spacing=] [-wavenumber1= -wn1at=x,y -wavenumber2= -wn2at=x,y] [-title \"My Plot\"]", process_seq_profile, STR_SEQPROFILE, TRUE, REQ_CMD_NONE},
 	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
 	{"seqplatesolve", 1, "seqplatesolve sequencename [image_center_coords] [-noflip] [-platesolve] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-downscale]", process_pcc, STR_SEQPLATESOLVE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqrl", 1, "seqrl sequencename [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul]", process_seq_rl, STR_SEQRL, TRUE, REQ_CMD_NONE},

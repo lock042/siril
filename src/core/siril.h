@@ -499,6 +499,9 @@ typedef struct cut_struct {
 	gboolean display_graph;
 	gboolean save_png_too; // Only takes effect if display_graph == TRUE - ignored otherwise
 	char* filename;
+	gchar* title; // this is the working copy of the title
+	gchar* user_title; // this is the title set by the user, may include brackets
+	gboolean title_has_sequence_numbers;
 	fits* fit;
 	sequence* seq;
 	int imgnumber;

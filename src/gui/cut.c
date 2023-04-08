@@ -118,6 +118,8 @@ static void reset_cut_gui() {
 	gtk_label_set_text(wn1y, "");
 	gtk_label_set_text(wn2x, "");
 	gtk_label_set_text(wn2y, "");
+	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
+	gtk_entry_set_text(title, "Intensity Profile");
 	reset_cut_gui_filedependent();
 }
 
@@ -142,6 +144,8 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->step = 1;
 	arg->display_graph = TRUE;
 	arg->filename = NULL;
+	arg->title = NULL;
+	arg->title_has_sequence_numbers = FALSE;
 	arg->save_dat = FALSE;
 	arg->save_png_too = FALSE;
 	arg->vport = -1;
@@ -156,6 +160,59 @@ void free_cut_args(cut_struct *arg) {
 	if (arg != &gui.cut)
 		free(arg);
 	return;
+}
+
+gchar* cut_make_title(cut_struct *arg, gboolean spectro) {
+	gchar* str = NULL;
+
+	if (arg->user_title) {
+		// Check for trailing brackets
+		if (g_str_has_suffix(arg->user_title, "()")) {
+			printf("Brackets detected\n");
+			arg->title_has_sequence_numbers = TRUE;
+			gchar* temp = g_malloc(strlen(arg->user_title) - 1);
+			snprintf(temp, strlen(arg->user_title) - 1, "%s", arg->user_title);
+			siril_debug_print("orig: %s cropped: %s\n", arg->user_title, temp);
+			g_free(arg->title);
+			arg->title = g_strdup(temp);
+			g_free(temp);
+		} else {
+			arg->title_has_sequence_numbers = FALSE;
+			arg->title = g_strdup(arg->user_title);
+		}
+
+		if (arg->title_has_sequence_numbers && arg->seq) {
+			str = g_strdup_printf("%s(%d / %d)", arg->title, arg->imgnumber + 1, arg->seq->selnum);
+		} else {
+			str = g_strdup(arg->title);
+		}
+	} else {
+		if (!com.script) {
+			GtkEntry *entry = (GtkEntry*) lookup_widget("cut_title");
+			str = g_strdup(gtk_entry_get_text(entry));
+		} else {
+			if (spectro) {
+				str = g_strdup(_("Spectrogram"));
+			} else {
+				str =g_strdup(_("Intensity Profile"));
+			}
+		}
+	}
+	return str;
+}
+
+void restore_brackets_if_needed(cut_struct *arg) {
+	if (!arg->title)
+		return;
+	else {
+		if (!arg->title_has_sequence_numbers)
+			return;
+		else {
+			gchar* temp = g_strdup_printf("%s()", arg->title);
+			g_free(arg->title);
+			arg->title = g_strdup(temp);
+		}
+	}
 }
 
 gboolean cut_struct_is_valid(cut_struct *arg) {
@@ -555,11 +612,10 @@ gpointer cut_profile(gpointer p) {
 			// Add tmpfile to handle so it is deleted automatically
 			/* Plotting cut profile */
 			gchar *xlabel = NULL, *title = NULL;
+			title = cut_make_title(arg, xscale); // must be freed with g_free()
 			if (xscale) {
-				title = g_strdup_printf(_("Spectrogram"));
 				xlabel = g_strdup_printf(_("Wavenumber"));
 			} else {
-				title = g_strdup_printf(_("Data Cut Profile"));
 				xlabel = g_strdup_printf(_("Distance along cut"));
 			}
 			gnuplot_set_title(gplot, title);
@@ -611,6 +667,7 @@ END:
 	free(g);
 	free(b);
 	arg->vport = -1;
+	restore_brackets_if_needed(arg);
 	gboolean in_sequence = (arg->seq != NULL);
 	if (arg != &gui.cut)
 		free(arg);
@@ -1015,7 +1072,7 @@ void on_cut_coords_cancel_button_clicked(GtkButton *button, gpointer user_data) 
 	GtkSpinButton* finishy = (GtkSpinButton*) lookup_widget("cut_yfinish_spin");
 	siril_close_dialog("cut_coords_dialog");
 	// Reset coords widgets to match the values in the struct gui.cut
-	// Do this after the dialog is closed in order to avoid potential 
+	// Do this after the dialog is closed in order to avoid potential
 	// momentary flickering of the widget values
 	gtk_spin_button_set_value(startx, gui.cut.cut_start.x);
 	gtk_spin_button_set_value(starty, gui.cut.cut_start.y);
@@ -1047,7 +1104,7 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_debug_print("start (%d, %d) finish (%d, %d)\n", sx, sy, fx, fy);
 	// Update the struct gui.cut with the entered values
 	// This is all done at once when Apply is clicked rather than individually in the
-	// GtkSpinButton callbacks in order to avoid the endpoints jumping about and the 
+	// GtkSpinButton callbacks in order to avoid the endpoints jumping about and the
 	// line looking like it's in the wrong place.
 	gui.cut.cut_start.x = sx;
 	gui.cut.cut_start.y = sy;
@@ -1055,6 +1112,13 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	gui.cut.cut_end.y = fy;
 	redraw(REDRAW_OVERLAY);
 	siril_close_dialog("cut_coords_dialog");
+}
+
+void on_cut_title_activate(GtkEntry *entry, gpointer user_data) {
+	if (gui.cut.user_title)
+		g_free(gui.cut.user_title);
+	gui.cut.user_title = g_strdup(gtk_entry_get_text(entry));
+	printf("title: %s\n", gui.cut.user_title);
 }
 
 void on_cut_wavenumber1_clicked(GtkButton *button, gpointer user_data) {

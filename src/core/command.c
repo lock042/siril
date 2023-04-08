@@ -9066,6 +9066,15 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			cut_args->filename = g_strdup(arg);
 			cut_args->save_dat = TRUE;
 		}
+		else if (g_str_has_prefix(arg, "-title")) {
+			i++;
+			if (word[i] && word[i][0] != '\0') {
+				if (cut_args->user_title)
+					g_free(cut_args->user_title);
+				cut_args->user_title = g_strdup(word[i]);
+				printf("title: %s\n", word[i]);
+			}
+		}
 	}
 	if (cut_args->vport == -1) {
 		if (nb_layers == 1) {
