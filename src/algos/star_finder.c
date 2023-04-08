@@ -89,10 +89,10 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		return SF_NO_POS; //crit 12
 	if (isnan(result->mag))
 		return SF_NO_MAG; //crit 13
-	if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0) {
-		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
-		return SF_FWHM_TOO_SMALL; //crit 14
-	}
+	// if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0) {
+	// 	if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+	// 	return SF_FWHM_TOO_SMALL; //crit 14
+	// }
 	if (result->fwhmx <= 0.0 || result->fwhmy <= 0.0) {
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_FWHM_NEG; //crit 15
@@ -184,6 +184,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	float **image_float = NULL;
 
 	assert(nx > 0 && ny > 0);
+	gboolean ismono = (image->fit->naxes[2] == 1);
 
 	if (showtime) {
 		siril_log_color_message(_("Findstar: processing for channel %d...\n"), "green", layer);
@@ -311,21 +312,20 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 							continue;
 						}
 						neighbor = (itype == DATA_USHORT) ? (float)image_ushort[yy][xx] : image_float[yy][xx];
-						if (neighbor <= threshold) {
-							bingo = FALSE;
-							break;
+						if (neighbor >= threshold) {
+							if (neighbor < minhigh) minhigh = neighbor;
+							meanhigh += neighbor;
+							count++;
 						}
-						if (neighbor < minhigh) minhigh = neighbor;
-						if (!bingo) break;
-						meanhigh += neighbor;
-						count++;
 					}
 				}
-				if (count < 8) {
+				// if the image is mono, there is no leakage possible between channels, so we consider a block of 4 a valid candidate
+				// if the image is debayered from color, we need to find a block of 9
+				if (count == 0 || (ismono && count < 3) || (!ismono && count < 8)) {
 					bingo = FALSE;
 					continue;
 				}
-				meanhigh /= 8;
+				meanhigh /= (double)count;
 
 				// first derivatives. r c is for row and column. l, r, u, d for left, right, up and down
 				int xx = x - r, yy = y;
