@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-07 09:46+0200\n"
-"PO-Revision-Date: 2023-04-08 10:35+0000\n"
+"PO-Revision-Date: 2023-04-09 05:08+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -637,12 +637,10 @@ msgid "Constant value that is subtracted from the image."
 msgstr "Постоянное значение, которое будет вычтено из изображения."
 
 #: src/gui/siril3.glade:3361
-#, fuzzy
 msgid "Human-weighted luminance"
 msgstr "Относительная чувствительность глаза"
 
 #: src/gui/siril3.glade:3365
-#, fuzzy
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
@@ -1311,11 +1309,15 @@ msgid "Sensor pixel size in microns"
 msgstr "Размер пикселя в микрометрах"
 
 #: src/gui/siril3.glade:6521
+#, fuzzy
 msgid ""
 "Wavelength to calculate the diffraction pattern for. May be specified "
 "exactly for narrowband filters, or for broadband / OSC / luminance filters "
 "just use a representative central wavelength."
 msgstr ""
+"Длина волны для расчета дифракционной картины. Может быть задано точно для "
+"узкополосных фильтров. Для широкополосных фильтров / OSC / яркости "
+"используйте репрезентативную центральную длину волны."
 
 #: src/gui/siril3.glade:6536
 msgid ""
@@ -1506,38 +1508,51 @@ msgstr ""
 "единице, чтобы получить достаточную резкость в PSF."
 
 #: src/gui/siril3.glade:7101
+#, fuzzy
 msgid "Samples per outer loop"
-msgstr ""
+msgstr "Образцов во внешнем цикле"
 
 #: src/gui/siril3.glade:7113
 #, fuzzy
 msgid "Outer loop iterations"
-msgstr "Повторов внешнего цикла"
+msgstr "Повторы внешнего цикла"
 
 #: src/gui/siril3.glade:7124
+#, fuzzy
 msgid ""
 "This parameter sets the number of samples per outer loop. Sufficient samples "
 "must be chosen to ensure the PSF estimate converges: for low noise images a "
 "fairly small number of samples will suffice. For noisy images, the value may "
 "require increasing to as much as around 250."
 msgstr ""
+"Этот параметр задает количество образцов для каждого внешнего цикла. "
+"Необходимо выбрать достаточное количество образов, чтобы обеспечить "
+"сходимость оценки PSF: для изображений с низким уровнем шума будет "
+"достаточно небольшого количества образцов. Для зашумленных изображений это "
+"значение может потребоваться увеличить примерно до 250."
 
 #: src/gui/siril3.glade:7138
+#, fuzzy
 msgid ""
 "Outer loop iterations. This parameter should not generally require "
 "adjustment."
 msgstr ""
+"Количество повторов внешнего цикла. Этот параметр, как правило, не требует "
+"настройки."
 
 #: src/gui/siril3.glade:7153
 #, fuzzy
 msgid "Inner loop iterations"
-msgstr "Повторов внутреннего цикла"
+msgstr "Повторы внутреннего цикла"
 
 #: src/gui/siril3.glade:7164
+#, fuzzy
 msgid ""
 "This parameter sets the number of iterations in the algorithm inner loop. It "
 "should not usually require adjustment."
 msgstr ""
+"Этот параметр задает количество повторов во внутреннем цикле алгоритма. "
+"Обычно он не требует настройки."
 
 #: src/gui/siril3.glade:7196
 #, fuzzy
@@ -1641,22 +1656,22 @@ msgid ""
 "more often used in regularizing denoising algorithms but can perform well "
 "when deconvolving a star mask produced by Siril's Starnet++ interface."
 msgstr ""
-"Полная регуляризация вариаций хорошо сохраняет четкие края изображения. Если "
-"сомневаетесь, выбирайте общую вариацию. Однако это может иметь тенденцию "
-"создавать \"эффект лестницы\" в крупных однородных областях.\n"
-"Норма Фробениуса Гессиана использует член регуляризации второго порядка. Он "
-"чаще используется в регуляризирующих алгоритмах шумоподавления, но может "
-"хорошо работать при деконволюции звездной маски, создаваемой интерфейсом "
-"Siril Starnet++"
+"Регуляризация с помощью полной вариации хорошо сохраняет четкие края "
+"изображения. Если сомневаетесь, выбирайте полную вариацию. Однако это может "
+"иметь тенденцию создавать \"эффект лестницы\" на крупных однородных областях."
+"\n"
+"Норма Фробениуса для гессиана использует член регуляризации второго порядка. "
+"Она чаще используется в регуляризации алгоритмов шумоподавления, но может "
+"хорошо работать при реконструкции звездной маски, создаваемой интерфейсом "
+"Siril Starnet++."
 
 #: src/gui/siril3.glade:7590
-#, fuzzy
 msgid "Total Variation"
-msgstr "Насыщенность"
+msgstr "Полная вариация"
 
 #: src/gui/siril3.glade:7591
 msgid "Frobenius norm of Hessian"
-msgstr ""
+msgstr "Норма Фробнеуса для гессиана"
 
 #: src/gui/siril3.glade:7605
 msgid "Alpha (α)"
@@ -1671,6 +1686,9 @@ msgid ""
 "Sets a stopping criterion based on difference between successive estimates. "
 "To activate the criterion the checkbox must be selected."
 msgstr ""
+"Устанавливает критерий остановки, основанный на разнице между "
+"последовательными оценками. Чтобы включить критерий, необходимо установить "
+"этот флажок."
 
 #: src/gui/siril3.glade:7631
 msgid "Regularization"
@@ -1775,6 +1793,12 @@ msgid ""
 "default and should only be enabled in the rare event that you see artefacts "
 "when denoising a colour image."
 msgstr ""
+"Подавляет блочные цветные артефакты, которые могут иногда появляться на "
+"цветных изображениях. Эта опция обрабатывает каждый канал отдельно и "
+"устраняет артефакты за счёт некоторой потери в скорости. В большинстве "
+"случаев это не требуется, поэтому по умолчанию эта опция отключена и должна "
+"быть включено только в тех редких случаях, когда вы видите артефакты при "
+"уменьшении шума цветного изображения."
 
 #: src/gui/siril3.glade:8025
 msgid "Color Denoising"
@@ -1789,10 +1813,13 @@ msgid ""
 "No secondary denoising process will be used. The primary algorithm by itself "
 "usually performs well so this is the default."
 msgstr ""
+"Процесс вторичного шумоподавления использоваться не будет. Основной алгоритм "
+"обычно работает хорошо, так что это значение по умолчанию."
 
 #: src/gui/siril3.glade:8071
+#, fuzzy
 msgid "Anscombe VST with exact unbiased inverse"
-msgstr ""
+msgstr "Преобразование Анскромби"
 
 #: src/gui/siril3.glade:8075
 msgid ""
@@ -1805,7 +1832,7 @@ msgstr ""
 #: src/gui/siril3.glade:8090
 #, fuzzy
 msgid "Data Adaptive Dual Domain Denoising"
-msgstr "Двухдоменное подавление шума, адаптированное к данным (DA3D)"
+msgstr "Адаптированное двухдоменное подавление шума (DA3D)"
 
 #: src/gui/siril3.glade:8094
 msgid ""
@@ -2131,7 +2158,7 @@ msgstr "Автоматическое выравнивание выбранным
 
 #: src/gui/siril3.glade:9066
 msgid "and using this alignment method:"
-msgstr "Способ выравнивания:"
+msgstr "и используя способ выравнивания:"
 
 #: src/gui/siril3.glade:9079 src/gui/siril3.glade:14934
 #: src/compositing/align_rgb.c:48 src/compositing/compositing.c:366
@@ -2255,12 +2282,18 @@ msgid ""
 "reduction workflow, you can specify any two fits files with the same "
 "dimensions and bit depth for blending."
 msgstr ""
+"Выбрать изображение без звёзд для восстановления с маской звёзд.\n"
+"Хотя этот инструмент предназначен для восстановления звёзд как часть "
+"рабочего процесса уменьшения звёзд, вы можете указать любые два файла FITS с "
+"одинаковыми размерами и разрядностью для смешивания."
 
 #: src/gui/siril3.glade:9540
 msgid ""
 "Expands to show a mini histogram and transfer function display for the star "
 "image"
 msgstr ""
+"Разворачивается, чтобы показать мини-гистограмму и передаточную функцию для "
+"изображения звёзд"
 
 #: src/gui/siril3.glade:9543
 msgid "Star Histogram"
@@ -2280,6 +2313,13 @@ msgid ""
 "point, lowlight and highlight preservation. The inverse hyperbolic and "
 "arcsinh stretches are also available."
 msgstr ""
+"Выберите тип растягивания. Обобщенное гиперболическое растягивание выполняет "
+"гиперболическое растягивание с параметрами силы растягивания, локальной "
+"интенсивности, точки симметрии и областей сохранения теней и светов. "
+"Модифицированная растяжение по arcsinh выполняет растяжение по arcsinh с "
+"дополнительными параметрами для сохранения точки симметрии, сохранения теней "
+"и светов. Также доступны обратные гиперболическое растягивание и "
+"растягивание по arcsinh."
 
 #: src/gui/siril3.glade:9583 src/gui/siril3.glade:10192
 #: src/gui/siril3.glade:16035 src/gui/siril3.glade:16033
@@ -2307,7 +2347,6 @@ msgid "Colour stretch model"
 msgstr "Цветовая модель растягивания"
 
 #: src/gui/siril3.glade:9629 src/gui/siril3.glade:10238
-#, fuzzy
 msgid ""
 "Set the stretch model for colour stretches. The options are: evenly weighted "
 "luminance, which calculates the stretch based on a luminance value weighting "
@@ -2334,7 +2373,6 @@ msgstr "Независимые значения канала"
 
 #: src/gui/siril3.glade:9635 src/gui/siril3.glade:10244
 #: src/gui/siril3.glade:16087 src/gui/siril3.glade:16084
-#, fuzzy
 msgid "Human weighted luminance"
 msgstr "Относительная чувствительность глаза"
 
@@ -2349,16 +2387,21 @@ msgid "Stretch factor (ln(D+1))"
 msgstr "Коэффициент растягивания (ln(D+1))"
 
 #: src/gui/siril3.glade:9681 src/gui/siril3.glade:9706
+#, fuzzy
 msgid ""
 "Independently controls the contrast added (the slope of the stretch) at SP, "
 "thus adjusting the amount of stretch applied to the rest of the image. "
 "Increasing D increases the intensity of stars in the resulting composition."
 msgstr ""
+"Независимо управляет добавленным контрастом (наклоном растяжения) в точке "
+"симметрии, регулируя таким образом степень растягивания, применяемую к "
+"остальной части изображения. Увеличение D увеличивает интенсивность звёзд в "
+"результирующей композиции."
 
 #: src/gui/siril3.glade:9740 src/gui/siril3.glade:10350
 #: src/gui/siril3.glade:16214 src/gui/siril3.glade:16210
 msgid "Local stretch intensity (b)"
-msgstr "Локальная интенсивность растягивания (b)"
+msgstr "Интенсивность локального растягивания (b)"
 
 #: src/gui/siril3.glade:9751 src/gui/siril3.glade:9775
 msgid ""
@@ -2367,6 +2410,10 @@ msgid ""
 "peak brightness above SP, but may bloat their PSF; it will reduce the "
 "intensity of stars below SP."
 msgstr ""
+"Управляет насколько точно сфокусировано растягивание, изменяя форму самого "
+"преобразования. Увеличение b увеличит интенсивность звёзд с пиковой яркостью "
+"выше точки симметрии, но может увеличить их PSF; это уменьшит интенсивность "
+"звёзд ниже точки симметрии."
 
 #: src/gui/siril3.glade:9810 src/gui/siril3.glade:10420
 #: src/gui/siril3.glade:16283 src/gui/siril3.glade:16279
@@ -2380,6 +2427,10 @@ msgid ""
 "brightness below SP and therefore the amount of stars that show in the "
 "resulting composition."
 msgstr ""
+"Устанавливает точку симметрии, вокруг которой фокусируется растягивание. При "
+"восстановлении звезд увеличение точки симметрии уменьшает интенсивность "
+"звёзд с пиковой яркостью ниже точки симметрии и, следовательно, количество "
+"звёзд, которые видны на результирующем изображении."
 
 #: src/gui/siril3.glade:9841
 msgid ""
@@ -2387,6 +2438,10 @@ msgid ""
 "with the background image, where it can effectively pick out faint detail "
 "above the background. It is not generally useful with the star mask image."
 msgstr ""
+"Позволяет установить точку симметрии из текущего выделения. Это лучше всего "
+"подходит для использования с изображением фона, где оно может эффективно "
+"выделять слабые детали над фоном. Обычно это бесполезно для изображения "
+"маски звёзд."
 
 #: src/gui/siril3.glade:9902 src/gui/siril3.glade:10512
 #: src/gui/siril3.glade:16374 src/gui/siril3.glade:16370
@@ -2396,6 +2451,7 @@ msgstr "Точка сохранения теней (LP)"
 #: src/gui/siril3.glade:9913 src/gui/siril3.glade:9938
 #: src/gui/siril3.glade:10523 src/gui/siril3.glade:10548
 #: src/gui/siril3.glade:16385 src/gui/siril3.glade:16381
+#, fuzzy
 msgid ""
 "Sets a value below which the stretch is modified to preserve contrast in the "
 "shadows. This is done by performing a linear stretch below LP by reserving "
@@ -2405,6 +2461,14 @@ msgid ""
 "definition in the background. This parameter must be greater than or equal "
 "to 0 and not greater than SP."
 msgstr ""
+"Устанавливает значение, ниже которого растягивание изменяется для сохранения "
+"контраста в тенях. Это делается путём выполнения линейного растягивания ниже "
+"точки сохранения теней, сохраняя контраст с остальной частью изображения. "
+"Перемещение точки сохранения теней в сторону точки симметрии изменяет как "
+"масштаб, так и величину сохранения контраста, конечный эффект заключается в "
+"повышении общего уровня яркости при сохранении контрастности и чёткости "
+"фона. Этот параметр должен быть больше или равен 0 и не превышать значения "
+"точки симметрии."
 
 #: src/gui/siril3.glade:9973 src/gui/siril3.glade:10583
 #: src/gui/siril3.glade:16443 src/gui/siril3.glade:16439
@@ -2417,6 +2481,10 @@ msgid ""
 "highlights / stars. The star mask HP can be set to quite a low value to "
 "prevent bloat of brighter stars."
 msgstr ""
+"Устанавливает значение, при превышении которого растягивание изменяется для "
+"сохранения контраста светов/звёзд. Точка сохранения светов маски звёзд может "
+"быть установлена на довольно низкое значение, чтобы предотвратить разбухание "
+"более ярких звёзд."
 
 #: src/gui/siril3.glade:10010
 msgid ""
@@ -2425,6 +2493,11 @@ msgid ""
 "recomposition mode to prevent bloat of brighter stars while boosting the "
 "brightness of fainter ones."
 msgstr ""
+"Устанавливает значение, при превышении которого растягивание изменяется для "
+"сохранения контраста в ярких светах/звёздах. Это значение может быть "
+"установлено на довольно низкое в режиме восстановления звёзд, чтобы "
+"предотвратить разбухание более ярких звёзд при одновременном повышении "
+"яркости более слабых."
 
 #: src/gui/siril3.glade:10045 src/gui/siril3.glade:10655
 #: src/gui/siril3.glade:16513 src/gui/siril3.glade:16509
@@ -2438,12 +2511,17 @@ msgid ""
 "image after the initial hyperbolic stretch. BP adjustment may result in "
 "clipping the shadows."
 msgstr ""
+"Настройка точки чёрного. Это постоянное значение, которое вычитается из "
+"изображения после первоначального гиперболического растяжения. Регулировка "
+"точки чёрного может привести к обрезке теней."
 
 #: src/gui/siril3.glade:10149
 msgid ""
 "Expands to show a mini histogram and transfer function display for the "
 "background image."
 msgstr ""
+"Разворачивается, чтобы показать мини-гистограмму и передаточную функцию для "
+"изображения фона."
 
 #: src/gui/siril3.glade:10152
 msgid "Background Histogram"
@@ -2451,6 +2529,7 @@ msgstr "Гистограмма фона"
 
 #: src/gui/siril3.glade:10290 src/gui/siril3.glade:10315
 #: src/gui/siril3.glade:16156 src/gui/siril3.glade:16152
+#, fuzzy
 msgid ""
 "Independently controls the contrast added (the slope of the stretch) at SP, "
 "thus adjusting the amount of stretch applied to the rest of the image. It "
@@ -2459,9 +2538,17 @@ msgid ""
 "brightness. When this is set to zero, the stretch will be the identity "
 "transform, but any ordered black point adjustment will still occur."
 msgstr ""
+"Независимо управляет добавленным контрастом (наклоном растягивания) в точке "
+"симметрии, регулируя таким образом степень растягивания, применяемую к "
+"остальной части изображения. Форма растягивания не изменяется, меняется, "
+"только её величина. Должен использоваться в паре с b для управления "
+"распределением контраста и яркости. Когда это значение равно нулю, "
+"растягивание будет идентичным преобразованием, но любая упорядоченная "
+"корректировка точки чёрного всё равно будет выполняться."
 
 #: src/gui/siril3.glade:10361 src/gui/siril3.glade:10385
 #: src/gui/siril3.glade:16225 src/gui/siril3.glade:16221
+#, fuzzy
 msgid ""
 "Controls how tightly the stretch is focused by changing the form of the "
 "transform itself. For concentrated stretches (e.g. initial stretch on linear "
@@ -2473,6 +2560,16 @@ msgid ""
 "(with small D) can still be used for precise placement of additional "
 "contrast."
 msgstr ""
+"Управляет насколько точно сфокусировано растягивание, изменяя форму самого "
+"преобразования. Для концентрированного растягивания (например, "
+"первоначальное растяжение линейных данных) большое положительное значение b "
+"сфокусирует участок в пределах пика гистограммы, одновременно расфокусируя "
+"растягивание в сторону от пика (например, ярких звёзд). При настройке "
+"нелинейных изображений более низкие или отрицательные значения будут "
+"распределять контраст и яркость более равномерно. Как правило, значение b "
+"будет уменьшаться по мере приближения к завершению последовательности "
+"растягивания, хотя бо́льшие значения (с небольшим D) всё ещё можно "
+"использовать для точного размещения дополнительного контраста."
 
 #: src/gui/siril3.glade:10431 src/gui/siril3.glade:10477
 #: src/gui/siril3.glade:16294 src/gui/siril3.glade:16290
@@ -2484,6 +2581,13 @@ msgid ""
 "pixel values away from SP. This parameter must be greater than or equal to "
 "LP and less than or equal to HP."
 msgstr ""
+"Устанавливает точку симметрии, вокруг которой фокусируется растягивание — "
+"контраст распределяется симметрично вокруг точки симметрии. Как правило, её "
+"следует размещать внутри пика гистограммы, чтобы растягивание расширяло и "
+"понижало пик, добавляя наибольший контраст растяжению в этой точке. "
+"Растягивание приведет к удалению значений пикселей от точки симметрии. Этот "
+"параметр должен быть больше или равен точки сохранения теней и меньше или "
+"равен точки сохранения светов."
 
 #: src/gui/siril3.glade:10451 src/gui/siril3.glade:16315
 #: src/gui/siril3.glade:16311
@@ -2492,6 +2596,9 @@ msgid ""
 "on the average value of  the current selection. This helps in picking out "
 "faint detail above the dark background."
 msgstr ""
+"Пипетка позволяет установить точку симметрии растягивания фона на основе "
+"среднего значения текущего выделения. Это помогает выделить слабые детали "
+"выше тёмного фона."
 
 #: src/gui/siril3.glade:10594 src/gui/siril3.glade:10620
 msgid ""
@@ -2505,6 +2612,16 @@ msgid ""
 "of limited use for starless backgrounds but is very effective on the star "
 "mask for preventing star bloat."
 msgstr ""
+"Устанавливает значение, при превышении которого растягивание изменяется для "
+"сохранения контраста светов/звёзд. Это делается путём выполнения линейного "
+"растягивания данных выше точки сохранения светов с сохранением контраста по "
+"сравнению с остальной частью изображения. Переход от точки сохранения светов "
+"к точке симметрии увеличивает охват и величину этого сохранения контраста, "
+"конечный эффект заключается в сдвиге общего растягивания к низким уровням "
+"яркости при сохранении контраста и четкости в светах. Этот параметр должен "
+"быть меньше или равен 1 и не менее точки симметрии. Для беззвёздного фона "
+"этот параметр, как правило, имеет ограниченное применение, но очень "
+"эффективен для предотвращения раздувания звезд на маске звёзд."
 
 #: src/gui/siril3.glade:10721
 msgid "Background Stretch Parameters"
@@ -2653,14 +2770,13 @@ msgid ""
 msgstr "Включить/исключить выбранные изображения"
 
 #: src/gui/siril3.glade:11509
-#, fuzzy
 msgid ""
 "When toggled, the outline of the reference image as transformed with "
 "registration data is drawn on each image to review image position wrt. "
 "reference."
 msgstr ""
-"Если включено, контур опорного изображения, преобразованный с данными "
-"регистрации, рисуется на каждом изображении для просмотра положения "
+"Если флажок установлен, контур опорного изображения, преобразованный с "
+"данными регистрации, рисуется на каждом изображении для просмотра положения "
 "изображения по отношению к опорному."
 
 #: src/gui/siril3.glade:11533
@@ -3564,7 +3680,7 @@ msgstr "Авторастягивание"
 
 #: src/gui/siril3.glade:14473
 msgid "High definition"
-msgstr "20 битная LUT"
+msgstr "Расширенное"
 
 #: src/gui/siril3.glade:14482 src/gui/siril3.glade:30543
 #: src/gui/siril3.glade:30539
@@ -4115,6 +4231,14 @@ msgid ""
 "<i>Ha * factor + OIII * K</i> would therefore evaluate to <i>Ha * 0.8 + OIII "
 "* 0.2</i>"
 msgstr ""
+"Значения параметров, разделённые запятыми. Определённые таким образом "
+"параметры могут использоваться в выражениях.\n"
+"Например, если установить параметры с помощью выражения <i>factor=0.8, K=0."
+"2</i>, все вхождения <i>factor</i> и <i>K</i> в формуле выше будут заменены "
+"на 0.8 и 0.2, соответственно.\n"
+"\n"
+"<i>Ha * factor + OIII * K</i> таким образом будет приведено к виду <i>Ha * "
+"0.8 + OIII * 0.2</i>"
 
 #: src/gui/siril3.glade:17172 src/gui/siril3.glade:17168
 msgid "Parameters"
@@ -4122,25 +4246,32 @@ msgstr "Параметры"
 
 #: src/gui/siril3.glade:17198 src/gui/siril3.glade:17194
 msgid "Rescale result"
-msgstr ""
+msgstr "Масштабировать результат"
 
 #: src/gui/siril3.glade:17202 src/gui/siril3.glade:17198
 msgid ""
 "Check this option to rescale the pixel values of the resulting image to the "
 "specified output range (see the lower range and upper range parameters below)"
 msgstr ""
+"Установите этот флажок, чтобы изменить масштаб значений пикселей "
+"результирующего изображения в соответствии с указанным выходным диапазоном ("
+"см. параметры нижнего и верхнего диапазонов ниже)."
 
 #: src/gui/siril3.glade:17217 src/gui/siril3.glade:17213
 msgid ""
 "When the rescale option is enabled, this is the lower bound of the output "
 "rescaling range."
 msgstr ""
+"При включённой опции \"Масштабировать результат\", это значение является "
+"нижней границей выходного диапазона."
 
 #: src/gui/siril3.glade:17236 src/gui/siril3.glade:17232
 msgid ""
 "When the rescale option is enabled, this is the upper bound of the output "
 "rescaling range."
 msgstr ""
+"При включённой опции \"Масштабировать результат\", это значение является "
+"верхней границей выходного диапазона."
 
 #: src/gui/siril3.glade:17257 src/gui/siril3.glade:17253
 msgid "Output"
@@ -4151,6 +4282,8 @@ msgid ""
 "Preset list. You can delete an item or the entire list by selecting what you "
 "want and pressing the delete key."
 msgstr ""
+"Список предустановок. Вы можете удалить один элемент из списка или весь "
+"список, выбрав то, что хотите удалить и нажав кнопку \"Delete\"."
 
 #: src/gui/siril3.glade:17317 src/gui/siril3.glade:17313
 msgid "Presets"
@@ -4222,9 +4355,8 @@ msgid "Color Saturation..."
 msgstr "Насыщенность…"
 
 #: src/gui/siril3.glade:17561 src/gui/siril3.glade:17557
-#, fuzzy
 msgid "Open the subtractive chromatic noise reduction dialog"
-msgstr "Диалог субтрактивного хроматического уменьшения шума"
+msgstr "Диалог удаления зелёного шума"
 
 #: src/gui/siril3.glade:17563 src/gui/siril3.glade:17559
 msgid "Remove Green Noise..."
@@ -4376,6 +4508,8 @@ msgstr "Удаление звёзд с помощью StarNet..."
 msgid ""
 "Blends a starless image and star mask, each with separate stretches applied"
 msgstr ""
+"Смешивает изображение без звёзд с маской звёзд, применяя к каждому "
+"изображению собственное растягивание"
 
 #: src/gui/siril3.glade:17929
 msgid "Star Recomposition..."
@@ -9203,11 +9337,11 @@ msgstr "Не удалось создать образцы фона для изо
 
 #: src/algos/background_extraction.c:888
 msgid "Not enough samples."
-msgstr ""
+msgstr "Недостаточно образцов."
 
 #: src/algos/background_extraction.c:898 src/gui/PSF_list.c:718
 msgid "monochrome"
-msgstr ""
+msgstr "монохором"
 
 #: src/algos/background_extraction.c:899
 #, c-format
@@ -9217,7 +9351,7 @@ msgstr "Извлечение фона из канала %s.\n"
 #: src/algos/background_extraction.c:904
 #, c-format
 msgid "Background with %s interpolation computed.\n"
-msgstr ""
+msgstr "Рассчитан фон с интерполяцией %s.\n"
 
 #: src/algos/background_extraction.c:924
 msgid "Out of memory - aborting"
@@ -9237,6 +9371,8 @@ msgid ""
 "%s: not enough memory to do this operation (%s required per image, %s "
 "considered available)\n"
 msgstr ""
+"%s: для операции недостаточно памяти (на изображение необходимо %s, доступно "
+"%s)\n"
 
 #: src/algos/ccd-inspector.c:184 src/algos/ccd-inspector.c:259
 #, c-format
@@ -9252,16 +9388,18 @@ msgstr "Оценка наклона сенсора"
 #: src/algos/colors.c:625 src/algos/colors.c:530
 msgid "Siril cannot extract layers. Make sure your image is in RGB mode.\n"
 msgstr ""
+"Siril не удалось извлечь слои. Убедитесь, что изображение в режиме RGB.\n"
 
 #: src/algos/colors.c:629 src/algos/colors.c:713 src/algos/colors.c:534
 #: src/algos/colors.c:618
 #, c-format
 msgid "%s channel extraction: processing...\n"
-msgstr ""
+msgstr "извлечение канала %s: выполнение...\n"
 
 #: src/algos/colors.c:709 src/algos/colors.c:614
 msgid "Siril cannot extract channels. Make sure your image is in RGB mode.\n"
 msgstr ""
+"Siril не удалось извлечь каналы. Убедитесь, что изображение в режиме RGB.\n"
 
 #: src/algos/colors.c:815 src/algos/colors.c:906 src/algos/noise.c:86
 #: src/algos/photometric_cc.c:259 src/algos/photometric_cc.c:284
@@ -9274,25 +9412,27 @@ msgstr ""
 #: src/gui/statistics_list.c:224 src/algos/colors.c:720 src/algos/colors.c:811
 #: src/gui/histogram.c:1408
 msgid "Error: statistics computation failed.\n"
-msgstr ""
+msgstr "Ошибка: не удалось вычислить статистику.\n"
 
 #: src/algos/colors.c:902 src/algos/photometric_cc.c:316 src/algos/colors.c:807
 msgid "Background reference:\n"
-msgstr ""
+msgstr "Ориентир фона:\n"
 
 #: src/algos/colors.c:915 src/algos/colors.c:820
 msgid "White reference:\n"
-msgstr ""
+msgstr "Ориентир белого:\n"
 
 #: src/algos/colors.c:930 src/algos/colors.c:835
 msgid "Color calibration factors:\n"
-msgstr ""
+msgstr "Коэффициенты для калибровки цвета:\n"
 
 #: src/algos/demosaicing.c:949
 msgid ""
 "FITS header does not contain a proper XTRANS pattern, demosaicing cannot be "
 "done\n"
 msgstr ""
+"Заголовок FITS не содержит верного шаблона XTRANS, нельзя выполнить "
+"дебайеризацию\n"
 
 #: src/algos/demosaicing.c:966
 #, c-format
@@ -9302,6 +9442,7 @@ msgstr ""
 #: src/algos/demosaicing.c:1226
 msgid "Cannot perform debayering on image with more than one channel\n"
 msgstr ""
+"Нельзя выполнить дебайеризацию изображения, имеющего более одного канала\n"
 
 #: src/algos/demosaicing.c:1240 src/algos/extraction.c:163 src/io/ser.c:833
 #: src/io/ser.c:1064
@@ -9315,10 +9456,12 @@ msgid ""
 "Bayer pattern found in header (%s) is different from Bayer pattern in "
 "settings (%s). Overriding settings.\n"
 msgstr ""
+"Шаблон Байера из заголовка (%s) отличается от такового из настроек (%s). "
+"Переопределение настроек.\n"
 
 #: src/algos/demosaicing.c:1252
 msgid "XTRANS Sensor detected. Using special algorithm.\n"
-msgstr ""
+msgstr "Обнаружен сенсор XTRANS. Используется специализированный алгоритм.\n"
 
 #: src/algos/demosaicing.c:1256 src/algos/extraction.c:178
 #, c-format
@@ -9327,64 +9470,65 @@ msgstr ""
 
 #: src/algos/demosaicing.c:1262
 msgid "Cannot perform debayering\n"
-msgstr ""
+msgstr "Не удалось выполнить дебайеризацию.\n"
 
 #: src/algos/demosaicing.c:1340
 #, c-format
 msgid "Image %d: error identifying CFA1 filename\n"
-msgstr ""
+msgstr "Изображение %d: ошибка определения имени файла для CFA1\n"
 
 #: src/algos/demosaicing.c:1345
 #, c-format
 msgid "Image %d: error identifying CFA2 filename\n"
-msgstr ""
+msgstr "Изображение %d: ошибка определения имени файла для CFA2\n"
 
 #: src/algos/demosaicing.c:1350
 #, c-format
 msgid "Image %d: error identifying CFA3 filename\n"
-msgstr ""
+msgstr "Изображение %d: ошибка определения имени файла для CFA3\n"
 
 #: src/algos/demosaicing.c:1361
 #, c-format
 msgid "Image %d: error opening CFA1 file\n"
-msgstr ""
+msgstr "Изображение %d: ошибка открытия файла CFA1\n"
 
 #: src/algos/demosaicing.c:1366
 #, c-format
 msgid "Image %d: error opening CFA2 file\n"
-msgstr ""
+msgstr "Изображение %d: ошибка открытия файла CFA2\n"
 
 #: src/algos/demosaicing.c:1371
 #, c-format
 msgid "Image %d: error opening CFA3 file\n"
-msgstr ""
+msgstr "Изображение %d: ошибка открытия файла CFA3\n"
 
 #: src/algos/demosaicing.c:1410
 msgid "Merge CFA"
-msgstr ""
+msgstr "Совместить CFA"
 
 #: src/algos/demosaicing.c:1439
 msgid ""
 "Input files are incompatible (all must be mono with the same size and bit "
 "depth). Aborting...\n"
 msgstr ""
+"Входящие файлы несовместимы. Все файлы должны быть монохромными с "
+"одинаковыми размером и разрядностью. Прерывание...\n"
 
 #: src/algos/demosaicing.c:1441
 msgid "X dimensions incompatible\n"
-msgstr ""
+msgstr "Размеры по X несовместимы\n"
 
 #: src/algos/demosaicing.c:1443
 msgid "Y dimensions incompatible\n"
-msgstr ""
+msgstr "Размеры по Y несовместимы\n"
 
 #: src/algos/demosaicing.c:1445
-#, fuzzy
 msgid "Channels not all mono\n"
-msgstr "Извлечение канала"
+msgstr "Не все каналы монохромные\n"
 
 #: src/algos/demosaicing.c:1447
 msgid "Input files not all the same bit depth\n"
-msgstr ""
+msgstr "Входящие файлы имеют разную разрядность\n"
 
 #: src/algos/demosaicing.c:1454
 msgid "Error creating output image\n"
@@ -9399,17 +9543,18 @@ msgid "XTRANS pattern not supported for this feature.\n"
 msgstr "Эта функция не поддерживает матрицы X-Trans.\n"
 
 #: src/algos/extraction.c:249 src/algos/extraction.c:293
+#, fuzzy
 msgid "Extract_Green does not work on non-Bayer filter camera images!\n"
-msgstr ""
+msgstr "Из\n"
 
 #: src/algos/extraction.c:480
 #, c-format
 msgid "Image %d not found for writing\n"
-msgstr ""
+msgstr "Изображение %d для записи не найдено\n"
 
 #: src/algos/extraction.c:543
 msgid "Extract Ha and OIII"
-msgstr ""
+msgstr "Извлечь Ha и OIII"
 
 #: src/algos/extraction.c:559 src/algos/extraction.c:604
 msgid "Split CFA does not work on non-Bayer filter camera images!\n"
@@ -9436,7 +9581,7 @@ msgstr ""
 
 #: src/algos/fix_xtrans_af.c:208
 msgid "No information available in preferences.\n"
-msgstr ""
+msgstr "В настройках отсутствует информация.\n"
 
 #: src/algos/fix_xtrans_af.c:259
 msgid "This CFA pattern cannot be handled by fix_xtrans_ac.\n"
@@ -9448,14 +9593,14 @@ msgid "Failed to sample enough pixels for AF type %d.\n"
 msgstr ""
 
 #: src/algos/geometry.c:268
-#, fuzzy, c-format
+#, c-format
 msgid "Binning x%d: processing...\n"
-msgstr "%s: обработка…\n"
+msgstr "Биннинг ×%d: выполняется…\n"
 
 #: src/algos/geometry.c:287
 #, c-format
 msgid "New image size: %dx%d pixels.\n"
-msgstr ""
+msgstr "Размер нового изображения: %d×%d пикселей.\n"
 
 #: src/algos/geometry.c:295 src/algos/geometry.c:390
 msgid "Nearest-Neighbor"
@@ -9468,7 +9613,7 @@ msgstr "Ланцош-4"
 #: src/algos/geometry.c:317
 #, c-format
 msgid "Resample (%s interpolation): processing...\n"
-msgstr ""
+msgstr "Масштабирование (интерполяция %s): выполняется...\n"
 
 #: src/algos/geometry.c:355 src/algos/geometry.c:408
 #, c-format
@@ -11329,12 +11474,10 @@ msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
 msgstr ""
 
 #: src/core/command.c:5132 src/core/command.c:5108
-#, fuzzy
 msgid "Sigma low must be positive.\n"
 msgstr "Минимальное значение σ должно быть положительным.\n"
 
 #: src/core/command.c:5138 src/core/command.c:5114
-#, fuzzy
 msgid "Sigma high must be positive.\n"
 msgstr "Максимальное значение σ должно быть положительным.\n"
 
@@ -12014,9 +12157,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:8173 src/core/command.c:8149
-#, fuzzy
 msgid "Overriding previous selection\n"
-msgstr "Кадрирование по выделению"
+msgstr "Переопределение предыдущего выделения\n"
 
 #: src/core/command.c:8225 src/core/command.c:8256 src/core/command.c:8201
 #: src/core/command.c:8232
@@ -12915,9 +13057,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:90
-#, fuzzy
 msgid "Flips the image about the vertical axis"
-msgstr "Уместить изображение в окне"
+msgstr "Переворачивает изображение по вертикали"
 
 #: src/core/command_def.h:91
 msgid ""
@@ -14015,17 +14156,18 @@ msgstr ""
 
 #: src/core/command_def.h:185 src/core/command_def.h:184
 msgid "Replaces values below <b>level</b> with <b>level</b>"
-msgstr ""
+msgstr "Заменяет значения ниже <b>уровень</b> на <b>уровень</b>"
 
 #: src/core/command_def.h:186 src/core/command_def.h:185
 msgid "Replaces values above <b>level</b> with <b>level</b>"
-msgstr ""
+msgstr "Заменяет значения выше <b>уровень</b> на <b>уровень</b>"
 
 #: src/core/command_def.h:187 src/core/command_def.h:186
 msgid ""
 "Replaces values below <b>lo</b> with <b>lo</b> and values above <b>hi</b> "
 "with <b>hi</b>"
 msgstr ""
+"Заменяет значения ниже <b>lo</b> на <b>lo</b> и выше <b>hi</b> на <b>hi</b>"
 
 #: src/core/command_def.h:188 src/core/command_def.h:187
 msgid ""
@@ -14692,7 +14834,6 @@ msgid "Process aborted by user\n"
 msgstr "Процесс остановлен пользователем\n"
 
 #: src/core/sequence_filtering.c:229
-#, fuzzy
 msgid "Sequence filter: values can only be either literal or percent\n"
 msgstr ""
 "Фильтр последовательности: значения могут быть только буквальными или "
@@ -14938,7 +15079,6 @@ msgid "Convolution minimum kernel size to use FFTW"
 msgstr ""
 
 #: src/core/settings.c:286
-#, fuzzy
 msgid "multithreaded FFTW"
 msgstr "мультипотоковое FFTW"
 
@@ -15297,9 +15437,8 @@ msgid "show user objects in annotations"
 msgstr "показать пользовательские объекты в аннотациях"
 
 #: src/core/settings.c:395
-#, fuzzy
 msgid "list of pixel math presets"
-msgstr "Математические операции над пикселями"
+msgstr "список предустановок математических операций"
 
 #: src/core/settings.c:435
 #, c-format
@@ -15684,14 +15823,13 @@ msgstr ""
 "измените значения координат и попробуйте снова."
 
 #: src/filters/rgradient.c:256
-#, fuzzy, c-format
+#, c-format
 msgid "RGradient: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"
 msgstr "Вращательный градиент: (dR=%5.2lf, dA=%4.2lf, xc=%7.1lf, yc=%7.1lf)"
 
 #: src/filters/rgradient.c:275
-#, fuzzy
 msgid "Center coordinate selection error"
-msgstr "Линии по центру выделения"
+msgstr "Ошибка выбора центральной координаты"
 
 #: src/filters/rgradient.c:276
 #, fuzzy
@@ -16149,7 +16287,7 @@ msgid "The AutoStretch display mode will use a 16 bit LUT\n"
 msgstr "Режим авторастягивания будет использовать 16 битную LUT\n"
 
 #: src/gui/callbacks.c:370
-#, fuzzy, c-format
+#, c-format
 msgid "Setting HD AutoStretch display mode bit depth to %d...\n"
 msgstr "Устанавливает режим расширенного авторастягивания к %d битам...\n"
 
@@ -18745,9 +18883,9 @@ msgid "internal sequence"
 msgstr "внутренняя последовательность"
 
 #: src/io/sequence.c:1651 src/io/sequence.c:1636
-#, fuzzy, c-format
+#, c-format
 msgid "Photometry analysis failed for image %d (%s)\n"
-msgstr "Не удалось выполнить анализ звёзд"
+msgstr "Фотометрический анализ изображения %d (%s) не удался\n"
 
 #: src/io/sequence.c:1674 src/io/sequence.c:1659
 #, c-format
@@ -19298,9 +19436,9 @@ msgid "Stacked image %d"
 msgstr "Уложено изображение %d"
 
 #: src/livestacking/livestacking.c:812
-#, fuzzy, c-format
+#, c-format
 msgid "Time to process the last image for live stacking: %s\n"
-msgstr "Выровнять все фото из последовательности"
+msgstr "Время обработки последнего изображения для укладки на лету: %s\n"
 
 #: src/opencv/opencv.cpp:105
 #, c-format
@@ -19676,12 +19814,16 @@ msgid ""
 "The star was not found in the reference image. Change the selection or the "
 "reference image\n"
 msgstr ""
+"На опорном изображении не найдено звёзд. Измените выделение или опорное "
+"изображение\n"
 
 #: src/registration/3stars.c:275
 msgid ""
 "The current image has a null matrix and was not previously registered. "
 "Please load another one to select the stars.\n"
 msgstr ""
+"Текущее изображение имеет нулевую матрицу и ранее не было зарегистрировано. "
+"Загрузите другое, чтобы выбрать звёзды.\n"
 
 #: src/registration/3stars.c:306
 msgid "PSF on area for 2 or 3 stars"
@@ -19700,9 +19842,8 @@ msgid "Creating the aligned image sequence"
 msgstr "Создание последовательности выравненных изображений"
 
 #: src/registration/3stars.c:472
-#, fuzzy
 msgid "Saving the transformation matrices"
-msgstr "Инвертировать"
+msgstr "Сохранение матриц преобразования"
 
 #: src/registration/3stars.c:526
 #, c-format
@@ -19714,6 +19855,8 @@ msgid ""
 "Less than two stars were found in the reference image, try setting another "
 "as reference?\n"
 msgstr ""
+"На опорном изображении найдено менее двух звёзд, попробовать установить "
+"другое в качестве опорного?\n"
 
 #: src/registration/3stars.c:537
 msgid ""
@@ -19722,9 +19865,8 @@ msgstr ""
 "На опорном изображении не найдено звёзд, установить другое как опорное?\n"
 
 #: src/registration/3stars.c:548
-#, fuzzy
 msgid "Saving the transformation matrices\n"
-msgstr "Инвертировать"
+msgstr "Сохранение матриц преобразования\n"
 
 #: src/registration/3stars.c:611 src/registration/3stars.c:634
 #: src/registration/3stars.c:660 src/registration/3stars.c:671
@@ -20232,6 +20374,8 @@ msgid ""
 "Number of standard deviations for rejection of worst images by k-sigma "
 "clipping algorithm."
 msgstr ""
+"Количество стандартных отклонений для выбраковки наихудших изображений с "
+"помощью алгоритма обрезки k-σ."
 
 #: src/registration/registration.c:142
 msgid "1-2-3 Stars Registration (deep-sky)"
@@ -20788,14 +20932,12 @@ msgid "High clipping factor for the percentile clipping rejection algorithm."
 msgstr ""
 
 #: src/stacking/stacking.c:799 src/stacking/stacking.c:813
-#, fuzzy
 msgid "Percentile low: "
-msgstr "Нижнее значение: "
+msgstr "Нижний процентиль: "
 
 #: src/stacking/stacking.c:800 src/stacking/stacking.c:814
-#, fuzzy
 msgid "Percentile high: "
-msgstr "Верхнее значение: "
+msgstr "Верхний процентиль: "
 
 #: src/stacking/stacking.c:809 src/stacking/stacking.c:823
 msgid ""
@@ -20881,18 +21023,17 @@ msgstr ""
 
 #: src/stacking/upscaling.c:136
 msgid "Up-scaling sequence for stacking"
-msgstr ""
+msgstr "Увеличение масштаба последовательности перед укладкой"
 
 #: src/stacking/upscaling.c:147
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
-msgstr ""
+msgstr "Укладка будет выполнена без увеличения масштаба (отключен 'drizzle')\n"
 
 #: src/core/command_def.h:90
 msgid "Flips the image about the horizontal axis"
 msgstr "Перевернуть по горизонтали"
 
 #: src/gui/siril3.glade:16079
-#, fuzzy
 msgid ""
 "Set the stretch model for colour stretches. The options are: evenly weighted "
 "luminance, which calculates the stretch based on a luminance value weighting "
@@ -20911,7 +21052,7 @@ msgstr ""
 "чувствительности человеческого глаза и 3) независимые значения каналов, "
 "когда растягивание применяется независимо к каждому каналу пикселя. Обратите "
 "внимание, что модель на основе относительной чувствительности глаза "
-"недоступна, если выбрано менее 3 цветовых канала, поскольку в этом случае "
+"недоступна, если выбрано менее 3 цветовых каналов, поскольку в этом случае "
 "она не имеет смысла."
 
 #: src/core/command_def.h:60
@@ -21006,6 +21147,9 @@ msgid ""
 "Flips the image about the vertical axis. Option <b>-bottomup</b> will only "
 "flip it if it's not already bottom-up"
 msgstr ""
+"Переворачивает изображение по вертикали. Опция <b>-bottomup</b> "
+"переворачивает изображение только в том случае, если оно ещё не перевернуто "
+"снизу вверх"
 
 #: src/core/command_def.h:89
 msgid ""
@@ -21039,7 +21183,6 @@ msgid ""
 msgstr ""
 
 #: src/gui/histogram.c:846 src/gui/histogram.c:1479
-#, fuzzy
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model.\n"
