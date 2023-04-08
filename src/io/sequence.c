@@ -132,6 +132,18 @@ void populate_seqcombo(const gchar *realname) {
 	g_free(rname);
 }
 
+/* normalizes sequence name
+ * takes a string and adds:
+ * - the .seq extension if required
+ * - _ before .seq if required
+ * returns a newly allocated string to be freed with g_free
+ */
+gchar *normalize_seqname(gchar *name) {
+	gboolean needs_seq = !g_str_has_suffix(name, ".seq");
+	gboolean needs_underscore = !g_str_has_suffix(name, "_");
+	return g_strdup_printf("%s%s%s", name, needs_underscore ? "_" : "", needs_seq ? ".seq" : "");
+}
+
 /* when opening a file outside the main sequence loading system and that file
  * is a sequence (SER/AVI), this function is called to load this sequence. */
 int read_single_sequence(char *realname, image_type imagetype) {

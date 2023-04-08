@@ -595,10 +595,11 @@ gpointer convert_thread_worker(gpointer p) {
 	init_report(args);
 
 	/* remove the target .seq to avoid errors */
-	gchar *seqname = replace_ext(args->destroot, ".seq");
+	gchar *seqname = normalize_seqname(args->destroot);
+	g_free(args->destroot);
+	args->destroot = seqname;
 	if (g_unlink(seqname))
 		siril_debug_print("Error in g_unlink()\n");
-	g_free(seqname);
 
 	convert_status convert = { 0 };
 	convert.args = args;
@@ -1359,11 +1360,13 @@ static void write_conversion_report(struct _convert_data *args) {
 	if (args->report_length <= 0)
 		return;
 	gchar *filename;
-	if (g_str_has_suffix(args->destroot, "_"))
-		filename = g_strdup_printf("%sconversion.txt", args->destroot);
-	else filename = g_strdup_printf("%s_conversion.txt", args->destroot);
+	char *filename_noext = remove_ext_from_filename(args->destroot);
+	if (g_str_has_suffix(filename_noext, "_"))
+		filename = g_strdup_printf("%sconversion.txt", filename_noext);
+	else filename = g_strdup_printf("%s_conversion.txt", filename_noext);
 	FILE *fd = g_fopen(filename, "w+");
 	g_free(filename);
+	free(filename_noext);
 	if (!fd)
 		return;
 
