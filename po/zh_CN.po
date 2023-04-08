@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-07 09:46+0200\n"
-"PO-Revision-Date: 2023-04-07 10:58+0000\n"
+"PO-Revision-Date: 2023-04-10 05:54+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -5742,8 +5742,8 @@ msgid ""
 "disk space needed to create and process drizzled images is multiplied by the "
 "square of the Drizzle factor."
 msgstr ""
-"对当前队列启用simplified drizzle算法。一个“超采样”操作(x2)会被应用于对齐帧或"
-"是叠加过程中（取决于对齐算法的选择），这将导致图像的分辨率被放大。\n"
+"对当前队列启用简单 drizzle 算法。一个“超采样”操作(x2)会被应用于对齐帧或是叠加"
+"过程中（取决于对齐算法的选择），这将导致图像的分辨率被放大。\n"
 "本选项适用于欠采样图像，例如望远镜焦距相对于相机像素尺寸太小。当FWHM小于2像素"
 "时，该系统可被认为是欠采样。\n"
 "本算法的正式名称为超采样叠加，不过有个更加通俗的名字是“Simplified Drizzle "
@@ -5768,8 +5768,8 @@ msgid ""
 msgstr ""
 "选中此框时，转换后的图像不会另存为新对齐的队列。 \n"
 " \n"
-"在这两种情况下，转换矩阵都保存到队列文件中。然后，在使用“应用现有对齐方法”应"
-"用转换之前，可以检查对齐数据并取消选择某些图像。"
+"在这两种情况下，转换矩阵都保存到队列文件中。然后，在使用“应用现有对齐”方法转"
+"换之前，可以检查对齐数据并取消选择某些图像。"
 
 #: src/gui/siril3.glade:23079 src/gui/siril3.glade:23075
 msgid "Prefix:"
@@ -11389,7 +11389,7 @@ msgstr "该队列中没有对齐数据，异常终止\n"
 #: src/core/command.c:6945 src/core/command.c:6921
 #, c-format
 msgid "Unknown framing type %s, aborting.\n"
-msgstr "未知的帧类型 %s，异常终止。\n"
+msgstr "未知的取景类型 %s，异常终止。\n"
 
 #: src/core/command.c:6961 src/core/command.c:6937
 #, c-format
@@ -11487,9 +11487,8 @@ msgstr "叠加操作未使用像素剔除算法\n"
 msgid ""
 "Stacking has detected registration data on layer %d with more than simple "
 "shifts. You should apply existing registration before stacking\n"
-msgstr ""
-"叠加检测到图层 %d 上的对齐数据，不仅仅是简单的平移。您应该在叠加前应用已存在"
-"的对齐\n"
+msgstr "叠加检测到图层 %d 上的对齐数据，不仅仅是简单的平移。"
+"您应该在叠加前应用现有对齐\n"
 
 #: src/core/command.c:7221 src/core/command.c:7197
 #, c-format
@@ -13166,7 +13165,6 @@ msgid "Flips the image about the vertical axis"
 msgstr "Flips the image about the vertical axis"
 
 #: src/core/command_def.h:91
-#, fuzzy
 msgid ""
 "Modified arcsinh stretch based on the work of the ghsastro.co.uk team.\n"
 "\n"
@@ -13202,10 +13200,12 @@ msgstr ""
 "<b>HP</b> defines a region between HP and 1 where the stretch is linear, "
 "preserving highlight details and preventing star bloat.\n"
 "If omitted LP and SP default to 0.0 ad HP defaults to 1.0.\n"
-"An optional argument (either <b>-human</b>, <b>-even</b> or <b>-independent</"
-"b>) can be passed to select either human-weighted or even-weighted luminance "
-"or independent colour channels for colour stretches. The argument is ignored "
-"for mono images.\n"
+"An optional argument (either <b>-human</b>, <b>-even</b> or "
+"<b>-independent</b>) can be passed to select either human-weighted or even-"
+"weighted luminance or independent colour channels for colour stretches. The "
+"argument is ignored for mono images. Alternatively, the argument <b>-sat</b> "
+"specifies that the stretch is performed on image saturation - the image must "
+"be color and all channels must be selected for this to work.\n"
 "Optionally the parameter <b>[channels]</b> may be used to specify the "
 "channels to apply the stretch to: this may be R, G, B, RG, RB or GB. The "
 "default is all channels"
@@ -17370,27 +17370,21 @@ msgstr "请访问 <a href=\""
 
 #: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1027
 #: src/gui/histogram.c:1033 src/gui/histogram.c:1688 src/gui/histogram.c:1705
-#, fuzzy
 msgid "Channels warning"
-msgstr "通道提取"
+msgstr "通道警告"
 
 #: src/gui/histogram.c:144 src/gui/histogram.c:1028 src/gui/histogram.c:1706
-#, fuzzy
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
-msgstr ""
-"并非所有彩色通道都被选中。不能使用人眼明度彩色模型：设置为均等加权明度彩色模"
-"型。\n"
+msgstr "并非所有彩色通道都被选中。不能使用人眼明度彩色模型：设置为均等加权明度彩色模"
+"型。"
 
 #: src/gui/histogram.c:150 src/gui/histogram.c:1034 src/gui/histogram.c:1689
-#, fuzzy
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
-msgstr ""
-"并非所有彩色通道都被选中。不能使用人眼明度彩色模型：设置为均等加权明度彩色模"
-"型。\n"
+msgstr "并非所有彩色通道都被选中。不能使用饱和度拉伸：设置为独立通道彩色模型。"
 
 #: src/gui/histogram.c:316 src/gui/histogram.c:228
 msgid "Toggles whether to apply the stretch to the monochrome channel"
@@ -17431,29 +17425,29 @@ msgid "GHS LINEAR BP: %.2f"
 msgstr "GHS LINEAR BP: %.2f"
 
 #: src/gui/histogram.c:1179
-#, fuzzy, c-format
+#, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
+msgstr "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1182
-#, fuzzy, c-format
+#, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
+msgstr "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1185
-#, fuzzy, c-format
+#, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
+msgstr "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1188
-#, fuzzy, c-format
+#, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
+msgstr "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1191
-#, fuzzy, c-format
+#, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
-msgstr "GHS LINEAR BP: %.2f"
+msgstr "GHS LINEAR SAT BP: %.2f"
 
 #: src/gui/histogram.c:1240 src/gui/histogram.c:1031
 msgid "Could not compute autostretch parameters, using default values\n"
@@ -17905,7 +17899,7 @@ msgstr "将重新计算图像的解析\n"
 
 #: src/gui/photometric_cc.c:56
 msgid "Existing plate solve (WCS information) will be resused for image\n"
-msgstr "现有的解析（WCS 信息）将重新用于图像\n"
+msgstr "已有的解析（WCS 信息）将重新用于图像\n"
 
 #: src/gui/photometric_cc.c:68
 msgid "Using remote APASS instead of local NOMAD catalogue\n"
@@ -19604,9 +19598,9 @@ msgid ""
 "SER file. SER file format is a simple image sequence format, similar to "
 "uncompressed films."
 msgstr ""
-"电影序列现在在 Siril 中已弃用：某些功能被禁用，其他功能可能会崩溃。我们强烈建"
-"议您将此队列转换为 SER 文件。SER文件格式是一种简单的图像队列格式，类似于未压"
-"缩的电影。"
+"电影队列现在在 Siril 中已弃用：某些功能被禁用，其他功能可能会崩溃。"
+"我们强烈建议您将此队列转换为 SER "
+"文件。SER文件格式是一种简单的图像队列格式，类似于未压缩的电影。"
 
 #: src/io/sequence.c:504
 msgid "Convert to SER"
@@ -19658,9 +19652,9 @@ msgid "Closing sequence %s\n"
 msgstr "关闭队列%s\n"
 
 #: src/io/sequence.c:1518
-#, fuzzy, c-format
+#, c-format
 msgid "This operation will use registration data of layer %d\n"
-msgstr "叠加操作将会使用图层 %d 的对齐数据\n"
+msgstr "此操作将会使用图层 %d 的对齐数据\n"
 
 #: src/io/sequence.c:1538 src/io/sequence.c:1523
 msgid "internal sequence"
@@ -19766,7 +19760,8 @@ msgid ""
 "Warning: the sequence appears to have heavy drifted images (%d pixels for "
 "image %d), photometry will probably not be reliable. Check the sequence and "
 "exclude some images\n"
-msgstr ""
+msgstr "警告：队列似乎具有严重漂移的图像（%d像素于图像%d），测光可能不可靠。"
+"检查队列并排除一些图像\n"
 
 #: src/io/sequence.c:2060 src/io/sequence.c:2045
 #, c-format
@@ -19846,18 +19841,16 @@ msgid "Registration data found"
 msgstr "找到对齐数据"
 
 #: src/io/sequence_export.c:603
-#, fuzzy
 msgid ""
 "Export has detected registration data with more than simple shifts.\n"
 "Normally, you should apply existing registration before exporting."
 msgstr ""
-"叠加检测到图层 %d 上的对齐数据，不仅仅是简单的平移。您应该在叠加前应用已存在"
-"的对齐\n"
+"导出检测到的对齐数据不仅仅是简单的平移。\n"
+"通常，您应该在导出之前应用现有对齐。"
 
 #: src/io/sequence_export.c:605
-#, fuzzy
 msgid "Export anyway"
-msgstr "依然要保存"
+msgstr "依然要导出"
 
 #: src/io/sequence_export.c:637 src/io/sequence_export.c:628
 msgid "Width or height cannot be null. Not resizing.\n"
@@ -20311,7 +20304,7 @@ msgstr "最小值函数."
 msgid ""
 "Midtones Transfer Function (MTF) of x for a midtones balance parameter m in "
 "the [0, 1] range."
-msgstr ""
+msgstr "x的中间调传递函数 （MTF）其中间调平衡参数 m 在 [0， 1] 范围内。"
 
 #: src/pixelMath/pixel_math_runner.c:92
 msgid "Combinations function."
@@ -20505,7 +20498,7 @@ msgstr "R"
 #: src/pixelMath/pixel_math_runner.c:673
 #, c-format
 msgid "Error in pixel math expression '%s' at character %d\n"
-msgstr ""
+msgstr "像素数学表达式“%s”中的错误于字符 %d\n"
 
 #: src/pixelMath/pixel_math_runner.c:874
 #, c-format
@@ -20616,17 +20609,15 @@ msgid "Processing star #%d\n"
 msgstr "处理星点 #%d\n"
 
 #: src/registration/3stars.c:532
-#, fuzzy
 msgid ""
 "Less than two stars were found in the reference image, try setting another "
 "as reference?\n"
-msgstr "参考帧中未找到星点。请重新选择参考帧\n"
+msgstr "在参考图像中发现的星点少于两颗，请尝试将另一幅设置为参考？\n"
 
 #: src/registration/3stars.c:537
-#, fuzzy
 msgid ""
 "No star was found in the reference image, try setting another as reference?\n"
-msgstr "参考帧中未找到星点。请重新选择参考帧\n"
+msgstr "参考图像中未找到星点。请尝试将另一幅设置为参考？\n"
 
 #: src/registration/3stars.c:548
 msgid "Saving the transformation matrices\n"
@@ -20646,7 +20637,7 @@ msgstr "无法执行星点匹配：跳过图像 %d\n"
 msgid ""
 "Trial #%d: After sequence analysis, we are choosing image %d as new "
 "reference for registration\n"
-msgstr ""
+msgstr "试验#%d：队列分析后，我们选择图像%d作为新参考用于对齐\n"
 
 #: src/registration/3stars.c:719 src/registration/global.c:473
 #: src/registration/registration.c:479 src/registration/registration.c:661
@@ -20663,7 +20654,7 @@ msgstr "总计： %d 失败， %d 已对齐。\n"
 #: src/registration/applyreg.c:54
 #, c-format
 msgid "Applying existing registration from layer #%d to transform the images\n"
-msgstr "应用图层 #%d 中的现有对齐数据来转换图像\n"
+msgstr "应用图层 #%d 中的已有对齐数据来转换图像\n"
 
 #: src/registration/applyreg.c:58
 msgid "No registration data exists for this layer\n"
@@ -20672,12 +20663,11 @@ msgstr "此图层中没有对齐数据\n"
 #: src/registration/applyreg.c:192
 #, c-format
 msgid "Framing: Shift from reference origin: %d, %d\n"
-msgstr ""
+msgstr "取景：从参考原点平移：%d，%d\n"
 
 #: src/registration/applyreg.c:246
-#, fuzzy
 msgid "Applying transformation on a sequence opened as CFA is a bad idea.\n"
-msgstr "在CFA模式的队列上进行对齐是个坏主意。\n"
+msgstr "对以 CFA 模式打开的队列应用变换是一个坏主意。\n"
 
 #: src/registration/applyreg.c:261 src/registration/global.c:304
 #, c-format
@@ -20700,14 +20690,12 @@ msgid "Total: %d failed, %d exported.\n"
 msgstr "总计： %d 失败， %d 已导出。\n"
 
 #: src/registration/applyreg.c:368
-#, fuzzy
 msgid "Transformation aborted.\n"
-msgstr "对齐操作异常中止。\n"
+msgstr "变换中止。\n"
 
 #: src/registration/applyreg.c:454
-#, fuzzy
 msgid "Apply registration"
-msgstr "手动对齐"
+msgstr "应用对齐"
 
 #: src/registration/applyreg.c:558
 msgid ""
@@ -20720,25 +20708,26 @@ msgstr "参考图像具有空矩阵，并且之前未对齐，请选择另一个
 msgid ""
 "Applying registration computed with higher degree of freedom (%d) than shift "
 "is not allowed when interpolation is set to none, aborting\n"
-msgstr ""
+msgstr "当插值设置为“无”时，不允许应用以高于平移的自由度 （%d） 计算的对齐，"
+"异常中止\n"
 
 #: src/registration/applyreg.c:571
 msgid ""
 "Applying registration with upscaling when interpolation is set to none is "
 "not allowed, aborting\n"
-msgstr ""
+msgstr "当插值设置为“无”时，不允许应用升采样对齐，异常中止\n"
 
 #: src/registration/applyreg.c:577
 msgid ""
 "Applying registration on images with different sizes when interpolation is "
 "set to none is not allowed, aborting\n"
-msgstr ""
+msgstr "当插值设置为“无”时，不允许对具有不同尺寸的图像应用对齐，异常中止\n"
 
 #: src/registration/applyreg.c:583
 msgid ""
 "Existing registration data is a set of identity matrices, no transformation "
 "would be applied, aborting\n"
-msgstr "现有对准数据是一组单位矩阵，不会应用任何变换，异常中止\n"
+msgstr "现有对齐数据是一组单位矩阵，不会应用任何变换，异常中止\n"
 
 #: src/registration/applyreg.c:589
 msgid ""
@@ -20748,17 +20737,16 @@ msgstr "现有对齐数据是一组空矩阵，不会应用任何变换，异常
 
 #: src/registration/applyreg.c:595
 msgid "Some images were not registered, excluding them\n"
-msgstr ""
+msgstr "某些图像未对齐，排除它们\n"
 
 #: src/registration/applyreg.c:601
 msgid ""
 "Framing method \"cog\" requires all images to be of same size, aborting\n"
-msgstr ""
+msgstr "取景方法“重心”要求所有图像大小相同，异常中止\n"
 
 #: src/registration/applyreg.c:622
-#, fuzzy
 msgid "Unknown framing method, aborting\n"
-msgstr "Unknown argument %s, aborting.\n"
+msgstr "未知的取景方法，异常终止\n"
 
 #: src/registration/comet.c:131 src/registration/comet.c:168
 msgid "There is no timestamp stored in the file"
@@ -20784,9 +20772,8 @@ msgid "Dates of the two images are identical"
 msgstr "两幅图像的日期相同"
 
 #: src/registration/comet.c:183
-#, fuzzy
 msgid "Siril cannot compute the velocity needed for the alignment."
-msgstr "Siril在对齐操作时无法降DATE-OBS关键字转化为有效的日期数据。"
+msgstr "Siril 无法计算对齐所需的速率。"
 
 #: src/registration/comet.c:305
 msgid "Moving object registration"
@@ -20815,7 +20802,7 @@ msgstr "无效"
 #: src/registration/global.c:86 src/registration/registration.c:256
 #: src/registration/registration.c:533
 msgid "Recomputing already existing registration for this layer\n"
-msgstr "对该图层重新计算已经存在的对齐数据\n"
+msgstr "对该图层重新计算已经有的对齐数据\n"
 
 #: src/registration/global.c:145
 msgid "Registering a sequence opened as CFA is a bad idea.\n"
@@ -20979,19 +20966,19 @@ msgstr "星点数量达到上限，重新调整阈值和过滤\n"
 msgid ""
 "Trial #%d: After sequence alignement, image #%d could not align more than "
 "half of the frames, recomputing\n"
-msgstr ""
+msgstr "试验 #%d：队列对齐后，图像 #%d 无法对齐超过一半的帧，重新计算\n"
 
 #: src/registration/global.c:999
 #, c-format
 msgid ""
 "After %d trials, no reference image could align more than half of the "
 "frames, selecting best candidate\n"
-msgstr ""
+msgstr "在%d次试验后，没有参考图像可以对齐超过一半的帧，选择最佳候选图像\n"
 
 #: src/registration/global.c:1001
 #, c-format
 msgid "Trial #%d: Reference image: #%d - Frames aligned: %d\n"
-msgstr ""
+msgstr "试验 #%d：参考图像：#%d - 对齐的帧数：%d\n"
 
 #. for display purposes
 #: src/registration/global.c:1011 src/registration/global.c:1038
@@ -20999,33 +20986,33 @@ msgstr ""
 msgid ""
 "After sequence analysis, we are choosing image %d as new reference for "
 "registration\n"
-msgstr ""
+msgstr "队列分析后，我们选择图像%d作为新参考用于对齐\n"
 
 #: src/registration/global.c:1024
 #, c-format
 msgid ""
 "After sequence alignement, image %d is too far from the sequence cog, "
 "recomputing\n"
-msgstr ""
+msgstr "队列对齐后，图像%d离队列重心太远，重新计算\n"
 
 #: src/registration/global.c:1025
 #, c-format
 msgid "Distance to cog is  %2.1fpx while threshold is set at %2.1fpx\n"
-msgstr ""
+msgstr "到重心的距离为 %2.1fpx，而阈值设置为 %2.1fpx\n"
 
 #: src/registration/global.c:1042
 #, c-format
 msgid ""
 "Could not find a better frame, keeping image %d as the reference for the "
 "sequence\n"
-msgstr ""
+msgstr "找不到更好的帧，保留图像 %d 为队列的参考\n"
 
 #: src/registration/global.c:1045
 #, c-format
 msgid ""
 "After sequence alignment, we find that image %d is %2.1fpx away from "
 "sequence cog, i.e. within allowable bounds\n"
-msgstr ""
+msgstr "队列对齐后，我们发现图像 %d 距离队列重心 %2.1fpx，即在允许的范围内\n"
 
 #: src/registration/registration.c:64
 msgid ""
@@ -21038,6 +21025,11 @@ msgid ""
 "If rotation is also computed, then the aligned images need to be exported "
 "using Apply Existing Registration."
 msgstr ""
+"<b>1-2-3星对齐</b>：这是对齐深空图像的最简单方法。如果选择一颗星，则使用平移"
+"对齐图像，如果选择了 2 或 3 颗星，则使用平移 + 旋转对齐。\n"
+"如果仅计算平移，则它们将保存在 seq "
+"文件中，并且不需要导出已对齐的队列。在叠加步骤中，图像将逐像素平移。\n"
+"如果还计算了旋转，则需要使用“应用现有对齐”导出已对齐的图像。"
 
 #: src/registration/registration.c:70
 msgid ""
@@ -21091,8 +21083,8 @@ msgid ""
 "image."
 msgstr ""
 "<b>彗星/小行星对齐</b>：该算法专用于彗星和小行星的对齐。载入一个星点已对齐的"
-"队列和FITS头中含有时间戳信息是必要条件。该方法会对部分像素点进行一个转换，基"
-"于每幅图像的时间戳和目标在首尾两幅图像之间的整体位移。"
+"队列和FITS头中含有时间戳信息是必要条件。该方法会基于每幅图像的时间戳和目标在"
+"首尾两幅图像之间的整体位移对部分像素点进行一个转换。"
 
 #: src/registration/registration.c:88
 msgid ""
@@ -21102,17 +21094,19 @@ msgid ""
 "selected in the Output Registration section and it can be applied on "
 "selected images only, to avoid saving unnecessary images."
 msgstr ""
+"<b>应用现有对齐</b>：这不是一种算法，而是一种商品，用于应用存储在队列文件中的"
+"先前计算的对齐数据。插值方法和“简单 drizzle” 可以在“输出对齐”部分中选择，并且"
+"只能应用于选定的图像，以避免保存不必要的图像。"
 
 #: src/registration/registration.c:112 src/stacking/stacking.c:71
 msgid ""
 "Number of standard deviations for rejection of worst images by k-sigma "
 "clipping algorithm."
-msgstr ""
+msgstr "通过 k-sigma clipping 算法剔除最差图像的标准偏差。"
 
 #: src/registration/registration.c:142
-#, fuzzy
 msgid "1-2-3 Stars Registration (deep-sky)"
-msgstr "单星对齐（深空）"
+msgstr "1-2-3星对齐（深空）"
 
 #: src/registration/registration.c:148
 msgid "Image Pattern Alignment (planetary - full disk)"
@@ -21127,9 +21121,8 @@ msgid "Comet/Asteroid Registration"
 msgstr "彗星/小行星对齐"
 
 #: src/registration/registration.c:154
-#, fuzzy
 msgid "Apply Existing Registration"
-msgstr "应用直方图变换"
+msgstr "应用现有对齐"
 
 #: src/registration/registration.c:174
 #, c-format
@@ -21178,9 +21171,9 @@ msgid "Best frame: #%d with fwhm=%.3g.\n"
 msgstr "最佳图像： #%d with fwhm=%.3g.\n"
 
 #: src/registration/registration.c:1098
-#, fuzzy, c-format
+#, c-format
 msgid "Registering %d images of the %d of the sequence"
-msgstr "叠加 %d 个图像于队列 %d"
+msgstr "对齐 %d 个图像于队列 %d"
 
 #: src/registration/registration.c:1162
 msgid "Failed to determine registration method...\n"
@@ -21200,7 +21193,7 @@ msgstr "先在图像中选定一个区域，再于队列中选定一幅图像"
 
 #: src/registration/registration.c:1230
 msgid "Select a layer with existing registration"
-msgstr "选择一个具有对齐数据的图层"
+msgstr "选择一个已有对齐数据的图层"
 
 #: src/registration/registration.c:1232
 msgid "Select an area in image first"
@@ -21214,7 +21207,7 @@ msgstr "所有的先决条件不适合对齐，请先选择一个矩形。\n"
 
 #: src/registration/registration.c:1463
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
-msgstr ""
+msgstr "无法对具有可变图像尺寸的队列使用区域选择\n"
 
 #: src/registration/registration.c:1494
 msgid "The object is not moving, please check your registration data.\n"
@@ -21224,7 +21217,7 @@ msgstr "目标没有移动。请检查您的对齐数据。\n"
 msgid ""
 "When interpolation is set to None, the transformation can only be set to "
 "Shift. Aborting\n"
-msgstr ""
+msgstr "当插值设置为“无”时，变换只能设置为“平移”。异常中止\n"
 
 #: src/stacking/median_and_mean.c:68
 msgid "Opening images for stacking"
@@ -21273,10 +21266,9 @@ msgstr "图像区域读取错误\n"
 msgid ""
 "Sequence does not have registration info, cannot use weighing by %s, "
 "aborting\n"
-msgstr ""
+msgstr "队列没有对齐信息，无法使用以 %s 的加权，异常中止\n"
 
 #: src/stacking/median_and_mean.c:925
-#, fuzzy
 msgid "number of stars"
 msgstr "星点数量"
 
@@ -21324,24 +21316,20 @@ msgid ""
 msgstr "叠加为一个影片只能工作于单线程，会比转化为SER较慢\n"
 
 #: src/stacking/median_and_mean.c:1199
-#, fuzzy
 msgid "Computing weights based on noise...\n"
-msgstr "基于图像噪声计算权重…\n"
+msgstr "基于噪声计算权重…\n"
 
 #: src/stacking/median_and_mean.c:1207
-#, fuzzy
 msgid "Computing weights based on wFWHM...\n"
-msgstr "基于图像噪声计算权重…\n"
+msgstr "基于 wFWHM 计算权重…\n"
 
 #: src/stacking/median_and_mean.c:1215
-#, fuzzy
 msgid "Computing weights based on number of stars...\n"
-msgstr "基于图像噪声计算权重…\n"
+msgstr "基于星点数量计算权重…\n"
 
 #: src/stacking/median_and_mean.c:1223
-#, fuzzy
 msgid "Computing weights based on number of stacked images...\n"
-msgstr "基于图像噪声计算权重…\n"
+msgstr "基于已叠加图像数量计算权重…\n"
 
 #: src/stacking/median_and_mean.c:1226
 msgid "Starting stacking...\n"
@@ -21373,9 +21361,8 @@ msgid "Median stacking failed. Check the log."
 msgstr "中位数叠加错误。 请查询日志。"
 
 #: src/stacking/median_and_mean.c:1478
-#, fuzzy
 msgid "Stacking operation was cancelled.\n"
-msgstr "叠加失败。\n"
+msgstr "叠加操作已取消。\n"
 
 #: src/stacking/median_and_mean.c:1479 src/stacking/stackminmax.c:249
 msgid "Stacking failed.\n"
@@ -21461,11 +21448,12 @@ msgid ""
 "Stacking has detected registration data with more than simple shifts.\n"
 "Normally, you should apply existing registration before stacking."
 msgstr ""
+"叠加检测到的对齐数据不仅仅是简单的平移。\n"
+"通常，您应该在叠加之前应用现有的对齐。"
 
 #: src/stacking/stacking.c:258 src/stacking/stacking.c:272
-#, fuzzy
 msgid "Stack anyway"
-msgstr "依然要保存"
+msgstr "依然要叠加"
 
 #: src/stacking/stacking.c:267 src/stacking/stacking.c:281
 msgid "Stacking: processing...\n"
