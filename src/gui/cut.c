@@ -773,7 +773,7 @@ gpointer tri_cut(gpointer p) {
 		if (gplot) {
 			/* Plotting cut profile */
 			gchar *xlabel = NULL, *title = NULL;
-			title = g_strdup_printf(_("Data Cut Profile"));
+			title = cut_make_title(arg, FALSE); // must be freed with g_free()
 			xlabel = g_strdup_printf(_("Distance along cut / px"));
 			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
@@ -807,6 +807,7 @@ END:
 	g_free(filename);
 	g_free(imagefilename);
 	free(x);
+	restore_brackets_if_needed(arg);
 	for (int i = 0 ; i < 3 ; i++) {
 		free(r[i]);
 	}
@@ -899,7 +900,7 @@ gpointer cfa_cut(gpointer p) {
 		if (gplot) {
 			/* Plotting cut profile */
 			gchar *xlabel = NULL, *title = NULL;
-			title = g_strdup_printf(_("Data Cut Profile"));
+			title = cut_make_title(arg, FALSE); // must be freed with g_free()
 			xlabel = g_strdup_printf(_("Distance along cut / px"));
 			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
@@ -933,6 +934,7 @@ END:
 	g_free(filename);
 	g_free(imagefilename);
 	free(x);
+	restore_brackets_if_needed(arg);
 	for (int i = 0 ; i < 4 ; i++) {
 		free(r[i]);
 		clearfits(&cfa[i]);
@@ -979,6 +981,11 @@ void on_cut_sequence_apply_from_gui() {
 }
 
 void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
+	GtkEntry* entry = (GtkEntry*) lookup_widget("cut_title");
+	if (gui.cut.user_title)
+		g_free(gui.cut.user_title);
+	gui.cut.user_title = g_strdup(gtk_entry_get_text(entry));
+
 	GtkToggleButton* apply_to_sequence = (GtkToggleButton*)lookup_widget("cut_apply_to_sequence");
 	if (gtk_toggle_button_get_active(apply_to_sequence)) {
 		if (sequence_is_loaded())
@@ -1112,13 +1119,6 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	gui.cut.cut_end.y = fy;
 	redraw(REDRAW_OVERLAY);
 	siril_close_dialog("cut_coords_dialog");
-}
-
-void on_cut_title_activate(GtkEntry *entry, gpointer user_data) {
-	if (gui.cut.user_title)
-		g_free(gui.cut.user_title);
-	gui.cut.user_title = g_strdup(gtk_entry_get_text(entry));
-	printf("title: %s\n", gui.cut.user_title);
 }
 
 void on_cut_wavenumber1_clicked(GtkButton *button, gpointer user_data) {
