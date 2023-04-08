@@ -136,12 +136,16 @@ void populate_seqcombo(const gchar *realname) {
  * takes a string and adds:
  * - the .seq extension if required
  * - _ before .seq if required
+ * also calls get_locale_filename() to solve Windows localized string problems
  * returns a newly allocated string to be freed with g_free
  */
 gchar *normalize_seqname(gchar *name) {
+	gchar *locname = get_locale_filename(name);
 	gboolean needs_seq = !g_str_has_suffix(name, ".seq");
 	gboolean needs_underscore = !g_str_has_suffix(name, "_");
-	return g_strdup_printf("%s%s%s", name, needs_underscore ? "_" : "", needs_seq ? ".seq" : "");
+	gchar *outname = g_strdup_printf("%s%s%s", name, needs_underscore ? "_" : "", needs_seq ? ".seq" : "");
+	g_free(locname);
+	return outname;
 }
 
 /* when opening a file outside the main sequence loading system and that file
