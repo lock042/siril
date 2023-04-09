@@ -143,8 +143,12 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->width = 1;
 	arg->step = 1;
 	arg->display_graph = TRUE;
+	g_free(arg->filename);
 	arg->filename = NULL;
+	g_free(arg->title);
 	arg->title = NULL;
+	g_free(arg->user_title);
+	arg->user_title = NULL;
 	arg->title_has_sequence_numbers = FALSE;
 	arg->save_dat = FALSE;
 	arg->save_png_too = FALSE;
@@ -168,11 +172,9 @@ gchar* cut_make_title(cut_struct *arg, gboolean spectro) {
 	if (arg->user_title) {
 		// Check for trailing brackets
 		if (g_str_has_suffix(arg->user_title, "()")) {
-			printf("Brackets detected\n");
 			arg->title_has_sequence_numbers = TRUE;
 			gchar* temp = g_malloc(strlen(arg->user_title) - 1);
 			snprintf(temp, strlen(arg->user_title) - 1, "%s", arg->user_title);
-			siril_debug_print("orig: %s cropped: %s\n", arg->user_title, temp);
 			g_free(arg->title);
 			arg->title = g_strdup(temp);
 			g_free(temp);
@@ -199,20 +201,6 @@ gchar* cut_make_title(cut_struct *arg, gboolean spectro) {
 		}
 	}
 	return str;
-}
-
-void restore_brackets_if_needed(cut_struct *arg) {
-	if (!arg->title)
-		return;
-	else {
-		if (!arg->title_has_sequence_numbers)
-			return;
-		else {
-			gchar* temp = g_strdup_printf("%s()", arg->title);
-			g_free(arg->title);
-			arg->title = g_strdup(temp);
-		}
-	}
 }
 
 gboolean cut_struct_is_valid(cut_struct *arg) {
@@ -662,12 +650,13 @@ END:
 	g_free(filename);
 	g_free(imagefilename);
 	g_free(legend);
+	g_free(arg->title);
+	arg->title = NULL;
 	free(x);
 	free(r);
 	free(g);
 	free(b);
 	arg->vport = -1;
-	restore_brackets_if_needed(arg);
 	gboolean in_sequence = (arg->seq != NULL);
 	if (arg != &gui.cut)
 		free(arg);
@@ -807,7 +796,8 @@ END:
 	g_free(filename);
 	g_free(imagefilename);
 	free(x);
-	restore_brackets_if_needed(arg);
+	g_free(arg->title);
+	arg->title = NULL;
 	for (int i = 0 ; i < 3 ; i++) {
 		free(r[i]);
 	}
@@ -933,8 +923,9 @@ END:
 	arg->filename = NULL;
 	g_free(filename);
 	g_free(imagefilename);
+	g_free(arg->title);
+	arg->title = NULL;
 	free(x);
-	restore_brackets_if_needed(arg);
 	for (int i = 0 ; i < 4 ; i++) {
 		free(r[i]);
 		clearfits(&cfa[i]);
@@ -965,6 +956,9 @@ void on_cut_sequence_apply_from_gui() {
 	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
 	cut_struct *arg = calloc(1, sizeof(cut_struct));
 	memcpy(arg, &gui.cut, sizeof(cut_struct));
+	arg->title = g_strdup(gui.cut.title);
+	arg->user_title = g_strdup(gui.cut.user_title);
+	arg->filename = g_strdup(gui.cut.filename);
 	arg->save_png_too = FALSE;
 	arg->fit = NULL;
 	arg->seq = &com.seq;
@@ -985,8 +979,14 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	if (gui.cut.user_title)
 		g_free(gui.cut.user_title);
 	gui.cut.user_title = g_strdup(gtk_entry_get_text(entry));
-
+	GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
+	if (gtk_toggle_button_get_active(cut_color)) {
+		gui.cut.mode = CUT_COLOR;
+	} else {
+		gui.cut.mode = CUT_MONO;
+	}
 	GtkToggleButton* apply_to_sequence = (GtkToggleButton*)lookup_widget("cut_apply_to_sequence");
+	gui.cut.vport = gui.cvport;
 	if (gtk_toggle_button_get_active(apply_to_sequence)) {
 		if (sequence_is_loaded())
 			on_cut_sequence_apply_from_gui();
@@ -996,10 +996,8 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 					_("The Apply to sequence option is checked, but no sequence is loaded."));
 
 	} else {
-		GtkToggleButton* cut_color = (GtkToggleButton*)lookup_widget("cut_radio_color");
 		gui.cut.fit = &gfit;
 		gui.cut.seq = NULL;
-		gui.cut.vport = gui.cvport;
 		gui.cut.display_graph = TRUE;
 		if (gui.cut.tri) {
 			siril_debug_print("Tri-profile\n");
@@ -1008,13 +1006,7 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 			siril_debug_print("CFA profiling\n");
 			start_in_new_thread(cfa_cut, &gui.cut);
 		} else {
-			if (gtk_toggle_button_get_active(cut_color)) {
-				siril_debug_print("Color profiling\n");
-				gui.cut.mode = CUT_COLOR;
-			} else {
-				siril_debug_print("Mono profiling\n");
-				gui.cut.mode = CUT_MONO;
-			}
+			siril_debug_print("Single profile\n");
 			start_in_new_thread(cut_profile, &gui.cut);
 		}
 	}
@@ -1062,10 +1054,14 @@ void on_cut_spectroscopic_button_clicked(GtkButton* button, gpointer user_data) 
 void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	GtkWidget* colorbutton = lookup_widget("cut_radio_color");
 	GtkWidget* cfabutton = lookup_widget("cut_cfa");
+	GtkToggleButton* seqbutton = (GtkToggleButton*) lookup_widget("cut_apply_to_sequence");
+	GtkToggleButton* pngbutton = (GtkToggleButton*) lookup_widget("cut_save_png");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
 	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
 	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
-		gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
+	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
+	if (gtk_toggle_button_get_active(seqbutton))
+		gtk_toggle_button_set_active(pngbutton, TRUE);
 }
 
 void on_cut_spectro_cancel_button_clicked(GtkButton *button, gpointer user_data) {
@@ -1213,7 +1209,10 @@ void on_cut_measure_profile_toggled(GtkToggleButton *button, gpointer user_data)
 }
 
 void on_cut_save_png_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkToggleButton* seqbutton = (GtkToggleButton*) lookup_widget("cut_apply_to_sequence");
 	gui.cut.save_png_too = gtk_toggle_button_get_active(button);
+	if (!gui.cut.save_png_too)
+		gtk_toggle_button_set_active(seqbutton, FALSE);
 }
 
 void on_cut_apply_to_sequence_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -1277,6 +1276,44 @@ void on_cut_button_toggled(GtkToggleToolButton *button, gpointer user_data) {
 	}
 }
 
+void on_cut_spin_wavelength1_value_changed(GtkSpinButton* button, gpointer user_data);
+void on_cut_spin_wavelength2_value_changed(GtkSpinButton* button, gpointer user_data);
+void on_cut_spin_wavenumber1_value_changed(GtkSpinButton* button, gpointer user_data);
+void on_cut_spin_wavenumber2_value_changed(GtkSpinButton* button, gpointer user_data);
+
+
+void on_cut_spin_wavelength1_value_changed(GtkSpinButton* button, gpointer user_data) {
+	GtkSpinButton* wn1 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber1");
+	double wn = 10000000. / gtk_spin_button_get_value(button);
+	g_signal_handlers_block_by_func(wn1, on_cut_spin_wavenumber1_value_changed, NULL);
+	gtk_spin_button_set_value(wn1, wn);
+	g_signal_handlers_unblock_by_func(wn1, on_cut_spin_wavenumber1_value_changed, NULL);
+}
+
+void on_cut_spin_wavelength2_value_changed(GtkSpinButton* button, gpointer user_data) {
+	GtkSpinButton* wn2 = (GtkSpinButton*) lookup_widget("cut_spin_wavenumber2");
+	double wn = 10000000. / gtk_spin_button_get_value(button);
+	g_signal_handlers_block_by_func(wn2, on_cut_spin_wavenumber2_value_changed, NULL);
+	gtk_spin_button_set_value(wn2, wn);
+	g_signal_handlers_unblock_by_func(wn2, on_cut_spin_wavenumber2_value_changed, NULL);
+}
+
+void on_cut_spin_wavenumber1_value_changed(GtkSpinButton* button, gpointer user_data) {
+	GtkSpinButton* wl1 = (GtkSpinButton*) lookup_widget("cut_spin_wavelength1");
+	double wl = 10000000. / gtk_spin_button_get_value(button);
+	g_signal_handlers_block_by_func(wl1, on_cut_spin_wavelength1_value_changed, NULL);
+	gtk_spin_button_set_value(wl1, wl);
+	g_signal_handlers_unblock_by_func(wl1, on_cut_spin_wavelength1_value_changed, NULL);
+}
+
+void on_cut_spin_wavenumber2_value_changed(GtkSpinButton* button, gpointer user_data) {
+	GtkSpinButton* wl2 = (GtkSpinButton*) lookup_widget("cut_spin_wavelength2");
+	double wl = 10000000. / gtk_spin_button_get_value(button);
+	g_signal_handlers_block_by_func(wl2, on_cut_spin_wavelength2_value_changed, NULL);
+	gtk_spin_button_set_value(wl2, wl);
+	g_signal_handlers_unblock_by_func(wl2, on_cut_spin_wavelength2_value_changed, NULL);
+}
+
 //// Sequence Processing ////
 
 static int cut_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
@@ -1311,7 +1348,11 @@ static int cut_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 static gboolean cut_idle_function(gpointer p) {
 	struct generic_seq_args *args = (struct generic_seq_args *) p;
 	cut_struct *data = (cut_struct *) args->user;
-	free(data);
+	if (data != &gui.cut) {
+		g_free(data->user_title);
+		data->user_title = NULL;
+		free(data);
+	}
 	gboolean retval = end_generic_sequence(args);
 	return retval;
 }
@@ -1343,7 +1384,6 @@ static int cut_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 		ret = GPOINTER_TO_INT(tri_cut(private_args));
 	else
 		ret = GPOINTER_TO_INT(cut_profile(private_args));
-	printf("image_worker ret: %d\n", ret);
 	return ret;
 }
 
