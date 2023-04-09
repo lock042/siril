@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-07 09:46+0200\n"
-"PO-Revision-Date: 2023-04-09 05:08+0000\n"
+"PO-Revision-Date: 2023-04-09 05:57+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -1555,7 +1555,6 @@ msgstr ""
 "Обычно он не требует настройки."
 
 #: src/gui/siril3.glade:7196
-#, fuzzy
 msgid "Spectral Irregularity Method"
 msgstr "Метод неравномерности спектра"
 
@@ -1647,7 +1646,6 @@ msgstr ""
 "меньше этого значения."
 
 #: src/gui/siril3.glade:7586
-#, fuzzy
 msgid ""
 "Total Variation regularization preserves sharp edges in the image well. If "
 "in doubt, stick with Total Variation. However it can have a tendency to "
@@ -1662,8 +1660,8 @@ msgstr ""
 "\n"
 "Норма Фробениуса для гессиана использует член регуляризации второго порядка. "
 "Она чаще используется в регуляризации алгоритмов шумоподавления, но может "
-"хорошо работать при реконструкции звездной маски, создаваемой интерфейсом "
-"Siril Starnet++."
+"хорошо работать при реконструкции маски звёзд, создаваемой интерфейсом Siril "
+"Starnet++."
 
 #: src/gui/siril3.glade:7590
 msgid "Total Variation"
@@ -2393,7 +2391,7 @@ msgid ""
 "thus adjusting the amount of stretch applied to the rest of the image. "
 "Increasing D increases the intensity of stars in the resulting composition."
 msgstr ""
-"Независимо управляет добавленным контрастом (наклоном растяжения) в точке "
+"Независимо управляет добавленным контрастом (наклоном растягивания) в точке "
 "симметрии, регулируя таким образом степень растягивания, применяемую к "
 "остальной части изображения. Увеличение D увеличивает интенсивность звёзд в "
 "результирующей композиции."
@@ -2451,7 +2449,6 @@ msgstr "Точка сохранения теней (LP)"
 #: src/gui/siril3.glade:9913 src/gui/siril3.glade:9938
 #: src/gui/siril3.glade:10523 src/gui/siril3.glade:10548
 #: src/gui/siril3.glade:16385 src/gui/siril3.glade:16381
-#, fuzzy
 msgid ""
 "Sets a value below which the stretch is modified to preserve contrast in the "
 "shadows. This is done by performing a linear stretch below LP by reserving "
@@ -3171,7 +3168,7 @@ msgid ""
 "Use the Dynamic PSF tool, or the findstar command, adjusting the settings to "
 "your image."
 msgstr ""
-"Установите этот флажое, если хотите указать каждую звезду вручную. Это может "
+"Установите этот флажок, если хотите указать каждую звезду вручную. Это может "
 "быть полезно в некоторых случаях, когда Siril не находит достаточного "
 "количества звёзд. Пожалуйста, попытайтесь выбрать самые яркие звёзды на "
 "изображении. \n"
@@ -3197,12 +3194,12 @@ msgstr ""
 #: src/gui/siril3.glade:12425 src/gui/siril3.glade:26909
 #: src/gui/siril3.glade:26905
 msgid "x coordinate of the start of the background selection"
-msgstr "Координата X начала выделенного фона"
+msgstr "начало выделения фона по X"
 
 #: src/gui/siril3.glade:12443 src/gui/siril3.glade:26927
 #: src/gui/siril3.glade:26923
 msgid "y coordinate of the start of the background selection"
-msgstr "Координата Y начала выделенного фона"
+msgstr "начало выделения фона по Y"
 
 #: src/gui/siril3.glade:12461 src/gui/siril3.glade:26944
 #: src/gui/siril3.glade:26940
@@ -15202,7 +15199,7 @@ msgstr "размер окна диалога аберраций"
 
 #: src/core/settings.c:322
 msgid "FITS compression enabled"
-msgstr "Сжатие FITS включено."
+msgstr "Сжатие FITS включено"
 
 #: src/core/settings.c:323
 msgid "FITS compression method"
@@ -16087,7 +16084,7 @@ msgstr "На изображении звёзды не найдены.\n"
 #: src/filters/synthstar.c:391
 #, c-format
 msgid "Synthesizing %d stars...\n"
-msgstr ""
+msgstr "Синтез %d звёзд...\n"
 
 #: src/filters/synthstar.c:666
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
@@ -16162,6 +16159,15 @@ msgid ""
 "Finally, keep in mind that plate solving algorithm should only be applied on "
 "linear image."
 msgstr ""
+"Обычно это происходит потому, что исходные параметры (размер пикселя, "
+"фокусное расстояние, начальные координаты) слишком далеки от реальных "
+"метаданных изображения.\n"
+"\n"
+"Вы также можете попробовать заглянуть в другой каталог или нажать на кнопку "
+"\"Уменьшить изображение\", особенно для изображений, выполненных с drizzle.\n"
+"\n"
+"Наконец, имейте в виду, что алгоритм поиска астрономического решения следует "
+"применять только к линейному изображению."
 
 #: src/gui/astrometry_solver.c:424
 msgid "No object found\n"
@@ -16171,6 +16177,8 @@ msgstr "Объект не найден\n"
 msgid ""
 "There are no available coordinates with this name, try with another name\n"
 msgstr ""
+"Для указанного названия нет доступных координат, попробуйте использовать "
+"другое название\n"
 
 #: src/gui/astrometry_solver.c:512 src/gui/astrometry_solver.c:606
 msgid "No coordinates"
@@ -16178,7 +16186,7 @@ msgstr "Координаты отсутствуют"
 
 #: src/gui/astrometry_solver.c:522
 msgid "There are no keywords stored in the FITS header.\n"
-msgstr ""
+msgstr "В заголовке FITS нет ключевых слов.\n"
 
 #: src/gui/astrometry_solver.c:523
 msgid "No metadata"
@@ -16189,8 +16197,9 @@ msgid "Please enter object coordinates."
 msgstr "Пожалуйста, введите координаты объекта."
 
 #: src/gui/astrometry_solver.c:619
+#, fuzzy
 msgid "Selection is not used with the astrometry.net solver\n"
-msgstr ""
+msgstr "Решать astrometry.net не используется с выделением\n"
 
 #: src/gui/astrometry_solver.c:668
 msgid "No catalog"
@@ -16209,6 +16218,8 @@ msgid ""
 "The astrometric solution contained in the image will be erased by the "
 "geometric transformation and no undo will be possible."
 msgstr ""
+"При геометрическом преобразовании астрометрическое решение, содержащееся в "
+"изображении, будет удалено без возможности отмены."
 
 #: src/gui/astrometry_solver.c:683
 msgid "Process"
@@ -16230,6 +16241,10 @@ msgid ""
 "linear and a correction with a polynomial function of degree 1 is probably "
 "enough."
 msgstr ""
+"Вы собираетесь обработать последовательность предобработанных файлов со "
+"степенью полинома больше 1. Это маловероятно, поскольку такие градиенты "
+"часто линейны, и коррекции с полиномиальной функцией степени 1, вероятно, "
+"достаточно."
 
 #: src/gui/background_extraction.c:188 src/gui/background_extraction.c:199
 msgid "Extract Background"
@@ -16246,6 +16261,10 @@ msgid ""
 "processing and we advise you to use the polynomial algorithm with a degree "
 "order of 1."
 msgstr ""
+"Вы собираетесь обработать последовательность предобработанных файлов с "
+"помощью алгоритма RBF. Этот алгоритм может не очень хорошо подходить для "
+"автоматической обработки, и мы советуем вам использовать полиномиальный "
+"алгоритм со степенью 1."
 
 #: src/gui/background_extraction.c:219
 #, c-format
@@ -16772,7 +16791,7 @@ msgid ""
 msgstr ""
 
 #: src/gui/image_display.c:532
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "<big>Unstable Development Version</big>\n"
 "\n"
@@ -16783,9 +16802,9 @@ msgid ""
 msgstr ""
 "<big>Нестабильная версия программы</big>\n"
 "\n"
+"<small>%c%s</small>\n"
 "<small>Редакция <tt>%s</tt></small>\n"
-"\n"
-"<small>Если вы столкнулись с ошибками, перед заведением отчета попробуйте "
+"<small>Если вы столкнулись с ошибками, перед заведением отчёта, попробуйте\n"
 "воспроизвести их на свежей сборке из дерева разработки.</small>"
 
 #: src/gui/linear_match.c:56 src/gui/linear_match.c:96
@@ -18083,7 +18102,7 @@ msgstr "FITS-CFA"
 
 #: src/io/conversion.c:199
 msgid "Films"
-msgstr "видео"
+msgstr "Видео"
 
 #: src/io/conversion.c:204
 msgid "SER sequences"
@@ -19836,6 +19855,8 @@ msgid ""
 "%s: not enough memory to do this operation (%s required per thread, %s "
 "considered available)\n"
 msgstr ""
+"%s: для операции недостаточно памяти (на изображение необходимо %s, доступно "
+"%s)\n"
 
 #: src/registration/3stars.c:472
 msgid "Creating the aligned image sequence"
@@ -19873,7 +19894,7 @@ msgstr "Сохранение матриц преобразования\n"
 #: src/registration/3stars.c:696
 #, c-format
 msgid "Cannot perform star matching: Image %d skipped\n"
-msgstr ""
+msgstr "Не удалось сопоставить звёзды: Кадр %d пропущен\n"
 
 #. for display purposes
 #: src/registration/3stars.c:621 src/registration/global.c:949
@@ -19883,6 +19904,8 @@ msgid ""
 "Trial #%d: After sequence analysis, we are choosing image %d as new "
 "reference for registration\n"
 msgstr ""
+"Попытка №%d: После анализа последовательности изображение %d будет "
+"установлено как опорное\n"
 
 #: src/registration/3stars.c:719 src/registration/global.c:473
 #: src/registration/registration.c:479 src/registration/registration.c:661
