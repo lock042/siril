@@ -3099,7 +3099,7 @@ int process_set(int nb) {
 		int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
 		GKeyFile *kf = g_key_file_new();
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
-		return read_keyfile(kf);
+		return read_keyfile(kf) == 0;
 	}
 	return 0;
 }
