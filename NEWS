@@ -12,6 +12,8 @@ xx/xx/xx
 * Add intensity profiling function
 * Improved clipping model in luminance-based GHS stretches
 * Added GHS saturation stretch mode
+* Fix UI and command issues in deconvolution code
+* Print help and deconvolution tips URLs to the log
 
 v1.2.0-beta2 March 12, 2023
 
