@@ -506,6 +506,7 @@ typedef struct cut_struct {
 	sequence* seq;
 	int imgnumber;
 	gboolean save_dat;
+	gboolean pref_as;
 	int vport;
 } cut_struct;
 

@@ -9006,6 +9006,9 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		else if (g_str_has_prefix(word[i], "-savedat")) {
 			cut_args->save_dat = TRUE;
 		}
+		else if (g_str_has_prefix(word[i], "-arcsec")) {
+			cut_args->pref_as = TRUE;
+		}
 		else if (g_str_has_prefix(word[i], "-width=")) {
 			arg += 7;
 			cut_args->width = g_ascii_strtod(arg, &end);

@@ -152,6 +152,7 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->title_has_sequence_numbers = FALSE;
 	arg->save_dat = FALSE;
 	arg->save_png_too = FALSE;
+	arg->pref_as = FALSE;
 	arg->vport = -1;
 	if (!com.script)
 		reset_cut_gui();
@@ -284,21 +285,25 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 	return TRUE;
 
 }
-/*
-static int sign(double x) {
-	return x < 0. ? -1 : x > 0. ? 1 : 0;
+
+double get_conversion_factor(fits *fit) {
+	gboolean unit_is_as = (fit->focal_length > 0.0) && (fit->pixel_size_x > 0.0) && (fit->pixel_size_y == fit->pixel_size_x);
+	double conversionfactor = -DBL_MAX;
+	if (unit_is_as) {
+		double bin_X = com.pref.binning_update ? (double) fit->binning_x : 1.0;
+		conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) fit->pixel_size_x / fit->focal_length) * bin_X;
+	}
+	return conversionfactor;
 }
-*/
+
 void measure_line(fits *fit, point start, point finish) {
 	int deg = -1;
 	point delta = { finish.x - start.x, finish.y - start.y };
 	double pixdist = sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (pixdist == 0.) return;
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	gboolean unit_is_as = (fit->focal_length > 0.0) && (fit->pixel_size_x > 0.0) && (fit->pixel_size_y == fit->pixel_size_x);
-	if (unit_is_as) {
-		double bin_X = com.pref.binning_update ? (double) fit->binning_x : 1.0;
-		double conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) fit->pixel_size_x / fit->focal_length) * bin_X;
+	double conversionfactor = get_conversion_factor(fit);
+	if (conversionfactor != -DBL_MAX) {
 		double asdist = pixdist * conversionfactor;
 		if (asdist < 60.0) {
 			siril_log_message(_("Measurement: %.1f\"\n"), asdist);
@@ -514,7 +519,14 @@ gpointer cut_profile(gpointer p) {
 	}
 	int nbr_points = (int) length;
 	double point_spacing = length / nbr_points;
-	// TODO: if metadata allows, represent as arcsec
+	gboolean xscale = spectroscopy_selections_are_valid(arg);
+	// If pref_as is set andmetadata allows, represent spacing as arcsec
+	double conversionfactor = get_conversion_factor(arg->fit);
+	if (arg->pref_as && !xscale) {
+		if (conversionfactor != -DBL_MAX) {
+			point_spacing *= conversionfactor;
+		}
+	}
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
 	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
@@ -525,7 +537,6 @@ gpointer cut_profile(gpointer p) {
 		b = malloc(nbr_points * sizeof(double));
 	}
 	x = malloc(nbr_points * sizeof(double));
-	gboolean xscale = spectroscopy_selections_are_valid(arg);
 	double zero = 0.0, spectro_spacing = 1.0;
 	if (xscale)
 		calc_zero_and_spacing(arg, &zero, &spectro_spacing);
@@ -605,7 +616,11 @@ gpointer cut_profile(gpointer p) {
 			if (xscale) {
 				xlabel = g_strdup_printf(_("Wavenumber / cm^{-1}"));
 			} else {
-				xlabel = g_strdup_printf(_("Distance along cut / px"));
+				if (arg->pref_as && conversionfactor != -DBL_MAX) {
+					xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
+				} else {
+					xlabel = g_strdup_printf(_("Distance along cut / px"));
+				}
 			}
 			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
@@ -694,6 +709,13 @@ gpointer tri_cut(gpointer p) {
 	}
 	int nbr_points = (int) length;
 	double point_spacing = length / nbr_points;
+	// If pref_as is set andmetadata allows, represent spacing as arcsec
+	double conversionfactor = get_conversion_factor(arg->fit);
+	if (arg->pref_as) {
+		if (conversionfactor != -DBL_MAX) {
+			point_spacing *= conversionfactor;
+		}
+	}
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
 	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
@@ -764,7 +786,11 @@ gpointer tri_cut(gpointer p) {
 			/* Plotting cut profile */
 			gchar *xlabel = NULL, *title = NULL;
 			title = cut_make_title(arg, FALSE); // must be freed with g_free()
-			xlabel = g_strdup_printf(_("Distance along cut / px"));
+			if (arg->pref_as && conversionfactor != -DBL_MAX) {
+				xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
+			} else {
+				xlabel = g_strdup_printf(_("Distance along cut / px"));
+			}
 			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
@@ -856,6 +882,14 @@ gpointer cfa_cut(gpointer p) {
 	}
 	int nbr_points = (int) length;
 	double point_spacing = length / nbr_points;
+	// If pref_as is set andmetadata allows, represent spacing as arcsec
+	double conversionfactor = get_conversion_factor(arg->fit);
+	if (arg->pref_as) {
+		if (conversionfactor != -DBL_MAX) {
+			point_spacing *= conversionfactor; // TODO: check - should this be *= 2.0 to account for the spacing between
+												// pixels in the same CFA channel?
+		}
+	}
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
 	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
@@ -892,8 +926,11 @@ gpointer cfa_cut(gpointer p) {
 			/* Plotting cut profile */
 			gchar *xlabel = NULL, *title = NULL;
 			title = cut_make_title(arg, FALSE); // must be freed with g_free()
-			xlabel = g_strdup_printf(_("Distance along cut / px"));
-			gnuplot_set_title(gplot, title);
+			if (arg->pref_as && conversionfactor != -DBL_MAX) {
+				xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
+			} else {
+				xlabel = g_strdup_printf(_("Distance along cut / px"));
+			}			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_setstyle(gplot, "lines");
 			if (arg->display_graph) {
@@ -1313,6 +1350,11 @@ void on_cut_spin_wavenumber2_value_changed(GtkSpinButton* button, gpointer user_
 	g_signal_handlers_block_by_func(wl2, on_cut_spin_wavelength2_value_changed, NULL);
 	gtk_spin_button_set_value(wl2, wl);
 	g_signal_handlers_unblock_by_func(wl2, on_cut_spin_wavelength2_value_changed, NULL);
+}
+
+void on_cut_dist_pref_as_group_changed(GtkRadioButton* button, gpointer user_data) {
+	GtkToggleButton *as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
+	gui.cut.pref_as = gtk_toggle_button_get_active(as);
 }
 
 //// Sequence Processing ////

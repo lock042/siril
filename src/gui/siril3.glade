@@ -1034,7 +1034,7 @@ artifacts may appear.</property>
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=6 -->
+          <!-- n-columns=2 n-rows=7 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1215,6 +1215,38 @@ artifacts may appear.</property>
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="cut_dist_pref_px">
+                <property name="label" translatable="yes">Plot x axis is pixels</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">The plot x axis will show distance in pixels. This option is overridden if spectrometry data is set.</property>
+                <property name="active">True</property>
+                <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_cut_dist_pref_as_group_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="cut_dist_pref_as">
+                <property name="label" translatable="yes">Plot x axis is arcsec</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">If possible, the plot x axis will show distance in arcsec. This requires telescope focal length and sensor pixel size metadata in the FITS header. This option is overridden if spectrometry data is set.</property>
+                <property name="draw-indicator">True</property>
+                <property name="group">cut_dist_pref_px</property>
+                <signal name="toggled" handler="on_cut_dist_pref_as_group_changed" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">6</property>
               </packing>
             </child>
           </object>
