@@ -602,7 +602,7 @@ gpointer cut_profile(gpointer p) {
 			gchar *xlabel = NULL, *title = NULL;
 			title = cut_make_title(arg, xscale); // must be freed with g_free()
 			if (xscale) {
-				xlabel = g_strdup_printf(_("Wavenumber"));
+				xlabel = g_strdup_printf(_("Wavenumber / cm^{-1}"));
 			} else {
 				xlabel = g_strdup_printf(_("Distance along cut"));
 			}
