@@ -1768,7 +1768,11 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			} else {
 				return CMD_ARG_ERROR;
 			}
-		} else {
+		}
+		else if (g_str_has_prefix(arg, "-sat")) {
+			stretch_colourmodel = COL_SAT;
+		}
+		else {
 			if (stretchtype == STRETCH_LINEAR) {
 				return CMD_ARG_ERROR;
 			}
@@ -1778,7 +1782,7 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			else if (g_str_has_prefix(arg, "-even")) {
 				stretch_colourmodel = COL_EVENLUM;
 			}
-			else if (g_str_has_prefix(arg, "-independent")) {
+			else if (g_str_has_prefix(arg, "-indep")) {
 				stretch_colourmodel = COL_INDEP;
 			}
 			else if (g_str_has_prefix(arg,"-D=")) {
@@ -1852,6 +1856,10 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 			return CMD_ARG_ERROR;
 		}
 		BP = 0.0;
+		if (stretch_colourmodel == COL_SAT && (!(do_red && do_green && do_blue))) {
+			siril_log_message(_("Error: saturation stretch requires that all channels must be selected.\n"));
+			return CMD_ARG_ERROR;
+		}
 	}
 
 	set_cursor_waiting(TRUE);
@@ -1904,6 +1912,13 @@ int process_seq_ghs(int nb, int stretchtype) {
 			free_sequence(seq, TRUE);
 		return retval;
 	}
+	if (params->payne_colourstretchmodel == COL_SAT && seq->nb_layers != 3) {
+		siril_log_message(_("Error: cannot apply saturation stretch to mono images.\n"));
+		free(params);
+		free(seqdata->seqEntry);
+		free(seqdata);
+		return CMD_ARG_ERROR;
+	}
 	if (!seqdata->seqEntry)
 		seqdata->seqEntry = strdup("stretch_");
 
@@ -1943,7 +1958,16 @@ int process_ghs(int nb, int stretchtype) {
 		free (params);
 		return retval;
 	}
-	apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
+	if (params->payne_colourstretchmodel == COL_SAT && gfit.naxes[2] != 3) {
+		siril_log_message(_("Error: cannot apply saturation stretch to a mono image.\n"));
+		free(params);
+		return CMD_ARG_ERROR;
+	}
+
+	if (params->payne_colourstretchmodel == COL_SAT)
+		apply_sat_ght_to_fits(&gfit, &gfit, params, TRUE);
+	else
+		apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 	char log[100];
 	switch (stretchtype) {
 		case STRETCH_PAYNE_NORMAL:
@@ -3040,7 +3064,7 @@ int process_set(int nb) {
 		int filelen = snprintf(fakefile, 1024, "[%s]\n%s\n", input, input+sep+1);
 		GKeyFile *kf = g_key_file_new();
 		g_key_file_load_from_data(kf, fakefile, filelen, G_KEY_FILE_NONE, NULL);
-		return read_keyfile(kf);
+		return read_keyfile(kf) == 0;
 	}
 	return 0;
 }
