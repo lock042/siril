@@ -514,6 +514,7 @@ gpointer cut_profile(gpointer p) {
 	}
 	int nbr_points = (int) length;
 	double point_spacing = length / nbr_points;
+	// TODO: if metadata allows, represent as arcsec
 	double point_spacing_x = (double) delta.x / nbr_points;
 	double point_spacing_y = (double) delta.y / nbr_points;
 	gboolean hv = ((point_spacing_x == 1.) || (point_spacing_y == 1.) || (point_spacing_x == -1.) || (point_spacing_y == -1.));
@@ -604,7 +605,7 @@ gpointer cut_profile(gpointer p) {
 			if (xscale) {
 				xlabel = g_strdup_printf(_("Wavenumber / cm^{-1}"));
 			} else {
-				xlabel = g_strdup_printf(_("Distance along cut"));
+				xlabel = g_strdup_printf(_("Distance along cut / px"));
 			}
 			gnuplot_set_title(gplot, title);
 			gnuplot_set_xlabel(gplot, xlabel);
