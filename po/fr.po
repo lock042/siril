@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-10 07:57+0200\n"
-"PO-Revision-Date: 2023-04-07 10:58+0000\n"
+"PO-Revision-Date: 2023-04-11 20:39+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -10949,15 +10949,17 @@ msgid ""
 "Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \"."
 "tif\"\n"
 msgstr ""
+"Erreur : le nom du fichier doit avoir l'extension \".fit\", \".fits\", \"."
+"fts\" ou \".tif\"\n"
 
 #: src/core/command.c:1050 src/core/command.c:1132
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Error: image or sequence must be loaded to carry out %s PSF estimation, "
 "aborting...\n"
 msgstr ""
 "Erreur : l'image ou la séquence doit être chargée pour effectuer une "
-"estimation PSF aveugle. Abandon...\n"
+"estimation PSF %s, abandon...\n"
 
 #: src/core/command.c:1055
 msgid "Blind kernel estimation:\n"
@@ -10979,24 +10981,21 @@ msgstr "estimation multi-échelle\n"
 #: src/core/command.c:1220 src/core/command.c:1230 src/core/command.c:1240
 #: src/core/command.c:1250 src/core/command.c:1260 src/core/command.c:1270
 #: src/core/command.c:1280 src/core/command.c:1290
-#, fuzzy, c-format
+#, c-format
 msgid "Error in %s parameter: must be in %s, aborting.\n"
-msgstr ""
-"Erreur dans le paramètre stop : doit être compris entre 0 et 1, abandon.\n"
+msgstr "Erreur dans le paramètre %s : doit être dans %s, interruption.\n"
 
 #: src/core/command.c:1099 src/core/command.c:1150 src/core/command.c:1300
-#, fuzzy
 msgid ""
 "Error in ks parameter: must be odd and between 3 and minimum of (image "
 "height, image width), aborting.\n"
 msgstr ""
 "Erreur dans le paramètre ks : doit être impair et compris entre 3 et le "
-"minimum de (hauteur d'image, largeur d'image) : abandon.\n"
+"minimum de (hauteur d'image, largeur d'image), abandon.\n"
 
 #: src/core/command.c:1111 src/core/command.c:1162 src/core/command.c:1312
-#, fuzzy
 msgid "Error: no filename specified, aborting.\n"
-msgstr "Erreur pendant l'ouverture du film %s, abandon.\n"
+msgstr "Erreur : aucun nom de fichier n'est spécifié, abandon.\n"
 
 #: src/core/command.c:1142
 msgid "symmetric kernel\n"
@@ -13832,7 +13831,6 @@ msgstr ""
 "<b>-out=</b>"
 
 #: src/core/command_def.h:77
-#, fuzzy
 msgid ""
 "Stretches the image linearly to a new black point BP.\n"
 "\n"
@@ -13853,8 +13851,8 @@ msgstr ""
 "auxquels appliquer l'étirement : il peut s'agir de R, G, B, RG, RB ou GB. La "
 "valeur par défaut est tous les canaux.\n"
 "En option, le paramètre <b>-sat</b> peut être utilisé pour appliquer "
-"l'étirement linéaire au canal de saturation de l'image. Cette argument ne "
-"fonctionne que si tous les canaux sont sélectionnés."
+"l'étirement linéaire au canal de saturation de l'image. Cet argument ne "
+"fonctionne que si tous les canaux sont sélectionnés"
 
 #: src/core/command_def.h:78
 msgid ""
@@ -13936,7 +13934,6 @@ msgstr ""
 "json' et peut être modifié avec l'option <b>-out=</b>"
 
 #: src/core/command_def.h:86
-#, fuzzy
 msgid ""
 "Generates a PSF for use with deconvolution. One of the following must be "
 "given as the first argument: <b>clear</b> (clears the existing PSF), "
@@ -13992,9 +13989,9 @@ msgid ""
 "as for <b>makepsf save <i>filename</i></b>"
 msgstr ""
 "Génère une PSF à utiliser avec la déconvolution. L'un des éléments suivants "
-"doit être donné en premier argument : <b>clear</b> (efface la PSF "
-"existante), <b>load</b> (charge une PSF à partir d'un fichier), <b>save</b> "
-"(enregistre la PSF actuelle), <b>blind</b> (estimation aveugle de tke PSF), "
+"doit être donné en premier argument : <b>clear</b> (efface la PSF existante)"
+", <b>load</b> (charge une PSF à partir d'un fichier), <b>save</b> ("
+"enregistre la PSF actuelle), <b>blind</b> (estimation aveugle de tke PSF), "
 "<b>stars</b> (génère une PSF basée sur les étoiles mesurées à partir de "
 "l'image) ou <b>manual</b> (génère manuellement une PSF basée sur une "
 "fonction et des paramètres).\n"
@@ -14003,48 +14000,54 @@ msgstr ""
 "l'argument <b>clear</b>.\n"
 "\n"
 "Pour charger une PSF précédemment enregistrée, l'argument <b>load</b> "
-"nécessite le nom du fichier PSF comme deuxième argument. Cela peut être dans "
-"n'importe quel format pour lequel Siril a été compilé, mais il doit être "
-"carré et devrait idéalement être impair.\n"
+"nécessite le nom du fichier PSF comme deuxième argument (<i>filename</i>). "
+"Cela peut être dans n'importe quel format pour lequel Siril a été compilé, "
+"mais il doit être carré et devrait idéalement être impair.\n"
 "\n"
-"Pour enregistrer la PSF actuelle, l'argument <b>save</b> est utilisé, sans "
-"aucun argument supplémentaire requis : la PSF sera nommée en fonction du nom "
-"du fichier ou de la séquence ouverte.\n"
+"Pour sauvegarder une PSF précédemment générée, l'argument <b>save</b> est "
+"utilisé. Un nom de fichier peut être fourni en option (il doit avoir l'une "
+"des extensions \".fit\", \".fits\", \".fts\" ou \".tif\"), mais si aucun nom "
+"n'est fourni, la PSF sera nommée sur la base du nom du fichier ou de la "
+"séquence ouverte.\n"
 "\n"
 "Pour <b>blind</b>, les arguments facultatifs suivants peuvent être fournis : "
 "<b>-l0</b> utilise la méthode de descente l0, <b>-si</b> utilise la méthode "
-"d'irrégularité spectrale, <b >-multiscale</b> configure la méthode l0 pour "
+"d'irrégularité spectrale, <b>-multiscale</b> configure la méthode l0 pour "
 "faire une estimation de PSF multi-échelles, <b>-lambda=</b> fournit la "
 "constante de régularisation.\n"
 "\n"
-"Pour la PSF des étoiles détectées, le seul paramètre facultatif est <b>-sym</"
-"b>, qui configure la PSF pour qu'elle soit symétrique.\n"
+"Pour la PSF des <b>étoiles</b> détectées, le seul paramètre facultatif est "
+"<b>-sym</b>, qui configure la PSF pour qu'elle soit symétrique.\n"
 "\n"
-"Pour une PSF manuelle, l'un des éléments <b>-gaussian</b>, <b>-moffat</b>, "
-"<b>-disc</b> ou <b>-airy</b> doit être fourni pour spécifier la fonction "
-"PSF. Pour les PSF gaussiennes ou Moffat, les arguments facultatifs <b>-"
-"fwhm=</b>, <b>-angle=</b> et <b>-ratio=</b> peuvent être fournis. Pour les "
-"PSF Moffat, l'argument facultatif <b>-beta=</b> peut également être fourni. "
-"Si ces valeurs sont omises, elles prennent par défaut les mêmes valeurs que "
-"dans la boîte de dialogue de déconvolution. Pour les PSF de disque, seul "
-"l'argument <b>-fwhm=</b> est requis, qui pour cette fonction est utilisé "
-"pour définir le <i>diamètre</i> de la PSF. Pour les PSF de type disque "
-"d'Airy, les arguments suivants peuvent être fournis : <b>-dia=</b> (définit "
-"le diamètre du télescope), <b>-fl=</b> (définit la distance focale du "
-"télescope), <b>-wl =</b> (définit la longueur d'onde pour calculer le motif "
-"de diffraction d'Airy), <b>-pixelsize=</b> (définit la taille de pixel du "
-"capteur), <b>-obstruct=</b> (définit l'obstruction en pourcentage de la zone "
-"d'ouverture globale). Si ces paramètres ne sont pas fournis, la longueur "
-"d'onde sera par défaut de 525 nm et l'obstruction centrale sera par défaut "
-"de 0 %. Siril tentera de lire les autres à partir de l'image ouverte, mais "
-"certains logiciels d'imagerie peuvent ne pas tous les fournir, auquel cas "
-"vous obtiendrez de mauvais résultats, et notez que les métadonnées peuvent "
-"ne pas être renseignées pour les vidéos au format SER. L'expérience vous "
-"apprendra quels sont les éléments que vous pouvez omettre en toute sécurité "
-"pour votre configuration d'imagerie particulière.\n"
+"Pour une PSF <b>manuelle</b>, l'un des éléments <b>-gaussian</b>, "
+"<b>-moffat</b>, <b>-disc</b> ou <b>-airy</b> doit être fourni pour spécifier "
+"la fonction PSF. Pour les PSF gaussiennes ou Moffat, les arguments "
+"facultatifs <b>-fwhm=</b>, <b>-angle=</b> et <b>-ratio=</b> peuvent être "
+"fournis. Pour les PSF Moffat, l'argument facultatif <b>-beta=</b> peut "
+"également être fourni. Si ces valeurs sont omises, elles prennent par défaut "
+"les mêmes valeurs que dans la boîte de dialogue de déconvolution. Pour les "
+"PSF de disque, seul l'argument <b>-fwhm=</b> est requis, qui pour cette "
+"fonction est utilisé pour définir le <i>diamètre</i> de la PSF. Pour les PSF "
+"de type disque d'Airy, les arguments suivants peuvent être fournis : "
+"<b>-dia=</b> (définit le diamètre du télescope), <b>-fl=</b> (définit la "
+"distance focale du télescope), <b>-wl=</b> (définit la longueur d'onde pour "
+"calculer le motif de diffraction d'Airy), <b>-pixelsize=</b> (définit la "
+"taille de pixel du capteur), <b>-obstruct=</b> (définit l'obstruction en "
+"pourcentage de la zone d'ouverture globale). Si ces paramètres ne sont pas "
+"fournis, la longueur d'onde sera par défaut de 525 nm et l'obstruction "
+"centrale sera par défaut de 0 %. Siril tentera de lire les autres à partir "
+"de l'image ouverte, mais certains logiciels d'imagerie peuvent ne pas tous "
+"les fournir, auquel cas vous obtiendrez de mauvais résultats, et notez que "
+"les métadonnées peuvent ne pas être renseignées pour les vidéos au format "
+"SER. L'expérience vous apprendra quels sont les éléments que vous pouvez "
+"omettre en toute sécurité pour votre configuration d'imagerie particulière.\n"
 "\n"
 "Pour toutes les options de génération de PSF ci-dessus, l'argument "
-"facultatif <b>-ks=</b> peut être fourni pour définir la dimension PSF"
+"facultatif <b>-ks=</b> peut être fourni pour définir la dimension de la PSF, "
+"et l'argument facultatif <b>-savepsf=<i>filename</i></b> peut être utilisé "
+"pour enregistrer la PSF générée : un nom de fichier doit être fourni et les "
+"mêmes exigences d'extension de nom de fichier s'appliquent que pour "
+"<b>makepsf save <i>nom du fichier</i></b>"
 
 #: src/core/command_def.h:87
 msgid "Merges several sequences into one"
@@ -14601,7 +14604,6 @@ msgstr ""
 "processus est également appelé filtre Larson Sekanina"
 
 #: src/core/command_def.h:114
-#, fuzzy
 msgid ""
 "Restores an image using the Richardson-Lucy method.\n"
 "\n"
@@ -14623,6 +14625,9 @@ msgid ""
 "<b>-stop=</b>"
 msgstr ""
 "Restaure une image en utilisant la méthode Richardson-Lucy.\n"
+"\n"
+"En option, une PSF peut être chargée en utilisant l'argument <b>-"
+"loadpsf=<i>nom de fichier</i></b>.\n"
 "\n"
 "Le nombre d'itérations est fourni par <b>-iters</b> (la valeur par défaut "
 "est 10).\n"
@@ -14826,7 +14831,6 @@ msgstr ""
 "au format Astro-tiff, tandis que <b>-deflate</b> permet la compression"
 
 #: src/core/command_def.h:128
-#, fuzzy
 msgid ""
 "Restores an image using the Split Bregman method.\n"
 "\n"
@@ -14839,6 +14843,9 @@ msgid ""
 "strength (lower value = more regularization, default = 3000)"
 msgstr ""
 "Restaure une image à l'aide de la méthode Split Bregman.\n"
+"\n"
+"En option, une PSF peut être chargée en utilisant l'argument <b>-"
+"loadpsf=<i>nom de fichier</i></b>.\n"
 "\n"
 "Le nombre d'itérations est fourni par <b>-iters</b> (la valeur par défaut "
 "est 1).\n"
@@ -15287,21 +15294,19 @@ msgstr ""
 "avec l'argument <b>-at=</b>"
 
 #: src/core/command_def.h:152
-#, fuzzy
 msgid ""
 "The same as the <b>RL</b> command, but applies to a sequence which must be "
 "specified as the first argument"
 msgstr ""
-"Identique à la commande <b>rl</b>, mais s'applique à une séquence qui doit "
+"Identique à la commande <b>RL</b>, mais s'applique à une séquence qui doit "
 "être spécifiée comme premier argument"
 
 #: src/core/command_def.h:153
-#, fuzzy
 msgid ""
 "The same as the <b>SB</b> command, but applies to a sequence which must be "
 "specified as the first argument"
 msgstr ""
-"Identique à la commande <b>rl</b>, mais s'applique à une séquence qui doit "
+"Identique à la commande <b>SB</b>, mais s'applique à une séquence qui doit "
 "être spécifiée comme premier argument"
 
 #: src/core/command_def.h:154
@@ -15415,13 +15420,12 @@ msgstr ""
 "séquence. Voir SEQSETMAG"
 
 #: src/core/command_def.h:161
-#, fuzzy
 msgid ""
 "The same as the <b>WIENER</b> command, but applies to a sequence which must "
 "be specified as the first argument"
 msgstr ""
-"Identique à la commande <b>rl</b>, mais s'applique à une séquence qui doit "
-"être spécifiée comme premier argument"
+"Identique à la commande <b>WIENER</b>, mais s'applique à une séquence qui "
+"doit être spécifiée comme premier argument"
 
 #: src/core/command_def.h:162
 msgid ""
@@ -16000,7 +16004,6 @@ msgstr ""
 "reconstruction pondérée avec WRECONS"
 
 #: src/core/command_def.h:197
-#, fuzzy
 msgid ""
 "Restores an image using the Wiener deconvolution method.\n"
 "\n"
@@ -16011,6 +16014,9 @@ msgid ""
 "regularization factor"
 msgstr ""
 "Restaure une image en utilisant la méthode de déconvolution de Wiener.\n"
+"\n"
+"En option, une PSF peut être chargée en utilisant l'argument <b>-"
+"loadpsf=<i>nom de fichier</i></b>.\n"
 "\n"
 "Le paramètre <b>-alpha=</b> fournit le facteur de régularisation modélisé "
 "par le bruit gaussien"
@@ -16257,7 +16263,7 @@ msgstr "Les préférences n'ont pas pu être chargées à partir de %s : %s\n"
 
 #: src/core/initfile.c:441
 msgid "Warning: nothing could be read from the settings file\n"
-msgstr ""
+msgstr "Attention : rien n'a pu être lu dans le fichier des paramètres.\n"
 
 #: src/core/initfile.c:454
 #, c-format
@@ -18529,7 +18535,7 @@ msgstr "Dossier"
 #: src/gui/documentation.c:60
 #, c-format
 msgid "Siril documentation URL: %s\n"
-msgstr ""
+msgstr "L'URL de la documentation de Siril : %s\n"
 
 #: src/gui/documentation.c:71 src/gui/newdeconv.c:281 src/gui/script_menu.c:321
 msgid "Could not show link"
@@ -18778,7 +18784,7 @@ msgstr "_Ne plus afficher cette fenêtre"
 #: src/gui/newdeconv.c:271
 #, c-format
 msgid "Deconvolution usage hints and tips URL: %s\n"
-msgstr ""
+msgstr "Trucs et astuces sur l'utilisation de la déconvolution URL : %s\n"
 
 #: src/gui/newdeconv.c:460
 msgid ""
@@ -18804,20 +18810,21 @@ msgstr ""
 "d'en-tête FITS peut être incorrecte.\n"
 
 #: src/gui/newdeconv.c:507
-#, fuzzy
 msgid "Error: all stars' FWHM must have the same units.\n"
-msgstr "Les FWHM des étoiles doivent avoir les mêmes unités."
+msgstr ""
+"Erreur : les FWHM de toutes les étoiles doivent avoir les mêmes unités.\n"
 
 #: src/gui/newdeconv.c:511
-#, fuzzy
 msgid "Error: stars' properties must all be computed on the same layer"
 msgstr ""
-"Les propriétés des étoiles doivent toutes être calculées sur le même canal"
+"Erreur : les propriétés des étoiles doivent toutes être calculées sur le "
+"même canal"
 
 #: src/gui/newdeconv.c:515
-#, fuzzy
 msgid "Error: stars must all be modeled with the same profile type"
-msgstr "Les étoiles doivent toutes être modélisées avec le même type de profil"
+msgstr ""
+"Erreur : les étoiles doivent toutes être modélisées avec le même type de "
+"profil"
 
 #: src/gui/newdeconv.c:557
 msgid "No stars selected"
@@ -18943,10 +18950,9 @@ msgid "No suitable stars detectable in this image. Aborting..."
 msgstr "Aucune étoile compatible n'est détectable dans cette image. Abandon..."
 
 #: src/gui/newdeconv.c:1009
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d suitably bright, non-saturated stars.\n"
-msgstr ""
-"Aucune étoile détectée. Recherche d'étoiles non saturées appropriées...\n"
+msgstr "Trouvé %d étoiles brillantes et non saturées.\n"
 
 #: src/gui/newdeconv.c:1017
 #, c-format
@@ -18955,6 +18961,9 @@ msgid ""
 "Increasing kernel size to %d. To override, specify kernel size using the -"
 "ks= option.\n"
 msgstr ""
+"La taille du noyau n'est pas assez grande pour s'adapter à la PSF générée à "
+"partir des étoiles détectées. Augmenter la taille du noyau à %d. Pour passer "
+"outre, spécifiez la taille du noyau à l'aide de l'option -ks=.\n"
 
 #: src/gui/newdeconv.c:1022
 #, c-format
@@ -18963,6 +18972,9 @@ msgid ""
 "too big for the specified kernel size. Recommend increasing kernel size to "
 "%d.\n"
 msgstr ""
+"Avertissement : La PSF générée à partir des étoiles détectées dans cette "
+"image semble être trop grande pour la taille de noyau spécifiée. Il est "
+"recommandé d'augmenter la taille du noyau à %d.\n"
 
 #: src/gui/newdeconv.c:1053
 msgid "Starting PSF computation..."
