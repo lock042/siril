@@ -9,7 +9,10 @@ xx/xx/xx
 * Added special formatter to parse date-time in path parsing
 * Changed Windows to build in console mode even for stable releases
 * Changed gnuplot initialization to keep plots open after stopping main process (and fixed leak)
-
+* Improved clipping model in luminance-based GHS stretches
+* Added GHS saturation stretch mode
+* Fix UI and command issues in deconvolution code
+* Print help and deconvolution tips URLs to the log
 
 siril 1.2.0-beta2
 03/12/23

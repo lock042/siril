@@ -71,7 +71,7 @@ static void DrawPSF();
 static cairo_surface_t *surface = NULL;
 
 //set below flag to zero to avoid kernel printout to stdout
-#define DEBUG_PSF 1
+#define DEBUG_PSF 0
 
 orientation_t get_imageorientation() {
 	orientation_t result;
@@ -97,6 +97,10 @@ void reset_conv_args(estk_data* args) {
 	siril_debug_print("Resetting deconvolution args\n");
 
 	// Basic image and kernel parameters
+	args->savepsf_filename = NULL;
+	args->save_after = FALSE;
+	args->stars_need_clearing = FALSE;
+	args->recalc_ks = FALSE;
 	args->psftype = PSF_BLIND;
 	the_fit = &gfit;
 	imageorientation = get_imageorientation();
@@ -264,7 +268,7 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 	}
 	/* Use the tag when documentation will be tagged */
 	gchar *url = g_strdup_printf("%s/%s/%s/%s", GET_DOCUMENTATION_URL, lang, "latest", DECONVOLUTION_TIPS_URL);
-	siril_debug_print("URL: %s\n", url);
+	siril_log_message(_("Deconvolution usage hints and tips URL: %s\n"), url);
 #if GTK_CHECK_VERSION(3, 22, 0)
 	GtkWidget* win = lookup_widget("control_window");
 	ret = gtk_show_uri_on_window(GTK_WINDOW(GTK_APPLICATION_WINDOW(win)), url,
@@ -287,7 +291,7 @@ void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
 	if (args.psftype == PSF_BLIND) {
 		gtk_widget_set_visible(lookup_widget("bdeconv_psfcontrols"), FALSE);
 		switch (args.blindtype) {
-			case 0:
+			case BLIND_SI:
 				gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), FALSE);
 				gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), TRUE);
 				args.intermediatedeconvolutionweight = 15.f;
@@ -295,7 +299,7 @@ void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
 				args.lambda = 1.f / 15.f;
 				gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gflambda")), 15.);
 				break;
-			case 1:
+			case BLIND_L0:
 				gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), TRUE);
 				gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), FALSE);
 				args.lambda = 1.f / 3000.f;
@@ -308,7 +312,7 @@ void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
 void on_bdeconv_nonblindtype_changed(GtkComboBox *combo, gpointer user_data) {
 	args.nonblindtype = gtk_combo_box_get_active(combo);
 	switch (args.nonblindtype) {
-		case 0:
+		case DECONV_SB:
 			args.finaliters = 1; // Default niters for Split Bregman
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), (double) args.finaliters);
 			args.alpha = 3000.f;
@@ -324,7 +328,7 @@ void on_bdeconv_nonblindtype_changed(GtkComboBox *combo, gpointer user_data) {
 			gtk_widget_set_visible(lookup_widget("bdeconv_finaliters"), TRUE);
 			gtk_widget_set_visible(lookup_widget("bdeconv_iterlabel"), TRUE);
 			break;
-		case 1:
+		case DECONV_RL:
 			args.finaliters = 10; // Default niters for RL. Reduce this if using the multiplicative
 			// algorithm in order to avoid burning holes round your stars!
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), (double) args.finaliters);
@@ -341,7 +345,7 @@ void on_bdeconv_nonblindtype_changed(GtkComboBox *combo, gpointer user_data) {
 			gtk_widget_set_visible(lookup_widget("bdeconv_finaliters"), TRUE);
 			gtk_widget_set_visible(lookup_widget("bdeconv_iterlabel"), TRUE);
 			break;
-		case 2:
+		case DECONV_WIENER:
 			args.alpha = 500.f;
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), (double) args.alpha);
 			gtk_widget_set_visible(lookup_widget("regul_label"), FALSE);
@@ -487,10 +491,9 @@ static void calculate_parameters() {
 	if (com.stars && com.stars[0]) {
 		int i = 0;
 		double FWHMx = 0.0, FWHMy = 0.0, beta = 0.0, angle = 0.0;
-		gboolean unit_is_arcsec;
-		int n = 0, layer;
-		starprofile profiletype;
-
+		gboolean unit_is_arcsec = FALSE;
+		int n = 0, layer = 0;
+		starprofile profiletype = PSF_GAUSSIAN;
 		while (com.stars[i]) {
 			double fwhmx, fwhmy;
 			char *unit;
@@ -501,18 +504,15 @@ static void calculate_parameters() {
 				profiletype = com.stars[i]->profile;
 			}
 			else if (is_as != unit_is_arcsec) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
-						_("Stars FWHM must have the same units."));
+				siril_log_color_message(_("Error: all stars' FWHM must have the same units.\n"), "red");
 				return;
 			}
 			else if (layer != com.stars[i]->layer ) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
-						_("Stars properties must all be computed on the same layer"));
+				siril_log_color_message(_("Error: stars' properties must all be computed on the same layer"), "red");
 				return;
 			}
 			else if (profiletype != com.stars[i]->profile) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
-						_("Stars must all be modeled with the same profile type"));
+				siril_log_color_message(_("Error: stars must all be modeled with the same profile type"), "red");
 				return;
 			}
 			if (!com.stars[i]->has_saturated) {
@@ -524,7 +524,8 @@ static void calculate_parameters() {
 				}
 			i++;
 		}
-		if (i <= 0 || n <= 0) return;
+		if (i <= 0 || n <= 0)
+			return;
 		/* compute average */
 		args.psf_fwhm = (float) FWHMx / (float) n;
 		FWHMy = (float) FWHMy / (float) n;
@@ -536,23 +537,26 @@ static void calculate_parameters() {
 			args.psf_fwhm /= (float) conversionfactor;
 		}
 		args.psf_angle = (float) angle / (float) n;
-		if (com.stars[0]->profile == PSF_GAUSSIAN)
-			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("Gaussian"));
-		else
-			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("Moffat"));
-		char temp[10];
-		sprintf(temp, "%.2f", args.psf_fwhm);
-		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starfwhm_text")), temp);
-		sprintf(temp, "%.2f", args.psf_ratio);
-		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starratio_text")), temp);
-		sprintf(temp, "%.2f", args.psf_angle);
-		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starangle_text")), temp);
-		sprintf(temp, "%.2f", args.psf_beta);
-		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starbeta_text")), temp);
-		return;
-	} else {
+		if (!com.headless && !com.script) {
+			if (com.stars[0]->profile == PSF_GAUSSIAN)
+				gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("Gaussian"));
+			else
+				gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("Moffat"));
+			char temp[10];
+			sprintf(temp, "%.2f", args.psf_fwhm);
+			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starfwhm_text")), temp);
+			sprintf(temp, "%.2f", args.psf_ratio);
+			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starratio_text")), temp);
+			sprintf(temp, "%.2f", args.psf_angle);
+			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starangle_text")), temp);
+			sprintf(temp, "%.2f", args.psf_beta);
+			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starbeta_text")), temp);
+			return;
+		}
+	} else if (!com.headless && !com.script) {
 		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("No stars selected"));
 	}
+	return;
 }
 
 void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -574,7 +578,6 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	calculate_parameters();
 	initialize_airy_parameters();
 	control_window_switch_to_tab(OUTPUT_LOGS);
-
 }
 
 void check_orientation() {
@@ -630,13 +633,18 @@ int save_kernel(gchar* filename) {
 		siril_log_color_message(_("Error preparing PSF for save.\n"), "red");
 		return retval;
 	}
+
+	if (g_str_has_suffix(filename, ".fit") || g_str_has_suffix(filename, ".fits") || g_str_has_suffix(filename, ".fts")) {
+		retval = savefits(filename, save_fit);
+	} else {
 #ifdef HAVE_LIBTIFF
-	retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution PSF", NULL, FALSE, FALSE, TRUE);
+		retval = savetif(filename, save_fit, 32, "Saved Siril deconvolution PSF", NULL, FALSE, FALSE, TRUE);
 #else
-	// This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
-	siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving PSF in FITS format.\n"), "salmon");
-	retval = savefits(filename, save_fit);
+		// This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
+		siril_log_color_message(_("This copy of Siril was compiled without libtiff support: saving PSF in FITS format.\n"), "salmon");
+		retval = savefits(filename, save_fit);
 #endif
+	}
 	clearfits(save_fit); // also frees copy_kernel
 	free(save_fit);
 	return retval;
@@ -645,37 +653,44 @@ int save_kernel(gchar* filename) {
 void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 	// Only allocate as much space for filenames as required - we determine the max pathlength
 	long pathmax = get_pathmax();
-	gchar filename[pathmax];
-	char *imagenoext;
-	char *imagenoextorig;
+	gchar *filename = NULL;
+	gchar *temp1 = NULL;
+	gchar *temp2 = NULL;
+	gchar *temp3 = NULL;
+	gchar *temp4 = NULL;
+	gchar *temp5 = NULL;
+	gchar *temp6 = NULL;
 	gchar kernelsuffix[10] = "_PSF";
-	// Initialise the filename strings as empty strings
-	memset(filename, 0, sizeof(filename));
 	// Set up paths and filenames
 	if (single_image_is_loaded())
-		imagenoextorig = g_path_get_basename(com.uniq->filename);
+		temp1 = g_path_get_basename(com.uniq->filename);
 	else if (sequence_is_loaded())
-		imagenoextorig = g_strdup(com.seq.seqname);
+		temp1 = g_strdup(com.seq.seqname);
 	else
-		imagenoextorig = g_strdup_printf("deconvolution");
-	imagenoext = g_strdup(imagenoextorig);
-	for (char *c = imagenoextorig, *q = imagenoext;  *c;  ++c, ++q)
-        *q = *c == ' ' ? '_' : *c;
-	if (g_strcmp0(imagenoext, imagenoextorig))
-		siril_log_color_message(_("Deconvolution: spaces detected in filename. These have been replaced by underscores.\n"), "salmon");
-	g_free(imagenoextorig);
-	imagenoext = g_strdup_printf("%s_%s", build_timestamp_filename(), imagenoext);
-	imagenoext = g_build_filename(com.wd, imagenoext, NULL);
-	imagenoext = remove_ext_from_filename(imagenoext);
-	strncat(filename, imagenoext, sizeof(filename) - strlen(imagenoext));
-	strncat(filename, kernelsuffix, 10);
+		temp1 = g_strdup_printf("deconvolution");
+	temp2 = build_timestamp_filename();
+	temp3 = g_strdup_printf("%s_%s", temp2, temp1);
+	temp4 = g_build_filename(com.wd, temp3, NULL);
+	temp5 = remove_ext_from_filename(temp4);
+	temp6 = g_strdup_printf("%s%s", temp5, kernelsuffix);
 #ifdef HAVE_LIBTIFF
-	strncat(filename, ".tif", 5);
+	filename = g_strdup_printf("%s.tif", temp6);
 #else
-	strncat(filename, ".fit", 5);
+	filename = g_strdup_printf("%s.fit", temp6);
 #endif
-	save_kernel(filename);
-	g_free(imagenoext);
+	if (strlen(filename) > pathmax) {
+		siril_log_color_message(_("Error: file path too long!\n"), "red");
+	} else {
+		save_kernel(filename);
+	}
+	g_free(temp1);
+	g_free(temp2);
+	g_free(temp3);
+	g_free(temp4);
+	g_free(temp5);
+	g_free(temp6);
+	g_free(filename);
+
 	return;
 }
 
@@ -695,7 +710,8 @@ int load_kernel(gchar* filename) {
 	if (load_fit.rx != load_fit.ry){
 		retval = 1;
 		char *msg = siril_log_color_message(_("Error: PSF file does not contain a square PSF. Cannot load this file.\n"), "red");
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
+		if (!com.script )
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Wrong PSF size"), msg);
 		bad_load = TRUE;
 		goto ENDSAVE;
 	}
@@ -712,7 +728,7 @@ int load_kernel(gchar* filename) {
 	}
 	com.kernelchannels = load_fit.naxes[2];
 	args.kchans = com.kernelchannels;
-	if (!com.headless)
+	if (!com.headless && !com.script)
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")), com.kernelsize);
 
 	int npixels = com.kernelsize * com.kernelsize;
@@ -770,7 +786,8 @@ int load_kernel(gchar* filename) {
 	com.pref.debayer.open_debayer = original_debayer_setting;
 	clearfits(&load_fit);
 	ENDSAVE:
-	DrawPSF();
+	if (!com.script && !com.headless)
+		DrawPSF();
 	return retval;
 }
 
@@ -902,7 +919,8 @@ int get_kernel() {
 	com.kernelsize = (!com.kernel) ? 0 : args.ks;
 	com.kernelchannels = (!com.kernel) ? 0 : args.kchans;
 	if (args.psftype != PSF_PREVIOUS) {
-		DrawPSF();
+		if (!com.script && !com.headless)
+			DrawPSF();
 	}
 END:
 	return retval;
@@ -964,7 +982,6 @@ gpointer estimate_only(gpointer p) {
 		memcpy(&args, command_data, sizeof(estk_data));
 		free(command_data);
 	}
-	gboolean stars_need_clearing = FALSE;
 	if (args.psftype == PSF_STARS && (!(com.stars && com.stars[0]))) {
 		// User wants PSF from stars but has not selected any stars
 		siril_log_message(_("No stars detected. Finding suitable non-saturated stars...\n"));
@@ -987,7 +1004,22 @@ gpointer estimate_only(gpointer p) {
 			retval = 1;
 			goto ENDEST;
 		} else {
-			stars_need_clearing = TRUE;
+			args.stars_need_clearing = TRUE;
+		}
+		siril_log_message(_("Found %d suitably bright, non-saturated stars.\n"), nb_stars);
+
+		calculate_parameters(); // Calculates some parameters based on detected stars
+		if (args.recalc_ks && args.ks < (int)(args.psf_fwhm * 4.f)) {
+			int newks = (int)(args.psf_fwhm * 4.f);
+			if (!(newks%2))
+				newks++;
+			args.ks = newks;
+			siril_log_message(_("Kernel size not large enough to fit PSF generated from detected stars. Increasing kernel size to %d. To override, specify kernel size using the -ks= option.\n"), newks);
+		} else if (args.ks < (int)(args.psf_fwhm * 4.f)) {
+			int recc_ks = (int)(args.psf_fwhm * 4.f);
+				if (!(recc_ks%2))
+					recc_ks++;
+			siril_log_message(_("Warning: PSF generated from the stars detected in this image appears to be too big for the specified kernel size. Recommend increasing kernel size to %d.\n"), recc_ks);
 		}
 	}
 
@@ -1027,13 +1059,23 @@ gpointer estimate_only(gpointer p) {
 			siril_log_message(_("Siril FFT wisdom update failed...\n"));
 		}
 	}
-ENDEST:
-	if (stars_need_clearing) {
-		clear_stars_list(FALSE);
-		stars_need_clearing = FALSE;
-	}
 	siril_log_color_message(_("Deconvolution PSF generated.\n"), "green");
+ENDEST:
+	if (args.stars_need_clearing) {
+		clear_stars_list(FALSE);
+		args.stars_need_clearing = FALSE;
+	}
+	if(!retval && args.save_after) {
+		save_kernel(args.savepsf_filename);
+		free(args.savepsf_filename);
+		args.savepsf_filename = NULL;
+		args.save_after = FALSE;
+	}
 	siril_add_idle(estimate_idle, NULL);
+	if (com.script) {
+		free(args.fdata);
+		args.fdata = NULL;
+	}
 	return GINT_TO_POINTER(retval);
 }
 
@@ -1051,10 +1093,8 @@ void set_deconvolve_params() {
 
 gboolean deconvolve_idle(gpointer arg) {
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	if (args.fdata) {
-		free(args.fdata);
-		args.fdata = NULL;
-	}
+	free(args.fdata);
+	args.fdata = NULL;
 	update_zoom_label();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -1078,7 +1118,8 @@ gpointer deconvolve(gpointer p) {
 	gboolean stars_need_clearing = FALSE;
 	check_orientation();
 	if (sequence_is_running == 0)
-		DrawPSF();
+		if (!com.script && !com.headless)
+			DrawPSF();
 	args.nchans = the_fit->naxes[2];
 	args.rx = the_fit->rx;
 	args.ry = the_fit->ry;
@@ -1112,7 +1153,6 @@ gpointer deconvolve(gpointer p) {
 		} else
 			stars_need_clearing = TRUE;
 	}
-
 	int fftw_max_thread = com.pref.fftw_conf.multithreaded ? com.max_thread : 1;
 	cppmaxthreads = fftw_max_thread;
 	cppfftwflags = com.pref.fftw_conf.strategy;
@@ -1121,7 +1161,6 @@ gpointer deconvolve(gpointer p) {
 
 	set_cursor_waiting(TRUE);
 	set_wisdom_file();
-	siril_debug_print("Multi: %d, wisdom: %s\n", com.pref.fftw_conf.multithreaded, com.pref.fftw_conf.wisdom_file);
 	if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 		if (sequence_is_running == 0)
 			siril_log_message(_("Siril FFT wisdom imported successfully...\n"));
@@ -1133,7 +1172,8 @@ gpointer deconvolve(gpointer p) {
 			siril_log_message(_("No FFT wisdom found to import...\n"));
 	}
 	if (the_fit == &gfit)
-		undo_save_state(&gfit, _("Deconvolution"));
+		if (!com.script && !com.headless)
+			undo_save_state(&gfit, _("Deconvolution"));
 	args.ndata = the_fit->rx * the_fit->ry * the_fit->naxes[2];
 	args.fdata = malloc(args.ndata * sizeof(float));
 	if (the_fit->type == DATA_FLOAT)
@@ -1232,10 +1272,12 @@ gpointer deconvolve(gpointer p) {
 			memcpy(the_fit->fdata, args.fdata, args.ndata * sizeof(float));
 			if (com.pref.force_16bit)
 				fit_replace_buffer(the_fit, float_buffer_to_ushort(the_fit->fdata, args.ndata), DATA_USHORT);
+			else invalidate_stats_from_fit(the_fit);
 		} else {
 			for (size_t i = 0 ; i < args.ndata ; i++) {
 				the_fit->data[i] = roundf_to_WORD(args.fdata[i] * USHRT_MAX_SINGLE);
 			}
+			invalidate_stats_from_fit(the_fit);
 		}
 	}
 ENDDECONV:
@@ -1255,10 +1297,8 @@ ENDDECONV:
 	if (sequence_is_running == 0)
 		siril_add_idle(deconvolve_idle, NULL);
 	else {
-		if (args.fdata) {
-			free(args.fdata);
-			args.fdata = NULL;
-		}
+		free(args.fdata);
+		args.fdata = NULL;
 	}
 	return GINT_TO_POINTER(retval);
 }
