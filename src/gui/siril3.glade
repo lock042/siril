@@ -1273,7 +1273,6 @@ artifacts may appear.</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">Sets a custom title for the plot. If the title ends with (), if a sequence is processed the current image number / total will be added inside the brackets (e.g. Title (1/n)).</property>
                     <property name="text" translatable="yes">Intensity Profile</property>
-                    <signal name="activate" handler="on_cut_title_activate" swapped="no"/>
                   </object>
                 </child>
               </object>

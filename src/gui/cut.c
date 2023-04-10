@@ -478,7 +478,6 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 		if (!(arg->save_dat || arg->seq))
 			*hastmpfile = TRUE;
 	}
-	printf("Filename: %s\n", *filename);
 	temp = g_path_get_basename(*filename);
 	*imagefilename = replace_ext(temp, ".png");
 	g_free(temp);
@@ -573,23 +572,19 @@ gpointer cut_profile(gpointer p) {
 		if (arg->fit->naxes[2] == 3) {
 			// Now the vport is defined, set the data to a channel or even luminance
 			if (arg->vport == 0) {
-				printf("vport R\n");
 				legend = g_strdup("x R");
 			} else if (arg->vport == 1) {
 				for (int i = 0 ; i < nbr_points ; i++)
 					r[i] = g[i];
-				printf("vport G\n");
 				legend = g_strdup("x G");
 			} else if (arg->vport == 2) {
 				for (int i = 0 ; i < nbr_points ; i++)
 					r[i] = b[i];
-				printf("vport B\n");
 				legend = g_strdup("x B");
 			} else {
 				for (int i = 0 ; i < nbr_points ; i++) {
 					r[i] = (r[i] + g[i] + b[i]) / 3.0;
 				}
-				printf("vport L\n");
 				legend = g_strdup("x L");
 			}
 		} else if (arg->fit->naxes[2] == 1) {
@@ -599,7 +594,6 @@ gpointer cut_profile(gpointer p) {
 	} else {
 		retval = gnuplot_write_xrgb_dat(filename, x, r, g, b, nbr_points, "x R G B");
 	}
-	printf("legend: %s\n", legend);
 	if (retval) {
 		siril_log_color_message(_("Failed to create the cut data file %s\n"), "red", filename);
 		goto END;
@@ -1297,7 +1291,6 @@ void on_cut_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (gui.cut.cfa) {
 		gui.cut.tri = FALSE;
 	}
-	printf("cfa: %d tri: %d\n", gui.cut.cfa, gui.cut.tri);
 	redraw(REDRAW_OVERLAY);
 }
 

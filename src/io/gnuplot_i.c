@@ -183,10 +183,10 @@ gpointer tmpwatcher (gpointer user_data) {
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
 		siril_debug_print("No. of tmp files: %d\n", handle->ntmp);
-		printf("Buffer: %s\n", buffer);
+//		printf("Buffer: %s\n", buffer);
 		gchar *arg = buffer;
 		if (g_str_has_prefix(buffer, "Reap ")) {
-			siril_debug_print("Received Reap message ntmp = %d\n", handle->ntmp);
+//			siril_debug_print("Received Reap message ntmp = %d\n", handle->ntmp);
 			if (!handle->ntmp)
 				continue;
 			arg += 5;
@@ -194,7 +194,7 @@ gpointer tmpwatcher (gpointer user_data) {
 				siril_debug_print("%s / %s\n", arg, handle->tmp_filename_tbl[i]);
 				if (!g_strcmp0(arg, handle->tmp_filename_tbl[i])) {
 					g_unlink(handle->tmp_filename_tbl[i]);
-					siril_debug_print("Reaped file: i = %d, filename = %s\n", i, arg);
+//					siril_debug_print("Reaped file: i = %d, filename = %s\n", i, arg);
 					g_free(handle->tmp_filename_tbl[i]);
 					handle->tmp_filename_tbl[i] = NULL;
 					for (int j = i ; j < handle->ntmp - 1 ; j++) {
