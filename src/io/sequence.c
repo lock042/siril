@@ -613,8 +613,10 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 			set_display_mode();		// display the display mode in the combo box
 		}
 		redraw(REMAP_ALL);
-
-		redraw_previews();		// redraw registration preview areas
+		if (seq->is_variable)
+			clear_previews();
+		else
+			redraw_previews();		// redraw registration preview areas
 		display_filename();		// display filename in gray window
 		set_precision_switch(); // set precision on screen
 		adjust_reginfo();		// change registration displayed/editable values

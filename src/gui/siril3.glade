@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -21667,7 +21667,7 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                             <property name="orientation">vertical</property>
                                             <property name="spacing">10</property>
                                             <child>
-                                              <object class="GtkExpander">
+                                              <object class="GtkExpander" id="autoreg_expander">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
@@ -23286,7 +23286,7 @@ This option is useful when sequence has previously been aligned using a method t
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkExpander">
+                                              <object class="GtkExpander" id="manualreg_expander">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <child>
