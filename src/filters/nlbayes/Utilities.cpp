@@ -20,7 +20,6 @@
 #include "Utilities.h"
 
 #include <math.h>
-#include <omp.h>
 #include <iostream>
 #include <stdlib.h>
 #include <fstream>
