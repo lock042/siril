@@ -133,18 +133,25 @@ void populate_seqcombo(const gchar *realname) {
 }
 
 /* normalizes sequence name
- * takes a string and adds:
- * - the .seq extension if required
- * - _ before .seq if required
+ * takes a string and 
+ * - removes the extension if known
+ * - appends _ at the end if required and add_underscore is TRUE
  * also calls get_locale_filename() to solve Windows localized string problems
- * returns a newly allocated string to be freed with g_free
+ * returns a newly allocated string to be freed with free
  */
-gchar *normalize_seqname(gchar *name) {
+char *normalize_seqname(char *name, gboolean add_underscore) {
 	gchar *locname = get_locale_filename(name);
-	gboolean needs_seq = !g_str_has_suffix(name, ".seq");
-	gboolean needs_underscore = !g_str_has_suffix(name, "_");
-	gchar *outname = g_strdup_printf("%s%s%s", name, needs_underscore ? "_" : "", needs_seq ? ".seq" : "");
+	char *file_no_ext;
+	if (g_str_has_suffix(locname, ".seq") || g_str_has_suffix(locname, ".fit") || g_str_has_suffix(locname, ".fits") ||
+	g_str_has_suffix(locname, ".fts") || g_str_has_suffix(locname, ".ser")) {
+		file_no_ext = remove_ext_from_filename(locname);
+	} else {
+		file_no_ext = strdup(locname);
+	}
+	gboolean needs_underscore = add_underscore && !g_str_has_suffix(name, "_");
+	gchar *outname = g_strdup_printf("%s%s", name, needs_underscore ? "_" : "");
 	g_free(locname);
+	free(file_no_ext);
 	return outname;
 }
 

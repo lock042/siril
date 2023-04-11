@@ -595,11 +595,13 @@ gpointer convert_thread_worker(gpointer p) {
 	init_report(args);
 
 	/* remove the target .seq to avoid errors */
-	gchar *seqname = normalize_seqname(args->destroot);
-	g_free(args->destroot);
-	args->destroot = seqname;
+	char *newdestroot = normalize_seqname(args->destroot, args->output_type == SEQ_REGULAR);
+	free(args->destroot);
+	args->destroot = newdestroot;
+	gchar *seqname = g_strdup_printf("%s%s", args->destroot, ".seq");
 	if (g_unlink(seqname))
 		siril_debug_print("Error in g_unlink()\n");
+	g_free(seqname);
 
 	convert_status convert = { 0 };
 	convert.args = args;
