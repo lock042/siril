@@ -18058,7 +18058,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the photometry color calibration dialog</property>
+            <property name="tooltip-text" translatable="yes">Open the photometric color calibration dialog</property>
             <property name="action-name">win.pcc-processing</property>
             <property name="text" translatable="yes">Photometric Color Calibration...</property>
           </object>

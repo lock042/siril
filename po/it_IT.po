@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-04-10 07:57+0200\n"
+"POT-Creation-Date: 2023-04-12 11:32+0200\n"
 "PO-Revision-Date: 2023-04-01 14:21+0000\n"
 "Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
 "Language-Team: Italian <https://weblate.pixls.us/projects/siril/siril-"
@@ -846,7 +846,7 @@ msgstr ""
 "Prefisso dei nomi di immagine risultanti dal processo estrazione dello "
 "sfondo."
 
-#: src/gui/siril3.glade:4235 src/gui/siril3.glade:26411 src/io/sequence.c:1809
+#: src/gui/siril3.glade:4235 src/gui/siril3.glade:26411 src/io/sequence.c:1811
 msgid "Save"
 msgstr "Salva"
 
@@ -4628,7 +4628,8 @@ msgid "Color Calibration..."
 msgstr "Calibrazione del colore..."
 
 #: src/gui/siril3.glade:18061
-msgid "Open the photometry color calibration dialog"
+#, fuzzy
+msgid "Open the photometric color calibration dialog"
 msgstr "Apre la finestra di dialogo per la calibrazione fotometrica del colore"
 
 #: src/gui/siril3.glade:18063
@@ -6249,7 +6250,7 @@ msgstr ""
 msgid "Output registration:"
 msgstr "Output registrazione:"
 
-#: src/gui/siril3.glade:23258 src/registration/registration.c:1225
+#: src/gui/siril3.glade:23258 src/registration/registration.c:1231
 msgid "Load a sequence first"
 msgstr "Carica prima una sequenza"
 
@@ -10231,7 +10232,8 @@ msgstr ""
 "Raggi fotometrici impostati a %.1f,per l'interno e %.1f per l'esterno\n"
 
 #: src/algos/photometric_cc.c:380
-msgid "Photometry color calibration in progress..."
+#, fuzzy
+msgid "Photometric color calibration in progress..."
 msgstr "Calibrazione del colore fotometrica in elaborazione ..."
 
 #: src/algos/photometric_cc.c:385
@@ -10501,7 +10503,7 @@ msgid "Error in layers alignment."
 msgstr "Errore nell'allineamento dei livelli."
 
 #: src/compositing/align_rgb.c:153 src/compositing/compositing.c:657
-#: src/registration/registration.c:1583
+#: src/registration/registration.c:1589
 msgid "Registration complete."
 msgstr "Registrazione completa."
 
@@ -10576,8 +10578,8 @@ msgstr "Prima devi caricare almeno due livelli!\n"
 
 #: src/compositing/compositing.c:603 src/filters/wavelets.c:257
 #: src/filters/wavelets.c:266 src/filters/wavelets.c:327
-#: src/gui/nina_light_curve.c:104 src/registration/registration.c:1402
-#: src/registration/registration.c:1495
+#: src/gui/nina_light_curve.c:104 src/registration/registration.c:1408
+#: src/registration/registration.c:1501
 msgid "Warning"
 msgstr "Attenzione"
 
@@ -11370,7 +11372,7 @@ msgstr ""
 "ad una stella singola per determinare la PSF.\n"
 
 #: src/core/command.c:3126 src/core/command.c:3716 src/core/command.c:3895
-#: src/io/sequence.c:1866
+#: src/io/sequence.c:1868
 msgid "Select an area first\n"
 msgstr "Seleziona prima un'area\n"
 
@@ -12017,7 +12019,7 @@ msgstr[1] "Conversione: elaborazione %d FITS files…\n"
 msgid "Convert: no working directory set.\n"
 msgstr "Conversione: nessuna cartella di lavoro impostata.\n"
 
-#: src/core/command.c:6569 src/registration/registration.c:1449
+#: src/core/command.c:6569 src/registration/registration.c:1455
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr "La registrazione shift-only è possibile solo con OpenCV 4.4\n"
 
@@ -12043,7 +12045,7 @@ msgid ""
 msgstr "L'opzione -nostarlist ha effetto solo quando si usa -2pass, ignoro\n"
 
 #: src/core/command.c:6704 src/core/processing.c:141
-#: src/registration/applyreg.c:640 src/registration/registration.c:1485
+#: src/registration/applyreg.c:640 src/registration/registration.c:1491
 msgid "Not enough space to save the output images, aborting\n"
 msgstr "Spazio insufficiente per salvare le immagini di output, interruzione\n"
 
@@ -12065,7 +12067,7 @@ msgstr ""
 "trasformazione compatibile senza interpolazione, non è compatibile con "
 "OpenCV inferiore a 4.4. Interruzione\n"
 
-#: src/core/command.c:6720 src/registration/registration.c:1512
+#: src/core/command.c:6720 src/registration/registration.c:1518
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "upscaling can be applied. Aborting\n"
@@ -12075,13 +12077,13 @@ msgstr ""
 
 #. don't load it for command line execution
 #. to avoid problems with com.stars later on in the process
-#: src/core/command.c:6728 src/registration/registration.c:1531
+#: src/core/command.c:6728 src/registration/registration.c:1537
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr "Registrazione: elaborazione utilizzando il metodo %s\n"
 
 #: src/core/command.c:6739 src/core/command.c:7017
-#: src/registration/registration.c:1535
+#: src/registration/registration.c:1541
 msgid "Interpolation clamping active\n"
 msgstr "Bloccaggio dell'interpolazione attivo\n"
 
@@ -20805,63 +20807,63 @@ msgstr "Converto a SER"
 msgid "Sequence loaded: %s (%d->%d)\n"
 msgstr "Sequenza caricata: %s (%d->%d)\n"
 
-#: src/io/sequence.c:759 src/io/sequence.c:887
+#: src/io/sequence.c:761 src/io/sequence.c:889
 #, c-format
 msgid "Could not load image %d from sequence %s\n"
 msgstr "Non posso caricare l'immagine %d dalla sequenza %s\n"
 
-#: src/io/sequence.c:767 src/io/sequence.c:842 src/io/sequence.c:895
+#: src/io/sequence.c:769 src/io/sequence.c:844 src/io/sequence.c:897
 #, c-format
 msgid "Could not load frame %d from SER sequence %s\n"
 msgstr "Non posso caricare il frame %d dalla sequenza SER %s\n"
 
-#: src/io/sequence.c:775 src/io/sequence.c:905
+#: src/io/sequence.c:777 src/io/sequence.c:907
 #, c-format
 msgid "Could not load frame %d from FITS sequence %s\n"
 msgstr "Non posso caricare il frame %d dalla sequenza FITS %s\n"
 
-#: src/io/sequence.c:785 src/io/sequence.c:861 src/io/sequence.c:916
+#: src/io/sequence.c:787 src/io/sequence.c:863 src/io/sequence.c:918
 #, c-format
 msgid "Could not load frame %d from AVI sequence %s\n"
 msgstr "Non posso caricare il frame %d dalla sequenza AVI %s\n"
 
-#: src/io/sequence.c:834 src/io/sequence.c:850
+#: src/io/sequence.c:836 src/io/sequence.c:852
 #, c-format
 msgid "Could not load partial image %d from sequence %s\n"
 msgstr "Non posso caricare l'immagine parziale %d dalla sequenza %s\n"
 
-#: src/io/sequence.c:986
+#: src/io/sequence.c:988
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
 msgstr ""
 "Questa operazione non è supportata sulle sequenze AVI (seq_open_image)\n"
 
-#: src/io/sequence.c:990
+#: src/io/sequence.c:992
 msgid ""
 "This operation is not supported on internal sequences (seq_open_image)\n"
 msgstr ""
 "Questa operazione non è supportata sulle sequenze interne (seq_open_image)\n"
 
-#: src/io/sequence.c:1414
+#: src/io/sequence.c:1416
 #, c-format
 msgid "Closing sequence %s\n"
 msgstr "Sto chiudendo la sequenza %s\n"
 
-#: src/io/sequence.c:1518
+#: src/io/sequence.c:1520
 #, fuzzy, c-format
 msgid "This operation will use registration data of layer %d\n"
 msgstr ""
 "Lo stacking utilizzerà i dati di registrazione del canale %d se presenti.\n"
 
-#: src/io/sequence.c:1538
+#: src/io/sequence.c:1540
 msgid "internal sequence"
 msgstr "sequenza interna"
 
-#: src/io/sequence.c:1651
+#: src/io/sequence.c:1653
 #, c-format
 msgid "Photometry analysis failed for image %d (%s)\n"
 msgstr "Analisi fotometrica fallita per l’immagine %d (%s)\n"
 
-#: src/io/sequence.c:1674
+#: src/io/sequence.c:1676
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use a larger "
@@ -20870,7 +20872,7 @@ msgstr ""
 "Nessuna stella trovata nell’area dell’immagine %d intorno a %d,%d: errore %s "
 "(usare un’area più grande?)\n"
 
-#: src/io/sequence.c:1678
+#: src/io/sequence.c:1680
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use 'follow star' "
@@ -20879,7 +20881,7 @@ msgstr ""
 "Nessuna stella trovata nell’area dell’immagine %d intorno a %d,%d: errore %s "
 "(usare l’opzione “segui stella”?)\n"
 
-#: src/io/sequence.c:1747
+#: src/io/sequence.c:1749
 msgid ""
 "Star analysis does not give consistent results when exposure changes across "
 "the sequence.\n"
@@ -20887,16 +20889,16 @@ msgstr ""
 "L'analisi delle stelle non dà risultati consistenti quando l'esposizione "
 "cambia lungo la sequenza.\n"
 
-#: src/io/sequence.c:1763
+#: src/io/sequence.c:1765
 #, c-format
 msgid "Photometry for star at %.1f, %.1f in image %d\n"
 msgstr "Fotometria per stella a %.1f, %.1f nell’immagine %d\n"
 
-#: src/io/sequence.c:1807
+#: src/io/sequence.c:1809
 msgid "No registration data stored for this layer"
 msgstr "Per questo livello non ci sono dati di registrazione salvati"
 
-#: src/io/sequence.c:1808
+#: src/io/sequence.c:1810
 msgid ""
 "Some registration data was found for another layer.\n"
 "Do you want to save the psf data as registration data for this layer?"
@@ -20904,7 +20906,7 @@ msgstr ""
 "Alcuni dati di registrazione sono stati trovati per un altro livello. \n"
 "Vuoi salvare i dati psf come dati di registrazione per questo livello?"
 
-#: src/io/sequence.c:1885 src/registration/3stars.c:267
+#: src/io/sequence.c:1887 src/registration/3stars.c:267
 msgid ""
 "The reference image has a null matrix and was not previously registered. "
 "Please select another one.\n"
@@ -20912,7 +20914,7 @@ msgstr ""
 "L’immagine di riferimento ha una matrice nulla e non è stata registrata in "
 "precedenza. Selezionane un altra.\n"
 
-#: src/io/sequence.c:1893
+#: src/io/sequence.c:1895
 msgid ""
 "The current image has a null matrix and was not previously registered. "
 "Please load another one to select the star.\n"
@@ -20920,7 +20922,7 @@ msgstr ""
 "L’immagine corrente ha una matrice nulla e non è stata registrata in "
 "precedenza. Caricane un’altra per selezionare la stella.\n"
 
-#: src/io/sequence.c:1901 src/registration/3stars.c:283
+#: src/io/sequence.c:1903 src/registration/3stars.c:283
 msgid ""
 "This area is outside of the reference image. Please select the reference "
 "image to select another star.\n"
@@ -20928,7 +20930,7 @@ msgstr ""
 "Questa area è fuori dall’immagine di riferimento. Prego selezionare "
 "l’immagine di riferimento per scegliere un’altra stella\n"
 
-#: src/io/sequence.c:1910
+#: src/io/sequence.c:1912
 msgid ""
 "The sequence analysis of the PSF will use a sliding selection area centred "
 "on the previous found star; this disables parallel processing.\n"
@@ -20937,7 +20939,7 @@ msgstr ""
 "centrata sulla stella precedentemente trovata; questo disabilita "
 "l'elaborazione parallela.\n"
 
-#: src/io/sequence.c:1912
+#: src/io/sequence.c:1914
 msgid ""
 "The sequence analysis of the PSF will use registration data to move the "
 "selection area for each image; this is compatible with parallel processing.\n"
@@ -20946,11 +20948,11 @@ msgstr ""
 "muovere l'area di selezione per ciascuna immagine; questo è compatibile con "
 "l'elaborazione parallela.\n"
 
-#: src/io/sequence.c:1924
+#: src/io/sequence.c:1926
 msgid "PSF on area"
 msgstr "PSF sull'area"
 
-#: src/io/sequence.c:1996
+#: src/io/sequence.c:1998
 #, c-format
 msgid ""
 "Fixing the selection number in the .seq file (%d) to the actual value (%d) "
@@ -20959,13 +20961,13 @@ msgstr ""
 "Sto fissando il numero della selezione nel file .seq (%d) al valore attuale "
 "(%d) (non salvato)\n"
 
-#: src/io/sequence.c:2034
+#: src/io/sequence.c:2036
 #, c-format
 msgid ""
 "Sequence drift could not be checked as sequence has no regdata on layer %d\n"
 msgstr ""
 
-#: src/io/sequence.c:2046
+#: src/io/sequence.c:2048
 #, c-format
 msgid ""
 "Warning: the sequence appears to have heavy drifted images (%d pixels for "
@@ -20973,22 +20975,22 @@ msgid ""
 "exclude some images\n"
 msgstr ""
 
-#: src/io/sequence.c:2060
+#: src/io/sequence.c:2062
 #, c-format
 msgid "Registration data cleared for layer %d\n"
 msgstr "Dati di registrazione cancellati per il livello %d\n"
 
-#: src/io/sequence.c:2070
+#: src/io/sequence.c:2072
 #, c-format
 msgid "Registration (back-up) data cleared for layer %d\n"
 msgstr "Dati di registrazione (backup) cancellati per il livello %d\n"
 
-#: src/io/sequence.c:2077
+#: src/io/sequence.c:2079
 #, c-format
 msgid "Statistics data cleared for layer %d\n"
 msgstr "Dati statistici cancellati per il livello %d\n"
 
-#: src/io/sequence.c:2083
+#: src/io/sequence.c:2085
 #, c-format
 msgid "Statistics data (back-up) cleared for layer %d\n"
 msgstr "Dati statistici (backup) cancellati per il livello %d\n"
@@ -22489,31 +22491,35 @@ msgstr "Miglior frame: #%d con fwhm=%.3g.\n"
 msgid "Registering %d images of the %d of the sequence"
 msgstr "Stacking di %d immagini di %d della sequenza"
 
-#: src/registration/registration.c:1162
+#: src/registration/registration.c:1163
+msgid "not available for sequences with variable image sizes"
+msgstr ""
+
+#: src/registration/registration.c:1168
 msgid "Failed to determine registration method...\n"
 msgstr "Impossibile determinare il metodo di registrazione...\n"
 
-#: src/registration/registration.c:1205
+#: src/registration/registration.c:1211
 msgid "Debayer the sequence for registration"
 msgstr "Applica Debayer alla sequenza per la registrazione"
 
-#: src/registration/registration.c:1219 src/registration/registration.c:1228
+#: src/registration/registration.c:1225 src/registration/registration.c:1234
 msgid "Select images in the sequence"
 msgstr "Seleziona immagini nella sequenza"
 
-#: src/registration/registration.c:1221
+#: src/registration/registration.c:1227
 msgid "Select an area in image first, and select images in the sequence"
 msgstr "Seleziona prima l'area di un'immagine e poi le immagini nella sequenza"
 
-#: src/registration/registration.c:1230
+#: src/registration/registration.c:1236
 msgid "Select a layer with existing registration"
 msgstr "Seleziona un livello con una registrazione esistente"
 
-#: src/registration/registration.c:1232
+#: src/registration/registration.c:1238
 msgid "Select an area in image first"
 msgstr "Seleziona prima un'area nell'immagine"
 
-#: src/registration/registration.c:1401
+#: src/registration/registration.c:1407
 msgid ""
 "All prerequisites are not filled for registration. Select a rectangle "
 "first.\n"
@@ -22521,16 +22527,16 @@ msgstr ""
 "Non soddisfatt tutti i prerequisiti per la registrazione. Seleziona prima un "
 "rettangolo.\n"
 
-#: src/registration/registration.c:1463
+#: src/registration/registration.c:1469
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
 msgstr ""
 
-#: src/registration/registration.c:1494
+#: src/registration/registration.c:1500
 msgid "The object is not moving, please check your registration data.\n"
 msgstr ""
 "L’oggetto è immobile, prego controllare i tuoi dati di registrazione.\n"
 
-#: src/registration/registration.c:1518
+#: src/registration/registration.c:1524
 msgid ""
 "When interpolation is set to None, the transformation can only be set to "
 "Shift. Aborting\n"
