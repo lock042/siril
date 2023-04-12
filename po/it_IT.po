@@ -847,6 +847,7 @@ msgstr ""
 "sfondo."
 
 #: src/gui/siril3.glade:4235 src/gui/siril3.glade:26411 src/io/sequence.c:1811
+#: src/io/sequence.c:1809
 msgid "Save"
 msgstr "Salva"
 
@@ -4189,9 +4190,8 @@ msgstr ""
 "se sono selezionati meno di tre canali colore poiché non ha senso."
 
 #: src/gui/siril3.glade:16094
-#, fuzzy
 msgid "Saturation stretch"
-msgstr "Iterazioni: "
+msgstr "Stretch saturazione"
 
 #: src/gui/siril3.glade:16123
 msgid "Stretch Parameters"
@@ -6251,6 +6251,7 @@ msgid "Output registration:"
 msgstr "Output registrazione:"
 
 #: src/gui/siril3.glade:23258 src/registration/registration.c:1231
+#: src/registration/registration.c:1225
 msgid "Load a sequence first"
 msgstr "Carica prima una sequenza"
 
@@ -8465,9 +8466,8 @@ msgstr "Il comando “Requires” è obbligatorio negli script"
 
 #: src/gui/siril3.glade:30779
 msgid ""
-"If this option is checked, scripts cannot be executed without the "
-"\"requires\" command. That ensures the compatibility between scripts and "
-"Siril.\n"
+"If this option is checked, scripts cannot be executed without the \"requires"
+"\" command. That ensures the compatibility between scripts and Siril.\n"
 "\n"
 "<span foreground=\"red\"><b>WARNING: uncheck this option only if you know "
 "what you are doing!</b></span>"
@@ -9416,8 +9416,8 @@ msgstr ""
 #: src/algos/astrometry_solver.c:1367
 #, c-format
 msgid ""
-"Plate solving image from local catalogues for a field of view of %.2f "
-"degrees%s, using a limit magnitude of %.2f\n"
+"Plate solving image from local catalogues for a field of view of %.2f degrees"
+"%s, using a limit magnitude of %.2f\n"
 msgstr ""
 "Immagine di plate-solving da cataloghi locali per un campo visivo di %.2f "
 "gradi%s, utilizzando una magnitudine limite di %.2f\n"
@@ -10503,7 +10503,7 @@ msgid "Error in layers alignment."
 msgstr "Errore nell'allineamento dei livelli."
 
 #: src/compositing/align_rgb.c:153 src/compositing/compositing.c:657
-#: src/registration/registration.c:1589
+#: src/registration/registration.c:1589 src/registration/registration.c:1583
 msgid "Registration complete."
 msgstr "Registrazione completa."
 
@@ -10579,7 +10579,8 @@ msgstr "Prima devi caricare almeno due livelli!\n"
 #: src/compositing/compositing.c:603 src/filters/wavelets.c:257
 #: src/filters/wavelets.c:266 src/filters/wavelets.c:327
 #: src/gui/nina_light_curve.c:104 src/registration/registration.c:1408
-#: src/registration/registration.c:1501
+#: src/registration/registration.c:1501 src/registration/registration.c:1402
+#: src/registration/registration.c:1495
 msgid "Warning"
 msgstr "Attenzione"
 
@@ -10902,14 +10903,16 @@ msgid ""
 "Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \"."
 "tif\"\n"
 msgstr ""
+"Errore: il nome del file deve avere l'estensione \".fit\", \".fits\", \".fts"
+"\" o \".tif\"\n"
 
 #: src/core/command.c:1050 src/core/command.c:1132
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Error: image or sequence must be loaded to carry out %s PSF estimation, "
 "aborting...\n"
 msgstr ""
-"Errore: l'immagine o la sequenza devono essere caricate per eseguire la "
+"Errore: l'immagine o la sequenza devono essere caricate per eseguire la %s "
 "stima cieca PSF. Interruzione ...\n"
 
 #: src/core/command.c:1055
@@ -10932,24 +10935,21 @@ msgstr "Stima multiscala\n"
 #: src/core/command.c:1220 src/core/command.c:1230 src/core/command.c:1240
 #: src/core/command.c:1250 src/core/command.c:1260 src/core/command.c:1270
 #: src/core/command.c:1280 src/core/command.c:1290
-#, fuzzy, c-format
+#, c-format
 msgid "Error in %s parameter: must be in %s, aborting.\n"
-msgstr ""
-"Errore nel parametro stop: deve essere compreso tra 0 e 1, interruzione.\n"
+msgstr "Errore nel parametro %s: deve essere in %s, interruzione.\n"
 
 #: src/core/command.c:1099 src/core/command.c:1150 src/core/command.c:1300
-#, fuzzy
 msgid ""
 "Error in ks parameter: must be odd and between 3 and minimum of (image "
 "height, image width), aborting.\n"
 msgstr ""
-"Errore nel parametro ks: deve essere dispari e tra 3 e il minimo (altezza "
+"Errore nel parametro ks: deve essere dispari e tra 3 e il minimo di (altezza "
 "dell'immagine, larghezza dell'immagine): interruzione.\n"
 
 #: src/core/command.c:1111 src/core/command.c:1162 src/core/command.c:1312
-#, fuzzy
 msgid "Error: no filename specified, aborting.\n"
-msgstr "Errore nell’aprire il video %s, interruzione.\n"
+msgstr "Errore: nessun nome file specificato, interruzione..\n"
 
 #: src/core/command.c:1142
 msgid "symmetric kernel\n"
@@ -11097,14 +11097,20 @@ msgstr "Errore: HP deve essere >= SP e <= 1.0.\n"
 msgid ""
 "Error: saturation stretch requires that all channels must be selected.\n"
 msgstr ""
+"Errore: lo stretch della saturazione richiede che tutti i canali siano "
+"selezionati.\n"
 
 #: src/core/command.c:1951
 msgid "Error: cannot apply saturation stretch to mono images.\n"
 msgstr ""
+"Errore: impossibile applicare lo stretch della saturazione alle immagini "
+"mono.\n"
 
 #: src/core/command.c:1997
 msgid "Error: cannot apply saturation stretch to a mono image.\n"
 msgstr ""
+"Errore: impossibile applicare lo stretch della saturazione a un'immagine "
+"monocromatica.\n"
 
 #: src/core/command.c:2069 src/core/command.c:8087 src/filters/wavelets.c:255
 #: src/filters/wavelets.c:325
@@ -11372,7 +11378,7 @@ msgstr ""
 "ad una stella singola per determinare la PSF.\n"
 
 #: src/core/command.c:3126 src/core/command.c:3716 src/core/command.c:3895
-#: src/io/sequence.c:1868
+#: src/io/sequence.c:1868 src/io/sequence.c:1866
 msgid "Select an area first\n"
 msgstr "Seleziona prima un'area\n"
 
@@ -12020,6 +12026,7 @@ msgid "Convert: no working directory set.\n"
 msgstr "Conversione: nessuna cartella di lavoro impostata.\n"
 
 #: src/core/command.c:6569 src/registration/registration.c:1455
+#: src/registration/registration.c:1449
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr "La registrazione shift-only è possibile solo con OpenCV 4.4\n"
 
@@ -12046,6 +12053,7 @@ msgstr "L'opzione -nostarlist ha effetto solo quando si usa -2pass, ignoro\n"
 
 #: src/core/command.c:6704 src/core/processing.c:141
 #: src/registration/applyreg.c:640 src/registration/registration.c:1491
+#: src/registration/registration.c:1485
 msgid "Not enough space to save the output images, aborting\n"
 msgstr "Spazio insufficiente per salvare le immagini di output, interruzione\n"
 
@@ -12068,6 +12076,7 @@ msgstr ""
 "OpenCV inferiore a 4.4. Interruzione\n"
 
 #: src/core/command.c:6720 src/registration/registration.c:1518
+#: src/registration/registration.c:1512
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "upscaling can be applied. Aborting\n"
@@ -12078,12 +12087,13 @@ msgstr ""
 #. don't load it for command line execution
 #. to avoid problems with com.stars later on in the process
 #: src/core/command.c:6728 src/registration/registration.c:1537
+#: src/registration/registration.c:1531
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr "Registrazione: elaborazione utilizzando il metodo %s\n"
 
 #: src/core/command.c:6739 src/core/command.c:7017
-#: src/registration/registration.c:1541
+#: src/registration/registration.c:1541 src/registration/registration.c:1535
 msgid "Interpolation clamping active\n"
 msgstr "Bloccaggio dell'interpolazione attivo\n"
 
@@ -12828,8 +12838,8 @@ msgid ""
 "in argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering "
-"a quoted expression starting with an = sign, such as -bias=\"=256\" or -"
-"bias=\"=64*$OFFSET\".\n"
+"a quoted expression starting with an = sign, such as -bias=\"=256\" or -bias="
+"\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -12901,8 +12911,8 @@ msgid ""
 "argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering "
-"a quoted expression starting with an = sign, such as -bias=\"=256\" or -"
-"bias=\"=64*$OFFSET\".\n"
+"a quoted expression starting with an = sign, such as -bias=\"=256\" or -bias="
+"\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -13476,7 +13486,6 @@ msgstr ""
 "fornita in argomento. La prima immagine ha indice 0"
 
 #: src/core/command_def.h:60
-#, fuzzy
 msgid ""
 "Generalised hyperbolic stretch based on the work of the ghsastro.co.uk "
 "team.\n"
@@ -13518,11 +13527,14 @@ msgstr ""
 "<b>HP</b> definisce una regione compresa tra HP e 1 in cui lo stretch è "
 "lineare, preservando i dettagli delle alte luci e prevenendo il "
 "rigonfiamento delle stelle.\n"
-"Se omessi B, LP e SP predefiniti su 0.0 e AD predefinito a 1.0.\n"
+"Se omessi B, LP e SP predefiniti su 0.0 e HP predefinito a 1.0.\n"
 "Un argomento facoltativo (<b> -human </b>, <b> -even </b> o <b>-indipendent</"
 "b>) può essere passato per selezionare luminanza ponderata umana o ponderata "
 "uniforme o canali di colore indipententi per lo stertch colore. L'argomento "
-"viene ignorato per le immagini mono.\n"
+"viene ignorato per le immagini mono. In alternativa, l'argomento <b>-sat</b> "
+"specifica che l'estensione viene eseguita sulla saturazione dell'immagine: "
+"l'immagine deve essere a colori e tutti i canali devono essere selezionati "
+"affinché funzioni.\n"
 "Facoltativamente il parametro <b> [channels] </b> può essere utilizzato per "
 "specificare i canali su cui applicare lo stretch: questo può essere R, G, B, "
 "RG, RB o GB. Il valore predefinito è tutti i canali"
@@ -13572,7 +13584,6 @@ msgstr ""
 "angoli dell'immagine e il centro per una ispezione più ravvicinata"
 
 #: src/core/command_def.h:69
-#, fuzzy
 msgid ""
 "Inverse generalised hyperbolic stretch based on the work of the ghsastro.co."
 "uk team.\n"
@@ -13614,11 +13625,14 @@ msgstr ""
 "<b>HP</b> definisce una regione compresa tra HP e 1 in cui lo stretch è "
 "lineare, preservando i dettagli delle alte luci e prevenendo il "
 "rigonfiamento delle stelle.\n"
-"Se omessi B, LP e SP predefiniti su 0.0 e AD predefinito a 1.0.\n"
+"Se omessi B, LP e SP predefiniti su 0.0 e HP predefinito a 1.0.\n"
 "Un argomento facoltativo (<b> -human </b>, <b> -even </b> o <b>-indipendent</"
 "b>) può essere passato per selezionare luminanza ponderata umana o ponderata "
 "uniforme o canali di colore indipententi per lo stertch colore. L'argomento "
-"viene ignorato per le immagini mono.\n"
+"viene ignorato per le immagini mono. In alternativa, l'argomento <b>-sat</b> "
+"specifica che l'estensione viene eseguita sulla saturazione dell'immagine: "
+"l'immagine deve essere a colori e tutti i canali devono essere selezionati "
+"affinché funzioni.\n"
 "Facoltativamente il parametro <b> [channels] </b> può essere utilizzato per "
 "specificare i canali su cui applicare lo stretch: questo può essere R, G, B, "
 "RG, RB o GB. Il valore predefinito è tutti i canali"
@@ -13628,7 +13642,6 @@ msgid "Inverse of the midtones transfer function"
 msgstr "L'inverso della funzione di trasferimento mezzitoni"
 
 #: src/core/command_def.h:71
-#, fuzzy
 msgid ""
 "Inverse modified arcsinh stretch based on the work of the ghsastro.co.uk "
 "team.\n"
@@ -13670,10 +13683,13 @@ msgstr ""
 "Un argomento opzionale (sia <b>-human</b>, <b>-even</b> o <b>-indipendent</"
 "b>, può essere passato per selezionare sia la luminanza ponderata umana che "
 "la ponderata uniforme oppure canali di colore indipendenti per lo stretch "
-"del colore. L’argomento viene ignorato per le immagini mono.\n"
+"del colore. L’argomento viene ignorato per le immagini mono. In alternativa, "
+"l'argomento <b>-sat</b> specifica che l'estensione viene eseguita sulla "
+"saturazione dell'immagine: l'immagine deve essere a colori e tutti i canali "
+"devono essere selezionati affinché funzioni.\n"
 "Opzionalmente il parametro <b>channel</b> può essere utilizzato per "
 "specificare i canali a cui applicare lo stretch: questo potrà essere R, G, "
-"B, RG, RB o GB . Per default è su tutti icanali"
+"B, RG, RB o GB . Per default è su tutti i canali"
 
 #: src/core/command_def.h:72
 msgid ""
@@ -13744,7 +13760,6 @@ msgstr ""
 "b>"
 
 #: src/core/command_def.h:77
-#, fuzzy
 msgid ""
 "Stretches the image linearly to a new black point BP.\n"
 "\n"
@@ -13762,9 +13777,12 @@ msgstr ""
 "\n"
 "C’è un solo argomento obbligatorio:\n"
 "<b>BP</b>fornisce il nuovo punto di nero a cui tendere lo stretch.\n"
-"Facoltativamente, il parametro <b>[channels]</b> può essere utilizzato per "
+"L'argomento <b>[channels]</b> può facoltativamente essere usato per "
 "specificare i canali a cui applicare l'allungamento: questo può essere R, G, "
-"B, RG, RB o GB. L'impostazione predefinita è tutti i canali"
+"B, RG, RB o GB. L'impostazione predefinita è tutti i canali.\n"
+"Facoltativamente, il parametro <b>-sat</b> può essere utilizzato per "
+"applicare l'allungamento lineare al canale di saturazione dell'immagine. "
+"Questo argomento funziona solo se sono selezionati tutti i canali"
 
 #: src/core/command_def.h:78
 msgid ""
@@ -13844,7 +13862,6 @@ msgstr ""
 "modificato con l'opzione <b>-out=</b>"
 
 #: src/core/command_def.h:86
-#, fuzzy
 msgid ""
 "Generates a PSF for use with deconvolution. One of the following must be "
 "given as the first argument: <b>clear</b> (clears the existing PSF), "
@@ -13910,9 +13927,9 @@ msgstr ""
 "<b>clear</b>.\n"
 "\n"
 "Per caricare una PSF precedentemente salvata, l'argomento <b>load</b> "
-"richiede il nome del file PSF come secondo argomento. Questo può essere in "
-"qualsiasi formato il cui supporto è stato compilato in Siril, ma deve essere "
-"quadrato e idealmente dovrebbe essere dispari.\n"
+"richiede il <i>nome del file</i> PSF come secondo argomento. Questo può "
+"essere in qualsiasi formato il cui supporto è stato compilato in Siril, ma "
+"deve essere quadrato e idealmente dovrebbe essere dispari.\n"
 "\n"
 "Per salvare la PSF corrente viene utilizzato l'argomento <b>save</b>, senza "
 "bisogno di ulteriori argomenti: la PSF verrà nominata in base al nome del "
@@ -13958,16 +13975,14 @@ msgid "Merges several sequences into one"
 msgstr "Unisce alcune sequenze in una unica"
 
 #: src/core/command_def.h:88
-#, fuzzy
 msgid ""
 "Flips the image about the horizontal axis. Option <b>-bottomup</b> will only "
 "flip it if it's not already bottom-up"
 msgstr ""
 "Capovolge l'immagine attorno all'asse verticale. L'opzione <b>-bottomup</b> "
-"lo invertirà solo se non è già dal basso verso l'alto"
+"lo invertirà solo se non è già capovolta"
 
 #: src/core/command_def.h:89
-#, fuzzy
 msgid ""
 "Flips the image about the horizontal axis, only if needed (if it's not "
 "already bottom-up). It takes the image file name as argument, allowing it to "
@@ -13975,17 +13990,16 @@ msgid ""
 "overwritten if a flip was made"
 msgstr ""
 "Capovolge l'immagine attorno all'asse verticale, solo se necessario (se non "
-"è già dal basso verso l'alto). Prende il nome del file immagine come "
-"argomento, permettendogli di evitare di leggere completamente i dati "
-"dell'immagine se non è richiesto il capovolgimento. L'immagine viene "
-"sovrascritta se è stato effettuato un capovolgimento"
+"è già capovolta). Prende il nome del file immagine come argomento, "
+"permettendogli di evitare di leggere completamente i dati dell'immagine se "
+"non è richiesto il capovolgimento. L'immagine viene sovrascritta se è stato "
+"effettuato un capovolgimento"
 
 #: src/core/command_def.h:90
 msgid "Flips the image about the vertical axis"
 msgstr "Inverte l'immagine attorno all'asse verticale"
 
 #: src/core/command_def.h:91
-#, fuzzy
 msgid ""
 "Modified arcsinh stretch based on the work of the ghsastro.co.uk team.\n"
 "\n"
@@ -14011,8 +14025,8 @@ msgid ""
 msgstr ""
 "Stretch arcsinh modificato in base al lavoro del team di ghsastro.co.uk. \n"
 "\n"
-"L'argomento <b>D</b> definisce la forza dello stretch, tra 0 e 10. Questo è "
-"l'unico argomento obbligatorio. I seguenti argomenti opzionali "
+"L'argomento <b>-D=</b> definisce la forza dello stretch, tra 0 e 10. Questo "
+"è l'unico argomento obbligatorio. I seguenti argomenti opzionali "
 "personalizzano ulteriormente lo stretch:\n"
 "<b>LP</b> definisce un intervallo di conservazione dell’ombra compreso tra 0 "
 "e SP in cui lo stretch sarà lineare, preservando i dettagli dell’ombra;\n"
@@ -14022,7 +14036,7 @@ msgstr ""
 "preservando i dettagli delle alte luci e prevenendo il rigonfiamento delle "
 "stelle.\n"
 "Se omessi LP e SP sono impostato di default a 0.0 mentre HP a 1.0\n"
-"Un argomento opzionale (sia <b>-human</b>, <b>-even</b> o <b>-indiopendent</"
+"Un argomento opzionale (sia <b>-human</b>, <b>-even</b> o <b>-independent</"
 "b>, può essere passato per selezionare sia la luminanza ponderata umana che "
 "quella pari oppure canali di colore indipendenti per lo stretch del colore "
 "(l’argomento viene ignorato per le immagini mono).\n"
@@ -14142,8 +14156,8 @@ msgid ""
 "If <b>str</b> starts with <i>$def</i> prefix, it will be recognized as a "
 "reserved keyword and looked for in the strings stored in gui_prepro."
 "dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib or gui_prepro."
-"stack_default for <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> or "
-"<i>$defstack</i> respectively.\n"
+"stack_default for <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> or <i>"
+"$defstack</i> respectively.\n"
 "The keyword <i>$seqname$</i> can also be used when a sequence is loaded"
 msgstr ""
 "Analizza la stringa <b>str</b> utilizzando le informazioni contenute "
@@ -14160,8 +14174,8 @@ msgstr ""
 "Se <b>str</b> inizia con il prefisso <i>$def</i>, verrà riconosciuta come "
 "parola chiave riservata e cercata nelle stringhe memorizzate in gui_prepro."
 "dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib o gui_prepro."
-"stack_default per <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> o "
-"<i>$defstack</i> rispettivamente.\n"
+"stack_default per <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> o <i>"
+"$defstack</i> rispettivamente.\n"
 "La parola chiave <i>$seqname$</i> può essere utilizzata anche quando viene "
 "caricata una sequenza"
 
@@ -14505,7 +14519,6 @@ msgstr ""
 "Questo processo è chiamato anche filtro Larson Sekanina"
 
 #: src/core/command_def.h:114
-#, fuzzy
 msgid ""
 "Restores an image using the Richardson-Lucy method.\n"
 "\n"
@@ -14527,6 +14540,9 @@ msgid ""
 "<b>-stop=</b>"
 msgstr ""
 "Ripristina un'immagine utilizzando il metodo Richardson-Lucy.\n"
+"\n"
+"Facoltativamente, una PSF può essere caricata usando l'argomento <b>-"
+"loadpsf=<i>filename</i></b>.\n"
 "\n"
 "Il numero di iterazioni è fornito da <b>-iters</b> (il valore predefinito è "
 "10).\n"
@@ -14731,7 +14747,6 @@ msgstr ""
 "in formato Astro-tiff, mentre <b>-deflate</b> abilita la compressione"
 
 #: src/core/command_def.h:128
-#, fuzzy
 msgid ""
 "Restores an image using the Split Bregman method.\n"
 "\n"
@@ -14744,6 +14759,9 @@ msgid ""
 "strength (lower value = more regularization, default = 3000)"
 msgstr ""
 "Ripristina un'immagine utilizzando il metodo Split Bregman.\n"
+"\n"
+"Facoltativamente, una PSF può essere caricata usando l'argomento <b>-"
+"loadpsf=<i>filename</i></b>.\n"
 "\n"
 "Il numero di iterazioni è fornito da <b>-iters</b> (il valore predefinito è "
 "1).\n"
@@ -15104,8 +15122,8 @@ msgstr ""
 
 #: src/core/command_def.h:150
 msgid ""
-"Plate solve a sequence. A new sequence will be created with the prefix "
-"\"ps_\".\n"
+"Plate solve a sequence. A new sequence will be created with the prefix \"ps_"
+"\".\n"
 "If images have already been plate solved, they will just be copied, unless "
 "the <b>-platesolve</b> argument is passed to force a new solve. If WCS or "
 "other image metadata are erroneous or missing, arguments must be passed:\n"
@@ -15190,21 +15208,19 @@ msgstr ""
 "casella di ricerca in pixel può essere fornito con l’argomento <b>-at=</b>"
 
 #: src/core/command_def.h:152
-#, fuzzy
 msgid ""
 "The same as the <b>RL</b> command, but applies to a sequence which must be "
 "specified as the first argument"
 msgstr ""
-"Uguale al comando <b>rl</b>, ma si applica a una sequenza che deve essere "
+"Uguale al comando <b>RL</b>, ma si applica a una sequenza che deve essere "
 "specificata come primo argomento"
 
 #: src/core/command_def.h:153
-#, fuzzy
 msgid ""
 "The same as the <b>SB</b> command, but applies to a sequence which must be "
 "specified as the first argument"
 msgstr ""
-"Uguale al comando <b>rl</b>, ma si applica a una sequenza che deve essere "
+"Uguale al comando <b>SB</b>, ma si applica a una sequenza che deve essere "
 "specificata come primo argomento"
 
 #: src/core/command_def.h:154
@@ -15318,13 +15334,12 @@ msgstr ""
 "sequenza. Vedi SEQSETMAG"
 
 #: src/core/command_def.h:161
-#, fuzzy
 msgid ""
 "The same as the <b>WIENER</b> command, but applies to a sequence which must "
 "be specified as the first argument"
 msgstr ""
-"Uguale al comando <b>rl</b>, ma si applica a una sequenza che deve essere "
-"specificata come primo argomento"
+"Uguale al comando <b>WIENER</b>, ma si applica a una sequenza che deve "
+"essere specificata come primo argomento"
 
 #: src/core/command_def.h:162
 msgid ""
@@ -15909,7 +15924,6 @@ msgstr ""
 "i livelli, pronta per una ricostruzione pesata con WRECONS"
 
 #: src/core/command_def.h:197
-#, fuzzy
 msgid ""
 "Restores an image using the Wiener deconvolution method.\n"
 "\n"
@@ -15921,8 +15935,11 @@ msgid ""
 msgstr ""
 "Ripristina un'immagine utilizzando il metodo di deconvoluzione Wiener.\n"
 "\n"
+"Facoltativamente, una PSF può essere caricata usando l'argomento <b>-"
+"loadpsf=<i>filename</i></b>.\n"
+"\n"
 "Il parametro <b>-alpha=</b> fornisce il fattore di regolarizzazione "
-"modellato del rumore gaussiano"
+"modellato del rumore Gaussiano"
 
 #: src/core/command_def.h:198
 msgid ""
@@ -16165,6 +16182,7 @@ msgstr "Le preferenze non possono essere caricate da %s: %s\n"
 #: src/core/initfile.c:441
 msgid "Warning: nothing could be read from the settings file\n"
 msgstr ""
+"Attenzione: non è stato possibile leggere nulla dal file delle impostazioni\n"
 
 #: src/core/initfile.c:454
 #, c-format
@@ -16348,8 +16366,8 @@ msgid ""
 "After dark subtraction, the image contains many negative pixels (%d%%), "
 "calibration frames are probably incorrect\n"
 msgstr ""
-"Dopo la sottrazione dei dark, l'immagine contiene molti pixel negativi "
-"(%d%%), i frame di calibrazione sono probabilmente errati\n"
+"Dopo la sottrazione dei dark, l'immagine contiene molti pixel negativi (%d"
+"%%), i frame di calibrazione sono probabilmente errati\n"
 
 #: src/core/preprocess.c:171
 msgid "Images must have same dimensions\n"
@@ -17031,7 +17049,7 @@ msgstr "indice del metodo di interpolazione selezionato"
 
 #: src/core/settings.c:350
 msgid "use clamping method with Lanczos and Cubic interpolation"
-msgstr ""
+msgstr "utilizzare il metodo di bloccaggio con Lanczos e interpolazione cubica"
 
 #: src/core/settings.c:352
 msgid "index of the selected method"
@@ -17046,9 +17064,8 @@ msgid "index of the rejection method"
 msgstr "indice del metodo di reiezione"
 
 #: src/core/settings.c:355
-#, fuzzy
 msgid "index of the weighting method"
-msgstr "indice del metodo di reiezione"
+msgstr "indice del metodo di ponderazione"
 
 #: src/core/settings.c:356
 msgid "sigma low value for rejection"
@@ -17083,9 +17100,8 @@ msgid "don't confirm quit when exiting"
 msgstr "non confermare quit all’uscita"
 
 #: src/core/settings.c:365
-#, fuzzy
 msgid "don't confirm save when non linear mode"
-msgstr "non confermare quit all’uscita"
+msgstr "non confermare il salvataggio se in modalità non lineare"
 
 #: src/core/settings.c:366
 msgid "remember window position"
@@ -17142,17 +17158,15 @@ msgstr "numero di elementi delle guide della griglia"
 
 #: src/core/settings.c:382
 msgid "show tenths of arcseconds on hover"
-msgstr ""
+msgstr "mostra decimi diarcosecondial passaggio del mouse"
 
 #: src/core/settings.c:383
-#, fuzzy
 msgid "default display mode"
-msgstr "Modalità visualizzazione"
+msgstr "modalità visualizzazione di default"
 
 #: src/core/settings.c:384
-#, fuzzy
 msgid "default histogram display mode"
-msgstr "Modalità visualizzazione"
+msgstr "modalità visualizzazione istogrammi di default"
 
 #: src/core/settings.c:386
 msgid "index of the compass position over grid"
@@ -17187,9 +17201,8 @@ msgid "show user objects in annotations"
 msgstr "mostra gli oggetti dell’utente nelle annotazioni"
 
 #: src/core/settings.c:395
-#, fuzzy
 msgid "list of pixel math presets"
-msgstr "Rislutato Pixel Math"
+msgstr "elenco di preimpostazioni matematiche pixel"
 
 #: src/core/settings.c:435
 #, c-format
@@ -17404,6 +17417,8 @@ msgid ""
 "Conversion of the filename to system codepage failed. Please consider "
 "removing all wide chars.\n"
 msgstr ""
+"Conversione del nome file nella codepage di sistema non riuscita. Si prega "
+"di considerare la rimozione di tutti i caratteri larghi.\n"
 
 #: src/core/utils.c:1069
 msgid "Filename is too long, not expanding it\n"
@@ -20807,63 +20822,68 @@ msgstr "Converto a SER"
 msgid "Sequence loaded: %s (%d->%d)\n"
 msgstr "Sequenza caricata: %s (%d->%d)\n"
 
-#: src/io/sequence.c:761 src/io/sequence.c:889
+#: src/io/sequence.c:761 src/io/sequence.c:889 src/io/sequence.c:759
+#: src/io/sequence.c:887
 #, c-format
 msgid "Could not load image %d from sequence %s\n"
 msgstr "Non posso caricare l'immagine %d dalla sequenza %s\n"
 
 #: src/io/sequence.c:769 src/io/sequence.c:844 src/io/sequence.c:897
+#: src/io/sequence.c:767 src/io/sequence.c:842 src/io/sequence.c:895
 #, c-format
 msgid "Could not load frame %d from SER sequence %s\n"
 msgstr "Non posso caricare il frame %d dalla sequenza SER %s\n"
 
-#: src/io/sequence.c:777 src/io/sequence.c:907
+#: src/io/sequence.c:777 src/io/sequence.c:907 src/io/sequence.c:775
+#: src/io/sequence.c:905
 #, c-format
 msgid "Could not load frame %d from FITS sequence %s\n"
 msgstr "Non posso caricare il frame %d dalla sequenza FITS %s\n"
 
 #: src/io/sequence.c:787 src/io/sequence.c:863 src/io/sequence.c:918
+#: src/io/sequence.c:785 src/io/sequence.c:861 src/io/sequence.c:916
 #, c-format
 msgid "Could not load frame %d from AVI sequence %s\n"
 msgstr "Non posso caricare il frame %d dalla sequenza AVI %s\n"
 
-#: src/io/sequence.c:836 src/io/sequence.c:852
+#: src/io/sequence.c:836 src/io/sequence.c:852 src/io/sequence.c:834
+#: src/io/sequence.c:850
 #, c-format
 msgid "Could not load partial image %d from sequence %s\n"
 msgstr "Non posso caricare l'immagine parziale %d dalla sequenza %s\n"
 
-#: src/io/sequence.c:988
+#: src/io/sequence.c:988 src/io/sequence.c:986
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
 msgstr ""
 "Questa operazione non è supportata sulle sequenze AVI (seq_open_image)\n"
 
-#: src/io/sequence.c:992
+#: src/io/sequence.c:992 src/io/sequence.c:990
 msgid ""
 "This operation is not supported on internal sequences (seq_open_image)\n"
 msgstr ""
 "Questa operazione non è supportata sulle sequenze interne (seq_open_image)\n"
 
-#: src/io/sequence.c:1416
+#: src/io/sequence.c:1416 src/io/sequence.c:1414
 #, c-format
 msgid "Closing sequence %s\n"
 msgstr "Sto chiudendo la sequenza %s\n"
 
-#: src/io/sequence.c:1520
+#: src/io/sequence.c:1520 src/io/sequence.c:1518
 #, fuzzy, c-format
 msgid "This operation will use registration data of layer %d\n"
 msgstr ""
 "Lo stacking utilizzerà i dati di registrazione del canale %d se presenti.\n"
 
-#: src/io/sequence.c:1540
+#: src/io/sequence.c:1540 src/io/sequence.c:1538
 msgid "internal sequence"
 msgstr "sequenza interna"
 
-#: src/io/sequence.c:1653
+#: src/io/sequence.c:1653 src/io/sequence.c:1651
 #, c-format
 msgid "Photometry analysis failed for image %d (%s)\n"
 msgstr "Analisi fotometrica fallita per l’immagine %d (%s)\n"
 
-#: src/io/sequence.c:1676
+#: src/io/sequence.c:1676 src/io/sequence.c:1674
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use a larger "
@@ -20872,7 +20892,7 @@ msgstr ""
 "Nessuna stella trovata nell’area dell’immagine %d intorno a %d,%d: errore %s "
 "(usare un’area più grande?)\n"
 
-#: src/io/sequence.c:1680
+#: src/io/sequence.c:1680 src/io/sequence.c:1678
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use 'follow star' "
@@ -20881,7 +20901,7 @@ msgstr ""
 "Nessuna stella trovata nell’area dell’immagine %d intorno a %d,%d: errore %s "
 "(usare l’opzione “segui stella”?)\n"
 
-#: src/io/sequence.c:1749
+#: src/io/sequence.c:1749 src/io/sequence.c:1747
 msgid ""
 "Star analysis does not give consistent results when exposure changes across "
 "the sequence.\n"
@@ -20889,16 +20909,16 @@ msgstr ""
 "L'analisi delle stelle non dà risultati consistenti quando l'esposizione "
 "cambia lungo la sequenza.\n"
 
-#: src/io/sequence.c:1765
+#: src/io/sequence.c:1765 src/io/sequence.c:1763
 #, c-format
 msgid "Photometry for star at %.1f, %.1f in image %d\n"
 msgstr "Fotometria per stella a %.1f, %.1f nell’immagine %d\n"
 
-#: src/io/sequence.c:1809
+#: src/io/sequence.c:1809 src/io/sequence.c:1807
 msgid "No registration data stored for this layer"
 msgstr "Per questo livello non ci sono dati di registrazione salvati"
 
-#: src/io/sequence.c:1810
+#: src/io/sequence.c:1810 src/io/sequence.c:1808
 msgid ""
 "Some registration data was found for another layer.\n"
 "Do you want to save the psf data as registration data for this layer?"
@@ -20906,7 +20926,7 @@ msgstr ""
 "Alcuni dati di registrazione sono stati trovati per un altro livello. \n"
 "Vuoi salvare i dati psf come dati di registrazione per questo livello?"
 
-#: src/io/sequence.c:1887 src/registration/3stars.c:267
+#: src/io/sequence.c:1887 src/registration/3stars.c:267 src/io/sequence.c:1885
 msgid ""
 "The reference image has a null matrix and was not previously registered. "
 "Please select another one.\n"
@@ -20914,7 +20934,7 @@ msgstr ""
 "L’immagine di riferimento ha una matrice nulla e non è stata registrata in "
 "precedenza. Selezionane un altra.\n"
 
-#: src/io/sequence.c:1895
+#: src/io/sequence.c:1895 src/io/sequence.c:1893
 msgid ""
 "The current image has a null matrix and was not previously registered. "
 "Please load another one to select the star.\n"
@@ -20922,7 +20942,7 @@ msgstr ""
 "L’immagine corrente ha una matrice nulla e non è stata registrata in "
 "precedenza. Caricane un’altra per selezionare la stella.\n"
 
-#: src/io/sequence.c:1903 src/registration/3stars.c:283
+#: src/io/sequence.c:1903 src/registration/3stars.c:283 src/io/sequence.c:1901
 msgid ""
 "This area is outside of the reference image. Please select the reference "
 "image to select another star.\n"
@@ -20930,7 +20950,7 @@ msgstr ""
 "Questa area è fuori dall’immagine di riferimento. Prego selezionare "
 "l’immagine di riferimento per scegliere un’altra stella\n"
 
-#: src/io/sequence.c:1912
+#: src/io/sequence.c:1912 src/io/sequence.c:1910
 msgid ""
 "The sequence analysis of the PSF will use a sliding selection area centred "
 "on the previous found star; this disables parallel processing.\n"
@@ -20939,7 +20959,7 @@ msgstr ""
 "centrata sulla stella precedentemente trovata; questo disabilita "
 "l'elaborazione parallela.\n"
 
-#: src/io/sequence.c:1914
+#: src/io/sequence.c:1914 src/io/sequence.c:1912
 msgid ""
 "The sequence analysis of the PSF will use registration data to move the "
 "selection area for each image; this is compatible with parallel processing.\n"
@@ -20948,11 +20968,11 @@ msgstr ""
 "muovere l'area di selezione per ciascuna immagine; questo è compatibile con "
 "l'elaborazione parallela.\n"
 
-#: src/io/sequence.c:1926
+#: src/io/sequence.c:1926 src/io/sequence.c:1924
 msgid "PSF on area"
 msgstr "PSF sull'area"
 
-#: src/io/sequence.c:1998
+#: src/io/sequence.c:1998 src/io/sequence.c:1996
 #, c-format
 msgid ""
 "Fixing the selection number in the .seq file (%d) to the actual value (%d) "
@@ -20961,13 +20981,13 @@ msgstr ""
 "Sto fissando il numero della selezione nel file .seq (%d) al valore attuale "
 "(%d) (non salvato)\n"
 
-#: src/io/sequence.c:2036
+#: src/io/sequence.c:2036 src/io/sequence.c:2034
 #, c-format
 msgid ""
 "Sequence drift could not be checked as sequence has no regdata on layer %d\n"
 msgstr ""
 
-#: src/io/sequence.c:2048
+#: src/io/sequence.c:2048 src/io/sequence.c:2046
 #, c-format
 msgid ""
 "Warning: the sequence appears to have heavy drifted images (%d pixels for "
@@ -20975,22 +20995,22 @@ msgid ""
 "exclude some images\n"
 msgstr ""
 
-#: src/io/sequence.c:2062
+#: src/io/sequence.c:2062 src/io/sequence.c:2060
 #, c-format
 msgid "Registration data cleared for layer %d\n"
 msgstr "Dati di registrazione cancellati per il livello %d\n"
 
-#: src/io/sequence.c:2072
+#: src/io/sequence.c:2072 src/io/sequence.c:2070
 #, c-format
 msgid "Registration (back-up) data cleared for layer %d\n"
 msgstr "Dati di registrazione (backup) cancellati per il livello %d\n"
 
-#: src/io/sequence.c:2079
+#: src/io/sequence.c:2079 src/io/sequence.c:2077
 #, c-format
 msgid "Statistics data cleared for layer %d\n"
 msgstr "Dati statistici cancellati per il livello %d\n"
 
-#: src/io/sequence.c:2085
+#: src/io/sequence.c:2085 src/io/sequence.c:2083
 #, c-format
 msgid "Statistics data (back-up) cleared for layer %d\n"
 msgstr "Dati statistici (backup) cancellati per il livello %d\n"
@@ -22495,31 +22515,32 @@ msgstr "Stacking di %d immagini di %d della sequenza"
 msgid "not available for sequences with variable image sizes"
 msgstr ""
 
-#: src/registration/registration.c:1168
+#: src/registration/registration.c:1168 src/registration/registration.c:1162
 msgid "Failed to determine registration method...\n"
 msgstr "Impossibile determinare il metodo di registrazione...\n"
 
-#: src/registration/registration.c:1211
+#: src/registration/registration.c:1211 src/registration/registration.c:1205
 msgid "Debayer the sequence for registration"
 msgstr "Applica Debayer alla sequenza per la registrazione"
 
 #: src/registration/registration.c:1225 src/registration/registration.c:1234
+#: src/registration/registration.c:1219 src/registration/registration.c:1228
 msgid "Select images in the sequence"
 msgstr "Seleziona immagini nella sequenza"
 
-#: src/registration/registration.c:1227
+#: src/registration/registration.c:1227 src/registration/registration.c:1221
 msgid "Select an area in image first, and select images in the sequence"
 msgstr "Seleziona prima l'area di un'immagine e poi le immagini nella sequenza"
 
-#: src/registration/registration.c:1236
+#: src/registration/registration.c:1236 src/registration/registration.c:1230
 msgid "Select a layer with existing registration"
 msgstr "Seleziona un livello con una registrazione esistente"
 
-#: src/registration/registration.c:1238
+#: src/registration/registration.c:1238 src/registration/registration.c:1232
 msgid "Select an area in image first"
 msgstr "Seleziona prima un'area nell'immagine"
 
-#: src/registration/registration.c:1407
+#: src/registration/registration.c:1407 src/registration/registration.c:1401
 msgid ""
 "All prerequisites are not filled for registration. Select a rectangle "
 "first.\n"
@@ -22527,16 +22548,16 @@ msgstr ""
 "Non soddisfatt tutti i prerequisiti per la registrazione. Seleziona prima un "
 "rettangolo.\n"
 
-#: src/registration/registration.c:1469
+#: src/registration/registration.c:1469 src/registration/registration.c:1463
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
 msgstr ""
 
-#: src/registration/registration.c:1500
+#: src/registration/registration.c:1500 src/registration/registration.c:1494
 msgid "The object is not moving, please check your registration data.\n"
 msgstr ""
 "L’oggetto è immobile, prego controllare i tuoi dati di registrazione.\n"
 
-#: src/registration/registration.c:1524
+#: src/registration/registration.c:1524 src/registration/registration.c:1518
 msgid ""
 "When interpolation is set to None, the transformation can only be set to "
 "Shift. Aborting\n"
@@ -23093,6 +23114,14 @@ msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 "Lo stacking verrà eseguito senza l'up-scaling ('drizzle' disabilitato)\n"
 
+#: src/gui/siril3.glade:18061
+msgid "Open the photometry color calibration dialog"
+msgstr "Apre la finestra di dialogo per la calibrazione fotometrica del colore"
+
+#: src/algos/photometric_cc.c:380
+msgid "Photometry color calibration in progress..."
+msgstr "Calibrazione del colore fotometrica in elaborazione ..."
+
 #~ msgid ""
 #~ "Error in compensation factor parameter: must be between 1 and 1e5, "
 #~ "aborting.\n"
@@ -23189,8 +23218,8 @@ msgstr ""
 #~ "and v2.0.2+ (Command Line Tool version, not GUI version for Windows "
 #~ "users)."
 #~ msgstr ""
-#~ "Seleziona la directory di installazione di Starnet++. Funziona con "
-#~ "Starnet++ v1.0 e v2.0.2+ (versione Command Line Tool, non GUI per utenti "
+#~ "Seleziona la directory di installazione di Starnet++. Funziona con Starnet"
+#~ "++ v1.0 e v2.0.2+ (versione Command Line Tool, non GUI per utenti "
 #~ "Windows)."
 
 #~ msgid "Select Starnet++ installation directory"
@@ -24632,12 +24661,12 @@ msgstr ""
 #~ msgstr "Restituisce il livello di rumore dello sfondo"
 
 #~ msgid ""
-#~ "Convert DSLR RAW files into Siril's FITS images. The argument "
-#~ "\"basename\" is the basename of the new sequence. The option \"-debayer\" "
-#~ "applies demosaicing to images while \"-fitseq\" is an option that sets "
-#~ "the output file type to a FITS sequence. \"-start=index\" sets the "
-#~ "starting index parameter. It is possible to convert files in another "
-#~ "directory with the \"-out=\" option"
+#~ "Convert DSLR RAW files into Siril's FITS images. The argument \"basename"
+#~ "\" is the basename of the new sequence. The option \"-debayer\" applies "
+#~ "demosaicing to images while \"-fitseq\" is an option that sets the output "
+#~ "file type to a FITS sequence. \"-start=index\" sets the starting index "
+#~ "parameter. It is possible to convert files in another directory with the "
+#~ "\"-out=\" option"
 #~ msgstr ""
 #~ "Converte i file RAW DSLR in immagini FITS di Siril. L’argomento “nome "
 #~ "base” è il nome di base della nuova sequenza. L’opzione “-debayer” "
