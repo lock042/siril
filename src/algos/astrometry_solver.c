@@ -1513,6 +1513,11 @@ gpointer plate_solver(gpointer p) {
 		if (args->ret) {
 			args->message = g_strdup_printf(_("An astrometric solution was found but photometry analysis of the %d stars failed. This generally happens if they are saturated in the image or if they are too faint to have B-V index information (mag > 18)\n"), nb_pcc_stars);
 			//goto clearup; // still flip
+		} else {
+			if (!args->for_sequence) {
+				set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+				siril_log_color_message(_("Photometric Color Calibration succeeded.\n"), "green");
+			}
 		}
 	}
 

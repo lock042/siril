@@ -382,7 +382,6 @@ int photometric_cc(struct photometric_cc_data *args) {
 
 	if (!ret) {
 		apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
-		set_progress_bar_data(_("Photometric Color Calibration succeeded"), PROGRESS_DONE);
 	} else {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 	}
