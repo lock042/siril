@@ -16509,27 +16509,27 @@ msgstr ""
 
 #: src/gui/PSF_list.c:664
 msgid "Excellent"
-msgstr ""
+msgstr "Excel·lent"
 
 #: src/gui/PSF_list.c:665
 msgid "Good"
-msgstr ""
+msgstr "Bé"
 
 #: src/gui/PSF_list.c:666
 msgid "Fair"
-msgstr ""
+msgstr "Just"
 
 #: src/gui/PSF_list.c:667
 msgid "Poor"
-msgstr ""
+msgstr "Pobre"
 
 #: src/gui/PSF_list.c:668
 msgid "Bad"
-msgstr ""
+msgstr "Dolent"
 
 #: src/gui/PSF_list.c:669
 msgid "N/A"
-msgstr ""
+msgstr "N/A"
 
 #: src/gui/PSF_list.c:725
 #, c-format
@@ -16629,7 +16629,7 @@ msgstr ""
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 #: src/gui/remixer.c:1307
 msgid "Simple"
-msgstr ""
+msgstr "Simple"
 
 #: src/gui/remixer.c:1308
 msgid ""
@@ -16777,7 +16777,7 @@ msgstr ""
 
 #: src/gui/sequence_list.c:515
 msgid "#Stars"
-msgstr ""
+msgstr "#Estels"
 
 #: src/gui/sequence_list.c:581
 #, c-format
@@ -16786,11 +16786,11 @@ msgstr ""
 
 #: src/gui/sequence_list.c:582
 msgid "Excluding"
-msgstr ""
+msgstr "Excloent"
 
 #: src/gui/sequence_list.c:582
 msgid "Including"
-msgstr ""
+msgstr "Incloent"
 
 #: src/gui/sequence_list.c:649
 #, c-format
@@ -16825,8 +16825,8 @@ msgstr ""
 #: src/gui/sequence_list.c:989
 msgid "sequence"
 msgid_plural "sequences"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "seqüència"
+msgstr[1] "seqüències"
 
 #: src/gui/single_image.c:74
 msgid "An image (or sequence) is already loaded"
@@ -16964,11 +16964,11 @@ msgstr ""
 
 #: src/gui/statistics_list.c:48
 msgid "median"
-msgstr ""
+msgstr "mediana"
 
 #: src/gui/statistics_list.c:49
 msgid "sigma"
-msgstr ""
+msgstr "sigma"
 
 #: src/gui/statistics_list.c:50
 msgid "avgDev"
@@ -16976,7 +16976,7 @@ msgstr ""
 
 #: src/gui/statistics_list.c:51
 msgid "MAD"
-msgstr ""
+msgstr "MAD"
 
 #: src/gui/statistics_list.c:52
 msgid "sqrt(BWMV)"
@@ -16984,11 +16984,11 @@ msgstr ""
 
 #: src/gui/statistics_list.c:53
 msgid "min"
-msgstr ""
+msgstr "mín"
 
 #: src/gui/statistics_list.c:54
 msgid "max"
-msgstr ""
+msgstr "màx"
 
 #: src/gui/statistics_list.c:191
 #, c-format
@@ -17141,7 +17141,7 @@ msgstr ""
 
 #: src/io/conversion.c:199
 msgid "Films"
-msgstr ""
+msgstr "Pel·lícules"
 
 #: src/io/conversion.c:204
 msgid "SER sequences"
@@ -17574,7 +17574,7 @@ msgstr ""
 
 #: src/io/image_formats_libraries.c:1629
 msgid "primary"
-msgstr ""
+msgstr "primari"
 
 #: src/io/image_formats_libraries.c:1738
 msgid "Load HEIF image content"
@@ -17582,7 +17582,7 @@ msgstr ""
 
 #: src/io/image_formats_libraries.c:1740 src/pixelMath/pixel_math_runner.c:1067
 msgid "_Cancel"
-msgstr ""
+msgstr "_Cancel·lar"
 
 #: src/io/image_formats_libraries.c:1746
 msgid "Select image"
