@@ -16529,7 +16529,7 @@ msgstr "Dolent"
 
 #: src/gui/PSF_list.c:669
 msgid "N/A"
-msgstr "N/A"
+msgstr "N/D"
 
 #: src/gui/PSF_list.c:725
 #, c-format
@@ -16960,7 +16960,7 @@ msgstr ""
 
 #: src/gui/statistics_list.c:47
 msgid "mean"
-msgstr ""
+msgstr "mitjana"
 
 #: src/gui/statistics_list.c:48
 msgid "median"
@@ -16979,8 +16979,9 @@ msgid "MAD"
 msgstr "MAD"
 
 #: src/gui/statistics_list.c:52
+#, fuzzy
 msgid "sqrt(BWMV)"
-msgstr ""
+msgstr "sqrt(BWMV)"
 
 #: src/gui/statistics_list.c:53
 msgid "min"
@@ -17747,7 +17748,7 @@ msgstr ""
 
 #: src/io/path_parse.c:34
 msgid "aborting"
-msgstr ""
+msgstr "avortant"
 
 #: src/io/path_parse.c:43
 msgid "Header is empty"
@@ -18274,11 +18275,11 @@ msgstr ""
 
 #: src/livestacking/gui.c:109
 msgid "minutes"
-msgstr ""
+msgstr "minuts"
 
 #: src/livestacking/gui.c:112
 msgid "seconds"
-msgstr ""
+msgstr "segons"
 
 #: src/livestacking/gui.c:116
 #, c-format
@@ -18361,11 +18362,11 @@ msgstr ""
 
 #: src/livestacking/livestacking.c:317
 msgid "with"
-msgstr ""
+msgstr "amb"
 
 #: src/livestacking/livestacking.c:317
 msgid "without"
-msgstr ""
+msgstr "sense"
 
 #: src/livestacking/livestacking.c:323
 #, c-format
@@ -18747,7 +18748,7 @@ msgstr "Matemàtica de píxel"
 
 #: src/pixelMath/pixel_math_runner.c:350
 msgid "R"
-msgstr ""
+msgstr "R"
 
 #: src/pixelMath/pixel_math_runner.c:652 src/pixelMath/pixel_math_runner.c:663
 #: src/pixelMath/pixel_math_runner.c:673
@@ -18788,7 +18789,7 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:1067
 msgid "_Open"
-msgstr ""
+msgstr "_Obrir"
 
 #: src/pixelMath/pixel_math_runner.c:1100
 msgid "Image must have same dimension"
@@ -19054,7 +19055,7 @@ msgstr ""
 
 #: src/registration/global.c:78
 msgid "INVALID"
-msgstr ""
+msgstr "INVÀLID"
 
 #: src/registration/global.c:86 src/registration/registration.c:256
 #: src/registration/registration.c:533
@@ -19174,17 +19175,17 @@ msgstr ""
 #: src/registration/global.c:684
 #, c-format
 msgid "scaleX:%*.3f\n"
-msgstr ""
+msgstr "escalaX:%*.3f\n"
 
 #: src/registration/global.c:685
 #, c-format
 msgid "scaleY:%*.3f\n"
-msgstr ""
+msgstr "escalaY: %*.3f\n"
 
 #: src/registration/global.c:686
 #, c-format
 msgid "scale:%*.3f\n"
-msgstr ""
+msgstr "escala: %*.3f\n"
 
 #: src/registration/global.c:690
 #, c-format
