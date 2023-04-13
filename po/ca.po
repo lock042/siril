@@ -1096,7 +1096,7 @@ msgstr "Desconvolució"
 
 #: src/gui/siril3.glade:5981
 msgid "Estimates a PSF from the image"
-msgstr "Estima un PSF a partir de la imatge"
+msgstr "Estima una PSF a partir de la imatge"
 
 #: src/gui/siril3.glade:5994
 msgid "PSF from stars"
@@ -1108,8 +1108,8 @@ msgid ""
 "no stars have been detected, an attempt will be made to detect stars in the "
 "image within a suitable range of peak brightness."
 msgstr ""
-"Modela un PSF basant-se en el PSF mitja dels estels identificats. Si no s'hi "
-"han detectat estels, s'intentarà detectar-los en un rang adequat de "
+"Modela una PSF basant-se en la PSF mitja dels estels identificats. Si no "
+"s'hi han detectat estels, s'intentarà detectar-los en un rang adequat de "
 "brillantors pic."
 
 #: src/gui/siril3.glade:6011
@@ -1117,9 +1117,8 @@ msgid "Manual PSF"
 msgstr "PSF Manual"
 
 #: src/gui/siril3.glade:6015
-#, fuzzy
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr "Utilitza un PSF definit per l'usuari."
+msgstr "Utilitza una PSF definida per l'usuari."
 
 #: src/gui/siril3.glade:6030
 #, fuzzy
@@ -1144,60 +1143,57 @@ msgstr "PSF Anterior"
 
 #: src/gui/siril3.glade:6049
 msgid "Reuse the previously calculated PSF."
-msgstr "Reutilitza el PSF calculat anteriorment."
+msgstr "Reutilitza la PSF calculada anteriorment."
 
 #: src/gui/siril3.glade:6064
 msgid ""
 "Select a PSF to load from file. The PSF must be square and should ideally "
 "have odd length / width."
 msgstr ""
-"Selecciona un PSF a carregar d'un fitxer. El PSF ha de ser quadrat i "
+"Selecciona una PSF a carregar d'un fitxer. La PSF ha de ser quadrat i "
 "idealment tenir llargada / amplada imparell."
 
 #: src/gui/siril3.glade:6078
 msgid "Load PSF from file"
-msgstr "Carregar PSF d'un fitxer"
+msgstr "Carregar la PSF d'un fitxer"
 
 #: src/gui/siril3.glade:6092
-#, fuzzy
 msgid "Generate PSF"
-msgstr "Generar"
+msgstr "Generar la PSF"
 
 #: src/gui/siril3.glade:6096
 msgid "Generate and preview the PSF, but do not carry out deconvolution"
 msgstr ""
-"Genera una previsualització del PSF, però sense efectuar una desconvolució"
+"Genera una previsualització de la PSF, però sense efectuar una desconvolució"
 
 #: src/gui/siril3.glade:6118
 msgid "Save PSF to a file"
-msgstr "Guarda el PSF en un fitxer"
+msgstr "Guarda la PSF en un fitxer"
 
 #: src/gui/siril3.glade:6137
-#, fuzzy
 msgid "PSF from selection"
-msgstr "No Seleccionat"
+msgstr "PSF de la selecció"
 
 #: src/gui/siril3.glade:6140
 msgid ""
 "Takes a PSF directly from the image fitted to the current dimension. The PSF "
 "size will be the minimum of the selection width and height."
 msgstr ""
-"Agafa un PSF directament de la imatge ajustada a les dimensions actuals. La "
-"mida del PSF serà el mínim d'entre l'amplada i l'alçada de la selecció."
+"Agafa una PSF directament de la imatge ajustada a les dimensions actuals. La "
+"mida de la PSF serà el mínim d'entre l'amplada i l'alçada de la selecció."
 
 #: src/gui/siril3.glade:6156
 #, fuzzy
 msgid "PSF Source"
-msgstr "Font"
+msgstr "Font PSF"
 
 #: src/gui/siril3.glade:6184
-#, fuzzy
 msgid "General PSF Parameters"
-msgstr "Paràmetres del Catàleg"
+msgstr "Paràmetres generals de la PSF"
 
 #: src/gui/siril3.glade:6207
 msgid "PSF size"
-msgstr "Mida PSF"
+msgstr "Mida de la PSF"
 
 #: src/gui/siril3.glade:6219
 msgid ""
@@ -1205,7 +1201,7 @@ msgid ""
 "the PSF."
 msgstr ""
 "Assegura't que la mida és suficientment gran per no retallar cap part "
-"significant del PSF."
+"significant de la PSF."
 
 #: src/gui/siril3.glade:6269 src/gui/siril3.glade:7237
 #, fuzzy
@@ -1249,7 +1245,8 @@ msgid ""
 "For elliptical PSFs, this gives the ratio of the shorter and longer "
 "dimensions."
 msgstr ""
-"Per els PSF el·líptics, això dona la raó entre la dimensió curta i la llarga."
+"Per les PSF el·líptiques, això dona la raó entre la dimensió curta i la "
+"llarga."
 
 #: src/gui/siril3.glade:6367 src/gui/siril3.glade:7249
 msgid "fwhm / \""
@@ -1261,7 +1258,7 @@ msgid ""
 "the disc. For elliptical PSFs this is the longer PSF dimension."
 msgstr ""
 "Amplada màxima a mitja alçada. Per perfils de disc això és el diàmetre. Per "
-"PSF el·líptics això és la dimensió llarga del PSF."
+"PSF el·líptiques això és la dimensió llarga de la PSF."
 
 #: src/gui/siril3.glade:6394 src/gui/siril3.glade:7273
 #, fuzzy
@@ -1270,7 +1267,7 @@ msgstr "Angle (°)"
 
 #: src/gui/siril3.glade:6405
 msgid "For elliptical PSFs, the angle from the x axis in degrees."
-msgstr "L'angle respecte l'eix de les X en graus, per PSF el·líptics."
+msgstr "L'angle respecte l'eix de les X en graus, per PSF el·líptiques."
 
 #: src/gui/siril3.glade:6420 src/gui/siril3.glade:7285
 msgid "beta (β)"
@@ -1345,17 +1342,16 @@ msgstr ""
 "Newtonians ràpids i pot arribar fins al 40% per Dall-Kirkham corregits."
 
 #: src/gui/siril3.glade:6608
-#, fuzzy
 msgid "Manual PSF Parameters"
-msgstr "Paràmetres del Catàleg"
+msgstr "Paràmetres PSF manuals"
 
 #: src/gui/siril3.glade:6640
 msgid ""
 "Regularization parameter for PSF estimation. Try decreasing this value for "
 "noisy images."
 msgstr ""
-"Paràmetre per regular l'estimació del PSF. Intenta disminuir-lo per imatges "
-"sorolloses."
+"Paràmetre per regular l'estimació de la PSF. Intenta disminuir-lo per "
+"imatges sorolloses."
 
 #: src/gui/siril3.glade:6655
 msgid "Lambda (λ)"
@@ -1363,7 +1359,7 @@ msgstr "Lambda (λ)"
 
 #: src/gui/siril3.glade:6668
 msgid "Blind Deconvolution PSF Estimation"
-msgstr "Estimació per desconvolució cega de PSF"
+msgstr "Estimació per desconvolució cega de la PSF"
 
 #: src/gui/siril3.glade:6702
 msgid "Multiscale"
@@ -1375,7 +1371,7 @@ msgid ""
 "PSFs and takes longer to compute. Consider using it for PSF sizes above 20."
 msgstr ""
 "Això millora l'estimació PSF ℓ0 per a PSFs grans. No és necessari per a PSFs "
-"petits i triga més temps a calcular. Considera usar-ho per a mides PSF "
+"petites i triga més temps a calcular. Considera usar-ho per a mides de PSF "
 "superiors a 20."
 
 #: src/gui/siril3.glade:6720
@@ -1389,15 +1385,15 @@ msgstr "Gamma (γ)"
 
 #: src/gui/siril3.glade:6745
 msgid "PSF estimation regularisation parameter"
-msgstr "Paràmetre de regularització de l'estimació PSF"
+msgstr "Paràmetre per regular l'estimació de la PSF"
 
 #: src/gui/siril3.glade:6771
 msgid ""
 "Number of iterations for PSF estimation. Do not reduce this below 2. There "
 "is negligible benefit in increasing it beyond 3."
 msgstr ""
-"Nombre d'iteracions per a l'estimació PSF. No el redueixis per sota de 2. Hi "
-"ha un benefici negligible en augmentar-lo per sobre de 3."
+"Nombre d'iteracions per a l'estimació la PSF. No el redueixis per sota de 2. "
+"Hi ha un benefici negligible en augmentar-lo per sobre de 3."
 
 #: src/gui/siril3.glade:6786
 #, fuzzy
@@ -1406,7 +1402,8 @@ msgstr "Calibració ce color"
 
 #: src/gui/siril3.glade:6797
 msgid "Ratio of lambda at successive scales for multiscale PSF estimation."
-msgstr "Raó de lambda a escales successives per estimació PSF multi-escala."
+msgstr ""
+"Raó de lambda a escales successives per l'estimació de la PSF multi-escala."
 
 #: src/gui/siril3.glade:6813
 msgid "Lambda min"
@@ -1414,7 +1411,7 @@ msgstr "Lambda mín"
 
 #: src/gui/siril3.glade:6824
 msgid "Minimum value of lambda for multiscale PSF estimation"
-msgstr "Mínim valor de lambda per l'estimació multiescala PSF"
+msgstr "Mínim valor de lambda per l'estimació de la PSF multi-escala"
 
 #: src/gui/siril3.glade:6840
 #, fuzzy
@@ -1424,13 +1421,13 @@ msgstr "Factor d'estirat"
 #: src/gui/siril3.glade:6851
 msgid "Scale factor between successive scales of multiscale PSF estimation"
 msgstr ""
-"Factor d'escala entre les successives escales de l'estimació de PSF "
-"multiescala"
+"Factor d'escala entre les successives escales de l'estimació de la PSF multi-"
+"escala"
 
 #: src/gui/siril3.glade:6866
 msgid "Amount of blur to use for upsampling during PSF estimation"
 msgstr ""
-"Quantitat de desenfocament per usar en l'escalat durant l'estimació de PSF"
+"Quantitat de desenfocament per usar en l'escalat durant l'estimació de la PSF"
 
 #: src/gui/siril3.glade:6881
 #, fuzzy
@@ -1460,23 +1457,23 @@ msgstr "Mida del núcli:"
 msgid "Amount of blur to use for downsampling during PSF estimation"
 msgstr ""
 "Quantitat de desenfocament per utilitzar a la reducció de mostreig durant "
-"l'estimació de PSF"
+"l'estimació de la PSF"
 
 #: src/gui/siril3.glade:6956
 msgid ""
 "Sets a minimum pixel value for the PSF. PSF pixels with values less than "
 "this will be set to zero."
 msgstr ""
-"Estableix un valor mínim de píxel per al PSF. Els píxels del PSF amb valors "
-"inferiors a aquest seran posats a zero."
+"Estableix un valor mínim de píxel per la PSF. Els píxels de la PSF amb "
+"valors inferiors a aquest seran posats a zero."
 
 #: src/gui/siril3.glade:6972
 msgid ""
 "Uses a refinement technique to improve subsequent iterations of the PSF "
 "estimator. This should essentially always be enabled."
 msgstr ""
-"Utilitza una tècnica de refinament per millorar les iteracions posteriors de "
-"l'estimador de PSF. Essencialment això hauria d'estar sempre habilitat."
+"Utilitza una tècnica de refinament per millorar les iteracions posteriors a "
+"l'estimador de la PSF. Essencialment això hauria d'estar sempre habilitat."
 
 #: src/gui/siril3.glade:6985
 msgid "ℓ1 gradient parameter"
@@ -1534,10 +1531,10 @@ msgid ""
 "require increasing to as much as around 250."
 msgstr ""
 "Aquest paràmetre estableix el nombre de mostres per cicle extern. Cal triar "
-"un nombre suficient de mostres per assegurar que l'estimació PSF convergeix: "
-"per a imatges amb poc soroll, un nombre prou petit de mostres serà "
-"suficient. Per a imatges sorolloses, el valor pot requerir un augment de "
-"fins a uns 250."
+"un nombre suficient de mostres per assegurar que l'estimació de la PSF "
+"convergeix: per a imatges amb poc soroll, un nombre prou petit de mostres "
+"serà suficient. Per a imatges sorolloses, el valor pot requerir un augment "
+"de fins a uns 250."
 
 #: src/gui/siril3.glade:7143
 msgid ""
@@ -1565,9 +1562,8 @@ msgid "Spectral Irregularity Method"
 msgstr "Mètode d'Irregularitat Espectral"
 
 #: src/gui/siril3.glade:7344
-#, fuzzy
 msgid "Symmetrical PSF"
-msgstr "PSF Dinàmic"
+msgstr "PSF Simètrica"
 
 #: src/gui/siril3.glade:7348
 msgid ""
@@ -1583,18 +1579,16 @@ msgid "PSF from Stars"
 msgstr "PSF dels estels"
 
 #: src/gui/siril3.glade:7401
-#, fuzzy
 msgid "PSF Generation"
-msgstr "Relació lliure"
+msgstr "Generació de la PSF"
 
 #: src/gui/siril3.glade:7424
-#, fuzzy
 msgid "PSF Preview"
-msgstr "Vista prèvia"
+msgstr "Previsualització de la PSF"
 
 #: src/gui/siril3.glade:7441
 msgid "Shows a preview of the PSF, if one has been calculated."
-msgstr "Mostra una vista prèvia de la PSF, si una ha estat calculada."
+msgstr "Mostra una vista prèvia de la PSF, si ja se n'ha calculada una."
 
 #: src/gui/siril3.glade:7455
 msgid "Usage tips"
@@ -1606,7 +1600,7 @@ msgid ""
 "of settings that can work for different types of image."
 msgstr ""
 "Obre una pàgina de la documentació en línia de Siril amb consells d'ús i "
-"exemples d'ajustos que poden funcionar per a diferents tipus d'imatges."
+"exemples de configuració que poden funcionar per a diferents tipus d'imatges."
 
 #: src/gui/siril3.glade:7515
 msgid ""
@@ -1616,7 +1610,7 @@ msgid ""
 "Wiener filtering for lunar and planetary images."
 msgstr ""
 "Un cop s'estima o es proporciona la PSF, la imatge finalment es "
-"deconvoluciona utilitzant l'algorisme seleccionat. \n"
+"deconvoluciona utilitzant l'algorisme seleccionat.\n"
 "Escull Richardson-Lucy per a les imatges d'espai profund; escull el "
 "filtratge Split Bregman o Wiener per a les imatges lunars i planetàries."
 
@@ -2542,9 +2536,8 @@ msgid "Star Stretch Parameters"
 msgstr "Paràmetres"
 
 #: src/gui/siril3.glade:10779
-#, fuzzy
 msgid "Resets stretch parameters for the star image"
-msgstr "Paràmetres PSF mitjà per les estrelles seleccionades"
+msgstr "Restableix el paràmetre d'estirat pels estels de la imatge"
 
 #: src/gui/siril3.glade:10794
 msgid ""
@@ -2552,9 +2545,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:10827
-#, fuzzy
 msgid "Resets stretch parameters for the starless image"
-msgstr "Paràmetres PSF mitjà per les estrelles seleccionades"
+msgstr "Restableix el paràmetre d'estirat per les imatges sense estels"
 
 #: src/gui/siril3.glade:10842
 msgid ""
@@ -2609,12 +2601,12 @@ msgstr "Rebuig alt"
 msgid ""
 "Detect stars in the current loaded image (not sequence image) and compute PSF"
 msgstr ""
-"Detectar estrelles en la imatge carregada (no a la seqüència de imatges) i "
-"computa el PSF"
+"Detectar estels en la imatge carregada (no a la seqüència de imatges) i "
+"computa la PSF"
 
 #: src/gui/siril3.glade:11241 src/gui/siril3.glade:13636
 msgid "Average PSF parameters for selected stars"
-msgstr "Paràmetres PSF mitjà per les estrelles seleccionades"
+msgstr "Paràmetres PSF mitjans pels estels seleccionats"
 
 #: src/gui/siril3.glade:11275 src/gui/siril3.glade:16635
 msgid "Sequence List"
@@ -2628,10 +2620,10 @@ msgid ""
 "are the translation relative to the reference image."
 msgstr ""
 "Llista de imatges a la seqüencia, amb el seu estat i informació de qualitat. "
-"La qualitat és FWHM quan s'ha utilitzat el registre PSF, per tant com més "
-"baix millor, i el gradient estimador del registre DFT, com més alt millor. X "
-"i Y son la quantitat de columnes de translació relatives a la imatge de "
-"referencia."
+"La qualitat és FWHM quan s'ha utilitzat el registrat amb PSF, per tant com "
+"més baix millor, i el gradient estimador del registre DFT, com més alt "
+"millor. X i Y son la quantitat de columnes de translació relatives a la "
+"imatge de referencia."
 
 #: src/gui/siril3.glade:11327
 msgid "File"
@@ -3075,7 +3067,7 @@ msgstr ""
 "Marca aquesta opció si vols triar cada estels manualment. Pot ser útil en "
 "alguns cassos quan Siril no pot trobar prou estels. Si us plau, intenta "
 "triar els estels més brillants de la imatge.\n"
-"Utilitza l'eina per PSF Dinàmic, o la comanda findstar, ajustant la "
+"Utilitza l'eina per PSF Dinàmica, o la comanda findstar, ajustant la "
 "configuració per la imatge."
 
 #: src/gui/siril3.glade:12370 src/gui/siril3.glade:13567
@@ -3162,7 +3154,7 @@ msgstr "No Seleccionat"
 
 #: src/gui/siril3.glade:12871
 msgid "Dynamic PSF"
-msgstr "PSF Dinàmic"
+msgstr "PSF Dinàmica"
 
 #: src/gui/siril3.glade:12942
 msgid "Ch."
@@ -3525,7 +3517,7 @@ msgstr "Capçalera FITS..."
 
 #: src/gui/siril3.glade:14389
 msgid "Dynamic PSF..."
-msgstr "PSF dinàmic..."
+msgstr "PSF dinàmica..."
 
 #: src/gui/siril3.glade:14422 src/gui/siril3.glade:30543
 #: src/gui/siril3.glade:30610
@@ -5978,7 +5970,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:23921
 msgid "Plot"
-msgstr ""
+msgstr "Gràfica"
 
 #: src/gui/siril3.glade:23974
 msgid ""
@@ -7796,7 +7788,7 @@ msgstr "<b>Compressió</b>"
 
 #: src/gui/siril3.glade:31206 src/gui/siril3.glade:31641
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Miscel·lània"
 
 #: src/gui/siril3.glade:31234
 msgid ""
@@ -8390,7 +8382,7 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:793
 msgid " (flipped)"
-msgstr ""
+msgstr " (invertida)"
 
 #: src/algos/astrometry_solver.c:797
 #, c-format
@@ -9284,6 +9276,8 @@ msgid ""
 "\n"
 "beta=%0.2f\n"
 msgstr ""
+"\n"
+"beta=%0.2f\n"
 
 #: src/algos/PSF.c:789
 #, c-format
@@ -9878,7 +9872,7 @@ msgstr ""
 
 #: src/core/command.c:1183
 msgid "Manual PSF generation:\n"
-msgstr "Generació manual de PSF:\n"
+msgstr "Generació manual de la PSF:\n"
 
 #: src/core/command.c:1190
 msgid "Gaussian PSF\n"
@@ -14935,7 +14929,7 @@ msgstr "Guies de selecció al centre"
 
 #: src/filters/rgradient.c:276
 msgid "No valid PSF found within selection."
-msgstr "No s'ha trobat cap PSF vàlid a la selecció."
+msgstr "No s'ha trobat cap PSF vàlida a la selecció."
 
 #: src/filters/saturation.c:58
 #, c-format
@@ -15673,7 +15667,7 @@ msgstr ""
 #. HSV
 #: src/gui/colors.c:337 src/gui/colors.c:342
 msgid "Hue: "
-msgstr ""
+msgstr "Tonalitat: "
 
 #: src/gui/colors.c:338 src/gui/colors.c:343
 msgid "Saturation: "
@@ -16080,11 +16074,11 @@ msgstr ""
 
 #: src/gui/newdeconv.c:1053
 msgid "Starting PSF computation..."
-msgstr "Començant el càlcul del PSF..."
+msgstr "Començant el càlcul de la PSF..."
 
 #: src/gui/newdeconv.c:1062
 msgid "Deconvolution PSF generated.\n"
-msgstr "Desconvolució PSF generada.\n"
+msgstr "Desconvolució de la PSF generada.\n"
 
 #. Refuse to process the image using previous PSF if there is no previous PSF defined
 #. Refuse to process the sequence using previous PSF if there is no previous PSF defined
@@ -16096,7 +16090,7 @@ msgstr ""
 
 #: src/gui/newdeconv.c:1190
 msgid "Starting PSF estimation..."
-msgstr "Començant estimació de PSF..."
+msgstr "Començant estimació de la PSF..."
 
 #: src/gui/newdeconv.c:1217
 msgid "Starting non-blind deconvolution..."
