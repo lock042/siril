@@ -922,7 +922,7 @@ msgstr "<b>Descripció de l'Imatge</b>"
 
 #: src/gui/siril3.glade:4628
 msgid "<b>Image Copyright</b>"
-msgstr "<b>Copiright de l'Imatge</ b>"
+msgstr "<b>Copiright de l'Imatge</b>"
 
 #: src/gui/siril3.glade:4652
 msgid "ASTRO-TIFF"
@@ -1126,7 +1126,7 @@ msgstr "PSF Manual"
 #: src/gui/siril3.glade:6015
 #, fuzzy
 msgid "Use a manually defined PSF based on the parameters chosen."
-msgstr "Utilitza un PSF definit per l'usuari"
+msgstr "Utilitza un PSF definit per l'usuari."
 
 #: src/gui/siril3.glade:6030
 #, fuzzy
@@ -1248,9 +1248,8 @@ msgid "Airy Disc"
 msgstr "Disc d'Airy"
 
 #: src/gui/siril3.glade:6340 src/gui/siril3.glade:7261
-#, fuzzy
 msgid "Ratio"
-msgstr "Rotació..."
+msgstr "Raó"
 
 #: src/gui/siril3.glade:6351
 msgid ""
@@ -1408,7 +1407,7 @@ msgstr "Calibració ce color"
 
 #: src/gui/siril3.glade:6797
 msgid "Ratio of lambda at successive scales for multiscale PSF estimation."
-msgstr ""
+msgstr "Raó de lambda a escales successives per estimació PSF multi-escala."
 
 #: src/gui/siril3.glade:6813
 msgid "Lambda min"
@@ -1448,7 +1447,7 @@ msgstr "Llindar de rodonesa:"
 
 #: src/gui/siril3.glade:6917
 msgid "Better kernel"
-msgstr ""
+msgstr "Millor nucli"
 
 #: src/gui/siril3.glade:6929
 #, fuzzy
@@ -1485,7 +1484,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:7021
 msgid "ℓ0 Descent Method"
-msgstr ""
+msgstr "Mètode de Descens ℓ0"
 
 #: src/gui/siril3.glade:7057
 msgid "Compensation factor"
@@ -1538,7 +1537,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:7201
 msgid "Spectral Irregularity Method"
-msgstr ""
+msgstr "Mètode d'Irregularitat Espectral"
 
 #: src/gui/siril3.glade:7344
 #, fuzzy
@@ -2005,7 +2004,10 @@ msgid ""
 "option preferences section."
 msgstr ""
 "Marca aquest botó si el binning no s'ha tingut en compte per la mida del "
-"píxel. En aquest cas, s'utilitzarà el valor del binning de la caixa de sota."
+"píxel. En aquest cas, s'utilitzarà el valor del binning de la caixa de "
+"sota.\n"
+"ATENCIÓ: marcar aquesta opció ho guarda com a preferència, també disposes "
+"d'aquesta opció a les preferències per imatges FITS."
 
 #: src/gui/siril3.glade:8739
 #, fuzzy
@@ -2795,7 +2797,8 @@ msgstr "Capgira la imatge si és necessari"
 
 #: src/gui/siril3.glade:12009
 msgid "Flip image at the end of the platesolving if image is mirrored."
-msgstr "Capgira la imatge al final de la resolució si esta invertida."
+msgstr ""
+"Capgira la imatge al final de la resolució astronòmica si està invertida."
 
 #: src/gui/siril3.glade:12022
 msgid "Downsample image"
@@ -2828,7 +2831,7 @@ msgstr ""
 #: src/gui/siril3.glade:12055
 #, fuzzy
 msgid "Force plate solving"
-msgstr "Començar l'algorisme de resolució de imatges."
+msgstr "Força la resolució (del verb resoldre) de la imatge"
 
 #: src/gui/siril3.glade:12059
 msgid ""
@@ -3008,7 +3011,6 @@ msgid "Manual detection"
 msgstr "Detecció manual"
 
 #: src/gui/siril3.glade:12360
-#, fuzzy
 msgid ""
 "Check this option if you want to pick each stars manually. It could be "
 "useful in some cases where Siril can't find enough stars. Please, try to "
@@ -3016,9 +3018,11 @@ msgid ""
 "Use the Dynamic PSF tool, or the findstar command, adjusting the settings to "
 "your image."
 msgstr ""
-"Marca aquesta opció si vols triar cada estrella manualment. Pot ser útil en "
-"alguns cassos quan Siril no pot trobar prou estrelles. Si us plau, intenta "
-"triar l'estrella mes brillant de la imatge."
+"Marca aquesta opció si vols triar cada estels manualment. Pot ser útil en "
+"alguns cassos quan Siril no pot trobar prou estels. Si us plau, intenta "
+"triar els estels més brillants de la imatge.\n"
+"Utilitza l'eina per PSF Dinàmic, o la comanda findstar, ajustant la "
+"configuració per la imatge."
 
 #: src/gui/siril3.glade:12370 src/gui/siril3.glade:13567
 msgid "Star Detection"
@@ -3355,9 +3359,8 @@ msgid "for now only detected in files and automatically enabled"
 msgstr "per ara només resta activada la detecció a fitxers o automàticament"
 
 #: src/gui/siril3.glade:13824
-#, fuzzy
 msgid "shift-only registration"
-msgstr "Aplicar l'extracció d'ondetes."
+msgstr "registrat únicament per translació"
 
 #: src/gui/siril3.glade:13828
 msgid ""
@@ -3511,9 +3514,8 @@ msgstr "Mostre marc %d"
 
 #: src/gui/siril3.glade:14536 src/gui/siril3.glade:23574
 #: src/gui/siril3.glade:23872
-#, fuzzy
 msgid "Registration"
-msgstr "Aplicar l'extracció d'ondetes."
+msgstr "Registrat"
 
 #: src/gui/siril3.glade:14566 src/gui/siril3.glade:14698
 msgid "Selection"
@@ -3648,9 +3650,8 @@ msgid "RGB align"
 msgstr "Alinea RGB"
 
 #: src/gui/siril3.glade:14961
-#, fuzzy
 msgid "Merge CFA Elements"
-msgstr "Separa els Canals CFA..."
+msgstr "Ajunta els Elements CFA"
 
 #: src/gui/siril3.glade:15048
 msgid "CFA0"
@@ -4142,27 +4143,26 @@ msgid "Negative Transformation"
 msgstr "Transformació Negativa"
 
 #: src/gui/siril3.glade:17607
-#, fuzzy
 msgid "Open the À Trou wavelet transform dialog"
-msgstr "Transformació Ondetes als forats..."
+msgstr "Obre el diàleg de la transformació d'ondetes"
 
 #: src/gui/siril3.glade:17609
 msgid "À trous Wavelets Transform..."
 msgstr "Transformació Ondetes als forats..."
 
 #: src/gui/siril3.glade:17622
-#, fuzzy
 msgid "Open the remove banding dialog"
-msgstr "Tancar el diàleg."
+msgstr "Obre el diàleg per la supressió de bandes"
 
 #: src/gui/siril3.glade:17624
 msgid "Banding Reduction..."
 msgstr "Reducció de Bandes..."
 
 #: src/gui/siril3.glade:17637
-#, fuzzy
 msgid "Open the contrast limited adaptive histogram Equalization dialog"
-msgstr "Equalització Adaptativa d'Histograma limitada pel contrast..."
+msgstr ""
+"Obre el diàleg per l'equalització adaptativa d'histograma limitada pel "
+"contrast (CLAHE)"
 
 #: src/gui/siril3.glade:17652
 #, fuzzy
@@ -4174,9 +4174,8 @@ msgid "Cosmetic Correction..."
 msgstr "Correcció Cosmètica..."
 
 #: src/gui/siril3.glade:17667
-#, fuzzy
 msgid "Open the deconvolution dialog"
-msgstr "Tancar el diàleg."
+msgstr "Obre el diàleg per la desconvolució"
 
 #: src/gui/siril3.glade:17669
 msgid "Deconvolution..."
@@ -4192,18 +4191,16 @@ msgid "Fourier Transform..."
 msgstr "Transformada de Fourier..."
 
 #: src/gui/siril3.glade:17697
-#, fuzzy
 msgid "Open the median filter dialog"
-msgstr "Tancar el diàleg."
+msgstr "Obrir el diàleg del filtre per mediana"
 
 #: src/gui/siril3.glade:17699
 msgid "Median Filter..."
 msgstr "Filtre de Mediana..."
 
 #: src/gui/siril3.glade:17712
-#, fuzzy
 msgid "Open the denoise dialog"
-msgstr "Tancar el diàleg."
+msgstr "Obrir el diàleg de reducció de soroll"
 
 #: src/gui/siril3.glade:17714
 #, fuzzy
@@ -4211,18 +4208,16 @@ msgid "Noise Reduction..."
 msgstr "Reducció de Bandes..."
 
 #: src/gui/siril3.glade:17727
-#, fuzzy
 msgid "Open the rotational gradient dialog"
-msgstr "El gradient rotacional serà aplicat."
+msgstr "Obre el diàleg de gradient rotacional"
 
 #: src/gui/siril3.glade:17729
 msgid "Rotational Gradient..."
 msgstr "Gradient Rotacional..."
 
 #: src/gui/siril3.glade:17742 src/gui/siril3.glade:17905
-#, fuzzy
 msgid "Star Processing"
-msgstr "Començar cerca."
+msgstr "Processament d'estels"
 
 #: src/gui/siril3.glade:17767 src/gui/siril3.glade:18090
 msgid "Geometry"
@@ -4244,7 +4239,7 @@ msgstr "Extracció"
 #: src/gui/siril3.glade:17821
 #, fuzzy
 msgid "Open the linear match dialog"
-msgstr "Tancar el diàleg."
+msgstr "Obre el diàleg de regressió lineal"
 
 #: src/gui/siril3.glade:17823
 msgid "Linear Match..."
@@ -4267,7 +4262,7 @@ msgstr "Separa els Canals CFA..."
 #: src/gui/siril3.glade:17876
 #, fuzzy
 msgid "Open the pixel math dialog"
-msgstr "Tancar el diàleg."
+msgstr "Obre el diàleg de \"pixel math\""
 
 #: src/gui/siril3.glade:17878
 msgid "Pixel Math..."
@@ -4292,9 +4287,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:17938
-#, fuzzy
 msgid "Star Recomposition..."
-msgstr "Composició HSL"
+msgstr "Recomposició d'estels..."
 
 #: src/gui/siril3.glade:17951
 msgid ""
@@ -4327,9 +4321,8 @@ msgid "Open Dynamic PSF dialog."
 msgstr "PSF dinàmic..."
 
 #: src/gui/siril3.glade:18046
-#, fuzzy
 msgid "Open the manual color calibration dialog"
-msgstr "Començar l'algorisme de calibració fotomètrica."
+msgstr "Obre el diàleg de calibració de color manual"
 
 #: src/gui/siril3.glade:18048
 msgid "Color Calibration..."
@@ -4378,7 +4371,7 @@ msgstr "Miralla Verticalment"
 #: src/gui/siril3.glade:18202
 #, fuzzy
 msgid "Binning..."
-msgstr "Binning: "
+msgstr "Binning..."
 
 #: src/gui/siril3.glade:18216
 msgid "Resample..."
@@ -4658,6 +4651,7 @@ msgstr ""
 "Seqüència SER: un únic fitxer SER per tota la seqüència (limitada a 16 bits "
 "per canal).\n"
 "Seqüència FITS: un fitxer FITS per a tota la seqüència.\n"
+"\n"
 "Nota: La opció 'Imatges FITS' no tindrà cap efecte quan la seqüència pre-"
 "processada sigui de tipus SER o una seqüència FITS."
 
@@ -5157,7 +5151,6 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:21579
-#, fuzzy
 msgid ""
 "This sets the destination sequence type.\n"
 "FITS images: one FITS file per image.\n"
@@ -5165,13 +5158,11 @@ msgid ""
 "channel).\n"
 "FITS sequence: one FITS file for the whole sequence."
 msgstr ""
-"Això estableix el tipus de la seqüència de destí.\n"
+"Estableix el tipus de la seqüència de destí.\n"
 "Imatges FITS: un fitxer FITS per imatge.\n"
 "Seqüència SER: un únic fitxer SER per tota la seqüència (limitada a 16 bits "
 "per canal).\n"
-"Seqüència FITS: un fitxer FITS per a tota la seqüència.\n"
-"Nota: La opció 'Imatges FITS' no tindrà cap efecte quan la seqüència pre-"
-"processada sigui de tipus SER o una seqüència FITS."
+"Seqüència FITS: un fitxer FITS per a tota la seqüència."
 
 #: src/gui/siril3.glade:21598
 msgid "Calibrate all frames"
@@ -5196,9 +5187,8 @@ msgid "Calibration"
 msgstr "Calibració ce color"
 
 #: src/gui/siril3.glade:21720
-#, fuzzy
 msgid "Registration channel: "
-msgstr "Aplicar l'extracció d'ondetes."
+msgstr "Canal de registrat: "
 
 #: src/gui/siril3.glade:21732
 msgid ""
@@ -5354,24 +5344,20 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:22039
-#, fuzzy
 msgid "Core X-coordinates of the first image."
-msgstr "Magnitud de la imatge: "
+msgstr "Coordenada X del nucli de la primera imatge."
 
 #: src/gui/siril3.glade:22055
-#, fuzzy
 msgid "Core X-coordinates of the second image."
-msgstr "Fase de la imatge: "
+msgstr "Coordenada X del nucli de la segona imatge."
 
 #: src/gui/siril3.glade:22071
-#, fuzzy
 msgid "Core Y-coordinates of the first image."
-msgstr "Magnitud de la imatge: "
+msgstr "Coordenada Y del nucli de la primera imatge."
 
 #: src/gui/siril3.glade:22086
-#, fuzzy
 msgid "Core Y-coordinates of the second image."
-msgstr "Fase de la imatge: "
+msgstr "Coordenada Y del nucli de la segona imatge."
 
 #: src/gui/siril3.glade:22121 src/gui/siril3.glade:22135
 msgid "Comet velocity in pixel per hour."
@@ -5462,9 +5448,8 @@ msgid "center of gravity"
 msgstr ""
 
 #: src/gui/siril3.glade:22526
-#, fuzzy
 msgid "Registration method:"
-msgstr "Aplicar l'extracció d'ondetes."
+msgstr "Mètode de registrat:"
 
 #: src/gui/siril3.glade:22562
 msgid "Register all images from sequence"
@@ -5715,7 +5700,7 @@ msgstr ""
 #: src/gui/siril3.glade:23240
 #, fuzzy
 msgid "Output registration:"
-msgstr "Aplicar l'extracció d'ondetes."
+msgstr "Sortida del registrat:"
 
 #: src/gui/siril3.glade:23258 src/registration/registration.c:1231
 #: src/registration/registration.c:1225
@@ -5782,9 +5767,8 @@ msgid "Set second preview"
 msgstr ""
 
 #: src/gui/siril3.glade:23545
-#, fuzzy
 msgid "Manual registration"
-msgstr "Aplicar l'extracció d'ondetes."
+msgstr "Registrat manual"
 
 #: src/gui/siril3.glade:23571
 msgid ""
@@ -5979,9 +5963,8 @@ msgid "Average stacking with rejection"
 msgstr ""
 
 #: src/gui/siril3.glade:24001
-#, fuzzy
 msgid "Median stacking"
-msgstr "apilat en directe..."
+msgstr "Apilonament amb mediana"
 
 #: src/gui/siril3.glade:24002
 #, fuzzy
@@ -6469,9 +6452,8 @@ msgid "Change current working directory"
 msgstr "Canvia el directori de treball"
 
 #: src/gui/siril3.glade:26171
-#, fuzzy
 msgid "Start livestacking session"
-msgstr "apilat en directe..."
+msgstr "Començar sessió d'apilonament en directe"
 
 #: src/gui/siril3.glade:26247
 msgid ""
@@ -6480,9 +6462,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:26258
-#, fuzzy
 msgid "Image Processing"
-msgstr "Començar cerca."
+msgstr "Processament d'Imatge"
 
 #: src/gui/siril3.glade:26292
 msgid ""
@@ -6833,9 +6814,8 @@ msgid "Default Type:"
 msgstr ""
 
 #: src/gui/siril3.glade:28017
-#, fuzzy
 msgid "Allow FITS cubes to have images of different sizes"
-msgstr "Error d'apilonament: imatges d'entrada tenen mides diferents\n"
+msgstr "Error d'apilonament: imatges d'entrada tenen mides diferents"
 
 #: src/gui/siril3.glade:28021
 msgid ""
@@ -6875,9 +6855,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:28107
-#, fuzzy
 msgid "<b>FITS Header</b>"
-msgstr "Capçalera FITS..."
+msgstr "<b>Capçalera FITS...</b>"
 
 #: src/gui/siril3.glade:28152
 msgid "Enabled"
@@ -7129,9 +7108,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:28815
-#, fuzzy
 msgid "General Platesolving"
-msgstr "Començar l'algorisme de resolució de imatges."
+msgstr "Resolució astronòmica general"
 
 #: src/gui/siril3.glade:28850
 #, fuzzy
@@ -7223,14 +7201,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/siril3.glade:29043
-#, fuzzy
 msgid "Astrometry.net Platesolving"
-msgstr "Començar l'algorisme de resolució de imatges."
+msgstr "Resolució astronòmica amb astrometry.net"
 
 #: src/gui/siril3.glade:29077 src/gui/siril3.glade:29701
-#, fuzzy
 msgid "Pre-processing"
-msgstr "Començar cerca."
+msgstr "Pre-processant"
 
 #: src/gui/siril3.glade:29106 src/gui/siril3.glade:29121
 #: src/gui/siril3.glade:29136 src/gui/siril3.glade:29354
@@ -7450,9 +7426,8 @@ msgid "Window size (px):"
 msgstr "Mida del píxel (µm):"
 
 #: src/gui/siril3.glade:30176
-#, fuzzy
 msgid "Defines the size of the window."
-msgstr "Encaixa la imatge a la finestra"
+msgstr "Defineix la mida de la finestra."
 
 #: src/gui/siril3.glade:30198
 msgid "<b>Aberration Inspector</b>"
@@ -8360,9 +8335,9 @@ msgid "Resolution:%*.3lf arcsec/px\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:799
-#, fuzzy, c-format
+#, c-format
 msgid "Focal length:%*.2lf mm\n"
-msgstr "Distància focal (mm): "
+msgstr "Distància focal (mm): %*.2lf mm\n"
 
 #: src/algos/astrometry_solver.c:800
 #, c-format
@@ -8477,9 +8452,9 @@ msgid "There are not enough stars picked in the image. At least %d are needed."
 msgstr ""
 
 #: src/algos/astrometry_solver.c:1450
-#, fuzzy, c-format
+#, c-format
 msgid "Using %d detected stars from image.\n"
-msgstr "Distància focal (mm): "
+msgstr "S'utilitzen %d estels detectats a la imatge.\n"
 
 #: src/algos/astrometry_solver.c:1469 src/gui/callbacks.c:1572
 #, c-format
@@ -8605,9 +8580,9 @@ msgid "Running sequence plate solving using the %s catalogue\n"
 msgstr ""
 
 #: src/algos/background_extraction.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "RBF Extraction: processing channel %d...\n"
-msgstr "Correcció Cosmètica"
+msgstr "Extració RBF: processant canal %d...\n"
 
 #: src/algos/background_extraction.c:326
 msgid ""
@@ -8629,9 +8604,9 @@ msgid "monochrome"
 msgstr ""
 
 #: src/algos/background_extraction.c:899
-#, fuzzy, c-format
+#, c-format
 msgid "Background extraction from %s channel.\n"
-msgstr "Extracció del fons"
+msgstr "Extracció del fons al canal %s.\n"
 
 #: src/algos/background_extraction.c:904
 #, c-format
@@ -8795,9 +8770,8 @@ msgid "Y dimensions incompatible\n"
 msgstr ""
 
 #: src/algos/demosaicing.c:1445
-#, fuzzy
 msgid "Channels not all mono\n"
-msgstr "Extracció de canal"
+msgstr "Els canals no sot tots mono\n"
 
 #: src/algos/demosaicing.c:1447
 msgid "Input files not all the same bit depth\n"
@@ -8865,9 +8839,9 @@ msgid "Failed to sample enough pixels for AF type %d.\n"
 msgstr ""
 
 #: src/algos/geometry.c:268
-#, fuzzy, c-format
+#, c-format
 msgid "Binning x%d: processing...\n"
-msgstr "Correcció Cosmètica"
+msgstr "Binning x%d: processant...\n"
 
 #: src/algos/geometry.c:287
 #, c-format
@@ -9181,9 +9155,8 @@ msgid "Photometric color calibration in progress..."
 msgstr "Calibració Fotomètrica de Color..."
 
 #: src/algos/photometric_cc.c:385
-#, fuzzy
 msgid "Photometric Color Calibration succeeded"
-msgstr "Calibració Fotomètrica de Color..."
+msgstr "Calibració Fotomètrica de Color realitzada amb èxit"
 
 #: src/algos/photometric_cc.c:387
 msgid "Photometric Color Calibration failed"
@@ -9226,9 +9199,8 @@ msgid "The %s catalog has been successfully downloaded.\n"
 msgstr ""
 
 #: src/algos/photometric_cc.c:489
-#, fuzzy
 msgid "Photometric Color Calibration succeeded.\n"
-msgstr "Calibració Fotomètrica de Color..."
+msgstr "Calibració Fotomètrica de Color executada amb èxit.\n"
 
 #: src/algos/photometric_cc.c:502
 #, c-format
@@ -9317,9 +9289,9 @@ msgid "Object %s not found or encountered an error processing it\n"
 msgstr ""
 
 #: src/algos/star_finder.c:189 src/algos/star_finder.c:192
-#, fuzzy, c-format
+#, c-format
 msgid "Findstar: processing for channel %d...\n"
-msgstr "Correcció Cosmètica"
+msgstr "Findstar: processant canal %d...\n"
 
 #: src/algos/star_finder.c:203
 msgid "Failed to copy the image for processing\n"
@@ -9365,9 +9337,9 @@ msgid "Could not load reference image\n"
 msgstr ""
 
 #: src/algos/star_finder.c:1259
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"
-msgstr "Correcció Cosmètica"
+msgstr "%d %s perfils d'estels trobats en %s, canals #%d (FWHM %f)\n"
 
 #: src/algos/star_finder.c:1261
 msgid "selection"
@@ -9584,9 +9556,8 @@ msgid "Invalid argument %s, aborting.\n"
 msgstr ""
 
 #: src/core/command.c:230
-#, fuzzy
 msgid "Background factor must be positive\n"
-msgstr "Factor de fons"
+msgstr "El factor de fons ha de ser positiu.\n"
 
 #: src/core/command.c:239
 msgid "Hue range must be [0, 6]\n"
@@ -9707,9 +9678,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:607 src/core/command.c:979 src/core/command.c:1919
-#, fuzzy
 msgid "Error: cannot open sequence\n"
-msgstr "Seqüència SER"
+msgstr "Error: no es pot obrir la seqüència\n"
 
 #: src/core/command.c:793
 msgid "Error, requires at least 4 arguments to specify the 4 files!\n"
@@ -9765,29 +9735,28 @@ msgid "Reference image is undefined, the following would be used:\n"
 msgstr ""
 
 #: src/core/command.c:993
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d: '%s'\n"
-msgstr "Imatges FITS"
+msgstr "Imatge %d: '%s'\n"
 
 #: src/core/command.c:995
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d\n"
-msgstr "Imatges FITS"
+msgstr "Imatge %d\n"
 
 #: src/core/command.c:998
-#, fuzzy
 msgid ""
 "Warning: this image is excluded from the sequence main processing list\n"
-msgstr "Inclou totes les imatges de la seqüencia al processat"
+msgstr ""
+"Atenció: aquesta imatge s'exclou de la llista principal de la seqüència\n"
 
 #: src/core/command.c:1024
 msgid "Error: will not clear the PSF while a sequence is running.\n"
 msgstr ""
 
 #: src/core/command.c:1029
-#, fuzzy
 msgid "Deconvolution kernel cleared.\n"
-msgstr "Desconvolució..."
+msgstr "S'ha esborrat el nucli de la desconvolució.\n"
 
 #: src/core/command.c:1033
 msgid "Save PSF to file:\n"
@@ -9820,9 +9789,8 @@ msgid "spectral irregularity method\n"
 msgstr ""
 
 #: src/core/command.c:1069
-#, fuzzy
 msgid "multiscale estimation\n"
-msgstr "Estimació del soroll"
+msgstr "estimació multi-escala\n"
 
 #: src/core/command.c:1077 src/core/command.c:1089 src/core/command.c:1210
 #: src/core/command.c:1220 src/core/command.c:1230 src/core/command.c:1240
@@ -9847,9 +9815,8 @@ msgid "symmetric kernel\n"
 msgstr ""
 
 #: src/core/command.c:1183
-#, fuzzy
 msgid "Manual PSF generation:\n"
-msgstr "Aplicar l'extracció d'ondetes."
+msgstr "Generació manual de PSF:\n"
 
 #: src/core/command.c:1190
 msgid "Gaussian PSF\n"
@@ -9860,9 +9827,8 @@ msgid "Moffat PSF\n"
 msgstr ""
 
 #: src/core/command.c:1198
-#, fuzzy
 msgid "Disc PSF\n"
-msgstr "PSF Dinàmic"
+msgstr "Disc PSF\n"
 
 #: src/core/command.c:1202
 msgid "Airy disc PSF\n"
@@ -10150,9 +10116,9 @@ msgid "Symmetry point SP=%f\n"
 msgstr ""
 
 #: src/core/command.c:2755
-#, fuzzy, c-format
+#, c-format
 msgid "Symmetry point for channel %d: SP=%f\n"
-msgstr "Correcció Cosmètica"
+msgstr "Punt de simetria pel canal %d: SP=%f\n"
 
 #: src/core/command.c:2797
 msgid "The target background value must be in the [0, 1] range\n"
@@ -10358,9 +10324,9 @@ msgid "roundness = %3.2f\n"
 msgstr ""
 
 #: src/core/command.c:3507
-#, fuzzy, c-format
+#, c-format
 msgid "radius = %d\n"
-msgstr "Radi: "
+msgstr "radi = %d\n"
 
 #: src/core/command.c:3510
 #, c-format
@@ -10389,12 +10355,12 @@ msgstr ""
 #: src/core/command.c:3523
 #, fuzzy, c-format
 msgid "relax = %s\n"
-msgstr "Radi: "
+msgstr "relax = %s\n"
 
 #: src/core/command.c:3525
-#, fuzzy, c-format
+#, c-format
 msgid "profile = %s\n"
-msgstr "Radi: "
+msgstr "perfil = %s\n"
 
 #: src/core/command.c:3528
 #, c-format
@@ -10480,9 +10446,8 @@ msgid "Missing argument to command\n"
 msgstr ""
 
 #: src/core/command.c:4003
-#, fuzzy
 msgid "Could not find stars in the first image, aborting.\n"
-msgstr "Utilitza la selecció actual"
+msgstr "No s'han pogut trobar estels a la imatge, avortant.\n"
 
 #: src/core/command.c:4013
 #, c-format
@@ -10648,14 +10613,12 @@ msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
 msgstr ""
 
 #: src/core/command.c:5168
-#, fuzzy
 msgid "Sigma low must be positive.\n"
-msgstr "Factor de fons"
+msgstr "El sigma baix ha de ser positiu.\n"
 
 #: src/core/command.c:5174
-#, fuzzy
 msgid "Sigma high must be positive.\n"
-msgstr "Factor de fons"
+msgstr "El sigma alt ha de ser positiu.\n"
 
 #: src/core/command.c:5226
 msgid "The second argument must be between 1 and the number of images.\n"
@@ -10875,10 +10838,9 @@ msgid "Registration: processing using method: %s\n"
 msgstr ""
 
 #: src/core/command.c:6739 src/core/command.c:7017
-#: src/registration/registration.c:1541 src/registration/registration.c:1535
-#, fuzzy
+#: src/registration/registration.c:1535
 msgid "Interpolation clamping active\n"
-msgstr "Interpolació: "
+msgstr "Interpolació continguda activa\n"
 
 #: src/core/command.c:6762 src/core/command.c:6780 src/core/command.c:6799
 #: src/core/command.c:6818 src/core/command.c:6837 src/core/command.c:6855
@@ -10991,9 +10953,8 @@ msgid "Could not save the stacking result %s\n"
 msgstr ""
 
 #: src/core/command.c:7264 src/stacking/stacking.c:605
-#, fuzzy
 msgid "Saving rejection maps\n"
-msgstr "Informació de la imatge"
+msgstr "Guardant mapes de rebuig\n"
 
 #: src/core/command.c:7293 src/stacking/stacking.c:658
 msgid "Stacking failed, please check the log to fix your issue.\n"
@@ -11263,9 +11224,8 @@ msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
 msgstr ""
 
 #: src/core/command.c:8167
-#, fuzzy
 msgid "No current selection in image\n"
-msgstr "Utilitza la selecció actual"
+msgstr "Cap imatge seleccionada\n"
 
 #: src/core/command.c:8174
 msgid ""
@@ -11327,9 +11287,10 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:8506
-#, fuzzy, c-format
+#, c-format
 msgid "Using target coordinate from image header: %f, %f\n"
-msgstr "Distància focal (mm): "
+msgstr ""
+"Utilitzant les coordenades de destí de la capçalera de la imatge: %f, %f\n"
 
 #: src/core/command.c:8514
 msgid "Photometric color correction will use plate solving first\n"
@@ -11361,24 +11322,24 @@ msgid "Using pixel size from preferences: %.2f\n"
 msgstr ""
 
 #: src/core/command.c:8557
-#, fuzzy, c-format
+#, c-format
 msgid "Using pixel size from image: %.2f\n"
-msgstr "Distància focal (mm): "
+msgstr "Utilitzant mida de píxel de la imatge: %.2f\n"
 
 #: src/core/command.c:8565
-#, fuzzy, c-format
+#, c-format
 msgid "Using provided focal length: %.2f\n"
-msgstr "Distància focal (mm): "
+msgstr "Utilitzant distancia focal proveïda: %.2f\n"
 
 #: src/core/command.c:8579
-#, fuzzy, c-format
+#, c-format
 msgid "Using focal length from preferences: %.2f\n"
-msgstr "Distància focal (mm): "
+msgstr "Utilitzant distancia focal de la configuració: %.2f\n"
 
 #: src/core/command.c:8581
-#, fuzzy, c-format
+#, c-format
 msgid "Using focal length from image: %.2f\n"
-msgstr "Distància focal (mm): "
+msgstr "Utilitzant distancia focal de la imatge: %.2f\n"
 
 #: src/core/command.c:8586 src/core/command.c:8598
 msgid ""
@@ -14071,9 +14032,8 @@ msgid "don't use 32 bits for pixel depth"
 msgstr ""
 
 #: src/core/settings.c:257
-#, fuzzy
 msgid "allow FITS cubes to have different sizes"
-msgstr "Error d'apilonament: imatges d'entrada tenen mides diferents\n"
+msgstr "permetre que els cubs FITS tinguin diferents mides"
 
 #: src/core/settings.c:258
 msgid "memory mode (0 ratio, 1 amount)"
@@ -14788,9 +14748,8 @@ msgid "Image %d: %ld pixel corrected (%ld + %ld)\n"
 msgstr ""
 
 #: src/filters/cosmetic_correction.c:463
-#, fuzzy
 msgid "Cosmetic Correction: processing...\n"
-msgstr "Correcció Cosmètica"
+msgstr "Correcció Cosmètica: processant...\n"
 
 #: src/filters/cosmetic_correction.c:566
 #, c-format
@@ -14913,9 +14872,8 @@ msgid "Center coordinate selection error"
 msgstr "Guies de selecció al centre"
 
 #: src/filters/rgradient.c:276
-#, fuzzy
 msgid "No valid PSF found within selection."
-msgstr "Selecció sense guies"
+msgstr "No s'ha trobat cap PSF vàlid a la selecció."
 
 #: src/filters/saturation.c:58
 #, c-format
@@ -14982,9 +14940,8 @@ msgid "Spawning starnet failed during version check: %s\n"
 msgstr "Obertura d'imatge fallida\n"
 
 #: src/filters/starnet.c:227
-#, fuzzy
 msgid "V2 detected\n"
-msgstr "Àrea seleccionada"
+msgstr "V2 detectat\n"
 
 #: src/filters/starnet.c:233
 msgid "V2-torch detected\n"
@@ -15002,19 +14959,16 @@ msgid ""
 msgstr ""
 
 #: src/filters/starnet.c:343
-#, fuzzy
 msgid "No suitable StarNet executable found.\n"
-msgstr "Utilitza la selecció actual"
+msgstr "No s'ha trobat l'executable de StarNet adequat.\n"
 
 #: src/filters/starnet.c:355
-#, fuzzy
 msgid "No suitable StarNet executable found for a mono image.\n"
-msgstr "Utilitza la selecció actual"
+msgstr "No s'ha trobat l'executable de StarNet adequat per a imatges mono.\n"
 
 #: src/filters/starnet.c:370
-#, fuzzy
 msgid "No suitable StarNet executable found for a RGB image.\n"
-msgstr "Utilitza la selecció actual"
+msgstr "No s'ha trobat l'executable de StarNet adequat per imatges RGB.\n"
 
 #: src/filters/starnet.c:403 src/filters/starnet.c:429
 #: src/filters/starnet.c:438 src/filters/starnet.c:444 src/gui/newdeconv.c:682
@@ -15092,9 +15046,8 @@ msgid "Error: unable to save working StarNet input file...\n"
 msgstr ""
 
 #: src/filters/starnet.c:602
-#, fuzzy
 msgid "Error: cannot read the neural net weights file.\n"
-msgstr "Seqüència SER"
+msgstr "Error: no es poden llegir els pesos neuronals del fitxer.\n"
 
 #: src/filters/starnet.c:617
 msgid "Error: StarNet did not execute correctly...\n"
@@ -15137,9 +15090,8 @@ msgid "Error: unable to save starmask image as FITS...\n"
 msgstr ""
 
 #: src/filters/starnet.c:739
-#, fuzzy
 msgid "StarNet: job completed.\n"
-msgstr "Apilonament finalitzat."
+msgstr "StarNet: process completat.\n"
 
 #: src/filters/starnet.c:837
 msgid ""
@@ -15148,9 +15100,9 @@ msgid ""
 msgstr ""
 
 #: src/filters/starnet.c:899
-#, fuzzy, c-format
+#, c-format
 msgid "Starnet: Processing image %d\n"
-msgstr "Començar cerca."
+msgstr "StarNet: Percentatge processat de la imatge %d\n"
 
 #: src/filters/starnet.c:954
 msgid "StarNet"
@@ -15166,9 +15118,8 @@ msgid "Star synthesis (full star mask creation): processing...\n"
 msgstr ""
 
 #: src/filters/synthstar.c:388
-#, fuzzy
 msgid "No stars detected in the image.\n"
-msgstr "Utilitza la selecció actual"
+msgstr "Cap estel detectat a la imatge.\n"
 
 #: src/filters/synthstar.c:391
 #, c-format
@@ -15221,7 +15172,7 @@ msgstr ""
 #: src/gui/about_dialog.c:81
 msgid "translator-credits"
 msgstr ""
-"Joan Vinyals <joanvyc@ieee.org>\n"
+"Joan Vinyals <joan.vinyals.ylla.catala@gmail.com>\n"
 "Rafel Albert <binraff@gmail.com>"
 
 #: src/gui/about_dialog.c:83
@@ -15493,25 +15444,28 @@ msgid "This erases the following data, and there's no possible undo:\n"
 msgstr ""
 
 #: src/gui/callbacks.c:1903
-#, fuzzy
 msgid ""
 "\n"
 "- Registration"
-msgstr "Aplicar l'extracció d'ondetes."
+msgstr ""
+"\n"
+"- Registrat"
 
 #: src/gui/callbacks.c:1904
-#, fuzzy
 msgid ""
 "\n"
 "- Statistics"
-msgstr "Estadístiques"
+msgstr ""
+"\n"
+"- Estadístiques"
 
 #: src/gui/callbacks.c:1905
-#, fuzzy
 msgid ""
 "\n"
 "- Selection"
-msgstr "Selecció"
+msgstr ""
+"\n"
+"- Selecció"
 
 #: src/gui/callbacks.c:1909
 #, fuzzy
@@ -15776,7 +15730,7 @@ msgstr ""
 #: src/gui/histogram.c:1260
 #, fuzzy
 msgid "Generalised Hyperbolic Stretch Transformations"
-msgstr "Transformació d'Histograma..."
+msgstr "Transformació per estirat hiperbòlic generalitzada"
 
 #: src/gui/histogram.c:1288 src/gui/histogram.c:1677
 msgid "Clicking on the histogram sets SP"
@@ -15986,9 +15940,8 @@ msgid "No PSF file selected.\n"
 msgstr ""
 
 #: src/gui/newdeconv.c:835
-#, fuzzy
 msgid "Kernel estimation complete.\n"
-msgstr "Apilonament finalitzat."
+msgstr "Estimació del nucli completada.\n"
 
 #: src/gui/newdeconv.c:849
 msgid ""
@@ -16035,19 +15988,17 @@ msgstr ""
 
 #. User wants PSF from stars but has not selected any stars
 #: src/gui/newdeconv.c:987 src/gui/newdeconv.c:1135
-#, fuzzy
 msgid "No stars detected. Finding suitable non-saturated stars...\n"
-msgstr "Utilitza la selecció actual"
+msgstr "Cap estel detectat. Trobant estels no saturades adients...\n"
 
 #: src/gui/newdeconv.c:1003 src/gui/newdeconv.c:1151
-#, fuzzy
 msgid "No suitable stars detectable in this image. Aborting..."
-msgstr "Utilitza la selecció actual"
+msgstr "Cap estel adient detectada en aquesta imatge. Avortant..."
 
 #: src/gui/newdeconv.c:1009
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d suitably bright, non-saturated stars.\n"
-msgstr "Utilitza la selecció actual"
+msgstr "S'han trobat %d estels adientment brillants, i no saturats.\n"
 
 #: src/gui/newdeconv.c:1017
 #, c-format
@@ -16066,14 +16017,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/newdeconv.c:1053
-#, fuzzy
 msgid "Starting PSF computation..."
-msgstr "Composició HSL"
+msgstr "Començant el càlcul del PSF..."
 
 #: src/gui/newdeconv.c:1062
-#, fuzzy
 msgid "Deconvolution PSF generated.\n"
-msgstr "Desconvolució..."
+msgstr "Desconvolució PSF generada.\n"
 
 #. Refuse to process the image using previous PSF if there is no previous PSF defined
 #. Refuse to process the sequence using previous PSF if there is no previous PSF defined
@@ -16084,9 +16033,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/newdeconv.c:1190
-#, fuzzy
 msgid "Starting PSF estimation..."
-msgstr "Composició HSL"
+msgstr "Començant estimació de PSF..."
 
 #: src/gui/newdeconv.c:1217
 msgid "Starting non-blind deconvolution..."
@@ -16296,9 +16244,9 @@ msgid "Output files (*%s)"
 msgstr ""
 
 #: src/gui/plot.c:1395
-#, fuzzy, c-format
+#, c-format
 msgid "Saved plot to image %s\n"
-msgstr "Fase de la imatge: "
+msgstr "Gràfica guardada a la imatge %s\n"
 
 #: src/gui/plot.c:1486 src/gui/plot.c:1519 src/gui/plot.c:1547
 msgid "Star roundness (1 is round)"
@@ -16607,9 +16555,8 @@ msgid "Eyedropper disabled with unapplied BP shift"
 msgstr ""
 
 #: src/gui/remixer.c:1103 src/gui/remixer.c:1159
-#, fuzzy
 msgid "Error: image could not be loaded"
-msgstr "Apilonament: no ha pogut llegir el marc, abortant\n"
+msgstr "Error: la imatge no s'ha pogut carregar"
 
 #: src/gui/remixer.c:1104 src/gui/remixer.c:1160
 msgid "Image loading failed"
@@ -17439,9 +17386,8 @@ msgid "Error: memory allocation failure.\n"
 msgstr ""
 
 #: src/io/image_formats_internal.c:865
-#, fuzzy
 msgid "Error: Cannot read the data\n"
-msgstr "Seqüència SER"
+msgstr "Error: No es poden llegir les dades\n"
 
 #: src/io/image_formats_internal.c:890
 #, c-format
@@ -18102,7 +18048,7 @@ msgstr ""
 #: src/io/sequence_export.c:602 src/stacking/stacking.c:255
 #, fuzzy
 msgid "Registration data found"
-msgstr "Aplicar l'extracció d'ondetes."
+msgstr "S'han trobat dades de registrament"
 
 #: src/io/sequence_export.c:603
 msgid ""
@@ -18319,7 +18265,7 @@ msgstr ""
 #: src/livestacking/livestacking.c:116
 #, fuzzy
 msgid "Stopping live stacking engine...\n"
-msgstr "apilat en directe..."
+msgstr "Aturant el livestacking...\n"
 
 #: src/livestacking/livestacking.c:217
 #, c-format
@@ -18353,7 +18299,9 @@ msgstr ""
 #, fuzzy, c-format
 msgid ""
 "Master dark %d x %d configured for live stacking (%s cosmetic correction)\n"
-msgstr "Camp fosc mestre i correcció cosmètica"
+msgstr ""
+"Camp fosc mestre %d x %d configurat pel livestacking (%s correcció "
+"cosmètica)\n"
 
 #: src/livestacking/livestacking.c:317
 msgid "with"
@@ -18614,48 +18562,40 @@ msgid "Average absolute deviation of the image."
 msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:110
-#, fuzzy
 msgid "Biweight midvariance of the image."
-msgstr "Fase de la imatge: "
+msgstr "Mitjana ponderada de la imatge."
 
 #: src/pixelMath/pixel_math_runner.c:111
-#, fuzzy
 msgid "Height in pixels of the specified image."
-msgstr "Fase de la imatge: "
+msgstr "Alçada en píxels de la imatge especificada."
 
 #: src/pixelMath/pixel_math_runner.c:112 src/pixelMath/pixel_math_runner.c:114
-#, fuzzy
 msgid "Median absolute deviation of the image."
-msgstr "Magnitud de la imatge: "
+msgstr "Desviació absoluta de la mediana de la imatge."
 
 #: src/pixelMath/pixel_math_runner.c:113
-#, fuzzy
 msgid "Pixel maximum of the image."
-msgstr "Fase de la imatge: "
+msgstr "Màxim d'un píxel de la imatge."
 
 #: src/pixelMath/pixel_math_runner.c:115
-#, fuzzy
 msgid "Mean of the image."
-msgstr "Magnitud de la imatge: "
+msgstr "Mitjana de la imatge."
 
 #: src/pixelMath/pixel_math_runner.c:116 src/pixelMath/pixel_math_runner.c:117
-#, fuzzy
 msgid "Median of the image."
-msgstr "Magnitud de la imatge: "
+msgstr "Mediana de la imatge."
 
 #: src/pixelMath/pixel_math_runner.c:118
-#, fuzzy
 msgid "Pixel minimum of the image."
-msgstr "Fase de la imatge: "
+msgstr "Mínim píxel de la imatge."
 
 #: src/pixelMath/pixel_math_runner.c:119
 msgid "Estimation of Gaussian noise in the image."
 msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:120
-#, fuzzy
 msgid "Standard deviation of the image."
-msgstr "Utilitza la selecció actual"
+msgstr "Desviació estàndard de la imatge."
 
 #: src/pixelMath/pixel_math_runner.c:121
 msgid "Width in pixels of the specified image."
@@ -18881,9 +18821,8 @@ msgid ""
 msgstr ""
 
 #: src/registration/3stars.c:548
-#, fuzzy
 msgid "Saving the transformation matrices\n"
-msgstr "Transformació Asinh"
+msgstr "Guardant les matrius de transformació\n"
 
 #: src/registration/3stars.c:611 src/registration/3stars.c:634
 #: src/registration/3stars.c:660 src/registration/3stars.c:671
@@ -18953,14 +18892,12 @@ msgid "Total: %d failed, %d exported.\n"
 msgstr ""
 
 #: src/registration/applyreg.c:368
-#, fuzzy
 msgid "Transformation aborted.\n"
-msgstr "Transformació Asinh..."
+msgstr "Transformació avortada.\n"
 
 #: src/registration/applyreg.c:454
-#, fuzzy
 msgid "Apply registration"
-msgstr "Aplicar l'extracció d'ondetes."
+msgstr "Aplica registrat"
 
 #: src/registration/applyreg.c:558
 msgid ""
@@ -19421,10 +19358,9 @@ msgstr ""
 msgid "not available for sequences with variable image sizes"
 msgstr ""
 
-#: src/registration/registration.c:1168 src/registration/registration.c:1162
-#, fuzzy
+#: src/registration/registration.c:1162
 msgid "Failed to determine registration method...\n"
-msgstr "Selecció sense guies"
+msgstr "No s'ha pogut determinar un mètode de registrat...\n"
 
 #: src/registration/registration.c:1211 src/registration/registration.c:1205
 msgid "Debayer the sequence for registration"
@@ -19607,9 +19543,8 @@ msgid "Median stacking failed. Check the log."
 msgstr ""
 
 #: src/stacking/median_and_mean.c:1478
-#, fuzzy
 msgid "Stacking operation was cancelled.\n"
-msgstr "Extracció del fons"
+msgstr "L'operació d'apilonament s'ha cancel·lat.\n"
 
 #: src/stacking/median_and_mean.c:1479 src/stacking/stackminmax.c:249
 msgid "Stacking failed.\n"
@@ -19760,14 +19695,12 @@ msgid "Input normalization ....... %s%s\n"
 msgstr ""
 
 #: src/stacking/stacking.c:328
-#, fuzzy
 msgid "Output normalization ...... enabled\n"
-msgstr "Normalització dels Factors del Canal"
+msgstr "Normalització de sortida ...... activada\n"
 
 #: src/stacking/stacking.c:329
-#, fuzzy
 msgid "Output normalization ...... disabled\n"
-msgstr "Normalització dels Factors del Canal"
+msgstr "Normalització de sortida ...... desactivada\n"
 
 #: src/stacking/stacking.c:333
 msgid "Pixel rejection ........... none\n"
@@ -19786,7 +19719,7 @@ msgstr "Retall d'ombres"
 #: src/stacking/stacking.c:351
 #, fuzzy
 msgid "median sigma clipping"
-msgstr "apilat en directe..."
+msgstr "retall amb mediana i sigma"
 
 #: src/stacking/stacking.c:354
 msgid "winsorized sigma clipping"
@@ -19850,14 +19783,12 @@ msgid "Image weighting ........... disabled\n"
 msgstr ""
 
 #: src/stacking/stacking.c:394
-#, fuzzy
 msgid "RGB equalization .......... enabled\n"
-msgstr "Alinea RGB"
+msgstr "Equalització RGB .......... activada\n"
 
 #: src/stacking/stacking.c:395
-#, fuzzy
 msgid "RGB equalization .......... disabled\n"
-msgstr "Alinea RGB"
+msgstr "Equalització RGB .......... desactivada\n"
 
 #: src/stacking/stacking.c:553
 msgid "Stacking result image"
@@ -19972,9 +19903,8 @@ msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr ""
 
 #: src/gui/siril3.glade:18061
-#, fuzzy
 msgid "Open the photometry color calibration dialog"
-msgstr "Començar l'algorisme de calibració fotomètrica."
+msgstr "Obre el diàleg de calibració fotomètrica"
 
 #: src/algos/photometric_cc.c:380
 msgid "Photometry color calibration in progress..."
