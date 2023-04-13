@@ -164,24 +164,20 @@ msgstr ""
 "Prefix dels noms de les imatges resultants del procés de correcció cosmètica."
 
 #: src/gui/siril3.glade:566
-#, fuzzy
 msgid "Binning"
-msgstr "Binning: "
+msgstr "Agrupació:"
 
 #: src/gui/siril3.glade:631
-#, fuzzy
 msgid "Binning factor:"
-msgstr "Binning: "
+msgstr "Factor d'agrupació:"
 
 #: src/gui/siril3.glade:663
-#, fuzzy
 msgid "Downsample mode:"
-msgstr "Redueix les mostres de la imatge"
+msgstr "Mode de reducció de mostreig:"
 
 #: src/gui/siril3.glade:677
-#, fuzzy
 msgid "Average"
-msgstr "Mitjana Neutral"
+msgstr "Mitjana"
 
 #: src/gui/siril3.glade:678
 msgid "Sum"
@@ -251,12 +247,11 @@ msgid "Apply wavelet extraction."
 msgstr "Aplicar l'extracció d'ondetes."
 
 #: src/gui/siril3.glade:1059
-#, fuzzy
 msgid ""
 "Number of wavelet layers. You can choose up to 9 layers for wavelets "
 "computing."
 msgstr ""
-"Nombre de capes ondetes. Pots triar fins a 6 capes pel còmput de les ondetes."
+"Nombre de capes ondetes. Pots triar fins a 9 capes pel còmput de les ondetes."
 
 #: src/gui/siril3.glade:1080
 msgid "Type of algorithm"
@@ -286,9 +281,8 @@ msgid "Banding Reduction"
 msgstr "Reducció de Bandes"
 
 #: src/gui/siril3.glade:1227 src/gui/siril3.glade:1250
-#, fuzzy
 msgid "Defines the strength of the correction."
-msgstr "Encaixa la imatge a la finestra"
+msgstr "Defineix la intensitat de la correcció."
 
 #: src/gui/siril3.glade:1266
 msgid "Protect from Highlights"
@@ -307,6 +301,8 @@ msgid ""
 "Background for lines is computed using pixels in SigmaFactor * StdDev only. "
 "Higher value will give a better protection."
 msgstr ""
+"El fons de les línies es calcula utilitzant només píxels en SigmaFactor * "
+"StdDev. Un valor més alt proporcionarà una millor protecció."
 
 #: src/gui/siril3.glade:1342
 msgid "Vertical banding"
@@ -432,13 +428,12 @@ msgid "Execute"
 msgstr "Executar"
 
 #: src/gui/siril3.glade:2126
-#, fuzzy
 msgid "Apply StarNet"
-msgstr "Aplica Separació de CFA"
+msgstr "Aplica StarNet"
 
 #: src/gui/siril3.glade:2156
 msgid "Pre-stretch linear image"
-msgstr ""
+msgstr "Pre-estirar imatge lineal"
 
 #: src/gui/siril3.glade:2161
 #, fuzzy
