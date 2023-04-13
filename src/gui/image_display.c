@@ -712,8 +712,11 @@ static void draw_selection(const draw_data_t* dd) {
 }
 
 static void draw_cut_line(const draw_data_t* dd) {
-//	if (!(mouse_status == MOUSE_ACTION_CUT_SELECT))
-//		return;
+	GtkWidget *cut_dialog = lookup_widget("cut_dialog");
+	GtkWidget *cut_cdialog = lookup_widget("cut_coords_dialog");
+	GtkWidget *cut_sdialog = lookup_widget("cut_spectroscopy_dialog");
+	if (!(gtk_widget_get_visible(cut_dialog) || gtk_widget_get_visible(cut_cdialog) || gtk_widget_get_visible(cut_sdialog)))
+		return;
 	if (gui.cut.cut_end.x == -1 || gui.cut.cut_end.y == -1 || gui.cut.seq)
 		return;
 	gboolean tri = gtk_toggle_button_get_active((GtkToggleButton*)lookup_widget("cut_tri_cut"));
