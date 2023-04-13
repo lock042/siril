@@ -745,9 +745,7 @@ int match_drawing_area_widget(const GtkWidget *drawing_area, gboolean allow_rgb)
 void update_display_selection() {
 	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb" };
 	static gchar selection_buffer[256] = { 0 };
-	if (gui.measure_more_recent) {
-		measure_line(&gfit, gui.measure_start, gui.measure_end);
-	} else if (com.selection.w && com.selection.h) {
+	if (com.selection.w && com.selection.h) {
 		g_sprintf(selection_buffer, _("W: %dpx H: %dpx ratio: %.4f"), com.selection.w, com.selection.h,
 			(double)com.selection.w / (double)com.selection.h);
 		gtk_label_set_text(GTK_LABEL(lookup_widget(label_selection[gui.cvport])), selection_buffer);
@@ -1323,7 +1321,6 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.preview_area[1] = lookup_widget("drawingarea_preview2");
 	initialize_image_display();
 	init_mouse();
-	gui.measure_more_recent = FALSE;
 	/* populate language combo */
 	siril_language_fill_combo(com.pref.lang);
 

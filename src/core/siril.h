@@ -576,9 +576,6 @@ struct guiinf {
 	point measure_start;	// quick alt-drag measurement
 	point measure_end;
 
-	gboolean measure_more_recent; // Set by selection or measurement, toggles
-								  // which is shown in the overlay
-
 	void (*draw_extra)(draw_data_t *dd);
 
 	/*********** Color mapping **********/

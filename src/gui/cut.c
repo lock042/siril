@@ -1272,7 +1272,6 @@ void on_cut_apply_to_sequence_toggled(GtkToggleButton *button, gpointer user_dat
 }
 
 void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data) {
-	gui.measure_more_recent = TRUE;
 	measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end);
 }
 

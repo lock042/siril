@@ -558,7 +558,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			gui.translating = FALSE;
 		} else if (gui.drawing && mouse_status == MOUSE_ACTION_SELECT_REG_AREA) {
 			gui.drawing = FALSE;
-			gui.measure_more_recent = FALSE;
 			/* finalize selection rectangle coordinates */
 			if (!gui.freezeX) {
 				if (zoomed.x >= gui.start.x) {
@@ -630,7 +629,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 			// If the measurement checkbox is checked, print the measurement to the log
 			if (gui.cut.cut_measure) {
-				gui.measure_more_recent = TRUE;
 				measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end);
 			}
 			cutting = CUT_NOT_CUTTING;
