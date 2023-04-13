@@ -298,31 +298,38 @@ double get_conversion_factor(fits *fit) {
 
 void measure_line(fits *fit, point start, point finish) {
 	int deg = -1;
+	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb" };
+	static gchar measurement_buffer[256] = { 0 };
 	point delta = { finish.x - start.x, finish.y - start.y };
 	double pixdist = sqrt(delta.x * delta.x + delta.y * delta.y);
-	if (pixdist == 0.) return;
-	control_window_switch_to_tab(OUTPUT_LOGS);
-	double conversionfactor = get_conversion_factor(fit);
-	if (conversionfactor != -DBL_MAX) {
-		double asdist = pixdist * conversionfactor;
-		if (asdist < 60.0) {
-			siril_log_message(_("Measurement: %.1f\"\n"), asdist);
-		} else {
-			int min = (int) asdist / 60;
-			double sec = asdist - (min * 60);
-			if (asdist < 3600) {
-				siril_log_message(_("Measurement: %d\' %.1f\"\n"), min, sec);
-			} else {
-				deg = (int) asdist / 3600;
-				min -= (deg * 60);
-				siril_log_message(_("Measurement: %dº %d\' %.0f\"\n"), deg, min, sec);
-			}
-		}
+	if (pixdist == 0.) {
+		measurement_buffer[0] = '\0';
 	} else {
-		siril_log_message(_("Measurement: %.1f px\n"), pixdist);
+		double conversionfactor = get_conversion_factor(fit);
+		if (conversionfactor != -DBL_MAX) {
+			double asdist = pixdist * conversionfactor;
+			if (asdist < 60.0) {
+				g_sprintf(measurement_buffer, _("Measurement: %.1f\""), asdist);
+			} else {
+				int min = (int) asdist / 60;
+				double sec = asdist - (min * 60);
+				if (asdist < 3600) {
+					g_sprintf(measurement_buffer, _("Measurement: %d\' %.1f\""), min, sec);
+				} else {
+					deg = (int) asdist / 3600;
+					min -= (deg * 60);
+					g_sprintf(measurement_buffer, _("Measurement: %dº %d\' %.0f\""), deg, min, sec);
+				}
+			}
+		} else {
+			g_sprintf(measurement_buffer, _("Measurement: %.1f px"), pixdist);
+		}
+		gtk_label_set_text(GTK_LABEL(lookup_widget(label_selection[gui.cvport])), measurement_buffer);
+		if (deg > 10.0) {
+			control_window_switch_to_tab(OUTPUT_LOGS);
+			siril_log_color_message(_("Warning: angular measurement > 10º. Error is > 1%\n"), "salmon");
+		}
 	}
-	if (deg > 10.0)
-		siril_log_color_message(_("Warning: angular measurement > 10º. Error is > 1%\n"), "salmon");
 }
 
 static gboolean spectroscopy_selections_are_valid(cut_struct *arg) {
@@ -1265,6 +1272,7 @@ void on_cut_apply_to_sequence_toggled(GtkToggleButton *button, gpointer user_dat
 }
 
 void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data) {
+	gui.measure_more_recent = TRUE;
 	measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end);
 }
 
