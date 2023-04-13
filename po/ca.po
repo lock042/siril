@@ -436,22 +436,20 @@ msgid "Pre-stretch linear image"
 msgstr "Pre-estirar imatge lineal"
 
 #: src/gui/siril3.glade:2161
-#, fuzzy
 msgid ""
 "If selected, an optimised Midtone Transfer Function (MTF) stretch is applied "
 "to the image before running StarNet, and the inverse stretch is applied on "
 "completion. This is necessary for using StarNet at the linear stage of "
 "processing."
 msgstr ""
-"Si el selecciones, un estirat amb \"Midtone Transfer Function\" (MTF) "
-"optimitzat es aplicat ala imatge abans de executar StarNet, I l'estirat "
-"invers s'aplica un cop StarNet ha completat. Aixó es necessari per utilitzar "
-"StarNet a l'etapa lineal del processat."
+"Si es selecciona, s'aplica un estirament de Funció de Transferència de Tons "
+"Mitjans (FTTM) optimitzat a la imatge abans d'executar StarNet, i s'aplica "
+"l'estirament invers en finalitzar. Això és necessari per utilitzar StarNet a "
+"l'etapa lineal del processament."
 
 #: src/gui/siril3.glade:2174
-#, fuzzy
 msgid "Generate star mask"
-msgstr "Generar"
+msgstr "Generar màscara d'estrelles"
 
 #: src/gui/siril3.glade:2179
 msgid ""
@@ -466,7 +464,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:2194
 msgid "Use custom stride"
-msgstr ""
+msgstr "Utilitzar salt personalitzat"
 
 #: src/gui/siril3.glade:2199
 msgid ""
@@ -480,10 +478,9 @@ msgstr ""
 
 #: src/gui/siril3.glade:2219
 msgid "Stride"
-msgstr ""
+msgstr "Salt"
 
 #: src/gui/siril3.glade:2231
-#, fuzzy
 msgid ""
 "Sets the size of tiles passed to the StarNet neural network for processing. "
 "It is strongly recommended to leave this at the default setting. Halving the "
@@ -491,7 +488,7 @@ msgid ""
 "even integer between 2-256."
 msgstr ""
 "Defineix la mida de les cel·les que es passen a la xarxa neuronal de StarNet "
-"per a processar-les. És esafdasf recomenat deixar la configuració per "
+"per a processar-les. És fortament recomanat deixar la configuració per "
 "defecte. Reduir a la meitat aquest paràmetre quadruplica el temps de "
 "processat. Si es modifica, el paràmetre \"stride\" ha de ser un enter parell "
 "entre 2 i 256."
@@ -501,7 +498,6 @@ msgid "Recompose stars on completion"
 msgstr "Recompondre les estrelles en acabar"
 
 #: src/gui/siril3.glade:2259
-#, fuzzy
 msgid ""
 "If selected, on completion of the StarNet process the star recomposition "
 "tool will open, providing an interface for independently stretching and "
@@ -509,16 +505,15 @@ msgid ""
 "removal, is desired.\n"
 "This option has no effect if processing a sequence."
 msgstr ""
-"Si el selecciones, s'obrira l'eina de recomposició d'estels en acabar el "
-"processat de StarNet, proveint una interfície per estirar i mesclar el fons "
-"i els estels independentment, si es vol reduir els estels (en comptes "
-"d'eliminar-los per complet).\n"
-"Aquesta opció no te cap efecte en el processat de la seqüència."
+"Si es selecciona, en finalitzar el procés StarNet, s'obrirà l'eina de "
+"recomposició d'estrelles, proporcionant una interfície per estirar i "
+"barrejar de manera independent el fons i les estrelles si es desitja una "
+"reducció d'estrelles, en lloc de la seva eliminació total.\n"
+"Aquesta opció no té efecte si es processa una seqüència."
 
 #: src/gui/siril3.glade:2274
-#, fuzzy
 msgid "Upsample x2"
-msgstr "Re-mostreja"
+msgstr "Ampliar mostreig x2"
 
 #: src/gui/siril3.glade:2279
 #, fuzzy
@@ -562,9 +557,8 @@ msgid "Type:"
 msgstr "Tipus:"
 
 #: src/gui/siril3.glade:2504
-#, fuzzy
 msgid "Nb of layers:"
-msgstr "Num. de Capes: "
+msgstr "Num. de capes:"
 
 #: src/gui/siril3.glade:2515
 msgid "Number of wavelet layers that will be used"
@@ -623,9 +617,8 @@ msgid "Constant value that is subtracted from the image."
 msgstr "Valor constant que és restat a la imatge."
 
 #: src/gui/siril3.glade:3361
-#, fuzzy
 msgid "Human-weighted luminance"
-msgstr "Lluminositat humana"
+msgstr "Lluminositat adaptada a la percepció humana"
 
 #: src/gui/siril3.glade:3365
 msgid ""
@@ -644,7 +637,6 @@ msgid "Close the window."
 msgstr "Tanca la finestra."
 
 #: src/gui/siril3.glade:3450
-#, fuzzy
 msgid ""
 "This will confirm the background model previously applied with the "
 "<b>Compute Background</b> button. However, in the case of a sequence, if the "
@@ -652,19 +644,17 @@ msgid ""
 "apply it to the whole sequence."
 msgstr ""
 "Aquest pas confirma el model del fons aplicat anteriorment amb el botó "
-"<b>Computar fons sintètic</b>. Pel cas de les seqüències, si l'opció "
-"<b>Aplicar a la seqüència</b> està seleccionada, es computara el model i "
-"s'aplicarà a totes les seves imatges."
+"<b>Computar fons</b>. No obstant això, en el cas d'una seqüència, si el botó "
+"<b>Aplicar a la seqüència</b> està marcat, això computarà el model i "
+"l'aplicarà a tota la seqüència."
 
 #: src/gui/siril3.glade:3484
-#, fuzzy
 msgid "Choose between interpolation methods."
-msgstr "Selecció sense guies"
+msgstr "Selecció entre mètodes d'interpolació."
 
 #: src/gui/siril3.glade:3488
-#, fuzzy
 msgid "RBF"
-msgstr "RGB"
+msgstr "RBF"
 
 #: src/gui/siril3.glade:3489
 #, fuzzy
@@ -681,16 +671,16 @@ msgid "Number of sample per line that will be automatically placed."
 msgstr "Nombre de mostres que es posaran automàticament, per cada línia."
 
 #: src/gui/siril3.glade:3560
-#, fuzzy
 msgid ""
 "Adjust the smoothing parameter for the interpolation method. A smoothing "
 "parameter that is too small may result in overshoots and undershoots between "
 "points in the background, while a smoothing parameter that is too large may "
 "not be suitable for large deviations in gradient."
 msgstr ""
-"Ajusta el paràmetre se suavitzat pel mètode de interpolació. Si el paràmetre "
-"es massa petit pot causar saltar-se punts en el fons, nogensmenys un valor "
-"massa alt pot no ser adequat per a gradients amb alta desviació."
+"Ajustar el paràmetre de suavitzat per al mètode d'interpolació. Un paràmetre "
+"de suavitzat massa petit pot provocar sobre-passaments i infra-passaments "
+"entre els punts del fons, mentre que un paràmetre de suavitzat massa gran "
+"pot no ser adequat per a grans desviacions en el gradient."
 
 #: src/gui/siril3.glade:3576
 msgid "page 1"
@@ -720,6 +710,9 @@ msgid ""
 "background gradient.\n"
 "This should be enabled for non-stretched images."
 msgstr ""
+"Evitar la generació de bandes afegint soroll aleatori en el gradient de fons "
+"de baixa dinàmica.\n"
+"Aquesta opció hauria d'estar habilitada per imatges no estirades."
 
 #: src/gui/siril3.glade:3716
 #, fuzzy
@@ -1381,24 +1374,30 @@ msgid ""
 "This improves ℓ0 PSF estimation for large PSFs. It is not required for small "
 "PSFs and takes longer to compute. Consider using it for PSF sizes above 20."
 msgstr ""
+"Això millora l'estimació PSF ℓ0 per a PSFs grans. No és necessari per a PSFs "
+"petits i triga més temps a calcular. Considera usar-ho per a mides PSF "
+"superiors a 20."
 
 #: src/gui/siril3.glade:6720
 msgid "These settings can be left alone in the vast majority of cases. "
 msgstr ""
+"Aquests ajustos es poden deixar sense canvis en la gran majoria de casos. "
 
 #: src/gui/siril3.glade:6734
 msgid "Gamma (γ)"
-msgstr ""
+msgstr "Gamma (γ)"
 
 #: src/gui/siril3.glade:6745
 msgid "PSF estimation regularisation parameter"
-msgstr ""
+msgstr "Paràmetre de regularització de l'estimació PSF"
 
 #: src/gui/siril3.glade:6771
 msgid ""
 "Number of iterations for PSF estimation. Do not reduce this below 2. There "
 "is negligible benefit in increasing it beyond 3."
 msgstr ""
+"Nombre d'iteracions per a l'estimació PSF. No el redueixis per sota de 2. Hi "
+"ha un benefici negligible en augmentar-lo per sobre de 3."
 
 #: src/gui/siril3.glade:6786
 #, fuzzy
@@ -1411,11 +1410,11 @@ msgstr "Raó de lambda a escales successives per estimació PSF multi-escala."
 
 #: src/gui/siril3.glade:6813
 msgid "Lambda min"
-msgstr ""
+msgstr "Lambda mín"
 
 #: src/gui/siril3.glade:6824
 msgid "Minimum value of lambda for multiscale PSF estimation"
-msgstr ""
+msgstr "Mínim valor de lambda per l'estimació multiescala PSF"
 
 #: src/gui/siril3.glade:6840
 #, fuzzy
@@ -1425,10 +1424,13 @@ msgstr "Factor d'estirat"
 #: src/gui/siril3.glade:6851
 msgid "Scale factor between successive scales of multiscale PSF estimation"
 msgstr ""
+"Factor d'escala entre les successives escales de l'estimació de PSF "
+"multiescala"
 
 #: src/gui/siril3.glade:6866
 msgid "Amount of blur to use for upsampling during PSF estimation"
 msgstr ""
+"Quantitat de desenfocament per usar en l'escalat durant l'estimació de PSF"
 
 #: src/gui/siril3.glade:6881
 #, fuzzy
@@ -1457,30 +1459,38 @@ msgstr "Mida del núcli:"
 #: src/gui/siril3.glade:6941
 msgid "Amount of blur to use for downsampling during PSF estimation"
 msgstr ""
+"Quantitat de desenfocament per utilitzar a la reducció de mostreig durant "
+"l'estimació de PSF"
 
 #: src/gui/siril3.glade:6956
 msgid ""
 "Sets a minimum pixel value for the PSF. PSF pixels with values less than "
 "this will be set to zero."
 msgstr ""
+"Estableix un valor mínim de píxel per al PSF. Els píxels del PSF amb valors "
+"inferiors a aquest seran posats a zero."
 
 #: src/gui/siril3.glade:6972
 msgid ""
 "Uses a refinement technique to improve subsequent iterations of the PSF "
 "estimator. This should essentially always be enabled."
 msgstr ""
+"Utilitza una tècnica de refinament per millorar les iteracions posteriors de "
+"l'estimador de PSF. Essencialment això hauria d'estar sempre habilitat."
 
 #: src/gui/siril3.glade:6985
 msgid "ℓ1 gradient parameter"
-msgstr ""
+msgstr "ℓ1 paràmetre de gradient"
 
 #: src/gui/siril3.glade:7002
 msgid "These settings should almost always be left at the default value."
 msgstr ""
+"Aquestes configuracions haurien de romandre gairebé sempre al valor per "
+"defecte."
 
 #: src/gui/siril3.glade:7003 src/gui/siril3.glade:7185
 msgid "Expert Settings"
-msgstr ""
+msgstr "Configuració experta"
 
 #: src/gui/siril3.glade:7021
 msgid "ℓ0 Descent Method"
@@ -1488,7 +1498,7 @@ msgstr "Mètode de Descens ℓ0"
 
 #: src/gui/siril3.glade:7057
 msgid "Compensation factor"
-msgstr ""
+msgstr "Factor de compensació"
 
 #: src/gui/siril3.glade:7069
 msgid ""
@@ -1499,6 +1509,12 @@ msgid ""
 "oversampled) this parameter should be reduced to close to unity in order to "
 "obtain sufficient sharpness in the PSF."
 msgstr ""
+"Aquest paràmetre controla la nitidesa de la PSF estimada. Si la imatge "
+"subjacent és nítida, aquest paràmetre hauria de ser establert a un valor alt "
+"per evitar artefactes en la PSF estimada. Per l'altra banda, si la imatge "
+"subjacent conté una petita quantitat de desenfocament intrínsec (és a dir, "
+"com a resultat de ser sobre-mostrejada), aquest paràmetre hauria de ser "
+"reduït a prop de la unitat per obtenir suficient nitidesa en la PSF."
 
 #: src/gui/siril3.glade:7106
 #, fuzzy
@@ -1517,12 +1533,19 @@ msgid ""
 "fairly small number of samples will suffice. For noisy images, the value may "
 "require increasing to as much as around 250."
 msgstr ""
+"Aquest paràmetre estableix el nombre de mostres per cicle extern. Cal triar "
+"un nombre suficient de mostres per assegurar que l'estimació PSF convergeix: "
+"per a imatges amb poc soroll, un nombre prou petit de mostres serà "
+"suficient. Per a imatges sorolloses, el valor pot requerir un augment de "
+"fins a uns 250."
 
 #: src/gui/siril3.glade:7143
 msgid ""
 "Outer loop iterations. This parameter should not generally require "
 "adjustment."
 msgstr ""
+"Iteracions del cicle extern. Aquest paràmetre generalment no hauria de "
+"requerir cap ajustament."
 
 #: src/gui/siril3.glade:7158
 #, fuzzy
@@ -1534,6 +1557,8 @@ msgid ""
 "This parameter sets the number of iterations in the algorithm inner loop. It "
 "should not usually require adjustment."
 msgstr ""
+"Aquest paràmetre estableix el nombre d'iteracions en l'algoritme del cicle "
+"intern. No hauria de necessitar ajustaments normalment."
 
 #: src/gui/siril3.glade:7201
 msgid "Spectral Irregularity Method"
@@ -1549,10 +1574,13 @@ msgid ""
 "If checked, a PSF defined from stars will be circularly symmetric. If "
 "unchecked the PSF may be elongated and have a defined rotation angle."
 msgstr ""
+"Si es marca, una PSF definida a partir d'estels serà circularment simètrica. "
+"Si no es marca, la PSF pot estar allargada i tenir un angle de rotació "
+"definit."
 
 #: src/gui/siril3.glade:7369
 msgid "PSF from Stars"
-msgstr ""
+msgstr "PSF dels estels"
 
 #: src/gui/siril3.glade:7401
 #, fuzzy
@@ -1566,17 +1594,19 @@ msgstr "Vista prèvia"
 
 #: src/gui/siril3.glade:7441
 msgid "Shows a preview of the PSF, if one has been calculated."
-msgstr ""
+msgstr "Mostra una vista prèvia de la PSF, si una ha estat calculada."
 
 #: src/gui/siril3.glade:7455
 msgid "Usage tips"
-msgstr ""
+msgstr "Consells d'ús"
 
 #: src/gui/siril3.glade:7459
 msgid ""
 "Opens a page in the online Siril documentation with usage tips and examples "
 "of settings that can work for different types of image."
 msgstr ""
+"Obre una pàgina de la documentació en línia de Siril amb consells d'ús i "
+"exemples d'ajustos que poden funcionar per a diferents tipus d'imatges."
 
 #: src/gui/siril3.glade:7515
 msgid ""
@@ -1585,6 +1615,10 @@ msgid ""
 "Choose Richardson-Lucy for deep space images; choose either Split Bregman or "
 "Wiener filtering for lunar and planetary images."
 msgstr ""
+"Un cop s'estima o es proporciona la PSF, la imatge finalment es "
+"deconvoluciona utilitzant l'algorisme seleccionat. \n"
+"Escull Richardson-Lucy per a les imatges d'espai profund; escull el "
+"filtratge Split Bregman o Wiener per a les imatges lunars i planetàries."
 
 #: src/gui/siril3.glade:7519
 msgid "Split Bregman method with TV regularization"
@@ -1603,6 +1637,8 @@ msgstr "Filtre de Mediana"
 msgid ""
 "Number of iterations for final deconvolution if using an iterative method"
 msgstr ""
+"Nombre d'iteracions per a la deconvolució final si s'utilitza un mètode "
+"iteratiu"
 
 #: src/gui/siril3.glade:7561
 msgid "Regularization parameter for the final non-blind stage deconvolution"
