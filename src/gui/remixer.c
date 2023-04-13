@@ -58,7 +58,7 @@ static float leftSP = 0.0f, rightSP = 0.0f;
 static float leftHP = 1.0f, rightHP = 1.0f;
 static float leftBP = 0.0f, rightBP = 0.0f;
 static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_ASINH;
-static int colour_left = COL_INDEP, colour_right = COL_INDEP;
+static int colour_left = COL_HUMANLUM, colour_right = COL_HUMANLUM;
 static fits fit_left;
 static fits fit_right;
 static fits fit_left_calc;
@@ -623,14 +623,14 @@ void reset_values_left() {
 	leftD = leftB = leftLP = leftSP = leftBP = 0.0f;
 	leftHP = 1.0f;
 	type_left = STRETCH_PAYNE_NORMAL;
-	colour_left = COL_INDEP;
+	colour_left = COL_HUMANLUM;
 }
 
 void reset_values_right() {
 	rightD = rightB = rightLP = rightSP = rightBP = 0.0f;
 	rightHP = 1.0f;
 	type_right = STRETCH_ASINH;
-	colour_right = COL_INDEP;
+	colour_right = COL_HUMANLUM;
 }
 
 void reset_values() {
@@ -659,7 +659,7 @@ void reset_left() {
 	gtk_spin_button_set_value(spin_remix_HP_left, leftHP);
 	gtk_spin_button_set_value(spin_remix_BP_left, leftBP);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_left")), STRETCH_PAYNE_NORMAL);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_INDEP);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_HUMANLUM);
 	set_notify_block(FALSE);
 }
 
@@ -678,8 +678,8 @@ void reset_right() {
 	gtk_spin_button_set_value(spin_remix_SP_right, rightSP);
 	gtk_spin_button_set_value(spin_remix_HP_right, rightHP);
 	gtk_spin_button_set_value(spin_remix_BP_right, rightBP);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_PAYNE_NORMAL);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_right")), COL_INDEP);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_ASINH);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_right")), COL_HUMANLUM);
 	set_notify_block(FALSE);
 }
 
