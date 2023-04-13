@@ -16265,7 +16265,7 @@ msgstr "Catàleg esteŀlar en línia: "
 
 #: src/gui/plot.c:119 src/gui/plot.c:1492 src/gui/sequence_list.c:534
 msgid "Amplitude"
-msgstr ""
+msgstr "Aplada"
 
 #: src/gui/plot.c:120 src/gui/sequence_list.c:537
 msgid "Magnitude"
@@ -16273,7 +16273,7 @@ msgstr "Magnitud"
 
 #: src/gui/plot.c:124 src/gui/sequence_list.c:549
 msgid "SNR"
-msgstr ""
+msgstr "Relació senyal-soroll"
 
 #: src/gui/plot.c:615 src/gui/plot.c:1287 src/gui/plot.c:1571
 msgid "Frames"
