@@ -1268,7 +1268,6 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		int bitpix, void *dest, int layer, const rectangle *area) {
 	double data_max = -1.0;
-	double data_min = 0.0;
 	int datatype;
 	BYTE *data8;
 	long *pixels_long;
@@ -1320,13 +1319,14 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			break;
 		case DOUBLE_IMG:	// 64-bit floating point pixels
 		case FLOAT_IMG:		// 32-bit floating point pixels
-			fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, &zero, dest,
-					&zero, &status);
+			fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, &zero, dest, &zero, &status);
 			if (status) break;
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
 			if (status2 == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
-				convert_floats(bitpix, dest, nbdata, data_max, data_min);
+				float mini, maxi;
+				fit_stats(fptr, &mini, &maxi);
+				convert_floats(bitpix, dest, nbdata, (double) maxi, (double) mini);
 			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
