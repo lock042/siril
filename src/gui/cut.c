@@ -661,16 +661,16 @@ gpointer cut_profile(gpointer p) {
 END:
 	// Clean up
 	if (tmpfile) {
-		if (use_gnuplot && arg->seq != NULL) {
+		if (use_gnuplot) {
 			gnuplot_rmtmpfile(gplot, filename);
 		} else if (g_unlink(filename)) {
 			siril_debug_print("Error in g_unlink()\n");
 		}
-	}/* else if ((arg->seq != NULL) && ( !arg->save_dat)) {
+	} else if ((arg->seq != NULL) && ( !arg->save_dat)) {
 		siril_debug_print("Unlinking temporary file %s\n", filename);
 		if (g_unlink(filename))
 			siril_debug_print("Error in g_unlink()\n");
-	}*/
+	}
 	g_free(arg->filename);
 	arg->filename = NULL;
 	g_free(filename);
@@ -694,6 +694,10 @@ END:
 gpointer tri_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
 	gboolean gplot_gui = (!(arg->seq));
+	if (gplot_gui)
+		siril_debug_print("Will use gui.gplot\n");
+	else
+		siril_debug_print("Will create a new gnuplot handle for sequence ops\n");
 	int retval = 0;
 	gboolean tmpfile = FALSE;
 	char *filename = NULL, *imagefilename = NULL;
