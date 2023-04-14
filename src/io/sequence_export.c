@@ -32,6 +32,7 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
+#include "io/Astro-TIFF.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif
@@ -473,7 +474,9 @@ static gpointer export_sequence(gpointer ptr) {
 #ifdef HAVE_LIBTIFF
 			case EXPORT_TIFF:
 				snprintf(dest, 255, "%s%05d", args->basename, i + 1);
-				retval = savetif(dest, destfit, 16, NULL, com.pref.copyright, args->tiff_compression, TRUE, TRUE);
+				gchar *astro_tiff = AstroTiff_build_header(destfit);
+				retval = savetif(dest, destfit, 16, astro_tiff, com.pref.copyright, args->tiff_compression, TRUE, TRUE);
+				g_free(astro_tiff);
 				break;
 #endif
 			case EXPORT_SER:
