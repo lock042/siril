@@ -443,7 +443,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 
 		/*  data are computed, now plot the graph. */
 		if (use_gnuplot) {
-			gnuplot_ctrl *gplot = gnuplot_init();
+			gnuplot_ctrl *gplot = gnuplot_init(FALSE);
 			if (gplot) {
 				/* Plotting light curve */
 				gchar *title = g_strdup_printf("Light curve of star %s", target_descr);

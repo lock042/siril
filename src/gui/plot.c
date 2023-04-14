@@ -809,7 +809,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	/*  data are computed, now plot the graph. */
 
 	if (use_gnuplot) {
-		if ((gplot = gnuplot_init())) {
+		if ((gplot = gnuplot_init(FALSE))) {
 			/* Plotting light curve */
 			gnuplot_set_title(gplot, _("Light Curve"));
 			gnuplot_set_xlabel(gplot, xlabel);

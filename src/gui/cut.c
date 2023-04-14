@@ -78,7 +78,7 @@ static char* profile_tmpfile()
     return tmp_filename;
 }
 
-void reset_cut_gui_filedependent() { // Searated out to avoid having to repeat too much after opening a new file
+void reset_cut_gui_filedependent() { // Separated out to avoid having to repeat too much after opening a new file
 	GtkWidget *colorbutton = (GtkWidget*) lookup_widget("cut_radio_color");
 	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
@@ -90,8 +90,6 @@ void reset_cut_gui_filedependent() { // Searated out to avoid having to repeat t
 static void reset_cut_gui() {
 	GtkToggleButton *radio_mono = (GtkToggleButton*) lookup_widget("cut_radio_mono");
 	gtk_toggle_button_set_active(radio_mono, TRUE);
-	GtkToggleButton *measure = (GtkToggleButton*) lookup_widget("cut_measure_profile");
-	gtk_toggle_button_set_active(measure, FALSE);
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
 	gtk_toggle_button_set_active(save_dat, FALSE);
 	GtkToggleButton *save_png = (GtkToggleButton*) lookup_widget("cut_save_png");
@@ -482,7 +480,7 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 			siril_debug_print("%s\n", arg->filename);
 		}
 		tempfilename = profile_tmpfile();
-		if (!(arg->save_dat || arg->seq))
+		if (!(arg->save_dat))
 			*hastmpfile = TRUE;
 	}
 	temp = g_path_get_basename(*filename);
@@ -498,6 +496,11 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 
 gpointer cut_profile(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
+	gboolean gplot_gui = (!(arg->seq));
+	if (gplot_gui)
+		siril_debug_print("Will use gui.gplot\n");
+	else
+		siril_debug_print("Will create a new gnuplot handle for sequence ops\n");
 	gchar* legend = NULL;
 	int retval = 0;
 	gnuplot_ctrl *gplot = NULL;
@@ -511,7 +514,9 @@ gpointer cut_profile(gpointer p) {
 	if (!use_gnuplot) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
-		gplot = gnuplot_init();
+		gplot = gnuplot_init(gplot_gui);
+		if (tmpfile)
+			gnuplot_declaretmpfile(gplot, filename);
 	}
 
 	point delta;
@@ -610,7 +615,6 @@ gpointer cut_profile(gpointer p) {
 	}
 	if (use_gnuplot) {
 		if (gplot) {
-			// Add tmpfile to handle so it is deleted automatically
 			/* Plotting cut profile */
 			gchar *xlabel = NULL, *title = NULL;
 			title = cut_make_title(arg, xscale); // must be freed with g_free()
@@ -650,18 +654,23 @@ gpointer cut_profile(gpointer p) {
 			}
 			g_free(title);
 			g_free(xlabel);
-			gnuplot_close(gplot);
 		}
 		else siril_log_message(_("Communicating with gnuplot failed\n"));
 	}
 
 END:
 	// Clean up
-	if (tmpfile || (arg->seq != NULL && !arg->save_dat)) {
+	if (tmpfile) {
+		if (use_gnuplot && arg->seq != NULL) {
+			gnuplot_rmtmpfile(gplot, filename);
+		} else if (g_unlink(filename)) {
+			siril_debug_print("Error in g_unlink()\n");
+		}
+	}/* else if ((arg->seq != NULL) && ( !arg->save_dat)) {
 		siril_debug_print("Unlinking temporary file %s\n", filename);
 		if (g_unlink(filename))
 			siril_debug_print("Error in g_unlink()\n");
-	}
+	}*/
 	g_free(arg->filename);
 	arg->filename = NULL;
 	g_free(filename);
@@ -684,6 +693,7 @@ END:
 
 gpointer tri_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
+	gboolean gplot_gui = (!(arg->seq));
 	int retval = 0;
 	gboolean tmpfile = FALSE;
 	char *filename = NULL, *imagefilename = NULL;
@@ -696,7 +706,9 @@ gpointer tri_cut(gpointer p) {
 	if (!use_gnuplot) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
-		gplot = gnuplot_init();
+		gplot = gnuplot_init(gplot_gui);
+		if (tmpfile)
+			gnuplot_declaretmpfile(gplot, filename);
 	}
 
 	point delta;
@@ -812,9 +824,14 @@ gpointer tri_cut(gpointer p) {
 	else siril_log_message(_("Communicating with gnuplot failed\n"));
 
 END:
-	gnuplot_close(gplot);
 	// Clean up
-	if (tmpfile || (arg->seq != NULL && !arg->save_dat)) {
+	if (tmpfile) {
+		if (use_gnuplot) {
+			gnuplot_rmtmpfile(gplot, filename);
+		} else if (g_unlink(filename)) {
+			siril_debug_print("Error in g_unlink()\n");
+		}
+	} else if ((arg->seq != NULL) && ( !arg->save_dat)) {
 		siril_debug_print("Unlinking temporary file %s\n", filename);
 		if (g_unlink(filename))
 			siril_debug_print("Error in g_unlink()\n");
@@ -839,6 +856,7 @@ END:
 
 gpointer cfa_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
+	gboolean gplot_gui = (!(arg->seq));
 	int retval = 0, ret = 0;
 	gboolean tmpfile = FALSE;
 	double *x = NULL, *r[4] = { 0 };
@@ -852,7 +870,9 @@ gpointer cfa_cut(gpointer p) {
 	if (!use_gnuplot) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
-		gplot = gnuplot_init();
+		gplot = gnuplot_init(gplot_gui);
+		if (tmpfile)
+			gnuplot_declaretmpfile(gplot, filename);
 	}
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
@@ -951,9 +971,14 @@ gpointer cfa_cut(gpointer p) {
 	else siril_log_message(_("Communicating with gnuplot failed\n"));
 
 END:
-	gnuplot_close(gplot);
 	// Clean up
-	if (tmpfile || (arg->seq != NULL && !arg->save_dat)) {
+	if (tmpfile) {
+		if (use_gnuplot) {
+			gnuplot_rmtmpfile(gplot, filename);
+		} else if (g_unlink(filename)) {
+			siril_debug_print("Error in g_unlink()\n");
+		}
+	} else if ((arg->seq != NULL) && ( !arg->save_dat)) {
 		siril_debug_print("Unlinking temporary file %s\n", filename);
 		if (g_unlink(filename))
 			siril_debug_print("Error in g_unlink()\n");
@@ -1071,6 +1096,7 @@ void match_adjustments_to_gfit() {
 
 void on_cut_manual_coords_button_clicked(GtkButton* button, gpointer user_data) {
 	match_adjustments_to_gfit();
+	gui.cut.cut_measure = FALSE;
 	g_signal_handlers_block_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
 	GtkWidget *cut_coords_dialog = lookup_widget("cut_coords_dialog");
 	if (gui.cut.cut_start.x != -1) // If there is a cut line already made, show the
@@ -1099,6 +1125,7 @@ void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
 	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
+	gui.cut.cut_measure = TRUE;
 	if (gtk_toggle_button_get_active(seqbutton))
 		gtk_toggle_button_set_active(pngbutton, TRUE);
 }
@@ -1124,6 +1151,7 @@ void on_cut_coords_cancel_button_clicked(GtkButton *button, gpointer user_data) 
 
 void on_cut_coords_dialog_hide(GtkWindow *window, gpointer user_data) {
 	siril_open_dialog("cut_dialog");
+	gui.cut.cut_measure = TRUE;
 	mouse_status = MOUSE_ACTION_CUT_SELECT;
 	g_signal_handlers_unblock_by_func(GTK_WINDOW(lookup_widget("cut_dialog")), on_cut_close_button_clicked, NULL);
 }
@@ -1152,6 +1180,7 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	gui.cut.cut_start.y = sy;
 	gui.cut.cut_end.x = fx;
 	gui.cut.cut_end.y = fy;
+	measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end);
 	redraw(REDRAW_OVERLAY);
 	siril_close_dialog("cut_coords_dialog");
 }
@@ -1243,10 +1272,6 @@ void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) 
 	}
 }
 
-void on_cut_measure_profile_toggled(GtkToggleButton *button, gpointer user_data) {
-	gui.cut.cut_measure = gtk_toggle_button_get_active(button);
-}
-
 void on_cut_save_png_toggled(GtkToggleButton *button, gpointer user_data) {
 	GtkToggleButton* seqbutton = (GtkToggleButton*) lookup_widget("cut_apply_to_sequence");
 	gui.cut.save_png_too = gtk_toggle_button_get_active(button);
@@ -1269,10 +1294,6 @@ void on_cut_apply_to_sequence_toggled(GtkToggleButton *button, gpointer user_dat
 	} else {
 		gtk_widget_set_sensitive(measurebutton, TRUE);
 	}
-}
-
-void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data) {
-	measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end);
 }
 
 void on_cut_tricut_step_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -1385,7 +1406,11 @@ static int cut_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		g_free(mem_per_thread);
 		g_free(mem_available);
 	}
-	return limit;
+	// Use a single gnuplot handle, process images sequentially
+	// Shouldn't be necessary but when running mutliple GNUplot processes
+	// confusion seems to result and the sequence processor can hang
+	return min(1, limit);
+
 }
 
 static gboolean cut_idle_function(gpointer p) {

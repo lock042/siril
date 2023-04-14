@@ -540,6 +540,29 @@ struct image_view {
 	cairo_surface_t *disp_surface;	// the cache
 };
 
+typedef struct _GNUPLOT_CTRL_ {
+    /** Pipe to gnuplot process */
+    FILE* gnucmd ;
+	FILE* gnumon ;
+
+    /** Number of currently active plots in the current plot */
+    int* nplots ;
+	/** Current plot window **/
+	int current;
+	int maxplot; // Maximum plot window
+	gboolean reuse;
+    /** Current plotting style */
+    char pstyle[32] ;
+
+    /** Pointer to table of names of temporary files */
+    char** tmp_filename_tbl ;
+    /** Number of temporary files */
+    int ntmp ;
+	GThread* thread;
+	int child_fd;
+	gboolean running;
+} gnuplot_ctrl ;
+
 typedef struct draw_data {
 	cairo_t *cr;	// the context to draw to
 	int vport;	// the viewport index to draw
@@ -604,6 +627,8 @@ struct guiinf {
 	GtkWidget *preview_area[PREVIEW_NB];
 	guchar *refimage_regbuffer;	// the graybuf[registration_layer] of the reference image
 	cairo_surface_t *refimage_surface;
+
+	gnuplot_ctrl *gplot;	// The permanent GNUplot handle
 
 	int file_ext_filter;		// file extension filter for open/save dialogs
 

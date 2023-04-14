@@ -38,6 +38,7 @@
 #include "algos/annotate.h"
 #include "io/conversion.h"
 #include "io/films.h"
+#include "io/gnuplot_i.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -1410,6 +1411,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	// init the cut structure
 	initialize_cut_struct(&gui.cut);
+	gui.cut.cut_measure = TRUE;
 	gui.measure_start = (point){ -1., -1. };
 	gui.measure_end = (point){ -1., -1. };
 
@@ -1651,6 +1653,8 @@ void load_main_window_state() {
 }
 
 void gtk_main_quit() {
+	if (gui.gplot)
+		gnuplot_gui_close();
 	writeinitfile();		// save settings (like window positions)
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources

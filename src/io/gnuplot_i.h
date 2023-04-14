@@ -30,9 +30,7 @@
  ---------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <glib.h>
-
-/** Maximal number of simultaneous temporary files */
-#define GP_MAX_TMP_FILES    64
+#include "core/siril.h"
 
 /*---------------------------------------------------------------------------
                                 New Types
@@ -53,24 +51,8 @@
  */
 /*-------------------------------------------------------------------------*/
 
-typedef struct _GNUPLOT_CTRL_ {
-    /** Pipe to gnuplot process */
-    FILE    * gnucmd ;
-	FILE    * gnumon ;
 
-    /** Number of currently active plots */
-    int       nplots ;
-    /** Current plotting style */
-    char      pstyle[32] ;
-
-    /** Pointer to table of names of temporary files */
-    char*      tmp_filename_tbl[GP_MAX_TMP_FILES] ;
-    /** Number of temporary files */
-    int       ntmp ;
-	GThread*  thread;
-	int 	  child_fd;
-	gboolean running;
-} gnuplot_ctrl ;
+// Moved to siril.h in order to have a permanent gnuplot handle
 
 /*---------------------------------------------------------------------------
                         Function ANSI C prototypes
@@ -81,7 +63,7 @@ gboolean gnuplot_is_available();
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Opens up a gnuplot session, ready to receive commands.
-  @param    None
+  @param    gui Whether to use gui.gplot or make a new handle
   @return   Newly allocated gnuplot control structure.
 
   This opens up a new gnuplot session, ready for input. The struct
@@ -91,7 +73,7 @@ gboolean gnuplot_is_available();
   The session must be closed using gnuplot_close().
  */
 /*--------------------------------------------------------------------------*/
-gnuplot_ctrl * gnuplot_init();
+gnuplot_ctrl * gnuplot_init(gboolean is_gui);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -583,5 +565,11 @@ void gnuplot_multiplot_3xy(
 	double *y2,
 	double *y3,
 	int n);
+
+void gnuplot_declaretmpfile(
+	gnuplot_ctrl *handle,
+	char *filename);
+
+void gnuplot_gui_close();
 
 #endif

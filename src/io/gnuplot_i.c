@@ -59,6 +59,7 @@
 #include <glib.h> // g_get_tmp_dir
 #include <glib/gstdio.h>
 
+#include "core/siril.h"
 #include "gui/plot.h"
 #include "core/siril_log.h"
 
@@ -183,10 +184,10 @@ gpointer tmpwatcher (gpointer user_data) {
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
 		siril_debug_print("No. of tmp files: %d\n", handle->ntmp);
-//		printf("Buffer: %s\n", buffer);
+		printf("Buffer: %s\n", buffer);
 		gchar *arg = buffer;
 		if (g_str_has_prefix(buffer, "Reap ")) {
-//			siril_debug_print("Received Reap message ntmp = %d\n", handle->ntmp);
+			siril_debug_print("Received Reap message ntmp = %d\n", handle->ntmp);
 			if (!handle->ntmp)
 				continue;
 			arg += 5;
@@ -194,7 +195,7 @@ gpointer tmpwatcher (gpointer user_data) {
 				siril_debug_print("%s / %s\n", arg, handle->tmp_filename_tbl[i]);
 				if (!g_strcmp0(arg, handle->tmp_filename_tbl[i])) {
 					g_unlink(handle->tmp_filename_tbl[i]);
-//					siril_debug_print("Reaped file: i = %d, filename = %s\n", i, arg);
+					siril_debug_print("Reaped file: i = %d, filename = %s\n", i, arg);
 					g_free(handle->tmp_filename_tbl[i]);
 					handle->tmp_filename_tbl[i] = NULL;
 					for (int j = i ; j < handle->ntmp - 1 ; j++) {
@@ -211,9 +212,11 @@ gpointer tmpwatcher (gpointer user_data) {
 			if (handle->ntmp) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
 					g_unlink(handle->tmp_filename_tbl[i]);
+					free(handle->tmp_filename_tbl[i]);
 				}
-				handle->ntmp = 0;
 			}
+			free(handle->tmp_filename_tbl);
+			handle->ntmp = 0;
 			g_free(buffer);
 			g_object_unref(data_input);
 			g_object_unref(stream);
@@ -241,61 +244,128 @@ gpointer tmpwatcher (gpointer user_data) {
  */
 /*--------------------------------------------------------------------------*/
 
-gnuplot_ctrl * gnuplot_init()
+gnuplot_ctrl * gnuplot_init_gui()
 {
-    gnuplot_ctrl *  handle ;
-    int i;
+    /*
+     * Structure initialization:
+	 * This gnuplot handle is created on gnuplot_init if it doesn't exist
+	 * The function returns a pointer to gui.gplot if it exists or if it
+	 * is created successfully, or NULL if there is an error.
+     */
+	if (!gui.gplot) {
+		gui.gplot = calloc(1, sizeof(gnuplot_ctrl));
+		gui.gplot->tmp_filename_tbl = calloc(1, sizeof(char*));
+		gui.gplot->tmp_filename_tbl[0] = NULL;
+		gui.gplot->ntmp = 0;
+		gui.gplot->nplots = calloc(1, sizeof(int));
+		gui.gplot->nplots[0] = 0;
+		gui.gplot->current = 0;
+		gui.gplot->maxplot = 0;
+		gui.gplot->reuse = FALSE;
+		gnuplot_setstyle(gui.gplot, "points");
+		gui.gplot->thread = NULL;
+		gchar *bin = siril_get_gnuplot_bin();
+		gchar* bin2[3];
+		bin2[0] = bin;
+		bin2[2] = NULL;
+		// passing the option --persist keeps the plot opened even after gnuplot process has been closed
+		bin2[1] = "--persist";
+		siril_debug_print("GNUplot executable: %s\n", bin2[0]);
+		/* call gnuplot */
+		gint child_stdin, child_stdout, child_stderr;
+		GPid child_pid;
+		g_autoptr(GError) error = NULL;
+
+		g_spawn_async_with_pipes(NULL, bin2, NULL,
+				G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
+				NULL, NULL, &child_pid, &child_stdin, &child_stdout,
+				&child_stderr, &error);
+		if (error != NULL) {
+			siril_log_color_message(_("Spawning gnuplot failed: %s\n"), "red", error->message);
+			g_free(bin);
+			return NULL;
+		}
+		gui.gplot->running = TRUE;
+		gui.gplot->gnucmd = fdopen(child_stdin, "w");
+		gui.gplot->gnumon = fdopen(child_stderr, "r");
+		gui.gplot->child_fd = child_stderr;
+		gui.gplot->thread = g_thread_new("gplotwatcher", tmpwatcher, gui.gplot);
+
+		g_free(bin);
+		if (gui.gplot->gnucmd == NULL) {
+			fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
+			free(gui.gplot);
+			return NULL;
+		}
+	} else {
+		siril_debug_print("gui.gplot found...\n");
+	}
+    return gui.gplot;
+}
+
+gnuplot_ctrl * gnuplot_init_nogui()
+{
+    gnuplot_ctrl * handle = calloc(1, sizeof(gnuplot_ctrl));
 
     /*
      * Structure initialization:
+	 * This gnuplot handle is created on gnuplot_init if it doesn't exist
+	 * The function returns a pointer to gui.gplot if it exists or if it
+	 * is created successfully, or NULL if there is an error.
      */
-    handle = (gnuplot_ctrl*)malloc(sizeof(gnuplot_ctrl)) ;
-    handle->nplots = 0 ;
-    gnuplot_setstyle(handle, "points") ;
-    handle->ntmp = 0 ;
+	handle->tmp_filename_tbl = calloc(1, sizeof(char*));
+	handle->tmp_filename_tbl[0] = NULL;
+	handle->ntmp = 0;
+	handle->nplots = calloc(1, sizeof(int));
+	handle->nplots[0] = 0;
+	handle->current = 0;
+	handle->maxplot = 0;
+	handle->reuse = FALSE;
+	gnuplot_setstyle(handle, "points");
 	handle->thread = NULL;
-
-    gchar *bin = siril_get_gnuplot_bin();
-    gchar* bin2[3];
-    bin2[0] = bin;
-    bin2[2] = NULL;
-    // passing the option --persist keeps the plot opened even after gnuplot process has been closed
+	gchar *bin = siril_get_gnuplot_bin();
+	gchar* bin2[3];
+	bin2[0] = bin;
+	bin2[2] = NULL;
+	// passing the option --persist keeps the plot opened even after gnuplot process has been closed
 	bin2[1] = "--persist";
-    siril_debug_print("GNUplot executable: %s\n", bin2[0]);
-    /* call gnuplot */
-    gint child_stdin, child_stdout, child_stderr;
-    GPid child_pid;
-    g_autoptr(GError) error = NULL;
+	siril_debug_print("GNUplot executable: %s\n", bin2[0]);
+	/* call gnuplot */
+	gint child_stdin, child_stdout, child_stderr;
+	GPid child_pid;
+	g_autoptr(GError) error = NULL;
 
-    g_spawn_async_with_pipes(NULL, bin2, NULL,
-            G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
-            NULL, NULL, &child_pid, &child_stdin, &child_stdout,
-            &child_stderr, &error);
-    if (error != NULL) {
-        siril_log_color_message(_("Spawning gnuplot failed: %s\n"), "red", error->message);
-        g_free(bin);
-        return NULL;
-    }
+	g_spawn_async_with_pipes(NULL, bin2, NULL,
+			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
+			NULL, NULL, &child_pid, &child_stdin, &child_stdout,
+			&child_stderr, &error);
+	if (error != NULL) {
+		siril_log_color_message(_("Spawning gnuplot failed: %s\n"), "red", error->message);
+		g_free(bin);
+		return NULL;
+	}
 	handle->running = TRUE;
-    handle->gnucmd = fdopen(child_stdin, "w");
+	handle->gnucmd = fdopen(child_stdin, "w");
 	handle->gnumon = fdopen(child_stderr, "r");
 	handle->child_fd = child_stderr;
 	handle->thread = g_thread_new("gplotwatcher", tmpwatcher, handle);
 
-    g_free(bin);
-    if (handle->gnucmd == NULL) {
-        fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
-        free(handle);
-        return NULL;
-    }
-
-    for (i=0;i<GP_MAX_TMP_FILES; i++)
-    {
-        handle->tmp_filename_tbl[i] = NULL;
-    }
+	g_free(bin);
+	if (handle->gnucmd == NULL) {
+		fprintf(stderr, "error starting gnuplot, is gnuplot or gnuplot.exe in your path?\n") ;
+		free(handle);
+		return NULL;
+	}
     return handle;
 }
 
+gnuplot_ctrl * gnuplot_init(gboolean is_gui)
+{
+	if (is_gui)
+		return gnuplot_init_gui();
+	else
+		return gnuplot_init_nogui();
+}
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -303,23 +373,80 @@ gnuplot_ctrl * gnuplot_init()
   @param    handle Gnuplot session control handle.
   @return   void
 
-  Closes gnuplot by calling an exit command and deletes all opened temporary files.
+  Closes gnuplot by calling an exit command and deletes all opened temporary
+  files.
   It is mandatory to call this function to close the handle, otherwise
   temporary files are not cleaned and child process might survive.
-  This is meant to be called when plot are not displayed
+  This *must not* be called on gui.gplot - that is closed separately at exit
+  time. A second function, gnuplot_gui_close(), is provided specifically for
+  closing gui.gplot.
 
  */
 /*--------------------------------------------------------------------------*/
 
 void gnuplot_close(gnuplot_ctrl * handle)
 {
+	if (handle == gui.gplot) {
+		siril_debug_print("Warning: gnuplot_close() should not be called on gui.gplot or a pointer to it. This will be cleaned on exit. Doing nothing...\n");
+		return;
+	}
+	// This command is only for closing non-GUI gnuplot handles
+	// i.e. those created by the sequence worker
+	for (int i = 0 ; i < handle->maxplot ; i++) {
+		gchar *cmd = g_strdup_printf("set term wxt %d close\n", i);
+		siril_debug_print("%s", cmd);
+		gnuplot_cmd(handle, cmd);
+		g_free(cmd);
+	}
+	free(handle->nplots);
 	gnuplot_cmd(handle, "print \"Terminate\"");
+	siril_debug_print("GNUplot terminate command sent\n");
 	while (TRUE) {
 		g_usleep(1000);
 	if (!handle->running)
 			break;
 	}
 	free(handle);
+	handle = NULL;
+}
+
+void gnuplot_gui_close()
+{
+	for (int i = 0 ; i < gui.gplot->maxplot ; i++) {
+		gchar *cmd = g_strdup_printf("set term wxt %d close\n", i);
+		siril_debug_print("%s", cmd);
+		gnuplot_cmd(gui.gplot, cmd);
+		g_free(cmd);
+	}
+	free(gui.gplot->nplots);
+	gnuplot_cmd(gui.gplot, "print \"Terminate\"");
+	siril_debug_print("GNUplot terminate command sent\n");
+	while (TRUE) {
+		g_usleep(1000);
+		if (!gui.gplot->running)
+			break;
+	}
+	free(gui.gplot);
+	gui.gplot = NULL;
+}
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Declares a filename as a GNUplot temporary file
+			This allows controlled reaping using gnuplot_rmtmpfile
+  @param    handle Gnuplot session control handle.
+  @param    filename Filename to reap.
+  @return   void
+
+ */
+/*--------------------------------------------------------------------------*/
+
+void gnuplot_declaretmpfile(gnuplot_ctrl *handle, char *filename) {
+    assert(handle->tmp_filename_tbl[handle->ntmp] == NULL);
+	handle->tmp_filename_tbl = realloc(handle->tmp_filename_tbl, (handle->ntmp + 2) * sizeof(char*));
+	handle->tmp_filename_tbl[handle->ntmp] = strdup(filename);
+	handle->tmp_filename_tbl[handle->ntmp + 1] = NULL;
+	handle->ntmp++;
+	siril_debug_print("GNUplot tmpfile %s declared, new ntmp %d\n", filename, handle->ntmp);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -339,7 +466,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
 void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char *filename)
 {
 	gchar *cmd = g_strdup_printf("print \"Reap %s\"", filename);
-	siril_debug_print("Calling gnuplot_cmd\n");
+	siril_debug_print("Calling gnuplot_cmd to reap temporary file %s\n", filename);
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
 }
@@ -507,6 +634,25 @@ void gnuplot_reverse_yaxis(gnuplot_ctrl * h)
 
 /*-------------------------------------------------------------------------*/
 /**
+  @brief    Sets the x label of a gnuplot session.
+  @param    h Gnuplot session control handle.
+  @param    label Character string to use for X label.
+  @return   void
+
+  Sets the x label for a gnuplot session.
+ */
+/*--------------------------------------------------------------------------*/
+
+void gnuplot_increment_xterm(gnuplot_ctrl * h)
+{
+	h->current++;
+	h->nplots = realloc(h->nplots, (h->current + 1) * sizeof(int));
+	h->nplots[h->current] = 0;
+	h->maxplot++;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
   @brief    Resets a gnuplot session (next plot will erase previous ones).
   @param    h Gnuplot session control handle.
   @return   void
@@ -524,12 +670,31 @@ void gnuplot_resetplot(gnuplot_ctrl * h)
                 siril_debug_print("g_remove() failed\n");
             free(h->tmp_filename_tbl[i]);
             h->tmp_filename_tbl[i] = NULL;
-
         }
+        free(h->tmp_filename_tbl);
+		h->tmp_filename_tbl = NULL;
     }
     h->ntmp = 0 ;
     h->nplots = 0 ;
+	h->current = 0 ;
     return ;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Sets the X11 terminal output
+  @param    h Gnuplot session control handle.
+  @return   void
+
+  Sets the X11 terminal output to handle->current.
+*/
+/*--------------------------------------------------------------------------*/
+
+void xtermset (gnuplot_ctrl * handle) {
+	char *termcmd = g_strdup_printf("set term wxt %d persist raise\n", handle->current);
+	siril_debug_print("%s", termcmd);
+	gnuplot_cmd(handle, termcmd);
+	g_free(termcmd);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -592,7 +757,10 @@ void gnuplot_plot_x(
     fclose(tmpfd) ;
 
     gnuplot_plot_atmpfile(handle,tmpfname,title,0);
-	gnuplot_rmtmpfile(handle,tmpfname);
+//	gnuplot_rmtmpfile(handle,tmpfname); // Now done at application close
+	handle->nplots[handle->current]++;
+	if (!handle->reuse)
+		gnuplot_increment_xterm(handle);
     return ;
 }
 
@@ -664,7 +832,11 @@ void gnuplot_plot_xy(
     fclose(tmpfd) ;
 
     gnuplot_plot_xy_from_datfile(handle,tmpfname);
-	gnuplot_rmtmpfile(handle,tmpfname);
+//	gnuplot_rmtmpfile(handle,tmpfname);
+	handle->nplots[handle->current]++;
+	if (!handle->reuse)
+		gnuplot_increment_xterm(handle);
+
     return ;
 }
 
@@ -718,7 +890,11 @@ void gnuplot_plot_xyyerr(
     fclose(tmpfd) ;
 
     gnuplot_plot_atmpfile(handle,tmpfname,title, x_offset);
-	gnuplot_rmtmpfile(handle,tmpfname);
+//	gnuplot_rmtmpfile(handle,tmpfname);
+	handle->nplots[handle->current]++;
+	if (!handle->reuse)
+		gnuplot_increment_xterm(handle);
+
     return ;
 }
 
@@ -753,7 +929,7 @@ void gnuplot_plot_xyyerr_from_datfile(
   X and Y. Defaults are provided in this case.
  */
 /*--------------------------------------------------------------------------*/
-
+/*
 void gnuplot_plot_once(
   char    *   title,
   char    *   style,
@@ -794,7 +970,7 @@ void gnuplot_plot_once(
   gnuplot_close(handle);
   return ;
 }
-
+*/
 void gnuplot_plot_slope(
     gnuplot_ctrl    *   handle,
     double              a,
@@ -802,16 +978,19 @@ void gnuplot_plot_slope(
     char            *   title
 )
 {
-    char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
-    title                  = (title == NULL)      ? "(none)" : title;
+	xtermset(handle);
+
+    char const *    cmd    = (handle->reuse && handle->nplots > 0) ? "replot" : "plot";
+	title                  = (title == NULL)      ? "(none)" : title;
 
     gnuplot_cmd(handle, "%s %.18e * x + %.18e title \"%s\" with %s",
                   cmd, a, b, title, handle->pstyle) ;
 
-    handle->nplots++ ;
+	handle->nplots[handle->current]++;
+	if (!handle->reuse)
+		gnuplot_increment_xterm(handle);
     return ;
 }
-
 
 void gnuplot_plot_equation(
     gnuplot_ctrl    *   h,
@@ -819,15 +998,18 @@ void gnuplot_plot_equation(
     char            *   title
 )
 {
-    char const *    cmd    = (h->nplots > 0) ? "replot" : "plot";
+	xtermset(h);
+
+	char const *    cmd    = (h->reuse && h->nplots > 0) ? "replot" : "plot";
     title                  = (title == NULL)      ? "(none)" : title;
 
     gnuplot_cmd(h, "%s %s title \"%s\" with %s",
                   cmd, equation, title, h->pstyle) ;
-    h->nplots++ ;
+	h->nplots[h->current]++;
+	if (!h->reuse)
+		gnuplot_increment_xterm(h);
     return ;
 }
-
 
 int gnuplot_write_x_csv(
     char const * fileName,
@@ -1117,13 +1299,14 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle)
 
     assert(handle->tmp_filename_tbl[handle->ntmp] == NULL);
 
-    /* Open one more temporary file? */
+/*    // Open one more temporary file?
     if (handle->ntmp == GP_MAX_TMP_FILES - 1) {
         fprintf(stderr,
                 "maximum # of temporary files reached (%d): cannot open more",
                 GP_MAX_TMP_FILES) ;
         return NULL;
     }
+*/
 
 /* Due to a Windows behavior and Mingw temp file name,
  * we escapes the special characters by inserting a '\' before them */
@@ -1138,48 +1321,61 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle)
 #ifdef _WIN32
     if (_mktemp(tmp_filename) == NULL)
     {
-        return NULL;
+		g_free(tmp_filename);
+		return NULL;
     }
 #else // #ifdef _WIN32
     unx_fd = mkstemp(tmp_filename);
     if (unx_fd == -1)
     {
-        free(tmp_filename);
+        g_free(tmp_filename);
         return NULL;
     }
     close(unx_fd);
 
 #endif // #ifdef _WIN32
 
-    handle->tmp_filename_tbl[handle->ntmp] = tmp_filename;
+	handle->tmp_filename_tbl = realloc(handle->tmp_filename_tbl, (handle->ntmp + 2) * sizeof(char*));
+	handle->tmp_filename_tbl[handle->ntmp] = strdup(tmp_filename);
+	handle->tmp_filename_tbl[handle->ntmp + 1] = NULL;
     handle->ntmp ++;
-    return tmp_filename;
+	g_free(tmp_filename);
+    return handle->tmp_filename_tbl[handle->ntmp];
 }
 
 void gnuplot_plot_xy_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
-    char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->reuse && handle->nplots > 0) ? "replot" : "plot";
+	xtermset(handle);
     gnuplot_cmd(handle, "%s \"%s\" using ($1):($2) with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);
-    handle->nplots++ ;
+	handle->nplots[handle->current]++;
+	if (!handle->reuse)
+		gnuplot_increment_xterm(handle);
     return ;
 }
 
 void gnuplot_plot_xrgb_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
-    char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->reuse && handle->nplots > 0) ? "replot" : "plot";
+	xtermset(handle);
     gnuplot_cmd(handle, "%s for [col=2:4] \"%s\" using ($1):col with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);
-    handle->nplots++ ;
+	handle->nplots[handle->current]++;
+	if (!handle->reuse)
+		gnuplot_increment_xterm(handle);
     return ;
 }
 
 void gnuplot_plot_xcfa_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
-    char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->reuse && handle->nplots > 0) ? "replot" : "plot";
+	xtermset(handle);
     gnuplot_cmd(handle, "%s for [col=2:5] \"%s\" using ($1):col with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);
-    handle->nplots++ ;
+	handle->nplots[handle->current]++;
+	if (!handle->reuse)
+		gnuplot_increment_xterm(handle);
     return ;
 }
 
@@ -1235,9 +1431,11 @@ void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char
 {
     char const *    cmd    = (handle->nplots > 0) ? "replot" : "plot";
     title                  = (title == NULL)      ? "(none)" : title;
+	xtermset(handle);
     gnuplot_cmd(handle, "%s \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s",
            cmd, tmp_filename, x_offset, title, handle->pstyle);
-    handle->nplots++ ;
+	handle->nplots++;
+	handle->current++;
     return ;
 }
 
@@ -1255,7 +1453,7 @@ void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename
                 handle->pstyle);
 }
 
-void gnuplot_multiplot_3xy(gnuplot_ctrl * handle, double *x, double *y1, double *y2, double *y3, int n)
+/*void gnuplot_multiplot_3xy(gnuplot_ctrl * handle, double *x, double *y1, double *y2, double *y3, int n)
 {
     int     i ;
     FILE*   tmpfd ;
@@ -1263,7 +1461,7 @@ void gnuplot_multiplot_3xy(gnuplot_ctrl * handle, double *x, double *y1, double 
 
     if (handle==NULL || x==NULL || y1==NULL || y2 == NULL || y3 == NULL || (n<1)) return ;
 
-    /* Open temporary file for output   */
+    // Open temporary file for output
     tmpfname = gnuplot_tmpfile(handle);
     tmpfd = g_fopen(tmpfname, "w");
 
@@ -1272,7 +1470,7 @@ void gnuplot_multiplot_3xy(gnuplot_ctrl * handle, double *x, double *y1, double 
         return ;
     }
 
-    /* Write data to this file  */
+    // Write data to this file
     for (i=0 ; i<n; i++) {
         fprintf(tmpfd, "%.18e %.18e %.18e %.18e\n", x[i], y1[i], y2[i], y3[i]) ;
     }
@@ -1289,5 +1487,5 @@ void gnuplot_multiplot_3xy(gnuplot_ctrl * handle, double *x, double *y1, double 
 	gnuplot_cmd(handle, "unset multiplot");
 	free(curve_title);
 }
-
+*/
 /* vim: set ts=4 et sw=4 tw=75 */
