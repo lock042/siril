@@ -34,7 +34,7 @@
                                 Includes
  ---------------------------------------------------------------------------*/
 
-#include "gnuplot_i.h"
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +59,7 @@
 #include <glib.h> // g_get_tmp_dir
 #include <glib/gstdio.h>
 
-#include "core/siril.h"
+#include "gnuplot_i.h"
 #include "gui/plot.h"
 #include "core/siril_log.h"
 
