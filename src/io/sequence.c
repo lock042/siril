@@ -149,7 +149,7 @@ char *normalize_seqname(char *name, gboolean add_underscore) {
 		file_no_ext = strdup(locname);
 	}
 	gboolean needs_underscore = add_underscore && !g_str_has_suffix(name, "_");
-	gchar *outname = g_strdup_printf("%s%s", name, needs_underscore ? "_" : "");
+	gchar *outname = g_strdup_printf("%s%s", file_no_ext, needs_underscore ? "_" : "");
 	g_free(locname);
 	free(file_no_ext);
 	return outname;

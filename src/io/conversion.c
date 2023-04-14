@@ -594,14 +594,18 @@ gpointer convert_thread_worker(gpointer p) {
 	set_progress_bar_data(_("Converting files"), PROGRESS_RESET);
 	init_report(args);
 
-	/* remove the target .seq to avoid errors */
 	char *newdestroot = normalize_seqname(args->destroot, args->output_type == SEQ_REGULAR);
 	free(args->destroot);
-	args->destroot = newdestroot;
+	args->destroot = strdup(newdestroot);
 	gchar *seqname = g_strdup_printf("%s%s", args->destroot, ".seq");
 	if (g_unlink(seqname))
 		siril_debug_print("Error in g_unlink()\n");
+	if (args->output_type == SEQ_REGULAR) { // to make sure destorrot has an extension (will be removed when creating the filenames)
+		free(args->destroot);
+		args->destroot = strdup(seqname);
+	}
 	g_free(seqname);
+	free(newdestroot);
 
 	convert_status convert = { 0 };
 	convert.args = args;

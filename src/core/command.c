@@ -2434,7 +2434,7 @@ int process_merge(int nb) {
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
 			args->list = glist_to_array(list, &args->total);
-			args->destroot = format_basename(destroot, TRUE);
+			args->destroot = destroot;
 			args->input_has_a_seq = FALSE;
 			args->input_has_a_film = FALSE;
 			args->debayer = FALSE;
@@ -6268,10 +6268,7 @@ int process_convertraw(int nb) {
 	args->start = idx;
 	args->list = files_to_convert;
 	args->total = count;
-	if (output == SEQ_REGULAR)
-		args->destroot = format_basename(destroot, TRUE);
-	else
-		args->destroot = destroot;
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = debayer;
@@ -6382,7 +6379,7 @@ int process_link(int nb) {
 	args->start = idx;
 	args->list = files_to_link;
 	args->total = count;
-	args->destroot = format_basename(destroot, TRUE);
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = FALSE;
@@ -6508,10 +6505,7 @@ int process_convert(int nb) {
 	args->start = idx;
 	args->list = files_to_link;
 	args->total = count;
-	if (output == SEQ_REGULAR)
-		args->destroot = format_basename(destroot, TRUE);
-	else
-		args->destroot = destroot;
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = debayer;
