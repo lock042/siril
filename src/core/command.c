@@ -9098,7 +9098,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_start))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-from";
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red", "-from");
 				break;
 			}
 		}
@@ -9106,7 +9106,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 4;
 			if ((*err = read_cut_pair(value, &cut_args->cut_end))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-to";
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red", "-to");
 				break;
 			}
 		}
@@ -9114,7 +9114,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn1))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-wn1at";
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red", "-wn1at");
 				break;
 			}
 		}
@@ -9122,7 +9122,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			gchar *value;
 			value = arg + 6;
 			if ((*err = read_cut_pair(value, &cut_args->cut_wn2))) {
-				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red"), "-wn2at";
+				siril_log_color_message(_("Error: Could not parse %s values.\n"), "red", "-wn2at");
 				break;
 			}
 		}
