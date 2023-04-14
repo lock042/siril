@@ -14,8 +14,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7996
@@ -129,8 +129,8 @@ msgid ""
 "Check if the target frames are CFA images.\n"
 "Uncheck if images come from a monochrome sensor."
 msgstr ""
-"Выберете, если целевые кадры это изображения CFA. \n"
-"Отключите, если изображения получены на Ч/Б сенсор."
+"Установите флажок, если целевые кадры это изображения CFA. \n"
+"Снимите флажок, если изображения получены на монохромный сенсор."
 
 #: src/gui/siril3.glade:425 src/gui/siril3.glade:1363 src/gui/siril3.glade:2292
 #: src/gui/siril3.glade:3947 src/gui/siril3.glade:7733
@@ -310,7 +310,7 @@ msgstr "Вертикальное полошение"
 
 #: src/gui/siril3.glade:1346
 msgid "Check this box if banding is vertical."
-msgstr "Выберете, если полошение вертикальное."
+msgstr "Установите флажок, если полошение вертикальное."
 
 #: src/gui/siril3.glade:1394
 msgid "Prefix of the image names resulting from the unband process."
@@ -838,6 +838,7 @@ msgid ""
 msgstr "Префикс имён файлов, полученных в результате извлечения фона."
 
 #: src/gui/siril3.glade:4235 src/gui/siril3.glade:26411 src/io/sequence.c:1811
+#: src/io/sequence.c:1809
 msgid "Save"
 msgstr "Сохранить"
 
@@ -6069,6 +6070,7 @@ msgid "Output registration:"
 msgstr "Результат регистрации:"
 
 #: src/gui/siril3.glade:23258 src/registration/registration.c:1231
+#: src/registration/registration.c:1225
 msgid "Load a sequence first"
 msgstr "Загрузите последовательность"
 
@@ -8122,9 +8124,8 @@ msgstr "Команда \"requires\" обязательна в сценариях
 
 #: src/gui/siril3.glade:30779
 msgid ""
-"If this option is checked, scripts cannot be executed without the "
-"\"requires\" command. That ensures the compatibility between scripts and "
-"Siril.\n"
+"If this option is checked, scripts cannot be executed without the \"requires"
+"\" command. That ensures the compatibility between scripts and Siril.\n"
 "\n"
 "<span foreground=\"red\"><b>WARNING: uncheck this option only if you know "
 "what you are doing!</b></span>"
@@ -8988,8 +8989,8 @@ msgstr ""
 #: src/algos/astrometry_solver.c:1367
 #, c-format
 msgid ""
-"Plate solving image from local catalogues for a field of view of %.2f "
-"degrees%s, using a limit magnitude of %.2f\n"
+"Plate solving image from local catalogues for a field of view of %.2f degrees"
+"%s, using a limit magnitude of %.2f\n"
 msgstr ""
 "Поиск астрономического решения по локальным каталогам для поля зрения %.2f°"
 "%s, с ограничением по блеску %.2f\n"
@@ -9012,7 +9013,7 @@ msgstr ""
 
 #: src/algos/astrometry_solver.c:1408
 msgid "Failed to downsample image, aborting\n"
-msgstr "На удалось уменьшить масштаб изображения, прерывание.\n"
+msgstr "Не удалось уменьшить масштаб изображения, прерывание.\n"
 
 #: src/algos/astrometry_solver.c:1409
 msgid "Not enough memory"
@@ -9032,6 +9033,8 @@ msgstr "Используем %d звёзд, найденных на изобра
 #, c-format
 msgid "Saved focal length %.2f and pixel size %.2f as default values\n"
 msgstr ""
+"Фокусное расстояние %.2f и размер пикселя %.2f сохранены как значения по "
+"умолчанию\n"
 
 #: src/algos/astrometry_solver.c:1478
 msgid ""
@@ -9070,7 +9073,7 @@ msgstr ""
 #: src/algos/astrometry_solver.c:1552
 #, c-format
 msgid "Plate solving failed: %s\n"
-msgstr "Астрономическое решение не удалось: %s\n"
+msgstr "Астрономическое решение не найдено %s\n"
 
 #: src/algos/astrometry_solver.c:1605
 msgid "Transformation matrix is invalid, solve failed"
@@ -9979,7 +9982,7 @@ msgid "Error in layers alignment."
 msgstr "Ошибка в выравнивании слоёв."
 
 #: src/compositing/align_rgb.c:153 src/compositing/compositing.c:657
-#: src/registration/registration.c:1589
+#: src/registration/registration.c:1589 src/registration/registration.c:1583
 msgid "Registration complete."
 msgstr "Регистрация завершена."
 
@@ -10052,7 +10055,8 @@ msgstr "Сначала нужно загрузить хотя бы два сло
 #: src/compositing/compositing.c:603 src/filters/wavelets.c:257
 #: src/filters/wavelets.c:266 src/filters/wavelets.c:327
 #: src/gui/nina_light_curve.c:104 src/registration/registration.c:1408
-#: src/registration/registration.c:1501
+#: src/registration/registration.c:1501 src/registration/registration.c:1402
+#: src/registration/registration.c:1495
 msgid "Warning"
 msgstr "Предупреждение"
 
@@ -10799,7 +10803,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:3126 src/core/command.c:3716 src/core/command.c:3895
-#: src/io/sequence.c:1868
+#: src/io/sequence.c:1868 src/io/sequence.c:1866
 msgid "Select an area first\n"
 msgstr ""
 
@@ -11380,6 +11384,7 @@ msgid "Convert: no working directory set.\n"
 msgstr "Конвертация: рабочий каталог не указан.\n"
 
 #: src/core/command.c:6569 src/registration/registration.c:1455
+#: src/registration/registration.c:1449
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr ""
 
@@ -11404,6 +11409,7 @@ msgstr ""
 
 #: src/core/command.c:6704 src/core/processing.c:141
 #: src/registration/applyreg.c:640 src/registration/registration.c:1491
+#: src/registration/registration.c:1485
 msgid "Not enough space to save the output images, aborting\n"
 msgstr ""
 "Недостаточно места для сохранения результирующих изображений, прерывание\n"
@@ -11422,6 +11428,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:6720 src/registration/registration.c:1518
+#: src/registration/registration.c:1512
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "upscaling can be applied. Aborting\n"
@@ -11430,12 +11437,13 @@ msgstr ""
 #. don't load it for command line execution
 #. to avoid problems with com.stars later on in the process
 #: src/core/command.c:6728 src/registration/registration.c:1537
+#: src/registration/registration.c:1531
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr "Регистрация: обработка методом: %s\n"
 
 #: src/core/command.c:6739 src/core/command.c:7017
-#: src/registration/registration.c:1541
+#: src/registration/registration.c:1541 src/registration/registration.c:1535
 #, fuzzy
 msgid "Interpolation clamping active\n"
 msgstr "Интерполяция: "
@@ -12072,8 +12080,8 @@ msgid ""
 "in argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering "
-"a quoted expression starting with an = sign, such as -bias=\"=256\" or -"
-"bias=\"=64*$OFFSET\".\n"
+"a quoted expression starting with an = sign, such as -bias=\"=256\" or -bias="
+"\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -12109,8 +12117,8 @@ msgid ""
 "argument.\n"
 "\n"
 "For bias, a uniform level can be specified instead of an image, by entering "
-"a quoted expression starting with an = sign, such as -bias=\"=256\" or -"
-"bias=\"=64*$OFFSET\".\n"
+"a quoted expression starting with an = sign, such as -bias=\"=256\" or -bias="
+"\"=64*$OFFSET\".\n"
 "\n"
 "By default, cosmetic correction is not activated. If you wish to apply some, "
 "you will need to specify it with <b>-cc=</b> option.\n"
@@ -12868,8 +12876,8 @@ msgid ""
 "If <b>str</b> starts with <i>$def</i> prefix, it will be recognized as a "
 "reserved keyword and looked for in the strings stored in gui_prepro."
 "dark_lib, gui_prepro.flat_lib, gui_prepro.bias_lib or gui_prepro."
-"stack_default for <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> or "
-"<i>$defstack</i> respectively.\n"
+"stack_default for <i>$defdark</i>, <i>$defflat</i>, <i>$defbias</i> or <i>"
+"$defstack</i> respectively.\n"
 "The keyword <i>$seqname$</i> can also be used when a sequence is loaded"
 msgstr ""
 
@@ -13448,8 +13456,8 @@ msgstr ""
 
 #: src/core/command_def.h:150
 msgid ""
-"Plate solve a sequence. A new sequence will be created with the prefix "
-"\"ps_\".\n"
+"Plate solve a sequence. A new sequence will be created with the prefix \"ps_"
+"\".\n"
 "If images have already been plate solved, they will just be copied, unless "
 "the <b>-platesolve</b> argument is passed to force a new solve. If WCS or "
 "other image metadata are erroneous or missing, arguments must be passed:\n"
@@ -15255,8 +15263,8 @@ msgstr "Проверка обновления отсутствует: не уд�
 msgid ""
 "New version is available. You can download it at <a href=\"%s\">%s</a>\n"
 msgstr ""
-"Доступна новая версия программы. Вы можете скачать её здесь: <a "
-"href=\"%s\">%s</a>\n"
+"Доступна новая версия программы. Вы можете скачать её здесь: <a href=\"%s\">"
+"%s</a>\n"
 
 #: src/core/siril_update.c:358
 msgid "No update check: this is a development version\n"
@@ -15865,7 +15873,7 @@ msgid ""
 "Plate Solving failed. The image could not be aligned with the reference "
 "stars.\n"
 msgstr ""
-"Астрономическое решение не удалось. Изображение не может быть выравнено по "
+"Астрономическое решение не найдено. Изображение не может быть выравнено по "
 "опорным звёздам.\n"
 
 #: src/gui/astrometry_solver.c:310
@@ -18602,136 +18610,141 @@ msgstr ""
 msgid "Sequence loaded: %s (%d->%d)\n"
 msgstr "Загружена последовательность: %s (%d->%d)\n"
 
-#: src/io/sequence.c:761 src/io/sequence.c:889
+#: src/io/sequence.c:761 src/io/sequence.c:889 src/io/sequence.c:759
+#: src/io/sequence.c:887
 #, c-format
 msgid "Could not load image %d from sequence %s\n"
 msgstr ""
 
 #: src/io/sequence.c:769 src/io/sequence.c:844 src/io/sequence.c:897
+#: src/io/sequence.c:767 src/io/sequence.c:842 src/io/sequence.c:895
 #, c-format
 msgid "Could not load frame %d from SER sequence %s\n"
 msgstr ""
 
-#: src/io/sequence.c:777 src/io/sequence.c:907
+#: src/io/sequence.c:777 src/io/sequence.c:907 src/io/sequence.c:775
+#: src/io/sequence.c:905
 #, c-format
 msgid "Could not load frame %d from FITS sequence %s\n"
 msgstr ""
 
 #: src/io/sequence.c:787 src/io/sequence.c:863 src/io/sequence.c:918
+#: src/io/sequence.c:785 src/io/sequence.c:861 src/io/sequence.c:916
 #, c-format
 msgid "Could not load frame %d from AVI sequence %s\n"
 msgstr ""
 
-#: src/io/sequence.c:836 src/io/sequence.c:852
+#: src/io/sequence.c:836 src/io/sequence.c:852 src/io/sequence.c:834
+#: src/io/sequence.c:850
 #, c-format
 msgid "Could not load partial image %d from sequence %s\n"
 msgstr ""
 
-#: src/io/sequence.c:988
+#: src/io/sequence.c:988 src/io/sequence.c:986
 msgid "This operation is not supported on AVI sequences (seq_open_image)\n"
 msgstr ""
 
-#: src/io/sequence.c:992
+#: src/io/sequence.c:992 src/io/sequence.c:990
 msgid ""
 "This operation is not supported on internal sequences (seq_open_image)\n"
 msgstr ""
 
-#: src/io/sequence.c:1416
+#: src/io/sequence.c:1416 src/io/sequence.c:1414
 #, c-format
 msgid "Closing sequence %s\n"
 msgstr "Закрываем последовательность %s\n"
 
-#: src/io/sequence.c:1520
+#: src/io/sequence.c:1520 src/io/sequence.c:1518
 #, c-format
 msgid "This operation will use registration data of layer %d\n"
 msgstr "Эта операция будет использовать данные регистрации слоя %d\n"
 
-#: src/io/sequence.c:1540
+#: src/io/sequence.c:1540 src/io/sequence.c:1538
 msgid "internal sequence"
 msgstr "внутренняя последовательность"
 
-#: src/io/sequence.c:1653
+#: src/io/sequence.c:1653 src/io/sequence.c:1651
 #, c-format
 msgid "Photometry analysis failed for image %d (%s)\n"
 msgstr "Фотометрический анализ изображения %d (%s) не удался\n"
 
-#: src/io/sequence.c:1676
+#: src/io/sequence.c:1676 src/io/sequence.c:1674
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use a larger "
 "area?)\n"
 msgstr ""
 
-#: src/io/sequence.c:1680
+#: src/io/sequence.c:1680 src/io/sequence.c:1678
 #, c-format
 msgid ""
 "No star found in the area image %d around %d,%d: error %s (use 'follow star' "
 "option?)\n"
 msgstr ""
 
-#: src/io/sequence.c:1749
+#: src/io/sequence.c:1749 src/io/sequence.c:1747
 msgid ""
 "Star analysis does not give consistent results when exposure changes across "
 "the sequence.\n"
 msgstr ""
 
-#: src/io/sequence.c:1765
+#: src/io/sequence.c:1765 src/io/sequence.c:1763
 #, fuzzy, c-format
 msgid "Photometry for star at %.1f, %.1f in image %d\n"
 msgstr "Не удалось выполнить анализ звёзд"
 
-#: src/io/sequence.c:1809
+#: src/io/sequence.c:1809 src/io/sequence.c:1807
 msgid "No registration data stored for this layer"
 msgstr "Для этого слоя нет данных регистрации"
 
-#: src/io/sequence.c:1810
+#: src/io/sequence.c:1810 src/io/sequence.c:1808
 msgid ""
 "Some registration data was found for another layer.\n"
 "Do you want to save the psf data as registration data for this layer?"
 msgstr ""
 
-#: src/io/sequence.c:1887 src/registration/3stars.c:267
+#: src/io/sequence.c:1887 src/registration/3stars.c:267 src/io/sequence.c:1885
 msgid ""
 "The reference image has a null matrix and was not previously registered. "
 "Please select another one.\n"
 msgstr ""
 
-#: src/io/sequence.c:1895
+#: src/io/sequence.c:1895 src/io/sequence.c:1893
 msgid ""
 "The current image has a null matrix and was not previously registered. "
 "Please load another one to select the star.\n"
 msgstr ""
 
-#: src/io/sequence.c:1903 src/registration/3stars.c:283
+#: src/io/sequence.c:1903 src/registration/3stars.c:283 src/io/sequence.c:1901
 msgid ""
 "This area is outside of the reference image. Please select the reference "
 "image to select another star.\n"
 msgstr ""
 
-#: src/io/sequence.c:1912
+#: src/io/sequence.c:1912 src/io/sequence.c:1910
 msgid ""
 "The sequence analysis of the PSF will use a sliding selection area centred "
 "on the previous found star; this disables parallel processing.\n"
 msgstr ""
 
-#: src/io/sequence.c:1914
+#: src/io/sequence.c:1914 src/io/sequence.c:1912
 msgid ""
 "The sequence analysis of the PSF will use registration data to move the "
 "selection area for each image; this is compatible with parallel processing.\n"
 msgstr ""
 
-#: src/io/sequence.c:1926
+#: src/io/sequence.c:1926 src/io/sequence.c:1924
 msgid "PSF on area"
 msgstr ""
 
-#: src/io/sequence.c:1998
+#: src/io/sequence.c:1998 src/io/sequence.c:1996
 #, c-format
 msgid ""
 "Fixing the selection number in the .seq file (%d) to the actual value (%d) "
 "(not saved)\n"
 msgstr ""
 
-#: src/io/sequence.c:2036
+#: src/io/sequence.c:2036 src/io/sequence.c:2034
 #, c-format
 msgid ""
 "Sequence drift could not be checked as sequence has no regdata on layer %d\n"
@@ -18739,7 +18752,7 @@ msgstr ""
 "Дрейф последовательности не может быть проверен, поскольку она не имеет "
 "данных регистрации для слоя %d\n"
 
-#: src/io/sequence.c:2048
+#: src/io/sequence.c:2048 src/io/sequence.c:2046
 #, c-format
 msgid ""
 "Warning: the sequence appears to have heavy drifted images (%d pixels for "
@@ -18750,22 +18763,22 @@ msgstr ""
 "дрейфом (%d пикселей для кадра %d), поэтому фотометрия, возможно, не будет "
 "верной. Проверьте последовательность и исключите некоторые изображения\n"
 
-#: src/io/sequence.c:2062
+#: src/io/sequence.c:2062 src/io/sequence.c:2060
 #, c-format
 msgid "Registration data cleared for layer %d\n"
 msgstr "Данные регистрации слоя %d очищены\n"
 
-#: src/io/sequence.c:2072
+#: src/io/sequence.c:2072 src/io/sequence.c:2070
 #, c-format
 msgid "Registration (back-up) data cleared for layer %d\n"
 msgstr "Резервная копия данных регистрации слоя %d очищена\n"
 
-#: src/io/sequence.c:2079
+#: src/io/sequence.c:2079 src/io/sequence.c:2077
 #, c-format
 msgid "Statistics data cleared for layer %d\n"
 msgstr "Статистика слоя %d очищена\n"
 
-#: src/io/sequence.c:2085
+#: src/io/sequence.c:2085 src/io/sequence.c:2083
 #, c-format
 msgid "Statistics data (back-up) cleared for layer %d\n"
 msgstr "Резервная копия статистики слоя %d очищена\n"
@@ -20230,33 +20243,34 @@ msgstr ""
 "Нельзя использовать выделение области, когда изображения в "
 "последовательности имеют разный размер\n"
 
-#: src/registration/registration.c:1168
+#: src/registration/registration.c:1168 src/registration/registration.c:1162
 msgid "Failed to determine registration method...\n"
 msgstr "Не удалось определить метод регистрации...\n"
 
-#: src/registration/registration.c:1211
+#: src/registration/registration.c:1211 src/registration/registration.c:1205
 msgid "Debayer the sequence for registration"
 msgstr "Для регистрации необходимо дебайеризовать последовательность"
 
 #: src/registration/registration.c:1225 src/registration/registration.c:1234
+#: src/registration/registration.c:1219 src/registration/registration.c:1228
 msgid "Select images in the sequence"
 msgstr "Выберите изображения в последовательности"
 
-#: src/registration/registration.c:1227
+#: src/registration/registration.c:1227 src/registration/registration.c:1221
 msgid "Select an area in image first, and select images in the sequence"
 msgstr ""
 "Сначала выберите область на изображении и выберите изображения в "
 "последовательности"
 
-#: src/registration/registration.c:1236
+#: src/registration/registration.c:1236 src/registration/registration.c:1230
 msgid "Select a layer with existing registration"
 msgstr "Выберите слой с существующей регистрацией"
 
-#: src/registration/registration.c:1238
+#: src/registration/registration.c:1238 src/registration/registration.c:1232
 msgid "Select an area in image first"
 msgstr "Сначала выберите область на изображении"
 
-#: src/registration/registration.c:1407
+#: src/registration/registration.c:1407 src/registration/registration.c:1401
 msgid ""
 "All prerequisites are not filled for registration. Select a rectangle "
 "first.\n"
@@ -20264,17 +20278,17 @@ msgstr ""
 "Не все необходимые для регистрации условия выполнены. Сначала выберите "
 "прямоугольник.\n"
 
-#: src/registration/registration.c:1469
+#: src/registration/registration.c:1469 src/registration/registration.c:1463
 msgid "Cannot use area selection on a sequence with variable image sizes\n"
 msgstr ""
 "Нельзя использовать выделение области, когда изображения в "
 "последовательности имеют разный размер\n"
 
-#: src/registration/registration.c:1500
+#: src/registration/registration.c:1500 src/registration/registration.c:1494
 msgid "The object is not moving, please check your registration data.\n"
 msgstr "Объект неподвижен, проверьте данные регистрации.\n"
 
-#: src/registration/registration.c:1524
+#: src/registration/registration.c:1524 src/registration/registration.c:1518
 msgid ""
 "When interpolation is set to None, the transformation can only be set to "
 "Shift. Aborting\n"
@@ -20805,6 +20819,14 @@ msgstr "Увеличение масштаба последовательност
 #: src/stacking/upscaling.c:147
 msgid "Stacking will be done without up-scaling (disabling 'drizzle')\n"
 msgstr "Укладка будет выполнена без увеличения масштаба (отключен 'drizzle')\n"
+
+#: src/gui/siril3.glade:18061
+msgid "Open the photometry color calibration dialog"
+msgstr "Диалог фотометрической калибровка цвета"
+
+#: src/algos/photometric_cc.c:380
+msgid "Photometry color calibration in progress..."
+msgstr "Выполняется фотометрическая калибровка цвета…"
 
 #~ msgid "Flips the image about the horizontal axis"
 #~ msgstr "Перевернуть по горизонтали"
