@@ -997,6 +997,8 @@ static void pool_worker(gpointer data, gpointer user_data) {
 		siril_debug_print("read error, ignoring image\n");
 		g_atomic_int_inc(&conv->failed_images);
 		finish_write_seq(rwdata->writer, FALSE);
+		if (rwdata->writer->have_seqwriter)
+			seqwriter_release_memory();
 		free(rwdata);
 		if (fit) {
 			clearfits(fit);
@@ -1010,7 +1012,8 @@ static void pool_worker(gpointer data, gpointer user_data) {
 		rwdata->reader = NULL;
 		clearfits(fit);
 		free(fit);
-		handle_error(rwdata);
+		if (rwdata->writer->have_seqwriter)
+			handle_error(rwdata);
 		return;
 	}
 
