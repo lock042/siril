@@ -1620,7 +1620,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:7520
 msgid "Richardson-Lucy method with TV regularization"
-msgstr ""
+msgstr "Mètode de Richardson-Lucy amb regularització TV"
 
 #: src/gui/siril3.glade:7521
 #, fuzzy
@@ -1667,7 +1667,7 @@ msgstr "Saturació del color"
 
 #: src/gui/siril3.glade:7596
 msgid "Frobenius norm of Hessian"
-msgstr ""
+msgstr "Norma de Frobenius de Hessian"
 
 #: src/gui/siril3.glade:7610
 msgid "Alpha (α)"
@@ -1675,7 +1675,7 @@ msgstr "Alpha (α)"
 
 #: src/gui/siril3.glade:7619
 msgid "Stopping criterion"
-msgstr ""
+msgstr "Criteri d'aturada"
 
 #: src/gui/siril3.glade:7623
 msgid ""
