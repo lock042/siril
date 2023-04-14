@@ -1692,7 +1692,7 @@ msgstr "Alinea RGB"
 
 #: src/gui/siril3.glade:7648
 msgid "Gradient descent step size"
-msgstr ""
+msgstr "Mida dels passos del descens en gradient"
 
 #: src/gui/siril3.glade:7660
 #, fuzzy
@@ -1717,14 +1717,19 @@ msgstr "Multiplicativa"
 
 #: src/gui/siril3.glade:7675
 msgid "Gradient Descent"
-msgstr ""
+msgstr "Descens en gradient"
 
 #: src/gui/siril3.glade:7688
+#, fuzzy
 msgid ""
 "Gradient descent step size. The larger the step size, the greater the effect "
 "of each step. Large values will give quicker convergence but smaller values "
 "will offer better control over artefact formation."
 msgstr ""
+"Mida del descens en gradient. Com més gran la mida, més gran es l'efecte de "
+"cada passa. Els valors grans convergiran més ràpidament, contrariament els "
+"valors més petits tardaran més però ofereixen més control sobre la formació "
+"d'artefactes."
 
 #: src/gui/siril3.glade:7705
 #, fuzzy
@@ -1798,13 +1803,16 @@ msgstr "Composició de la imatge"
 
 #: src/gui/siril3.glade:8058
 msgid "No secondary denoising stage"
-msgstr ""
+msgstr "Sense la segona fase de reducció de soroll"
 
 #: src/gui/siril3.glade:8062
 msgid ""
 "No secondary denoising process will be used. The primary algorithm by itself "
 "usually performs well so this is the default."
 msgstr ""
+"No s'aplicarà la segona etapa de reducció de soroll. Normalment la primera "
+"etapa de l'algorisme aconsegueix un bon resultat, i par això aquesta opció "
+"es la per defecte."
 
 #: src/gui/siril3.glade:8076
 msgid "Anscombe VST with exact unbiased inverse"
@@ -1820,7 +1828,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:8095
 msgid "Data Adaptive Dual Domain Denoising"
-msgstr ""
+msgstr "Dades Adaptatives de Reducció de Soroll de Domini Dual"
 
 #: src/gui/siril3.glade:8099
 msgid ""
@@ -1845,12 +1853,14 @@ msgstr ""
 
 #: src/gui/siril3.glade:8135
 msgid "Secondary Denoising Algorithm"
-msgstr ""
+msgstr "Algorisme secundari de reducció de soroll"
 
 #: src/gui/siril3.glade:8166
 msgid ""
 "Sets the number of SOS iterations. 3-5 is usually a good starting point."
 msgstr ""
+"Defineix el nombre de iteracions SOS. Entre 3 i 5 sol ser un bon punt per "
+"començar."
 
 #: src/gui/siril3.glade:8168
 #, fuzzy
@@ -1889,7 +1899,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:8227
 msgid "SOS Advanced Options"
-msgstr ""
+msgstr "Opcions avançades SOS"
 
 #: src/gui/siril3.glade:8249
 msgid ""
@@ -1974,10 +1984,15 @@ msgid ""
 "the preferences otherwise.\n"
 "Modified data can be saved in a FITS file."
 msgstr ""
+"Informació de la imatge extreta del fitxer, si no està disponible s'obté de "
+"les preferències.\n"
+"Les modificacions d'aquestes dades es poden guardar en fitxers FITS."
 
 #: src/gui/siril3.glade:8577
 msgid "Non-square pixels can be entered but will not be used in most cases."
 msgstr ""
+"Es poden introduir píxels no quadrats però en la major part dels casos no "
+"s'utilitzaran."
 
 #: src/gui/siril3.glade:8579
 #, fuzzy
@@ -2023,7 +2038,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:8670
 msgid "Computed sampling (arcsec/pixel):"
-msgstr ""
+msgstr "Mostreig computat (arcsec/píxel):"
 
 #: src/gui/siril3.glade:8683
 msgid "Binning: "
@@ -2067,6 +2082,8 @@ msgid ""
 "Save focal length and pixel size as default values in the settings to be "
 "used for images that do not contain these metadata"
 msgstr ""
+"Guarda la distancia focal i la mida dels píxels com a valors per defecte a "
+"la configuració, per utilitzar-los en imatges que no continguin metadades"
 
 #: src/gui/siril3.glade:8777
 msgid "Image compositing"
@@ -2264,7 +2281,7 @@ msgstr "Avançat"
 
 #: src/gui/siril3.glade:9461
 msgid "Show advanced stretch options"
-msgstr ""
+msgstr "Mostra les opcions avançades d'estirat"
 
 #: src/gui/siril3.glade:9514 src/gui/siril3.glade:10121
 msgid ""
@@ -2279,6 +2296,8 @@ msgid ""
 "Expands to show a mini histogram and transfer function display for the star "
 "image"
 msgstr ""
+"S'expandeix per mostrar un mini histograma amb la funció de transferència "
+"per la imatge de l'estel"
 
 #: src/gui/siril3.glade:9548
 #, fuzzy
@@ -2356,7 +2375,7 @@ msgstr ""
 #: src/gui/siril3.glade:9641 src/gui/siril3.glade:10250
 #: src/gui/siril3.glade:16093
 msgid "Even weighted luminance"
-msgstr ""
+msgstr "Lluminositat ponderada uniformement"
 
 #: src/gui/siril3.glade:9675 src/gui/siril3.glade:10284
 #: src/gui/siril3.glade:16150
@@ -2370,11 +2389,14 @@ msgid ""
 "thus adjusting the amount of stretch applied to the rest of the image. "
 "Increasing D increases the intensity of stars in the resulting composition."
 msgstr ""
+"Controla de forma independent el contrast afegit (la pendent de l'estirat) "
+"al punt de simetria, ajustant quant s'estira la resta de la imatge. "
+"Augmentar D augmenta la intensitat dels estels a la composició resultant."
 
 #: src/gui/siril3.glade:9745 src/gui/siril3.glade:10355
 #: src/gui/siril3.glade:16219
 msgid "Local stretch intensity (b)"
-msgstr ""
+msgstr "Intensitat local de l'estirat (b)"
 
 #: src/gui/siril3.glade:9756 src/gui/siril3.glade:9780
 msgid ""
@@ -2387,7 +2409,7 @@ msgstr ""
 #: src/gui/siril3.glade:9815 src/gui/siril3.glade:10425
 #: src/gui/siril3.glade:16288
 msgid "Symmetry point (SP)"
-msgstr ""
+msgstr "Punt de simetria (SP)"
 
 #: src/gui/siril3.glade:9826 src/gui/siril3.glade:9872
 msgid ""
@@ -2396,6 +2418,10 @@ msgid ""
 "brightness below SP and therefore the amount of stars that show in the "
 "resulting composition."
 msgstr ""
+"Defineix el punt de simetria (SP) al voltant del qual se centre l'estirat. "
+"Per la recomposició d'estels, augmentar el SP redueix la intensitat dels "
+"estels amb brillantor pic per sota del SP i per tant la quantitat d'estels "
+"que es poden observar a la composició resultant."
 
 #: src/gui/siril3.glade:9846
 msgid ""
@@ -2463,6 +2489,8 @@ msgid ""
 "Expands to show a mini histogram and transfer function display for the "
 "background image."
 msgstr ""
+"S'expandeix per mostrar un mini histograma i una funció de transferència per "
+"la imatge de fons."
 
 #: src/gui/siril3.glade:10157
 #, fuzzy
@@ -2511,6 +2539,9 @@ msgid ""
 "on the average value of  the current selection. This helps in picking out "
 "faint detail above the dark background."
 msgstr ""
+"Aquest menu et permet definir el punt de simetria per l'estirat del fons, "
+"basant-se en el valor mitjà de la selecció actual. Això ajuda a destacar "
+"petits detalls per sobre del fons fosc."
 
 #: src/gui/siril3.glade:10599 src/gui/siril3.glade:10625
 msgid ""
@@ -2929,6 +2960,8 @@ msgid ""
 "Use the solve-field command to find the astrometric solution instead of "
 "Siril's plate solver"
 msgstr ""
+"Utilitza la comanda solve-field per trobar la solució utilitzant astrometric "
+"en comptes de la resolució astronòmica de Siril"
 
 #: src/gui/siril3.glade:12159
 msgid "Image Parameters"
@@ -17704,8 +17737,8 @@ msgstr ""
 #: src/io/image_format_fits.c:3154 src/io/ser.c:1359
 msgid "frame"
 msgid_plural "frames"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "imatge"
+msgstr[1] "imatges"
 
 #: src/io/image_format_fits.c:3154 src/io/image_format_fits.c:3159
 #: src/io/ser.c:1359
