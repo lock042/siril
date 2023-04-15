@@ -421,13 +421,12 @@ int read_keyfile(GKeyFile *kf) {
 	}
 	g_strfreev(groups);
 	siril_debug_print("read %zd keys from key file\n", nb_keys_read);
-	return nb_keys_read == 0;
+	return nb_keys_read;
 }
 
 int readinitfile(gchar *fname) {
 	GKeyFile *kf = g_key_file_new();
 	GError *error = NULL;
-	int retval;
 	if (!g_key_file_load_from_file(kf, fname, G_KEY_FILE_NONE, &error)) {
 		if (error != NULL) {
 			siril_log_color_message(_("Settings could not be loaded from %s: %s\n"), "red", fname, error->message);
@@ -438,9 +437,10 @@ int readinitfile(gchar *fname) {
 #ifndef HAVE_JSON_GLIB
 	com.pref.check_update = FALSE;
 #endif
-	retval = read_keyfile(kf);
+	if (read_keyfile(kf) == 0)
+		siril_log_message(_("Warning: nothing could be read from the settings file\n"));
 	g_key_file_free(kf);
-	return retval;
+	return 0;
 }
 
 /**

@@ -34,14 +34,18 @@ extern "C" int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans
         img_t<float> K(kernelsize, kernelsize, 1, kernel + kc * kernelsize * kernelsize);
         K.map(K / K.sum());
         float max = f.max();
-        f.map(f / f.max());
+        if (max == 0.0f)
+            return 1;
+        if (max != 1.0f)
+            f.map(f / max);
         f = utils::add_padding(f, K);
         edgetaper(f, f, K, 3);
 
         deconvolve::wiener_deconvolve(u, f, K, sigma);
 
         u = utils::remove_padding(u, K);
-        u.map(u * max);
+        if (max != 1.0f)
+            u.map(u * max);
         for (unsigned i = 0; i < rx * ry; i++)
             fdata[c * rx * ry + i] = u.data[i];
     }
@@ -59,14 +63,18 @@ extern "C" int fft_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsig
         img_t<float> K(kernelsize, kernelsize, 1, kernel + kc * kernelsize * kernelsize);
         K.map(K / K.sum());
         float max = f.max();
-        f.map(f / f.max());
+        if (max == 0.0f)
+            return 1;
+        if (max != 1.0f)
+            f.map(f / max);
         f = utils::add_padding(f, K);
         edgetaper(f, f, K, 3);
 
         deconvolve::rl_deconvolve_fft(u, f, K, 2.f / lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active);
 
         u = utils::remove_padding(u, K);
-        u.map(u * max);
+        if (max != 1.0f)
+            u.map(u * max);
         for (unsigned i = 0; i < rx * ry; i++) {
             fdata[i + rx * ry * c] = u.data[i];
         }
@@ -85,14 +93,18 @@ extern "C" int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, uns
         img_t<float> K(kernelsize, kernelsize, 1, kernel + kc * kernelsize * kernelsize);
         K.map(K / K.sum());
         float max = f.max();
-        f.map(f / f.max());
+        if (max == 0.0f)
+            return 1;
+        if (max != 1.0f)
+            f.map(f / max);
         f = utils::add_padding(f, 2*K.w, 2*K.w);
         edgetaper(f, f, K, 3);
 
         deconvolve::rl_deconvolve_naive(u, f, K, 2.f / lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active);
 
         u = utils::remove_padding(u, 2*K.w, 2*K.w);
-        u.map(u * max);
+        if (max != 1.0f)
+            u.map(u * max);
         for (unsigned i = 0; i < rx * ry; i++) {
             fdata[i + c * rx * ry] = u.data[i];
         }
@@ -111,14 +123,18 @@ extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nc
         img_t<float> K(kernelsize, kernelsize, 1, kernel + kc * kernelsize * kernelsize);
         K.map(K / K.sum());
         float max = f.max();
-        f.map(f / f.max());
+        if (max == 0.0f)
+            return 1;
+        if (max != 1.0f)
+            f.map(f / max);
         f = utils::add_padding(f, K);
         edgetaper(f, f, K, 3);
 
         deconvolve::sb_deconvolve(u, f, K, 2.f / lambda, 1.f, 2.f * std::sqrt(2.f), 256.f, iters);
 
         u = utils::remove_padding(u, K);
-        u.map(u * max);
+        if (max != 1.0f)
+            u.map(u * max);
         for (unsigned i = 0; i < rx * ry; i++) {
             fdata[c * rx * ry + i] = u.data[i];
         }
