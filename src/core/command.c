@@ -6170,7 +6170,7 @@ int process_convertraw(int nb) {
 		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	char *destroot = strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	sequence_type output = SEQ_REGULAR;
@@ -6289,7 +6289,7 @@ int process_link(int nb) {
 		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	gchar *destroot = strdup(word[1]);
 	int idx = 1;
 
 	for (int i = 2; i < nb; i++) {
@@ -6401,7 +6401,7 @@ int process_convert(int nb) {
 		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	gchar *destroot = strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	gboolean make_link = TRUE;

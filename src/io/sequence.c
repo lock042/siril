@@ -717,6 +717,7 @@ gboolean check_if_seq_exist(gchar *name, gboolean name_is_base) {
 		path = g_build_filename(com.wd, seq, NULL);
 		path_ = g_build_filename(com.wd, seq_, NULL);
 		g_free(seq);
+		g_free(seq_);
 		gboolean retval = is_readable_file(path);
 		if (!retval) {
 			retval = is_readable_file(path_);

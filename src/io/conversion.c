@@ -600,7 +600,7 @@ gpointer convert_thread_worker(gpointer p) {
 	gchar *seqname = g_strdup_printf("%s%s", args->destroot, ".seq");
 	if (g_unlink(seqname))
 		siril_debug_print("Error in g_unlink()\n");
-	if (args->output_type == SEQ_REGULAR) { // to make sure destorrot has an extension (will be removed when creating the filenames)
+	if (args->output_type == SEQ_REGULAR) { // to make sure destroot has an extension (will be removed when creating the filenames)
 		free(args->destroot);
 		args->destroot = strdup(seqname);
 	}
