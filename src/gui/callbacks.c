@@ -1620,14 +1620,17 @@ void load_main_window_state() {
 	if (!com.script && com.pref.gui.remember_windows) {
 		GtkWidget *win = lookup_widget("control_window");
 		GdkRectangle workarea = { 0 };
+		GdkWindow *window = gtk_widget_get_window(win);
+		GdkMonitor *monitor = gdk_display_get_monitor_at_window(gdk_window_get_display(window), window);
 
-		gdk_monitor_get_workarea(gdk_display_get_primary_monitor(gdk_display_get_default()), &workarea);
+		gdk_monitor_get_workarea(monitor, &workarea);
+		int scale_factor = gdk_monitor_get_scale_factor(monitor);
 
 		int w = com.pref.gui.main_w_pos.w;
 		int h = com.pref.gui.main_w_pos.h;
 
-		int x = CLAMP(com.pref.gui.main_w_pos.x, 0, workarea.width - w);
-		int y = CLAMP(com.pref.gui.main_w_pos.y, 0, workarea.height - h);
+		int x = CLAMP(com.pref.gui.main_w_pos.x, 0, workarea.width - w) * scale_factor;
+		int y = CLAMP(com.pref.gui.main_w_pos.y, 0, workarea.height - h) * scale_factor;
 
 		if (w > 0 && h > 0) {
 			if (com.pref.gui.is_maximized) {

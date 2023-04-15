@@ -1117,7 +1117,7 @@ static void update_filters_registration(int update_adjustment) {
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
-	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL;
+	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -1140,6 +1140,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		filter_combo_init = GTK_COMBO_BOX(lookup_widget("combofilter4"));
 		toggle_reg_clamp = lookup_widget("toggle_reg_clamp");
 		filter_box = lookup_widget("seq_filters_box_reg");
+		manualreg = lookup_widget("manualreg_expander");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -1155,6 +1156,11 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* initialize default */
 	gtk_notebook_set_current_page(notebook_reg, REG_PAGE_MISC);
 	gtk_widget_set_visible(cumul_data, FALSE);
+
+	/* lock manual registration if sequence is of variable image size*/
+	gtk_widget_set_sensitive(manualreg, !com.seq.is_variable);
+	gtk_expander_set_expanded(GTK_EXPANDER(manualreg), !com.seq.is_variable);
+	gtk_widget_set_tooltip_text(manualreg, (!com.seq.is_variable) ? "" : _("not available for sequences with variable image sizes"));
 
 	/* getting the selected registration method */
 	method = get_selected_registration_method();
