@@ -122,7 +122,7 @@ void fit_get_photometry_data(fits *fit) {
 	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure, &status);
 }
 
-static int fit_stats(fits *fit, float *mini, float *maxi) {
+static int fit_stats(fitsfile *fptr, float *mini, float *maxi) {
 	int status = 0;
 	int ii;
 	long npixels = 1L;
@@ -134,7 +134,7 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 	*mini = 0;
 	*maxi = 0;
 
-	fits_get_img_size(fit->fptr, 3, anaxes, &status);
+	fits_get_img_size(fptr, 3, anaxes, &status);
 
 	if (status) {
 		report_fits_error(status); /* print error message */
@@ -153,7 +153,7 @@ static int fit_stats(fits *fit, float *mini, float *maxi) {
 		/* loop over all rows of the plane */
 		for (firstpix[1] = 1; firstpix[1] <= anaxes[1]; firstpix[1]++) {
 			/* give starting pixel coordinate and number of pixels to read */
-			if (fits_read_pix(fit->fptr, TFLOAT, firstpix, npixels, NULL, pix,
+			if (fits_read_pix(fptr, TFLOAT, firstpix, npixels, NULL, pix,
 						NULL, &status))
 				break; /* jump out of loop on error */
 
@@ -418,12 +418,11 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &(fit->data_max), NULL, &status);
 
 	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
-		if (status == KEY_NO_EXIST) {
-			float mini, maxi;
-			fit_stats(fit, &mini, &maxi);
-			fit->data_max = (double) maxi;
-			fit->data_min = (double) mini;
-		}
+		float mini, maxi;
+		fit_stats(fit->fptr, &mini, &maxi);
+		// override data_max if needed. In some images there are differences between max and data_max
+		fit->data_max = (double) maxi;
+		fit->data_min = (double) mini;
 	}
 
 	status = 0;
@@ -1245,8 +1244,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		/* we assume we are in the range [0, 1]. But, for some images
 		 * some values can be negative
 		 */
-		fits_read_img(fit->fptr, TFLOAT, 1, nbdata, &zero, fit->fdata, &zero,
-				&status);
+		fits_read_img(fit->fptr, TFLOAT, 1, nbdata, &zero, fit->fdata, &zero, &status);
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				|| fit->bitpix == BYTE_IMG) || fit->data_max > 2.0) { // needed for some FLOAT_IMG
 			convert_floats(fit->bitpix, fit->fdata, nbdata, fit->data_max, fit->data_min);
@@ -1270,7 +1268,6 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		int bitpix, void *dest, int layer, const rectangle *area) {
 	double data_max = -1.0;
-	double data_min = 0.0;
 	int datatype;
 	BYTE *data8;
 	long *pixels_long;
@@ -1322,13 +1319,14 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			break;
 		case DOUBLE_IMG:	// 64-bit floating point pixels
 		case FLOAT_IMG:		// 32-bit floating point pixels
-			fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, &zero, dest,
-					&zero, &status);
+			fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, &zero, dest, &zero, &status);
 			if (status) break;
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
 			if (status2 == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
-				convert_floats(bitpix, dest, nbdata, data_max, data_min);
+				float mini, maxi;
+				fit_stats(fptr, &mini, &maxi);
+				convert_floats(bitpix, dest, nbdata, (double) maxi, (double) mini);
 			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
@@ -1969,12 +1967,11 @@ int readfits_partial(const char *filename, int layer, fits *fit,
 			status = 0;
 			fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
 			if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
-				if (status == KEY_NO_EXIST) {
-					float mini, maxi;
-					fit_stats(fit, &mini, &maxi);
-					fit->data_max = (double) maxi;
-					fit->data_min = (double) mini;
-				}
+				// override data_max if needed. In some images there are differences between max and data_max
+				float mini, maxi;
+				fit_stats(fit->fptr, &mini, &maxi);
+				fit->data_max = (double) maxi;
+				fit->data_min = (double) mini;
 			}
 		}
 

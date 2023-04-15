@@ -377,12 +377,11 @@ int photometric_cc(struct photometric_cc_data *args) {
 	siril_log_message(_("Photometry radii set to %.1f for inner and %.1f for outer\n"),
 			com.pref.phot_set.inner, com.pref.phot_set.outer);
 
-	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
+	set_progress_bar_data(_("Photometric color calibration in progress..."), PROGRESS_RESET);
 	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, norm_channel);
 
 	if (!ret) {
 		apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
-		set_progress_bar_data(_("Photometric Color Calibration succeeded"), PROGRESS_DONE);
 	} else {
 		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
 	}

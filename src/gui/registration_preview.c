@@ -193,6 +193,9 @@ void clear_previews() {
 			gui.preview_surface[i] = NULL;
 		}
 	}
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("togglebutton2")), FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("togglebutton3")), FALSE);
 }
 
 void set_preview_area(int preview_area, int centerX, int centerY) {
