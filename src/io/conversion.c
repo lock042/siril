@@ -676,7 +676,8 @@ gpointer convert_thread_worker(gpointer p) {
 		if (convert.nb_input_images == convert.converted_images)
 			siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 		else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
-		write_conversion_report(args);
+		if (args->nb_converted_files >= 1)
+			write_conversion_report(args);
 	}
 	free(convert.threads);
 	free(convert.output_fitseq);
