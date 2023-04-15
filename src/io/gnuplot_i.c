@@ -211,6 +211,7 @@ gpointer tmpwatcher (gpointer user_data) {
 		} else if (g_str_has_prefix(buffer, "Terminate")) {
 			if (handle->ntmp) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
+					siril_debug_print("Removing tmpfile %d of %d\n", i + 1, handle->ntmp);
 					g_unlink(handle->tmp_filename_tbl[i]);
 					free(handle->tmp_filename_tbl[i]);
 				}
@@ -262,6 +263,7 @@ gnuplot_ctrl * gnuplot_init_gui()
 		gui.gplot->current = 0;
 		gui.gplot->maxplot = 0;
 		gui.gplot->reuse = FALSE;
+		gui.gplot->replot = FALSE;
 		gnuplot_setstyle(gui.gplot, "points");
 		gui.gplot->thread = NULL;
 		gchar *bin = siril_get_gnuplot_bin();
@@ -321,6 +323,7 @@ gnuplot_ctrl * gnuplot_init_nogui()
 	handle->current = 0;
 	handle->maxplot = 0;
 	handle->reuse = FALSE;
+	handle->replot = FALSE;
 	gnuplot_setstyle(handle, "points");
 	handle->thread = NULL;
 	gchar *bin = siril_get_gnuplot_bin();
@@ -392,7 +395,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
 	}
 	// This command is only for closing non-GUI gnuplot handles
 	// i.e. those created by the sequence worker
-	for (int i = 0 ; i < handle->maxplot ; i++) {
+	for (int i = 0 ; i <= handle->maxplot ; i++) {
 		gchar *cmd = g_strdup_printf("set term wxt %d close\n", i);
 		siril_debug_print("%s", cmd);
 		gnuplot_cmd(handle, cmd);
@@ -412,7 +415,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
 
 void gnuplot_gui_close()
 {
-	for (int i = 0 ; i < gui.gplot->maxplot ; i++) {
+	for (int i = 0 ; i <= gui.gplot->maxplot ; i++) {
 		gchar *cmd = g_strdup_printf("set term wxt %d close\n", i);
 		siril_debug_print("%s", cmd);
 		gnuplot_cmd(gui.gplot, cmd);
@@ -980,7 +983,7 @@ void gnuplot_plot_slope(
 {
 	xtermset(handle);
 
-    char const *    cmd    = (handle->reuse && handle->nplots > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
 	title                  = (title == NULL)      ? "(none)" : title;
 
     gnuplot_cmd(handle, "%s %.18e * x + %.18e title \"%s\" with %s",
@@ -993,21 +996,21 @@ void gnuplot_plot_slope(
 }
 
 void gnuplot_plot_equation(
-    gnuplot_ctrl    *   h,
+    gnuplot_ctrl    *   handle,
     char            *   equation,
     char            *   title
 )
 {
-	xtermset(h);
+	xtermset(handle);
 
-	char const *    cmd    = (h->reuse && h->nplots > 0) ? "replot" : "plot";
+	char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
     title                  = (title == NULL)      ? "(none)" : title;
 
-    gnuplot_cmd(h, "%s %s title \"%s\" with %s",
-                  cmd, equation, title, h->pstyle) ;
-	h->nplots[h->current]++;
-	if (!h->reuse)
-		gnuplot_increment_xterm(h);
+    gnuplot_cmd(handle, "%s %s title \"%s\" with %s",
+                  cmd, equation, title, handle->pstyle) ;
+	handle->nplots[handle->current]++;
+	if (!handle->reuse)
+		gnuplot_increment_xterm(handle);
     return ;
 }
 
@@ -1345,7 +1348,7 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle)
 
 void gnuplot_plot_xy_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
-    char const *    cmd    = (handle->reuse && handle->nplots > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
 	xtermset(handle);
     gnuplot_cmd(handle, "%s \"%s\" using ($1):($2) with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);
@@ -1357,7 +1360,7 @@ void gnuplot_plot_xy_from_datfile(gnuplot_ctrl * handle, char const* tmp_filenam
 
 void gnuplot_plot_xrgb_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
-    char const *    cmd    = (handle->reuse && handle->nplots > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
 	xtermset(handle);
     gnuplot_cmd(handle, "%s for [col=2:4] \"%s\" using ($1):col with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);
@@ -1369,7 +1372,7 @@ void gnuplot_plot_xrgb_from_datfile(gnuplot_ctrl * handle, char const* tmp_filen
 
 void gnuplot_plot_xcfa_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
-    char const *    cmd    = (handle->reuse && handle->nplots > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
 	xtermset(handle);
     gnuplot_cmd(handle, "%s for [col=2:5] \"%s\" using ($1):col with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);

@@ -550,7 +550,8 @@ typedef struct _GNUPLOT_CTRL_ {
 	/** Current plot window **/
 	int current;
 	int maxplot; // Maximum plot window
-	gboolean reuse;
+	gboolean reuse; // Reuse the current plotting window
+	gboolean replot; // Add additional plots to the current one in the current window
     /** Current plotting style */
     char pstyle[32] ;
 
