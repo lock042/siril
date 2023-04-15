@@ -2089,10 +2089,10 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 		for (int i = 0; i < seq->number; i++) {
 			seq->imgparam[i].incl = SEQUENCE_DEFAULT_INCLUDE;
 		}
+		// unsetting ref image
+		seq->reference_image = -1;
 		fix_selnum(seq, TRUE);
 	}
-	// unsetting ref image
-	seq->reference_image = -1;
 	writeseqfile(seq);
 }
 
