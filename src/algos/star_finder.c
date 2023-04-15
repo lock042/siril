@@ -89,10 +89,10 @@ static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se
 		return SF_NO_POS; //crit 12
 	if (isnan(result->mag))
 		return SF_NO_MAG; //crit 13
-	// if (result->fwhmx <= 1.0 || result->fwhmy <= 1.0) {
-	// 	if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
-	// 	return SF_FWHM_TOO_SMALL; //crit 14
-	// }
+	if (se->iscolor && (result->fwhmx <= 1.0 || result->fwhmy <= 1.0)) {
+		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
+		return SF_FWHM_TOO_SMALL; //crit 14
+	}
 	if (result->fwhmx <= 0.0 || result->fwhmy <= 0.0) {
 		if (errmsg) g_snprintf(errmsg, SF_ERRMSG_LEN, "fwhmx: %3.1f, fwhmy: %3.1f\n", result->fwhmx, result->fwhmy);
 		return SF_FWHM_NEG; //crit 15
@@ -527,6 +527,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 					candidates[nbstars].sy = Sc;
 					candidates[nbstars].sat = (has_saturated) ? sat : norm;
 					candidates[nbstars].has_saturated = (has_saturated);
+					candidates[nbstars].iscolor = !ismono;
 					nbstars++;
 					if (has_saturated && DEBUG_STAR_DETECTION)
 						siril_debug_print("%d: %d - %d is saturated with R = %d\n",
