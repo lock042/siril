@@ -2447,7 +2447,7 @@ msgstr "Canal Verd"
 #: src/gui/siril3.glade:9640 src/gui/siril3.glade:10249
 #: src/gui/siril3.glade:16092
 msgid "Human weighted luminance"
-msgstr "Lluminància ponderada per l'ésser humà"
+msgstr "Lluminositat esbiaixada per l'humà"
 
 #: src/gui/siril3.glade:9641 src/gui/siril3.glade:10250
 #: src/gui/siril3.glade:16093
@@ -2506,6 +2506,9 @@ msgid ""
 "with the background image, where it can effectively pick out faint detail "
 "above the background. It is not generally useful with the star mask image."
 msgstr ""
+"Permet definir un SP en la selecció actual. Això està pensat per utilitzar-"
+"ho amb la imatge de fons, on pot detectar amb més facilitat detalls tènues "
+"damunt del fons. Generalment no s'utilitza amb la mascara d'estels."
 
 #: src/gui/siril3.glade:9907 src/gui/siril3.glade:10517
 #: src/gui/siril3.glade:16379
