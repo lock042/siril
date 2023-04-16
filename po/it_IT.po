@@ -4167,7 +4167,6 @@ msgid "Linear stretch (BP shift)"
 msgstr "Stretch lineare (BP shift)"
 
 #: src/gui/siril3.glade:16086
-#, fuzzy
 msgid ""
 "Set the stretch model for colour stretches. The options are: evenly weighted "
 "luminance, which calculates the stretch based on a luminance value weighting "
@@ -4186,8 +4185,11 @@ msgstr ""
 "ponderata umana, il cui stretch è basato su un valore di luminanza pesando i "
 "canali R, G e B in accordo alla sensibilità relativa dell’occhio umano; e "
 "Valori di canale indipendenti dove si applica uno stretch indipendente a "
-"ciascun canale di pixel. Nota: la luminaria ponderata umana non è consentita "
-"se sono selezionati meno di tre canali colore poiché non ha senso."
+"ciascun canale di pixel; saturazione, che applica lo stretch alla componente "
+"S nello spazio HSL. In modalità saturazione la curva dell'istogramma di "
+"saturazione è mostrata in giallo.\n"
+"Nota: la luminanza ponderata umana non è consentita se sono selezionati meno "
+"di tre canali colore poiché non ha senso."
 
 #: src/gui/siril3.glade:16094
 msgid "Saturation stretch"
@@ -17479,17 +17481,16 @@ msgstr ""
 "correzione cosmetica: errore nel file in formato cosme alla linea %d: %s\n"
 
 #: src/filters/fft.c:464 src/gui/newdeconv.c:1035 src/gui/newdeconv.c:1166
-#, fuzzy
 msgid "Siril FFT wisdom imported successfully...\n"
-msgstr "Esecuzione dello script completata con successo.\n"
+msgstr "Siril FFTW wisdom importata con successo...\n"
 
 #: src/filters/fft.c:466 src/gui/newdeconv.c:1037 src/gui/newdeconv.c:1169
 msgid "System FFT wisdom imported successfully...\n"
-msgstr ""
+msgstr "FFT wisdom di sistema importata con successo...\n"
 
 #: src/filters/fft.c:468 src/gui/newdeconv.c:1039 src/gui/newdeconv.c:1172
 msgid "No FFT wisdom found to import...\n"
-msgstr ""
+msgstr "Nessuna FFT wisdom da importare trovata...\n"
 
 #: src/filters/fft.c:472
 msgid "Fourier Transform: processing...\n"
@@ -17501,11 +17502,11 @@ msgstr "C'è qualcosa di sbagliato nei tuoi file\n"
 
 #: src/filters/fft.c:549 src/gui/newdeconv.c:1057 src/gui/newdeconv.c:1287
 msgid "Siril FFT wisdom updated successfully...\n"
-msgstr ""
+msgstr "Siril FFT wisdom aggiornata con successo...\n"
 
 #: src/filters/fft.c:551 src/gui/newdeconv.c:1059 src/gui/newdeconv.c:1290
 msgid "Siril FFT wisdom update failed...\n"
-msgstr ""
+msgstr "Siril FFT wisdom aggiornamento fallito...\n"
 
 #: src/filters/fft.c:591
 msgid "FFT does not work with sequences !\n"
@@ -17530,7 +17531,7 @@ msgstr "Seleziona prima magnitudine e fase!\n"
 
 #: src/filters/ght.c:390 src/filters/ght.c:450
 msgid "Error: no channels selected. Doing nothing.\n"
-msgstr ""
+msgstr "Errore: nessun canale selezionato. Nessuna azione.\n"
 
 #: src/filters/median.c:85
 #, c-format
@@ -17605,24 +17606,20 @@ msgid "Saturation enhancement (amount=%4.2lf)"
 msgstr "Aumento della saturazione (quantità=%4.2lf)"
 
 #: src/filters/scnr.c:43
-#, fuzzy
 msgid "average neutral"
-msgstr "Neutra Media"
+msgstr "Neutrale Media"
 
 #: src/filters/scnr.c:45
-#, fuzzy
 msgid "maximum neutral"
-msgstr "Neutra massima"
+msgstr "neutrale massima"
 
 #: src/filters/scnr.c:47
-#, fuzzy
 msgid "maximum mask"
-msgstr "Maschera Massima"
+msgstr "maschera massima"
 
 #: src/filters/scnr.c:49
-#, fuzzy
 msgid "additive mask"
-msgstr "Maschera Addittiva"
+msgstr "maschera addittiva"
 
 #: src/filters/scnr.c:63
 #, c-format
@@ -17630,9 +17627,8 @@ msgid "SCNR: processing with %s algorithm%s...\n"
 msgstr "SCNR: elaborazione con %s algoritmo%s...\n"
 
 #: src/filters/scnr.c:65
-#, fuzzy
 msgid ", preserving lightness"
-msgstr "Preserva luminosità"
+msgstr ", preservo luminosità"
 
 #: src/filters/scnr.c:177
 #, c-format
@@ -17640,29 +17636,29 @@ msgid "SCNR (type=%s, amount=%0.2lf, preserve=%s)"
 msgstr "SCNR (tipo=%s, quantità=%0.2lf, preserva=%s)"
 
 #: src/filters/starnet.c:90
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning starnet failed: %s\n"
-msgstr "Non posso caricare il file di init: %s\n"
+msgstr "Generazione starnet fallita: %s\n"
 
 #: src/filters/starnet.c:126
-#, fuzzy
 msgid "Running StarNet"
-msgstr "Avvio di Starnet++"
+msgstr "Avvio di StarNet"
 
 #: src/filters/starnet.c:132
 #, c-format
 msgid "StarNet caught buffer: %s : exit successful\n"
-msgstr ""
+msgstr "Buffer rilevato da StarNet: %s : uscita riuscita\n"
 
 #: src/filters/starnet.c:142
 #, c-format
 msgid "Starnet exit not caught, last buffer: %s\n"
-msgstr ""
+msgstr "Uscita Starnet non rilevata, ultimo buffer: %s\n"
 
 #: src/filters/starnet.c:205
-#, fuzzy, c-format
+#, c-format
 msgid "Spawning starnet failed during version check: %s\n"
-msgstr "Non posso caricare il file di init: %s\n"
+msgstr ""
+"Generazione di starnet fallita durante il controllo della versione: %s\n"
 
 #: src/filters/starnet.c:227
 msgid "V2 detected\n"
@@ -17670,7 +17666,7 @@ msgstr "V2 rilevato\n"
 
 #: src/filters/starnet.c:233
 msgid "V2-torch detected\n"
-msgstr ""
+msgstr "V2-torch rilevato\n"
 
 #: src/filters/starnet.c:249 src/filters/starnet.c:685
 #: src/filters/starnet.c:767
@@ -17682,73 +17678,69 @@ msgid ""
 "Warning: some versions of StarNet fail to process images with dimensions "
 "smaller than 512x512. This image may fail. Attempting to continue...\n"
 msgstr ""
+"Attenzione: alcune versioni di StarNet non riescono a elaborare immagini con "
+"dimensioni inferiori a 512x512. Questa immagine potrebbe fallire. Tento di "
+"continuare...\n"
 
 #: src/filters/starnet.c:343
-#, fuzzy
 msgid "No suitable StarNet executable found.\n"
-msgstr "Nessun eseguibile valido trovato nella directory Starnet++\n"
+msgstr "Nessun eseguibile StarNet adatto trovato.\n"
 
 #: src/filters/starnet.c:355
-#, fuzzy
 msgid "No suitable StarNet executable found for a mono image.\n"
-msgstr "Nessun eseguibile valido trovato nella directory Starnet++\n"
+msgstr "Nessun eseguibile StarNet adatto trovato per un'immagine mono.\n"
 
 #: src/filters/starnet.c:370
-#, fuzzy
 msgid "No suitable StarNet executable found for a RGB image.\n"
-msgstr "Nessun eseguibile valido trovato nella directory Starnet++\n"
+msgstr "Nessun eseguibile StarNet adatto trovato per un'immagine RGB.\n"
 
 #: src/filters/starnet.c:403 src/filters/starnet.c:429
 #: src/filters/starnet.c:438 src/filters/starnet.c:444 src/gui/newdeconv.c:682
 msgid "Error: file path too long!\n"
-msgstr ""
+msgstr "Errore: percorso file troppo lungo!\n"
 
 #: src/filters/starnet.c:459
-#, fuzzy
 msgid "Starting StarNet"
-msgstr "Avvio di Starnet++"
+msgstr "Avvio di StarNet"
 
 #: src/filters/starnet.c:465
-#, fuzzy
 msgid "StarNet: running. Please wait...\n"
-msgstr "Starnet++: in esecuzione. Attendere prego…\n"
+msgstr "StarNet: in esecuzione. Attendere prego…\n"
 
 #: src/filters/starnet.c:466
-#, fuzzy, c-format
+#, c-format
 msgid "StarNet: stride = %s...\n"
-msgstr "Starnet++: passo = %s…\n"
+msgstr "StarNet: passo = %s…\n"
 
 #: src/filters/starnet.c:467
-#, fuzzy
 msgid "StarNet: -nostarmask invoked, star mask will not be generated...\n"
 msgstr ""
-"Starnet++: -nostarmask invocato, la maschera stella non verrà generata…\n"
+"StarNet: -nostarmask invocato, la maschera stella non verrà generata…\n"
 
 #: src/filters/starnet.c:472
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Incorrect permissions on the StarNet executable: %s\n"
 "Ensure it is correctly set in Preferences / Miscellaneous.\n"
 msgstr ""
-"Permessi errati sulla directory Starnet++: %s\n"
+"Permessi errati sulla directory StarNet: %s\n"
 "Assicurati che sia impostato correttamente in Preferenze/Varie.\n"
 
 #: src/filters/starnet.c:480
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Incorrect permissions on the StarNet directory: %s\n"
 "Ensure it is correctly set in Preferences / Miscellaneous.\n"
 msgstr ""
-"Permessi errati sulla directory Starnet++: %s\n"
+"Permessi errati sulla directory StarNet: %s\n"
 "Assicurati che sia impostato correttamente in Preferenze/Varie.\n"
 
 #: src/filters/starnet.c:491
-#, fuzzy
 msgid ""
 "Error: unable to change to StarNet directory.\n"
 "Ensure it is set in Preferences / Miscellaneous...\n"
 msgstr ""
-"Errore: impossibile passare alla directory Starnet++.\n"
+"Errore: impossibile passare alla directory StarNet.\n"
 "Assicurati che sia impostato in Preferenze/Varie…\n"
 
 #: src/filters/starnet.c:501 src/filters/starnet.c:527
@@ -17758,80 +17750,71 @@ msgid "Error: image copy failed...\n"
 msgstr "Errore: copia dell’immagine non riuscita…\n"
 
 #: src/filters/starnet.c:517
-#, fuzzy
 msgid "StarNet: Pixel values exceed 1.0. Rescaling to avoid clipping peaks.\n"
 msgstr ""
-"Starnet++: i valori dei pixel superano 1,0. Ridimensionamento per evitare "
+"StarNet: i valori dei pixel superano 1,0. Ridimensionamento per evitare "
 "picchi di clipping.\n"
 
 #: src/filters/starnet.c:547
-#, fuzzy
 msgid "Error: unable to find the MTF stretch factors...\n"
-msgstr "Errore: impossibile passare alla directory di lavoro di Siril…\n"
+msgstr "Errore: impossibile trovare i fattori di stretch MTF...\n"
 
 #: src/filters/starnet.c:552
-#, fuzzy
 msgid ""
 "StarNet: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch "
 "to image.\n"
 msgstr ""
-"Starnet++: modalità lineare. Applicazione del pre-stretch della funzione di "
+"StarNnet: modalità lineare. Applicazione del pre-stretch della funzione di "
 "trasferimento dei mezzitoni (MTF) all’immagine.\n"
 
 #: src/filters/starnet.c:559
-#, fuzzy
 msgid "StarNet: 2x upscaling selected. Upscaling image...\n"
-msgstr "Starnet++: 2x upscaling selezionato. Ridimensionamento immagine…\n"
+msgstr "StarNet: 2x upscaling selezionato. Ridimensionamento immagine…\n"
 
 #: src/filters/starnet.c:562 src/filters/starnet.c:668
 msgid "Error: image resize failed...\n"
 msgstr "Errore: ridimensionamento dell’immagine non riuscito…\n"
 
 #: src/filters/starnet.c:570
-#, fuzzy
 msgid "Error: unable to save working StarNet input file...\n"
-msgstr "Errore: impossibile rimuovere il file su cui si sta lavorando…\n"
+msgstr "Errore: impossibile salvare il file di input StarNet funzionante...\n"
 
 #: src/filters/starnet.c:602
-#, fuzzy
 msgid "Error: cannot read the neural net weights file.\n"
-msgstr "Non posso leggere i dati\n"
+msgstr "Errore: impossibile leggere il file neurali ponderati netti.\n"
 
 #: src/filters/starnet.c:617
-#, fuzzy
 msgid "Error: StarNet did not execute correctly...\n"
-msgstr "Errore: Starnet++ non è stato eseguito correttamente…\n"
+msgstr "Errore: StarNet non è stato eseguito correttamente…\n"
 
 #: src/filters/starnet.c:625
-#, fuzzy
 msgid "Error: unable to read StarNet output file...\n"
-msgstr "Errore: impossibile rimuovere il file su cui si sta lavorando…\n"
+msgstr "Errore: impossibile leggere il file di output di StarNet...\n"
 
 #: src/filters/starnet.c:634
-#, fuzzy
 msgid "Error: unable to remove temporary working file...\n"
-msgstr "Errore: impossibile rimuovere il file su cui si sta lavorando…\n"
+msgstr "Errore: impossibile rimuovere il file di lavoro temporaneo...\n"
 
 #: src/filters/starnet.c:635
 msgid ""
 "Attempting to continue. You will need to clean up the working files "
 "manually.\n"
 msgstr ""
+"Tentativo di continuare. Sarà necessario ripulire manualmente i file di "
+"lavoro.\n"
 
 #: src/filters/starnet.c:665
-#, fuzzy
 msgid ""
 "StarNet: 2x upscaling selected. Re-scaling starless image to original "
 "size...\n"
 msgstr ""
-"Starnet++: 2x upscaling selezionato. Ridimensionamento dell’immagine senza "
+"StarNet: 2x upscaling selezionato. Ridimensionamento dell’immagine senza "
 "stelle alle dimensioni originali…\n"
 
 #: src/filters/starnet.c:677
-#, fuzzy
 msgid "StarNet: linear mode. Applying inverse MTF stretch to starless image.\n"
 msgstr ""
-"Starnet++: modalità lineare. Applicazione dello stretch MTF inverso "
+"StarNet: modalità lineare. Applicazione dello stretch MTF inverso "
 "all’immagine senza stelle.\n"
 
 #: src/filters/starnet.c:694
@@ -17847,15 +17830,17 @@ msgid "Error: unable to save starmask image as FITS...\n"
 msgstr "Errore: impossibile salvare l’immagine Starmask come FITS…\n"
 
 #: src/filters/starnet.c:739
-#, fuzzy
 msgid "StarNet: job completed.\n"
-msgstr "Starnet++: lavoro completato.\n"
+msgstr "StarNet: lavoro completato.\n"
 
 #: src/filters/starnet.c:837
 msgid ""
 "Warning: some images in the sequence were smaller than 512x512. Some "
 "versions of StarNet may fail to process these images.\n"
 msgstr ""
+"Attenzione: alcune immagini nella sequenza erano più piccole di 512x512. "
+"Alcune versioni di StarNet potrebbero non riuscire a elaborare queste "
+"immagini.\n"
 
 #: src/filters/starnet.c:899
 #, c-format
@@ -17863,19 +17848,17 @@ msgid "Starnet: Processing image %d\n"
 msgstr "Starnet: Elaborazione dell'immagine %d\n"
 
 #: src/filters/starnet.c:954
-#, fuzzy
 msgid "StarNet"
-msgstr "Avvio di Starnet++"
+msgstr "StarNet"
 
 #: src/filters/starnet.c:964
-#, fuzzy
 msgid "StarNet: Processing..."
-msgstr "Inizia pre-elaborazione"
+msgstr "StarNet: Processo..."
 
 #: src/filters/synthstar.c:361
-#, fuzzy
 msgid "Star synthesis (full star mask creation): processing...\n"
-msgstr "Estrazione del canale %s: elaborazione...\n"
+msgstr ""
+"Sintesi di stelle (creazione di maschera stella completa): elaborazione...\n"
 
 #: src/filters/synthstar.c:388
 msgid "No stars detected in the image.\n"
@@ -17884,16 +17867,18 @@ msgstr "nessuna stella rilevata nell'immagine.\n"
 #: src/filters/synthstar.c:391
 #, c-format
 msgid "Synthesizing %d stars...\n"
-msgstr ""
+msgstr "Sintesi di %d stelle...\n"
 
 #: src/filters/synthstar.c:666
 msgid "Star synthesis (desaturating clipped star profiles): processing...\n"
 msgstr ""
+"Sintesi stellare (desaturazione dei profili stella clippati): "
+"elaborazione...\n"
 
 #: src/filters/synthstar.c:722
 #, c-format
 msgid "Star synthesis: desaturating stars in channel %u...\n"
-msgstr ""
+msgstr "Sintesi di stelle: desaturazione delle stelle nel canale %u...\n"
 
 #: src/filters/synthstar.c:761
 #, c-format
@@ -17903,6 +17888,7 @@ msgstr "Star synthesis: %d stelle desaturate\n"
 #: src/filters/synthstar.c:773
 msgid "Remapping output to floating point range 0.0 to 1.0\n"
 msgstr ""
+"Rimappatura dell'output nell'intervallo in virgola mobile da 0,0 a 1,0\n"
 
 #: src/filters/wavelets.c:178
 msgid "Could not copy image, aborting\n"
@@ -17997,11 +17983,8 @@ msgid "Please enter object coordinates."
 msgstr "Prego inserire coordinate dell’oggetto."
 
 #: src/gui/astrometry_solver.c:619
-#, fuzzy
 msgid "Selection is not used with the astrometry.net solver\n"
-msgstr ""
-"La selezione non viene utilizzata nella modalità di selezione manuale delle "
-"stelle\n"
+msgstr "La selezione non è utilizzata con il risolutore astrometry.net\n"
 
 #: src/gui/astrometry_solver.c:668
 msgid "No catalog"
@@ -18095,20 +18078,26 @@ msgstr "Impostazione range scalemin=%d, scalemax=%d\n"
 msgid ""
 "Current image is not 32 bit. Standard 16 bit AutoStretch will be used.\n"
 msgstr ""
+"L'immagine corrente non è a 32 bit. Verrà utilizzato AutoStretch standard a "
+"16 bit.\n"
 
 #: src/gui/callbacks.c:335 src/gui/callbacks.c:356
 #, c-format
 msgid "The AutoStretch display mode will use a %d bit LUT\n"
 msgstr ""
+"La modalità di visualizzazione AutoStretch utilizzerà una LUT a %d bit\n"
 
 #: src/gui/callbacks.c:339 src/gui/callbacks.c:359
 msgid "The AutoStretch display mode will use a 16 bit LUT\n"
 msgstr ""
+"La modalità di visualizzazione AutoStretch utilizzerà una LUT a 16 bit\n"
 
 #: src/gui/callbacks.c:370
 #, c-format
 msgid "Setting HD AutoStretch display mode bit depth to %d...\n"
 msgstr ""
+"Impostazione della profondità di bit della modalità di visualizzazione HD "
+"AutoStretch su %d...\n"
 
 #: src/gui/callbacks.c:449
 #, c-format
@@ -18185,9 +18174,9 @@ msgid "B&W"
 msgstr "B&N"
 
 #: src/gui/callbacks.c:1257
-#, fuzzy, c-format
+#, c-format
 msgid "Binning %d x %d is not supported\n"
-msgstr "Questo binning %d x %d non è ancora gestito\n"
+msgstr "Binning %d x %d non è supportata\n"
 
 #: src/gui/callbacks.c:1397
 #, c-format
@@ -18269,13 +18258,12 @@ msgid "Clear Sequence Data?"
 msgstr "Cancello i Dati Sequenza?"
 
 #: src/gui/callbacks.c:1909
-#, fuzzy
 msgid "Clear Data"
-msgstr "Pulisci tutte"
+msgstr "Cancella Dati"
 
 #: src/gui/callbacks.c:1921
 msgid "The requested data of the sequence has been cleaned."
-msgstr ""
+msgstr "I dati richiesti della sequenza sono stati puliti."
 
 #: src/gui/conversion.c:109
 msgid "Invalid char"
@@ -18331,7 +18319,6 @@ msgid "Too many files are being converted."
 msgstr "Troppi file vengono convertiti."
 
 #: src/gui/conversion.c:171
-#, fuzzy
 msgid ""
 "You are about to convert a large amount of files into standard FITS files. "
 "However, your OS limits the number of files that will be processed in the "
@@ -18339,7 +18326,7 @@ msgid ""
 msgstr ""
 "Stai per convertire una grande quantità di files in file standard FITS. "
 "Tuttavia il tuo OS limita il numero di files che possono essere elaborati "
-"nello stesso tempo. Potresti preferire di convertire i tuoi file di input un "
+"nello stesso tempo. Potresti preferire di convertire i tuoi file di input in "
 "una sequenza FIT."
 
 #: src/gui/conversion.c:173
@@ -18448,7 +18435,7 @@ msgstr "Cartella"
 #: src/gui/documentation.c:60
 #, c-format
 msgid "Siril documentation URL: %s\n"
-msgstr ""
+msgstr "URL della documentazione Siril: %s\n"
 
 #: src/gui/documentation.c:71 src/gui/newdeconv.c:281 src/gui/script_menu.c:321
 msgid "Could not show link"
@@ -18460,25 +18447,31 @@ msgstr "Si prega di visitare <a href=\""
 
 #: src/gui/histogram.c:143 src/gui/histogram.c:149 src/gui/histogram.c:1027
 #: src/gui/histogram.c:1033 src/gui/histogram.c:1688 src/gui/histogram.c:1705
-#, fuzzy
 msgid "Channels warning"
-msgstr "Estrazione del canale"
+msgstr "Avviso sui canali"
 
 #: src/gui/histogram.c:144 src/gui/histogram.c:1028 src/gui/histogram.c:1706
 msgid ""
 "Not all colour channels are selected. Human luminance colour model cannot be "
 "used: setting even weighted luminance colour model."
 msgstr ""
+"Non tutti i canali colore sono selezionati. Il modello di colore della "
+"luminanza umana non può essere utilizzato: impostazione del modello di "
+"colore della luminanza ponderata uniforme."
 
 #: src/gui/histogram.c:150 src/gui/histogram.c:1034 src/gui/histogram.c:1689
 msgid ""
 "Not all colour channels are selected. Saturation stretch cannot be used: "
 "setting independent channels colour model."
 msgstr ""
+"Non tutti i canali colore sono selezionati. Saturation stretch non può "
+"essere utilizzato: impostazione del modello di colore dei canali "
+"indipendenti."
 
 #: src/gui/histogram.c:316
 msgid "Toggles whether to apply the stretch to the monochrome channel"
 msgstr ""
+"Attiva o disattiva l'applicazione dello stretch al canale monocromatico"
 
 #: src/gui/histogram.c:339 src/gui/sequence_list.c:127
 msgid "Red channel"
@@ -18492,32 +18485,32 @@ msgstr "Trasformazione dell’Istogramma. (med=%.3f, bassi=%.3f, alti=%.3f)"
 #: src/gui/histogram.c:1161
 #, c-format
 msgid "GHS pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "Pivot GHS: %.3f, importo: %.2f, locale: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1164
 #, c-format
 msgid "GHS INV pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS INV pivot: %.3f, importo: %.2f, locale: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1167
 #, c-format
 msgid "GHS ASINH pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS ASINH pivot: %.3f, importo: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1170
 #, c-format
 msgid "GHS ASINH INV pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "Pivot GHS ASINH INV: %.3f, importo: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1173
 #, c-format
 msgid "GHS LINEAR BP: %.2f"
-msgstr ""
+msgstr "BP LINEARE GHS: %.2f"
 
 #: src/gui/histogram.c:1179
 #, c-format
 msgid "GHS SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "GHS SAT Pivot: %.3f, importo: %.2f, locale: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1182
 #, c-format
