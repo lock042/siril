@@ -79,13 +79,13 @@ msgstr ""
 "desvia del valor dels píxels que l'envolten per ser considerat un píxel fred."
 
 #: src/gui/siril3.glade:237 src/gui/siril3.glade:267
-#, fuzzy
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a cold pixel."
 msgstr ""
-"Quantes vegades (en unitats de desviació mitjana) el valor d'un píxel es "
-"desvia del valor dels píxels que l'envolten per ser considerat un píxel fred."
+"Quantes vegades (en unitats de desviació mitjana) el valor d'un píxel ha de "
+"desviar-se del valor dels píxels que l'envolten per ser considerat un píxel "
+"fred."
 
 #: src/gui/siril3.glade:283 src/gui/siril3.glade:21305
 msgid "Hot Sigma:"
@@ -101,13 +101,12 @@ msgstr ""
 "calent."
 
 #: src/gui/siril3.glade:303 src/gui/siril3.glade:333
-#, fuzzy
 msgid ""
 "How many times (in average deviation units) a pixel value must differ from "
 "the value of surrounding neighbors to be considered as a hot pixel."
 msgstr ""
-"Quantes vegades (en unitats de desviació mitjana) el valor d'un píxel es "
-"desvia del valor dels píxels que l'envolten per ser considerat un píxel "
+"Quantes vegades (en unitats de desviació mitjana) el valor d'un píxel pot "
+"desviar-se del valor dels píxels que l'envolten per ser considerat un píxel "
 "calent."
 
 #: src/gui/siril3.glade:352 src/gui/siril3.glade:1215 src/gui/siril3.glade:5163
@@ -516,7 +515,6 @@ msgid "Upsample x2"
 msgstr "Ampliar mostreig x2"
 
 #: src/gui/siril3.glade:2279
-#, fuzzy
 msgid ""
 "If selected, the image will be upsampled by a factor of 2 before running "
 "StarNet. This improves performance on very tight stars but quadruples "
@@ -526,7 +524,7 @@ msgstr ""
 "Si el selecciones, la imatge es sobre-mostrarà amb un factor de 2 abans "
 "d'executar StarNet. Aquesta opció millora el rendiment en estels molt junts "
 "però quadruplica el temps de processat i pot afectar-ne el rendiment en "
-"estels molt grans. La imatge es tornara a la mida original en acabar."
+"estels molt grans. La imatge es tornarà a la mida original en acabar."
 
 #: src/gui/siril3.glade:2296
 msgid ""
@@ -657,7 +655,6 @@ msgid "RBF"
 msgstr "RBF"
 
 #: src/gui/siril3.glade:3489
-#, fuzzy
 msgid "Polynomial"
 msgstr "Polinòmica"
 
@@ -1616,7 +1613,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:7519
 msgid "Split Bregman method with TV regularization"
-msgstr ""
+msgstr "Mètode Split Bregman amb regularització TV"
 
 #: src/gui/siril3.glade:7520
 msgid "Richardson-Lucy method with TV regularization"
@@ -1659,6 +1656,13 @@ msgid ""
 "more often used in regularizing denoising algorithms but can perform well "
 "when deconvolving a star mask produced by Siril's Starnet++ interface."
 msgstr ""
+"La regularització de Variació Total preserva bé els contorns nítids de la "
+"imatge. En cas de dubte, opta per la Variació Total. No obstant això, pot "
+"tenir tendència a produir un \"efecte d'escala\" en àrees uniformes grans.\n"
+"La norma de Frobenius del Hessian utilitza un terme de regularització "
+"d'ordre segon. Es fa servir més sovint en la regularització d'algoritmes de "
+"desoroll i pot funcionar bé en la deconvolució d'una màscara d'estels "
+"produïda per la interfície Starnet++ de Siril."
 
 #: src/gui/siril3.glade:7595
 #, fuzzy
@@ -1770,7 +1774,7 @@ msgstr "Composició de la imatge"
 
 #: src/gui/siril3.glade:7981
 msgid "Remove salt and pepper noise"
-msgstr ""
+msgstr "Elimina soroll \"sal i pebre\""
 
 #: src/gui/siril3.glade:7985
 msgid ""
@@ -1795,6 +1799,12 @@ msgid ""
 "default and should only be enabled in the rare event that you see artefacts "
 "when denoising a colour image."
 msgstr ""
+"Suprimeix els defectes de color en blocs que poden aparèixer rarament en "
+"imatges en color. Aquesta opció tracta cada canal per separat i elimina els "
+"defectes a canvi de certa velocitat. La majoria de les vegades això no és "
+"necessari, així que està desactivat per defecte i només hauria de ser "
+"activat en l'estrany cas que es vegin defectes en eliminar el soroll d'una "
+"imatge en color."
 
 #: src/gui/siril3.glade:8030
 #, fuzzy
@@ -1816,7 +1826,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:8076
 msgid "Anscombe VST with exact unbiased inverse"
-msgstr ""
+msgstr "Anscombe VST amb inversió exacta no esbiaixada"
 
 #: src/gui/siril3.glade:8080
 msgid ""
@@ -1825,12 +1835,18 @@ msgid ""
 "Gaussian mix. It cannot be used in conjunction with DA3D or SOS. Ref: "
 "https://ieeexplore.ieee.org/document/5278406"
 msgstr ""
+"L'Anscombe VST és útil per eliminar el soroll en imatges limitades per "
+"fotons on les característiques de soroll no són gaussianes sinó "
+"principalment de Poisson o una barreja de Poisson-Gaussià. No es pot "
+"utilitzar conjuntament amb DA3D o SOS. Ref: https://ieeexplore.ieee.org/"
+"document/5278406"
 
 #: src/gui/siril3.glade:8095
 msgid "Data Adaptive Dual Domain Denoising"
 msgstr "Dades Adaptatives de Reducció de Soroll de Domini Dual"
 
 #: src/gui/siril3.glade:8099
+#, fuzzy
 msgid ""
 "Use DA3D as a final denoising step. This algorithm uses the output of the "
 "primary denoising algorithm as a guide image to perform frequency domain "
@@ -1838,6 +1854,12 @@ msgid ""
 "than the primary algorithm and may improve detail retention and reduce "
 "staircasing artefacts. Ref: https://ieeexplore.ieee.org/document/7350835"
 msgstr ""
+"Utilitza DA3D com a pas final per eliminar el soroll. Aquest algoritme "
+"utilitza la sortida de l'algoritme principal d'eliminació de soroll com una "
+"imatge guia per realitzar la reducció de domini de freqüència en formes i "
+"retalls adaptatius de dades. Mai produeix una sortida pitjor que l'algoritme "
+"principal i pot millorar la retenció de detalls i reduir els defectes de "
+"l'efecte d'escala. Ref: https://ieeexplore.ieee.org/document/7350835"
 
 #: src/gui/siril3.glade:8113
 msgid "Strengthen Operate Subtract iterator"
@@ -1850,6 +1872,10 @@ msgid ""
 "denoising performance and reduce staircasing artefacts. Ref: https://arxiv."
 "org/abs/1502.06220"
 msgstr ""
+"La iteració SOS funciona iterant l'algoritme principal d'eliminació de "
+"soroll diverses vegades, cada vegada barrejant una fracció de la imatge "
+"sorollosa. Això pot millorar el rendiment de l'eliminació de soroll i reduir "
+"els defectes de l'efecte d'escala. Ref: https://arxiv.org/abs/1502.06220"
 
 #: src/gui/siril3.glade:8135
 msgid "Secondary Denoising Algorithm"
@@ -1876,6 +1902,14 @@ msgid ""
 "the next iteration, so the final output noise level is substantially lower "
 "than the intermediate values shown between iterations.)"
 msgstr ""
+"Estableix el nombre d'iteracions SOS. De 3 a 5 iteracions solen proporcionar "
+"una bona convergència. La convergència es pot veure examinant l'estimació "
+"actualitzada del soroll de la imatge mostrada a la finestra de registre "
+"després de cada iteració. (Aquests valors de soroll es mesuren després que "
+"el soroll de la imatge original es barreja de nou per preparar la següent "
+"iteració, de manera que el nivell de soroll de sortida final és "
+"substancialment més baix que els valors intermedis mostrats entre "
+"iteracions.)"
 
 #: src/gui/siril3.glade:8195
 msgid ""
@@ -1884,6 +1918,11 @@ msgid ""
 "kept. Values close to 0 or 1 may result in a need for more iterations to "
 "achieve convergence at the maximum improvement SOS can produce."
 msgstr ""
+"rho estableix la quantitat de la imatge sorollosa original en cada iteració. "
+"Un valor més alt significa que s'hi barreja menys soroll i es conserva més "
+"del resultat intermedi. Valors propers a 0 o 1 poden resultar en la "
+"necessitat de més iteracions per assolir la convergència amb la millora "
+"màxima que pot produir SOS."
 
 #: src/gui/siril3.glade:8197
 msgid "rho"
@@ -1896,6 +1935,10 @@ msgid ""
 "effectiveness but beyond a certain point the algorithm will fail to "
 "converge. The default of 0.2 is often a good starting point."
 msgstr ""
+"Rho estableix la quantitat de la imatge sorollosa original barrejada entre "
+"cada iteració SOS. Fins a cert punt, valors més grans resultaran en una "
+"major efectivitat, però més enllà d'un cert punt l'algoritme no convergirà. "
+"El valor per defecte de 0.2 sol ser un bon punt de partida."
 
 #: src/gui/siril3.glade:8227
 msgid "SOS Advanced Options"
@@ -1910,6 +1953,13 @@ msgid ""
 "end of the process, after primary and secondary denoising stages have both "
 "completed."
 msgstr ""
+"La modulació permet barrejar una fracció de la imatge sorollosa en el "
+"resultat el soroll del qual ha estat eliminat. Això pot ser útil per afegir "
+"microtextura si el resultat el soroll del qual ha estat eliminat sembla "
+"artificialment suau. Un valor de 1 vol dir que la sortida serà 100% sense "
+"soroll, sense afegir cap imatge sorollosa. La modulació es realitza al final "
+"del procés, després que les etapes d'eliminació de soroll primari i "
+"secundari hagin acabat."
 
 #: src/gui/siril3.glade:8266 src/gui/siril3.glade:8292
 msgid ""
@@ -1919,6 +1969,11 @@ msgid ""
 "modulation can be useful to add back microtexture to flat regions of the "
 "image."
 msgstr ""
+"Estableix la modulació. El valor del píxel es calcula com a m * b + (1-m) * "
+"orig, on m és la modulació, b és el valor del soroll eliminst i orig és el "
+"valor del píxel original. La modulació redueix el rendiment de l'eliminació "
+"de soroll, però una mica de modulació pot ser útil per afegir microtextura "
+"de nou a les regions planes de la imatge."
 
 #: src/gui/siril3.glade:8312
 msgid "Channel Extraction"
@@ -2290,6 +2345,12 @@ msgid ""
 "reduction workflow, you can specify any two fits files with the same "
 "dimensions and bit depth for blending."
 msgstr ""
+"Selecciona una imatge sense estrelles per a la recomposició amb una màscara "
+"d'estels. \n"
+"Encara que l'objectiu principal de l'eina és la recomposició d'estels com a "
+"part d'una dinàmica de treball de reducció d'estels, es pot especificar "
+"qualssevol dos fitxers fits amb les mateixes dimensions i profunditat de "
+"bits per barrejar."
 
 #: src/gui/siril3.glade:9545
 msgid ""
@@ -2311,6 +2372,7 @@ msgid "Type of stretch"
 msgstr "Tipus d'algorisme"
 
 #: src/gui/siril3.glade:9584 src/gui/siril3.glade:10193
+#, fuzzy
 msgid ""
 "Select type of stretch. Generalised hyperbolic stretch performs a hyperbolic "
 "stretch with parameters for stretch strength, local intensity, symmetry "
@@ -2319,6 +2381,13 @@ msgid ""
 "point, lowlight and highlight preservation. The inverse hyperbolic and "
 "arcsinh stretches are also available."
 msgstr ""
+"Selecciona el tipus d'estirament. L'estirament hiperbòlic generalitzat "
+"realitza un estirament hiperbòlic amb paràmetres per a la força "
+"d'estirament, la intensitat local, el punt de simetria i les regions de "
+"preservació d'ombres i llums altes. L'estirament arcsinh modificat realitza "
+"un estirament arcsinh amb paràmetres addicionals per al punt de simetria, la "
+"preservació de llums baixes i altes. També estan disponibles els estiraments "
+"hiperbòlic i arcsinh inversos."
 
 #: src/gui/siril3.glade:9588 src/gui/siril3.glade:10197
 #: src/gui/siril3.glade:16040
@@ -2360,6 +2429,15 @@ msgid ""
 "which applies the stretch independently to each channel of the pixel.\n"
 "Note that luminance based models are not generally invertible."
 msgstr ""
+"Estableix el model d'estirament per a estiraments de color. Les opcions són: "
+"lluminància ponderada uniformement, que calcula l'estirament en funció d'un "
+"valor de lluminància valorant els canals R, G i B equitativament; "
+"lluminància ponderada per l'ésser humà, que estira en funció d'un valor de "
+"lluminància valorant els canals R, G i B segons la sensibilitat relativa de "
+"l'ull humà; i valors de canal independents, que aplica l'estirament "
+"independentment a cada canal del píxel.\n"
+"Tingues en compte que els models basats en lluminància generalment no són "
+"invertibles."
 
 #: src/gui/siril3.glade:9639 src/gui/siril3.glade:10248
 #: src/gui/siril3.glade:16091
@@ -2370,7 +2448,7 @@ msgstr "Canal Verd"
 #: src/gui/siril3.glade:9640 src/gui/siril3.glade:10249
 #: src/gui/siril3.glade:16092
 msgid "Human weighted luminance"
-msgstr ""
+msgstr "Lluminància ponderada per l'ésser humà"
 
 #: src/gui/siril3.glade:9641 src/gui/siril3.glade:10250
 #: src/gui/siril3.glade:16093
@@ -2574,6 +2652,8 @@ msgstr "Restableix el paràmetre d'estirat pels estels de la imatge"
 msgid ""
 "Applies current stretch to the star image and resets the stretch parameters."
 msgstr ""
+"Aplica l'estirament actual a la imatge de l'estel i reinicia els paràmetres "
+"d'estirament."
 
 #: src/gui/siril3.glade:10827
 msgid "Resets stretch parameters for the starless image"
@@ -2584,6 +2664,8 @@ msgid ""
 "Applies current stretch to the starless image and resets the stretch "
 "parameters."
 msgstr ""
+"Aplica l'estirament actual a la imatge sense estel i reinicia els paràmetres "
+"d'estirament."
 
 #: src/gui/siril3.glade:10884 src/gui/linear_match.c:201
 msgid "Linear Match"
@@ -2701,11 +2783,15 @@ msgid ""
 msgstr "Inclou/Exclou les imatges de la seqüencia seleccionades del processat"
 
 #: src/gui/siril3.glade:11514
+#, fuzzy
 msgid ""
 "When toggled, the outline of the reference image as transformed with "
 "registration data is drawn on each image to review image position wrt. "
 "reference."
 msgstr ""
+"Quan és activat, el contorn de la imatge de referència transformat amb les "
+"dades de registre es dibuixa a cada imatge per revisar la posició de la "
+"imatge respecte a la referència."
 
 #: src/gui/siril3.glade:11538
 msgid "Reference image"
@@ -2786,6 +2872,11 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"Introdueix l'identificador o el nom d'un objecte situat a prop del centre de "
+"la imatge. Aquesta funcionalitat requereix una connexió a Internet (pregunta "
+"a SIMBAD per defecte o al servidor seleccionat a la dreta).\n"
+"Si les coordenades ja estan omplertes quan es fa clic al botó de sota "
+"Obtenir Metadades de la Imatge, probablement no és necessari."
 
 #: src/gui/siril3.glade:11846
 msgid "Find"
@@ -2799,6 +2890,11 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From "
 "Image button below, this is probably not required."
 msgstr ""
+"Inicia la cerca de les coordenades de l'objecte amb nom. Aquesta "
+"funcionalitat requereix una connexió a Internet (pregunta a SIMBAD per "
+"defecte o al servidor seleccionat a la dreta).\n"
+"Si les coordenades ja estan omplertes quan es fa clic al botó de baix "
+"Obtenir Metadades de la Imatge, probablement no és necessari."
 
 #: src/gui/siril3.glade:11865 src/gui/siril3.glade:11901
 msgid ""
@@ -2915,6 +3011,8 @@ msgid ""
 "Checking this box will force plate solving to be redone by Siril. It is not "
 "needed if the image contains trustworthy WCS information."
 msgstr ""
+"Marcar aquesta casella forçarà a refer la resolució astronòmica feta per "
+"Siril. No és necessari si la imatge conté informació WCS fiable."
 
 #: src/gui/siril3.glade:12070
 msgid "Get Metadata From Image"
@@ -2953,7 +3051,7 @@ msgstr "Servidor:"
 
 #: src/gui/siril3.glade:12130
 msgid "Use local astrometry.net solver"
-msgstr ""
+msgstr "Utilitza el mètode de resolució local astrometry.net"
 
 #: src/gui/siril3.glade:12134
 msgid ""
@@ -3080,6 +3178,8 @@ msgid ""
 "The NOMAD catalogue can be installed locally to not rely on an Internet "
 "connection for this operation."
 msgstr ""
+"El catàleg NOMAD es pot instal·lar localment per no dependre d'una connexió "
+"a Internet per fer aquesta operació."
 
 #: src/gui/siril3.glade:12335
 msgid "Catalogue Parameters"
@@ -3180,6 +3280,8 @@ msgid ""
 "Compute statistics on pixels that have the same filter as the corresponding "
 "channel, for CFA (non-demosaiced) images."
 msgstr ""
+"Computa estadístiques en píxels que tenen el mateix filtre que el canal "
+"corresponent, per les imatges CFA (no desmosaicades)."
 
 #: src/gui/siril3.glade:12710
 msgid "No Selection"
@@ -3357,10 +3459,13 @@ msgid ""
 "Minimum value for Moffat beta parameter. This can be used to avoid galaxies "
 "being modelled as stars with excessively low beta."
 msgstr ""
+"Mínim valor pel paràmetre beta de Moffat. Això es pot utilitzar per evitar "
+"que les galàxies siguin modelades com estels amb una beta excessivament "
+"baixa."
 
 #: src/gui/siril3.glade:13435
 msgid "Resets all parameters to defaults."
-msgstr ""
+msgstr "Reinicialitza tots els paràmetres a valors per defecte."
 
 #: src/gui/siril3.glade:13456
 msgid ""
@@ -3376,15 +3481,20 @@ msgstr ""
 
 #: src/gui/siril3.glade:13492
 msgid "Amplitude range"
-msgstr ""
+msgstr "Rang d'amplitud"
 
 #: src/gui/siril3.glade:13496
+#, fuzzy
 msgid ""
 "Enable amplitude range (only stars with an amplitude in this range will be "
 "kept from the detection).\n"
 "Note: excluding saturated stars from the list will probably make "
 "registration or astrometry fail."
 msgstr ""
+"Habilita l'interval d'amplitud (només estels amb una amplitud en aquest "
+"interval es mantindran de la detecció).\n"
+"Nota: excloure els estels saturats de la llista probablement farà fallar el "
+"registre o l'astrometria."
 
 #: src/gui/siril3.glade:13508
 #, fuzzy
@@ -3392,17 +3502,24 @@ msgid "Roundness range"
 msgstr "Llindar de rodonesa:"
 
 #: src/gui/siril3.glade:13512
+#, fuzzy
 msgid ""
 "Enable roundness upper bound.\n"
 "Use only to display optical distorsions or double stars, not for "
 "registration or astrometry, this will break them."
 msgstr ""
+"Habilita el límit superior de rodonesa.\n"
+"Utilitza-ho només per mostrar distorsions òptiques o estels dobles, no per "
+"al registre o l'astrometria, això els trencarà."
 
 #: src/gui/siril3.glade:13527
+#, fuzzy
 msgid ""
 "Maximum roundness, use only to display optical distorsions or double stars, "
 "not for registration or astrometry, this will break them."
 msgstr ""
+"Rodonesa màxima, utilitzar-ho només per mostrar distorsions òptiques o "
+"estels dobles, no per al registre o l'astrometria, això els trencarà."
 
 #: src/gui/siril3.glade:13622
 msgid "Estimate sensor tilt"
@@ -3442,19 +3559,26 @@ msgid "shift-only registration"
 msgstr "registrat únicament per translació"
 
 #: src/gui/siril3.glade:13828
+#, fuzzy
 msgid ""
 "Only shift images instead of using rotation on registration. This should be "
 "unchecked for alt-az or heavily drifting mounts. This makes one image "
 "processing much faster."
 msgstr ""
+"Només desplaça les imatges en lloc d'utilitzar rotació en el registre. Això "
+"hauria d'estar desmarcat per a muntatges alt-az o amb deriva forta. Això fa "
+"que el processament d'una imatge sigui molt més ràpid."
 
 #: src/gui/siril3.glade:13839
 msgid "remove gradient"
-msgstr ""
+msgstr "eliminar el gradient"
 
 #: src/gui/siril3.glade:13844
+#, fuzzy
 msgid "Apply a linear background gradient removal on calibrated input frames."
 msgstr ""
+"Aplica una eliminació de gradient de fons lineal en fotogrames calibrats "
+"d'entrada."
 
 #: src/gui/siril3.glade:13855
 #, fuzzy
@@ -3466,6 +3590,8 @@ msgid ""
 "Use 32 bits for image processing. This is slower and generally useless in "
 "terms of quality for live stacking."
 msgstr ""
+"Utilitza 32 bits pel processament d'imatge. Això és més lent i generalment "
+"més inútil en termes de qualitat pel live stacking."
 
 #: src/gui/siril3.glade:13933
 msgid "waiting for input files"
@@ -3493,7 +3619,7 @@ msgstr "Configuració"
 
 #: src/gui/siril3.glade:14110 src/livestacking/gui.c:143
 msgid "Idle"
-msgstr ""
+msgstr "Inactiu"
 
 #: src/gui/siril3.glade:14144 src/gui/siril3.glade:14277
 msgid "Image Information"
@@ -3505,7 +3631,7 @@ msgstr "Preferències"
 
 #: src/gui/siril3.glade:14195
 msgid "Siril Manual"
-msgstr ""
+msgstr "Documentació"
 
 #: src/gui/siril3.glade:14209
 msgid "Check For Updates"
@@ -3538,7 +3664,7 @@ msgstr "Estimació del soroll"
 #: src/gui/siril3.glade:14336 src/gui/siril3.glade:14684
 #: src/gui/siril3.glade:26677
 msgid "Aberration Inspector"
-msgstr ""
+msgstr "Inspector d'aberració"
 
 #: src/gui/siril3.glade:14361
 msgid "Information..."
@@ -3575,7 +3701,7 @@ msgstr "Estirat Automàtic"
 
 #: src/gui/siril3.glade:14478
 msgid "High definition"
-msgstr ""
+msgstr "Alta definició"
 
 #: src/gui/siril3.glade:14487 src/gui/siril3.glade:30548
 msgid "Histogram"
@@ -3639,6 +3765,8 @@ msgid ""
 "Search and display solar system objects with mag<20.0.\n"
 "This research has made use of IMCCE's SkyBoT VO tool."
 msgstr ""
+"Cerca i mostra objectes del sistema solar amg mag<20.0\n"
+"Aquesta recerca s'ha fet mitjançant l'ús de l'eina SkyBoT VO de l'IMCCE."
 
 #: src/gui/siril3.glade:14651
 #, fuzzy
@@ -3774,7 +3902,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:15152
 msgid "Input Files"
-msgstr ""
+msgstr "Fitxers d'entrada"
 
 #: src/gui/siril3.glade:15181
 msgid ""
@@ -3886,15 +4014,15 @@ msgstr ""
 
 #: src/gui/siril3.glade:15611
 msgid "Toggles whether the stretch applies to the red channel"
-msgstr ""
+msgstr "Permet indicar si l'estirament s'aplica al canal vermell."
 
 #: src/gui/siril3.glade:15629
 msgid "Toggles whether the stretch applies to the green channel"
-msgstr ""
+msgstr "Permet indicar si l'estirament s'aplica al canal verd"
 
 #: src/gui/siril3.glade:15647
 msgid "Toggles whether the stretch applies to the blue channel"
-msgstr ""
+msgstr "Permet indicar si l'estirament s'aplica al canal blau"
 
 #: src/gui/siril3.glade:15674
 msgid "Show grids"
@@ -4099,7 +4227,7 @@ msgstr "Paràmetres"
 
 #: src/gui/siril3.glade:17203
 msgid "Rescale result"
-msgstr ""
+msgstr "Re-escalar el resultat"
 
 #: src/gui/siril3.glade:17207
 msgid ""
@@ -4350,15 +4478,15 @@ msgstr "Matemàtica de Píxel..."
 #: src/gui/siril3.glade:17904 src/gui/siril3.glade:18029
 #: src/gui/siril3.glade:18089 src/gui/siril3.glade:18242
 msgid "Go back to main menu"
-msgstr ""
+msgstr "Retorna al menú principal"
 
 #: src/gui/siril3.glade:17921
 msgid "Run Starnet++"
-msgstr ""
+msgstr "Executa Starnet++"
 
 #: src/gui/siril3.glade:17923
 msgid "StarNet Star Removal..."
-msgstr ""
+msgstr "Suprimeix estels amb StarNet..."
 
 #: src/gui/siril3.glade:17936
 msgid ""
@@ -4378,7 +4506,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:17953
 msgid "Desaturate Stars"
-msgstr ""
+msgstr "Desaturar els estels"
 
 #: src/gui/siril3.glade:17970
 msgid ""
@@ -4392,7 +4520,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:17974
 msgid "Full Resynthesis"
-msgstr ""
+msgstr "Resíntesis integral"
 
 #: src/gui/siril3.glade:17987
 #, fuzzy
@@ -4940,7 +5068,6 @@ msgid "Frame rate"
 msgstr "Llista de Fotogrames"
 
 #: src/gui/siril3.glade:20690
-#, fuzzy
 msgid "Resize"
 msgstr "Redimensionar"
 
@@ -5141,7 +5268,6 @@ msgstr ""
 "calent."
 
 #: src/gui/siril3.glade:21291 src/gui/siril3.glade:31103
-#, fuzzy
 msgid "Estimate"
 msgstr "Estimar"
 
@@ -12887,6 +13013,7 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:150
+#, fuzzy
 msgid ""
 "Plate solve a sequence. A new sequence will be created with the prefix \"ps_"
 "\".\n"
@@ -12920,6 +13047,39 @@ msgid ""
 "is passed, it forces the use of the remote catalog given in argument, with "
 "possible values: tycho2, nomad, gaia, ppmxl, brightstars, apass"
 msgstr ""
+"Resolució astronòmica d'una seqüència. Es crearà una nova seqüència amb el "
+"prefix \"ps_\".\n"
+"Si les imatges ja han estat resoltes astronòmicament, només es copiaran, "
+"llevat que s'indiqui l'argument <b>-platesolve</b> per forçar una nova "
+"resolució. Si les  WCS o altres metadates d'imatges són errònies o falten, "
+"s'han de passar arguments:\n"
+"es poden proporcionar les coordenades aproximades del centre de la imatge en "
+"graus decimals o valors de grau/hora minut segon (J2000 amb separadors de "
+"dos punts), amb valors d'ascensió recta i declinació separats per una coma o "
+"un espai (no és obligatori per a astrometry.net).\n"
+"la distància focal i la mida dels píxels es poden passar amb <b>-focal=</b> "
+"(en mm) i <b>-pixelsize=</b> (en microns), sobreescrivint valors d'imatge i "
+"de configuració.\n"
+"\n"
+"A no ser que <b>-noflip</b> sigui especificat, si les imatges es detecten "
+"cap per avall, seran girades.\n"
+"Per a una detecció d'estels més ràpida en imatges grans, és possible reduir "
+"la mida de la imatge amb <b>-downscale</b>.\n"
+"\n"
+"Les imatges es poden resoldre astronòmicament per Siril utilitzant un "
+"catàleg d'estels i l'algoritme de registre global o per astrometry.net amb "
+"l'ordre local de resolució de camps (habilitat amb <b>-localasnet</b>).\n"
+"Les següents opcions s'apliquen només a la resolució de plaques de Siril.\n"
+"La magnitud límit d'estels utilitzades per resoldre astronòmicament es "
+"calcula automàticament a partir de la mida del camp de visió, però es pot "
+"modificar passant un valor d'offset positiu o negatiu a <b>-limitmag=</b>, o "
+"simplement un valor positiu absolut per a la magnitud límit.\n"
+"La selecció del catàleg d'estrelles és automàtica llevat que es passi "
+"l'opció <b>-catalog=</b>: si es tenen instal·lats catàlegs locals, "
+"s'utilitzen; en cas contrari, la selecció es basa en el camp de visió i la "
+"magnitud límit. Si es passa l'opció, es força l'ús del catàleg remot donat "
+"en argument, amb valors possibles: tycho2, nomad, gaia, ppmxl, brightstars, "
+"apass."
 
 #: src/core/command_def.h:151
 msgid ""
