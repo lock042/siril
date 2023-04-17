@@ -482,7 +482,7 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 			siril_debug_print("%s\n", arg->filename);
 		}
 		tempfilename = profile_tmpfile();
-		if (!(arg->save_dat || arg->seq))
+		if (!(arg->save_dat))
 			*hastmpfile = TRUE;
 	}
 	temp = g_path_get_basename(*filename);
