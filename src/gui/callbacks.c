@@ -1411,6 +1411,7 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	// init the cut structure
 	initialize_cut_struct(&gui.cut);
+	gui.cut.cut_measure = TRUE;
 	gui.measure_start = (point){ -1., -1. };
 	gui.measure_end = (point){ -1., -1. };
 
