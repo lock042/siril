@@ -92,8 +92,6 @@ void reset_cut_gui_filedependent() { // Searated out to avoid having to repeat t
 static void reset_cut_gui() {
 	GtkToggleButton *radio_mono = (GtkToggleButton*) lookup_widget("cut_radio_mono");
 	gtk_toggle_button_set_active(radio_mono, TRUE);
-	GtkToggleButton *measure = (GtkToggleButton*) lookup_widget("cut_measure_profile");
-	gtk_toggle_button_set_active(measure, FALSE);
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
 	gtk_toggle_button_set_active(save_dat, FALSE);
 	GtkToggleButton *save_png = (GtkToggleButton*) lookup_widget("cut_save_png");
@@ -1290,15 +1288,9 @@ void on_cut_apply_to_sequence_toggled(GtkToggleButton *button, gpointer user_dat
 	// It's not really necessary as the structure member isn't used, but it keeps
 	// things consistent for the user.
 	GtkToggleButton *pngbutton = (GtkToggleButton*) lookup_widget("cut_save_png");
-	GtkWidget *measurebutton = (GtkWidget*) lookup_widget("cut_measure_profile");
 	if (gtk_toggle_button_get_active(button)) {
 		gtk_toggle_button_set_active(pngbutton, TRUE);
 		gui.cut.save_png_too = TRUE;
-		gtk_toggle_button_set_active((GtkToggleButton*) measurebutton, FALSE);
-		gtk_widget_set_sensitive(measurebutton, FALSE);
-		gui.cut.cut_measure = FALSE;
-	} else {
-		gtk_widget_set_sensitive(measurebutton, TRUE);
 	}
 }
 
