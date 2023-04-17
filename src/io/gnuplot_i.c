@@ -357,14 +357,14 @@ void exit_com_gnuplot_handles() {
 void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 	if (!com.gnuplot_handles)
 		return;
-	int i = 0;
-	while (com.gnuplot_handles[i] && com.gnuplot_handles[i] != handle) {
-		i++;
-	}
-	if (com.gnuplot_handles[i] && com.gnuplot_handles[i] == handle)
-		com.gnuplot_handles[i] = NULL;
-	for (int j = i ; j < com.num_gnuplot_handles - 1 ; j++) {
-		com.gnuplot_handles[i] = com.gnuplot_handles[i+1];
+	for (int i = 0; i < com.num_gnuplot_handles ; i++) {
+		if (com.gnuplot_handles && com.gnuplot_handles[i] && com.gnuplot_handles[i] == handle) {
+			com.gnuplot_handles[i] = NULL;
+			for (int j = i ; j < com.num_gnuplot_handles - 1 ; j++) {
+				com.gnuplot_handles[i] = com.gnuplot_handles[i+1];
+			}
+			break;
+		}
 	}
 	com.num_gnuplot_handles--;
 	com.gnuplot_handles = realloc(com.gnuplot_handles, com.num_gnuplot_handles * sizeof(gnuplot_ctrl*));
@@ -386,27 +386,15 @@ void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle) {
 
 void gnuplot_close(gnuplot_ctrl * handle)
 {
-	if (gnuplot_cmd(handle, "print \"Terminate\"") == EOF) {
-		// Can't write to the handle, assume GNUplot is dead
-		// and just clean up temporary files
-		if (handle->ntmp) {
-			for (int i = 0 ; i < handle->ntmp ; i++) {
-				g_unlink(handle->tmp_filename_tbl[i]);
-			}
-			handle->ntmp = 0;
-		}
-		handle->running = FALSE;
-		free(handle);
-		null_handle_in_com_gnuplot_handles(handle);
-		return;
-	} else {
-		while (TRUE) {
-			g_usleep(1000);
-		if (!handle->running)
-				break;
-		}
-		free(handle);
+	gnuplot_cmd(handle, "print \"Terminate\"");
+
+	while (TRUE) {
+		g_usleep(1000);
+	if (!handle->running)
+			break;
 	}
+	null_handle_in_com_gnuplot_handles(handle);
+	handle = NULL;
 }
 
 /*-------------------------------------------------------------------------*/

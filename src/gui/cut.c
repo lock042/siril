@@ -672,6 +672,8 @@ END:
 			siril_debug_print("Error in g_unlink()\n");
 		}
 	}
+	if (arg->seq)
+		gnuplot_close(gplot);
 	g_free(arg->filename);
 	arg->filename = NULL;
 	g_free(filename);
