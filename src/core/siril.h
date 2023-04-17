@@ -524,12 +524,9 @@ typedef struct _GNUPLOT_CTRL_ {
     FILE* gnucmd ;
 	FILE* gnumon ;
 
-    /** Number of currently active plots in the current plot */
-    int* nplots ;
+    /** Number of currently active plots */
+    int nplots ;
 	/** Current plot window **/
-	int current;
-	int maxplot; // Maximum plot window
-	gboolean reuse; // Reuse the current plotting window
 	gboolean replot; // Add additional plots to the current one in the current window
     /** Current plotting style */
     char pstyle[32] ;

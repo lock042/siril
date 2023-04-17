@@ -215,9 +215,11 @@ gpointer tmpwatcher (gpointer user_data) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
 					g_unlink(handle->tmp_filename_tbl[i]);
 					free(handle->tmp_filename_tbl[i]);
+					handle->tmp_filename_tbl[i] = NULL;
 				}
 			}
 			free(handle->tmp_filename_tbl);
+			handle->tmp_filename_tbl = NULL;
 			handle->ntmp = 0;
 			g_free(buffer);
 			g_object_unref(data_input);
@@ -258,9 +260,13 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	if (handle->ntmp) {
 		for (int i = 0 ; i < handle->ntmp ; i++) {
 			g_unlink(handle->tmp_filename_tbl[i]);
+			free(handle->tmp_filename_tbl[i]);
+			handle->tmp_filename_tbl[i] = NULL;
 		}
-		handle->ntmp = 0;
 	}
+	free(handle->tmp_filename_tbl);
+	handle->tmp_filename_tbl = NULL;
+	handle->ntmp = 0;
 	handle->running = FALSE;
 	free(handle);
 	null_handle_in_com_gnuplot_handles(handle);
@@ -280,11 +286,7 @@ gnuplot_ctrl * gnuplot_init()
 	handle->tmp_filename_tbl = calloc(1, sizeof(char*));
 	handle->tmp_filename_tbl[0] = NULL;
 	handle->ntmp = 0;
-	handle->nplots = calloc(1, sizeof(int));
-	handle->nplots[0] = 0;
-	handle->current = 0;
-	handle->maxplot = 0;
-	handle->reuse = FALSE;
+	handle->nplots = 0;
 	handle->replot = FALSE;
     gnuplot_setstyle(handle, "points") ;
     handle->ntmp = 0 ;
@@ -622,19 +624,18 @@ void gnuplot_reverse_yaxis(gnuplot_ctrl * h)
  */
 /*--------------------------------------------------------------------------*/
 
-void gnuplot_resetplot(gnuplot_ctrl * h)
+void gnuplot_resetplot(gnuplot_ctrl * handle)
 {
-    if (h->ntmp) {
-        for (int i = 0; i < h->ntmp; i++) {
-            if (g_remove(h->tmp_filename_tbl[i]) == -1)
+    if (handle->ntmp) {
+        for (int i = 0; i < handle->ntmp; i++) {
+            if (g_remove(handle->tmp_filename_tbl[i]) == -1)
                 siril_debug_print("g_remove() failed\n");
-            free(h->tmp_filename_tbl[i]);
-            h->tmp_filename_tbl[i] = NULL;
-
+            free(handle->tmp_filename_tbl[i]);
+            handle->tmp_filename_tbl[i] = NULL;
         }
     }
-    h->ntmp = 0 ;
-    h->nplots = 0 ;
+    handle->ntmp = 0 ;
+    handle->nplots = 0 ;
     return ;
 }
 
@@ -908,7 +909,7 @@ void gnuplot_plot_slope(
     char            *   title
 )
 {
-    char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->replot && handle->nplots > 0) ? "replot" : "plot";
     title                  = (title == NULL)      ? "(none)" : title;
 
     gnuplot_cmd(handle, "%s %.18e * x + %.18e title \"%s\" with %s",
@@ -925,7 +926,7 @@ void gnuplot_plot_equation(
     char            *   title
 )
 {
-    char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->replot && handle->nplots > 0) ? "replot" : "plot";
     title                  = (title == NULL)      ? "(none)" : title;
 
     gnuplot_cmd(handle, "%s %s title \"%s\" with %s",
@@ -1256,7 +1257,7 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle)
 
 void gnuplot_plot_xy_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
-    char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->replot && handle->nplots > 0) ? "replot" : "plot";
     gnuplot_cmd(handle, "set term wxt raise persist");
     gnuplot_cmd(handle, "%s \"%s\" using ($1):($2) with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);
@@ -1266,7 +1267,7 @@ void gnuplot_plot_xy_from_datfile(gnuplot_ctrl * handle, char const* tmp_filenam
 
 void gnuplot_plot_xrgb_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
-    char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->replot && handle->nplots > 0) ? "replot" : "plot";
     gnuplot_cmd(handle, "set term wxt raise persist");
     gnuplot_cmd(handle, "%s for [col=2:4] \"%s\" using ($1):col with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);
@@ -1276,7 +1277,7 @@ void gnuplot_plot_xrgb_from_datfile(gnuplot_ctrl * handle, char const* tmp_filen
 
 void gnuplot_plot_xcfa_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
-    char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->replot && handle->nplots > 0) ? "replot" : "plot";
     gnuplot_cmd(handle, "%s for [col=2:5] \"%s\" using ($1):col with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);
     handle->nplots++ ;
@@ -1333,7 +1334,7 @@ void gnuplot_plot_xcfa_datfile_to_png(gnuplot_ctrl * handle, char const* dat_fil
 
 void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char const* title, int x_offset)
 {
-    char const *    cmd    = (handle->replot && handle->nplots[handle->current] > 0) ? "replot" : "plot";
+    char const *    cmd    = (handle->replot && handle->nplots > 0) ? "replot" : "plot";
     title                  = (title == NULL)      ? "(none)" : title;
     gnuplot_cmd(handle, "%s \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s",
            cmd, tmp_filename, x_offset, title, handle->pstyle);

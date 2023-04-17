@@ -517,7 +517,6 @@ gpointer cut_profile(gpointer p) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
 		gplot = gnuplot_init(gplot_gui);
-		gplot->reuse = TRUE;
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
 	}
@@ -713,7 +712,6 @@ gpointer tri_cut(gpointer p) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
 		gplot = gnuplot_init(gplot_gui);
-		gplot->reuse = TRUE;
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
 	}
@@ -874,7 +872,6 @@ gpointer cfa_cut(gpointer p) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
 		gplot = gnuplot_init(gplot_gui);
-		gplot->reuse = TRUE;
 		if (tmpfile)
 			gnuplot_declaretmpfile(gplot, filename);
 	}
