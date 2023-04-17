@@ -210,6 +210,7 @@ gpointer tmpwatcher (gpointer user_data) {
 				}
 			}
 		} else if (g_str_has_prefix(buffer, "Terminate")) {
+			gnuplot_cmd(handle, "set terminal wxt close\n");
 			if (handle->ntmp) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
 					g_unlink(handle->tmp_filename_tbl[i]);
