@@ -498,6 +498,11 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 
 gpointer cut_profile(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
+	gboolean gplot_gui = (!(arg->seq));
+	if (gplot_gui)
+		siril_debug_print("Will use gui.gplot\n");
+	else
+		siril_debug_print("Will create a new gnuplot handle for sequence ops\n");
 	gchar* legend = NULL;
 	int retval = 0;
 	gnuplot_ctrl *gplot = NULL;
@@ -511,7 +516,10 @@ gpointer cut_profile(gpointer p) {
 	if (!use_gnuplot) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
-		gplot = gnuplot_init();
+		gplot = gnuplot_init(gplot_gui);
+		gplot->reuse = TRUE;
+		if (tmpfile)
+			gnuplot_declaretmpfile(gplot, filename);
 	}
 
 	point delta;
@@ -610,7 +618,6 @@ gpointer cut_profile(gpointer p) {
 	}
 	if (use_gnuplot) {
 		if (gplot) {
-			// Add tmpfile to handle so it is deleted automatically
 			/* Plotting cut profile */
 			gchar *xlabel = NULL, *title = NULL;
 			title = cut_make_title(arg, xscale); // must be freed with g_free()
@@ -650,17 +657,21 @@ gpointer cut_profile(gpointer p) {
 			}
 			g_free(title);
 			g_free(xlabel);
-			gnuplot_close(gplot);
 		}
 		else siril_log_message(_("Communicating with gnuplot failed\n"));
 	}
 
 END:
 	// Clean up
-	if (tmpfile || (arg->seq != NULL && !arg->save_dat)) {
-		siril_debug_print("Unlinking temporary file %s\n", filename);
-		if (g_unlink(filename))
+	// Only remove tmpfiles if working a sequence
+	// If they are removed when working a GUI, the plot will become
+	// unresponsive
+	if (tmpfile && arg->seq) {
+		if (use_gnuplot) {
+			gnuplot_rmtmpfile(gplot, filename);
+		} else if (g_unlink(filename)) {
 			siril_debug_print("Error in g_unlink()\n");
+		}
 	}
 	g_free(arg->filename);
 	arg->filename = NULL;
@@ -684,6 +695,11 @@ END:
 
 gpointer tri_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
+	gboolean gplot_gui = (!(arg->seq));
+	if (gplot_gui)
+		siril_debug_print("Will use gui.gplot\n");
+	else
+		siril_debug_print("Will create a new gnuplot handle for sequence ops\n");
 	int retval = 0;
 	gboolean tmpfile = FALSE;
 	char *filename = NULL, *imagefilename = NULL;
@@ -696,7 +712,10 @@ gpointer tri_cut(gpointer p) {
 	if (!use_gnuplot) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
-		gplot = gnuplot_init();
+		gplot = gnuplot_init(gplot_gui);
+		gplot->reuse = TRUE;
+		if (tmpfile)
+			gnuplot_declaretmpfile(gplot, filename);
 	}
 
 	point delta;
@@ -812,12 +831,13 @@ gpointer tri_cut(gpointer p) {
 	else siril_log_message(_("Communicating with gnuplot failed\n"));
 
 END:
-	gnuplot_close(gplot);
 	// Clean up
-	if (tmpfile || (arg->seq != NULL && !arg->save_dat)) {
-		siril_debug_print("Unlinking temporary file %s\n", filename);
-		if (g_unlink(filename))
+	if (tmpfile && arg->seq) {
+		if (use_gnuplot) {
+			gnuplot_rmtmpfile(gplot, filename);
+		} else if (g_unlink(filename)) {
 			siril_debug_print("Error in g_unlink()\n");
+		}
 	}
 	g_free(arg->filename);
 	arg->filename = NULL;
@@ -839,6 +859,7 @@ END:
 
 gpointer cfa_cut(gpointer p) {
 	cut_struct* arg = (cut_struct*) p;
+	gboolean gplot_gui = (!(arg->seq));
 	int retval = 0, ret = 0;
 	gboolean tmpfile = FALSE;
 	double *x = NULL, *r[4] = { 0 };
@@ -852,7 +873,10 @@ gpointer cfa_cut(gpointer p) {
 	if (!use_gnuplot) {
 		siril_log_message(_("Gnuplot was not found, the brightness profile data will be produced in %s but no image will be created.\n"), filename);
 	} else {
-		gplot = gnuplot_init();
+		gplot = gnuplot_init(gplot_gui);
+		gplot->reuse = TRUE;
+		if (tmpfile)
+			gnuplot_declaretmpfile(gplot, filename);
 	}
 
 	// Split arg->fit into 4 x Bayer sub-patterns cfa[0123]
@@ -951,12 +975,13 @@ gpointer cfa_cut(gpointer p) {
 	else siril_log_message(_("Communicating with gnuplot failed\n"));
 
 END:
-	gnuplot_close(gplot);
 	// Clean up
-	if (tmpfile || (arg->seq != NULL && !arg->save_dat)) {
-		siril_debug_print("Unlinking temporary file %s\n", filename);
-		if (g_unlink(filename))
+	if (tmpfile && arg->seq) {
+		if (use_gnuplot) {
+			gnuplot_rmtmpfile(gplot, filename);
+		} else if (g_unlink(filename)) {
 			siril_debug_print("Error in g_unlink()\n");
+		}
 	}
 	g_free(arg->filename);
 	arg->filename = NULL;

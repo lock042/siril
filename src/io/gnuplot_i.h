@@ -30,10 +30,10 @@
  ---------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <glib.h>
-
+#include "core/siril.h"
 /** Maximal number of simultaneous temporary files */
-#define GP_MAX_TMP_FILES    64
-
+//#define GP_MAX_TMP_FILES    64
+//Put in siril.h
 /*---------------------------------------------------------------------------
                                 New Types
  ---------------------------------------------------------------------------*/
@@ -53,24 +53,7 @@
  */
 /*-------------------------------------------------------------------------*/
 
-typedef struct _GNUPLOT_CTRL_ {
-    /** Pipe to gnuplot process */
-    FILE    * gnucmd ;
-	FILE    * gnumon ;
-
-    /** Number of currently active plots */
-    int       nplots ;
-    /** Current plotting style */
-    char      pstyle[32] ;
-
-    /** Pointer to table of names of temporary files */
-    char*      tmp_filename_tbl[GP_MAX_TMP_FILES] ;
-    /** Number of temporary files */
-    int       ntmp ;
-	GThread*  thread;
-	int 	  child_fd;
-	gboolean running;
-} gnuplot_ctrl ;
+// Moved to siril.h
 
 /*---------------------------------------------------------------------------
                         Function ANSI C prototypes
@@ -106,6 +89,8 @@ gnuplot_ctrl * gnuplot_init();
  */
 /*--------------------------------------------------------------------------*/
 void gnuplot_close(gnuplot_ctrl * handle);
+void exit_com_gnuplot_handles();
+void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -117,6 +102,8 @@ void gnuplot_close(gnuplot_ctrl * handle);
 
  */
 /*--------------------------------------------------------------------------*/
+void gnuplot_declaretmpfile(gnuplot_ctrl *handle, char *filename);
+
 void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char * filename);
 
 
@@ -125,6 +112,8 @@ void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char * filename);
   @brief    Sends a command to an active gnuplot session.
   @param    handle Gnuplot session control handle
   @param    cmd    Command to send, same as a printf statement.
+  @return   returns the return value of fputs. This will be EOF if the
+            command could not be written to the GNUplot instance.
 
   This sends a string to an active gnuplot session, to be executed.
   There is strictly no way to know if the command has been
@@ -144,7 +133,7 @@ void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char * filename);
   back from gnuplot.
  */
 /*--------------------------------------------------------------------------*/
-void gnuplot_cmd(gnuplot_ctrl *  handle, char const *  cmd, ...);
+int gnuplot_cmd(gnuplot_ctrl *  handle, char const *  cmd, ...);
 
 /*-------------------------------------------------------------------------*/
 /**
