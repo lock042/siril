@@ -34,7 +34,6 @@
                                 Includes
  ---------------------------------------------------------------------------*/
 
-#include "gnuplot_i.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,11 +55,10 @@
 #include <gio/gunixinputstream.h>
 #endif
 
-#include "core/siril.h"
-
 #include <glib.h> // g_get_tmp_dir
 #include <glib/gstdio.h>
 
+#include "gnuplot_i.h"
 #include "gui/plot.h"
 #include "core/siril_log.h"
 
@@ -69,6 +67,9 @@
 #else
 #define GNUPLOT_BIN "gnuplot"
 #endif
+
+// Uncomment the following line for lots of debug messages
+//#define GPLOT_DEBUG
 
 static gboolean gnuplot_is_in_path = FALSE;
 
@@ -171,7 +172,9 @@ void gnuplot_exit(gnuplot_ctrl * handle)
 /*--------------------------------------------------------------------------*/
 
 gpointer tmpwatcher (gpointer user_data) {
+#ifdef GPLOT_DEBUG
 	siril_debug_print("tmpwatcher started\n");
+#endif
 	gnuplot_ctrl* handle = (gnuplot_ctrl*) user_data;
 	GInputStream *stream = NULL;
 #ifdef _WIN32
@@ -184,19 +187,27 @@ gpointer tmpwatcher (gpointer user_data) {
 	GDataInputStream *data_input = g_data_input_stream_new(stream);
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
+#ifdef GPLOT_DEBUG
 		siril_debug_print("No. of tmp files: %d\n", handle->ntmp);
-		printf("Buffer: %s\n", buffer);
+		siril_debug_print("Buffer: %s\n", buffer);
+#endif
 		gchar *arg = buffer;
 		if (g_str_has_prefix(buffer, "Reap ")) {
+#ifdef GPLOT_DEBUG
 			siril_debug_print("Received Reap message ntmp = %d\n", handle->ntmp);
+#endif
 			if (!handle->ntmp)
 				continue;
 			arg += 5;
 			for (int i = 0 ; i < handle->ntmp ; i++) {
+#ifdef GPLOT_DEBUG
 				siril_debug_print("%s / %s\n", arg, handle->tmp_filename_tbl[i]);
+#endif
 				if (!g_strcmp0(arg, handle->tmp_filename_tbl[i])) {
 					g_unlink(handle->tmp_filename_tbl[i]);
+#ifdef GPLOT_DEBUG
 					siril_debug_print("Reaped file: i = %d, filename = %s\n", i, arg);
+#endif
 					g_free(handle->tmp_filename_tbl[i]);
 					handle->tmp_filename_tbl[i] = NULL;
 					for (int j = i ; j < handle->ntmp - 1 ; j++) {
@@ -256,7 +267,9 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 		g_spawn_close_pid(pid);
 		return;
 	}
+#ifdef GPLOT_DEBUG
 	siril_debug_print("Closing handle %lu via callback\n", (size_t) handle->thread);
+#endif
 	if (handle->ntmp) {
 		for (int i = 0 ; i < handle->ntmp ; i++) {
 			g_unlink(handle->tmp_filename_tbl[i]);
@@ -296,10 +309,10 @@ gnuplot_ctrl * gnuplot_init()
     gchar* bin2[3];
     bin2[0] = bin;
     bin2[1] = NULL;
-    // passing the option --persist keeps the plot opened even after gnuplot process has been closed
-//	bin2[1] = "--persist";
-    siril_debug_print("GNUplot executable: %s\n", bin2[0]);
-    /* call gnuplot */
+#ifdef GPLOT_DEBUG
+	siril_debug_print("GNUplot executable: %s\n", bin2[0]);
+#endif
+	/* call gnuplot */
     gint child_stdin, child_stdout, child_stderr;
     GPid child_pid;
     g_autoptr(GError) error = NULL;
@@ -414,7 +427,9 @@ void gnuplot_declaretmpfile(gnuplot_ctrl *handle, char *filename) {
 	handle->tmp_filename_tbl[handle->ntmp] = strdup(filename);
 	handle->tmp_filename_tbl[handle->ntmp + 1] = NULL;
 	handle->ntmp++;
+#ifdef DEBUG_GPLOT
 	siril_debug_print("GNUplot tmpfile %s declared, new ntmp %d\n", filename, handle->ntmp);
+#endif
 }
 
 /*-------------------------------------------------------------------------*/
@@ -434,7 +449,9 @@ void gnuplot_declaretmpfile(gnuplot_ctrl *handle, char *filename) {
 void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char *filename)
 {
 	gchar *cmd = g_strdup_printf("print \"Reap %s\"", filename);
+#ifdef DEBUG_GPLOT
 	siril_debug_print("Calling gnuplot_cmd\n");
+#endif
 	gnuplot_cmd(handle, cmd);
 	g_free(cmd);
 }
@@ -617,8 +634,10 @@ void gnuplot_resetplot(gnuplot_ctrl * handle)
     if (handle->ntmp) {
         for (int i = 0; i < handle->ntmp; i++) {
             if (g_remove(handle->tmp_filename_tbl[i]) == -1)
+#ifdef DEBUG_GPLOT
                 siril_debug_print("g_remove() failed\n");
-            free(handle->tmp_filename_tbl[i]);
+#endif
+			free(handle->tmp_filename_tbl[i]);
             handle->tmp_filename_tbl[i] = NULL;
         }
     }
