@@ -315,6 +315,7 @@ void print_psf_error_summary(gint *code_sums) {
  * TODO: replace light_curve() by this?
  */
 int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph) {
+	printf("New light curve\n");
 	int i, j;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
@@ -454,12 +455,15 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 				gnuplot_setstyle(gplot, "errorbars");
 				if (display_graph) {
 					gnuplot_plot_xyyerr_from_datfile(gplot, filename, "relative magnitude", julian0);
-					gnuplot_close(gplot);
+//					Don't close gnuplots with active windows
+//					gnuplot_close(gplot);
 				} else {
 					gchar *image_name = replace_ext(filename, ".png");
 					gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
 					siril_log_message(_("%s has been generated.\n"), image_name);
 					g_free(image_name);
+					// It's ok to close a gnuplot that has finished writing to
+					// a png though
 					gnuplot_close(gplot);
 				}
 				g_free(title);

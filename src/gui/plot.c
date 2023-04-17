@@ -816,7 +816,8 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 			gnuplot_reverse_yaxis(gplot);
 			gnuplot_setstyle(gplot, "errorbars");
 			gnuplot_plot_xyyerr(gplot, x, vmag, err, nb_valid_images, "", 0);
-			gnuplot_close(gplot);
+//			This is now handled at exit or via callback if the user closes the window
+//			gnuplot_close(gplot);
 		}
 		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
 	}
