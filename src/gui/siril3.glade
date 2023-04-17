@@ -990,7 +990,7 @@ artifacts may appear.</property>
       <object class="GtkBox">
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
+        <property name="spacing">6</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
             <property name="can-focus">False</property>
@@ -1038,6 +1038,8 @@ artifacts may appear.</property>
           <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="row-spacing">6</property>
+            <property name="column-spacing">6</property>
             <property name="column-homogeneous">True</property>
             <child>
               <object class="GtkLabel">
@@ -1108,21 +1110,6 @@ artifacts may appear.</property>
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkCheckButton" id="cut_measure_profile">
-                <property name="label" translatable="yes">Measure profile</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If checked, the length of drawn profile lines will be written to the log, in degrees minutes and arcseconds if sufficient metadata is available and otherwise in pixels.</property>
-                <property name="draw-indicator">True</property>
-                <signal name="toggled" handler="on_cut_measure_profile_toggled" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
@@ -1219,11 +1206,11 @@ artifacts may appear.</property>
             </child>
             <child>
               <object class="GtkRadioButton" id="cut_dist_pref_px">
-                <property name="label" translatable="yes">Plot x axis is pixels</property>
+                <property name="label" translatable="yes">Measure in pixels</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">The plot x axis will show distance in pixels. This option is overridden if spectrometry data is set.</property>
+                <property name="tooltip-text" translatable="yes">Measurements and the plot x axis will show distance in pixels. This option is overridden if spectrometry data is set.</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <signal name="toggled" handler="on_cut_dist_pref_as_group_changed" swapped="no"/>
@@ -1235,11 +1222,11 @@ artifacts may appear.</property>
             </child>
             <child>
               <object class="GtkRadioButton" id="cut_dist_pref_as">
-                <property name="label" translatable="yes">Plot x axis is arcsec</property>
+                <property name="label" translatable="yes">Measure in arcsec</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">If possible, the plot x axis will show distance in arcsec. This requires telescope focal length and sensor pixel size metadata in the FITS header. This option is overridden if spectrometry data is set.</property>
+                <property name="tooltip-text" translatable="yes">If possible, measurements and the plot x axis will show distance in arcsec. This requires telescope focal length and sensor pixel size metadata in the FITS header. This option is overridden if spectrometry data is set.</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">cut_dist_pref_px</property>
                 <signal name="toggled" handler="on_cut_dist_pref_as_group_changed" swapped="no"/>
@@ -1248,6 +1235,9 @@ artifacts may appear.</property>
                 <property name="left-attach">1</property>
                 <property name="top-attach">6</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
@@ -1386,10 +1376,12 @@ artifacts may appear.</property>
           </packing>
         </child>
         <child>
-          <!-- n-columns=4 n-rows=4 -->
+          <!-- n-columns=4 n-rows=3 -->
           <object class="GtkGrid" id="cut_controls_manualcoords">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="row-spacing">6</property>
+            <property name="column-spacing">6</property>
             <child>
               <object class="GtkSpinButton" id="cut_xstart_spin">
                 <property name="visible">True</property>
@@ -1535,29 +1527,6 @@ artifacts may appear.</property>
                 <property name="left-attach">3</property>
                 <property name="top-attach">2</property>
               </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="cut_coords_measure_button">
-                <property name="label" translatable="yes">Measure</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Writes the length of the profile line to the log, in degrees minutes and arcseconds if sufficient metadata is available and otherwise in pixels.</property>
-                <signal name="clicked" handler="on_cut_coords_measure_button_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
             </child>
             <child>
               <placeholder/>

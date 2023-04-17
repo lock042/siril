@@ -85,6 +85,8 @@ void reset_cut_gui_filedependent() { // Searated out to avoid having to repeat t
 	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
 	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
+	GtkToggleButton* as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
+	gtk_toggle_button_set_active(as, gfit.wcsdata.pltsolvd);
 }
 
 static void reset_cut_gui() {
@@ -121,6 +123,7 @@ static void reset_cut_gui() {
 	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
 	gtk_entry_set_text(title, "Intensity Profile");
 	reset_cut_gui_filedependent();
+
 }
 
 void initialize_cut_struct(cut_struct *arg) {
@@ -152,7 +155,7 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->title_has_sequence_numbers = FALSE;
 	arg->save_dat = FALSE;
 	arg->save_png_too = FALSE;
-	arg->pref_as = FALSE;
+	arg->pref_as = gfit.wcsdata.pltsolvd;
 	arg->vport = -1;
 	if (!com.script)
 		reset_cut_gui();
@@ -296,7 +299,7 @@ double get_conversion_factor(fits *fit) {
 	return conversionfactor;
 }
 
-void measure_line(fits *fit, point start, point finish) {
+void measure_line(fits *fit, point start, point finish, gboolean pref_as) {
 	int deg = -1;
 	static const gchar *label_selection[] = { "labelselection_red", "labelselection_green", "labelselection_blue", "labelselection_rgb" };
 	static gchar measurement_buffer[256] = { 0 };
@@ -306,7 +309,7 @@ void measure_line(fits *fit, point start, point finish) {
 		measurement_buffer[0] = '\0';
 	} else {
 		double conversionfactor = get_conversion_factor(fit);
-		if (conversionfactor != -DBL_MAX) {
+		if (conversionfactor != -DBL_MAX && pref_as) {
 			double asdist = pixdist * conversionfactor;
 			if (asdist < 60.0) {
 				g_sprintf(measurement_buffer, _("Measurement: %.1f\""), asdist);
@@ -1180,6 +1183,7 @@ void on_cut_coords_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	gui.cut.cut_start.y = sy;
 	gui.cut.cut_end.x = fx;
 	gui.cut.cut_end.y = fy;
+	measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 	redraw(REDRAW_OVERLAY);
 	siril_close_dialog("cut_coords_dialog");
 }
@@ -1235,6 +1239,7 @@ void on_start_select_from_star_clicked(GtkToolButton *button, gpointer user_data
 						_("Siril cannot set the start coordinate as no star has been detected in the selection"));
 		}
 		free_psf(result);
+		measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR,
 					_("No selection"),
@@ -1264,15 +1269,13 @@ void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) 
 						_("Siril cannot set the start coordinate as no star has been detected in the selection"));
 		}
 		free_psf(result);
+		measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
+
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR,
 					_("No selection"),
 					_("Siril cannot set the start coordinate as no selection is made"));
 	}
-}
-
-void on_cut_measure_profile_toggled(GtkToggleButton *button, gpointer user_data) {
-	gui.cut.cut_measure = gtk_toggle_button_get_active(button);
 }
 
 void on_cut_save_png_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -1297,10 +1300,6 @@ void on_cut_apply_to_sequence_toggled(GtkToggleButton *button, gpointer user_dat
 	} else {
 		gtk_widget_set_sensitive(measurebutton, TRUE);
 	}
-}
-
-void on_cut_coords_measure_button_clicked(GtkButton *button, gpointer user_data) {
-	measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end);
 }
 
 void on_cut_tricut_step_value_changed(GtkSpinButton *button, gpointer user_data) {
