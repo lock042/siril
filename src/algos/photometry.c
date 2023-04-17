@@ -315,7 +315,6 @@ void print_psf_error_summary(gint *code_sums) {
  * TODO: replace light_curve() by this?
  */
 int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph) {
-	printf("New light curve\n");
 	int i, j;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
