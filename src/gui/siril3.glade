@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -18926,7 +18926,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the photometry color calibration dialog</property>
+            <property name="tooltip-text" translatable="yes">Open the photometric color calibration dialog</property>
             <property name="action-name">win.pcc-processing</property>
             <property name="text" translatable="yes">Photometric Color Calibration...</property>
           </object>
@@ -19977,7 +19977,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           <object class="GtkDrawingArea" id="drawingarear">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCHPAD_GESTURE_MASK | GDK_TABLET_PAD_MASK</property>
                             <property name="margin-start">2</property>
                             <property name="margin-end">2</property>
                             <property name="margin-top">2</property>
@@ -20141,7 +20141,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           <object class="GtkDrawingArea" id="drawingareag">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCHPAD_GESTURE_MASK | GDK_TABLET_PAD_MASK</property>
                             <property name="margin-start">2</property>
                             <property name="margin-end">2</property>
                             <property name="margin-top">2</property>
@@ -20309,7 +20309,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                           <object class="GtkDrawingArea" id="drawingareab">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCHPAD_GESTURE_MASK | GDK_TABLET_PAD_MASK</property>
                             <property name="margin-start">2</property>
                             <property name="margin-end">2</property>
                             <property name="margin-top">2</property>
@@ -20480,7 +20480,7 @@ If found, objects will be added to the User Catalogue. Solar system objects will
                               <object class="GtkDrawingArea" id="drawingareargb">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK</property>
+                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK | GDK_BUTTON1_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_STRUCTURE_MASK | GDK_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCHPAD_GESTURE_MASK | GDK_TABLET_PAD_MASK</property>
                                 <property name="margin-start">2</property>
                                 <property name="margin-end">2</property>
                                 <property name="margin-top">2</property>
@@ -22535,7 +22535,7 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                             <property name="orientation">vertical</property>
                                             <property name="spacing">10</property>
                                             <child>
-                                              <object class="GtkExpander">
+                                              <object class="GtkExpander" id="autoreg_expander">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="expanded">True</property>
@@ -24154,7 +24154,7 @@ This option is useful when sequence has previously been aligned using a method t
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkExpander">
+                                              <object class="GtkExpander" id="manualreg_expander">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <child>
