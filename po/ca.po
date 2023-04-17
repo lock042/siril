@@ -5555,7 +5555,7 @@ msgstr "Coordenada Y del nucli de la segona imatge."
 
 #: src/gui/siril3.glade:22121 src/gui/siril3.glade:22135
 msgid "Comet velocity in pixel per hour."
-msgstr ""
+msgstr "Velocitat del cometa en píxels per hora."
 
 #: src/gui/siril3.glade:22123
 #, fuzzy
@@ -5579,15 +5579,15 @@ msgstr "Tria una Estrella"
 
 #: src/gui/siril3.glade:22232
 msgid "Star #1:"
-msgstr ""
+msgstr "Estel #1:"
 
 #: src/gui/siril3.glade:22243
 msgid "Star #2:"
-msgstr ""
+msgstr "Estel #2:"
 
 #: src/gui/siril3.glade:22254
 msgid "Star #3:"
-msgstr ""
+msgstr "Estel #3:"
 
 #: src/gui/siril3.glade:22337
 msgid ""
@@ -5603,7 +5603,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:22357
 msgid "Size of alignment region(%):"
-msgstr ""
+msgstr "Mida de la regió d'alineament (%):"
 
 #: src/gui/siril3.glade:22419
 #, fuzzy
@@ -5621,6 +5621,15 @@ msgid ""
 "- \"center of gravity\" determines the best framing position as the center "
 "of gravity (cog) of all the images"
 msgstr ""
+"Especifica el mètode d'emarcatge a utilitzar:\n"
+"- \"actual\" utilitza la imatge de referencia actual\n"
+"- \"màxim\" (capça delimitadora) afegeix un marge negre al voltant de cada "
+"imatge quan sigui necessari, per tal de no retallar cap part de la imatge, "
+"quan aquesta es registrada.\n"
+"- \"mínim\" (àrea comuna) retalla cada imatge a la àrea que te en comú amb "
+"la resta d'imatges de la seqüència.\n"
+"- \"centre de gravetat\" determina la millor posició d'emarcatge com al "
+"centre de gravetat (cog) de totes les imatges"
 
 #: src/gui/siril3.glade:22440
 #, fuzzy
@@ -5639,7 +5648,7 @@ msgstr "Màscara del Màxim"
 
 #: src/gui/siril3.glade:22443
 msgid "center of gravity"
-msgstr ""
+msgstr "centre de gravetat"
 
 #: src/gui/siril3.glade:22526
 msgid "Registration method:"
@@ -5647,7 +5656,7 @@ msgstr "Mètode de registrat:"
 
 #: src/gui/siril3.glade:22562
 msgid "Register all images from sequence"
-msgstr ""
+msgstr "Registre totes les imatges de la seqüència"
 
 #: src/gui/siril3.glade:22563
 #, fuzzy
@@ -5656,7 +5665,7 @@ msgstr "Elimina les imatges seleccionades"
 
 #: src/gui/siril3.glade:22584
 msgid "Registering 0 images of the 0 of the sequence"
-msgstr ""
+msgstr "Registrant 0 imatges de 0 a la seqüència"
 
 #: src/gui/siril3.glade:22602
 msgid ""
@@ -16422,7 +16431,7 @@ msgstr "Relació senyal-soroll"
 
 #: src/gui/plot.c:615 src/gui/plot.c:1287 src/gui/plot.c:1571
 msgid "Frames"
-msgstr ""
+msgstr "Imatge"
 
 #: src/gui/plot.c:713
 #, c-format
