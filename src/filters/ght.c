@@ -413,7 +413,7 @@ void apply_linked_ght_to_fbuf_lum(float* fbuf, size_t layersize, size_t nchans, 
 		float fbar = (int) do_channel[0] * factor_red * f[0] + (int) do_channel[1] * factor_green * f[1] + (int) do_channel[2] * factor_blue * f[2];
 		float sfbar = GHTp(fbar, params, &compute_params);
 		float stretch_factor = (fbar == 0.f) ? 0.f : sfbar / fbar;
-		blend_data data;
+		blend_data data = { 0 };
 		memcpy(data.do_channel, do_channel, 3 * sizeof(gboolean));
 		//Calculate the luminance and independent channel stretches for the pixel
 #pragma omp simd
@@ -473,12 +473,13 @@ void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, siz
 }
 
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {
+	g_assert(from);
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	g_assert(from->type == to->type);
 	size_t npixels = from->rx * from->ry;
 	size_t ndata = npixels * from->naxes[2];
 	float* buf = malloc(ndata * sizeof(float));
-	if (from && from->type == DATA_FLOAT) {
+	if (from->type == DATA_FLOAT) {
 		memcpy(buf, from->fdata, ndata * sizeof(float));
 		if (from->naxes[2] == 3 && params->stretchtype != STRETCH_LINEAR && params->payne_colourstretchmodel != COL_INDEP) {
 			apply_linked_ght_to_fbuf_lum(buf, npixels, from->naxes[2], params, multithreaded);
@@ -511,6 +512,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 }
 
 void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {
+	g_assert(from);
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	g_assert(from->type == to->type);
 	if (from->naxes[2] == 1)
@@ -521,7 +523,7 @@ void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean mu
 	float* pbuf[3];
 	for (long i = 0 ; i < from->naxes[2]; i++)
 		pbuf[i] = buf + i * npixels;
-	if (from && from->type == DATA_FLOAT) {
+	if (from->type == DATA_FLOAT) {
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif

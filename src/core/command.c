@@ -1434,6 +1434,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 			data->regtype = REG_FH_GRAD;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			free(data);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -1563,6 +1564,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 			data->regtype = REG_FH_GRAD;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+			free(data);
 			return CMD_ARG_ERROR;
 		}
 	}
