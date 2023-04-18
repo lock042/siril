@@ -58,7 +58,8 @@ static void asinh_close(gboolean revert) {
 }
 
 static int asinh_update_preview() {
-	copy_backup_to_gfit();
+	if (asinh_show_preview)
+		copy_backup_to_gfit();
 	asinhlut(&gfit, asinh_stretch_value, asinh_black_value, asinh_rgb_space);
 	return 0;
 }
