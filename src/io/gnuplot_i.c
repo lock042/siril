@@ -204,7 +204,8 @@ gpointer tmpwatcher (gpointer user_data) {
 				siril_debug_print("%s / %s\n", arg, handle->tmp_filename_tbl[i]);
 #endif
 				if (!g_strcmp0(arg, handle->tmp_filename_tbl[i])) {
-					g_unlink(handle->tmp_filename_tbl[i]);
+					if (g_unlink(handle->tmp_filename_tbl[i]))
+						siril_debug_print("Error in g_unlink()\n");
 #ifdef GPLOT_DEBUG
 					siril_debug_print("Reaped file: i = %d, filename = %s\n", i, arg);
 #endif
