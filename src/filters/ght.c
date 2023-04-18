@@ -487,7 +487,7 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 			apply_linked_ght_to_fbuf_indep(buf, buf, npixels, from->naxes[2], params, multithreaded);
 		}
 		memcpy(to->fdata, buf, ndata * sizeof(float));
-	} else if (from && from->type == DATA_USHORT) {
+	} else if (from->type == DATA_USHORT) {
 		float norm = get_normalized_value(from);
 		float invnorm = 1.0f / norm;
 #ifdef _OPENMP
@@ -536,7 +536,7 @@ void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean mu
 		for (long i = 0 ; i < npixels ; i++) {
 			hsl_to_rgbf(pbuf[0][i], pbuf[1][i], pbuf[2][i], &to->fpdata[0][i], &to->fpdata[1][i], &to->fpdata[2][i]);
 		}
-	} else if (from && from->type == DATA_USHORT) {
+	} else if (from->type == DATA_USHORT) {
 		float* buf2 = malloc(ndata * sizeof(float));
 		float* pbuf2[3];
 		for (long i = 0 ; i < from->naxes[2]; i++)
