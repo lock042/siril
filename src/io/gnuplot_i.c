@@ -224,7 +224,8 @@ gpointer tmpwatcher (gpointer user_data) {
 			gnuplot_cmd(handle, "set terminal wxt close\n");
 			if (handle->ntmp) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
-					g_unlink(handle->tmp_filename_tbl[i]);
+					if (g_unlink(handle->tmp_filename_tbl[i]))
+						siril_debug_print("Error in g_unlink()\n");
 					free(handle->tmp_filename_tbl[i]);
 					handle->tmp_filename_tbl[i] = NULL;
 				}
@@ -242,6 +243,8 @@ gpointer tmpwatcher (gpointer user_data) {
 		g_free(buffer);
 		buffer = NULL;
 	}
+	g_object_unref(data_input);
+	g_object_unref(stream);
 	return GINT_TO_POINTER(1);
 }
 
@@ -272,7 +275,8 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 #endif
 	if (handle->ntmp) {
 		for (int i = 0 ; i < handle->ntmp ; i++) {
-			g_unlink(handle->tmp_filename_tbl[i]);
+			if (g_unlink(handle->tmp_filename_tbl[i]))
+				siril_debug_print("Error in g_unlink()\n");
 			free(handle->tmp_filename_tbl[i]);
 			handle->tmp_filename_tbl[i] = NULL;
 		}
@@ -281,8 +285,8 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	handle->tmp_filename_tbl = NULL;
 	handle->ntmp = 0;
 	handle->running = FALSE;
-	free(handle);
 	null_handle_in_com_gnuplot_handles(handle);
+	free(handle);
 	handle = NULL;
 	g_spawn_close_pid(pid);
 	return;

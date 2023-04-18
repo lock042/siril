@@ -673,7 +673,7 @@ END:
 			siril_debug_print("Error in g_unlink()\n");
 		}
 	}
-	if (arg->seq)
+	if (arg->seq && gplot)
 		gnuplot_close(gplot);
 	g_free(arg->filename);
 	arg->filename = NULL;
@@ -840,7 +840,7 @@ END:
 			siril_debug_print("Error in g_unlink()\n");
 		}
 	}
-	if (arg->seq)
+	if (arg->seq && gplot)
 		gnuplot_close(gplot);
 	g_free(arg->filename);
 	arg->filename = NULL;
@@ -985,7 +985,7 @@ END:
 			siril_debug_print("Error in g_unlink()\n");
 		}
 	}
-	if (arg->seq)
+	if (arg->seq && gplot)
 		gnuplot_close(gplot);
 	g_free(arg->filename);
 	arg->filename = NULL;
@@ -1067,15 +1067,20 @@ void on_cut_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		gui.cut.fit = &gfit;
 		gui.cut.seq = NULL;
 		gui.cut.display_graph = TRUE;
-		if (gui.cut.tri) {
+		// We have to pass a dynamically allocated copy of gui.cut
+		// otherwise start_in_new_thread() can try to free gui.cut
+		// if the processing thread is already running
+		cut_struct *p = malloc(sizeof(cut_struct));
+		memcpy(p, &gui.cut, sizeof(cut_struct));
+		if (p->tri) {
 			siril_debug_print("Tri-profile\n");
-			start_in_new_thread(tri_cut, &gui.cut);
-		} else if (gui.cut.cfa) {
+			start_in_new_thread(tri_cut, p);
+		} else if (p->cfa) {
 			siril_debug_print("CFA profiling\n");
-			start_in_new_thread(cfa_cut, &gui.cut);
+			start_in_new_thread(cfa_cut, p);
 		} else {
 			siril_debug_print("Single profile\n");
-			start_in_new_thread(cut_profile, &gui.cut);
+			start_in_new_thread(cut_profile, p);
 		}
 	}
 }
@@ -1231,13 +1236,13 @@ void on_start_select_from_star_clicked(GtkToolButton *button, gpointer user_data
 			gtk_spin_button_set_value(startx, gui.cut.cut_start.x);
 			gtk_spin_button_set_value(starty, gui.cut.cut_start.y);
 			redraw(REDRAW_OVERLAY);
+			free_psf(result);
+			measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("No star detected"),
 						_("Siril cannot set the start coordinate as no star has been detected in the selection"));
 		}
-		free_psf(result);
-		measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR,
 					_("No selection"),
@@ -1261,13 +1266,13 @@ void on_end_select_from_star_clicked(GtkToolButton *button, gpointer user_data) 
 			gtk_spin_button_set_value(finishx, gui.cut.cut_end.x);
 			gtk_spin_button_set_value(finishy, gui.cut.cut_end.y);
 			redraw(REDRAW_OVERLAY);
+			free_psf(result);
+			measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("No star detected"),
 						_("Siril cannot set the start coordinate as no star has been detected in the selection"));
 		}
-		free_psf(result);
-		measure_line(&gfit, gui.cut.cut_start, gui.cut.cut_end, gui.cut.pref_as);
 
 	} else {
 		siril_message_dialog(GTK_MESSAGE_ERROR,
@@ -1426,19 +1431,23 @@ static int cut_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 	memcpy(private_args, cut_args, sizeof(cut_struct));
 	private_args->fit = fit;
 
+/*
 	// Check points are not out of bounds. The >=0 criterion is checked earlier
 	// but we have to check <fit.rx and <fit.ry for every image in case of
-	// sequences with variable image sizes. (It probably doesn't make sense to
-	// profile such a sequence but at least we should ensure we don't segfault.)
+	// sequences with variable image sizes.
+	// These checks shouldn't be needed as we check (!seq->is_variable)
 
 	if (private_args->cut_wn1.x > fit->rx - 1 || private_args->cut_wn2.x > fit->rx - 1 || private_args->cut_wn1.y > fit->ry - 1 || private_args->cut_wn2.y > fit->ry - 1) {
 		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
+		free(private_args);
 		return 1;
 	}
 	if (private_args->cut_start.x > fit->rx - 1 || private_args->cut_start.y > fit->ry - 1 || private_args->cut_end.x > fit->rx - 1 || private_args->cut_end.y > fit->ry - 1) {
 		siril_log_message(_("Error: profile line endpoint outside image dimensions.\n"));
+		free(private_args);
 		return 1;
 	}
+*/
 	private_args->imgnumber = i;
 	if (private_args->cfa)
 		ret = GPOINTER_TO_INT(cfa_cut(private_args));
