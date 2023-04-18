@@ -41,6 +41,7 @@ struct star_candidate_struct {
 	float sx, sy;
 	int R;
 	gboolean has_saturated;
+	gboolean iscolor;
 };
 typedef struct star_candidate_struct starc;
 
