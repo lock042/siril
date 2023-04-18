@@ -324,6 +324,7 @@ gnuplot_ctrl * gnuplot_init()
     if (error != NULL) {
         siril_log_color_message(_("Spawning gnuplot failed: %s\n"), "red", error->message);
         g_free(bin);
+		free(handle);
         return NULL;
     }
     g_child_watch_add(child_pid, child_watch_cb, handle);
