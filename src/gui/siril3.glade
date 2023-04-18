@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.40.0
 
 Copyright (C) The free-astro development team, 2019
 
@@ -24288,21 +24288,21 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <object class="GtkComboBoxText" id="comboweighing">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-markup" translatable="yes">Four methods of weighing are available:
+                                                            <property name="tooltip-markup" translatable="yes">Four methods of weighting are available:
 
-&lt;b&gt;Number of stars&lt;/b&gt; weighs individual frames based on number of stars computed during registration step.
+&lt;b&gt;Number of stars&lt;/b&gt; weights individual frames based on number of stars computed during registration step.
 
-&lt;b&gt;Weighted FWHM&lt;/b&gt; weighs individual frames based on wFWHM computed during registration step.
+&lt;b&gt;Weighted FWHM&lt;/b&gt; weights individual frames based on wFWHM computed during registration step.
 
-&lt;b&gt;Noise&lt;/b&gt; weighs individual frames based on background noise values.
+&lt;b&gt;Noise&lt;/b&gt; weights individual frames based on background noise values.
 
-&lt;b&gt;Number of images&lt;/b&gt; weighs individual frames based on their integration time.</property>
+&lt;b&gt;Number of images&lt;/b&gt; weights individual frames based on their integration time.</property>
                                                             <property name="valign">start</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">None</item>
                                                             <item translatable="yes">Number of stars</item>
-                                                            <item translatable="yes">Weighed FWHM</item>
+                                                            <item translatable="yes">Weighted FWHM</item>
                                                             <item translatable="yes">Noise</item>
                                                             <item translatable="yes">Number of images</item>
                                                             </items>
@@ -24318,7 +24318,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Weighing:</property>
+                                                            <property name="label" translatable="yes">Weighting:</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
