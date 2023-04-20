@@ -80,7 +80,12 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 				memcpy(ref_naxes, naxes, sizeof naxes);
 				siril_debug_print("found reference HDU %ldx%ldx%d (%d)\n", naxes[0], naxes[1], naxis, bitpix);
 			} else {
-				if (naxis != ref_naxis || naxes[0] != ref_naxes[0] || naxes[1] != ref_naxes[1] || bitpix != ref_bitpix) {
+				if (naxes[2] != ref_naxes[2]) {
+					siril_log_message(_("Several images were found in the FITS file but they have number of layers, which is not allowed.\n"));
+					status = 1;
+					break;
+				}
+				if (naxes[0] != ref_naxes[0] || naxes[1] != ref_naxes[1] || bitpix != ref_bitpix) {
 					if (com.pref.allow_heterogeneous_fitseq)
 						homogeneous = FALSE;
 					else {
