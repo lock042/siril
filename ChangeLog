@@ -13,8 +13,21 @@ xx/xx/xx
 * Add intensity profiling function
 * Improved clipping model in luminance-based GHS stretches
 * Added GHS saturation stretch mode
-* Fix UI and command issues in deconvolution code
+* Fixed UI and command issues in deconvolution code
 * Print help and deconvolution tips URLs to the log
+* Fixed star recomposition issue where LIVETIME and STACKCNT could be doubled when obviously
+  processing the starless and star mask parts of the same image
+* Fixed "image copy error in previews" bug in asinh transformation
+* Fixed reset of the viewports when reopening the RGB composition tool after opening a mono sequence
+* Fixed terminology - "weighted" instead of "weighed", consistency in name of PCC tool
+* Enable detection for undersampled mono images
+* Improve Wayland support
+* Fixed incorrect option name in `show` help text
+* Prevent cleaning stats from resetting the reference image
+* Fixed photometry with 32bit images from PRISM
+* Add Astro-TIFF in sequence export
+* Force statistics for all images not from Siril (ensures DATAMAX is correct)
+* Fixed incorrect behaviour when resetting right-hand stretch type in star recomposition tool
 
 siril 1.2.0-beta2
 03/12/23
