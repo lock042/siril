@@ -104,7 +104,7 @@ SirilWorldCS* siril_world_cs_new_from_ra_dec(gdouble ra_h, gdouble ra_m, gdouble
 }
 
 /* parse RA 'hours minutes seconds' or 'hours:minutes:seconds' to degrees */
-double parse_ra_hms(const char *objctra) {
+double parse_hms(const char *objctra) {
 	double ra = NAN;
 	int ra_h, ra_m;
 	gdouble ra_s;
@@ -115,7 +115,7 @@ double parse_ra_hms(const char *objctra) {
 }
 
 /* parse Dec 'degrees minutes seconds' or 'degrees:minutes:seconds' to degrees */
-double parse_dec_dms(const char *objctdec) {
+double parse_dms(const char *objctdec) {
 	double dec = NAN;
 	int dec_deg, dec_m;
 	gdouble dec_s;
@@ -140,11 +140,11 @@ SirilWorldCS* siril_world_cs_new_from_objct_ra_dec(gchar *objctra, gchar *objctd
 	gchar *end;
 	double ra = g_ascii_strtod(objctra, &end);
 	if (end - objctra != strlen(objctra))
-		ra = parse_ra_hms(objctra);
+		ra = parse_hms(objctra);
 
 	double dec = g_ascii_strtod(objctdec, &end);
 	if (end - objctdec != strlen(objctdec))
-		dec = parse_dec_dms(objctdec);
+		dec = parse_dms(objctdec);
 
 	if (isnan(ra) || isnan(dec) || (ra == 0.0 && dec == 0.0))
 		return NULL;

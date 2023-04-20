@@ -269,8 +269,8 @@ int load_csv_targets_to_temp(const gchar *filename) {
 		const gchar *code = token[name_index];
 		double ra, dec;
 		if (strchr(token[ra_index], ' ') || strchr(token[ra_index], ':')) {
-			ra = parse_ra_hms(token[ra_index]);	// in hours
-			dec = parse_dec_dms(token[dec_index]);
+			ra = parse_hms(token[ra_index]);	// in hours
+			dec = parse_dms(token[dec_index]);
 		} else {
 			ra = g_ascii_strtod(token[ra_index], NULL);	// in degrees
 			dec = g_ascii_strtod(token[dec_index], NULL);
