@@ -663,15 +663,31 @@ gpointer convert_thread_worker(gpointer p) {
 		g_free(args->list[i]);
 	free(args->list);
 	args->nb_converted_files = convert.converted_files;
-	if (convert.fatal_error)
-		siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_converted_files, args->total);
-	else {
-		if (convert.nb_input_images == convert.converted_images)
-			siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
-		else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
-		write_conversion_report(args);
+	if (args->output_type != SEQ_SER && args->output_type != SEQ_FITSEQ) {
+		if (convert.fatal_error)
+			siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_converted_files, args->total);
+		else {
+			if (convert.nb_input_images == convert.converted_images)
+				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+			else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+			write_conversion_report(args);
+		}
+	} else {
+		if (convert.fatal_error)
+			siril_log_message(_("Conversion ended with error, %d output files created\n"), args->nb_converted_files);
+		else {
+			if (!args->multiple_output && args->nb_converted_files == 1)
+				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+			else if (args->multiple_output && convert.nb_input_images == args->nb_converted_files)
+				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
+			else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
+			write_conversion_report(args);
+		}
 	}
-	free(convert.threads);
+	// TODO dispose of the fitseq or ser if it still exists
+	// TODO skip writing conversion report
+	// TODO still need to understand why, in case of error while writing a frame,
+	// sometimes we do create the file and sometimes the error is caught and we get convert.fatal_error to 1...
 	free(convert.output_fitseq);
 	free(convert.output_ser);
 	siril_add_idle(end_convert_idle, args);
@@ -731,16 +747,16 @@ static void finish_write_seq(struct writer_data *writer, gboolean success) {
 		if (writer->ser) {
 			siril_debug_print("closing write SER sequence%s\n", success ? "" : " and deleting the file");
 			if (success) {
-				ser_write_and_close(writer->ser);
-				g_atomic_int_inc(writer->converted_files);
+				if(!ser_write_and_close(writer->ser))
+					g_atomic_int_inc(writer->converted_files);
 			}
 			else ser_close_and_delete_file(writer->ser);
 		}
 		else if (writer->fitseq) {
 			siril_debug_print("closing write FITS sequence%s\n", success ? "" : " and deleting the file");
 			if (success) {
-				fitseq_close_file(writer->fitseq);
-				g_atomic_int_inc(writer->converted_files);
+				if (!fitseq_close_file(writer->fitseq))
+					g_atomic_int_inc(writer->converted_files);
 			}
 			else fitseq_close_and_delete_file(writer->fitseq);
 		}

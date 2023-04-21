@@ -330,6 +330,7 @@ int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
 	fitseq->writer = malloc(sizeof(struct seqwriter_data));
 	fitseq->writer->write_image_hook = fitseq_write_image_for_writer;
 	fitseq->writer->sequence = fitseq;
+	fitseq->writer->output_type = SEQ_FITSEQ;
 	siril_debug_print("Successfully created the FITS sequence file %s, for %d images, waiting for data\n",
 			fitseq->filename, fitseq->frame_count);
 
