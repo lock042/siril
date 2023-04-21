@@ -29,6 +29,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "opencv2/core/version.hpp"
+#include "opencv2/core/matx.hpp"
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
 
@@ -37,6 +38,7 @@
 #include "opencv2/stitching/detail/exposure_compensate.hpp"
 #include "opencv2/stitching/detail/seam_finders.hpp"
 #include "opencv2/stitching/detail/warpers.hpp"
+#include "opencv2/stitching/detail/util.hpp"
 #include "opencv2/stitching/warpers.hpp"
 
 #include "core/siril.h"
@@ -1083,7 +1085,7 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 
 	// Warp images and their masks
 	Ptr<WarperCreator> warper_creator;
-	warper_creator = makePtr<cv::SphericalWarper>();
+	warper_creator = makePtr<SphericalWarper>();
 
 	if (!warper_creator)
 	{
@@ -1092,7 +1094,7 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 	}
 
 	Ptr<detail::RotationWarper> warper = warper_creator->create(static_cast<float>(scale));
-	k.at<float>(0,0) *= -1.f; // flip bottom up
+	// k.at<float>(1,1) *= -1.f; // flip bottom up
 	Rect roi = warper->warpRoi(szin, k, r);
 	corners = roi.tl();
 	sizes = roi.size();
@@ -1108,5 +1110,316 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 		// warper->warp(masks, _K, _R, INTER_NEAREST, BORDER_CONSTANT, masks_warped);
 		return Mat_to_image(image, &in, &out, bgr, sizes.width, sizes.height);
 	}
+	return 0;
+}
+
+/* This reads a fit and fills an input image*/
+static int read_image_to_Mat(fits *image, Mat *in) {
+	if (image->naxes[2] != 1 && image->naxes[2] != 3) {
+		siril_log_message(_("Images with %ld channels are not supported\n"), image->naxes[2]);
+		return -1;
+	}
+	if (image->type == DATA_USHORT) {
+		if (image->naxes[2] == 1) {
+			*in = Mat(image->ry, image->rx, CV_16UC1, image->data);
+		}
+		else if (image->naxes[2] == 3) {
+			WORD *bgr_u = fits_to_bgrbgr_ushort(image);
+			if (!bgr_u) return -1;
+			*in = Mat(image->ry, image->rx, CV_16UC3, bgr_u);
+		}
+	}
+	else if (image->type == DATA_FLOAT) {
+		if (image->naxes[2] == 1) {
+			*in = Mat(image->ry, image->rx, CV_32FC1, image->fdata);
+		}
+		else if (image->naxes[2] == 3) {
+			float *bgr_f = fits_to_bgrbgr_float(image);
+			if (!bgr_f) return -1;
+			*in = Mat(image->ry, image->rx, CV_32FC3, bgr_f);
+		}
+	}
+	else return -1;
+	return 0;
+}
+
+/* This writes a Mat to an output fit*/
+static int write_Mat_to_image(Mat *out, fits *image) {
+	int target_rx = (*out).size().width;
+	int target_ry = (*out).size().height;
+
+	size_t ndata = target_rx * target_ry;
+	if (image->type == DATA_USHORT) {
+		if (image->naxes[2] == 3) {
+			size_t data_size = ndata * sizeof(WORD);
+			// normally image->data is NULL here
+			WORD *newdata = (WORD*) realloc(image->data, data_size * image->naxes[2]);
+			if (!newdata) {
+				PRINT_ALLOC_ERR;
+				out->release();
+				return 1;
+			}
+			image->data = newdata;
+			image->pdata[RLAYER] = image->data;
+			image->pdata[GLAYER] = image->data + ndata;
+			image->pdata[BLAYER] = image->data + ndata * 2;
+
+			Mat channel[3];
+			channel[0] = Mat(target_ry, target_rx, CV_16UC1, image->pdata[BLAYER]);
+			channel[1] = Mat(target_ry, target_rx, CV_16UC1, image->pdata[GLAYER]);
+			channel[2] = Mat(target_ry, target_rx, CV_16UC1, image->pdata[RLAYER]);
+
+			split(*out, channel);
+
+			channel[0].release();
+			channel[1].release();
+			channel[2].release();
+		} else {
+			image->data = (WORD *)out->data;
+			image->pdata[RLAYER] = image->data;
+			image->pdata[GLAYER] = image->data;
+			image->pdata[BLAYER] = image->data;
+		}
+		out->release();
+	} else {
+		if (image->naxes[2] == 3) {
+			size_t data_size = ndata * sizeof(float);
+			float *newdata = (float *) realloc(image->fdata, data_size * image->naxes[2]);
+			if (!newdata) {
+				PRINT_ALLOC_ERR;
+				out->release();
+				return 1;
+			}
+			image->fdata = newdata;
+			image->fpdata[RLAYER] = image->fdata;
+			image->fpdata[GLAYER] = image->fdata + ndata;
+			image->fpdata[BLAYER] = image->fdata + ndata * 2;
+
+			Mat channel[3];
+			channel[0] = Mat(target_ry, target_rx, CV_32FC1, image->fpdata[BLAYER]);
+			channel[1] = Mat(target_ry, target_rx, CV_32FC1, image->fpdata[GLAYER]);
+			channel[2] = Mat(target_ry, target_rx, CV_32FC1, image->fpdata[RLAYER]);
+
+			split(*out, channel);
+
+			channel[0].release();
+			channel[1].release();
+			channel[2].release();
+		} else {
+			image->fdata = (float *)out->data;
+			image->fpdata[RLAYER] = image->fdata;
+			image->fpdata[GLAYER] = image->fdata;
+			image->fpdata[BLAYER] = image->fdata;
+		}
+		out->release();
+	}
+	image->rx = target_rx;
+	image->ry = target_ry;
+	image->naxes[0] = image->rx;
+	image->naxes[1] = image->ry;
+	return 0;
+}
+
+
+/*
+Adapting the second part of the workflow (seam-finding, exposure compensation and blending)
+from opencv samples/stitching_detailed.cpp 
+*/
+int cvmosaiccompose(sequence *seq, Homography *K, Homography *R, int n, float scale, double swa, double cwa, fits *imageout) {
+
+	std::vector<Point> corners(n);
+	std::vector<UMat> masks_warped(n);
+	std::vector<UMat> images_warped(n);
+	std::vector<Size> sizes(n);
+	std::vector<Size> full_img_sizes(n);
+	std::vector<UMat> images_warped_f(n);
+	std::vector<Mat> ks(n);
+	std::vector<Mat> rs(n);
+
+	// for the time-being we set a spherical projection
+	// TODO: add an enum to specify the projection type
+	// to be integrated into a mosaic_data args structure (to be created as well)
+	Ptr<WarperCreator> warper_creator;
+	warper_creator = makePtr<SphericalWarper>();
+	if (!warper_creator)
+	{
+		std::cout << "Can't create the warper" << "'\n";
+		return 1;
+	}
+	// warper is created at swa scale
+	Ptr<detail::RotationWarper> warper = warper_creator->create(static_cast<float>(scale * swa));
+
+	// Warp images and their masks at swa scale for seam finder and compensation
+	for (int i = 0; i < n; ++i) {
+		// prepare the transformation at swa scale
+		Mat _R = Mat(3, 3, CV_64FC1);
+		Mat _K = Mat(3, 3,CV_64FC1);
+		convert_H_to_MatH(R + i, _R);
+		convert_H_to_MatH(K + i, _K);
+		_K.convertTo(ks[i], CV_32F);
+		_R.convertTo(rs[i], CV_32F);
+		ks[i].at<float>(0, 0) *= -1.f;
+		Mat_<float> k = ks[i].clone();
+		k(0,0) *= swa; k(0,2) *= swa;
+		k(1,1) *= swa; k(1,2) *= swa;
+
+		// read fit data
+		fits fit = { 0 };
+		Mat full_img, img;
+		seq_read_frame(seq, i, &fit, FALSE, -1);
+		read_image_to_Mat(&fit, &full_img);
+		clearfits(&fit);
+		// full_img.at<ushort>(1,1) = 0;
+		// full_img.at<Vec3s>(1,1)[0] = 0;
+		// std::cout << full_img.at<ushort>(0,0) << "\n";
+		// std::cout << full_img.at<Vec3s>(0,0)[0] << "\n";
+		if (abs(swa - 1) > 1e-1)
+			resize(full_img, img, Size(), swa, swa, INTER_LINEAR_EXACT);
+		else
+			img = full_img;
+		full_img_sizes[i] = full_img.size();
+		full_img.release();
+
+		// warp image
+		corners[i] = warper->warp(img, k, rs[i], INTER_LINEAR, BORDER_REFLECT, images_warped[i]);
+		sizes[i] = images_warped[i].size();
+
+		// create and warp the mask
+		UMat mask;
+		mask.create(img.size(), CV_8U);
+		mask.setTo(Scalar::all(255));
+		warper->warp(mask, k, rs[i], INTER_NEAREST, BORDER_CONSTANT, masks_warped[i]);
+
+		// free the unwarped image and mask
+		img.release();
+		mask.release();
+	}
+
+	// conversion to float required by seam finder
+	for (int i = 0; i < n; ++i)
+		images_warped[i].convertTo(images_warped_f[i], CV_32F);
+
+
+	// setting the exposure compensator (using the defaults for now)
+	int expos_comp_type = detail::ExposureCompensator::NO;
+	int expos_comp_nr_feeds = 1;
+	int expos_comp_block_size = 32;
+	int expos_comp_nr_filtering = 2;
+	Ptr<detail::ExposureCompensator> compensator = detail::ExposureCompensator::createDefault(expos_comp_type);
+	if (dynamic_cast<detail::GainCompensator*>(compensator.get())) {
+		detail::GainCompensator* gcompensator = dynamic_cast<detail::GainCompensator*>(compensator.get());
+		gcompensator->setNrFeeds(expos_comp_nr_feeds);
+	}
+	if (dynamic_cast<detail::ChannelsCompensator*>(compensator.get())) {
+		detail::ChannelsCompensator* ccompensator = dynamic_cast<detail::ChannelsCompensator*>(compensator.get());
+		ccompensator->setNrFeeds(expos_comp_nr_feeds);
+	}
+	if (dynamic_cast<detail::BlocksCompensator*>(compensator.get())) {
+		detail::BlocksCompensator* bcompensator = dynamic_cast<detail::BlocksCompensator*>(compensator.get());
+		bcompensator->setNrFeeds(expos_comp_nr_feeds);
+		bcompensator->setNrGainsFilteringIterations(expos_comp_nr_filtering);
+		bcompensator->setBlockSize(expos_comp_block_size, expos_comp_block_size);
+	}
+
+	compensator->feed(corners, images_warped, masks_warped);
+
+	// setting the seam finder (using voronoi for now)
+	Ptr<detail::SeamFinder> seam_finder = makePtr<detail::VoronoiSeamFinder>();
+	if (!seam_finder) {
+		std::cout << "Can't create the seam finder \n";
+		return 1;
+	}
+	seam_finder->find(images_warped_f, corners, masks_warped);
+
+	// Release unused memory
+	images_warped_f.clear();
+
+
+	Mat img_warped, img_warped_s;
+	Mat dilated_mask, seam_mask, mask, mask_warped;
+	Ptr<detail::Blender> blender;
+	// using multiband blender for now with default strength
+	int blend_type = detail::Blender::NO;
+	float blend_strength = 5;
+
+	// Update warped image scale
+	scale *= static_cast<float>(cwa);
+	warper = warper_creator->create(scale);
+
+	// Update corners and sizes
+	for (int i = 0; i < n; ++i) {
+		// Update intrinsics
+		ks[i].at<float>(0,0) *= cwa; ks[i].at<float>(0,2) *= cwa;
+		ks[i].at<float>(1,1) *= cwa; ks[i].at<float>(1,2) *= cwa;
+
+		// Update corner and size
+		Size sz = full_img_sizes[i];
+		if (std::abs(cwa - 1) > 1e-1) {
+			sz.width = cvRound(full_img_sizes[i].width * cwa);
+			sz.height = cvRound(full_img_sizes[i].height * cwa);
+		}
+
+		Rect roi = warper->warpRoi(sz, ks[i], rs[i]);
+		corners[i] = roi.tl();
+		sizes[i] = roi.size();
+	}
+
+	// prepare the blender
+	blender = detail::Blender::createDefault(blend_type);
+	Size dst_sz = detail::resultRoi(corners, sizes).size();
+	float blend_width = sqrt(static_cast<float>(dst_sz.area())) * blend_strength / 100.f;
+	if (blend_width < 1.f)
+		blender = detail::Blender::createDefault(detail::Blender::NO);
+	else if (blend_type == detail::Blender::MULTI_BAND) {
+		detail::MultiBandBlender* mb = dynamic_cast<detail::MultiBandBlender*>(blender.get());
+		mb->setNumBands(static_cast<int>(ceil(log(blend_width)/log(2.)) - 1.));
+	}
+	blender->prepare(corners, sizes);
+
+	for (int i = 0; i < n; ++i) {
+		std::cout << "Compositing image #" << i + 1 << "\n";
+
+		// read fit data and resize it if necessary
+		fits fit = { 0 };
+		Mat full_img;
+		seq_read_frame(seq, i, &fit, FALSE, -1);
+		read_image_to_Mat(&fit, &full_img);
+		clearfits(&fit);
+		Mat img;
+
+		if (abs(cwa - 1) > 1e-1)
+			resize(full_img, img, Size(), cwa, cwa, INTER_LINEAR_EXACT);
+		else
+			img = full_img;
+		full_img.release();
+		Size img_size = img.size();
+
+		// Warp the current image
+		warper->warp(img, ks[i], rs[i], INTER_LINEAR, BORDER_REFLECT, img_warped);
+
+		// Warp the current image mask
+		mask.create(img_size, CV_8U);
+		mask.setTo(Scalar::all(255));
+		warper->warp(mask, ks[i], rs[i], INTER_NEAREST, BORDER_CONSTANT, mask_warped);
+
+		// Compensate exposure
+		compensator->apply(i, corners[i], img_warped, mask_warped);
+
+		img_warped.convertTo(img_warped_s, CV_16S);
+		img_warped.release();
+		img.release();
+		mask.release();
+
+		dilate(masks_warped[i], dilated_mask, Mat());
+		resize(dilated_mask, seam_mask, mask_warped.size(), 0, 0, INTER_LINEAR_EXACT);
+		mask_warped = seam_mask & mask_warped;
+
+		// Blend the current image
+		blender->feed(img_warped_s, mask_warped, corners[i]);
+	}
+
+	Mat result, result_mask;
+	blender->blend(result, result_mask);
+	write_Mat_to_image(&result, imageout);
 	return 0;
 }

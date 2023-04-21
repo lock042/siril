@@ -14,6 +14,8 @@ extern "C" {
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "gui/progress_and_log.h"
+#include "io/sequence.h"
+#include "io/image_format_fits.h"
 
 WORD *fits_to_bgrbgr_ushort(fits *image);
 float *fits_to_bgrbgr_float(fits *image);
@@ -54,12 +56,12 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry);
 void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homography *Hom);
 void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int *h);
 
+// TODO: create and move to cvMosaic.h
 gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Homography *Hom);
 void cvRelRot(Homography *Ref, Homography *R);
 void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H);
-
-// TODO: move to cvMosaic.h
 int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout);
+int cvmosaiccompose(sequence *seq, Homography *K, Homography *R, int n, float scale, double swa, double cwa, fits *imageout);
 
 #ifdef __cplusplus
 }

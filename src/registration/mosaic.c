@@ -1,7 +1,7 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2022 team free-astro (see more in AUTHORS file)
+ * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
  * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
@@ -99,11 +99,11 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	if (cdelt[0] == 1. && cdelt[1] == 1.)// CD formalism
 		wcs_cd_to_pc(cd, pc, cdelt);
 
-	K->h00 = RADTODEG / cdelt[0];
+	K->h00 = -RADTODEG / cdelt[0];
 	K->h11 = RADTODEG / cdelt[1];
 	double rotation1 = atan2(pc[0][1], pc[0][0]);
 	double rotation2 = atan2(-pc[1][0], pc[1][1]);
-	*framing = 0.5 * (rotation1 + rotation2) * RADTODEG;
+	*framing = -0.5 * (rotation1 + rotation2) * RADTODEG;
 	return TRUE;
 }
 
@@ -156,7 +156,7 @@ int register_mosaic(struct registration_args *regargs) {
 		siril_log_message("Image #%2d - RA:%.3f - DEC:%.3f\n", i + 1, RA[i], DEC[i]);
 	}
 
-	// find sequence cog and closes image to use as projection point
+	// find sequence cog and closest image to use as reference
 	compute_center_cog(RA, DEC, n, &ra0, &dec0);
 	ra0 = (ra0 < 0) ? ra0 + 360. : ra0;
 	siril_log_message("Sequence COG - RA:%.3f - DEC:%.3f\n", ra0, dec0);
@@ -193,7 +193,7 @@ int register_mosaic(struct registration_args *regargs) {
 
 	for (int i = 0; i < n; i++) {
 		double angles[3];
-		angles[0] = 90. + RA[i]; 
+		angles[0] = 90. - RA[i]; 
 		angles[1] = 90. - DEC[i];
 		// initializing K with center point
 		cvGetEye(Ks + i); // initializing to unity
@@ -206,6 +206,7 @@ int register_mosaic(struct registration_args *regargs) {
 			goto free_all;
 		}
 		cvRotMat3(angles, rottypes, TRUE, Rs + i);
+		siril_debug_print("Image #%d - rot:%.3f\n", i + 1, angles[2]);
 	}
 
 	// computing relative rotations wrt to ref image
@@ -249,36 +250,40 @@ int register_mosaic(struct registration_args *regargs) {
 	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
 	// We add to the seq in order to display some kind of alignment
-	for (int i = 0; i < n; i++) {
-		Homography H = { 0 };
-		if (i != refindex) {
-			cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
-		} else {
-			cvGetEye(&H);
-		}
-		nb_aligned++;
-		current_regdata[i].roundness = 1.;
-		current_regdata[i].fwhm = 0.;
-		current_regdata[i].weighted_fwhm = 0.;
-		current_regdata[i].background_lvl = 0.;
-		current_regdata[i].number_of_stars = 1;
-		current_regdata[i].H = H;
-		regargs->seq->imgparam[i].incl = TRUE;
-	}
-
-	// Warping test
-	// float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
-	// seq_read_frame(regargs->seq, 0, &fit, FALSE, -1);
-	// cvWarp_fromKR(&fit, Ks[0], Rs[0], scale);
-	// savefits("warp1.fit", &fit);
-	// clearfits(&fit);
+	// for (int i = 0; i < n; i++) {
+	// 	Homography H = { 0 };
+	// 	if (i != refindex) {
+	// 		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
+	// 	} else {
+	// 		cvGetEye(&H);
+	// 	}
+	// 	nb_aligned++;
+	// 	current_regdata[i].roundness = 1.;
+	// 	current_regdata[i].fwhm = 0.;
+	// 	current_regdata[i].weighted_fwhm = 0.;
+	// 	current_regdata[i].background_lvl = 0.;
+	// 	current_regdata[i].number_of_stars = 1;
+	// 	current_regdata[i].H = H;
+	// 	regargs->seq->imgparam[i].incl = TRUE;
+	// }
 
 	// Give the full mosaic output size
 	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
 	pointi tl = { INT_MAX, INT_MAX }, br = { INT_MIN, INT_MIN }; // top left and bottom-right
+	gboolean savewarped = TRUE;
 	for (int i = 0; i < n; i++) {
-		seq_read_frame_metadata(regargs->seq, i, &fit);
-		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i);
+		if (savewarped) {
+			seq_read_frame(regargs->seq, i, &fit, FALSE, -1);
+			fits_flip_top_to_bottom(&fit);
+			cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i);
+			gchar tmp[PATH_MAX];
+			g_snprintf(tmp, PATH_MAX, "mosaic_%s%05d", regargs->seq->seqname, i + 1);
+			fits_flip_top_to_bottom(&fit);
+			savefits(tmp, &fit);
+		} else {
+			seq_read_frame_metadata(regargs->seq, i, &fit);
+			cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i);
+		}
 		clearfits(&fit);
 		// first determine the corners
 		if (rois[i].x < tl.x) tl.x = rois[i].x;
@@ -297,9 +302,30 @@ int register_mosaic(struct registration_args *regargs) {
 	siril_log_message(_("Space required for full size storage: %s\n"), mem);
 	g_free(mem);
 
+	for (int i = 0; i < n; i++) {
+		Homography H = { 0 };
+		cvGetEye(&H);
+		H.h02 = rois[i].x - tl.x;
+		H.h12 = rois[i].y - tl.y;
+		nb_aligned++;
+		current_regdata[i].roundness = 1.;
+		current_regdata[i].fwhm = 0.;
+		current_regdata[i].weighted_fwhm = 0.;
+		current_regdata[i].background_lvl = 0.;
+		current_regdata[i].number_of_stars = 1;
+		current_regdata[i].H = H;
+		regargs->seq->imgparam[i].incl = TRUE;
+	}
 
+	//Composing the mosaic
+
+	// seq_read_frame_metadata(regargs->seq, refindex, &fit);
+	// cvmosaiccompose(regargs->seq, Ks, Rs, n, scale, 0.2f, 1.f, &fit);
+	// savefits("mosaic.fit", &fit);
+	// clearfits(&fit);
 
 	// images may have been excluded but selnum wasn't updated
+
 	regargs->seq->reference_image = refindex;
 	fix_selnum(regargs->seq, FALSE);
 	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, nb_aligned);
