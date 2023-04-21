@@ -7281,7 +7281,7 @@ msgstr "Тип по умолчанию:"
 
 #: src/gui/siril3.glade:28017
 msgid "Allow FITS cubes to have images of different sizes"
-msgstr "Позволяет кубам FITS иметь изображения разного размера"
+msgstr "Кубы FITS могут содержать изображения разного размера"
 
 #: src/gui/siril3.glade:28021
 msgid ""
