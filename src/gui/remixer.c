@@ -1125,7 +1125,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		else {
 			left_loaded = TRUE;
 			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
-			if (fit_left.header && fit_left.header[0] != '\0' && fit_right.header && fit_right.header[0] != '\0' && strlen(fit_left.header) >= 8 && strlen(fit_right.header) >= 8) {
+			if (fit_left.filter && fit_left.filter[0] != '\0' && fit_right.filter && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
 				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
 				g_strlcpy(temp_l, fit_left.filter, strlen(fit_left.filter) - 8);
 				gchar *temp_r = g_malloc(strlen(fit_right.filter) - 7);
@@ -1203,7 +1203,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		else {
 			right_loaded = TRUE;
 			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
-			if (fit_left.header && fit_left.header[0] != '\0' && fit_right.header && fit_right.header[0] != '\0' && strlen(fit_left.header) >= 8 && strlen(fit_right.header) >= 8) {
+			if (fit_left.filter && fit_left.filter[0] != '\0' && fit_right.filter && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
 				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
 				g_strlcpy(temp_l, fit_left.filter, strlen(fit_left.filter) - 8);
 				gchar *temp_r = g_malloc(strlen(fit_right.filter) - 7);
