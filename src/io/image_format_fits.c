@@ -80,6 +80,36 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 	} while ((keywords[__iter__]) && (*status > 0)); \
 }
 
+static void read_fits_locdata_header(fits *fit) {
+	int status = 0;
+	char sitelat_dump[FLEN_VALUE] = { 0 };
+	char sitelong_dump[FLEN_VALUE] = { 0 };
+	double d_sitelat_dump = 0.0,  d_sitelong_dump = 0.0;
+
+	status = 0;
+	fits_read_record(fit->fptr, 0, NULL, &status);
+	fits_read_key(fit->fptr, TSTRING, "*LAT", &sitelat_dump, NULL, &status);	// Handles SITELAT and SITE-LAT keyword cases in TSTRING style
+	status = 0;
+	fits_read_record(fit->fptr, 0, NULL, &status);
+	fits_read_key(fit->fptr, TSTRING, "*LON*", &sitelong_dump, NULL, &status);	// Handles SITELONG and SITE-LON keyword cases in TSTRING style
+
+	d_sitelat_dump = parse_dms(sitelat_dump);
+	d_sitelong_dump = parse_dms(sitelong_dump);
+	if (isnan(d_sitelat_dump) || isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
+		fit->sitelat = strtod(sitelat_dump, NULL);
+		fit->sitelong = strtod(sitelong_dump, NULL);
+	} else {
+		fit->sitelat = d_sitelat_dump;
+		fit->sitelong = d_sitelong_dump;
+	}
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->siteelev), NULL, &status);	// Handles SITEELEV keyword cases
+	if (status) {
+		fit->siteelev = 0.0;	// set to 0.0 if no elevation keyword (all except NINA and Seq. Generator, for now)
+	}
+}
+
 static void read_fits_date_obs_header(fits *fit) {
 	int status = 0;
 	char ut_start[FLEN_VALUE] = { 0 };
@@ -278,7 +308,7 @@ static void load_wcs_keywords(fits *fit) {
 		char hms[FLEN_VALUE];
 		fits_read_key(fit->fptr, TSTRING, "RA", hms, NULL, &status);
 		if (!status) {
-			fit->wcsdata.ra = parse_ra_hms(hms);
+			fit->wcsdata.ra = parse_hms(hms);
 			if (isnan(fit->wcsdata.ra)) fit->wcsdata.ra = 0.0;
 			else siril_debug_print("read RA as HMS\n");
 		}
@@ -294,7 +324,7 @@ static void load_wcs_keywords(fits *fit) {
 		char dms[FLEN_VALUE];
 		fits_read_key(fit->fptr, TSTRING, "DEC", dms, NULL, &status);
 		if (!status) {
-			fit->wcsdata.dec = parse_dec_dms(dms);
+			fit->wcsdata.dec = parse_dms(dms);
 			if (isnan(fit->wcsdata.dec)) fit->wcsdata.dec = 0.0;
 			else siril_debug_print("read DEC as DMS\n");
 		}
@@ -525,19 +555,7 @@ void read_fits_header(fits *fit) {
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBJECT", &(fit->object), NULL, &status);
 
-	status = 0;
-	fits_read_record(fit->fptr, 0, NULL, &status);
-	fits_read_key(fit->fptr, TDOUBLE, "*LAT", &(fit->sitelat), NULL, &status);	// Handles SITELAT and SITE-LAT keyword cases
-
-	status = 0;
-	fits_read_record(fit->fptr, 0, NULL, &status);
-	fits_read_key(fit->fptr, TDOUBLE, "*LON*", &(fit->sitelong), NULL, &status);	// Handles SITELONG and SITE-LON keyword cases
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->siteelev), NULL, &status);
-	if (status) {
-		fit->siteelev = 0.0;	// set to 0.0 if no elevation keyword
-	}
+	read_fits_locdata_header(fit);
 
 	status = 0;
 	fits_read_key(fit->fptr, TDOUBLE, "APERTURE", &(fit->aperture), NULL, &status);
