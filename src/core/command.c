@@ -3673,7 +3673,10 @@ int process_pm(int nb) {
 				return CMD_INVALID_IMAGE;
 			}
 		}
-		remove_char_from_str(args->varname[j], '-'); // Prevent parse error when passed to PM
+		// Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
+		// We will amend the expression to match below.
+		g_free(args->varname[j]);
+		args->varname[j] = g_strdup_printf("var_%d", j + 1);
 	}
 
 	/* remove tokens */
@@ -3687,21 +3690,16 @@ int process_pm(int nb) {
 	for (int i = 0 ; i < count / 2 ; i++) {
 		start = strchr(cur, '$');
 		end = strchr(start + 1, '$');
-		char* j = start + 1;
-		int subcount = 0;
-		while (*j != '$') {
-			if (*j == '-') {
-				subcount++;
-				char* k = j;
-				while (*(k + 1)) {
-					*k = *(k + 1);
-					k++;
-				}
-			}
-			j++;
-		}
-		end -= subcount;
-		cur = end + 1;
+		ptrdiff_t start_offset = start - expression;
+		ptrdiff_t end_offset = end - expression;
+		gchar* temp = g_strdup(expression);
+		temp[start_offset + 1] = '\0';
+		gchar* newexpression = g_strdup_printf("%svar_%d%s", temp, i + 1, end);
+		g_free(temp);
+		g_free(expression);
+		expression = newexpression;
+		cur = strchr(expression + end_offset + 1, '$') + 1;
+
 	}
 
 	remove_char_from_str(expression, '$');
