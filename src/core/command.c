@@ -3688,7 +3688,7 @@ int process_pm(int nb) {
 	// Now need to replace the original variable names between the $ signs in expression with
 	// the new generic variable names.
 	// This ensures the variable names in the expression passed to pm match the variable names
-	// with '-' removed that are stored in args->varname
+	// that are stored in args->varname
 	cur = expression;
 	for (int i = 0 ; i < count / 2 ; i++) {
 		start = strchr(cur, '$');
