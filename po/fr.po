@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-12 11:32+0200\n"
-"PO-Revision-Date: 2023-04-11 20:39+0000\n"
+"PO-Revision-Date: 2023-04-24 05:58+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4639,9 +4639,8 @@ msgid "Color Calibration..."
 msgstr "Étalonnage des couleurs..."
 
 #: src/gui/siril3.glade:18061
-#, fuzzy
 msgid "Open the photometric color calibration dialog"
-msgstr "Ouvrez le dialogue d'étalonnage des couleurs de la photométrie"
+msgstr "Ouvrir la boîte de dialogue d'étalonnage des couleurs par photométrie"
 
 #: src/gui/siril3.glade:18063
 msgid "Photometric Color Calibration..."
@@ -10275,7 +10274,6 @@ msgstr ""
 "l'extérieur.\n"
 
 #: src/algos/photometric_cc.c:380
-#, fuzzy
 msgid "Photometric color calibration in progress..."
 msgstr "Étalonnage des couleurs par photométrie en cours..."
 
@@ -22736,11 +22734,8 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "Empilement de %d images sur %d de la séquence"
 
 #: src/registration/registration.c:1163
-#, fuzzy
 msgid "not available for sequences with variable image sizes"
-msgstr ""
-"Impossible d'utiliser la sélection de zone sur une séquence avec des tailles "
-"d'image variables\n"
+msgstr "non disponible pour les séquences avec des tailles d'image variables"
 
 #: src/registration/registration.c:1168 src/registration/registration.c:1162
 msgid "Failed to determine registration method...\n"
