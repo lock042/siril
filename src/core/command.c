@@ -3674,6 +3674,8 @@ int process_pm(int nb) {
 			}
 		}
 		// Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
+		// This avoids conflicts where characters are permitted in filenames but cannot
+		// be used in pixelmath variable names.
 		// We will amend the expression to match below.
 		g_free(args->varname[j]);
 		args->varname[j] = g_strdup_printf("var_%d", j + 1);
@@ -3683,7 +3685,8 @@ int process_pm(int nb) {
 	g_free(expression);
 	expression = g_shell_unquote(word[1], NULL);
 
-	// Now need to remove "-" from expression but only between $ signs
+	// Now need to replace the original variable names between the $ signs in expression with
+	// the new generic variable names.
 	// This ensures the variable names in the expression passed to pm match the variable names
 	// with '-' removed that are stored in args->varname
 	cur = expression;
