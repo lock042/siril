@@ -3673,11 +3673,37 @@ int process_pm(int nb) {
 				return CMD_INVALID_IMAGE;
 			}
 		}
+		remove_char_from_str(args->varname[j], '-'); // Prevent parse error when passed to PM
 	}
 
 	/* remove tokens */
 	g_free(expression);
 	expression = g_shell_unquote(word[1], NULL);
+
+	// Now need to remove "-" from expression but only between $ signs
+	// This ensures the variable names in the expression passed to pm match the variable names
+	// with '-' removed that are stored in args->varname
+	cur = expression;
+	for (int i = 0 ; i < count / 2 ; i++) {
+		start = strchr(cur, '$');
+		end = strchr(start + 1, '$');
+		char* j = start + 1;
+		int subcount = 0;
+		while (*j != '$') {
+			if (*j == '-') {
+				subcount++;
+				char* k = j;
+				while (*(k + 1)) {
+					*k = *(k + 1);
+					k++;
+				}
+			}
+			j++;
+		}
+		end -= subcount;
+		cur = end + 1;
+	}
+
 	remove_char_from_str(expression, '$');
 	remove_spaces_from_str(expression);
 
