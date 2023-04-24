@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: Siril in Italiano\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-12 11:32+0200\n"
-"PO-Revision-Date: 2023-04-01 14:21+0000\n"
+"PO-Revision-Date: 2023-04-26 09:39+0000\n"
 "Last-Translator: Gianluca Arcuri <yanlukmac@icloud.com>\n"
-"Language-Team: Italian <https://weblate.pixls.us/projects/siril/siril-"
-"application/it/>\n"
+"Language-Team: Italian <https://weblate.pixls.us/projects/siril/"
+"siril-application/it/>\n"
 "Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -329,7 +329,6 @@ msgid "Kernel Size:"
 msgstr "Dimensione del Kernel:"
 
 #: src/gui/siril3.glade:1554
-#, fuzzy
 msgid ""
 "Kernel Size. This is the odd size of the neighborhood considered for each "
 "pixel."
@@ -4630,7 +4629,6 @@ msgid "Color Calibration..."
 msgstr "Calibrazione del colore..."
 
 #: src/gui/siril3.glade:18061
-#, fuzzy
 msgid "Open the photometric color calibration dialog"
 msgstr "Apre la finestra di dialogo per la calibrazione fotometrica del colore"
 
@@ -10234,7 +10232,6 @@ msgstr ""
 "Raggi fotometrici impostati a %.1f,per l'interno e %.1f per l'esterno\n"
 
 #: src/algos/photometric_cc.c:380
-#, fuzzy
 msgid "Photometric color calibration in progress..."
 msgstr "Calibrazione del colore fotometrica in elaborazione ..."
 
@@ -18515,22 +18512,22 @@ msgstr "GHS SAT Pivot: %.3f, importo: %.2f, locale: %.2f [%.2f %.2f]"
 #: src/gui/histogram.c:1182
 #, c-format
 msgid "GHS INV SAT pivot: %.3f, amount: %.2f, local: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "Pivot GHS Inv Sat: %.3f, importo: %.2f, locale: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1185
 #, c-format
 msgid "GHS ASINH SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "Pivot GHS ASINH SAT: %.3f, amount: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1188
 #, c-format
 msgid "GHS ASINH INV SAT pivot: %.3f, amount: %.2f [%.2f %.2f]"
-msgstr ""
+msgstr "Pivot GHS ASINH INV SAT: %.3f, importo: %.2f [%.2f %.2f]"
 
 #: src/gui/histogram.c:1191
 #, c-format
 msgid "GHS LINEAR SAT BP: %.2f"
-msgstr ""
+msgstr "GHS LINEAR SAT BP: %.2f"
 
 #: src/gui/histogram.c:1240
 msgid "Could not compute autostretch parameters, using default values\n"
@@ -18585,6 +18582,8 @@ msgid ""
 "Error: memory allocaton failure when instantiating HD LUTs. Reverting to "
 "standard 16 bit LUTs.\n"
 msgstr ""
+"Errore: errore di allocazione della memoria quando si istanziano HD LUTS. "
+"Ritorno a Luts standard a 16 bit.\n"
 
 #: src/gui/image_display.c:532
 #, c-format
@@ -18621,14 +18620,12 @@ msgid "Rotation (%.1lfdeg, cropped=%s, clamped=%s)"
 msgstr "Rotazione (%.1lfgradi, ritaglio=%s, clamp=%s)"
 
 #: src/gui/menu_gray_geometry.c:84
-#, fuzzy
 msgid "Rotation (90 deg)"
-msgstr "Rotazione (90.0 gradi)"
+msgstr "Rotazione (90 gradi)"
 
 #: src/gui/menu_gray_geometry.c:94
-#, fuzzy
 msgid "Rotation (-90 deg)"
-msgstr "Rotazione (-90.0 gradi)"
+msgstr "Rotazione (-90 gradi)"
 
 #: src/gui/menu_gray_geometry.c:154
 msgid "Mirror X"
@@ -18645,11 +18642,11 @@ msgstr "Binning x%d (%s)"
 
 #: src/gui/menu_gray_geometry.c:183
 msgid "average"
-msgstr ""
+msgstr "media"
 
 #: src/gui/menu_gray_geometry.c:183
 msgid "sum"
-msgstr ""
+msgstr "somma"
 
 #: src/gui/menu_gray_geometry.c:212
 #, c-format
@@ -18687,51 +18684,56 @@ msgstr "_Non mostrare nuovamente questo messaggio"
 #: src/gui/newdeconv.c:271
 #, c-format
 msgid "Deconvolution usage hints and tips URL: %s\n"
-msgstr ""
+msgstr "Suggerimenti e consigli sull'uso della deconvoluzione URL: %s\n"
 
 #: src/gui/newdeconv.c:460
 msgid ""
 "Warning: telescope aperture obtained from FITS header data may be "
 "incorrect.\n"
 msgstr ""
+"Attenzione: l'apertura del telescopio ottenuta dai dati dell'intestazione "
+"FITS può essere errata.\n"
 
 #: src/gui/newdeconv.c:463
 msgid ""
 "Warning: telescope focal length obtained from FITS header data may be "
 "incorrect.\n"
 msgstr ""
+"Attenzione: la lunghezza focale del telescopio ottenuta dai dati "
+"dell'intestazione FITS può essere errata\n"
 
 #: src/gui/newdeconv.c:466
 msgid ""
 "Warning: sensor pixel size obtained from FITS header data may be incorrect.\n"
 msgstr ""
+"ATTENZIONE: la dimensione dei pixel del sensore ottenuto dai dati "
+"dell'intestazione FITS può essere errata.\n"
 
 #: src/gui/newdeconv.c:507
-#, fuzzy
 msgid "Error: all stars' FWHM must have the same units.\n"
-msgstr "Le stelle FWMHM devono avere le stesse unità."
+msgstr "Errore: tutte le stelle FWMHM devono avere le stesse unità.\n"
 
 #: src/gui/newdeconv.c:511
 msgid "Error: stars' properties must all be computed on the same layer"
 msgstr ""
+"Errore: le proprietà delle stelle devono essere tutte calcolate sullo stesso "
+"livello"
 
 #: src/gui/newdeconv.c:515
 msgid "Error: stars must all be modeled with the same profile type"
-msgstr ""
+msgstr "Errore: le stelle devono essere modellate con lo stesso tipo di profilo"
 
 #: src/gui/newdeconv.c:557
-#, fuzzy
 msgid "No stars selected"
-msgstr "selezione"
+msgstr "Nessuna stella selezionata"
 
 #: src/gui/newdeconv.c:607
 msgid "Error: no PSF has been computed, nothing to save.\n"
-msgstr ""
+msgstr "Errore: nessun PSF è stato calcolato, nulla da salvare.\n"
 
 #: src/gui/newdeconv.c:633
-#, fuzzy
 msgid "Error preparing PSF for save.\n"
-msgstr "Errore durante l'apertura dell'immagine BMP.\n"
+msgstr "Errore preparazione di PSF per Salva.\n"
 
 #. This needs to catch the case where a colour kernel is loaded, PGM does't support RGB.
 #: src/gui/newdeconv.c:644
@@ -18739,14 +18741,18 @@ msgid ""
 "This copy of Siril was compiled without libtiff support: saving PSF in FITS "
 "format.\n"
 msgstr ""
+"Questa copia di Siril è stata compilata senza supporto Libtiff: salvare PSF "
+"in formato FITS.\n"
 
 #: src/gui/newdeconv.c:712
 msgid "Error: PSF file does not contain a square PSF. Cannot load this file.\n"
 msgstr ""
+"Errore: il file PSF non contiene un PSF quadrato. Non è possibile caricare "
+"questo file.\n"
 
 #: src/gui/newdeconv.c:714
 msgid "Wrong PSF size"
-msgstr ""
+msgstr "Dimensione PSF sbagliata"
 
 #: src/gui/newdeconv.c:723
 #, c-format
@@ -18754,6 +18760,9 @@ msgid ""
 "Warning: PSF file is even (%d x %d). PSFs should always be odd. Cropping by "
 "1 pixel in each direction. This may not produce optimum results.\n"
 msgstr ""
+"ATTENZIONE: il file PSF è pari (%d x %d). I PSF dovrebbero essere sempre "
+"dispari. Ritaglia di 1 pixel in ogni direzione. Ciò potrebbe non produrre "
+"risultati ottimali.\n"
 
 #. If we have a color kernel but the open image is mono, log a warning and desaturate the kernel
 #: src/gui/newdeconv.c:770
@@ -18761,6 +18770,8 @@ msgid ""
 "The selected PSF is RGB but the loaded image is monochrome. The PSF will be "
 "converted to monochrome (luminance).\n"
 msgstr ""
+"Il PSF selezionato è RGB ma l'immagine caricata è monocromatica. Il PSF "
+"verrà convertito in monocromo (luminanza).\n"
 
 #: src/gui/newdeconv.c:797
 msgid "No PSF file selected.\n"
@@ -18775,22 +18786,30 @@ msgid ""
 "Error: no stars detected. Run findstar or select stars using Dynamic PSF "
 "dialog first.\n"
 msgstr ""
+"Errore: nessuna stella rilevata. Esegui FindStar o seleziona le stelle "
+"utilizzando prima la finestra di dialogo PSF dinamica.\n"
 
 #: src/gui/newdeconv.c:877
 msgid ""
 "Warning: focal length appears likely to be incorrect. Continuing anyway...\n"
 msgstr ""
+"ATTENZIONE: la lunghezza focale sembra probabile che non sia corretta. "
+"Continua comunque ...\n"
 
 #: src/gui/newdeconv.c:879
 msgid ""
 "Warning: diameter appears likely to be incorrect. Continuing anyway...\n"
 msgstr ""
+"ATTENZIONE: il diametro sembra probabile che non sia corretto. Continua "
+"comunque ...\n"
 
 #: src/gui/newdeconv.c:881
 msgid ""
 "Warning: sensor pixel size appears likely to be incorrect. Continuing "
 "anyway...\n"
 msgstr ""
+"ATTENZIONE: la dimensione dei pixel del sensore sembra essere errata. "
+"Continua comunque ...\n"
 
 #: src/gui/newdeconv.c:889
 msgid ""
@@ -18798,20 +18817,25 @@ msgid ""
 "from stars or manual parameters must already have been done to use the "
 "Previous PSF option.\n"
 msgstr ""
+"Errore: nessun PSF precedente trovato. Uno stimatore cieco PSF o un calcolo "
+"di PSF da stelle o parametri manuali deve essere già stato fatto per "
+"utilizzare l'opzione PSF precedente.\n"
 
 #: src/gui/newdeconv.c:898
 msgid ""
 "Error: no PSF defined. Select blind deconvolution or define a PSF from "
 "selection or psf parameters.\n"
 msgstr ""
+"Errore: nessun PSF definito. Selezionare la deconvoluzione cieca o definire "
+"un PSF dai parametri di selezione o PSF.\n"
 
 #: src/gui/newdeconv.c:915
 msgid "PSF made in bottom up orientation.\n"
-msgstr ""
+msgstr "PSF realizzato in orientamento dal basso verso l'alto.\n"
 
 #: src/gui/newdeconv.c:917
 msgid "PSF made in top down orientation.\n"
-msgstr ""
+msgstr "PSF realizzato in un orientamento in alto.\n"
 
 #. User wants PSF from stars but has not selected any stars
 #: src/gui/newdeconv.c:987 src/gui/newdeconv.c:1135
@@ -18819,14 +18843,13 @@ msgid "No stars detected. Finding suitable non-saturated stars...\n"
 msgstr "Nessuna stella rilevata. Trovare stelle adatte non saturate...\n"
 
 #: src/gui/newdeconv.c:1003 src/gui/newdeconv.c:1151
-#, fuzzy
 msgid "No suitable stars detectable in this image. Aborting..."
-msgstr "Cerca un oggetto nell’immagine"
+msgstr "Nessuna stella adatta rilevabile in questa immagine. Abortire ..."
 
 #: src/gui/newdeconv.c:1009
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d suitably bright, non-saturated stars.\n"
-msgstr "Nessuna stella rilevata. Trovare stelle adatte non saturate...\n"
+msgstr "Trovate %d stelle sufficientemente luminose, non sature.\n"
 
 #: src/gui/newdeconv.c:1017
 #, c-format
@@ -18835,6 +18858,9 @@ msgid ""
 "Increasing kernel size to %d. To override, specify kernel size using the -"
 "ks= option.\n"
 msgstr ""
+"La dimensione del kernel non è abbastanza grande da adattarsi a PSF generata "
+"dalle stelle rilevate. Aumentare le dimensioni del kernel all'%d. Per "
+"sovrascrivere, specificare la dimensione del kernel usando l'opzione -ks =.\n"
 
 #: src/gui/newdeconv.c:1022
 #, c-format
@@ -18843,11 +18869,13 @@ msgid ""
 "too big for the specified kernel size. Recommend increasing kernel size to "
 "%d.\n"
 msgstr ""
+"Attenzione: PSF generato dalle stelle rilevate in questa immagine sembra "
+"essere troppo grande per la dimensione del kernel specificata. Consiglia di "
+"aumentare le dimensioni del kernel a %d.\n"
 
 #: src/gui/newdeconv.c:1053
-#, fuzzy
 msgid "Starting PSF computation..."
-msgstr "Ricomposizione Stelle…"
+msgstr "Avvio del calcolo PSF ..."
 
 #: src/gui/newdeconv.c:1062
 msgid "Deconvolution PSF generated.\n"
@@ -18860,6 +18888,8 @@ msgid ""
 "Error: trying to use previous PSF but no PSF has been generated. "
 "Aborting...\n"
 msgstr ""
+"Errore: tentativo di utilizzare il PSF precedente ma non è stato generato "
+"nessun PSF. Interrruzione ...\n"
 
 #: src/gui/newdeconv.c:1190
 msgid "Starting PSF estimation..."
@@ -18870,13 +18900,14 @@ msgid "Starting non-blind deconvolution..."
 msgstr "Avvio della deconvoluzione non-cieca..."
 
 #: src/gui/newdeconv.c:1225
-#, fuzzy
 msgid "Wiener deconvolution..."
-msgstr "Deconvoluzione..."
+msgstr "Deconvoluzione di Wiener..."
 
 #: src/gui/newdeconv.c:1226
 msgid "Richardson-Lucy halted early by the stopping criterion after iteration"
 msgstr ""
+"Interrotto Richardson-Lucy anticipatamente dal criterio di arresto dopo "
+"l'iterazione"
 
 #: src/gui/newdeconv.c:1227
 msgid "Richardson-Lucy deconvolution..."
@@ -18887,6 +18918,9 @@ msgid ""
 "Image row order has changed since PSF was generated. The PSF orientation "
 "will be updated to match before applying to this image."
 msgstr ""
+"L'ordine della riga di immagine è cambiato da quando è stato generato PSF. "
+"L'orientamento PSF verrà aggiornato per corrispondere prima di applicare a "
+"questa immagine."
 
 #: src/gui/newdeconv.c:1455
 msgid "Deconvolution. Processing sequence..."
@@ -18894,7 +18928,7 @@ msgstr "Deconvoluzione. Processo la sequenza..."
 
 #: src/gui/nina_light_curve.c:19
 msgid "Light curve with NINA star list"
-msgstr ""
+msgstr "Curva della luce con l'elenco delle stelle Nina"
 
 #: src/gui/nina_light_curve.c:20 src/io/image_formats_libraries.c:1740
 msgid "_OK"
@@ -18905,43 +18939,48 @@ msgid "Select the NINA star list file"
 msgstr "Selezione il catalogo stelle NINA"
 
 #: src/gui/nina_light_curve.c:32
-#, fuzzy
 msgid "CSV file (*.csv)"
-msgstr "File SER (*.ser)"
+msgstr "File CSV (*.csv)"
 
 #: src/gui/nina_light_curve.c:36
 msgid ""
 "Process a sequence to get a light curve on a star using the list of "
 "reference stars created by the NINA exoplanet plugin"
 msgstr ""
+"Elabora una sequenza per ottenere una curva di luce su una stella usando "
+"l'elenco delle stelle di riferimento create dal plugin Nina Exoplanet"
 
 #: src/gui/nina_light_curve.c:40
 msgid "Use comparative stars selected for their color"
-msgstr ""
+msgstr "Usa stelle comparative selezionate per il loro colore"
 
 #: src/gui/nina_light_curve.c:41
 msgid "Use comparative stars selected by the AAVSO"
-msgstr ""
+msgstr "Usa stelle comparative selezionate da AAVSO"
 
 #: src/gui/nina_light_curve.c:42
 msgid "Display the light curve"
-msgstr ""
+msgstr "Visualizza la curva di luce"
 
 #: src/gui/nina_light_curve.c:48
 msgid ""
 "Color similar to the target mean they will get extincted the same way by the "
 "changing atmosphere"
 msgstr ""
+"Colore simile al target significa che si estenderanno allo stesso modo "
+"dall'atmosfera mutevole"
 
 #: src/gui/nina_light_curve.c:49
 msgid "The AAVSO gives stars that are know to not be variable"
-msgstr ""
+msgstr "L'AAVSO dà stelle che sono note per non essere variabili"
 
 #: src/gui/nina_light_curve.c:50
 msgid ""
 "if not checked, a PNG image of the graph will be generated instead (if "
 "gnuplot is available, for both cases)"
 msgstr ""
+"Se non selezionato, verrà generata alternativamente un'immagine PNG del "
+"grafico (se Gnuplot è disponibile, per entrambi i casi)"
 
 #: src/gui/nina_light_curve.c:83
 msgid "The currently loaded image must be plate solved"
