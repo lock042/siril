@@ -3679,7 +3679,6 @@ int process_pm(int nb) {
 	expression = g_strjoinv(NULL, chunks);
 	g_strfreev(chunks);
 
-//	remove_char_from_str(expression, '$');
 	remove_spaces_from_str(expression);
 
 	fits *fit = NULL;
