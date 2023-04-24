@@ -594,11 +594,18 @@ gpointer convert_thread_worker(gpointer p) {
 	set_progress_bar_data(_("Converting files"), PROGRESS_RESET);
 	init_report(args);
 
-	/* remove the target .seq to avoid errors */
-	gchar *seqname = replace_ext(args->destroot, ".seq");
+	char *newdestroot = normalize_seqname(args->destroot, args->output_type == SEQ_REGULAR);
+	free(args->destroot);
+	args->destroot = strdup(newdestroot);
+	gchar *seqname = g_strdup_printf("%s%s", args->destroot, ".seq");
 	if (g_unlink(seqname))
 		siril_debug_print("Error in g_unlink()\n");
+	if (args->output_type == SEQ_REGULAR) { // to make sure destroot has an extension (will be removed when creating the filenames)
+		free(args->destroot);
+		args->destroot = strdup(seqname);
+	}
 	g_free(seqname);
+	free(newdestroot);
 
 	convert_status convert = { 0 };
 	convert.args = args;
@@ -1009,6 +1016,8 @@ static void pool_worker(gpointer data, gpointer user_data) {
 		siril_debug_print("read error, ignoring image\n");
 		g_atomic_int_inc(&conv->failed_images);
 		finish_write_seq(rwdata->writer, FALSE);
+		if (rwdata->writer->have_seqwriter)
+			seqwriter_release_memory();
 		free(rwdata);
 		if (fit) {
 			clearfits(fit);
@@ -1022,7 +1031,8 @@ static void pool_worker(gpointer data, gpointer user_data) {
 		rwdata->reader = NULL;
 		clearfits(fit);
 		free(fit);
-		handle_error(rwdata);
+		if (rwdata->writer->have_seqwriter)
+			handle_error(rwdata);
 		return;
 	}
 
@@ -1378,11 +1388,13 @@ static void write_conversion_report(struct _convert_data *args) {
 	if (args->report_length <= 0)
 		return;
 	gchar *filename;
-	if (g_str_has_suffix(args->destroot, "_"))
-		filename = g_strdup_printf("%sconversion.txt", args->destroot);
-	else filename = g_strdup_printf("%s_conversion.txt", args->destroot);
+	char *filename_noext = remove_ext_from_filename(args->destroot);
+	if (g_str_has_suffix(filename_noext, "_"))
+		filename = g_strdup_printf("%sconversion.txt", filename_noext);
+	else filename = g_strdup_printf("%s_conversion.txt", filename_noext);
 	FILE *fd = g_fopen(filename, "w+");
 	g_free(filename);
+	free(filename_noext);
 	if (!fd)
 		return;
 

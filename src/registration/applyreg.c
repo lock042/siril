@@ -40,6 +40,7 @@
 
 #include "opencv/opencv.h"
 
+#define MIN_RATIO 0.1 // minimum fraction of ref image dimensions to validate output sequence is worth creating
 
 static void create_output_sequence_for_apply_reg(struct registration_args *args);
 static int new_ref_index = -1;
@@ -620,6 +621,15 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	// determines the reference homography (including framing shift) and output size
 	if (!compute_framing(regargs)) {
 		siril_log_color_message(_("Unknown framing method, aborting\n"), "red");
+		return FALSE;
+	}
+
+	// make sure we apply registration only if the output sequence has a meaningful size
+	int rx0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+	int ry0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+	if (rx_out < rx0 * MIN_RATIO || ry_out < ry0 * MIN_RATIO) {
+		siril_log_color_message(_("The output sequence is too small compared to reference image (too much rotation or little overlap?)\n"), "red");
+		siril_log_color_message(_("You should change framing method, aborting\n"), "red");
 		return FALSE;
 	}
 

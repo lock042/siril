@@ -272,7 +272,7 @@ static int fill_rgb_image(AVFrame *pict, int frame_index,
 
 	BYTE map[USHRT_MAX + 1];
 	int i;
-	
+
 	float slope = (fit->orig_bitpix == BYTE_IMG) ? 1.0f : UCHAR_MAX_SINGLE / USHRT_MAX_SINGLE;
 
 	for (i = 0; i <= USHRT_MAX; i++) {
@@ -285,7 +285,7 @@ static int fill_rgb_image(AVFrame *pict, int frame_index,
 		for (++i; i <= USHRT_MAX; i++)
 			map[i] = UCHAR_MAX;
 	}
-	
+
 	/* doing the WORD to BYTE conversion, bottom-up */
 	if (fit->naxes[2] == 1) {
 		int x, y;
@@ -503,6 +503,7 @@ struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fp
 		}
 	} else {
 		avformat_free_context(video_st->oc);
+		free(video_st);
 		siril_log_message("Error setting video codec for output file.");
 		return NULL;
 	}

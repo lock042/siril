@@ -44,7 +44,7 @@ gchar* siril_world_cs_alpha_format(SirilWorldCS *world_cs, const gchar *format);
 void siril_world_cs_get_ra_hour_min_sec(SirilWorldCS *world_cs, int *hour, int *min, double *sec);
 void siril_world_cs_get_dec_deg_min_sec(SirilWorldCS *world_cs, int *deg, int *min, double *sec);
 
-double parse_ra_hms(const char *objctra);
-double parse_dec_dms(const char *objctdec);
+double parse_hms(const char *objctra);
+double parse_dms(const char *objctdec);
 
 #endif /* SRC_CORE_SIRIL_WORLD_CS_H_ */

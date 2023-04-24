@@ -58,7 +58,7 @@ static float leftSP = 0.0f, rightSP = 0.0f;
 static float leftHP = 1.0f, rightHP = 1.0f;
 static float leftBP = 0.0f, rightBP = 0.0f;
 static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_ASINH;
-static int colour_left = COL_INDEP, colour_right = COL_INDEP;
+static int colour_left = COL_HUMANLUM, colour_right = COL_HUMANLUM;
 static fits fit_left;
 static fits fit_right;
 static fits fit_left_calc;
@@ -623,14 +623,14 @@ void reset_values_left() {
 	leftD = leftB = leftLP = leftSP = leftBP = 0.0f;
 	leftHP = 1.0f;
 	type_left = STRETCH_PAYNE_NORMAL;
-	colour_left = COL_INDEP;
+	colour_left = COL_HUMANLUM;
 }
 
 void reset_values_right() {
 	rightD = rightB = rightLP = rightSP = rightBP = 0.0f;
 	rightHP = 1.0f;
 	type_right = STRETCH_ASINH;
-	colour_right = COL_INDEP;
+	colour_right = COL_HUMANLUM;
 }
 
 void reset_values() {
@@ -659,7 +659,7 @@ void reset_left() {
 	gtk_spin_button_set_value(spin_remix_HP_left, leftHP);
 	gtk_spin_button_set_value(spin_remix_BP_left, leftBP);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_left")), STRETCH_PAYNE_NORMAL);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_INDEP);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_HUMANLUM);
 	set_notify_block(FALSE);
 }
 
@@ -678,8 +678,8 @@ void reset_right() {
 	gtk_spin_button_set_value(spin_remix_SP_right, rightSP);
 	gtk_spin_button_set_value(spin_remix_HP_right, rightHP);
 	gtk_spin_button_set_value(spin_remix_BP_right, rightBP);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_PAYNE_NORMAL);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_right")), COL_INDEP);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_ASINH);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_right")), COL_HUMANLUM);
 	set_notify_block(FALSE);
 }
 
@@ -767,6 +767,9 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			right_loaded = TRUE; // Mark RHS image as loaded
 			right_changed = TRUE; // Force update on initial draw
 			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
+			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
+			gfit.stackcnt = fit_left.stackcnt;
+			gfit.livetime = fit_left.livetime;
 			initialise_image();
 
 			gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), FALSE);
@@ -1122,6 +1125,28 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		else {
 			left_loaded = TRUE;
 			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
+			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
+				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
+				g_strlcpy(temp_l, fit_left.filter, strlen(fit_left.filter) - 8);
+				gchar *temp_r = g_malloc(strlen(fit_right.filter) - 7);
+				g_strlcpy(temp_r, fit_right.filter, strlen(fit_right.filter) - 8);
+				if (strlen(fit_left.filter) == 8)
+					temp_l[0] = '\0';
+				if (strlen(fit_right.filter) == 8)
+					temp_r[0] = '\0';
+				if (!strcmp(temp_l, temp_r)) {
+					if (fit_left.livetime >= fit_right.livetime) {
+						gfit.livetime = fit_left.livetime;
+						gfit.stackcnt = fit_left.stackcnt;
+					} else {
+						gfit.livetime = fit_right.livetime;
+						gfit.stackcnt = fit_right.stackcnt;
+					}
+				}
+				g_free(temp_l);
+				g_free(temp_r);
+			} // Otherwise the addition from merge_fits_headers_to_result is probably the best
+			  // value to use as the image is probably being combined from 2 different stacks
 		}
 	} else {
 		close_single_image();
@@ -1178,6 +1203,28 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		else {
 			right_loaded = TRUE;
 			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
+			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
+				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
+				g_strlcpy(temp_l, fit_left.filter, strlen(fit_left.filter) - 8);
+				gchar *temp_r = g_malloc(strlen(fit_right.filter) - 7);
+				g_strlcpy(temp_r, fit_right.filter, strlen(fit_right.filter) - 8);
+				if (strlen(fit_left.filter) == 8)
+					temp_l[0] = '\0';
+				if (strlen(fit_right.filter) == 8)
+					temp_r[0] = '\0';
+				if (!strcmp(temp_l, temp_r)) {
+					if (fit_left.livetime >= fit_right.livetime) {
+						gfit.livetime = fit_left.livetime;
+						gfit.stackcnt = fit_left.stackcnt;
+					} else {
+						gfit.livetime = fit_right.livetime;
+						gfit.stackcnt = fit_right.stackcnt;
+					}
+				}
+				g_free(temp_l);
+				g_free(temp_r);
+			} // Otherwise the addition from merge_fits_headers_to_result is probably the best
+			  // value to use as the image is probably being combined from 2 different stacks
 		}
 	} else {
 		close_single_image();
