@@ -75,7 +75,6 @@ gboolean verbose = TRUE;
 
 static int exec_prog_starnet(char **argv, starnet_version version) {
 	gint child_stdout;
-	GPid child_pid;
 	g_autoptr(GError) error = NULL;
 	int retval = -1;
 
@@ -83,7 +82,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	g_spawn_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
-			NULL, NULL, &child_pid, NULL, &child_stdout,
+			NULL, NULL, NULL, NULL, &child_stdout,
 			NULL, &error);
 
 	if (error != NULL) {
@@ -123,7 +122,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 			arg += 9;
 		double value = g_ascii_strtod(arg, NULL);
 		if (value != 0.0 && value == value && verbose) {
-			set_progress_bar_data(_("Running StarNet"), (value / 100));
+			set_progress_bar_data(_("Running StarNet"), value / 100.0);
 		}
 		if (g_str_has_prefix(buffer, "100% finished") || g_strrstr(buffer, "Writing mask")) {
 			retval = 0;
@@ -144,6 +143,8 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 #endif
 	g_object_unref(data_input);
 	g_object_unref(stream);
+	if (!g_close(child_stdout, &error))
+		siril_debug_print("%s\n", error->message);
 	return retval;
 }
 
@@ -151,7 +152,6 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	char *test_argv[3] = {0};
 	int retval = NIL;
 	gint child_stdout;
-	GPid child_pid;
 	g_autoptr(GError) error = NULL;
 	gchar *v1dir = NULL;
 	if (!executable || executable[0] == '\0') {
@@ -198,7 +198,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	g_spawn_async_with_pipes(NULL, test_argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
-			NULL, NULL, &child_pid, NULL, &child_stdout,
+			NULL, NULL, NULL, NULL, &child_stdout,
 			NULL, &error);
 
 	if (error != NULL) {
@@ -241,6 +241,8 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	g_free(versionarg);
+	if (!g_close(child_stdout, &error))
+		siril_debug_print("%s\n", error->message);
 
 	retval2 = g_chdir(currentdir);
 	if (retval2) {

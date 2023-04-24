@@ -167,12 +167,11 @@ gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive)
     printf("%s\n", bin2[0]);
     /* call gnuplot */
     gint child_stdin;
-    GPid child_pid;
     g_autoptr(GError) error = NULL;
 
     g_spawn_async_with_pipes(NULL, bin2, NULL,
             G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
-            NULL, NULL, &child_pid, &child_stdin, NULL,
+            NULL, NULL, NULL, &child_stdin, NULL,
             NULL, &error);
     if (error != NULL) {
         siril_log_color_message(_("Spawning gnuplot failed: %s\n"), "red", error->message);

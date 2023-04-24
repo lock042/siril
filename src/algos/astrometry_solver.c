@@ -116,8 +116,10 @@ const char *catalog_to_str(online_catalog cat) {
 
 static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args) {
 	struct astrometry_data *ret = malloc(sizeof(struct astrometry_data));
-	if (!ret)
+	if (!ret) {
+		PRINT_ALLOC_ERR;
 		return NULL;
+	}
 	memcpy(ret, args, sizeof(struct astrometry_data));
 	ret->cat_center = siril_world_cs_ref(args->cat_center);
 	ret->fit = NULL;
@@ -1917,14 +1919,12 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	g_free(command);
 
 	/* call solve-field */
-	gint child_stdout, child_stderr;
-	GPid child_pid;
+	gint child_stdout;
 	g_autoptr(GError) error = NULL;
 
 	g_spawn_async_with_pipes(NULL, sfargs, NULL,
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
-			NULL, NULL, &child_pid, NULL, &child_stdout,
-			&child_stderr, &error);
+			NULL, NULL, NULL, NULL, &child_stdout, NULL, &error);
 	if (error != NULL) {
 		siril_log_color_message("Spawning solve-field failed: %s\n", "red", error->message);
 		if (!com.pref.astrometry.keep_xyls_files)
@@ -1967,6 +1967,8 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	}
 	g_object_unref(data_input);
 	g_object_unref(stream);
+	if (!g_close(child_stdout, &error))
+		siril_debug_print("%s\n", error->message);
 	if (!com.pref.astrometry.keep_xyls_files)
 		if (g_unlink(table_filename)) {
 			siril_debug_print("Error unlinking table_filename\n");
