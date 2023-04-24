@@ -2366,6 +2366,10 @@ int process_merge(int nb) {
 		set_cursor_waiting(FALSE);
 		return CMD_NO_CWD;
 	}
+	if (file_name_has_invalid_chars(word[nb - 1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[nb - 1]);
+		return CMD_ARG_ERROR;
+	}
 	char *dest_dir = strdup(com.wd);
 	char *outseq_name = NULL;
 	sequence **seqs = calloc(nb_seq, sizeof(sequence *));
@@ -2432,7 +2436,7 @@ int process_merge(int nb) {
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
 			args->list = glist_to_array(list, &args->total);
-			args->destroot = format_basename(destroot, TRUE);
+			args->destroot = destroot;
 			args->input_has_a_seq = FALSE;
 			args->input_has_a_film = FALSE;
 			args->debayer = FALSE;
@@ -6164,7 +6168,11 @@ int process_convertraw(int nb) {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	if (file_name_has_invalid_chars(word[1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
+		return CMD_ARG_ERROR;
+	}
+	char *destroot = strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	sequence_type output = SEQ_REGULAR;
@@ -6262,10 +6270,7 @@ int process_convertraw(int nb) {
 	args->start = idx;
 	args->list = files_to_convert;
 	args->total = count;
-	if (output == SEQ_REGULAR)
-		args->destroot = format_basename(destroot, TRUE);
-	else
-		args->destroot = destroot;
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = debayer;
@@ -6282,7 +6287,11 @@ int process_link(int nb) {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	if (file_name_has_invalid_chars(word[1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
+		return CMD_ARG_ERROR;
+	}
+	gchar *destroot = strdup(word[1]);
 	int idx = 1;
 
 	for (int i = 2; i < nb; i++) {
@@ -6372,7 +6381,7 @@ int process_link(int nb) {
 	args->start = idx;
 	args->list = files_to_link;
 	args->total = count;
-	args->destroot = format_basename(destroot, TRUE);
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = FALSE;
@@ -6390,7 +6399,11 @@ int process_convert(int nb) {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	if (file_name_has_invalid_chars(word[1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
+		return CMD_ARG_ERROR;
+	}
+	gchar *destroot = strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	gboolean make_link = TRUE;
@@ -6494,10 +6507,7 @@ int process_convert(int nb) {
 	args->start = idx;
 	args->list = files_to_link;
 	args->total = count;
-	if (output == SEQ_REGULAR)
-		args->destroot = format_basename(destroot, TRUE);
-	else
-		args->destroot = destroot;
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = debayer;

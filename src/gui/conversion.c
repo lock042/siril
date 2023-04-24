@@ -533,10 +533,9 @@ void process_destroot(sequence_type output_type) {
 		free(destroot);
 		destroot = NULL;
 	}
-	gchar* temp = g_str_to_ascii(name, NULL); // we want to avoid special char
-	destroot = strdup(temp); // Need to ensure destroot is always allocated
+
+	destroot = strdup(name); // Need to ensure destroot is always allocated
 							 // from the stdlib memory pool not the glib one
-	g_free(temp);
 	gboolean seq_exists = FALSE;
 	if (output_type == SEQ_SER) {
 		if (!g_str_has_suffix(destroot, ".ser")) {
@@ -551,12 +550,15 @@ void process_destroot(sequence_type output_type) {
 		seq_exists = check_if_seq_exist(destroot, FALSE);
 	}
 	else {
-		char* temp = format_basename(destroot, TRUE);
-		if (!temp) {
-			PRINT_ALLOC_ERR;
-			return;
+		if (g_str_has_suffix(destroot, ".seq")) {
+			char* temp = remove_ext_from_filename(destroot);
+			if (!temp) {
+				PRINT_ALLOC_ERR;
+				return;
+			}
+			free(destroot);
+			destroot = temp;
 		}
-		destroot = temp;
 		seq_exists = check_if_seq_exist(destroot, TRUE);
 	}
 
