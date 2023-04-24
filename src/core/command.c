@@ -3668,8 +3668,6 @@ int process_pm(int nb) {
 	// the new generic variable names.
 	// This ensures the variable names in the expression passed to pm match the variable names
 	// that are stored in args->varname
-	cur = expression;
-
 	gchar** chunks = g_strsplit(expression, "$", count);
 	for (int i = 0 ; i < count / 2 ; i++) {
 		g_free(chunks[2*i+1]);
