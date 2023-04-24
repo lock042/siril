@@ -3541,27 +3541,6 @@ int process_unset_mag_seq(int nb) {
 	return CMD_OK;
 }
 
-static void remove_char_from_str(char *str, const char toRemove) {
-	int i, j;
-	int len = strlen(str);
-
-	for (i = 0; i < len; i++) {
-		/*
-		 * If the character to remove is found then shift all characters to one
-		 * place left and decrement the length of string by 1.
-		 */
-		if (str[i] == toRemove) {
-			for (j = i; j < len; j++) {
-				str[j] = str[j + 1];
-			}
-
-			len--;
-			// If a character is removed then make sure i doesn't increments
-			i--;
-		}
-	}
-}
-
 int process_pm(int nb) {
 	/* First we want to replace all variable by filename if exist. Return error if not
 	 * Variables start and end by $ token.
@@ -3690,22 +3669,17 @@ int process_pm(int nb) {
 	// This ensures the variable names in the expression passed to pm match the variable names
 	// that are stored in args->varname
 	cur = expression;
+
+	gchar** chunks = g_strsplit(expression, "$", count);
 	for (int i = 0 ; i < count / 2 ; i++) {
-		start = strchr(cur, '$');
-		end = strchr(start + 1, '$');
-		ptrdiff_t start_offset = start - expression;
-		ptrdiff_t end_offset = end - expression;
-		gchar* temp = g_strdup(expression);
-		temp[start_offset + 1] = '\0';
-		gchar* newexpression = g_strdup_printf("%svar_%d%s", temp, i + 1, end);
-		g_free(temp);
-		g_free(expression);
-		expression = newexpression;
-		cur = strchr(expression + end_offset + 1, '$') + 1;
-
+		g_free(chunks[2*i+1]);
+		chunks[2*i+1] = g_strdup_printf("var_%d", i+1);
 	}
+	g_free(expression);
+	expression = g_strjoinv(NULL, chunks);
+	g_strfreev(chunks);
 
-	remove_char_from_str(expression, '$');
+//	remove_char_from_str(expression, '$');
 	remove_spaces_from_str(expression);
 
 	fits *fit = NULL;
