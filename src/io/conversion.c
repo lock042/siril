@@ -676,16 +676,19 @@ gpointer convert_thread_worker(gpointer p) {
 		if (convert.fatal_error)
 			siril_log_message(_("Conversion ended with error, %d output files created\n"), args->nb_converted_files);
 		else {
+			gboolean success = TRUE;
 			if (!args->multiple_output && args->nb_converted_files == 1)
 				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
 			else if (args->multiple_output && convert.nb_input_images == args->nb_converted_files)
 				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
-			else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
-			write_conversion_report(args);
+			else {
+				siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
+				success = FALSE;
+			}
+			if (success)
+				write_conversion_report(args);
 		}
 	}
-	// TODO dispose of the fitseq or ser if it still exists
-	// TODO skip writing conversion report
 	// TODO still need to understand why, in case of error while writing a frame,
 	// sometimes we do create the file and sometimes the error is caught and we get convert.fatal_error to 1...
 	free(convert.output_fitseq);

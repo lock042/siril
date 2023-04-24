@@ -384,6 +384,8 @@ static int fitseq_destroy(fitseq *fitseq, gboolean abort) {
 	retval |= fitseq_multiple_close(fitseq);
 	int status = 0;
 	fits_close_file(fitseq->fptr, &status);
+	if (retval && fitseq->filename)
+		g_unlink(fitseq->filename);
 	if (fitseq->filename)
 		free(fitseq->filename);
 	if (fitseq->hdu_index)
