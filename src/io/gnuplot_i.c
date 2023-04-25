@@ -69,7 +69,7 @@
 #endif
 
 // Uncomment the following line for lots of debug messages
-#define GPLOT_DEBUG
+//#define GPLOT_DEBUG
 
 static gboolean gnuplot_is_in_path = FALSE;
 
