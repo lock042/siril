@@ -512,6 +512,79 @@ static void set_filter(GtkFileChooser *dialog) {
 	gtk_file_chooser_set_filter(dialog, f);
 }
 
+static void export_to_csv(GtkTreeView *treeview, const char *filename) {
+    GFile *file = g_file_new_for_path(filename);
+    GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, NULL);
+    GDataOutputStream *data_stream = g_data_output_stream_new(G_OUTPUT_STREAM(output_stream));
+
+    // Write header
+    gint n_columns = gtk_tree_view_get_n_columns(treeview);
+    for (gint i = 0; i < n_columns; i++) {
+        if (gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, i))) {
+            const gchar *column_name = gtk_tree_view_column_get_title(gtk_tree_view_get_column(treeview, i));
+            g_data_output_stream_put_string(data_stream, column_name, NULL, NULL);
+            if (i < n_columns - 1) {
+                gint next_column = i + 1;
+                while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+                    next_column++;
+                    if (next_column >= n_columns) {
+                        break;
+                    }
+                }
+                if (next_column < n_columns) {
+                    g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
+                }
+            }
+        }
+    }
+    g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
+
+    // Write row data
+    GtkTreeModel *model = gtk_tree_view_get_model(treeview);
+    GtkTreeIter iter;
+    gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
+    while (valid) {
+        for (gint i = 0; i < n_columns; i++) {
+            if (gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, i))) {
+                GValue value = G_VALUE_INIT;
+                gtk_tree_model_get_value(model, &iter, i, &value);
+                if (G_VALUE_TYPE(&value) == G_TYPE_DOUBLE) {
+                    gdouble dbl_value = g_value_get_double(&value);
+                    gchar *str_value = g_strdup_printf("%lf", dbl_value);
+                    g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
+                    g_free(str_value);
+                } else if (G_VALUE_TYPE(&value) == G_TYPE_INT) {
+                    gint int_value = g_value_get_int(&value);
+                    gchar *str_value = g_strdup_printf("%d", int_value);
+                    g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
+                    g_free(str_value);
+                }
+                if (i < n_columns - 1) {
+                    gint next_column = i + 1;
+                    while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+                        next_column++;
+                        if (next_column >= n_columns) {
+                            break;
+                        }
+                    }
+                    if (next_column < n_columns && gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+                        g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
+                    }
+                }
+                g_value_unset(&value);
+            }
+        }
+        g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
+
+        valid = gtk_tree_model_iter_next(model, &iter);
+    }
+    g_object_unref(data_stream);
+    g_object_unref(output_stream);
+    g_object_unref(file);
+}
+
+
+
 static void save_stars_dialog() {
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
@@ -529,7 +602,7 @@ static void save_stars_dialog() {
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = gtk_file_chooser_get_filename(dialog);
-		save_list(file, MAX_STARS, com.stars, 0, &com.pref.starfinder_conf, -1, TRUE); // passing layer as -1 as we are not sure all stars have been detected on same layer
+		export_to_csv(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")), file);
 
 		g_free(file);
 	}
