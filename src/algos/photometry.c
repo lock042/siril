@@ -443,7 +443,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 
 		/*  data are computed, now plot the graph. */
 		if (use_gnuplot) {
-			gnuplot_ctrl *gplot = gnuplot_init(TRUE);
+			gnuplot_ctrl *gplot = gnuplot_init();
 			if (gplot) {
 				/* Plotting light curve */
 				gchar *title = g_strdup_printf("Light curve of star %s", target_descr);
@@ -454,12 +454,15 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 				gnuplot_setstyle(gplot, "errorbars");
 				if (display_graph) {
 					gnuplot_plot_xyyerr_from_datfile(gplot, filename, "relative magnitude", julian0);
-					g_idle_add(gnuplot_close_idle, gplot); // called in idle to let the plotting finish before closing gnuplot
+					// Don't close gnuplots with active windows
+					// gnuplot_close(gplot);
 				} else {
 					gchar *image_name = replace_ext(filename, ".png");
 					gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
 					siril_log_message(_("%s has been generated.\n"), image_name);
 					g_free(image_name);
+					// It's ok to close a gnuplot that has finished writing to
+					// a png though
 					gnuplot_close(gplot);
 				}
 				g_free(title);

@@ -1649,6 +1649,7 @@ void load_main_window_state() {
 
 void gtk_main_quit() {
 	writeinitfile();		// save settings (like window positions)
+	exit_com_gnuplot_handles(); // close any remaining open GNUplot handles
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
 	g_slist_free_full(com.pref.gui.script_path, g_free);
