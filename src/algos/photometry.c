@@ -76,30 +76,6 @@ struct phot_config *phot_set_adjusted_for_image(fits *fit) {
 	return retval;
 }
 
-// dynamic radius: aperture = 2*fwhm, inner and outer based on preferences
-rectangle compute_dynamic_area_for_psf(psf_star *psf, struct phot_config *original, struct phot_config *phot_set, Homography H, Homography Href) {
-	phot_set->gain = original->gain;
-	phot_set->aperture = psf->fwhmx * 2.0;
-	phot_set->inner = psf->fwhmx * com.pref.phot_set.auto_inner_factor;
-	phot_set->outer = psf->fwhmx * com.pref.phot_set.auto_outer_factor;
-	phot_set->force_radius = TRUE;
-	phot_set->minval = original->minval;
-	phot_set->maxval = original->maxval;
-
-	double start = 1.5 * phot_set->outer;
-	double size = 3 * phot_set->outer;
-	double x = psf->xpos, y = psf->ypos;
-	cvTransfPoint(&x, &y, Href, H);
-
-	rectangle area = {
-		.x = x - start,
-		.y = y - start,
-		.w = size,
-		.h = size
-	};
-	return area;
-}
-
 /* Function that compute all photometric data. The result must be freed */
 photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error) {

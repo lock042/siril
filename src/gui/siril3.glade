@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019
 
@@ -29857,7 +29857,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                             <child>
                               <object class="GtkSpinButton" id="spinAperture">
                                 <property name="visible">True</property>
-                                <property name="sensitive">False</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Aperture radius where the flux is measured.</property>
                                 <property name="halign">start</property>
@@ -29883,7 +29882,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="receives-default">False</property>
                                 <property name="tooltip-text" translatable="yes">Check this option to have Siril automatically calculate the aperture radius. When unchecked, you can set the radius value in the box below.</property>
                                 <property name="halign">start</property>
-                                <property name="active">True</property>
                                 <property name="draw-indicator">True</property>
                                 <signal name="toggled" handler="on_photometry_force_radius_button_toggled" object="spinAperture" swapped="no"/>
                               </object>

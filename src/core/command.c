@@ -2366,6 +2366,10 @@ int process_merge(int nb) {
 		set_cursor_waiting(FALSE);
 		return CMD_NO_CWD;
 	}
+	if (file_name_has_invalid_chars(word[nb - 1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[nb - 1]);
+		return CMD_ARG_ERROR;
+	}
 	char *dest_dir = strdup(com.wd);
 	char *outseq_name = NULL;
 	sequence **seqs = calloc(nb_seq, sizeof(sequence *));
@@ -2432,7 +2436,7 @@ int process_merge(int nb) {
 			args->start = 0;
 			args->total = 0; // init to get it from glist_to_array()
 			args->list = glist_to_array(list, &args->total);
-			args->destroot = format_basename(destroot, TRUE);
+			args->destroot = destroot;
 			args->input_has_a_seq = FALSE;
 			args->input_has_a_film = FALSE;
 			args->debayer = FALSE;
@@ -3541,27 +3545,6 @@ int process_unset_mag_seq(int nb) {
 	return CMD_OK;
 }
 
-static void remove_char_from_str(char *str, const char toRemove) {
-	int i, j;
-	int len = strlen(str);
-
-	for (i = 0; i < len; i++) {
-		/*
-		 * If the character to remove is found then shift all characters to one
-		 * place left and decrement the length of string by 1.
-		 */
-		if (str[i] == toRemove) {
-			for (j = i; j < len; j++) {
-				str[j] = str[j + 1];
-			}
-
-			len--;
-			// If a character is removed then make sure i doesn't increments
-			i--;
-		}
-	}
-}
-
 int process_pm(int nb) {
 	/* First we want to replace all variable by filename if exist. Return error if not
 	 * Variables start and end by $ token.
@@ -3673,12 +3656,31 @@ int process_pm(int nb) {
 				return CMD_INVALID_IMAGE;
 			}
 		}
+		// Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
+		// This avoids conflicts where characters are permitted in filenames but cannot
+		// be used in pixelmath variable names.
+		// We will amend the expression to match below.
+		g_free(args->varname[j]);
+		args->varname[j] = g_strdup_printf("var_%d", j + 1);
 	}
 
 	/* remove tokens */
 	g_free(expression);
 	expression = g_shell_unquote(word[1], NULL);
-	remove_char_from_str(expression, '$');
+
+	// Now need to replace the original variable names between the $ signs in expression with
+	// the new generic variable names.
+	// This ensures the variable names in the expression passed to pm match the variable names
+	// that are stored in args->varname
+	gchar** chunks = g_strsplit(expression, "$", count + 1);
+	for (int i = 0 ; i < count / 2 ; i++) {
+		g_free(chunks[2*i+1]);
+		chunks[2*i+1] = g_strdup_printf("var_%d", i + 1);
+	}
+	g_free(expression);
+	expression = g_strjoinv(NULL, chunks);
+	g_strfreev(chunks);
+
 	remove_spaces_from_str(expression);
 
 	fits *fit = NULL;
@@ -6164,7 +6166,11 @@ int process_convertraw(int nb) {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	if (file_name_has_invalid_chars(word[1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
+		return CMD_ARG_ERROR;
+	}
+	char *destroot = strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	sequence_type output = SEQ_REGULAR;
@@ -6262,10 +6268,7 @@ int process_convertraw(int nb) {
 	args->start = idx;
 	args->list = files_to_convert;
 	args->total = count;
-	if (output == SEQ_REGULAR)
-		args->destroot = format_basename(destroot, TRUE);
-	else
-		args->destroot = destroot;
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = debayer;
@@ -6282,7 +6285,11 @@ int process_link(int nb) {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	if (file_name_has_invalid_chars(word[1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
+		return CMD_ARG_ERROR;
+	}
+	gchar *destroot = strdup(word[1]);
 	int idx = 1;
 
 	for (int i = 2; i < nb; i++) {
@@ -6372,7 +6379,7 @@ int process_link(int nb) {
 	args->start = idx;
 	args->list = files_to_link;
 	args->total = count;
-	args->destroot = format_basename(destroot, TRUE);
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = FALSE;
@@ -6390,7 +6397,11 @@ int process_convert(int nb) {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
 		return CMD_ARG_ERROR;
 	}
-	gchar *destroot = g_strdup(word[1]);
+	if (file_name_has_invalid_chars(word[1])) {
+		siril_log_color_message(_("Specified output name %s contains forbidden characters, aborting\n"), "red", word[1]);
+		return CMD_ARG_ERROR;
+	}
+	gchar *destroot = strdup(word[1]);
 	int idx = 1;
 	gboolean debayer = FALSE;
 	gboolean make_link = TRUE;
@@ -6494,10 +6505,7 @@ int process_convert(int nb) {
 	args->start = idx;
 	args->list = files_to_link;
 	args->total = count;
-	if (output == SEQ_REGULAR)
-		args->destroot = format_basename(destroot, TRUE);
-	else
-		args->destroot = destroot;
+	args->destroot = destroot;
 	args->input_has_a_seq = FALSE;
 	args->input_has_a_film = FALSE;
 	args->debayer = debayer;

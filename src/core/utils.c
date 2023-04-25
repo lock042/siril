@@ -757,7 +757,9 @@ int is_readable_file(const char *filename) {
 	return 0;
 }
 
-static gchar forbidden_char[] = { '/', '\\', '"', '\'' };
+// https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+// we still allow for '.' though
+static gchar forbidden_char[] = { '/', '\\', '"', '\'' , '?', '%', '*', ':', '|', '<', '>', ';', '='};
 
 gboolean is_forbiden_in_filename(gchar c) {
 	for (int i = 0; i < G_N_ELEMENTS(forbidden_char); i++) {

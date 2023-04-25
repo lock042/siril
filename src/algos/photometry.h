@@ -39,8 +39,6 @@ typedef enum {
 
 struct phot_config *phot_set_adjusted_for_image(fits *fit);
 
-rectangle compute_dynamic_area_for_psf(psf_star *psf, struct phot_config *original, struct phot_config *phot_set, Homography H, Homography Href);
-
 photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error);
 
