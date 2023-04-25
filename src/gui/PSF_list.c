@@ -50,6 +50,8 @@ enum {
 	COLUMN_A,			// gdouble
 	COLUMN_X0,			// gdouble
 	COLUMN_Y0,			// gdouble
+	COLUMN_RA,          // gdouble
+	COLUMN_DEC,			// gdouble
 	COLUMN_FWHMX,		// gdouble
 	COLUMN_FWHMY,		// gdouble
 	COLUMN_MAG,		    // gdouble
@@ -110,6 +112,42 @@ static void gdouble_y0_cell_data_function(GtkTreeViewColumn *col,
 	gchar *buf;
 	gtk_tree_model_get(model, iter, COLUMN_Y0, &var, -1);
 	buf = g_strdup_printf("%.2f", var);
+	g_object_set(renderer, "text", buf, NULL);
+
+	g_free(buf);
+}
+
+static void gdouble_ra_cell_data_function(GtkTreeViewColumn *col,
+		GtkCellRenderer *renderer, GtkTreeModel *model, GtkTreeIter *iter,
+		gpointer user_data) {
+	gdouble var;
+	gchar *buf;
+	gtk_tree_model_get(model, iter, COLUMN_RA, &var, -1);
+	if (var > 9E9) {
+		buf = g_strdup("N/A");
+	} else {
+		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(var, 0);
+
+		buf = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+	}
+	g_object_set(renderer, "text", buf, NULL);
+
+	g_free(buf);
+}
+
+static void gdouble_dec_cell_data_function(GtkTreeViewColumn *col,
+		GtkCellRenderer *renderer, GtkTreeModel *model, GtkTreeIter *iter,
+		gpointer user_data) {
+	gdouble var;
+	gchar *buf;
+	gtk_tree_model_get(model, iter, COLUMN_DEC, &var, -1);
+	if (var > 9E9) {
+		buf = g_strdup("N/A");
+	} else {
+		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(0, var);
+
+		buf = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+	}
 	g_object_set(renderer, "text", buf, NULL);
 
 	g_free(buf);
@@ -195,6 +233,14 @@ static void get_stars_list_store() {
 	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn8"));
 	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_y0"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_y0_cell_data_function, NULL, NULL);
+
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn30"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_ra"));
+	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_ra_cell_data_function, NULL, NULL);
+
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn31"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_dec"));
+	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_dec_cell_data_function, NULL, NULL);
 
 	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn9"));
 	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_fwhmx"));
@@ -438,7 +484,7 @@ static void remove_selected_star() {
 	}
 	qsort (sel, size, sizeof *sel, compare);
 
-	for(int i = size - 1; i >= 0; i--) {
+	for (int i = size - 1; i >= 0; i--) {
 		remove_star(sel[i] - 1);
 	}
 
@@ -490,9 +536,34 @@ static void save_stars_dialog() {
 	siril_widget_destroy(widgetdialog);
 }
 
+static int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
+	int ret = 1;
+	if (has_wcs(&gfit)) {
+		double a = 0.0, d = 0.0;
+		double world_x, world_y;
+		SirilWorldCS *world_cs;
+
+		pix2wcs(&gfit, star->xpos, (double) gfit.ry - star->ypos, &world_x, &world_y);
+		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+
+		if (world_cs) {
+			a = siril_world_cs_get_alpha(world_cs);
+			d = siril_world_cs_get_delta(world_cs);
+
+			siril_world_cs_unref(world_cs);
+
+			*alpha = a;
+			*delta = d;
+			ret = 0;
+		}
+	}
+	return ret;
+}
+
 static void add_star_to_list(psf_star *star, int i) {
 	static GtkTreeSelection *selection = NULL;
 	GtkTreeIter iter;
+	double ra, dec;
 
 	get_stars_list_store();
 	if (!selection)
@@ -505,6 +576,12 @@ static void add_star_to_list(psf_star *star, int i) {
 	double fwhmx = star->fwhmx_arcsec < 0 ? star->fwhmx : star->fwhmx_arcsec;
 	double fwhmy = star->fwhmy_arcsec < 0 ? star->fwhmy : star->fwhmy_arcsec;
 
+	if (get_ra_and_dec_from_star_pos(star, &ra, &dec)) {
+		// set a flag to set to N/A
+		ra = 9.99E9;
+		dec = 9.99E9;
+	}
+
 	gtk_list_store_append (liststore_stars, &iter);
 	gtk_list_store_set (liststore_stars, &iter,
 			COLUMN_CHANNEL, star->layer,
@@ -512,6 +589,8 @@ static void add_star_to_list(psf_star *star, int i) {
 			COLUMN_A, star->A,
 			COLUMN_X0, star->xpos,
 			COLUMN_Y0, star->ypos,
+			COLUMN_RA, ra,
+			COLUMN_DEC, dec,
 			COLUMN_FWHMX, fwhmx,
 			COLUMN_FWHMY, fwhmy,
 			COLUMN_MAG, star->mag + com.magOffset,

@@ -12864,6 +12864,10 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       <column type="gdouble"/>
       <!-- column-name index -->
       <column type="gint"/>
+      <!-- column-name Ra -->
+      <column type="gdouble"/>
+      <!-- column-name Dec -->
+      <column type="gdouble"/>
     </columns>
   </object>
   <object class="GtkDialog" id="stars_list_window">
@@ -13032,6 +13036,32 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                   </object>
                 </child>
                 <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn30">
+                    <property name="spacing">2</property>
+                    <property name="title" translatable="yes">Ra</property>
+                    <property name="clickable">True</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_ra"/>
+                      <attributes>
+                        <attribute name="text">13</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="treeviewcolumn31">
+                    <property name="spacing">2</property>
+                    <property name="title" translatable="yes">Dec</property>
+                    <property name="clickable">True</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_dec"/>
+                      <attributes>
+                        <attribute name="text">14</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkTreeViewColumn" id="treeviewcolumn9">
                     <property name="spacing">2</property>
                     <property name="sizing">autosize</property>
@@ -13173,6 +13203,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <child>
                   <object class="GtkTreeViewColumn">
                     <property name="visible">False</property>
+                    <property name="spacing">2</property>
                     <property name="title" translatable="yes">index</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_index"/>

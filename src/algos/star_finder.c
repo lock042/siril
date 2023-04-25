@@ -985,12 +985,12 @@ int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbsta
 					stars[i]->xpos, stars[i]->ypos, stars[i]->fwhmx,
 					stars[i]->fwhmy, stars[i]->fwhmx_arcsec ,stars[i]->fwhmy_arcsec,
 					stars[i]->angle, stars[i]->rmse, stars[i]->mag + com.magOffset,
-					starprof, stars[i]->ra, stars[i]->dec, SIRIL_EOL);
-		if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
-			HANDLE_WRITE_ERR;
+					starprof,stars[i]->ra, stars[i]->dec, SIRIL_EOL);
+			if (!g_output_stream_write_all(output_stream, buffer, len, NULL, NULL, &error)) {
+				HANDLE_WRITE_ERR;
+			}
+			i++;
 		}
-		i++;
-	}
 	}
 	if (verbose) siril_log_message(_("The file %s has been created.\n"), filename);
 	g_object_unref(output_stream);
