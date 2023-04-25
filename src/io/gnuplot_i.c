@@ -297,16 +297,8 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	handle->tmp_filename_tbl = NULL;
 	handle->ntmp = 0;
 	handle->running = FALSE;
-	// The program has exited so fildescriptors will automatically be closed on POSIX systems.
-	// Is this needed on Windows?
-#ifdef _WIN32
-	g_autoptr(GError) error = NULL;
-	g_autoptr(GError) error2 = NULL;
-	if (!g_close(handle->child_fd_stdin, &error))
-		siril_debug_print("%s\n", error->message);
-	if (!g_close(handle->child_fd_stderr, &error2))
-		siril_debug_print("%s\n", error->message);
-#endif
+	// The GNUplot process has exited so fildescriptors are no longer available to close.
+	// (Attempting to do so here results in error "bad file descriptor")
 	null_handle_in_com_gnuplot_handles(handle);
 	free(handle);
 	handle = NULL;
