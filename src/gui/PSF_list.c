@@ -128,7 +128,11 @@ static void gdouble_ra_cell_data_function(GtkTreeViewColumn *col,
 	} else {
 		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(var, 0);
 
-		buf = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+		if (com.pref.gui.show_deciasec) {
+			buf = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%04.1lfs");
+		} else {
+			buf = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
+		}
 	}
 	g_object_set(renderer, "text", buf, NULL);
 
@@ -146,7 +150,11 @@ static void gdouble_dec_cell_data_function(GtkTreeViewColumn *col,
 	} else {
 		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(0, var);
 
-		buf = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+		if (com.pref.gui.show_deciasec) {
+			buf = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.1lf\"");
+		} else {
+			buf = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+		}
 	}
 	g_object_set(renderer, "text", buf, NULL);
 
@@ -849,8 +857,13 @@ void popup_psf_result(psf_star *result, rectangle *area, fits *fit) {
 			g_free(ra);
 			g_free(dec);
 
-			ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
-			dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+			if (com.pref.gui.show_deciasec) {
+				ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%04.1lfs");
+				dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.1lf\"");
+			} else {
+				ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+				dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+			}
 
 			coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", x, ra, y, dec);
 
