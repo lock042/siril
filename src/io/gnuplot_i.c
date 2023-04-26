@@ -224,7 +224,7 @@ gpointer tmpwatcher (gpointer user_data) {
 				}
 			}
 		} else if (g_str_has_prefix(buffer, "Terminate")) {
-			gnuplot_cmd(handle, "set terminal wxt close\n");
+			gnuplot_cmd(handle, "exit gnuplot\n");
 			if (handle->ntmp) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
 					if (g_unlink(handle->tmp_filename_tbl[i]))
@@ -253,10 +253,6 @@ gpointer tmpwatcher (gpointer user_data) {
 	}
 	g_object_unref(data_input);
 	g_object_unref(stream);
-    if (!g_close(handle->child_fd_stdin, &error))
-		siril_debug_print("%s\n", error->message);
-	if (!g_close(handle->child_fd_stderr, &error2))
-		siril_debug_print("%s\n", error->message);
 	return GINT_TO_POINTER(1);
 }
 
@@ -297,8 +293,16 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	handle->tmp_filename_tbl = NULL;
 	handle->ntmp = 0;
 	handle->running = FALSE;
-	// The GNUplot process has exited so fildescriptors are no longer available to close.
-	// (Attempting to do so here results in error "bad file descriptor")
+	// The program has exited so fildescriptors will automatically be closed on POSIX systems.
+	// Is this needed on Windows?
+#ifdef _WIN32
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GError) error2 = NULL;
+	if (!g_close(handle->child_fd_stdin, &error))
+		siril_debug_print("%s\n", error->message);
+	if (!g_close(handle->child_fd_stderr, &error2))
+		siril_debug_print("%s\n", error->message);
+#endif
 	null_handle_in_com_gnuplot_handles(handle);
 	free(handle);
 	handle = NULL;
@@ -727,7 +731,8 @@ void gnuplot_plot_x(
     fclose(tmpfd) ;
 
     gnuplot_plot_atmpfile(handle,tmpfname,title,0);
-	gnuplot_rmtmpfile(handle,tmpfname);
+	handle->nplots++;
+//	gnuplot_rmtmpfile(handle,tmpfname);
     return ;
 }
 
@@ -799,7 +804,8 @@ void gnuplot_plot_xy(
     fclose(tmpfd) ;
 
     gnuplot_plot_xy_from_datfile(handle,tmpfname);
-	gnuplot_rmtmpfile(handle,tmpfname);
+	handle->nplots++;
+//	gnuplot_rmtmpfile(handle,tmpfname);
     return ;
 }
 
@@ -853,7 +859,8 @@ void gnuplot_plot_xyyerr(
     fclose(tmpfd) ;
 
     gnuplot_plot_atmpfile(handle,tmpfname,title, x_offset);
-	gnuplot_rmtmpfile(handle,tmpfname);
+	handle->nplots++;
+//	gnuplot_rmtmpfile(handle,tmpfname);
     return ;
 }
 
@@ -888,7 +895,9 @@ void gnuplot_plot_xyyerr_from_datfile(
   X and Y. Defaults are provided in this case.
  */
 /*--------------------------------------------------------------------------*/
-
+// This function should not be used in Siril as it uses printf and getchar for
+// control and indication
+/*
 void gnuplot_plot_once(
   char    *   title,
   char    *   style,
@@ -929,6 +938,7 @@ void gnuplot_plot_once(
   gnuplot_close(handle);
   return ;
 }
+*/
 
 void gnuplot_plot_slope(
     gnuplot_ctrl    *   handle,
@@ -1286,7 +1296,7 @@ char const * gnuplot_tmpfile(gnuplot_ctrl * handle)
 void gnuplot_plot_xy_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
     char const *    cmd    = (handle->replot && handle->nplots > 0) ? "replot" : "plot";
-    gnuplot_cmd(handle, "set term wxt raise persist");
+//    gnuplot_cmd(handle, "set term wxt raise persist");
     gnuplot_cmd(handle, "%s \"%s\" using ($1):($2) with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);
     handle->nplots++ ;
@@ -1296,7 +1306,7 @@ void gnuplot_plot_xy_from_datfile(gnuplot_ctrl * handle, char const* tmp_filenam
 void gnuplot_plot_xrgb_from_datfile(gnuplot_ctrl * handle, char const* tmp_filename)
 {
     char const *    cmd    = (handle->replot && handle->nplots > 0) ? "replot" : "plot";
-    gnuplot_cmd(handle, "set term wxt raise persist");
+//    gnuplot_cmd(handle, "set term wxt raise persist");
     gnuplot_cmd(handle, "%s for [col=2:4] \"%s\" using ($1):col with %s title columnheader",
 		   cmd, tmp_filename, handle->pstyle);
     handle->nplots++ ;
@@ -1383,7 +1393,8 @@ void gnuplot_plot_datfile_to_png(gnuplot_ctrl * handle, char const* dat_filename
         gnuplot_cmd(handle, "plot \"%s\" with %s", dat_filename,
                 handle->pstyle);
 }
-
+/*
+ * Not used in Siril yet
 void gnuplot_multiplot_3xy(gnuplot_ctrl * handle, double *x, double *y1, double *y2, double *y3, int n)
 {
     int     i ;
@@ -1392,7 +1403,7 @@ void gnuplot_multiplot_3xy(gnuplot_ctrl * handle, double *x, double *y1, double 
 
     if (handle==NULL || x==NULL || y1==NULL || y2 == NULL || y3 == NULL || (n<1)) return ;
 
-    /* Open temporary file for output   */
+    // Open temporary file for output
     tmpfname = gnuplot_tmpfile(handle);
     tmpfd = g_fopen(tmpfname, "w");
 
@@ -1401,7 +1412,7 @@ void gnuplot_multiplot_3xy(gnuplot_ctrl * handle, double *x, double *y1, double 
         return ;
     }
 
-    /* Write data to this file  */
+    // Write data to this file
     for (i=0 ; i<n; i++) {
         fprintf(tmpfd, "%.18e %.18e %.18e %.18e\n", x[i], y1[i], y2[i], y3[i]) ;
     }
@@ -1418,5 +1429,5 @@ void gnuplot_multiplot_3xy(gnuplot_ctrl * handle, double *x, double *y1, double 
 	gnuplot_cmd(handle, "unset multiplot");
 	free(curve_title);
 }
-
+*/
 /* vim: set ts=4 et sw=4 tw=75 */
