@@ -50,6 +50,8 @@ enum {
 	COLUMN_A,			// gdouble
 	COLUMN_X0,			// gdouble
 	COLUMN_Y0,			// gdouble
+	COLUMN_RA,          // gdouble
+	COLUMN_DEC,			// gdouble
 	COLUMN_FWHMX,		// gdouble
 	COLUMN_FWHMY,		// gdouble
 	COLUMN_MAG,		    // gdouble
@@ -110,6 +112,50 @@ static void gdouble_y0_cell_data_function(GtkTreeViewColumn *col,
 	gchar *buf;
 	gtk_tree_model_get(model, iter, COLUMN_Y0, &var, -1);
 	buf = g_strdup_printf("%.2f", var);
+	g_object_set(renderer, "text", buf, NULL);
+
+	g_free(buf);
+}
+
+static void gdouble_ra_cell_data_function(GtkTreeViewColumn *col,
+		GtkCellRenderer *renderer, GtkTreeModel *model, GtkTreeIter *iter,
+		gpointer user_data) {
+	gdouble var;
+	gchar *buf;
+	gtk_tree_model_get(model, iter, COLUMN_RA, &var, -1);
+	if (var > 9E9) {
+		buf = g_strdup("N/A");
+	} else {
+		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(var, 0);
+
+		if (com.pref.gui.show_deciasec) {
+			buf = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%04.1lfs");
+		} else {
+			buf = siril_world_cs_alpha_format(world_cs, "%02dh%02dm%02ds");
+		}
+	}
+	g_object_set(renderer, "text", buf, NULL);
+
+	g_free(buf);
+}
+
+static void gdouble_dec_cell_data_function(GtkTreeViewColumn *col,
+		GtkCellRenderer *renderer, GtkTreeModel *model, GtkTreeIter *iter,
+		gpointer user_data) {
+	gdouble var;
+	gchar *buf;
+	gtk_tree_model_get(model, iter, COLUMN_DEC, &var, -1);
+	if (var > 9E9) {
+		buf = g_strdup("N/A");
+	} else {
+		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(0, var);
+
+		if (com.pref.gui.show_deciasec) {
+			buf = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.1lf\"");
+		} else {
+			buf = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+		}
+	}
 	g_object_set(renderer, "text", buf, NULL);
 
 	g_free(buf);
@@ -195,6 +241,14 @@ static void get_stars_list_store() {
 	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn8"));
 	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_y0"));
 	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_y0_cell_data_function, NULL, NULL);
+
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn30"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_ra"));
+	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_ra_cell_data_function, NULL, NULL);
+
+	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn31"));
+	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_dec"));
+	gtk_tree_view_column_set_cell_data_func(col, cell, gdouble_dec_cell_data_function, NULL, NULL);
 
 	col = GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn9"));
 	cell = GTK_CELL_RENDERER(gtk_builder_get_object(gui.builder, "cell_fwhmx"));
@@ -390,7 +444,7 @@ static int compare(void const *a, void const *b) {
 	return *pa - *pb;
 }
 
-static void update_column_index(GtkTreeModel *treeModel, guint *sel, guint size) {
+static void update_column_index(GtkTreeModel *treeModel, const guint *sel, guint size) {
 	GtkTreeIter iter;
 	gboolean valid = gtk_tree_model_get_iter_first(treeModel, &iter);
 
@@ -438,8 +492,8 @@ static void remove_selected_star() {
 	}
 	qsort (sel, size, sizeof *sel, compare);
 
-	for(int i = size - 1; i >= 0; i--) {
-		remove_star(sel[i] - 1);
+	for (int j = size - 1; j >= 0; j--) {
+		remove_star(sel[j] - 1);
 	}
 
 	update_column_index(treeModel, sel, size);
@@ -466,6 +520,79 @@ static void set_filter(GtkFileChooser *dialog) {
 	gtk_file_chooser_set_filter(dialog, f);
 }
 
+static void export_to_csv(GtkTreeView *treeview, const char *filename) {
+    GFile *file = g_file_new_for_path(filename);
+    GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, NULL);
+    GDataOutputStream *data_stream = g_data_output_stream_new(G_OUTPUT_STREAM(output_stream));
+
+    // Write header
+    gint n_columns = gtk_tree_view_get_n_columns(treeview);
+    for (gint i = 0; i < n_columns; i++) {
+        if (gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, i))) {
+            const gchar *column_name = gtk_tree_view_column_get_title(gtk_tree_view_get_column(treeview, i));
+            g_data_output_stream_put_string(data_stream, column_name, NULL, NULL);
+            if (i < n_columns - 1) {
+                gint next_column = i + 1;
+                while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+                    next_column++;
+                    if (next_column >= n_columns) {
+                        break;
+                    }
+                }
+                if (next_column < n_columns) {
+                    g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
+                }
+            }
+        }
+    }
+    g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
+
+    // Write row data
+    GtkTreeModel *model = gtk_tree_view_get_model(treeview);
+    GtkTreeIter iter;
+    gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
+    while (valid) {
+        for (gint i = 0; i < n_columns; i++) {
+            if (gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, i))) {
+                GValue value = G_VALUE_INIT;
+                gtk_tree_model_get_value(model, &iter, i, &value);
+                if (G_VALUE_TYPE(&value) == G_TYPE_DOUBLE) {
+                    gdouble dbl_value = g_value_get_double(&value);
+                    gchar *str_value = g_strdup_printf("%g", dbl_value);
+                    g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
+                    g_free(str_value);
+                } else if (G_VALUE_TYPE(&value) == G_TYPE_INT) {
+                    gint int_value = g_value_get_int(&value);
+                    gchar *str_value = g_strdup_printf("%d", int_value);
+                    g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
+                    g_free(str_value);
+                }
+                if (i < n_columns - 1) {
+                    gint next_column = i + 1;
+                    while (!gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+                        next_column++;
+                        if (next_column >= n_columns) {
+                            break;
+                        }
+                    }
+                    if (next_column < n_columns && gtk_tree_view_column_get_visible(gtk_tree_view_get_column(treeview, next_column))) {
+                        g_data_output_stream_put_string(data_stream, ",", NULL, NULL);
+                    }
+                }
+                g_value_unset(&value);
+            }
+        }
+        g_data_output_stream_put_string(data_stream, "\n", NULL, NULL);
+
+        valid = gtk_tree_model_iter_next(model, &iter);
+    }
+    g_object_unref(data_stream);
+    g_object_unref(output_stream);
+    g_object_unref(file);
+}
+
+
+
 static void save_stars_dialog() {
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
@@ -483,16 +610,40 @@ static void save_stars_dialog() {
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
 		gchar *file = gtk_file_chooser_get_filename(dialog);
-		save_list(file, MAX_STARS, com.stars, 0, &com.pref.starfinder_conf, -1, TRUE); // passing layer as -1 as we are not sure all stars have been detected on same layer
+		export_to_csv(GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "Stars_stored")), file);
 
 		g_free(file);
 	}
 	siril_widget_destroy(widgetdialog);
 }
 
+static int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
+	int ret = 1;
+	if (has_wcs(&gfit)) {
+		double world_x, world_y;
+		SirilWorldCS *world_cs;
+
+		pix2wcs(&gfit, star->xpos, (double) gfit.ry - star->ypos, &world_x, &world_y);
+		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+
+		if (world_cs) {
+			double a = siril_world_cs_get_alpha(world_cs);
+			double d = siril_world_cs_get_delta(world_cs);
+
+			siril_world_cs_unref(world_cs);
+
+			*alpha = a;
+			*delta = d;
+			ret = 0;
+		}
+	}
+	return ret;
+}
+
 static void add_star_to_list(psf_star *star, int i) {
 	static GtkTreeSelection *selection = NULL;
 	GtkTreeIter iter;
+	double ra, dec;
 
 	get_stars_list_store();
 	if (!selection)
@@ -505,6 +656,12 @@ static void add_star_to_list(psf_star *star, int i) {
 	double fwhmx = star->fwhmx_arcsec < 0 ? star->fwhmx : star->fwhmx_arcsec;
 	double fwhmy = star->fwhmy_arcsec < 0 ? star->fwhmy : star->fwhmy_arcsec;
 
+	if (get_ra_and_dec_from_star_pos(star, &ra, &dec)) {
+		// set a flag to set to N/A
+		ra = 9.99E9;
+		dec = 9.99E9;
+	}
+
 	gtk_list_store_append (liststore_stars, &iter);
 	gtk_list_store_set (liststore_stars, &iter,
 			COLUMN_CHANNEL, star->layer,
@@ -512,6 +669,8 @@ static void add_star_to_list(psf_star *star, int i) {
 			COLUMN_A, star->A,
 			COLUMN_X0, star->xpos,
 			COLUMN_Y0, star->ypos,
+			COLUMN_RA, ra,
+			COLUMN_DEC, dec,
 			COLUMN_FWHMX, fwhmx,
 			COLUMN_FWHMY, fwhmy,
 			COLUMN_MAG, star->mag + com.magOffset,
@@ -697,8 +856,13 @@ void popup_psf_result(psf_star *result, rectangle *area, fits *fit) {
 			g_free(ra);
 			g_free(dec);
 
-			ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
-			dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+			if (com.pref.gui.show_deciasec) {
+				ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%04.1lfs");
+				dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%04.1lf\"");
+			} else {
+				ra = siril_world_cs_alpha_format(world_cs, " %02dh%02dm%02ds");
+				dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
+			}
 
 			coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", x, ra, y, dec);
 
