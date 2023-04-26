@@ -12848,6 +12848,10 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       <column type="gdouble"/>
       <!-- column-name ypos -->
       <column type="gdouble"/>
+      <!-- column-name Ra -->
+      <column type="gdouble"/>
+      <!-- column-name Dec -->
+      <column type="gdouble"/>
       <!-- column-name FWHMx -->
       <column type="gdouble"/>
       <!-- column-name FWHMy -->
@@ -12864,10 +12868,6 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
       <column type="gdouble"/>
       <!-- column-name index -->
       <column type="gint"/>
-      <!-- column-name Ra -->
-      <column type="gdouble"/>
-      <!-- column-name Dec -->
-      <column type="gdouble"/>
     </columns>
   </object>
   <object class="GtkDialog" id="stars_list_window">
