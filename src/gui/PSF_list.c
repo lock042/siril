@@ -444,7 +444,7 @@ static int compare(void const *a, void const *b) {
 	return *pa - *pb;
 }
 
-static void update_column_index(GtkTreeModel *treeModel, guint *sel, guint size) {
+static void update_column_index(GtkTreeModel *treeModel, const guint *sel, guint size) {
 	GtkTreeIter iter;
 	gboolean valid = gtk_tree_model_get_iter_first(treeModel, &iter);
 
@@ -492,8 +492,8 @@ static void remove_selected_star() {
 	}
 	qsort (sel, size, sizeof *sel, compare);
 
-	for (int i = size - 1; i >= 0; i--) {
-		remove_star(sel[i] - 1);
+	for (int j = size - 1; j >= 0; j--) {
+		remove_star(sel[j] - 1);
 	}
 
 	update_column_index(treeModel, sel, size);
@@ -620,7 +620,6 @@ static void save_stars_dialog() {
 static int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
 	int ret = 1;
 	if (has_wcs(&gfit)) {
-		double a = 0.0, d = 0.0;
 		double world_x, world_y;
 		SirilWorldCS *world_cs;
 
@@ -628,8 +627,8 @@ static int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble 
 		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
 
 		if (world_cs) {
-			a = siril_world_cs_get_alpha(world_cs);
-			d = siril_world_cs_get_delta(world_cs);
+			double a = siril_world_cs_get_alpha(world_cs);
+			double d = siril_world_cs_get_delta(world_cs);
 
 			siril_world_cs_unref(world_cs);
 

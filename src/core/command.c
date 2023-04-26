@@ -5538,6 +5538,7 @@ int process_seq_mtf(int nb) {
 			args->params.shadows < 0.0 || args->params.midtones <= 0.0 || args->params.highlights <= 0.0 ||
 			args->params.shadows >= 1.0 || args->params.midtones >= 1.0 || args->params.highlights > 1.0) {
 		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		free(args->seqEntry);
 		free(args);
 		if (!check_seq_is_comseq(seq))
 			free_sequence(seq, TRUE);
