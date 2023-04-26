@@ -12938,6 +12938,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                 <signal name="key-release-event" handler="on_Stars_stored_key_release_event" swapped="no"/>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection" id="treeview-selection">
+                    <property name="mode">multiple</property>
                     <signal name="changed" handler="on_treeview_selection_changed" swapped="no"/>
                   </object>
                 </child>
@@ -13115,7 +13116,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="alignment">right</property>
                       </object>
                       <attributes>
-                        <attribute name="text">7</attribute>
+                        <attribute name="text">8</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -13155,7 +13156,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="alignment">right</property>
                       </object>
                       <attributes>
-                        <attribute name="text">8</attribute>
+                        <attribute name="text">9</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -13175,7 +13176,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="alignment">right</property>
                       </object>
                       <attributes>
-                        <attribute name="text">9</attribute>
+                        <attribute name="text">10</attribute>
                       </attributes>
                     </child>
                   </object>
@@ -13195,7 +13196,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="alignment">right</property>
                       </object>
                       <attributes>
-                        <attribute name="text">10</attribute>
+                        <attribute name="text">11</attribute>
                       </attributes>
                     </child>
                   </object>

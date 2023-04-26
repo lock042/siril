@@ -550,7 +550,7 @@ static void export_to_csv(GtkTreeView *treeview, const char *filename) {
                 gtk_tree_model_get_value(model, &iter, i, &value);
                 if (G_VALUE_TYPE(&value) == G_TYPE_DOUBLE) {
                     gdouble dbl_value = g_value_get_double(&value);
-                    gchar *str_value = g_strdup_printf("%lf", dbl_value);
+                    gchar *str_value = g_strdup_printf("%g", dbl_value);
                     g_data_output_stream_put_string(data_stream, str_value, NULL, NULL);
                     g_free(str_value);
                 } else if (G_VALUE_TYPE(&value) == G_TYPE_INT) {
