@@ -69,7 +69,7 @@
 #endif
 
 // Uncomment the following line for lots of debug messages
-//#define GPLOT_DEBUG
+#define GPLOT_DEBUG
 
 static gboolean gnuplot_is_in_path = FALSE;
 
@@ -330,7 +330,8 @@ gnuplot_ctrl * gnuplot_init()
     gchar *bin = siril_get_gnuplot_bin();
     gchar* bin2[3];
     bin2[0] = bin;
-    bin2[1] = NULL;
+    bin2[1] = "--slow";
+	bin2[2] = NULL;
 #ifdef GPLOT_DEBUG
 	siril_debug_print("GNUplot executable: %s\n", bin2[0]);
 #endif
