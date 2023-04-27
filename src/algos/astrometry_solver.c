@@ -75,9 +75,6 @@
 #define CONV_TOLERANCE 1E-8
 
 #undef DEBUG		/* get some of diagnostic output */
-#ifdef _WIN32
-gboolean asnetnew = FALSE;
-#endif
 
 typedef struct {
 	point size;
@@ -1806,7 +1803,6 @@ clearup:
 #ifdef _WIN32
 static gchar *siril_get_asnet_bash() {
 	if (com.pref.asnet_dir && com.pref.asnet_dir[0] != '\0') {
-		asnetnew = TRUE;
 		return g_build_filename(com.pref.asnet_dir, NULL);
 	}
 	const gchar *localappdata = g_get_user_data_dir();
@@ -2054,6 +2050,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		reframe_astrometry_data(args->fit, S);
 	}
 	// we need to reload here to make sure everything in fit->wcslib is updated
+	// TODO: this is where we loose the SIP info, will need to be smarter than this
 	load_WCS_from_memory(args->fit);
 
 	args->fit->wcsdata.pltsolvd = TRUE;
