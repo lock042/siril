@@ -521,8 +521,19 @@ static void set_filter(GtkFileChooser *dialog) {
 }
 
 static void export_to_csv(GtkTreeView *treeview, const char *filename) {
+	GError *error = NULL;
     GFile *file = g_file_new_for_path(filename);
-    GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, NULL);
+    GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+	if (output_stream == NULL) {
+		if (error != NULL) {
+			g_warning("%s\n", error->message);
+			g_clear_error(&error);
+			fprintf(stderr, "Cannot export CSV\n");
+		}
+		g_object_unref(file);
+		return;
+	}
+
     GDataOutputStream *data_stream = g_data_output_stream_new(G_OUTPUT_STREAM(output_stream));
 
     // Write header
