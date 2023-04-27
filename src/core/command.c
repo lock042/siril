@@ -3742,8 +3742,9 @@ int process_psf(int nb){
 	psf_star *result = psf_get_minimisation(&gfit, channel, &com.selection, TRUE, ps, TRUE, profile, &error);
 	free(ps);
 	if (result) {
-		psf_display_result(result, &com.selection);
+		gchar *str = format_psf_result(result, &com.selection, &gfit, NULL);
 		free_psf(result);
+		siril_log_message("%s\n", str);
 	}
 	else siril_log_message(_("PSF minimisation failed with error %d\n"), error);
 	return CMD_OK;
