@@ -1813,7 +1813,7 @@ static gchar *siril_get_asnet_bash() {
 		return g_build_filename(localappdata, "cygwin_ansvr", NULL);
 	}
 	g_free(testdir);
-	return g_build_filename(com.pref.asnet_dir, "bin", "bash", NULL);
+	return NULL;
 }
 #else
 static gboolean solvefield_is_in_path = FALSE;
