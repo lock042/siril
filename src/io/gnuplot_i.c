@@ -528,7 +528,7 @@ void gnuplot_declaretmpfile(gnuplot_ctrl *handle, char *filename) {
 	handle->tmp_filename_tbl[handle->ntmp] = strdup(filename);
 	handle->tmp_filename_tbl[handle->ntmp + 1] = NULL;
 	handle->ntmp++;
-#ifdef DEBUG_GPLOT
+#ifdef GPLOT_DEBUG
 	siril_debug_print("GNUplot tmpfile %s declared, new ntmp %d\n", filename, handle->ntmp);
 #endif
 }
@@ -550,7 +550,7 @@ void gnuplot_declaretmpfile(gnuplot_ctrl *handle, char *filename) {
 void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char *filename)
 {
 	gchar *cmd = g_strdup_printf("print \"Reap %s\"", filename);
-#ifdef DEBUG_GPLOT
+#ifdef GPLOT_DEBUG
 	siril_debug_print("Calling gnuplot_cmd\n");
 #endif
 	gnuplot_cmd(handle, cmd);
@@ -734,7 +734,7 @@ void gnuplot_resetplot(gnuplot_ctrl * handle)
     if (handle->ntmp) {
         for (int i = 0; i < handle->ntmp; i++) {
             if (g_remove(handle->tmp_filename_tbl[i]) == -1)
-#ifdef DEBUG_GPLOT
+#ifdef GPLOT_DEBUG
                 siril_debug_print("g_remove() failed\n");
 #endif
 			free(handle->tmp_filename_tbl[i]);
@@ -1451,7 +1451,6 @@ void gnuplot_plot_atmpfile(gnuplot_ctrl * handle, char const* tmp_filename, char
     title                  = (title == NULL)      ? "(none)" : title;
     gnuplot_cmd(handle, "%s \"%s\" using ($1 - %d):($2):($3) title \"%s\" with %s",
            cmd, tmp_filename, x_offset, title, handle->pstyle);
-    handle->nplots++ ;
     return ;
 }
 
