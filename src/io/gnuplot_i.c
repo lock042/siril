@@ -61,6 +61,8 @@
 #include "gnuplot_i.h"
 #include "gui/plot.h"
 #include "core/siril_log.h"
+#include "gui/message_dialog.h"
+#include "gui/utils.h"
 
 #ifdef _WIN32
 #define GNUPLOT_BIN "gnuplot.exe"
@@ -73,6 +75,8 @@
 
 static gboolean gnuplot_is_in_path = FALSE;
 
+static gboolean bad_version = FALSE;
+
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_bin() {
     if (gnuplot_is_in_path)
@@ -80,13 +84,62 @@ static gchar *siril_get_gnuplot_bin() {
     return g_build_filename(com.pref.gnuplot_dir, GNUPLOT_BIN, NULL);
 }
 
+gboolean gnuplot_version_is_bad() {
+	gboolean retval = FALSE;
+	gchar* bin2[3];
+	gchar* child_stdout = NULL;
+	bin2[0] = siril_get_gnuplot_bin();
+	bin2[1] = "--version";
+	bin2[2] = NULL;
+	g_autoptr(GError) error = NULL;
+	g_spawn_sync(NULL, bin2, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &child_stdout, NULL, NULL, &error);
+	if (error) {
+		retval = 1;
+	} else {
+		if (g_strstr_len(child_stdout, -1, "gnuplot")) {
+			g_strchomp(child_stdout);
+			g_strchug(child_stdout);
+			gchar** chunks = g_strsplit(child_stdout, " ", 5);
+			double ver = g_ascii_strtod(chunks[1], NULL);
+			double rev = g_ascii_strtod(chunks[3], NULL);
+			g_strfreev(chunks);
+			if (ver < 5.4 || (ver == 5.4 && rev < 6)) {
+#ifdef _WIN32
+				retval = TRUE;
+#endif
+				siril_debug_print("Detected GNUplot version that would cause an error on Windows\n");
+			}
+		}
+	}
+	g_free(child_stdout);
+	return retval;
+}
+
 #if defined (_WIN32) || defined(OS_OSX)
 gboolean gnuplot_is_available() {
-    gchar *bin = siril_get_gnuplot_bin();
+	if (bad_version)
+		return FALSE;
+
+	gchar *bin = siril_get_gnuplot_bin();
     if (!bin) return FALSE;
 
     gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
     g_free(bin);
+#if defined (_WIN32) // _WIN32 only
+	if (is_available) {
+		if (gnuplot_version_is_bad()) {
+			gchar *msg = g_strdup(_("Error: Windows requires GNUplot >= 5.4.6 which fixes a critical bug that prevents its use with Siril. Please update your GNUplot installation."));
+			if (!com.script) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
+				control_window_switch_to_tab(OUTPUT_LOGS);
+			} else {
+				siril_log_color_message("%s\n", msg), "red");
+			}
+			is_available = FALSE;
+			bad_version = TRUE;
+		}
+	}
+#endif // _WIN32 only
 
     return is_available;
 }
@@ -94,19 +147,42 @@ gboolean gnuplot_is_available() {
 #else
 /* returns true if the command gnuplot is available */
 gboolean gnuplot_is_available() {
+	if (bad_version)
+		return FALSE;
+
+	gboolean is_available;
     gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", GNUPLOT_BIN);
 
     int retval = system(str);
     g_free(str);
     if (WIFEXITED(retval)) {
         gnuplot_is_in_path = TRUE;
-        return 0 == WEXITSTATUS(retval);
-    }
-
-    gchar *bin = siril_get_gnuplot_bin();
-    gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
-    g_free(bin);
-
+        is_available = (0 == WEXITSTATUS(retval));
+    } else {
+		gchar *bin = siril_get_gnuplot_bin();
+		is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
+		g_free(bin);
+	}
+/*
+ * This section of code is currently only applicable to Windows
+ * but could be uncommented if it should become necessary to blacklist
+ * specific versions of GNUplot on other OSes (additional changes would
+ * be required in gnuplot_version_is_bad())
+ *
+ *	if (is_available) {
+		if (gnuplot_version_is_bad()) {
+			gchar *msg = g_strdup(_("Error: Windows requires GNUplot >= 5.4.6 which fixes a critical bug that prevents its use with Siril. Please update your GNUplot installation."));
+			if (!com.script) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
+				control_window_switch_to_tab(OUTPUT_LOGS);
+			} else {
+				siril_log_color_message("%s\n", msg, "red");
+			}
+			is_available = FALSE;
+			bad_version = TRUE;
+		}
+	}
+*/
     return is_available;
 }
 #endif
@@ -223,7 +299,8 @@ gpointer tmpwatcher (gpointer user_data) {
 					break;
 				}
 			}
-		} else if (g_str_has_prefix(buffer, "Terminate")) {
+		}
+		else if (g_str_has_prefix(buffer, "Terminate")) {
 			gnuplot_cmd(handle, "exit gnuplot\n");
 			if (handle->ntmp) {
 				for (int i = 0 ; i < handle->ntmp ; i++) {
@@ -239,7 +316,6 @@ gpointer tmpwatcher (gpointer user_data) {
 			g_free(buffer);
 			g_object_unref(data_input);
 			g_object_unref(stream);
-			gnuplot_exit(handle);
 
 			if (!g_close(handle->child_fd_stdin, &error))
 				siril_debug_print("%s\n", error->message);
@@ -294,7 +370,6 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	handle->ntmp = 0;
 	handle->running = FALSE;
 	// The program has exited so fildescriptors will automatically be closed on POSIX systems.
-	// Is this needed on Windows?
 #ifdef _WIN32
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GError) error2 = NULL;
@@ -350,10 +425,9 @@ gnuplot_ctrl * gnuplot_init()
 		free(handle);
         return NULL;
     }
-    g_child_watch_add(child_pid, child_watch_cb, handle);
+	g_child_watch_add(child_pid, child_watch_cb, handle);
 	handle->running = TRUE;
     handle->gnucmd = fdopen(child_stdin, "w");
-	handle->gnumon = fdopen(child_stderr, "r");
 	handle->child_fd_stderr = child_stderr;
     handle->child_fd_stdin = child_stdin;
     handle->child_pid = child_pid;
@@ -433,6 +507,7 @@ void gnuplot_close(gnuplot_ctrl * handle)
 			break;
 	}
 	null_handle_in_com_gnuplot_handles(handle);
+	free(handle);
 	handle = NULL;
 }
 
@@ -520,7 +595,6 @@ int gnuplot_cmd(gnuplot_ctrl *  handle, char const *  cmd, ...)
     fflush(handle->gnucmd) ;
     return retval;
 }
-
 
 /*-------------------------------------------------------------------------*/
 /**
