@@ -107,9 +107,9 @@ gchar* gnuplot_version_is_bad() {
 			double rev = g_ascii_strtod(chunks[3], NULL);
 			g_strfreev(chunks);
 			if (ver < 5.4 || (ver == 5.4 && rev < 6)) {
-//#ifdef _WIN32
+#ifdef _WIN32
 				retval = g_strdup(_("Error: Windows requires GNUplot >= 5.4.6 which fixes a critical bug that prevents its use with Siril. Please update your GNUplot installation"));
-//#endif
+#endif
 				siril_debug_print("Detected GNUplot version that would cause an error on Windows\n");
 			}
 		}
