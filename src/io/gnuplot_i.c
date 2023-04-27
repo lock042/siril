@@ -84,8 +84,8 @@ static gchar *siril_get_gnuplot_bin() {
     return g_build_filename(com.pref.gnuplot_dir, GNUPLOT_BIN, NULL);
 }
 
-gboolean gnuplot_version_is_bad() {
-	gboolean retval = FALSE;
+gchar* gnuplot_version_is_bad() {
+	gchar* retval = NULL;
 	gchar* bin2[3];
 	gchar* child_stdout = NULL;
 	bin2[0] = siril_get_gnuplot_bin();
@@ -94,19 +94,22 @@ gboolean gnuplot_version_is_bad() {
 	g_autoptr(GError) error = NULL;
 	g_spawn_sync(NULL, bin2, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &child_stdout, NULL, NULL, &error);
 	if (error) {
-		retval = 1;
+		retval = g_strdup(_("Error: failed to execute GNUplot to check version\n"));
 	} else {
 		if (g_strstr_len(child_stdout, -1, "gnuplot")) {
 			g_strchomp(child_stdout);
 			g_strchug(child_stdout);
 			gchar** chunks = g_strsplit(child_stdout, " ", 5);
+			if (g_strv_length(chunks) != 4) {
+				retval = g_strdup_printf(_("Could not determine version from version string %s\n"), child_stdout);
+			}
 			double ver = g_ascii_strtod(chunks[1], NULL);
 			double rev = g_ascii_strtod(chunks[3], NULL);
 			g_strfreev(chunks);
 			if (ver < 5.4 || (ver == 5.4 && rev < 6)) {
-#ifdef _WIN32
-				retval = TRUE;
-#endif
+//#ifdef _WIN32
+				retval = g_strdup(_("Error: Windows requires GNUplot >= 5.4.6 which fixes a critical bug that prevents its use with Siril. Please update your GNUplot installation"));
+//#endif
 				siril_debug_print("Detected GNUplot version that would cause an error on Windows\n");
 			}
 		}
@@ -125,10 +128,8 @@ gboolean gnuplot_is_available() {
 
     gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
     g_free(bin);
-#if defined (_WIN32) // _WIN32 only
 	if (is_available) {
-		if (gnuplot_version_is_bad()) {
-			gchar *msg = g_strdup(_("Error: Windows requires GNUplot >= 5.4.6 which fixes a critical bug that prevents its use with Siril. Please update your GNUplot installation."));
+		if ((gchar *msg = gnuplot_version_is_bad())) {
 			if (!com.script) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
 				control_window_switch_to_tab(OUTPUT_LOGS);
@@ -137,9 +138,9 @@ gboolean gnuplot_is_available() {
 			}
 			is_available = FALSE;
 			bad_version = TRUE;
+			g_free(msg);
 		}
 	}
-#endif // _WIN32 only
 
     return is_available;
 }
@@ -163,15 +164,9 @@ gboolean gnuplot_is_available() {
 		is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
 		g_free(bin);
 	}
-/*
- * This section of code is currently only applicable to Windows
- * but could be uncommented if it should become necessary to blacklist
- * specific versions of GNUplot on other OSes (additional changes would
- * be required in gnuplot_version_is_bad())
- *
- *	if (is_available) {
-		if (gnuplot_version_is_bad()) {
-			gchar *msg = g_strdup(_("Error: Windows requires GNUplot >= 5.4.6 which fixes a critical bug that prevents its use with Siril. Please update your GNUplot installation."));
+	if (is_available) {
+		gchar *msg = gnuplot_version_is_bad();
+		if (msg) {
 			if (!com.script) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
 				control_window_switch_to_tab(OUTPUT_LOGS);
@@ -180,9 +175,9 @@ gboolean gnuplot_is_available() {
 			}
 			is_available = FALSE;
 			bad_version = TRUE;
+			g_free(msg);
 		}
 	}
-*/
     return is_available;
 }
 #endif

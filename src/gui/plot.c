@@ -710,7 +710,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
-		siril_log_color_message(_("Gnuplot was not found, the light curve data will be "
+		siril_log_color_message(_("GNUplot not available: the light curve data will be "
 				"produced in %s but no image will be created. "
 				"You can specify the path to gnuplot in the Siril preferences.\n"), "red", filename);
 	}
