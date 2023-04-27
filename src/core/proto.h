@@ -155,6 +155,9 @@ gchar *build_string_from_words(char **words);
 void append_elements_to_array(char **array, char **elements);
 const gchar *get_com_ext(gboolean fz);
 
+int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
+int display_to_fits(double dx, double dy, double *fx, double *fy, int ry);
+
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
 		WORD nullvalue, long *ngoodpix, WORD *minvalue, WORD *maxvalue,

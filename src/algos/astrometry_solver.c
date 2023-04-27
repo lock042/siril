@@ -738,13 +738,13 @@ gboolean has_any_keywords() {
 }
 
 SirilWorldCS *get_eqs_from_header(fits *fit) {
-	if (fit->wcsdata.ra != 0.0 && fit->wcsdata.dec != 0.0)
+	if (fit->wcsdata.ra != 0.0 || fit->wcsdata.dec != 0.0)
 		return siril_world_cs_new_from_a_d(fit->wcsdata.ra, fit->wcsdata.dec);
 
 	else if (fit->wcsdata.objctra[0] != '\0' && fit->wcsdata.objctdec[0] != '\0')
 		return siril_world_cs_new_from_objct_ra_dec(fit->wcsdata.objctra, fit->wcsdata.objctdec);
 
-	else if (fit->wcsdata.crval[0] != 0.0 && fit->wcsdata.crval[1] != 0.0)
+	else if (fit->wcsdata.crval[0] != 0.0 || fit->wcsdata.crval[1] != 0.0)
 		return siril_world_cs_new_from_a_d(fit->wcsdata.crval[0], fit->wcsdata.crval[1]);
 	return NULL;
 }

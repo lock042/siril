@@ -631,12 +631,14 @@ static void save_stars_dialog() {
 static int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
 	int ret = 1;
 	if (has_wcs(&gfit)) {
-		double world_x, world_y;
-		SirilWorldCS *world_cs;
+		// coordinates of the star in FITS/WCS coordinates
+		double fx, fy;
+		display_to_fits(star->xpos, star->ypos, &fx, &fy, gfit.ry);
 
-		pix2wcs(&gfit, star->xpos, (double) gfit.ry - star->ypos, &world_x, &world_y);
-		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
-
+		double ra, dec;
+		pix2wcs(&gfit, fx, fy, &ra, &dec);
+		// *alpha = ra would work too instead of all this?
+		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(ra, dec);
 		if (world_cs) {
 			double a = siril_world_cs_get_alpha(world_cs);
 			double d = siril_world_cs_get_delta(world_cs);
@@ -839,6 +841,8 @@ static const char *SNR_quality(double SNR) {
 	else return _("N/A");
 }
 
+// TODO: this is the same code as psf_display_result, except here the string is
+// displayed in the GUI, in the other in the log
 void popup_psf_result(psf_star *result, rectangle *area, fits *fit) {
 	gchar *msg, *coordinates, *url = NULL;
 	char buffer2[50];
@@ -848,14 +852,18 @@ void popup_psf_result(psf_star *result, rectangle *area, fits *fit) {
 	else
 		str = _("relative");
 
-	double x = result->x0 + area->x;
-	double y = area->y + area->h - result->y0;
-	if (has_wcs(&gfit)) {
-		double world_x, world_y;
-		SirilWorldCS *world_cs;
+	// coordinates of the star in the displayed image
+	double xpos = result->x0 + area->x;
+	double ypos = area->y + area->h - result->y0;
 
-		pix2wcs(&gfit, x, (double) gfit.ry - y, &world_x, &world_y);
-		world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+	if (has_wcs(&gfit)) {
+		// coordinates of the star in FITS/WCS coordinates
+		double fx, fy;
+		display_to_fits(xpos, ypos, &fx, &fy, gfit.ry);
+
+		double ra, dec;
+		pix2wcs(&gfit, fx, fy, &ra, &dec);
+		SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(ra, dec);
 		if (world_cs) {
 			gchar *ra = siril_world_cs_alpha_format(world_cs, "%02d %02d %.3lf");
 			gchar *dec = siril_world_cs_delta_format(world_cs, "%c%02d %02d %.3lf");
@@ -875,16 +883,16 @@ void popup_psf_result(psf_star *result, rectangle *area, fits *fit) {
 				dec = siril_world_cs_delta_format(world_cs, "%c%02d°%02d\'%02d\"");
 			}
 
-			coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", x, ra, y, dec);
+			coordinates = g_strdup_printf("x0=%.2fpx\t%s J2000\n\t\ty0=%.2fpx\t%s J2000", xpos, ra, ypos, dec);
 
 			g_free(ra);
 			g_free(dec);
 			siril_world_cs_unref(world_cs);
 		} else {
-			coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", x, y);
+			coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", xpos, ypos);
 		}
 	} else {
-		coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", x, y);
+		coordinates = g_strdup_printf("x0=%.2fpx\n\t\ty0=%.2fpx", xpos, ypos);
 	}
 
 	double fwhmx, fwhmy;

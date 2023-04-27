@@ -3843,16 +3843,17 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 			siril_log_message(_("The reference image of the sequence does not have the WCS information required for star selection by equatorial coordinates\n"));
 			return CMD_FOR_PLATE_SOLVED;
 		}
-		double x, y;
-		if (wcs2pix(first, ra, dec, &x, &y)) {
+		double fx, fy;
+		if (wcs2pix(first, ra, dec, &fx, &fy)) {
 			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
 			return CMD_ARG_ERROR;
 		}
-		y = first->ry - y - 1;
+		double dx, dy;
+		fits_to_display(fx, fy, &dx, &dy, first->ry);
 		double start = 1.5 * com.pref.phot_set.outer;
 		double size = 3 * com.pref.phot_set.outer;
-		area.x = x - start;
-		area.y = y - start;
+		area.x = dx - start;
+		area.y = dy - start;
 		area.w = size;
 		area.h = size;
 		if (area.x < 0 || area.y < 0 ||
@@ -3862,7 +3863,7 @@ static int parse_star_position_arg(char *arg, sequence *seq, fits *first, rectan
 			siril_log_message(_("The given coordinates are not in the image, aborting\n"));
 			return CMD_ARG_ERROR;
 		}
-		siril_log_message(_("Coordinates of the star: %.1f, %.1f\n"), x, y);
+		siril_log_message(_("Coordinates of the star: %.1f, %.1f\n"), dx, dy);
 		if (target_descr && arg[1] != 'a')
 			*target_descr = g_strdup_printf("at %f, %f", ra, dec);
 	}
@@ -8735,8 +8736,7 @@ int process_nomad(int nb) {
 		if (!com.stars)
 			com.stars = new_fitted_stars(MAX_STARS);
 		com.stars[j] = new_psf_star();
-		com.stars[j]->xpos = stars[i].x;
-		com.stars[j]->ypos = stars[i].y;
+		fits_to_display(stars[i].x, stars[i].y, &com.stars[j]->xpos, &com.stars[j]->ypos, gfit.ry);
 		com.stars[j]->fwhmx = 5.0f;
 		com.stars[j]->fwhmy = 5.0f;
 		com.stars[j]->layer = 0;

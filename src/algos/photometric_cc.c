@@ -540,7 +540,7 @@ int project_catalog_with_WCS(GFile *catalog_file, fits *fit, gboolean phot, pcc_
 			double x, y;
 			if (!wcs2pix(fit, ra, dec, &x, &y)) {
 				stars[nb_stars].x = x;
-				stars[nb_stars].y = fit->ry - y - 1;
+				stars[nb_stars].y = y;
 				stars[nb_stars].mag = Vmag;
 				if (phot)
 					stars[nb_stars].BV = Bmag - Vmag;

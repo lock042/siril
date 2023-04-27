@@ -744,6 +744,7 @@ psf_star *psf_global_minimisation(gsl_matrix* z, double bg, double sat, int conv
 	return psf;
 }
 
+// TODO: remove this function, refactor with popup_psf_result()
 void psf_display_result(psf_star *result, rectangle *area) {
 	char *buffer, *buffer2, *coordinates;
 	char *str;

@@ -199,12 +199,12 @@ static int get_projected_stars_from_local_catalogue(const char *path, double ra,
 					jmillenia);
 		}
 
-		double x, y;
-		if (wcs2pix(fit, star_ra, star_dec, &x, &y))
+		double fx, fy;
+		if (wcs2pix(fit, star_ra, star_dec, &fx, &fy))
 			continue;
 
-		(*stars)[j].x = x;
-		(*stars)[j].y = fit->ry - y - 1;
+		(*stars)[j].x = fx;
+		(*stars)[j].y = fy;
 		(*stars)[j].mag = Vmag;
 		(*stars)[j].BV = Bmag - Vmag;
 		j++;
