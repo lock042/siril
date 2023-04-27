@@ -75,6 +75,9 @@
 #define CONV_TOLERANCE 1E-8
 
 #undef DEBUG		/* get some of diagnostic output */
+#ifdef _WIN32
+gboolean asnetnew = FALSE;
+#endif
 
 typedef struct {
 	point size;
@@ -1802,16 +1805,18 @@ clearup:
 /*********************** finding asnet bash first **********************/
 #ifdef _WIN32
 static gchar *siril_get_asnet_bash() {
+	if (com.pref.asnet_dir && com.pref.asnet_dir[0] != '\0') {
+		asnetnew = TRUE;
+		return g_build_filename(com.pref.asnet_dir, NULL);
+	}
 	const gchar *localappdata = g_get_user_data_dir();
 	gchar *testdir = g_build_filename(localappdata, "cygwin_ansvr", NULL);
 	if (g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
 		siril_debug_print("cygwin_ansvr found at %s\n", testdir);
 		g_free(testdir);
-		return g_build_filename(localappdata, "cygwin_ansvr", "bin", "bash", NULL);;
+		return g_build_filename(localappdata, "cygwin_ansvr", NULL);
 	}
 	g_free(testdir);
-	if (!com.pref.asnet_dir || com.pref.asnet_dir[0] == '\0')
-		return NULL;
 	return g_build_filename(com.pref.asnet_dir, "bin", "bash", NULL);
 }
 #else
@@ -1876,7 +1881,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 
 	char *sfargs[50] = {
 #ifdef _WIN32
-		asnet_shell, "--login", "-i", "solve-field",
+		"solve-field",
 #else
 		asnet_path,
 		"--temp-axy",	// not available in the old version of ansvr
@@ -1901,19 +1906,49 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		sprintf(start_dec, "%f", siril_world_cs_get_delta(args->cat_center));
 		sprintf(radius, "%.1f", com.pref.astrometry.radius_degrees);
 		char *additional_args[] = { "--ra", start_ra, "--dec", start_dec,
-			"--radius", radius, (char*)table_filename, NULL };
+			"--radius", radius, NULL};
 		append_elements_to_array(sfargs, additional_args);
 		siril_log_message(_("Astrometry.net solving with a search field at RA: %s, Dec: %s,"
-				       " within a %s degrees radius for scales [%s, %s]\n"),
+					" within a %s degrees radius for scales [%s, %s]\n"),
 				start_ra, start_dec, radius, low_scale, high_scale);
 	} else {
-		char *additional_args[] = { (char*)table_filename, NULL };
-		append_elements_to_array(sfargs, additional_args);
 		siril_log_message(_("Astrometry.net solving blindly for scales [%s, %s]\n"),
 				low_scale, high_scale);
 	}
+#ifdef _WIN32
+	char *file_args[] = { "\"$p\"", NULL };
+#else
+	char *file_args[] = { (char*)table_filename, NULL };
+#endif
+	append_elements_to_array(sfargs, file_args);
+
 	gchar *command = build_string_from_words(sfargs);
 	siril_debug_print("Calling solve-field:\n%s\n", command);
+
+#ifdef _WIN32
+	// in order to be compatible with different asnet cygwin builds
+	// we need to send the command through a bash script
+	// the script is written to the /tmp folder (in cygwin env)
+	// and called with: /path/to/cygwin/bin/bash -l -c /tmp/asnet.sh
+	gchar *asnetscript = g_build_filename(asnet_shell, "tmp", "asnet.sh", NULL);
+	g_unlink(asnetscript);
+	FILE* tmpfd = g_fopen(asnetscript, "wb+");
+	if (tmpfd == NULL) {
+		fprintf(stderr,"cannot create temporary file: exiting solve-field");
+		g_free(asnetscript);
+		g_free(command);
+		return 1;
+	}
+	/* Write data to this file  */
+	fprintf(tmpfd, "p=\"%s\"\n", (char*)table_filename);
+	fprintf(tmpfd, "%s\n", command);
+	fclose(tmpfd);
+	g_free(asnetscript);
+	gchar *asnet_bash = g_build_filename(asnet_shell, "bin", "bash", NULL);
+	memset(sfargs, '\0', sizeof(sfargs));
+	char *newargs[] = {asnet_bash, "-l", "-c", "/tmp/asnet.sh", NULL};
+	append_elements_to_array(sfargs, newargs);
+#endif
 	g_free(command);
 
 	/* call solve-field */
