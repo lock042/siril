@@ -86,10 +86,14 @@ static void bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV 
 }
 
 static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
-	/* make a selection around the star */
+	/* make a selection around the star, coordinates are in display reference frame */
+	double fx = star.x, fy = star.y;
+	double dx, dy;
+	fits_to_display(fx, fy, &dx, &dy, fit->ry);
+
 	double outer = com.pref.phot_set.outer;
-	area->x = round_to_int(star.x - outer);
-	area->y = round_to_int(star.y - outer);
+	area->x = round_to_int(dx - outer);
+	area->y = round_to_int(dy - outer);
 	area->w = area->h = (int)ceil(outer * 2.0);
 
 	/* Don't want stars too close to the edge */
@@ -350,11 +354,6 @@ int photometric_cc(struct photometric_cc_data *args) {
 		siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));
 		return 0;
 	}
-
-	for (int i = 0; i < args->nb_stars && i < 40; i++)
-		siril_debug_print("star %d: %.2f, %.2f\tmag %.3f, BV %3f\n", i,
-				args->stars[i].x, args->stars[i].y,
-				args->stars[i].mag, args->stars[i].BV);
 
 	rectangle *bkg_sel = NULL;
 	if (!args->bg_auto)
