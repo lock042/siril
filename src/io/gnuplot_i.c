@@ -129,7 +129,8 @@ gboolean gnuplot_is_available() {
     gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
     g_free(bin);
 	if (is_available) {
-		if ((gchar *msg = gnuplot_version_is_bad())) {
+		gchar *msg = gnuplot_version_is_bad();
+		if (msg) {
 			if (!com.script) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
 				control_window_switch_to_tab(OUTPUT_LOGS);
@@ -141,7 +142,6 @@ gboolean gnuplot_is_available() {
 			g_free(msg);
 		}
 	}
-
     return is_available;
 }
 
