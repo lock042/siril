@@ -135,7 +135,7 @@ gboolean gnuplot_is_available() {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
 				control_window_switch_to_tab(OUTPUT_LOGS);
 			} else {
-				siril_log_color_message("%s\n", msg), "red");
+				siril_log_color_message("%s\n", msg, "red");
 			}
 			is_available = FALSE;
 			bad_version = TRUE;
