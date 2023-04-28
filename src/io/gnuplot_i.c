@@ -75,8 +75,6 @@
 
 static gboolean gnuplot_is_in_path = FALSE;
 
-//static gboolean bad_version = FALSE;
-
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_bin() {
     if (gnuplot_is_in_path)
@@ -120,9 +118,6 @@ gchar* gnuplot_version_is_bad() {
 
 #if defined (_WIN32) || defined(OS_OSX)
 gboolean gnuplot_is_available() {
-//	if (bad_version)
-//		return FALSE;
-
 	gchar *bin = siril_get_gnuplot_bin();
     if (!bin) return FALSE;
 
@@ -138,7 +133,6 @@ gboolean gnuplot_is_available() {
 				siril_log_color_message("%s\n", "red", msg);
 			}
 			is_available = FALSE;
-//			bad_version = TRUE;
 			g_free(msg);
 		}
 	}
@@ -148,9 +142,6 @@ gboolean gnuplot_is_available() {
 #else
 /* returns true if the command gnuplot is available */
 gboolean gnuplot_is_available() {
-//	if (bad_version)
-//		return FALSE;
-
 	gboolean is_available;
     gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", GNUPLOT_BIN);
 
@@ -174,7 +165,6 @@ gboolean gnuplot_is_available() {
 				siril_log_color_message("%s\n", "red", msg);
 			}
 			is_available = FALSE;
-//			bad_version = TRUE;
 			g_free(msg);
 		}
 	}
