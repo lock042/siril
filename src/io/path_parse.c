@@ -70,6 +70,10 @@ static void display_path_parse_error(pathparse_errors err, const gchar *addstr) 
 		case PATHPARSE_ERR_NOSEQLOADED_NOFAIL:
 			msg = _("No sequence loaded");
 			break;
+		case PATHPARSE_ERR_BADSTRING:
+		case PATHPARSE_ERR_BADSTRING_NOFAIL:
+			msg = _("Wrongly formatted string: ");
+			break;
 		case PATHPARSE_ERR_MORE_THAN_ONE_HIT:
 			msg = _("More than one match for: ");
 			break;
@@ -101,14 +105,25 @@ static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, d
 		if (g_str_has_prefix(headers[i], searchstr)) {
 			keyfound = TRUE;
 			gchar **subs = g_strsplit(headers[i], "=", 2);
-			gchar **valsubs = g_strsplit(subs[1], "/", 2);
+			gchar **valsubs = g_strsplit(subs[1], "/", -1);
 			if (numvalue) {
 				*numvalue = g_ascii_strtod(valsubs[0], NULL);
 			} else if (strvalue) {
-				gchar *currstr = g_strdup(valsubs[0]);
-				currstr = g_shell_unquote(currstr, NULL);
-				strncpy(strvalue, currstr, FLEN_VALUE - 1);
+				int l;
+				gchar *currstr;
+				if ((l = g_strv_length(valsubs)) > 2) { // some `/` made their ways into the header...
+					g_free(valsubs[l - 1]); // we remove the comment and join the rest
+					valsubs[l - 1] = NULL;
+					currstr = g_strjoinv(NULL, valsubs);
+				} else
+					currstr = g_strdup(valsubs[0]);
+				gchar *ucurrstr = g_shell_unquote(currstr, NULL);
+				if (ucurrstr)
+					strncpy(strvalue, ucurrstr, FLEN_VALUE - 1);
+				else
+					status = PATHPARSE_ERR_BADSTRING;
 				g_free(currstr);
+				g_free(ucurrstr);	
 			} else {
 				g_free(valsubs);
 				g_free(subs);
@@ -346,6 +361,7 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 				}
 				g_strstrip(buf);
 				replace_spaces_from_str(buf, '_');
+				replace_invalid_chars(buf ,'_');
 			}
 		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
