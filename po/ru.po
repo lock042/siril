@@ -6,10 +6,10 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-12 11:32+0200\n"
-"PO-Revision-Date: 2023-04-10 05:54+0000\n"
+"PO-Revision-Date: 2023-04-26 09:39+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4492,9 +4492,8 @@ msgid "Color Calibration..."
 msgstr "Калибровка цвета…"
 
 #: src/gui/siril3.glade:18061
-#, fuzzy
 msgid "Open the photometric color calibration dialog"
-msgstr "Диалог фотометрической калибровка цвета"
+msgstr "Диалог фотометрической калибровки цвета"
 
 #: src/gui/siril3.glade:18063
 msgid "Photometric Color Calibration..."
@@ -20993,7 +20992,7 @@ msgstr "Укладка будет выполнена без увеличения
 
 #: src/gui/siril3.glade:18061
 msgid "Open the photometry color calibration dialog"
-msgstr "Диалог фотометрической калибровка цвета"
+msgstr "Диалог фотометрической калибровки цвета"
 
 #: src/algos/photometric_cc.c:380
 msgid "Photometry color calibration in progress..."

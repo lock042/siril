@@ -1155,12 +1155,46 @@ static void load_accels() {
 	set_accel_map(accelmap);
 }
 
+static void remove_accels() {
+    GApplication *app = g_application_get_default();
+    gchar **action_names = (gchar**) gtk_application_list_action_descriptions(GTK_APPLICATION(app));
+
+    GPtrArray *accelmap = g_ptr_array_new();
+
+    for (gchar **it = action_names; it[0]; it++) {
+        g_ptr_array_add(accelmap, it[0]);
+        g_ptr_array_add(accelmap, NULL);
+    }
+
+    g_ptr_array_add(accelmap, NULL);
+
+    set_accel_map((const gchar**) g_ptr_array_free(accelmap, FALSE));
+
+    g_strfreev(action_names);
+}
+
 void set_accel_map(const gchar * const *accelmap) {
 	GApplication *application = g_application_get_default();
 
-	for (const gchar *const *it = accelmap; it[0]; it += g_strv_length((gchar**) it) + 1) {
-		gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0], &it[1]);
-	}
+		for (const gchar *const *it = accelmap; it[0]; it += g_strv_length((gchar**) it) + 1) {
+			gtk_application_set_accels_for_action(GTK_APPLICATION(application), it[0], &it[1]);
+		}
+}
+
+gboolean on_command_focus_in_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+
+	remove_accels();
+
+	return FALSE;
+}
+
+gboolean on_command_focus_out_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+
+	load_accels();
+
+	return FALSE;
 }
 
 /* Initialize the rendering mode from the GUI */

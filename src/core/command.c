@@ -3545,27 +3545,6 @@ int process_unset_mag_seq(int nb) {
 	return CMD_OK;
 }
 
-static void remove_char_from_str(char *str, const char toRemove) {
-	int i, j;
-	int len = strlen(str);
-
-	for (i = 0; i < len; i++) {
-		/*
-		 * If the character to remove is found then shift all characters to one
-		 * place left and decrement the length of string by 1.
-		 */
-		if (str[i] == toRemove) {
-			for (j = i; j < len; j++) {
-				str[j] = str[j + 1];
-			}
-
-			len--;
-			// If a character is removed then make sure i doesn't increments
-			i--;
-		}
-	}
-}
-
 int process_pm(int nb) {
 	/* First we want to replace all variable by filename if exist. Return error if not
 	 * Variables start and end by $ token.
@@ -3677,12 +3656,31 @@ int process_pm(int nb) {
 				return CMD_INVALID_IMAGE;
 			}
 		}
+		// Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
+		// This avoids conflicts where characters are permitted in filenames but cannot
+		// be used in pixelmath variable names.
+		// We will amend the expression to match below.
+		g_free(args->varname[j]);
+		args->varname[j] = g_strdup_printf("var_%d", j + 1);
 	}
 
 	/* remove tokens */
 	g_free(expression);
 	expression = g_shell_unquote(word[1], NULL);
-	remove_char_from_str(expression, '$');
+
+	// Now need to replace the original variable names between the $ signs in expression with
+	// the new generic variable names.
+	// This ensures the variable names in the expression passed to pm match the variable names
+	// that are stored in args->varname
+	gchar** chunks = g_strsplit(expression, "$", count + 1);
+	for (int i = 0 ; i < count / 2 ; i++) {
+		g_free(chunks[2*i+1]);
+		chunks[2*i+1] = g_strdup_printf("var_%d", i + 1);
+	}
+	g_free(expression);
+	expression = g_strjoinv(NULL, chunks);
+	g_strfreev(chunks);
+
 	remove_spaces_from_str(expression);
 
 	fits *fit = NULL;
@@ -5540,6 +5538,7 @@ int process_seq_mtf(int nb) {
 			args->params.shadows < 0.0 || args->params.midtones <= 0.0 || args->params.highlights <= 0.0 ||
 			args->params.shadows >= 1.0 || args->params.midtones >= 1.0 || args->params.highlights > 1.0) {
 		siril_log_message(_("Invalid argument to %s, aborting.\n"), word[0]);
+		free(args->seqEntry);
 		free(args);
 		if (!check_seq_is_comseq(seq))
 			free_sequence(seq, TRUE);
