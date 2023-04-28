@@ -75,7 +75,7 @@
 
 static gboolean gnuplot_is_in_path = FALSE;
 
-static gboolean bad_version = FALSE;
+//static gboolean bad_version = FALSE;
 
 /*********************** finding gnuplot first **********************/
 static gchar *siril_get_gnuplot_bin() {
@@ -120,8 +120,8 @@ gchar* gnuplot_version_is_bad() {
 
 #if defined (_WIN32) || defined(OS_OSX)
 gboolean gnuplot_is_available() {
-	if (bad_version)
-		return FALSE;
+//	if (bad_version)
+//		return FALSE;
 
 	gchar *bin = siril_get_gnuplot_bin();
     if (!bin) return FALSE;
@@ -135,10 +135,10 @@ gboolean gnuplot_is_available() {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
 				control_window_switch_to_tab(OUTPUT_LOGS);
 			} else {
-				siril_log_color_message("%s\n", msg, "red");
+				siril_log_color_message("%s\n", "red", msg);
 			}
 			is_available = FALSE;
-			bad_version = TRUE;
+//			bad_version = TRUE;
 			g_free(msg);
 		}
 	}
@@ -148,8 +148,8 @@ gboolean gnuplot_is_available() {
 #else
 /* returns true if the command gnuplot is available */
 gboolean gnuplot_is_available() {
-	if (bad_version)
-		return FALSE;
+//	if (bad_version)
+//		return FALSE;
 
 	gboolean is_available;
     gchar *str = g_strdup_printf("%s -e > /dev/null 2>&1", GNUPLOT_BIN);
@@ -171,10 +171,10 @@ gboolean gnuplot_is_available() {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Bad GNUplot version"), msg);
 				control_window_switch_to_tab(OUTPUT_LOGS);
 			} else {
-				siril_log_color_message("%s\n", msg, "red");
+				siril_log_color_message("%s\n", "red", msg);
 			}
 			is_available = FALSE;
-			bad_version = TRUE;
+//			bad_version = TRUE;
 			g_free(msg);
 		}
 	}
@@ -364,15 +364,12 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	handle->tmp_filename_tbl = NULL;
 	handle->ntmp = 0;
 	handle->running = FALSE;
-	// The program has exited so fildescriptors will automatically be closed on POSIX systems.
-#ifdef _WIN32
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GError) error2 = NULL;
 	if (!g_close(handle->child_fd_stdin, &error))
 		siril_debug_print("%s\n", error->message);
 	if (!g_close(handle->child_fd_stderr, &error2))
-		siril_debug_print("%s\n", error->message);
-#endif
+		siril_debug_print("%s\n", error2->message);
 	null_handle_in_com_gnuplot_handles(handle);
 	free(handle);
 	handle = NULL;
@@ -406,13 +403,13 @@ gnuplot_ctrl * gnuplot_init()
 	siril_debug_print("GNUplot executable: %s\n", bin2[0]);
 #endif
 	/* call gnuplot */
-    gint child_stdin, child_stdout, child_stderr;
+    gint child_stdin, child_stderr;
     GPid child_pid;
     g_autoptr(GError) error = NULL;
 
     g_spawn_async_with_pipes(NULL, bin2, NULL,
             G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-            NULL, NULL, &child_pid, &child_stdin, &child_stdout,
+            NULL, NULL, &child_pid, &child_stdin, NULL,
             &child_stderr, &error);
     if (error != NULL) {
         siril_log_color_message(_("Spawning gnuplot failed: %s\n"), "red", error->message);
