@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-12 11:32+0200\n"
-"PO-Revision-Date: 2023-04-10 05:54+0000\n"
+"PO-Revision-Date: 2023-04-26 14:11+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -4235,7 +4235,6 @@ msgid "Color Calibration..."
 msgstr "色彩校准..."
 
 #: src/gui/siril3.glade:18061
-#, fuzzy
 msgid "Open the photometric color calibration dialog"
 msgstr "开启测光法色彩校准对话窗"
 
@@ -7495,7 +7494,7 @@ msgstr "样本像素:"
 
 #: src/gui/siril3.glade:29684
 msgid "Fix Xtrans files"
-msgstr "Fix Xtrans files"
+msgstr "Fix Xtrans 文件"
 
 #: src/gui/siril3.glade:29747
 msgid "Inner radius: "
@@ -9367,7 +9366,6 @@ msgid "Photometry radii set to %.1f for inner and %.1f for outer\n"
 msgstr "测光内半径设置为 %.1f，外半径设置为 %.1f\n"
 
 #: src/algos/photometric_cc.c:380
-#, fuzzy
 msgid "Photometric color calibration in progress..."
 msgstr "测光法色彩校准执行中…"
 
@@ -10339,7 +10337,7 @@ msgstr "无法保存镜像图像： %s\n"
 #: src/core/command.c:8430 src/core/command.c:8671 src/core/command.c:8766
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
-msgstr "Invalid argument to %s, aborting.\n"
+msgstr "%s 的参数无效，异常中止。\n"
 
 #: src/core/command.c:2740
 #, c-format
@@ -10362,11 +10360,11 @@ msgstr "计算 %s 自动拉伸，使用值 %f 和 %f\n"
 
 #: src/core/command.c:2803
 msgid "linked"
-msgstr "linked"
+msgstr "连接的"
 
 #: src/core/command.c:2803
 msgid "unlinked"
-msgstr "unlinked"
+msgstr "未连接"
 
 #: src/core/command.c:2830
 msgid "Factor must be a number greater than 0.\n"
@@ -10379,7 +10377,7 @@ msgstr "不允许缩放 %lf。应介于 0.0 和 5.0 之间。\n"
 
 #: src/core/command.c:2877
 msgid "Scale is 1.0. Not doing anything.\n"
-msgstr "Scale is 1.0. Not doing anything.\n"
+msgstr "缩放比为 1.0。什么都不做。\n"
 
 #: src/core/command.c:2912 src/core/command.c:3017 src/core/command.c:6585
 #: src/core/command.c:6672 src/core/command.c:6956
@@ -10446,7 +10444,7 @@ msgstr "PSF 最小化失败，错误 %d\n"
 #, c-format
 msgid ""
 "Relative magnitude: %.3lf, True reduced magnitude: %.3lf, Offset: %.3lf\n"
-msgstr "相对星等：%.3lf, True reduced magnitude: %.3lf, Offset: %.3lf\n"
+msgstr "相对星等：%.3lf，真实还原星等： %.3lf，偏移： %.3lf\n"
 
 #: src/core/command.c:3220 src/core/command.c:3227 src/core/command.c:3236
 msgid "Inner radius value must be less than outer. Please change the value."
@@ -20945,9 +20943,8 @@ msgid "Registering %d images of the %d of the sequence"
 msgstr "对齐 %d 个图像于队列 %d"
 
 #: src/registration/registration.c:1163
-#, fuzzy
 msgid "not available for sequences with variable image sizes"
-msgstr "无法对具有可变图像尺寸的队列使用区域选择\n"
+msgstr "不适用于具有可变图像尺寸的队列"
 
 #: src/registration/registration.c:1168 src/registration/registration.c:1162
 msgid "Failed to determine registration method...\n"

@@ -161,7 +161,7 @@ preferences pref_init = {
 		.auto_inner_factor = 4.2,
 		.auto_outer_factor = 6.3,
 		.aperture = 10.0,
-		.force_radius = FALSE,
+		.force_radius = TRUE,
 		.minval = -1500.0,
 		.maxval = 60000.0,
 	},
