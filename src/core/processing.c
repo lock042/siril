@@ -671,7 +671,6 @@ void kill_child_process() {
 	if (com.child_is_running) {
 #ifdef _WIN32
 		TerminateProcess(com.childhandle, 1);
-		CloseHandle(com.childhandle);
 		com.childhandle = NULL;
 #else
 		kill(com.childpid, SIGINT);
@@ -679,6 +678,9 @@ void kill_child_process() {
 #endif
 		com.child_is_running = FALSE;
 	}
+	FILE* fp = fopen("stop", "w");
+		if (fp != NULL) 
+			fclose(fp);
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {

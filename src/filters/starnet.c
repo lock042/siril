@@ -72,23 +72,34 @@
 fits *current_fit = NULL;
 gboolean verbose = TRUE;
 
+static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
+	g_spawn_close_pid(pid);
+}
 
 static int exec_prog_starnet(char **argv, starnet_version version) {
 	gint child_stdout;
+	GPid child_pid;
 	g_autoptr(GError) error = NULL;
 	int retval = -1;
 
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |
-			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
-			NULL, NULL, NULL, NULL, &child_stdout,
+			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL | G_SPAWN_DO_NOT_REAP_CHILD,
+			NULL, NULL, &child_pid, NULL, &child_stdout,
 			NULL, &error);
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed: %s\n"), "red", error->message);
 		return retval;
 	}
+	g_child_watch_add(child_pid, child_watch_cb, NULL);
+	com.child_is_running = TRUE;
+#ifdef _WIN32
+	com.childhandle = child_pid;		// For Windows, handle of a child process
+#else
+	com.child_pid = child_pid;			// For other OSes, PID of a child process
+#endif
 
 	GInputStream *stream = NULL;
 #ifdef _WIN32
