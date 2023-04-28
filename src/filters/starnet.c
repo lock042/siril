@@ -833,7 +833,7 @@ static int starnet_compute_mem_limits(struct generic_seq_args *args, gboolean fo
 	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
 	if (limit > 0) {
 		required = MB_per_image;
-		if (starnet_data->upscale)
+		if (starnet_args->upscale)
 			required *= 4;
 		else if (com.pref.comp.fits_enabled)
 			required *= 2; // Allow for FITS compression memory overhead
