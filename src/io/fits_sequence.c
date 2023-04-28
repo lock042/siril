@@ -81,7 +81,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 				siril_debug_print("found reference HDU %ldx%ldx%d (%d)\n", naxes[0], naxes[1], naxis, bitpix);
 			} else {
 				if (naxes[2] != ref_naxes[2]) {
-					siril_log_message(_("Several images were found in the FITS file but they have number of layers, which is not allowed.\n"));
+					siril_log_message(_("Several images were found in the FITS file but they have different number of layers, which is not allowed.\n"));
 					status = 1;
 					break;
 				}
@@ -110,7 +110,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	else {
 		if (!homogeneous)
 			siril_log_message(_("Several images were found in the FITS file but they have different parameters.\n"));
-		// this ^ is printed too often, maybe we can add a verbose flag?
+		// this is printed too often, maybe we can add a verbose flag?
 		*nb_im = nb_images;
 		siril_debug_print("found %d images in the FITS sequence\n", nb_images);
 		// we could realloc *hdus, but it's not much useful
