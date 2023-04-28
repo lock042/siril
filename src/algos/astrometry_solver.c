@@ -206,7 +206,7 @@ gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double radius, in
 	mag = g_strdup_printf("%2.2lf", mag_limit);
 	fov = g_strdup_printf("%2.1lf", radius);
 
-	url = g_string_new("http://vizier.u-strasbg.fr/viz-bin/asu-tsv?-source=");
+	url = g_string_new("https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=");
 	switch (type) {
 	case CAT_NOMAD:
 		url = g_string_append(url, "NOMAD&-out.meta=-h-u-D&-out.add=_r&-sort=_r");
