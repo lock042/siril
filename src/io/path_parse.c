@@ -103,35 +103,26 @@ static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, d
 	g_sprintf(searchstr, "%-8s=", key);
 	for (int i = 0; i < g_strv_length(headers); i++) {
 		if (g_str_has_prefix(headers[i], searchstr)) {
+			char val[FLEN_VALUE];
+			int fstatus;
+			fits_parse_value(headers[i], val, NULL, &fstatus);
+			if (fstatus) {
+				return PATHPARSE_ERR_BADSTRING;
+			}
 			keyfound = TRUE;
-			gchar **subs = g_strsplit(headers[i], "=", 2);
-			gchar **valsubs = g_strsplit(subs[1], "/", -1);
 			if (numvalue) {
-				*numvalue = g_ascii_strtod(valsubs[0], NULL);
+				*numvalue = g_ascii_strtod(val, NULL);
 			} else if (strvalue) {
-				int l;
-				gchar *currstr;
-				if ((l = g_strv_length(valsubs)) > 2) { // some `/` made their ways into the header...
-					g_free(valsubs[l - 1]); // we remove the comment and join the rest
-					valsubs[l - 1] = NULL;
-					currstr = g_strjoinv(NULL, valsubs);
-				} else
-					currstr = g_strdup(valsubs[0]);
-				gchar *ucurrstr = g_shell_unquote(currstr, NULL);
+				gchar *ucurrstr = g_shell_unquote(val, NULL);
 				if (ucurrstr)
 					strncpy(strvalue, ucurrstr, FLEN_VALUE - 1);
 				else
 					status = PATHPARSE_ERR_BADSTRING;
-				g_free(currstr);
 				g_free(ucurrstr);	
 			} else {
-				g_free(valsubs);
-				g_free(subs);
 				status = PATHPARSE_ERR_WRONG_CALL; // internal error, should not be thrown
 				return status;
 			}
-			g_strfreev(subs);
-			g_strfreev(valsubs);
 			break;
 		}
 	}
