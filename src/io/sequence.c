@@ -1995,11 +1995,6 @@ int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_fl
 		memory_per_orig_image *= sizeof(WORD);
 		memory_per_scaled_image *= sizeof(WORD);
 	}
-	// If compression is enabled, allow enough memory for cfitsio to hold an uncompressed copy of the image in memory
-	// This may be conservative for tile-based compression methods but should avoid OOM problems with compression enabled
-	if (com.pref.comp.fits_enabled)
-		memory_per_scaled_image *= 2;
-
 	unsigned int memory_per_orig_image_MB = memory_per_orig_image / BYTES_IN_A_MB;
 	unsigned int memory_per_scaled_image_MB = memory_per_scaled_image / BYTES_IN_A_MB;
 	if (memory_per_scaled_image_MB == 0)

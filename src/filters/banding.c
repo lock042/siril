@@ -66,6 +66,8 @@ static int banding_mem_limits_hook(struct generic_seq_args *args, gboolean for_w
 		int is_color = args->seq->nb_layers == 3;
 		unsigned int MB_per_channel = is_color ? MB_per_image / 3 : MB_per_image;
 		required = 2 * MB_per_image + MB_per_channel;
+		// FITS compression memory overhead is already accounted for as the compression overhead is
+		// not required at the same time as the overhead for the banding processing
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
                         thread_limit = com.max_thread;

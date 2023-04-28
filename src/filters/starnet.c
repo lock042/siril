@@ -827,8 +827,24 @@ gpointer do_starnet(gpointer p) {
 
 static int starnet_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 // StarNet cannot run in parallel as it fully utilizes the GPU. This function therefore
-// returns 1 and all images will be processed in series.
-	return 1;
+// returns a maximum of 1 and all images will be processed in series.
+	struct starnet_data *starnet_args = (struct starnet_data *) args->user;
+	unsigned int MB_per_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	if (limit > 0) {
+		required = MB_per_image;
+		if (starnet_data->upscale)
+			required *= 4;
+		else if (com.pref.comp.fits_enabled)
+			required *= 2; // Allow for FITS compression memory overhead
+			// Even though 2 images may be saved (starless plus star mask) they are only saved
+			// one at a time in the writer hook for any given thread, so only one lot of compression
+			// overhead is needed. File writing does not happen at the same time as memory is required
+			// to hold the upscaled image, so we can set required by if / else if.
+		limit = MB_avail / required;
+	}
+	limit = (limit >= 1 ? 1 : 0);
+	return limit;
 }
 
 static int starnet_finalize_hook(struct generic_seq_args *args) {

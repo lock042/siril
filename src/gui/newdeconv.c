@@ -1424,6 +1424,7 @@ static int deconvolution_compute_mem_limits(struct generic_seq_args *args, gbool
 // and run the sequence sequentially rather than in parallel.
 	return 1;
 }
+
 int deconvolution_finalize_hook(struct generic_seq_args *seqargs) {
 	deconvolution_sequence_data *data = (deconvolution_sequence_data *) seqargs->user;
 	int retval = seq_finalize_hook(seqargs);

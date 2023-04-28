@@ -406,6 +406,12 @@ int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_image, MB_avail;
 	int thread_limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float, NULL, &MB_per_image, &MB_avail);
 	int limit = thread_limit;
+
+	if (com.pref.comp.fits_enabled) { // Allow for FITS compression memory overhead
+		int required = MB_per_image * 2;
+		limit = MB_avail / required;
+	}
+
 	if (limit == 0) {
 		gchar *mem_per_image = g_format_size_full(MB_per_image * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
 		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
