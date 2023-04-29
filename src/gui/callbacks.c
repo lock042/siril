@@ -1685,6 +1685,7 @@ void gtk_main_quit() {
 	writeinitfile();		// save settings (like window positions)
 	close_sequence(FALSE);	// save unfinished business
 	close_single_image();	// close the previous image and free resources
+	kill_child_process(TRUE); // kill running child processes if any
 	g_slist_free_full(com.pref.gui.script_path, g_free);
 	exit(EXIT_SUCCESS);
 }

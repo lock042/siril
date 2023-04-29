@@ -73,6 +73,7 @@ fits *current_fit = NULL;
 gboolean verbose = TRUE;
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
+	siril_debug_print("starnet is being closed\n");
 	g_spawn_close_pid(pid);
 }
 

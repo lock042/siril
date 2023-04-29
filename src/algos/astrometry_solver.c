@@ -1864,6 +1864,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		return 1;
 	}
 #endif
+	g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
 
 	gchar *table_filename = replace_ext(args->filename, ".xyls");
 #ifdef _WIN32
