@@ -2206,7 +2206,11 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = seq->selnum;
 	seqargs->stop_on_error = FALSE;
-	seqargs->parallel = args->onlineCatalog != CAT_ASNET;		//TODO: for now crashes on Cancel if parallel is enabled for asnet
+#ifdef _WIN32
+	seqargs->parallel = args->onlineCatalog != CAT_ASNET;		// for now crashes on Cancel if parallel is enabled for asnet on windows
+#else
+	seqargs->parallel = TRUE;
+#endif
 	seqargs->prepare_hook = astrometry_prepare_hook;
 	seqargs->image_hook = astrometry_image_hook;
 	seqargs->finalize_hook = astrometry_finalize_hook;
