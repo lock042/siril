@@ -1456,9 +1456,12 @@ gpointer plate_solver(gpointer p) {
 	solution.size.y = args->fit->ry;
 	solution.pixel_size = args->pixel_size;
 
-	if (args->onlineCatalog == CAT_ASNET)
+	if (args->onlineCatalog == CAT_ASNET) {
+		if (!args->for_sequence)
+			com.child_is_running = EXT_ASNET;
 		args->ret = local_asnet_platesolve(stars, nb_stars, args, &solution);
-	else match_catalog(stars, nb_stars, args, &solution);
+	} else
+		match_catalog(stars, nb_stars, args, &solution);
 	if (args->ret)
 		goto clearup;
 
@@ -1559,8 +1562,11 @@ clearup:
 		siril_log_message(_("Plate solving failed: %s\n"), args->message);
 		g_free(args->message);
 	}
-	if (!args->for_sequence)
+	if (!args->for_sequence) {
+		com.child_is_running = EXT_NONE;
+		g_unlink("stop");
 		siril_add_idle(end_plate_solver, args);
+	}
 	else free(args);
 	return GINT_TO_POINTER(retval);
 }
@@ -1860,6 +1866,16 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #endif
 
 	gchar *table_filename = replace_ext(args->filename, ".xyls");
+#ifdef _WIN32
+	gchar *stopfile = g_build_filename(com.wd, "stop", NULL);
+	if (!g_path_is_absolute(table_filename)) {
+		gchar *tmp = g_build_filename(com.wd, table_filename, NULL);
+		g_free(table_filename);
+		table_filename = tmp;
+	}
+#else
+	gchar *stopfile = g_strdup("stop");
+#endif
 	if (save_list_as_FITS_table(table_filename, stars, nb_stars, args->rx_solver, args->ry_solver)) {
 		siril_log_message(_("Failed to create the input data for solve-field\n"));
 		g_free(table_filename);
@@ -1884,7 +1900,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		"--temp-axy",	// not available in the old version of ansvr
 #endif
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
-		"-U", "none", "-S", "none", "--crpix-center", "-l", time_limit,
+		"-U", "none", "-S", "none", "-C", stopfile, "--crpix-center", "-l", time_limit,
 		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
 
 	char order[12];	// referenced in sfargs, needs the same scope
@@ -1917,6 +1933,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	gchar *command = build_string_from_words(sfargs);
 	siril_debug_print("Calling solve-field:\n%s\n", command);
 	g_free(command);
+	g_free(stopfile);
 
 	/* call solve-field */
 	gint child_stdout;
@@ -2142,6 +2159,8 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	remove_prefixed_star_files(arg->seq, arg->new_seq_prefix);
 	process_plate_solver_input(args); // compute required data to get the catalog
 	clearfits(&fit);
+	if (args->onlineCatalog == CAT_ASNET)
+		com.child_is_running = EXT_ASNET;
 	return get_catalog_stars(args);
 }
 
@@ -2171,6 +2190,8 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	if (aargs->catalog_file)
 		g_object_unref(aargs->catalog_file);
 	free (aargs);
+	com.child_is_running = EXT_NONE;
+	g_unlink("stop");
 	return 0;
 }
 
@@ -2184,7 +2205,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = seq->selnum;
 	seqargs->stop_on_error = FALSE;
-	seqargs->parallel = TRUE;		// I don't think local catalogues are reentrant
+	seqargs->parallel = args->onlineCatalog != CAT_ASNET;		//TODO: for now crashes on Cancel if parallel is enabled for asnet
 	seqargs->prepare_hook = astrometry_prepare_hook;
 	seqargs->image_hook = astrometry_image_hook;
 	seqargs->finalize_hook = astrometry_finalize_hook;

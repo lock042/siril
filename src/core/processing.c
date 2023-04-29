@@ -668,7 +668,8 @@ void wait_for_script_thread() {
 }
 
 void kill_child_process() {
-	if (com.child_is_running) {
+	// abort starnet by killing the process
+	if (com.child_is_running == EXT_STARNET) {
 #ifdef _WIN32
 		TerminateProcess(com.childhandle, 1);
 		com.childhandle = NULL;
@@ -676,11 +677,14 @@ void kill_child_process() {
 		kill(com.childpid, SIGINT);
 		com.childpid = 0;
 #endif
-		com.child_is_running = FALSE;
+		com.child_is_running = EXT_NONE;
 	}
+	// abort asnet by writing a file named stop in wd
+	if (com.child_is_running == EXT_ASNET) {
 	FILE* fp = fopen("stop", "w");
-		if (fp != NULL) 
-			fclose(fp);
+	if (fp != NULL) 
+		fclose(fp);
+	}
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {

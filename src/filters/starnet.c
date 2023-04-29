@@ -94,7 +94,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 		return retval;
 	}
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
-	com.child_is_running = TRUE;
+	com.child_is_running = EXT_STARNET;
 #ifdef _WIN32
 	com.childhandle = child_pid;		// For Windows, handle of a child process
 #else
@@ -788,8 +788,8 @@ gpointer do_starnet(gpointer p) {
 	CLEANUP2:
 	clearfits(&workingfit);
 	CLEANUP3:
-	if (com.child_is_running)
-		com.child_is_running = FALSE;
+	if (com.child_is_running == EXT_STARNET)
+		com.child_is_running = EXT_NONE;
 	if (verbose)
 		set_progress_bar_data("Ready.", PROGRESS_RESET);
 	g_free(currentdir);

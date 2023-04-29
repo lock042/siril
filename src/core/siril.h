@@ -260,6 +260,13 @@ typedef enum {
 	HCOMPRESS_COMP
 } compression_mode;
 
+typedef enum {
+	EXT_NONE,
+	EXT_STARNET,
+	EXT_ASNET,
+	EXT_GNUPLOT // not used for now
+} external_program;
+
 /* image data, exists once for each image */
 typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
@@ -625,7 +632,7 @@ struct cominf {
 
 	sensor_tilt *tilt;		// computed tilt information
 
-	gboolean child_is_running;	// boolean to check if there is a child process running
+	external_program child_is_running;	// external_program id to check if there is a child process running
 
 	float* kernel;			// float* to hold kernel for new deconvolution process
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
