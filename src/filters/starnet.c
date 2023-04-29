@@ -98,7 +98,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 #ifdef _WIN32
 	com.childhandle = child_pid;		// For Windows, handle of a child process
 #else
-	com.child_pid = child_pid;			// For other OSes, PID of a child process
+	com.childpid = child_pid;			// For other OSes, PID of a child process
 #endif
 
 	GInputStream *stream = NULL;
