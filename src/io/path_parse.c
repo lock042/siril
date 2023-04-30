@@ -104,7 +104,7 @@ static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, d
 	for (int i = 0; i < g_strv_length(headers); i++) {
 		if (g_str_has_prefix(headers[i], searchstr)) {
 			char val[FLEN_VALUE];
-			int fstatus;
+			int fstatus = 0;
 			fits_parse_value(headers[i], val, NULL, &fstatus);
 			if (fstatus) {
 				return PATHPARSE_ERR_BADSTRING;
