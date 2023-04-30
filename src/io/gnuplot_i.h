@@ -30,10 +30,10 @@
  ---------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <glib.h>
-
+#include "core/siril.h"
 /** Maximal number of simultaneous temporary files */
-#define GP_MAX_TMP_FILES    64
-
+//#define GP_MAX_TMP_FILES    64
+//Put in siril.h
 /*---------------------------------------------------------------------------
                                 New Types
  ---------------------------------------------------------------------------*/
@@ -53,20 +53,7 @@
  */
 /*-------------------------------------------------------------------------*/
 
-typedef struct _GNUPLOT_CTRL_ {
-    /** Pipe to gnuplot process */
-    FILE    * gnucmd ;
-
-    /** Number of currently active plots */
-    int       nplots ;
-    /** Current plotting style */
-    char      pstyle[32] ;
-
-    /** Pointer to table of names of temporary files */
-    char*      tmp_filename_tbl[GP_MAX_TMP_FILES] ;
-    /** Number of temporary files */
-    int       ntmp ;
-} gnuplot_ctrl ;
+// Moved to siril.h
 
 /*---------------------------------------------------------------------------
                         Function ANSI C prototypes
@@ -77,7 +64,7 @@ gboolean gnuplot_is_available();
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Opens up a gnuplot session, ready to receive commands.
-  @param    keep_plot_alive Flag to keep plots opened after gnuplot process is closed
+  @param    None
   @return   Newly allocated gnuplot control structure.
 
   This opens up a new gnuplot session, ready for input. The struct
@@ -87,7 +74,7 @@ gboolean gnuplot_is_available();
   The session must be closed using gnuplot_close().
  */
 /*--------------------------------------------------------------------------*/
-gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive);
+gnuplot_ctrl * gnuplot_init();
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -102,13 +89,31 @@ gnuplot_ctrl * gnuplot_init(gboolean keep_plot_alive);
  */
 /*--------------------------------------------------------------------------*/
 void gnuplot_close(gnuplot_ctrl * handle);
-gboolean gnuplot_close_idle(gpointer p);
+void exit_com_gnuplot_handles();
+void null_handle_in_com_gnuplot_handles(gnuplot_ctrl* handle);
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    Deletes a gnuplot temporary file
+  @param    handle Gnuplot session control handle.
+  @return   void
+
+  Deletes a temporary file created using gnuplot_tmpfile().
+
+ */
+/*--------------------------------------------------------------------------*/
+void gnuplot_declaretmpfile(gnuplot_ctrl *handle, char *filename);
+
+void gnuplot_rmtmpfile(gnuplot_ctrl * handle, const char * filename);
+
 
 /*-------------------------------------------------------------------------*/
 /**
   @brief    Sends a command to an active gnuplot session.
   @param    handle Gnuplot session control handle
   @param    cmd    Command to send, same as a printf statement.
+  @return   returns the return value of fputs. This will be EOF if the
+            command could not be written to the GNUplot instance.
 
   This sends a string to an active gnuplot session, to be executed.
   There is strictly no way to know if the command has been
@@ -128,7 +133,7 @@ gboolean gnuplot_close_idle(gpointer p);
   back from gnuplot.
  */
 /*--------------------------------------------------------------------------*/
-void gnuplot_cmd(gnuplot_ctrl *  handle, char const *  cmd, ...);
+int gnuplot_cmd(gnuplot_ctrl *  handle, char const *  cmd, ...);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -246,7 +251,7 @@ void gnuplot_resetplot(gnuplot_ctrl * h);
     double          d[50] ;
     int             i ;
 
-    h = gnuplot_init(TRUE) ;
+    h = gnuplot_init() ;
     for (i=0 ; i<50 ; i++) {
         d[i] = (double)(i*i) ;
     }
@@ -278,7 +283,7 @@ void gnuplot_plot_x(gnuplot_ctrl * handle, double * d, int n, char * title);
     double          y[50] ;
     int             i ;
 
-    h = gnuplot_init(TRUE) ;
+    h = gnuplot_init() ;
     for (i=0 ; i<50 ; i++) {
         x[i] = (double)(i)/10.0 ;
         y[i] = x[i] * x[i] ;
@@ -356,7 +361,7 @@ void gnuplot_plot_once(
     gnuplot_ctrl    *   h ;
     double              a, b ;
 
-    h = gnuplot_init(TRUE) ;
+    h = gnuplot_init() ;
     gnuplot_plot_slope(h, 1.0, 0.0, "unity slope") ;
     sleep(2) ;
     gnuplot_close(h) ;
@@ -387,7 +392,7 @@ void gnuplot_plot_slope(
         gnuplot_ctrl    *h ;
         char            eq[80] ;
 
-        h = gnuplot_init(TRUE) ;
+        h = gnuplot_init() ;
         strcpy(eq, "sin(x) * cos(2*x)") ;
         gnuplot_plot_equation(h, eq, "sine wave", normal) ;
         gnuplot_close(h) ;
@@ -506,5 +511,66 @@ int gnuplot_write_multi_csv(
     int                 n,
     int                 numColumns,
     char const      *   title);
+
+void gnuplot_plot_xy_from_datfile(
+	gnuplot_ctrl * handle,
+	char const* tmp_filename);
+
+void gnuplot_plot_xy_datfile_to_png(
+	gnuplot_ctrl * handle,
+	char const* dat_filename,
+	char const *curve_title,
+	char const* png_filename);
+
+void gnuplot_plot_xy_datfile_colheader_to_png(
+	gnuplot_ctrl * handle,
+	char const* dat_filename,
+	char const *curve_title,
+	char const* png_filename);
+
+int gnuplot_write_xrgb_dat(
+    char const *        fileName,
+    double const    *   x,
+    double const    *   r,
+    double const    *   g,
+    double const    *   b,
+    int                 n,
+    char const      *   title);
+
+int gnuplot_write_xcfa_dat(
+    char const *        fileName,
+    double const    *   x,
+    double const    *   cfa0,
+    double const    *   cfa1,
+    double const    *   cfa2,
+    double const    *   cfa3,
+    int                 n,
+    char const      *   title);
+
+void gnuplot_plot_xrgb_from_datfile(
+	gnuplot_ctrl * handle,
+	char const* tmp_filename);
+
+void gnuplot_plot_xrgb_datfile_to_png(
+	gnuplot_ctrl * handle,
+	char const* dat_filename,
+	char const* png_filename);
+
+void gnuplot_plot_xcfa_from_datfile(
+	gnuplot_ctrl * handle,
+	char const* tmp_filename);
+
+void gnuplot_plot_xcfa_datfile_to_png(
+	gnuplot_ctrl * handle,
+	char const* dat_filename,
+	char const* png_filename);
+
+void gnuplot_multiplot_3xy(
+	gnuplot_ctrl * handle,
+	double *x,
+	double *y1,
+	double *y2,
+	double *y3,
+	int n);
 
 #endif

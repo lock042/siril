@@ -28,6 +28,7 @@
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
+#include "gui/dialogs.h"
 #include "gui/image_display.h"
 #include "gui/histogram.h"
 #include "gui/progress_and_log.h"
@@ -299,6 +300,8 @@ int undo_display_data(int dir) {
 	switch (dir) {
 	case UNDO:
 		if (is_undo_available()) {
+			/* first we close all liveview dialog to avoid issue, especially with crop */
+			siril_close_preview_dialogs();
 			if (com.hist_current == com.hist_display) {
 				undo_save_state(&gfit, NULL);
 				com.hist_display--;
@@ -315,6 +318,8 @@ int undo_display_data(int dir) {
 		break;
 	case REDO:
 		if (is_redo_available()) {
+			/* first we close all liveview dialog to avoid issue, especially with crop */
+			siril_close_preview_dialogs();
 			siril_log_message(_("Redo: %s\n"), com.history[com.hist_display].history);
 			com.hist_display++;
 			undo_get_data(&gfit, &com.history[com.hist_display]);
