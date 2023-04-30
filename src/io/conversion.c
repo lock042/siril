@@ -670,7 +670,7 @@ gpointer convert_thread_worker(gpointer p) {
 		g_free(args->list[i]);
 	free(args->list);
 	args->nb_converted_files = convert.converted_files;
-	if (args->output_type != SEQ_SER && args->output_type != SEQ_FITSEQ) {
+	if (args->output_type == SEQ_REGULAR) {
 		if (convert.fatal_error)
 			siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_converted_files, args->total);
 		else {
