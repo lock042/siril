@@ -1943,7 +1943,6 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	gchar *command = build_string_from_words(sfargs);
 	siril_debug_print("Calling solve-field:\n%s\n", command);
 	g_free(command);
-	g_free(stopfile);
 
 	/* call solve-field */
 	gint child_stdout;
@@ -2001,6 +2000,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 			siril_debug_print("Error unlinking table_filename\n");
 		}
 	g_free(table_filename);
+	g_free(stopfile);
 #ifdef _WIN32
 	g_free(asnet_shell);
 #else
