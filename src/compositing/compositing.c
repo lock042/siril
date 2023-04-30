@@ -362,7 +362,7 @@ void open_compositing_window() {
 		/* the list below depends on the content of the glade file. It
 		 * should be done in the same way as in registration.c, but it
 		 * woud be easier if the two glades are merged. */
-		reg_methods[0] = new_reg_method(_("One star registration (deep-sky)"), &register_shift_fwhm, REQUIRES_ANY_SELECTION, REGTYPE_DEEPSKY);
+		reg_methods[0] = new_reg_method(_("Global star registration (deep-sky)"), &register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 		reg_methods[1] = new_reg_method(_("Image pattern alignment (planetary/deep-sky)"), &register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
 
 		reg_methods[2] = NULL;
@@ -645,6 +645,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	regargs.seq = seq;
 	get_the_registration_area(&regargs, method);
 	regargs.layer = 0;	// TODO: fix with dynamic layers list
+	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	regargs.run_in_thread = FALSE;
 	com.run_thread = TRUE;	// fix for the cancelling check in processing
 
@@ -652,9 +653,14 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	msg[strlen(msg)-1] = '\0';
 	set_cursor_waiting(TRUE);
 	set_progress_bar_data(msg, PROGRESS_RESET);
-	if (method->method_ptr(&regargs))
+	if (method->method_ptr(&regargs)) {
+		printf("Error in layers alignment\n");
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
-	else set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
+	}
+	else {
+		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
+		printf("Registration complete\n");
+	}
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
 
@@ -749,7 +755,7 @@ static void update_compositing_registration_interface() {
 
 	if (com.selection.w <= 0 && com.selection.h <= 0) {
 		gtk_label_set_text(label, _("An image area must be selected for align"));
-		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);
+		gtk_widget_set_sensitive(lookup_widget("button_align"), TRUE);
 	/*} else if (ref_layer == -1 || (!luminance_mode && ref_layer == 0)) {
 		gtk_label_set_text(label, "A reference layer must be selected for align");
 		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);*/
