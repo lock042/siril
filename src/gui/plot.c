@@ -710,7 +710,7 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	double *vmag = NULL, *err = NULL, *x = NULL, *real_x = NULL;
 	gboolean use_gnuplot = gnuplot_is_available();
 	if (!use_gnuplot) {
-		siril_log_color_message(_("Gnuplot was not found, the light curve data will be "
+		siril_log_color_message(_("GNUplot not available: the light curve data will be "
 				"produced in %s but no image will be created. "
 				"You can specify the path to gnuplot in the Siril preferences.\n"), "red", filename);
 	}
@@ -809,14 +809,15 @@ int light_curve(pldata *plot, sequence *seq, gchar *filename) {
 	/*  data are computed, now plot the graph. */
 
 	if (use_gnuplot) {
-		if ((gplot = gnuplot_init(TRUE))) {
+		if ((gplot = gnuplot_init())) {
 			/* Plotting light curve */
 			gnuplot_set_title(gplot, _("Light Curve"));
 			gnuplot_set_xlabel(gplot, xlabel);
 			gnuplot_reverse_yaxis(gplot);
 			gnuplot_setstyle(gplot, "errorbars");
 			gnuplot_plot_xyyerr(gplot, x, vmag, err, nb_valid_images, "", 0);
-			g_idle_add(gnuplot_close_idle, gplot); // called in idle to let the plotting finish before closing gnuplot
+			// This is now handled at exit or via callback if the user closes the control_window
+			// gnuplot_close(gplot);
 		}
 		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
 	}
