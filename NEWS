@@ -28,6 +28,7 @@ xx/xx/xx
 * Add Astro-TIFF in sequence export
 * Force statistics for all images not from Siril (ensures DATAMAX is correct)
 * Fixed incorrect behaviour when resetting right-hand stretch type in star recomposition tool
+* Fixed crash that could occur when parsing string keywords that contained forbidden characters
 
 v1.2.0-beta2 March 12, 2023
 
