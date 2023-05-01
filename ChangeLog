@@ -29,6 +29,7 @@ xx/xx/xx
 * Force statistics for all images not from Siril (ensures DATAMAX is correct)
 * Fixed incorrect behaviour when resetting right-hand stretch type in star recomposition tool
 * Fixed GNUplot terminals so they remain interactive and free resources when closed
+* Fixed crash that could occur when parsing string keywords that contained forbidden characters
 * Added read of datetime in jpeg and png file with exiv2
 
 siril 1.2.0-beta2
