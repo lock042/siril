@@ -324,6 +324,7 @@ int process_savebmp(int nb){
 
 int process_synthstar(int nb) {
 	set_cursor_waiting(TRUE);
+	image_cfa_warning_check();
 	start_in_new_thread(do_synthstar, NULL);
 	set_cursor_waiting(FALSE);
 	return CMD_OK;
@@ -331,6 +332,7 @@ int process_synthstar(int nb) {
 
 int process_unclip(int nb) {
 	set_cursor_waiting(TRUE);
+	image_cfa_warning_check();
 	start_in_new_thread(fix_saturated_stars, NULL);
 	set_cursor_waiting(FALSE);
 	return CMD_OK;
@@ -1995,7 +1997,7 @@ int process_seq_ghs(int nb, int stretchtype) {
 	}
 	if (!seqdata->seqEntry)
 		seqdata->seqEntry = strdup("stretch_");
-
+	sequence_cfa_warning_check(seq);
 	apply_ght_to_sequence(seqdata);
 	return CMD_OK;
 }
@@ -2037,7 +2039,7 @@ int process_ghs(int nb, int stretchtype) {
 		free(params);
 		return CMD_ARG_ERROR;
 	}
-
+	image_cfa_warning_check();
 	if (params->payne_colourstretchmodel == COL_SAT)
 		apply_sat_ght_to_fits(&gfit, &gfit, params, TRUE);
 	else
@@ -2114,7 +2116,7 @@ int process_wavelet(int nb) {
 		siril_log_message(_("Wavelet: type must be %d or %d\n"), TO_PAVE_LINEAR, TO_PAVE_BSPLINE);
 		return CMD_ARG_ERROR;
 	}
-
+	image_cfa_warning_check();
 	if (gfit.type == DATA_USHORT) {
 		float *Imag = f_vector_alloc(gfit.rx * gfit.ry);
 		if (!Imag) {
@@ -2209,6 +2211,7 @@ int process_asinh(int nb) {
 	}
 
 	set_cursor_waiting(TRUE);
+	image_cfa_warning_check();
 	asinhlut(&gfit, beta, offset, human_luminance);
 
 	char log[90];
@@ -2691,7 +2694,7 @@ int process_mtf(int nb) {
 			params.do_red = FALSE;
 		}
 	}
-
+	image_cfa_warning_check();
 	if (inverse)
 		apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
 	else apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
@@ -2768,6 +2771,7 @@ int process_autoghs(int nb) {
 		}
 		return CMD_GENERIC_ERROR;
 	}
+	image_cfa_warning_check();
 	if (linked) {
 		double median = 0.0, sigma = 0.0;
 		for (int i = 0; i < nb_channels; ++i) {
@@ -2844,6 +2848,7 @@ int process_autostretch(int nb) {
 
 	siril_log_message(_("Computing %s auto-stretch with values %f and %f\n"),
 			linked ? _("linked") : _("unlinked"), shadows_clipping, target_bg);
+	image_cfa_warning_check();
 	if (linked) {
 		struct mtf_params params;
 		find_linked_midtones_balance(&gfit, shadows_clipping, target_bg, &params);
@@ -2878,7 +2883,7 @@ int process_binxy(int nb) {
 	if (nb > 2 && !g_ascii_strncasecmp(word[2], "-sum", 4)) {
 		mean = FALSE;
 	}
-
+	image_cfa_warning_check();
 	fits_binning(&gfit, factor, mean);
 
 	notify_gfit_modified();
@@ -2964,7 +2969,7 @@ int process_resample(int nb) {
 	siril_log_message(_("Resampling to %d x %d pixels with %s interpolation\n"),
 			toX, toY, interp_to_str(interpolation));
 	int fromX = gfit.rx, fromY = gfit.ry;
-
+	image_cfa_warning_check();
 	set_cursor_waiting(TRUE);
 	verbose_resize_gaussian(&gfit, toX, toY, interpolation, clamp);
 
@@ -3002,7 +3007,7 @@ int process_rgradient(int nb) {
 		free(args);
 		return CMD_ARG_ERROR;
 	}
-
+	image_cfa_warning_check();
 	start_in_new_thread(rgradient_filter, args);
 	return CMD_OK;
 }
@@ -3076,6 +3081,8 @@ int process_rotate(int nb) {
 		siril_log_message(_("Angle is 0.0 or 360.0 degrees. Doing nothing...\n"));
 		return CMD_ARG_ERROR;
 	}
+	if (angle != 90.0 && angle != 180.0 && angle != 270.0)
+		image_cfa_warning_check();
 	verbose_rotate_image(&gfit, area, angle, interpolation, crop, clamp);
 
 	// the new selection will match the current image
@@ -4385,6 +4392,7 @@ int process_ddp(int nb) {
 		siril_log_message(_("Sigma value is incorrect\n"));
 		return CMD_ARG_ERROR;
 	}
+	image_cfa_warning_check();
 	ddp(&gfit, level, coeff, sigma);
 	notify_gfit_modified();
 	return CMD_OK;
@@ -5623,7 +5631,7 @@ int process_seq_mtf(int nb) {
 			}
 		}
 	}
-
+	sequence_cfa_warning_check(seq);
 	apply_mtf_to_sequence(args);
 
 	return CMD_OK;

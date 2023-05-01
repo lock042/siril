@@ -230,6 +230,8 @@ void on_asinh_cancel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_asinh_ok_clicked(GtkButton *button, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	if (asinh_show_preview == FALSE) {
 		update_image *param = malloc(sizeof(update_image));
 		param->update_preview_fn = asinh_update_preview;
