@@ -1957,6 +1957,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 			if (g_unlink(table_filename))
 				siril_debug_print("Error unlinking table_filename\n");
 		g_free(table_filename);
+		g_free(stopfile);
 #ifdef _WIN32
 		g_free(asnet_shell);
 #else
