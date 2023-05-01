@@ -28,6 +28,7 @@ xx/xx/xx
 * Force statistics for all images not from Siril (ensures DATAMAX is correct)
 * Fixed incorrect behaviour when resetting right-hand stretch type in star recomposition tool
 * Fix GNUplot terminals so they remain interactive and free resources when closed
+* Fixed crash that could occur when parsing string keywords that contained forbidden characters
 * Fixed calling external processes that left too many opened file descriptors
 * Fixed Stop behavior for starnet and local astrometry.net
 
