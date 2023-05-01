@@ -255,7 +255,7 @@ int select_vport(int vport) {
 gboolean check_ok_if_cfa() {
 	gboolean retval;
 	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
-		int confirm = siril_confirm_dialog(_("Undebayered CFA image"),
+		int confirm = siril_confirm_dialog(_("Undebayered CFA image loaded"),
 				_("You are about to apply a function that is not intended for use on an undebayered CFA image. Are you sure you wish to proceed?"), _("Proceed"));
 		retval = confirm ? TRUE : FALSE;
 	} else {
