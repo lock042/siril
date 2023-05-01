@@ -1,4 +1,4 @@
-siril 1.2.0-beta3
+siril 1.2.0-rc1
 xx/xx/xx
 
 * Fixed crash in seqstarnet when processing single-file sequences (SER, FITSEQ)
@@ -25,11 +25,11 @@ xx/xx/xx
 * Fixed incorrect option name in `show` help text
 * Prevent cleaning stats from resetting the reference image
 * Fixed photometry with 32bit images from PRISM
-* Add Astro-TIFF in sequence export
+* Added Astro-TIFF in sequence export
 * Force statistics for all images not from Siril (ensures DATAMAX is correct)
 * Fixed incorrect behaviour when resetting right-hand stretch type in star recomposition tool
-* Fix GNUplot terminals so they remain interactive and free resources when closed
-
+* Fixed GNUplot terminals so they remain interactive and free resources when closed
+* Added read of datetime in jpeg and png file with exiv2
 
 v1.2.0-beta2 March 12, 2023
 
