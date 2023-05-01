@@ -25,7 +25,6 @@ extern "C" {
 #endif
 
 int siril_get_thumbnail_exiv(const char *path, uint8_t **buffer, size_t *size, char **mime_type);
-gchar *siril_get_date_from_exif(const char *filename);
 
 #ifdef __cplusplus
 }
