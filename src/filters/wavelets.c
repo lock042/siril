@@ -193,10 +193,6 @@ gpointer extract_plans(gpointer p) {
 }
 
 void on_wavelets_dialog_show(GtkWidget *widget, gpointer user_data) {
-	if (!check_ok_if_cfa()) {
-		siril_close_dialog("wavelets_dialog");
-		return;
-	}
 	wavelet_show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("wavelet_preview")));
 	wavelets_startup();
 }

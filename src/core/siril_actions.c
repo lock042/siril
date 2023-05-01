@@ -565,6 +565,8 @@ void mirrory_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 }
 
 void wavelets_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	siril_open_dialog("wavelets_dialog");
 }
 
