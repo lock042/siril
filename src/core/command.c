@@ -4576,6 +4576,11 @@ int process_findstar(int nb) {
 		free(args);
 		return argparsing;
 	}
+	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_log_color_message(_("Warning: an undebayered CFA image is loaded. Star detection may produce results for this image but will not perform optimally and star parameters may be inaccurate.\n"), "salmon");
+	}
+
 	start_in_new_thread(findstar_worker, args);
 
 	return CMD_OK;
@@ -4624,6 +4629,16 @@ int process_seq_findstar(int nb) {
 		siril_log_message(_("Option -out= is not available for sequences, ignoring\n"));
 		g_free(args->starfile);
 		args->starfile = NULL;
+	}
+
+	fits tmpfit = { 0 };
+	seq_read_frame(seq, sequence_find_refimage(seq), &tmpfit, FALSE, -1);
+	gboolean mono = (tmpfit.naxes[2] == 1);
+	gboolean cfa = (tmpfit.bayer_pattern[0] != '\0');
+	clearfits(&tmpfit);
+	if (mono && cfa) {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		siril_log_color_message(_("Warning: sequence contains undebayered CFA images. Star detection may produce results for this sequence but will not perform optimally and star parameters may be inaccurate.\n"), "salmon");
 	}
 
 	return apply_findstar_to_sequence(args);

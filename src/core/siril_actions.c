@@ -326,7 +326,13 @@ void astrometry_activate(GSimpleAction *action, GVariant *parameter,gpointer use
 }
 
 void dyn_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("stars_list_window");
+	int confirm = TRUE;
+	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		confirm = siril_confirm_dialog(_("Undebayered CFA image loaded"),
+				_("The star detection functions in the Dynamic PSF dialog may produce results for this CFA image but will not perform optimally and star parameters may be inaccurate. Are you sure you wish to proceed?"), _("Proceed"));
+	}
+	if (confirm)
+		siril_open_dialog("stars_list_window");
 }
 
 void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -334,6 +340,8 @@ void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 }
 
 void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	psf_star *result = NULL;
 	int layer = select_vport(gui.cvport);
 
@@ -357,6 +365,8 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 }
 
 void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	process_seq_psf(0);
 }
 
@@ -457,6 +467,8 @@ void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 }
 
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	evaluate_noise_in_image();
 }
 
