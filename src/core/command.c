@@ -5032,6 +5032,7 @@ int process_subsky(int nb) {
 	gboolean dithering;
 	background_interpolation interp;
 	char *prefix = NULL;
+	gboolean do_cfa = FALSE;
 
 	int arg_index = 1;
 	gboolean is_sequence = (word[0][2] == 'q');
@@ -5109,6 +5110,10 @@ int process_subsky(int nb) {
 		else if (is_sequence && !g_strcmp0(arg, "-nodither")) {
 			dithering = FALSE;
 		}
+		else if (!g_strcmp0(arg, "-override-cfa")) {
+			siril_log_message(_("CFA override enabled.\n"));
+			do_cfa = TRUE;
+		}
 		else if (!is_sequence && !g_strcmp0(arg, "-dither")) {
 			dithering = TRUE;
 		}
@@ -5135,12 +5140,22 @@ int process_subsky(int nb) {
 	if (is_sequence) {
 		args->seq = seq;
 		args->seqEntry = prefix ? prefix : strdup("bkg_");
+		if (seq->cfa_opened_monochrome && !do_cfa) {
+			siril_log_color_message(_("Warning: applying background extraction to sequence of undebayered images. This is very likely to give poor results. If you really want this, use the -override-cfa option.\n"), "salmon");
+			free(args);
+			return CMD_GENERIC_ERROR;
+		}
 
 		apply_background_extraction_to_sequence(args);
 	} else {
 		args->seq = NULL;
 		args->seqEntry = NULL;
 		args->fit = &gfit;
+		if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0' && !do_cfa) {
+			siril_log_color_message(_("Warning: applying background extraction to undebayered image. If you really want this, use the -override-cfa option.\n"), "salmon");
+			free(args);
+			return CMD_GENERIC_ERROR;
+		}
 
 		if (!generate_background_samples(samples, tolerance))
 			start_in_new_thread(remove_gradient_from_image, args);
