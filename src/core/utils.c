@@ -772,7 +772,8 @@ gboolean is_forbiden_in_filename(gchar c) {
 gboolean file_name_has_invalid_chars(const char *name) {
 	if (!name)
 		return TRUE;	// NULL is kind of invalid
-	for (int i = 0; i < strlen(name); i++)
+	int l = strlen(name);
+	for (int i = 0; i < l; i++)
 		if (is_forbiden_in_filename(name[i]))
 			return TRUE;
 	return FALSE;
@@ -781,7 +782,8 @@ gboolean file_name_has_invalid_chars(const char *name) {
 void replace_invalid_chars(char *name, char repl) {
 	if (!name)
 		return;	// NULL is kind of invalid
-	for (int i = 0; i < strlen(name); i++)
+	int l = strlen(name);
+	for (int i = 0; i < l; i++)
 		if (is_forbiden_in_filename(name[i]))
 			name[i] = repl;
 	return;
