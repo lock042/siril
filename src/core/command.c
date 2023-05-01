@@ -686,7 +686,7 @@ int process_seq_starnet(int nb){
 			return CMD_ARG_ERROR;
 		}
 	}
-	sequence_cfa_warning_chack(starnet_args->seq);
+	sequence_cfa_warning_check(starnet_args->seq);
 	set_cursor_waiting(TRUE);
 	apply_starnet_to_sequence(starnet_args);
 
